@@ -62,6 +62,19 @@ interface MongoDBIntegrationTest {
     mongoClient: () => MongoClient;
     connectionString: () => string;
     randomDbName: () => string;
+
+    /**
+     * Build a connection string targeting the same cluster but using the
+     * provided credentials. Useful for tests that need to simulate users
+     * with restricted privileges when the cluster was spun up with the
+     * `users` option.
+     */
+    connectionStringForUser: (args: {
+        username: string;
+        password: string;
+        authSource?: string;
+        defaultDatabase?: string;
+    }) => string;
 }
 
 export type MongoDBIntegrationTestCase = IntegrationTest &
@@ -158,6 +171,12 @@ export function setupMongoDBIntegrationTest(
         },
         connectionString: getConnectionString,
         randomDbName: () => randomDbName,
+        connectionStringForUser: (args): string => {
+            if (!mongoCluster) {
+                throw new Error("beforeAll() hook not ran yet");
+            }
+            return mongoCluster.connectionStringForUser(args);
+        },
     };
 }
 

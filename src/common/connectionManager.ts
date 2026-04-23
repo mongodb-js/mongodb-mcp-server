@@ -1,4 +1,5 @@
 import { EventEmitter } from "events";
+import { MongoServerError } from "mongodb";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { generateConnectionInfoFromCliArgs, type ConnectionInfo } from "@mongosh/arg-parser";
 import type { DeviceId } from "../helpers/deviceId.js";
@@ -29,10 +30,10 @@ export interface ConnectionState {
     connectedAtlasCluster?: AtlasClusterConnectionInfo;
 }
 
-// Fallback database for search index check when no accessible database is found
-const MCP_FALLBACK_TEST_DATABASE = "#mongodb-mcp";
-// System databases that should be skipped when searching for accessible databases
-const SYSTEM_DATABASES = new Set(["admin", "local", "config", "$external"]);
+const SEARCH_PROBE_COLLECTION_NAME = "test";
+
+/** See https://github.com/mongodb/mongo/blob/master/src/mongo/base/error_codes.yml (SearchNotEnabled). */
+const MONGODB_SEARCH_NOT_ENABLED_ERROR_CODE = 31082;
 
 export const defaultDriverOptions: ConnectionInfo["driverOptions"] = {
     readConcern: {
@@ -58,45 +59,101 @@ export class ConnectionStateConnected implements ConnectionState {
 
     private _isSearchSupported?: boolean;
 
-    public async isSearchSupported(): Promise<boolean> {
+    public async isSearchSupported(logger: LoggerBase): Promise<boolean> {
         if (this._isSearchSupported === undefined) {
-            try {
-                // If a cluster supports search indexes, the call below will succeed
-                // with a cursor otherwise will throw an Error.
-                // the Search Index Management Service might not be ready yet, but
-                // we assume that the agent can retry in that situation.
-                // Try to find an accessible database dynamically instead of using
-                // a hardcoded database name that may not exist or be accessible.
-                const databaseName = await this.findAccessibleDatabase();
-                await this.serviceProvider.getSearchIndexes(databaseName, "test");
-                this._isSearchSupported = true;
-            } catch {
-                this._isSearchSupported = false;
-            }
+            this._isSearchSupported = await this.probeSearchCapability(logger);
         }
 
         return this._isSearchSupported;
     }
 
+    private async probeSearchCapability(logger: LoggerBase): Promise<boolean> {
+        const databases = await this.buildSearchProbeDatabaseCandidates(logger);
+
+        for (const databaseName of databases) {
+            try {
+                await this.serviceProvider.getSearchIndexes(databaseName, SEARCH_PROBE_COLLECTION_NAME);
+                logger.debug({
+                    id: LogId.searchCapabilityProbe,
+                    context: "ConnectionStateConnected",
+                    message: "Atlas Search capability probe succeeded",
+                });
+                return true;
+            } catch (probeError: unknown) {
+                if (
+                    probeError instanceof MongoServerError &&
+                    (probeError.code === MONGODB_SEARCH_NOT_ENABLED_ERROR_CODE ||
+                        probeError.codeName === "SearchNotEnabled")
+                ) {
+                    logger.debug({
+                        id: LogId.searchCapabilityProbe,
+                        context: "ConnectionStateConnected",
+                        message: "Atlas Search capability probe: search not enabled on cluster",
+                    });
+
+                    return false;
+                }
+
+                logger.debug({
+                    id: LogId.searchCapabilityProbe,
+                    context: "ConnectionStateConnected",
+                    message: "Atlas Search capability probe: inconclusive error for database candidate, trying next",
+                });
+            }
+        }
+
+        logger.debug({
+            id: LogId.searchCapabilityProbe,
+            context: "ConnectionStateConnected",
+            message: "Atlas Search capability probe: no success and no SearchNotEnabled; assuming search is supported",
+        });
+
+        return true;
+    }
+
     /**
-     * Find an accessible database for search index operations.
-     * Tries to list databases and find a non-system database that the user can access.
+     * Build an ordered list of database names to try for the search index probe.
+     * Prefers the driver's initial database from the connection string (when not
+     * a system DB), then other non-system databases from listDatabases, then the
+     * fallback #mongodb-mcp database.
      */
-    private async findAccessibleDatabase(): Promise<string> {
+    private async buildSearchProbeDatabaseCandidates(logger: LoggerBase): Promise<string[]> {
+        type ListDatabasesDocument = { databases?: { name?: string }[] };
+        let listedNames: string[] = [];
         try {
-            // List all databases from admin
-            const dbs = (await this.serviceProvider.listDatabases("")).databases as {
-                name: string;
-            }[];
-            // Find first non-system database
-            const accessibleDb = dbs.find((db) => !SYSTEM_DATABASES.has(db.name));
-            if (accessibleDb) {
-                return accessibleDb.name;
+            const raw = (await this.serviceProvider.listDatabases("")) as ListDatabasesDocument;
+            const rows = raw.databases;
+            if (Array.isArray(rows)) {
+                listedNames = rows
+                    .map((row) => row.name)
+                    .filter((name): name is string => typeof name === "string" && name.length > 0);
             }
         } catch {
-            // If listing databases fails (e.g., permission issues), fall back to default
+            logger.debug({
+                id: LogId.searchCapabilityProbe,
+                context: "ConnectionStateConnected",
+                message: "listDatabases failed while building Atlas Search probe candidates",
+            });
         }
-        return MCP_FALLBACK_TEST_DATABASE;
+
+        // System databases that should be skipped when searching for accessible databases
+        const SYSTEM_DATABASES = new Set(["admin", "local", "config"]);
+
+        const nonSystem = listedNames.filter((name) => !SYSTEM_DATABASES.has(name)).sort((a, b) => a.localeCompare(b));
+
+        const result = new Set<string>();
+        const initialDb = this.serviceProvider.initialDb;
+        if (initialDb.length > 0 && !SYSTEM_DATABASES.has(initialDb)) {
+            result.add(initialDb);
+        }
+
+        for (const name of nonSystem) {
+            result.add(name);
+        }
+
+        result.add("#mongodb-mcp");
+
+        return [...result];
     }
 }
 

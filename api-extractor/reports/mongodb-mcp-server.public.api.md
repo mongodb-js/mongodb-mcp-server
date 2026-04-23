@@ -346,7 +346,7 @@ export interface ConnectionState {
 
 // @public (undocumented)
 export class ConnectionStateConnected implements ConnectionState {
-    constructor(serviceProvider: NodeDriverServiceProvider, connectionStringInfo?: ConnectionStringInfo | undefined, connectedAtlasCluster?: AtlasClusterConnectionInfo | undefined);
+    constructor(serviceProvider: NodeDriverServiceProvider, connectionStringInfo?: ConnectionStringInfo | undefined, connectedAtlasCluster?: AtlasClusterConnectionInfo | undefined, logger?: LoggerBase | undefined);
     // (undocumented)
     connectedAtlasCluster?: AtlasClusterConnectionInfo | undefined;
     // (undocumented)

@@ -40,6 +40,7 @@ export const LogId = {
     mongodbConnectTry: mongoLogId(1_004_003),
     mongodbCursorCloseError: mongoLogId(1_004_004),
     mongodbIndexCheckFailure: mongoLogId(1_004_005),
+    searchCapabilityProbe: mongoLogId(1_004_006),
 
     toolUpdateFailure: mongoLogId(1_005_001),
     resourceUpdateFailure: mongoLogId(1_005_002),
