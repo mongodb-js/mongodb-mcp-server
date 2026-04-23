@@ -40,15 +40,18 @@ describe("skills CLI agent ID mapping", () => {
             const testCwd = fs.mkdtempSync(path.join(tmpRoot, `${safeName}-`));
 
             const args = buildSkillsAddArgs(agentId, false);
+            // `shell: true` — on Windows, `npx` is a `.cmd` shim that direct
+            // `spawn`/`spawnSync` can't resolve; the shell handles PATHEXT.
             const result = spawnSync("npx", args, {
                 cwd: testCwd,
                 encoding: "utf8",
                 timeout: 180_000,
+                shell: true,
             });
 
             expect(
                 result.status,
-                `skills add --agent ${agentId} exited with ${result.status}.\nstdout:\n${result.stdout ?? ""}\nstderr:\n${result.stderr ?? ""}`
+                `skills add --agent ${agentId} exited with ${result.status}.\nerror: ${result.error?.message ?? "(none)"}\nstdout:\n${result.stdout ?? ""}\nstderr:\n${result.stderr ?? ""}`
             ).toBe(0);
         },
         180_000

@@ -72,7 +72,10 @@ const SPAWN_ERROR_EXIT_CODE = -1;
 
 function runSkillsAdd(args: string[], cwd: string): Promise<number> {
     return new Promise<number>((resolve) => {
-        const child = spawn("npx", args, { stdio: "inherit", cwd });
+        // `shell: true` is required on Windows so `npx` (a `.cmd` shim) resolves
+        // through PATHEXT. Our args are controlled and contain no shell
+        // metacharacters, so there's no injection risk.
+        const child = spawn("npx", args, { stdio: "inherit", cwd, shell: true });
         child.on("close", (code) => resolve(code ?? 0));
         child.on("error", (err) => {
             // Spawn-level error (npx missing, etc.). Print the message ourselves
