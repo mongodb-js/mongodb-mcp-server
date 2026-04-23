@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolExecutionContext } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import type { FindCursor } from "mongodb";
@@ -35,7 +35,7 @@ export class FindTool extends MongoDBToolBase {
     static toolName = "find";
     public description = "Run a find query against a MongoDB collection";
     public argsShape = {
-        ...DbOperationArgs,
+        ...CollOperationArgs,
         ...FindArgs,
         responseBytesLimit: z.number().optional().default(ONE_MB).describe(`\
 The maximum number of bytes to return in the response. This value is capped by the server's configured maxBytesPerQuery and cannot be exceeded. \
