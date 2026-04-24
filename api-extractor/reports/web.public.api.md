@@ -382,7 +382,7 @@ export class ConnectionStateConnected implements ConnectionState {
     // (undocumented)
     connectionStringInfo?: ConnectionStringInfo | undefined;
     // (undocumented)
-    isSearchSupported(logger: LoggerBase): Promise<boolean>;
+    isSearchSupported(logger?: LoggerBase): Promise<boolean>;
     // (undocumented)
     serviceProvider: NodeDriverServiceProvider;
     // (undocumented)
