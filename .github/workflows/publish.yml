@@ -103,7 +103,7 @@ jobs:
         id: ai-summary
         continue-on-error: true
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
         run: ./scripts/generate-release-notes.sh ${{ needs.check.outputs.GIT_TAG_VERSION }} ${{ github.sha }}
         shell: bash
 
