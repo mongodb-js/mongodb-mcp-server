@@ -4,7 +4,7 @@ import { MongoServerError } from "mongodb";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { Session } from "../../../src/common/session.js";
 import { CompositeLogger } from "../../../src/common/logging/index.js";
-import { MCPConnectionManager } from "../../../src/common/connectionManager.js";
+import { type ConnectionStateConnected, MCPConnectionManager } from "../../../src/common/connectionManager.js";
 import { ExportsManager } from "../../../src/common/exportsManager.js";
 import { DeviceId } from "../../../src/helpers/deviceId.js";
 import { Keychain } from "../../../src/common/keychain.js";
@@ -192,6 +192,17 @@ describe("Session", () => {
             expect(await session.isSearchSupported()).toEqual(true);
             expect(await session.isSearchSupported()).toEqual(true);
             expect(getSearchIndexesMock).toHaveBeenCalledTimes(1);
+        });
+
+        it("should allow direct search support checks without a logger", async () => {
+            getSearchIndexesMock.mockResolvedValue([]);
+
+            await session.connectToMongoDB({
+                connectionString: "mongodb://localhost:27017",
+            });
+
+            const connectionState = session.connectionManager.currentConnectionState as ConnectionStateConnected;
+            expect(await connectionState.isSearchSupported()).toEqual(true);
         });
     });
 

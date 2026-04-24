@@ -5,7 +5,7 @@ import { generateConnectionInfoFromCliArgs, type ConnectionInfo } from "@mongosh
 import type { DeviceId } from "../helpers/deviceId.js";
 import { type UserConfig } from "./config/userConfig.js";
 import { MongoDBError, ErrorCodes } from "./errors.js";
-import { type LoggerBase, LogId } from "./logging/index.js";
+import { LogId, NullLogger, type LoggerBase } from "./logging/index.js";
 import { packageInfo } from "./packageInfo.js";
 import { type AppNameComponents, setAppNameParamIfMissing } from "../helpers/connectionOptions.js";
 import {
@@ -59,9 +59,9 @@ export class ConnectionStateConnected implements ConnectionState {
 
     private _isSearchSupported?: boolean;
 
-    public async isSearchSupported(logger: LoggerBase): Promise<boolean> {
+    public async isSearchSupported(logger?: LoggerBase): Promise<boolean> {
         if (this._isSearchSupported === undefined) {
-            this._isSearchSupported = await this.probeSearchCapability(logger);
+            this._isSearchSupported = await this.probeSearchCapability(logger ?? new NullLogger());
         }
 
         return this._isSearchSupported;
