@@ -1,10 +1,11 @@
 name: Label PR
 
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, edited, synchronize]
 
 permissions:
+  contents: read
   pull-requests: write
   issues: write
 
@@ -14,13 +15,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          persist-credentials: false
       - name: Apply label based on conventional commit prefix
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
