@@ -67,7 +67,7 @@ export type ToolConstructorParams<TConfig = unknown, TContext = unknown, TMetric
     /** The elicitation service for requesting user confirmation. */
     elicitation: unknown;
     /** The metrics service. */
-    metrics: TMetrics;
+    metrics: unknown;
     /** Optional UI registry for rendering tool UIs. */
     uiRegistry?: unknown;
     /** Optional custom context object that will be available to tools. */

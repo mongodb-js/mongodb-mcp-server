@@ -1,4 +1,7 @@
 import type { Implementation } from "@modelcontextprotocol/sdk/types.js";
+import type { ICompositeLogger } from "./logging.js";
+import type { IKeychain } from "./keychain.js";
+import type { ApiClientLike } from "./apiClient.js";
 
 /**
  * Events emitted by an `ISession` instance over its lifetime.
@@ -32,6 +35,36 @@ export interface ISession {
 
     /** Information about the connected MCP client, populated after handshake. */
     mcpClient?: McpClientInfo;
+
+    /** Composite logger for this session. */
+    readonly logger: ICompositeLogger;
+
+    /** Keychain holding secrets to be redacted from logs. */
+    readonly keychain: IKeychain;
+
+    /** Atlas API client associated with this session. */
+    readonly apiClient: ApiClientLike;
+
+    /** Connection manager for MongoDB deployments (concrete type in mcp-core). */
+    readonly connectionManager: unknown;
+
+    /** Exports manager for this session (concrete type in mcp-core). */
+    readonly exportsManager: unknown;
+
+    /** Service provider for the active MongoDB connection (concrete type in mcp-core). */
+    readonly serviceProvider: unknown;
+
+    /** Connected Atlas cluster info, if any (concrete type in mcp-core). */
+    readonly connectedAtlasCluster: unknown;
+
+    /** Parsed connection string info, if any (concrete type in mcp-core). */
+    readonly connectionStringInfo: unknown;
+
+    /** Atlas Local client, if any (concrete type in mcp-core). */
+    readonly atlasLocalClient: unknown;
+
+    /** Error handler for connection errors (concrete type in mcp-core). */
+    readonly connectionErrorHandler: unknown;
 
     /**
      * Stores the connected MCP client's name/version/title and propagates the

@@ -10,5 +10,5 @@ export type * from "./metrics.js";
 export type * from "./ui.js";
 export type * from "./resources.js";
 export type * from "./telemetry.js";
-export type * from "./errors.js";
+export * from "./errors.js";
 export type * from "./helpers.js";

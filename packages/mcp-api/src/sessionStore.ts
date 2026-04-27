@@ -29,7 +29,7 @@ export interface ISessionStore<T extends CloseableTransport = CloseableTransport
 export type SessionStoreConstructorArgs<TMetrics = unknown> = {
     options: { idleTimeoutMS: number; notificationTimeoutMS: number };
     logger: ILoggerBase;
-    metrics: TMetrics;
+    metrics: unknown;
 };
 
 /**
