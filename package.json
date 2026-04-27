@@ -110,7 +110,7 @@
     "@eslint/js": "^10.0.1",
     "@lg-mcp/embeddable-uis": "^0.1.0",
     "@lg-mcp/hooks": "^0.2.0",
-    "@microsoft/api-extractor": "^7.58.2",
+    "@microsoft/api-extractor": "^7.58.5",
     "@modelcontextprotocol/inspector": "^0.21.2",
     "@mongodb-js/oidc-mock-provider": "^0.13.7",
     "@redocly/cli": "^2.29.0",
