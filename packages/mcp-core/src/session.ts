@@ -2,7 +2,7 @@ import { ObjectId } from "bson";
 import type { Implementation } from "@modelcontextprotocol/sdk/types.js";
 import EventEmitter from "events";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
-import type { ApiClientLike } from "@mongodb-js/mcp-api";
+import type { ApiClientLike, ISession } from "@mongodb-js/mcp-api";
 import type { CompositeLogger } from "./logging/index.js";
 import { LogId } from "./logging/index.js";
 import type { Keychain } from "./keychain.js";
@@ -121,7 +121,7 @@ export type SessionEvents = {
     "connection-error": [ConnectionStateErroredLike];
 };
 
-export class Session extends EventEmitter<SessionEvents> {
+export class Session extends EventEmitter<SessionEvents> implements ISession {
     private readonly userConfig: SessionConfig;
     readonly sessionId: string = new ObjectId().toString();
     readonly exportsManager: ExportsManagerLike;

@@ -61,7 +61,7 @@ export interface ISession {
     readonly connectionStringInfo: unknown;
 
     /** Atlas Local client, if any (concrete type in mcp-core). */
-    readonly atlasLocalClient: unknown;
+    readonly atlasLocalClient?: unknown;
 
     /** Error handler for connection errors (concrete type in mcp-core). */
     readonly connectionErrorHandler: unknown;
@@ -111,9 +111,4 @@ export interface ISession {
      */
     assertSearchSupported(): Promise<void>;
 
-    /** Subscribes to session lifecycle events. */
-    on<K extends keyof SessionEvents>(event: K, listener: (...args: SessionEvents[K]) => void): this;
-
-    /** Removes a previously registered listener. */
-    off<K extends keyof SessionEvents>(event: K, listener: (...args: SessionEvents[K]) => void): this;
 }

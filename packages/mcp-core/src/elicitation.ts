@@ -1,12 +1,12 @@
 import type { ElicitRequestFormParams } from "@modelcontextprotocol/sdk/types.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { ElicitedInputResult } from "@mongodb-js/mcp-api";
+import type { ElicitedInputResult, IElicitation } from "@mongodb-js/mcp-api";
 
 export type { ElicitedInputResult };
 
 const ELICITATION_TIMEOUT_MS = 300_000; // 5 minutes for user interaction
 
-export class Elicitation {
+export class Elicitation implements IElicitation {
     private readonly server: McpServer["server"];
     constructor({ server }: { server: McpServer["server"] }) {
         this.server = server;

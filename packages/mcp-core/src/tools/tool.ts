@@ -8,7 +8,7 @@ import type { Elicitation } from "../elicitation.js";
 import { createUIResource, type UIResource } from "@mcp-ui/server";
 import { getRandomUUID } from "../helpers/getRandomUUID.js";
 import type { Metrics, DefaultMetrics } from "@mongodb-js/mcp-metrics";
-import type { IUIRegistry, OperationType, ToolCategory } from "@mongodb-js/mcp-api";
+import type { IUIRegistry, IToolBase, OperationType, ToolCategory } from "@mongodb-js/mcp-api";
 import { redact } from "mongodb-redact";
 
 export type { OperationType, ToolCategory };
@@ -162,7 +162,7 @@ export abstract class ToolBase<
     TConfig extends ToolConfig = ToolConfig,
     TContext = unknown,
     TMetrics extends DefaultMetrics = DefaultMetrics,
-> {
+> implements IToolBase<TConfig, TContext, TMetrics> {
     public readonly name: string;
     public readonly category: ToolCategory;
     public readonly operationType: OperationType;

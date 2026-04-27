@@ -1,10 +1,11 @@
 import type { LoggerType, LogLevel, LogPayload } from "./loggingTypes.js";
 import { LoggerBase } from "./loggerBase.js";
+import type { ICompositeLogger, ILoggerBase } from "@mongodb-js/mcp-api";
 
-export class CompositeLogger extends LoggerBase {
+export class CompositeLogger extends LoggerBase implements ICompositeLogger {
     protected readonly type?: LoggerType;
 
-    private readonly loggers: LoggerBase[] = [];
+    private readonly loggers: ILoggerBase[] = [];
     private readonly attributes: Record<string, string> = {};
 
     constructor(...loggers: LoggerBase[]) {
@@ -15,7 +16,7 @@ export class CompositeLogger extends LoggerBase {
         this.loggers = loggers;
     }
 
-    public addLogger(logger: LoggerBase): void {
+    public addLogger(logger: ILoggerBase): void {
         this.loggers.push(logger);
     }
 

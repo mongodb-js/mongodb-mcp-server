@@ -1,6 +1,6 @@
 import { EventEmitter } from "events";
 import { redact } from "mongodb-redact";
-import type { ApiClientLike } from "@mongodb-js/mcp-api";
+import type { ApiClientLike, ITelemetry } from "@mongodb-js/mcp-api";
 import { LogId } from "../logging/index.js";
 import type { Session } from "../session.js";
 import { detectContainerEnv } from "../helpers/container.js";
@@ -117,7 +117,7 @@ export interface TelemetryCreateOptions<
 export class Telemetry<
     TEvent extends TelemetryEventLike = TelemetryEventLike,
     TCommonProperties extends CommonPropertiesLike = CommonPropertiesLike,
-> {
+> implements ITelemetry<TEvent, TCommonProperties> {
     private isBufferingEvents: boolean = true;
     /** Resolves when the setup is complete or a timeout occurs */
     public setupPromise: Promise<[string, boolean]> | undefined;

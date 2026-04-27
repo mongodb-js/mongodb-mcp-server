@@ -162,13 +162,10 @@ export type { SessionStoreConstructorArgs };
 /**
  * Creates a default SessionStore instance from the provided constructor arguments.
  */
-export function createDefaultSessionStore<
-    TTransport extends CloseableTransport = CloseableTransport,
-    TMetrics extends DefaultMetrics = DefaultMetrics,
->(params: {
+export function createDefaultSessionStore<TTransport extends CloseableTransport = CloseableTransport>(params: {
     options: { idleTimeoutMS: number; notificationTimeoutMS: number };
     logger: LoggerBase;
-    metrics: Metrics<TMetrics>;
+    metrics: Metrics<DefaultMetrics>;
 }): SessionStore<TTransport> {
-    return new SessionStore(params as { options: { idleTimeoutMS: number; notificationTimeoutMS: number }; logger: LoggerBase; metrics: Metrics<DefaultMetrics> });
+    return new SessionStore(params);
 }

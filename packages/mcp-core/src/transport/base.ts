@@ -5,7 +5,8 @@ import { Keychain } from "../keychain.js";
 import type { Metrics, DefaultMetrics } from "@mongodb-js/mcp-metrics";
 import type { Server, ServerOptions, ServerConfig } from "../server.js";
 import type { SessionOptions } from "../session.js";
-import type { TransportRequestContext } from "@mongodb-js/mcp-api";
+import type { TransportRequestContext, ITransportRunner } from "@mongodb-js/mcp-api";
+import { NoopMetrics } from "../metrics/noopMetrics.js";
 
 export type { TransportRequestContext };
 
@@ -52,9 +53,9 @@ export abstract class TransportRunnerBase<
     TConfig extends ServerConfig = ServerConfig,
     TContext = unknown,
     TMetrics extends DefaultMetrics = DefaultMetrics,
-> {
+> implements ITransportRunner {
     public logger: LoggerBase;
-    public metrics?: Metrics<TMetrics>;
+    public metrics: Metrics<TMetrics>;
 
     public deviceId: DeviceId;
 
@@ -67,7 +68,7 @@ export abstract class TransportRunnerBase<
         metrics,
     }: TransportRunnerConfig<TConfig, TMetrics>) {
         this.userConfig = userConfig;
-        this.metrics = metrics;
+        this.metrics = metrics ?? (new NoopMetrics() as unknown as Metrics<TMetrics>);
         const loggers: LoggerBase[] = [...additionalLoggers];
 
         this.logger = new CompositeLogger(...loggers);

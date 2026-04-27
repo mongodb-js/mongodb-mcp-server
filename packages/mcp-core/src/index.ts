@@ -1,3 +1,4 @@
+export * from "./metrics/noopMetrics.js";
 export * from "./session.js";
 export * from "./sessionStore.js";
 export * from "./keychain.js";

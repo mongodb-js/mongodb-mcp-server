@@ -7,7 +7,7 @@ import {
     SubscribeRequestSchema,
     UnsubscribeRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import type { IUIRegistry } from "@mongodb-js/mcp-api";
+import type { IUIRegistry, ResourceClass } from "@mongodb-js/mcp-api";
 import type { Metrics, DefaultMetrics } from "@mongodb-js/mcp-metrics";
 import type { Session } from "./session.js";
 import type { Telemetry, TelemetryEventLike } from "./telemetry/telemetry.js";
@@ -83,6 +83,13 @@ export interface ServerOptions<
      */
     tools?: AnyToolClass[];
     /**
+     * An optional list of resource constructors to be registered with the MCP
+     * server. When not provided, defaults to the built-in `Resources` array
+     * (currently empty). Callers can supply `ConfigResource`, `DebugResource`,
+     * `ExportedData`, etc.
+     */
+    resources?: ReadonlyArray<ResourceClass>;
+    /**
      * Custom context object made available to tools via `this.context`.
      */
     toolContext?: TContext;
@@ -99,6 +106,7 @@ export class Server<
     public readonly userConfig: TConfig;
     public readonly elicitation: Elicitation;
     private readonly toolConstructors: AnyToolClass[];
+    private readonly resourceConstructors: ReadonlyArray<ResourceClass>;
     public readonly tools: AnyToolBase[] = [];
     public readonly connectionErrorHandler: ConnectionErrorHandlerLike;
     public readonly uiRegistry?: IUIRegistry;
@@ -124,6 +132,7 @@ export class Server<
         connectionErrorHandler,
         elicitation,
         tools,
+        resources,
         uiRegistry,
         toolContext,
         metrics,
@@ -136,6 +145,7 @@ export class Server<
         this.elicitation = elicitation;
         this.connectionErrorHandler = connectionErrorHandler;
         this.toolConstructors = tools ?? [];
+        this.resourceConstructors = resources ?? Resources;
         this.uiRegistry = uiRegistry;
         this.toolContext = toolContext;
         this.metrics = metrics;
@@ -314,7 +324,7 @@ export class Server<
     }
 
     public registerResources(): void {
-        for (const resourceConstructor of Resources) {
+        for (const resourceConstructor of this.resourceConstructors) {
             const resource = new resourceConstructor(this.session, this.userConfig, this.telemetry);
             (resource as { register: (server: Server<TConfig, TContext, TMetrics>) => void }).register(this);
         }
