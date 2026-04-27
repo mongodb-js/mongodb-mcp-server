@@ -1,4 +1,4 @@
-import type { LoggerType, LogLevel, LogPayload } from "./index.js";
+import type { LoggerType, LogLevel, LogPayload } from "./loggingTypes.js";
 import { LoggerBase } from "./loggerBase.js";
 
 export class CompositeLogger extends LoggerBase {

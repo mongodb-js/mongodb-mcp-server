@@ -396,7 +396,7 @@ packages/mcp-core/
         └── getRandomUUID.ts
 ```
 
-- [ ] **Step 1: Create the package scaffold**
+- [x] **Step 1: Create the package scaffold**
 
 ```bash
 mkdir -p packages/mcp-core/src/{logging,transport,resources,telemetry,tools,helpers}
@@ -454,7 +454,7 @@ Create `packages/mcp-core/tsconfig.json`:
 }
 ```
 
-- [ ] **Step 2: Move source files using `git mv`**
+- [x] **Step 2: Move source files using `git mv`**
 
 Use `git mv` for each file in the move table above to preserve git history. Example:
 
@@ -496,7 +496,7 @@ class Session {
 }
 ```
 
-- [ ] **Step 3: Create `packages/mcp-core/src/index.ts`** (barrel)
+- [x] **Step 3: Create `packages/mcp-core/src/index.ts`** (barrel)
 
 Export everything that other packages will need:
 
@@ -516,7 +516,7 @@ export * from "./tools/index.js";
 export * from "./helpers/index.js";
 ```
 
-- [ ] **Step 4: Build mcp-core**
+- [x] **Step 4: Build mcp-core**
 
 ```bash
 cd packages/mcp-core && pnpm compile 2>&1
@@ -524,7 +524,7 @@ cd packages/mcp-core && pnpm compile 2>&1
 
 Resolve all TypeScript errors before proceeding. Expected: clean compile.
 
-- [ ] **Step 5: Wire up binary — update `src/` imports to use `@mongodb-js/mcp-core`**
+- [x] **Step 5: Wire up binary — update `src/` imports to use `@mongodb-js/mcp-core`**
 
 In the root `package.json`, add `"@mongodb-js/mcp-core": "workspace:*"` to `dependencies` and run `pnpm install`.
 
@@ -542,7 +542,7 @@ import { LoggerBase } from "@mongodb-js/mcp-core";
 
 Run `pnpm compile` from the repo root. Fix any errors before proceeding.
 
-- [ ] **Step 6: Migrate unit tests for moved code**
+- [x] **Step 6: Migrate unit tests for moved code**
 
 Use `git mv` to move tests into the package, then update their imports:
 
@@ -560,7 +560,7 @@ cd packages/mcp-core && pnpm test
 
 Expected: all pass.
 
-- [ ] **Step 7: Verify full build and test suite**
+- [x] **Step 7: Verify full build and test suite**
 
 ```bash
 pnpm run compile && pnpm test && pnpm run check
@@ -568,7 +568,7 @@ pnpm run compile && pnpm test && pnpm run check
 
 Expected: clean compile, same pass rate as before this task.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add -A
@@ -1972,8 +1972,8 @@ Each task below creates the package, wires it into the binary, deletes the moved
 
 | Task    | Package                                                | Status          |
 | ------- | ------------------------------------------------------ | --------------- |
-| Task 1  | `@mongodb-js/mcp-api` (types only, additive)           | [ ] Not started |
-| Task 2  | `@mongodb-js/mcp-core` + wire-up + unit tests          | [ ] Not started |
+| Task 1  | `@mongodb-js/mcp-api` (types only, additive)           | [x] Complete    |
+| Task 2  | `@mongodb-js/mcp-core` + wire-up + unit tests          | [x] Complete    |
 | Task 3  | `@mongodb-js/mcp-atlas-api-client` + wire-up           | [ ] Not started |
 | Task 4  | `@mongodb-js/mcp-cli-logging` + wire-up + unit tests   | [ ] Not started |
 | Task 5  | `@mongodb-js/mcp-cli-telemetry` + wire-up + unit tests | [ ] Not started |

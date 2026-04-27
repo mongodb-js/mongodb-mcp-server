@@ -1,7 +1,7 @@
 import type { LoggerType } from "./loggingTypes.js";
 import { LoggerBase } from "./loggerBase.js";
 
-export class NullLogger extends LoggerBase {
+export class NoopLogger extends LoggerBase {
     protected type?: LoggerType;
 
     constructor() {

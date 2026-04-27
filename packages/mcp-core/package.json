@@ -1,0 +1,40 @@
+{
+  "name": "@mongodb-js/mcp-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Core runtime implementations for MongoDB MCP server packages",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "compile": "tsc --project tsconfig.json",
+    "test": "vitest --run"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@mongodb-js/device-id": "^0.4.6",
+    "@mongodb-js/mcp-metrics": "workspace:*",
+    "bson": "^7.2.0",
+    "mongodb-connection-string-url": "^7.0.1",
+    "mongodb-log-writer": "^2.5.7",
+    "mongodb-redact": "^1.4.6",
+    "node-machine-id": "1.1.12",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@mongodb-js/mcp-api": "workspace:*",
+    "@types/node": "^25.6.0",
+    "mongodb": "^7.1.1",
+    "typescript": "^5.9.2",
+    "vitest": "^4.1.4"
+  }
+}

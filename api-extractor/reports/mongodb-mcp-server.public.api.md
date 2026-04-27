@@ -7,14 +7,22 @@
 import type { AggregationCursor } from 'mongodb';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { Client } from '@mongodb-js/atlas-local';
+import { CloseableTransport } from '@mongodb-js/mcp-core';
 import type { components } from './openapi.js';
+import { CompositeLogger } from '@mongodb-js/mcp-core';
 import { ConnectionInfo } from '@mongosh/arg-parser';
 import { Counter } from '@mongodb-js/mcp-metrics';
 import { createDefaultMetrics } from '@mongodb-js/mcp-metrics';
+import { createDefaultSessionStore } from '@mongodb-js/mcp-core';
+import { CreateSessionStoreFn } from '@mongodb-js/mcp-core';
+import { DefaultEventMap } from '@mongodb-js/mcp-core';
 import { DefaultMetrics } from '@mongodb-js/mcp-metrics';
 import { defaultParserOptions as defaultParserOptions_2 } from '@mongosh/arg-parser/arg-parser';
-import type { ElicitRequestFormParams } from '@modelcontextprotocol/sdk/types.js';
+import { DeviceId } from '@mongodb-js/mcp-core';
+import { Elicitation } from '@mongodb-js/mcp-core';
+import { ErrorCodes } from '@mongodb-js/mcp-core';
 import EventEmitter from 'events';
+import { EventMap } from '@mongodb-js/mcp-core';
 import express from 'express';
 import type { FetchOptions } from 'openapi-fetch';
 import type { FindCursor } from 'mongodb';
@@ -22,17 +30,27 @@ import { Gauge } from '@mongodb-js/mcp-metrics';
 import { Histogram } from '@mongodb-js/mcp-metrics';
 import type http from 'http';
 import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
-import type { LoggingMessageNotification } from '@modelcontextprotocol/sdk/types.js';
+import { ISessionStore } from '@mongodb-js/mcp-core';
+import { Keychain } from '@mongodb-js/mcp-core';
+import { LoggerBase } from '@mongodb-js/mcp-core';
+import { LoggerType } from '@mongodb-js/mcp-core';
+import { LogLevel } from '@mongodb-js/mcp-core';
+import { LogPayload } from '@mongodb-js/mcp-core';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { MetricDefinitions } from '@mongodb-js/mcp-metrics';
 import { Metrics } from '@mongodb-js/mcp-metrics';
-import type { MongoLogId } from 'mongodb-log-writer';
+import { MongoDBError } from '@mongodb-js/mcp-core';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
+import { NoopLogger as NullLogger } from '@mongodb-js/mcp-core';
 import type { operations } from './openapi.js';
 import { PrometheusMetrics } from '@mongodb-js/mcp-metrics';
 import { PrometheusMetricsOptions } from '@mongodb-js/mcp-metrics';
+import { registerGlobalSecretToRedact } from '@mongodb-js/mcp-core';
 import { Registry } from '@mongodb-js/mcp-metrics';
-import { Secret } from 'mongodb-redact';
+import { Secret } from '@mongodb-js/mcp-core';
+import { SessionCloseReason } from '@mongodb-js/mcp-core';
+import { SessionStore } from '@mongodb-js/mcp-core';
+import { SessionStoreConstructorArgs } from '@mongodb-js/mcp-core';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
@@ -219,10 +237,7 @@ export interface AuthProvider {
 // @public (undocumented)
 export type BaseEvent = TelemetryEvent<unknown>;
 
-// @public
-export type CloseableTransport = {
-    close(): Promise<void>;
-};
+export { CloseableTransport }
 
 // Warning: (ae-forgotten-export) The symbol "CommonStaticProperties" needs to be exported by the entry point lib.d.ts
 //
@@ -239,20 +254,7 @@ export type CommonProperties = {
     hosting_mode?: string;
 } & CommonStaticProperties;
 
-// @public (undocumented)
-export class CompositeLogger extends LoggerBase {
-    constructor(...loggers: LoggerBase[]);
-    // (undocumented)
-    addLogger(logger: LoggerBase): void;
-    // (undocumented)
-    log(level: LogLevel, payload: LogPayload): void;
-    // (undocumented)
-    protected logCore(): void;
-    // (undocumented)
-    setAttribute(key: string, value: string): void;
-    // (undocumented)
-    protected readonly type?: LoggerType;
-}
+export { CompositeLogger }
 
 // @public (undocumented)
 export class ConfigOverrideError extends Error {
@@ -415,8 +417,7 @@ export { createDefaultMetrics }
 // @public
 export const createDefaultMonitoringServer: <TMetrics extends DefaultMetrics = DefaultMetrics>(args: MonitoringServerConstructorArgs<TMetrics>) => MonitoringServer<TMetrics>;
 
-// @public
-export function createDefaultSessionStore<TTransport extends CloseableTransport = CloseableTransport, TMetrics extends DefaultMetrics = DefaultMetrics>(params: SessionStoreConstructorArgs<TMetrics>): SessionStore<TTransport>;
+export { createDefaultSessionStore }
 
 // @public @deprecated (undocumented)
 export const createMCPConnectionManager: ConnectionManagerFactoryFn;
@@ -433,8 +434,7 @@ export type CreateSessionConfigFn<TUserConfig extends UserConfig = UserConfig> =
     request?: TransportRequestContext;
 }) => Promise<TUserConfig> | TUserConfig;
 
-// @public
-export type CreateSessionStoreFn<TTransport extends CloseableTransport = CloseableTransport, TMetrics extends DefaultMetrics = DefaultMetrics> = (args: SessionStoreConstructorArgs<TMetrics>) => ISessionStore<TTransport>;
+export { CreateSessionStoreFn }
 
 // @public (undocumented)
 export interface Credentials {
@@ -463,8 +463,7 @@ export const defaultCreateAtlasLocalClient: AtlasLocalClientFactoryFn;
 // @public (undocumented)
 export const defaultCreateConnectionManager: ConnectionManagerFactoryFn;
 
-// @public (undocumented)
-export type DefaultEventMap = Record<string, never[]>;
+export { DefaultEventMap }
 
 export { DefaultMetrics }
 
@@ -494,55 +493,11 @@ export const defaultParserOptions: {
     };
 };
 
-// @public (undocumented)
-export class DeviceId {
-    close(): void;
-    // (undocumented)
-    static create(logger: LoggerBase, timeout?: number): DeviceId;
-    get(): Promise<string>;
-}
+export { DeviceId }
 
-// @public (undocumented)
-export class Elicitation {
-    constructor(input: {
-        server: McpServer["server"];
-    });
-    static CONFIRMATION_SCHEMA: {
-        type: "object";
-        properties: {
-            confirmation: {
-                type: "string";
-                title: string;
-                description: string;
-                enum: string[];
-                enumNames: string[];
-            };
-        };
-        required: string[];
-    };
-    requestConfirmation(message: string): Promise<boolean>;
-    // Warning: (ae-forgotten-export) The symbol "ElicitedInputResult" needs to be exported by the entry point lib.d.ts
-    requestInput(message: string, schema: ElicitRequestFormParams["requestedSchema"]): Promise<ElicitedInputResult>;
-    supportsElicitation(): boolean;
-}
+export { Elicitation }
 
-// @public (undocumented)
-export enum ErrorCodes {
-    // (undocumented)
-    AtlasSearchNotSupported = 1000004,
-    // (undocumented)
-    AtlasVectorSearchIndexNotFound = 1000006,
-    // (undocumented)
-    AtlasVectorSearchInvalidQuery = 1000007,
-    // (undocumented)
-    ForbiddenCollscan = 1000002,
-    // (undocumented)
-    ForbiddenWriteOperation = 1000003,
-    // (undocumented)
-    MisconfiguredConnectionString = 1000001,
-    // (undocumented)
-    NotConnectedToMongoDB = 1000000
-}
+export { ErrorCodes }
 
 // @public
 export class EventCache {
@@ -561,8 +516,7 @@ export class EventCache {
     get size(): number;
 }
 
-// @public (undocumented)
-export type EventMap<T> = Record<keyof T, any[]>;
+export { EventMap }
 
 // Warning: (ae-forgotten-export) The symbol "ExportsManagerEvents" needs to be exported by the entry point lib.d.ts
 //
@@ -598,86 +552,17 @@ export { Gauge }
 
 export { Histogram }
 
-// @public
-export interface ISessionStore<T extends CloseableTransport = CloseableTransport> {
-    // (undocumented)
-    addSession(params: {
-        sessionId: string;
-        transport: T;
-        logger: LoggerBase;
-    }): Promise<void>;
-    // (undocumented)
-    closeAllSessions(): Promise<void>;
-    // (undocumented)
-    closeSession(params: {
-        sessionId: string;
-        reason?: SessionCloseReason;
-    }): Promise<void>;
-    // (undocumented)
-    getSession(sessionId: string): Promise<T | undefined>;
-}
+export { ISessionStore }
 
-// @public
-export class Keychain {
-    constructor();
-    // (undocumented)
-    get allSecrets(): Secret[];
-    // (undocumented)
-    clearAllSecrets(): void;
-    // (undocumented)
-    register(value: Secret["value"], kind: Secret["kind"]): void;
-    // (undocumented)
-    static get root(): Keychain;
-}
+export { Keychain }
 
-// @public (undocumented)
-export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extends EventEmitter<T> {
-    constructor(keychain: Keychain | undefined);
-    // (undocumented)
-    alert(payload: LogPayload): void;
-    // (undocumented)
-    critical(payload: LogPayload): void;
-    // (undocumented)
-    debug(payload: LogPayload): void;
-    // (undocumented)
-    emergency(payload: LogPayload): void;
-    // (undocumented)
-    error(payload: LogPayload): void;
-    // (undocumented)
-    info(payload: LogPayload): void;
-    // (undocumented)
-    log(level: LogLevel, payload: LogPayload): void;
-    // (undocumented)
-    protected abstract logCore(level: LogLevel, payload: LogPayload): void;
-    // (undocumented)
-    protected mapToMongoDBLogLevel(level: LogLevel): "info" | "warn" | "error" | "debug" | "fatal";
-    // (undocumented)
-    notice(payload: LogPayload): void;
-    // (undocumented)
-    protected abstract readonly type?: LoggerType;
-    // (undocumented)
-    warning(payload: LogPayload): void;
-}
+export { LoggerBase }
 
-// @public (undocumented)
-export type LoggerType = "console" | "disk" | "mcp";
+export { LoggerType }
 
-// @public (undocumented)
-export type LogLevel = LoggingMessageNotification["params"]["level"];
+export { LogLevel }
 
-// @public (undocumented)
-export interface LogPayload {
-    // (undocumented)
-    attributes?: Record<string, string>;
-    // (undocumented)
-    context: string;
-    // (undocumented)
-    id: MongoLogId;
-    // (undocumented)
-    message: string;
-    // (undocumented)
-    noRedaction?: boolean | LoggerType | LoggerType[];
-}
+export { LogPayload }
 
 // Warning: (ae-forgotten-export) The symbol "ExpressBasedHttpServer" needs to be exported by the entry point lib.d.ts
 //
@@ -713,12 +598,7 @@ export { MetricDefinitions }
 
 export { Metrics }
 
-// @public (undocumented)
-export class MongoDBError<ErrorCode extends ErrorCodes = ErrorCodes> extends Error {
-    constructor(code: ErrorCode, message: string);
-    // (undocumented)
-    code: ErrorCode;
-}
+export { MongoDBError }
 
 // @public (undocumented)
 export class MonitoringServer<TMetrics extends DefaultMetrics = DefaultMetrics> extends ExpressBasedHttpServer {
@@ -762,14 +642,7 @@ export type MonitoringServerConstructorArgs<TMetrics extends DefaultMetrics = De
 // @public (undocumented)
 export type MonitoringServerFeature = (typeof monitoringServerFeatureValues)[number];
 
-// @public (undocumented)
-export class NullLogger extends LoggerBase {
-    constructor();
-    // (undocumented)
-    protected logCore(): void;
-    // (undocumented)
-    protected type?: LoggerType;
-}
+export { NullLogger }
 
 // @public (undocumented)
 export type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
@@ -799,8 +672,7 @@ export { PrometheusMetrics }
 
 export { PrometheusMetricsOptions }
 
-// @public (undocumented)
-export function registerGlobalSecretToRedact(value: Secret["value"], kind: Secret["kind"]): void;
+export { registerGlobalSecretToRedact }
 
 export { Registry }
 
@@ -921,8 +793,7 @@ export class Session extends EventEmitter<SessionEvents> {
     setMcpClient(mcpClient: Implementation | undefined): void;
 }
 
-// @public (undocumented)
-export type SessionCloseReason = "idle_timeout" | "transport_closed" | "server_stop" | "unknown";
+export { SessionCloseReason }
 
 // @public (undocumented)
 export type SessionEvents = {
@@ -952,42 +823,9 @@ export interface SessionOptions<TUserConfig extends UserConfig = UserConfig> {
     userConfig: TUserConfig;
 }
 
-// @public (undocumented)
-export class SessionStore<T extends CloseableTransport = CloseableTransport> implements ISessionStore<T> {
-    constructor(params: {
-        options: {
-            idleTimeoutMS: number;
-            notificationTimeoutMS: number;
-        };
-        logger: LoggerBase;
-        metrics: Metrics<DefaultMetrics>;
-    });
-    // (undocumented)
-    addSession(params: {
-        sessionId: string;
-        transport: T;
-        logger: LoggerBase;
-    }): Promise<void>;
-    // (undocumented)
-    closeAllSessions(): Promise<void>;
-    // (undocumented)
-    closeSession(input: {
-        sessionId: string;
-        reason?: SessionCloseReason;
-    }): Promise<void>;
-    // (undocumented)
-    getSession(sessionId: string): Promise<T | undefined>;
-}
+export { SessionStore }
 
-// @public
-export type SessionStoreConstructorArgs<TMetrics extends DefaultMetrics = DefaultMetrics> = {
-    options: {
-        idleTimeoutMS: number;
-        notificationTimeoutMS: number;
-    };
-    logger: LoggerBase;
-    metrics: Metrics<TMetrics>;
-};
+export { SessionStoreConstructorArgs }
 
 // @public (undocumented)
 export class StdioRunner<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> extends TransportRunnerBase<TUserConfig, TContext, TMetrics> {
@@ -1216,16 +1054,16 @@ export const UserConfigSchema: z.ZodObject<{
     dryRun: z.ZodDefault<z.ZodBoolean>;
     externallyManagedSessions: z.ZodDefault<z.ZodBoolean>;
     httpResponseType: z.ZodDefault<z.ZodEnum<{
-        json: "json";
         sse: "sse";
+        json: "json";
     }>>;
     healthCheckPort: z.ZodOptional<z.ZodNumber>;
     healthCheckHost: z.ZodOptional<z.ZodString>;
     monitoringServerPort: z.ZodOptional<z.ZodNumber>;
     monitoringServerHost: z.ZodOptional<z.ZodString>;
     monitoringServerFeatures: z.ZodDefault<z.ZodPipe<z.ZodTransform<string[] | undefined, string | string[] | undefined>, z.ZodArray<z.ZodEnum<{
-        metrics: "metrics";
         "health-check": "health-check";
+        metrics: "metrics";
     }>>>>;
     gssapiHostName: z.ZodOptional<z.ZodString>;
     sslFIPSMode: z.ZodOptional<z.ZodBoolean>;
