@@ -17,6 +17,7 @@ coverage
 
 temp
 .DS_Store
+.worktrees
 
 # Development tool files
 .yalc
