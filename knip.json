@@ -40,6 +40,16 @@
         "vitest.config.ts",
         "setup.ts"
       ]
+    },
+    "packages/mcp-core": {
+      "entry": ["src/index.ts!", "src/**/*.test.ts"],
+      "ignore": ["src/mocks/**"]
+    },
+    "packages/mcp-api": {
+      "entry": ["src/index.ts!", "src/**/*.test.ts"]
+    },
+    "packages/metrics": {
+      "entry": ["src/index.ts!", "src/**/*.test.ts"]
     }
   },
   "ignoreExportsUsedInFile": true

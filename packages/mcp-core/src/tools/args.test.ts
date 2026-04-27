@@ -7,7 +7,7 @@ import {
     ALLOWED_REGION_CHARACTERS_ERROR,
     ALLOWED_CLUSTER_NAME_CHARACTERS_ERROR,
     NO_UNICODE_ERROR,
-} from "../../src/tools/args.js";
+} from "./args.js";
 
 describe("Tool args", () => {
     describe("CommonArgs", () => {

@@ -1,0 +1,28 @@
+{
+  "name": "@mongodb-js/mcp-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "TypeScript interfaces for the MongoDB MCP server packages",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "compile": "tsc --project tsconfig.json",
+    "test": "vitest --run"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "mongodb-log-writer": "^2.5.7",
+    "typescript": "^5.9.2",
+    "vitest": "^4.1.4"
+  }
+}

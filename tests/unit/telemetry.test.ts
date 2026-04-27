@@ -12,7 +12,7 @@ import {
 import type { BaseEvent, CommonProperties, TelemetryEvent, TelemetryResult } from "../../src/telemetry/types.js";
 import { EventCache } from "../../src/telemetry/eventCache.js";
 import { afterAll, afterEach, beforeEach, describe, it, vi, expect } from "vitest";
-import { NullLogger } from "../../src/common/logging/nullLogger.js";
+import { NullLogger } from "../../src/common/logging/index.js";
 import type { MockedFunction, MockInstance } from "vitest";
 import type { DeviceId } from "../../src/helpers/deviceId.js";
 import { defaultTestConfig, expectDefined } from "../integration/helpers.js";
