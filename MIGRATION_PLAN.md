@@ -11,11 +11,13 @@
 ## Repository State
 
 **Already in place:**
+
 - `pnpm-workspace.yaml` includes `packages/*` ✓
 - `packages/metrics/` → `@mongodb-js/mcp-metrics` (becomes `@mongodb-js/mcp-prom-metrics` in Task 9)
 - Root `tsconfig.build.json` is the shared TypeScript base all packages extend
 
 **Target `packages/` structure:**
+
 ```
 packages/
 ├── mcp-api/               @mongodb-js/mcp-api          (interfaces only, devDep)
@@ -33,6 +35,7 @@ packages/
 ```
 
 **Dependency graph:**
+
 ```
 mcp-api (no deps — interfaces only)
   ↑ devDep of everything below
@@ -63,6 +66,7 @@ Replace `TUserConfig` generics with explicit typed options. For example, a trans
 All new packages follow `packages/metrics` conventions:
 
 **`package.json`** (adapt name, deps, description):
+
 ```json
 {
   "name": "@mongodb-js/mcp-XXXX",
@@ -92,6 +96,7 @@ All new packages follow `packages/metrics` conventions:
 ```
 
 **`tsconfig.json`** (same for all packages):
+
 ```json
 {
   "extends": "../../tsconfig.build.json",
@@ -133,6 +138,7 @@ All new packages follow `packages/metrics` conventions:
 | Error code string literals / `ErrorCode` type | `src/common/errors.ts` |
 
 **Files to create:**
+
 ```
 packages/mcp-api/
 ├── package.json
@@ -155,13 +161,14 @@ packages/mcp-api/
     └── helpers.ts        ConnectionOptions type, DeviceId type, shared helper types
 ```
 
-- [ ] **Step 1: Create the package scaffold**
+- [x] **Step 1: Create the package scaffold**
 
 ```bash
 mkdir -p packages/mcp-api/src
 ```
 
 Create `packages/mcp-api/package.json`:
+
 ```json
 {
   "name": "@mongodb-js/mcp-api",
@@ -191,6 +198,7 @@ Create `packages/mcp-api/package.json`:
 ```
 
 Create `packages/mcp-api/tsconfig.json`:
+
 ```json
 {
   "extends": "../../tsconfig.build.json",
@@ -204,11 +212,17 @@ Create `packages/mcp-api/tsconfig.json`:
 }
 ```
 
-- [ ] **Step 2: Write the failing import test**
+- [x] **Step 2: Write the failing import test**
 
 Create `packages/mcp-api/src/index.test.ts`:
+
 ```typescript
-import type { ISession, ISessionStore, IKeychain, IElicitation } from "./index.js";
+import type {
+  ISession,
+  ISessionStore,
+  IKeychain,
+  IElicitation,
+} from "./index.js";
 import type { ToolClass, IToolRegistrar } from "./index.js";
 import type { ILoggerBase, ICompositeLogger } from "./index.js";
 import type { ITransportRunner } from "./index.js";
@@ -221,7 +235,7 @@ it("exports all interfaces", () => {
 });
 ```
 
-- [ ] **Step 3: Run test — expect compile failure (index.ts doesn't exist yet)**
+- [x] **Step 3: Run test — expect compile failure (index.ts doesn't exist yet)**
 
 ```bash
 cd packages/mcp-api && pnpm compile 2>&1 | head -20
@@ -229,11 +243,12 @@ cd packages/mcp-api && pnpm compile 2>&1 | head -20
 
 Expected: TypeScript error about missing files.
 
-- [ ] **Step 4: Extract interfaces from source**
+- [x] **Step 4: Extract interfaces from source**
 
 For each source file listed in the table above, read the file and extract only the interface/type definitions (not class implementations) into the corresponding `packages/mcp-api/src/*.ts` file.
 
 **Pattern:** If `src/session.ts` exports `class Session { ... }` and the class has a public API, create `packages/mcp-api/src/session.ts` with:
+
 ```typescript
 export interface ISession {
   // copy public method signatures from the Session class
@@ -246,7 +261,7 @@ For `tool.ts`: `ToolClass` is likely `new (...args: any[]) => ToolBase`. Keep th
 
 For `errors.ts`: extract only the type/string literal definitions, not `new Error(...)` calls.
 
-- [ ] **Step 5: Create `packages/mcp-api/src/index.ts`**
+- [x] **Step 5: Create `packages/mcp-api/src/index.ts`**
 
 ```typescript
 export type * from "./session.js";
@@ -265,7 +280,7 @@ export type * from "./errors.js";
 export type * from "./helpers.js";
 ```
 
-- [ ] **Step 6: Build and run test**
+- [x] **Step 6: Build and run test**
 
 ```bash
 cd packages/mcp-api && pnpm compile && pnpm test
@@ -273,7 +288,7 @@ cd packages/mcp-api && pnpm compile && pnpm test
 
 Expected: compiles cleanly, test passes.
 
-- [ ] **Step 7: Verify root build still passes**
+- [x] **Step 7: Verify root build still passes**
 
 ```bash
 cd /path/to/repo && pnpm run compile
@@ -281,7 +296,7 @@ cd /path/to/repo && pnpm run compile
 
 Expected: no errors (existing `src/` is unchanged).
 
-- [ ] **Step 8: Add as devDependency to root `package.json`**
+- [x] **Step 8: Add as devDependency to root `package.json`**
 
 In the root `package.json`, add `"@mongodb-js/mcp-api": "workspace:*"` to `devDependencies`, then run:
 
@@ -291,7 +306,7 @@ pnpm install
 
 This makes `import type` from `@mongodb-js/mcp-api` available to root `src/` files for subsequent tasks.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add packages/mcp-api/ package.json pnpm-lock.yaml
@@ -306,35 +321,36 @@ git commit -m "feat: add @mongodb-js/mcp-api interface package"
 
 **Source files to MOVE (from `src/` to `packages/mcp-core/src/`):**
 
-| Source | Destination |
-|---|---|
-| `src/session.ts` | `packages/mcp-core/src/session.ts` |
-| `src/sessionStore.ts` | `packages/mcp-core/src/sessionStore.ts` |
-| `src/keychain.ts` | `packages/mcp-core/src/keychain.ts` |
-| `src/elicitation.ts` | `packages/mcp-core/src/elicitation.ts` |
-| `src/common/logging/loggerBase.ts` | `packages/mcp-core/src/logging/loggerBase.ts` |
-| `src/common/logging/mcpLogger.ts` | `packages/mcp-core/src/logging/mcpLogger.ts` |
-| `src/common/logging/nullLogger.ts` | `packages/mcp-core/src/logging/noopLogger.ts` (rename) |
-| `src/common/logging/compositeLogger.ts` | `packages/mcp-core/src/logging/compositeLogger.ts` |
-| `src/common/logging/loggingTypes.ts` | `packages/mcp-core/src/logging/loggingTypes.ts` |
-| `src/common/logging/loggingDefinitions.ts` | `packages/mcp-core/src/logging/loggingDefinitions.ts` |
-| `src/transports/base.ts` | `packages/mcp-core/src/transport/base.ts` |
-| `src/server.ts` | `packages/mcp-core/src/server.ts` |
-| `src/resources/resource.ts` | `packages/mcp-core/src/resources/resource.ts` |
-| `src/resources/resources.ts` | `packages/mcp-core/src/resources/resources.ts` |
-| `src/helpers/container.ts` | `packages/mcp-core/src/helpers/container.ts` |
-| `src/helpers/deviceId.ts` | `packages/mcp-core/src/helpers/deviceId.ts` |
-| `src/helpers/connectionOptions.ts` | `packages/mcp-core/src/helpers/connectionOptions.ts` |
-| `src/helpers/constants.ts` | `packages/mcp-core/src/helpers/constants.ts` |
-| `src/helpers/managedTimeout.ts` | `packages/mcp-core/src/helpers/managedTimeout.ts` |
-| `src/helpers/getRandomUUID.ts` | `packages/mcp-core/src/helpers/getRandomUUID.ts` |
-| `src/common/errors.ts` | `packages/mcp-core/src/errors.ts` |
-| `src/common/packageInfo.ts` | `packages/mcp-core/src/packageInfo.ts` |
-| `src/telemetry/telemetry.ts` | `packages/mcp-core/src/telemetry/telemetry.ts` |
-| `src/tools/tool.ts` | `packages/mcp-core/src/tools/tool.ts` |
-| `src/tools/args.ts` | `packages/mcp-core/src/tools/args.ts` |
+| Source                                     | Destination                                            |
+| ------------------------------------------ | ------------------------------------------------------ |
+| `src/session.ts`                           | `packages/mcp-core/src/session.ts`                     |
+| `src/sessionStore.ts`                      | `packages/mcp-core/src/sessionStore.ts`                |
+| `src/keychain.ts`                          | `packages/mcp-core/src/keychain.ts`                    |
+| `src/elicitation.ts`                       | `packages/mcp-core/src/elicitation.ts`                 |
+| `src/common/logging/loggerBase.ts`         | `packages/mcp-core/src/logging/loggerBase.ts`          |
+| `src/common/logging/mcpLogger.ts`          | `packages/mcp-core/src/logging/mcpLogger.ts`           |
+| `src/common/logging/nullLogger.ts`         | `packages/mcp-core/src/logging/noopLogger.ts` (rename) |
+| `src/common/logging/compositeLogger.ts`    | `packages/mcp-core/src/logging/compositeLogger.ts`     |
+| `src/common/logging/loggingTypes.ts`       | `packages/mcp-core/src/logging/loggingTypes.ts`        |
+| `src/common/logging/loggingDefinitions.ts` | `packages/mcp-core/src/logging/loggingDefinitions.ts`  |
+| `src/transports/base.ts`                   | `packages/mcp-core/src/transport/base.ts`              |
+| `src/server.ts`                            | `packages/mcp-core/src/server.ts`                      |
+| `src/resources/resource.ts`                | `packages/mcp-core/src/resources/resource.ts`          |
+| `src/resources/resources.ts`               | `packages/mcp-core/src/resources/resources.ts`         |
+| `src/helpers/container.ts`                 | `packages/mcp-core/src/helpers/container.ts`           |
+| `src/helpers/deviceId.ts`                  | `packages/mcp-core/src/helpers/deviceId.ts`            |
+| `src/helpers/connectionOptions.ts`         | `packages/mcp-core/src/helpers/connectionOptions.ts`   |
+| `src/helpers/constants.ts`                 | `packages/mcp-core/src/helpers/constants.ts`           |
+| `src/helpers/managedTimeout.ts`            | `packages/mcp-core/src/helpers/managedTimeout.ts`      |
+| `src/helpers/getRandomUUID.ts`             | `packages/mcp-core/src/helpers/getRandomUUID.ts`       |
+| `src/common/errors.ts`                     | `packages/mcp-core/src/errors.ts`                      |
+| `src/common/packageInfo.ts`                | `packages/mcp-core/src/packageInfo.ts`                 |
+| `src/telemetry/telemetry.ts`               | `packages/mcp-core/src/telemetry/telemetry.ts`         |
+| `src/tools/tool.ts`                        | `packages/mcp-core/src/tools/tool.ts`                  |
+| `src/tools/args.ts`                        | `packages/mcp-core/src/tools/args.ts`                  |
 
 **Files to create:**
+
 ```
 packages/mcp-core/
 ├── package.json
@@ -387,6 +403,7 @@ mkdir -p packages/mcp-core/src/{logging,transport,resources,telemetry,tools,help
 ```
 
 Create `packages/mcp-core/package.json`:
+
 ```json
 {
   "name": "@mongodb-js/mcp-core",
@@ -421,6 +438,7 @@ Create `packages/mcp-core/package.json`:
 ```
 
 Create `packages/mcp-core/tsconfig.json`:
+
 ```json
 {
   "extends": "../../tsconfig.build.json",
@@ -461,6 +479,7 @@ import type { ISession } from "@mongodb-js/mcp-api";
 **Rename `NullLogger` → `NoopLogger`** when moving `nullLogger.ts` → `noopLogger.ts`.
 
 **TUserConfig refactoring:** Anywhere a moved file accepts `TUserConfig` as a generic parameter or imports from `src/common/config/userConfig.ts`, replace with explicit typed options. For example:
+
 ```typescript
 // Before:
 class Session<TUserConfig> {
@@ -480,6 +499,7 @@ class Session {
 - [ ] **Step 3: Create `packages/mcp-core/src/index.ts`** (barrel)
 
 Export everything that other packages will need:
+
 ```typescript
 export * from "./session.js";
 export * from "./sessionStore.js";
@@ -563,14 +583,15 @@ git commit -m "feat: add @mongodb-js/mcp-core, wire up binary, migrate unit test
 
 **Source files to MOVE:**
 
-| Source | Destination |
-|---|---|
-| `src/common/atlas/apiClient.ts` | `packages/mcp-atlas-api-client/src/apiClient.ts` |
+| Source                               | Destination                                           |
+| ------------------------------------ | ----------------------------------------------------- |
+| `src/common/atlas/apiClient.ts`      | `packages/mcp-atlas-api-client/src/apiClient.ts`      |
 | `src/common/atlas/apiClientError.ts` | `packages/mcp-atlas-api-client/src/apiClientError.ts` |
-| `src/common/atlas/auth/` (all files) | `packages/mcp-atlas-api-client/src/auth/` |
-| `src/common/atlas/openapi.d.ts` | `packages/mcp-atlas-api-client/src/openapi.d.ts` |
+| `src/common/atlas/auth/` (all files) | `packages/mcp-atlas-api-client/src/auth/`             |
+| `src/common/atlas/openapi.d.ts`      | `packages/mcp-atlas-api-client/src/openapi.d.ts`      |
 
 **Refactoring:**
+
 - `sendEvents()` (if it exists in apiClient) should accept generic `T[]` instead of a specific event type.
 - `userAgent` string should be passed as a constructor/factory option rather than imported from `packageInfo`.
 
@@ -581,6 +602,7 @@ mkdir -p packages/mcp-atlas-api-client/src/auth
 ```
 
 Create `packages/mcp-atlas-api-client/package.json`:
+
 ```json
 {
   "name": "@mongodb-js/mcp-atlas-api-client",
@@ -614,6 +636,7 @@ Create `packages/mcp-atlas-api-client/package.json`:
 ```
 
 Create `packages/mcp-atlas-api-client/tsconfig.json`:
+
 ```json
 {
   "extends": "../../tsconfig.build.json",
@@ -645,7 +668,10 @@ Update internal imports to use relative paths. Remove any import of `UserConfig`
 // Before:
 import { packageInfo } from "../packageInfo.js";
 export function createApiClient(baseUrl: string) {
-  return openApiFetch({ baseUrl, headers: { "User-Agent": packageInfo.version } });
+  return openApiFetch({
+    baseUrl,
+    headers: { "User-Agent": packageInfo.version },
+  });
 }
 
 // After:
@@ -653,7 +679,10 @@ export interface ApiClientOptions {
   userAgent: string;
 }
 export function createApiClient(baseUrl: string, options: ApiClientOptions) {
-  return openApiFetch({ baseUrl, headers: { "User-Agent": options.userAgent } });
+  return openApiFetch({
+    baseUrl,
+    headers: { "User-Agent": options.userAgent },
+  });
 }
 ```
 
@@ -713,10 +742,10 @@ git commit -m "feat: add @mongodb-js/mcp-atlas-api-client package and wire up bi
 
 **Source files to MOVE:**
 
-| Source | Destination |
-|---|---|
-| `src/common/logging/consoleLogger.ts` | `packages/mcp-cli-logging/src/consoleLogger.ts` |
-| `src/common/logging/diskLogger.ts` | `packages/mcp-cli-logging/src/diskLogger.ts` |
+| Source                                     | Destination                                          |
+| ------------------------------------------ | ---------------------------------------------------- |
+| `src/common/logging/consoleLogger.ts`      | `packages/mcp-cli-logging/src/consoleLogger.ts`      |
+| `src/common/logging/diskLogger.ts`         | `packages/mcp-cli-logging/src/diskLogger.ts`         |
 | `src/common/logging/loggingDefinitions.ts` | `packages/mcp-cli-logging/src/loggingDefinitions.ts` |
 
 - [ ] **Step 1: Create scaffold and `package.json`**
@@ -726,6 +755,7 @@ mkdir -p packages/mcp-cli-logging/src
 ```
 
 Create `packages/mcp-cli-logging/package.json`:
+
 ```json
 {
   "name": "@mongodb-js/mcp-cli-logging",
@@ -759,6 +789,7 @@ Create `packages/mcp-cli-logging/package.json`:
 ```
 
 Create `packages/mcp-cli-logging/tsconfig.json`:
+
 ```json
 {
   "extends": "../../tsconfig.build.json",
@@ -785,6 +816,7 @@ git mv src/common/logging/loggingDefinitions.ts packages/mcp-cli-logging/src/log
 **After `git mv`, the originals are gone. The root binary will not compile until the wire-up step below. Do not attempt a root `pnpm compile` until after Step 5.**
 
 Update imports in the moved files:
+
 ```typescript
 // Before:
 import { LoggerBase } from "../loggerBase.js";
@@ -862,12 +894,12 @@ git commit -m "feat: add @mongodb-js/mcp-cli-logging package, wire up binary, mi
 
 **Source files to MOVE:**
 
-| Source | Destination |
-|---|---|
-| `src/telemetry/types.ts` | `packages/mcp-cli-telemetry/src/types.ts` |
-| `src/telemetry/eventCache.ts` | `packages/mcp-cli-telemetry/src/eventCache.ts` |
-| `src/telemetry/constants.ts` | `packages/mcp-cli-telemetry/src/constants.ts` |
-| `src/telemetry/timer.ts` | `packages/mcp-cli-telemetry/src/timer.ts` |
+| Source                        | Destination                                                                                                   |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `src/telemetry/types.ts`      | `packages/mcp-cli-telemetry/src/types.ts`                                                                     |
+| `src/telemetry/eventCache.ts` | `packages/mcp-cli-telemetry/src/eventCache.ts`                                                                |
+| `src/telemetry/constants.ts`  | `packages/mcp-cli-telemetry/src/constants.ts`                                                                 |
+| `src/telemetry/timer.ts`      | `packages/mcp-cli-telemetry/src/timer.ts`                                                                     |
 | `src/common/atlas/cluster.ts` | `packages/mcp-cli-telemetry/src/cluster.ts` (or stays in atlas-api-client — check if it's telemetry-specific) |
 
 - [ ] **Step 1: Create scaffold and `package.json`**
@@ -877,6 +909,7 @@ mkdir -p packages/mcp-cli-telemetry/src
 ```
 
 Create `packages/mcp-cli-telemetry/package.json`:
+
 ```json
 {
   "name": "@mongodb-js/mcp-cli-telemetry",
@@ -911,6 +944,7 @@ Create `packages/mcp-cli-telemetry/package.json`:
 ```
 
 Create `packages/mcp-cli-telemetry/tsconfig.json`:
+
 ```json
 {
   "extends": "../../tsconfig.build.json",
@@ -1009,17 +1043,17 @@ git commit -m "feat: add @mongodb-js/mcp-cli-telemetry package, wire up binary, 
 
 **Source files to MOVE:**
 
-| Source | Destination |
-|---|---|
-| `src/transports/stdio.ts` | `packages/mcp-transports/src/stdio.ts` |
-| `src/transports/streamableHttp.ts` | `packages/mcp-transports/src/streamableHttp.ts` |
+| Source                                     | Destination                                             |
+| ------------------------------------------ | ------------------------------------------------------- |
+| `src/transports/stdio.ts`                  | `packages/mcp-transports/src/stdio.ts`                  |
+| `src/transports/streamableHttp.ts`         | `packages/mcp-transports/src/streamableHttp.ts`         |
 | `src/transports/expressBasedHttpServer.ts` | `packages/mcp-transports/src/expressBasedHttpServer.ts` |
-| `src/transports/mcpHttpServer.ts` | `packages/mcp-transports/src/mcpHttpServer.ts` |
-| `src/transports/monitoringServer.ts` | `packages/mcp-transports/src/monitoringServer.ts` |
-| `src/transports/dryModeRunner.ts` | `packages/mcp-transports/src/dryModeRunner.ts` |
-| `src/transports/inMemoryTransport.ts` | `packages/mcp-transports/src/inMemoryTransport.ts` |
-| `src/transports/constants.ts` | `packages/mcp-transports/src/constants.ts` |
-| `src/transports/jsonRpcErrorCodes.ts` | `packages/mcp-transports/src/jsonRpcErrorCodes.ts` |
+| `src/transports/mcpHttpServer.ts`          | `packages/mcp-transports/src/mcpHttpServer.ts`          |
+| `src/transports/monitoringServer.ts`       | `packages/mcp-transports/src/monitoringServer.ts`       |
+| `src/transports/dryModeRunner.ts`          | `packages/mcp-transports/src/dryModeRunner.ts`          |
+| `src/transports/inMemoryTransport.ts`      | `packages/mcp-transports/src/inMemoryTransport.ts`      |
+| `src/transports/constants.ts`              | `packages/mcp-transports/src/constants.ts`              |
+| `src/transports/jsonRpcErrorCodes.ts`      | `packages/mcp-transports/src/jsonRpcErrorCodes.ts`      |
 
 **Refactoring:** Each runner's constructor/factory currently accepts `UserConfig`. Replace with an explicit options type. Read each runner to determine what `UserConfig` fields it actually uses, then define a minimal options interface:
 
@@ -1053,6 +1087,7 @@ mkdir -p packages/mcp-transports/src
 ```
 
 Create `packages/mcp-transports/package.json`:
+
 ```json
 {
   "name": "@mongodb-js/mcp-transports",
@@ -1089,6 +1124,7 @@ Create `packages/mcp-transports/package.json`:
 ```
 
 Create `packages/mcp-transports/tsconfig.json`:
+
 ```json
 {
   "extends": "../../tsconfig.build.json",
@@ -1177,6 +1213,7 @@ git commit -m "feat: add @mongodb-js/mcp-transports package with typed options A
 **Purpose:** Rename the existing `@mongodb-js/mcp-metrics` package to `@mongodb-js/mcp-prom-metrics` to match the monorepo naming convention.
 
 **Files to modify:**
+
 - `packages/metrics/package.json` — update `name` field
 - Root `package.json` — update workspace dependency name
 - Any `src/` file that imports `@mongodb-js/mcp-metrics`
@@ -1236,17 +1273,17 @@ git commit -m "chore: rename @mongodb-js/mcp-metrics to @mongodb-js/mcp-prom-met
 
 **Source files to MOVE:**
 
-| Source | Destination |
-|---|---|
-| `src/ui/registry/registry.ts` | `packages/mcp-ui/src/registry/registry.ts` |
-| `src/ui/registry/index.ts` | `packages/mcp-ui/src/registry/index.ts` |
-| `src/ui/components/` (all files) | `packages/mcp-ui/src/components/` |
-| `src/ui/lib/loaders.ts` | `packages/mcp-ui/src/lib/loaders.ts` |
-| `src/ui/lib/tools/` (all files) | `packages/mcp-ui/src/lib/tools/` |
-| `src/ui/build/mount.tsx` | `packages/mcp-ui/src/build/mount.tsx` |
-| `src/ui/build/template.html` | `packages/mcp-ui/src/build/template.html` |
-| `src/ui/styles/fonts.css` | `packages/mcp-ui/src/styles/fonts.css` |
-| `src/ui/index.ts` | `packages/mcp-ui/src/index.ts` |
+| Source                           | Destination                                |
+| -------------------------------- | ------------------------------------------ |
+| `src/ui/registry/registry.ts`    | `packages/mcp-ui/src/registry/registry.ts` |
+| `src/ui/registry/index.ts`       | `packages/mcp-ui/src/registry/index.ts`    |
+| `src/ui/components/` (all files) | `packages/mcp-ui/src/components/`          |
+| `src/ui/lib/loaders.ts`          | `packages/mcp-ui/src/lib/loaders.ts`       |
+| `src/ui/lib/tools/` (all files)  | `packages/mcp-ui/src/lib/tools/`           |
+| `src/ui/build/mount.tsx`         | `packages/mcp-ui/src/build/mount.tsx`      |
+| `src/ui/build/template.html`     | `packages/mcp-ui/src/build/template.html`  |
+| `src/ui/styles/fonts.css`        | `packages/mcp-ui/src/styles/fonts.css`     |
+| `src/ui/index.ts`                | `packages/mcp-ui/src/index.ts`             |
 
 - [ ] **Step 1: Create scaffold and `package.json`**
 
@@ -1255,6 +1292,7 @@ mkdir -p packages/mcp-ui/src/{registry,components,lib/tools,build,styles}
 ```
 
 Create `packages/mcp-ui/package.json`:
+
 ```json
 {
   "name": "@mongodb-js/mcp-ui",
@@ -1287,6 +1325,7 @@ Create `packages/mcp-ui/package.json`:
 ```
 
 Create `packages/mcp-ui/tsconfig.json`:
+
 ```json
 {
   "extends": "../../tsconfig.build.json",
@@ -1362,25 +1401,25 @@ git commit -m "feat: add @mongodb-js/mcp-ui package and wire up binary"
 
 **Source files to MOVE:**
 
-| Source | Destination |
-|---|---|
-| `src/tools/mongodb/mongodbTool.ts` | `packages/mcp-tools-mongodb/src/mongodbTool.ts` |
-| `src/tools/mongodb/mongodbSchemas.ts` | `packages/mcp-tools-mongodb/src/mongodbSchemas.ts` |
-| `src/tools/mongodb/tools.ts` | `packages/mcp-tools-mongodb/src/tools.ts` |
-| `src/tools/mongodb/connect/` | `packages/mcp-tools-mongodb/src/connect/` |
-| `src/tools/mongodb/read/` | `packages/mcp-tools-mongodb/src/read/` |
-| `src/tools/mongodb/create/` | `packages/mcp-tools-mongodb/src/create/` |
-| `src/tools/mongodb/update/` | `packages/mcp-tools-mongodb/src/update/` |
-| `src/tools/mongodb/delete/` | `packages/mcp-tools-mongodb/src/delete/` |
-| `src/tools/mongodb/metadata/` | `packages/mcp-tools-mongodb/src/metadata/` |
-| `src/common/connectionManager.ts` | `packages/mcp-tools-mongodb/src/connectionManager.ts` |
-| `src/common/connectionInfo.ts` | `packages/mcp-tools-mongodb/src/connectionInfo.ts` |
-| `src/common/connectionErrorHandler.ts` | `packages/mcp-tools-mongodb/src/connectionErrorHandler.ts` |
-| `src/common/schemas.ts` | `packages/mcp-tools-mongodb/src/schemas.ts` |
-| `src/helpers/collectCursorUntilMaxBytes.ts` | `packages/mcp-tools-mongodb/src/helpers/collectCursorUntilMaxBytes.ts` |
-| `src/helpers/indexCheck.ts` | `packages/mcp-tools-mongodb/src/helpers/indexCheck.ts` |
+| Source                                                    | Destination                                                                          |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `src/tools/mongodb/mongodbTool.ts`                        | `packages/mcp-tools-mongodb/src/mongodbTool.ts`                                      |
+| `src/tools/mongodb/mongodbSchemas.ts`                     | `packages/mcp-tools-mongodb/src/mongodbSchemas.ts`                                   |
+| `src/tools/mongodb/tools.ts`                              | `packages/mcp-tools-mongodb/src/tools.ts`                                            |
+| `src/tools/mongodb/connect/`                              | `packages/mcp-tools-mongodb/src/connect/`                                            |
+| `src/tools/mongodb/read/`                                 | `packages/mcp-tools-mongodb/src/read/`                                               |
+| `src/tools/mongodb/create/`                               | `packages/mcp-tools-mongodb/src/create/`                                             |
+| `src/tools/mongodb/update/`                               | `packages/mcp-tools-mongodb/src/update/`                                             |
+| `src/tools/mongodb/delete/`                               | `packages/mcp-tools-mongodb/src/delete/`                                             |
+| `src/tools/mongodb/metadata/`                             | `packages/mcp-tools-mongodb/src/metadata/`                                           |
+| `src/common/connectionManager.ts`                         | `packages/mcp-tools-mongodb/src/connectionManager.ts`                                |
+| `src/common/connectionInfo.ts`                            | `packages/mcp-tools-mongodb/src/connectionInfo.ts`                                   |
+| `src/common/connectionErrorHandler.ts`                    | `packages/mcp-tools-mongodb/src/connectionErrorHandler.ts`                           |
+| `src/common/schemas.ts`                                   | `packages/mcp-tools-mongodb/src/schemas.ts`                                          |
+| `src/helpers/collectCursorUntilMaxBytes.ts`               | `packages/mcp-tools-mongodb/src/helpers/collectCursorUntilMaxBytes.ts`               |
+| `src/helpers/indexCheck.ts`                               | `packages/mcp-tools-mongodb/src/helpers/indexCheck.ts`                               |
 | `src/helpers/assertVectorSearchFilterFieldsAreIndexed.ts` | `packages/mcp-tools-mongodb/src/helpers/assertVectorSearchFilterFieldsAreIndexed.ts` |
-| `src/helpers/operationWithFallback.ts` | `packages/mcp-tools-mongodb/src/helpers/operationWithFallback.ts` |
+| `src/helpers/operationWithFallback.ts`                    | `packages/mcp-tools-mongodb/src/helpers/operationWithFallback.ts`                    |
 
 - [ ] **Step 1: Create scaffold and `package.json`**
 
@@ -1389,6 +1428,7 @@ mkdir -p packages/mcp-tools-mongodb/src/{connect,read,create,update,delete,metad
 ```
 
 Create `packages/mcp-tools-mongodb/package.json`:
+
 ```json
 {
   "name": "@mongodb-js/mcp-tools-mongodb",
@@ -1500,18 +1540,18 @@ git commit -m "feat: add @mongodb-js/mcp-tools-mongodb package and wire up binar
 
 **Source files to MOVE:**
 
-| Source | Destination |
-|---|---|
-| `src/tools/atlas/atlasTool.ts` | `packages/mcp-tools-atlas/src/atlasTool.ts` |
-| `src/tools/atlas/tools.ts` | `packages/mcp-tools-atlas/src/tools.ts` |
-| `src/tools/atlas/connect/` | `packages/mcp-tools-atlas/src/connect/` |
-| `src/tools/atlas/create/` | `packages/mcp-tools-atlas/src/create/` |
-| `src/tools/atlas/read/` | `packages/mcp-tools-atlas/src/read/` |
-| `src/tools/atlas/streams/` | `packages/mcp-tools-atlas/src/streams/` |
-| `src/common/atlas/cluster.ts` | `packages/mcp-tools-atlas/src/cluster.ts` |
+| Source                                        | Destination                                               |
+| --------------------------------------------- | --------------------------------------------------------- |
+| `src/tools/atlas/atlasTool.ts`                | `packages/mcp-tools-atlas/src/atlasTool.ts`               |
+| `src/tools/atlas/tools.ts`                    | `packages/mcp-tools-atlas/src/tools.ts`                   |
+| `src/tools/atlas/connect/`                    | `packages/mcp-tools-atlas/src/connect/`                   |
+| `src/tools/atlas/create/`                     | `packages/mcp-tools-atlas/src/create/`                    |
+| `src/tools/atlas/read/`                       | `packages/mcp-tools-atlas/src/read/`                      |
+| `src/tools/atlas/streams/`                    | `packages/mcp-tools-atlas/src/streams/`                   |
+| `src/common/atlas/cluster.ts`                 | `packages/mcp-tools-atlas/src/cluster.ts`                 |
 | `src/common/atlas/performanceAdvisorUtils.ts` | `packages/mcp-tools-atlas/src/performanceAdvisorUtils.ts` |
-| `src/common/atlas/accessListUtils.ts` | `packages/mcp-tools-atlas/src/accessListUtils.ts` |
-| `src/common/atlas/roles.ts` | `packages/mcp-tools-atlas/src/roles.ts` |
+| `src/common/atlas/accessListUtils.ts`         | `packages/mcp-tools-atlas/src/accessListUtils.ts`         |
+| `src/common/atlas/roles.ts`                   | `packages/mcp-tools-atlas/src/roles.ts`                   |
 
 - [ ] **Step 1: Create scaffold and `package.json`**
 
@@ -1520,6 +1560,7 @@ mkdir -p packages/mcp-tools-atlas/src/{connect,create,read,streams}
 ```
 
 Create `packages/mcp-tools-atlas/package.json`:
+
 ```json
 {
   "name": "@mongodb-js/mcp-tools-atlas",
@@ -1638,15 +1679,15 @@ git commit -m "feat: add @mongodb-js/mcp-tools-atlas package, wire up binary, mi
 
 **Source files to MOVE:**
 
-| Source | Destination |
-|---|---|
-| `src/common/atlasLocal.ts` | `packages/mcp-tools-atlas-local/src/atlasLocalClient.ts` |
-| `src/tools/atlasLocal/atlasLocalTool.ts` | `packages/mcp-tools-atlas-local/src/atlasLocalTool.ts` |
-| `src/tools/atlasLocal/tools.ts` | `packages/mcp-tools-atlas-local/src/tools.ts` |
-| `src/tools/atlasLocal/connect/` | `packages/mcp-tools-atlas-local/src/connect/` |
-| `src/tools/atlasLocal/create/` | `packages/mcp-tools-atlas-local/src/create/` |
-| `src/tools/atlasLocal/delete/` | `packages/mcp-tools-atlas-local/src/delete/` |
-| `src/tools/atlasLocal/read/` | `packages/mcp-tools-atlas-local/src/read/` |
+| Source                                   | Destination                                              |
+| ---------------------------------------- | -------------------------------------------------------- |
+| `src/common/atlasLocal.ts`               | `packages/mcp-tools-atlas-local/src/atlasLocalClient.ts` |
+| `src/tools/atlasLocal/atlasLocalTool.ts` | `packages/mcp-tools-atlas-local/src/atlasLocalTool.ts`   |
+| `src/tools/atlasLocal/tools.ts`          | `packages/mcp-tools-atlas-local/src/tools.ts`            |
+| `src/tools/atlasLocal/connect/`          | `packages/mcp-tools-atlas-local/src/connect/`            |
+| `src/tools/atlasLocal/create/`           | `packages/mcp-tools-atlas-local/src/create/`             |
+| `src/tools/atlasLocal/delete/`           | `packages/mcp-tools-atlas-local/src/delete/`             |
+| `src/tools/atlasLocal/read/`             | `packages/mcp-tools-atlas-local/src/read/`               |
 
 - [ ] **Step 1: Create scaffold and `package.json`**
 
@@ -1655,6 +1696,7 @@ mkdir -p packages/mcp-tools-atlas-local/src/{connect,create,delete,read}
 ```
 
 Create `packages/mcp-tools-atlas-local/package.json`:
+
 ```json
 {
   "name": "@mongodb-js/mcp-tools-atlas-local",
@@ -1762,12 +1804,12 @@ git commit -m "feat: add @mongodb-js/mcp-tools-atlas-local package and wire up b
 
 **Source files to MOVE:**
 
-| Source | Destination |
-|---|---|
-| `src/tools/assistant/assistantTool.ts` | `packages/mcp-tools-assistant/src/assistantTool.ts` |
+| Source                                        | Destination                                                |
+| --------------------------------------------- | ---------------------------------------------------------- |
+| `src/tools/assistant/assistantTool.ts`        | `packages/mcp-tools-assistant/src/assistantTool.ts`        |
 | `src/tools/assistant/listKnowledgeSources.ts` | `packages/mcp-tools-assistant/src/listKnowledgeSources.ts` |
-| `src/tools/assistant/searchKnowledge.ts` | `packages/mcp-tools-assistant/src/searchKnowledge.ts` |
-| `src/tools/assistant/tools.ts` | `packages/mcp-tools-assistant/src/tools.ts` |
+| `src/tools/assistant/searchKnowledge.ts`      | `packages/mcp-tools-assistant/src/searchKnowledge.ts`      |
+| `src/tools/assistant/tools.ts`                | `packages/mcp-tools-assistant/src/tools.ts`                |
 
 - [ ] **Step 1: Create scaffold and `package.json`**
 
@@ -1776,6 +1818,7 @@ mkdir -p packages/mcp-tools-assistant/src
 ```
 
 Create `packages/mcp-tools-assistant/package.json`:
+
 ```json
 {
   "name": "@mongodb-js/mcp-tools-assistant",
@@ -1907,6 +1950,7 @@ Add `packages/*/package.json` to knip's workspaces config so it checks each pack
 - [ ] **Step 5: Update publish config for public packages**
 
 For any packages that should be published (not `private: true`), confirm each has:
+
 - `publishConfig.access: "public"`
 - `repository.directory` pointing to the package subdirectory
 - `files: ["dist"]`
@@ -1926,18 +1970,18 @@ git commit -m "chore: update CI, vitest config, and publish config for monorepo 
 
 Each task below creates the package, wires it into the binary, deletes the moved `src/` files, and migrates any unit tests — leaving `main` in a releasable state after every commit.
 
-| Task | Package | Status |
-|---|---|---|
-| Task 1 | `@mongodb-js/mcp-api` (types only, additive) | [ ] Not started |
-| Task 2 | `@mongodb-js/mcp-core` + wire-up + unit tests | [ ] Not started |
-| Task 3 | `@mongodb-js/mcp-atlas-api-client` + wire-up | [ ] Not started |
-| Task 4 | `@mongodb-js/mcp-cli-logging` + wire-up + unit tests | [ ] Not started |
-| Task 5 | `@mongodb-js/mcp-cli-telemetry` + wire-up + unit tests | [ ] Not started |
-| Task 6 | `@mongodb-js/mcp-transports` + wire-up | [ ] Not started |
-| Task 7 | `@mongodb-js/mcp-prom-metrics` (rename) | [ ] Not started |
-| Task 8 | `@mongodb-js/mcp-ui` + wire-up | [ ] Not started |
-| Task 9 | `@mongodb-js/mcp-tools-mongodb` + wire-up | [ ] Not started |
-| Task 10 | `@mongodb-js/mcp-tools-atlas` + wire-up + unit tests | [ ] Not started |
-| Task 11 | `@mongodb-js/mcp-tools-atlas-local` + wire-up | [ ] Not started |
-| Task 12 | `@mongodb-js/mcp-tools-assistant` + wire-up | [ ] Not started |
-| Task 13 | Final CI/CD cleanup | [ ] Not started |
+| Task    | Package                                                | Status          |
+| ------- | ------------------------------------------------------ | --------------- |
+| Task 1  | `@mongodb-js/mcp-api` (types only, additive)           | [ ] Not started |
+| Task 2  | `@mongodb-js/mcp-core` + wire-up + unit tests          | [ ] Not started |
+| Task 3  | `@mongodb-js/mcp-atlas-api-client` + wire-up           | [ ] Not started |
+| Task 4  | `@mongodb-js/mcp-cli-logging` + wire-up + unit tests   | [ ] Not started |
+| Task 5  | `@mongodb-js/mcp-cli-telemetry` + wire-up + unit tests | [ ] Not started |
+| Task 6  | `@mongodb-js/mcp-transports` + wire-up                 | [ ] Not started |
+| Task 7  | `@mongodb-js/mcp-prom-metrics` (rename)                | [ ] Not started |
+| Task 8  | `@mongodb-js/mcp-ui` + wire-up                         | [ ] Not started |
+| Task 9  | `@mongodb-js/mcp-tools-mongodb` + wire-up              | [ ] Not started |
+| Task 10 | `@mongodb-js/mcp-tools-atlas` + wire-up + unit tests   | [ ] Not started |
+| Task 11 | `@mongodb-js/mcp-tools-atlas-local` + wire-up          | [ ] Not started |
+| Task 12 | `@mongodb-js/mcp-tools-assistant` + wire-up            | [ ] Not started |
+| Task 13 | Final CI/CD cleanup                                    | [ ] Not started |
