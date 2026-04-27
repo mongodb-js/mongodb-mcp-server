@@ -74,7 +74,6 @@
     "build:universal-package": "tsx scripts/createUniversalPackage.ts",
     "compile": "concurrently \"pnpm run build:esm\" \"pnpm run build:cjs\" && pnpm run build:universal-package",
     "build": "pnpm run -r --include-workspace-root compile",
-    "bump": "node scripts/bumpPackages.ts",
     "inspect": "pnpm run build && mcp-inspector -- dist/esm/index.js",
     "prettier": "prettier",
     "check": "concurrently \"pnpm run build\" \"pnpm run check:types\" \"pnpm run check:lint\" \"pnpm run check:format\" \"pnpm run check:dependencies\" && pnpm run check:api",
