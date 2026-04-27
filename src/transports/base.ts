@@ -336,7 +336,7 @@ export abstract class TransportRunnerBase<
             deviceId: this.deviceId,
             apiClient: session.apiClient,
             keychain: session.keychain,
-            enabled: userConfig.telemetry !== "disabled",
+            enabled: userConfig.telemetry === "enabled",
             getCommonProperties: () => ({
                 ...(serverOptions?.telemetryProperties ?? this.telemetryProperties),
                 transport: userConfig.transport,
@@ -345,6 +345,7 @@ export abstract class TransportRunnerBase<
                 session_id: session.sessionId,
                 config_atlas_auth: session.apiClient?.isAuthConfigured() ? "true" : "false",
                 config_connection_string: userConfig.connectionString ? "true" : "false",
+                has_docker: session.atlasLocalClient ? "true" : "false",
             }),
         });
 

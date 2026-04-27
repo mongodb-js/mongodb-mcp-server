@@ -57,7 +57,6 @@ describe("SetupTelemetry", () => {
         setupTelemetry.emitStarted();
         setupTelemetry.emitPrerequisitesChecked({
             nodeVersionOk: true,
-            platformSupported: true,
             hasDocker: false,
         });
         setupTelemetry.emitAiToolSelected("claudeDesktop");
@@ -72,12 +71,11 @@ describe("SetupTelemetry", () => {
 
         const completed = mock.emitted.at(-1)!;
         expect(completed.properties).toMatchObject({
-            command: "completed",
+            stage: "completed",
             ai_tool: "claudeDesktop",
-            is_read_only: "false",
+            read_only_mode: "false",
             has_docker: "false",
             node_version_ok: "true",
-            platform_supported: "true",
             connection_string_provided: "true",
             connection_string_tested: "true",
             connection_test_attempts: 2,
@@ -95,7 +93,7 @@ describe("SetupTelemetry", () => {
             testResult: "failure",
         });
 
-        const connEvent = mock.emitted.find((e) => e.properties.command === "connection_string_entered");
+        const connEvent = mock.emitted.find((e) => e.properties.stage === "connection_string_entered");
         expect(connEvent?.properties.result).toBe("failure");
         expect(connEvent?.properties.connection_test_attempts).toBe(3);
     });
@@ -104,7 +102,7 @@ describe("SetupTelemetry", () => {
         setupTelemetry.emitStarted();
         setupTelemetry.emitConnectionStringEntered({ provided: true, tested: false, attempts: 0 });
 
-        const connEvent = mock.emitted.find((e) => e.properties.command === "connection_string_entered");
+        const connEvent = mock.emitted.find((e) => e.properties.stage === "connection_string_entered");
         expect(connEvent?.properties.result).toBe("success");
         expect(connEvent?.properties.connection_string_tested).toBe("false");
     });
@@ -118,7 +116,7 @@ describe("SetupTelemetry", () => {
             error: boom,
         });
 
-        const editorEvent = mock.emitted.find((e) => e.properties.command === "editor_configured");
+        const editorEvent = mock.emitted.find((e) => e.properties.stage === "editor_configured");
         expect(editorEvent?.properties.result).toBe("failure");
         expect(editorEvent?.properties.error_type).toBe("TypeError");
         expect(editorEvent?.properties.used_default_config_path).toBe("false");
@@ -130,9 +128,9 @@ describe("SetupTelemetry", () => {
         setupTelemetry.emitCancelled();
 
         const cancelled = mock.emitted.at(-1)!;
-        expect(cancelled.properties.command).toBe("cancelled");
+        expect(cancelled.properties.stage).toBe("cancelled");
         expect(cancelled.properties.result).toBe("success");
-        expect(cancelled.properties.last_step).toBe("ai_tool_selected");
+        expect(cancelled.properties.last_stage).toBe("ai_tool_selected");
         expect(cancelled.properties.ai_tool).toBe("cursor");
     });
 
@@ -144,7 +142,7 @@ describe("SetupTelemetry", () => {
         setupTelemetry.emitFailed(new MyError("bad"));
 
         const failed = mock.emitted.at(-1)!;
-        expect(failed.properties.command).toBe("failed");
+        expect(failed.properties.stage).toBe("failed");
         expect(failed.properties.result).toBe("failure");
         expect(failed.properties.error_type).toBe("MyError");
     });

@@ -2,11 +2,10 @@ import { randomUUID } from "crypto";
 import { ApiClient } from "../common/atlas/apiClient.js";
 import type { Keychain } from "../common/keychain.js";
 import { NullLogger } from "../common/logging/index.js";
-import type { UserConfig } from "../common/config/userConfig.js";
 import { DeviceId } from "../helpers/deviceId.js";
 import { Telemetry } from "../telemetry/telemetry.js";
 import type {
-    SetupCommand,
+    SetupStage,
     SetupEvent,
     SetupEventProperties,
     TelemetryBoolSet,
@@ -20,7 +19,7 @@ import type {
  */
 export type SetupTelemetryContext = Omit<
     SetupEventProperties,
-    "command" | "setup_session_id" | "last_step" | "error_type" | "total_duration_ms"
+    "stage" | "setup_session_id" | "last_step" | "error_type" | "total_duration_ms"
 >;
 
 export const toBoolSet = (value: boolean | undefined): TelemetryBoolSet | undefined => {
@@ -44,7 +43,7 @@ export class SetupTelemetry {
     private readonly setupSessionId: string = randomUUID();
     private readonly startedAt: number = Date.now();
     private stepStartedAt: number = this.startedAt;
-    private lastStep: SetupCommand | undefined;
+    private lastStep: SetupStage | undefined;
     private context: SetupTelemetryContext = {};
 
     /**
@@ -53,7 +52,10 @@ export class SetupTelemetry {
      * interactive wizard), a fresh {@link DeviceId}, an unauthenticated
      * {@link ApiClient}, and a {@link Telemetry} instance.
      */
-    public static create(config: UserConfig, keychain: Keychain): SetupTelemetry {
+    public static create(
+        config: { apiBaseUrl: string; telemetry: "enabled" | "disabled" },
+        keychain: Keychain
+    ): SetupTelemetry {
         const logger = new NullLogger();
         const deviceId = DeviceId.create(logger);
         const apiClient = new ApiClient({ baseUrl: config.apiBaseUrl }, logger);
@@ -91,7 +93,7 @@ export class SetupTelemetry {
      * own code path failed (e.g. writing the editor config threw).
      */
     private emit(
-        command: SetupCommand,
+        stage: SetupStage,
         extra: Partial<SetupEventProperties> = {},
         result: TelemetryResult = "success"
     ): void {
@@ -104,7 +106,7 @@ export class SetupTelemetry {
                 category: "setup",
                 duration_ms: now - this.stepStartedAt,
                 result,
-                command,
+                stage,
                 setup_session_id: this.setupSessionId,
                 ...this.context,
                 ...extra,
@@ -114,21 +116,16 @@ export class SetupTelemetry {
         this.telemetry.emitEvents([event]);
 
         this.stepStartedAt = now;
-        this.lastStep = command;
+        this.lastStep = stage;
     }
 
     public emitStarted(): void {
         this.emit("started");
     }
 
-    public emitPrerequisitesChecked(props: {
-        nodeVersionOk: boolean;
-        platformSupported: boolean;
-        hasDocker?: boolean;
-    }): void {
+    public emitPrerequisitesChecked(props: { nodeVersionOk: boolean; hasDocker?: boolean }): void {
         this.updateContext({
             node_version_ok: toBoolSet(props.nodeVersionOk),
-            platform_supported: toBoolSet(props.platformSupported),
             has_docker: toBoolSet(props.hasDocker),
         });
         this.emit("prerequisites_checked");
@@ -140,7 +137,7 @@ export class SetupTelemetry {
     }
 
     public emitReadOnlySelected(isReadOnly: boolean): void {
-        this.updateContext({ is_read_only: toBoolSet(isReadOnly) });
+        this.updateContext({ read_only_mode: toBoolSet(isReadOnly) });
         this.emit("read_only_selected");
     }
 
@@ -199,12 +196,12 @@ export class SetupTelemetry {
     /**
      * Emits a cancellation event (e.g. the user hit Ctrl+C). The `result` is
      * "success" because the cancellation itself was handled gracefully — the
-     * distinct `command: "cancelled"` is what analytics use to separate
+     * distinct `stage: "cancelled"` is what analytics use to separate
      * abandoned runs from completed ones.
      */
     public emitCancelled(): void {
         this.emit("cancelled", {
-            last_step: this.lastStep,
+            last_stage: this.lastStep,
             total_duration_ms: Date.now() - this.startedAt,
         });
     }
@@ -213,7 +210,7 @@ export class SetupTelemetry {
         this.emit(
             "failed",
             {
-                last_step: this.lastStep,
+                last_stage: this.lastStep,
                 error_type: errorName(error),
                 total_duration_ms: Date.now() - this.startedAt,
             },
