@@ -25,3 +25,20 @@ export interface IDeviceId {
      */
     close(): void;
 }
+
+/**
+ * Options for MongoDB connection string helpers. Concrete implementations
+ * (e.g. `validateConnectionString`, `setAppNameParamIfMissing`) live in
+ * `@mongodb-js/mcp-core`.
+ */
+export interface ConnectionOptions {
+    /** The MongoDB connection string (URI). */
+    connectionString: string;
+    /**
+     * When `true`, the connection string parser applies loose validation rules
+     * (e.g. allows unknown query parameters).
+     */
+    looseValidation?: boolean;
+    /** Components used to build the extended `appName` URI parameter. */
+    appNameComponents?: AppNameComponents;
+}
