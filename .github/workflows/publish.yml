@@ -103,11 +103,11 @@ jobs:
         id: ai-summary
         continue-on-error: true
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
         run: ./scripts/generate-release-notes.sh ${{ needs.check.outputs.GIT_TAG_VERSION }} ${{ github.sha }}
         shell: bash
 
-      - name: Publish git release and create tags
+      - name: Publish github release
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -119,22 +119,6 @@ jobs:
             --notes-file "${{ steps.ai-summary.outputs.notes_file }}" \
             --target ${{ github.sha }} \
             ${{ (needs.check.outputs.RELEASE_CHANNEL != 'latest' && '--prerelease') || ''}}
-
-          echo "Creating tags for packages..."
-          for pkg_json in packages/*/package.json; do
-            pkg_name=$(node -p "require('./$pkg_json').name")
-            pkg_version=$(node -p "require('./$pkg_json').version")
-            git_tag="${pkg_name}@${pkg_version}"
-
-            if git rev-parse "$git_tag" >/dev/null 2>&1; then
-              continue
-            fi
-
-            echo "Creating tag ${git_tag}..."
-            gh api repos/${{ github.repository }}/git/refs \
-              -f ref="refs/tags/${git_tag}" \
-              -f sha="${{ github.sha }}"
-          done
 
       - name: Wait for package to be available on npm
         run: |

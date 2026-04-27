@@ -8,8 +8,12 @@ import { LogId } from "../../common/logging/index.js";
 import type { Server } from "../../server.js";
 import type { ConnectionMetadata } from "../../telemetry/types.js";
 
-export const DbOperationArgs = {
+export const DBOperationArgs = {
     database: z.string().describe("Database name"),
+};
+
+export const CollOperationArgs = {
+    ...DBOperationArgs,
     collection: z.string().describe("Collection name"),
 };
 

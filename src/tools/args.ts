@@ -75,7 +75,7 @@ export const AtlasArgs = {
         z.string().min(1, "Password is required").max(100, "Password must be 100 characters or less"),
 };
 
-function toEJSON<T extends object | undefined>(value: T): T {
+export function toEJSON<T extends object | undefined>(value: T): T {
     if (!value) {
         return value;
     }
