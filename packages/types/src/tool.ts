@@ -9,9 +9,8 @@ export type ToolExecutionContext = {
     };
 };
 
-export type ToolClass = {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    new (params: any): {
+export type ToolClass<TParams extends unknown[] = unknown[]> = {
+    new (params: TParams): {
         name: string;
         category: ToolCategory;
         operationType: OperationType;

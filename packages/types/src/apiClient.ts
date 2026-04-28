@@ -1,7 +1,7 @@
-export interface ApiClientLike {
+export interface IApiClient<TEvent extends unknown[] = unknown[]> {
     isAuthConfigured(): boolean;
     close(): Promise<void>;
-    sendEvents(events: unknown[], options?: { signal?: AbortSignal }): Promise<void>;
+    sendEvents(options?: { signal?: AbortSignal; events: TEvent }): Promise<void>;
 }
 
 export type ApiClientOptions = {

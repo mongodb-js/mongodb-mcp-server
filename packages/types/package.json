@@ -1,9 +1,9 @@
 {
-  "name": "@mongodb-js/mcp-api",
-  "version": "0.1.0",
+  "name": "@mongodb-js/mcp-types",
+  "version": "1.11.0-prerelease.1",
   "private": true,
   "type": "module",
-  "description": "TypeScript interfaces for the MongoDB MCP server packages",
+  "description": "Shared TypeScript types and interfaces for MongoDB MCP server packages",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
