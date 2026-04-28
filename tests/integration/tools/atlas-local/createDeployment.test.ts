@@ -5,6 +5,8 @@ import {
     describeWithAtlasLocal,
     describeWithAtlasLocalDisabled,
 } from "./atlasLocalHelpers.js";
+import type { ListDatabasesOutput } from "../../../../src/tools/mongodb/metadata/listDatabases.js";
+import type { ListCollectionsOutput } from "../../../../src/tools/mongodb/metadata/listCollections.js";
 
 // Config used for tests that require a voyageApiKey.
 const configWithVoyageApiKey = { ...defaultTestConfig, voyageApiKey: "test-voyage-api-key" };
@@ -157,6 +159,60 @@ describeWithAtlasLocal(
             expectDefined(client);
             const deployment = await client.getDeployment(deploymentName);
             expect((deployment as { voyageApiKey?: string }).voyageApiKey).toBe(configWithVoyageApiKey.voyageApiKey);
+        });
+
+        it("should load sample data when loadSampleData is true", async () => {
+            const deploymentName = `test-deployment-sample-${Date.now()}`;
+            deploymentNamesToCleanup.push(deploymentName);
+
+            const createResponse = await createAtlasLocalDeployment(integration, {
+                deploymentName,
+                loadSampleData: true,
+            });
+            const createElements = getResponseElements(createResponse.content);
+            expect(createElements.length).toBeGreaterThanOrEqual(1);
+            expect(createElements[0]?.text ?? "").toContain(deploymentName);
+
+            // The MCP tool should propagate loadSampleData down to the underlying atlas-local client.
+            const client = integration.mcpServer().session.atlasLocalClient;
+            expectDefined(client);
+            const deployment = await client.getDeployment(deploymentName);
+            expect(deployment.mongodbLoadSampleData).toBe(true);
+
+            // Connect so subsequent MongoDB tool calls target this deployment.
+            await integration.mcpClient().callTool({
+                name: "atlas-local-connect-deployment",
+                arguments: { deploymentName },
+            });
+
+            // Verify the standard MongoDB sample datasets were loaded.
+            const dbsResponse = await integration.mcpClient().callTool({
+                name: "list-databases",
+                arguments: {},
+            });
+            const dbsContent = dbsResponse.structuredContent as ListDatabasesOutput;
+            const sampleDbNames = dbsContent.databases
+                .map((db) => db.name)
+                .filter((name) => name.startsWith("sample_"));
+            expect(sampleDbNames).toContain("sample_mflix");
+
+            // Verify a known collection from sample_mflix is present and has data.
+            const collsResponse = await integration.mcpClient().callTool({
+                name: "list-collections",
+                arguments: { database: "sample_mflix" },
+            });
+            const collsContent = collsResponse.structuredContent as ListCollectionsOutput;
+            const collNames = collsContent.collections.map((c) => c.name);
+            expect(collNames).toContain("movies");
+
+            const findResponse = await integration.mcpClient().callTool({
+                name: "find",
+                arguments: { database: "sample_mflix", collection: "movies", limit: 1 },
+            });
+            const findElements = getResponseElements(findResponse.content);
+            // Element 0 is the summary line ("Query on collection ... resulted in N documents..."),
+            // element 1 (when present) is the document payload.
+            expect(findElements[0]?.text ?? "").toMatch(/resulted in [1-9]\d* documents/);
         });
 
         it("should create a deployment with imageTag latest", async () => {

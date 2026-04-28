@@ -8,6 +8,9 @@ const isMacOSInGitHubActions = process.platform === "darwin" && process.env.GITH
 // Atlas Local create-deployment can take longer than the MCP SDK's default 60s
 // request timeout when the docker image has to be pulled from a cold cache.
 const ATLAS_LOCAL_CALL_TIMEOUT_MS = 180_000;
+// Loading sample data downloads several hundred MBs of seed data on container
+// startup, which adds substantial time on top of the regular healthcheck wait.
+const ATLAS_LOCAL_SAMPLE_DATA_TIMEOUT_MS = 600_000;
 
 /**
  * Helper function to create an Atlas Local deployment via the MCP SDK client. The creation may take a while
@@ -15,15 +18,16 @@ const ATLAS_LOCAL_CALL_TIMEOUT_MS = 180_000;
  */
 export function createAtlasLocalDeployment(
     integration: IntegrationTest,
-    args: { deploymentName?: string; imageTag?: string } = {}
+    args: { deploymentName?: string; imageTag?: string; loadSampleData?: boolean } = {}
 ): ReturnType<Client["callTool"]> {
+    const timeout = args.loadSampleData ? ATLAS_LOCAL_SAMPLE_DATA_TIMEOUT_MS : ATLAS_LOCAL_CALL_TIMEOUT_MS;
     return integration.mcpClient().callTool(
         {
             name: "atlas-local-create-deployment",
             arguments: args,
         },
         undefined,
-        { timeout: ATLAS_LOCAL_CALL_TIMEOUT_MS }
+        { timeout }
     );
 }
 
