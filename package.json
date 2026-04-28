@@ -157,6 +157,7 @@
     "vitest": "^4.1.4"
   },
   "dependencies": {
+    "@mongodb-js/mcp-types": "workspace:*",
     "@mongodb-js/mcp-metrics": "workspace:*",
     "@inquirer/prompts": "^8.0.2",
     "@inquirer/select": "^5.1.3",
