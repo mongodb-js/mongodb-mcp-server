@@ -17,11 +17,9 @@ type SendResult = {
     error?: Error;
 };
 
-export interface TelemetryEvents {
-    "events-emitted": [];
-    "events-send-failed": [];
-    "events-skipped": [];
-}
+import type { TelemetryEvents } from "@mongodb-js/mcp-types";
+
+export type { TelemetryEvents };
 
 /** The timeout for individual send requests in milliseconds. */
 const SEND_TIMEOUT_MS = 5_000;
