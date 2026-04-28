@@ -3,7 +3,7 @@
 //
 // Usage: node --experimental-strip-types scripts/generate-release-notes.ts [--newVersion <version>] [--commitSha <sha>]
 
-import { execSync } from "child_process";
+import { execFileSync } from "child_process";
 import { appendFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import type { SemVer } from "semver";
@@ -66,11 +66,30 @@ async function findPrevTag(newVersion: string): Promise<SemVer | null> {
 }
 
 /** Returns an AI-generated summary of the release, or null if generation fails or there are no relevant PRs. */
-async function generateAiSummary(prevTagDate: string): Promise<string | null> {
-    // Fetch feat/fix PR titles and bodies merged since the previous tag
-    type PrItem = { title: string; body: string };
-    const prListJson = execSync(
-        `gh pr list --state merged --base main --search "merged:>${prevTagDate}" --json title,body --limit 500`,
+async function generateAiSummary(prevTagDate: string, targetCommitDate: string): Promise<string | null> {
+    if (!GROVE_API_KEY) {
+        console.log("GROVE_API_KEY is not set, skipping AI summary generation");
+        return null;
+    }
+
+    // Fetch feat/fix PR titles and bodies merged within the release range
+    type PrItem = { title: string; body: string | null };
+    const prListJson = execFileSync(
+        "gh",
+        [
+            "pr",
+            "list",
+            "--state",
+            "merged",
+            "--base",
+            "main",
+            "--search",
+            `merged:>${prevTagDate} merged:<=${targetCommitDate}`,
+            "--json",
+            "title,body",
+            "--limit",
+            "500",
+        ],
         { encoding: "utf-8" }
     ).trim();
     const prList = JSON.parse(prListJson) as PrItem[];
@@ -80,14 +99,16 @@ async function generateAiSummary(prevTagDate: string): Promise<string | null> {
         return null;
     }
 
+    // Truncate bodies to avoid sending excessive content to the model
+    const MAX_BODY_CHARS = 1000;
     const prSummaries = featFixPrs
-        .map((pr) => (pr.body?.trim() ? `- ${pr.title}\n${pr.body.trim()}` : `- ${pr.title}`))
+        .map((pr) => {
+            const body = pr.body?.trim();
+            if (!body) return `- ${pr.title}`;
+            const truncated = body.length > MAX_BODY_CHARS ? body.slice(0, MAX_BODY_CHARS) + "…" : body;
+            return `- ${pr.title}\n${truncated}`;
+        })
         .join("\n\n");
-
-    if (!GROVE_API_KEY) {
-        console.log("GROVE_API_KEY is not set, skipping AI summary generation");
-        return null;
-    }
 
     const anthropic = createAnthropic({
         baseURL: "https://grove-gateway-prod.azure-api.net/grove-foundry-prod/anthropic/v1",
@@ -108,7 +129,7 @@ async function generateAiSummary(prevTagDate: string): Promise<string | null> {
         const { text } = await generateText({
             model: anthropic("claude-sonnet-4-6"),
             messages: [{ role: "user", content: prompt }],
-            maxOutputTokens: 10000,
+            maxOutputTokens: 1000,
         });
         return text || null;
     } catch (err) {
@@ -136,19 +157,28 @@ async function main(): Promise<void> {
     const prevTagDate = (await git.raw(["log", "-1", "--format=%cI", `v${prevTag.version}`])).trim();
     console.log(`Previous tag date: ${prevTagDate}`);
 
-    // Fetch feat/fix PR titles and generate AI summary
-    const aiSummary = await generateAiSummary(prevTagDate);
+    const targetCommitDate = (await git.raw(["show", "-s", "--format=%cI", resolvedCommitSha])).trim();
+    console.log(`Target commit date: ${targetCommitDate}`);
+
+    const aiSummary = await generateAiSummary(prevTagDate, targetCommitDate);
 
     // Generate structured release notes via GitHub API
-    const structuredNotes = execSync(
+    const structuredNotes = execFileSync(
+        "gh",
         [
-            "gh api repos/mongodb-js/mongodb-mcp-server/releases/generate-notes",
-            "--method POST",
-            `--field tag_name=${newVersion}`,
-            `--field previous_tag_name=v${prevTag.version}`,
-            `--field target_commitish=${resolvedCommitSha}`,
-            "--jq '.body'",
-        ].join(" "),
+            "api",
+            "repos/mongodb-js/mongodb-mcp-server/releases/generate-notes",
+            "--method",
+            "POST",
+            "--field",
+            `tag_name=${newVersion}`,
+            "--field",
+            `previous_tag_name=v${prevTag.version}`,
+            "--field",
+            `target_commitish=${resolvedCommitSha}`,
+            "--jq",
+            ".body",
+        ],
         { encoding: "utf-8" }
     ).trim();
 
