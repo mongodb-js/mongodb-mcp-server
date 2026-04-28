@@ -35,6 +35,9 @@ importers:
       '@mongodb-js/mcp-metrics':
         specifier: workspace:*
         version: link:packages/metrics
+      '@mongodb-js/mcp-types':
+        specifier: workspace:*
+        version: link:packages/types
       '@mongosh/arg-parser':
         specifier: ^5.0.2
         version: 5.0.2(zod@4.3.6)

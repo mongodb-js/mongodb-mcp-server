@@ -25,14 +25,9 @@ import { defaultCreateApiClient } from "../common/atlas/apiClient.js";
 import type { UIRegistry } from "../ui/registry/index.js";
 import { PrometheusMetrics, createDefaultMetrics, type Metrics, type DefaultMetrics } from "@mongodb-js/mcp-metrics";
 
-/**
- * Request context containing HTTP headers and query parameters.
- * This type is primarily used by HTTP-based transports.
- */
-export type TransportRequestContext = {
-    headers?: Record<string, string | string[] | undefined>;
-    query?: Record<string, string | string[] | undefined>;
-};
+import type { TransportRequestContext } from "@mongodb-js/mcp-types";
+
+export type { TransportRequestContext };
 
 /** @deprecated Use TransportRequestContext instead */
 export type RequestContext = TransportRequestContext;
