@@ -1,6 +1,10 @@
 import { expectDefined, getResponseElements } from "../../helpers.js";
 import { expect, it } from "vitest";
-import { describeWithAtlasLocal, describeWithAtlasLocalDisabled } from "./atlasLocalHelpers.js";
+import {
+    createAtlasLocalDeployment,
+    describeWithAtlasLocal,
+    describeWithAtlasLocalDisabled,
+} from "./atlasLocalHelpers.js";
 
 describeWithAtlasLocal("atlas-local-delete-deployment", (integration) => {
     it("should have the atlas-local-delete-deployment tool", async () => {
@@ -35,10 +39,7 @@ describeWithAtlasLocal("atlas-local-delete-deployment", (integration) => {
     it("should delete a deployment when calling the tool", async () => {
         // Create a deployment
         const deploymentName = `test-deployment-${Date.now()}`;
-        await integration.mcpClient().callTool({
-            name: "atlas-local-create-deployment",
-            arguments: { deploymentName },
-        });
+        await createAtlasLocalDeployment(integration, { deploymentName });
 
         // Check that deployment exists before deletion
         const beforeResponse = await integration.mcpClient().callTool({
