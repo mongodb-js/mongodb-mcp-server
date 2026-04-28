@@ -1,0 +1,35 @@
+{
+  "name": "@mongodb-js/mcp-atlas-api-client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Atlas REST API client for MongoDB MCP server packages",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "compile": "tsc --project tsconfig.json && cp src/openapi.d.ts dist/openapi.d.ts",
+    "test": "vitest --run"
+  },
+  "dependencies": {
+    "@mongodb-js/devtools-proxy-support": "^0.7.8",
+    "@mongodb-js/mcp-core": "workspace:*",
+    "node-fetch": "^3.3.2",
+    "oauth4webapi": "^3.8.5",
+    "openapi-fetch": "^0.17.0"
+  },
+  "devDependencies": {
+    "@mongodb-js/mcp-api": "workspace:*",
+    "@types/node": "^25.6.0",
+    "typescript": "^5.9.2",
+    "vitest": "^4.1.4"
+  }
+}

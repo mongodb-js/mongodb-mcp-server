@@ -123,7 +123,7 @@ export default defineConfig([
         "node_modules",
         "**/dist/**",
         "packages/*/dist/**",
-        "src/common/atlas/openapi.d.ts",
+        "packages/mcp-atlas-api-client/src/openapi.d.ts",
         "src/ui/lib",
         "coverage",
         "global.d.ts",

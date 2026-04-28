@@ -595,7 +595,7 @@ git commit -m "feat: add @mongodb-js/mcp-core, wire up binary, migrate unit test
 - `sendEvents()` (if it exists in apiClient) should accept generic `T[]` instead of a specific event type.
 - `userAgent` string should be passed as a constructor/factory option rather than imported from `packageInfo`.
 
-- [ ] **Step 1: Create scaffold**
+- [x] **Step 1: Create scaffold**
 
 ```bash
 mkdir -p packages/mcp-atlas-api-client/src/auth
@@ -650,7 +650,7 @@ Create `packages/mcp-atlas-api-client/tsconfig.json`:
 }
 ```
 
-- [ ] **Step 2: Move files using `git mv` and update imports**
+- [x] **Step 2: Move files using `git mv` and update imports**
 
 Use `git mv` for each file in the move table above to preserve git history. Example:
 
@@ -686,7 +686,7 @@ export function createApiClient(baseUrl: string, options: ApiClientOptions) {
 }
 ```
 
-- [ ] **Step 3: Create `packages/mcp-atlas-api-client/src/index.ts`**
+- [x] **Step 3: Create `packages/mcp-atlas-api-client/src/index.ts`**
 
 ```typescript
 export * from "./apiClient.js";
@@ -695,7 +695,7 @@ export * from "./auth/index.js";
 // openapi.d.ts types are auto-included via TypeScript, no explicit re-export needed
 ```
 
-- [ ] **Step 4: Build and verify**
+- [x] **Step 4: Build and verify**
 
 ```bash
 cd packages/mcp-atlas-api-client && pnpm compile 2>&1
@@ -703,7 +703,7 @@ cd packages/mcp-atlas-api-client && pnpm compile 2>&1
 
 Expected: clean compile.
 
-- [ ] **Step 5: Wire up binary — update `src/` imports to use `@mongodb-js/mcp-atlas-api-client`**
+- [x] **Step 5: Wire up binary — update `src/` imports to use `@mongodb-js/mcp-atlas-api-client`**
 
 In the root `package.json`, add `"@mongodb-js/mcp-atlas-api-client": "workspace:*"` to `dependencies` and run `pnpm install`.
 
@@ -719,7 +719,7 @@ import { AtlasApiClient } from "@mongodb-js/mcp-atlas-api-client";
 
 Run `pnpm compile` and fix any errors.
 
-- [ ] **Step 6: Verify full build and test suite**
+- [x] **Step 6: Verify full build and test suite**
 
 ```bash
 pnpm run compile && pnpm test && pnpm run check
@@ -727,7 +727,7 @@ pnpm run compile && pnpm test && pnpm run check
 
 Expected: clean compile, same pass rate as before this task.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add -A
@@ -1974,7 +1974,7 @@ Each task below creates the package, wires it into the binary, deletes the moved
 | ------- | ------------------------------------------------------ | --------------- |
 | Task 1  | `@mongodb-js/mcp-api` (types only, additive)           | [x] Complete    |
 | Task 2  | `@mongodb-js/mcp-core` + wire-up + unit tests          | [x] Complete    |
-| Task 3  | `@mongodb-js/mcp-atlas-api-client` + wire-up           | [ ] Not started |
+| Task 3  | `@mongodb-js/mcp-atlas-api-client` + wire-up           | [x] Complete    |
 | Task 4  | `@mongodb-js/mcp-cli-logging` + wire-up + unit tests   | [ ] Not started |
 | Task 5  | `@mongodb-js/mcp-cli-telemetry` + wire-up + unit tests | [ ] Not started |
 | Task 6  | `@mongodb-js/mcp-transports` + wire-up                 | [ ] Not started |

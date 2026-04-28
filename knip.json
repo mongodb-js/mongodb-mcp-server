@@ -48,6 +48,9 @@
     "packages/mcp-api": {
       "entry": ["src/index.ts!", "src/**/*.test.ts"]
     },
+    "packages/mcp-atlas-api-client": {
+      "entry": ["src/index.ts!", "src/**/*.test.ts"]
+    },
     "packages/metrics": {
       "entry": ["src/index.ts!", "src/**/*.test.ts"]
     }

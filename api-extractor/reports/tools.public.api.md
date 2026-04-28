@@ -5,9 +5,9 @@
 ```ts
 
 import type { AggregationCursor } from 'mongodb';
+import { ApiClient } from '@mongodb-js/mcp-atlas-api-client';
 import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { Client } from '@mongodb-js/atlas-local';
-import type { components } from './openapi.js';
 import { CompositeLogger } from '@mongodb-js/mcp-core';
 import { ConnectionInfo } from '@mongosh/arg-parser';
 import type { DefaultMetrics } from '@mongodb-js/mcp-metrics';
@@ -15,7 +15,6 @@ import { DeviceId } from '@mongodb-js/mcp-core';
 import { Elicitation } from '@mongodb-js/mcp-core';
 import { ErrorCodes } from '@mongodb-js/mcp-core';
 import EventEmitter from 'events';
-import type { FetchOptions } from 'openapi-fetch';
 import type { FindCursor } from 'mongodb';
 import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
 import { Keychain } from '@mongodb-js/mcp-core';
@@ -25,7 +24,6 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { Metrics } from '@mongodb-js/mcp-metrics';
 import { MongoDBError } from '@mongodb-js/mcp-core';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
-import type { operations } from './openapi.js';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import { z } from 'zod';
@@ -958,9 +956,9 @@ export class ListAlertsTool extends AtlasToolBase {
     argsShape: {
         projectId: z.ZodString;
         status: z.ZodDefault<z.ZodEnum<{
-            CLOSED: "CLOSED";
             OPEN: "OPEN";
             TRACKING: "TRACKING";
+            CLOSED: "CLOSED";
         }>>;
         limit: z.ZodDefault<z.ZodNumber>;
         pageNum: z.ZodDefault<z.ZodNumber>;

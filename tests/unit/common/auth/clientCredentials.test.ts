@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as oauth from "oauth4webapi";
-import { ClientCredentialsAuthProvider } from "../../../../src/common/atlas/auth/clientCredentials.js";
+import { ClientCredentialsAuthProvider } from "@mongodb-js/mcp-atlas-api-client";
 import { NullLogger } from "../../../../src/common/logging/index.js";
 
 vi.mock("oauth4webapi", () => ({
@@ -35,10 +35,14 @@ describe("ClientCredentialsAuthProvider", () => {
 
         it("should initialize oauth2Issuer with correct endpoints", () => {
             // @ts-expect-error accessing private property for testing
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             const issuer = authProvider.oauth2Issuer;
             expect(issuer).toBeDefined();
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             expect(issuer?.issuer).toBe(mockOptions.baseUrl);
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             expect(issuer?.token_endpoint).toBe("https://api.test.com/api/oauth/token");
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             expect(issuer?.revocation_endpoint).toBe("https://api.test.com/api/oauth/revoke");
         });
     });

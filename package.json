@@ -103,6 +103,7 @@
   "devDependencies": {
     "@mongodb-js/mcp-api": "workspace:*",
     "@mongodb-js/device-id": "^0.4.6",
+    "oauth4webapi": "^3.8.5",
     "@ai-sdk/azure": "^3.0.54",
     "@ai-sdk/google": "^3.0.64",
     "@ai-sdk/mcp": "^1.0.36",
@@ -160,6 +161,7 @@
     "vitest": "^4.1.4"
   },
   "dependencies": {
+    "@mongodb-js/mcp-atlas-api-client": "workspace:*",
     "@mongodb-js/mcp-core": "workspace:*",
     "@mongodb-js/mcp-metrics": "workspace:*",
     "@inquirer/prompts": "^8.0.2",
@@ -179,9 +181,6 @@
     "mongodb-log-writer": "^2.5.7",
     "mongodb-redact": "^1.4.6",
     "mongodb-schema": "^12.7.0",
-    "node-fetch": "^3.3.2",
-    "oauth4webapi": "^3.8.5",
-    "openapi-fetch": "^0.17.0",
     "semver": "^7.7.2",
     "ts-levenshtein": "^1.0.7",
     "yaml": "^2.8.1",
