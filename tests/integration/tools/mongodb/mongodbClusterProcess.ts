@@ -1,14 +1,24 @@
 import fs from "fs/promises";
 import path from "path";
-import type { MongoClusterOptions } from "mongodb-runner";
+import type { MongoClusterOptions, MongoDBUserDoc } from "mongodb-runner";
 import { DockerComposeEnvironment, GenericContainer, Wait } from "testcontainers";
 import { MongoCluster } from "mongodb-runner";
+import { MongoClient } from "mongodb";
+import { ConnectionString } from "mongodb-connection-string-url";
 import { ShellWaitStrategy } from "testcontainers/build/wait-strategies/shell-wait-strategy.js";
 
 export type MongoRunnerConfiguration = {
     runner: true;
     downloadOptions: MongoClusterOptions["downloadOptions"];
     serverArgs: string[];
+    /**
+     * Optional list of users to create on the spun-up cluster. When provided,
+     * `--auth` is automatically added to the server arguments so the created
+     * users' roles are actually enforced. The first user in the list is used
+     * for the default (admin) connection string returned by
+     * {@link MongoDBClusterProcess.connectionString}.
+     */
+    users?: MongoDBUserDoc[];
 };
 
 export type MongoSearchConfiguration = { search: true; image?: string };
@@ -91,7 +101,19 @@ export class MongoDBClusterProcess {
                 () => `mongodb://${mongodHost}:${mongodPort}/?directConnection=true`
             );
         } else if (MongoDBClusterProcess.isMongoRunnerOption(config)) {
-            const { downloadOptions, serverArgs } = config;
+            const { downloadOptions, serverArgs, users } = config;
+
+            // When users are requested we need to start mongod with --auth so
+            // their roles are actually enforced. Only the very first user is
+            // passed to mongodb-runner, which creates it via the MongoDB
+            // localhost exception. Any additional users are created via the
+            // authenticated client below, because the localhost exception is
+            // automatically disabled once the first user exists.
+            const hasUsers = users && users.length > 0;
+            const effectiveServerArgs =
+                hasUsers && !serverArgs.includes("--auth") ? [...serverArgs, "--auth"] : serverArgs;
+            const bootstrapUsers = hasUsers ? users.slice(0, 1) : undefined;
+            const additionalUsers = hasUsers ? users.slice(1) : [];
 
             const tmpDir = path.join(__dirname, "..", "..", "..", "tmp");
             await fs.mkdir(tmpDir, { recursive: true });
@@ -104,8 +126,26 @@ export class MongoDBClusterProcess {
                         topology: "standalone",
                         version: downloadOptions?.version ?? "8.0.12",
                         downloadOptions,
-                        args: serverArgs,
+                        args: effectiveServerArgs,
+                        users: bootstrapUsers,
                     });
+
+                    if (additionalUsers.length > 0) {
+                        const client = new MongoClient(mongoCluster.connectionString);
+                        try {
+                            const admin = client.db("admin");
+                            for (const user of additionalUsers) {
+                                const { username, password, ...rest } = user;
+                                await admin.command({
+                                    createUser: username,
+                                    pwd: password,
+                                    ...rest,
+                                });
+                            }
+                        } finally {
+                            await client.close();
+                        }
+                    }
 
                     return new MongoDBClusterProcess(
                         () => mongoCluster.close(),
@@ -140,6 +180,35 @@ export class MongoDBClusterProcess {
 
     connectionString(): string {
         return this.connectionStringFunction();
+    }
+
+    /**
+     * Build a connection string for a specific user/password against the same
+     * cluster, optionally with a specific authSource and default database.
+     * Preserves all query parameters from the original connection string
+     * (e.g. directConnection, replicaSet).
+     */
+    connectionStringForUser({
+        username,
+        password,
+        authSource,
+        defaultDatabase,
+    }: {
+        username: string;
+        password: string;
+        authSource?: string;
+        defaultDatabase?: string;
+    }): string {
+        const cs = new ConnectionString(this.connectionString());
+        cs.username = username;
+        cs.password = password;
+        if (defaultDatabase !== undefined) {
+            cs.pathname = `/${defaultDatabase}`;
+        }
+        if (authSource !== undefined) {
+            cs.searchParams.set("authSource", authSource);
+        }
+        return cs.toString();
     }
 
     async close(): Promise<void> {
