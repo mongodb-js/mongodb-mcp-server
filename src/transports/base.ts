@@ -62,9 +62,9 @@ export type CustomizableServerOptions<TUserConfig extends UserConfig = UserConfi
  *    MongoDB MCP server is running over HTTP transport, that contains headers
  *    and query parameters received in MCP session initialization object.
  *
- * @see {@link UserConfig} to inspect the properties available on `userConfig`
+ * @see UserConfig to inspect the properties available on `userConfig`
  * object.
- * @see {@link TransportRequestContext} to inspect the properties available on
+ * @see TransportRequestContext to inspect the properties available on
  * `requestContext` object.
  */
 export type CreateSessionConfigFn<TUserConfig extends UserConfig = UserConfig> = (context: {
