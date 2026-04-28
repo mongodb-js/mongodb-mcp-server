@@ -54,5 +54,10 @@ jobs:
           cache: "pnpm"
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Pre-pull Atlas Local images
+        run: |
+          docker pull mongodb/mongodb-atlas-local:preview &
+          docker pull mongodb/mongodb-atlas-local:latest &
+          wait
       - name: Run tests
         run: pnpm test -- tests/integration/tools/atlas-local/

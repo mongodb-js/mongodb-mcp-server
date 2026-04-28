@@ -1,6 +1,10 @@
 import { defaultTestConfig, expectDefined, getResponseElements } from "../../helpers.js";
 import { afterEach, expect, it } from "vitest";
-import { describeWithAtlasLocal, describeWithAtlasLocalDisabled } from "./atlasLocalHelpers.js";
+import {
+    createAtlasLocalDeployment,
+    describeWithAtlasLocal,
+    describeWithAtlasLocalDisabled,
+} from "./atlasLocalHelpers.js";
 
 // Config used for tests that require a voyageApiKey.
 const configWithVoyageApiKey = { ...defaultTestConfig, voyageApiKey: "test-voyage-api-key" };
@@ -56,10 +60,7 @@ describeWithAtlasLocal(
 
             // Create a deployment
             deploymentNamesToCleanup.push(deploymentName);
-            await integration.mcpClient().callTool({
-                name: "atlas-local-create-deployment",
-                arguments: { deploymentName },
-            });
+            await createAtlasLocalDeployment(integration, { deploymentName });
 
             // Check that deployment exists after creation
             const afterResponse = await integration.mcpClient().callTool({
@@ -76,16 +77,10 @@ describeWithAtlasLocal(
             // Create a deployment
             const deploymentName = `test-deployment-${Date.now()}`;
             deploymentNamesToCleanup.push(deploymentName);
-            await integration.mcpClient().callTool({
-                name: "atlas-local-create-deployment",
-                arguments: { deploymentName },
-            });
+            await createAtlasLocalDeployment(integration, { deploymentName });
 
             // Try to create the same deployment again
-            const response = await integration.mcpClient().callTool({
-                name: "atlas-local-create-deployment",
-                arguments: { deploymentName },
-            });
+            const response = await createAtlasLocalDeployment(integration, { deploymentName });
 
             // Check that the response is an error
             expect(response.isError).toBe(true);
@@ -99,10 +94,7 @@ describeWithAtlasLocal(
             // Create a deployment
             const deploymentName = `test-deployment-${Date.now()}`;
             deploymentNamesToCleanup.push(deploymentName);
-            const createResponse = await integration.mcpClient().callTool({
-                name: "atlas-local-create-deployment",
-                arguments: { deploymentName },
-            });
+            const createResponse = await createAtlasLocalDeployment(integration, { deploymentName });
 
             // Check the response contains the deployment name
             const createElements = getResponseElements(createResponse.content);
@@ -123,10 +115,7 @@ describeWithAtlasLocal(
 
         it("should create a deployment when name is not provided", async () => {
             // Create a deployment
-            const createResponse = await integration.mcpClient().callTool({
-                name: "atlas-local-create-deployment",
-                arguments: {},
-            });
+            const createResponse = await createAtlasLocalDeployment(integration);
 
             // Check the response contains the deployment name
             const createElements = getResponseElements(createResponse.content);
@@ -155,9 +144,9 @@ describeWithAtlasLocal(
             const deploymentName = `test-deployment-preview-${Date.now()}`;
             deploymentNamesToCleanup.push(deploymentName);
 
-            const createResponse = await integration.mcpClient().callTool({
-                name: "atlas-local-create-deployment",
-                arguments: { deploymentName, imageTag: "preview" },
+            const createResponse = await createAtlasLocalDeployment(integration, {
+                deploymentName,
+                imageTag: "preview",
             });
 
             const createElements = getResponseElements(createResponse.content);
@@ -175,9 +164,9 @@ describeWithAtlasLocal(
             deploymentNamesToCleanup.push(deploymentName);
 
             // Create a deployment
-            const createResponse = await integration.mcpClient().callTool({
-                name: "atlas-local-create-deployment",
-                arguments: { deploymentName, imageTag: "latest" },
+            const createResponse = await createAtlasLocalDeployment(integration, {
+                deploymentName,
+                imageTag: "latest",
             });
 
             // Check the response contains the deployment name
