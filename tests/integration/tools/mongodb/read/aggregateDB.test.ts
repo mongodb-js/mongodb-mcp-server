@@ -440,7 +440,7 @@ describeWithMongoDB(
 
             const { result, error, executionTime } = await aggregatePromise;
 
-            expect(executionTime).toBeLessThan(100); // Ensure it aborted quickly
+            expect(executionTime).toBeLessThan(50); // Ensure it aborted quickly
             expect(result).toBeUndefined();
             expectDefined(error);
             expect(error.message).toContain("This operation was aborted");
@@ -460,7 +460,7 @@ describeWithMongoDB(
 
             // Ensure it aborted quickly, but possibly after some processing
             expect(executionTime).toBeGreaterThanOrEqual(25);
-            expect(executionTime).toBeLessThan(250);
+            expect(executionTime).toBeLessThan(50);
             expect(result).toBeUndefined();
             expectDefined(error);
             expect(error.message).toContain("This operation was aborted");
@@ -471,8 +471,8 @@ describeWithMongoDB(
 
             const { result, error, executionTime } = await runSlowAggregateDb();
 
-            // Complex regex matching and calculations on 10000 docs should take some time
-            expect(executionTime).toBeGreaterThan(100);
+            // Complex regex matching and calculations on 1000 docs should take some time
+            expect(executionTime).toBeGreaterThan(50);
             expectDefined(result);
             expect(error).toBeUndefined();
             const content = getResponseContent(result);

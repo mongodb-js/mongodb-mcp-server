@@ -4,16 +4,13 @@ import { toEJSON, zEJSON } from "../args.js";
 export const AnyAggregateStage = zEJSON();
 
 export const DBAggregateStage = z
-    .record(
-        z.union([
-            z.literal("$changeStream"),
-            z.literal("$currentOp"),
-            z.literal("$documents"),
-            z.literal("$listLocalSessions"),
-            z.literal("$queryStats"),
-        ]),
-        z.unknown()
-    )
+    .union([
+        z.object({ $changeStream: z.unknown() }).strict(),
+        z.object({ $currentOp: z.unknown() }).strict(),
+        z.object({ $documents: z.unknown() }).strict(),
+        z.object({ $listLocalSessions: z.unknown() }).strict(),
+        z.object({ $queryStats: z.unknown() }).strict(),
+    ])
     .transform(toEJSON);
 
 // Mirrors mongodb's IndexDirection type. The driver additionally accepts
