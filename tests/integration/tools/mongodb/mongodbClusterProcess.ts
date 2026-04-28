@@ -1,7 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 import type { MongoClusterOptions } from "mongodb-runner";
-import { DockerComposeEnvironment, GenericContainer, Wait } from "testcontainers";
+import { GenericContainer, Wait } from "testcontainers";
 import { MongoCluster } from "mongodb-runner";
 import { ShellWaitStrategy } from "testcontainers/build/wait-strategies/shell-wait-strategy.js";
 
@@ -14,36 +14,6 @@ export type MongoRunnerConfiguration = {
 export type MongoSearchConfiguration = { search: true; image?: string };
 export type MongoAutoEmbedSearchConfiguration = {
     autoEmbed: true;
-    /**
-     * The password to be used for creating a `searchCoordinator` role in
-     * mongodb. Required for `mongot` instance to effectively communicate with
-     * `mongod`.
-     *
-     * Expected to be provided through environment variable - `MDB_MONGOT_PASSWORD`
-     */
-    mongotPassword: string;
-
-    /**
-     * The voyage key to be used by `mongod` when auto-generating embeddings for
-     * an aggregation.
-     *
-     * Expected to be provided through environment variable - `MDB_VOYAGE_API_KEY`
-     *
-     * Note: This can be same as `voyageIndexingKey` but to avoid getting rate
-     * limited, it is advised to have these two as different keys.
-     */
-    voyageQueryKey: string;
-
-    /**
-     * The voyage key to be used by `mongod` when auto-generating embeddings at
-     * the time of indexing.
-     *
-     * Expected to be provided through environment variable - `MDB_VOYAGE_API_KEY`
-     *
-     * Note: This can be same as `voyageQueryKey` but to avoid getting rate
-     * limited, it is advised to have these two as different keys.
-     */
-    voyageIndexingKey: string;
 };
 export type MongoClusterConfiguration =
     | MongoRunnerConfiguration
@@ -55,6 +25,7 @@ const DOWNLOAD_RETRIES = 10;
 // TODO: Revert this to generic tag 8, once the problem with atlas-local image
 // is addressed.
 const DEFAULT_LOCAL_IMAGE = "mongodb/mongodb-atlas-local:8.2.2-20251125T154829Z";
+const DEFAULT_LOCAL_PREVIEW_IMAGE = "mongodb/mongodb-atlas-local:preview";
 export class MongoDBClusterProcess {
     static async spinUp(config: MongoClusterConfiguration): Promise<MongoDBClusterProcess> {
         if (MongoDBClusterProcess.isSearchOption(config)) {
@@ -70,25 +41,19 @@ export class MongoDBClusterProcess {
                     `mongodb://${runningContainer.getHost()}:${runningContainer.getMappedPort(27017)}/?directConnection=true`
             );
         } else if (MongoDBClusterProcess.isAutoEmbedSearchOption(config)) {
-            const composeFilePath = path.join(__dirname, "mongot-community-setup");
-
-            const environment = await new DockerComposeEnvironment(composeFilePath, "docker-compose.yml")
+            const runningContainer = await new GenericContainer(DEFAULT_LOCAL_PREVIEW_IMAGE)
+                .withExposedPorts(27017)
+                .withCommand(["/usr/local/bin/runner", "server"])
+                .withWaitStrategy(Wait.forHealthCheck())
                 .withEnvironment({
-                    MONGOT_PASSWORD: config.mongotPassword,
-                    VOYAGE_QUERY_KEY: config.voyageQueryKey,
-                    VOYAGE_INDEXING_KEY: config.voyageIndexingKey,
+                    VOYAGE_API_KEY: process.env.MDB_VOYAGE_API_KEY as string,
                 })
-                .withWaitStrategy("mongod-1", Wait.forHealthCheck())
-                .withWaitStrategy("mongot-1", Wait.forHealthCheck())
-                .up();
-
-            const mongodContainer = environment.getContainer("mongod-1");
-            const mongodHost = mongodContainer.getHost();
-            const mongodPort = mongodContainer.getMappedPort(27017);
+                .start();
 
             return new MongoDBClusterProcess(
-                () => environment.down({ removeVolumes: true }),
-                () => `mongodb://${mongodHost}:${mongodPort}/?directConnection=true`
+                () => runningContainer.stop(),
+                () =>
+                    `mongodb://${runningContainer.getHost()}:${runningContainer.getMappedPort(27017)}/?directConnection=true`
             );
         } else if (MongoDBClusterProcess.isMongoRunnerOption(config)) {
             const { downloadOptions, serverArgs } = config;
@@ -152,19 +117,9 @@ export class MongoDBClusterProcess {
         }
 
         if (MongoDBClusterProcess.isAutoEmbedSearchOption(config)) {
-            const requiredKeys: (keyof MongoAutoEmbedSearchConfiguration)[] = [
-                "mongotPassword",
-                "voyageIndexingKey",
-                "voyageQueryKey",
-            ];
-
-            const missingConfig = requiredKeys.filter((key) => !config[key]);
-
-            // If the required config is missing there is nothing to do. So we
-            // warn and exit early.
-            if (missingConfig.length > 0) {
+            if (!process.env.MDB_VOYAGE_API_KEY) {
                 console.warn(
-                    `Auto-embeddings configuration not correctly configured, missing - ${missingConfig.join(", ")}. Will skip the test.`
+                    `Auto-embeddings configuration not correctly configured, missing - MDB_VOYAGE_API_KEY. Will skip the test.`
                 );
                 return false;
             }

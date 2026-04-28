@@ -437,7 +437,7 @@ describeWithMongoDB(
             const vectorIndexDefinition = indexDefinitions.find((def) => def.name === "my-auto-embed-index");
             expectDefined(vectorIndexDefinition);
             expect(vectorIndexDefinition).toHaveProperty("name", "my-auto-embed-index");
-            expect(vectorIndexDefinition).toHaveProperty("type", "autoEmbed");
+            expect(vectorIndexDefinition).toHaveProperty("type", "vectorSearch");
 
             const fields0 = vectorIndexDefinition.latestDefinition.fields;
             expect(fields0).toHaveLength(1);
@@ -462,9 +462,6 @@ describeWithMongoDB(
     {
         downloadOptions: {
             autoEmbed: true,
-            mongotPassword: process.env.MDB_MONGOT_PASSWORD as string,
-            voyageIndexingKey: process.env.MDB_VOYAGE_API_KEY as string,
-            voyageQueryKey: process.env.MDB_VOYAGE_API_KEY as string,
         },
     }
 );
