@@ -121,7 +121,6 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.3",
     "@types/semver": "^7.7.0",
-    "@types/yargs": "^17.0.35",
     "@types/yargs-parser": "^21.0.3",
     "@typescript-eslint/parser": "^8.58.1",
     "@vitejs/plugin-react": "^6.0.1",
@@ -157,8 +156,7 @@
     "vite": "^8.0.8",
     "vite-plugin-node-polyfills": "^0.26.0",
     "vite-plugin-singlefile": "^2.3.2",
-    "vitest": "^4.1.4",
-    "yargs": "^18.0.0"
+    "vitest": "^4.1.4"
   },
   "dependencies": {
     "@inquirer/prompts": "^8.0.2",

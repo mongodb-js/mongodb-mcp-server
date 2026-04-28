@@ -11,21 +11,17 @@ import semver from "semver";
 import { simpleGit } from "simple-git";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { generateText } from "ai";
-import yargs from "yargs";
-import { hideBin } from "yargs/helpers";
+import { createParseArgs } from "@mongosh/arg-parser/arg-parser";
+import { z } from "zod";
 
-const argv = await yargs(hideBin(process.argv))
-    .option("newVersion", {
-        type: "string",
-        description: "Git tag version to generate release notes for",
-        default: "vNext",
-    })
-    .option("commitSha", {
-        type: "string",
-        description: "Target commitish (commit SHA, branch, or tag) for the release",
-    })
-    .strict()
-    .parseAsync();
+const {
+    parsed: { newVersion, commitSha },
+} = createParseArgs({
+    schema: z.object({
+        newVersion: z.string().default("vNext"),
+        commitSha: z.string().optional(),
+    }),
+})({ args: process.argv.slice(2) });
 
 const GROVE_API_KEY = process.env["GROVE_API_KEY"];
 
@@ -123,8 +119,7 @@ async function generateAiSummary(prevTagDate: string): Promise<string | null> {
 
 async function main(): Promise<void> {
     const git = simpleGit();
-    const commitSha = argv.commitSha || (await git.revparse("HEAD"));
-    const newVersion = argv.newVersion;
+    const resolvedCommitSha = commitSha || (await git.revparse("HEAD"));
     const prevTag = await findPrevTag(newVersion);
 
     if (!prevTag) {
@@ -151,7 +146,7 @@ async function main(): Promise<void> {
             "--method POST",
             `--field tag_name=${newVersion}`,
             `--field previous_tag_name=v${prevTag.version}`,
-            `--field target_commitish=${commitSha}`,
+            `--field target_commitish=${resolvedCommitSha}`,
             "--jq '.body'",
         ].join(" "),
         { encoding: "utf-8" }
