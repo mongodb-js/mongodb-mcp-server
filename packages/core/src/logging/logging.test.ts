@@ -1,21 +1,13 @@
 import type { MockInstance } from "vitest";
 import { describe, beforeEach, afterEach, vi, it, expect } from "vitest";
-import type { LoggerType, LogLevel } from "../../src/common/logging/index.js";
-import {
-    CompositeLogger,
-    ConsoleLogger,
-    DiskLogger,
-    LogId,
-    McpLogger,
-    MCP_LOG_LEVELS,
-} from "../../src/common/logging/index.js";
-import os from "os";
-import * as path from "path";
-import * as fs from "fs/promises";
-import { once } from "events";
-import type { Server } from "../../src/server.js";
+import type { LoggerType, LogLevel } from "@mongodb-js/mcp-types";
+import { CompositeLogger } from "./compositeLogger.js";
+import { ConsoleLogger } from "./consoleLogger.js";
+import { LogId } from "./logId.js";
+import { McpLogger } from "./mcpLogger.js";
+import { MCP_LOG_LEVELS } from "../index.js";
 import { LoggingMessageNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
-import { Keychain } from "../../src/common/keychain.js";
+import { Keychain } from "../keychain.js";
 
 describe("Logger", () => {
     let consoleErrorSpy: MockInstance<typeof console.error>;
@@ -31,24 +23,20 @@ describe("Logger", () => {
         consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
         keychain = Keychain.root;
 
-        consoleLogger = new ConsoleLogger(keychain);
+        consoleLogger = new ConsoleLogger({ keychain });
 
         mcpLoggerSpy = vi.fn();
         minimumMcpLogLevel = "debug";
-        mcpLogger = new McpLogger(
-            {
-                mcpServer: {
-                    server: {
-                        sendLoggingMessage: mcpLoggerSpy,
-                    },
-                    isConnected: () => true,
-                },
+        mcpLogger = new McpLogger({
+            connection: {
+                sendLoggingMessage: mcpLoggerSpy,
+                isConnected: () => true,
                 get mcpLogLevel() {
                     return minimumMcpLogLevel;
                 },
-            } as unknown as Server,
-            keychain
-        );
+            },
+            keychain,
+        });
     });
 
     afterEach(() => {
@@ -224,72 +212,6 @@ describe("Logger", () => {
                 expect(mcpLoggerSpy).toHaveBeenCalledOnce();
                 expectLogMessageRedaction(getLastMcpLogMessage(), true);
             });
-        });
-    });
-
-    describe("disk logger", () => {
-        let logPath: string;
-        beforeEach(() => {
-            logPath = path.join(os.tmpdir(), `mcp-logs-test-${Math.random()}-${Date.now()}`);
-        });
-
-        const assertNoLogs: () => Promise<void> = async () => {
-            try {
-                const files = await fs.readdir(logPath);
-                expect(files.length).toBe(0);
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            } catch (err: any) {
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-                if (err?.code !== "ENOENT") {
-                    throw err;
-                }
-            }
-        };
-
-        it("buffers messages during initialization", async () => {
-            const diskLogger = new DiskLogger(
-                logPath,
-                (err) => {
-                    expect.fail(`Disk logger should not fail to initialize: ${err}`);
-                },
-                keychain
-            );
-
-            diskLogger.info({ id: LogId.serverInitialized, context: "test", message: "Test message" });
-            await assertNoLogs();
-
-            await once(diskLogger, "initialized");
-
-            const files = await fs.readdir(logPath);
-            expect(files.length).toBe(1);
-            const logContent = await fs.readFile(path.join(logPath, files[0] as string), "utf-8");
-            expect(logContent).toContain("Test message");
-        });
-
-        it("includes attributes in the logs", async () => {
-            const diskLogger = new DiskLogger(
-                logPath,
-                (err) => {
-                    expect.fail(`Disk logger should not fail to initialize: ${err}`);
-                },
-                keychain
-            );
-
-            diskLogger.info({
-                id: LogId.serverInitialized,
-                context: "test",
-                message: "Test message",
-                attributes: { foo: "bar" },
-            });
-            await assertNoLogs();
-
-            await once(diskLogger, "initialized");
-
-            const files = await fs.readdir(logPath);
-            expect(files.length).toBe(1);
-            const logContent = await fs.readFile(path.join(logPath, files[0] as string), "utf-8");
-            expect(logContent).toContain("Test message");
-            expect(logContent).toContain('"foo":"bar"');
         });
     });
 

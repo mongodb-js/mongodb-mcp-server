@@ -1,5 +1,5 @@
 export interface IKeychain {
-    register(options: { value: unknown; kind: string }): void;
+    register(value: unknown, kind: string): void;
     clearAllSecrets(): void;
-    readonly allSecrets: unknown[];
+    readonly allSecrets: { value: unknown; kind: string }[];
 }

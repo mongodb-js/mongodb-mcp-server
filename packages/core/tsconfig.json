@@ -4,8 +4,12 @@
     "rootDir": "./src",
     "outDir": "./dist",
     "baseUrl": ".",
-    "erasableSyntaxOnly": true
+    "erasableSyntaxOnly": true,
+    "composite": true
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["dist", "node_modules", "src/**/*.test.ts"]
+  "exclude": ["dist", "node_modules", "src/**/*.test.ts"],
+  "references": [
+    { "path": "../types" }
+  ]
 }

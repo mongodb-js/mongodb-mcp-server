@@ -1,5 +1,6 @@
 dist
 node_modules
+*.tsbuildinfo
 
 .vscode/mcp.json
 .github/prompts/*

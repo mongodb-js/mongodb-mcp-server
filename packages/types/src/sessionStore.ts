@@ -1,4 +1,4 @@
-import type { ILoggerBase } from "./logging.js";
+import type { ILogger } from "./logging.js";
 import type { IMetrics, MetricDefinitions } from "./metrics.js";
 
 export type CloseableTransport = {
@@ -9,14 +9,14 @@ export type SessionCloseReason = "idle_timeout" | "transport_closed" | "server_s
 
 export interface ISessionStore<T extends CloseableTransport = CloseableTransport> {
     getSession(sessionId: string): Promise<T | undefined>;
-    addSession(params: { sessionId: string; transport: T; logger: ILoggerBase }): Promise<void>;
+    addSession(params: { sessionId: string; transport: T; logger: ILogger }): Promise<void>;
     closeSession(params: { sessionId: string; reason?: SessionCloseReason }): Promise<void>;
     closeAllSessions(): Promise<void>;
 }
 
 export type SessionStoreConstructorArgs<TMetrics extends MetricDefinitions = MetricDefinitions> = {
     options: { idleTimeoutMS: number; notificationTimeoutMS: number };
-    logger: ILoggerBase;
+    logger: ILogger;
     metrics: IMetrics<TMetrics>;
 };
 

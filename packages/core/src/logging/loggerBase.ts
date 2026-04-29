@@ -1,0 +1,115 @@
+import { EventEmitter } from "events";
+import { redact } from "mongodb-redact";
+import type { Keychain } from "../keychain.js";
+import type { DefaultEventMap, EventMap, ILogger, LoggerType, LogLevel, LogPayload } from "@mongodb-js/mcp-types";
+
+export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extends EventEmitter<T> implements ILogger {
+    private readonly defaultUnredactedLogger: LoggerType = "mcp";
+    private readonly keychain: Keychain | undefined;
+
+    constructor(options?: { keychain: Keychain }) {
+        super();
+        this.keychain = options?.keychain;
+    }
+
+    public log(level: LogLevel, payload: LogPayload): void {
+        const noRedaction = payload.noRedaction !== undefined ? payload.noRedaction : this.defaultUnredactedLogger;
+
+        this.logCore(level, {
+            ...payload,
+            message: this.redactIfNecessary(payload.message, noRedaction),
+            attributes: this.redactAttributes(payload.attributes, noRedaction),
+        });
+    }
+
+    protected abstract readonly type?: LoggerType;
+
+    protected abstract logCore(level: LogLevel, payload: LogPayload): void;
+
+    private redactAttributes(
+        attributes: Record<string, string> | undefined,
+        noRedaction: LogPayload["noRedaction"]
+    ): Record<string, string> | undefined {
+        if (!attributes) {
+            return undefined;
+        }
+        const redacted: Record<string, string> = {};
+        for (const [key, value] of Object.entries(attributes)) {
+            redacted[key] = this.redactIfNecessary(value, noRedaction);
+        }
+        return redacted;
+    }
+
+    private redactIfNecessary(message: string, noRedaction: LogPayload["noRedaction"]): string {
+        if (typeof noRedaction === "boolean" && noRedaction) {
+            return message;
+        }
+
+        if (typeof noRedaction === "string" && noRedaction === this.type) {
+            return message;
+        }
+
+        if (
+            typeof noRedaction === "object" &&
+            Array.isArray(noRedaction) &&
+            this.type &&
+            noRedaction.indexOf(this.type) !== -1
+        ) {
+            return message;
+        }
+
+        return redact(message, this.keychain?.allSecrets ?? []);
+    }
+
+    public info(payload: LogPayload): void {
+        this.log("info", payload);
+    }
+
+    public error(payload: LogPayload): void {
+        this.log("error", payload);
+    }
+
+    public debug(payload: LogPayload): void {
+        this.log("debug", payload);
+    }
+
+    public notice(payload: LogPayload): void {
+        this.log("notice", payload);
+    }
+
+    public warning(payload: LogPayload): void {
+        this.log("warning", payload);
+    }
+
+    public critical(payload: LogPayload): void {
+        this.log("critical", payload);
+    }
+
+    public alert(payload: LogPayload): void {
+        this.log("alert", payload);
+    }
+
+    public emergency(payload: LogPayload): void {
+        this.log("emergency", payload);
+    }
+
+    protected mapToMongoDBLogLevel(level: LogLevel): "info" | "warn" | "error" | "debug" | "fatal" {
+        switch (level) {
+            case "info":
+                return "info";
+            case "warning":
+                return "warn";
+            case "error":
+                return "error";
+            case "notice":
+            case "debug":
+                return "debug";
+            case "critical":
+            case "alert":
+            case "emergency":
+                return "fatal";
+            default:
+                return "info";
+        }
+    }
+}

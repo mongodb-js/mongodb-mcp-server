@@ -1,6 +1,10 @@
 import type { MongoLogId } from "mongodb-log-writer";
+import type { LoggingMessageNotification } from "@modelcontextprotocol/sdk/types.js";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
-export type LogLevel = "debug" | "info" | "notice" | "warning" | "error" | "critical" | "alert" | "emergency";
+export type { MongoLogId } from "mongodb-log-writer";
+
+export type LogLevel = LoggingMessageNotification["params"]["level"];
 
 export type LoggerType = "console" | "disk" | "mcp";
 
@@ -17,8 +21,8 @@ export type LogPayload = {
     attributes?: Record<string, string>;
 };
 
-export interface ILoggerBase {
-    log(options: { level: LogLevel; payload: LogPayload }): void;
+export interface ILogger {
+    log(level: LogLevel, payload: LogPayload): void;
     info(payload: LogPayload): void;
     error(payload: LogPayload): void;
     debug(payload: LogPayload): void;
@@ -29,7 +33,11 @@ export interface ILoggerBase {
     emergency(payload: LogPayload): void;
 }
 
-export interface ICompositeLogger extends ILoggerBase {
-    addLogger(logger: ILoggerBase): void;
+export interface ICompositeLogger extends ILogger {
+    addLogger(logger: ILogger): void;
     setAttribute(options: { key: string; value: string }): void;
 }
+
+export type IMcpConnection = Pick<McpServer, "isConnected" | "sendLoggingMessage"> & {
+    readonly mcpLogLevel: LogLevel;
+};

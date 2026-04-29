@@ -1,9 +1,15 @@
 {
-  "name": "@mongodb-js/mcp-types",
+  "name": "@mongodb-js/mcp-node-utils",
+  "description": "Node-specific utilities for the MongoDB MCP server",
   "version": "1.11.0-prerelease.1",
   "private": true,
   "type": "module",
-  "description": "Shared TypeScript types and interfaces for MongoDB MCP server packages",
+  "license": "Apache-2.0",
+  "author": "MongoDB <info@mongodb.com>",
+  "repository": {
+    "url": "https://github.com/mongodb-js/mongodb-mcp-server.git",
+    "directory": "packages/node-utils"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -19,10 +25,12 @@
     "compile": "tsc --project tsconfig.json",
     "test": "vitest --run"
   },
+  "dependencies": {
+    "@mongodb-js/mcp-core": "workspace:*",
+    "mongodb-log-writer": "^2.5.7"
+  },
   "devDependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
     "@types/node": "^25.6.0",
-    "mongodb-log-writer": "^2.5.7",
     "typescript": "^5.9.2",
     "vitest": "^4.1.4"
   }
