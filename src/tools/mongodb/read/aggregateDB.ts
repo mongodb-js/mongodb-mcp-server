@@ -11,13 +11,14 @@ import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorU
 import { operationWithFallback } from "../../../helpers/operationWithFallback.js";
 import { AGG_COUNT_MAX_TIME_MS_CAP, ONE_MB, CURSOR_LIMITS_TO_LLM_TEXT } from "../../../helpers/constants.js";
 import { LogId } from "@mongodb-js/mcp-core";
-import { AnyAggregateStage, DBAggregateStage } from "../mongodbSchemas.js";
+import { AnyAggregateStage, DB_AGGREGATE_STAGE_OPERATORS } from "../mongodbSchemas.js";
 
 export const AggregateArgs = {
     pipeline: z
-        .tuple([DBAggregateStage], AnyAggregateStage)
+        .array(AnyAggregateStage)
+        .min(1)
         .describe(
-            "An array of aggregation stages to execute. Has to start with a database aggregation stage. https://www.mongodb.com/docs/manual/reference/mql/aggregation-stages/#db.aggregate---stages"
+            `An array of aggregation stages to execute. The first stage must be a database-level aggregation stage (one of ${DB_AGGREGATE_STAGE_OPERATORS.map((op) => `\`${op}\``).join(", ")}). https://www.mongodb.com/docs/manual/reference/mql/aggregation-stages/#db.aggregate---stages`
         ),
 };
 
@@ -121,6 +122,14 @@ The maximum number of bytes to return in the response. This value is capped by t
     }
 
     private assertOnlyUsesPermittedStages(pipeline: Record<string, unknown>[]): void {
+        const firstStage = pipeline[0];
+        if (!firstStage || !DB_AGGREGATE_STAGE_OPERATORS.some((op) => op in firstStage)) {
+            throw new MongoDBError(
+                ErrorCodes.InvalidPipeline,
+                `The first stage of the pipeline must be a database-level aggregation stage (one of ${DB_AGGREGATE_STAGE_OPERATORS.join(", ")})`
+            );
+        }
+
         const writeOperations: OperationType[] = ["update", "create", "delete"];
         let writeStageForbiddenError = "";
 
