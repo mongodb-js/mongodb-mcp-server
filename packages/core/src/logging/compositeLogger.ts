@@ -33,4 +33,8 @@ export class CompositeLogger extends LoggerBase {
     public setAttribute(key: string, value: string): void {
         this.attributes[key] = value;
     }
+
+    public override async flush(): Promise<void> {
+        await Promise.all(this.loggers.map((logger) => logger.flush()));
+    }
 }

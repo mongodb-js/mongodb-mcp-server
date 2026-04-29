@@ -32,6 +32,7 @@ export interface ILogger {
     critical(payload: LogPayload): void;
     alert(payload: LogPayload): void;
     emergency(payload: LogPayload): void;
+    flush(): Promise<void>;
 }
 
 export interface ICompositeLogger extends ILogger {
