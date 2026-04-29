@@ -35,6 +35,13 @@ export const NO_SKILLS_MESSAGE =
     `\n` +
     `  ${SKILLS_REPO_URL}`;
 
+/**
+ * Setup-only env var that bypasses the skills install prompt entirely.
+ * Set to `"true"` for non-interactive setup (CI, provisioning scripts).
+ * Accepts only the literal strings `"true"` or `"false"` — anything else
+ * is rejected by `parseBoolean` and surfaces as a `failed` outcome with a
+ * warning so setup still completes.
+ */
 const SKIP_ENV_VAR = "MDB_MCP_SKIP_SKILLS_INSTALL";
 const SKILLS_PACKAGE_VERSION = "1";
 const SKILLS_CLI_PIN = `skills@${SKILLS_PACKAGE_VERSION}`;

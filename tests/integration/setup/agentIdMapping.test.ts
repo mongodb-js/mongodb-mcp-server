@@ -11,10 +11,14 @@ import { buildSkillsAddArgs } from "../../../src/setup/installSkills.js";
  * `skills` CLI actually accepts, by running a real install for each agent into
  * an isolated temp directory and asserting exit 0.
  *
- * Real subprocess + network: each test clones `mongodb/agent-skills` and runs
- * `npx skills@1 add ...`. The value is catching drift between our mapping and
- * the CLI's registry (e.g. if `skills` renames `github-copilot` in a minor
- * release).
+ * Real subprocess + network: each test runs `npx skills@1 add ...` which fetches
+ * the CLI from npm and clones `mongodb/agent-skills`. The value is catching drift
+ * between our mapping and the CLI's registry (e.g. if `skills` renames
+ * `github-copilot` in a minor release).
+ *
+ * Opt-in: set `MDB_MCP_RUN_NETWORK_TESTS=true` to run. Skipped by default so
+ * `pnpm test` stays offline-friendly and CI runtime stays bounded; intended for
+ * scheduled / nightly runs.
  */
 type Mapping = { toolType: AIToolType; agentId: string };
 
@@ -22,7 +26,9 @@ const MAPPINGS: Mapping[] = Object.entries(AI_TOOL_REGISTRY)
     .map(([toolType, tool]) => ({ toolType: toolType as AIToolType, agentId: tool.getSkillsAgentId() }))
     .filter((m): m is Mapping => m.agentId !== null);
 
-describe("skills CLI agent ID mapping", () => {
+const RUN_NETWORK_TESTS = process.env.MDB_MCP_RUN_NETWORK_TESTS === "true";
+
+describe.skipIf(!RUN_NETWORK_TESTS)("skills CLI agent ID mapping", () => {
     let tmpRoot: string;
 
     beforeAll(() => {
