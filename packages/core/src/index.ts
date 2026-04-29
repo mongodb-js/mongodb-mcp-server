@@ -11,7 +11,6 @@ export type {
     LoggerType,
     EventMap,
     DefaultEventMap,
-    IMcpConnection,
     ILogger,
     ICompositeLogger,
     IKeychain,
