@@ -15,7 +15,7 @@ import { Elicitation } from "../../../src/elicitation.js";
 import { defaultCreateAtlasLocalClient } from "../../../src/common/atlasLocal.js";
 import { InMemoryTransport } from "../../../src/transports/inMemoryTransport.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
-import { UIRegistry } from "../../../src/ui/index.js";
+import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { defaultCreateApiClient } from "../../../src/lib.js";
 import { MockMetrics } from "../../unit/mocks/metrics.js";
 

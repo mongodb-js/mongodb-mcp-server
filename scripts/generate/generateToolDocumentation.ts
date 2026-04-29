@@ -9,7 +9,7 @@ import { readFileSync, writeFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { AllTools } from "../../src/tools/index.js";
-import { UIRegistry } from "../../src/ui/registry/index.js";
+import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { UserConfigSchema } from "../../src/lib.js";
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
 

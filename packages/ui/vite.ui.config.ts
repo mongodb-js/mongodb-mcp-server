@@ -5,15 +5,14 @@ import { nodePolyfills } from "vite-plugin-node-polyfills";
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync, rmSync } from "fs";
 import { join, resolve } from "path";
 
-const componentsDir = resolve(__dirname, "src/ui/components");
+const componentsDir = resolve(__dirname, "src/components");
 // Use node_modules/.cache for generated HTML entries - these are build artifacts, not source files
-const entriesDir = resolve(__dirname, "node_modules/.cache/mongodb-mcp-server/ui-entries");
-const templatePath = resolve(__dirname, "src/ui/build/template.html");
-const mountPath = resolve(__dirname, "src/ui/build/mount.tsx");
-const generatedDir = resolve(__dirname, "src/ui/lib");
+const entriesDir = resolve(__dirname, "node_modules/.cache/mcp-ui/ui-entries");
+const templatePath = resolve(__dirname, "src/build/template.html");
+const mountPath = resolve(__dirname, "src/build/mount.tsx");
+const generatedDir = resolve(__dirname, "src/lib");
 const uiDistPath = resolve(__dirname, "dist/ui");
 
-// Converts PascalCase to kebab-case: "ListDatabases" -> "list-databases"
 function toKebabCase(pascalCase: string): string {
     return pascalCase
         .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
@@ -185,7 +184,7 @@ export default defineConfig({
     },
     resolve: {
         alias: {
-            "@ui": resolve(__dirname, "src/ui"),
+            "@ui": resolve(__dirname, "src"),
         },
     },
 });

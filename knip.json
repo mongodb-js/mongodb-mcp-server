@@ -6,30 +6,19 @@
         "src/lib.ts!",
         "src/web.ts!",
         "src/tools/index.ts!",
-        "src/ui/index.ts!",
         "tests/**/*.ts",
         "!tests/browser/**",
         "scripts/**/*.ts",
-        "eslint-rules/*.js",
-        "vite.ui.config.ts"
+        "eslint-rules/*.js"
       ],
       "ignore": [
         "tests/integration/fixtures/curl.mjs",
-        "tests/vitest.d.ts",
-        "src/ui/build/mount.tsx",
-        "src/ui/components/**/*.ts",
-        "src/ui/components/**/*.tsx",
-        "src/ui/hooks/**/*.ts",
-        "src/ui/registry/uiMap.ts",
-        "src/ui/lib/tools/**/*.ts",
-        "src/ui/lib/loaders.ts"
+        "tests/vitest.d.ts"
       ],
       "ignoreDependencies": [
         "@mongodb-js/atlas-local",
         "@emotion/css",
-        "@leafygreen-ui/table",
-        "react",
-        "react-dom"
+        "@leafygreen-ui/table"
       ]
     },
     "tests/browser": {

@@ -1,8 +1,8 @@
 /**
  * This script generates UI modules for tools by running the Vite build.
  * It produces:
- * - src/ui/lib/tools/*.ts - One module per UI component containing bundled HTML
- * - src/ui/lib/loaders.ts - Lazy loaders for each UI module
+ * - src/lib/tools/*.ts - One module per UI component containing bundled HTML
+ * - src/lib/loaders.ts - Lazy loaders for each UI module
  */
 
 import { execSync } from "child_process";
@@ -11,7 +11,7 @@ import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const rootDir = join(__dirname, "..", "..");
+const rootDir = join(__dirname, "..");
 
 export function generateUI(): void {
     console.log("Building UI modules...");

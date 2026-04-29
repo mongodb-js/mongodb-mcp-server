@@ -35,9 +35,7 @@ export default defineConfig({
                 "tests",
                 "dist",
                 "vitest.config.ts",
-                "vite.ui.config.ts",
                 "scripts",
-                "src/ui/lib",
             ],
             reporter: ["lcov"],
         },
@@ -78,15 +76,6 @@ export default defineConfig({
                     include: [...longRunningTests],
                     testTimeout: 7200000, // 2 hours for long-running tests
                     hookTimeout: 7200000,
-                },
-            },
-            {
-                extends: true,
-                test: {
-                    name: "ui-components",
-                    include: ["tests/unit/ui/**/*.test.tsx"],
-                    environment: "happy-dom",
-                    setupFiles: ["./tests/setup.ts", "./tests/setupReact.ts"],
                 },
             },
         ],

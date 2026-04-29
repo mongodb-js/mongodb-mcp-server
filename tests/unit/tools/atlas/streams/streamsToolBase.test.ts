@@ -10,7 +10,7 @@ import type { Telemetry } from "../../../../../src/telemetry/telemetry.js";
 import type { Elicitation } from "../../../../../src/elicitation.js";
 import type { CompositeLogger } from "../../../../../src/common/logging/index.js";
 import type { TelemetryToolMetadata } from "../../../../../src/telemetry/types.js";
-import { UIRegistry } from "../../../../../src/ui/registry/index.js";
+import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics } from "../../../mocks/metrics.js";
 import { Keychain } from "../../../../../src/common/keychain.js";
 
