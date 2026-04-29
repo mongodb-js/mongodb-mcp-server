@@ -5,6 +5,7 @@ import type { ElicitRequestFormParams } from "@modelcontextprotocol/sdk/types.js
 import type { OperationType, ToolArgs } from "../../tool.js";
 import { AtlasArgs } from "../../args.js";
 import { ConnectionConfig, PrivateLinkConfig, StreamsArgs } from "./streamsArgs.js";
+import { rejectInvalidConnectionConfig } from "./connectionConfigs.js";
 
 const BuildResource = z.enum(["workspace", "connection", "processor", "privatelink"]);
 
@@ -259,6 +260,8 @@ export class StreamsBuildTool extends StreamsToolBase {
         if (useSample) {
             await this.apiClient.withStreamSampleConnections({
                 params: { path: { groupId: args.projectId } },
+                // Atlas OpenAPI types cloudProvider/region as literal enums; we validate at the
+                // input schema layer so the cast is safe here.
                 body: body as never,
             });
         } else {
@@ -296,6 +299,18 @@ export class StreamsBuildTool extends StreamsToolBase {
 
         const config = { ...ConnectionConfig.parse(args.connectionConfig ?? {}) };
 
+        // Alias normalization must happen BEFORE strict type validation. Otherwise the
+        // SchemaRegistry "url → schemaRegistryUrls" kind of aliases would get rejected
+        // as cross-type fields before they're collapsed into canonical ones.
+        if (args.connectionType === "SchemaRegistry") {
+            StreamsBuildTool.normalizeSchemaRegistryAliases(config);
+        }
+
+        const typeValidationError = rejectInvalidConnectionConfig(config, args.connectionType, "create");
+        if (typeValidationError) {
+            return typeValidationError;
+        }
+
         const missingInfo = await this.normalizeAndValidateConnectionConfig(config, args.connectionType);
         if (missingInfo) {
             return missingInfo;
@@ -309,6 +324,10 @@ export class StreamsBuildTool extends StreamsToolBase {
 
         await this.apiClient.createStreamConnection({
             params: { path: { groupId: args.projectId, tenantName: workspaceName } },
+            // StreamsConnection body is a discriminated union in the OpenAPI types; the
+            // per-type schemas (connectionConfigs.ts) plus the alias normalization and
+            // normalizeAndValidateConnectionConfig step validate the payload shape before
+            // we reach this call.
             body: body as never,
         });
 
@@ -439,30 +458,8 @@ export class StreamsBuildTool extends StreamsToolBase {
     }
 
     private async validateSchemaRegistryConfig(config: Record<string, unknown>): Promise<CallToolResult | null> {
-        // Normalize common alternative key names for schemaRegistryUrls
-        if (!config.schemaRegistryUrls) {
-            const alt = config.url || config.urls || config.endpoint || config.schemaRegistryUrl;
-            if (alt) {
-                config.schemaRegistryUrls = Array.isArray(alt) ? alt : [alt];
-                delete config.url;
-                delete config.urls;
-                delete config.endpoint;
-                delete config.schemaRegistryUrl;
-            }
-        }
-
-        // Normalize common alternative key names for authentication
-        if (!config.schemaRegistryAuthentication && (config.username || config.authentication)) {
-            const authSource = (config.authentication as Record<string, unknown>) || {};
-            config.schemaRegistryAuthentication = {
-                type: "USER_INFO",
-                username: config.username || authSource.username,
-                password: config.password || authSource.password,
-            };
-            delete config.username;
-            delete config.password;
-            delete config.authentication;
-        }
+        // Alias normalization now runs earlier in createConnection (see
+        // `normalizeSchemaRegistryAliases`) so strict type validation doesn't reject aliases.
 
         // Default provider to CONFLUENT — currently the only supported value
         if (!config.provider) {
@@ -558,6 +555,37 @@ export class StreamsBuildTool extends StreamsToolBase {
         }
 
         return StreamsBuildTool.missingFieldsResponse(connectionType, missingFields, additionalNote);
+    }
+
+    /**
+     * Collapses SchemaRegistry alias field names (url / urls / endpoint / schemaRegistryUrl
+     * and flat username/password/authentication) into the canonical fields expected by the
+     * Atlas API and by `SchemaRegistryConnectionConfig`. Runs before strict type validation
+     * so alias inputs survive the cross-type check.
+     */
+    private static normalizeSchemaRegistryAliases(config: Record<string, unknown>): void {
+        if (!config.schemaRegistryUrls) {
+            const alt = config.url || config.urls || config.endpoint || config.schemaRegistryUrl;
+            if (alt) {
+                config.schemaRegistryUrls = Array.isArray(alt) ? alt : [alt];
+                delete config.url;
+                delete config.urls;
+                delete config.endpoint;
+                delete config.schemaRegistryUrl;
+            }
+        }
+
+        if (!config.schemaRegistryAuthentication && (config.username || config.authentication)) {
+            const authSource = (config.authentication as Record<string, unknown>) || {};
+            config.schemaRegistryAuthentication = {
+                type: "USER_INFO",
+                username: config.username || authSource.username,
+                password: config.password || authSource.password,
+            };
+            delete config.username;
+            delete config.password;
+            delete config.authentication;
+        }
     }
 
     private static collectMissingFields(
@@ -738,6 +766,8 @@ export class StreamsBuildTool extends StreamsToolBase {
 
         await this.apiClient.createStreamProcessor({
             params: { path: { groupId: args.projectId, tenantName: workspaceName } },
+            // Atlas OpenAPI `pipeline` is typed as a tightly indexed object union our generic
+            // pipeline-stages array can't satisfy. validatePipelineStructure checks the shape.
             body: body as never,
         });
 
@@ -802,6 +832,8 @@ export class StreamsBuildTool extends StreamsToolBase {
 
         await this.apiClient.createPrivateLinkConnection({
             params: { path: { groupId: args.projectId } },
+            // PrivateLink body is a provider-discriminated union in OpenAPI; the
+            // PrivateLinkConnectionConfig schema validates provider at the input layer.
             body: body as never,
         });
 

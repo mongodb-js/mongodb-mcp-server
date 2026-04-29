@@ -21,3 +21,6 @@ temp
 # Development tool files
 .yalc
 yalc.lock
+
+# Git worktrees
+.worktrees
