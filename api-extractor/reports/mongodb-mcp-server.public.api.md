@@ -1230,7 +1230,7 @@ export const UserConfigSchema: z.ZodObject<{
 // Warnings were encountered during analysis:
 //
 // src/common/config/configOverrides.ts:29:5 - (ae-forgotten-export) The symbol "RequestContext_2" needs to be exported by the entry point lib.d.ts
-// src/common/exportsManager.ts:166:9 - (ae-forgotten-export) The symbol "JSONExportFormat" needs to be exported by the entry point lib.d.ts
+// src/common/exportsManager.ts:163:9 - (ae-forgotten-export) The symbol "JSONExportFormat" needs to be exported by the entry point lib.d.ts
 // src/telemetry/types.ts:17:9 - (ae-forgotten-export) The symbol "TelemetryResult" needs to be exported by the entry point lib.d.ts
 // src/telemetry/types.ts:100:5 - (ae-forgotten-export) The symbol "TelemetryBoolSet" needs to be exported by the entry point lib.d.ts
 
