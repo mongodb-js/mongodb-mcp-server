@@ -52,4 +52,10 @@ export class DiskLogger extends LoggerBase<{ initialized: [] }> {
 
         this.logWriter[mongoDBLevel]("MONGODB-MCP", id, context, message, payload.attributes);
     }
+
+    public override async flush(): Promise<void> {
+        if (this.logWriter) {
+            await this.logWriter.flush();
+        }
+    }
 }

@@ -431,6 +431,7 @@ export abstract class TransportRunnerBase<
             await this.closeTransport();
         } finally {
             this.deviceId.close();
+            await this.logger.flush();
         }
     }
 
