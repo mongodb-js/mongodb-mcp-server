@@ -17,6 +17,7 @@ import { NullLogger } from "../common/logging/index.js";
 import type { TelemetryResult } from "../telemetry/types.js";
 import { SetupTelemetry } from "./setupTelemetry.js";
 import { Keychain, registerGlobalSecretToRedact } from "../common/keychain.js";
+import { promptAndInstallSkills, type SkillsInstallOutcome } from "./installSkills.js";
 
 const buildEnvObject = (
     connectionString: string,
@@ -364,13 +365,30 @@ const promptToOpenConfigFile = async (
     }
 };
 
-const guideUserWithSetupSuccess = (displayName: string, availablePrompts: string[]): void => {
+const formatSkillsResult = (result: SkillsInstallOutcome): string => {
+    switch (result.status) {
+        case "installed":
+            return chalk.green("✓ Agent skills installed.");
+        case "skipped":
+            return chalk.dim("○ Agent skills skipped.");
+        case "failed":
+            return chalk.red(`✗ Agent skills install failed (exit ${result.exitCode}).`);
+    }
+};
+
+const guideUserWithSetupSuccess = (
+    displayName: string,
+    availablePrompts: string[],
+    skillsResult: SkillsInstallOutcome
+): void => {
     printNewLine();
     console.log(
         chalk.green(
             `Setup complete! You can now use the MongoDB MCP Server in ${displayName}. You will probably need to restart your application to see the changes.\n`
         )
     );
+    console.log(formatSkillsResult(skillsResult));
+    printNewLine();
     console.log("Try a query to get started:\n");
     console.log(availablePrompts.join("\n"));
     printNewLine();
@@ -430,7 +448,7 @@ export const runSetup = async (config: UserConfig): Promise<never> => {
         printInstructions();
 
         const hasDocker = await validateDocker();
-        setupTelemetry.emitPrerequisitesChecked({ nodeVersionOk, hasDocker });
+        setupTelemetry.emitPrerequisitesChecked({ nodeVersionOk, hasDocker, platformSupported });
 
         const tool = await promptForAITool(platform);
         const displayName = AI_TOOL_REGISTRY[tool].name;
@@ -468,13 +486,16 @@ export const runSetup = async (config: UserConfig): Promise<never> => {
         );
         setupTelemetry.emitEditorConfigured(editorOutcome);
 
+        const skillsResult = await promptAndInstallSkills({ tool, cwd: process.cwd() });
+        setupTelemetry.emitSkillsInstallPrompted(skillsResult);
+
         const availablePrompts = getAvailablePrompts(
             connectionOutcome.connectionString,
             serviceAccountId,
             serviceAccountSecret,
             hasDocker
         );
-        guideUserWithSetupSuccess(displayName, availablePrompts);
+        guideUserWithSetupSuccess(displayName, availablePrompts, skillsResult);
         const openOutcome = await promptToOpenConfigFile(displayName, tool);
         setupTelemetry.emitOpenConfigPrompted(openOutcome);
 

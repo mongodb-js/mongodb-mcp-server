@@ -4,6 +4,7 @@ import type { Keychain } from "../common/keychain.js";
 import { NullLogger } from "../common/logging/index.js";
 import { DeviceId } from "../helpers/deviceId.js";
 import { Telemetry } from "../telemetry/telemetry.js";
+import type { SkillsInstallOutcome } from "./installSkills.js";
 import type {
     SetupStage,
     SetupEvent,
@@ -123,10 +124,15 @@ export class SetupTelemetry {
         this.emit("started");
     }
 
-    public emitPrerequisitesChecked(props: { nodeVersionOk: boolean; hasDocker?: boolean }): void {
+    public emitPrerequisitesChecked(props: {
+        nodeVersionOk: boolean;
+        hasDocker?: boolean;
+        platformSupported?: boolean;
+    }): void {
         this.updateContext({
             node_version_ok: toBoolSet(props.nodeVersionOk),
             has_docker: toBoolSet(props.hasDocker),
+            platform_supported: toBoolSet(props.platformSupported),
         });
         this.emit("prerequisites_checked");
     }
@@ -182,6 +188,20 @@ export class SetupTelemetry {
             used_default_config_path: toBoolSet(props.usedDefaultConfigPath),
         });
         this.emit("editor_configured", props.error ? { error_type: errorName(props.error) } : {}, props.result);
+    }
+
+    public emitSkillsInstallPrompted(outcome: SkillsInstallOutcome): void {
+        const patch: Partial<SetupEventProperties> = { skills_install_status: outcome.status };
+        if (outcome.status === "skipped") {
+            patch.skills_skip_reason = outcome.reason;
+        } else if (outcome.status === "installed" || outcome.status === "failed") {
+            patch.skills_install_scope = outcome.scope;
+            if (outcome.status === "failed") {
+                patch.skills_install_exit_code = outcome.exitCode;
+            }
+        }
+        this.updateContext(patch);
+        this.emit("skills_install_prompted");
     }
 
     public emitOpenConfigPrompted(props: { opened: boolean; result: TelemetryResult; error?: unknown }): void {

@@ -147,6 +147,53 @@ describe("SetupTelemetry", () => {
         expect(failed.properties.error_type).toBe("MyError");
     });
 
+    it("should record platformSupported in prerequisites_checked context", () => {
+        setupTelemetry.emitPrerequisitesChecked({ nodeVersionOk: true, hasDocker: true, platformSupported: true });
+        setupTelemetry.emitCompleted();
+
+        const completed = mock.emitted.at(-1)!;
+        expect(completed.properties.platform_supported).toBe("true");
+    });
+
+    describe("emitSkillsInstallPrompted", () => {
+        it("should record installed status and scope", () => {
+            setupTelemetry.emitSkillsInstallPrompted({ status: "installed", scope: "user" });
+
+            const event = mock.emitted.find((e) => e.properties.stage === "skills_install_prompted");
+            expect(event?.properties.skills_install_status).toBe("installed");
+            expect(event?.properties.skills_install_scope).toBe("user");
+            expect(event?.properties.skills_skip_reason).toBeUndefined();
+            expect(event?.properties.skills_install_exit_code).toBeUndefined();
+        });
+
+        it("should record skipped status and reason", () => {
+            setupTelemetry.emitSkillsInstallPrompted({ status: "skipped", reason: "user-declined" });
+
+            const event = mock.emitted.find((e) => e.properties.stage === "skills_install_prompted");
+            expect(event?.properties.skills_install_status).toBe("skipped");
+            expect(event?.properties.skills_skip_reason).toBe("user-declined");
+            expect(event?.properties.skills_install_scope).toBeUndefined();
+        });
+
+        it("should record failed status with exit code", () => {
+            setupTelemetry.emitSkillsInstallPrompted({ status: "failed", exitCode: 1, scope: "project" });
+
+            const event = mock.emitted.find((e) => e.properties.stage === "skills_install_prompted");
+            expect(event?.properties.skills_install_status).toBe("failed");
+            expect(event?.properties.skills_install_exit_code).toBe(1);
+            expect(event?.properties.skills_install_scope).toBe("project");
+        });
+
+        it("should carry skills context onto subsequent events", () => {
+            setupTelemetry.emitSkillsInstallPrompted({ status: "installed", scope: "project" });
+            setupTelemetry.emitCompleted();
+
+            const completed = mock.emitted.at(-1)!;
+            expect(completed.properties.skills_install_status).toBe("installed");
+            expect(completed.properties.skills_install_scope).toBe("project");
+        });
+    });
+
     it("should flush via telemetry.close()", async () => {
         await setupTelemetry.flush();
         expect(mock.closeMock).toHaveBeenCalledTimes(1);
