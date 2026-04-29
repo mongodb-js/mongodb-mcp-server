@@ -5,7 +5,7 @@ import type { ElicitRequestFormParams } from "@modelcontextprotocol/sdk/types.js
 import type { OperationType, ToolArgs } from "../../tool.js";
 import { AtlasArgs } from "../../args.js";
 import { ConnectionConfig, PrivateLinkConfig, StreamsArgs } from "./streamsArgs.js";
-import { getConnectionConfigSchema } from "./connectionConfigs.js";
+import { rejectInvalidConnectionConfig } from "./connectionConfigs.js";
 
 const BuildResource = z.enum(["workspace", "connection", "processor", "privatelink"]);
 
@@ -306,7 +306,7 @@ export class StreamsBuildTool extends StreamsToolBase {
             StreamsBuildTool.normalizeSchemaRegistryAliases(config);
         }
 
-        const typeValidationError = StreamsBuildTool.rejectCrossTypeFields(config, args.connectionType);
+        const typeValidationError = rejectInvalidConnectionConfig(config, args.connectionType, "create");
         if (typeValidationError) {
             return typeValidationError;
         }
@@ -586,44 +586,6 @@ export class StreamsBuildTool extends StreamsToolBase {
             delete config.password;
             delete config.authentication;
         }
-    }
-
-    /**
-     * Rejects a connectionConfig that includes fields belonging to a different
-     * connection type. Runs the type-specific strict schema from `connectionConfigs.ts`
-     * before the Atlas API is called, so the LLM gets a useful error instead of a
-     * generic Atlas 400. Returns a CallToolResult on rejection; null when the config
-     * passes or the type has no strict schema (e.g. Sample).
-     */
-    private static rejectCrossTypeFields(
-        config: Record<string, unknown>,
-        connectionType: string
-    ): CallToolResult | null {
-        const schema = getConnectionConfigSchema(connectionType);
-        if (!schema) return null;
-        const result = schema.safeParse(config);
-        if (result.success) return null;
-
-        const unknownFields = result.error.issues
-            .filter((issue) => issue.code === "unrecognized_keys")
-            .flatMap((issue) => ("keys" in issue ? issue.keys : []));
-        const unknownFieldList =
-            unknownFields.length > 0
-                ? `Unknown fields for ${connectionType}: ${unknownFields.join(", ")}.`
-                : `The config contains fields that are not valid for a ${connectionType} connection.`;
-
-        return {
-            content: [
-                {
-                    type: "text",
-                    text:
-                        `Invalid ${connectionType} connection config: ${unknownFieldList}\n\n` +
-                        `Check the connectionType matches the config you provided. ` +
-                        `Remove the unrelated fields or switch to the correct connectionType.`,
-                },
-            ],
-            isError: true,
-        };
     }
 
     private static collectMissingFields(
