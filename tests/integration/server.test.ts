@@ -7,7 +7,7 @@ import { defaultTestConfig, expectDefined, InMemoryLogger } from "./helpers.js";
 import { describeWithMongoDB } from "./tools/mongodb/mongodbHelpers.js";
 import { afterEach, describe, expect, it } from "vitest";
 import type { LoggerBase, UserConfig } from "../../src/lib.js";
-import { createDefaultApiClient, Elicitation, Keychain, Telemetry } from "../../src/lib.js";
+import { ApiClient, Elicitation, Keychain, Telemetry } from "../../src/lib.js";
 import { defaultCreateAtlasLocalClient } from "../../src/common/atlasLocal.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Server } from "../../src/server.js";
@@ -187,7 +187,7 @@ describe("Server integration test", () => {
             keychain: Keychain.root,
             connectionErrorHandler,
             atlasLocalClient: await defaultCreateAtlasLocalClient({ logger }),
-            apiClient: createDefaultApiClient({
+            apiClient: new ApiClient({
                 baseUrl: config.apiBaseUrl,
                 credentials: {
                     clientId: config.apiClientId,

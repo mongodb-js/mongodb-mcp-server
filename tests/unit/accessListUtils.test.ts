@@ -22,14 +22,12 @@ describe("accessListUtils", () => {
     it("should not fail if the current IP is already in the access list", async () => {
         const apiClient = {
             getIpInfo: vi.fn().mockResolvedValue({ currentIpv4Address: "127.0.0.1" } as never),
-            createAccessListEntry: vi
-                .fn()
-                .mockRejectedValue(
-                    ApiClientError.fromError(
-                        { status: 409, statusText: "Conflict" } as Response,
-                        { message: "Conflict" } as never
-                    ) as never
-                ),
+            createAccessListEntry: vi.fn().mockRejectedValue(
+                ApiClientError.fromError({
+                    response: { status: 409, statusText: "Conflict" } as Response,
+                    error: { message: "Conflict" } as never,
+                }) as never
+            ),
             logger: new NoopLogger(),
         } as unknown as ApiClient;
         await ensureCurrentIpInAccessList(apiClient, "projectId");

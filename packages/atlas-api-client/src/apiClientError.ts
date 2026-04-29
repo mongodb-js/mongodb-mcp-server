@@ -17,14 +17,18 @@ export class ApiClientError extends Error {
     ): Promise<ApiClientError> {
         const err = await this.extractError(response);
 
-        return this.fromError(response, err, message);
+        return this.fromError({ response, error: err, message });
     }
 
-    static fromError(
-        response: Response,
-        error?: ApiError | string | Error,
-        message: string = `error calling Atlas API`
-    ): ApiClientError {
+    static fromError({
+        response,
+        error,
+        message = `error calling Atlas API`,
+    }: {
+        response: Response;
+        error?: ApiError | string | Error;
+        message?: string;
+    }): ApiClientError {
         const errorMessage = this.buildErrorMessage(error);
 
         const apiError = typeof error === "object" && !(error instanceof Error) ? error : undefined;

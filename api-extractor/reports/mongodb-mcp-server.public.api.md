@@ -6,7 +6,6 @@
 
 import type { AggregationCursor } from 'mongodb';
 import { ApiClient } from '@mongodb-js/mcp-atlas-api-client';
-import { ApiClientFactoryFn } from '@mongodb-js/mcp-atlas-api-client';
 import { ApiClientOptions } from '@mongodb-js/mcp-atlas-api-client';
 import { AuthProvider } from '@mongodb-js/mcp-atlas-api-client';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
@@ -16,7 +15,6 @@ import { CompositeLogger } from '@mongodb-js/mcp-core';
 import { ConnectionInfo } from '@mongosh/arg-parser';
 import { ConsoleLogger } from '@mongodb-js/mcp-logging';
 import { Counter } from '@mongodb-js/mcp-metrics';
-import { createDefaultApiClient } from '@mongodb-js/mcp-atlas-api-client';
 import { createDefaultMetrics } from '@mongodb-js/mcp-metrics';
 import { Credentials } from '@mongodb-js/mcp-atlas-api-client';
 import { DefaultEventMap } from '@mongodb-js/mcp-core';
@@ -72,8 +70,6 @@ export type AnyToolBase = ToolBase<any, any, any>;
 export type AnyToolClass = ToolClass<any, any, any>;
 
 export { ApiClient }
-
-export { ApiClientFactoryFn }
 
 export { ApiClientOptions }
 
@@ -252,8 +248,6 @@ export type ConnectionTag = "connected" | "connecting" | "disconnected" | "error
 export { ConsoleLogger }
 
 export { Counter }
-
-export { createDefaultApiClient }
 
 // @public
 export const createDefaultMcpHttpServer: <TUserConfig extends UserConfig = UserConfig, TContext = unknown>(args: MCPHttpServerConstructorArgs<TUserConfig, TContext>) => MCPHttpServer<TUserConfig, TContext>;
@@ -857,6 +851,8 @@ export abstract class TransportRunnerBase<TUserConfig extends UserConfig = UserC
     abstract closeTransport(): Promise<void>;
     // @deprecated (undocumented)
     protected readonly connectionErrorHandler: ConnectionErrorHandler;
+    // Warning: (ae-forgotten-export) The symbol "ApiClientFactoryFn" needs to be exported by the entry point lib.d.ts
+    //
     // @deprecated (undocumented)
     protected readonly createApiClient: ApiClientFactoryFn;
     // @deprecated (undocumented)

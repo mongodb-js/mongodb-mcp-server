@@ -1,10 +1,4 @@
-export {
-    ApiClient,
-    createDefaultApiClient,
-    type ApiClientOptions,
-    type ApiClientFactoryFn,
-    type RequestContext,
-} from "./apiClient.js";
+export { ApiClient, type ApiClientOptions, type RequestContext } from "./apiClient.js";
 export { ApiClientError } from "./apiClientError.js";
 export type { AuthProvider, Credentials, AccessToken, AuthProviderOptions } from "./auth/authProvider.js";
 export { AuthProviderFactory } from "./auth/authProvider.js";

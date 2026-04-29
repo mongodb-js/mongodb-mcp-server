@@ -12,6 +12,12 @@ import { AuthProviderFactory } from "./auth/authProvider.js";
 const ATLAS_API_VERSION = "2025-03-12";
 const DEFAULT_SEND_TIMEOUT_MS = 5_000;
 
+/**
+ * Detects whether we're running on Node.js as opposed to a browser/web
+ * environment. We rely on `process.versions.node` rather than `typeof process`
+ * because bundlers (e.g. Vite) may replace `process` with a literal object
+ * shim in the browser build, which would still be `"object"` at runtime.
+ */
 function isNodeRuntime(): boolean {
     return typeof process !== "undefined" && process.versions !== undefined && process.versions.node !== undefined;
 }
@@ -27,12 +33,6 @@ export interface ApiClientOptions {
 
 export type RequestContext = {
     headers?: Record<string, string | string[] | undefined>;
-};
-
-export type ApiClientFactoryFn = (options: ApiClientOptions) => ApiClient;
-
-export const createDefaultApiClient: ApiClientFactoryFn = (options) => {
-    return new ApiClient(options);
 };
 
 export class ApiClient implements IApiClient {
@@ -54,7 +54,18 @@ export class ApiClient implements IApiClient {
 
     constructor(options: ApiClientOptions) {
         this.logger = options.logger;
+        // In Node we use `createFetch` from devtools-proxy-support to pick up
+        // environment-variable proxy configuration and system CA trust, and we
+        // use node-fetch's Request since its interface is a superset of the
+        // web Request. In the browser those Node-only concerns don't apply and
+        // the implementations aren't available, so we fall back to the native
+        // `fetch`/`Request` globals.
         if (isNodeRuntime()) {
+            // createFetch assumes that the first parameter of fetch is always a string
+            // with the URL. However, fetch can also receive a Request object. While
+            // the typechecking complains, createFetch does passthrough the parameters
+            // so it works fine. That said, node-fetch has incompatibilities with the web version
+            // of fetch and can lead to genuine issues so we would like to move away of node-fetch dependency.
             this.customFetch = createFetch({
                 useEnvironmentVariableProxies: true,
             }) as unknown as typeof fetch;
@@ -84,6 +95,9 @@ export class ApiClient implements IApiClient {
                 Accept: `application/vnd.atlas.${ATLAS_API_VERSION}+json`,
             },
             fetch: this.customFetch,
+            // NodeFetchRequest has more overloadings than the native Request
+            // so it complains here. However, the interfaces are actually compatible
+            // so it's not a real problem, just a type checking problem.
             Request: (isNodeRuntime() ? NodeFetchRequest : globalThis.Request) as unknown as ClientOptions["Request"],
         });
 
@@ -216,7 +230,7 @@ export class ApiClient implements IApiClient {
     ): Promise<components["schemas"]["PaginatedOrgGroupView"]> {
         const { data, error, response } = await this.client.GET("/api/atlas/v2/clusters", options);
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -226,7 +240,7 @@ export class ApiClient implements IApiClient {
     ): Promise<components["schemas"]["PaginatedAtlasGroupView"]> {
         const { data, error, response } = await this.client.GET("/api/atlas/v2/groups", options);
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -234,7 +248,7 @@ export class ApiClient implements IApiClient {
     async createGroup(options: FetchOptions<operations["createGroup"]>): Promise<components["schemas"]["Group"]> {
         const { data, error, response } = await this.client.POST("/api/atlas/v2/groups", options);
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -243,14 +257,14 @@ export class ApiClient implements IApiClient {
     async deleteGroup(options: FetchOptions<operations["deleteGroup"]>) {
         const { error, response } = await this.client.DELETE("/api/atlas/v2/groups/{groupId}", options);
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
     async getGroup(options: FetchOptions<operations["getGroup"]>): Promise<components["schemas"]["Group"]> {
         const { data, error, response } = await this.client.GET("/api/atlas/v2/groups/{groupId}", options);
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -260,7 +274,7 @@ export class ApiClient implements IApiClient {
     ): Promise<components["schemas"]["PaginatedNetworkAccessView"]> {
         const { data, error, response } = await this.client.GET("/api/atlas/v2/groups/{groupId}/accessList", options);
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -270,7 +284,7 @@ export class ApiClient implements IApiClient {
     ): Promise<components["schemas"]["PaginatedNetworkAccessView"]> {
         const { data, error, response } = await this.client.POST("/api/atlas/v2/groups/{groupId}/accessList", options);
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -282,7 +296,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -291,7 +305,7 @@ export class ApiClient implements IApiClient {
     ): Promise<components["schemas"]["PaginatedAlertView"]> {
         const { data, error, response } = await this.client.GET("/api/atlas/v2/groups/{groupId}/alerts", options);
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -301,7 +315,7 @@ export class ApiClient implements IApiClient {
     ): Promise<components["schemas"]["PaginatedClusterDescription20240805"]> {
         const { data, error, response } = await this.client.GET("/api/atlas/v2/groups/{groupId}/clusters", options);
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -311,7 +325,7 @@ export class ApiClient implements IApiClient {
     ): Promise<components["schemas"]["ClusterDescription20240805"]> {
         const { data, error, response } = await this.client.POST("/api/atlas/v2/groups/{groupId}/clusters", options);
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -323,7 +337,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -335,7 +349,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -348,7 +362,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -361,7 +375,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -374,7 +388,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -387,7 +401,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -400,7 +414,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -412,7 +426,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -421,7 +435,7 @@ export class ApiClient implements IApiClient {
     ): Promise<components["schemas"]["PaginatedFlexClusters20241113"]> {
         const { data, error, response } = await this.client.GET("/api/atlas/v2/groups/{groupId}/flexClusters", options);
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -434,7 +448,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -446,7 +460,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -458,7 +472,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -471,7 +485,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -481,7 +495,7 @@ export class ApiClient implements IApiClient {
     ): Promise<components["schemas"]["PaginatedApiStreamsTenantView"]> {
         const { data, error, response } = await this.client.GET("/api/atlas/v2/groups/{groupId}/streams", options);
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -491,7 +505,7 @@ export class ApiClient implements IApiClient {
     ): Promise<components["schemas"]["StreamsTenant"]> {
         const { data, error, response } = await this.client.POST("/api/atlas/v2/groups/{groupId}/streams", options);
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -504,7 +518,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -517,7 +531,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -530,7 +544,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -542,7 +556,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -554,7 +568,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -566,7 +580,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -577,7 +591,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -588,7 +602,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -599,7 +613,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -611,7 +625,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -624,7 +638,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -636,7 +650,7 @@ export class ApiClient implements IApiClient {
             { ...options, headers: { Accept: "application/vnd.atlas.2023-02-01+gzip", ...options?.headers } }
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -649,7 +663,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -662,7 +676,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -674,7 +688,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -686,7 +700,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -699,7 +713,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -712,7 +726,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -724,7 +738,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -736,7 +750,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -749,7 +763,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -761,7 +775,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -772,7 +786,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -783,7 +797,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -795,7 +809,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -807,7 +821,7 @@ export class ApiClient implements IApiClient {
             { ...options, headers: { Accept: "application/vnd.atlas.2025-03-12+gzip", ...options?.headers } }
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -820,7 +834,7 @@ export class ApiClient implements IApiClient {
             options
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -830,7 +844,7 @@ export class ApiClient implements IApiClient {
     ): Promise<components["schemas"]["PaginatedOrganizationView"]> {
         const { data, error, response } = await this.client.GET("/api/atlas/v2/orgs", options);
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -840,7 +854,7 @@ export class ApiClient implements IApiClient {
     ): Promise<components["schemas"]["PaginatedAtlasGroupView"]> {
         const { data, error, response } = await this.client.GET("/api/atlas/v2/orgs/{orgId}/groups", options);
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }

@@ -9,7 +9,7 @@ import { DeviceId } from "../../../../src/helpers/deviceId.js";
 import { Keychain } from "@mongodb-js/mcp-core";
 import { defaultTestConfig } from "../../../integration/helpers.js";
 import { connectionErrorHandler } from "../../../../src/common/connectionErrorHandler.js";
-import { createDefaultApiClient } from "../../../../src/lib.js";
+import { ApiClient } from "../../../../src/lib.js";
 
 describe("debug resource", () => {
     const logger = new CompositeLogger();
@@ -24,7 +24,7 @@ describe("debug resource", () => {
             connectionManager,
             keychain: new Keychain(),
             connectionErrorHandler,
-            apiClient: createDefaultApiClient({
+            apiClient: new ApiClient({
                 baseUrl: defaultTestConfig.apiBaseUrl,
                 credentials: {
                     clientId: defaultTestConfig.apiClientId,

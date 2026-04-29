@@ -18,12 +18,9 @@ import { Elicitation } from "../elicitation.js";
 import type { AtlasLocalClientFactoryFn } from "../common/atlasLocal.js";
 import { defaultCreateAtlasLocalClient } from "../common/atlasLocal.js";
 import { applyConfigOverrides } from "../common/config/configOverrides.js";
-import {
-    ApiClient,
-    createDefaultApiClient,
-    type ApiClientFactoryFn,
-    type ApiClientOptions,
-} from "@mongodb-js/mcp-atlas-api-client";
+import { ApiClient, type ApiClientOptions } from "@mongodb-js/mcp-atlas-api-client";
+
+type ApiClientFactoryFn = (options: ApiClientOptions) => ApiClient;
 import type { UIRegistry } from "../ui/registry/index.js";
 import { PrometheusMetrics, createDefaultMetrics, type Metrics, type DefaultMetrics } from "@mongodb-js/mcp-metrics";
 
@@ -231,7 +228,7 @@ export abstract class TransportRunnerBase<
         telemetryProperties = {},
         tools,
         createSessionConfig,
-        createApiClient = createDefaultApiClient,
+        createApiClient = (opts: ApiClientOptions): ApiClient => new ApiClient(opts),
     }: TransportRunnerConfig<TUserConfig, TMetrics>) {
         this.userConfig = userConfig;
         this.createConnectionManager = createConnectionManager;

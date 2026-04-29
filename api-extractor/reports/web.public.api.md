@@ -6,7 +6,6 @@
 
 import type { AggregationCursor } from 'mongodb';
 import { ApiClient } from '@mongodb-js/mcp-atlas-api-client';
-import { ApiClientFactoryFn } from '@mongodb-js/mcp-atlas-api-client';
 import { ApiClientOptions } from '@mongodb-js/mcp-atlas-api-client';
 import { AuthProvider } from '@mongodb-js/mcp-atlas-api-client';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
@@ -51,8 +50,6 @@ export type AnyToolBase = ToolBase<any, any, any>;
 export type AnyToolClass = ToolClass<any, any, any>;
 
 export { ApiClient }
-
-export { ApiClientFactoryFn }
 
 export { ApiClientOptions }
 
@@ -774,6 +771,8 @@ export abstract class TransportRunnerBase<TUserConfig extends UserConfig = UserC
     abstract closeTransport(): Promise<void>;
     // @deprecated (undocumented)
     protected readonly connectionErrorHandler: ConnectionErrorHandler;
+    // Warning: (ae-forgotten-export) The symbol "ApiClientFactoryFn" needs to be exported by the entry point web.d.ts
+    //
     // @deprecated (undocumented)
     protected readonly createApiClient: ApiClientFactoryFn;
     // @deprecated (undocumented)

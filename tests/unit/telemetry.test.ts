@@ -112,10 +112,10 @@ describe("Telemetry", () => {
     }
 
     function createRateLimitedError(): ApiClientError {
-        return ApiClientError.fromError(
-            { status: 429, statusText: "Too Many Requests" } as Response,
-            "Too Many Requests"
-        );
+        return ApiClientError.fromError({
+            response: { status: 429, statusText: "Too Many Requests" } as Response,
+            error: "Too Many Requests",
+        });
     }
 
     beforeEach(() => {

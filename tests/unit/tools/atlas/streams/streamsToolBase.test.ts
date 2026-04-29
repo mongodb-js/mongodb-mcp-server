@@ -57,7 +57,7 @@ class TestStreamsTool extends StreamsToolBase {
 
 function createApiClientError(status: number, message: string): ApiClientError {
     const response = new Response(null, { status, statusText: "Error" });
-    return ApiClientError.fromError(response, { reason: message, error: status, errorCode: `${status}` });
+    return ApiClientError.fromError({ response, error: { reason: message, error: status, errorCode: `${status}` } });
 }
 
 describe("StreamsToolBase", () => {

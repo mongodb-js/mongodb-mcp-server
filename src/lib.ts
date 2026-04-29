@@ -22,7 +22,6 @@ import { defaultCreateConnectionManager } from "./common/connectionManager.js";
 const createMCPConnectionManager = defaultCreateConnectionManager;
 export { createMCPConnectionManager, defaultCreateConnectionManager };
 
-export { createDefaultApiClient } from "@mongodb-js/mcp-atlas-api-client";
 export { defaultCreateAtlasLocalClient } from "./common/atlasLocal.js";
 
 export {
@@ -102,12 +101,7 @@ export {
 export { ExportsManager } from "./common/exportsManager.js";
 export { DeviceId } from "./helpers/deviceId.js";
 export type { MonitoringServerFeature } from "./common/schemas.js";
-export {
-    ApiClient,
-    type ApiClientOptions,
-    type ApiClientFactoryFn,
-    type RequestContext,
-} from "@mongodb-js/mcp-atlas-api-client";
+export { ApiClient, type ApiClientOptions, type RequestContext } from "@mongodb-js/mcp-atlas-api-client";
 export type { AuthProvider, Credentials } from "@mongodb-js/mcp-atlas-api-client";
 export { type UIRegistryOptions, UIRegistry } from "./ui/registry/registry.js";
 export { type ToolExecutionContext, type AnyToolBase } from "./tools/tool.js";

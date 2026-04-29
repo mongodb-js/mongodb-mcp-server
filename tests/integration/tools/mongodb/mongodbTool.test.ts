@@ -20,7 +20,7 @@ import { ErrorCodes } from "../../../../src/common/errors.js";
 import { Keychain } from "@mongodb-js/mcp-core";
 import { Elicitation } from "../../../../src/elicitation.js";
 import * as MongoDbTools from "../../../../src/tools/mongodb/tools.js";
-import { createDefaultApiClient } from "../../../../src/lib.js";
+import { ApiClient } from "../../../../src/lib.js";
 import { MockMetrics } from "../../../unit/mocks/metrics.js";
 
 const injectedErrorHandler: ConnectionErrorHandler = (error) => {
@@ -106,7 +106,7 @@ describe("MongoDBTool implementations", () => {
             connectionManager,
             keychain: new Keychain(),
             connectionErrorHandler: errorHandler,
-            apiClient: createDefaultApiClient({
+            apiClient: new ApiClient({
                 baseUrl: userConfig.apiBaseUrl,
                 credentials: {
                     clientId: userConfig.apiClientId,
