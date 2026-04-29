@@ -181,7 +181,7 @@ describe("per-type connection config schemas", () => {
         });
     });
 
-    describe("getConnectionConfigSchema", () => {
+    describe("getConnectionConfigSchema (create mode, default)", () => {
         it("returns KafkaConnectionConfig for 'Kafka'", () => {
             expect(getConnectionConfigSchema("Kafka")).toBe(KafkaConnectionConfig);
         });
@@ -216,6 +216,65 @@ describe("per-type connection config schemas", () => {
 
         it("returns null for an unknown connection type", () => {
             expect(getConnectionConfigSchema("totally-made-up")).toBeNull();
+        });
+    });
+
+    describe("getConnectionConfigSchema(type, 'update')", () => {
+        it("returns an update-mode schema for Kafka", () => {
+            const schema = getConnectionConfigSchema("Kafka", "update");
+            expect(schema).not.toBeNull();
+            // Update mode must reject the immutable `networking` field
+            const result = schema!.safeParse({
+                networking: { access: { type: "PRIVATE_LINK", connectionId: "pl-1" } },
+            });
+            expect(result.success).toBe(false);
+        });
+
+        it("returns an update-mode schema for Cluster", () => {
+            const schema = getConnectionConfigSchema("Cluster", "update");
+            expect(schema).not.toBeNull();
+            const result = schema!.safeParse({
+                networking: { access: { type: "PRIVATE_LINK" } },
+            });
+            expect(result.success).toBe(false);
+        });
+
+        it("Kafka update mode accepts patching only authentication.password", () => {
+            const schema = getConnectionConfigSchema("Kafka", "update");
+            const result = schema!.safeParse({
+                authentication: { password: "new-password" },
+            });
+            expect(result.success).toBe(true);
+        });
+
+        it("Kafka update mode still rejects cross-type fields", () => {
+            const schema = getConnectionConfigSchema("Kafka", "update");
+            const result = schema!.safeParse({ clusterName: "wrong-type" });
+            expect(result.success).toBe(false);
+        });
+
+        it("S3 update mode accepts patching only aws.roleArn", () => {
+            const schema = getConnectionConfigSchema("S3", "update");
+            const result = schema!.safeParse({
+                aws: { roleArn: "arn:aws:iam::123:role/new-role" },
+            });
+            expect(result.success).toBe(true);
+        });
+
+        it("Https update mode accepts patching only headers", () => {
+            const schema = getConnectionConfigSchema("Https", "update");
+            const result = schema!.safeParse({
+                headers: { "x-api-key": "new-key" },
+            });
+            expect(result.success).toBe(true);
+        });
+
+        it("returns null for 'Sample' in update mode too", () => {
+            expect(getConnectionConfigSchema("Sample", "update")).toBeNull();
+        });
+
+        it("returns null for an unknown connection type in update mode", () => {
+            expect(getConnectionConfigSchema("totally-made-up", "update")).toBeNull();
         });
     });
 });

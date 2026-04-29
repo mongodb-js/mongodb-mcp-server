@@ -4,6 +4,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { OperationType, ToolArgs } from "../../tool.js";
 import { AtlasArgs } from "../../args.js";
 import { ConnectionConfig, StreamsArgs } from "./streamsArgs.js";
+import { rejectInvalidConnectionConfig } from "./connectionConfigs.js";
 import { LogId } from "../../../common/logging/index.js";
 
 const ConnectionTypeEnum = z.enum([
@@ -509,6 +510,19 @@ export class StreamsManageTool extends StreamsToolBase {
         }
 
         const normalizedConfig = ConnectionConfig.parse(op.connectionConfig);
+
+        // Per-type validation in update mode: unknown/immutable fields rejected before Atlas.
+        if (connectionType) {
+            const typeValidationError = rejectInvalidConnectionConfig(
+                normalizedConfig as Record<string, unknown>,
+                connectionType,
+                "update"
+            );
+            if (typeValidationError) {
+                return typeValidationError;
+            }
+        }
+
         await this.apiClient.updateStreamConnection({
             params: { path: { groupId: projectId, tenantName: workspaceName, connectionName: name } },
             // StreamsConnection body is a discriminated union in the OpenAPI types; our

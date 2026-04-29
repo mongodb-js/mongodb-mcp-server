@@ -553,6 +553,13 @@ describe("StreamsManageTool", () => {
         });
 
         it("should normalize schemaRegistryUrls string to array", async () => {
+            // Use a SchemaRegistry-typed existing connection so update-mode validation passes.
+            mockApiClient.getStreamConnection = vi.fn().mockResolvedValue({
+                name: "conn1",
+                type: "SchemaRegistry",
+                state: "READY",
+            });
+
             await exec({
                 ...baseArgs,
                 action: "update-connection",
@@ -613,6 +620,64 @@ describe("StreamsManageTool", () => {
             expect(mockApiClient.updateStreamConnection).toHaveBeenCalledWith({
                 params: { path: { groupId: "proj1", tenantName: "ws1", connectionName: "conn1" } },
                 body: expect.objectContaining({ type: "Kafka" }),
+            });
+        });
+
+        describe("per-type update validation (pre-Atlas-API)", () => {
+            it("rejects patching a Kafka connection with Cluster-only field clusterName", async () => {
+                mockApiClient.getStreamConnection = vi.fn().mockResolvedValue({
+                    name: "conn1",
+                    type: "Kafka",
+                    state: "READY",
+                });
+
+                const result = await exec({
+                    ...baseArgs,
+                    action: "update-connection",
+                    resourceName: "conn1",
+                    connectionConfig: { clusterName: "wrong-type" },
+                });
+
+                expect(result.isError).toBe(true);
+                expect((result.content[0] as { text: string }).text.toLowerCase()).toContain("clustername");
+                expect(mockApiClient.updateStreamConnection).not.toHaveBeenCalled();
+            });
+
+            it("rejects patching the immutable networking field on a Kafka connection", async () => {
+                mockApiClient.getStreamConnection = vi.fn().mockResolvedValue({
+                    name: "conn1",
+                    type: "Kafka",
+                    state: "READY",
+                });
+
+                const result = await exec({
+                    ...baseArgs,
+                    action: "update-connection",
+                    resourceName: "conn1",
+                    connectionConfig: {
+                        networking: { access: { type: "PRIVATE_LINK", connectionId: "pl-1" } },
+                    },
+                });
+
+                expect(result.isError).toBe(true);
+                expect((result.content[0] as { text: string }).text.toLowerCase()).toContain("networking");
+                expect(mockApiClient.updateStreamConnection).not.toHaveBeenCalled();
+            });
+
+            it("uses connectionType from args when existing connection lookup fails to return a type", async () => {
+                mockApiClient.getStreamConnection = vi.fn().mockResolvedValue({ name: "conn1", state: "READY" });
+
+                const result = await exec({
+                    ...baseArgs,
+                    action: "update-connection",
+                    resourceName: "conn1",
+                    connectionType: "Cluster",
+                    connectionConfig: { bootstrapServers: "broker:9092" }, // Kafka-only field
+                });
+
+                expect(result.isError).toBe(true);
+                expect((result.content[0] as { text: string }).text.toLowerCase()).toContain("bootstrapservers");
+                expect(mockApiClient.updateStreamConnection).not.toHaveBeenCalled();
             });
         });
     });
