@@ -7,7 +7,7 @@
     "erasableSyntaxOnly": true,
     "composite": true
   },
-  "include": ["src/**/*.ts", "../core/src/logging/diskLogger.ts"],
+  "include": ["src/**/*.ts"],
   "exclude": ["dist", "node_modules", "src/**/*.test.ts"],
   "references": [{ "path": "../core" }]
 }

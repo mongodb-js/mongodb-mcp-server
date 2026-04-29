@@ -36,7 +36,7 @@ export interface ILogger {
 
 export interface ICompositeLogger extends ILogger {
     addLogger(logger: ILogger): void;
-    setAttribute(options: { key: string; value: string }): void;
+    setAttribute(key: string, value: string): void;
 }
 
 export type IMcpConnection = Pick<McpServer, "isConnected" | "sendLoggingMessage"> & {
