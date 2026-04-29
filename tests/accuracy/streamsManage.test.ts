@@ -72,9 +72,8 @@ describeAccuracyTests(
                     toolName: "atlas-streams-manage",
                     parameters: {
                         projectId,
-                        action: "start-processor",
                         workspaceName,
-                        resourceName: processorName,
+                        operation: [{ action: "start-processor", resourceName: processorName }],
                     },
                 },
             ],
@@ -89,9 +88,8 @@ describeAccuracyTests(
                     toolName: "atlas-streams-manage",
                     parameters: {
                         projectId,
-                        action: "stop-processor",
                         workspaceName,
-                        resourceName: processorName,
+                        operation: [{ action: "stop-processor", resourceName: processorName }],
                     },
                 },
             ],
@@ -106,9 +104,8 @@ describeAccuracyTests(
                     toolName: "atlas-streams-manage",
                     parameters: {
                         projectId,
-                        action: "stop-processor",
                         workspaceName,
-                        resourceName: processorName,
+                        operation: [{ action: "stop-processor", resourceName: processorName }],
                     },
                     optional: true,
                 },
@@ -116,10 +113,14 @@ describeAccuracyTests(
                     toolName: "atlas-streams-manage",
                     parameters: {
                         projectId,
-                        action: "modify-processor",
                         workspaceName,
-                        resourceName: processorName,
-                        pipeline: Matcher.anyValue,
+                        operation: [
+                            {
+                                action: "modify-processor",
+                                resourceName: processorName,
+                                pipeline: Matcher.anyValue,
+                            },
+                        ],
                     },
                 },
             ],
@@ -134,9 +135,8 @@ describeAccuracyTests(
                     toolName: "atlas-streams-manage",
                     parameters: {
                         projectId,
-                        action: "update-workspace",
                         workspaceName,
-                        newTier: "SP30",
+                        operation: [{ action: "update-workspace", newTier: "SP30" }],
                     },
                 },
             ],
@@ -151,10 +151,14 @@ describeAccuracyTests(
                     toolName: "atlas-streams-manage",
                     parameters: {
                         projectId,
-                        action: "start-processor",
                         workspaceName,
-                        resourceName: processorName,
-                        resumeFromCheckpoint: false,
+                        operation: [
+                            {
+                                action: "start-processor",
+                                resourceName: processorName,
+                                resumeFromCheckpoint: false,
+                            },
+                        ],
                     },
                 },
             ],
@@ -169,10 +173,14 @@ describeAccuracyTests(
                     toolName: "atlas-streams-manage",
                     parameters: {
                         projectId,
-                        action: "modify-processor",
                         workspaceName,
-                        resourceName: processorName,
-                        newName: "etl-v2",
+                        operation: [
+                            {
+                                action: "modify-processor",
+                                resourceName: processorName,
+                                newName: "etl-v2",
+                            },
+                        ],
                     },
                 },
             ],
@@ -188,10 +196,14 @@ describeAccuracyTests(
                     parameters: {
                         projectId,
                         workspaceName,
-                        action: "accept-peering",
-                        peeringId: "pcx-abc123",
-                        requesterAccountId: "123456789012",
-                        requesterVpcId: "vpc-def456",
+                        operation: [
+                            {
+                                action: "accept-peering",
+                                peeringId: "pcx-abc123",
+                                requesterAccountId: "123456789012",
+                                requesterVpcId: "vpc-def456",
+                            },
+                        ],
                     },
                 },
             ],
@@ -207,8 +219,7 @@ describeAccuracyTests(
                     parameters: {
                         projectId,
                         workspaceName,
-                        action: "reject-peering",
-                        peeringId: "pcx-xyz789",
+                        operation: [{ action: "reject-peering", peeringId: "pcx-xyz789" }],
                     },
                 },
             ],
@@ -223,10 +234,8 @@ describeAccuracyTests(
                     toolName: "atlas-streams-manage",
                     parameters: {
                         projectId,
-                        action: "start-processor",
                         workspaceName,
-                        resourceName: processorName,
-                        tier: "SP30",
+                        operation: [{ action: "start-processor", resourceName: processorName, tier: "SP30" }],
                     },
                 },
             ],
@@ -241,9 +250,8 @@ describeAccuracyTests(
                     toolName: "atlas-streams-manage",
                     parameters: {
                         projectId,
-                        action: "update-workspace",
                         workspaceName,
-                        newRegion: Matcher.string(),
+                        operation: [{ action: "update-workspace", newRegion: Matcher.string() }],
                     },
                 },
             ],
@@ -258,14 +266,18 @@ describeAccuracyTests(
                     toolName: "atlas-streams-manage",
                     parameters: {
                         projectId,
-                        action: "modify-processor",
                         workspaceName,
-                        resourceName: processorName,
-                        dlq: {
-                            connectionName: "dlq-cluster",
-                            db: "errors",
-                            coll: "failed_docs",
-                        },
+                        operation: [
+                            {
+                                action: "modify-processor",
+                                resourceName: processorName,
+                                dlq: {
+                                    connectionName: "dlq-cluster",
+                                    db: "errors",
+                                    coll: "failed_docs",
+                                },
+                            },
+                        ],
                     },
                 },
             ],
@@ -280,10 +292,14 @@ describeAccuracyTests(
                     toolName: "atlas-streams-manage",
                     parameters: {
                         projectId,
-                        action: "start-processor",
                         workspaceName,
-                        resourceName: processorName,
-                        startAtOperationTime: "2026-01-15T08:00:00Z",
+                        operation: [
+                            {
+                                action: "start-processor",
+                                resourceName: processorName,
+                                startAtOperationTime: "2026-01-15T08:00:00Z",
+                            },
+                        ],
                     },
                 },
             ],
@@ -303,28 +319,30 @@ describeAccuracyTests(
                     toolName: "atlas-streams-manage",
                     parameters: {
                         projectId,
-                        action: "stop-processor",
                         workspaceName,
-                        resourceName: "etl",
+                        operation: [{ action: "stop-processor", resourceName: "etl" }],
                     },
                 },
                 {
                     toolName: "atlas-streams-manage",
                     parameters: {
                         projectId,
-                        action: "modify-processor",
                         workspaceName,
-                        resourceName: "etl",
-                        pipeline: Matcher.anyValue,
+                        operation: [
+                            {
+                                action: "modify-processor",
+                                resourceName: "etl",
+                                pipeline: Matcher.anyValue,
+                            },
+                        ],
                     },
                 },
                 {
                     toolName: "atlas-streams-manage",
                     parameters: {
                         projectId,
-                        action: "start-processor",
                         workspaceName,
-                        resourceName: "etl",
+                        operation: [{ action: "start-processor", resourceName: "etl" }],
                     },
                 },
             ],
@@ -340,9 +358,8 @@ describeAccuracyTests(
                     toolName: "atlas-streams-manage",
                     parameters: {
                         projectId,
-                        action: "stop-processor",
                         workspaceName,
-                        resourceName: "etl",
+                        operation: [{ action: "stop-processor", resourceName: "etl" }],
                     },
                     optional: true,
                 },
@@ -350,10 +367,14 @@ describeAccuracyTests(
                     toolName: "atlas-streams-manage",
                     parameters: {
                         projectId,
-                        action: "modify-processor",
                         workspaceName,
-                        resourceName: "etl",
-                        pipeline: Matcher.anyValue,
+                        operation: [
+                            {
+                                action: "modify-processor",
+                                resourceName: "etl",
+                                pipeline: Matcher.anyValue,
+                            },
+                        ],
                     },
                 },
             ],
@@ -404,12 +425,16 @@ describeAccuracyTests(
                     toolName: "atlas-streams-manage",
                     parameters: {
                         projectId,
-                        action: "update-connection",
                         workspaceName,
-                        resourceName: "events",
-                        connectionConfig: {
-                            bootstrapServers: "broker2.example.com:9092,broker3.example.com:9092",
-                        },
+                        operation: [
+                            {
+                                action: "update-connection",
+                                resourceName: "events",
+                                connectionConfig: {
+                                    bootstrapServers: "broker2.example.com:9092,broker3.example.com:9092",
+                                },
+                            },
+                        ],
                     },
                 },
             ],
@@ -424,9 +449,8 @@ describeAccuracyTests(
                     toolName: "atlas-streams-manage",
                     parameters: {
                         projectId,
-                        action: "stop-processor",
                         workspaceName,
-                        resourceName: "etl",
+                        operation: [{ action: "stop-processor", resourceName: "etl" }],
                     },
                     optional: true,
                 },
@@ -434,9 +458,8 @@ describeAccuracyTests(
                     toolName: "atlas-streams-manage",
                     parameters: {
                         projectId,
-                        action: "start-processor",
                         workspaceName,
-                        resourceName: "etl",
+                        operation: [{ action: "start-processor", resourceName: "etl" }],
                     },
                 },
             ],
@@ -451,9 +474,8 @@ describeAccuracyTests(
                     toolName: "atlas-streams-manage",
                     parameters: {
                         projectId,
-                        action: "stop-processor",
                         workspaceName,
-                        resourceName: "rollup",
+                        operation: [{ action: "stop-processor", resourceName: "rollup" }],
                     },
                     optional: true,
                 },
@@ -461,20 +483,28 @@ describeAccuracyTests(
                     toolName: "atlas-streams-manage",
                     parameters: {
                         projectId,
-                        action: "modify-processor",
                         workspaceName,
-                        resourceName: "rollup",
-                        pipeline: Matcher.anyValue,
+                        operation: [
+                            {
+                                action: "modify-processor",
+                                resourceName: "rollup",
+                                pipeline: Matcher.anyValue,
+                            },
+                        ],
                     },
                 },
                 {
                     toolName: "atlas-streams-manage",
                     parameters: {
                         projectId,
-                        action: "start-processor",
                         workspaceName,
-                        resourceName: "rollup",
-                        resumeFromCheckpoint: false,
+                        operation: [
+                            {
+                                action: "start-processor",
+                                resourceName: "rollup",
+                                resumeFromCheckpoint: false,
+                            },
+                        ],
                     },
                 },
             ],
