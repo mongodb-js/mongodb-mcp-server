@@ -1,5 +1,11 @@
-import type { LoggerType, LogLevel, LogPayload } from "@mongodb-js/mcp-types";
+import type { IKeychain, LoggerType, LogLevel, LogPayload } from "@mongodb-js/mcp-types";
 import { LoggerBase } from "./loggerBase.js";
+
+const noopKeychain: IKeychain = {
+    register(): void {},
+    clearAllSecrets(): void {},
+    allSecrets: [],
+};
 
 export class CompositeLogger extends LoggerBase {
     protected readonly type?: LoggerType;
@@ -8,7 +14,7 @@ export class CompositeLogger extends LoggerBase {
     private readonly attributes: Record<string, string> = {};
 
     constructor(...loggers: LoggerBase[]) {
-        super();
+        super({ keychain: noopKeychain });
         this.loggers = loggers;
     }
 

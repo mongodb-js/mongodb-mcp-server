@@ -1,11 +1,10 @@
-import type { LoggerType, LogLevel, LogPayload } from "@mongodb-js/mcp-types";
-import type { Keychain } from "../keychain.js";
+import type { LoggerConfig, LoggerType, LogLevel, LogPayload } from "@mongodb-js/mcp-types";
 import { LoggerBase } from "./loggerBase.js";
 
 export class ConsoleLogger extends LoggerBase {
     protected readonly type: LoggerType = "console";
 
-    public constructor(options: { keychain: Keychain }) {
+    public constructor(options: LoggerConfig) {
         super(options);
     }
 

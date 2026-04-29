@@ -39,7 +39,7 @@ export class DiskLogger extends LoggerBase<{ initialized: [] }> {
         }
     }
 
-    protected type: LoggerType = "disk";
+    protected readonly type: LoggerType = "disk";
 
     protected logCore(level: LogLevel, payload: LogPayload): void {
         if (!this.logWriter) {

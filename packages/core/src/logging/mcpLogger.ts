@@ -1,5 +1,4 @@
-import type { Keychain } from "../keychain.js";
-import type { McpServer, LoggerType, LogLevel, LogPayload } from "@mongodb-js/mcp-types";
+import type { McpServer, LoggerConfig, LoggerType, LogLevel, LogPayload } from "@mongodb-js/mcp-types";
 import { MCP_LOG_LEVELS } from "../index.js";
 import { LoggerBase } from "./loggerBase.js";
 
@@ -8,8 +7,8 @@ export class McpLogger extends LoggerBase {
     private readonly getMcpLogLevel: () => LogLevel;
     private readonly pendingSends = new Set<Promise<void>>();
 
-    public constructor(options: { server: McpServer; mcpLogLevel: LogLevel | (() => LogLevel); keychain: Keychain }) {
-        super({ keychain: options.keychain });
+    public constructor(options: { server: McpServer; mcpLogLevel: LogLevel | (() => LogLevel) } & LoggerConfig) {
+        super(options);
         this.server = options.server;
         this.getMcpLogLevel =
             typeof options.mcpLogLevel === "function"
@@ -30,10 +29,11 @@ export class McpLogger extends LoggerBase {
             return;
         }
 
-        void this.trackSend(level, payload);
+        void this.dispatchLoggingMessage(level, payload);
     }
 
-    private async trackSend(level: LogLevel, payload: LogPayload): Promise<void> {
+    /** Dispatches the logging message to the MCP client and keeps track of pending sends */
+    private async dispatchLoggingMessage(level: LogLevel, payload: LogPayload): Promise<void> {
         const promise: Promise<void> = this.server.sendLoggingMessage({
             level,
             data: `[${payload.context}]: ${payload.message}`,

@@ -1,6 +1,6 @@
 import type { MongoLogId } from "mongodb-log-writer";
 import type { LoggingMessageNotification } from "@modelcontextprotocol/sdk/types.js";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { IKeychain } from "./keychain.js";
 
 export type { MongoLogId } from "mongodb-log-writer";
 export type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -34,6 +34,10 @@ export interface ILogger {
     emergency(payload: LogPayload): void;
     flush(): Promise<void>;
 }
+
+export type LoggerConfig = {
+    keychain: IKeychain;
+};
 
 export interface ICompositeLogger extends ILogger {
     addLogger(logger: ILogger): void;
