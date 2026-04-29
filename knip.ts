@@ -39,13 +39,7 @@ const config: KnipConfig = {
             ignoreDependencies: ["@modelcontextprotocol/sdk", "mongodb-redact"],
         },
         "tests/browser": {
-            entry: [
-                "tests/**/*.ts",
-                "polyfills/**/*.ts",
-                "utils/**/*.ts",
-                "vitest.config.ts",
-                "setup.ts",
-            ],
+            entry: ["tests/**/*.ts", "polyfills/**/*.ts", "utils/**/*.ts", "vitest.config.ts", "setup.ts"],
         },
     },
     ignoreExportsUsedInFile: true,
