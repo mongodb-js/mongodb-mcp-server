@@ -32,7 +32,7 @@ export interface ILogger {
     critical(payload: LogPayload): void;
     alert(payload: LogPayload): void;
     emergency(payload: LogPayload): void;
-    flush(): Promise<void>;
+    flush(): Promise<PromiseSettledResult<void>[]>;
 }
 
 export type LoggerConfig = {

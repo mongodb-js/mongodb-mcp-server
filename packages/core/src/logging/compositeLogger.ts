@@ -40,7 +40,8 @@ export class CompositeLogger extends LoggerBase {
         this.attributes[key] = value;
     }
 
-    public override async flush(): Promise<void> {
-        await Promise.all(this.loggers.map((logger) => logger.flush()));
+    public override async flush(): Promise<PromiseSettledResult<void>[]> {
+        const results = await Promise.allSettled(this.loggers.map((logger) => logger.flush()));
+        return results.flatMap((r) => (r.status === "fulfilled" ? r.value : [r]));
     }
 }

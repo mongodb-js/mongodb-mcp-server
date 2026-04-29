@@ -107,7 +107,9 @@ export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extend
         this.log("emergency", payload);
     }
 
-    public async flush(): Promise<void> {}
+    public flush(): Promise<PromiseSettledResult<void>[]> {
+        return Promise.resolve([]);
+    }
 
     protected mapToMongoDBLogLevel(level: LogLevel): "info" | "warn" | "error" | "debug" | "fatal" {
         switch (level) {
