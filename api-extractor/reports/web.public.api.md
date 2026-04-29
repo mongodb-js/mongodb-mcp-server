@@ -519,6 +519,8 @@ export enum ErrorCodes {
     // (undocumented)
     ForbiddenWriteOperation = 1000003,
     // (undocumented)
+    InvalidPipeline = 1000008,
+    // (undocumented)
     MisconfiguredConnectionString = 1000001,
     // (undocumented)
     NotConnectedToMongoDB = 1000000

@@ -21,7 +21,7 @@ describeWithMongoDB("aggregate-db tool", (integration) => {
         {
             name: "pipeline",
             description:
-                "An array of aggregation stages to execute. Has to start with a database aggregation stage. https://www.mongodb.com/docs/manual/reference/mql/aggregation-stages/#db.aggregate---stages",
+                "An array of aggregation stages to execute. The first stage must be a database-level aggregation stage (one of `$changeStream`, `$currentOp`, `$documents`, `$listLocalSessions`, `$queryStats`). https://www.mongodb.com/docs/manual/reference/mql/aggregation-stages/#db.aggregate---stages",
             type: "array",
             required: true,
         },
@@ -38,8 +38,18 @@ describeWithMongoDB("aggregate-db tool", (integration) => {
         { database: "test", collection: "foo" },
         { database: "test", pipeline: {} },
         { database: 123, pipeline: [] },
-        { database: "test", pipeline: [{ $match: { name: "Peter" } }] }, // This is invalid because we don't have any documents yet. The first stage has to be a db level aggregate stage
     ]);
+
+    it("rejects pipelines whose first stage is not a database-level aggregation stage", async () => {
+        await integration.connectMcpClient();
+        const result = await integration.mcpClient().callTool({
+            name: "aggregate-db",
+            arguments: { database: "test", pipeline: [{ $match: { name: "Peter" } }] },
+        });
+        expect(result.isError).toBe(true);
+        const message = getResponseContent(result.content);
+        expect(message).toContain("first stage of the pipeline must be a database-level aggregation stage");
+    });
 
     it("can run aggregation-db on an existing database", async () => {
         await integration.connectMcpClient();
