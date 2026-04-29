@@ -1,6 +1,7 @@
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { LoggerBase } from "@mongodb-js/mcp-core";
-import { CompositeLogger, LogId } from "@mongodb-js/mcp-core";
+import { CompositeLogger } from "@mongodb-js/mcp-core";
+import { LogId } from "@mongodb-js/mcp-logging";
 import { type ISessionStore, type CreateSessionStoreFn, createDefaultSessionStore } from "../common/sessionStore.js";
 import {
     TransportRunnerBase,

@@ -2,7 +2,7 @@ import { z } from "zod";
 import { type CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { type ToolArgs, type OperationType, type ToolCategory, formatUntrustedData } from "../tool.js";
 import { AssistantToolBase } from "./assistantTool.js";
-import { LogId } from "@mongodb-js/mcp-core";
+import { LogId } from "@mongodb-js/mcp-logging";
 import { stringify as yamlStringify } from "yaml";
 
 export const SearchKnowledgeToolArgs = {

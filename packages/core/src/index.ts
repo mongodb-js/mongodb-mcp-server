@@ -3,7 +3,6 @@ export { McpLogger } from "./logging/mcpLogger.js";
 export { ConsoleLogger } from "./logging/consoleLogger.js";
 export { NoopLogger } from "./logging/noopLogger.js";
 export { CompositeLogger } from "./logging/compositeLogger.js";
-export { LogId } from "./logging/logId.js";
 export { Keychain, registerGlobalSecretToRedact } from "./keychain.js";
 export type {
     LogLevel,
@@ -14,7 +13,6 @@ export type {
     ILogger,
     ICompositeLogger,
     IKeychain,
-    MongoLogId,
 } from "@mongodb-js/mcp-types";
 export type { Secret } from "mongodb-redact";
 export { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";

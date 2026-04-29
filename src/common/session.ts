@@ -2,7 +2,7 @@ import { ObjectId } from "bson";
 import type { ApiClient } from "./atlas/apiClient.js";
 import type { Implementation } from "@modelcontextprotocol/sdk/types.js";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
-import { LogId } from "@mongodb-js/mcp-core";
+import { LogId } from "@mongodb-js/mcp-logging";
 import EventEmitter from "events";
 import type {
     AtlasClusterConnectionInfo,

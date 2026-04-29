@@ -1,4 +1,4 @@
-import { LogId } from "@mongodb-js/mcp-core";
+import { LogId } from "@mongodb-js/mcp-logging";
 import type { ApiClient } from "./apiClient.js";
 import { getProcessIdsFromCluster } from "./cluster.js";
 import type { components } from "./openapi.js";

@@ -9,5 +9,5 @@
   },
   "include": ["src/**/*.ts"],
   "exclude": ["dist", "node_modules", "src/**/*.test.ts"],
-  "references": []
+  "references": [{ "path": "../types" }, { "path": "../core" }]
 }

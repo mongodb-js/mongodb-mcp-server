@@ -1,7 +1,7 @@
 import type { Session } from "../common/session.js";
 import type { BaseEvent, CommonProperties } from "./types.js";
 import type { UserConfig } from "../common/config/userConfig.js";
-import { LogId } from "@mongodb-js/mcp-core";
+import { LogId } from "@mongodb-js/mcp-logging";
 import type { ApiClient } from "../common/atlas/apiClient.js";
 import { ApiClientError } from "../common/atlas/apiClientError.js";
 import { MACHINE_METADATA } from "./constants.js";

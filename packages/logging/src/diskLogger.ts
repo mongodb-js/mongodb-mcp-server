@@ -1,12 +1,15 @@
 import * as fs from "fs/promises";
 import { type MongoLogWriter, MongoLogManager } from "mongodb-log-writer";
-import { LoggerBase, type Keychain, type LogLevel, type LogPayload, type LoggerType } from "@mongodb-js/mcp-core";
+import { LoggerBase } from "@mongodb-js/mcp-core";
+import type { LogLevel, LogPayload, LoggerType } from "@mongodb-js/mcp-types";
+import type { IKeychain } from "@mongodb-js/mcp-types";
+import type { MongoLogPayload } from "./types.js";
 
 export class DiskLogger extends LoggerBase<{ initialized: [] }> {
     private bufferedMessages: { level: LogLevel; payload: LogPayload }[] = [];
     private logWriter?: MongoLogWriter;
 
-    public constructor(options: { logPath: string; onError: (error: Error) => void; keychain: Keychain }) {
+    public constructor(options: { logPath: string; onError: (error: Error) => void; keychain: IKeychain }) {
         super({ keychain: options.keychain });
 
         void this.initialize(options.logPath, options.onError);
@@ -47,7 +50,8 @@ export class DiskLogger extends LoggerBase<{ initialized: [] }> {
             return;
         }
 
-        const { id, context, message } = payload;
+        const mongoPayload = payload as MongoLogPayload;
+        const { id, context, message } = mongoPayload;
         const mongoDBLevel = this.mapToMongoDBLogLevel(level);
 
         this.logWriter[mongoDBLevel]("MONGODB-MCP", id, context, message, payload.attributes);

@@ -8,7 +8,8 @@ import {
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
-import { LogId, type LoggerBase } from "@mongodb-js/mcp-core";
+import { type LoggerBase } from "@mongodb-js/mcp-core";
+import { LogId } from "@mongodb-js/mcp-logging";
 import { defaultCreateConnectionManager } from "../../../src/common/connectionManager.js";
 import { Keychain } from "@mongodb-js/mcp-core";
 import { defaultTestConfig, InMemoryLogger, timeout } from "../helpers.js";

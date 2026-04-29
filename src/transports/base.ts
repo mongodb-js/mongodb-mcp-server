@@ -4,7 +4,7 @@ import { type AnyToolClass, Server, type ServerOptions } from "../server.js";
 import { Session, type SessionOptions } from "../common/session.js";
 import { Telemetry } from "../telemetry/telemetry.js";
 import { McpServer, type LoggerBase, CompositeLogger, ConsoleLogger, McpLogger } from "@mongodb-js/mcp-core";
-import { DiskLogger } from "@mongodb-js/mcp-node-utils";
+import { DiskLogger } from "@mongodb-js/mcp-logging";
 import { Keychain } from "@mongodb-js/mcp-core";
 import { ExportsManager } from "../common/exportsManager.js";
 import { DeviceId } from "../helpers/deviceId.js";

@@ -1,8 +1,6 @@
-import type { MongoLogId } from "mongodb-log-writer";
 import type { LoggingMessageNotification } from "@modelcontextprotocol/sdk/types.js";
 import type { IKeychain } from "./keychain.js";
 
-export type { MongoLogId } from "mongodb-log-writer";
 export type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 export type LogLevel = LoggingMessageNotification["params"]["level"];
@@ -14,8 +12,8 @@ export type EventMap<T> = Record<keyof T, any[]>;
 
 export type DefaultEventMap = Record<string, never[]>;
 
-export type LogPayload = {
-    id: MongoLogId;
+export type LogPayload<LogId = unknown> = {
+    id: LogId;
     context: string;
     message: string;
     noRedaction?: boolean | LoggerType | LoggerType[];

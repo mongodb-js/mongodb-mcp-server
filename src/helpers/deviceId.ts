@@ -1,7 +1,7 @@
 import { getDeviceId } from "@mongodb-js/device-id";
 import type { IDeviceId } from "@mongodb-js/mcp-types";
 import type { LoggerBase } from "@mongodb-js/mcp-core";
-import { LogId } from "@mongodb-js/mcp-core";
+import { LogId } from "@mongodb-js/mcp-logging";
 
 export const DEVICE_ID_TIMEOUT = 3000;
 

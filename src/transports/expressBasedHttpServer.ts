@@ -1,6 +1,6 @@
 import express from "express";
 import type http from "http";
-import { LogId } from "@mongodb-js/mcp-core";
+import { LogId } from "@mongodb-js/mcp-logging";
 import type { LoggerBase } from "../lib.js";
 
 export type ExpressConfig = {

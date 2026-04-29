@@ -3,7 +3,7 @@ import { describe, beforeEach, afterEach, vi, it, expect } from "vitest";
 import type { LoggerType, LogLevel, McpServer } from "@mongodb-js/mcp-types";
 import { CompositeLogger } from "./compositeLogger.js";
 import { ConsoleLogger } from "./consoleLogger.js";
-import { LogId } from "./logId.js";
+import { LogId } from "@mongodb-js/mcp-logging";
 import { McpLogger } from "./mcpLogger.js";
 import { MCP_LOG_LEVELS } from "../index.js";
 import { LoggingMessageNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
