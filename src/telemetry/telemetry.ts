@@ -387,7 +387,7 @@ function legacyConfigFromSession(
         deviceId,
         apiClient: session.apiClient,
         keychain: session.keychain,
-        enabled: userConfig.telemetry !== "disabled",
+        enabled: userConfig.telemetry === "enabled",
         eventCache,
         getCommonProperties: () => ({
             ...commonProperties,

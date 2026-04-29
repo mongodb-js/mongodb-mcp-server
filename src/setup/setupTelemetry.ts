@@ -64,7 +64,7 @@ export class SetupTelemetry {
             deviceId,
             apiClient,
             keychain,
-            enabled: config.telemetry !== "disabled",
+            enabled: config.telemetry === "enabled",
         });
         return new SetupTelemetry(telemetry, deviceId);
     }
@@ -228,7 +228,11 @@ export class SetupTelemetry {
         } catch {
             // Ignore errors from telemetry.close()
         } finally {
-            this.deviceId.close();
+            try {
+                this.deviceId.close();
+            } catch {
+                // Ignore errors - it's best-effort
+            }
         }
     }
 }
