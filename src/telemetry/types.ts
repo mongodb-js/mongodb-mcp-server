@@ -216,6 +216,13 @@ export type CommonProperties = {
      * A boolean indicating whether a Docker daemon is available on the machine.
      */
     has_docker?: TelemetryBoolSet;
+
+    /**
+     * Identifies the AI agent that invoked the MCP server, derived from well-known
+     * environment variables or filesystem markers set by agent runtimes.
+     * Examples: "claude_code", "cursor", "gemini_cli".
+     */
+    agent_env_var?: string;
 } & CommonStaticProperties;
 
 /**

@@ -6,6 +6,7 @@ import { ApiClientError } from "../common/atlas/apiClientError.js";
 import { MACHINE_METADATA } from "./constants.js";
 import { EventCache } from "./eventCache.js";
 import { detectContainerEnv } from "../helpers/container.js";
+import { detectAgentEnvVar } from "../helpers/agentDetection.js";
 import type { DeviceId } from "../helpers/deviceId.js";
 import type { Keychain } from "../common/keychain.js";
 import type { Session } from "../common/session.js";
@@ -186,6 +187,11 @@ export class Telemetry {
 
         this.pipelineCommonProperties.device_id = deviceIdValue;
         this.pipelineCommonProperties.is_container_env = containerEnv ? "true" : "false";
+
+        const agentEnvVar = await detectAgentEnvVar();
+        if (agentEnvVar !== undefined) {
+            this.pipelineCommonProperties.agent_env_var = agentEnvVar;
+        }
 
         this.scheduleSend();
     }
