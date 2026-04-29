@@ -13,6 +13,7 @@ export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extend
     }
 
     public log(level: LogLevel, payload: LogPayload): void {
+        // If no explicit value is supplied for unredacted loggers, default to "mcp"
         const noRedaction = payload.noRedaction !== undefined ? payload.noRedaction : this.defaultUnredactedLogger;
 
         this.logCore(level, {
@@ -41,14 +42,20 @@ export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extend
     }
 
     private redactIfNecessary(message: string, noRedaction: LogPayload["noRedaction"]): string {
+        // If the consumer has supplied noRedaction: true, we don't redact the log message
+        // regardless of the logger type
         if (typeof noRedaction === "boolean" && noRedaction) {
             return message;
         }
 
+        // If the consumer has supplied noRedaction: logger-type, we skip redacting if
+        // our logger type is the same as what the consumer requested
         if (typeof noRedaction === "string" && noRedaction === this.type) {
             return message;
         }
 
+        // If the consumer has supplied noRedaction: array, we skip redacting if our logger
+        // type is included in that array
         if (
             typeof noRedaction === "object" &&
             Array.isArray(noRedaction) &&
