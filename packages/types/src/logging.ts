@@ -30,8 +30,8 @@ export type MongoLogId = {
     __value: number;
 };
 
-export type LogPayload<LogId = MongoLogId> = {
-    id: LogId;
+export type LogPayload = {
+    id: MongoLogId;
     context: string;
     message: string;
     noRedaction?: boolean | LoggerType | LoggerType[];

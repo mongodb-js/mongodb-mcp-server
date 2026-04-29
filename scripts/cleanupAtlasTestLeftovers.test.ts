@@ -1,6 +1,6 @@
 import type { Group, AtlasOrganization } from "../src/common/atlas/openapi.js";
 import { ApiClient } from "../src/common/atlas/apiClient.js";
-import { ConsoleLogger } from "@mongodb-js/mcp-core";
+import { ConsoleLogger } from "@mongodb-js/mcp-logging";
 import { Keychain } from "../src/lib.js";
 import { describe, it } from "vitest";
 

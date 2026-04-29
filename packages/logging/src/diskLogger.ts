@@ -1,5 +1,5 @@
 import { LoggerBase } from "@mongodb-js/mcp-core";
-import type { LogLevel, LogPayload, LoggerType, IKeychain, MongoLogId, LogWriter } from "@mongodb-js/mcp-types";
+import type { LogLevel, LogPayload, LoggerType, IKeychain, LogWriter } from "@mongodb-js/mcp-types";
 
 export type DiskLoggerOptions = {
     logWriter: LogWriter;
@@ -16,7 +16,7 @@ export class DiskLogger extends LoggerBase {
 
     protected readonly type: LoggerType = "disk";
 
-    protected logCore(level: LogLevel, payload: LogPayload<MongoLogId>): void {
+    protected logCore(level: LogLevel, payload: LogPayload): void {
         const { id, context, message } = payload;
         const mongoDBLevel = this.mapToMongoDBLogLevel(level);
 
