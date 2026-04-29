@@ -267,9 +267,11 @@ export abstract class AITool {
         }
     }
 
-    // Returns the skills.sh agent ID this tool maps to, or null if skills.sh
-    // has no entry for it (e.g. Claude Desktop — no filesystem skills).
-    // Install paths are owned by `skills add`; we only map identity.
+    /**
+     * Returns the skills.sh agent ID this tool maps to, or null if [skills.sh](https://skills.sh)
+     * has no entry for it (e.g. Claude Desktop — no filesystem skills).
+     * Install paths are owned by `skills add`; we only map identity.
+     */
     getSkillsAgentId(): string | null {
         return null;
     }

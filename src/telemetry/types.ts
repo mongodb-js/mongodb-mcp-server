@@ -65,6 +65,7 @@ export type SetupStage =
     | "service_account_secret_entered"
     | "credentials_validated"
     | "editor_configured"
+    | "skills_install_prompted"
     | "open_config_prompted"
     | "completed"
     | "cancelled"
@@ -92,6 +93,9 @@ export type SetupEventProperties = {
 
     /** Whether the Node.js version satisfies the package's engines range. */
     node_version_ok?: TelemetryBoolSet;
+
+    /** Whether the current OS platform is supported by the setup wizard. */
+    platform_supported?: TelemetryBoolSet;
 
     /** Whether the user supplied a MongoDB connection string. */
     connection_string_provided?: TelemetryBoolSet;
