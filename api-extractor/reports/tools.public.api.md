@@ -26,6 +26,7 @@ import type { Secret } from 'mongodb-redact';
 import type { TelemetryEvents } from '@mongodb-js/mcp-types';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
+import type { UIRegistry } from '@mongodb-js/mcp-ui';
 import { z } from 'zod';
 import { ZodDefault } from 'zod';
 import { ZodEnum } from 'zod';
@@ -1680,10 +1681,6 @@ export class UpdateManyTool extends MongoDBToolBase {
     // (undocumented)
     static toolName: string;
 }
-
-// Warnings were encountered during analysis:
-//
-// src/tools/tool.ts:136:5 - (ae-forgotten-export) The symbol "UIRegistry" needs to be exported by the entry point index.d.ts
 
 // (No @packageDocumentation comment for this package)
 

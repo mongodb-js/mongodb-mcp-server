@@ -18,6 +18,15 @@
         "@leafygreen-ui/table"
       ]
     },
+    "packages/ui": {
+      "entry": ["src/index.ts!"],
+      "ignore": [
+        "src/build/mount.tsx",
+        "src/test-setup.ts",
+        "vite.ui.config.ts"
+      ],
+      "ignoreDependencies": ["@lg-mcp/embeddable-uis", "@lg-mcp/hooks"]
+    },
     "tests/browser": {
       "entry": [
         "tests/**/*.ts",

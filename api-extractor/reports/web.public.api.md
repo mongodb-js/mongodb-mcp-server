@@ -29,6 +29,7 @@ import type { TelemetryEvents } from '@mongodb-js/mcp-types';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import type { TransportRequestContext } from '@mongodb-js/mcp-types';
+import { UIRegistry } from '@mongodb-js/mcp-ui';
 import { z } from 'zod';
 import type { ZodRawShape } from 'zod';
 
@@ -1057,13 +1058,7 @@ export type TransportRunnerConfig<TUserConfig extends UserConfig = UserConfig, T
     createApiClient?: ApiClientFactoryFn;
 };
 
-// @public
-export class UIRegistry {
-    constructor(options?: {
-        customUIs?: (toolName: string) => string | null | Promise<string | null>;
-    });
-    get(toolName: string): Promise<string | null>;
-}
+export { UIRegistry }
 
 // @public (undocumented)
 export type UserConfig = z.infer<typeof UserConfigSchema>;
