@@ -33,6 +33,6 @@ jobs:
         # Skip the JIRA ticket check for PRs opened by bots
         if: ${{ !contains(github.event.pull_request.user.login, '[bot]') }}
         with:
-          regex: "[A-Z]{3,10}-[0-9]{1,5}$"
+          regex: '\b[A-Z]{3,10}-[0-9]{1,5}$'
           error-hint: "Invalid PR title. Make sure it ends with a JIRA ticket - i.e. MCP-1234 or add the no-title-validation label"
           ignore-labels: "no-title-validation"
