@@ -14,7 +14,7 @@ const AGENT_ENV_VARS = [
 
 // The module caches its result in a module-level variable, so we reload it
 // between tests using vi.resetModules().
-async function importFresh() {
+async function importFresh(): Promise<() => Promise<string | undefined>> {
     vi.resetModules();
     const mod = await import("../../../src/helpers/agentDetection.js");
     return mod.detectAgentEnvVar;
