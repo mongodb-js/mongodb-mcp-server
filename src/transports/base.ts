@@ -3,12 +3,11 @@ import { packageInfo } from "../common/packageInfo.js";
 import { type AnyToolClass, Server, type ServerOptions } from "../server.js";
 import { Session, type SessionOptions } from "../common/session.js";
 import { Telemetry } from "../telemetry/telemetry.js";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { LoggerBase } from "../common/logging/index.js";
-import { CompositeLogger, ConsoleLogger, DiskLogger, McpLogger } from "../common/logging/index.js";
+import { McpServer, type LoggerBase, CompositeLogger, ConsoleLogger, McpLogger } from "@mongodb-js/mcp-core";
+import { DiskLogger } from "@mongodb-js/mcp-node-utils";
+import { Keychain } from "@mongodb-js/mcp-core";
 import { ExportsManager } from "../common/exportsManager.js";
 import { DeviceId } from "../helpers/deviceId.js";
-import { Keychain } from "../common/keychain.js";
 import { defaultCreateConnectionManager, type ConnectionManagerFactoryFn } from "../common/connectionManager.js";
 import {
     type ConnectionErrorHandler,
@@ -25,7 +24,7 @@ import { defaultCreateApiClient } from "../common/atlas/apiClient.js";
 import type { UIRegistry } from "../ui/registry/index.js";
 import { PrometheusMetrics, createDefaultMetrics, type Metrics, type DefaultMetrics } from "@mongodb-js/mcp-metrics";
 
-import type { TransportRequestContext } from "@mongodb-js/mcp-types";
+import type { LogLevel, TransportRequestContext } from "@mongodb-js/mcp-types";
 
 export type { TransportRequestContext };
 
@@ -244,23 +243,23 @@ export abstract class TransportRunnerBase<
         this.createSessionConfig = createSessionConfig;
         this.createApiClient = createApiClient;
         this.metrics = metrics ?? new PrometheusMetrics({ definitions: createDefaultMetrics() as TMetrics });
-        const loggers: LoggerBase[] = [...additionalLoggers];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const loggers: LoggerBase<any>[] = [...additionalLoggers];
         if (this.userConfig.loggers.includes("stderr")) {
-            loggers.push(new ConsoleLogger(Keychain.root));
+            loggers.push(new ConsoleLogger({ keychain: Keychain.root }));
         }
 
         if (this.userConfig.loggers.includes("disk")) {
             loggers.push(
-                new DiskLogger(
-                    this.userConfig.logPath,
-                    (err) => {
-                        // If the disk logger fails to initialize, we log the error to stderr and exit
+                new DiskLogger({
+                    logPath: this.userConfig.logPath,
+                    onError: (err: Error): void => {
                         // eslint-disable-next-line no-console
                         console.error("Error initializing disk logger:", err);
                         process.exit(1);
                     },
-                    Keychain.root
-                )
+                    keychain: Keychain.root,
+                })
             );
         }
 
@@ -353,7 +352,13 @@ export abstract class TransportRunnerBase<
         // We need to create the MCP logger after the server is constructed
         // because it needs the server instance
         if (userConfig.loggers.includes("mcp")) {
-            logger.addLogger(new McpLogger(result, Keychain.root));
+            logger.addLogger(
+                new McpLogger({
+                    server: result.mcpServer,
+                    mcpLogLevel: (): LogLevel => result.mcpLogLevel,
+                    keychain: Keychain.root,
+                })
+            );
         }
 
         return result;

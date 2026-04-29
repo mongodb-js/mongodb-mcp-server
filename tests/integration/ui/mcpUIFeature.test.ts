@@ -1,7 +1,7 @@
 import { describe, expect, it, afterAll } from "vitest";
 import { describeWithMongoDB } from "../tools/mongodb/mongodbHelpers.js";
 import { defaultTestConfig, expectDefined, getResponseElements } from "../helpers.js";
-import { CompositeLogger } from "../../../src/common/logging/index.js";
+import { CompositeLogger } from "@mongodb-js/mcp-core";
 import { ExportsManager } from "../../../src/common/exportsManager.js";
 import { Session } from "../../../src/common/session.js";
 import { Telemetry } from "../../../src/telemetry/telemetry.js";
@@ -10,7 +10,7 @@ import { Server } from "../../../src/server.js";
 import { MCPConnectionManager } from "../../../src/common/connectionManager.js";
 import { DeviceId } from "../../../src/helpers/deviceId.js";
 import { connectionErrorHandler } from "../../../src/common/connectionErrorHandler.js";
-import { Keychain } from "../../../src/common/keychain.js";
+import { Keychain } from "@mongodb-js/mcp-core";
 import { Elicitation } from "../../../src/elicitation.js";
 import { defaultCreateAtlasLocalClient } from "../../../src/common/atlasLocal.js";
 import { InMemoryTransport } from "../../../src/transports/inMemoryTransport.js";

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as oauth from "oauth4webapi";
 import { ClientCredentialsAuthProvider } from "../../../../src/common/atlas/auth/clientCredentials.js";
-import { NullLogger } from "../../../../src/common/logging/index.js";
+import { NoopLogger } from "@mongodb-js/mcp-core";
 
 vi.mock("oauth4webapi", () => ({
     clientCredentialsGrantRequest: vi.fn(),
@@ -21,7 +21,7 @@ describe("ClientCredentialsAuthProvider", () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        authProvider = new ClientCredentialsAuthProvider(mockOptions, new NullLogger());
+        authProvider = new ClientCredentialsAuthProvider(mockOptions, new NoopLogger());
     });
 
     afterEach(() => {

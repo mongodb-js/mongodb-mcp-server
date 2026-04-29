@@ -1,6 +1,6 @@
 import type { MockInstance } from "vitest";
 import { describe, beforeEach, afterEach, vi, it, expect } from "vitest";
-import type { LoggerType, LogLevel } from "@mongodb-js/mcp-types";
+import type { LoggerType, LogLevel, McpServer } from "@mongodb-js/mcp-types";
 import { CompositeLogger } from "./compositeLogger.js";
 import { ConsoleLogger } from "./consoleLogger.js";
 import { LogId } from "./logId.js";
@@ -28,13 +28,11 @@ describe("Logger", () => {
         mcpLoggerSpy = vi.fn();
         minimumMcpLogLevel = "debug";
         mcpLogger = new McpLogger({
-            connection: {
+            server: {
                 sendLoggingMessage: mcpLoggerSpy,
                 isConnected: () => true,
-                get mcpLogLevel() {
-                    return minimumMcpLogLevel;
-                },
-            },
+            } as unknown as McpServer,
+            mcpLogLevel: (): LogLevel => minimumMcpLogLevel,
             keychain,
         });
     });

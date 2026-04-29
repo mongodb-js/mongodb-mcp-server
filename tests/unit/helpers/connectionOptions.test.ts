@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { setAppNameParamIfMissing } from "../../../src/helpers/connectionOptions.js";
 import { DeviceId } from "../../../src/helpers/deviceId.js";
-import { CompositeLogger } from "../../../src/common/logging/index.js";
+import { CompositeLogger } from "@mongodb-js/mcp-core";
 
 const MockDeviceId = vi.mocked(DeviceId.create(new CompositeLogger()));
 

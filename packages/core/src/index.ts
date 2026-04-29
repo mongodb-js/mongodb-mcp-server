@@ -18,6 +18,7 @@ export type {
     MongoLogId,
 } from "@mongodb-js/mcp-types";
 export type { Secret } from "mongodb-redact";
+export { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 import type { LogLevel } from "@mongodb-js/mcp-types";
 

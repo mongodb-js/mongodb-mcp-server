@@ -13,7 +13,7 @@ import { packageInfo } from "../common/packageInfo.js";
 import { getAuthType } from "../common/connectionInfo.js";
 import { type UserConfig } from "../common/config/userConfig.js";
 import { defaultCreateAtlasLocalClient } from "../common/atlasLocal.js";
-import { NullLogger } from "../common/logging/index.js";
+import { NoopLogger } from "@mongodb-js/mcp-core";
 
 const buildEnvObject = (
     connectionString: string,
@@ -150,7 +150,7 @@ const validatePlatform = (): Platform => {
 };
 
 const validateDocker = async (): Promise<boolean> => {
-    const client = await defaultCreateAtlasLocalClient({ logger: new NullLogger() });
+    const client = await defaultCreateAtlasLocalClient({ logger: new NoopLogger() });
     if (client) {
         try {
             // Use the client to confirm docker is available and running

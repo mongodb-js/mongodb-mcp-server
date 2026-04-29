@@ -7,7 +7,7 @@ import type { Session } from "../../src/common/session.js";
 import type { UserConfig } from "../../src/common/config/userConfig.js";
 import type { Telemetry } from "../../src/telemetry/telemetry.js";
 import type { Elicitation } from "../../src/elicitation.js";
-import type { CompositeLogger } from "../../src/common/logging/index.js";
+import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Server } from "../../src/server.js";
 import type { ToolEvent } from "../../src/telemetry/types.js";
@@ -17,7 +17,7 @@ import { TRANSPORT_PAYLOAD_LIMITS } from "../../src/transports/constants.js";
 import { expectDefined } from "../integration/helpers.js";
 import { TestTool, TestToolWithOutputSchema, TestToolWithoutStructuredContent, ErrorTool } from "./mocks/tools.js";
 import { MockMetrics } from "./mocks/metrics.js";
-import { Keychain } from "../../src/common/keychain.js";
+import { Keychain } from "@mongodb-js/mcp-core";
 
 describe("ToolBase", () => {
     let mockSession: Session;

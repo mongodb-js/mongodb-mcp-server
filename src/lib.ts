@@ -32,10 +32,10 @@ export {
     type LogLevel,
     CompositeLogger,
     ConsoleLogger,
-    NullLogger,
+    NoopLogger,
     type EventMap,
     type DefaultEventMap,
-} from "./common/logging/index.js";
+} from "@mongodb-js/mcp-core";
 export {
     StreamableHttpRunner,
     MCPHttpServer,
@@ -85,8 +85,8 @@ export { Telemetry } from "./telemetry/telemetry.js";
 export { type TelemetryEvent, type CommonProperties, type BaseEvent } from "./telemetry/types.js";
 export { type TelemetryEvents } from "./telemetry/telemetry.js";
 export { EventCache } from "./telemetry/eventCache.js";
-export { Keychain, registerGlobalSecretToRedact } from "./common/keychain.js";
-export type { Secret } from "./common/keychain.js";
+export { Keychain, registerGlobalSecretToRedact } from "@mongodb-js/mcp-core";
+export type { Secret } from "mongodb-redact";
 export { Elicitation } from "./elicitation.js";
 export { applyConfigOverrides, ConfigOverrideError } from "./common/config/configOverrides.js";
 export {

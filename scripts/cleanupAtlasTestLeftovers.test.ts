@@ -1,6 +1,6 @@
 import type { Group, AtlasOrganization } from "../src/common/atlas/openapi.js";
 import { ApiClient } from "../src/common/atlas/apiClient.js";
-import { ConsoleLogger } from "../src/common/logging/index.js";
+import { ConsoleLogger } from "@mongodb-js/mcp-core";
 import { Keychain } from "../src/lib.js";
 import { describe, it } from "vitest";
 
@@ -149,7 +149,7 @@ async function main(): Promise<void> {
                 clientSecret: process.env.MDB_MCP_API_CLIENT_SECRET || "",
             },
         },
-        new ConsoleLogger(Keychain.root)
+        new ConsoleLogger({ keychain: Keychain.root })
     );
 
     const testOrg = await findTestOrganization(apiClient);

@@ -3,6 +3,7 @@ import type { LoggingMessageNotification } from "@modelcontextprotocol/sdk/types
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 export type { MongoLogId } from "mongodb-log-writer";
+export type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 export type LogLevel = LoggingMessageNotification["params"]["level"];
 

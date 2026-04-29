@@ -37,14 +37,14 @@ function enableFipsIfRequested(): void {
 enableFipsIfRequested();
 
 import crypto from "crypto";
-import { ConsoleLogger, LogId } from "./common/logging/index.js";
+import { ConsoleLogger, LogId, Keychain } from "@mongodb-js/mcp-core";
 import { parseUserConfig } from "./common/config/parseUserConfig.js";
 import { type UserConfig } from "./common/config/userConfig.js";
 import { packageInfo } from "./common/packageInfo.js";
 import { StdioRunner } from "./transports/stdio.js";
 import { StreamableHttpRunner } from "./transports/streamableHttp.js";
 import { systemCA } from "@mongodb-js/devtools-proxy-support";
-import { Keychain } from "./common/keychain.js";
+
 import { DryRunModeRunner } from "./transports/dryModeRunner.js";
 import { runSetup } from "./setup/setupMcpServer.js";
 
@@ -164,7 +164,7 @@ main().catch((error: unknown) => {
     // At this point, we may be in a very broken state, so we can't rely on the logger
     // being functional. Instead, create a brand new ConsoleLogger and log the error
     // to the console.
-    const logger = new ConsoleLogger(Keychain.root);
+    const logger = new ConsoleLogger({ keychain: Keychain.root });
     logger.emergency({
         id: LogId.serverStartFailure,
         context: "server",

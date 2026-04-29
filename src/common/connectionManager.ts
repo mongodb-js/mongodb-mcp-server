@@ -5,7 +5,7 @@ import { generateConnectionInfoFromCliArgs, type ConnectionInfo } from "@mongosh
 import type { DeviceId } from "../helpers/deviceId.js";
 import { type UserConfig } from "./config/userConfig.js";
 import { MongoDBError, ErrorCodes } from "./errors.js";
-import { type LoggerBase, LogId } from "./logging/index.js";
+import { type LoggerBase, LogId } from "@mongodb-js/mcp-core";
 import { packageInfo } from "./packageInfo.js";
 import { type AppNameComponents, setAppNameParamIfMissing } from "../helpers/connectionOptions.js";
 import {

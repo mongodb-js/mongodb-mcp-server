@@ -1,11 +1,11 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { MonitoringServer } from "../../../src/transports/monitoringServer.js";
-import { NullLogger } from "../../../src/common/logging/index.js";
+import { NoopLogger } from "@mongodb-js/mcp-core";
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
 
 describe("MonitoringServer", () => {
     let server: MonitoringServer | undefined;
-    const logger = new NullLogger();
+    const logger = new NoopLogger();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const metrics = new PrometheusMetrics<any>({ definitions: createDefaultMetrics() });
 

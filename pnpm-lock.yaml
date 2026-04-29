@@ -280,6 +280,9 @@ importers:
 
   packages/core:
     dependencies:
+      '@modelcontextprotocol/sdk':
+        specifier: ^1.29.0
+        version: 1.29.0(zod@4.3.6)
       '@mongodb-js/mcp-types':
         specifier: workspace:*
         version: link:../types

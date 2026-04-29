@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { defaultCreateAtlasLocalClient, type LibraryLoader } from "../../../src/common/atlasLocal.js";
 import type { Client } from "@mongodb-js/atlas-local";
-import { NullLogger } from "../../../src/common/logging/index.js";
+import { NoopLogger } from "@mongodb-js/mcp-core";
 
 describe("Atlas Local", () => {
     describe("defaultCreateAtlasLocalClient", () => {
@@ -11,7 +11,7 @@ describe("Atlas Local", () => {
                     return Promise.resolve(undefined);
                 },
             };
-            const result = await defaultCreateAtlasLocalClient({ loader: failingLoader, logger: new NullLogger() });
+            const result = await defaultCreateAtlasLocalClient({ loader: failingLoader, logger: new NoopLogger() });
             expect(result).toBeUndefined();
         });
 
@@ -28,7 +28,7 @@ describe("Atlas Local", () => {
                 },
             };
 
-            const result = await defaultCreateAtlasLocalClient({ loader: succeedingLoader, logger: new NullLogger() });
+            const result = await defaultCreateAtlasLocalClient({ loader: succeedingLoader, logger: new NoopLogger() });
             expect(result).toBe("fake client");
         });
     });

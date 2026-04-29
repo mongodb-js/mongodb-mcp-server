@@ -1,5 +1,5 @@
 import type express from "express";
-import { LogId } from "../common/logging/loggingDefinitions.js";
+import { LogId } from "@mongodb-js/mcp-core";
 import type {
     DefaultMetrics,
     MonitoringServerFeature,

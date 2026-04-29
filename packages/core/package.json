@@ -26,6 +26,7 @@
     "test": "vitest --run"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@mongodb-js/mcp-types": "workspace:*",
     "mongodb-log-writer": "^2.5.7",
     "mongodb-redact": "^1.1.6"

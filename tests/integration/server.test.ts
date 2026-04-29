@@ -1,6 +1,6 @@
 import { MCPConnectionManager } from "../../src/common/connectionManager.js";
 import { ExportsManager } from "../../src/common/exportsManager.js";
-import { CompositeLogger } from "../../src/common/logging/index.js";
+import { CompositeLogger } from "@mongodb-js/mcp-core";
 import { DeviceId } from "../../src/helpers/deviceId.js";
 import { Session } from "../../src/common/session.js";
 import { defaultTestConfig, expectDefined, InMemoryLogger } from "./helpers.js";
@@ -255,7 +255,7 @@ describe("Server integration test", () => {
         });
 
         it("should warn when not using https for apiBaseUrl", async () => {
-            const logger = new InMemoryLogger(Keychain.root);
+            const logger = new InMemoryLogger({ keychain: Keychain.root });
             const config: UserConfig = {
                 ...defaultTestConfig,
                 apiBaseUrl: "http://localhost:8080",

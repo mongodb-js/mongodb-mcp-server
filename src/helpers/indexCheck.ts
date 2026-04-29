@@ -1,6 +1,6 @@
 import type { Document } from "mongodb";
 import { ErrorCodes, MongoDBError } from "../common/errors.js";
-import { LogId, type LoggerBase } from "../common/logging/index.js";
+import { LogId, type LoggerBase } from "@mongodb-js/mcp-core";
 
 /**
  * Check if the query plan uses an index
