@@ -11,7 +11,7 @@ import type { CloseableTransport } from '@mongodb-js/mcp-types';
 import type { components } from './openapi.js';
 import { CompositeLogger } from '@mongodb-js/mcp-core';
 import { ConnectionInfo } from '@mongosh/arg-parser';
-import { ConsoleLogger } from '@mongodb-js/mcp-core';
+import { ConsoleLogger } from '@mongodb-js/mcp-logging';
 import { Counter } from '@mongodb-js/mcp-metrics';
 import { createDefaultMetrics } from '@mongodb-js/mcp-metrics';
 import { DefaultEventMap } from '@mongodb-js/mcp-core';
@@ -33,6 +33,7 @@ import { LoggerBase } from '@mongodb-js/mcp-core';
 import { LoggerType } from '@mongodb-js/mcp-core';
 import { LogLevel } from '@mongodb-js/mcp-core';
 import { LogPayload } from '@mongodb-js/mcp-core';
+import { McpLogger } from '@mongodb-js/mcp-logging';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { MetricDefinitions } from '@mongodb-js/mcp-metrics';
 import { Metrics } from '@mongodb-js/mcp-metrics';
@@ -648,6 +649,8 @@ export type MCPHttpServerConstructorArgs<TUserConfig extends UserConfig = UserCo
     sessionStore: ISessionStore<StreamableHTTPServerTransport>;
 };
 
+export { McpLogger }
+
 export { MetricDefinitions }
 
 export { Metrics }
@@ -1029,7 +1032,7 @@ export abstract class TransportRunnerBase<TUserConfig extends UserConfig = UserC
     // (undocumented)
     protected static getInstructions(config: UserConfig): string;
     // (undocumented)
-    logger: LoggerBase;
+    logger: CompositeLogger;
     // (undocumented)
     metrics: Metrics<TMetrics>;
     // @deprecated (undocumented)
@@ -1054,7 +1057,7 @@ export type TransportRunnerConfig<TUserConfig extends UserConfig = UserConfig, T
     createConnectionManager?: ConnectionManagerFactoryFn;
     connectionErrorHandler?: ConnectionErrorHandler;
     createAtlasLocalClient?: AtlasLocalClientFactoryFn;
-    additionalLoggers?: LoggerBase[];
+    loggers?: LoggerBase[];
     metrics?: Metrics<TMetrics>;
     telemetryProperties?: Partial<CommonProperties>;
     tools?: AnyToolClass[];
@@ -1230,7 +1233,7 @@ export const UserConfigSchema: z.ZodObject<{
 // Warnings were encountered during analysis:
 //
 // src/common/config/configOverrides.ts:29:5 - (ae-forgotten-export) The symbol "RequestContext_2" needs to be exported by the entry point lib.d.ts
-// src/common/exportsManager.ts:164:9 - (ae-forgotten-export) The symbol "JSONExportFormat" needs to be exported by the entry point lib.d.ts
+// src/common/exportsManager.ts:165:9 - (ae-forgotten-export) The symbol "JSONExportFormat" needs to be exported by the entry point lib.d.ts
 // src/telemetry/types.ts:17:9 - (ae-forgotten-export) The symbol "TelemetryResult" needs to be exported by the entry point lib.d.ts
 // src/telemetry/types.ts:100:5 - (ae-forgotten-export) The symbol "TelemetryBoolSet" needs to be exported by the entry point lib.d.ts
 

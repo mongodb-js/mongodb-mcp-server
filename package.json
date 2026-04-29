@@ -176,6 +176,7 @@
     "lru-cache": "^11.2.6",
     "mongodb": "^7.1.1",
     "mongodb-build-info": "^1.9.7",
+    "mongodb-log-writer": "^2.5.7",
     "mongodb-connection-string-url": "^7.0.1",
     "mongodb-redact": "^1.4.6",
     "mongodb-schema": "^12.7.0",

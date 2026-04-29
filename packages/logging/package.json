@@ -27,8 +27,7 @@
   },
   "dependencies": {
     "@mongodb-js/mcp-core": "workspace:*",
-    "@mongodb-js/mcp-types": "workspace:*",
-    "mongodb-log-writer": "^2.5.7"
+    "@mongodb-js/mcp-types": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",

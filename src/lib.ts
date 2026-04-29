@@ -31,11 +31,12 @@ export {
     type LoggerType,
     type LogLevel,
     CompositeLogger,
-    ConsoleLogger,
     NoopLogger,
     type EventMap,
     type DefaultEventMap,
 } from "@mongodb-js/mcp-core";
+export { McpLogger } from "@mongodb-js/mcp-logging";
+export { ConsoleLogger } from "@mongodb-js/mcp-logging";
 export {
     StreamableHttpRunner,
     MCPHttpServer,

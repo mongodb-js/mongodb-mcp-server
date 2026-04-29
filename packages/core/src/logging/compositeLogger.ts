@@ -13,8 +13,8 @@ export class CompositeLogger extends LoggerBase {
     private readonly loggers: LoggerBase[] = [];
     private readonly attributes: Record<string, string> = {};
 
-    constructor(...loggers: LoggerBase[]) {
-        super({ keychain: noopKeychain });
+    constructor({ keychain = noopKeychain, loggers }: { keychain?: IKeychain; loggers: LoggerBase[] }) {
+        super({ keychain });
         this.loggers = loggers;
     }
 

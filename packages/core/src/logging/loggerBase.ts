@@ -110,24 +110,4 @@ export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extend
     public flush(): Promise<PromiseSettledResult<void>[]> {
         return Promise.resolve([]);
     }
-
-    protected mapToMongoDBLogLevel(level: LogLevel): "info" | "warn" | "error" | "debug" | "fatal" {
-        switch (level) {
-            case "info":
-                return "info";
-            case "warning":
-                return "warn";
-            case "error":
-                return "error";
-            case "notice":
-            case "debug":
-                return "debug";
-            case "critical":
-            case "alert":
-            case "emergency":
-                return "fatal";
-            default:
-                return "info";
-        }
-    }
 }

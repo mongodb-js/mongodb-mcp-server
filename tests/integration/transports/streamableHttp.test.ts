@@ -240,7 +240,7 @@ describe("StreamableHttpRunner", () => {
             const runner = new StreamableHttpRunner({
                 userConfig: config,
                 createConnectionManager: defaultCreateConnectionManager,
-                additionalLoggers: [logger],
+                loggers: [logger],
             });
             await runner.start();
 

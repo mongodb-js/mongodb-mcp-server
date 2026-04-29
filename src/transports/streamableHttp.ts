@@ -182,7 +182,7 @@ export class StreamableHttpRunner<
             userConfig = applyConfigOverrides({ baseConfig: userConfig, request });
         }
 
-        const logger = new CompositeLogger(this.logger);
+        const logger = new CompositeLogger({ loggers: [this.logger] });
 
         return this.createServer({
             userConfig,

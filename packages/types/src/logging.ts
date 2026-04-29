@@ -12,7 +12,25 @@ export type EventMap<T> = Record<keyof T, any[]>;
 
 export type DefaultEventMap = Record<string, never[]>;
 
-export type LogPayload<LogId = unknown> = {
+export type MongoDBLogLevel = "info" | "warn" | "error" | "debug" | "fatal";
+
+export type LogWriteFunction = (
+    component: string,
+    id: MongoLogId,
+    context: string,
+    message: string,
+    attr?: unknown
+) => void;
+
+export type LogWriter = Record<MongoDBLogLevel, LogWriteFunction> & {
+    flush(): Promise<void>;
+};
+
+export type MongoLogId = {
+    __value: number;
+};
+
+export type LogPayload<LogId = MongoLogId> = {
     id: LogId;
     context: string;
     message: string;

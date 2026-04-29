@@ -1,5 +1,5 @@
 import type { LoggerConfig, LoggerType, LogLevel, LogPayload } from "@mongodb-js/mcp-types";
-import { LoggerBase } from "./loggerBase.js";
+import { LoggerBase } from "@mongodb-js/mcp-core";
 
 export class ConsoleLogger extends LoggerBase {
     protected readonly type: LoggerType = "console";

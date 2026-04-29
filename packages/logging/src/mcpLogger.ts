@@ -1,6 +1,5 @@
 import type { McpServer, LoggerConfig, LoggerType, LogLevel, LogPayload } from "@mongodb-js/mcp-types";
-import { MCP_LOG_LEVELS } from "../index.js";
-import { LoggerBase } from "./loggerBase.js";
+import { MCP_LOG_LEVELS, LoggerBase } from "@mongodb-js/mcp-core";
 
 export class McpLogger extends LoggerBase {
     private readonly server: McpServer;
