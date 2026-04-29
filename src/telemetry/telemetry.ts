@@ -71,54 +71,6 @@ export interface TelemetryConfig {
     eventCache?: EventCache;
 }
 
-/**
- * Configuration for the {@link Telemetry} pipeline.
- */
-export interface TelemetryConfig {
-    /** Logger used by the telemetry pipeline for its own diagnostics. */
-    logger: LoggerBase;
-
-    /** Device id source, resolved asynchronously during setup. */
-    deviceId: DeviceId;
-
-    /**
-     * API client used to send events. Always required — the pipeline would
-     * otherwise buffer events in the cache forever. When no Atlas credentials
-     * are configured, callers should still pass an unauthenticated
-     * {@link ApiClient}; it will route telemetry through the unauth endpoint.
-     */
-    apiClient: ApiClient;
-
-    /** Secrets source used when redacting events prior to sending. */
-    keychain?: Keychain;
-
-    /**
-     * The user's telemetry preference. When set to `false`, no events are
-     * cached or sent. The DO_NOT_TRACK environment variable is always honored
-     * on top of this setting, so callers don't need to check it themselves.
-     */
-    enabled: boolean;
-
-    /**
-     * Returns the host-supplied common properties merged onto every event
-     * (e.g. hosting mode, MCP client identity, transport). Invoked on every
-     * send so values resolved after construction — like the client name/
-     * version exchanged during handshake — are captured. Static properties
-     * can simply be returned as constants from this callback.
-     *
-     * Machine metadata, device id, and container environment are provided by
-     * the pipeline itself and don't need to be returned here.
-     */
-    getCommonProperties?: () => Partial<CommonProperties>;
-
-    /**
-     * Optional override for the underlying event cache. Defaults to the
-     * process-wide singleton returned by {@link EventCache.getInstance}.
-     * Mostly useful for tests or callers that need to isolate caching.
-     */
-    eventCache?: EventCache;
-}
-
 /** The timeout for individual send requests in milliseconds. */
 const SEND_TIMEOUT_MS = 5_000;
 

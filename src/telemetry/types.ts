@@ -127,7 +127,7 @@ export type SetupEventProperties = {
     skills_install_exit_code?: number;
 
     /** On terminal events, the last completed step before terminating. */
-    last_step?: SetupStage;
+    last_stage?: SetupStage;
 
     /** Populated on failure events (and where a step failed with an error). */
     error_type?: string;
