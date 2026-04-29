@@ -11,10 +11,7 @@
         "scripts/**/*.ts",
         "eslint-rules/*.js"
       ],
-      "ignore": [
-        "tests/integration/fixtures/curl.mjs",
-        "tests/vitest.d.ts"
-      ],
+      "ignore": ["tests/integration/fixtures/curl.mjs", "tests/vitest.d.ts"],
       "ignoreDependencies": [
         "@mongodb-js/atlas-local",
         "@emotion/css",

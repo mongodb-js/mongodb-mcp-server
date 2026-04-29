@@ -1,4 +1,4 @@
-import { defineConfig, Plugin, PluginOption } from "vite";
+import { defineConfig, type Plugin, type PluginOption } from "vite";
 import react from "@vitejs/plugin-react";
 import { viteSingleFile } from "vite-plugin-singlefile";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
@@ -47,7 +47,7 @@ const { components, toolToComponentMap } = discoverComponents();
 function generateHtmlEntries(): Plugin {
     return {
         name: "generate-html-entries",
-        buildStart() {
+        buildStart(): void {
             const template = readFileSync(templatePath, "utf-8");
 
             if (!existsSync(entriesDir)) {
@@ -74,7 +74,7 @@ function generateHtmlEntries(): Plugin {
 function generateUIModule(): Plugin {
     return {
         name: "generate-ui-module",
-        closeBundle() {
+        closeBundle(): void {
             if (!existsSync(uiDistPath)) {
                 console.warn("[generate-ui-module] dist/ui not found, skipping module generation");
                 return;
