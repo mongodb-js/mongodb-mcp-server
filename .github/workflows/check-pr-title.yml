@@ -27,3 +27,12 @@ jobs:
           regex: '^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test|ops){1}(\([\w\-\.]+\))?(!)?: .*'
           error-hint: 'Invalid PR title. Make sure it follows the conventional commit specification (i.e. "<type>(<optional scope>): <description>") or add the no-title-validation label'
           ignore-labels: "no-title-validation"
+
+      - name: Enforce JIRA ticket in title
+        uses: realm/ci-actions/title-checker@d6cc8f067474759d38e6d24e272027b4c88bc0a9
+        # Skip the JIRA ticket check for PRs opened by bots
+        if: ${{ !contains(github.event.pull_request.user.login, '[bot]') }}
+        with:
+          regex: "[A-Z]{3,10}-[0-9]{1,5}$"
+          error-hint: "Invalid PR title. Make sure it ends with a JIRA ticket - i.e. MCP-1234 or add the no-title-validation label"
+          ignore-labels: "no-title-validation"
