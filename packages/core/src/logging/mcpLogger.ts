@@ -49,6 +49,6 @@ export class McpLogger extends LoggerBase {
     }
 
     public override async flush(): Promise<void> {
-        await Promise.allSettled([...this.pendingSends]);
+        await Promise.all([...this.pendingSends]);
     }
 }

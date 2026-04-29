@@ -39,7 +39,3 @@ export interface ICompositeLogger extends ILogger {
     addLogger(logger: ILogger): void;
     setAttribute(key: string, value: string): void;
 }
-
-export type IMcpConnection = Pick<McpServer, "isConnected" | "sendLoggingMessage"> & {
-    readonly mcpLogLevel: LogLevel;
-};

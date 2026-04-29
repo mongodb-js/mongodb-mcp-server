@@ -19,8 +19,11 @@
     "compile": "tsc --build tsconfig.json",
     "test": "vitest --run"
   },
-  "devDependencies": {
+  "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "mongodb-redact": "^1.4.6"
+  },
+  "devDependencies": {
     "@types/node": "^25.6.0",
     "mongodb-log-writer": "^2.5.7",
     "typescript": "^5.9.2",
