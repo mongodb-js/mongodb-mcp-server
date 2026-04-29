@@ -8,11 +8,8 @@ import type { EJSONOptions } from "bson";
 import { EJSON, ObjectId } from "bson";
 import { Transform } from "stream";
 import { pipeline } from "stream/promises";
-import type { MongoLogId } from "mongodb-log-writer";
-
 import type { UserConfig } from "./config/userConfig.js";
-import type { LoggerBase } from "@mongodb-js/mcp-core";
-import { LogId } from "@mongodb-js/mcp-core";
+import { LogId, type LoggerBase, type MongoLogId } from "@mongodb-js/mcp-core";
 
 export const jsonExportFormat = z.enum(["relaxed", "canonical"]);
 export type JSONExportFormat = z.infer<typeof jsonExportFormat>;

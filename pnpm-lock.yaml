@@ -77,9 +77,6 @@ importers:
       mongodb-connection-string-url:
         specifier: ^7.0.1
         version: 7.0.1
-      mongodb-log-writer:
-        specifier: ^2.5.7
-        version: 2.5.7(bson@7.2.0)
       mongodb-redact:
         specifier: ^1.4.6
         version: 1.4.7
