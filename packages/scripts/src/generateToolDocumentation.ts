@@ -8,9 +8,9 @@
 import { readFileSync, writeFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { AllTools } from "../../src/tools/index.js";
+import { AllTools } from "mongodb-mcp-server/tools";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
-import { UserConfigSchema } from "../../src/lib.js";
+import { UserConfigSchema } from "mongodb-mcp-server";
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
 
 const __filename = fileURLToPath(import.meta.url);

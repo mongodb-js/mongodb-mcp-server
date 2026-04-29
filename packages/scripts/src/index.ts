@@ -9,7 +9,7 @@
 
 import { generateArguments } from "./generateArguments.js";
 import { generateToolDocumentation } from "./generateToolDocumentation.js";
-import { generateUI } from "../../packages/ui/scripts/generateUI.js";
+import { generateUI } from "./generateUI.js";
 
 console.log("Generating arguments and configuration...");
 generateArguments();

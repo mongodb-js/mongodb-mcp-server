@@ -1,6 +1,6 @@
 export { Server, type ServerOptions, type AnyToolClass, type ToolCategory } from "./server.js";
 export { Session, type SessionOptions, type SessionEvents } from "./common/session.js";
-export { type UserConfig, UserConfigSchema } from "./common/config/userConfig.js";
+export { type UserConfig, UserConfigSchema, configRegistry } from "./common/config/userConfig.js";
 export { parseUserConfig, defaultParserOptions, type ParserOptions } from "./common/config/parseUserConfig.js";
 
 import { parseUserConfig } from "./common/config/parseUserConfig.js";

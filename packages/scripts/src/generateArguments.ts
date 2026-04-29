@@ -9,7 +9,7 @@
 import { readFileSync, writeFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { UserConfigSchema, configRegistry } from "../../src/common/config/userConfig.js";
+import { UserConfigSchema, configRegistry } from "mongodb-mcp-server";
 import { execSync } from "child_process";
 import type { z } from "zod";
 

@@ -17,13 +17,15 @@
   ],
   "scripts": {
     "compile": "tsc --build tsconfig.json",
-    "generate:ui": "tsx --tsconfig scripts/tsconfig.json scripts/generateUI.ts",
+    "check:api": "api-extractor run --config api-extractor.json",
+    "update:api": "api-extractor run --local --config api-extractor.json",
     "test": "vitest --run"
   },
   "dependencies": {
     "@mongodb-js/mcp-types": "workspace:*"
   },
   "devDependencies": {
+    "@microsoft/api-extractor": "^7.58.5",
     "@lg-mcp/embeddable-uis": "^0.1.0",
     "@lg-mcp/hooks": "^0.2.0",
     "@testing-library/jest-dom": "^6.9.1",
