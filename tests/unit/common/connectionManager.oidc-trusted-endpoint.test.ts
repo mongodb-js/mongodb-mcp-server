@@ -28,7 +28,7 @@ describe("MCPConnectionManager.connect() — mongosh CLI option propagation", ()
             oidcTrustedEndpoint: true,
         };
 
-        const manager = new MCPConnectionManager(userConfig, {} as any, { get: async () => "test-device-id" });
+        const manager = new MCPConnectionManager(userConfig, {} as any, { get: async () => "test-device-id" } as any);
 
         const connectionString = "mongodb://localhost:27017/";
 
@@ -48,7 +48,7 @@ describe("MCPConnectionManager.connect() — mongosh CLI option propagation", ()
             oidcTrustedEndpoint: undefined,
         };
 
-        const manager = new MCPConnectionManager(userConfig, {} as any, { get: async () => "test-device-id" });
+        const manager = new MCPConnectionManager(userConfig, {} as any, { get: async () => "test-device-id" } as any);
 
         const connectionString = "mongodb://localhost:27017/";
 
