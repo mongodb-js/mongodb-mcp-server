@@ -5,13 +5,9 @@
 ```ts
 
 import { IUIRegistry } from '@mongodb-js/mcp-types';
-import { ReactElement } from 'react';
 import { UIRegistryOptions } from '@mongodb-js/mcp-types';
 
 export { IUIRegistry }
-
-// @public (undocumented)
-export const ListDatabases: () => ReactElement | null;
 
 // @public
 export const uiLoaders: Record<string, () => Promise<string>>;

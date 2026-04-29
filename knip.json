@@ -23,6 +23,7 @@
       "ignore": [
         "src/build/mount.tsx",
         "src/test-setup.ts",
+        "src/components/**",
         "vite.ui.config.ts"
       ],
       "ignoreDependencies": ["@lg-mcp/embeddable-uis", "@lg-mcp/hooks"]
