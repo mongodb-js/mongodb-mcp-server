@@ -25,14 +25,9 @@ import { defaultCreateApiClient } from "../common/atlas/apiClient.js";
 import type { UIRegistry } from "../ui/registry/index.js";
 import { PrometheusMetrics, createDefaultMetrics, type Metrics, type DefaultMetrics } from "@mongodb-js/mcp-metrics";
 
-/**
- * Request context containing HTTP headers and query parameters.
- * This type is primarily used by HTTP-based transports.
- */
-export type TransportRequestContext = {
-    headers?: Record<string, string | string[] | undefined>;
-    query?: Record<string, string | string[] | undefined>;
-};
+import type { TransportRequestContext } from "@mongodb-js/mcp-types";
+
+export type { TransportRequestContext };
 
 /** @deprecated Use TransportRequestContext instead */
 export type RequestContext = TransportRequestContext;
@@ -67,9 +62,9 @@ export type CustomizableServerOptions<TUserConfig extends UserConfig = UserConfi
  *    MongoDB MCP server is running over HTTP transport, that contains headers
  *    and query parameters received in MCP session initialization object.
  *
- * @see {@link UserConfig} to inspect the properties available on `userConfig`
+ * @see UserConfig to inspect the properties available on `userConfig`
  * object.
- * @see {@link TransportRequestContext} to inspect the properties available on
+ * @see TransportRequestContext to inspect the properties available on
  * `requestContext` object.
  */
 export type CreateSessionConfigFn<TUserConfig extends UserConfig = UserConfig> = (context: {
@@ -336,7 +331,7 @@ export abstract class TransportRunnerBase<
             deviceId: this.deviceId,
             apiClient: session.apiClient,
             keychain: session.keychain,
-            enabled: userConfig.telemetry !== "disabled",
+            enabled: userConfig.telemetry === "enabled",
             getCommonProperties: () => ({
                 ...(serverOptions?.telemetryProperties ?? this.telemetryProperties),
                 transport: userConfig.transport,
@@ -345,6 +340,7 @@ export abstract class TransportRunnerBase<
                 session_id: session.sessionId,
                 config_atlas_auth: session.apiClient?.isAuthConfigured() ? "true" : "false",
                 config_connection_string: userConfig.connectionString ? "true" : "false",
+                has_docker: session.atlasLocalClient ? "true" : "false",
             }),
         });
 

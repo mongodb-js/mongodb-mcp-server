@@ -15,6 +15,7 @@ import type { ElicitRequestFormParams } from '@modelcontextprotocol/sdk/types.js
 import { EventEmitter } from 'events';
 import type { FetchOptions } from 'openapi-fetch';
 import type { FindCursor } from 'mongodb';
+import type { IDeviceId } from '@mongodb-js/mcp-types';
 import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
 import type { LoggingMessageNotification } from '@modelcontextprotocol/sdk/types.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -24,8 +25,10 @@ import type { MongoLogId } from 'mongodb-log-writer';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
 import type { operations } from './openapi.js';
 import { Secret } from 'mongodb-redact';
+import type { TelemetryEvents } from '@mongodb-js/mcp-types';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
+import type { TransportRequestContext } from '@mongodb-js/mcp-types';
 import { z } from 'zod';
 import type { ZodRawShape } from 'zod';
 
@@ -254,6 +257,7 @@ export type CommonProperties = {
     config_connection_string?: TelemetryBoolSet;
     session_id?: string;
     hosting_mode?: string;
+    has_docker?: TelemetryBoolSet;
 } & CommonStaticProperties;
 
 // @public
@@ -382,7 +386,7 @@ export class ConnectionStateConnected implements ConnectionState {
     // (undocumented)
     connectionStringInfo?: ConnectionStringInfo | undefined;
     // (undocumented)
-    isSearchSupported(): Promise<boolean>;
+    isSearchSupported(logger: LoggerBase): Promise<boolean>;
     // (undocumented)
     serviceProvider: NodeDriverServiceProvider;
     // (undocumented)
@@ -464,7 +468,7 @@ export type DefaultEventMap = Record<string, never[]>;
 export { DefaultMetrics }
 
 // @public (undocumented)
-export class DeviceId {
+export class DeviceId implements IDeviceId {
     close(): void;
     // (undocumented)
     static create(logger: LoggerBase, timeout?: number): DeviceId;
@@ -515,6 +519,8 @@ export enum ErrorCodes {
     ForbiddenCollscan = 1000002,
     // (undocumented)
     ForbiddenWriteOperation = 1000003,
+    // (undocumented)
+    InvalidPipeline = 1000008,
     // (undocumented)
     MisconfiguredConnectionString = 1000001,
     // (undocumented)
@@ -895,15 +901,7 @@ export type TelemetryEvent<T> = {
     } & Record<string, string | number | string[]>;
 };
 
-// @public (undocumented)
-export interface TelemetryEvents {
-    // (undocumented)
-    "events-emitted": [];
-    // (undocumented)
-    "events-send-failed": [];
-    // (undocumented)
-    "events-skipped": [];
-}
+export { TelemetryEvents }
 
 // @public
 export type TelemetryResult = "success" | "failure";
@@ -993,11 +991,7 @@ export interface ToolExecutionContext {
     signal: AbortSignal;
 }
 
-// @public
-export type TransportRequestContext = {
-    headers?: Record<string, string | string[] | undefined>;
-    query?: Record<string, string | string[] | undefined>;
-};
+export { TransportRequestContext }
 
 // @public @deprecated (undocumented)
 export type TransportRequestContextDeprecated = TransportRequestContext;

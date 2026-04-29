@@ -441,10 +441,6 @@ export const runSetup = async (config: UserConfig): Promise<never> => {
         if (!platformSupported) {
             console.log(chalk.red("Unsupported platform. Only macOS, Windows and Linux are supported."));
             printNewLine();
-            setupTelemetry.emitPrerequisitesChecked({
-                nodeVersionOk,
-                platformSupported: false,
-            });
 
             throw new UnsupportedPlatformError();
         }
@@ -452,7 +448,7 @@ export const runSetup = async (config: UserConfig): Promise<never> => {
         printInstructions();
 
         const hasDocker = await validateDocker();
-        setupTelemetry.emitPrerequisitesChecked({ nodeVersionOk, platformSupported, hasDocker });
+        setupTelemetry.emitPrerequisitesChecked({ nodeVersionOk, hasDocker, platformSupported });
 
         const tool = await promptForAITool(platform);
         const displayName = AI_TOOL_REGISTRY[tool].name;

@@ -14,6 +14,7 @@ import type { ElicitRequestFormParams } from '@modelcontextprotocol/sdk/types.js
 import EventEmitter from 'events';
 import type { FetchOptions } from 'openapi-fetch';
 import type { FindCursor } from 'mongodb';
+import type { IDeviceId } from '@mongodb-js/mcp-types';
 import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
 import type { LoggingMessageNotification } from '@modelcontextprotocol/sdk/types.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -22,6 +23,7 @@ import type { MongoLogId } from 'mongodb-log-writer';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
 import type { operations } from './openapi.js';
 import type { Secret } from 'mongodb-redact';
+import type { TelemetryEvents } from '@mongodb-js/mcp-types';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import { z } from 'zod';
@@ -38,7 +40,7 @@ export class AggregateDBTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
         responseBytesLimit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
-        pipeline: z.ZodTuple<[z.ZodPipe<z.ZodRecord<z.ZodUnion<readonly [z.ZodLiteral<"$changeStream">, z.ZodLiteral<"$currentOp">, z.ZodLiteral<"$documents">, z.ZodLiteral<"$listLocalSessions">, z.ZodLiteral<"$queryStats">]>, z.ZodUnknown>, z.ZodTransform<Record<"$changeStream" | "$currentOp" | "$documents" | "$listLocalSessions" | "$queryStats", unknown>, Record<"$changeStream" | "$currentOp" | "$documents" | "$listLocalSessions" | "$queryStats", unknown>>>], z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+        pipeline: z.ZodArray<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
         database: z.ZodString;
     };
     // (undocumented)

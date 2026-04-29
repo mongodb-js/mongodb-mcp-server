@@ -7,6 +7,7 @@
 import type { AggregationCursor } from 'mongodb';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { Client } from '@mongodb-js/atlas-local';
+import type { CloseableTransport } from '@mongodb-js/mcp-types';
 import type { components } from './openapi.js';
 import { ConnectionInfo } from '@mongosh/arg-parser';
 import { Counter } from '@mongodb-js/mcp-metrics';
@@ -21,6 +22,7 @@ import type { FindCursor } from 'mongodb';
 import { Gauge } from '@mongodb-js/mcp-metrics';
 import { Histogram } from '@mongodb-js/mcp-metrics';
 import type http from 'http';
+import type { IDeviceId } from '@mongodb-js/mcp-types';
 import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
 import type { LoggingMessageNotification } from '@modelcontextprotocol/sdk/types.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -33,9 +35,12 @@ import { PrometheusMetrics } from '@mongodb-js/mcp-metrics';
 import { PrometheusMetricsOptions } from '@mongodb-js/mcp-metrics';
 import { Registry } from '@mongodb-js/mcp-metrics';
 import { Secret } from 'mongodb-redact';
+import type { SessionCloseReason } from '@mongodb-js/mcp-types';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import type { TelemetryEvents } from '@mongodb-js/mcp-types';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
+import type { TransportRequestContext } from '@mongodb-js/mcp-types';
 import { z } from 'zod';
 import type { ZodRawShape } from 'zod';
 
@@ -219,10 +224,7 @@ export interface AuthProvider {
 // @public (undocumented)
 export type BaseEvent = TelemetryEvent<unknown>;
 
-// @public
-export type CloseableTransport = {
-    close(): Promise<void>;
-};
+export { CloseableTransport }
 
 // Warning: (ae-forgotten-export) The symbol "CommonStaticProperties" needs to be exported by the entry point lib.d.ts
 //
@@ -237,6 +239,7 @@ export type CommonProperties = {
     config_connection_string?: TelemetryBoolSet;
     session_id?: string;
     hosting_mode?: string;
+    has_docker?: TelemetryBoolSet;
 } & CommonStaticProperties;
 
 // @public (undocumented)
@@ -358,7 +361,7 @@ export class ConnectionStateConnected implements ConnectionState {
     // (undocumented)
     connectionStringInfo?: ConnectionStringInfo | undefined;
     // (undocumented)
-    isSearchSupported(): Promise<boolean>;
+    isSearchSupported(logger: LoggerBase): Promise<boolean>;
     // (undocumented)
     serviceProvider: NodeDriverServiceProvider;
     // (undocumented)
@@ -495,7 +498,7 @@ export const defaultParserOptions: {
 };
 
 // @public (undocumented)
-export class DeviceId {
+export class DeviceId implements IDeviceId {
     close(): void;
     // (undocumented)
     static create(logger: LoggerBase, timeout?: number): DeviceId;
@@ -538,6 +541,8 @@ export enum ErrorCodes {
     ForbiddenCollscan = 1000002,
     // (undocumented)
     ForbiddenWriteOperation = 1000003,
+    // (undocumented)
+    InvalidPipeline = 1000008,
     // (undocumented)
     MisconfiguredConnectionString = 1000001,
     // (undocumented)
@@ -921,8 +926,7 @@ export class Session extends EventEmitter<SessionEvents> {
     setMcpClient(mcpClient: Implementation | undefined): void;
 }
 
-// @public (undocumented)
-export type SessionCloseReason = "idle_timeout" | "transport_closed" | "server_stop" | "unknown";
+export { SessionCloseReason }
 
 // @public (undocumented)
 export type SessionEvents = {
@@ -1068,15 +1072,7 @@ export type TelemetryEvent<T> = {
     } & Record<string, string | number | string[]>;
 };
 
-// @public (undocumented)
-export interface TelemetryEvents {
-    // (undocumented)
-    "events-emitted": [];
-    // (undocumented)
-    "events-send-failed": [];
-    // (undocumented)
-    "events-skipped": [];
-}
+export { TelemetryEvents }
 
 // @public
 export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant";
@@ -1090,11 +1086,7 @@ export interface ToolExecutionContext {
     signal: AbortSignal;
 }
 
-// @public
-export type TransportRequestContext = {
-    headers?: Record<string, string | string[] | undefined>;
-    query?: Record<string, string | string[] | undefined>;
-};
+export { TransportRequestContext }
 
 // @public (undocumented)
 export abstract class TransportRunnerBase<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> {
@@ -1327,7 +1319,7 @@ export const UserConfigSchema: z.ZodObject<{
 // src/common/config/configOverrides.ts:29:5 - (ae-forgotten-export) The symbol "RequestContext_2" needs to be exported by the entry point lib.d.ts
 // src/common/exportsManager.ts:166:9 - (ae-forgotten-export) The symbol "JSONExportFormat" needs to be exported by the entry point lib.d.ts
 // src/telemetry/types.ts:17:9 - (ae-forgotten-export) The symbol "TelemetryResult" needs to be exported by the entry point lib.d.ts
-// src/telemetry/types.ts:182:5 - (ae-forgotten-export) The symbol "TelemetryBoolSet" needs to be exported by the entry point lib.d.ts
+// src/telemetry/types.ts:176:5 - (ae-forgotten-export) The symbol "TelemetryBoolSet" needs to be exported by the entry point lib.d.ts
 
 // (No @packageDocumentation comment for this package)
 

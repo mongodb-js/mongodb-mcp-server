@@ -55,7 +55,7 @@ export type ServerEvent = TelemetryEvent<ServerEventProperties>;
  * a single logical step of the wizard, so downstream analytics can reason
  * about drop-off between steps as well as overall completion rates.
  */
-export type SetupCommand =
+export type SetupStage =
     | "started"
     | "prerequisites_checked"
     | "ai_tool_selected"
@@ -65,7 +65,6 @@ export type SetupCommand =
     | "service_account_secret_entered"
     | "credentials_validated"
     | "editor_configured"
-    | "skills_install_prompted"
     | "open_config_prompted"
     | "completed"
     | "cancelled"
@@ -77,7 +76,7 @@ export type SetupCommand =
  * queryable.
  */
 export type SetupEventProperties = {
-    command: SetupCommand;
+    stage: SetupStage;
 
     /**
      * Random id generated at the start of a setup run. All events emitted by
@@ -89,13 +88,7 @@ export type SetupEventProperties = {
     ai_tool?: string;
 
     /** Whether the user opted to install the MCP server in read-only mode. */
-    is_read_only?: TelemetryBoolSet;
-
-    /** Whether a reachable Docker daemon was detected on the machine. */
-    has_docker?: TelemetryBoolSet;
-
-    /** Whether the current OS/architecture is supported by the MCP server. */
-    platform_supported?: TelemetryBoolSet;
+    read_only_mode?: TelemetryBoolSet;
 
     /** Whether the Node.js version satisfies the package's engines range. */
     node_version_ok?: TelemetryBoolSet;
@@ -134,14 +127,14 @@ export type SetupEventProperties = {
     skills_install_exit_code?: number;
 
     /** On terminal events, the last completed step before terminating. */
-    last_step?: SetupCommand;
+    last_step?: SetupStage;
 
     /** Populated on failure events (and where a step failed with an error). */
     error_type?: string;
 
     /** Total wall-clock duration of the setup run, set on terminal events. */
     total_duration_ms?: number;
-};
+} & Pick<CommonProperties, "has_docker">;
 
 export type SetupEvent = TelemetryEvent<SetupEventProperties>;
 
@@ -230,6 +223,11 @@ export type CommonProperties = {
      * application to differentiate events coming from an MCP server it's hosting.
      */
     hosting_mode?: string;
+
+    /**
+     * A boolean indicating whether a Docker daemon is available on the machine.
+     */
+    has_docker?: TelemetryBoolSet;
 } & CommonStaticProperties;
 
 /**

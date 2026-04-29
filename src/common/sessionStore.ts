@@ -3,16 +3,9 @@ import { LogId } from "./logging/index.js";
 import type { ManagedTimeout } from "./managedTimeout.js";
 import { setManagedTimeout } from "./managedTimeout.js";
 import type { Metrics, DefaultMetrics } from "@mongodb-js/mcp-metrics";
+import type { CloseableTransport, SessionCloseReason } from "@mongodb-js/mcp-types";
 
-/**
- * Minimal interface for a transport that can be stored in a SessionStore.
- * The transport must have a close method for cleanup.
- */
-export type CloseableTransport = {
-    close(): Promise<void>;
-};
-
-export type SessionCloseReason = "idle_timeout" | "transport_closed" | "server_stop" | "unknown";
+export type { CloseableTransport, SessionCloseReason };
 
 /**
  * Interface for managing MCP transport sessions.

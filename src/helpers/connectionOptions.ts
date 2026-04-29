@@ -1,11 +1,8 @@
 import type { MongoClientOptions } from "mongodb";
 import { ConnectionString } from "mongodb-connection-string-url";
+import type { AppNameComponents } from "@mongodb-js/mcp-types";
 
-export interface AppNameComponents {
-    appName: string;
-    deviceId?: Promise<string>;
-    clientName?: string;
-}
+export type { AppNameComponents };
 
 /**
  * Sets the appName parameter with the extended format: appName--deviceId--clientName

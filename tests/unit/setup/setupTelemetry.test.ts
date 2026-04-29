@@ -57,7 +57,6 @@ describe("SetupTelemetry", () => {
         setupTelemetry.emitStarted();
         setupTelemetry.emitPrerequisitesChecked({
             nodeVersionOk: true,
-            platformSupported: true,
             hasDocker: false,
         });
         setupTelemetry.emitAiToolSelected("claudeDesktop");
@@ -72,12 +71,11 @@ describe("SetupTelemetry", () => {
 
         const completed = mock.emitted.at(-1)!;
         expect(completed.properties).toMatchObject({
-            command: "completed",
+            stage: "completed",
             ai_tool: "claudeDesktop",
-            is_read_only: "false",
+            read_only_mode: "false",
             has_docker: "false",
             node_version_ok: "true",
-            platform_supported: "true",
             connection_string_provided: "true",
             connection_string_tested: "true",
             connection_test_attempts: 2,
@@ -95,7 +93,7 @@ describe("SetupTelemetry", () => {
             testResult: "failure",
         });
 
-        const connEvent = mock.emitted.find((e) => e.properties.command === "connection_string_entered");
+        const connEvent = mock.emitted.find((e) => e.properties.stage === "connection_string_entered");
         expect(connEvent?.properties.result).toBe("failure");
         expect(connEvent?.properties.connection_test_attempts).toBe(3);
     });
@@ -104,7 +102,7 @@ describe("SetupTelemetry", () => {
         setupTelemetry.emitStarted();
         setupTelemetry.emitConnectionStringEntered({ provided: true, tested: false, attempts: 0 });
 
-        const connEvent = mock.emitted.find((e) => e.properties.command === "connection_string_entered");
+        const connEvent = mock.emitted.find((e) => e.properties.stage === "connection_string_entered");
         expect(connEvent?.properties.result).toBe("success");
         expect(connEvent?.properties.connection_string_tested).toBe("false");
     });
@@ -118,7 +116,7 @@ describe("SetupTelemetry", () => {
             error: boom,
         });
 
-        const editorEvent = mock.emitted.find((e) => e.properties.command === "editor_configured");
+        const editorEvent = mock.emitted.find((e) => e.properties.stage === "editor_configured");
         expect(editorEvent?.properties.result).toBe("failure");
         expect(editorEvent?.properties.error_type).toBe("TypeError");
         expect(editorEvent?.properties.used_default_config_path).toBe("false");
@@ -130,9 +128,9 @@ describe("SetupTelemetry", () => {
         setupTelemetry.emitCancelled();
 
         const cancelled = mock.emitted.at(-1)!;
-        expect(cancelled.properties.command).toBe("cancelled");
+        expect(cancelled.properties.stage).toBe("cancelled");
         expect(cancelled.properties.result).toBe("success");
-        expect(cancelled.properties.last_step).toBe("ai_tool_selected");
+        expect(cancelled.properties.last_stage).toBe("ai_tool_selected");
         expect(cancelled.properties.ai_tool).toBe("cursor");
     });
 
@@ -144,7 +142,7 @@ describe("SetupTelemetry", () => {
         setupTelemetry.emitFailed(new MyError("bad"));
 
         const failed = mock.emitted.at(-1)!;
-        expect(failed.properties.command).toBe("failed");
+        expect(failed.properties.stage).toBe("failed");
         expect(failed.properties.result).toBe("failure");
         expect(failed.properties.error_type).toBe("MyError");
     });
@@ -152,52 +150,5 @@ describe("SetupTelemetry", () => {
     it("should flush via telemetry.close()", async () => {
         await setupTelemetry.flush();
         expect(mock.closeMock).toHaveBeenCalledTimes(1);
-    });
-
-    describe("emitSkillsInstallPrompted", () => {
-        it("records installed outcome with scope and result=success", () => {
-            setupTelemetry.emitStarted();
-            setupTelemetry.emitSkillsInstallPrompted({ status: "installed", scope: "project" });
-
-            const event = mock.emitted.find((e) => e.properties.command === "skills_install_prompted");
-            expect(event?.properties.result).toBe("success");
-            expect(event?.properties.skills_install_status).toBe("installed");
-            expect(event?.properties.skills_install_scope).toBe("project");
-            expect(event?.properties.skills_skip_reason).toBeUndefined();
-            expect(event?.properties.skills_install_exit_code).toBeUndefined();
-        });
-
-        it("records skipped outcome with reason and result=success (step still succeeded)", () => {
-            setupTelemetry.emitStarted();
-            setupTelemetry.emitSkillsInstallPrompted({ status: "skipped", reason: "user-declined" });
-
-            const event = mock.emitted.find((e) => e.properties.command === "skills_install_prompted");
-            expect(event?.properties.result).toBe("success");
-            expect(event?.properties.skills_install_status).toBe("skipped");
-            expect(event?.properties.skills_skip_reason).toBe("user-declined");
-            expect(event?.properties.skills_install_scope).toBeUndefined();
-        });
-
-        it("records failed outcome with exit code, scope, and result=failure", () => {
-            setupTelemetry.emitStarted();
-            setupTelemetry.emitSkillsInstallPrompted({ status: "failed", exitCode: 2, scope: "user" });
-
-            const event = mock.emitted.find((e) => e.properties.command === "skills_install_prompted");
-            expect(event?.properties.result).toBe("failure");
-            expect(event?.properties.skills_install_status).toBe("failed");
-            expect(event?.properties.skills_install_exit_code).toBe(2);
-            expect(event?.properties.skills_install_scope).toBe("user");
-        });
-
-        it("carries the skills context forward to the completed event", () => {
-            setupTelemetry.emitStarted();
-            setupTelemetry.emitSkillsInstallPrompted({ status: "installed", scope: "user" });
-            setupTelemetry.emitCompleted();
-
-            const completed = mock.emitted.at(-1)!;
-            expect(completed.properties.command).toBe("completed");
-            expect(completed.properties.skills_install_status).toBe("installed");
-            expect(completed.properties.skills_install_scope).toBe("user");
-        });
     });
 });
