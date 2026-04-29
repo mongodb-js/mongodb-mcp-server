@@ -3,8 +3,8 @@ import { ToolBase, type ToolArgs, type ToolCategory } from "../tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { LogId } from "@mongodb-js/mcp-core";
 import { z } from "zod";
-import { ApiClientError } from "../../common/atlas/apiClientError.js";
-import type { ApiClient } from "../../common/atlas/apiClient.js";
+import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
+import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 
 export abstract class AtlasToolBase extends ToolBase {
     public static category: ToolCategory = "atlas";

@@ -20,7 +20,7 @@ import { ErrorCodes } from "../../../../src/common/errors.js";
 import { Keychain } from "@mongodb-js/mcp-core";
 import { Elicitation } from "../../../../src/elicitation.js";
 import * as MongoDbTools from "../../../../src/tools/mongodb/tools.js";
-import { defaultCreateApiClient } from "../../../../src/lib.js";
+import { createDefaultApiClient } from "../../../../src/lib.js";
 import { MockMetrics } from "../../../unit/mocks/metrics.js";
 
 const injectedErrorHandler: ConnectionErrorHandler = (error) => {
@@ -106,16 +106,15 @@ describe("MongoDBTool implementations", () => {
             connectionManager,
             keychain: new Keychain(),
             connectionErrorHandler: errorHandler,
-            apiClient: defaultCreateApiClient(
-                {
-                    baseUrl: userConfig.apiBaseUrl,
-                    credentials: {
-                        clientId: userConfig.apiClientId,
-                        clientSecret: userConfig.apiClientSecret,
-                    },
+            apiClient: createDefaultApiClient({
+                baseUrl: userConfig.apiBaseUrl,
+                credentials: {
+                    clientId: userConfig.apiClientId,
+                    clientSecret: userConfig.apiClientSecret,
                 },
-                logger
-            ),
+                userAgent: "test",
+                logger,
+            }),
         });
         const telemetry = Telemetry.create(session, userConfig, deviceId);
 

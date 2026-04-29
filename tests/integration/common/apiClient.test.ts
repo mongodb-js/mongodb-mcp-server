@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { AccessToken } from "../../../src/common/atlas/auth/authProvider.js";
-import { ApiClient } from "../../../src/common/atlas/apiClient.js";
+import { ApiClient, type AccessToken } from "@mongodb-js/mcp-atlas-api-client";
 import { HTTPServerProxyTestSetup } from "../fixtures/httpsServerProxyTest.js";
 import { NoopLogger } from "@mongodb-js/mcp-core";
 
@@ -15,17 +14,15 @@ describe("ApiClient integration test", () => {
             await proxyTestSetup.listen();
 
             process.env.HTTP_PROXY = `https://localhost:${proxyTestSetup.httpsProxyPort}/`;
-            apiClient = new ApiClient(
-                {
-                    baseUrl: `https://localhost:${proxyTestSetup.httpsServerPort}/`,
-                    credentials: {
-                        clientId: "test-client-id",
-                        clientSecret: "test-client-secret",
-                    },
-                    userAgent: "test-user-agent",
+            apiClient = new ApiClient({
+                baseUrl: `https://localhost:${proxyTestSetup.httpsServerPort}/`,
+                credentials: {
+                    clientId: "test-client-id",
+                    clientSecret: "test-client-secret",
                 },
-                new NoopLogger()
-            );
+                userAgent: "test-user-agent",
+                logger: new NoopLogger(),
+            });
         });
 
         function withToken(accessToken: string, expired: boolean): void {

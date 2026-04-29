@@ -5,15 +5,20 @@
 ```ts
 
 import type { AggregationCursor } from 'mongodb';
+import { ApiClient } from '@mongodb-js/mcp-atlas-api-client';
+import { ApiClientFactoryFn } from '@mongodb-js/mcp-atlas-api-client';
+import { ApiClientOptions } from '@mongodb-js/mcp-atlas-api-client';
+import { AuthProvider } from '@mongodb-js/mcp-atlas-api-client';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { Client } from '@mongodb-js/atlas-local';
 import type { CloseableTransport } from '@mongodb-js/mcp-types';
-import type { components } from './openapi.js';
 import { CompositeLogger } from '@mongodb-js/mcp-core';
 import { ConnectionInfo } from '@mongosh/arg-parser';
 import { ConsoleLogger } from '@mongodb-js/mcp-core';
 import { Counter } from '@mongodb-js/mcp-metrics';
+import { createDefaultApiClient } from '@mongodb-js/mcp-atlas-api-client';
 import { createDefaultMetrics } from '@mongodb-js/mcp-metrics';
+import { Credentials } from '@mongodb-js/mcp-atlas-api-client';
 import { DefaultEventMap } from '@mongodb-js/mcp-core';
 import { DefaultMetrics } from '@mongodb-js/mcp-metrics';
 import { defaultParserOptions as defaultParserOptions_2 } from '@mongosh/arg-parser/arg-parser';
@@ -21,7 +26,6 @@ import type { ElicitRequestFormParams } from '@modelcontextprotocol/sdk/types.js
 import EventEmitter from 'events';
 import { EventMap } from '@mongodb-js/mcp-core';
 import express from 'express';
-import type { FetchOptions } from 'openapi-fetch';
 import type { FindCursor } from 'mongodb';
 import { Gauge } from '@mongodb-js/mcp-metrics';
 import { Histogram } from '@mongodb-js/mcp-metrics';
@@ -38,11 +42,11 @@ import { MetricDefinitions } from '@mongodb-js/mcp-metrics';
 import { Metrics } from '@mongodb-js/mcp-metrics';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
 import { NoopLogger } from '@mongodb-js/mcp-core';
-import type { operations } from './openapi.js';
 import { PrometheusMetrics } from '@mongodb-js/mcp-metrics';
 import { PrometheusMetricsOptions } from '@mongodb-js/mcp-metrics';
 import { registerGlobalSecretToRedact } from '@mongodb-js/mcp-core';
 import { Registry } from '@mongodb-js/mcp-metrics';
+import { RequestContext } from '@mongodb-js/mcp-atlas-api-client';
 import { Secret } from 'mongodb-redact';
 import type { SessionCloseReason } from '@mongodb-js/mcp-types';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
@@ -66,153 +70,11 @@ export type AnyToolBase = ToolBase<any, any, any>;
 // @public (undocumented)
 export type AnyToolClass = ToolClass<any, any, any>;
 
-// @public (undocumented)
-export class ApiClient {
-    constructor(options: ApiClientOptions, logger: LoggerBase, authProvider?: AuthProvider | undefined);
-    // (undocumented)
-    acceptVpcPeeringConnection(options: FetchOptions<operations["acceptGroupStreamVpcPeeringConnection"]>): Promise<void>;
-    // (undocumented)
-    readonly authProvider?: AuthProvider | undefined;
-    // (undocumented)
-    close(): Promise<void>;
-    // (undocumented)
-    createAccessListEntry(options: FetchOptions<operations["createGroupAccessListEntry"]>): Promise<components["schemas"]["PaginatedNetworkAccessView"]>;
-    // (undocumented)
-    createCluster(options: FetchOptions<operations["createGroupCluster"]>): Promise<components["schemas"]["ClusterDescription20240805"]>;
-    // (undocumented)
-    createDatabaseUser(options: FetchOptions<operations["createGroupDatabaseUser"]>): Promise<components["schemas"]["CloudDatabaseUser"]>;
-    // (undocumented)
-    createFlexCluster(options: FetchOptions<operations["createGroupFlexCluster"]>): Promise<components["schemas"]["FlexClusterDescription20241113"]>;
-    // (undocumented)
-    createGroup(options: FetchOptions<operations["createGroup"]>): Promise<components["schemas"]["Group"]>;
-    // (undocumented)
-    createPrivateLinkConnection(options: FetchOptions<operations["createGroupStreamPrivateLinkConnection"]>): Promise<components["schemas"]["StreamsPrivateLinkConnection"]>;
-    // (undocumented)
-    createStreamConnection(options: FetchOptions<operations["createGroupStreamConnection"]>): Promise<components["schemas"]["StreamsConnection"]>;
-    // (undocumented)
-    createStreamProcessor(options: FetchOptions<operations["createGroupStreamProcessor"]>): Promise<components["schemas"]["StreamsProcessor"]>;
-    // (undocumented)
-    createStreamWorkspace(options: FetchOptions<operations["createGroupStreamWorkspace"]>): Promise<components["schemas"]["StreamsTenant"]>;
-    // (undocumented)
-    deleteAccessListEntry(options: FetchOptions<operations["deleteGroupAccessListEntry"]>): Promise<void>;
-    // (undocumented)
-    deleteCluster(options: FetchOptions<operations["deleteGroupCluster"]>): Promise<void>;
-    // (undocumented)
-    deleteDatabaseUser(options: FetchOptions<operations["deleteGroupDatabaseUser"]>): Promise<void>;
-    // (undocumented)
-    deleteFlexCluster(options: FetchOptions<operations["deleteGroupFlexCluster"]>): Promise<void>;
-    // (undocumented)
-    deleteGroup(options: FetchOptions<operations["deleteGroup"]>): Promise<void>;
-    // (undocumented)
-    deletePrivateLinkConnection(options: FetchOptions<operations["deleteGroupStreamPrivateLinkConnection"]>): Promise<void>;
-    // (undocumented)
-    deleteStreamConnection(options: FetchOptions<operations["deleteGroupStreamConnection"]>): Promise<void>;
-    // (undocumented)
-    deleteStreamProcessor(options: FetchOptions<operations["deleteGroupStreamProcessor"]>): Promise<void>;
-    // (undocumented)
-    deleteStreamWorkspace(options: FetchOptions<operations["deleteGroupStreamWorkspace"]>): Promise<void>;
-    // (undocumented)
-    deleteVpcPeeringConnection(options: FetchOptions<operations["deleteGroupStreamVpcPeeringConnection"]>): Promise<void>;
-    // (undocumented)
-    downloadAuditLogs(options: FetchOptions<operations["downloadGroupStreamAuditLogs"]>): Promise<string>;
-    // (undocumented)
-    downloadOperationalLogs(options: FetchOptions<operations["downloadGroupStreamOperationalLogs"]>): Promise<string>;
-    // (undocumented)
-    getAccountDetails(options: FetchOptions<operations["getGroupStreamAccountDetails"]>): Promise<components["schemas"]["AccountDetails"]>;
-    // (undocumented)
-    getCluster(options: FetchOptions<operations["getGroupCluster"]>): Promise<components["schemas"]["ClusterDescription20240805"]>;
-    // (undocumented)
-    getFlexCluster(options: FetchOptions<operations["getGroupFlexCluster"]>): Promise<components["schemas"]["FlexClusterDescription20241113"]>;
-    // (undocumented)
-    getGroup(options: FetchOptions<operations["getGroup"]>): Promise<components["schemas"]["Group"]>;
-    // (undocumented)
-    getIpInfo(): Promise<{
-        currentIpv4Address: string;
-    }>;
-    // (undocumented)
-    getOrgGroups(options: FetchOptions<operations["getOrgGroups"]>): Promise<components["schemas"]["PaginatedAtlasGroupView"]>;
-    // (undocumented)
-    getPrivateLinkConnection(options: FetchOptions<operations["getGroupStreamPrivateLinkConnection"]>): Promise<components["schemas"]["StreamsPrivateLinkConnection"]>;
-    // (undocumented)
-    getStreamConnection(options: FetchOptions<operations["getGroupStreamConnection"]>): Promise<components["schemas"]["StreamsConnection"]>;
-    // (undocumented)
-    getStreamProcessor(options: FetchOptions<operations["getGroupStreamProcessor"]>): Promise<components["schemas"]["StreamsProcessorWithStats"]>;
-    // (undocumented)
-    getStreamProcessors(options: FetchOptions<operations["getGroupStreamProcessors"]>): Promise<components["schemas"]["PaginatedApiStreamsStreamProcessorWithStatsView"]>;
-    // (undocumented)
-    getStreamWorkspace(options: FetchOptions<operations["getGroupStreamWorkspace"]>): Promise<components["schemas"]["StreamsTenant"]>;
-    // (undocumented)
-    isAuthConfigured(): boolean;
-    // (undocumented)
-    listAccessListEntries(options: FetchOptions<operations["listGroupAccessListEntries"]>): Promise<components["schemas"]["PaginatedNetworkAccessView"]>;
-    // (undocumented)
-    listAlerts(options: FetchOptions<operations["listGroupAlerts"]>): Promise<components["schemas"]["PaginatedAlertView"]>;
-    // (undocumented)
-    listClusterDetails(options?: FetchOptions<operations["listClusterDetails"]>): Promise<components["schemas"]["PaginatedOrgGroupView"]>;
-    // (undocumented)
-    listClusters(options: FetchOptions<operations["listGroupClusters"]>): Promise<components["schemas"]["PaginatedClusterDescription20240805"]>;
-    // (undocumented)
-    listClusterSuggestedIndexes(options: FetchOptions<operations["listGroupClusterPerformanceAdvisorSuggestedIndexes"]>): Promise<components["schemas"]["PerformanceAdvisorResponse"]>;
-    // (undocumented)
-    listDatabaseUsers(options: FetchOptions<operations["listGroupDatabaseUsers"]>): Promise<components["schemas"]["PaginatedApiAtlasDatabaseUserView"]>;
-    // (undocumented)
-    listDropIndexSuggestions(options: FetchOptions<operations["listGroupClusterPerformanceAdvisorDropIndexSuggestions"]>): Promise<components["schemas"]["DropIndexSuggestionsResponse"]>;
-    // (undocumented)
-    listFlexClusters(options: FetchOptions<operations["listGroupFlexClusters"]>): Promise<components["schemas"]["PaginatedFlexClusters20241113"]>;
-    // (undocumented)
-    listGroups(options?: FetchOptions<operations["listGroups"]>): Promise<components["schemas"]["PaginatedAtlasGroupView"]>;
-    // (undocumented)
-    listOrgs(options?: FetchOptions<operations["listOrgs"]>): Promise<components["schemas"]["PaginatedOrganizationView"]>;
-    // (undocumented)
-    listPrivateLinkConnections(options: FetchOptions<operations["listGroupStreamPrivateLinkConnections"]>): Promise<components["schemas"]["PaginatedApiStreamsPrivateLinkView"]>;
-    // (undocumented)
-    listSchemaAdvice(options: FetchOptions<operations["listGroupClusterPerformanceAdvisorSchemaAdvice"]>): Promise<components["schemas"]["SchemaAdvisorResponse"]>;
-    // (undocumented)
-    listSlowQueryLogs(options: FetchOptions<operations["listGroupProcessPerformanceAdvisorSlowQueryLogs"]>): Promise<components["schemas"]["PerformanceAdvisorSlowQueryList"]>;
-    // (undocumented)
-    listStreamConnections(options: FetchOptions<operations["listGroupStreamConnections"]>): Promise<components["schemas"]["PaginatedApiStreamsConnectionView"]>;
-    // (undocumented)
-    listStreamWorkspaces(options: FetchOptions<operations["listGroupStreamWorkspaces"]>): Promise<components["schemas"]["PaginatedApiStreamsTenantView"]>;
-    // (undocumented)
-    readonly logger: LoggerBase;
-    // (undocumented)
-    rejectVpcPeeringConnection(options: FetchOptions<operations["rejectGroupStreamVpcPeeringConnection"]>): Promise<void>;
-    // (undocumented)
-    sendEvents(events: TelemetryEvent<CommonProperties>[], input?: {
-        signal?: AbortSignal;
-    }): Promise<void>;
-    // (undocumented)
-    startStreamProcessor(options: FetchOptions<operations["startGroupStreamProcessor"]>): Promise<void>;
-    // (undocumented)
-    startStreamProcessorWith(options: FetchOptions<operations["startGroupStreamProcessorWith"]>): Promise<void>;
-    // (undocumented)
-    stopStreamProcessor(options: FetchOptions<operations["stopGroupStreamProcessor"]>): Promise<void>;
-    // (undocumented)
-    updateStreamConnection(options: FetchOptions<operations["updateGroupStreamConnection"]>): Promise<components["schemas"]["StreamsConnection"]>;
-    // (undocumented)
-    updateStreamProcessor(options: FetchOptions<operations["updateGroupStreamProcessor"]>): Promise<components["schemas"]["StreamsProcessorWithStats"]>;
-    // (undocumented)
-    updateStreamWorkspace(options: FetchOptions<operations["updateGroupStreamWorkspace"]>): Promise<components["schemas"]["StreamsTenant"]>;
-    // (undocumented)
-    validateAuthConfig(): Promise<void>;
-    // (undocumented)
-    withStreamSampleConnections(options: FetchOptions<operations["withGroupStreamSampleConnections"]>): Promise<components["schemas"]["StreamsTenant"]>;
-}
+export { ApiClient }
 
-// @public (undocumented)
-export type ApiClientFactoryFn = (options: ApiClientOptions, logger: LoggerBase) => ApiClient;
+export { ApiClientFactoryFn }
 
-// @public (undocumented)
-export interface ApiClientOptions {
-    // (undocumented)
-    baseUrl: string;
-    // (undocumented)
-    credentials?: Credentials;
-    // (undocumented)
-    requestContext?: RequestContext;
-    // (undocumented)
-    userAgent?: string;
-}
+export { ApiClientOptions }
 
 // @public
 export function applyConfigOverrides<TUserConfig extends UserConfig = UserConfig>(input: {
@@ -220,15 +82,7 @@ export function applyConfigOverrides<TUserConfig extends UserConfig = UserConfig
     request?: RequestContext_2;
 }): TUserConfig;
 
-// @public
-export interface AuthProvider {
-    // (undocumented)
-    getAuthHeaders(): Promise<Record<string, string> | undefined>;
-    // (undocumented)
-    revoke(): Promise<void>;
-    // (undocumented)
-    validate(): Promise<boolean>;
-}
+export { AuthProvider }
 
 // @public (undocumented)
 export type BaseEvent = TelemetryEvent<unknown>;
@@ -398,6 +252,8 @@ export { ConsoleLogger }
 
 export { Counter }
 
+export { createDefaultApiClient }
+
 // @public
 export const createDefaultMcpHttpServer: <TUserConfig extends UserConfig = UserConfig, TContext = unknown>(args: MCPHttpServerConstructorArgs<TUserConfig, TContext>) => MCPHttpServer<TUserConfig, TContext>;
 
@@ -427,13 +283,7 @@ export type CreateSessionConfigFn<TUserConfig extends UserConfig = UserConfig> =
 // @public
 export type CreateSessionStoreFn<TTransport extends CloseableTransport = CloseableTransport, TMetrics extends DefaultMetrics = DefaultMetrics> = (args: SessionStoreConstructorArgs<TMetrics>) => ISessionStore<TTransport>;
 
-// @public (undocumented)
-export interface Credentials {
-    // (undocumented)
-    clientId?: string;
-    // (undocumented)
-    clientSecret?: string;
-}
+export { Credentials }
 
 // @public (undocumented)
 export type CustomizableServerOptions<TUserConfig extends UserConfig = UserConfig, TContext = unknown> = Partial<Pick<ServerOptions<TUserConfig, TContext>, "uiRegistry" | "tools" | "toolContext" | "elicitation">> & {
@@ -442,9 +292,6 @@ export type CustomizableServerOptions<TUserConfig extends UserConfig = UserConfi
 
 // @public (undocumented)
 export type CustomizableSessionOptions<TUserConfig extends UserConfig = UserConfig> = Partial<Pick<SessionOptions<TUserConfig>, "userConfig" | "apiClient" | "atlasLocalClient" | "connectionManager" | "connectionErrorHandler">>;
-
-// @public (undocumented)
-export const defaultCreateApiClient: ApiClientFactoryFn;
 
 // Warning: (ae-forgotten-export) The symbol "AtlasLocalClientFactoryFn" needs to be exported by the entry point lib.d.ts
 //
@@ -735,10 +582,7 @@ export { registerGlobalSecretToRedact }
 
 export { Registry }
 
-// @public (undocumented)
-export type RequestContext = {
-    headers?: Record<string, string | string[] | undefined>;
-};
+export { RequestContext }
 
 export { Secret }
 

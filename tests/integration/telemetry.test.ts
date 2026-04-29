@@ -9,7 +9,7 @@ import { ExportsManager } from "../../src/common/exportsManager.js";
 import { Keychain } from "@mongodb-js/mcp-core";
 import { defaultTestConfig } from "./helpers.js";
 import { type UserConfig } from "../../src/common/config/userConfig.js";
-import { defaultCreateApiClient } from "../../src/common/atlas/apiClient.js";
+import { createDefaultApiClient } from "@mongodb-js/mcp-atlas-api-client";
 
 describe("Telemetry", () => {
     const config: UserConfig = { ...defaultTestConfig, telemetry: "enabled" };
@@ -28,16 +28,15 @@ describe("Telemetry", () => {
                 connectionManager: connectionManager,
                 keychain: new Keychain(),
                 connectionErrorHandler,
-                apiClient: defaultCreateApiClient(
-                    {
-                        baseUrl: config.apiBaseUrl,
-                        credentials: {
-                            clientId: config.apiClientId,
-                            clientSecret: config.apiClientSecret,
-                        },
+                apiClient: createDefaultApiClient({
+                    baseUrl: config.apiBaseUrl,
+                    credentials: {
+                        clientId: config.apiClientId,
+                        clientSecret: config.apiClientSecret,
                     },
-                    logger
-                ),
+                    userAgent: "",
+                    logger,
+                }),
             }),
             config,
             deviceId

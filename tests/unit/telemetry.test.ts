@@ -1,5 +1,4 @@
-import { ApiClient } from "../../src/common/atlas/apiClient.js";
-import { ApiClientError } from "../../src/common/atlas/apiClientError.js";
+import { ApiClient, ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import type { Session } from "../../src/common/session.js";
 import {
     Telemetry,
@@ -657,14 +656,12 @@ describe("Telemetry credentials handling", () => {
             expectAuthHeader: false,
         },
     ])("sends telemetry events $label", async ({ credentials, expectedPath, expectAuthHeader }) => {
-        const apiClient = new ApiClient(
-            {
-                baseUrl: API_BASE,
-                credentials,
-                userAgent: USER_AGENT,
-            },
-            new NoopLogger()
-        );
+        const apiClient = new ApiClient({
+            baseUrl: API_BASE,
+            credentials,
+            userAgent: USER_AGENT,
+            logger: new NoopLogger(),
+        });
 
         // When credentials are present, short-circuit the OAuth token fetch
         // so the test stays focused on the telemetry dispatch rather than the

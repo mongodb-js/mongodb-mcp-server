@@ -1,5 +1,6 @@
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { LoggerBase } from "@mongodb-js/mcp-core";
+import { packageInfo } from "../common/packageInfo.js";
 import { CompositeLogger, LogId } from "@mongodb-js/mcp-core";
 import { type ISessionStore, type CreateSessionStoreFn, createDefaultSessionStore } from "../common/sessionStore.js";
 import {
@@ -204,17 +205,16 @@ export class StreamableHttpRunner<
                 apiClient:
                     sessionOptions?.apiClient ??
                     (userConfig.apiClientId && userConfig.apiClientSecret
-                        ? this.createApiClient(
-                              {
-                                  baseUrl: userConfig.apiBaseUrl,
-                                  credentials: {
-                                      clientId: userConfig.apiClientId,
-                                      clientSecret: userConfig.apiClientSecret,
-                                  },
-                                  requestContext: request,
+                        ? this.createApiClient({
+                              baseUrl: userConfig.apiBaseUrl,
+                              userAgent: `AtlasMCP/${packageInfo.version} (${process.platform}; ${process.arch})`,
+                              credentials: {
+                                  clientId: userConfig.apiClientId,
+                                  clientSecret: userConfig.apiClientSecret,
                               },
-                              logger
-                          )
+                              requestContext: request,
+                              logger,
+                          })
                         : undefined),
             },
         });

@@ -32,6 +32,9 @@ importers:
       '@mongodb-js/devtools-proxy-support':
         specifier: ^0.7.8
         version: 0.7.8
+      '@mongodb-js/mcp-atlas-api-client':
+        specifier: workspace:*
+        version: link:packages/atlas-api-client
       '@mongodb-js/mcp-core':
         specifier: workspace:*
         version: link:packages/core
@@ -274,6 +277,34 @@ importers:
       kerberos:
         specifier: ^7.0.0
         version: 7.0.0
+
+  packages/atlas-api-client:
+    dependencies:
+      '@mongodb-js/devtools-proxy-support':
+        specifier: ^0.7.8
+        version: 0.7.8
+      '@mongodb-js/mcp-core':
+        specifier: workspace:*
+        version: link:../core
+      '@mongodb-js/mcp-types':
+        specifier: workspace:*
+        version: link:../types
+      node-fetch:
+        specifier: ^3.3.2
+        version: 3.3.2
+      oauth4webapi:
+        specifier: ^3.8.5
+        version: 3.8.5
+      openapi-fetch:
+        specifier: ^0.17.0
+        version: 0.17.0
+    devDependencies:
+      '@types/node':
+        specifier: ^25.6.0
+        version: 25.6.0
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.3
 
   packages/core:
     dependencies:

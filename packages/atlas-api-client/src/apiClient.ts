@@ -2,9 +2,8 @@ import createClient from "openapi-fetch";
 import type { ClientOptions, FetchOptions, Client, Middleware } from "openapi-fetch";
 import { ApiClientError } from "./apiClientError.js";
 import type { components, paths, operations } from "./openapi.js";
-import type { CommonProperties, TelemetryEvent } from "../../telemetry/types.js";
-import { packageInfo } from "../packageInfo.js";
 import type { LoggerBase } from "@mongodb-js/mcp-core";
+import type { IApiClient } from "@mongodb-js/mcp-types";
 import { createFetch } from "@mongodb-js/devtools-proxy-support";
 import { Request as NodeFetchRequest } from "node-fetch";
 import type { Credentials, AuthProvider } from "./auth/authProvider.js";
@@ -13,34 +12,30 @@ import { AuthProviderFactory } from "./auth/authProvider.js";
 const ATLAS_API_VERSION = "2025-03-12";
 const DEFAULT_SEND_TIMEOUT_MS = 5_000;
 
-/**
- * Detects whether we're running on Node.js as opposed to a browser/web
- * environment. We rely on `process.versions.node` rather than `typeof process`
- * because bundlers (e.g. Vite) may replace `process` with a literal object
- * shim in the browser build, which would still be `"object"` at runtime.
- */
 function isNodeRuntime(): boolean {
     return typeof process !== "undefined" && process.versions !== undefined && process.versions.node !== undefined;
 }
 
 export interface ApiClientOptions {
     baseUrl: string;
-    userAgent?: string;
+    userAgent: string;
     credentials?: Credentials;
     requestContext?: RequestContext;
+    logger: LoggerBase;
+    authProvider?: AuthProvider;
 }
 
 export type RequestContext = {
     headers?: Record<string, string | string[] | undefined>;
 };
 
-export type ApiClientFactoryFn = (options: ApiClientOptions, logger: LoggerBase) => ApiClient;
+export type ApiClientFactoryFn = (options: ApiClientOptions) => ApiClient;
 
-export const defaultCreateApiClient: ApiClientFactoryFn = (options, logger) => {
-    return new ApiClient(options, logger);
+export const createDefaultApiClient: ApiClientFactoryFn = (options) => {
+    return new ApiClient(options);
 };
 
-export class ApiClient {
+export class ApiClient implements IApiClient {
     private readonly options: {
         baseUrl: string;
         userAgent: string;
@@ -54,23 +49,12 @@ export class ApiClient {
         return !!this.authProvider;
     }
 
-    constructor(
-        options: ApiClientOptions,
-        public readonly logger: LoggerBase,
-        public readonly authProvider?: AuthProvider
-    ) {
-        // In Node we use `createFetch` from devtools-proxy-support to pick up
-        // environment-variable proxy configuration and system CA trust, and we
-        // use node-fetch's Request since its interface is a superset of the
-        // web Request. In the browser those Node-only concerns don't apply and
-        // the implementations aren't available, so we fall back to the native
-        // `fetch`/`Request` globals.
+    readonly logger: LoggerBase;
+    readonly authProvider?: AuthProvider;
+
+    constructor(options: ApiClientOptions) {
+        this.logger = options.logger;
         if (isNodeRuntime()) {
-            // createFetch assumes that the first parameter of fetch is always a string
-            // with the URL. However, fetch can also receive a Request object. While
-            // the typechecking complains, createFetch does passthrough the parameters
-            // so it works fine. That said, node-fetch has incompatibilities with the web version
-            // of fetch and can lead to genuine issues so we would like to move away of node-fetch dependency.
             this.customFetch = createFetch({
                 useEnvironmentVariableProxies: true,
             }) as unknown as typeof fetch;
@@ -78,21 +62,19 @@ export class ApiClient {
             this.customFetch = globalThis.fetch.bind(globalThis);
         }
         this.options = {
-            ...options,
-            userAgent:
-                options.userAgent ??
-                `AtlasMCP/${packageInfo.version} (${isNodeRuntime() ? `${process.platform}; ${process.arch}` : "browser"})`,
+            baseUrl: options.baseUrl,
+            userAgent: options.userAgent,
         };
 
         this.authProvider =
-            authProvider ??
+            options.authProvider ??
             AuthProviderFactory.create(
                 {
                     apiBaseUrl: this.options.baseUrl,
                     userAgent: this.options.userAgent,
                     credentials: options.credentials ?? {},
                 },
-                logger
+                this.logger
             );
 
         this.client = createClient<paths>({
@@ -102,9 +84,6 @@ export class ApiClient {
                 Accept: `application/vnd.atlas.${ATLAS_API_VERSION}+json`,
             },
             fetch: this.customFetch,
-            // NodeFetchRequest has more overloadings than the native Request
-            // so it complains here. However, the interfaces are actually compatible
-            // so it's not a real problem, just a type checking problem.
             Request: (isNodeRuntime() ? NodeFetchRequest : globalThis.Request) as unknown as ClientOptions["Request"],
         });
 
@@ -168,9 +147,9 @@ export class ApiClient {
     }
 
     public async sendEvents(
-        events: TelemetryEvent<CommonProperties>[],
-        { signal = AbortSignal.timeout(DEFAULT_SEND_TIMEOUT_MS) }: { signal?: AbortSignal } = {}
+        options: { events: unknown[]; signal?: AbortSignal } = { events: [] }
     ): Promise<void> {
+        const { events, signal = AbortSignal.timeout(DEFAULT_SEND_TIMEOUT_MS) } = options;
         if (!this.authProvider) {
             await this.sendUnauthEvents(events, signal);
             return;
@@ -185,14 +164,11 @@ export class ApiClient {
                 }
             }
 
-            // send unauth events if any of the following are true:
-            // 1: the token is not valid (not ApiClientError)
-            // 2: if the api responded with 401 (ApiClientError with status 401)
             await this.sendUnauthEvents(events, signal);
         }
     }
 
-    private async sendAuthEvents(events: TelemetryEvent<CommonProperties>[], signal?: AbortSignal): Promise<void> {
+    private async sendAuthEvents(events: unknown[], signal?: AbortSignal): Promise<void> {
         const authHeaders = await this.authProvider?.getAuthHeaders();
         if (!authHeaders) {
             throw new Error("No access token available");
@@ -215,7 +191,7 @@ export class ApiClient {
         }
     }
 
-    private async sendUnauthEvents(events: TelemetryEvent<CommonProperties>[], signal?: AbortSignal): Promise<void> {
+    private async sendUnauthEvents(events: unknown[], signal?: AbortSignal): Promise<void> {
         const headers: Record<string, string> = {
             Accept: "application/json",
             "Content-Type": "application/json",

@@ -157,6 +157,7 @@
     "vitest": "^4.1.4"
   },
   "dependencies": {
+    "@mongodb-js/mcp-atlas-api-client": "workspace:*",
     "@mongodb-js/mcp-core": "workspace:*",
     "@mongodb-js/mcp-node-utils": "workspace:*",
     "@mongodb-js/mcp-types": "workspace:*",

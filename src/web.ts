@@ -67,7 +67,7 @@ export {
     type ApiClientOptions,
     type ApiClientFactoryFn,
     type RequestContext,
-} from "./common/atlas/apiClient.js";
+} from "@mongodb-js/mcp-atlas-api-client";
 export type { AtlasLocalClientFactoryFn, LibraryLoader } from "./common/atlasLocal.js";
 export { UIRegistry } from "./ui/registry/registry.js";
 export {
@@ -83,7 +83,7 @@ export { Telemetry, type TelemetryEvents } from "./telemetry/telemetry.js";
 export type { TelemetryEvent, BaseEvent } from "./telemetry/types.js";
 export { EventCache } from "./telemetry/eventCache.js";
 export { ErrorCodes, MongoDBError } from "./common/errors.js";
-export type { AuthProvider, Credentials } from "./common/atlas/auth/authProvider.js";
+export type { AuthProvider, Credentials } from "@mongodb-js/mcp-atlas-api-client";
 export type {
     ConnectionStringAuthType,
     ConnectionStringHostType,

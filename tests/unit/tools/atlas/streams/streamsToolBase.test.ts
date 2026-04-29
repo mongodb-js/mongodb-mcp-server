@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { OperationType, ToolArgs, ToolConstructorParams } from "../../../../../src/tools/tool.js";
 import { StreamsToolBase } from "../../../../../src/tools/atlas/streams/streamsToolBase.js";
-import { ApiClientError } from "../../../../../src/common/atlas/apiClientError.js";
+import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import type { Session } from "../../../../../src/common/session.js";
 import type { UserConfig } from "../../../../../src/common/config/userConfig.js";
 import type { Telemetry } from "../../../../../src/telemetry/telemetry.js";

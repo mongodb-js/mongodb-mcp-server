@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiClient } from "../../../src/common/atlas/apiClient.js";
+import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { packageInfo } from "../../../src/common/packageInfo.js";
 import type { CommonProperties, TelemetryEvent, TelemetryResult } from "../../../src/telemetry/types.js";
 import { NoopLogger } from "@mongodb-js/mcp-core";
@@ -28,17 +28,15 @@ describe("ApiClient", () => {
     ];
 
     beforeEach(() => {
-        apiClient = new ApiClient(
-            {
-                baseUrl: "https://api.test.com",
-                credentials: {
-                    clientId: "test-client-id",
-                    clientSecret: "test-client-secret",
-                },
-                userAgent: "test-user-agent",
+        apiClient = new ApiClient({
+            baseUrl: "https://api.test.com",
+            credentials: {
+                clientId: "test-client-id",
+                clientSecret: "test-client-secret",
             },
-            new NoopLogger()
-        );
+            userAgent: "test-user-agent",
+            logger: new NoopLogger(),
+        });
 
         // @ts-expect-error accessing private property for testing
         apiClient.authProvider.validate = vi.fn().mockResolvedValue(true);
@@ -64,7 +62,7 @@ describe("ApiClient", () => {
             const mockFetch = vi.spyOn(global, "fetch");
             mockFetch.mockResolvedValueOnce(new Response(null, { status: 200 }));
 
-            await apiClient.sendEvents(mockEvents);
+            await apiClient.sendEvents({ events: mockEvents });
 
             expect(mockFetch).toHaveBeenCalledTimes(1);
             const call = mockFetch.mock.calls[0];
@@ -78,23 +76,22 @@ describe("ApiClient", () => {
         });
 
         it("should use default userAgent with version, platform, and arch when not provided", async () => {
-            const clientWithoutUserAgent = new ApiClient(
-                {
-                    baseUrl: "https://api.test.com",
-                    credentials: {
-                        clientId: "test-client-id",
-                        clientSecret: "test-client-secret",
-                    },
+            const clientWithoutUserAgent = new ApiClient({
+                baseUrl: "https://api.test.com",
+                credentials: {
+                    clientId: "test-client-id",
+                    clientSecret: "test-client-secret",
                 },
-                new NoopLogger()
-            );
+                userAgent: "",
+                logger: new NoopLogger(),
+            });
             // @ts-expect-error accessing private property for testing
             clientWithoutUserAgent.authProvider.getAuthHeaders = vi.fn().mockRejectedValue(new Error("No token"));
 
             const mockFetch = vi.spyOn(global, "fetch");
             mockFetch.mockResolvedValueOnce(new Response(null, { status: 200 }));
 
-            await clientWithoutUserAgent.sendEvents(mockEvents);
+            await clientWithoutUserAgent.sendEvents({ events: mockEvents });
 
             expect(mockFetch).toHaveBeenCalledTimes(1);
             const call = mockFetch.mock.calls[0];
@@ -110,23 +107,22 @@ describe("ApiClient", () => {
         });
 
         it("should not include hostname in default userAgent", async () => {
-            const clientWithoutUserAgent = new ApiClient(
-                {
-                    baseUrl: "https://api.test.com",
-                    credentials: {
-                        clientId: "test-client-id",
-                        clientSecret: "test-client-secret",
-                    },
+            const clientWithoutUserAgent = new ApiClient({
+                baseUrl: "https://api.test.com",
+                credentials: {
+                    clientId: "test-client-id",
+                    clientSecret: "test-client-secret",
                 },
-                new NoopLogger()
-            );
+                userAgent: "",
+                logger: new NoopLogger(),
+            });
             // @ts-expect-error accessing private property for testing
             clientWithoutUserAgent.authProvider.getAuthHeaders = vi.fn().mockRejectedValue(new Error("No token"));
 
             const mockFetch = vi.spyOn(global, "fetch");
             mockFetch.mockResolvedValueOnce(new Response(null, { status: 200 }));
 
-            await clientWithoutUserAgent.sendEvents(mockEvents);
+            await clientWithoutUserAgent.sendEvents({ events: mockEvents });
 
             const call = mockFetch.mock.calls[0];
             expect(call).toBeDefined();
@@ -192,7 +188,7 @@ describe("ApiClient", () => {
             const mockFetch = vi.spyOn(global, "fetch");
             mockFetch.mockResolvedValueOnce(new Response(null, { status: 200 }));
 
-            await apiClient.sendEvents(mockEvents);
+            await apiClient.sendEvents({ events: mockEvents });
 
             const url = new URL("api/private/v1.0/telemetry/events", "https://api.test.com");
             expect(mockFetch).toHaveBeenCalledWith(
@@ -217,7 +213,7 @@ describe("ApiClient", () => {
             // @ts-expect-error accessing private property for testing
             apiClient.authProvider.getAuthHeaders = vi.fn().mockRejectedValue(new Error("No access token available"));
 
-            await apiClient.sendEvents(mockEvents);
+            await apiClient.sendEvents({ events: mockEvents });
 
             const url = new URL("api/private/unauth/telemetry/events", "https://api.test.com");
             expect(mockFetch).toHaveBeenCalledWith(
@@ -241,7 +237,7 @@ describe("ApiClient", () => {
             // @ts-expect-error accessing private property for testing
             apiClient.authProvider.getAuthHeaders = vi.fn().mockResolvedValue(undefined);
 
-            await apiClient.sendEvents(mockEvents);
+            await apiClient.sendEvents({ events: mockEvents });
 
             const url = new URL("api/private/unauth/telemetry/events", "https://api.test.com");
             expect(mockFetch).toHaveBeenCalledWith(
@@ -264,7 +260,7 @@ describe("ApiClient", () => {
                 .mockResolvedValueOnce(new Response(null, { status: 401 }))
                 .mockResolvedValueOnce(new Response(null, { status: 200 }));
 
-            await apiClient.sendEvents(mockEvents);
+            await apiClient.sendEvents({ events: mockEvents });
 
             const url = new URL("api/private/unauth/telemetry/events", "https://api.test.com");
             expect(mockFetch).toHaveBeenCalledTimes(2);
@@ -294,7 +290,7 @@ describe("ApiClient", () => {
                 Authorization: `Bearer ${mockToken}`,
             });
 
-            await expect(apiClient.sendEvents(mockEvents)).rejects.toThrow();
+            await expect(apiClient.sendEvents({ events: mockEvents })).rejects.toThrow();
         });
     });
 });

@@ -1,11 +1,19 @@
 import { LogId } from "@mongodb-js/mcp-core";
-import type { ApiClient } from "./apiClient.js";
+import type {
+    ApiClient,
+    PerformanceAdvisorIndex,
+    PerformanceAdvisorResponse,
+    DropIndexSuggestionsIndex,
+    DropIndexSuggestionsResponse,
+    SchemaAdvisorResponse,
+    SchemaAdvisorItemRecommendation,
+    PerformanceAdvisorSlowQuery,
+} from "@mongodb-js/mcp-atlas-api-client";
 import { getProcessIdsFromCluster } from "./cluster.js";
-import type { components } from "./openapi.js";
 
-export type SuggestedIndex = components["schemas"]["PerformanceAdvisorIndex"];
-export type DropIndexSuggestion = components["schemas"]["DropIndexSuggestionsIndex"];
-export type SlowQueryLog = components["schemas"]["PerformanceAdvisorSlowQuery"];
+export type SuggestedIndex = PerformanceAdvisorIndex;
+export type DropIndexSuggestion = DropIndexSuggestionsIndex;
+export type SlowQueryLog = PerformanceAdvisorSlowQuery;
 
 export const DEFAULT_SLOW_QUERY_LOGS_LIMIT = 50;
 
@@ -13,15 +21,15 @@ export const SUGGESTED_INDEXES_COPY = `Note: The "Weight" field is measured in b
 export const SLOW_QUERY_LOGS_COPY = `Please notify the user that the MCP server tool limits slow query logs to the most recent ${DEFAULT_SLOW_QUERY_LOGS_LIMIT} slow query logs. This is a limitation of the MCP server tool only. More slow query logs and performance suggestions can be seen in the Atlas UI. Please give to the user the following docs about the performance advisor: https://www.mongodb.com/docs/atlas/performance-advisor/.`;
 
 interface SuggestedIndexesResponse {
-    content: components["schemas"]["PerformanceAdvisorResponse"];
+    content: PerformanceAdvisorResponse;
 }
 interface DropIndexesResponse {
-    content: components["schemas"]["DropIndexSuggestionsResponse"];
+    content: DropIndexSuggestionsResponse;
 }
 interface SchemaAdviceResponse {
-    content: components["schemas"]["SchemaAdvisorResponse"];
+    content: SchemaAdvisorResponse;
 }
-export type SchemaRecommendation = components["schemas"]["SchemaAdvisorItemRecommendation"];
+export type SchemaRecommendation = SchemaAdvisorItemRecommendation;
 
 export async function getSuggestedIndexes(
     apiClient: ApiClient,

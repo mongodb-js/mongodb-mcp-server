@@ -1,13 +1,14 @@
 import type { ApiError } from "./openapi.js";
 
 export class ApiClientError extends Error {
-    private constructor(
-        message: string,
-        public readonly response: Response,
-        public readonly apiError?: ApiError
-    ) {
+    readonly response: Response;
+    readonly apiError?: ApiError;
+
+    private constructor(message: string, response: Response, apiError?: ApiError) {
         super(message);
         this.name = "ApiClientError";
+        this.response = response;
+        this.apiError = apiError;
     }
 
     static async fromResponse(

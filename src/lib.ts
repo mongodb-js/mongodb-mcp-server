@@ -22,7 +22,7 @@ import { defaultCreateConnectionManager } from "./common/connectionManager.js";
 const createMCPConnectionManager = defaultCreateConnectionManager;
 export { createMCPConnectionManager, defaultCreateConnectionManager };
 
-export { defaultCreateApiClient } from "./common/atlas/apiClient.js";
+export { createDefaultApiClient } from "@mongodb-js/mcp-atlas-api-client";
 export { defaultCreateAtlasLocalClient } from "./common/atlasLocal.js";
 
 export {
@@ -106,8 +106,8 @@ export {
     type ApiClientOptions,
     type ApiClientFactoryFn,
     type RequestContext,
-} from "./common/atlas/apiClient.js";
-export type { AuthProvider, Credentials } from "./common/atlas/auth/authProvider.js";
+} from "@mongodb-js/mcp-atlas-api-client";
+export type { AuthProvider, Credentials } from "@mongodb-js/mcp-atlas-api-client";
 export { type UIRegistryOptions, UIRegistry } from "./ui/registry/registry.js";
 export { type ToolExecutionContext, type AnyToolBase } from "./tools/tool.js";
 export {

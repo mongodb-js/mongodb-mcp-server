@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as oauth from "oauth4webapi";
-import { ClientCredentialsAuthProvider } from "../../../../src/common/atlas/auth/clientCredentials.js";
+import { ClientCredentialsAuthProvider } from "@mongodb-js/mcp-atlas-api-client";
 import { NoopLogger } from "@mongodb-js/mcp-core";
 
 vi.mock("oauth4webapi", () => ({
