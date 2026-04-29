@@ -283,6 +283,9 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.29.0
         version: 1.29.0(zod@4.3.6)
+      '@mongodb-js/mcp-types':
+        specifier: workspace:*
+        version: link:../types
       mongodb-redact:
         specifier: ^1.1.6
         version: 1.4.7
@@ -290,9 +293,6 @@ importers:
       '@mongodb-js/mcp-logging':
         specifier: workspace:*
         version: link:../logging
-      '@mongodb-js/mcp-types':
-        specifier: workspace:*
-        version: link:../types
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
