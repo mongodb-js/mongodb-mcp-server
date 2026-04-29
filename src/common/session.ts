@@ -55,7 +55,7 @@ export class Session extends EventEmitter<SessionEvents> {
         title?: string;
     };
 
-    public logger: CompositeLogger;
+    public readonly logger: CompositeLogger;
 
     constructor({
         userConfig,

@@ -79,7 +79,8 @@ export {
     type ToolArgs,
     type ToolExecutionContext,
 } from "./tools/tool.js";
-export { Telemetry, type TelemetryEvents } from "./telemetry/telemetry.js";
+export { Telemetry } from "./telemetry/telemetry.js";
+export type { TelemetryEvents, TelemetryConfig } from "./telemetry/telemetry.js";
 export type { TelemetryEvent, BaseEvent } from "./telemetry/types.js";
 export { EventCache } from "./telemetry/eventCache.js";
 export { ErrorCodes, MongoDBError } from "./common/errors.js";
