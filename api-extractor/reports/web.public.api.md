@@ -800,13 +800,11 @@ export type StreamsToolMetadata = AtlasMetadata & {
 export class Telemetry {
     // (undocumented)
     close(): Promise<void>;
-    // @deprecated (undocumented)
-    static create(session: Session, userConfig: UserConfig, deviceId: DeviceId, options?: {
+    // (undocumented)
+    static create(session: Session, userConfig: UserConfig, deviceId: DeviceId, input?: {
         commonProperties?: Partial<CommonProperties>;
         eventCache?: EventCache;
     }): Telemetry;
-    // (undocumented)
-    static create(config: TelemetryConfig): Telemetry;
     emitEvents(events: BaseEvent[]): void;
     // (undocumented)
     readonly events: EventEmitter<TelemetryEvents>;
@@ -817,17 +815,6 @@ export class Telemetry {
 
 // @public (undocumented)
 export type TelemetryBoolSet = "true" | "false";
-
-// @public
-export interface TelemetryConfig {
-    apiClient: ApiClient;
-    deviceId: DeviceId;
-    enabled: boolean;
-    eventCache?: EventCache;
-    getCommonProperties?: () => Partial<CommonProperties>;
-    keychain?: Keychain;
-    logger: LoggerBase;
-}
 
 // @public
 export type TelemetryEvent<T> = {
