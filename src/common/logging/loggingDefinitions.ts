@@ -19,6 +19,7 @@ export const LogId = {
     atlasIpAccessListAdded: mongoLogId(1_001_008),
     atlasIpAccessListAddFailure: mongoLogId(1_001_009),
     atlasApiBaseUrlInsecure: mongoLogId(1_001_010),
+    atlasSharedTierAlertsHookWarning: mongoLogId(1_001_011),
 
     telemetryDisabled: mongoLogId(1_002_001),
     telemetryEmitFailure: mongoLogId(1_002_002),

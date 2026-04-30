@@ -5,6 +5,7 @@ import { generateSecurePassword } from "../../../helpers/generatePassword.js";
 import { LogId } from "../../../common/logging/index.js";
 import { getConnectionString, inspectCluster } from "../../../common/atlas/cluster.js";
 import { ensureCurrentIpInAccessList } from "../../../common/atlas/accessListUtils.js";
+import { runSharedTierAlertsHook } from "../../../common/atlas/sharedTierAlertsHook.js";
 import type { AtlasClusterConnectionInfo } from "../../../common/connectionManager.js";
 import { getDefaultRoleFromConfig } from "../../../common/atlas/roles.js";
 import { AtlasArgs } from "../../args.js";
@@ -115,7 +116,7 @@ export class ConnectClusterTool extends AtlasToolBase {
             },
         });
 
-        const connectedAtlasCluster = {
+        const connectedAtlasCluster: AtlasClusterConnectionInfo = {
             username,
             projectId,
             clusterName,
@@ -273,6 +274,23 @@ export class ConnectClusterTool extends AtlasToolBase {
                             type: "text",
                             text: createdUserMessage,
                         });
+                    }
+
+                    const atlas = this.session.connectedAtlasCluster;
+                    if (atlas !== undefined) {
+                        const hookResult = await runSharedTierAlertsHook({
+                            projectId: atlas.projectId,
+                            clusterName: atlas.clusterName,
+                            apiClient: this.apiClient,
+                            telemetry: this.telemetry,
+                            logger: this.session.logger,
+                        });
+                        if (hookResult !== null) {
+                            content.push({
+                                type: "text",
+                                text: hookResult.recommendationText,
+                            });
+                        }
                     }
 
                     return { content };
