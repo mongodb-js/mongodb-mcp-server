@@ -264,7 +264,6 @@ export type CommonProperties = {
     config_connection_string?: TelemetryBoolSet;
     session_id?: string;
     hosting_mode?: string;
-    has_docker?: TelemetryBoolSet;
 } & CommonStaticProperties;
 
 // @public
