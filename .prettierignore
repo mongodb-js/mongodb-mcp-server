@@ -2,7 +2,7 @@ dist
 coverage
 package-lock.json
 tests/tmp
-src/common/atlas/openapi.d.ts
+**/openapi.d.ts
 pnpm-lock.yaml
 src/ui/lib/tools
 src/ui/lib/loaders.ts
