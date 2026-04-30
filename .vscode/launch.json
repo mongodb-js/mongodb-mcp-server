@@ -44,6 +44,37 @@
         "scripts/generate/index.ts"
       ],
       "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug generate-release-notes",
+      "skipFiles": ["<node_internals>/**"],
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["--experimental-strip-types", "--inspect-brk"],
+      "program": "${workspaceFolder}/scripts/generate-release-notes.ts",
+      "args": [
+        "--newVersion",
+        "${input:releaseVersion}",
+        "--commitSha",
+        "${input:commitSha}"
+      ],
+      "cwd": "${workspaceFolder}",
+      "envFile": "${workspaceFolder}/.env"
+    }
+  ],
+  "inputs": [
+    {
+      "id": "releaseVersion",
+      "type": "promptString",
+      "description": "Git tag version to generate release notes for",
+      "default": "vNext"
+    },
+    {
+      "id": "commitSha",
+      "type": "promptString",
+      "description": "Commit SHA or branch (leave empty to use HEAD)",
+      "default": ""
     }
   ]
 }

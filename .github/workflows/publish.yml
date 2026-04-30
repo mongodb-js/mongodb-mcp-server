@@ -103,9 +103,9 @@ jobs:
         id: ai-summary
         continue-on-error: true
         env:
-          GH_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
-        run: ./scripts/generate-release-notes.sh ${{ needs.check.outputs.GIT_TAG_VERSION }} ${{ github.sha }}
-        shell: bash
+          GROVE_API_KEY: ${{ secrets.GROVE_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
+        run: node --experimental-strip-types scripts/generate-release-notes.ts --newVersion ${{ needs.check.outputs.GIT_TAG_VERSION }} --commitSha ${{ github.sha }}
 
       - name: Publish github release
         env:
