@@ -1,5 +1,5 @@
 import type { UserConfig } from "../config/userConfig.js";
-import type { DatabaseUserRole } from "./openapi.js";
+import type { DatabaseUserRole } from "@mongodb-js/mcp-atlas-api-client";
 
 const readWriteRole: DatabaseUserRole = {
     roleName: "readWriteAnyDatabase",

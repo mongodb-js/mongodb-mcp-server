@@ -1,6 +1,5 @@
 import { ObjectId } from "mongodb";
-import type { ClusterDescription20240805, Group } from "../../../../src/common/atlas/openapi.js";
-import type { ApiClient } from "../../../../src/common/atlas/apiClient.js";
+import type { ApiClient, ClusterDescription20240805, Group } from "@mongodb-js/mcp-atlas-api-client";
 import type { IntegrationTest } from "../../helpers.js";
 import { setupIntegrationTest, defaultTestConfig } from "../../helpers.js";
 import type { SuiteCollector } from "vitest";

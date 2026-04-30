@@ -876,7 +876,46 @@ export interface components {
              * @description Geographic area that Amazon Web Services (AWS) defines to which MongoDB Cloud deployed this network peering container.
              * @enum {string}
              */
-            regionName: "US_EAST_1" | "US_EAST_2" | "US_WEST_1" | "US_WEST_2" | "CA_CENTRAL_1" | "EU_NORTH_1" | "EU_WEST_1" | "EU_WEST_2" | "EU_WEST_3" | "EU_CENTRAL_1" | "EU_CENTRAL_2" | "SA_EAST_1" | "AP_EAST_1" | "AP_EAST_2" | "AP_SOUTHEAST_2" | "AP_SOUTHEAST_3" | "AP_SOUTHEAST_4" | "AP_SOUTHEAST_5" | "AP_SOUTHEAST_6" | "AP_SOUTHEAST_7" | "AP_NORTHEAST_1" | "AP_NORTHEAST_2" | "AP_NORTHEAST_3" | "AP_SOUTHEAST_1" | "AP_SOUTH_1" | "AP_SOUTH_2" | "CN_NORTH_1" | "CN_NORTHWEST_1" | "ME_CENTRAL_1" | "ME_SOUTH_1" | "AF_SOUTH_1" | "EU_SOUTH_1" | "EU_SOUTH_2" | "IL_CENTRAL_1" | "CA_WEST_1" | "MX_CENTRAL_1" | "GLOBAL" | "US_GOV_WEST_1" | "US_GOV_EAST_1";
+            regionName:
+                | "US_EAST_1"
+                | "US_EAST_2"
+                | "US_WEST_1"
+                | "US_WEST_2"
+                | "CA_CENTRAL_1"
+                | "EU_NORTH_1"
+                | "EU_WEST_1"
+                | "EU_WEST_2"
+                | "EU_WEST_3"
+                | "EU_CENTRAL_1"
+                | "EU_CENTRAL_2"
+                | "SA_EAST_1"
+                | "AP_EAST_1"
+                | "AP_EAST_2"
+                | "AP_SOUTHEAST_2"
+                | "AP_SOUTHEAST_3"
+                | "AP_SOUTHEAST_4"
+                | "AP_SOUTHEAST_5"
+                | "AP_SOUTHEAST_6"
+                | "AP_SOUTHEAST_7"
+                | "AP_NORTHEAST_1"
+                | "AP_NORTHEAST_2"
+                | "AP_NORTHEAST_3"
+                | "AP_SOUTHEAST_1"
+                | "AP_SOUTH_1"
+                | "AP_SOUTH_2"
+                | "CN_NORTH_1"
+                | "CN_NORTHWEST_1"
+                | "ME_CENTRAL_1"
+                | "ME_SOUTH_1"
+                | "AF_SOUTH_1"
+                | "EU_SOUTH_1"
+                | "EU_SOUTH_2"
+                | "IL_CENTRAL_1"
+                | "CA_WEST_1"
+                | "MX_CENTRAL_1"
+                | "GLOBAL"
+                | "US_GOV_WEST_1"
+                | "US_GOV_EAST_1";
             /**
              * @description Unique string that identifies the MongoDB Cloud VPC on AWS.
              * @example vpc-b555d3b0d9cb783b0
@@ -913,13 +952,77 @@ export interface components {
              * @description Cluster tier, with a default storage and memory capacity, that applies to all the data-bearing hosts in your cluster.
              * @enum {string}
              */
-            instanceSizeName?: "M10" | "M20" | "M30" | "M40" | "M50" | "M60" | "M80" | "M100" | "M140" | "M200" | "M300" | "R40" | "R50" | "R60" | "R80" | "R200" | "R300" | "R400" | "R700" | "M40_NVME" | "M50_NVME" | "M60_NVME" | "M80_NVME" | "M200_NVME" | "M400_NVME";
+            instanceSizeName?:
+                | "M10"
+                | "M20"
+                | "M30"
+                | "M40"
+                | "M50"
+                | "M60"
+                | "M80"
+                | "M100"
+                | "M140"
+                | "M200"
+                | "M300"
+                | "R40"
+                | "R50"
+                | "R60"
+                | "R80"
+                | "R200"
+                | "R300"
+                | "R400"
+                | "R700"
+                | "M40_NVME"
+                | "M50_NVME"
+                | "M60_NVME"
+                | "M80_NVME"
+                | "M200_NVME"
+                | "M400_NVME";
             /**
              * AWS Regions
              * @description Physical location where MongoDB Cloud deploys your AWS-hosted MongoDB cluster nodes. The region you choose can affect network latency for clients accessing your databases. When MongoDB Cloud deploys a dedicated cluster, it checks if a VPC or VPC connection exists for that provider and region. If not, MongoDB Cloud creates them as part of the deployment. MongoDB Cloud assigns the VPC a CIDR block. To limit a new VPC peering connection to one CIDR block and region, create the connection first. Deploy the cluster after the connection starts.
              * @enum {string}
              */
-            regionName?: "US_GOV_WEST_1" | "US_GOV_EAST_1" | "US_EAST_1" | "US_EAST_2" | "US_WEST_1" | "US_WEST_2" | "CA_CENTRAL_1" | "EU_NORTH_1" | "EU_WEST_1" | "EU_WEST_2" | "EU_WEST_3" | "EU_CENTRAL_1" | "EU_CENTRAL_2" | "AP_EAST_1" | "AP_EAST_2" | "AP_NORTHEAST_1" | "AP_NORTHEAST_2" | "AP_NORTHEAST_3" | "AP_SOUTHEAST_1" | "AP_SOUTHEAST_2" | "AP_SOUTHEAST_3" | "AP_SOUTHEAST_4" | "AP_SOUTHEAST_5" | "AP_SOUTHEAST_6" | "AP_SOUTHEAST_7" | "AP_SOUTH_1" | "AP_SOUTH_2" | "SA_EAST_1" | "CN_NORTH_1" | "CN_NORTHWEST_1" | "ME_SOUTH_1" | "ME_CENTRAL_1" | "AF_SOUTH_1" | "EU_SOUTH_1" | "EU_SOUTH_2" | "IL_CENTRAL_1" | "CA_WEST_1" | "MX_CENTRAL_1" | "GLOBAL";
+            regionName?:
+                | "US_GOV_WEST_1"
+                | "US_GOV_EAST_1"
+                | "US_EAST_1"
+                | "US_EAST_2"
+                | "US_WEST_1"
+                | "US_WEST_2"
+                | "CA_CENTRAL_1"
+                | "EU_NORTH_1"
+                | "EU_WEST_1"
+                | "EU_WEST_2"
+                | "EU_WEST_3"
+                | "EU_CENTRAL_1"
+                | "EU_CENTRAL_2"
+                | "AP_EAST_1"
+                | "AP_EAST_2"
+                | "AP_NORTHEAST_1"
+                | "AP_NORTHEAST_2"
+                | "AP_NORTHEAST_3"
+                | "AP_SOUTHEAST_1"
+                | "AP_SOUTHEAST_2"
+                | "AP_SOUTHEAST_3"
+                | "AP_SOUTHEAST_4"
+                | "AP_SOUTHEAST_5"
+                | "AP_SOUTHEAST_6"
+                | "AP_SOUTHEAST_7"
+                | "AP_SOUTH_1"
+                | "AP_SOUTH_2"
+                | "SA_EAST_1"
+                | "CN_NORTH_1"
+                | "CN_NORTHWEST_1"
+                | "ME_SOUTH_1"
+                | "ME_CENTRAL_1"
+                | "AF_SOUTH_1"
+                | "EU_SOUTH_1"
+                | "EU_SOUTH_2"
+                | "IL_CENTRAL_1"
+                | "CA_WEST_1"
+                | "MX_CENTRAL_1"
+                | "GLOBAL";
             /**
              * @description Disk Input/Output Operations per Second (IOPS) setting for Amazon Web Services (AWS) storage that you configure only for AWS. Specify whether Disk Input/Output Operations per Second (IOPS) must not exceed the default Input/Output Operations per Second (IOPS) rate for the selected volume size (`STANDARD`), or must fall within the allowable Input/Output Operations per Second (IOPS) range for the selected volume size (`PROVISIONED`). You must set this value to (`PROVISIONED`) for NVMe clusters.
              * @enum {string}
@@ -948,20 +1051,80 @@ export interface components {
              * @description Maximum instance size to which your cluster can automatically scale.
              * @enum {string}
              */
-            maxInstanceSize?: "M10" | "M20" | "M30" | "M40" | "M50" | "M60" | "M80" | "M100" | "M140" | "M200" | "M300" | "R40" | "R50" | "R60" | "R80" | "R200" | "R300" | "R400" | "R700" | "M40_NVME" | "M50_NVME" | "M60_NVME" | "M80_NVME" | "M200_NVME" | "M400_NVME";
+            maxInstanceSize?:
+                | "M10"
+                | "M20"
+                | "M30"
+                | "M40"
+                | "M50"
+                | "M60"
+                | "M80"
+                | "M100"
+                | "M140"
+                | "M200"
+                | "M300"
+                | "R40"
+                | "R50"
+                | "R60"
+                | "R80"
+                | "R200"
+                | "R300"
+                | "R400"
+                | "R700"
+                | "M40_NVME"
+                | "M50_NVME"
+                | "M60_NVME"
+                | "M80_NVME"
+                | "M200_NVME"
+                | "M400_NVME";
             /**
              * AWS Instance Sizes
              * @description Minimum instance size to which your cluster can automatically scale.
              * @enum {string}
              */
-            minInstanceSize?: "M10" | "M20" | "M30" | "M40" | "M50" | "M60" | "M80" | "M100" | "M140" | "M200" | "M300" | "R40" | "R50" | "R60" | "R80" | "R200" | "R300" | "R400" | "R700" | "M40_NVME" | "M50_NVME" | "M60_NVME" | "M80_NVME" | "M200_NVME" | "M400_NVME";
+            minInstanceSize?:
+                | "M10"
+                | "M20"
+                | "M30"
+                | "M40"
+                | "M50"
+                | "M60"
+                | "M80"
+                | "M100"
+                | "M140"
+                | "M200"
+                | "M300"
+                | "R40"
+                | "R50"
+                | "R60"
+                | "R80"
+                | "R200"
+                | "R300"
+                | "R400"
+                | "R700"
+                | "M40_NVME"
+                | "M50_NVME"
+                | "M60_NVME"
+                | "M80_NVME"
+                | "M200_NVME"
+                | "M400_NVME";
         };
         AWSCreateDataProcessRegionView: Omit<components["schemas"]["CreateDataProcessRegionView"], "cloudProvider"> & {
             /**
              * @description Human-readable label that identifies the geographic location of the region where you wish to store your archived data.
              * @enum {string}
              */
-            region?: "US_EAST_1" | "US_WEST_2" | "SA_EAST_1" | "EU_WEST_1" | "EU_WEST_2" | "EU_CENTRAL_1" | "AP_SOUTH_1" | "AP_SOUTHEAST_1" | "AP_SOUTHEAST_2" | "AP_NORTHEAST_2";
+            region?:
+                | "US_EAST_1"
+                | "US_WEST_2"
+                | "SA_EAST_1"
+                | "EU_WEST_1"
+                | "EU_WEST_2"
+                | "EU_CENTRAL_1"
+                | "AP_SOUTH_1"
+                | "AP_SOUTHEAST_1"
+                | "AP_SOUTHEAST_2"
+                | "AP_NORTHEAST_2";
         } & {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -974,7 +1137,17 @@ export interface components {
              * @description Human-readable label that identifies the geographic location of the region where you store your archived data.
              * @enum {string}
              */
-            readonly region?: "US_EAST_1" | "US_WEST_2" | "SA_EAST_1" | "EU_WEST_1" | "EU_WEST_2" | "EU_CENTRAL_1" | "AP_SOUTH_1" | "AP_SOUTHEAST_1" | "AP_SOUTHEAST_2" | "AP_NORTHEAST_2";
+            readonly region?:
+                | "US_EAST_1"
+                | "US_WEST_2"
+                | "SA_EAST_1"
+                | "EU_WEST_1"
+                | "EU_WEST_2"
+                | "EU_CENTRAL_1"
+                | "AP_SOUTH_1"
+                | "AP_SOUTHEAST_1"
+                | "AP_SOUTHEAST_2"
+                | "AP_NORTHEAST_2";
         } & {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -1041,7 +1214,32 @@ export interface components {
              * @description Hardware specification for the instance sizes in this region in this shard. Each instance size has a default storage and memory capacity. Electable nodes and read-only nodes (known as "base nodes") within a single shard must use the same instance size. Analytics nodes can scale independently from base nodes within a shard. Both base nodes and analytics nodes can scale independently from their equivalents in other shards.
              * @enum {string}
              */
-            instanceSize?: "M10" | "M20" | "M30" | "M40" | "M50" | "M60" | "M80" | "M100" | "M140" | "M200" | "M300" | "R40" | "R50" | "R60" | "R80" | "R200" | "R300" | "R400" | "R700" | "M40_NVME" | "M50_NVME" | "M60_NVME" | "M80_NVME" | "M200_NVME" | "M400_NVME";
+            instanceSize?:
+                | "M10"
+                | "M20"
+                | "M30"
+                | "M40"
+                | "M50"
+                | "M60"
+                | "M80"
+                | "M100"
+                | "M140"
+                | "M200"
+                | "M300"
+                | "R40"
+                | "R50"
+                | "R60"
+                | "R80"
+                | "R200"
+                | "R300"
+                | "R400"
+                | "R700"
+                | "M40_NVME"
+                | "M50_NVME"
+                | "M60_NVME"
+                | "M80_NVME"
+                | "M200_NVME"
+                | "M400_NVME";
             /**
              * Format: int32
              * @description Number of nodes of the given type for MongoDB Cloud to deploy to the region.
@@ -1074,7 +1272,10 @@ export interface components {
             providerName: "AWS";
         };
         /** @description Account details for the group, region, and provider. */
-        AccountDetails: components["schemas"]["AWSAccountDetails"] | components["schemas"]["AzureAccountDetails"] | components["schemas"]["GCPAccountDetails"];
+        AccountDetails:
+            | components["schemas"]["AWSAccountDetails"]
+            | components["schemas"]["AzureAccountDetails"]
+            | components["schemas"]["GCPAccountDetails"];
         /**
          * Automatic Scaling Settings
          * @description Options that determine how this cluster handles resource scaling.
@@ -1100,15 +1301,30 @@ export interface components {
             /** @description Flag that indicates whether the instance size may scale down via reactive auto-scaling. MongoDB Cloud requires this parameter if `replicationSpecs[n].regionConfigs[m].autoScaling.compute.enabled` is `true`. If you enable this option, specify a value for `replicationSpecs[n].regionConfigs[m].autoScaling.compute.minInstanceSize`. */
             scaleDownEnabled?: boolean;
         };
-        AlertViewForNdsGroup: components["schemas"]["AppServiceAlertView"] | components["schemas"]["ClusterAlertViewForNdsGroup"] | components["schemas"]["HostAlertViewForNdsGroup"] | components["schemas"]["HostMetricAlert"] | components["schemas"]["ReplicaSetAlertViewForNdsGroup"] | components["schemas"]["StreamProcessorAlertViewForNdsGroup"] | components["schemas"]["DefaultAlertViewForNdsGroup"];
+        AlertViewForNdsGroup:
+            | components["schemas"]["AppServiceAlertView"]
+            | components["schemas"]["ClusterAlertViewForNdsGroup"]
+            | components["schemas"]["HostAlertViewForNdsGroup"]
+            | components["schemas"]["HostMetricAlert"]
+            | components["schemas"]["ReplicaSetAlertViewForNdsGroup"]
+            | components["schemas"]["StreamProcessorAlertViewForNdsGroup"]
+            | components["schemas"]["DefaultAlertViewForNdsGroup"];
         /** @description Object that contains the identifying characteristics of the Amazon Web Services (AWS) Key Management Service (KMS). This field always returns a null value. */
         ApiAtlasCloudProviderAccessFeatureUsageFeatureIdView: Record<string, never> | null;
         /** @description Group of settings that configures a subset of the advanced configuration details. */
         ApiAtlasClusterAdvancedConfigurationView: {
             /** @description The custom OpenSSL cipher suite list for TLS 1.2. This field is only valid when `tlsCipherConfigMode` is set to `CUSTOM`. */
-            customOpensslCipherConfigTls12?: ("TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384" | "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256")[];
+            customOpensslCipherConfigTls12?: (
+                | "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
+                | "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+            )[];
             /** @description The custom OpenSSL cipher suite list for TLS 1.3. This field is only valid when `tlsCipherConfigMode` is set to `CUSTOM`. */
-            customOpensslCipherConfigTls13?: ("TLS_AES_256_GCM_SHA384" | "TLS_CHACHA20_POLY1305_SHA256" | "TLS_AES_128_GCM_SHA256" | "TLS_AES_128_CCM_SHA256")[];
+            customOpensslCipherConfigTls13?: (
+                | "TLS_AES_256_GCM_SHA384"
+                | "TLS_CHACHA20_POLY1305_SHA256"
+                | "TLS_AES_128_GCM_SHA256"
+                | "TLS_AES_128_CCM_SHA256"
+            )[];
             /**
              * @description Minimum Transport Layer Security (TLS) version that the cluster accepts for incoming connections. Clusters using TLS 1.0 or 1.1 should consider setting TLS 1.2 as the minimum TLS protocol version.
              * @enum {string}
@@ -1126,7 +1342,12 @@ export interface components {
          */
         ApiAtlasFTSAnalyzersViewManual: {
             /** @description Filters that examine text one character at a time and perform filtering operations. */
-            charFilters?: (components["schemas"]["charFilterhtmlStrip"] | components["schemas"]["charFiltericuNormalize"] | components["schemas"]["charFiltermapping"] | components["schemas"]["charFilterpersian"])[];
+            charFilters?: (
+                | components["schemas"]["charFilterhtmlStrip"]
+                | components["schemas"]["charFiltericuNormalize"]
+                | components["schemas"]["charFiltermapping"]
+                | components["schemas"]["charFilterpersian"]
+            )[];
             /**
              * @description Human-readable name that identifies the custom analyzer. Names must be unique within an index, and must not start with any of the following strings:
              *     - `lucene.`
@@ -1141,9 +1362,39 @@ export interface components {
              *
              *     - Redaction, the removal of sensitive information from public documents.
              */
-            tokenFilters?: (components["schemas"]["tokenFilterasciiFolding"] | components["schemas"]["tokenFilterdaitchMokotoffSoundex"] | components["schemas"]["tokenFilteredgeGram"] | components["schemas"]["TokenFilterEnglishPossessive"] | components["schemas"]["TokenFilterFlattenGraph"] | components["schemas"]["tokenFiltericuFolding"] | components["schemas"]["tokenFiltericuNormalizer"] | components["schemas"]["TokenFilterkStemming"] | components["schemas"]["tokenFilterlength"] | components["schemas"]["tokenFilterlowercase"] | components["schemas"]["tokenFilternGram"] | components["schemas"]["TokenFilterPorterStemming"] | components["schemas"]["tokenFilterregex"] | components["schemas"]["tokenFilterreverse"] | components["schemas"]["tokenFiltershingle"] | components["schemas"]["tokenFiltersnowballStemming"] | components["schemas"]["TokenFilterSpanishPluralStemming"] | components["schemas"]["TokenFilterStempel"] | components["schemas"]["tokenFilterstopword"] | components["schemas"]["tokenFiltertrim"] | components["schemas"]["TokenFilterWordDelimiterGraph"])[];
+            tokenFilters?: (
+                | components["schemas"]["tokenFilterasciiFolding"]
+                | components["schemas"]["tokenFilterdaitchMokotoffSoundex"]
+                | components["schemas"]["tokenFilteredgeGram"]
+                | components["schemas"]["TokenFilterEnglishPossessive"]
+                | components["schemas"]["TokenFilterFlattenGraph"]
+                | components["schemas"]["tokenFiltericuFolding"]
+                | components["schemas"]["tokenFiltericuNormalizer"]
+                | components["schemas"]["TokenFilterkStemming"]
+                | components["schemas"]["tokenFilterlength"]
+                | components["schemas"]["tokenFilterlowercase"]
+                | components["schemas"]["tokenFilternGram"]
+                | components["schemas"]["TokenFilterPorterStemming"]
+                | components["schemas"]["tokenFilterregex"]
+                | components["schemas"]["tokenFilterreverse"]
+                | components["schemas"]["tokenFiltershingle"]
+                | components["schemas"]["tokenFiltersnowballStemming"]
+                | components["schemas"]["TokenFilterSpanishPluralStemming"]
+                | components["schemas"]["TokenFilterStempel"]
+                | components["schemas"]["tokenFilterstopword"]
+                | components["schemas"]["tokenFiltertrim"]
+                | components["schemas"]["TokenFilterWordDelimiterGraph"]
+            )[];
             /** @description Tokenizer that you want to use to create tokens. Tokens determine how Atlas Search splits up text into discrete chunks for indexing. */
-            tokenizer: components["schemas"]["tokenizeredgeGram"] | components["schemas"]["tokenizerkeyword"] | components["schemas"]["tokenizernGram"] | components["schemas"]["tokenizerregexCaptureGroup"] | components["schemas"]["tokenizerregexSplit"] | components["schemas"]["tokenizerstandard"] | components["schemas"]["tokenizeruaxUrlEmail"] | components["schemas"]["tokenizerwhitespace"];
+            tokenizer:
+                | components["schemas"]["tokenizeredgeGram"]
+                | components["schemas"]["tokenizerkeyword"]
+                | components["schemas"]["tokenizernGram"]
+                | components["schemas"]["tokenizerregexCaptureGroup"]
+                | components["schemas"]["tokenizerregexSplit"]
+                | components["schemas"]["tokenizerstandard"]
+                | components["schemas"]["tokenizeruaxUrlEmail"]
+                | components["schemas"]["tokenizerwhitespace"];
         };
         /**
          * mappings
@@ -1180,7 +1431,19 @@ export interface components {
          * @description Atlas Streams AWS Regions.
          * @enum {string}
          */
-        ApiStreamsAWSRegionView: "SYDNEY_AUS" | "MUMBAI_IND" | "FRANKFURT_DEU" | "DUBLIN_IRL" | "LONDON_GBR" | "VIRGINIA_USA" | "OHIO_USA" | "OREGON_USA" | "SAOPAULO_BRA" | "MONTREAL_CAN" | "TOKYO_JPN" | "SINGAPORE_SGP";
+        ApiStreamsAWSRegionView:
+            | "SYDNEY_AUS"
+            | "MUMBAI_IND"
+            | "FRANKFURT_DEU"
+            | "DUBLIN_IRL"
+            | "LONDON_GBR"
+            | "VIRGINIA_USA"
+            | "OHIO_USA"
+            | "OREGON_USA"
+            | "SAOPAULO_BRA"
+            | "MONTREAL_CAN"
+            | "TOKYO_JPN"
+            | "SINGAPORE_SGP";
         /**
          * @description Atlas Streams Azure Regions.
          * @enum {string}
@@ -1271,7 +1534,18 @@ export interface components {
          * @example DEPLOYMENT_FAILURE
          * @enum {string}
          */
-        AppServiceEventTypeViewAlertable: "URL_CONFIRMATION" | "SUCCESSFUL_DEPLOY" | "DEPLOYMENT_FAILURE" | "DEPLOYMENT_MODEL_CHANGE_SUCCESS" | "DEPLOYMENT_MODEL_CHANGE_FAILURE" | "REQUEST_RATE_LIMIT" | "LOG_FORWARDER_FAILURE" | "OUTSIDE_REALM_METRIC_THRESHOLD" | "SYNC_FAILURE" | "TRIGGER_FAILURE" | "TRIGGER_AUTO_RESUMED";
+        AppServiceEventTypeViewAlertable:
+            | "URL_CONFIRMATION"
+            | "SUCCESSFUL_DEPLOY"
+            | "DEPLOYMENT_FAILURE"
+            | "DEPLOYMENT_MODEL_CHANGE_SUCCESS"
+            | "DEPLOYMENT_MODEL_CHANGE_FAILURE"
+            | "REQUEST_RATE_LIMIT"
+            | "LOG_FORWARDER_FAILURE"
+            | "OUTSIDE_REALM_METRIC_THRESHOLD"
+            | "SYNC_FAILURE"
+            | "TRIGGER_FAILURE"
+            | "TRIGGER_AUTO_RESUMED";
         /** @description Details that describe the organization. */
         AtlasOrganization: {
             /**
@@ -1359,7 +1633,67 @@ export interface components {
              * @description Azure region to which MongoDB Cloud deployed this network peering container.
              * @enum {string}
              */
-            region: "US_CENTRAL" | "US_EAST" | "US_EAST_2" | "US_EAST_2_EUAP" | "US_NORTH_CENTRAL" | "US_WEST" | "US_SOUTH_CENTRAL" | "EUROPE_NORTH" | "EUROPE_WEST" | "US_WEST_CENTRAL" | "US_WEST_2" | "US_WEST_3" | "CANADA_EAST" | "CANADA_CENTRAL" | "BRAZIL_SOUTH" | "BRAZIL_SOUTHEAST" | "AUSTRALIA_EAST" | "AUSTRALIA_SOUTH_EAST" | "AUSTRALIA_CENTRAL" | "AUSTRALIA_CENTRAL_2" | "UAE_NORTH" | "GERMANY_WEST_CENTRAL" | "GERMANY_NORTH" | "SWITZERLAND_NORTH" | "SWITZERLAND_WEST" | "SWEDEN_CENTRAL" | "SWEDEN_SOUTH" | "UK_SOUTH" | "UK_WEST" | "INDIA_CENTRAL" | "INDIA_WEST" | "INDIA_SOUTH" | "CHINA_EAST" | "CHINA_NORTH" | "ASIA_EAST" | "JAPAN_EAST" | "JAPAN_WEST" | "ASIA_SOUTH_EAST" | "KOREA_CENTRAL" | "KOREA_SOUTH" | "FRANCE_CENTRAL" | "FRANCE_SOUTH" | "SOUTH_AFRICA_NORTH" | "SOUTH_AFRICA_WEST" | "NORWAY_EAST" | "NORWAY_WEST" | "UAE_CENTRAL" | "QATAR_CENTRAL" | "POLAND_CENTRAL" | "ISRAEL_CENTRAL" | "ITALY_NORTH" | "SPAIN_CENTRAL" | "MEXICO_CENTRAL" | "NEW_ZEALAND_NORTH" | "INDONESIA_CENTRAL" | "MALAYSIA_WEST" | "CHILE_CENTRAL" | "US_GOV_VIRGINIA" | "US_GOV_ARIZONA" | "US_GOV_TEXAS";
+            region:
+                | "US_CENTRAL"
+                | "US_EAST"
+                | "US_EAST_2"
+                | "US_EAST_2_EUAP"
+                | "US_NORTH_CENTRAL"
+                | "US_WEST"
+                | "US_SOUTH_CENTRAL"
+                | "EUROPE_NORTH"
+                | "EUROPE_WEST"
+                | "US_WEST_CENTRAL"
+                | "US_WEST_2"
+                | "US_WEST_3"
+                | "CANADA_EAST"
+                | "CANADA_CENTRAL"
+                | "BRAZIL_SOUTH"
+                | "BRAZIL_SOUTHEAST"
+                | "AUSTRALIA_EAST"
+                | "AUSTRALIA_SOUTH_EAST"
+                | "AUSTRALIA_CENTRAL"
+                | "AUSTRALIA_CENTRAL_2"
+                | "UAE_NORTH"
+                | "GERMANY_WEST_CENTRAL"
+                | "GERMANY_NORTH"
+                | "SWITZERLAND_NORTH"
+                | "SWITZERLAND_WEST"
+                | "SWEDEN_CENTRAL"
+                | "SWEDEN_SOUTH"
+                | "UK_SOUTH"
+                | "UK_WEST"
+                | "INDIA_CENTRAL"
+                | "INDIA_WEST"
+                | "INDIA_SOUTH"
+                | "CHINA_EAST"
+                | "CHINA_NORTH"
+                | "ASIA_EAST"
+                | "JAPAN_EAST"
+                | "JAPAN_WEST"
+                | "ASIA_SOUTH_EAST"
+                | "KOREA_CENTRAL"
+                | "KOREA_SOUTH"
+                | "FRANCE_CENTRAL"
+                | "FRANCE_SOUTH"
+                | "SOUTH_AFRICA_NORTH"
+                | "SOUTH_AFRICA_WEST"
+                | "NORWAY_EAST"
+                | "NORWAY_WEST"
+                | "UAE_CENTRAL"
+                | "QATAR_CENTRAL"
+                | "POLAND_CENTRAL"
+                | "ISRAEL_CENTRAL"
+                | "ITALY_NORTH"
+                | "SPAIN_CENTRAL"
+                | "MEXICO_CENTRAL"
+                | "NEW_ZEALAND_NORTH"
+                | "INDONESIA_CENTRAL"
+                | "MALAYSIA_WEST"
+                | "CHILE_CENTRAL"
+                | "US_GOV_VIRGINIA"
+                | "US_GOV_ARIZONA"
+                | "US_GOV_TEXAS";
             /** @description Unique string that identifies the Azure VNet in which MongoDB Cloud clusters in this network peering container exist. The response returns **null** if no clusters exist in this network peering container. */
             readonly vnetName?: string;
         } & {
@@ -1387,13 +1721,91 @@ export interface components {
              * @description Cluster tier, with a default storage and memory capacity, that applies to all the data-bearing hosts in your cluster.
              * @enum {string}
              */
-            instanceSizeName?: "M10" | "M20" | "M30" | "M40" | "M50" | "M60" | "M80" | "M90" | "M200" | "R40" | "R50" | "R60" | "R80" | "R200" | "R300" | "R400" | "M60_NVME" | "M80_NVME" | "M200_NVME" | "M300_NVME" | "M400_NVME" | "M600_NVME";
+            instanceSizeName?:
+                | "M10"
+                | "M20"
+                | "M30"
+                | "M40"
+                | "M50"
+                | "M60"
+                | "M80"
+                | "M90"
+                | "M200"
+                | "R40"
+                | "R50"
+                | "R60"
+                | "R80"
+                | "R200"
+                | "R300"
+                | "R400"
+                | "M60_NVME"
+                | "M80_NVME"
+                | "M200_NVME"
+                | "M300_NVME"
+                | "M400_NVME"
+                | "M600_NVME";
             /**
              * Azure Regions
              * @description Microsoft Azure Regions.
              * @enum {string}
              */
-            regionName?: "US_CENTRAL" | "US_EAST" | "US_EAST_2" | "US_NORTH_CENTRAL" | "US_WEST" | "US_SOUTH_CENTRAL" | "EUROPE_NORTH" | "EUROPE_WEST" | "US_WEST_CENTRAL" | "US_WEST_2" | "US_WEST_3" | "CANADA_EAST" | "CANADA_CENTRAL" | "BRAZIL_SOUTH" | "BRAZIL_SOUTHEAST" | "AUSTRALIA_CENTRAL" | "AUSTRALIA_CENTRAL_2" | "AUSTRALIA_EAST" | "AUSTRALIA_SOUTH_EAST" | "GERMANY_WEST_CENTRAL" | "GERMANY_NORTH" | "SWEDEN_CENTRAL" | "SWEDEN_SOUTH" | "SWITZERLAND_NORTH" | "SWITZERLAND_WEST" | "UK_SOUTH" | "UK_WEST" | "NORWAY_EAST" | "NORWAY_WEST" | "INDIA_CENTRAL" | "INDIA_SOUTH" | "INDIA_WEST" | "CHINA_EAST" | "CHINA_NORTH" | "ASIA_EAST" | "JAPAN_EAST" | "JAPAN_WEST" | "ASIA_SOUTH_EAST" | "KOREA_CENTRAL" | "KOREA_SOUTH" | "FRANCE_CENTRAL" | "FRANCE_SOUTH" | "SOUTH_AFRICA_NORTH" | "SOUTH_AFRICA_WEST" | "UAE_CENTRAL" | "UAE_NORTH" | "QATAR_CENTRAL" | "POLAND_CENTRAL" | "ISRAEL_CENTRAL" | "ITALY_NORTH" | "SPAIN_CENTRAL" | "MEXICO_CENTRAL" | "NEW_ZEALAND_NORTH" | "US_GOV_VIRGINIA" | "US_GOV_ARIZONA" | "US_GOV_TEXAS";
+            regionName?:
+                | "US_CENTRAL"
+                | "US_EAST"
+                | "US_EAST_2"
+                | "US_NORTH_CENTRAL"
+                | "US_WEST"
+                | "US_SOUTH_CENTRAL"
+                | "EUROPE_NORTH"
+                | "EUROPE_WEST"
+                | "US_WEST_CENTRAL"
+                | "US_WEST_2"
+                | "US_WEST_3"
+                | "CANADA_EAST"
+                | "CANADA_CENTRAL"
+                | "BRAZIL_SOUTH"
+                | "BRAZIL_SOUTHEAST"
+                | "AUSTRALIA_CENTRAL"
+                | "AUSTRALIA_CENTRAL_2"
+                | "AUSTRALIA_EAST"
+                | "AUSTRALIA_SOUTH_EAST"
+                | "GERMANY_WEST_CENTRAL"
+                | "GERMANY_NORTH"
+                | "SWEDEN_CENTRAL"
+                | "SWEDEN_SOUTH"
+                | "SWITZERLAND_NORTH"
+                | "SWITZERLAND_WEST"
+                | "UK_SOUTH"
+                | "UK_WEST"
+                | "NORWAY_EAST"
+                | "NORWAY_WEST"
+                | "INDIA_CENTRAL"
+                | "INDIA_SOUTH"
+                | "INDIA_WEST"
+                | "CHINA_EAST"
+                | "CHINA_NORTH"
+                | "ASIA_EAST"
+                | "JAPAN_EAST"
+                | "JAPAN_WEST"
+                | "ASIA_SOUTH_EAST"
+                | "KOREA_CENTRAL"
+                | "KOREA_SOUTH"
+                | "FRANCE_CENTRAL"
+                | "FRANCE_SOUTH"
+                | "SOUTH_AFRICA_NORTH"
+                | "SOUTH_AFRICA_WEST"
+                | "UAE_CENTRAL"
+                | "UAE_NORTH"
+                | "QATAR_CENTRAL"
+                | "POLAND_CENTRAL"
+                | "ISRAEL_CENTRAL"
+                | "ITALY_NORTH"
+                | "SPAIN_CENTRAL"
+                | "MEXICO_CENTRAL"
+                | "NEW_ZEALAND_NORTH"
+                | "US_GOV_VIRGINIA"
+                | "US_GOV_ARIZONA"
+                | "US_GOV_TEXAS";
         } & {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -1417,15 +1829,62 @@ export interface components {
              * @description Maximum instance size to which your cluster can automatically scale.
              * @enum {string}
              */
-            maxInstanceSize?: "M10" | "M20" | "M30" | "M40" | "M50" | "M60" | "M80" | "M90" | "M200" | "R40" | "R50" | "R60" | "R80" | "R200" | "R300" | "R400" | "M60_NVME" | "M80_NVME" | "M200_NVME" | "M300_NVME" | "M400_NVME" | "M600_NVME";
+            maxInstanceSize?:
+                | "M10"
+                | "M20"
+                | "M30"
+                | "M40"
+                | "M50"
+                | "M60"
+                | "M80"
+                | "M90"
+                | "M200"
+                | "R40"
+                | "R50"
+                | "R60"
+                | "R80"
+                | "R200"
+                | "R300"
+                | "R400"
+                | "M60_NVME"
+                | "M80_NVME"
+                | "M200_NVME"
+                | "M300_NVME"
+                | "M400_NVME"
+                | "M600_NVME";
             /**
              * Azure Instance Sizes
              * @description Minimum instance size to which your cluster can automatically scale.
              * @enum {string}
              */
-            minInstanceSize?: "M10" | "M20" | "M30" | "M40" | "M50" | "M60" | "M80" | "M90" | "M200" | "R40" | "R50" | "R60" | "R80" | "R200" | "R300" | "R400" | "M60_NVME" | "M80_NVME" | "M200_NVME" | "M300_NVME" | "M400_NVME" | "M600_NVME";
+            minInstanceSize?:
+                | "M10"
+                | "M20"
+                | "M30"
+                | "M40"
+                | "M50"
+                | "M60"
+                | "M80"
+                | "M90"
+                | "M200"
+                | "R40"
+                | "R50"
+                | "R60"
+                | "R80"
+                | "R200"
+                | "R300"
+                | "R400"
+                | "M60_NVME"
+                | "M80_NVME"
+                | "M200_NVME"
+                | "M300_NVME"
+                | "M400_NVME"
+                | "M600_NVME";
         };
-        AzureCreateDataProcessRegionView: Omit<components["schemas"]["CreateDataProcessRegionView"], "cloudProvider"> & {
+        AzureCreateDataProcessRegionView: Omit<
+            components["schemas"]["CreateDataProcessRegionView"],
+            "cloudProvider"
+        > & {
             /**
              * @description Human-readable label that identifies the geographic location of the region where you wish to store your archived data.
              * @enum {string}
@@ -1486,7 +1945,29 @@ export interface components {
              * @description Hardware specification for the instance sizes in this region in this shard. Each instance size has a default storage and memory capacity. Electable nodes and read-only nodes (known as "base nodes") within a single shard must use the same instance size. Analytics nodes can scale independently from base nodes within a shard. Both base nodes and analytics nodes can scale independently from their equivalents in other shards.
              * @enum {string}
              */
-            instanceSize?: "M10" | "M20" | "M30" | "M40" | "M50" | "M60" | "M80" | "M90" | "M200" | "R40" | "R50" | "R60" | "R80" | "R200" | "R300" | "R400" | "M60_NVME" | "M80_NVME" | "M200_NVME" | "M300_NVME" | "M400_NVME" | "M600_NVME";
+            instanceSize?:
+                | "M10"
+                | "M20"
+                | "M30"
+                | "M40"
+                | "M50"
+                | "M60"
+                | "M80"
+                | "M90"
+                | "M200"
+                | "R40"
+                | "R50"
+                | "R60"
+                | "R80"
+                | "R200"
+                | "R300"
+                | "R400"
+                | "M60_NVME"
+                | "M80_NVME"
+                | "M200_NVME"
+                | "M300_NVME"
+                | "M400_NVME"
+                | "M600_NVME";
             /**
              * Format: int32
              * @description Number of nodes of the given type for MongoDB Cloud to deploy to the region.
@@ -1497,7 +1978,10 @@ export interface components {
          * Azure Log Export Integration Request
          * @description Request schema for creating or updating an Azure Blob Storage log export integration.
          */
-        AzureLogIntegrationRequest: Omit<WithRequired<components["schemas"]["LogIntegrationRequest"], "logTypes" | "type">, "type"> & {
+        AzureLogIntegrationRequest: Omit<
+            WithRequired<components["schemas"]["LogIntegrationRequest"], "logTypes" | "type">,
+            "type"
+        > & {
             /**
              * @description Path prefix where the log files will be stored. Atlas will add further sub-directories based on the log type.
              * @example logs/mongodb/
@@ -1540,7 +2024,10 @@ export interface components {
          * Azure Log Export Integration Response
          * @description Details to integrate Azure Blob Storage log export with one Atlas project.
          */
-        AzureLogIntegrationResponse: Omit<WithRequired<components["schemas"]["LogIntegrationResponse"], "id" | "logTypes" | "type">, "type"> & {
+        AzureLogIntegrationResponse: Omit<
+            WithRequired<components["schemas"]["LogIntegrationResponse"], "id" | "logTypes" | "type">,
+            "type"
+        > & {
             /**
              * @description Path prefix where the log files will be stored. Atlas will add further sub-directories based on the log type.
              * @example logs/mongodb/
@@ -1610,9 +2097,85 @@ export interface components {
             fields?: components["schemas"]["FieldViolation"][];
         };
         /** @description Instance size boundary to which your cluster can automatically scale. */
-        BaseCloudProviderInstanceSize: ("M10" | "M20" | "M30" | "M40" | "M50" | "M60" | "M80" | "M100" | "M140" | "M200" | "M300" | "R40" | "R50" | "R60" | "R80" | "R200" | "R300" | "R400" | "R700" | "M40_NVME" | "M50_NVME" | "M60_NVME" | "M80_NVME" | "M200_NVME" | "M400_NVME") | ("M10" | "M20" | "M30" | "M40" | "M50" | "M60" | "M80" | "M90" | "M200" | "R40" | "R50" | "R60" | "R80" | "R200" | "R300" | "R400" | "M60_NVME" | "M80_NVME" | "M200_NVME" | "M300_NVME" | "M400_NVME" | "M600_NVME") | ("M10" | "M20" | "M30" | "M40" | "M50" | "M60" | "M80" | "M140" | "M200" | "M250" | "M300" | "M400" | "R40" | "R50" | "R60" | "R80" | "R200" | "R300" | "R400" | "R600");
+        BaseCloudProviderInstanceSize:
+            | (
+                  | "M10"
+                  | "M20"
+                  | "M30"
+                  | "M40"
+                  | "M50"
+                  | "M60"
+                  | "M80"
+                  | "M100"
+                  | "M140"
+                  | "M200"
+                  | "M300"
+                  | "R40"
+                  | "R50"
+                  | "R60"
+                  | "R80"
+                  | "R200"
+                  | "R300"
+                  | "R400"
+                  | "R700"
+                  | "M40_NVME"
+                  | "M50_NVME"
+                  | "M60_NVME"
+                  | "M80_NVME"
+                  | "M200_NVME"
+                  | "M400_NVME"
+              )
+            | (
+                  | "M10"
+                  | "M20"
+                  | "M30"
+                  | "M40"
+                  | "M50"
+                  | "M60"
+                  | "M80"
+                  | "M90"
+                  | "M200"
+                  | "R40"
+                  | "R50"
+                  | "R60"
+                  | "R80"
+                  | "R200"
+                  | "R300"
+                  | "R400"
+                  | "M60_NVME"
+                  | "M80_NVME"
+                  | "M200_NVME"
+                  | "M300_NVME"
+                  | "M400_NVME"
+                  | "M600_NVME"
+              )
+            | (
+                  | "M10"
+                  | "M20"
+                  | "M30"
+                  | "M40"
+                  | "M50"
+                  | "M60"
+                  | "M80"
+                  | "M140"
+                  | "M200"
+                  | "M250"
+                  | "M300"
+                  | "M400"
+                  | "R40"
+                  | "R50"
+                  | "R60"
+                  | "R80"
+                  | "R200"
+                  | "R300"
+                  | "R400"
+                  | "R600"
+              );
         /** @description Name of the cloud provider region hosting Atlas Stream Processing. */
-        BaseStreamsRegion: components["schemas"]["ApiStreamsAWSRegionView"] | components["schemas"]["ApiStreamsAzureRegionView"] | components["schemas"]["ApiStreamsGCPRegionView"];
+        BaseStreamsRegion:
+            | components["schemas"]["ApiStreamsAWSRegionView"]
+            | components["schemas"]["ApiStreamsAzureRegionView"]
+            | components["schemas"]["ApiStreamsGCPRegionView"];
         BasicDBObject: {
             [key: string]: Record<string, never>;
         };
@@ -1841,7 +2404,18 @@ export interface components {
              *     - `PARTIAL_PAID`: Customer paid for part of this line item.
              * @enum {string}
              */
-            statusName?: "NEW" | "FORGIVEN" | "FAILED" | "PAID" | "PARTIAL_PAID" | "CANCELLED" | "INVOICED" | "FAILED_AUTHENTICATION" | "PROCESSING" | "PENDING_REVERSAL" | "REFUNDED";
+            statusName?:
+                | "NEW"
+                | "FORGIVEN"
+                | "FAILED"
+                | "PAID"
+                | "PARTIAL_PAID"
+                | "CANCELLED"
+                | "INVOICED"
+                | "FAILED_AUTHENTICATION"
+                | "PROCESSING"
+                | "PENDING_REVERSAL"
+                | "REFUNDED";
             /**
              * Format: int64
              * @description Sum of all positive invoice line items contained in this invoice. This parameter expresses its value in cents (100ths of one US Dollar).
@@ -1997,13 +2571,83 @@ export interface components {
              * @description Cluster tier, with a default storage and memory capacity, that applies to all the data-bearing hosts in your cluster.
              * @enum {string}
              */
-            instanceSizeName?: "M10" | "M20" | "M30" | "M40" | "M50" | "M60" | "M80" | "M140" | "M200" | "M250" | "M300" | "M400" | "R40" | "R50" | "R60" | "R80" | "R200" | "R300" | "R400" | "R600";
+            instanceSizeName?:
+                | "M10"
+                | "M20"
+                | "M30"
+                | "M40"
+                | "M50"
+                | "M60"
+                | "M80"
+                | "M140"
+                | "M200"
+                | "M250"
+                | "M300"
+                | "M400"
+                | "R40"
+                | "R50"
+                | "R60"
+                | "R80"
+                | "R200"
+                | "R300"
+                | "R400"
+                | "R600";
             /**
              * GCP Regions
              * @description Google Compute Regions.
              * @enum {string}
              */
-            regionName?: "EASTERN_US" | "EASTERN_US_AW" | "US_EAST_4" | "US_EAST_4_AW" | "US_EAST_5" | "US_EAST_5_AW" | "US_WEST_2" | "US_WEST_2_AW" | "US_WEST_3" | "US_WEST_3_AW" | "US_WEST_4" | "US_WEST_4_AW" | "US_SOUTH_1" | "US_SOUTH_1_AW" | "CENTRAL_US" | "CENTRAL_US_AW" | "WESTERN_US" | "WESTERN_US_AW" | "NORTH_AMERICA_NORTHEAST_1" | "NORTH_AMERICA_NORTHEAST_2" | "NORTH_AMERICA_SOUTH_1" | "SOUTH_AMERICA_EAST_1" | "SOUTH_AMERICA_WEST_1" | "WESTERN_EUROPE" | "EUROPE_NORTH_1" | "EUROPE_WEST_2" | "EUROPE_WEST_3" | "EUROPE_WEST_4" | "EUROPE_WEST_6" | "EUROPE_WEST_8" | "EUROPE_WEST_9" | "EUROPE_WEST_10" | "EUROPE_WEST_12" | "EUROPE_SOUTHWEST_1" | "EUROPE_CENTRAL_2" | "MIDDLE_EAST_CENTRAL_1" | "MIDDLE_EAST_CENTRAL_2" | "MIDDLE_EAST_WEST_1" | "AUSTRALIA_SOUTHEAST_1" | "AUSTRALIA_SOUTHEAST_2" | "AFRICA_SOUTH_1" | "EASTERN_ASIA_PACIFIC" | "NORTHEASTERN_ASIA_PACIFIC" | "SOUTHEASTERN_ASIA_PACIFIC" | "ASIA_EAST_2" | "ASIA_NORTHEAST_2" | "ASIA_NORTHEAST_3" | "ASIA_SOUTH_1" | "ASIA_SOUTH_2" | "ASIA_SOUTHEAST_2";
+            regionName?:
+                | "EASTERN_US"
+                | "EASTERN_US_AW"
+                | "US_EAST_4"
+                | "US_EAST_4_AW"
+                | "US_EAST_5"
+                | "US_EAST_5_AW"
+                | "US_WEST_2"
+                | "US_WEST_2_AW"
+                | "US_WEST_3"
+                | "US_WEST_3_AW"
+                | "US_WEST_4"
+                | "US_WEST_4_AW"
+                | "US_SOUTH_1"
+                | "US_SOUTH_1_AW"
+                | "CENTRAL_US"
+                | "CENTRAL_US_AW"
+                | "WESTERN_US"
+                | "WESTERN_US_AW"
+                | "NORTH_AMERICA_NORTHEAST_1"
+                | "NORTH_AMERICA_NORTHEAST_2"
+                | "NORTH_AMERICA_SOUTH_1"
+                | "SOUTH_AMERICA_EAST_1"
+                | "SOUTH_AMERICA_WEST_1"
+                | "WESTERN_EUROPE"
+                | "EUROPE_NORTH_1"
+                | "EUROPE_WEST_2"
+                | "EUROPE_WEST_3"
+                | "EUROPE_WEST_4"
+                | "EUROPE_WEST_6"
+                | "EUROPE_WEST_8"
+                | "EUROPE_WEST_9"
+                | "EUROPE_WEST_10"
+                | "EUROPE_WEST_12"
+                | "EUROPE_SOUTHWEST_1"
+                | "EUROPE_CENTRAL_2"
+                | "MIDDLE_EAST_CENTRAL_1"
+                | "MIDDLE_EAST_CENTRAL_2"
+                | "MIDDLE_EAST_WEST_1"
+                | "AUSTRALIA_SOUTHEAST_1"
+                | "AUSTRALIA_SOUTHEAST_2"
+                | "AFRICA_SOUTH_1"
+                | "EASTERN_ASIA_PACIFIC"
+                | "NORTHEASTERN_ASIA_PACIFIC"
+                | "SOUTHEASTERN_ASIA_PACIFIC"
+                | "ASIA_EAST_2"
+                | "ASIA_NORTHEAST_2"
+                | "ASIA_NORTHEAST_3"
+                | "ASIA_SOUTH_1"
+                | "ASIA_SOUTH_2"
+                | "ASIA_SOUTHEAST_2";
         } & {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -2022,7 +2666,10 @@ export interface components {
             compute?: components["schemas"]["AWSComputeAutoScaling"];
         };
         /** @description Details that describe the features linked to the Amazon Web Services (AWS) Identity and Access Management (IAM) role. */
-        CloudProviderAccessAWSIAMRole: Omit<WithRequired<components["schemas"]["CloudProviderAccessRole"], "providerName">, "providerName"> & {
+        CloudProviderAccessAWSIAMRole: Omit<
+            WithRequired<components["schemas"]["CloudProviderAccessRole"], "providerName">,
+            "providerName"
+        > & {
             /**
              * @description Amazon Resource Name that identifies the Amazon Web Services (AWS) user account that MongoDB Cloud uses when it assumes the Identity and Access Management (IAM) role.
              * @example arn:aws:iam::772401394250:role/my-test-aws-role
@@ -2069,7 +2716,10 @@ export interface components {
             providerName: "AWS";
         };
         /** @description Details that describe the features linked to the Amazon Web Services (AWS) Identity and Access Management (IAM) role. */
-        CloudProviderAccessAWSIAMRoleRequestUpdate: Omit<WithRequired<components["schemas"]["CloudProviderAccessRoleRequestUpdate"], "providerName">, "providerName"> & {
+        CloudProviderAccessAWSIAMRoleRequestUpdate: Omit<
+            WithRequired<components["schemas"]["CloudProviderAccessRoleRequestUpdate"], "providerName">,
+            "providerName"
+        > & {
             /**
              * @description Amazon Resource Name that identifies the Amazon Web Services (AWS) user account that MongoDB Cloud uses when it assumes the Identity and Access Management (IAM) role.
              * @example arn:aws:iam::772401394250:role/my-test-aws-role
@@ -2110,7 +2760,10 @@ export interface components {
             providerName: "AWS";
         };
         /** @description Details that describe the Atlas log integration linked to this cloud provider access role. */
-        CloudProviderAccessAtlasLogIntegrationFeatureUsage: Omit<components["schemas"]["CloudProviderAccessFeatureUsage"], "featureType"> & {
+        CloudProviderAccessAtlasLogIntegrationFeatureUsage: Omit<
+            components["schemas"]["CloudProviderAccessFeatureUsage"],
+            "featureType"
+        > & {
             featureId?: components["schemas"]["CloudProviderAccessFeatureUsageAtlasLogIntegrationFeatureId"];
         } & {
             /**
@@ -2120,7 +2773,10 @@ export interface components {
             featureType: "ATLAS_LOG_INTEGRATION";
         };
         /** @description Details that describe the features linked to the Azure Service Principal. */
-        CloudProviderAccessAzureServicePrincipal: Omit<WithRequired<components["schemas"]["CloudProviderAccessRole"], "providerName">, "providerName"> & {
+        CloudProviderAccessAzureServicePrincipal: Omit<
+            WithRequired<components["schemas"]["CloudProviderAccessRole"], "providerName">,
+            "providerName"
+        > & {
             /**
              * @description Unique 24-hexadecimal digit string that identifies the role.
              * @example 32b6e34b3d91647abb20e7b8
@@ -2167,7 +2823,10 @@ export interface components {
             providerName: "AZURE";
         };
         /** @description Details that describe the features linked to the Azure Service Principal. */
-        CloudProviderAccessAzureServicePrincipalRequestUpdate: Omit<WithRequired<components["schemas"]["CloudProviderAccessRoleRequestUpdate"], "providerName">, "providerName"> & {
+        CloudProviderAccessAzureServicePrincipalRequestUpdate: Omit<
+            WithRequired<components["schemas"]["CloudProviderAccessRoleRequestUpdate"], "providerName">,
+            "providerName"
+        > & {
             /**
              * @description Unique 24-hexadecimal digit string that identifies the role.
              * @example 32b6e34b3d91647abb20e7b8
@@ -2208,7 +2867,10 @@ export interface components {
             providerName: "AZURE";
         };
         /** @description Details that describe the Atlas Data Lakes linked to this Amazon Web Services (AWS) Identity and Access Management (IAM) role. */
-        CloudProviderAccessDataLakeFeatureUsage: Omit<components["schemas"]["CloudProviderAccessFeatureUsage"], "featureType"> & {
+        CloudProviderAccessDataLakeFeatureUsage: Omit<
+            components["schemas"]["CloudProviderAccessFeatureUsage"],
+            "featureType"
+        > & {
             featureId?: components["schemas"]["CloudProviderAccessFeatureUsageDataLakeFeatureId"];
         } & {
             /**
@@ -2218,7 +2880,10 @@ export interface components {
             featureType: "ATLAS_DATA_LAKE";
         };
         /** @description Details that describe the Key Management Service (KMS) linked to this Amazon Web Services (AWS) Identity and Access Management (IAM) role. */
-        CloudProviderAccessEncryptionAtRestFeatureUsage: Omit<components["schemas"]["CloudProviderAccessFeatureUsage"], "featureType"> & {
+        CloudProviderAccessEncryptionAtRestFeatureUsage: Omit<
+            components["schemas"]["CloudProviderAccessFeatureUsage"],
+            "featureType"
+        > & {
             featureId?: components["schemas"]["ApiAtlasCloudProviderAccessFeatureUsageFeatureIdView"];
         } & {
             /**
@@ -2228,7 +2893,10 @@ export interface components {
             featureType: "ENCRYPTION_AT_REST";
         };
         /** @description Details that describe the Amazon Web Services (AWS) Simple Storage Service (S3) export buckets linked to this AWS Identity and Access Management (IAM) role. */
-        CloudProviderAccessExportSnapshotFeatureUsage: Omit<components["schemas"]["CloudProviderAccessFeatureUsage"], "featureType"> & {
+        CloudProviderAccessExportSnapshotFeatureUsage: Omit<
+            components["schemas"]["CloudProviderAccessFeatureUsage"],
+            "featureType"
+        > & {
             featureId?: components["schemas"]["CloudProviderAccessFeatureUsageExportSnapshotFeatureId"];
         } & {
             /**
@@ -2243,7 +2911,12 @@ export interface components {
              * @description Human-readable label that describes one MongoDB Cloud feature linked to this Amazon Web Services (AWS) Identity and Access Management (IAM) role.
              * @enum {string}
              */
-            readonly featureType?: "ATLAS_DATA_LAKE" | "ENCRYPTION_AT_REST" | "EXPORT_SNAPSHOT" | "PUSH_BASED_LOG_EXPORT" | "ATLAS_LOG_INTEGRATION";
+            readonly featureType?:
+                | "ATLAS_DATA_LAKE"
+                | "ENCRYPTION_AT_REST"
+                | "EXPORT_SNAPSHOT"
+                | "PUSH_BASED_LOG_EXPORT"
+                | "ATLAS_LOG_INTEGRATION";
         };
         /** @description Identifying characteristics about the Atlas log integration linked to this cloud provider access role. */
         CloudProviderAccessFeatureUsageAtlasLogIntegrationFeatureId: {
@@ -2294,7 +2967,10 @@ export interface components {
             readonly groupId?: string;
         };
         /** @description Details that describe the features linked to the GCP Service Account. */
-        CloudProviderAccessGCPServiceAccount: Omit<WithRequired<components["schemas"]["CloudProviderAccessRole"], "providerName">, "providerName"> & {
+        CloudProviderAccessGCPServiceAccount: Omit<
+            WithRequired<components["schemas"]["CloudProviderAccessRole"], "providerName">,
+            "providerName"
+        > & {
             /**
              * Format: date-time
              * @description Date and time when this Google Service Account was created. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
@@ -2328,7 +3004,10 @@ export interface components {
             providerName: "GCP";
         };
         /** @description Details that describe the features linked to the GCP Service Account. */
-        CloudProviderAccessGCPServiceAccountRequestUpdate: Omit<WithRequired<components["schemas"]["CloudProviderAccessRoleRequestUpdate"], "providerName">, "providerName"> & {
+        CloudProviderAccessGCPServiceAccountRequestUpdate: Omit<
+            WithRequired<components["schemas"]["CloudProviderAccessRoleRequestUpdate"], "providerName">,
+            "providerName"
+        > & {
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -2336,7 +3015,10 @@ export interface components {
             providerName: "GCP";
         };
         /** @description Details that describe the Amazon Web Services (AWS) Simple Storage Service (S3) export buckets linked to this AWS Identity and Access Management (IAM) role. */
-        CloudProviderAccessPushBasedLogExportFeatureUsage: Omit<components["schemas"]["CloudProviderAccessFeatureUsage"], "featureType"> & {
+        CloudProviderAccessPushBasedLogExportFeatureUsage: Omit<
+            components["schemas"]["CloudProviderAccessFeatureUsage"],
+            "featureType"
+        > & {
             featureId?: components["schemas"]["CloudProviderAccessFeatureUsagePushBasedLogExportFeatureId"];
         } & {
             /**
@@ -2352,7 +3034,11 @@ export interface components {
              * @enum {string}
              */
             providerName: "AWS" | "AZURE" | "GCP";
-        } & (components["schemas"]["CloudProviderAccessAWSIAMRole"] | components["schemas"]["CloudProviderAccessAzureServicePrincipal"] | components["schemas"]["CloudProviderAccessGCPServiceAccount"]);
+        } & (
+            | components["schemas"]["CloudProviderAccessAWSIAMRole"]
+            | components["schemas"]["CloudProviderAccessAzureServicePrincipal"]
+            | components["schemas"]["CloudProviderAccessGCPServiceAccount"]
+        );
         /** @description Cloud provider access role. */
         CloudProviderAccessRoleRequestUpdate: {
             /**
@@ -2379,7 +3065,11 @@ export interface components {
             providerName?: "AWS" | "GCP" | "AZURE" | "TENANT" | "SERVERLESS";
             /** @description Flag that indicates whether MongoDB Cloud clusters exist in the specified network peering container. */
             readonly provisioned?: boolean;
-        } & (components["schemas"]["AzureCloudProviderContainer"] | components["schemas"]["GCPCloudProviderContainer"] | components["schemas"]["AWSCloudProviderContainer"]);
+        } & (
+            | components["schemas"]["AzureCloudProviderContainer"]
+            | components["schemas"]["GCPCloudProviderContainer"]
+            | components["schemas"]["AWSCloudProviderContainer"]
+        );
         /** @description Range of instance sizes to which your cluster can scale. */
         CloudProviderGCPAutoScaling: {
             compute?: components["schemas"]["GCPComputeAutoScaling"];
@@ -2403,8 +3093,164 @@ export interface components {
              */
             providerName?: "AWS" | "AZURE" | "GCP" | "TENANT";
             /** @description Physical location of your MongoDB cluster nodes. The region you choose can affect network latency for clients accessing your databases. The region name is only returned in the response for single-region clusters. When MongoDB Cloud deploys a dedicated cluster, it checks if a VPC or VPC connection exists for that provider and region. If not, MongoDB Cloud creates them as part of the deployment. It assigns the VPC a Classless Inter-Domain Routing (CIDR) block. To limit a new VPC peering connection to one Classless Inter-Domain Routing (CIDR) block and region, create the connection first. Deploy the cluster after the connection starts. GCP Clusters and Multi-region clusters require one VPC peering connection for each region. MongoDB nodes can use only the peering connection that resides in the same region as the nodes to communicate with the peered VPC. */
-            regionName?: ("US_GOV_WEST_1" | "US_GOV_EAST_1" | "US_EAST_1" | "US_EAST_2" | "US_WEST_1" | "US_WEST_2" | "CA_CENTRAL_1" | "EU_NORTH_1" | "EU_WEST_1" | "EU_WEST_2" | "EU_WEST_3" | "EU_CENTRAL_1" | "EU_CENTRAL_2" | "AP_EAST_1" | "AP_EAST_2" | "AP_NORTHEAST_1" | "AP_NORTHEAST_2" | "AP_NORTHEAST_3" | "AP_SOUTHEAST_1" | "AP_SOUTHEAST_2" | "AP_SOUTHEAST_3" | "AP_SOUTHEAST_4" | "AP_SOUTHEAST_5" | "AP_SOUTHEAST_6" | "AP_SOUTHEAST_7" | "AP_SOUTH_1" | "AP_SOUTH_2" | "SA_EAST_1" | "CN_NORTH_1" | "CN_NORTHWEST_1" | "ME_SOUTH_1" | "ME_CENTRAL_1" | "AF_SOUTH_1" | "EU_SOUTH_1" | "EU_SOUTH_2" | "IL_CENTRAL_1" | "CA_WEST_1" | "MX_CENTRAL_1" | "GLOBAL") | ("US_CENTRAL" | "US_EAST" | "US_EAST_2" | "US_NORTH_CENTRAL" | "US_WEST" | "US_SOUTH_CENTRAL" | "EUROPE_NORTH" | "EUROPE_WEST" | "US_WEST_CENTRAL" | "US_WEST_2" | "US_WEST_3" | "CANADA_EAST" | "CANADA_CENTRAL" | "BRAZIL_SOUTH" | "BRAZIL_SOUTHEAST" | "AUSTRALIA_CENTRAL" | "AUSTRALIA_CENTRAL_2" | "AUSTRALIA_EAST" | "AUSTRALIA_SOUTH_EAST" | "GERMANY_WEST_CENTRAL" | "GERMANY_NORTH" | "SWEDEN_CENTRAL" | "SWEDEN_SOUTH" | "SWITZERLAND_NORTH" | "SWITZERLAND_WEST" | "UK_SOUTH" | "UK_WEST" | "NORWAY_EAST" | "NORWAY_WEST" | "INDIA_CENTRAL" | "INDIA_SOUTH" | "INDIA_WEST" | "CHINA_EAST" | "CHINA_NORTH" | "ASIA_EAST" | "JAPAN_EAST" | "JAPAN_WEST" | "ASIA_SOUTH_EAST" | "KOREA_CENTRAL" | "KOREA_SOUTH" | "FRANCE_CENTRAL" | "FRANCE_SOUTH" | "SOUTH_AFRICA_NORTH" | "SOUTH_AFRICA_WEST" | "UAE_CENTRAL" | "UAE_NORTH" | "QATAR_CENTRAL" | "POLAND_CENTRAL" | "ISRAEL_CENTRAL" | "ITALY_NORTH" | "SPAIN_CENTRAL" | "MEXICO_CENTRAL" | "NEW_ZEALAND_NORTH" | "US_GOV_VIRGINIA" | "US_GOV_ARIZONA" | "US_GOV_TEXAS") | ("EASTERN_US" | "EASTERN_US_AW" | "US_EAST_4" | "US_EAST_4_AW" | "US_EAST_5" | "US_EAST_5_AW" | "US_WEST_2" | "US_WEST_2_AW" | "US_WEST_3" | "US_WEST_3_AW" | "US_WEST_4" | "US_WEST_4_AW" | "US_SOUTH_1" | "US_SOUTH_1_AW" | "CENTRAL_US" | "CENTRAL_US_AW" | "WESTERN_US" | "WESTERN_US_AW" | "NORTH_AMERICA_NORTHEAST_1" | "NORTH_AMERICA_NORTHEAST_2" | "NORTH_AMERICA_SOUTH_1" | "SOUTH_AMERICA_EAST_1" | "SOUTH_AMERICA_WEST_1" | "WESTERN_EUROPE" | "EUROPE_NORTH_1" | "EUROPE_WEST_2" | "EUROPE_WEST_3" | "EUROPE_WEST_4" | "EUROPE_WEST_6" | "EUROPE_WEST_8" | "EUROPE_WEST_9" | "EUROPE_WEST_10" | "EUROPE_WEST_12" | "EUROPE_SOUTHWEST_1" | "EUROPE_CENTRAL_2" | "MIDDLE_EAST_CENTRAL_1" | "MIDDLE_EAST_CENTRAL_2" | "MIDDLE_EAST_WEST_1" | "AUSTRALIA_SOUTHEAST_1" | "AUSTRALIA_SOUTHEAST_2" | "AFRICA_SOUTH_1" | "EASTERN_ASIA_PACIFIC" | "NORTHEASTERN_ASIA_PACIFIC" | "SOUTHEASTERN_ASIA_PACIFIC" | "ASIA_EAST_2" | "ASIA_NORTHEAST_2" | "ASIA_NORTHEAST_3" | "ASIA_SOUTH_1" | "ASIA_SOUTH_2" | "ASIA_SOUTHEAST_2");
-        } & (components["schemas"]["AWSRegionConfig20240805"] | components["schemas"]["AzureRegionConfig20240805"] | components["schemas"]["GCPRegionConfig20240805"] | components["schemas"]["TenantRegionConfig20240805"]);
+            regionName?:
+                | (
+                      | "US_GOV_WEST_1"
+                      | "US_GOV_EAST_1"
+                      | "US_EAST_1"
+                      | "US_EAST_2"
+                      | "US_WEST_1"
+                      | "US_WEST_2"
+                      | "CA_CENTRAL_1"
+                      | "EU_NORTH_1"
+                      | "EU_WEST_1"
+                      | "EU_WEST_2"
+                      | "EU_WEST_3"
+                      | "EU_CENTRAL_1"
+                      | "EU_CENTRAL_2"
+                      | "AP_EAST_1"
+                      | "AP_EAST_2"
+                      | "AP_NORTHEAST_1"
+                      | "AP_NORTHEAST_2"
+                      | "AP_NORTHEAST_3"
+                      | "AP_SOUTHEAST_1"
+                      | "AP_SOUTHEAST_2"
+                      | "AP_SOUTHEAST_3"
+                      | "AP_SOUTHEAST_4"
+                      | "AP_SOUTHEAST_5"
+                      | "AP_SOUTHEAST_6"
+                      | "AP_SOUTHEAST_7"
+                      | "AP_SOUTH_1"
+                      | "AP_SOUTH_2"
+                      | "SA_EAST_1"
+                      | "CN_NORTH_1"
+                      | "CN_NORTHWEST_1"
+                      | "ME_SOUTH_1"
+                      | "ME_CENTRAL_1"
+                      | "AF_SOUTH_1"
+                      | "EU_SOUTH_1"
+                      | "EU_SOUTH_2"
+                      | "IL_CENTRAL_1"
+                      | "CA_WEST_1"
+                      | "MX_CENTRAL_1"
+                      | "GLOBAL"
+                  )
+                | (
+                      | "US_CENTRAL"
+                      | "US_EAST"
+                      | "US_EAST_2"
+                      | "US_NORTH_CENTRAL"
+                      | "US_WEST"
+                      | "US_SOUTH_CENTRAL"
+                      | "EUROPE_NORTH"
+                      | "EUROPE_WEST"
+                      | "US_WEST_CENTRAL"
+                      | "US_WEST_2"
+                      | "US_WEST_3"
+                      | "CANADA_EAST"
+                      | "CANADA_CENTRAL"
+                      | "BRAZIL_SOUTH"
+                      | "BRAZIL_SOUTHEAST"
+                      | "AUSTRALIA_CENTRAL"
+                      | "AUSTRALIA_CENTRAL_2"
+                      | "AUSTRALIA_EAST"
+                      | "AUSTRALIA_SOUTH_EAST"
+                      | "GERMANY_WEST_CENTRAL"
+                      | "GERMANY_NORTH"
+                      | "SWEDEN_CENTRAL"
+                      | "SWEDEN_SOUTH"
+                      | "SWITZERLAND_NORTH"
+                      | "SWITZERLAND_WEST"
+                      | "UK_SOUTH"
+                      | "UK_WEST"
+                      | "NORWAY_EAST"
+                      | "NORWAY_WEST"
+                      | "INDIA_CENTRAL"
+                      | "INDIA_SOUTH"
+                      | "INDIA_WEST"
+                      | "CHINA_EAST"
+                      | "CHINA_NORTH"
+                      | "ASIA_EAST"
+                      | "JAPAN_EAST"
+                      | "JAPAN_WEST"
+                      | "ASIA_SOUTH_EAST"
+                      | "KOREA_CENTRAL"
+                      | "KOREA_SOUTH"
+                      | "FRANCE_CENTRAL"
+                      | "FRANCE_SOUTH"
+                      | "SOUTH_AFRICA_NORTH"
+                      | "SOUTH_AFRICA_WEST"
+                      | "UAE_CENTRAL"
+                      | "UAE_NORTH"
+                      | "QATAR_CENTRAL"
+                      | "POLAND_CENTRAL"
+                      | "ISRAEL_CENTRAL"
+                      | "ITALY_NORTH"
+                      | "SPAIN_CENTRAL"
+                      | "MEXICO_CENTRAL"
+                      | "NEW_ZEALAND_NORTH"
+                      | "US_GOV_VIRGINIA"
+                      | "US_GOV_ARIZONA"
+                      | "US_GOV_TEXAS"
+                  )
+                | (
+                      | "EASTERN_US"
+                      | "EASTERN_US_AW"
+                      | "US_EAST_4"
+                      | "US_EAST_4_AW"
+                      | "US_EAST_5"
+                      | "US_EAST_5_AW"
+                      | "US_WEST_2"
+                      | "US_WEST_2_AW"
+                      | "US_WEST_3"
+                      | "US_WEST_3_AW"
+                      | "US_WEST_4"
+                      | "US_WEST_4_AW"
+                      | "US_SOUTH_1"
+                      | "US_SOUTH_1_AW"
+                      | "CENTRAL_US"
+                      | "CENTRAL_US_AW"
+                      | "WESTERN_US"
+                      | "WESTERN_US_AW"
+                      | "NORTH_AMERICA_NORTHEAST_1"
+                      | "NORTH_AMERICA_NORTHEAST_2"
+                      | "NORTH_AMERICA_SOUTH_1"
+                      | "SOUTH_AMERICA_EAST_1"
+                      | "SOUTH_AMERICA_WEST_1"
+                      | "WESTERN_EUROPE"
+                      | "EUROPE_NORTH_1"
+                      | "EUROPE_WEST_2"
+                      | "EUROPE_WEST_3"
+                      | "EUROPE_WEST_4"
+                      | "EUROPE_WEST_6"
+                      | "EUROPE_WEST_8"
+                      | "EUROPE_WEST_9"
+                      | "EUROPE_WEST_10"
+                      | "EUROPE_WEST_12"
+                      | "EUROPE_SOUTHWEST_1"
+                      | "EUROPE_CENTRAL_2"
+                      | "MIDDLE_EAST_CENTRAL_1"
+                      | "MIDDLE_EAST_CENTRAL_2"
+                      | "MIDDLE_EAST_WEST_1"
+                      | "AUSTRALIA_SOUTHEAST_1"
+                      | "AUSTRALIA_SOUTHEAST_2"
+                      | "AFRICA_SOUTH_1"
+                      | "EASTERN_ASIA_PACIFIC"
+                      | "NORTHEASTERN_ASIA_PACIFIC"
+                      | "SOUTHEASTERN_ASIA_PACIFIC"
+                      | "ASIA_EAST_2"
+                      | "ASIA_NORTHEAST_2"
+                      | "ASIA_NORTHEAST_3"
+                      | "ASIA_SOUTH_1"
+                      | "ASIA_SOUTH_2"
+                      | "ASIA_SOUTHEAST_2"
+                  );
+        } & (
+            | components["schemas"]["AWSRegionConfig20240805"]
+            | components["schemas"]["AzureRegionConfig20240805"]
+            | components["schemas"]["GCPRegionConfig20240805"]
+            | components["schemas"]["TenantRegionConfig20240805"]
+        );
         /**
          * Cluster Alerts
          * @description Cluster alert notifies different activities and conditions about cluster of mongod hosts.
@@ -2792,7 +3638,13 @@ export interface components {
          */
         ClusterProviderSettings: {
             providerName: string;
-        } & (components["schemas"]["AWSCloudProviderSettings"] | components["schemas"]["AzureCloudProviderSettings"] | components["schemas"]["CloudGCPProviderSettings"] | components["schemas"]["ClusterFreeProviderSettings"] | components["schemas"]["ClusterFlexProviderSettings"]);
+        } & (
+            | components["schemas"]["AWSCloudProviderSettings"]
+            | components["schemas"]["AzureCloudProviderSettings"]
+            | components["schemas"]["CloudGCPProviderSettings"]
+            | components["schemas"]["ClusterFreeProviderSettings"]
+            | components["schemas"]["ClusterFlexProviderSettings"]
+        );
         ClusterSearchIndex: {
             /** @description Human-readable label that identifies the collection that contains one or more Atlas Search indexes. */
             collectionName: string;
@@ -2849,7 +3701,10 @@ export interface components {
             value?: string;
         };
         /** @description Inherits the authentication configuration from Kafka for the Confluent Schema Registry. */
-        ConfluentSaslInheritAuthentication: Omit<WithRequired<components["schemas"]["SchemaRegistryAuthentication"], "type">, "type"> & {
+        ConfluentSaslInheritAuthentication: Omit<
+            WithRequired<components["schemas"]["SchemaRegistryAuthentication"], "type">,
+            "type"
+        > & {
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -2863,7 +3718,10 @@ export interface components {
             type: "SASL_INHERIT";
         };
         /** @description Authentication details for type `USER_INFO` with username and password for Confluent Schema Registry. */
-        ConfluentUserInfoAuthentication: Omit<WithRequired<components["schemas"]["SchemaRegistryAuthentication"], "type">, "type"> & {
+        ConfluentUserInfoAuthentication: Omit<
+            WithRequired<components["schemas"]["SchemaRegistryAuthentication"], "type">,
+            "type"
+        > & {
             /** @description Password or Private Key for authentication. */
             password: string;
             /** @description Username or Public Key for authentication. */
@@ -2913,7 +3771,10 @@ export interface components {
              */
             cloudProvider?: "AWS" | "AZURE" | "GCP";
         };
-        CreateEndpointRequest: components["schemas"]["CreateAWSEndpointRequest"] | components["schemas"]["CreateAzureEndpointRequest"] | components["schemas"]["CreateGCPEndpointGroupRequest"];
+        CreateEndpointRequest:
+            | components["schemas"]["CreateAWSEndpointRequest"]
+            | components["schemas"]["CreateAzureEndpointRequest"]
+            | components["schemas"]["CreateGCPEndpointGroupRequest"];
         /**
          * GCP
          * @description Group of Private Endpoint settings.
@@ -3100,7 +3961,56 @@ export interface components {
              * @description Microsoft Azure Regions.
              * @enum {string}
              */
-            region?: "US_CENTRAL" | "US_EAST" | "US_EAST_2" | "US_NORTH_CENTRAL" | "US_WEST" | "US_SOUTH_CENTRAL" | "EUROPE_NORTH" | "EUROPE_WEST" | "US_WEST_CENTRAL" | "US_WEST_2" | "US_WEST_3" | "CANADA_EAST" | "CANADA_CENTRAL" | "BRAZIL_SOUTH" | "BRAZIL_SOUTHEAST" | "AUSTRALIA_CENTRAL" | "AUSTRALIA_CENTRAL_2" | "AUSTRALIA_EAST" | "AUSTRALIA_SOUTH_EAST" | "GERMANY_CENTRAL" | "GERMANY_NORTH_EAST" | "GERMANY_WEST_CENTRAL" | "GERMANY_NORTH" | "SWEDEN_CENTRAL" | "SWEDEN_SOUTH" | "SWITZERLAND_NORTH" | "SWITZERLAND_WEST" | "UK_SOUTH" | "UK_WEST" | "NORWAY_EAST" | "NORWAY_WEST" | "INDIA_CENTRAL" | "INDIA_SOUTH" | "INDIA_WEST" | "CHINA_EAST" | "CHINA_NORTH" | "ASIA_EAST" | "JAPAN_EAST" | "JAPAN_WEST" | "ASIA_SOUTH_EAST" | "KOREA_CENTRAL" | "KOREA_SOUTH" | "FRANCE_CENTRAL" | "FRANCE_SOUTH" | "SOUTH_AFRICA_NORTH" | "SOUTH_AFRICA_WEST" | "UAE_CENTRAL" | "UAE_NORTH" | "QATAR_CENTRAL";
+            region?:
+                | "US_CENTRAL"
+                | "US_EAST"
+                | "US_EAST_2"
+                | "US_NORTH_CENTRAL"
+                | "US_WEST"
+                | "US_SOUTH_CENTRAL"
+                | "EUROPE_NORTH"
+                | "EUROPE_WEST"
+                | "US_WEST_CENTRAL"
+                | "US_WEST_2"
+                | "US_WEST_3"
+                | "CANADA_EAST"
+                | "CANADA_CENTRAL"
+                | "BRAZIL_SOUTH"
+                | "BRAZIL_SOUTHEAST"
+                | "AUSTRALIA_CENTRAL"
+                | "AUSTRALIA_CENTRAL_2"
+                | "AUSTRALIA_EAST"
+                | "AUSTRALIA_SOUTH_EAST"
+                | "GERMANY_CENTRAL"
+                | "GERMANY_NORTH_EAST"
+                | "GERMANY_WEST_CENTRAL"
+                | "GERMANY_NORTH"
+                | "SWEDEN_CENTRAL"
+                | "SWEDEN_SOUTH"
+                | "SWITZERLAND_NORTH"
+                | "SWITZERLAND_WEST"
+                | "UK_SOUTH"
+                | "UK_WEST"
+                | "NORWAY_EAST"
+                | "NORWAY_WEST"
+                | "INDIA_CENTRAL"
+                | "INDIA_SOUTH"
+                | "INDIA_WEST"
+                | "CHINA_EAST"
+                | "CHINA_NORTH"
+                | "ASIA_EAST"
+                | "JAPAN_EAST"
+                | "JAPAN_WEST"
+                | "ASIA_SOUTH_EAST"
+                | "KOREA_CENTRAL"
+                | "KOREA_SOUTH"
+                | "FRANCE_CENTRAL"
+                | "FRANCE_SOUTH"
+                | "SOUTH_AFRICA_NORTH"
+                | "SOUTH_AFRICA_WEST"
+                | "UAE_CENTRAL"
+                | "UAE_NORTH"
+                | "QATAR_CENTRAL";
             /** @description Replacement Delimiter. */
             replacementDelimiter?: string;
             /** @description Service URL. */
@@ -3124,7 +4034,41 @@ export interface components {
              * @description Physical location where MongoDB Cloud deploys your AWS-hosted MongoDB cluster nodes. The region you choose can affect network latency for clients accessing your databases. When MongoDB Cloud deploys a dedicated cluster, it checks if a VPC or VPC connection exists for that provider and region. If not, MongoDB Cloud creates them as part of the deployment. MongoDB Cloud assigns the VPC a CIDR block. To limit a new VPC peering connection to one CIDR block and region, create the connection first. Deploy the cluster after the connection starts.
              * @enum {string}
              */
-            region?: "US_GOV_WEST_1" | "US_GOV_EAST_1" | "US_EAST_1" | "US_EAST_2" | "US_WEST_1" | "US_WEST_2" | "CA_CENTRAL_1" | "EU_NORTH_1" | "EU_WEST_1" | "EU_WEST_2" | "EU_WEST_3" | "EU_CENTRAL_1" | "EU_CENTRAL_2" | "AP_EAST_1" | "AP_NORTHEAST_1" | "AP_NORTHEAST_2" | "AP_NORTHEAST_3" | "AP_SOUTHEAST_1" | "AP_SOUTHEAST_2" | "AP_SOUTHEAST_3" | "AP_SOUTHEAST_4" | "AP_SOUTH_1" | "AP_SOUTH_2" | "SA_EAST_1" | "CN_NORTH_1" | "CN_NORTHWEST_1" | "ME_SOUTH_1" | "ME_CENTRAL_1" | "AF_SOUTH_1" | "EU_SOUTH_1" | "EU_SOUTH_2" | "IL_CENTRAL_1" | "CA_WEST_1" | "GLOBAL";
+            region?:
+                | "US_GOV_WEST_1"
+                | "US_GOV_EAST_1"
+                | "US_EAST_1"
+                | "US_EAST_2"
+                | "US_WEST_1"
+                | "US_WEST_2"
+                | "CA_CENTRAL_1"
+                | "EU_NORTH_1"
+                | "EU_WEST_1"
+                | "EU_WEST_2"
+                | "EU_WEST_3"
+                | "EU_CENTRAL_1"
+                | "EU_CENTRAL_2"
+                | "AP_EAST_1"
+                | "AP_NORTHEAST_1"
+                | "AP_NORTHEAST_2"
+                | "AP_NORTHEAST_3"
+                | "AP_SOUTHEAST_1"
+                | "AP_SOUTHEAST_2"
+                | "AP_SOUTHEAST_3"
+                | "AP_SOUTHEAST_4"
+                | "AP_SOUTH_1"
+                | "AP_SOUTH_2"
+                | "SA_EAST_1"
+                | "CN_NORTH_1"
+                | "CN_NORTHWEST_1"
+                | "ME_SOUTH_1"
+                | "ME_CENTRAL_1"
+                | "AF_SOUTH_1"
+                | "EU_SOUTH_1"
+                | "EU_SOUTH_2"
+                | "IL_CENTRAL_1"
+                | "CA_WEST_1"
+                | "GLOBAL";
         } & {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -3144,7 +4088,56 @@ export interface components {
              * @description Microsoft Azure Regions.
              * @enum {string}
              */
-            region?: "US_CENTRAL" | "US_EAST" | "US_EAST_2" | "US_NORTH_CENTRAL" | "US_WEST" | "US_SOUTH_CENTRAL" | "EUROPE_NORTH" | "EUROPE_WEST" | "US_WEST_CENTRAL" | "US_WEST_2" | "US_WEST_3" | "CANADA_EAST" | "CANADA_CENTRAL" | "BRAZIL_SOUTH" | "BRAZIL_SOUTHEAST" | "AUSTRALIA_CENTRAL" | "AUSTRALIA_CENTRAL_2" | "AUSTRALIA_EAST" | "AUSTRALIA_SOUTH_EAST" | "GERMANY_CENTRAL" | "GERMANY_NORTH_EAST" | "GERMANY_WEST_CENTRAL" | "GERMANY_NORTH" | "SWEDEN_CENTRAL" | "SWEDEN_SOUTH" | "SWITZERLAND_NORTH" | "SWITZERLAND_WEST" | "UK_SOUTH" | "UK_WEST" | "NORWAY_EAST" | "NORWAY_WEST" | "INDIA_CENTRAL" | "INDIA_SOUTH" | "INDIA_WEST" | "CHINA_EAST" | "CHINA_NORTH" | "ASIA_EAST" | "JAPAN_EAST" | "JAPAN_WEST" | "ASIA_SOUTH_EAST" | "KOREA_CENTRAL" | "KOREA_SOUTH" | "FRANCE_CENTRAL" | "FRANCE_SOUTH" | "SOUTH_AFRICA_NORTH" | "SOUTH_AFRICA_WEST" | "UAE_CENTRAL" | "UAE_NORTH" | "QATAR_CENTRAL";
+            region?:
+                | "US_CENTRAL"
+                | "US_EAST"
+                | "US_EAST_2"
+                | "US_NORTH_CENTRAL"
+                | "US_WEST"
+                | "US_SOUTH_CENTRAL"
+                | "EUROPE_NORTH"
+                | "EUROPE_WEST"
+                | "US_WEST_CENTRAL"
+                | "US_WEST_2"
+                | "US_WEST_3"
+                | "CANADA_EAST"
+                | "CANADA_CENTRAL"
+                | "BRAZIL_SOUTH"
+                | "BRAZIL_SOUTHEAST"
+                | "AUSTRALIA_CENTRAL"
+                | "AUSTRALIA_CENTRAL_2"
+                | "AUSTRALIA_EAST"
+                | "AUSTRALIA_SOUTH_EAST"
+                | "GERMANY_CENTRAL"
+                | "GERMANY_NORTH_EAST"
+                | "GERMANY_WEST_CENTRAL"
+                | "GERMANY_NORTH"
+                | "SWEDEN_CENTRAL"
+                | "SWEDEN_SOUTH"
+                | "SWITZERLAND_NORTH"
+                | "SWITZERLAND_WEST"
+                | "UK_SOUTH"
+                | "UK_WEST"
+                | "NORWAY_EAST"
+                | "NORWAY_WEST"
+                | "INDIA_CENTRAL"
+                | "INDIA_SOUTH"
+                | "INDIA_WEST"
+                | "CHINA_EAST"
+                | "CHINA_NORTH"
+                | "ASIA_EAST"
+                | "JAPAN_EAST"
+                | "JAPAN_WEST"
+                | "ASIA_SOUTH_EAST"
+                | "KOREA_CENTRAL"
+                | "KOREA_SOUTH"
+                | "FRANCE_CENTRAL"
+                | "FRANCE_SOUTH"
+                | "SOUTH_AFRICA_NORTH"
+                | "SOUTH_AFRICA_WEST"
+                | "UAE_CENTRAL"
+                | "UAE_NORTH"
+                | "QATAR_CENTRAL";
         } & {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -3164,7 +4157,43 @@ export interface components {
              * @description Google Cloud Platform Regions.
              * @enum {string}
              */
-            region?: "ASIA_EAST_2" | "ASIA_NORTHEAST_2" | "ASIA_NORTHEAST_3" | "ASIA_SOUTH_1" | "ASIA_SOUTH_2" | "ASIA_SOUTHEAST_2" | "AUSTRALIA_SOUTHEAST_1" | "AUSTRALIA_SOUTHEAST_2" | "CENTRAL_US" | "EASTERN_ASIA_PACIFIC" | "EASTERN_US" | "EUROPE_CENTRAL_2" | "EUROPE_NORTH_1" | "EUROPE_WEST_2" | "EUROPE_WEST_3" | "EUROPE_WEST_4" | "EUROPE_WEST_6" | "EUROPE_WEST_10" | "EUROPE_WEST_12" | "MIDDLE_EAST_CENTRAL_1" | "MIDDLE_EAST_CENTRAL_2" | "MIDDLE_EAST_WEST_1" | "NORTH_AMERICA_NORTHEAST_1" | "NORTH_AMERICA_NORTHEAST_2" | "NORTHEASTERN_ASIA_PACIFIC" | "SOUTH_AMERICA_EAST_1" | "SOUTH_AMERICA_WEST_1" | "SOUTHEASTERN_ASIA_PACIFIC" | "US_EAST_4" | "US_EAST_5" | "US_WEST_2" | "US_WEST_3" | "US_WEST_4" | "US_SOUTH_1" | "WESTERN_EUROPE" | "WESTERN_US";
+            region?:
+                | "ASIA_EAST_2"
+                | "ASIA_NORTHEAST_2"
+                | "ASIA_NORTHEAST_3"
+                | "ASIA_SOUTH_1"
+                | "ASIA_SOUTH_2"
+                | "ASIA_SOUTHEAST_2"
+                | "AUSTRALIA_SOUTHEAST_1"
+                | "AUSTRALIA_SOUTHEAST_2"
+                | "CENTRAL_US"
+                | "EASTERN_ASIA_PACIFIC"
+                | "EASTERN_US"
+                | "EUROPE_CENTRAL_2"
+                | "EUROPE_NORTH_1"
+                | "EUROPE_WEST_2"
+                | "EUROPE_WEST_3"
+                | "EUROPE_WEST_4"
+                | "EUROPE_WEST_6"
+                | "EUROPE_WEST_10"
+                | "EUROPE_WEST_12"
+                | "MIDDLE_EAST_CENTRAL_1"
+                | "MIDDLE_EAST_CENTRAL_2"
+                | "MIDDLE_EAST_WEST_1"
+                | "NORTH_AMERICA_NORTHEAST_1"
+                | "NORTH_AMERICA_NORTHEAST_2"
+                | "NORTHEASTERN_ASIA_PACIFIC"
+                | "SOUTH_AMERICA_EAST_1"
+                | "SOUTH_AMERICA_WEST_1"
+                | "SOUTHEASTERN_ASIA_PACIFIC"
+                | "US_EAST_4"
+                | "US_EAST_5"
+                | "US_WEST_2"
+                | "US_WEST_3"
+                | "US_WEST_4"
+                | "US_SOUTH_1"
+                | "WESTERN_EUROPE"
+                | "WESTERN_US";
         } & {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -3195,7 +4224,43 @@ export interface components {
              * @description Google Cloud Platform Regions.
              * @enum {string}
              */
-            region?: "ASIA_EAST_2" | "ASIA_NORTHEAST_2" | "ASIA_NORTHEAST_3" | "ASIA_SOUTH_1" | "ASIA_SOUTH_2" | "ASIA_SOUTHEAST_2" | "AUSTRALIA_SOUTHEAST_1" | "AUSTRALIA_SOUTHEAST_2" | "CENTRAL_US" | "EASTERN_ASIA_PACIFIC" | "EASTERN_US" | "EUROPE_CENTRAL_2" | "EUROPE_NORTH_1" | "EUROPE_WEST_2" | "EUROPE_WEST_3" | "EUROPE_WEST_4" | "EUROPE_WEST_6" | "EUROPE_WEST_10" | "EUROPE_WEST_12" | "MIDDLE_EAST_CENTRAL_1" | "MIDDLE_EAST_CENTRAL_2" | "MIDDLE_EAST_WEST_1" | "NORTH_AMERICA_NORTHEAST_1" | "NORTH_AMERICA_NORTHEAST_2" | "NORTHEASTERN_ASIA_PACIFIC" | "SOUTH_AMERICA_EAST_1" | "SOUTH_AMERICA_WEST_1" | "SOUTHEASTERN_ASIA_PACIFIC" | "US_EAST_4" | "US_EAST_5" | "US_WEST_2" | "US_WEST_3" | "US_WEST_4" | "US_SOUTH_1" | "WESTERN_EUROPE" | "WESTERN_US";
+            region?:
+                | "ASIA_EAST_2"
+                | "ASIA_NORTHEAST_2"
+                | "ASIA_NORTHEAST_3"
+                | "ASIA_SOUTH_1"
+                | "ASIA_SOUTH_2"
+                | "ASIA_SOUTHEAST_2"
+                | "AUSTRALIA_SOUTHEAST_1"
+                | "AUSTRALIA_SOUTHEAST_2"
+                | "CENTRAL_US"
+                | "EASTERN_ASIA_PACIFIC"
+                | "EASTERN_US"
+                | "EUROPE_CENTRAL_2"
+                | "EUROPE_NORTH_1"
+                | "EUROPE_WEST_2"
+                | "EUROPE_WEST_3"
+                | "EUROPE_WEST_4"
+                | "EUROPE_WEST_6"
+                | "EUROPE_WEST_10"
+                | "EUROPE_WEST_12"
+                | "MIDDLE_EAST_CENTRAL_1"
+                | "MIDDLE_EAST_CENTRAL_2"
+                | "MIDDLE_EAST_WEST_1"
+                | "NORTH_AMERICA_NORTHEAST_1"
+                | "NORTH_AMERICA_NORTHEAST_2"
+                | "NORTHEASTERN_ASIA_PACIFIC"
+                | "SOUTH_AMERICA_EAST_1"
+                | "SOUTH_AMERICA_WEST_1"
+                | "SOUTHEASTERN_ASIA_PACIFIC"
+                | "US_EAST_4"
+                | "US_EAST_5"
+                | "US_WEST_2"
+                | "US_WEST_3"
+                | "US_WEST_4"
+                | "US_SOUTH_1"
+                | "WESTERN_EUROPE"
+                | "WESTERN_US";
             /** @description Replacement Delimiter. */
             replacementDelimiter?: string;
         } & {
@@ -3272,7 +4337,41 @@ export interface components {
              * @description Physical location where MongoDB Cloud deploys your AWS-hosted MongoDB cluster nodes. The region you choose can affect network latency for clients accessing your databases. When MongoDB Cloud deploys a dedicated cluster, it checks if a VPC or VPC connection exists for that provider and region. If not, MongoDB Cloud creates them as part of the deployment. MongoDB Cloud assigns the VPC a CIDR block. To limit a new VPC peering connection to one CIDR block and region, create the connection first. Deploy the cluster after the connection starts.
              * @enum {string}
              */
-            region?: "US_GOV_WEST_1" | "US_GOV_EAST_1" | "US_EAST_1" | "US_EAST_2" | "US_WEST_1" | "US_WEST_2" | "CA_CENTRAL_1" | "EU_NORTH_1" | "EU_WEST_1" | "EU_WEST_2" | "EU_WEST_3" | "EU_CENTRAL_1" | "EU_CENTRAL_2" | "AP_EAST_1" | "AP_NORTHEAST_1" | "AP_NORTHEAST_2" | "AP_NORTHEAST_3" | "AP_SOUTHEAST_1" | "AP_SOUTHEAST_2" | "AP_SOUTHEAST_3" | "AP_SOUTHEAST_4" | "AP_SOUTH_1" | "AP_SOUTH_2" | "SA_EAST_1" | "CN_NORTH_1" | "CN_NORTHWEST_1" | "ME_SOUTH_1" | "ME_CENTRAL_1" | "AF_SOUTH_1" | "EU_SOUTH_1" | "EU_SOUTH_2" | "IL_CENTRAL_1" | "CA_WEST_1" | "GLOBAL";
+            region?:
+                | "US_GOV_WEST_1"
+                | "US_GOV_EAST_1"
+                | "US_EAST_1"
+                | "US_EAST_2"
+                | "US_WEST_1"
+                | "US_WEST_2"
+                | "CA_CENTRAL_1"
+                | "EU_NORTH_1"
+                | "EU_WEST_1"
+                | "EU_WEST_2"
+                | "EU_WEST_3"
+                | "EU_CENTRAL_1"
+                | "EU_CENTRAL_2"
+                | "AP_EAST_1"
+                | "AP_NORTHEAST_1"
+                | "AP_NORTHEAST_2"
+                | "AP_NORTHEAST_3"
+                | "AP_SOUTHEAST_1"
+                | "AP_SOUTHEAST_2"
+                | "AP_SOUTHEAST_3"
+                | "AP_SOUTHEAST_4"
+                | "AP_SOUTH_1"
+                | "AP_SOUTH_2"
+                | "SA_EAST_1"
+                | "CN_NORTH_1"
+                | "CN_NORTHWEST_1"
+                | "ME_SOUTH_1"
+                | "ME_CENTRAL_1"
+                | "AF_SOUTH_1"
+                | "EU_SOUTH_1"
+                | "EU_SOUTH_2"
+                | "IL_CENTRAL_1"
+                | "CA_WEST_1"
+                | "GLOBAL";
         } & {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -3291,7 +4390,16 @@ export interface components {
             /** @description Human-readable label that identifies the data store. The **databases.[n].collections.[n].dataSources.[n].storeName** field references this values as part of the mapping configuration. To use MongoDB Cloud as a data store, the data lake requires a serverless instance or an `M10` or higher cluster. */
             name?: string;
             provider: string;
-        } & (components["schemas"]["DataLakeS3StoreSettings"] | components["schemas"]["DataLakeDLSAWSStore"] | components["schemas"]["DataLakeDLSAzureStore"] | components["schemas"]["DataLakeDLSGCPStore"] | components["schemas"]["DataLakeAtlasStoreInstance"] | components["schemas"]["DataLakeHTTPStore"] | components["schemas"]["DataLakeAzureBlobStore"] | components["schemas"]["DataLakeGoogleCloudStorageStore"]);
+        } & (
+            | components["schemas"]["DataLakeS3StoreSettings"]
+            | components["schemas"]["DataLakeDLSAWSStore"]
+            | components["schemas"]["DataLakeDLSAzureStore"]
+            | components["schemas"]["DataLakeDLSGCPStore"]
+            | components["schemas"]["DataLakeAtlasStoreInstance"]
+            | components["schemas"]["DataLakeHTTPStore"]
+            | components["schemas"]["DataLakeAzureBlobStore"]
+            | components["schemas"]["DataLakeGoogleCloudStorageStore"]
+        );
         DataMetricAlertView: {
             /**
              * Format: date-time
@@ -3393,7 +4501,17 @@ export interface components {
          * @example BYTES
          * @enum {string}
          */
-        DataMetricUnits: "BITS" | "KILOBITS" | "MEGABITS" | "GIGABITS" | "BYTES" | "KILOBYTES" | "MEGABYTES" | "GIGABYTES" | "TERABYTES" | "PETABYTES";
+        DataMetricUnits:
+            | "BITS"
+            | "KILOBITS"
+            | "MEGABITS"
+            | "GIGABITS"
+            | "BYTES"
+            | "KILOBYTES"
+            | "MEGABYTES"
+            | "GIGABYTES"
+            | "TERABYTES"
+            | "PETABYTES";
         /**
          * Data Metric Value
          * @description Measurement of the `metricName` recorded at the time of the event.
@@ -3427,13 +4545,27 @@ export interface components {
              * @description Human-readable label that identifies a group of privileges assigned to a database user. This value can either be a built-in role or a custom role.
              * @enum {string}
              */
-            roleName: "atlasAdmin" | "backup" | "clusterMonitor" | "dbAdmin" | "dbAdminAnyDatabase" | "enableSharding" | "read" | "readAnyDatabase" | "readWrite" | "readWriteAnyDatabase" | "<a custom role name>";
+            roleName:
+                | "atlasAdmin"
+                | "backup"
+                | "clusterMonitor"
+                | "dbAdmin"
+                | "dbAdminAnyDatabase"
+                | "enableSharding"
+                | "read"
+                | "readAnyDatabase"
+                | "readWrite"
+                | "readWriteAnyDatabase"
+                | "<a custom role name>";
         };
         /**
          * Datadog Log Export Integration Request
          * @description Request schema for creating or updating a Datadog log export integration.
          */
-        DatadogLogIntegrationRequest: Omit<WithRequired<components["schemas"]["LogIntegrationRequest"], "logTypes" | "type">, "type"> & {
+        DatadogLogIntegrationRequest: Omit<
+            WithRequired<components["schemas"]["LogIntegrationRequest"], "logTypes" | "type">,
+            "type"
+        > & {
             /**
              * Format: password
              * @description API key for authentication.
@@ -3468,7 +4600,10 @@ export interface components {
          * Datadog Log Export Integration Response
          * @description Details to integrate Datadog log export with one Atlas project.
          */
-        DatadogLogIntegrationResponse: Omit<WithRequired<components["schemas"]["LogIntegrationResponse"], "id" | "logTypes" | "type">, "type"> & {
+        DatadogLogIntegrationResponse: Omit<
+            WithRequired<components["schemas"]["LogIntegrationResponse"], "id" | "logTypes" | "type">,
+            "type"
+        > & {
             /**
              * Format: password
              * @description API key for authentication.
@@ -3549,7 +4684,11 @@ export interface components {
              * @description Number of nodes of the given type for MongoDB Cloud to deploy to the region.
              */
             nodeCount?: number;
-        } & (components["schemas"]["AWSHardwareSpec20240805"] | components["schemas"]["AzureHardwareSpec20240805"] | components["schemas"]["GCPHardwareSpec20240805"]);
+        } & (
+            | components["schemas"]["AWSHardwareSpec20240805"]
+            | components["schemas"]["AzureHardwareSpec20240805"]
+            | components["schemas"]["GCPHardwareSpec20240805"]
+        );
         /**
          * Any Other Alerts
          * @description Other alerts which don't have extra details beside of basic one.
@@ -3585,7 +4724,139 @@ export interface components {
              */
             readonly created: string;
             /** @description Incident that triggered this alert. */
-            readonly eventTypeName: ("CREDIT_CARD_ABOUT_TO_EXPIRE" | "PENDING_INVOICE_OVER_THRESHOLD" | "DAILY_BILL_OVER_THRESHOLD") | ("CPS_SNAPSHOT_STARTED" | "CPS_SNAPSHOT_SUCCESSFUL" | "CPS_SNAPSHOT_FAILED" | "CPS_CONCURRENT_SNAPSHOT_FAILED_WILL_RETRY" | "CPS_SNAPSHOT_BEHIND" | "CPS_COPY_SNAPSHOT_STARTED" | "CPS_COPY_SNAPSHOT_FAILED" | "CPS_COPY_SNAPSHOT_FAILED_WILL_RETRY" | "CPS_COPY_SNAPSHOT_SUCCESSFUL" | "CPS_PREV_SNAPSHOT_OLD" | "CPS_SNAPSHOT_FALLBACK_SUCCESSFUL" | "CPS_SNAPSHOT_FALLBACK_FAILED" | "CPS_RESTORE_SUCCESSFUL" | "CPS_EXPORT_SUCCESSFUL" | "CPS_RESTORE_FAILED" | "CPS_EXPORT_FAILED" | "CPS_COLLECTION_RESTORE_SUCCESSFUL" | "CPS_COLLECTION_RESTORE_FAILED" | "CPS_COLLECTION_RESTORE_PARTIAL_SUCCESS" | "CPS_COLLECTION_RESTORE_CANCELED" | "CPS_AUTO_EXPORT_FAILED" | "CPS_SNAPSHOT_DOWNLOAD_REQUEST_FAILED" | "CPS_OPLOG_BEHIND" | "CPS_OPLOG_CAUGHT_UP") | ("AWS_ENCRYPTION_KEY_NEEDS_ROTATION" | "AZURE_ENCRYPTION_KEY_NEEDS_ROTATION" | "GCP_ENCRYPTION_KEY_NEEDS_ROTATION" | "AWS_ENCRYPTION_KEY_INVALID" | "AZURE_ENCRYPTION_KEY_INVALID" | "GCP_ENCRYPTION_KEY_INVALID") | ("FTS_INDEX_DELETION_FAILED" | "FTS_INDEX_BUILD_COMPLETE" | "FTS_INDEX_BUILD_FAILED" | "FTS_INDEX_STALE" | "FTS_INDEXES_RESTORE_FAILED" | "FTS_INDEXES_SYNONYM_MAPPING_INVALID") | ("USERS_WITHOUT_MULTI_FACTOR_AUTH" | "ENCRYPTION_AT_REST_KMS_NETWORK_ACCESS_DENIED" | "ENCRYPTION_AT_REST_CONFIG_NO_LONGER_VALID" | "GROUP_SERVICE_ACCOUNT_SECRETS_EXPIRING" | "GROUP_SERVICE_ACCOUNT_SECRETS_EXPIRED" | "ACTIVE_LEGACY_TLS_CONNECTIONS") | "MONGOTUNE_ALERT" | ("CLUSTER_INSTANCE_STOP_START" | "CLUSTER_INSTANCE_RESYNC_REQUESTED" | "CLUSTER_INSTANCE_UPDATE_REQUESTED" | "SAMPLE_DATASET_LOAD_REQUESTED" | "TENANT_UPGRADE_TO_SERVERLESS_SUCCESSFUL" | "TENANT_UPGRADE_TO_SERVERLESS_FAILED" | "NETWORK_PERMISSION_ENTRY_ADDED" | "NETWORK_PERMISSION_ENTRY_REMOVED" | "NETWORK_PERMISSION_ENTRY_UPDATED" | "CLUSTER_BLOCK_WRITE" | "CLUSTER_UNBLOCK_WRITE") | ("MAINTENANCE_IN_ADVANCED" | "MAINTENANCE_AUTO_DEFERRED" | "MAINTENANCE_STARTED" | "MAINTENANCE_COMPLETED" | "MAINTENANCE_NO_LONGER_NEEDED") | ("NDS_X509_USER_AUTHENTICATION_CUSTOMER_CA_EXPIRATION_CHECK" | "NDS_X509_USER_AUTHENTICATION_CUSTOMER_CRL_EXPIRATION_CHECK" | "NDS_X509_USER_AUTHENTICATION_MANAGED_USER_CERTS_EXPIRATION_CHECK") | ("ONLINE_ARCHIVE_INSUFFICIENT_INDEXES_CHECK" | "ONLINE_ARCHIVE_MAX_CONSECUTIVE_OFFLOAD_WINDOWS_CHECK") | "OUTSIDE_SERVERLESS_METRIC_THRESHOLD" | "OUTSIDE_FLEX_METRIC_THRESHOLD" | ("JOINED_GROUP" | "REMOVED_FROM_GROUP" | "USER_ROLES_CHANGED_AUDIT") | ("TAGS_MODIFIED" | "CLUSTER_TAGS_MODIFIED" | "GROUP_TAGS_MODIFIED") | ("STREAM_PROCESSOR_STATE_IS_FAILED" | "OUTSIDE_STREAM_PROCESSOR_METRIC_THRESHOLD") | ("COMPUTE_AUTO_SCALE_INITIATED_BASE" | "COMPUTE_AUTO_SCALE_INITIATED_ANALYTICS" | "COMPUTE_AUTO_SCALE_SCALE_DOWN_FAIL_BASE" | "COMPUTE_AUTO_SCALE_SCALE_DOWN_FAIL_ANALYTICS" | "COMPUTE_AUTO_SCALE_MAX_INSTANCE_SIZE_FAIL_BASE" | "COMPUTE_AUTO_SCALE_MAX_INSTANCE_SIZE_FAIL_ANALYTICS" | "COMPUTE_AUTO_SCALE_OPLOG_FAIL_BASE" | "COMPUTE_AUTO_SCALE_OPLOG_FAIL_ANALYTICS" | "DISK_AUTO_SCALE_INITIATED" | "DISK_AUTO_SCALE_MAX_DISK_SIZE_FAIL" | "DISK_AUTO_SCALE_OPLOG_FAIL" | "PREDICTIVE_COMPUTE_AUTO_SCALE_INITIATED_BASE" | "PREDICTIVE_COMPUTE_AUTO_SCALE_MAX_INSTANCE_SIZE_FAIL_BASE" | "PREDICTIVE_COMPUTE_AUTO_SCALE_OPLOG_FAIL_BASE" | "CLUSTER_AUTO_SHARDING_INITIATED") | ("CPS_DATA_PROTECTION_ENABLE_REQUESTED" | "CPS_DATA_PROTECTION_ENABLED" | "CPS_DATA_PROTECTION_UPDATE_REQUESTED" | "CPS_DATA_PROTECTION_UPDATED" | "CPS_DATA_PROTECTION_DISABLE_REQUESTED" | "CPS_DATA_PROTECTION_DISABLED" | "CPS_DATA_PROTECTION_APPROVED_FOR_DISABLEMENT") | "RESOURCE_POLICY_VIOLATED" | ("HOST_DOWN" | "HOST_HAS_INDEX_SUGGESTIONS" | "HOST_MONGOT_CRASHING_OOM" | "HOST_MONGOT_STOP_REPLICATION" | "HOST_MONGOT_APPROACHING_STOP_REPLICATION" | "HOST_MONGOT_PAUSE_INITIAL_SYNC" | "HOST_SEARCH_NODE_INDEX_FAILED" | "HOST_EXTERNAL_LOG_SINK_EXPORT_DOWN" | "HOST_NOT_ENOUGH_DISK_SPACE" | "SSH_KEY_NDS_HOST_ACCESS_REQUESTED" | "SSH_KEY_NDS_HOST_ACCESS_REFRESHED" | "PUSH_BASED_LOG_EXPORT_STOPPED" | "PUSH_BASED_LOG_EXPORT_DROPPED_LOG" | "HOST_VERSION_BEHIND" | "VERSION_BEHIND" | "HOST_EXPOSED" | "HOST_SSL_CERTIFICATE_STALE" | "HOST_SECURITY_CHECKUP_NOT_MET" | "ALERT_HOST_SSH_SESSION_STARTED" | "PROFILER_CONFIGURED_TOO_WIDELY");
+            readonly eventTypeName:
+                | ("CREDIT_CARD_ABOUT_TO_EXPIRE" | "PENDING_INVOICE_OVER_THRESHOLD" | "DAILY_BILL_OVER_THRESHOLD")
+                | (
+                      | "CPS_SNAPSHOT_STARTED"
+                      | "CPS_SNAPSHOT_SUCCESSFUL"
+                      | "CPS_SNAPSHOT_FAILED"
+                      | "CPS_CONCURRENT_SNAPSHOT_FAILED_WILL_RETRY"
+                      | "CPS_SNAPSHOT_BEHIND"
+                      | "CPS_COPY_SNAPSHOT_STARTED"
+                      | "CPS_COPY_SNAPSHOT_FAILED"
+                      | "CPS_COPY_SNAPSHOT_FAILED_WILL_RETRY"
+                      | "CPS_COPY_SNAPSHOT_SUCCESSFUL"
+                      | "CPS_PREV_SNAPSHOT_OLD"
+                      | "CPS_SNAPSHOT_FALLBACK_SUCCESSFUL"
+                      | "CPS_SNAPSHOT_FALLBACK_FAILED"
+                      | "CPS_RESTORE_SUCCESSFUL"
+                      | "CPS_EXPORT_SUCCESSFUL"
+                      | "CPS_RESTORE_FAILED"
+                      | "CPS_EXPORT_FAILED"
+                      | "CPS_COLLECTION_RESTORE_SUCCESSFUL"
+                      | "CPS_COLLECTION_RESTORE_FAILED"
+                      | "CPS_COLLECTION_RESTORE_PARTIAL_SUCCESS"
+                      | "CPS_COLLECTION_RESTORE_CANCELED"
+                      | "CPS_AUTO_EXPORT_FAILED"
+                      | "CPS_SNAPSHOT_DOWNLOAD_REQUEST_FAILED"
+                      | "CPS_OPLOG_BEHIND"
+                      | "CPS_OPLOG_CAUGHT_UP"
+                  )
+                | (
+                      | "AWS_ENCRYPTION_KEY_NEEDS_ROTATION"
+                      | "AZURE_ENCRYPTION_KEY_NEEDS_ROTATION"
+                      | "GCP_ENCRYPTION_KEY_NEEDS_ROTATION"
+                      | "AWS_ENCRYPTION_KEY_INVALID"
+                      | "AZURE_ENCRYPTION_KEY_INVALID"
+                      | "GCP_ENCRYPTION_KEY_INVALID"
+                  )
+                | (
+                      | "FTS_INDEX_DELETION_FAILED"
+                      | "FTS_INDEX_BUILD_COMPLETE"
+                      | "FTS_INDEX_BUILD_FAILED"
+                      | "FTS_INDEX_STALE"
+                      | "FTS_INDEXES_RESTORE_FAILED"
+                      | "FTS_INDEXES_SYNONYM_MAPPING_INVALID"
+                  )
+                | (
+                      | "USERS_WITHOUT_MULTI_FACTOR_AUTH"
+                      | "ENCRYPTION_AT_REST_KMS_NETWORK_ACCESS_DENIED"
+                      | "ENCRYPTION_AT_REST_CONFIG_NO_LONGER_VALID"
+                      | "GROUP_SERVICE_ACCOUNT_SECRETS_EXPIRING"
+                      | "GROUP_SERVICE_ACCOUNT_SECRETS_EXPIRED"
+                      | "ACTIVE_LEGACY_TLS_CONNECTIONS"
+                  )
+                | "MONGOTUNE_ALERT"
+                | (
+                      | "CLUSTER_INSTANCE_STOP_START"
+                      | "CLUSTER_INSTANCE_RESYNC_REQUESTED"
+                      | "CLUSTER_INSTANCE_UPDATE_REQUESTED"
+                      | "SAMPLE_DATASET_LOAD_REQUESTED"
+                      | "TENANT_UPGRADE_TO_SERVERLESS_SUCCESSFUL"
+                      | "TENANT_UPGRADE_TO_SERVERLESS_FAILED"
+                      | "NETWORK_PERMISSION_ENTRY_ADDED"
+                      | "NETWORK_PERMISSION_ENTRY_REMOVED"
+                      | "NETWORK_PERMISSION_ENTRY_UPDATED"
+                      | "CLUSTER_BLOCK_WRITE"
+                      | "CLUSTER_UNBLOCK_WRITE"
+                  )
+                | (
+                      | "MAINTENANCE_IN_ADVANCED"
+                      | "MAINTENANCE_AUTO_DEFERRED"
+                      | "MAINTENANCE_STARTED"
+                      | "MAINTENANCE_COMPLETED"
+                      | "MAINTENANCE_NO_LONGER_NEEDED"
+                  )
+                | (
+                      | "NDS_X509_USER_AUTHENTICATION_CUSTOMER_CA_EXPIRATION_CHECK"
+                      | "NDS_X509_USER_AUTHENTICATION_CUSTOMER_CRL_EXPIRATION_CHECK"
+                      | "NDS_X509_USER_AUTHENTICATION_MANAGED_USER_CERTS_EXPIRATION_CHECK"
+                  )
+                | ("ONLINE_ARCHIVE_INSUFFICIENT_INDEXES_CHECK" | "ONLINE_ARCHIVE_MAX_CONSECUTIVE_OFFLOAD_WINDOWS_CHECK")
+                | "OUTSIDE_SERVERLESS_METRIC_THRESHOLD"
+                | "OUTSIDE_FLEX_METRIC_THRESHOLD"
+                | ("JOINED_GROUP" | "REMOVED_FROM_GROUP" | "USER_ROLES_CHANGED_AUDIT")
+                | ("TAGS_MODIFIED" | "CLUSTER_TAGS_MODIFIED" | "GROUP_TAGS_MODIFIED")
+                | ("STREAM_PROCESSOR_STATE_IS_FAILED" | "OUTSIDE_STREAM_PROCESSOR_METRIC_THRESHOLD")
+                | (
+                      | "COMPUTE_AUTO_SCALE_INITIATED_BASE"
+                      | "COMPUTE_AUTO_SCALE_INITIATED_ANALYTICS"
+                      | "COMPUTE_AUTO_SCALE_SCALE_DOWN_FAIL_BASE"
+                      | "COMPUTE_AUTO_SCALE_SCALE_DOWN_FAIL_ANALYTICS"
+                      | "COMPUTE_AUTO_SCALE_MAX_INSTANCE_SIZE_FAIL_BASE"
+                      | "COMPUTE_AUTO_SCALE_MAX_INSTANCE_SIZE_FAIL_ANALYTICS"
+                      | "COMPUTE_AUTO_SCALE_OPLOG_FAIL_BASE"
+                      | "COMPUTE_AUTO_SCALE_OPLOG_FAIL_ANALYTICS"
+                      | "DISK_AUTO_SCALE_INITIATED"
+                      | "DISK_AUTO_SCALE_MAX_DISK_SIZE_FAIL"
+                      | "DISK_AUTO_SCALE_OPLOG_FAIL"
+                      | "PREDICTIVE_COMPUTE_AUTO_SCALE_INITIATED_BASE"
+                      | "PREDICTIVE_COMPUTE_AUTO_SCALE_MAX_INSTANCE_SIZE_FAIL_BASE"
+                      | "PREDICTIVE_COMPUTE_AUTO_SCALE_OPLOG_FAIL_BASE"
+                      | "CLUSTER_AUTO_SHARDING_INITIATED"
+                  )
+                | (
+                      | "CPS_DATA_PROTECTION_ENABLE_REQUESTED"
+                      | "CPS_DATA_PROTECTION_ENABLED"
+                      | "CPS_DATA_PROTECTION_UPDATE_REQUESTED"
+                      | "CPS_DATA_PROTECTION_UPDATED"
+                      | "CPS_DATA_PROTECTION_DISABLE_REQUESTED"
+                      | "CPS_DATA_PROTECTION_DISABLED"
+                      | "CPS_DATA_PROTECTION_APPROVED_FOR_DISABLEMENT"
+                  )
+                | "RESOURCE_POLICY_VIOLATED"
+                | (
+                      | "HOST_DOWN"
+                      | "HOST_HAS_INDEX_SUGGESTIONS"
+                      | "HOST_MONGOT_CRASHING_OOM"
+                      | "HOST_MONGOT_STOP_REPLICATION"
+                      | "HOST_MONGOT_APPROACHING_STOP_REPLICATION"
+                      | "HOST_MONGOT_PAUSE_INITIAL_SYNC"
+                      | "HOST_SEARCH_NODE_INDEX_FAILED"
+                      | "HOST_EXTERNAL_LOG_SINK_EXPORT_DOWN"
+                      | "HOST_NOT_ENOUGH_DISK_SPACE"
+                      | "SSH_KEY_NDS_HOST_ACCESS_REQUESTED"
+                      | "SSH_KEY_NDS_HOST_ACCESS_REFRESHED"
+                      | "PUSH_BASED_LOG_EXPORT_STOPPED"
+                      | "PUSH_BASED_LOG_EXPORT_DROPPED_LOG"
+                      | "HOST_VERSION_BEHIND"
+                      | "VERSION_BEHIND"
+                      | "HOST_EXPOSED"
+                      | "HOST_SSL_CERTIFICATE_STALE"
+                      | "HOST_SECURITY_CHECKUP_NOT_MET"
+                      | "ALERT_HOST_SSH_SESSION_STARTED"
+                      | "PROFILER_CONFIGURED_TOO_WIDELY"
+                  );
             /**
              * @description Unique 24-hexadecimal digit string that identifies the project that owns this alert.
              * @example 32b6e34b3d91647abb20e7b8
@@ -3650,9 +4921,15 @@ export interface components {
              * @example 32b6e34b3d91647abb20e7b8
              */
             readonly id?: string;
-        } & (components["schemas"]["DiskBackupOnDemandCopyPolicyItem"] | components["schemas"]["DiskBackupTimeBasedCopyPolicyItem"]);
+        } & (
+            | components["schemas"]["DiskBackupOnDemandCopyPolicyItem"]
+            | components["schemas"]["DiskBackupTimeBasedCopyPolicyItem"]
+        );
         /** @description Specifications for one on-demand copy policy item. */
-        DiskBackupOnDemandCopyPolicyItem: Omit<WithRequired<components["schemas"]["DiskBackupCopyPolicyItem"], "frequencyType">, "frequencyType"> & {
+        DiskBackupOnDemandCopyPolicyItem: Omit<
+            WithRequired<components["schemas"]["DiskBackupCopyPolicyItem"], "frequencyType">,
+            "frequencyType"
+        > & {
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -3665,7 +4942,10 @@ export interface components {
              */
             frequencyType: "ondemand";
         };
-        DiskBackupSnapshotAWSExportBucketRequest: Omit<WithRequired<components["schemas"]["DiskBackupSnapshotExportBucketRequest"], "cloudProvider">, "cloudProvider"> & {
+        DiskBackupSnapshotAWSExportBucketRequest: Omit<
+            WithRequired<components["schemas"]["DiskBackupSnapshotExportBucketRequest"], "cloudProvider">,
+            "cloudProvider"
+        > & {
             /**
              * @description Human-readable label that identifies the AWS S3 Bucket that the role is authorized to export to.
              * @example export-bucket
@@ -3716,7 +4996,10 @@ export interface components {
             /** @description Indicates whether to use private link. User supplied. */
             requirePrivateNetworking?: boolean;
         };
-        DiskBackupSnapshotAzureExportBucketRequest: Omit<WithRequired<components["schemas"]["DiskBackupSnapshotExportBucketRequest"], "cloudProvider">, "cloudProvider"> & {
+        DiskBackupSnapshotAzureExportBucketRequest: Omit<
+            WithRequired<components["schemas"]["DiskBackupSnapshotExportBucketRequest"], "cloudProvider">,
+            "cloudProvider"
+        > & {
             /**
              * @description The name of the Azure Storage Container to export to. This can be omitted and computed from the `serviceUrl` if the `serviceUrl` includes a Azure Storage Container name. For example a `serviceUrl` of `https://examplestorageaccount.blob.core.windows.net/exportcontainer` will yield a computed `bucketName` of `exportcontainer`. If the `serviceUrl` does not include a Container name, this field is required.
              * @example exportcontainer
@@ -3745,7 +5028,13 @@ export interface components {
              */
             cloudProvider: "AZURE";
         };
-        DiskBackupSnapshotAzureExportBucketResponse: Omit<WithRequired<components["schemas"]["DiskBackupSnapshotExportBucketResponse"], "_id" | "bucketName" | "cloudProvider">, "cloudProvider"> & {
+        DiskBackupSnapshotAzureExportBucketResponse: Omit<
+            WithRequired<
+                components["schemas"]["DiskBackupSnapshotExportBucketResponse"],
+                "_id" | "bucketName" | "cloudProvider"
+            >,
+            "cloudProvider"
+        > & {
             /**
              * @description Unique 24-hexadecimal digit string that identifies the Azure Cloud Provider Access Role that MongoDB Cloud uses to access the Azure Blob Storage Container.
              * @example 32b6e34b3d91647abb20e7b8
@@ -3798,7 +5087,10 @@ export interface components {
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
         };
-        DiskBackupSnapshotGCPExportBucketRequest: Omit<WithRequired<components["schemas"]["DiskBackupSnapshotExportBucketRequest"], "cloudProvider">, "cloudProvider"> & {
+        DiskBackupSnapshotGCPExportBucketRequest: Omit<
+            WithRequired<components["schemas"]["DiskBackupSnapshotExportBucketRequest"], "cloudProvider">,
+            "cloudProvider"
+        > & {
             /**
              * @description Human-readable label that identifies the Google Cloud Storage Bucket that the role is authorized to export to.
              * @example export-bucket
@@ -3816,7 +5108,13 @@ export interface components {
              */
             cloudProvider: "GCP";
         };
-        DiskBackupSnapshotGCPExportBucketResponse: Omit<WithRequired<components["schemas"]["DiskBackupSnapshotExportBucketResponse"], "_id" | "bucketName" | "cloudProvider">, "cloudProvider"> & {
+        DiskBackupSnapshotGCPExportBucketResponse: Omit<
+            WithRequired<
+                components["schemas"]["DiskBackupSnapshotExportBucketResponse"],
+                "_id" | "bucketName" | "cloudProvider"
+            >,
+            "cloudProvider"
+        > & {
             /**
              * @description Unique 24-hexadecimal digit string that identifies the GCP Cloud Provider Access Role that MongoDB Cloud uses to access the Google Cloud Storage Bucket.
              * @example 32b6e34b3d91647abb20e7b8
@@ -3830,7 +5128,10 @@ export interface components {
             cloudProvider: "GCP";
         };
         /** @description Specifications for one time-based copy policy item. */
-        DiskBackupTimeBasedCopyPolicyItem: Omit<WithRequired<components["schemas"]["DiskBackupCopyPolicyItem"], "frequencyType">, "frequencyType"> & {
+        DiskBackupTimeBasedCopyPolicyItem: Omit<
+            WithRequired<components["schemas"]["DiskBackupCopyPolicyItem"], "frequencyType">,
+            "frequencyType"
+        > & {
             /**
              * @description Unit of time in which MongoDB Cloud measures snapshot copy retention.
              * @enum {string}
@@ -3906,7 +5207,10 @@ export interface components {
              * @description Level of access to grant to MongoDB Employees.
              * @enum {string}
              */
-            grantType: "CLUSTER_DATABASE_LOGS" | "CLUSTER_INFRASTRUCTURE" | "CLUSTER_INFRASTRUCTURE_AND_APP_SERVICES_SYNC_DATA";
+            grantType:
+                | "CLUSTER_DATABASE_LOGS"
+                | "CLUSTER_INFRASTRUCTURE"
+                | "CLUSTER_INFRASTRUCTURE_AND_APP_SERVICES_SYNC_DATA";
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
         };
@@ -4122,7 +5426,46 @@ export interface components {
             /** @description Human-readable label that identifies the network in which MongoDB Cloud clusters in this network peering container exist. MongoDB Cloud returns **null** if no clusters exist in this network peering container. */
             readonly networkName?: string;
             /** @description List of GCP regions to which you want to deploy this MongoDB Cloud network peering container.  In this MongoDB Cloud project, you can deploy clusters only to the GCP regions in this list. To deploy MongoDB Cloud clusters to other GCP regions, create additional projects. */
-            regions: ("AFRICA_SOUTH_1" | "ASIA_EAST_2" | "ASIA_NORTHEAST_2" | "ASIA_NORTHEAST_3" | "ASIA_SOUTH_1" | "ASIA_SOUTH_2" | "ASIA_SOUTHEAST_2" | "AUSTRALIA_SOUTHEAST_1" | "AUSTRALIA_SOUTHEAST_2" | "CENTRAL_US" | "EASTERN_ASIA_PACIFIC" | "EASTERN_US" | "EUROPE_CENTRAL_2" | "EUROPE_NORTH_1" | "EUROPE_WEST_2" | "EUROPE_WEST_3" | "EUROPE_WEST_4" | "EUROPE_WEST_6" | "EUROPE_WEST_10" | "EUROPE_WEST_12" | "MIDDLE_EAST_CENTRAL_1" | "MIDDLE_EAST_CENTRAL_2" | "MIDDLE_EAST_WEST_1" | "NORTH_AMERICA_NORTHEAST_1" | "NORTH_AMERICA_NORTHEAST_2" | "NORTH_AMERICA_SOUTH_1" | "NORTHEASTERN_ASIA_PACIFIC" | "SOUTH_AMERICA_EAST_1" | "SOUTH_AMERICA_WEST_1" | "SOUTHEASTERN_ASIA_PACIFIC" | "US_EAST_4" | "US_EAST_5" | "US_WEST_2" | "US_WEST_3" | "US_WEST_4" | "US_SOUTH_1" | "WESTERN_EUROPE" | "WESTERN_US")[];
+            regions: (
+                | "AFRICA_SOUTH_1"
+                | "ASIA_EAST_2"
+                | "ASIA_NORTHEAST_2"
+                | "ASIA_NORTHEAST_3"
+                | "ASIA_SOUTH_1"
+                | "ASIA_SOUTH_2"
+                | "ASIA_SOUTHEAST_2"
+                | "AUSTRALIA_SOUTHEAST_1"
+                | "AUSTRALIA_SOUTHEAST_2"
+                | "CENTRAL_US"
+                | "EASTERN_ASIA_PACIFIC"
+                | "EASTERN_US"
+                | "EUROPE_CENTRAL_2"
+                | "EUROPE_NORTH_1"
+                | "EUROPE_WEST_2"
+                | "EUROPE_WEST_3"
+                | "EUROPE_WEST_4"
+                | "EUROPE_WEST_6"
+                | "EUROPE_WEST_10"
+                | "EUROPE_WEST_12"
+                | "MIDDLE_EAST_CENTRAL_1"
+                | "MIDDLE_EAST_CENTRAL_2"
+                | "MIDDLE_EAST_WEST_1"
+                | "NORTH_AMERICA_NORTHEAST_1"
+                | "NORTH_AMERICA_NORTHEAST_2"
+                | "NORTH_AMERICA_SOUTH_1"
+                | "NORTHEASTERN_ASIA_PACIFIC"
+                | "SOUTH_AMERICA_EAST_1"
+                | "SOUTH_AMERICA_WEST_1"
+                | "SOUTHEASTERN_ASIA_PACIFIC"
+                | "US_EAST_4"
+                | "US_EAST_5"
+                | "US_WEST_2"
+                | "US_WEST_3"
+                | "US_WEST_4"
+                | "US_SOUTH_1"
+                | "WESTERN_EUROPE"
+                | "WESTERN_US"
+            )[];
         } & {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -4146,13 +5489,53 @@ export interface components {
              * @description Maximum instance size to which your cluster can automatically scale.
              * @enum {string}
              */
-            maxInstanceSize?: "M10" | "M20" | "M30" | "M40" | "M50" | "M60" | "M80" | "M140" | "M200" | "M250" | "M300" | "M400" | "R40" | "R50" | "R60" | "R80" | "R200" | "R300" | "R400" | "R600";
+            maxInstanceSize?:
+                | "M10"
+                | "M20"
+                | "M30"
+                | "M40"
+                | "M50"
+                | "M60"
+                | "M80"
+                | "M140"
+                | "M200"
+                | "M250"
+                | "M300"
+                | "M400"
+                | "R40"
+                | "R50"
+                | "R60"
+                | "R80"
+                | "R200"
+                | "R300"
+                | "R400"
+                | "R600";
             /**
              * GCP Instance Sizes
              * @description Minimum instance size to which your cluster can automatically scale.
              * @enum {string}
              */
-            minInstanceSize?: "M10" | "M20" | "M30" | "M40" | "M50" | "M60" | "M80" | "M140" | "M200" | "M250" | "M300" | "M400" | "R40" | "R50" | "R60" | "R80" | "R200" | "R300" | "R400" | "R600";
+            minInstanceSize?:
+                | "M10"
+                | "M20"
+                | "M30"
+                | "M40"
+                | "M50"
+                | "M60"
+                | "M80"
+                | "M140"
+                | "M200"
+                | "M250"
+                | "M300"
+                | "M400"
+                | "R40"
+                | "R50"
+                | "R60"
+                | "R80"
+                | "R200"
+                | "R300"
+                | "R400"
+                | "R600";
         };
         GCPCreateDataProcessRegionView: Omit<components["schemas"]["CreateDataProcessRegionView"], "cloudProvider"> & {
             /**
@@ -4203,7 +5586,27 @@ export interface components {
              * @description Hardware specification for the instance sizes in this region in this shard. Each instance size has a default storage and memory capacity. Electable nodes and read-only nodes (known as "base nodes") within a single shard must use the same instance size. Analytics nodes can scale independently from base nodes within a shard. Both base nodes and analytics nodes can scale independently from their equivalents in other shards.
              * @enum {string}
              */
-            instanceSize?: "M10" | "M20" | "M30" | "M40" | "M50" | "M60" | "M80" | "M140" | "M200" | "M250" | "M300" | "M400" | "R40" | "R50" | "R60" | "R80" | "R200" | "R300" | "R400" | "R600";
+            instanceSize?:
+                | "M10"
+                | "M20"
+                | "M30"
+                | "M40"
+                | "M50"
+                | "M60"
+                | "M80"
+                | "M140"
+                | "M200"
+                | "M250"
+                | "M300"
+                | "M400"
+                | "R40"
+                | "R50"
+                | "R60"
+                | "R80"
+                | "R200"
+                | "R300"
+                | "R400"
+                | "R600";
             /**
              * Format: int32
              * @description Number of nodes of the given type for MongoDB Cloud to deploy to the region.
@@ -4239,7 +5642,10 @@ export interface components {
          * GCS Log Export Integration Request
          * @description Request schema for creating or updating a Google Cloud Storage log export integration.
          */
-        GcsLogIntegrationRequest: Omit<WithRequired<components["schemas"]["LogIntegrationRequest"], "logTypes" | "type">, "type"> & {
+        GcsLogIntegrationRequest: Omit<
+            WithRequired<components["schemas"]["LogIntegrationRequest"], "logTypes" | "type">,
+            "type"
+        > & {
             /**
              * @description Name of the bucket to store log files.
              * @example my-gcs-log-bucket
@@ -4277,7 +5683,10 @@ export interface components {
          * GCS Log Export Integration Response
          * @description Details to integrate Google Cloud Storage log export with one Atlas project.
          */
-        GcsLogIntegrationResponse: Omit<WithRequired<components["schemas"]["LogIntegrationResponse"], "id" | "logTypes" | "type">, "type"> & {
+        GcsLogIntegrationResponse: Omit<
+            WithRequired<components["schemas"]["LogIntegrationResponse"], "id" | "logTypes" | "type">,
+            "type"
+        > & {
             /**
              * @description Name of the bucket to store log files.
              * @example my-gcs-log-bucket
@@ -4358,7 +5767,13 @@ export interface components {
              */
             withDefaultAlertsSettings: boolean;
         };
-        GroupActiveUserResponse: Omit<WithRequired<components["schemas"]["GroupUserResponse"], "id" | "orgMembershipStatus" | "roles" | "username">, "orgMembershipStatus"> & {
+        GroupActiveUserResponse: Omit<
+            WithRequired<
+                components["schemas"]["GroupUserResponse"],
+                "id" | "orgMembershipStatus" | "roles" | "username"
+            >,
+            "orgMembershipStatus"
+        > & {
             /**
              * @description Two-character alphabetical string that identifies the MongoDB Cloud user's geographic location. This parameter uses the ISO 3166-1a2 code format.
              * @example US
@@ -4399,7 +5814,13 @@ export interface components {
              */
             orgMembershipStatus: "ACTIVE";
         };
-        GroupPendingUserResponse: Omit<WithRequired<components["schemas"]["GroupUserResponse"], "id" | "orgMembershipStatus" | "roles" | "username">, "orgMembershipStatus"> & {
+        GroupPendingUserResponse: Omit<
+            WithRequired<
+                components["schemas"]["GroupUserResponse"],
+                "id" | "orgMembershipStatus" | "roles" | "username"
+            >,
+            "orgMembershipStatus"
+        > & {
             /**
              * Format: date-time
              * @description Date and time when MongoDB Cloud sent the invitation. MongoDB Cloud represents this timestamp in ISO 8601 format in UTC.
@@ -4475,7 +5896,12 @@ export interface components {
              *      The maximum value for disk storage cannot exceed 50 times the maximum RAM for the selected cluster. If you require more storage space, consider upgrading your cluster to a higher tier.
              */
             diskSizeGB?: number;
-        } & (components["schemas"]["AWSHardwareSpec20240805"] | components["schemas"]["AzureHardwareSpec20240805"] | components["schemas"]["GCPHardwareSpec20240805"] | components["schemas"]["TenantHardwareSpec20240805"]);
+        } & (
+            | components["schemas"]["AWSHardwareSpec20240805"]
+            | components["schemas"]["AzureHardwareSpec20240805"]
+            | components["schemas"]["GCPHardwareSpec20240805"]
+            | components["schemas"]["TenantHardwareSpec20240805"]
+        );
         /** @description HTTP header with name and value. */
         Header: {
             /**
@@ -4585,7 +6011,27 @@ export interface components {
          * @example HOST_DOWN
          * @enum {string}
          */
-        HostEventTypeViewForNdsGroupAlertable: "HOST_DOWN" | "HOST_HAS_INDEX_SUGGESTIONS" | "HOST_MONGOT_CRASHING_OOM" | "HOST_MONGOT_STOP_REPLICATION" | "HOST_MONGOT_APPROACHING_STOP_REPLICATION" | "HOST_MONGOT_PAUSE_INITIAL_SYNC" | "HOST_SEARCH_NODE_INDEX_FAILED" | "HOST_EXTERNAL_LOG_SINK_EXPORT_DOWN" | "HOST_NOT_ENOUGH_DISK_SPACE" | "SSH_KEY_NDS_HOST_ACCESS_REQUESTED" | "SSH_KEY_NDS_HOST_ACCESS_REFRESHED" | "PUSH_BASED_LOG_EXPORT_STOPPED" | "PUSH_BASED_LOG_EXPORT_DROPPED_LOG" | "HOST_VERSION_BEHIND" | "VERSION_BEHIND" | "HOST_EXPOSED" | "HOST_SSL_CERTIFICATE_STALE" | "HOST_SECURITY_CHECKUP_NOT_MET" | "ALERT_HOST_SSH_SESSION_STARTED" | "PROFILER_CONFIGURED_TOO_WIDELY";
+        HostEventTypeViewForNdsGroupAlertable:
+            | "HOST_DOWN"
+            | "HOST_HAS_INDEX_SUGGESTIONS"
+            | "HOST_MONGOT_CRASHING_OOM"
+            | "HOST_MONGOT_STOP_REPLICATION"
+            | "HOST_MONGOT_APPROACHING_STOP_REPLICATION"
+            | "HOST_MONGOT_PAUSE_INITIAL_SYNC"
+            | "HOST_SEARCH_NODE_INDEX_FAILED"
+            | "HOST_EXTERNAL_LOG_SINK_EXPORT_DOWN"
+            | "HOST_NOT_ENOUGH_DISK_SPACE"
+            | "SSH_KEY_NDS_HOST_ACCESS_REQUESTED"
+            | "SSH_KEY_NDS_HOST_ACCESS_REFRESHED"
+            | "PUSH_BASED_LOG_EXPORT_STOPPED"
+            | "PUSH_BASED_LOG_EXPORT_DROPPED_LOG"
+            | "HOST_VERSION_BEHIND"
+            | "VERSION_BEHIND"
+            | "HOST_EXPOSED"
+            | "HOST_SSL_CERTIFICATE_STALE"
+            | "HOST_SECURITY_CHECKUP_NOT_MET"
+            | "ALERT_HOST_SSH_SESSION_STARTED"
+            | "PROFILER_CONFIGURED_TOO_WIDELY";
         /**
          * Host Metric Alerts
          * @description Host Metric Alert notifies about changes of measurements or metrics for mongod host.
@@ -4703,7 +6149,43 @@ export interface components {
              * @description Element used to express the quantity in `currentValue.number`. This can be an element of time, storage capacity, and the like. This metric triggered the alert.
              * @enum {string}
              */
-            readonly units?: "bits" | "Kbits" | "Mbits" | "Gbits" | "bytes" | "KB" | "MB" | "GB" | "TB" | "PB" | "nsec" | "msec" | "sec" | "min" | "hours" | "million minutes" | "days" | "requests" | "1000 requests" | "tokens" | "million tokens" | "pixels" | "billion pixels" | "GB seconds" | "GB hours" | "GB days" | "RPU" | "thousand RPU" | "million RPU" | "WPU" | "thousand WPU" | "million WPU" | "count" | "thousand" | "million" | "billion";
+            readonly units?:
+                | "bits"
+                | "Kbits"
+                | "Mbits"
+                | "Gbits"
+                | "bytes"
+                | "KB"
+                | "MB"
+                | "GB"
+                | "TB"
+                | "PB"
+                | "nsec"
+                | "msec"
+                | "sec"
+                | "min"
+                | "hours"
+                | "million minutes"
+                | "days"
+                | "requests"
+                | "1000 requests"
+                | "tokens"
+                | "million tokens"
+                | "pixels"
+                | "billion pixels"
+                | "GB seconds"
+                | "GB hours"
+                | "GB days"
+                | "RPU"
+                | "thousand RPU"
+                | "million RPU"
+                | "WPU"
+                | "thousand WPU"
+                | "million WPU"
+                | "count"
+                | "thousand"
+                | "million"
+                | "billion";
         };
         /**
          * Ingestion Destination
@@ -4837,8 +6319,21 @@ export interface components {
              * @description Type of log integration. Identifies which service will receive the exported logs. This value cannot be modified after the integration is created.
              * @enum {string}
              */
-            type: "S3_LOG_EXPORT" | "DATADOG_LOG_EXPORT" | "GCS_LOG_EXPORT" | "OTEL_LOG_EXPORT" | "SPLUNK_LOG_EXPORT" | "AZURE_LOG_EXPORT";
-        } & (components["schemas"]["S3LogIntegrationRequest"] | components["schemas"]["DatadogLogIntegrationRequest"] | components["schemas"]["GcsLogIntegrationRequest"] | components["schemas"]["OtelLogIntegrationRequest"] | components["schemas"]["SplunkLogIntegrationRequest"] | components["schemas"]["AzureLogIntegrationRequest"]);
+            type:
+                | "S3_LOG_EXPORT"
+                | "DATADOG_LOG_EXPORT"
+                | "GCS_LOG_EXPORT"
+                | "OTEL_LOG_EXPORT"
+                | "SPLUNK_LOG_EXPORT"
+                | "AZURE_LOG_EXPORT";
+        } & (
+            | components["schemas"]["S3LogIntegrationRequest"]
+            | components["schemas"]["DatadogLogIntegrationRequest"]
+            | components["schemas"]["GcsLogIntegrationRequest"]
+            | components["schemas"]["OtelLogIntegrationRequest"]
+            | components["schemas"]["SplunkLogIntegrationRequest"]
+            | components["schemas"]["AzureLogIntegrationRequest"]
+        );
         /**
          * Log Integration Response
          * @description Response schema for log integration operations.
@@ -4861,8 +6356,21 @@ export interface components {
              * @description Type of log integration. Identifies which service will receive the exported logs. This value cannot be modified after the integration is created.
              * @enum {string}
              */
-            type: "S3_LOG_EXPORT" | "DATADOG_LOG_EXPORT" | "GCS_LOG_EXPORT" | "OTEL_LOG_EXPORT" | "SPLUNK_LOG_EXPORT" | "AZURE_LOG_EXPORT";
-        } & (components["schemas"]["S3LogIntegrationResponse"] | components["schemas"]["DatadogLogIntegrationResponse"] | components["schemas"]["GcsLogIntegrationResponse"] | components["schemas"]["OtelLogIntegrationResponse"] | components["schemas"]["SplunkLogIntegrationResponse"] | components["schemas"]["AzureLogIntegrationResponse"]);
+            type:
+                | "S3_LOG_EXPORT"
+                | "DATADOG_LOG_EXPORT"
+                | "GCS_LOG_EXPORT"
+                | "OTEL_LOG_EXPORT"
+                | "SPLUNK_LOG_EXPORT"
+                | "AZURE_LOG_EXPORT";
+        } & (
+            | components["schemas"]["S3LogIntegrationResponse"]
+            | components["schemas"]["DatadogLogIntegrationResponse"]
+            | components["schemas"]["GcsLogIntegrationResponse"]
+            | components["schemas"]["OtelLogIntegrationResponse"]
+            | components["schemas"]["SplunkLogIntegrationResponse"]
+            | components["schemas"]["AzureLogIntegrationResponse"]
+        );
         MonthlyScheduleView: Omit<WithRequired<components["schemas"]["OnlineArchiveSchedule"], "type">, "type"> & {
             /**
              * Format: int32
@@ -5071,8 +6579,16 @@ export interface components {
              * @enum {string}
              */
             type: "DEFAULT" | "DAILY" | "WEEKLY" | "MONTHLY";
-        } & (components["schemas"]["DefaultScheduleView"] | components["schemas"]["DailyScheduleView"] | components["schemas"]["WeeklyScheduleView"] | components["schemas"]["MonthlyScheduleView"]);
-        OrgActiveUserResponse: Omit<WithRequired<components["schemas"]["OrgUserResponse"], "id" | "orgMembershipStatus" | "roles" | "username">, "orgMembershipStatus"> & {
+        } & (
+            | components["schemas"]["DefaultScheduleView"]
+            | components["schemas"]["DailyScheduleView"]
+            | components["schemas"]["WeeklyScheduleView"]
+            | components["schemas"]["MonthlyScheduleView"]
+        );
+        OrgActiveUserResponse: Omit<
+            WithRequired<components["schemas"]["OrgUserResponse"], "id" | "orgMembershipStatus" | "roles" | "username">,
+            "orgMembershipStatus"
+        > & {
             /**
              * @description Two-character alphabetical string that identifies the MongoDB Cloud user's geographic location. This parameter uses the ISO 3166-1a2 code format.
              * @example US
@@ -5129,7 +6645,10 @@ export interface components {
             /** @description List of human-readable labels that categorize the specified project. MongoDB Cloud returns an empty array. */
             readonly tags?: string[];
         };
-        OrgPendingUserResponse: Omit<WithRequired<components["schemas"]["OrgUserResponse"], "id" | "orgMembershipStatus" | "roles" | "username">, "orgMembershipStatus"> & {
+        OrgPendingUserResponse: Omit<
+            WithRequired<components["schemas"]["OrgUserResponse"], "id" | "orgMembershipStatus" | "roles" | "username">,
+            "orgMembershipStatus"
+        > & {
             /**
              * Format: date-time
              * @description Date and time when MongoDB Cloud sent the invitation. MongoDB Cloud represents this timestamp in ISO 8601 format in UTC.
@@ -5183,13 +6702,24 @@ export interface components {
             /** @description List of project-level role assignments assigned to the MongoDB Cloud user. */
             groupRoleAssignments?: components["schemas"]["GroupRoleAssignment"][];
             /** @description One or more organization-level roles assigned to the MongoDB Cloud user. */
-            orgRoles?: ("ORG_OWNER" | "ORG_GROUP_CREATOR" | "ORG_BILLING_ADMIN" | "ORG_BILLING_READ_ONLY" | "ORG_STREAM_PROCESSING_ADMIN" | "ORG_READ_ONLY" | "ORG_MEMBER")[];
+            orgRoles?: (
+                | "ORG_OWNER"
+                | "ORG_GROUP_CREATOR"
+                | "ORG_BILLING_ADMIN"
+                | "ORG_BILLING_READ_ONLY"
+                | "ORG_STREAM_PROCESSING_ADMIN"
+                | "ORG_READ_ONLY"
+                | "ORG_MEMBER"
+            )[];
         };
         /**
          * OTel Log Export Integration Request
          * @description Request schema for creating or updating an OpenTelemetry log export integration.
          */
-        OtelLogIntegrationRequest: Omit<WithRequired<components["schemas"]["LogIntegrationRequest"], "logTypes" | "type">, "type"> & {
+        OtelLogIntegrationRequest: Omit<
+            WithRequired<components["schemas"]["LogIntegrationRequest"], "logTypes" | "type">,
+            "type"
+        > & {
             /**
              * @description OpenTelemetry collector endpoint URL. Must be HTTPS and not exceed 2048 characters.
              * @example https://otel-collector.example.com:4318/v1/logs
@@ -5219,7 +6749,10 @@ export interface components {
          * OTel Log Export Integration Response
          * @description Details to integrate OpenTelemetry log export with one Atlas project.
          */
-        OtelLogIntegrationResponse: Omit<WithRequired<components["schemas"]["LogIntegrationResponse"], "id" | "logTypes" | "type">, "type"> & {
+        OtelLogIntegrationResponse: Omit<
+            WithRequired<components["schemas"]["LogIntegrationResponse"], "id" | "logTypes" | "type">,
+            "type"
+        > & {
             /**
              * @description OpenTelemetry collector endpoint URL.
              * @example https://otel-collector.example.com:4318/v1/logs
@@ -5772,7 +7305,13 @@ export interface components {
          * @example NO_PRIMARY
          * @enum {string}
          */
-        ReplicaSetEventTypeViewForNdsGroupAlertable: "REPLICATION_OPLOG_WINDOW_RUNNING_OUT" | "NO_PRIMARY" | "PRIMARY_ELECTED" | "TOO_MANY_ELECTIONS" | "TOO_FEW_HEALTHY_MEMBERS" | "TOO_MANY_UNHEALTHY_MEMBERS";
+        ReplicaSetEventTypeViewForNdsGroupAlertable:
+            | "REPLICATION_OPLOG_WINDOW_RUNNING_OUT"
+            | "NO_PRIMARY"
+            | "PRIMARY_ELECTED"
+            | "TOO_MANY_ELECTIONS"
+            | "TOO_FEW_HEALTHY_MEMBERS"
+            | "TOO_MANY_UNHEALTHY_MEMBERS";
         /**
          * Replication Specifications
          * @description Details that explain how MongoDB Cloud replicates data on the specified MongoDB database.
@@ -5813,7 +7352,10 @@ export interface components {
          * S3 Log Export Integration Request
          * @description Request schema for creating or updating an S3 log export integration.
          */
-        S3LogIntegrationRequest: Omit<WithRequired<components["schemas"]["LogIntegrationRequest"], "logTypes" | "type">, "type"> & {
+        S3LogIntegrationRequest: Omit<
+            WithRequired<components["schemas"]["LogIntegrationRequest"], "logTypes" | "type">,
+            "type"
+        > & {
             /**
              * @description Name of the bucket to store log files.
              * @example my-log-bucket
@@ -5856,7 +7398,10 @@ export interface components {
          * S3 Log Export Integration Response
          * @description Details to integrate S3 log export with one Atlas project.
          */
-        S3LogIntegrationResponse: Omit<WithRequired<components["schemas"]["LogIntegrationResponse"], "id" | "logTypes" | "type">, "type"> & {
+        S3LogIntegrationResponse: Omit<
+            WithRequired<components["schemas"]["LogIntegrationResponse"], "id" | "logTypes" | "type">,
+            "type"
+        > & {
             /**
              * @description Name of the bucket to store log files.
              * @example my-log-bucket
@@ -5904,7 +7449,14 @@ export interface components {
              * @description Type of recommendation.
              * @enum {string}
              */
-            readonly recommendation?: "REDUCE_LOOKUP_OPS" | "AVOID_UNBOUNDED_ARRAY" | "REDUCE_DOCUMENT_SIZE" | "REMOVE_UNNECESSARY_INDEXES" | "REDUCE_NUMBER_OF_NAMESPACES" | "OPTIMIZE_CASE_INSENSITIVE_REGEX_QUERIES" | "OPTIMIZE_TEXT_QUERIES";
+            readonly recommendation?:
+                | "REDUCE_LOOKUP_OPS"
+                | "AVOID_UNBOUNDED_ARRAY"
+                | "REDUCE_DOCUMENT_SIZE"
+                | "REMOVE_UNNECESSARY_INDEXES"
+                | "REDUCE_NUMBER_OF_NAMESPACES"
+                | "OPTIMIZE_CASE_INSENSITIVE_REGEX_QUERIES"
+                | "OPTIMIZE_TEXT_QUERIES";
         };
         SchemaAdvisorNamespaceTriggers: {
             /** @description Namespace of the affected collection. Will be null for `REDUCE_NUMBER_OF_NAMESPACE` recommendation. */
@@ -5923,7 +7475,14 @@ export interface components {
              * @description Type of trigger.
              * @enum {string}
              */
-            readonly triggerType?: "PERCENT_QUERIES_USE_LOOKUP" | "NUMBER_OF_QUERIES_USE_LOOKUP" | "DOCS_CONTAIN_UNBOUNDED_ARRAY" | "NUMBER_OF_NAMESPACES" | "DOC_SIZE_TOO_LARGE" | "NUM_INDEXES" | "QUERIES_CONTAIN_CASE_INSENSITIVE_REGEX";
+            readonly triggerType?:
+                | "PERCENT_QUERIES_USE_LOOKUP"
+                | "NUMBER_OF_QUERIES_USE_LOOKUP"
+                | "DOCS_CONTAIN_UNBOUNDED_ARRAY"
+                | "NUMBER_OF_NAMESPACES"
+                | "DOC_SIZE_TOO_LARGE"
+                | "NUM_INDEXES"
+                | "QUERIES_CONTAIN_CASE_INSENSITIVE_REGEX";
         };
         /** @description Authentication configuration for Schema Registry. */
         SchemaRegistryAuthentication: {
@@ -5932,7 +7491,10 @@ export interface components {
              * @enum {string}
              */
             type: "USER_INFO" | "SASL_INHERIT";
-        } & (components["schemas"]["ConfluentUserInfoAuthentication"] | components["schemas"]["ConfluentSaslInheritAuthentication"]);
+        } & (
+            | components["schemas"]["ConfluentUserInfoAuthentication"]
+            | components["schemas"]["ConfluentSaslInheritAuthentication"]
+        );
         /** Search Host Status Detail */
         SearchHostStatusDetail: {
             /** @description Hostname that corresponds to the status detail. */
@@ -5954,7 +7516,10 @@ export interface components {
              */
             status?: "DELETING" | "FAILED" | "STALE" | "PENDING" | "BUILDING" | "READY" | "DOES_NOT_EXIST";
         };
-        SearchIndex: Omit<WithRequired<components["schemas"]["ClusterSearchIndex"], "collectionName" | "database" | "name">, "type"> & {
+        SearchIndex: Omit<
+            WithRequired<components["schemas"]["ClusterSearchIndex"], "collectionName" | "database" | "name">,
+            "type"
+        > & {
             /**
              * @description Specific pre-defined method chosen to convert database field text into searchable words. This conversion reduces the text of fields into the smallest units of text. These units are called a **term** or **token**. This process, known as tokenization, involves a variety of changes made to the text in fields:
              *
@@ -5969,7 +7534,53 @@ export interface components {
              * @default lucene.standard
              * @enum {string}
              */
-            analyzer: "lucene.standard" | "lucene.simple" | "lucene.whitespace" | "lucene.keyword" | "lucene.arabic" | "lucene.armenian" | "lucene.basque" | "lucene.bengali" | "lucene.brazilian" | "lucene.bulgarian" | "lucene.catalan" | "lucene.chinese" | "lucene.cjk" | "lucene.czech" | "lucene.danish" | "lucene.dutch" | "lucene.english" | "lucene.finnish" | "lucene.french" | "lucene.galician" | "lucene.german" | "lucene.greek" | "lucene.hindi" | "lucene.hungarian" | "lucene.indonesian" | "lucene.irish" | "lucene.italian" | "lucene.japanese" | "lucene.korean" | "lucene.kuromoji" | "lucene.latvian" | "lucene.lithuanian" | "lucene.morfologik" | "lucene.nori" | "lucene.norwegian" | "lucene.persian" | "lucene.portuguese" | "lucene.romanian" | "lucene.russian" | "lucene.smartcn" | "lucene.sorani" | "lucene.spanish" | "lucene.swedish" | "lucene.thai" | "lucene.turkish" | "lucene.ukrainian";
+            analyzer:
+                | "lucene.standard"
+                | "lucene.simple"
+                | "lucene.whitespace"
+                | "lucene.keyword"
+                | "lucene.arabic"
+                | "lucene.armenian"
+                | "lucene.basque"
+                | "lucene.bengali"
+                | "lucene.brazilian"
+                | "lucene.bulgarian"
+                | "lucene.catalan"
+                | "lucene.chinese"
+                | "lucene.cjk"
+                | "lucene.czech"
+                | "lucene.danish"
+                | "lucene.dutch"
+                | "lucene.english"
+                | "lucene.finnish"
+                | "lucene.french"
+                | "lucene.galician"
+                | "lucene.german"
+                | "lucene.greek"
+                | "lucene.hindi"
+                | "lucene.hungarian"
+                | "lucene.indonesian"
+                | "lucene.irish"
+                | "lucene.italian"
+                | "lucene.japanese"
+                | "lucene.korean"
+                | "lucene.kuromoji"
+                | "lucene.latvian"
+                | "lucene.lithuanian"
+                | "lucene.morfologik"
+                | "lucene.nori"
+                | "lucene.norwegian"
+                | "lucene.persian"
+                | "lucene.portuguese"
+                | "lucene.romanian"
+                | "lucene.russian"
+                | "lucene.smartcn"
+                | "lucene.sorani"
+                | "lucene.spanish"
+                | "lucene.swedish"
+                | "lucene.thai"
+                | "lucene.turkish"
+                | "lucene.ukrainian";
             /** @description List of user-defined methods to convert database field text into searchable words. */
             analyzers?: components["schemas"]["ApiAtlasFTSAnalyzersViewManual"][];
             mappings?: components["schemas"]["ApiAtlasFTSMappingsViewManual"];
@@ -5978,7 +7589,53 @@ export interface components {
              * @default lucene.standard
              * @enum {string}
              */
-            searchAnalyzer: "lucene.standard" | "lucene.simple" | "lucene.whitespace" | "lucene.keyword" | "lucene.arabic" | "lucene.armenian" | "lucene.basque" | "lucene.bengali" | "lucene.brazilian" | "lucene.bulgarian" | "lucene.catalan" | "lucene.chinese" | "lucene.cjk" | "lucene.czech" | "lucene.danish" | "lucene.dutch" | "lucene.english" | "lucene.finnish" | "lucene.french" | "lucene.galician" | "lucene.german" | "lucene.greek" | "lucene.hindi" | "lucene.hungarian" | "lucene.indonesian" | "lucene.irish" | "lucene.italian" | "lucene.japanese" | "lucene.korean" | "lucene.kuromoji" | "lucene.latvian" | "lucene.lithuanian" | "lucene.morfologik" | "lucene.nori" | "lucene.norwegian" | "lucene.persian" | "lucene.portuguese" | "lucene.romanian" | "lucene.russian" | "lucene.smartcn" | "lucene.sorani" | "lucene.spanish" | "lucene.swedish" | "lucene.thai" | "lucene.turkish" | "lucene.ukrainian";
+            searchAnalyzer:
+                | "lucene.standard"
+                | "lucene.simple"
+                | "lucene.whitespace"
+                | "lucene.keyword"
+                | "lucene.arabic"
+                | "lucene.armenian"
+                | "lucene.basque"
+                | "lucene.bengali"
+                | "lucene.brazilian"
+                | "lucene.bulgarian"
+                | "lucene.catalan"
+                | "lucene.chinese"
+                | "lucene.cjk"
+                | "lucene.czech"
+                | "lucene.danish"
+                | "lucene.dutch"
+                | "lucene.english"
+                | "lucene.finnish"
+                | "lucene.french"
+                | "lucene.galician"
+                | "lucene.german"
+                | "lucene.greek"
+                | "lucene.hindi"
+                | "lucene.hungarian"
+                | "lucene.indonesian"
+                | "lucene.irish"
+                | "lucene.italian"
+                | "lucene.japanese"
+                | "lucene.korean"
+                | "lucene.kuromoji"
+                | "lucene.latvian"
+                | "lucene.lithuanian"
+                | "lucene.morfologik"
+                | "lucene.nori"
+                | "lucene.norwegian"
+                | "lucene.persian"
+                | "lucene.portuguese"
+                | "lucene.romanian"
+                | "lucene.russian"
+                | "lucene.smartcn"
+                | "lucene.sorani"
+                | "lucene.spanish"
+                | "lucene.swedish"
+                | "lucene.thai"
+                | "lucene.turkish"
+                | "lucene.ukrainian";
             /** @description Rule sets that map words to their synonyms in this index. */
             synonyms?: components["schemas"]["SearchSynonymMappingDefinition"][];
         } & {
@@ -6150,7 +7807,53 @@ export interface components {
              * @description Specific pre-defined method chosen to apply to the synonyms to be searched.
              * @enum {string}
              */
-            analyzer: "lucene.standard" | "lucene.simple" | "lucene.whitespace" | "lucene.keyword" | "lucene.arabic" | "lucene.armenian" | "lucene.basque" | "lucene.bengali" | "lucene.brazilian" | "lucene.bulgarian" | "lucene.catalan" | "lucene.chinese" | "lucene.cjk" | "lucene.czech" | "lucene.danish" | "lucene.dutch" | "lucene.english" | "lucene.finnish" | "lucene.french" | "lucene.galician" | "lucene.german" | "lucene.greek" | "lucene.hindi" | "lucene.hungarian" | "lucene.indonesian" | "lucene.irish" | "lucene.italian" | "lucene.japanese" | "lucene.korean" | "lucene.kuromoji" | "lucene.latvian" | "lucene.lithuanian" | "lucene.morfologik" | "lucene.nori" | "lucene.norwegian" | "lucene.persian" | "lucene.portuguese" | "lucene.romanian" | "lucene.russian" | "lucene.smartcn" | "lucene.sorani" | "lucene.spanish" | "lucene.swedish" | "lucene.thai" | "lucene.turkish" | "lucene.ukrainian";
+            analyzer:
+                | "lucene.standard"
+                | "lucene.simple"
+                | "lucene.whitespace"
+                | "lucene.keyword"
+                | "lucene.arabic"
+                | "lucene.armenian"
+                | "lucene.basque"
+                | "lucene.bengali"
+                | "lucene.brazilian"
+                | "lucene.bulgarian"
+                | "lucene.catalan"
+                | "lucene.chinese"
+                | "lucene.cjk"
+                | "lucene.czech"
+                | "lucene.danish"
+                | "lucene.dutch"
+                | "lucene.english"
+                | "lucene.finnish"
+                | "lucene.french"
+                | "lucene.galician"
+                | "lucene.german"
+                | "lucene.greek"
+                | "lucene.hindi"
+                | "lucene.hungarian"
+                | "lucene.indonesian"
+                | "lucene.irish"
+                | "lucene.italian"
+                | "lucene.japanese"
+                | "lucene.korean"
+                | "lucene.kuromoji"
+                | "lucene.latvian"
+                | "lucene.lithuanian"
+                | "lucene.morfologik"
+                | "lucene.nori"
+                | "lucene.norwegian"
+                | "lucene.persian"
+                | "lucene.portuguese"
+                | "lucene.romanian"
+                | "lucene.russian"
+                | "lucene.smartcn"
+                | "lucene.sorani"
+                | "lucene.spanish"
+                | "lucene.swedish"
+                | "lucene.thai"
+                | "lucene.turkish"
+                | "lucene.ukrainian";
             /** @description Label that identifies the synonym definition. Each `synonym.name` must be unique within the same index definition. */
             name: string;
             source: components["schemas"]["SynonymSource"];
@@ -6169,7 +7872,10 @@ export interface components {
          * AWS
          * @description Updates to a serverless AWS tenant endpoint.
          */
-        ServerlessAWSTenantEndpointUpdate: Omit<WithRequired<components["schemas"]["ServerlessTenantEndpointUpdate"], "providerName">, "providerName"> & {
+        ServerlessAWSTenantEndpointUpdate: Omit<
+            WithRequired<components["schemas"]["ServerlessTenantEndpointUpdate"], "providerName">,
+            "providerName"
+        > & {
             /** @description Unique string that identifies the private endpoint's network interface. */
             cloudProviderEndpointId?: string;
         } & {
@@ -6183,7 +7889,10 @@ export interface components {
          * AZURE
          * @description Updates to a serverless Azure tenant endpoint.
          */
-        ServerlessAzureTenantEndpointUpdate: Omit<WithRequired<components["schemas"]["ServerlessTenantEndpointUpdate"], "providerName">, "providerName"> & {
+        ServerlessAzureTenantEndpointUpdate: Omit<
+            WithRequired<components["schemas"]["ServerlessTenantEndpointUpdate"], "providerName">,
+            "providerName"
+        > & {
             /** @description Unique string that identifies the Azure private endpoint's network interface for this private endpoint service. */
             cloudProviderEndpointId?: string;
             /** @description IPv4 address of the private endpoint in your Azure VNet that someone added to this private endpoint service. */
@@ -6209,7 +7918,10 @@ export interface components {
          * Splunk Log Export Integration Request
          * @description Request schema for creating or updating a Splunk log export integration.
          */
-        SplunkLogIntegrationRequest: Omit<WithRequired<components["schemas"]["LogIntegrationRequest"], "logTypes" | "type">, "type"> & {
+        SplunkLogIntegrationRequest: Omit<
+            WithRequired<components["schemas"]["LogIntegrationRequest"], "logTypes" | "type">,
+            "type"
+        > & {
             /**
              * Format: password
              * @description HTTP Event Collector (HEC) token for authentication.
@@ -6243,7 +7955,10 @@ export interface components {
          * Splunk Log Export Integration Response
          * @description Details to integrate Splunk log export with one Atlas project.
          */
-        SplunkLogIntegrationResponse: Omit<WithRequired<components["schemas"]["LogIntegrationResponse"], "id" | "logTypes" | "type">, "type"> & {
+        SplunkLogIntegrationResponse: Omit<
+            WithRequired<components["schemas"]["LogIntegrationResponse"], "id" | "logTypes" | "type">,
+            "type"
+        > & {
             /**
              * Format: password
              * @description HTTP Event Collector (HEC) token for authentication.
@@ -6463,7 +8178,16 @@ export interface components {
              * @enum {string}
              */
             type?: "Kafka" | "Cluster" | "Sample" | "Https" | "AWSLambda" | "AWSKinesisDataStreams" | "SchemaRegistry";
-        } & (components["schemas"]["StreamsSampleConnection"] | components["schemas"]["StreamsClusterConnection"] | components["schemas"]["StreamsKafkaConnection"] | components["schemas"]["StreamsHttpsConnection"] | components["schemas"]["StreamsAWSLambdaConnection"] | components["schemas"]["StreamsS3Connection"] | components["schemas"]["StreamsAWSKinesisDataStreamsConnection"] | components["schemas"]["StreamsSchemaRegistryConnection"]);
+        } & (
+            | components["schemas"]["StreamsSampleConnection"]
+            | components["schemas"]["StreamsClusterConnection"]
+            | components["schemas"]["StreamsKafkaConnection"]
+            | components["schemas"]["StreamsHttpsConnection"]
+            | components["schemas"]["StreamsAWSLambdaConnection"]
+            | components["schemas"]["StreamsS3Connection"]
+            | components["schemas"]["StreamsAWSKinesisDataStreamsConnection"]
+            | components["schemas"]["StreamsSchemaRegistryConnection"]
+        );
         /** @description Dead letter queue for the stream processor. */
         StreamsDLQ: {
             /** @description Name of the collection to use for the DLQ. */
@@ -6952,7 +8676,10 @@ export interface components {
             status?: "DELETING" | "FAILED" | "STALE" | "PENDING" | "BUILDING" | "READY" | "DOES_NOT_EXIST";
         };
         /** @description Text Search Index Create Request. */
-        TextSearchIndexCreateRequest: Omit<WithRequired<components["schemas"]["SearchIndexCreateRequest"], "collectionName" | "database" | "name">, "type"> & {
+        TextSearchIndexCreateRequest: Omit<
+            WithRequired<components["schemas"]["SearchIndexCreateRequest"], "collectionName" | "database" | "name">,
+            "type"
+        > & {
             definition: components["schemas"]["TextSearchIndexDefinition"];
         } & {
             /**
@@ -6980,7 +8707,53 @@ export interface components {
              * @default lucene.standard
              * @enum {string}
              */
-            analyzer: "lucene.standard" | "lucene.simple" | "lucene.whitespace" | "lucene.keyword" | "lucene.arabic" | "lucene.armenian" | "lucene.basque" | "lucene.bengali" | "lucene.brazilian" | "lucene.bulgarian" | "lucene.catalan" | "lucene.chinese" | "lucene.cjk" | "lucene.czech" | "lucene.danish" | "lucene.dutch" | "lucene.english" | "lucene.finnish" | "lucene.french" | "lucene.galician" | "lucene.german" | "lucene.greek" | "lucene.hindi" | "lucene.hungarian" | "lucene.indonesian" | "lucene.irish" | "lucene.italian" | "lucene.japanese" | "lucene.korean" | "lucene.kuromoji" | "lucene.latvian" | "lucene.lithuanian" | "lucene.morfologik" | "lucene.nori" | "lucene.norwegian" | "lucene.persian" | "lucene.portuguese" | "lucene.romanian" | "lucene.russian" | "lucene.smartcn" | "lucene.sorani" | "lucene.spanish" | "lucene.swedish" | "lucene.thai" | "lucene.turkish" | "lucene.ukrainian";
+            analyzer:
+                | "lucene.standard"
+                | "lucene.simple"
+                | "lucene.whitespace"
+                | "lucene.keyword"
+                | "lucene.arabic"
+                | "lucene.armenian"
+                | "lucene.basque"
+                | "lucene.bengali"
+                | "lucene.brazilian"
+                | "lucene.bulgarian"
+                | "lucene.catalan"
+                | "lucene.chinese"
+                | "lucene.cjk"
+                | "lucene.czech"
+                | "lucene.danish"
+                | "lucene.dutch"
+                | "lucene.english"
+                | "lucene.finnish"
+                | "lucene.french"
+                | "lucene.galician"
+                | "lucene.german"
+                | "lucene.greek"
+                | "lucene.hindi"
+                | "lucene.hungarian"
+                | "lucene.indonesian"
+                | "lucene.irish"
+                | "lucene.italian"
+                | "lucene.japanese"
+                | "lucene.korean"
+                | "lucene.kuromoji"
+                | "lucene.latvian"
+                | "lucene.lithuanian"
+                | "lucene.morfologik"
+                | "lucene.nori"
+                | "lucene.norwegian"
+                | "lucene.persian"
+                | "lucene.portuguese"
+                | "lucene.romanian"
+                | "lucene.russian"
+                | "lucene.smartcn"
+                | "lucene.sorani"
+                | "lucene.spanish"
+                | "lucene.swedish"
+                | "lucene.thai"
+                | "lucene.turkish"
+                | "lucene.ukrainian";
             /** @description List of user-defined methods to convert database field text into searchable words. */
             analyzers?: components["schemas"]["AtlasSearchAnalyzer"][];
             mappings: components["schemas"]["SearchMappings"];
@@ -6995,7 +8768,53 @@ export interface components {
              * @default lucene.standard
              * @enum {string}
              */
-            searchAnalyzer: "lucene.standard" | "lucene.simple" | "lucene.whitespace" | "lucene.keyword" | "lucene.arabic" | "lucene.armenian" | "lucene.basque" | "lucene.bengali" | "lucene.brazilian" | "lucene.bulgarian" | "lucene.catalan" | "lucene.chinese" | "lucene.cjk" | "lucene.czech" | "lucene.danish" | "lucene.dutch" | "lucene.english" | "lucene.finnish" | "lucene.french" | "lucene.galician" | "lucene.german" | "lucene.greek" | "lucene.hindi" | "lucene.hungarian" | "lucene.indonesian" | "lucene.irish" | "lucene.italian" | "lucene.japanese" | "lucene.korean" | "lucene.kuromoji" | "lucene.latvian" | "lucene.lithuanian" | "lucene.morfologik" | "lucene.nori" | "lucene.norwegian" | "lucene.persian" | "lucene.portuguese" | "lucene.romanian" | "lucene.russian" | "lucene.smartcn" | "lucene.sorani" | "lucene.spanish" | "lucene.swedish" | "lucene.thai" | "lucene.turkish" | "lucene.ukrainian";
+            searchAnalyzer:
+                | "lucene.standard"
+                | "lucene.simple"
+                | "lucene.whitespace"
+                | "lucene.keyword"
+                | "lucene.arabic"
+                | "lucene.armenian"
+                | "lucene.basque"
+                | "lucene.bengali"
+                | "lucene.brazilian"
+                | "lucene.bulgarian"
+                | "lucene.catalan"
+                | "lucene.chinese"
+                | "lucene.cjk"
+                | "lucene.czech"
+                | "lucene.danish"
+                | "lucene.dutch"
+                | "lucene.english"
+                | "lucene.finnish"
+                | "lucene.french"
+                | "lucene.galician"
+                | "lucene.german"
+                | "lucene.greek"
+                | "lucene.hindi"
+                | "lucene.hungarian"
+                | "lucene.indonesian"
+                | "lucene.irish"
+                | "lucene.italian"
+                | "lucene.japanese"
+                | "lucene.korean"
+                | "lucene.kuromoji"
+                | "lucene.latvian"
+                | "lucene.lithuanian"
+                | "lucene.morfologik"
+                | "lucene.nori"
+                | "lucene.norwegian"
+                | "lucene.persian"
+                | "lucene.portuguese"
+                | "lucene.romanian"
+                | "lucene.russian"
+                | "lucene.smartcn"
+                | "lucene.sorani"
+                | "lucene.spanish"
+                | "lucene.swedish"
+                | "lucene.thai"
+                | "lucene.turkish"
+                | "lucene.ukrainian";
             /**
              * @description Sort definition for the index. When defined, the index will be pre-sorted on the specified fields, which improves query sort performance for those fields. Supports two formats: simple format with field name and direction, or complex format with additional options. The `order` field is required (1=ascending, -1=descending).The `noData` field is optional and controls how missing values are sorted(default: "lowest").
              * @example {
@@ -7371,7 +9190,10 @@ export interface components {
              */
             status?: "DELETING" | "FAILED" | "STALE" | "PENDING" | "BUILDING" | "READY" | "DOES_NOT_EXIST";
         };
-        VectorSearchIndex: Omit<WithRequired<components["schemas"]["ClusterSearchIndex"], "collectionName" | "database" | "name">, "type"> & {
+        VectorSearchIndex: Omit<
+            WithRequired<components["schemas"]["ClusterSearchIndex"], "collectionName" | "database" | "name">,
+            "type"
+        > & {
             /** @description Settings that configure the fields, one per object, to index. You must define at least one "vector" type field. You can optionally define "filter" type fields also. */
             fields?: components["schemas"]["BasicDBObject"][];
             /**
@@ -7387,7 +9209,10 @@ export interface components {
             type: "vectorSearch";
         };
         /** @description Vector Search Index Create Request. */
-        VectorSearchIndexCreateRequest: Omit<WithRequired<components["schemas"]["SearchIndexCreateRequest"], "collectionName" | "database" | "name">, "type"> & {
+        VectorSearchIndexCreateRequest: Omit<
+            WithRequired<components["schemas"]["SearchIndexCreateRequest"], "collectionName" | "database" | "name">,
+            "type"
+        > & {
             definition: components["schemas"]["VectorSearchIndexDefinition"];
         } & {
             /**
@@ -7758,7 +9583,32 @@ export interface components {
              * @description Snowball-generated stemmer to use.
              * @enum {string}
              */
-            stemmerName: "arabic" | "armenian" | "basque" | "catalan" | "danish" | "dutch" | "english" | "finnish" | "french" | "german" | "german2" | "hungarian" | "irish" | "italian" | "kp" | "lithuanian" | "lovins" | "norwegian" | "porter" | "portuguese" | "romanian" | "russian" | "spanish" | "swedish" | "turkish";
+            stemmerName:
+                | "arabic"
+                | "armenian"
+                | "basque"
+                | "catalan"
+                | "danish"
+                | "dutch"
+                | "english"
+                | "finnish"
+                | "french"
+                | "german"
+                | "german2"
+                | "hungarian"
+                | "irish"
+                | "italian"
+                | "kp"
+                | "lithuanian"
+                | "lovins"
+                | "norwegian"
+                | "porter"
+                | "portuguese"
+                | "romanian"
+                | "russian"
+                | "spanish"
+                | "swedish"
+                | "turkish";
             /**
              * @description Human-readable label that identifies this token filter type.
              * @enum {string}
@@ -8084,343 +9934,368 @@ export interface components {
     };
     pathItems: never;
 }
-export type AwsAccountDetails = components['schemas']['AWSAccountDetails'];
-export type AwsCloudProviderContainer = components['schemas']['AWSCloudProviderContainer'];
-export type AwsCloudProviderSettings = components['schemas']['AWSCloudProviderSettings'];
-export type AwsComputeAutoScaling = components['schemas']['AWSComputeAutoScaling'];
-export type AwsCreateDataProcessRegionView = components['schemas']['AWSCreateDataProcessRegionView'];
-export type AwsDataProcessRegionView = components['schemas']['AWSDataProcessRegionView'];
-export type AwsHardwareSpec20240805 = components['schemas']['AWSHardwareSpec20240805'];
-export type AwsRegionConfig20240805 = components['schemas']['AWSRegionConfig20240805'];
-export type AccountDetails = components['schemas']['AccountDetails'];
-export type AdvancedAutoScalingSettings = components['schemas']['AdvancedAutoScalingSettings'];
-export type AdvancedComputeAutoScaling = components['schemas']['AdvancedComputeAutoScaling'];
-export type AlertViewForNdsGroup = components['schemas']['AlertViewForNdsGroup'];
-export type ApiAtlasCloudProviderAccessFeatureUsageFeatureIdView = components['schemas']['ApiAtlasCloudProviderAccessFeatureUsageFeatureIdView'];
-export type ApiAtlasClusterAdvancedConfigurationView = components['schemas']['ApiAtlasClusterAdvancedConfigurationView'];
-export type ApiAtlasFtsAnalyzersViewManual = components['schemas']['ApiAtlasFTSAnalyzersViewManual'];
-export type ApiAtlasFtsMappingsViewManual = components['schemas']['ApiAtlasFTSMappingsViewManual'];
-export type ApiError = components['schemas']['ApiError'];
-export type ApiStreamsAwsRegionView = components['schemas']['ApiStreamsAWSRegionView'];
-export type ApiStreamsAzureRegionView = components['schemas']['ApiStreamsAzureRegionView'];
-export type ApiStreamsGcpRegionView = components['schemas']['ApiStreamsGCPRegionView'];
-export type AppServiceAlertView = components['schemas']['AppServiceAlertView'];
-export type AppServiceEventTypeViewAlertable = components['schemas']['AppServiceEventTypeViewAlertable'];
-export type AtlasOrganization = components['schemas']['AtlasOrganization'];
-export type AtlasSearchAnalyzer = components['schemas']['AtlasSearchAnalyzer'];
-export type AzureAccountDetails = components['schemas']['AzureAccountDetails'];
-export type AzureCloudProviderContainer = components['schemas']['AzureCloudProviderContainer'];
-export type AzureCloudProviderSettings = components['schemas']['AzureCloudProviderSettings'];
-export type AzureComputeAutoScalingRules = components['schemas']['AzureComputeAutoScalingRules'];
-export type AzureCreateDataProcessRegionView = components['schemas']['AzureCreateDataProcessRegionView'];
-export type AzureDataProcessRegionView = components['schemas']['AzureDataProcessRegionView'];
-export type AzureHardwareSpec20240805 = components['schemas']['AzureHardwareSpec20240805'];
-export type AzureLogIntegrationRequest = components['schemas']['AzureLogIntegrationRequest'];
-export type AzureLogIntegrationResponse = components['schemas']['AzureLogIntegrationResponse'];
-export type AzureRegionConfig20240805 = components['schemas']['AzureRegionConfig20240805'];
-export type BadRequestDetail = components['schemas']['BadRequestDetail'];
-export type BaseCloudProviderInstanceSize = components['schemas']['BaseCloudProviderInstanceSize'];
-export type BaseStreamsRegion = components['schemas']['BaseStreamsRegion'];
-export type BasicDbObject = components['schemas']['BasicDBObject'];
-export type BiConnector = components['schemas']['BiConnector'];
-export type BillingInvoice = components['schemas']['BillingInvoice'];
-export type BillingInvoiceMetadata = components['schemas']['BillingInvoiceMetadata'];
-export type BillingPayment = components['schemas']['BillingPayment'];
-export type BillingRefund = components['schemas']['BillingRefund'];
-export type CloudCluster = components['schemas']['CloudCluster'];
-export type CloudDatabaseUser = components['schemas']['CloudDatabaseUser'];
-export type CloudGcpProviderSettings = components['schemas']['CloudGCPProviderSettings'];
-export type CloudProviderAwsAutoScaling = components['schemas']['CloudProviderAWSAutoScaling'];
-export type CloudProviderAccessAwsiamRole = components['schemas']['CloudProviderAccessAWSIAMRole'];
-export type CloudProviderAccessAwsiamRoleRequestUpdate = components['schemas']['CloudProviderAccessAWSIAMRoleRequestUpdate'];
-export type CloudProviderAccessAtlasLogIntegrationFeatureUsage = components['schemas']['CloudProviderAccessAtlasLogIntegrationFeatureUsage'];
-export type CloudProviderAccessAzureServicePrincipal = components['schemas']['CloudProviderAccessAzureServicePrincipal'];
-export type CloudProviderAccessAzureServicePrincipalRequestUpdate = components['schemas']['CloudProviderAccessAzureServicePrincipalRequestUpdate'];
-export type CloudProviderAccessDataLakeFeatureUsage = components['schemas']['CloudProviderAccessDataLakeFeatureUsage'];
-export type CloudProviderAccessEncryptionAtRestFeatureUsage = components['schemas']['CloudProviderAccessEncryptionAtRestFeatureUsage'];
-export type CloudProviderAccessExportSnapshotFeatureUsage = components['schemas']['CloudProviderAccessExportSnapshotFeatureUsage'];
-export type CloudProviderAccessFeatureUsage = components['schemas']['CloudProviderAccessFeatureUsage'];
-export type CloudProviderAccessFeatureUsageAtlasLogIntegrationFeatureId = components['schemas']['CloudProviderAccessFeatureUsageAtlasLogIntegrationFeatureId'];
-export type CloudProviderAccessFeatureUsageDataLakeFeatureId = components['schemas']['CloudProviderAccessFeatureUsageDataLakeFeatureId'];
-export type CloudProviderAccessFeatureUsageExportSnapshotFeatureId = components['schemas']['CloudProviderAccessFeatureUsageExportSnapshotFeatureId'];
-export type CloudProviderAccessFeatureUsagePushBasedLogExportFeatureId = components['schemas']['CloudProviderAccessFeatureUsagePushBasedLogExportFeatureId'];
-export type CloudProviderAccessGcpServiceAccount = components['schemas']['CloudProviderAccessGCPServiceAccount'];
-export type CloudProviderAccessGcpServiceAccountRequestUpdate = components['schemas']['CloudProviderAccessGCPServiceAccountRequestUpdate'];
-export type CloudProviderAccessPushBasedLogExportFeatureUsage = components['schemas']['CloudProviderAccessPushBasedLogExportFeatureUsage'];
-export type CloudProviderAccessRole = components['schemas']['CloudProviderAccessRole'];
-export type CloudProviderAccessRoleRequestUpdate = components['schemas']['CloudProviderAccessRoleRequestUpdate'];
-export type CloudProviderAzureAutoScaling = components['schemas']['CloudProviderAzureAutoScaling'];
-export type CloudProviderContainer = components['schemas']['CloudProviderContainer'];
-export type CloudProviderGcpAutoScaling = components['schemas']['CloudProviderGCPAutoScaling'];
-export type CloudRegionConfig20240805 = components['schemas']['CloudRegionConfig20240805'];
-export type ClusterAlertViewForNdsGroup = components['schemas']['ClusterAlertViewForNdsGroup'];
-export type ClusterConnectionStrings = components['schemas']['ClusterConnectionStrings'];
-export type ClusterDescription20240805 = components['schemas']['ClusterDescription20240805'];
-export type ClusterDescriptionConnectionStringsPrivateEndpoint = components['schemas']['ClusterDescriptionConnectionStringsPrivateEndpoint'];
-export type ClusterDescriptionConnectionStringsPrivateEndpointEndpoint = components['schemas']['ClusterDescriptionConnectionStringsPrivateEndpointEndpoint'];
-export type ClusterEventTypeViewForNdsGroupAlertable = components['schemas']['ClusterEventTypeViewForNdsGroupAlertable'];
-export type ClusterFlexProviderSettings = components['schemas']['ClusterFlexProviderSettings'];
-export type ClusterFreeAutoScaling = components['schemas']['ClusterFreeAutoScaling'];
-export type ClusterFreeProviderSettings = components['schemas']['ClusterFreeProviderSettings'];
-export type ClusterProviderSettings = components['schemas']['ClusterProviderSettings'];
-export type ClusterSearchIndex = components['schemas']['ClusterSearchIndex'];
-export type ComponentLabel = components['schemas']['ComponentLabel'];
-export type ConfluentSaslInheritAuthentication = components['schemas']['ConfluentSaslInheritAuthentication'];
-export type ConfluentUserInfoAuthentication = components['schemas']['ConfluentUserInfoAuthentication'];
-export type CreateAwsEndpointRequest = components['schemas']['CreateAWSEndpointRequest'];
-export type CreateAzureEndpointRequest = components['schemas']['CreateAzureEndpointRequest'];
-export type CreateDataProcessRegionView = components['schemas']['CreateDataProcessRegionView'];
-export type CreateEndpointRequest = components['schemas']['CreateEndpointRequest'];
-export type CreateGcpEndpointGroupRequest = components['schemas']['CreateGCPEndpointGroupRequest'];
-export type CreateGcpForwardingRuleRequest = components['schemas']['CreateGCPForwardingRuleRequest'];
-export type CriteriaView = components['schemas']['CriteriaView'];
-export type CustomCriteriaView = components['schemas']['CustomCriteriaView'];
-export type DbRoleToExecute = components['schemas']['DBRoleToExecute'];
-export type DlsIngestionSink = components['schemas']['DLSIngestionSink'];
-export type DailyScheduleView = components['schemas']['DailyScheduleView'];
-export type DataLakeAtlasStoreInstance = components['schemas']['DataLakeAtlasStoreInstance'];
-export type DataLakeAtlasStoreReadConcern = components['schemas']['DataLakeAtlasStoreReadConcern'];
-export type DataLakeAtlasStoreReadPreference = components['schemas']['DataLakeAtlasStoreReadPreference'];
-export type DataLakeAtlasStoreReadPreferenceTag = components['schemas']['DataLakeAtlasStoreReadPreferenceTag'];
-export type DataLakeAzureBlobStore = components['schemas']['DataLakeAzureBlobStore'];
-export type DataLakeDlsawsStore = components['schemas']['DataLakeDLSAWSStore'];
-export type DataLakeDlsAzureStore = components['schemas']['DataLakeDLSAzureStore'];
-export type DataLakeDlsgcpStore = components['schemas']['DataLakeDLSGCPStore'];
-export type DataLakeGoogleCloudStorageStore = components['schemas']['DataLakeGoogleCloudStorageStore'];
-export type DataLakeHttpStore = components['schemas']['DataLakeHTTPStore'];
-export type DataLakePipelinesPartitionField = components['schemas']['DataLakePipelinesPartitionField'];
-export type DataLakeS3StoreSettings = components['schemas']['DataLakeS3StoreSettings'];
-export type DataLakeStoreSettings = components['schemas']['DataLakeStoreSettings'];
-export type DataMetricAlertView = components['schemas']['DataMetricAlertView'];
-export type DataMetricUnits = components['schemas']['DataMetricUnits'];
-export type DataMetricValueView = components['schemas']['DataMetricValueView'];
-export type DataProcessRegionView = components['schemas']['DataProcessRegionView'];
-export type DatabaseUserRole = components['schemas']['DatabaseUserRole'];
-export type DatadogLogIntegrationRequest = components['schemas']['DatadogLogIntegrationRequest'];
-export type DatadogLogIntegrationResponse = components['schemas']['DatadogLogIntegrationResponse'];
-export type DateCriteriaView = components['schemas']['DateCriteriaView'];
-export type DedicatedHardwareSpec20240805 = components['schemas']['DedicatedHardwareSpec20240805'];
-export type DefaultAlertViewForNdsGroup = components['schemas']['DefaultAlertViewForNdsGroup'];
-export type DefaultScheduleView = components['schemas']['DefaultScheduleView'];
-export type DiskBackupCopyPolicyItem = components['schemas']['DiskBackupCopyPolicyItem'];
-export type DiskBackupOnDemandCopyPolicyItem = components['schemas']['DiskBackupOnDemandCopyPolicyItem'];
-export type DiskBackupSnapshotAwsExportBucketRequest = components['schemas']['DiskBackupSnapshotAWSExportBucketRequest'];
-export type DiskBackupSnapshotAwsExportBucketResponse = components['schemas']['DiskBackupSnapshotAWSExportBucketResponse'];
-export type DiskBackupSnapshotAzureExportBucketRequest = components['schemas']['DiskBackupSnapshotAzureExportBucketRequest'];
-export type DiskBackupSnapshotAzureExportBucketResponse = components['schemas']['DiskBackupSnapshotAzureExportBucketResponse'];
-export type DiskBackupSnapshotExportBucketRequest = components['schemas']['DiskBackupSnapshotExportBucketRequest'];
-export type DiskBackupSnapshotExportBucketResponse = components['schemas']['DiskBackupSnapshotExportBucketResponse'];
-export type DiskBackupSnapshotGcpExportBucketRequest = components['schemas']['DiskBackupSnapshotGCPExportBucketRequest'];
-export type DiskBackupSnapshotGcpExportBucketResponse = components['schemas']['DiskBackupSnapshotGCPExportBucketResponse'];
-export type DiskBackupTimeBasedCopyPolicyItem = components['schemas']['DiskBackupTimeBasedCopyPolicyItem'];
-export type DiskGbAutoScaling = components['schemas']['DiskGBAutoScaling'];
-export type Document = components['schemas']['Document'];
-export type DropIndexSuggestionsIndex = components['schemas']['DropIndexSuggestionsIndex'];
-export type DropIndexSuggestionsResponse = components['schemas']['DropIndexSuggestionsResponse'];
-export type EmployeeAccessGrantView = components['schemas']['EmployeeAccessGrantView'];
-export type FieldViolation = components['schemas']['FieldViolation'];
-export type Fields = components['schemas']['Fields'];
-export type FlexBackupSettings20241113 = components['schemas']['FlexBackupSettings20241113'];
-export type FlexClusterDescription20241113 = components['schemas']['FlexClusterDescription20241113'];
-export type FlexClusterDescriptionCreate20241113 = components['schemas']['FlexClusterDescriptionCreate20241113'];
-export type FlexConnectionStrings20241113 = components['schemas']['FlexConnectionStrings20241113'];
-export type FlexProviderSettings20241113 = components['schemas']['FlexProviderSettings20241113'];
-export type FlexProviderSettingsCreate20241113 = components['schemas']['FlexProviderSettingsCreate20241113'];
-export type FreeComputeAutoScalingRules = components['schemas']['FreeComputeAutoScalingRules'];
-export type GcpAccountDetails = components['schemas']['GCPAccountDetails'];
-export type GcpCloudProviderContainer = components['schemas']['GCPCloudProviderContainer'];
-export type GcpComputeAutoScaling = components['schemas']['GCPComputeAutoScaling'];
-export type GcpCreateDataProcessRegionView = components['schemas']['GCPCreateDataProcessRegionView'];
-export type GcpDataProcessRegionView = components['schemas']['GCPDataProcessRegionView'];
-export type GcpHardwareSpec20240805 = components['schemas']['GCPHardwareSpec20240805'];
-export type GcpRegionConfig20240805 = components['schemas']['GCPRegionConfig20240805'];
-export type GcsLogIntegrationRequest = components['schemas']['GcsLogIntegrationRequest'];
-export type GcsLogIntegrationResponse = components['schemas']['GcsLogIntegrationResponse'];
-export type Group = components['schemas']['Group'];
-export type GroupActiveUserResponse = components['schemas']['GroupActiveUserResponse'];
-export type GroupPendingUserResponse = components['schemas']['GroupPendingUserResponse'];
-export type GroupRoleAssignment = components['schemas']['GroupRoleAssignment'];
-export type GroupUserResponse = components['schemas']['GroupUserResponse'];
-export type HardwareSpec20240805 = components['schemas']['HardwareSpec20240805'];
-export type Header = components['schemas']['Header'];
-export type HostAlertViewForNdsGroup = components['schemas']['HostAlertViewForNdsGroup'];
-export type HostEventTypeViewForNdsGroupAlertable = components['schemas']['HostEventTypeViewForNdsGroupAlertable'];
-export type HostMetricAlert = components['schemas']['HostMetricAlert'];
-export type HostMetricEventTypeViewAlertable = components['schemas']['HostMetricEventTypeViewAlertable'];
-export type HostMetricValue = components['schemas']['HostMetricValue'];
-export type IngestionSink = components['schemas']['IngestionSink'];
-export type IngestionSource = components['schemas']['IngestionSource'];
-export type InvoiceLineItem = components['schemas']['InvoiceLineItem'];
-export type Link = components['schemas']['Link'];
-export type LogIntegrationRequest = components['schemas']['LogIntegrationRequest'];
-export type LogIntegrationResponse = components['schemas']['LogIntegrationResponse'];
-export type MonthlyScheduleView = components['schemas']['MonthlyScheduleView'];
-export type NetworkPermissionEntry = components['schemas']['NetworkPermissionEntry'];
-export type NumberMetricAlertView = components['schemas']['NumberMetricAlertView'];
-export type NumberMetricUnits = components['schemas']['NumberMetricUnits'];
-export type NumberMetricValueView = components['schemas']['NumberMetricValueView'];
-export type OnDemandCpsSnapshotSource = components['schemas']['OnDemandCpsSnapshotSource'];
-export type OnlineArchiveSchedule = components['schemas']['OnlineArchiveSchedule'];
-export type OrgActiveUserResponse = components['schemas']['OrgActiveUserResponse'];
-export type OrgGroup = components['schemas']['OrgGroup'];
-export type OrgPendingUserResponse = components['schemas']['OrgPendingUserResponse'];
-export type OrgUserResponse = components['schemas']['OrgUserResponse'];
-export type OrgUserRolesResponse = components['schemas']['OrgUserRolesResponse'];
-export type OtelLogIntegrationRequest = components['schemas']['OtelLogIntegrationRequest'];
-export type OtelLogIntegrationResponse = components['schemas']['OtelLogIntegrationResponse'];
-export type PaginatedAlertView = components['schemas']['PaginatedAlertView'];
-export type PaginatedApiAtlasDatabaseUserView = components['schemas']['PaginatedApiAtlasDatabaseUserView'];
-export type PaginatedApiStreamsConnectionView = components['schemas']['PaginatedApiStreamsConnectionView'];
-export type PaginatedApiStreamsPrivateLinkView = components['schemas']['PaginatedApiStreamsPrivateLinkView'];
-export type PaginatedApiStreamsStreamProcessorWithStatsView = components['schemas']['PaginatedApiStreamsStreamProcessorWithStatsView'];
-export type PaginatedApiStreamsTenantView = components['schemas']['PaginatedApiStreamsTenantView'];
-export type PaginatedAtlasGroupView = components['schemas']['PaginatedAtlasGroupView'];
-export type PaginatedClusterDescription20240805 = components['schemas']['PaginatedClusterDescription20240805'];
-export type PaginatedFlexClusters20241113 = components['schemas']['PaginatedFlexClusters20241113'];
-export type PaginatedNetworkAccessView = components['schemas']['PaginatedNetworkAccessView'];
-export type PaginatedOrgGroupView = components['schemas']['PaginatedOrgGroupView'];
-export type PaginatedOrganizationView = components['schemas']['PaginatedOrganizationView'];
-export type PerformanceAdvisorIndex = components['schemas']['PerformanceAdvisorIndex'];
-export type PerformanceAdvisorOpStats = components['schemas']['PerformanceAdvisorOpStats'];
-export type PerformanceAdvisorOperationView = components['schemas']['PerformanceAdvisorOperationView'];
-export type PerformanceAdvisorResponse = components['schemas']['PerformanceAdvisorResponse'];
-export type PerformanceAdvisorShape = components['schemas']['PerformanceAdvisorShape'];
-export type PerformanceAdvisorSlowQuery = components['schemas']['PerformanceAdvisorSlowQuery'];
-export type PerformanceAdvisorSlowQueryList = components['schemas']['PerformanceAdvisorSlowQueryList'];
-export type PerformanceAdvisorSlowQueryMetrics = components['schemas']['PerformanceAdvisorSlowQueryMetrics'];
-export type PeriodicCpsSnapshotSource = components['schemas']['PeriodicCpsSnapshotSource'];
-export type RawMetricAlertView = components['schemas']['RawMetricAlertView'];
-export type RawMetricUnits = components['schemas']['RawMetricUnits'];
-export type RawMetricValueView = components['schemas']['RawMetricValueView'];
-export type ReplicaSetAlertViewForNdsGroup = components['schemas']['ReplicaSetAlertViewForNdsGroup'];
-export type ReplicaSetEventTypeViewForNdsGroupAlertable = components['schemas']['ReplicaSetEventTypeViewForNdsGroupAlertable'];
-export type ReplicationSpec20240805 = components['schemas']['ReplicationSpec20240805'];
-export type ResourceTag = components['schemas']['ResourceTag'];
-export type S3LogIntegrationRequest = components['schemas']['S3LogIntegrationRequest'];
-export type S3LogIntegrationResponse = components['schemas']['S3LogIntegrationResponse'];
-export type SchemaAdvisorItemRecommendation = components['schemas']['SchemaAdvisorItemRecommendation'];
-export type SchemaAdvisorNamespaceTriggers = components['schemas']['SchemaAdvisorNamespaceTriggers'];
-export type SchemaAdvisorResponse = components['schemas']['SchemaAdvisorResponse'];
-export type SchemaAdvisorTriggerDetails = components['schemas']['SchemaAdvisorTriggerDetails'];
-export type SchemaRegistryAuthentication = components['schemas']['SchemaRegistryAuthentication'];
-export type SearchHostStatusDetail = components['schemas']['SearchHostStatusDetail'];
-export type SearchIndex = components['schemas']['SearchIndex'];
-export type SearchIndexCreateRequest = components['schemas']['SearchIndexCreateRequest'];
-export type SearchIndexDefinition = components['schemas']['SearchIndexDefinition'];
-export type SearchIndexDefinitionVersion = components['schemas']['SearchIndexDefinitionVersion'];
-export type SearchIndexResponse = components['schemas']['SearchIndexResponse'];
-export type SearchMainIndexStatusDetail = components['schemas']['SearchMainIndexStatusDetail'];
-export type SearchMappings = components['schemas']['SearchMappings'];
-export type SearchStagedIndexStatusDetail = components['schemas']['SearchStagedIndexStatusDetail'];
-export type SearchSynonymMappingDefinition = components['schemas']['SearchSynonymMappingDefinition'];
-export type SearchTypeSets = components['schemas']['SearchTypeSets'];
-export type ServerlessAwsTenantEndpointUpdate = components['schemas']['ServerlessAWSTenantEndpointUpdate'];
-export type ServerlessAzureTenantEndpointUpdate = components['schemas']['ServerlessAzureTenantEndpointUpdate'];
-export type ServerlessTenantEndpointUpdate = components['schemas']['ServerlessTenantEndpointUpdate'];
-export type SplunkLogIntegrationRequest = components['schemas']['SplunkLogIntegrationRequest'];
-export type SplunkLogIntegrationResponse = components['schemas']['SplunkLogIntegrationResponse'];
-export type StreamConfig = components['schemas']['StreamConfig'];
-export type StreamProcessorAlertViewForNdsGroup = components['schemas']['StreamProcessorAlertViewForNdsGroup'];
-export type StreamsAwsConnectionConfig = components['schemas']['StreamsAWSConnectionConfig'];
-export type StreamsAwsKinesisDataStreamsConnection = components['schemas']['StreamsAWSKinesisDataStreamsConnection'];
-export type StreamsAwsLambdaConnection = components['schemas']['StreamsAWSLambdaConnection'];
-export type StreamsClusterConnection = components['schemas']['StreamsClusterConnection'];
-export type StreamsConnection = components['schemas']['StreamsConnection'];
-export type StreamsDlq = components['schemas']['StreamsDLQ'];
-export type StreamsDataProcessRegion = components['schemas']['StreamsDataProcessRegion'];
-export type StreamsHttpsConnection = components['schemas']['StreamsHttpsConnection'];
-export type StreamsKafkaAuthentication = components['schemas']['StreamsKafkaAuthentication'];
-export type StreamsKafkaConnection = components['schemas']['StreamsKafkaConnection'];
-export type StreamsKafkaNetworking = components['schemas']['StreamsKafkaNetworking'];
-export type StreamsKafkaNetworkingAccess = components['schemas']['StreamsKafkaNetworkingAccess'];
-export type StreamsKafkaSecurity = components['schemas']['StreamsKafkaSecurity'];
-export type StreamsModifyStreamProcessor = components['schemas']['StreamsModifyStreamProcessor'];
-export type StreamsModifyStreamProcessorOptions = components['schemas']['StreamsModifyStreamProcessorOptions'];
-export type StreamsOptions = components['schemas']['StreamsOptions'];
-export type StreamsPrivateLinkConnection = components['schemas']['StreamsPrivateLinkConnection'];
-export type StreamsProcessor = components['schemas']['StreamsProcessor'];
-export type StreamsProcessorWithStats = components['schemas']['StreamsProcessorWithStats'];
-export type StreamsS3Connection = components['schemas']['StreamsS3Connection'];
-export type StreamsSampleConnection = components['schemas']['StreamsSampleConnection'];
-export type StreamsSampleConnections = components['schemas']['StreamsSampleConnections'];
-export type StreamsSchemaRegistryConnection = components['schemas']['StreamsSchemaRegistryConnection'];
-export type StreamsStartStreamProcessorWith = components['schemas']['StreamsStartStreamProcessorWith'];
-export type StreamsTenant = components['schemas']['StreamsTenant'];
-export type StreamsTenantUpdateRequest = components['schemas']['StreamsTenantUpdateRequest'];
-export type SynonymMappingStatusDetail = components['schemas']['SynonymMappingStatusDetail'];
-export type SynonymMappingStatusDetailMap = components['schemas']['SynonymMappingStatusDetailMap'];
-export type SynonymSource = components['schemas']['SynonymSource'];
-export type TenantHardwareSpec20240805 = components['schemas']['TenantHardwareSpec20240805'];
-export type TenantRegionConfig20240805 = components['schemas']['TenantRegionConfig20240805'];
-export type TenantWithSampleConnections = components['schemas']['TenantWithSampleConnections'];
-export type TextSearchHostStatusDetail = components['schemas']['TextSearchHostStatusDetail'];
-export type TextSearchIndexCreateRequest = components['schemas']['TextSearchIndexCreateRequest'];
-export type TextSearchIndexDefinition = components['schemas']['TextSearchIndexDefinition'];
-export type TextSearchIndexResponse = components['schemas']['TextSearchIndexResponse'];
-export type TextSearchIndexStatusDetail = components['schemas']['TextSearchIndexStatusDetail'];
-export type TimeMetricAlertView = components['schemas']['TimeMetricAlertView'];
-export type TimeMetricUnits = components['schemas']['TimeMetricUnits'];
-export type TimeMetricValueView = components['schemas']['TimeMetricValueView'];
-export type TokenFilterEnglishPossessive = components['schemas']['TokenFilterEnglishPossessive'];
-export type TokenFilterFlattenGraph = components['schemas']['TokenFilterFlattenGraph'];
-export type TokenFilterPorterStemming = components['schemas']['TokenFilterPorterStemming'];
-export type TokenFilterSpanishPluralStemming = components['schemas']['TokenFilterSpanishPluralStemming'];
-export type TokenFilterStempel = components['schemas']['TokenFilterStempel'];
-export type TokenFilterWordDelimiterGraph = components['schemas']['TokenFilterWordDelimiterGraph'];
-export type TokenFilterkStemming = components['schemas']['TokenFilterkStemming'];
-export type UserScope = components['schemas']['UserScope'];
-export type VpcPeeringActionChallenge = components['schemas']['VPCPeeringActionChallenge'];
-export type VectorSearchHostStatusDetail = components['schemas']['VectorSearchHostStatusDetail'];
-export type VectorSearchIndex = components['schemas']['VectorSearchIndex'];
-export type VectorSearchIndexCreateRequest = components['schemas']['VectorSearchIndexCreateRequest'];
-export type VectorSearchIndexDefinition = components['schemas']['VectorSearchIndexDefinition'];
-export type VectorSearchIndexResponse = components['schemas']['VectorSearchIndexResponse'];
-export type VectorSearchIndexStatusDetail = components['schemas']['VectorSearchIndexStatusDetail'];
-export type WeeklyScheduleView = components['schemas']['WeeklyScheduleView'];
-export type CharFilterhtmlStrip = components['schemas']['charFilterhtmlStrip'];
-export type CharFiltericuNormalize = components['schemas']['charFiltericuNormalize'];
-export type CharFiltermapping = components['schemas']['charFiltermapping'];
-export type CharFilterpersian = components['schemas']['charFilterpersian'];
-export type TokenFilterasciiFolding = components['schemas']['tokenFilterasciiFolding'];
-export type TokenFilterdaitchMokotoffSoundex = components['schemas']['tokenFilterdaitchMokotoffSoundex'];
-export type TokenFilteredgeGram = components['schemas']['tokenFilteredgeGram'];
-export type TokenFiltericuFolding = components['schemas']['tokenFiltericuFolding'];
-export type TokenFiltericuNormalizer = components['schemas']['tokenFiltericuNormalizer'];
-export type TokenFilterlength = components['schemas']['tokenFilterlength'];
-export type TokenFilterlowercase = components['schemas']['tokenFilterlowercase'];
-export type TokenFilternGram = components['schemas']['tokenFilternGram'];
-export type TokenFilterregex = components['schemas']['tokenFilterregex'];
-export type TokenFilterreverse = components['schemas']['tokenFilterreverse'];
-export type TokenFiltershingle = components['schemas']['tokenFiltershingle'];
-export type TokenFiltersnowballStemming = components['schemas']['tokenFiltersnowballStemming'];
-export type TokenFilterstopword = components['schemas']['tokenFilterstopword'];
-export type TokenFiltertrim = components['schemas']['tokenFiltertrim'];
-export type TokenizeredgeGram = components['schemas']['tokenizeredgeGram'];
-export type Tokenizerkeyword = components['schemas']['tokenizerkeyword'];
-export type TokenizernGram = components['schemas']['tokenizernGram'];
-export type TokenizerregexCaptureGroup = components['schemas']['tokenizerregexCaptureGroup'];
-export type TokenizerregexSplit = components['schemas']['tokenizerregexSplit'];
-export type Tokenizerstandard = components['schemas']['tokenizerstandard'];
-export type TokenizeruaxUrlEmail = components['schemas']['tokenizeruaxUrlEmail'];
-export type Tokenizerwhitespace = components['schemas']['tokenizerwhitespace'];
-export type ResponseBadRequest = components['responses']['badRequest'];
-export type ResponseConflict = components['responses']['conflict'];
-export type ResponseForbidden = components['responses']['forbidden'];
-export type ResponseInternalServerError = components['responses']['internalServerError'];
-export type ResponseNotFound = components['responses']['notFound'];
-export type ResponsePaymentRequired = components['responses']['paymentRequired'];
-export type ResponseTooManyRequests = components['responses']['tooManyRequests'];
-export type ResponseUnauthorized = components['responses']['unauthorized'];
-export type ParameterEnvelope = components['parameters']['envelope'];
-export type ParameterGroupId = components['parameters']['groupId'];
-export type ParameterIncludeCount = components['parameters']['includeCount'];
-export type ParameterItemsPerPage = components['parameters']['itemsPerPage'];
-export type ParameterOrgId = components['parameters']['orgId'];
-export type ParameterPageNum = components['parameters']['pageNum'];
-export type ParameterPretty = components['parameters']['pretty'];
-export type HeaderHeaderRateLimitLimit = components['headers']['HeaderRateLimitLimit'];
-export type HeaderHeaderRateLimitRemaining = components['headers']['HeaderRateLimitRemaining'];
-export type HeaderHeaderRetryAfter = components['headers']['HeaderRetryAfter'];
+export type AwsAccountDetails = components["schemas"]["AWSAccountDetails"];
+export type AwsCloudProviderContainer = components["schemas"]["AWSCloudProviderContainer"];
+export type AwsCloudProviderSettings = components["schemas"]["AWSCloudProviderSettings"];
+export type AwsComputeAutoScaling = components["schemas"]["AWSComputeAutoScaling"];
+export type AwsCreateDataProcessRegionView = components["schemas"]["AWSCreateDataProcessRegionView"];
+export type AwsDataProcessRegionView = components["schemas"]["AWSDataProcessRegionView"];
+export type AwsHardwareSpec20240805 = components["schemas"]["AWSHardwareSpec20240805"];
+export type AwsRegionConfig20240805 = components["schemas"]["AWSRegionConfig20240805"];
+export type AccountDetails = components["schemas"]["AccountDetails"];
+export type AdvancedAutoScalingSettings = components["schemas"]["AdvancedAutoScalingSettings"];
+export type AdvancedComputeAutoScaling = components["schemas"]["AdvancedComputeAutoScaling"];
+export type AlertViewForNdsGroup = components["schemas"]["AlertViewForNdsGroup"];
+export type ApiAtlasCloudProviderAccessFeatureUsageFeatureIdView =
+    components["schemas"]["ApiAtlasCloudProviderAccessFeatureUsageFeatureIdView"];
+export type ApiAtlasClusterAdvancedConfigurationView =
+    components["schemas"]["ApiAtlasClusterAdvancedConfigurationView"];
+export type ApiAtlasFtsAnalyzersViewManual = components["schemas"]["ApiAtlasFTSAnalyzersViewManual"];
+export type ApiAtlasFtsMappingsViewManual = components["schemas"]["ApiAtlasFTSMappingsViewManual"];
+export type ApiError = components["schemas"]["ApiError"];
+export type ApiStreamsAwsRegionView = components["schemas"]["ApiStreamsAWSRegionView"];
+export type ApiStreamsAzureRegionView = components["schemas"]["ApiStreamsAzureRegionView"];
+export type ApiStreamsGcpRegionView = components["schemas"]["ApiStreamsGCPRegionView"];
+export type AppServiceAlertView = components["schemas"]["AppServiceAlertView"];
+export type AppServiceEventTypeViewAlertable = components["schemas"]["AppServiceEventTypeViewAlertable"];
+export type AtlasOrganization = components["schemas"]["AtlasOrganization"];
+export type AtlasSearchAnalyzer = components["schemas"]["AtlasSearchAnalyzer"];
+export type AzureAccountDetails = components["schemas"]["AzureAccountDetails"];
+export type AzureCloudProviderContainer = components["schemas"]["AzureCloudProviderContainer"];
+export type AzureCloudProviderSettings = components["schemas"]["AzureCloudProviderSettings"];
+export type AzureComputeAutoScalingRules = components["schemas"]["AzureComputeAutoScalingRules"];
+export type AzureCreateDataProcessRegionView = components["schemas"]["AzureCreateDataProcessRegionView"];
+export type AzureDataProcessRegionView = components["schemas"]["AzureDataProcessRegionView"];
+export type AzureHardwareSpec20240805 = components["schemas"]["AzureHardwareSpec20240805"];
+export type AzureLogIntegrationRequest = components["schemas"]["AzureLogIntegrationRequest"];
+export type AzureLogIntegrationResponse = components["schemas"]["AzureLogIntegrationResponse"];
+export type AzureRegionConfig20240805 = components["schemas"]["AzureRegionConfig20240805"];
+export type BadRequestDetail = components["schemas"]["BadRequestDetail"];
+export type BaseCloudProviderInstanceSize = components["schemas"]["BaseCloudProviderInstanceSize"];
+export type BaseStreamsRegion = components["schemas"]["BaseStreamsRegion"];
+export type BasicDbObject = components["schemas"]["BasicDBObject"];
+export type BiConnector = components["schemas"]["BiConnector"];
+export type BillingInvoice = components["schemas"]["BillingInvoice"];
+export type BillingInvoiceMetadata = components["schemas"]["BillingInvoiceMetadata"];
+export type BillingPayment = components["schemas"]["BillingPayment"];
+export type BillingRefund = components["schemas"]["BillingRefund"];
+export type CloudCluster = components["schemas"]["CloudCluster"];
+export type CloudDatabaseUser = components["schemas"]["CloudDatabaseUser"];
+export type CloudGcpProviderSettings = components["schemas"]["CloudGCPProviderSettings"];
+export type CloudProviderAwsAutoScaling = components["schemas"]["CloudProviderAWSAutoScaling"];
+export type CloudProviderAccessAwsiamRole = components["schemas"]["CloudProviderAccessAWSIAMRole"];
+export type CloudProviderAccessAwsiamRoleRequestUpdate =
+    components["schemas"]["CloudProviderAccessAWSIAMRoleRequestUpdate"];
+export type CloudProviderAccessAtlasLogIntegrationFeatureUsage =
+    components["schemas"]["CloudProviderAccessAtlasLogIntegrationFeatureUsage"];
+export type CloudProviderAccessAzureServicePrincipal =
+    components["schemas"]["CloudProviderAccessAzureServicePrincipal"];
+export type CloudProviderAccessAzureServicePrincipalRequestUpdate =
+    components["schemas"]["CloudProviderAccessAzureServicePrincipalRequestUpdate"];
+export type CloudProviderAccessDataLakeFeatureUsage = components["schemas"]["CloudProviderAccessDataLakeFeatureUsage"];
+export type CloudProviderAccessEncryptionAtRestFeatureUsage =
+    components["schemas"]["CloudProviderAccessEncryptionAtRestFeatureUsage"];
+export type CloudProviderAccessExportSnapshotFeatureUsage =
+    components["schemas"]["CloudProviderAccessExportSnapshotFeatureUsage"];
+export type CloudProviderAccessFeatureUsage = components["schemas"]["CloudProviderAccessFeatureUsage"];
+export type CloudProviderAccessFeatureUsageAtlasLogIntegrationFeatureId =
+    components["schemas"]["CloudProviderAccessFeatureUsageAtlasLogIntegrationFeatureId"];
+export type CloudProviderAccessFeatureUsageDataLakeFeatureId =
+    components["schemas"]["CloudProviderAccessFeatureUsageDataLakeFeatureId"];
+export type CloudProviderAccessFeatureUsageExportSnapshotFeatureId =
+    components["schemas"]["CloudProviderAccessFeatureUsageExportSnapshotFeatureId"];
+export type CloudProviderAccessFeatureUsagePushBasedLogExportFeatureId =
+    components["schemas"]["CloudProviderAccessFeatureUsagePushBasedLogExportFeatureId"];
+export type CloudProviderAccessGcpServiceAccount = components["schemas"]["CloudProviderAccessGCPServiceAccount"];
+export type CloudProviderAccessGcpServiceAccountRequestUpdate =
+    components["schemas"]["CloudProviderAccessGCPServiceAccountRequestUpdate"];
+export type CloudProviderAccessPushBasedLogExportFeatureUsage =
+    components["schemas"]["CloudProviderAccessPushBasedLogExportFeatureUsage"];
+export type CloudProviderAccessRole = components["schemas"]["CloudProviderAccessRole"];
+export type CloudProviderAccessRoleRequestUpdate = components["schemas"]["CloudProviderAccessRoleRequestUpdate"];
+export type CloudProviderAzureAutoScaling = components["schemas"]["CloudProviderAzureAutoScaling"];
+export type CloudProviderContainer = components["schemas"]["CloudProviderContainer"];
+export type CloudProviderGcpAutoScaling = components["schemas"]["CloudProviderGCPAutoScaling"];
+export type CloudRegionConfig20240805 = components["schemas"]["CloudRegionConfig20240805"];
+export type ClusterAlertViewForNdsGroup = components["schemas"]["ClusterAlertViewForNdsGroup"];
+export type ClusterConnectionStrings = components["schemas"]["ClusterConnectionStrings"];
+export type ClusterDescription20240805 = components["schemas"]["ClusterDescription20240805"];
+export type ClusterDescriptionConnectionStringsPrivateEndpoint =
+    components["schemas"]["ClusterDescriptionConnectionStringsPrivateEndpoint"];
+export type ClusterDescriptionConnectionStringsPrivateEndpointEndpoint =
+    components["schemas"]["ClusterDescriptionConnectionStringsPrivateEndpointEndpoint"];
+export type ClusterEventTypeViewForNdsGroupAlertable =
+    components["schemas"]["ClusterEventTypeViewForNdsGroupAlertable"];
+export type ClusterFlexProviderSettings = components["schemas"]["ClusterFlexProviderSettings"];
+export type ClusterFreeAutoScaling = components["schemas"]["ClusterFreeAutoScaling"];
+export type ClusterFreeProviderSettings = components["schemas"]["ClusterFreeProviderSettings"];
+export type ClusterProviderSettings = components["schemas"]["ClusterProviderSettings"];
+export type ClusterSearchIndex = components["schemas"]["ClusterSearchIndex"];
+export type ComponentLabel = components["schemas"]["ComponentLabel"];
+export type ConfluentSaslInheritAuthentication = components["schemas"]["ConfluentSaslInheritAuthentication"];
+export type ConfluentUserInfoAuthentication = components["schemas"]["ConfluentUserInfoAuthentication"];
+export type CreateAwsEndpointRequest = components["schemas"]["CreateAWSEndpointRequest"];
+export type CreateAzureEndpointRequest = components["schemas"]["CreateAzureEndpointRequest"];
+export type CreateDataProcessRegionView = components["schemas"]["CreateDataProcessRegionView"];
+export type CreateEndpointRequest = components["schemas"]["CreateEndpointRequest"];
+export type CreateGcpEndpointGroupRequest = components["schemas"]["CreateGCPEndpointGroupRequest"];
+export type CreateGcpForwardingRuleRequest = components["schemas"]["CreateGCPForwardingRuleRequest"];
+export type CriteriaView = components["schemas"]["CriteriaView"];
+export type CustomCriteriaView = components["schemas"]["CustomCriteriaView"];
+export type DbRoleToExecute = components["schemas"]["DBRoleToExecute"];
+export type DlsIngestionSink = components["schemas"]["DLSIngestionSink"];
+export type DailyScheduleView = components["schemas"]["DailyScheduleView"];
+export type DataLakeAtlasStoreInstance = components["schemas"]["DataLakeAtlasStoreInstance"];
+export type DataLakeAtlasStoreReadConcern = components["schemas"]["DataLakeAtlasStoreReadConcern"];
+export type DataLakeAtlasStoreReadPreference = components["schemas"]["DataLakeAtlasStoreReadPreference"];
+export type DataLakeAtlasStoreReadPreferenceTag = components["schemas"]["DataLakeAtlasStoreReadPreferenceTag"];
+export type DataLakeAzureBlobStore = components["schemas"]["DataLakeAzureBlobStore"];
+export type DataLakeDlsawsStore = components["schemas"]["DataLakeDLSAWSStore"];
+export type DataLakeDlsAzureStore = components["schemas"]["DataLakeDLSAzureStore"];
+export type DataLakeDlsgcpStore = components["schemas"]["DataLakeDLSGCPStore"];
+export type DataLakeGoogleCloudStorageStore = components["schemas"]["DataLakeGoogleCloudStorageStore"];
+export type DataLakeHttpStore = components["schemas"]["DataLakeHTTPStore"];
+export type DataLakePipelinesPartitionField = components["schemas"]["DataLakePipelinesPartitionField"];
+export type DataLakeS3StoreSettings = components["schemas"]["DataLakeS3StoreSettings"];
+export type DataLakeStoreSettings = components["schemas"]["DataLakeStoreSettings"];
+export type DataMetricAlertView = components["schemas"]["DataMetricAlertView"];
+export type DataMetricUnits = components["schemas"]["DataMetricUnits"];
+export type DataMetricValueView = components["schemas"]["DataMetricValueView"];
+export type DataProcessRegionView = components["schemas"]["DataProcessRegionView"];
+export type DatabaseUserRole = components["schemas"]["DatabaseUserRole"];
+export type DatadogLogIntegrationRequest = components["schemas"]["DatadogLogIntegrationRequest"];
+export type DatadogLogIntegrationResponse = components["schemas"]["DatadogLogIntegrationResponse"];
+export type DateCriteriaView = components["schemas"]["DateCriteriaView"];
+export type DedicatedHardwareSpec20240805 = components["schemas"]["DedicatedHardwareSpec20240805"];
+export type DefaultAlertViewForNdsGroup = components["schemas"]["DefaultAlertViewForNdsGroup"];
+export type DefaultScheduleView = components["schemas"]["DefaultScheduleView"];
+export type DiskBackupCopyPolicyItem = components["schemas"]["DiskBackupCopyPolicyItem"];
+export type DiskBackupOnDemandCopyPolicyItem = components["schemas"]["DiskBackupOnDemandCopyPolicyItem"];
+export type DiskBackupSnapshotAwsExportBucketRequest =
+    components["schemas"]["DiskBackupSnapshotAWSExportBucketRequest"];
+export type DiskBackupSnapshotAwsExportBucketResponse =
+    components["schemas"]["DiskBackupSnapshotAWSExportBucketResponse"];
+export type DiskBackupSnapshotAzureExportBucketRequest =
+    components["schemas"]["DiskBackupSnapshotAzureExportBucketRequest"];
+export type DiskBackupSnapshotAzureExportBucketResponse =
+    components["schemas"]["DiskBackupSnapshotAzureExportBucketResponse"];
+export type DiskBackupSnapshotExportBucketRequest = components["schemas"]["DiskBackupSnapshotExportBucketRequest"];
+export type DiskBackupSnapshotExportBucketResponse = components["schemas"]["DiskBackupSnapshotExportBucketResponse"];
+export type DiskBackupSnapshotGcpExportBucketRequest =
+    components["schemas"]["DiskBackupSnapshotGCPExportBucketRequest"];
+export type DiskBackupSnapshotGcpExportBucketResponse =
+    components["schemas"]["DiskBackupSnapshotGCPExportBucketResponse"];
+export type DiskBackupTimeBasedCopyPolicyItem = components["schemas"]["DiskBackupTimeBasedCopyPolicyItem"];
+export type DiskGbAutoScaling = components["schemas"]["DiskGBAutoScaling"];
+export type Document = components["schemas"]["Document"];
+export type DropIndexSuggestionsIndex = components["schemas"]["DropIndexSuggestionsIndex"];
+export type DropIndexSuggestionsResponse = components["schemas"]["DropIndexSuggestionsResponse"];
+export type EmployeeAccessGrantView = components["schemas"]["EmployeeAccessGrantView"];
+export type FieldViolation = components["schemas"]["FieldViolation"];
+export type Fields = components["schemas"]["Fields"];
+export type FlexBackupSettings20241113 = components["schemas"]["FlexBackupSettings20241113"];
+export type FlexClusterDescription20241113 = components["schemas"]["FlexClusterDescription20241113"];
+export type FlexClusterDescriptionCreate20241113 = components["schemas"]["FlexClusterDescriptionCreate20241113"];
+export type FlexConnectionStrings20241113 = components["schemas"]["FlexConnectionStrings20241113"];
+export type FlexProviderSettings20241113 = components["schemas"]["FlexProviderSettings20241113"];
+export type FlexProviderSettingsCreate20241113 = components["schemas"]["FlexProviderSettingsCreate20241113"];
+export type FreeComputeAutoScalingRules = components["schemas"]["FreeComputeAutoScalingRules"];
+export type GcpAccountDetails = components["schemas"]["GCPAccountDetails"];
+export type GcpCloudProviderContainer = components["schemas"]["GCPCloudProviderContainer"];
+export type GcpComputeAutoScaling = components["schemas"]["GCPComputeAutoScaling"];
+export type GcpCreateDataProcessRegionView = components["schemas"]["GCPCreateDataProcessRegionView"];
+export type GcpDataProcessRegionView = components["schemas"]["GCPDataProcessRegionView"];
+export type GcpHardwareSpec20240805 = components["schemas"]["GCPHardwareSpec20240805"];
+export type GcpRegionConfig20240805 = components["schemas"]["GCPRegionConfig20240805"];
+export type GcsLogIntegrationRequest = components["schemas"]["GcsLogIntegrationRequest"];
+export type GcsLogIntegrationResponse = components["schemas"]["GcsLogIntegrationResponse"];
+export type Group = components["schemas"]["Group"];
+export type GroupActiveUserResponse = components["schemas"]["GroupActiveUserResponse"];
+export type GroupPendingUserResponse = components["schemas"]["GroupPendingUserResponse"];
+export type GroupRoleAssignment = components["schemas"]["GroupRoleAssignment"];
+export type GroupUserResponse = components["schemas"]["GroupUserResponse"];
+export type HardwareSpec20240805 = components["schemas"]["HardwareSpec20240805"];
+export type Header = components["schemas"]["Header"];
+export type HostAlertViewForNdsGroup = components["schemas"]["HostAlertViewForNdsGroup"];
+export type HostEventTypeViewForNdsGroupAlertable = components["schemas"]["HostEventTypeViewForNdsGroupAlertable"];
+export type HostMetricAlert = components["schemas"]["HostMetricAlert"];
+export type HostMetricEventTypeViewAlertable = components["schemas"]["HostMetricEventTypeViewAlertable"];
+export type HostMetricValue = components["schemas"]["HostMetricValue"];
+export type IngestionSink = components["schemas"]["IngestionSink"];
+export type IngestionSource = components["schemas"]["IngestionSource"];
+export type InvoiceLineItem = components["schemas"]["InvoiceLineItem"];
+export type Link = components["schemas"]["Link"];
+export type LogIntegrationRequest = components["schemas"]["LogIntegrationRequest"];
+export type LogIntegrationResponse = components["schemas"]["LogIntegrationResponse"];
+export type MonthlyScheduleView = components["schemas"]["MonthlyScheduleView"];
+export type NetworkPermissionEntry = components["schemas"]["NetworkPermissionEntry"];
+export type NumberMetricAlertView = components["schemas"]["NumberMetricAlertView"];
+export type NumberMetricUnits = components["schemas"]["NumberMetricUnits"];
+export type NumberMetricValueView = components["schemas"]["NumberMetricValueView"];
+export type OnDemandCpsSnapshotSource = components["schemas"]["OnDemandCpsSnapshotSource"];
+export type OnlineArchiveSchedule = components["schemas"]["OnlineArchiveSchedule"];
+export type OrgActiveUserResponse = components["schemas"]["OrgActiveUserResponse"];
+export type OrgGroup = components["schemas"]["OrgGroup"];
+export type OrgPendingUserResponse = components["schemas"]["OrgPendingUserResponse"];
+export type OrgUserResponse = components["schemas"]["OrgUserResponse"];
+export type OrgUserRolesResponse = components["schemas"]["OrgUserRolesResponse"];
+export type OtelLogIntegrationRequest = components["schemas"]["OtelLogIntegrationRequest"];
+export type OtelLogIntegrationResponse = components["schemas"]["OtelLogIntegrationResponse"];
+export type PaginatedAlertView = components["schemas"]["PaginatedAlertView"];
+export type PaginatedApiAtlasDatabaseUserView = components["schemas"]["PaginatedApiAtlasDatabaseUserView"];
+export type PaginatedApiStreamsConnectionView = components["schemas"]["PaginatedApiStreamsConnectionView"];
+export type PaginatedApiStreamsPrivateLinkView = components["schemas"]["PaginatedApiStreamsPrivateLinkView"];
+export type PaginatedApiStreamsStreamProcessorWithStatsView =
+    components["schemas"]["PaginatedApiStreamsStreamProcessorWithStatsView"];
+export type PaginatedApiStreamsTenantView = components["schemas"]["PaginatedApiStreamsTenantView"];
+export type PaginatedAtlasGroupView = components["schemas"]["PaginatedAtlasGroupView"];
+export type PaginatedClusterDescription20240805 = components["schemas"]["PaginatedClusterDescription20240805"];
+export type PaginatedFlexClusters20241113 = components["schemas"]["PaginatedFlexClusters20241113"];
+export type PaginatedNetworkAccessView = components["schemas"]["PaginatedNetworkAccessView"];
+export type PaginatedOrgGroupView = components["schemas"]["PaginatedOrgGroupView"];
+export type PaginatedOrganizationView = components["schemas"]["PaginatedOrganizationView"];
+export type PerformanceAdvisorIndex = components["schemas"]["PerformanceAdvisorIndex"];
+export type PerformanceAdvisorOpStats = components["schemas"]["PerformanceAdvisorOpStats"];
+export type PerformanceAdvisorOperationView = components["schemas"]["PerformanceAdvisorOperationView"];
+export type PerformanceAdvisorResponse = components["schemas"]["PerformanceAdvisorResponse"];
+export type PerformanceAdvisorShape = components["schemas"]["PerformanceAdvisorShape"];
+export type PerformanceAdvisorSlowQuery = components["schemas"]["PerformanceAdvisorSlowQuery"];
+export type PerformanceAdvisorSlowQueryList = components["schemas"]["PerformanceAdvisorSlowQueryList"];
+export type PerformanceAdvisorSlowQueryMetrics = components["schemas"]["PerformanceAdvisorSlowQueryMetrics"];
+export type PeriodicCpsSnapshotSource = components["schemas"]["PeriodicCpsSnapshotSource"];
+export type RawMetricAlertView = components["schemas"]["RawMetricAlertView"];
+export type RawMetricUnits = components["schemas"]["RawMetricUnits"];
+export type RawMetricValueView = components["schemas"]["RawMetricValueView"];
+export type ReplicaSetAlertViewForNdsGroup = components["schemas"]["ReplicaSetAlertViewForNdsGroup"];
+export type ReplicaSetEventTypeViewForNdsGroupAlertable =
+    components["schemas"]["ReplicaSetEventTypeViewForNdsGroupAlertable"];
+export type ReplicationSpec20240805 = components["schemas"]["ReplicationSpec20240805"];
+export type ResourceTag = components["schemas"]["ResourceTag"];
+export type S3LogIntegrationRequest = components["schemas"]["S3LogIntegrationRequest"];
+export type S3LogIntegrationResponse = components["schemas"]["S3LogIntegrationResponse"];
+export type SchemaAdvisorItemRecommendation = components["schemas"]["SchemaAdvisorItemRecommendation"];
+export type SchemaAdvisorNamespaceTriggers = components["schemas"]["SchemaAdvisorNamespaceTriggers"];
+export type SchemaAdvisorResponse = components["schemas"]["SchemaAdvisorResponse"];
+export type SchemaAdvisorTriggerDetails = components["schemas"]["SchemaAdvisorTriggerDetails"];
+export type SchemaRegistryAuthentication = components["schemas"]["SchemaRegistryAuthentication"];
+export type SearchHostStatusDetail = components["schemas"]["SearchHostStatusDetail"];
+export type SearchIndex = components["schemas"]["SearchIndex"];
+export type SearchIndexCreateRequest = components["schemas"]["SearchIndexCreateRequest"];
+export type SearchIndexDefinition = components["schemas"]["SearchIndexDefinition"];
+export type SearchIndexDefinitionVersion = components["schemas"]["SearchIndexDefinitionVersion"];
+export type SearchIndexResponse = components["schemas"]["SearchIndexResponse"];
+export type SearchMainIndexStatusDetail = components["schemas"]["SearchMainIndexStatusDetail"];
+export type SearchMappings = components["schemas"]["SearchMappings"];
+export type SearchStagedIndexStatusDetail = components["schemas"]["SearchStagedIndexStatusDetail"];
+export type SearchSynonymMappingDefinition = components["schemas"]["SearchSynonymMappingDefinition"];
+export type SearchTypeSets = components["schemas"]["SearchTypeSets"];
+export type ServerlessAwsTenantEndpointUpdate = components["schemas"]["ServerlessAWSTenantEndpointUpdate"];
+export type ServerlessAzureTenantEndpointUpdate = components["schemas"]["ServerlessAzureTenantEndpointUpdate"];
+export type ServerlessTenantEndpointUpdate = components["schemas"]["ServerlessTenantEndpointUpdate"];
+export type SplunkLogIntegrationRequest = components["schemas"]["SplunkLogIntegrationRequest"];
+export type SplunkLogIntegrationResponse = components["schemas"]["SplunkLogIntegrationResponse"];
+export type StreamConfig = components["schemas"]["StreamConfig"];
+export type StreamProcessorAlertViewForNdsGroup = components["schemas"]["StreamProcessorAlertViewForNdsGroup"];
+export type StreamsAwsConnectionConfig = components["schemas"]["StreamsAWSConnectionConfig"];
+export type StreamsAwsKinesisDataStreamsConnection = components["schemas"]["StreamsAWSKinesisDataStreamsConnection"];
+export type StreamsAwsLambdaConnection = components["schemas"]["StreamsAWSLambdaConnection"];
+export type StreamsClusterConnection = components["schemas"]["StreamsClusterConnection"];
+export type StreamsConnection = components["schemas"]["StreamsConnection"];
+export type StreamsDlq = components["schemas"]["StreamsDLQ"];
+export type StreamsDataProcessRegion = components["schemas"]["StreamsDataProcessRegion"];
+export type StreamsHttpsConnection = components["schemas"]["StreamsHttpsConnection"];
+export type StreamsKafkaAuthentication = components["schemas"]["StreamsKafkaAuthentication"];
+export type StreamsKafkaConnection = components["schemas"]["StreamsKafkaConnection"];
+export type StreamsKafkaNetworking = components["schemas"]["StreamsKafkaNetworking"];
+export type StreamsKafkaNetworkingAccess = components["schemas"]["StreamsKafkaNetworkingAccess"];
+export type StreamsKafkaSecurity = components["schemas"]["StreamsKafkaSecurity"];
+export type StreamsModifyStreamProcessor = components["schemas"]["StreamsModifyStreamProcessor"];
+export type StreamsModifyStreamProcessorOptions = components["schemas"]["StreamsModifyStreamProcessorOptions"];
+export type StreamsOptions = components["schemas"]["StreamsOptions"];
+export type StreamsPrivateLinkConnection = components["schemas"]["StreamsPrivateLinkConnection"];
+export type StreamsProcessor = components["schemas"]["StreamsProcessor"];
+export type StreamsProcessorWithStats = components["schemas"]["StreamsProcessorWithStats"];
+export type StreamsS3Connection = components["schemas"]["StreamsS3Connection"];
+export type StreamsSampleConnection = components["schemas"]["StreamsSampleConnection"];
+export type StreamsSampleConnections = components["schemas"]["StreamsSampleConnections"];
+export type StreamsSchemaRegistryConnection = components["schemas"]["StreamsSchemaRegistryConnection"];
+export type StreamsStartStreamProcessorWith = components["schemas"]["StreamsStartStreamProcessorWith"];
+export type StreamsTenant = components["schemas"]["StreamsTenant"];
+export type StreamsTenantUpdateRequest = components["schemas"]["StreamsTenantUpdateRequest"];
+export type SynonymMappingStatusDetail = components["schemas"]["SynonymMappingStatusDetail"];
+export type SynonymMappingStatusDetailMap = components["schemas"]["SynonymMappingStatusDetailMap"];
+export type SynonymSource = components["schemas"]["SynonymSource"];
+export type TenantHardwareSpec20240805 = components["schemas"]["TenantHardwareSpec20240805"];
+export type TenantRegionConfig20240805 = components["schemas"]["TenantRegionConfig20240805"];
+export type TenantWithSampleConnections = components["schemas"]["TenantWithSampleConnections"];
+export type TextSearchHostStatusDetail = components["schemas"]["TextSearchHostStatusDetail"];
+export type TextSearchIndexCreateRequest = components["schemas"]["TextSearchIndexCreateRequest"];
+export type TextSearchIndexDefinition = components["schemas"]["TextSearchIndexDefinition"];
+export type TextSearchIndexResponse = components["schemas"]["TextSearchIndexResponse"];
+export type TextSearchIndexStatusDetail = components["schemas"]["TextSearchIndexStatusDetail"];
+export type TimeMetricAlertView = components["schemas"]["TimeMetricAlertView"];
+export type TimeMetricUnits = components["schemas"]["TimeMetricUnits"];
+export type TimeMetricValueView = components["schemas"]["TimeMetricValueView"];
+export type TokenFilterEnglishPossessive = components["schemas"]["TokenFilterEnglishPossessive"];
+export type TokenFilterFlattenGraph = components["schemas"]["TokenFilterFlattenGraph"];
+export type TokenFilterPorterStemming = components["schemas"]["TokenFilterPorterStemming"];
+export type TokenFilterSpanishPluralStemming = components["schemas"]["TokenFilterSpanishPluralStemming"];
+export type TokenFilterStempel = components["schemas"]["TokenFilterStempel"];
+export type TokenFilterWordDelimiterGraph = components["schemas"]["TokenFilterWordDelimiterGraph"];
+export type TokenFilterkStemming = components["schemas"]["TokenFilterkStemming"];
+export type UserScope = components["schemas"]["UserScope"];
+export type VpcPeeringActionChallenge = components["schemas"]["VPCPeeringActionChallenge"];
+export type VectorSearchHostStatusDetail = components["schemas"]["VectorSearchHostStatusDetail"];
+export type VectorSearchIndex = components["schemas"]["VectorSearchIndex"];
+export type VectorSearchIndexCreateRequest = components["schemas"]["VectorSearchIndexCreateRequest"];
+export type VectorSearchIndexDefinition = components["schemas"]["VectorSearchIndexDefinition"];
+export type VectorSearchIndexResponse = components["schemas"]["VectorSearchIndexResponse"];
+export type VectorSearchIndexStatusDetail = components["schemas"]["VectorSearchIndexStatusDetail"];
+export type WeeklyScheduleView = components["schemas"]["WeeklyScheduleView"];
+export type CharFilterhtmlStrip = components["schemas"]["charFilterhtmlStrip"];
+export type CharFiltericuNormalize = components["schemas"]["charFiltericuNormalize"];
+export type CharFiltermapping = components["schemas"]["charFiltermapping"];
+export type CharFilterpersian = components["schemas"]["charFilterpersian"];
+export type TokenFilterasciiFolding = components["schemas"]["tokenFilterasciiFolding"];
+export type TokenFilterdaitchMokotoffSoundex = components["schemas"]["tokenFilterdaitchMokotoffSoundex"];
+export type TokenFilteredgeGram = components["schemas"]["tokenFilteredgeGram"];
+export type TokenFiltericuFolding = components["schemas"]["tokenFiltericuFolding"];
+export type TokenFiltericuNormalizer = components["schemas"]["tokenFiltericuNormalizer"];
+export type TokenFilterlength = components["schemas"]["tokenFilterlength"];
+export type TokenFilterlowercase = components["schemas"]["tokenFilterlowercase"];
+export type TokenFilternGram = components["schemas"]["tokenFilternGram"];
+export type TokenFilterregex = components["schemas"]["tokenFilterregex"];
+export type TokenFilterreverse = components["schemas"]["tokenFilterreverse"];
+export type TokenFiltershingle = components["schemas"]["tokenFiltershingle"];
+export type TokenFiltersnowballStemming = components["schemas"]["tokenFiltersnowballStemming"];
+export type TokenFilterstopword = components["schemas"]["tokenFilterstopword"];
+export type TokenFiltertrim = components["schemas"]["tokenFiltertrim"];
+export type TokenizeredgeGram = components["schemas"]["tokenizeredgeGram"];
+export type Tokenizerkeyword = components["schemas"]["tokenizerkeyword"];
+export type TokenizernGram = components["schemas"]["tokenizernGram"];
+export type TokenizerregexCaptureGroup = components["schemas"]["tokenizerregexCaptureGroup"];
+export type TokenizerregexSplit = components["schemas"]["tokenizerregexSplit"];
+export type Tokenizerstandard = components["schemas"]["tokenizerstandard"];
+export type TokenizeruaxUrlEmail = components["schemas"]["tokenizeruaxUrlEmail"];
+export type Tokenizerwhitespace = components["schemas"]["tokenizerwhitespace"];
+export type ResponseBadRequest = components["responses"]["badRequest"];
+export type ResponseConflict = components["responses"]["conflict"];
+export type ResponseForbidden = components["responses"]["forbidden"];
+export type ResponseInternalServerError = components["responses"]["internalServerError"];
+export type ResponseNotFound = components["responses"]["notFound"];
+export type ResponsePaymentRequired = components["responses"]["paymentRequired"];
+export type ResponseTooManyRequests = components["responses"]["tooManyRequests"];
+export type ResponseUnauthorized = components["responses"]["unauthorized"];
+export type ParameterEnvelope = components["parameters"]["envelope"];
+export type ParameterGroupId = components["parameters"]["groupId"];
+export type ParameterIncludeCount = components["parameters"]["includeCount"];
+export type ParameterItemsPerPage = components["parameters"]["itemsPerPage"];
+export type ParameterOrgId = components["parameters"]["orgId"];
+export type ParameterPageNum = components["parameters"]["pageNum"];
+export type ParameterPretty = components["parameters"]["pretty"];
+export type HeaderHeaderRateLimitLimit = components["headers"]["HeaderRateLimitLimit"];
+export type HeaderHeaderRateLimitRemaining = components["headers"]["HeaderRateLimitRemaining"];
+export type HeaderHeaderRetryAfter = components["headers"]["HeaderRetryAfter"];
 export type $defs = Record<string, never>;
 export interface operations {
     listClusterDetails: {

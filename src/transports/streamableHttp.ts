@@ -11,6 +11,7 @@ import {
 } from "./base.js";
 import type { CustomizableServerOptions, Server, UserConfig } from "../lib.js";
 import { applyConfigOverrides } from "../common/config/configOverrides.js";
+import { packageInfo } from "../common/packageInfo.js";
 import type { Metrics, DefaultMetrics } from "@mongodb-js/mcp-metrics";
 import type { MonitoringServerFeature } from "../common/schemas.js";
 import {
@@ -205,17 +206,16 @@ export class StreamableHttpRunner<
                 apiClient:
                     sessionOptions?.apiClient ??
                     (userConfig.apiClientId && userConfig.apiClientSecret
-                        ? this.createApiClient(
-                              {
-                                  baseUrl: userConfig.apiBaseUrl,
-                                  credentials: {
-                                      clientId: userConfig.apiClientId,
-                                      clientSecret: userConfig.apiClientSecret,
-                                  },
-                                  requestContext: request,
+                        ? this.createApiClient({
+                              baseUrl: userConfig.apiBaseUrl,
+                              userAgent: `AtlasMCP/${packageInfo.version} (${process.platform}; ${process.arch})`,
+                              credentials: {
+                                  clientId: userConfig.apiClientId,
+                                  clientSecret: userConfig.apiClientSecret,
                               },
-                              logger
-                          )
+                              requestContext: request,
+                              logger,
+                          })
                         : undefined),
             },
         });

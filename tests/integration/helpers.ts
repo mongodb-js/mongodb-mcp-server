@@ -20,7 +20,7 @@ import type { MockClientCapabilities, createMockElicitInput } from "../utils/eli
 import { defaultCreateAtlasLocalClient } from "../../src/common/atlasLocal.js";
 import { UserConfigSchema } from "../../src/common/config/userConfig.js";
 import type { OperationType } from "../../src/tools/tool.js";
-import { defaultCreateApiClient, type ApiClient } from "../../src/common/atlas/apiClient.js";
+import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { MockMetrics } from "../unit/mocks/metrics.js";
 
 interface Parameter {
@@ -108,16 +108,15 @@ export function setupIntegrationTest(
             keychain: new Keychain(),
             connectionErrorHandler,
             atlasLocalClient: await defaultCreateAtlasLocalClient({ logger }),
-            apiClient: defaultCreateApiClient(
-                {
-                    baseUrl: userConfig.apiBaseUrl,
-                    credentials: {
-                        clientId: userConfig.apiClientId,
-                        clientSecret: userConfig.apiClientSecret,
-                    },
+            apiClient: new ApiClient({
+                baseUrl: userConfig.apiBaseUrl,
+                credentials: {
+                    clientId: userConfig.apiClientId,
+                    clientSecret: userConfig.apiClientSecret,
                 },
-                logger
-            ),
+                userAgent: "mongodb-mcp-test",
+                logger,
+            }),
         });
 
         // Mock hasValidAccessToken for tests
