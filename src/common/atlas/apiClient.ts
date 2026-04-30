@@ -11,6 +11,7 @@ import type { Credentials, AuthProvider } from "./auth/authProvider.js";
 import { AuthProviderFactory } from "./auth/authProvider.js";
 
 const ATLAS_API_VERSION = "2025-03-12";
+const LEGACY_ATLAS_API_VERSION = "2023-01-01";
 const DEFAULT_SEND_TIMEOUT_MS = 5_000;
 
 /**
@@ -872,4 +873,74 @@ export class ApiClient {
     }
     /* eslint-enable @typescript-eslint/no-unsafe-assignment */
     // DO NOT EDIT. This is auto-generated code.
+
+    async upgradeSharedTierCluster(options: {
+        groupId: string;
+        body: {
+            name: string;
+            providerSettings: {
+                providerName: string;
+                instanceSizeName: "FLEX" | "M10";
+                backingProviderName?: string;
+                regionName?: string;
+            };
+        };
+    }): Promise<void> {
+        const authHeaders = (await this.authProvider?.getAuthHeaders()) ?? {};
+        const url = new URL(`api/atlas/v2/groups/${options.groupId}/clusters/tenantUpgrade`, this.options.baseUrl);
+        const response = await this.customFetch(url.toString(), {
+            method: "POST",
+            headers: {
+                ...authHeaders,
+                "Content-Type": `application/vnd.atlas.${LEGACY_ATLAS_API_VERSION}+json`,
+                Accept: `application/vnd.atlas.${LEGACY_ATLAS_API_VERSION}+json`,
+                "User-Agent": this.options.userAgent,
+            },
+            body: JSON.stringify(options.body),
+        });
+        if (!response.ok) {
+            throw await ApiClientError.fromResponse(response);
+        }
+    }
+
+    async upgradeFlexToDedicated(options: {
+        groupId: string;
+        body: {
+            name: string;
+            clusterType: "REPLICASET";
+            replicationSpecs: Array<{
+                regionConfigs: Array<{
+                    providerName?: string;
+                    regionName?: string;
+                    priority: number;
+                    electableSpecs: { instanceSize: string; nodeCount: number };
+                }>;
+            }>;
+            autoScaling: {
+                compute: {
+                    enabled: boolean;
+                    scaleDownEnabled: boolean;
+                    minInstanceSize: string;
+                    maxInstanceSize: string;
+                };
+                diskGBEnabled: boolean;
+            };
+        };
+    }): Promise<void> {
+        const authHeaders = (await this.authProvider?.getAuthHeaders()) ?? {};
+        const url = new URL(`api/atlas/v2/groups/${options.groupId}/flexClusters:tenantUpgrade`, this.options.baseUrl);
+        const response = await this.customFetch(url.toString(), {
+            method: "POST",
+            headers: {
+                ...authHeaders,
+                "Content-Type": `application/vnd.atlas.${ATLAS_API_VERSION}+json`,
+                Accept: `application/vnd.atlas.${ATLAS_API_VERSION}+json`,
+                "User-Agent": this.options.userAgent,
+            },
+            body: JSON.stringify(options.body),
+        });
+        if (!response.ok) {
+            throw await ApiClientError.fromResponse(response);
+        }
+    }
 }
