@@ -29,7 +29,7 @@ export function useClearEnvironment(prefix: string): void {
     let saved: Record<string, string | undefined> = {};
 
     beforeEach(() => {
-        saved = {};
+        saved = Object.create(null);
         for (const key of Object.keys(process.env)) {
             if (key.startsWith(prefix)) {
                 saved[key] = process.env[key];
@@ -39,11 +39,7 @@ export function useClearEnvironment(prefix: string): void {
     });
 
     afterEach(() => {
-        for (const [key, value] of Object.entries(saved)) {
-            if (value !== undefined) {
-                process.env[key] = value;
-            }
-        }
+        Object.assign(process.env, saved);
     });
 }
 
