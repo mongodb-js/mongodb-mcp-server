@@ -2,6 +2,7 @@ import { EventEmitter } from "events";
 import { MongoServerError } from "mongodb";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { generateConnectionInfoFromCliArgs, type ConnectionInfo } from "@mongosh/arg-parser";
+import { CliOptionsSchema as MongoshCliOptionsSchema } from "@mongosh/arg-parser/arg-parser";
 import type { DeviceId } from "../helpers/deviceId.js";
 import { type UserConfig } from "./config/userConfig.js";
 import { MongoDBError, ErrorCodes } from "./errors.js";
@@ -246,6 +247,15 @@ export class MCPConnectionManager extends ConnectionManager {
         this.deviceId = deviceId;
     }
 
+    private getMongoshUserConfig(): Partial<UserConfig> {
+        const mongoshKeys = Object.keys(MongoshCliOptionsSchema.shape) as (keyof UserConfig)[];
+        return Object.fromEntries(
+            mongoshKeys
+                .filter((key) => this.userConfig[key] !== undefined)
+                .map((key) => [key, this.userConfig[key]])
+        ) as Partial<UserConfig>;
+    }
+
     override async connect(settings: ConnectionSettings): Promise<AnyConnectionState> {
         this._events.emit("connection-request", this.currentConnectionState);
 
@@ -276,6 +286,7 @@ export class MCPConnectionManager extends ConnectionManager {
                   }
                 : generateConnectionInfoFromCliArgs({
                       ...defaultDriverOptions,
+                      ...this.getMongoshUserConfig(),
                       connectionSpecifier: settings.connectionString,
                   });
 
