@@ -2,8 +2,8 @@ import type {
     ClusterConnectionStrings,
     ClusterDescription20240805,
     FlexClusterDescription20241113,
-} from "./openapi.js";
-import type { ApiClient } from "./apiClient.js";
+    ApiClient,
+} from "@mongodb-js/mcp-atlas-api-client";
 import { LogId } from "@mongodb-js/mcp-logging";
 import { ConnectionString } from "mongodb-connection-string-url";
 

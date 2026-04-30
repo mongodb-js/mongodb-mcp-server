@@ -18,9 +18,9 @@ import { Elicitation } from "../elicitation.js";
 import type { AtlasLocalClientFactoryFn } from "../common/atlasLocal.js";
 import { defaultCreateAtlasLocalClient } from "../common/atlasLocal.js";
 import { applyConfigOverrides } from "../common/config/configOverrides.js";
-import type { ApiClientOptions, ApiClientFactoryFn } from "../common/atlas/apiClient.js";
-import { ApiClient } from "../common/atlas/apiClient.js";
-import { defaultCreateApiClient } from "../common/atlas/apiClient.js";
+import { ApiClient, type ApiClientOptions } from "@mongodb-js/mcp-atlas-api-client";
+
+type ApiClientFactoryFn = (options: ApiClientOptions) => ApiClient;
 import type { UIRegistry } from "../ui/registry/index.js";
 import { PrometheusMetrics, createDefaultMetrics, type Metrics, type DefaultMetrics } from "@mongodb-js/mcp-metrics";
 
@@ -228,7 +228,7 @@ export abstract class TransportRunnerBase<
         telemetryProperties = {},
         tools,
         createSessionConfig,
-        createApiClient = defaultCreateApiClient,
+        createApiClient = (opts: ApiClientOptions): ApiClient => new ApiClient(opts),
     }: TransportRunnerConfig<TUserConfig, TMetrics>) {
         this.userConfig = userConfig;
         this.createConnectionManager = createConnectionManager;
@@ -281,6 +281,7 @@ export abstract class TransportRunnerBase<
         const { apiClientId, apiClientSecret } = userConfig;
         const apiClientOptions: ApiClientOptions = {
             baseUrl: userConfig.apiBaseUrl,
+            userAgent: `AtlasMCP/${packageInfo.version} (${process.platform}; ${process.arch})`,
             credentials:
                 apiClientId && apiClientSecret
                     ? {
@@ -288,8 +289,9 @@ export abstract class TransportRunnerBase<
                           clientSecret: apiClientSecret,
                       }
                     : undefined,
+            logger,
         };
-        const apiClient = new ApiClient(apiClientOptions, logger);
+        const apiClient = new ApiClient(apiClientOptions);
 
         const session = new Session({
             userConfig,
@@ -375,17 +377,16 @@ export abstract class TransportRunnerBase<
                 atlasLocalClient: await this.createAtlasLocalClient({ logger: this.logger }),
                 apiClient:
                     userConfig.apiClientId && userConfig.apiClientSecret
-                        ? this.createApiClient(
-                              {
-                                  baseUrl: userConfig.apiBaseUrl,
-                                  credentials: {
-                                      clientId: userConfig.apiClientId,
-                                      clientSecret: userConfig.apiClientSecret,
-                                  },
-                                  requestContext: request,
+                        ? this.createApiClient({
+                              baseUrl: userConfig.apiBaseUrl,
+                              userAgent: `AtlasMCP/${packageInfo.version} (${process.platform}; ${process.arch})`,
+                              credentials: {
+                                  clientId: userConfig.apiClientId,
+                                  clientSecret: userConfig.apiClientSecret,
                               },
-                              this.logger
-                          )
+                              requestContext: request,
+                              logger: this.logger,
+                          })
                         : undefined,
             },
         });

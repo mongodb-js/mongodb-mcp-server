@@ -1,13 +1,14 @@
 import type { ApiError } from "./openapi.js";
 
 export class ApiClientError extends Error {
-    private constructor(
-        message: string,
-        public readonly response: Response,
-        public readonly apiError?: ApiError
-    ) {
+    readonly response: Response;
+    readonly apiError?: ApiError;
+
+    private constructor(message: string, response: Response, apiError?: ApiError) {
         super(message);
         this.name = "ApiClientError";
+        this.response = response;
+        this.apiError = apiError;
     }
 
     static async fromResponse(
@@ -16,14 +17,18 @@ export class ApiClientError extends Error {
     ): Promise<ApiClientError> {
         const err = await this.extractError(response);
 
-        return this.fromError(response, err, message);
+        return this.fromError({ response, error: err, message });
     }
 
-    static fromError(
-        response: Response,
-        error?: ApiError | string | Error,
-        message: string = `error calling Atlas API`
-    ): ApiClientError {
+    static fromError({
+        response,
+        error,
+        message = `error calling Atlas API`,
+    }: {
+        response: Response;
+        error?: ApiError | string | Error;
+        message?: string;
+    }): ApiClientError {
         const errorMessage = this.buildErrorMessage(error);
 
         const apiError = typeof error === "object" && !(error instanceof Error) ? error : undefined;

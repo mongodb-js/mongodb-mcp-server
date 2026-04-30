@@ -16,7 +16,7 @@ import { defaultCreateAtlasLocalClient } from "../../../src/common/atlasLocal.js
 import { InMemoryTransport } from "../../../src/transports/inMemoryTransport.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { UIRegistry } from "../../../src/ui/index.js";
-import { defaultCreateApiClient } from "../../../src/lib.js";
+import { ApiClient } from "../../../src/lib.js";
 import { MockMetrics } from "../../unit/mocks/metrics.js";
 
 describeWithMongoDB(
@@ -184,16 +184,15 @@ describe("mcpUI feature with custom UIs", () => {
             keychain: Keychain.root,
             connectionErrorHandler,
             atlasLocalClient: await defaultCreateAtlasLocalClient({ logger }),
-            apiClient: defaultCreateApiClient(
-                {
-                    baseUrl: userConfig.apiBaseUrl,
-                    credentials: {
-                        clientId: userConfig.apiClientId,
-                        clientSecret: userConfig.apiClientSecret,
-                    },
+            apiClient: new ApiClient({
+                baseUrl: userConfig.apiBaseUrl,
+                credentials: {
+                    clientId: userConfig.apiClientId,
+                    clientSecret: userConfig.apiClientSecret,
                 },
-                logger
-            ),
+                userAgent: "test",
+                logger,
+            }),
         });
 
         const telemetry = Telemetry.create(session, userConfig, deviceId);

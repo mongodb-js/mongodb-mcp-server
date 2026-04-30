@@ -7,7 +7,7 @@ import type {
     PaginatedOrgGroupView,
     Group,
     PaginatedFlexClusters20241113,
-} from "../../../common/atlas/openapi.js";
+} from "@mongodb-js/mcp-atlas-api-client";
 import { formatCluster, formatFlexCluster } from "../../../common/atlas/cluster.js";
 import { AtlasArgs } from "../../args.js";
 

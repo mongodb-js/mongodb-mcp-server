@@ -2,8 +2,8 @@ import type { Session } from "../common/session.js";
 import type { BaseEvent, CommonProperties } from "./types.js";
 import type { UserConfig } from "../common/config/userConfig.js";
 import { LogId } from "@mongodb-js/mcp-logging";
-import type { ApiClient } from "../common/atlas/apiClient.js";
-import { ApiClientError } from "../common/atlas/apiClientError.js";
+import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import { MACHINE_METADATA } from "./constants.js";
 import { EventCache } from "./eventCache.js";
 import { detectContainerEnv } from "../helpers/container.js";
@@ -268,16 +268,16 @@ export class Telemetry {
     private async sendEvents(client: ApiClient, events: BaseEvent[], signal?: AbortSignal): Promise<SendResult> {
         try {
             const effectiveSignal = signal ?? AbortSignal.timeout(SEND_TIMEOUT_MS);
-            await client.sendEvents(
-                events.map((event) => ({
+            await client.sendEvents({
+                events: events.map((event) => ({
                     ...event,
                     properties: {
                         ...redact(this.getCommonProperties(), this.session.keychain.allSecrets),
                         ...redact(event.properties, this.session.keychain.allSecrets),
                     },
                 })),
-                { signal: effectiveSignal }
-            );
+                signal: effectiveSignal,
+            });
             return { status: "success" };
         } catch (error) {
             if (error instanceof ApiClientError && error.response.status === 429) {
