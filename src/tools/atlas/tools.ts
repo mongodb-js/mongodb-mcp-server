@@ -11,6 +11,7 @@ export { ListOrganizationsTool } from "./read/listOrgs.js";
 export { ConnectClusterTool } from "./connect/connectCluster.js";
 export { ListAlertsTool } from "./read/listAlerts.js";
 export { GetPerformanceAdvisorTool } from "./read/getPerformanceAdvisor.js";
+export { UpgradeClusterTool } from "./update/upgradeCluster.js";
 export { StreamsDiscoverTool } from "./streams/discover.js";
 export { StreamsBuildTool } from "./streams/build.js";
 export { StreamsManageTool } from "./streams/manage.js";
