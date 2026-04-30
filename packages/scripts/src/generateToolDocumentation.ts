@@ -8,9 +8,9 @@
 import { readFileSync, writeFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { AllTools } from "../../src/tools/index.js";
-import { UIRegistry } from "../../src/ui/registry/index.js";
-import { UserConfigSchema } from "../../src/lib.js";
+import { AllTools } from "mongodb-mcp-server/tools";
+import { UIRegistry } from "@mongodb-js/mcp-ui";
+import { UserConfigSchema } from "mongodb-mcp-server";
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -136,7 +136,7 @@ function generateReadmeToolsList(tools: ToolInfo[]): string {
 }
 
 function updateReadmeToolsList(tools: ToolInfo[]): void {
-    const readmePath = join(__dirname, "..", "..", "README.md");
+    const readmePath = join(__dirname, "..", "..", "..", "README.md");
     let content = readFileSync(readmePath, "utf-8");
 
     const newToolsList = generateReadmeToolsList(tools);

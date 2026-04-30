@@ -1,0 +1,23 @@
+{
+  "name": "@mongodb-js/mcp-scripts",
+  "version": "1.11.0-prerelease.1",
+  "private": true,
+  "type": "module",
+  "description": "Code generation scripts for the MongoDB MCP server",
+  "scripts": {
+    "generate": "tsx src/index.ts",
+    "generate:arguments": "tsx src/generateArguments.ts",
+    "generate:ui": "tsx src/generateUI.ts"
+  },
+  "dependencies": {
+    "@mongodb-js/mcp-ui": "workspace:*",
+    "@mongodb-js/mcp-metrics": "workspace:*",
+    "mongodb-mcp-server": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2",
+    "vite": "^8.0.8"
+  }
+}

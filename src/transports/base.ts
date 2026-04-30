@@ -21,7 +21,7 @@ import { applyConfigOverrides } from "../common/config/configOverrides.js";
 import { ApiClient, type ApiClientOptions } from "@mongodb-js/mcp-atlas-api-client";
 
 type ApiClientFactoryFn = (options: ApiClientOptions) => ApiClient;
-import type { UIRegistry } from "../ui/registry/index.js";
+import type { UIRegistry } from "@mongodb-js/mcp-ui";
 import { PrometheusMetrics, createDefaultMetrics, type Metrics, type DefaultMetrics } from "@mongodb-js/mcp-metrics";
 
 import type { LogLevel, TransportRequestContext } from "@mongodb-js/mcp-types";
@@ -311,7 +311,7 @@ export abstract class TransportRunnerBase<
 
         let uiRegistry: UIRegistry | undefined = serverOptions?.uiRegistry;
         if (!uiRegistry && userConfig.previewFeatures.includes("mcpUI")) {
-            const uiRegistryModule = await import("../ui/registry/registry.js");
+            const uiRegistryModule = await import("@mongodb-js/mcp-ui");
             uiRegistry = new uiRegistryModule.UIRegistry();
         }
 

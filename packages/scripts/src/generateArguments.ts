@@ -9,7 +9,7 @@
 import { readFileSync, writeFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { UserConfigSchema, configRegistry } from "../../src/common/config/userConfig.js";
+import { UserConfigSchema, configRegistry } from "mongodb-mcp-server";
 import { execSync } from "child_process";
 import type { z } from "zod";
 
@@ -203,8 +203,8 @@ function generatePackageArguments(envVars: ArgumentInfo[]): unknown[] {
 }
 
 function updateServerJsonEnvVars(envVars: ArgumentInfo[]): void {
-    const serverJsonPath = join(__dirname, "..", "..", "server.json");
-    const packageJsonPath = join(__dirname, "..", "..", "package.json");
+    const serverJsonPath = join(__dirname, "..", "..", "..", "server.json");
+    const packageJsonPath = join(__dirname, "..", "..", "..", "package.json");
 
     const content = readFileSync(serverJsonPath, "utf-8");
     const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8")) as { version: string };
@@ -307,7 +307,7 @@ function generateReadmeConfigTable(argumentInfos: ArgumentInfo[]): string {
 }
 
 function updateReadmeConfigTable(envVars: ArgumentInfo[]): void {
-    const readmePath = join(__dirname, "..", "..", "README.md");
+    const readmePath = join(__dirname, "..", "..", "..", "README.md");
     let content = readFileSync(readmePath, "utf-8");
 
     const newTable = generateReadmeConfigTable(envVars);
@@ -322,7 +322,7 @@ function updateReadmeConfigTable(envVars: ArgumentInfo[]): void {
     console.log("✓ Updated README.md configuration table");
 
     // Run prettier on the README.md file
-    execSync("npx prettier --write README.md", { cwd: join(__dirname, "..", "..") });
+    execSync("npx prettier --write README.md", { cwd: join(__dirname, "..", "..", "..") });
 }
 
 export function generateArguments(): void {

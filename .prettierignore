@@ -7,5 +7,5 @@ pnpm-lock.yaml
 src/ui/lib/tools
 src/ui/lib/loaders.ts
 temp
-api-extractor/reports
+**/reports/*.api.md
 .github/workflows/*.lock.yml

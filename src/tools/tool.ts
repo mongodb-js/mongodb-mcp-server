@@ -9,7 +9,7 @@ import type { UserConfig } from "../common/config/userConfig.js";
 import type { Server } from "../server.js";
 import type { Elicitation } from "../elicitation.js";
 import type { PreviewFeature } from "../common/schemas.js";
-import type { UIRegistry } from "../ui/registry/index.js";
+import type { UIRegistry } from "@mongodb-js/mcp-ui";
 import { createUIResource, type UIResource } from "@mcp-ui/server";
 import { TRANSPORT_PAYLOAD_LIMITS, type TransportType } from "../transports/constants.js";
 import { getRandomUUID } from "../helpers/getRandomUUID.js";

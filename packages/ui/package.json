@@ -1,0 +1,47 @@
+{
+  "name": "@mongodb-js/mcp-ui",
+  "version": "1.11.0-prerelease.1",
+  "private": true,
+  "type": "module",
+  "description": "UI components and registry for MongoDB MCP server",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "compile": "tsc --build tsconfig.json",
+    "check:api": "api-extractor run --config api-extractor.json",
+    "update:api": "api-extractor run --local --config api-extractor.json",
+    "test": "vitest --run"
+  },
+  "dependencies": {
+    "@mongodb-js/mcp-types": "workspace:*"
+  },
+  "devDependencies": {
+    "@microsoft/api-extractor": "^7.58.5",
+    "@lg-mcp/embeddable-uis": "^0.1.0",
+    "@lg-mcp/hooks": "^0.2.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/node": "^25.6.0",
+    "happy-dom": "^20.9.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2",
+    "vite": "^8.0.8",
+    "vite-plugin-node-polyfills": "^0.26.0",
+    "vite-plugin-singlefile": "^2.3.2",
+    "vitest": "^4.1.4"
+  }
+}

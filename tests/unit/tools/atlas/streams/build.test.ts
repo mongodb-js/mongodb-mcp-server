@@ -8,7 +8,7 @@ import type { Telemetry } from "../../../../../src/telemetry/telemetry.js";
 import type { Elicitation } from "../../../../../src/elicitation.js";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
-import { UIRegistry } from "../../../../../src/ui/registry/index.js";
+import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics } from "../../../mocks/metrics.js";
 
 describe("StreamsBuildTool", () => {

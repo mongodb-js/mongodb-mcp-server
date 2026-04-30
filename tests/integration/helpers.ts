@@ -149,7 +149,7 @@ export function setupIntegrationTest(
 
         let uiRegistry = serverOptions?.uiRegistry;
         if (!uiRegistry && userConfig.previewFeatures.includes("mcpUI")) {
-            const { UIRegistry } = await import("../../src/ui/registry/registry.js");
+            const { UIRegistry } = await import("@mongodb-js/mcp-ui");
             uiRegistry = new UIRegistry();
         }
 

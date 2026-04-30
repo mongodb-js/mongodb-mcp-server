@@ -8,5 +8,5 @@ export const uiLoaders: Record<string, () => Promise<string>> = {
     "list-databases": async () => {
         const mod = await import("./tools/list-databases.js");
         return mod.ListDatabasesHtml;
-    }
+    },
 };

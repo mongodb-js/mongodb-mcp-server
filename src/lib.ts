@@ -1,6 +1,6 @@
 export { Server, type ServerOptions, type AnyToolClass, type ToolCategory } from "./server.js";
 export { Session, type SessionOptions, type SessionEvents } from "./common/session.js";
-export { type UserConfig, UserConfigSchema } from "./common/config/userConfig.js";
+export { type UserConfig, UserConfigSchema, configRegistry } from "./common/config/userConfig.js";
 export { parseUserConfig, defaultParserOptions, type ParserOptions } from "./common/config/parseUserConfig.js";
 
 import { parseUserConfig } from "./common/config/parseUserConfig.js";
@@ -83,7 +83,7 @@ export {
 export { ErrorCodes, MongoDBError } from "./common/errors.js";
 export { Telemetry } from "./telemetry/telemetry.js";
 export { type TelemetryEvent, type CommonProperties, type BaseEvent } from "./telemetry/types.js";
-export { type TelemetryEvents } from "./telemetry/telemetry.js";
+export type { TelemetryEvents } from "./telemetry/telemetry.js";
 export { EventCache } from "./telemetry/eventCache.js";
 export { Keychain, registerGlobalSecretToRedact } from "@mongodb-js/mcp-core";
 export type { Secret } from "mongodb-redact";
@@ -103,7 +103,7 @@ export { DeviceId } from "./helpers/deviceId.js";
 export type { MonitoringServerFeature } from "./common/schemas.js";
 export { ApiClient, type ApiClientOptions, type RequestContext } from "@mongodb-js/mcp-atlas-api-client";
 export type { AuthProvider, Credentials } from "@mongodb-js/mcp-atlas-api-client";
-export { type UIRegistryOptions, UIRegistry } from "./ui/registry/registry.js";
+export { type UIRegistryOptions, UIRegistry } from "@mongodb-js/mcp-ui";
 export { type ToolExecutionContext, type AnyToolBase } from "./tools/tool.js";
 export {
     PrometheusMetrics,
