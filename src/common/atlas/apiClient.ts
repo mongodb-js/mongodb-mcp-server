@@ -885,7 +885,7 @@ export class ApiClient {
                 regionName?: string;
             };
         };
-    }): Promise<void> {
+    }): Promise<{ id?: string }> {
         const authHeaders = (await this.authProvider?.getAuthHeaders()) ?? {};
         const url = new URL(`api/atlas/v2/groups/${options.groupId}/clusters/tenantUpgrade`, this.options.baseUrl);
         const response = await this.customFetch(url.toString(), {
@@ -901,6 +901,7 @@ export class ApiClient {
         if (!response.ok) {
             throw await ApiClientError.fromResponse(response);
         }
+        return (await response.json()) as { id?: string };
     }
 
     async upgradeFlexToDedicated(options: {
@@ -926,7 +927,7 @@ export class ApiClient {
                 diskGBEnabled: boolean;
             };
         };
-    }): Promise<void> {
+    }): Promise<{ id?: string }> {
         const authHeaders = (await this.authProvider?.getAuthHeaders()) ?? {};
         const url = new URL(`api/atlas/v2/groups/${options.groupId}/flexClusters:tenantUpgrade`, this.options.baseUrl);
         const response = await this.customFetch(url.toString(), {
@@ -942,5 +943,6 @@ export class ApiClient {
         if (!response.ok) {
             throw await ApiClientError.fromResponse(response);
         }
+        return (await response.json()) as { id?: string };
     }
 }

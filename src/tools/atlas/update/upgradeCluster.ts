@@ -5,6 +5,7 @@ import { AtlasToolBase } from "../atlasTool.js";
 import { formatCluster } from "../../../common/atlas/cluster.js";
 import type { ApiClient } from "../../../common/atlas/apiClient.js";
 import { AtlasArgs } from "../../args.js";
+import type { UpgradeClusterMetadata } from "../../../telemetry/types.js";
 
 type ClusterResult =
     | { kind: "regular"; raw: Awaited<ReturnType<ApiClient["getCluster"]>> }
@@ -104,7 +105,14 @@ export class UpgradeClusterTool extends AtlasToolBase {
             .describe("Cloud provider (e.g. AWS, GCP, AZURE). If omitted, the existing value is preserved."),
         region: AtlasArgs.region()
             .optional()
-            .describe("Cloud provider region. If omitted, the existing value is preserved."),
+            .describe("Cloud provider region in Atlas format using uppercase letters and underscores (e.g. US_EAST_1). If omitted, the existing value is preserved."),
+    };
+
+    private upgradeContext?: {
+        originalTier: "free" | "flex";
+        targetTier: "flex" | "m10";
+        originalClusterId?: string;
+        targetClusterId?: string;
     };
 
     protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
@@ -151,6 +159,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
                 };
             }
             if (knownInstanceType === "FREE") {
+                this.upgradeContext = { originalTier: "free", targetTier: target === "FLEX" ? "flex" : "m10" };
                 return this.upgradeFreeCluster(
                     projectId,
                     clusterName,
@@ -159,6 +168,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
                     args.region ?? sessionCluster?.region
                 );
             }
+            this.upgradeContext = { originalTier: "flex", targetTier: "m10" };
             return this.upgradeFlexCluster(
                 projectId,
                 clusterName,
@@ -205,6 +215,11 @@ export class UpgradeClusterTool extends AtlasToolBase {
                 | undefined;
             const backingProviderName = args.provider ?? firstRegionConfig?.backingProviderName ?? "AWS";
             const regionName = args.region ?? firstRegionConfig?.regionName;
+            this.upgradeContext = {
+                originalTier: "free",
+                targetTier: target === "FLEX" ? "flex" : "m10",
+                originalClusterId: clusterResult.raw.id,
+            };
             return this.upgradeFreeCluster(projectId, clusterName, target, backingProviderName, regionName);
         }
 
@@ -216,8 +231,9 @@ export class UpgradeClusterTool extends AtlasToolBase {
             };
         }
         const provider = args.provider ?? clusterResult.raw.providerSettings?.backingProviderName;
-        const region = args.region ?? clusterResult.raw.providerSettings?.regionName;
-        return this.upgradeFlexCluster(projectId, clusterName, provider, region);
+        const flexRegion = args.region ?? clusterResult.raw.providerSettings?.regionName;
+        this.upgradeContext = { originalTier: "flex", targetTier: "m10" };
+        return this.upgradeFlexCluster(projectId, clusterName, provider, flexRegion);
     }
 
     private async upgradeFreeCluster(
@@ -228,7 +244,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
         regionName: string | undefined
     ): Promise<CallToolResult> {
         if (target === "FLEX") {
-            await this.apiClient.upgradeSharedTierCluster({
+            const { id } = await this.apiClient.upgradeSharedTierCluster({
                 groupId: projectId,
                 body: {
                     name: clusterName,
@@ -240,6 +256,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
                     },
                 },
             });
+            if (this.upgradeContext) this.upgradeContext.targetClusterId = id;
             return {
                 content: [
                     {
@@ -250,10 +267,11 @@ export class UpgradeClusterTool extends AtlasToolBase {
             };
         }
 
-        await this.apiClient.upgradeSharedTierCluster({
+        const { id } = await this.apiClient.upgradeSharedTierCluster({
             groupId: projectId,
             body: buildM10UpgradeBody("FREE", clusterName, backingProviderName, regionName),
         });
+        if (this.upgradeContext) this.upgradeContext.targetClusterId = id;
         return {
             content: [
                 {
@@ -270,10 +288,11 @@ export class UpgradeClusterTool extends AtlasToolBase {
         provider: string | undefined,
         region: string | undefined
     ): Promise<CallToolResult> {
-        await this.apiClient.upgradeFlexToDedicated({
+        const { id } = await this.apiClient.upgradeFlexToDedicated({
             groupId: projectId,
             body: buildM10UpgradeBody("FLEX", clusterName, provider, region),
         });
+        if (this.upgradeContext) this.upgradeContext.targetClusterId = id;
         return {
             content: [
                 {
@@ -281,6 +300,22 @@ export class UpgradeClusterTool extends AtlasToolBase {
                     text: `Cluster "${clusterName}" is being upgraded from Flex to M10 Dedicated tier. This may take a few minutes.`,
                 },
             ],
+        };
+    }
+
+    protected override resolveTelemetryMetadata(
+        args: ToolArgs<typeof this.argsShape>,
+        context: { result: CallToolResult }
+    ): UpgradeClusterMetadata {
+        const parentMetadata = super.resolveTelemetryMetadata(args, context);
+        return {
+            ...parentMetadata,
+            original_tier: this.upgradeContext?.originalTier,
+            target_tier: this.upgradeContext?.targetTier,
+            original_cluster_id: this.upgradeContext?.originalClusterId,
+            target_cluster_id: this.upgradeContext?.targetClusterId,
+            ...(args.provider !== undefined && { provider: args.provider }),
+            ...(args.region !== undefined && { region: args.region }),
         };
     }
 }
