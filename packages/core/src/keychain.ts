@@ -1,4 +1,5 @@
 import type { Secret } from "mongodb-redact";
+import type { IKeychain } from "@mongodb-js/mcp-types";
 export type { Secret } from "mongodb-redact";
 
 /**
@@ -10,7 +11,7 @@ export type { Secret } from "mongodb-redact";
  * should register them in the root Keychain (`Keychain.root.register`) or preferably
  * on the session keychain if available `this.session.keychain`.
  **/
-export class Keychain {
+export class Keychain implements IKeychain {
     private secrets: Secret[];
     private static rootKeychain: Keychain = new Keychain();
 

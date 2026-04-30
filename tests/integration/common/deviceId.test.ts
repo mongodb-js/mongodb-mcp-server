@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { DeviceId } from "../../../src/helpers/deviceId.js";
-import { CompositeLogger } from "../../../src/common/logging/index.js";
+import { CompositeLogger } from "@mongodb-js/mcp-core";
 import nodeMachineId from "node-machine-id";
 
 describe("Device ID", () => {

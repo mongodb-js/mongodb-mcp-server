@@ -1,17 +1,15 @@
-import type { Keychain } from "../keychain.js";
-import type { LoggerType, LogLevel, LogPayload } from "./index.js";
-import { LoggerBase } from "./loggerBase.js";
+import type { LoggerConfig, LoggerType, LogLevel, LogPayload } from "@mongodb-js/mcp-types";
+import { LoggerBase } from "@mongodb-js/mcp-core";
 
 export class ConsoleLogger extends LoggerBase {
     protected readonly type: LoggerType = "console";
 
-    public constructor(keychain: Keychain) {
-        super(keychain);
+    public constructor(options: LoggerConfig) {
+        super(options);
     }
 
     protected logCore(level: LogLevel, payload: LogPayload): void {
         const { id, context, message } = payload;
-        // eslint-disable-next-line no-console
         console.error(
             `[${level.toUpperCase()}] ${id.__value} - ${context}: ${message}${this.serializeAttributes(payload.attributes)}`
         );

@@ -11,7 +11,7 @@ import { ROOT_DIR } from "../../accuracy/sdk/constants.js";
 import { defaultTestConfig, timeout } from "../../integration/helpers.js";
 import type { EJSONOptions } from "bson";
 import { EJSON, ObjectId } from "bson";
-import { CompositeLogger } from "../../../src/common/logging/index.js";
+import { CompositeLogger } from "@mongodb-js/mcp-core";
 
 const logger = new CompositeLogger();
 const exportsPath = path.join(ROOT_DIR, "tests", "tmp", `exports-${Date.now()}`);

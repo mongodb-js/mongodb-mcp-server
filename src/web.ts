@@ -8,7 +8,7 @@ export { UserConfigSchema, type UserConfig } from "./common/config/userConfig.js
 export { createDefaultMetrics, type DefaultMetrics } from "@mongodb-js/mcp-metrics";
 export { Server, type ServerOptions, type AnyToolClass, type ToolCategory } from "./server.js";
 export { DeviceId } from "./helpers/deviceId.js";
-export { LoggerBase, CompositeLogger, type EventMap, type DefaultEventMap } from "./common/logging/index.js";
+export { LoggerBase, CompositeLogger, type EventMap, type DefaultEventMap } from "@mongodb-js/mcp-core";
 export type { Metrics, MetricDefinitions } from "@mongodb-js/mcp-metrics";
 export type { TransportRequestContext } from "./transports/base.js";
 export type {
@@ -25,9 +25,9 @@ export type {
 } from "./telemetry/types.js";
 export { Session, type SessionOptions, type SessionEvents } from "./common/session.js";
 export type { CustomizableServerOptions, CustomizableSessionOptions } from "./transports/base.js";
-export type { LogLevel, LogPayload, LoggerType } from "./common/logging/loggingTypes.js";
-export { Keychain } from "./common/keychain.js";
-export type { Secret } from "./common/keychain.js";
+export type { LogLevel, LogPayload, LoggerType } from "@mongodb-js/mcp-core";
+export { Keychain } from "@mongodb-js/mcp-core";
+export type { Secret } from "mongodb-redact";
 export type {
     ConnectionErrorHandler,
     ConnectionErrorHandled,
@@ -79,8 +79,7 @@ export {
     type ToolArgs,
     type ToolExecutionContext,
 } from "./tools/tool.js";
-export { Telemetry } from "./telemetry/telemetry.js";
-export type { TelemetryEvents, TelemetryConfig } from "./telemetry/telemetry.js";
+export { Telemetry, type TelemetryEvents } from "./telemetry/telemetry.js";
 export type { TelemetryEvent, BaseEvent } from "./telemetry/types.js";
 export { EventCache } from "./telemetry/eventCache.js";
 export { ErrorCodes, MongoDBError } from "./common/errors.js";

@@ -4,7 +4,7 @@ import { ApiClientError } from "./apiClientError.js";
 import type { components, paths, operations } from "./openapi.js";
 import type { CommonProperties, TelemetryEvent } from "../../telemetry/types.js";
 import { packageInfo } from "../packageInfo.js";
-import type { LoggerBase } from "../logging/index.js";
+import type { LoggerBase } from "@mongodb-js/mcp-core";
 import { createFetch } from "@mongodb-js/devtools-proxy-support";
 import { Request as NodeFetchRequest } from "node-fetch";
 import type { Credentials, AuthProvider } from "./auth/authProvider.js";

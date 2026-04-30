@@ -2,7 +2,7 @@ import { describeWithAtlas, withProject, randomId, assertApiClientIsAvailable } 
 import { expectDefined, getResponseElements } from "../../helpers.js";
 import { ApiClientError } from "../../../../src/common/atlas/apiClientError.js";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { Keychain } from "../../../../src/common/keychain.js";
+import { Keychain } from "@mongodb-js/mcp-core";
 
 describeWithAtlas("db users", (integration) => {
     withProject(integration, ({ getProjectId }) => {

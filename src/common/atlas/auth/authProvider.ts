@@ -1,4 +1,4 @@
-import type { LoggerBase } from "../../logging/index.js";
+import type { LoggerBase } from "@mongodb-js/mcp-core";
 import { ClientCredentialsAuthProvider } from "./clientCredentials.js";
 
 export interface AccessToken {

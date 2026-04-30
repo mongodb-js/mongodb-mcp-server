@@ -9,13 +9,17 @@ import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { Client } from '@mongodb-js/atlas-local';
 import type { CloseableTransport } from '@mongodb-js/mcp-types';
 import type { components } from './openapi.js';
+import { CompositeLogger } from '@mongodb-js/mcp-core';
 import { ConnectionInfo } from '@mongosh/arg-parser';
+import { ConsoleLogger } from '@mongodb-js/mcp-logging';
 import { Counter } from '@mongodb-js/mcp-metrics';
 import { createDefaultMetrics } from '@mongodb-js/mcp-metrics';
+import { DefaultEventMap } from '@mongodb-js/mcp-core';
 import { DefaultMetrics } from '@mongodb-js/mcp-metrics';
 import { defaultParserOptions as defaultParserOptions_2 } from '@mongosh/arg-parser/arg-parser';
 import type { ElicitRequestFormParams } from '@modelcontextprotocol/sdk/types.js';
 import EventEmitter from 'events';
+import { EventMap } from '@mongodb-js/mcp-core';
 import express from 'express';
 import type { FetchOptions } from 'openapi-fetch';
 import type { FindCursor } from 'mongodb';
@@ -24,15 +28,21 @@ import { Histogram } from '@mongodb-js/mcp-metrics';
 import type http from 'http';
 import type { IDeviceId } from '@mongodb-js/mcp-types';
 import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
-import type { LoggingMessageNotification } from '@modelcontextprotocol/sdk/types.js';
+import { Keychain } from '@mongodb-js/mcp-core';
+import { LoggerBase } from '@mongodb-js/mcp-core';
+import { LoggerType } from '@mongodb-js/mcp-core';
+import { LogLevel } from '@mongodb-js/mcp-core';
+import { LogPayload } from '@mongodb-js/mcp-core';
+import { McpLogger } from '@mongodb-js/mcp-logging';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { MetricDefinitions } from '@mongodb-js/mcp-metrics';
 import { Metrics } from '@mongodb-js/mcp-metrics';
-import type { MongoLogId } from 'mongodb-log-writer';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
+import { NoopLogger } from '@mongodb-js/mcp-core';
 import type { operations } from './openapi.js';
 import { PrometheusMetrics } from '@mongodb-js/mcp-metrics';
 import { PrometheusMetricsOptions } from '@mongodb-js/mcp-metrics';
+import { registerGlobalSecretToRedact } from '@mongodb-js/mcp-core';
 import { Registry } from '@mongodb-js/mcp-metrics';
 import { Secret } from 'mongodb-redact';
 import type { SessionCloseReason } from '@mongodb-js/mcp-types';
@@ -244,20 +254,7 @@ export type CommonProperties = {
     has_docker?: TelemetryBoolSet;
 } & CommonStaticProperties;
 
-// @public (undocumented)
-export class CompositeLogger extends LoggerBase {
-    constructor(...loggers: LoggerBase[]);
-    // (undocumented)
-    addLogger(logger: LoggerBase): void;
-    // (undocumented)
-    log(level: LogLevel, payload: LogPayload): void;
-    // (undocumented)
-    protected logCore(): void;
-    // (undocumented)
-    setAttribute(key: string, value: string): void;
-    // (undocumented)
-    protected readonly type?: LoggerType;
-}
+export { CompositeLogger }
 
 // @public (undocumented)
 export class ConfigOverrideError extends Error {
@@ -406,14 +403,7 @@ export interface ConnectionStateErrored extends ConnectionState {
 // @public (undocumented)
 export type ConnectionTag = "connected" | "connecting" | "disconnected" | "errored";
 
-// @public (undocumented)
-export class ConsoleLogger extends LoggerBase {
-    constructor(keychain: Keychain);
-    // (undocumented)
-    protected logCore(level: LogLevel, payload: LogPayload): void;
-    // (undocumented)
-    protected readonly type: LoggerType;
-}
+export { ConsoleLogger }
 
 export { Counter }
 
@@ -473,8 +463,7 @@ export const defaultCreateAtlasLocalClient: AtlasLocalClientFactoryFn;
 // @public (undocumented)
 export const defaultCreateConnectionManager: ConnectionManagerFactoryFn;
 
-// @public (undocumented)
-export type DefaultEventMap = Record<string, never[]>;
+export { DefaultEventMap }
 
 export { DefaultMetrics }
 
@@ -573,8 +562,7 @@ export class EventCache {
     get size(): number;
 }
 
-// @public (undocumented)
-export type EventMap<T> = Record<keyof T, any[]>;
+export { EventMap }
 
 // Warning: (ae-forgotten-export) The symbol "ExportsManagerEvents" needs to be exported by the entry point lib.d.ts
 //
@@ -629,67 +617,15 @@ export interface ISessionStore<T extends CloseableTransport = CloseableTransport
     getSession(sessionId: string): Promise<T | undefined>;
 }
 
-// @public
-export class Keychain {
-    constructor();
-    // (undocumented)
-    get allSecrets(): Secret[];
-    // (undocumented)
-    clearAllSecrets(): void;
-    // (undocumented)
-    register(value: Secret["value"], kind: Secret["kind"]): void;
-    // (undocumented)
-    static get root(): Keychain;
-}
+export { Keychain }
 
-// @public (undocumented)
-export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extends EventEmitter<T> {
-    constructor(keychain: Keychain | undefined);
-    // (undocumented)
-    alert(payload: LogPayload): void;
-    // (undocumented)
-    critical(payload: LogPayload): void;
-    // (undocumented)
-    debug(payload: LogPayload): void;
-    // (undocumented)
-    emergency(payload: LogPayload): void;
-    // (undocumented)
-    error(payload: LogPayload): void;
-    // (undocumented)
-    info(payload: LogPayload): void;
-    // (undocumented)
-    log(level: LogLevel, payload: LogPayload): void;
-    // (undocumented)
-    protected abstract logCore(level: LogLevel, payload: LogPayload): void;
-    // (undocumented)
-    protected mapToMongoDBLogLevel(level: LogLevel): "info" | "warn" | "error" | "debug" | "fatal";
-    // (undocumented)
-    notice(payload: LogPayload): void;
-    // (undocumented)
-    protected abstract readonly type?: LoggerType;
-    // (undocumented)
-    warning(payload: LogPayload): void;
-}
+export { LoggerBase }
 
-// @public (undocumented)
-export type LoggerType = "console" | "disk" | "mcp";
+export { LoggerType }
 
-// @public (undocumented)
-export type LogLevel = LoggingMessageNotification["params"]["level"];
+export { LogLevel }
 
-// @public (undocumented)
-export interface LogPayload {
-    // (undocumented)
-    attributes?: Record<string, string>;
-    // (undocumented)
-    context: string;
-    // (undocumented)
-    id: MongoLogId;
-    // (undocumented)
-    message: string;
-    // (undocumented)
-    noRedaction?: boolean | LoggerType | LoggerType[];
-}
+export { LogPayload }
 
 // Warning: (ae-forgotten-export) The symbol "ExpressBasedHttpServer" needs to be exported by the entry point lib.d.ts
 //
@@ -720,6 +656,8 @@ export type MCPHttpServerConstructorArgs<TUserConfig extends UserConfig = UserCo
     metrics: Metrics<DefaultMetrics>;
     sessionStore: ISessionStore<StreamableHTTPServerTransport>;
 };
+
+export { McpLogger }
 
 export { MetricDefinitions }
 
@@ -774,14 +712,7 @@ export type MonitoringServerConstructorArgs<TMetrics extends DefaultMetrics = De
 // @public (undocumented)
 export type MonitoringServerFeature = (typeof monitoringServerFeatureValues)[number];
 
-// @public (undocumented)
-export class NullLogger extends LoggerBase {
-    constructor();
-    // (undocumented)
-    protected logCore(): void;
-    // (undocumented)
-    protected type?: LoggerType;
-}
+export { NoopLogger }
 
 // @public (undocumented)
 export type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
@@ -811,8 +742,7 @@ export { PrometheusMetrics }
 
 export { PrometheusMetricsOptions }
 
-// @public (undocumented)
-export function registerGlobalSecretToRedact(value: Secret["value"], kind: Secret["kind"]): void;
+export { registerGlobalSecretToRedact }
 
 export { Registry }
 
@@ -1123,7 +1053,7 @@ export abstract class TransportRunnerBase<TUserConfig extends UserConfig = UserC
     // (undocumented)
     protected static getInstructions(config: UserConfig): string;
     // (undocumented)
-    logger: LoggerBase;
+    logger: CompositeLogger;
     // (undocumented)
     metrics: Metrics<TMetrics>;
     // @deprecated (undocumented)
@@ -1148,7 +1078,7 @@ export type TransportRunnerConfig<TUserConfig extends UserConfig = UserConfig, T
     createConnectionManager?: ConnectionManagerFactoryFn;
     connectionErrorHandler?: ConnectionErrorHandler;
     createAtlasLocalClient?: AtlasLocalClientFactoryFn;
-    additionalLoggers?: LoggerBase[];
+    loggers?: LoggerBase[];
     metrics?: Metrics<TMetrics>;
     telemetryProperties?: Partial<CommonProperties>;
     tools?: AnyToolClass[];
@@ -1171,9 +1101,9 @@ export const UserConfigSchema: z.ZodObject<{
     apiClientSecret: z.ZodOptional<z.ZodString>;
     connectionString: z.ZodOptional<z.ZodString>;
     loggers: z.ZodDefault<z.ZodPipe<z.ZodTransform<string[] | undefined, string | string[] | undefined>, z.ZodArray<z.ZodEnum<{
+        stderr: "stderr";
         disk: "disk";
         mcp: "mcp";
-        stderr: "stderr";
     }>>>>;
     logPath: z.ZodDefault<z.ZodString>;
     mcpClientLogLevel: z.ZodDefault<z.ZodEnum<{
@@ -1219,16 +1149,16 @@ export const UserConfigSchema: z.ZodObject<{
     dryRun: z.ZodDefault<z.ZodBoolean>;
     externallyManagedSessions: z.ZodDefault<z.ZodBoolean>;
     httpResponseType: z.ZodDefault<z.ZodEnum<{
-        json: "json";
         sse: "sse";
+        json: "json";
     }>>;
     healthCheckPort: z.ZodOptional<z.ZodNumber>;
     healthCheckHost: z.ZodOptional<z.ZodString>;
     monitoringServerPort: z.ZodOptional<z.ZodNumber>;
     monitoringServerHost: z.ZodOptional<z.ZodString>;
     monitoringServerFeatures: z.ZodDefault<z.ZodPipe<z.ZodTransform<string[] | undefined, string | string[] | undefined>, z.ZodArray<z.ZodEnum<{
-        metrics: "metrics";
         "health-check": "health-check";
+        metrics: "metrics";
     }>>>>;
     gssapiHostName: z.ZodOptional<z.ZodString>;
     sslFIPSMode: z.ZodOptional<z.ZodBoolean>;
@@ -1315,7 +1245,7 @@ export const UserConfigSchema: z.ZodObject<{
 // Warnings were encountered during analysis:
 //
 // src/common/config/configOverrides.ts:29:5 - (ae-forgotten-export) The symbol "RequestContext_2" needs to be exported by the entry point lib.d.ts
-// src/common/exportsManager.ts:166:9 - (ae-forgotten-export) The symbol "JSONExportFormat" needs to be exported by the entry point lib.d.ts
+// src/common/exportsManager.ts:165:9 - (ae-forgotten-export) The symbol "JSONExportFormat" needs to be exported by the entry point lib.d.ts
 // src/telemetry/types.ts:17:9 - (ae-forgotten-export) The symbol "TelemetryResult" needs to be exported by the entry point lib.d.ts
 // src/telemetry/types.ts:176:5 - (ae-forgotten-export) The symbol "TelemetryBoolSet" needs to be exported by the entry point lib.d.ts
 

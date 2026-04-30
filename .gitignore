@@ -22,3 +22,6 @@ temp
 # Development tool files
 .yalc
 yalc.lock
+
+CLAUDE.md
+.claude/

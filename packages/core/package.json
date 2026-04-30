@@ -1,0 +1,39 @@
+{
+  "name": "@mongodb-js/mcp-core",
+  "description": "Runtime-independent core services for the MongoDB MCP server",
+  "version": "1.11.0-prerelease.1",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "author": "MongoDB <info@mongodb.com>",
+  "repository": {
+    "url": "https://github.com/mongodb-js/mongodb-mcp-server.git",
+    "directory": "packages/core"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "compile": "tsc --build tsconfig.json",
+    "test": "vitest --run"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@mongodb-js/mcp-types": "workspace:*",
+    "mongodb-redact": "^1.1.6"
+  },
+  "devDependencies": {
+    "@mongodb-js/mcp-logging": "workspace:*",
+    "@types/node": "^25.6.0",
+    "typescript": "^5.9.2",
+    "vitest": "^4.1.4"
+  }
+}

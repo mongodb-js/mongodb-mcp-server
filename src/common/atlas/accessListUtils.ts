@@ -1,5 +1,5 @@
 import type { ApiClient } from "./apiClient.js";
-import { LogId } from "../logging/index.js";
+import { LogId } from "@mongodb-js/mcp-logging";
 import { ApiClientError } from "./apiClientError.js";
 
 export const DEFAULT_ACCESS_LIST_COMMENT = "Added by MongoDB MCP Server to enable tool access";

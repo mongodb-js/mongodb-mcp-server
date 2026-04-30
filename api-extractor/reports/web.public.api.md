@@ -8,20 +8,26 @@ import type { AggregationCursor } from 'mongodb';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { Client } from '@mongodb-js/atlas-local';
 import type { components } from './openapi.js';
+import { CompositeLogger } from '@mongodb-js/mcp-core';
 import { ConnectionInfo } from '@mongosh/arg-parser';
 import { createDefaultMetrics } from '@mongodb-js/mcp-metrics';
+import { DefaultEventMap } from '@mongodb-js/mcp-core';
 import { DefaultMetrics } from '@mongodb-js/mcp-metrics';
 import type { ElicitRequestFormParams } from '@modelcontextprotocol/sdk/types.js';
 import { EventEmitter } from 'events';
+import { EventMap } from '@mongodb-js/mcp-core';
 import type { FetchOptions } from 'openapi-fetch';
 import type { FindCursor } from 'mongodb';
 import type { IDeviceId } from '@mongodb-js/mcp-types';
 import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
-import type { LoggingMessageNotification } from '@modelcontextprotocol/sdk/types.js';
+import { Keychain } from '@mongodb-js/mcp-core';
+import { LoggerBase } from '@mongodb-js/mcp-core';
+import { LoggerType } from '@mongodb-js/mcp-core';
+import { LogLevel } from '@mongodb-js/mcp-core';
+import { LogPayload } from '@mongodb-js/mcp-core';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { MetricDefinitions } from '@mongodb-js/mcp-metrics';
 import { Metrics } from '@mongodb-js/mcp-metrics';
-import type { MongoLogId } from 'mongodb-log-writer';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
 import type { operations } from './openapi.js';
 import { Secret } from 'mongodb-redact';
@@ -271,20 +277,7 @@ export type CommonStaticProperties = {
     os_version?: string;
 };
 
-// @public (undocumented)
-export class CompositeLogger extends LoggerBase {
-    constructor(...loggers: LoggerBase[]);
-    // (undocumented)
-    addLogger(logger: LoggerBase): void;
-    // (undocumented)
-    log(level: LogLevel, payload: LogPayload): void;
-    // (undocumented)
-    protected logCore(): void;
-    // (undocumented)
-    setAttribute(key: string, value: string): void;
-    // (undocumented)
-    protected readonly type?: LoggerType;
-}
+export { CompositeLogger }
 
 // @public (undocumented)
 export type ConnectionErrorHandled = {
@@ -463,8 +456,7 @@ export type CustomizableServerOptions<TUserConfig extends UserConfig = UserConfi
 // @public (undocumented)
 export type CustomizableSessionOptions<TUserConfig extends UserConfig = UserConfig> = Partial<Pick<SessionOptions<TUserConfig>, "userConfig" | "apiClient" | "atlasLocalClient" | "connectionManager" | "connectionErrorHandler">>;
 
-// @public (undocumented)
-export type DefaultEventMap = Record<string, never[]>;
+export { DefaultEventMap }
 
 export { DefaultMetrics }
 
@@ -545,8 +537,7 @@ export class EventCache {
     get size(): number;
 }
 
-// @public (undocumented)
-export type EventMap<T> = Record<keyof T, any[]>;
+export { EventMap }
 
 // @public (undocumented)
 export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
@@ -597,18 +588,7 @@ export const jsonExportFormat: z.ZodEnum<{
     canonical: "canonical";
 }>;
 
-// @public
-export class Keychain {
-    constructor();
-    // (undocumented)
-    get allSecrets(): Secret[];
-    // (undocumented)
-    clearAllSecrets(): void;
-    // (undocumented)
-    register(value: Secret["value"], kind: Secret["kind"]): void;
-    // (undocumented)
-    static get root(): Keychain;
-}
+export { Keychain }
 
 // @public (undocumented)
 export interface LibraryLoader {
@@ -616,54 +596,13 @@ export interface LibraryLoader {
     loadAtlasLocalClient: (logger: LoggerBase) => Promise<typeof Client | undefined>;
 }
 
-// @public (undocumented)
-export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extends EventEmitter<T> {
-    constructor(keychain: Keychain | undefined);
-    // (undocumented)
-    alert(payload: LogPayload): void;
-    // (undocumented)
-    critical(payload: LogPayload): void;
-    // (undocumented)
-    debug(payload: LogPayload): void;
-    // (undocumented)
-    emergency(payload: LogPayload): void;
-    // (undocumented)
-    error(payload: LogPayload): void;
-    // (undocumented)
-    info(payload: LogPayload): void;
-    // (undocumented)
-    log(level: LogLevel, payload: LogPayload): void;
-    // (undocumented)
-    protected abstract logCore(level: LogLevel, payload: LogPayload): void;
-    // (undocumented)
-    protected mapToMongoDBLogLevel(level: LogLevel): "info" | "warn" | "error" | "debug" | "fatal";
-    // (undocumented)
-    notice(payload: LogPayload): void;
-    // (undocumented)
-    protected abstract readonly type?: LoggerType;
-    // (undocumented)
-    warning(payload: LogPayload): void;
-}
+export { LoggerBase }
 
-// @public (undocumented)
-export type LoggerType = "console" | "disk" | "mcp";
+export { LoggerType }
 
-// @public (undocumented)
-export type LogLevel = LoggingMessageNotification["params"]["level"];
+export { LogLevel }
 
-// @public (undocumented)
-export interface LogPayload {
-    // (undocumented)
-    attributes?: Record<string, string>;
-    // (undocumented)
-    context: string;
-    // (undocumented)
-    id: MongoLogId;
-    // (undocumented)
-    message: string;
-    // (undocumented)
-    noRedaction?: boolean | LoggerType | LoggerType[];
-}
+export { LogPayload }
 
 export { MetricDefinitions }
 
@@ -1025,7 +964,7 @@ export abstract class TransportRunnerBase<TUserConfig extends UserConfig = UserC
     // (undocumented)
     protected static getInstructions(config: UserConfig): string;
     // (undocumented)
-    logger: LoggerBase;
+    logger: CompositeLogger;
     // (undocumented)
     metrics: Metrics<TMetrics>;
     // @deprecated (undocumented)
@@ -1050,7 +989,7 @@ export type TransportRunnerConfig<TUserConfig extends UserConfig = UserConfig, T
     createConnectionManager?: ConnectionManagerFactoryFn;
     connectionErrorHandler?: ConnectionErrorHandler;
     createAtlasLocalClient?: AtlasLocalClientFactoryFn;
-    additionalLoggers?: LoggerBase[];
+    loggers?: LoggerBase[];
     metrics?: Metrics<TMetrics>;
     telemetryProperties?: Partial<CommonProperties>;
     tools?: AnyToolClass[];
@@ -1071,9 +1010,9 @@ export const UserConfigSchema: z.ZodObject<{
     apiClientSecret: z.ZodOptional<z.ZodString>;
     connectionString: z.ZodOptional<z.ZodString>;
     loggers: z.ZodDefault<z.ZodPipe<z.ZodTransform<string[] | undefined, string | string[] | undefined>, z.ZodArray<z.ZodEnum<{
+        stderr: "stderr";
         disk: "disk";
         mcp: "mcp";
-        stderr: "stderr";
     }>>>>;
     logPath: z.ZodDefault<z.ZodString>;
     mcpClientLogLevel: z.ZodDefault<z.ZodEnum<{
@@ -1119,16 +1058,16 @@ export const UserConfigSchema: z.ZodObject<{
     dryRun: z.ZodDefault<z.ZodBoolean>;
     externallyManagedSessions: z.ZodDefault<z.ZodBoolean>;
     httpResponseType: z.ZodDefault<z.ZodEnum<{
-        json: "json";
         sse: "sse";
+        json: "json";
     }>>;
     healthCheckPort: z.ZodOptional<z.ZodNumber>;
     healthCheckHost: z.ZodOptional<z.ZodString>;
     monitoringServerPort: z.ZodOptional<z.ZodNumber>;
     monitoringServerHost: z.ZodOptional<z.ZodString>;
     monitoringServerFeatures: z.ZodDefault<z.ZodPipe<z.ZodTransform<string[] | undefined, string | string[] | undefined>, z.ZodArray<z.ZodEnum<{
-        metrics: "metrics";
         "health-check": "health-check";
+        metrics: "metrics";
     }>>>>;
     gssapiHostName: z.ZodOptional<z.ZodString>;
     sslFIPSMode: z.ZodOptional<z.ZodBoolean>;

@@ -37,14 +37,17 @@ function enableFipsIfRequested(): void {
 enableFipsIfRequested();
 
 import crypto from "crypto";
-import { ConsoleLogger, LogId } from "./common/logging/index.js";
+import { type LoggerBase, Keychain } from "@mongodb-js/mcp-core";
+import { ConsoleLogger, DiskLogger, LogId } from "@mongodb-js/mcp-logging";
+import { MongoLogManager } from "mongodb-log-writer";
+import * as fs from "fs/promises";
 import { parseUserConfig } from "./common/config/parseUserConfig.js";
 import { type UserConfig } from "./common/config/userConfig.js";
 import { packageInfo } from "./common/packageInfo.js";
 import { StdioRunner } from "./transports/stdio.js";
 import { StreamableHttpRunner } from "./transports/streamableHttp.js";
 import { systemCA } from "@mongodb-js/devtools-proxy-support";
-import { Keychain } from "./common/keychain.js";
+
 import { DryRunModeRunner } from "./transports/dryModeRunner.js";
 import { runSetup } from "./setup/setupMcpServer.js";
 
@@ -93,13 +96,17 @@ async function main(): Promise<void> {
         await handleDryRunRequest(config);
     }
 
+    const loggers = await createDefaultLoggers(config);
+
     const transportRunner =
         config.transport === "stdio"
             ? new StdioRunner({
                   userConfig: config,
+                  loggers,
               })
             : new StreamableHttpRunner({
                   userConfig: config,
+                  loggers,
               });
     const shutdown = (): void => {
         transportRunner.logger.info({
@@ -164,7 +171,7 @@ main().catch((error: unknown) => {
     // At this point, we may be in a very broken state, so we can't rely on the logger
     // being functional. Instead, create a brand new ConsoleLogger and log the error
     // to the console.
-    const logger = new ConsoleLogger(Keychain.root);
+    const logger = new ConsoleLogger({ keychain: Keychain.root });
     logger.emergency({
         id: LogId.serverStartFailure,
         context: "server",
@@ -204,4 +211,37 @@ export async function handleDryRunRequest(config: UserConfig): Promise<never> {
         console.error(`Fatal error running server in dry run mode: ${error as string}`);
         process.exit(1);
     }
+}
+
+async function createDefaultLoggers(config: UserConfig): Promise<LoggerBase[]> {
+    const loggers: LoggerBase[] = [];
+
+    if (config.loggers.includes("stderr")) {
+        loggers.push(new ConsoleLogger({ keychain: Keychain.root }));
+    }
+
+    if (config.loggers.includes("disk")) {
+        await fs.mkdir(config.logPath, { recursive: true });
+
+        const manager = new MongoLogManager({
+            directory: config.logPath,
+            retentionDays: 30,
+            onwarn: console.warn,
+            onerror: console.error,
+            gzip: false,
+            retentionGB: 1,
+        });
+
+        await manager.cleanupOldLogFiles();
+        const logWriter = await manager.createLogWriter();
+
+        loggers.push(
+            new DiskLogger({
+                logWriter,
+                keychain: Keychain.root,
+            })
+        );
+    }
+
+    return loggers;
 }

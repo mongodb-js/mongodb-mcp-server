@@ -1,8 +1,9 @@
-import type { LoggerType, LogLevel, LogPayload } from "../../src/common/logging/index.js";
-import { CompositeLogger, LoggerBase } from "../../src/common/logging/index.js";
+import type { LoggerType, LogLevel, LogPayload } from "@mongodb-js/mcp-core";
+import { CompositeLogger, LoggerBase } from "@mongodb-js/mcp-core";
 import { ExportsManager } from "../../src/common/exportsManager.js";
 import { Session } from "../../src/common/session.js";
 import { Server, type ServerOptions } from "../../src/server.js";
+import { Telemetry } from "../../src/telemetry/telemetry.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "../../src/transports/inMemoryTransport.js";
@@ -13,7 +14,7 @@ import type { ConnectionManager, ConnectionState } from "../../src/common/connec
 import { MCPConnectionManager } from "../../src/common/connectionManager.js";
 import { DeviceId } from "../../src/helpers/deviceId.js";
 import { connectionErrorHandler } from "../../src/common/connectionErrorHandler.js";
-import { Keychain } from "../../src/common/keychain.js";
+import { Keychain } from "@mongodb-js/mcp-core";
 import { Elicitation } from "../../src/elicitation.js";
 import type { MockClientCapabilities, createMockElicitInput } from "../utils/elicitationMocks.js";
 import { defaultCreateAtlasLocalClient } from "../../src/common/atlasLocal.js";
@@ -21,7 +22,6 @@ import { UserConfigSchema } from "../../src/common/config/userConfig.js";
 import type { OperationType } from "../../src/tools/tool.js";
 import { defaultCreateApiClient, type ApiClient } from "../../src/common/atlas/apiClient.js";
 import { MockMetrics } from "../unit/mocks/metrics.js";
-import { Telemetry } from "../../src/telemetry/telemetry.js";
 
 interface Parameter {
     name: string;
@@ -134,13 +134,7 @@ export function setupIntegrationTest(
 
         userConfig.telemetry = "disabled";
 
-        const telemetry = Telemetry.create({
-            logger,
-            deviceId,
-            apiClient: session.apiClient,
-            keychain: session.keychain,
-            enabled: false,
-        });
+        const telemetry = Telemetry.create(session, userConfig, deviceId);
 
         const mcpServerInstance = new McpServer({
             name: "test-server",

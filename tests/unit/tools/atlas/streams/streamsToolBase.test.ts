@@ -8,11 +8,11 @@ import type { Session } from "../../../../../src/common/session.js";
 import type { UserConfig } from "../../../../../src/common/config/userConfig.js";
 import type { Telemetry } from "../../../../../src/telemetry/telemetry.js";
 import type { Elicitation } from "../../../../../src/elicitation.js";
-import type { CompositeLogger } from "../../../../../src/common/logging/index.js";
+import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { TelemetryToolMetadata } from "../../../../../src/telemetry/types.js";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics } from "../../../mocks/metrics.js";
-import { Keychain } from "../../../../../src/common/keychain.js";
+import { Keychain } from "@mongodb-js/mcp-core";
 
 class TestStreamsTool extends StreamsToolBase {
     static toolName = "test-streams-tool";

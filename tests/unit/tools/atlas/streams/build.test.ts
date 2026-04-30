@@ -6,7 +6,7 @@ import type { Session } from "../../../../../src/common/session.js";
 import type { UserConfig } from "../../../../../src/common/config/userConfig.js";
 import type { Telemetry } from "../../../../../src/telemetry/telemetry.js";
 import type { Elicitation } from "../../../../../src/elicitation.js";
-import type { CompositeLogger } from "../../../../../src/common/logging/index.js";
+import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "../../../../../src/common/atlas/apiClient.js";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics } from "../../../mocks/metrics.js";

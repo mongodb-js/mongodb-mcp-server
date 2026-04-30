@@ -3,12 +3,11 @@ import { packageInfo } from "../common/packageInfo.js";
 import { type AnyToolClass, Server, type ServerOptions } from "../server.js";
 import { Session, type SessionOptions } from "../common/session.js";
 import { Telemetry } from "../telemetry/telemetry.js";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { LoggerBase } from "../common/logging/index.js";
-import { CompositeLogger, ConsoleLogger, DiskLogger, McpLogger } from "../common/logging/index.js";
+import { McpServer, type LoggerBase, CompositeLogger } from "@mongodb-js/mcp-core";
+import { McpLogger } from "@mongodb-js/mcp-logging";
+import { Keychain } from "@mongodb-js/mcp-core";
 import { ExportsManager } from "../common/exportsManager.js";
 import { DeviceId } from "../helpers/deviceId.js";
-import { Keychain } from "../common/keychain.js";
 import { defaultCreateConnectionManager, type ConnectionManagerFactoryFn } from "../common/connectionManager.js";
 import {
     type ConnectionErrorHandler,
@@ -25,7 +24,7 @@ import { defaultCreateApiClient } from "../common/atlas/apiClient.js";
 import type { UIRegistry } from "@mongodb-js/mcp-ui";
 import { PrometheusMetrics, createDefaultMetrics, type Metrics, type DefaultMetrics } from "@mongodb-js/mcp-metrics";
 
-import type { TransportRequestContext } from "@mongodb-js/mcp-types";
+import type { LogLevel, TransportRequestContext } from "@mongodb-js/mcp-types";
 
 export type { TransportRequestContext };
 
@@ -134,14 +133,10 @@ export type TransportRunnerConfig<
     createAtlasLocalClient?: AtlasLocalClientFactoryFn;
 
     /**
-     * An optional list of loggers to be used in addition to the default logger
-     * implementations. When not provided, MongoDB MCP Server will not utilize
-     * any loggers other than the default that it works with.
+     * An optional list of loggers to initialize the composite logger with.
      *
-     * Customize this only if the default enabled loggers (disk/stderr/mcp) are
-     * not covering your use-case.
      */
-    additionalLoggers?: LoggerBase[];
+    loggers?: LoggerBase[];
 
     /**
      * An optional `Metrics` instance to use for recording metrics. When not
@@ -202,7 +197,7 @@ export abstract class TransportRunnerBase<
     TContext = unknown,
     TMetrics extends DefaultMetrics = DefaultMetrics,
 > {
-    public logger: LoggerBase;
+    public logger: CompositeLogger;
     public metrics: Metrics<TMetrics>;
 
     public deviceId: DeviceId;
@@ -228,7 +223,7 @@ export abstract class TransportRunnerBase<
         createConnectionManager = defaultCreateConnectionManager,
         connectionErrorHandler = defaultConnectionErrorHandler,
         createAtlasLocalClient = defaultCreateAtlasLocalClient,
-        additionalLoggers = [],
+        loggers,
         metrics,
         telemetryProperties = {},
         tools,
@@ -244,27 +239,8 @@ export abstract class TransportRunnerBase<
         this.createSessionConfig = createSessionConfig;
         this.createApiClient = createApiClient;
         this.metrics = metrics ?? new PrometheusMetrics({ definitions: createDefaultMetrics() as TMetrics });
-        const loggers: LoggerBase[] = [...additionalLoggers];
-        if (this.userConfig.loggers.includes("stderr")) {
-            loggers.push(new ConsoleLogger(Keychain.root));
-        }
 
-        if (this.userConfig.loggers.includes("disk")) {
-            loggers.push(
-                new DiskLogger(
-                    this.userConfig.logPath,
-                    (err) => {
-                        // If the disk logger fails to initialize, we log the error to stderr and exit
-                        // eslint-disable-next-line no-console
-                        console.error("Error initializing disk logger:", err);
-                        process.exit(1);
-                    },
-                    Keychain.root
-                )
-            );
-        }
-
-        this.logger = new CompositeLogger(...loggers);
+        this.logger = new CompositeLogger({ loggers: loggers ?? [] });
         this.deviceId = DeviceId.create(this.logger);
     }
 
@@ -279,7 +255,7 @@ export abstract class TransportRunnerBase<
         userConfig = this.userConfig,
         serverOptions,
         sessionOptions,
-        logger = new CompositeLogger(this.logger),
+        logger = new CompositeLogger({ loggers: [this.logger] }),
     }: {
         userConfig?: TUserConfig;
         logger?: CompositeLogger;
@@ -326,22 +302,9 @@ export abstract class TransportRunnerBase<
             keychain: Keychain.root,
             apiClient: sessionOptions?.apiClient ?? apiClient,
         });
-        const telemetry = Telemetry.create({
-            logger,
-            deviceId: this.deviceId,
-            apiClient: session.apiClient,
-            keychain: session.keychain,
-            enabled: userConfig.telemetry === "enabled",
-            getCommonProperties: () => ({
-                ...(serverOptions?.telemetryProperties ?? this.telemetryProperties),
-                transport: userConfig.transport,
-                mcp_client_version: session.mcpClient?.version,
-                mcp_client_name: session.mcpClient?.name,
-                session_id: session.sessionId,
-                config_atlas_auth: session.apiClient?.isAuthConfigured() ? "true" : "false",
-                config_connection_string: userConfig.connectionString ? "true" : "false",
-                has_docker: session.atlasLocalClient ? "true" : "false",
-            }),
+
+        const telemetry = Telemetry.create(session, userConfig, this.deviceId, {
+            commonProperties: serverOptions?.telemetryProperties ?? this.telemetryProperties,
         });
 
         let uiRegistry: UIRegistry | undefined = serverOptions?.uiRegistry;
@@ -366,7 +329,13 @@ export abstract class TransportRunnerBase<
         // We need to create the MCP logger after the server is constructed
         // because it needs the server instance
         if (userConfig.loggers.includes("mcp")) {
-            logger.addLogger(new McpLogger(result, Keychain.root));
+            logger.addLogger(
+                new McpLogger({
+                    server: result.mcpServer,
+                    mcpLogLevel: (): LogLevel => result.mcpLogLevel,
+                    keychain: Keychain.root,
+                })
+            );
         }
 
         return result;
@@ -439,6 +408,7 @@ export abstract class TransportRunnerBase<
             await this.closeTransport();
         } finally {
             this.deviceId.close();
+            await this.logger.flush();
         }
     }
 

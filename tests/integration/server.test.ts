@@ -1,13 +1,13 @@
 import { MCPConnectionManager } from "../../src/common/connectionManager.js";
 import { ExportsManager } from "../../src/common/exportsManager.js";
-import { CompositeLogger } from "../../src/common/logging/index.js";
+import { CompositeLogger } from "@mongodb-js/mcp-core";
 import { DeviceId } from "../../src/helpers/deviceId.js";
 import { Session } from "../../src/common/session.js";
 import { defaultTestConfig, expectDefined, InMemoryLogger } from "./helpers.js";
 import { describeWithMongoDB } from "./tools/mongodb/mongodbHelpers.js";
 import { afterEach, describe, expect, it } from "vitest";
 import type { LoggerBase, UserConfig } from "../../src/lib.js";
-import { defaultCreateApiClient, Elicitation, Keychain } from "../../src/lib.js";
+import { defaultCreateApiClient, Elicitation, Keychain, Telemetry } from "../../src/lib.js";
 import { defaultCreateAtlasLocalClient } from "../../src/common/atlasLocal.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Server } from "../../src/server.js";
@@ -19,7 +19,6 @@ import { InMemoryTransport } from "../../src/transports/inMemoryTransport.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { TRANSPORT_PAYLOAD_LIMITS } from "../../src/transports/constants.js";
 import { MockMetrics } from "../unit/mocks/metrics.js";
-import { Telemetry } from "../../src/telemetry/telemetry.js";
 
 class TestToolOne extends ToolBase {
     static toolName = "test-tool-one";
@@ -176,7 +175,7 @@ describe("Server integration test", () => {
         config: UserConfig = defaultTestConfig,
         loggers: LoggerBase[] = []
     ): Promise<{ server: Server; transport: Transport }> => {
-        const logger = new CompositeLogger(...loggers);
+        const logger = new CompositeLogger({ loggers });
         const deviceId = DeviceId.create(logger);
         const connectionManager = new MCPConnectionManager(config, logger, deviceId);
         const exportsManager = ExportsManager.init(config, logger);
@@ -200,14 +199,7 @@ describe("Server integration test", () => {
             ),
         });
 
-        const telemetry = Telemetry.create({
-            logger,
-            deviceId,
-            apiClient: session.apiClient,
-            keychain: session.keychain,
-            enabled: false,
-        });
-
+        const telemetry = Telemetry.create(session, config, deviceId);
         const mcpServerInstance = new McpServer({ name: "test", version: "1.0" });
         const elicitation = new Elicitation({ server: mcpServerInstance.server });
 
@@ -263,7 +255,7 @@ describe("Server integration test", () => {
         });
 
         it("should warn when not using https for apiBaseUrl", async () => {
-            const logger = new InMemoryLogger(Keychain.root);
+            const logger = new InMemoryLogger({ keychain: Keychain.root });
             const config: UserConfig = {
                 ...defaultTestConfig,
                 apiBaseUrl: "http://localhost:8080",
