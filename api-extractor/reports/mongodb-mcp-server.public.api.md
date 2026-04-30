@@ -51,6 +51,8 @@ import type { TelemetryEvents } from '@mongodb-js/mcp-types';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import type { TransportRequestContext } from '@mongodb-js/mcp-types';
+import { UIRegistry } from '@mongodb-js/mcp-ui';
+import { UIRegistryOptions } from '@mongodb-js/mcp-ui';
 import { z } from 'zod';
 import type { ZodRawShape } from 'zod';
 
@@ -257,6 +259,11 @@ export { CompositeLogger }
 export class ConfigOverrideError extends Error {
     constructor(message: string);
 }
+
+// Warning: (ae-forgotten-export) The symbol "ConfigFieldMeta" needs to be exported by the entry point lib.d.ts
+//
+// @public (undocumented)
+export const configRegistry: z.core.$ZodRegistry<ConfigFieldMeta, z.core.$ZodType<unknown, unknown, z.core.$ZodTypeInternals<unknown, unknown>>>;
 
 // @public (undocumented)
 export type ConnectionErrorHandled = {
@@ -840,7 +847,7 @@ export class Session extends EventEmitter<SessionEvents> {
     // (undocumented)
     readonly keychain: Keychain;
     // (undocumented)
-    logger: CompositeLogger;
+    readonly logger: CompositeLogger;
     // (undocumented)
     mcpClient?: {
         name?: string;
@@ -1065,18 +1072,9 @@ export type TransportRunnerConfig<TUserConfig extends UserConfig = UserConfig, T
     createApiClient?: ApiClientFactoryFn;
 };
 
-// @public
-export class UIRegistry {
-    constructor(options?: {
-        customUIs?: (toolName: string) => string | null | Promise<string | null>;
-    });
-    get(toolName: string): Promise<string | null>;
-}
+export { UIRegistry }
 
-// @public (undocumented)
-export type UIRegistryOptions = {
-    customUIs?: (toolName: string) => string | null | Promise<string | null>;
-};
+export { UIRegistryOptions }
 
 // @public (undocumented)
 export type UserConfig = z.infer<typeof UserConfigSchema>;

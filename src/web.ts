@@ -69,7 +69,7 @@ export {
     type RequestContext,
 } from "./common/atlas/apiClient.js";
 export type { AtlasLocalClientFactoryFn, LibraryLoader } from "./common/atlasLocal.js";
-export { UIRegistry } from "./ui/registry/registry.js";
+export { UIRegistry } from "@mongodb-js/mcp-ui";
 export {
     ToolBase,
     type AnyToolBase,

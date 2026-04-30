@@ -1,4 +1,6 @@
 import os from "os";
+import { Keychain } from "@mongodb-js/mcp-core";
+import { redact } from "mongodb-redact";
 
 export type Platform = "mac" | "windows" | "linux";
 export const getPlatform = (): Platform | null => {
@@ -14,4 +16,7 @@ export const getPlatform = (): Platform | null => {
     }
 };
 
-export const formatError = (error: unknown): string => (error instanceof Error ? error.message : String(error));
+export const formatError = (error: unknown): string => {
+    const message = error instanceof Error ? error.message : String(error);
+    return redact(message, Keychain.root.allSecrets);
+};

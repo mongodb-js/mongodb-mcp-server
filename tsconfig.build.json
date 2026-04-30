@@ -30,6 +30,5 @@
       ]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx"],
-  "exclude": ["src/ui/build/mount.tsx"]
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
 }
