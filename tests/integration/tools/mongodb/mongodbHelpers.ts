@@ -365,13 +365,32 @@ export async function waitUntilSearchIndexIsQueryable(
     return waitUntilSearchIndexIs(
         collection,
         searchIndex,
-        (index) => index.name === searchIndex && index.status === "READY",
+        (index) => index.name === searchIndex && index.status === "READY" && index.queryable,
         timeout,
         interval,
         (searchIndexes) => {
             const index = searchIndexes.find((index) => index.name === searchIndex);
             return `Index ${searchIndex} in ${collection.dbName}.${collection.collectionName} is not ready. Last known status - ${JSON.stringify(index)}`;
         }
+    );
+}
+
+export async function waitUntilSearchIndexHasResults(
+    collection: Collection,
+    pipeline: Document[],
+    timeout: number = SEARCH_WAIT_TIMEOUT,
+    interval: number = 1_000
+): Promise<void> {
+    await vi.waitFor(
+        async () => {
+            const results = await collection.aggregate(pipeline).toArray();
+            if (results.length === 0) {
+                throw new Error(
+                    `Vector search pipeline returned no results in ${collection.dbName}.${collection.collectionName}`
+                );
+            }
+        },
+        { timeout, interval }
     );
 }
 

@@ -12,6 +12,7 @@ import {
     describeWithMongoDB,
     getDocsFromUntrustedContent,
     validateAutoConnectBehavior,
+    waitUntilSearchIndexHasResults,
     waitUntilSearchIndexIsQueryable,
     waitUntilSearchIsReady,
 } from "../mongodbHelpers.js";
@@ -1052,6 +1053,25 @@ describeWithMongoDB(
             // Auto-embed indexes take longer to build because they need to call the voyage API
             // to generate embeddings for the documents. Using a longer timeout (120s).
             await waitUntilSearchIndexIsQueryable(collection, "auto-embed-index", 120_000);
+
+            // Even after the index reports as queryable, the Voyage AI embeddings for existing
+            // documents may not be applied yet on first use (cold-start). Probe the actual
+            // $vectorSearch until it returns results before proceeding with the tests.
+            await waitUntilSearchIndexHasResults(
+                collection,
+                [
+                    {
+                        $vectorSearch: {
+                            index: "auto-embed-index",
+                            path: "plot",
+                            query: { text: "food" },
+                            limit: 1,
+                            numCandidates: 2,
+                        },
+                    },
+                ],
+                60_000
+            );
         });
 
         it("should be able to query autoEmbed text index", { timeout: 130_000 }, async () => {
