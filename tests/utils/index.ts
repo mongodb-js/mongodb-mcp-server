@@ -26,10 +26,10 @@ export function createEnvironment(): {
  *  Creates a clean environment for the test by saving the original values of the variables and restoring them after the test.
  */
 export function useClearEnvironment(prefix: string): void {
-    let saved: Record<string, string | undefined> = {};
+    let saved: Record<string, string | undefined>;
 
     beforeEach(() => {
-        saved = Object.create(null);
+        saved = Object.create(null) as Record<string, string | undefined>;
         for (const key of Object.keys(process.env)) {
             if (key.startsWith(prefix)) {
                 saved[key] = process.env[key];
