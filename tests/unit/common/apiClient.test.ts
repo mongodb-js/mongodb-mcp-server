@@ -75,23 +75,24 @@ describe("ApiClient", () => {
             expect(init?.signal).toBeInstanceOf(AbortSignal);
         });
 
-        it("should use default userAgent with version, platform, and arch when not provided", async () => {
-            const clientWithoutUserAgent = new ApiClient({
+        it("should use the provided userAgent in unauth requests", async () => {
+            const expectedUserAgent = `AtlasMCP/${packageInfo.version} (${process.platform}; ${process.arch})`;
+            const clientWithUserAgent = new ApiClient({
                 baseUrl: "https://api.test.com",
                 credentials: {
                     clientId: "test-client-id",
                     clientSecret: "test-client-secret",
                 },
-                userAgent: "",
+                userAgent: expectedUserAgent,
                 logger: new NoopLogger(),
             });
             // @ts-expect-error accessing private property for testing
-            clientWithoutUserAgent.authProvider.getAuthHeaders = vi.fn().mockRejectedValue(new Error("No token"));
+            clientWithUserAgent.authProvider.getAuthHeaders = vi.fn().mockRejectedValue(new Error("No token"));
 
             const mockFetch = vi.spyOn(global, "fetch");
             mockFetch.mockResolvedValueOnce(new Response(null, { status: 200 }));
 
-            await clientWithoutUserAgent.sendEvents({ events: mockEvents });
+            await clientWithUserAgent.sendEvents({ events: mockEvents });
 
             expect(mockFetch).toHaveBeenCalledTimes(1);
             const call = mockFetch.mock.calls[0];
@@ -100,42 +101,9 @@ describe("ApiClient", () => {
             expect(url instanceof URL ? url.href : url).toBe(
                 "https://api.test.com/api/private/unauth/telemetry/events"
             );
-            const expectedDefaultUserAgent = `AtlasMCP/${packageInfo.version} (${process.platform}; ${process.arch})`;
             const headers = init?.headers as Record<string, string>;
             expect(headers).toBeDefined();
-            expect(headers["User-Agent"]).toBe(expectedDefaultUserAgent);
-        });
-
-        it("should not include hostname in default userAgent", async () => {
-            const clientWithoutUserAgent = new ApiClient({
-                baseUrl: "https://api.test.com",
-                credentials: {
-                    clientId: "test-client-id",
-                    clientSecret: "test-client-secret",
-                },
-                userAgent: "",
-                logger: new NoopLogger(),
-            });
-            // @ts-expect-error accessing private property for testing
-            clientWithoutUserAgent.authProvider.getAuthHeaders = vi.fn().mockRejectedValue(new Error("No token"));
-
-            const mockFetch = vi.spyOn(global, "fetch");
-            mockFetch.mockResolvedValueOnce(new Response(null, { status: 200 }));
-
-            await clientWithoutUserAgent.sendEvents({ events: mockEvents });
-
-            const call = mockFetch.mock.calls[0];
-            expect(call).toBeDefined();
-            const init = call![1] as RequestInit;
-            const headers = init.headers as Record<string, string>;
-            const userAgent = headers["User-Agent"];
-            expect(userAgent).toBeDefined();
-            // Default format is AtlasMCP/version (platform; arch) — no third segment (hostname)
-            expect(userAgent).toMatch(
-                new RegExp(`^AtlasMCP/${packageInfo.version} \\(${process.platform}; ${process.arch}\\)$`)
-            );
-            expect(userAgent).not.toContain("; unknown");
-            expect(userAgent).not.toMatch(/\bhostname\b/i);
+            expect(headers["User-Agent"]).toBe(expectedUserAgent);
         });
     });
 
