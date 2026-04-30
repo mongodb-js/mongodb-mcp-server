@@ -136,7 +136,7 @@ function generateReadmeToolsList(tools: ToolInfo[]): string {
 }
 
 function updateReadmeToolsList(tools: ToolInfo[]): void {
-    const readmePath = join(__dirname, "..", "..", "README.md");
+    const readmePath = join(__dirname, "..", "..", "..", "README.md");
     let content = readFileSync(readmePath, "utf-8");
 
     const newToolsList = generateReadmeToolsList(tools);
