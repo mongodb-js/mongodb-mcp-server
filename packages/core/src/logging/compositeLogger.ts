@@ -1,5 +1,11 @@
-import type { LoggerType, LogLevel, LogPayload } from "./index.js";
+import type { IKeychain, LoggerType, LogLevel, LogPayload } from "@mongodb-js/mcp-types";
 import { LoggerBase } from "./loggerBase.js";
+
+const noopKeychain: IKeychain = {
+    register(): void {},
+    clearAllSecrets(): void {},
+    allSecrets: [],
+};
 
 export class CompositeLogger extends LoggerBase {
     protected readonly type?: LoggerType;
@@ -7,11 +13,12 @@ export class CompositeLogger extends LoggerBase {
     private readonly loggers: LoggerBase[] = [];
     private readonly attributes: Record<string, string> = {};
 
-    constructor(...loggers: LoggerBase[]) {
-        // composite logger does not redact, only the actual delegates do the work
-        // so we don't need the Keychain here
-        super(undefined);
-
+    constructor(
+        { keychain = noopKeychain, loggers }: { keychain?: IKeychain; loggers: LoggerBase[] } = {
+            loggers: [],
+        }
+    ) {
+        super({ keychain });
         this.loggers = loggers;
     }
 
@@ -20,7 +27,6 @@ export class CompositeLogger extends LoggerBase {
     }
 
     public log(level: LogLevel, payload: LogPayload): void {
-        // Override the public method to avoid the base logger redacting the message payload
         for (const logger of this.loggers) {
             const attributes =
                 Object.keys(this.attributes).length > 0 || payload.attributes
@@ -36,5 +42,10 @@ export class CompositeLogger extends LoggerBase {
 
     public setAttribute(key: string, value: string): void {
         this.attributes[key] = value;
+    }
+
+    public override async flush(): Promise<PromiseSettledResult<void>[]> {
+        const results = await Promise.allSettled(this.loggers.map((logger) => logger.flush()));
+        return results.flatMap((r) => (r.status === "fulfilled" ? r.value : [r]));
     }
 }

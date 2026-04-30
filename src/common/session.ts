@@ -1,8 +1,8 @@
 import { ObjectId } from "bson";
 import type { ApiClient } from "./atlas/apiClient.js";
 import type { Implementation } from "@modelcontextprotocol/sdk/types.js";
-import type { CompositeLogger } from "./logging/index.js";
-import { LogId } from "./logging/index.js";
+import type { CompositeLogger } from "@mongodb-js/mcp-core";
+import { LogId } from "@mongodb-js/mcp-logging";
 import EventEmitter from "events";
 import type {
     AtlasClusterConnectionInfo,
@@ -16,7 +16,7 @@ import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-d
 import { ErrorCodes, MongoDBError } from "./errors.js";
 import type { ExportsManager } from "./exportsManager.js";
 import type { Client } from "@mongodb-js/atlas-local";
-import type { Keychain } from "./keychain.js";
+import type { Keychain } from "@mongodb-js/mcp-core";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import { type UserConfig } from "../common/config/userConfig.js";
 import { type ConnectionErrorHandler } from "./connectionErrorHandler.js";

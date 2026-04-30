@@ -1,6 +1,7 @@
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import type { LoggerBase } from "../common/logging/index.js";
-import { CompositeLogger, LogId } from "../common/logging/index.js";
+import type { LoggerBase } from "@mongodb-js/mcp-core";
+import { CompositeLogger } from "@mongodb-js/mcp-core";
+import { LogId } from "@mongodb-js/mcp-logging";
 import { type ISessionStore, type CreateSessionStoreFn, createDefaultSessionStore } from "../common/sessionStore.js";
 import {
     TransportRunnerBase,
@@ -181,7 +182,7 @@ export class StreamableHttpRunner<
             userConfig = applyConfigOverrides({ baseConfig: userConfig, request });
         }
 
-        const logger = new CompositeLogger(this.logger);
+        const logger = new CompositeLogger({ loggers: [this.logger] });
 
         return this.createServer({
             userConfig,

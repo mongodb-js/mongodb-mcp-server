@@ -10,7 +10,7 @@ import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorU
 import { operationWithFallback } from "../../../helpers/operationWithFallback.js";
 import { ONE_MB, QUERY_COUNT_MAX_TIME_MS_CAP, CURSOR_LIMITS_TO_LLM_TEXT } from "../../../helpers/constants.js";
 import { zEJSON } from "../../args.js";
-import { LogId } from "../../../common/logging/index.js";
+import { LogId } from "@mongodb-js/mcp-logging";
 import { SortDirectionSchema } from "../mongodbSchemas.js";
 
 export const FindArgs = {

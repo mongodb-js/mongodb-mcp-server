@@ -1,5 +1,5 @@
-import type { LoggerType, LogLevel, LogPayload } from "../../src/common/logging/index.js";
-import { CompositeLogger, LoggerBase } from "../../src/common/logging/index.js";
+import type { LoggerType, LogLevel, LogPayload } from "@mongodb-js/mcp-core";
+import { CompositeLogger, LoggerBase } from "@mongodb-js/mcp-core";
 import { ExportsManager } from "../../src/common/exportsManager.js";
 import { Session } from "../../src/common/session.js";
 import { Server, type ServerOptions } from "../../src/server.js";
@@ -14,7 +14,7 @@ import type { ConnectionManager, ConnectionState } from "../../src/common/connec
 import { MCPConnectionManager } from "../../src/common/connectionManager.js";
 import { DeviceId } from "../../src/helpers/deviceId.js";
 import { connectionErrorHandler } from "../../src/common/connectionErrorHandler.js";
-import { Keychain } from "../../src/common/keychain.js";
+import { Keychain } from "@mongodb-js/mcp-core";
 import { Elicitation } from "../../src/elicitation.js";
 import type { MockClientCapabilities, createMockElicitInput } from "../utils/elicitationMocks.js";
 import { defaultCreateAtlasLocalClient } from "../../src/common/atlasLocal.js";

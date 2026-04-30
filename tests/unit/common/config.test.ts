@@ -7,8 +7,8 @@ import {
     onlyLowerThanBaseValueOverride,
     onlySubsetOfBaseValueOverride,
 } from "../../../src/common/config/configUtils.js";
-import { Keychain } from "../../../src/common/keychain.js";
-import type { Secret } from "../../../src/common/keychain.js";
+import { Keychain } from "@mongodb-js/mcp-core";
+import type { Secret } from "@mongodb-js/mcp-core";
 import { createEnvironment } from "../../utils/index.js";
 import path from "path";
 import { TRANSPORT_PAYLOAD_LIMITS } from "../../../src/transports/constants.js";

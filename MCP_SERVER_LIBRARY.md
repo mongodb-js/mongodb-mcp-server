@@ -1055,7 +1055,7 @@ class CustomLogger extends LoggerBase {
   constructor() {
     // Pass keychain for automatic secret redaction
     // Use Keychain.root for the global keychain or create your own
-    super(Keychain.root);
+    super({ keychain: Keychain.root });
   }
 
   // Required: implement the core logging method

@@ -2,14 +2,14 @@ import { describe, it, expect, vi } from "vitest";
 import type { ApiClient } from "../../src/common/atlas/apiClient.js";
 import { ensureCurrentIpInAccessList, DEFAULT_ACCESS_LIST_COMMENT } from "../../src/common/atlas/accessListUtils.js";
 import { ApiClientError } from "../../src/common/atlas/apiClientError.js";
-import { NullLogger } from "../../src/common/logging/index.js";
+import { NoopLogger } from "@mongodb-js/mcp-core";
 
 describe("accessListUtils", () => {
     it("should add the current IP to the access list", async () => {
         const apiClient = {
             getIpInfo: vi.fn().mockResolvedValue({ currentIpv4Address: "127.0.0.1" } as never),
             createAccessListEntry: vi.fn().mockResolvedValue(undefined as never),
-            logger: new NullLogger(),
+            logger: new NoopLogger(),
         } as unknown as ApiClient;
         await ensureCurrentIpInAccessList(apiClient, "projectId");
         // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -30,7 +30,7 @@ describe("accessListUtils", () => {
                         { message: "Conflict" } as never
                     ) as never
                 ),
-            logger: new NullLogger(),
+            logger: new NoopLogger(),
         } as unknown as ApiClient;
         await ensureCurrentIpInAccessList(apiClient, "projectId");
         // eslint-disable-next-line @typescript-eslint/unbound-method

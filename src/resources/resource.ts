@@ -4,7 +4,7 @@ import type { UserConfig } from "../common/config/userConfig.js";
 import type { Telemetry } from "../telemetry/telemetry.js";
 import type { SessionEvents } from "../common/session.js";
 import type { ReadResourceCallback, ResourceMetadata } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { LogId } from "../common/logging/index.js";
+import { LogId } from "@mongodb-js/mcp-logging";
 
 type PayloadOf<K extends keyof SessionEvents> = SessionEvents[K][0];
 

@@ -1,13 +1,23 @@
 import { EventEmitter } from "events";
 import { redact } from "mongodb-redact";
-import type { Keychain } from "../keychain.js";
-import type { DefaultEventMap, EventMap, LoggerType, LogLevel, LogPayload } from "./loggingTypes.js";
+import type {
+    DefaultEventMap,
+    EventMap,
+    IKeychain,
+    ILogger,
+    LoggerConfig,
+    LoggerType,
+    LogLevel,
+    LogPayload,
+} from "@mongodb-js/mcp-types";
 
-export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extends EventEmitter<T> {
+export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extends EventEmitter<T> implements ILogger {
     private readonly defaultUnredactedLogger: LoggerType = "mcp";
+    private readonly keychain: IKeychain;
 
-    constructor(private readonly keychain: Keychain | undefined) {
+    constructor(options: LoggerConfig) {
         super();
+        this.keychain = options.keychain;
     }
 
     public log(level: LogLevel, payload: LogPayload): void {
@@ -40,26 +50,26 @@ export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extend
     }
 
     private redactIfNecessary(message: string, noRedaction: LogPayload["noRedaction"]): string {
+        // If the consumer has supplied noRedaction: true, we don't redact the log message
+        // regardless of the logger type
         if (typeof noRedaction === "boolean" && noRedaction) {
-            // If the consumer has supplied noRedaction: true, we don't redact the log message
-            // regardless of the logger type
             return message;
         }
 
+        // If the consumer has supplied noRedaction: logger-type, we skip redacting if
+        // our logger type is the same as what the consumer requested
         if (typeof noRedaction === "string" && noRedaction === this.type) {
-            // If the consumer has supplied noRedaction: logger-type, we skip redacting if
-            // our logger type is the same as what the consumer requested
             return message;
         }
 
+        // If the consumer has supplied noRedaction: array, we skip redacting if our logger
+        // type is included in that array
         if (
             typeof noRedaction === "object" &&
             Array.isArray(noRedaction) &&
             this.type &&
             noRedaction.indexOf(this.type) !== -1
         ) {
-            // If the consumer has supplied noRedaction: array, we skip redacting if our logger
-            // type is included in that array
             return message;
         }
 
@@ -73,6 +83,7 @@ export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extend
     public error(payload: LogPayload): void {
         this.log("error", payload);
     }
+
     public debug(payload: LogPayload): void {
         this.log("debug", payload);
     }
@@ -97,23 +108,7 @@ export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extend
         this.log("emergency", payload);
     }
 
-    protected mapToMongoDBLogLevel(level: LogLevel): "info" | "warn" | "error" | "debug" | "fatal" {
-        switch (level) {
-            case "info":
-                return "info";
-            case "warning":
-                return "warn";
-            case "error":
-                return "error";
-            case "notice":
-            case "debug":
-                return "debug";
-            case "critical":
-            case "alert":
-            case "emergency":
-                return "fatal";
-            default:
-                return "info";
-        }
+    public flush(): Promise<PromiseSettledResult<void>[]> {
+        return Promise.resolve([]);
     }
 }

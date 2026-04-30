@@ -8,9 +8,10 @@ import {
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
-import { LogId, type LoggerBase } from "../../../src/common/logging/index.js";
+import { type LoggerBase } from "@mongodb-js/mcp-core";
+import { LogId } from "@mongodb-js/mcp-logging";
 import { defaultCreateConnectionManager } from "../../../src/common/connectionManager.js";
-import { Keychain } from "../../../src/common/keychain.js";
+import { Keychain } from "@mongodb-js/mcp-core";
 import { defaultTestConfig, InMemoryLogger, timeout } from "../helpers.js";
 import { type UserConfig } from "../../../src/common/config/userConfig.js";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
@@ -235,11 +236,11 @@ describe("StreamableHttpRunner", () => {
         });
 
         it("can provide custom logger", async () => {
-            const logger = new InMemoryLogger(new Keychain());
+            const logger = new InMemoryLogger({ keychain: new Keychain() });
             const runner = new StreamableHttpRunner({
                 userConfig: config,
                 createConnectionManager: defaultCreateConnectionManager,
-                additionalLoggers: [logger],
+                loggers: [logger],
             });
             await runner.start();
 

@@ -32,6 +32,12 @@ importers:
       '@mongodb-js/devtools-proxy-support':
         specifier: ^0.7.8
         version: 0.7.8
+      '@mongodb-js/mcp-core':
+        specifier: workspace:*
+        version: link:packages/core
+      '@mongodb-js/mcp-logging':
+        specifier: workspace:*
+        version: link:packages/logging
       '@mongodb-js/mcp-metrics':
         specifier: workspace:*
         version: link:packages/metrics
@@ -272,6 +278,50 @@ importers:
         specifier: ^7.0.0
         version: 7.0.0
 
+  packages/core:
+    dependencies:
+      '@modelcontextprotocol/sdk':
+        specifier: ^1.29.0
+        version: 1.29.0(zod@4.3.6)
+      '@mongodb-js/mcp-types':
+        specifier: workspace:*
+        version: link:../types
+      mongodb-redact:
+        specifier: ^1.1.6
+        version: 1.4.7
+    devDependencies:
+      '@mongodb-js/mcp-logging':
+        specifier: workspace:*
+        version: link:../logging
+      '@types/node':
+        specifier: ^25.6.0
+        version: 25.6.0
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.4
+        version: 4.1.4(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/browser-playwright@4.1.4)(@vitest/coverage-v8@4.1.4)(happy-dom@20.9.0)(jsdom@29.0.2(@noble/hashes@1.8.0))(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
+
+  packages/logging:
+    dependencies:
+      '@mongodb-js/mcp-core':
+        specifier: workspace:*
+        version: link:../core
+      '@mongodb-js/mcp-types':
+        specifier: workspace:*
+        version: link:../types
+    devDependencies:
+      '@types/node':
+        specifier: ^25.6.0
+        version: 25.6.0
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.4
+        version: 4.1.4(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/browser-playwright@4.1.4)(@vitest/coverage-v8@4.1.4)(happy-dom@20.9.0)(jsdom@29.0.2(@noble/hashes@1.8.0))(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
+
   packages/metrics:
     dependencies:
       prom-client:
@@ -288,14 +338,30 @@ importers:
         specifier: ^4.1.2
         version: 4.1.4(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/browser-playwright@4.1.4)(@vitest/coverage-v8@4.1.4)(happy-dom@20.9.0)(jsdom@29.0.2(@noble/hashes@1.8.0))(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
 
-  packages/types:
+  packages/node-utils:
     devDependencies:
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
-      mongodb-log-writer:
-        specifier: ^2.5.7
-        version: 2.5.7(bson@7.2.0)
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.4
+        version: 4.1.4(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/browser-playwright@4.1.4)(@vitest/coverage-v8@4.1.4)(happy-dom@20.9.0)(jsdom@29.0.2(@noble/hashes@1.8.0))(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
+
+  packages/types:
+    dependencies:
+      '@modelcontextprotocol/sdk':
+        specifier: ^1.29.0
+        version: 1.29.0(zod@4.3.6)
+      mongodb-redact:
+        specifier: ^1.4.6
+        version: 1.4.7
+    devDependencies:
+      '@types/node':
+        specifier: ^25.6.0
+        version: 25.6.0
       typescript:
         specifier: ^5.9.2
         version: 5.9.3

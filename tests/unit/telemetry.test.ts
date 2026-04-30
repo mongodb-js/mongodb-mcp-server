@@ -12,11 +12,11 @@ import {
 import type { BaseEvent, CommonProperties, TelemetryEvent, TelemetryResult } from "../../src/telemetry/types.js";
 import { EventCache } from "../../src/telemetry/eventCache.js";
 import { afterAll, afterEach, beforeEach, describe, it, vi, expect } from "vitest";
-import { NullLogger } from "../../src/common/logging/nullLogger.js";
+import { NoopLogger } from "@mongodb-js/mcp-core";
 import type { MockedFunction, MockInstance } from "vitest";
 import type { DeviceId } from "../../src/helpers/deviceId.js";
 import { defaultTestConfig, expectDefined } from "../integration/helpers.js";
-import { Keychain } from "../../src/common/keychain.js";
+import { Keychain } from "@mongodb-js/mcp-core";
 import { type UserConfig } from "../../src/common/config/userConfig.js";
 
 // Mock container detection to avoid file I/O in tests
@@ -175,7 +175,7 @@ describe("Telemetry", () => {
             mcpClient: { name: "test-agent", version: "1.0.0" },
             close: vi.fn().mockResolvedValue(undefined),
             setAgentRunner: vi.fn().mockResolvedValue(undefined),
-            logger: new NullLogger(),
+            logger: new NoopLogger(),
             keychain: new Keychain(),
         } as unknown as Session;
 
@@ -627,7 +627,7 @@ describe("Telemetry credentials handling", () => {
             apiClient,
             sessionId: "test-session-id",
             mcpClient: { name: "test-agent", version: "1.0.0" },
-            logger: new NullLogger(),
+            logger: new NoopLogger(),
             keychain: new Keychain(),
         } as unknown as Session;
     }
@@ -663,7 +663,7 @@ describe("Telemetry credentials handling", () => {
                 credentials,
                 userAgent: USER_AGENT,
             },
-            new NullLogger()
+            new NoopLogger()
         );
 
         // When credentials are present, short-circuit the OAuth token fetch

@@ -1,6 +1,9 @@
-import type { MongoLogId } from "mongodb-log-writer";
+import type { LoggingMessageNotification } from "@modelcontextprotocol/sdk/types.js";
+import type { IKeychain } from "./keychain.js";
 
-export type LogLevel = "debug" | "info" | "notice" | "warning" | "error" | "critical" | "alert" | "emergency";
+export type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+
+export type LogLevel = LoggingMessageNotification["params"]["level"];
 
 export type LoggerType = "console" | "disk" | "mcp";
 
@@ -8,6 +11,24 @@ export type LoggerType = "console" | "disk" | "mcp";
 export type EventMap<T> = Record<keyof T, any[]>;
 
 export type DefaultEventMap = Record<string, never[]>;
+
+export type MongoDBLogLevel = "info" | "warn" | "error" | "debug" | "fatal";
+
+export type LogWriteFunction = (
+    component: string,
+    id: MongoLogId,
+    context: string,
+    message: string,
+    attr?: unknown
+) => void;
+
+export type LogWriter = Record<MongoDBLogLevel, LogWriteFunction> & {
+    flush(): Promise<void>;
+};
+
+export type MongoLogId = {
+    __value: number;
+};
 
 export type LogPayload = {
     id: MongoLogId;
@@ -17,8 +38,8 @@ export type LogPayload = {
     attributes?: Record<string, string>;
 };
 
-export interface ILoggerBase {
-    log(options: { level: LogLevel; payload: LogPayload }): void;
+export interface ILogger {
+    log(level: LogLevel, payload: LogPayload): void;
     info(payload: LogPayload): void;
     error(payload: LogPayload): void;
     debug(payload: LogPayload): void;
@@ -27,9 +48,14 @@ export interface ILoggerBase {
     critical(payload: LogPayload): void;
     alert(payload: LogPayload): void;
     emergency(payload: LogPayload): void;
+    flush(): Promise<PromiseSettledResult<void>[]>;
 }
 
-export interface ICompositeLogger extends ILoggerBase {
-    addLogger(logger: ILoggerBase): void;
-    setAttribute(options: { key: string; value: string }): void;
+export type LoggerConfig = {
+    keychain: IKeychain;
+};
+
+export interface ICompositeLogger extends ILogger {
+    addLogger(logger: ILogger): void;
+    setAttribute(key: string, value: string): void;
 }

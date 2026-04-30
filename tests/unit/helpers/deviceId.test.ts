@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { DeviceId } from "../../../src/helpers/deviceId.js";
 import { getDeviceId } from "@mongodb-js/device-id";
-import { CompositeLogger } from "../../../src/common/logging/index.js";
+import { CompositeLogger } from "@mongodb-js/mcp-core";
 
 // Mock the dependencies
 vi.mock("@mongodb-js/device-id");

@@ -157,6 +157,8 @@
     "vitest": "^4.1.4"
   },
   "dependencies": {
+    "@mongodb-js/mcp-core": "workspace:*",
+    "@mongodb-js/mcp-logging": "workspace:*",
     "@mongodb-js/mcp-types": "workspace:*",
     "@mongodb-js/mcp-metrics": "workspace:*",
     "@inquirer/prompts": "^8.0.2",
@@ -174,8 +176,8 @@
     "lru-cache": "^11.2.6",
     "mongodb": "^7.1.1",
     "mongodb-build-info": "^1.9.7",
-    "mongodb-connection-string-url": "^7.0.1",
     "mongodb-log-writer": "^2.5.7",
+    "mongodb-connection-string-url": "^7.0.1",
     "mongodb-redact": "^1.4.6",
     "mongodb-schema": "^12.7.0",
     "node-fetch": "^3.3.2",
