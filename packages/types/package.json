@@ -10,7 +10,6 @@
       "default": "./dist/index.js"
     }
   },
-  "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": [
     "dist"
@@ -19,10 +18,13 @@
     "compile": "tsc --build tsconfig.json",
     "test": "vitest --run"
   },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "mongodb-redact": "^1.4.6"
+  },
   "devDependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@types/node": "^25.6.0",
-    "mongodb-log-writer": "^2.5.7",
     "typescript": "^5.9.2",
     "vitest": "^4.1.4"
   }

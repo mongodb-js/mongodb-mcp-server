@@ -1,7 +1,7 @@
 import type { AtlasMetadata } from "../../telemetry/types.js";
 import { ToolBase, type ToolArgs, type ToolCategory } from "../tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { LogId } from "@mongodb-js/mcp-core";
+import { LogId } from "@mongodb-js/mcp-logging";
 import { z } from "zod";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";

@@ -3,8 +3,8 @@ import { packageInfo } from "../common/packageInfo.js";
 import { type AnyToolClass, Server, type ServerOptions } from "../server.js";
 import { Session, type SessionOptions } from "../common/session.js";
 import { Telemetry } from "../telemetry/telemetry.js";
-import { McpServer, type LoggerBase, CompositeLogger, ConsoleLogger, McpLogger } from "@mongodb-js/mcp-core";
-import { DiskLogger } from "@mongodb-js/mcp-node-utils";
+import { McpServer, type LoggerBase, CompositeLogger } from "@mongodb-js/mcp-core";
+import { McpLogger } from "@mongodb-js/mcp-logging";
 import { Keychain } from "@mongodb-js/mcp-core";
 import { ExportsManager } from "../common/exportsManager.js";
 import { DeviceId } from "../helpers/deviceId.js";
@@ -18,8 +18,12 @@ import { Elicitation } from "../elicitation.js";
 import type { AtlasLocalClientFactoryFn } from "../common/atlasLocal.js";
 import { defaultCreateAtlasLocalClient } from "../common/atlasLocal.js";
 import { applyConfigOverrides } from "../common/config/configOverrides.js";
-import type { ApiClientOptions, ApiClientFactoryFn } from "@mongodb-js/mcp-atlas-api-client";
-import { ApiClient, createDefaultApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import {
+    ApiClient,
+    createDefaultApiClient,
+    type ApiClientFactoryFn,
+    type ApiClientOptions,
+} from "@mongodb-js/mcp-atlas-api-client";
 import type { UIRegistry } from "../ui/registry/index.js";
 import { PrometheusMetrics, createDefaultMetrics, type Metrics, type DefaultMetrics } from "@mongodb-js/mcp-metrics";
 
@@ -132,14 +136,10 @@ export type TransportRunnerConfig<
     createAtlasLocalClient?: AtlasLocalClientFactoryFn;
 
     /**
-     * An optional list of loggers to be used in addition to the default logger
-     * implementations. When not provided, MongoDB MCP Server will not utilize
-     * any loggers other than the default that it works with.
+     * An optional list of loggers to initialize the composite logger with.
      *
-     * Customize this only if the default enabled loggers (disk/stderr/mcp) are
-     * not covering your use-case.
      */
-    additionalLoggers?: LoggerBase[];
+    loggers?: LoggerBase[];
 
     /**
      * An optional `Metrics` instance to use for recording metrics. When not
@@ -200,7 +200,7 @@ export abstract class TransportRunnerBase<
     TContext = unknown,
     TMetrics extends DefaultMetrics = DefaultMetrics,
 > {
-    public logger: LoggerBase;
+    public logger: CompositeLogger;
     public metrics: Metrics<TMetrics>;
 
     public deviceId: DeviceId;
@@ -226,7 +226,7 @@ export abstract class TransportRunnerBase<
         createConnectionManager = defaultCreateConnectionManager,
         connectionErrorHandler = defaultConnectionErrorHandler,
         createAtlasLocalClient = defaultCreateAtlasLocalClient,
-        additionalLoggers = [],
+        loggers,
         metrics,
         telemetryProperties = {},
         tools,
@@ -242,27 +242,8 @@ export abstract class TransportRunnerBase<
         this.createSessionConfig = createSessionConfig;
         this.createApiClient = createApiClient;
         this.metrics = metrics ?? new PrometheusMetrics({ definitions: createDefaultMetrics() as TMetrics });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const loggers: LoggerBase<any>[] = [...additionalLoggers];
-        if (this.userConfig.loggers.includes("stderr")) {
-            loggers.push(new ConsoleLogger({ keychain: Keychain.root }));
-        }
 
-        if (this.userConfig.loggers.includes("disk")) {
-            loggers.push(
-                new DiskLogger({
-                    logPath: this.userConfig.logPath,
-                    onError: (err: Error): void => {
-                        // eslint-disable-next-line no-console
-                        console.error("Error initializing disk logger:", err);
-                        process.exit(1);
-                    },
-                    keychain: Keychain.root,
-                })
-            );
-        }
-
-        this.logger = new CompositeLogger(...loggers);
+        this.logger = new CompositeLogger({ loggers: loggers ?? [] });
         this.deviceId = DeviceId.create(this.logger);
     }
 
@@ -277,7 +258,7 @@ export abstract class TransportRunnerBase<
         userConfig = this.userConfig,
         serverOptions,
         sessionOptions,
-        logger = new CompositeLogger(this.logger),
+        logger = new CompositeLogger({ loggers: [this.logger] }),
     }: {
         userConfig?: TUserConfig;
         logger?: CompositeLogger;

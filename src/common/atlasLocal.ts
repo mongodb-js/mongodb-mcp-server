@@ -1,5 +1,6 @@
 import type { Client } from "@mongodb-js/atlas-local";
-import { LogId, type LoggerBase } from "@mongodb-js/mcp-core";
+import { type LoggerBase } from "@mongodb-js/mcp-core";
+import { LogId } from "@mongodb-js/mcp-logging";
 
 export type AtlasLocalClientFactoryFn = ({
     logger,

@@ -23,4 +23,5 @@ temp
 .yalc
 yalc.lock
 
-.claude/hooks
+CLAUDE.md
+.claude/

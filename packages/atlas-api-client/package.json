@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@mongodb-js/mcp-core": "workspace:*",
+    "@mongodb-js/mcp-logging": "workspace:*",
     "@mongodb-js/mcp-types": "workspace:*",
     "@mongodb-js/devtools-proxy-support": "^0.7.8",
     "node-fetch": "^3.3.2",

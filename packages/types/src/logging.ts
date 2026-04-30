@@ -1,8 +1,6 @@
-import type { MongoLogId } from "mongodb-log-writer";
 import type { LoggingMessageNotification } from "@modelcontextprotocol/sdk/types.js";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { IKeychain } from "./keychain.js";
 
-export type { MongoLogId } from "mongodb-log-writer";
 export type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 export type LogLevel = LoggingMessageNotification["params"]["level"];
@@ -13,6 +11,24 @@ export type LoggerType = "console" | "disk" | "mcp";
 export type EventMap<T> = Record<keyof T, any[]>;
 
 export type DefaultEventMap = Record<string, never[]>;
+
+export type MongoDBLogLevel = "info" | "warn" | "error" | "debug" | "fatal";
+
+export type LogWriteFunction = (
+    component: string,
+    id: MongoLogId,
+    context: string,
+    message: string,
+    attr?: unknown
+) => void;
+
+export type LogWriter = Record<MongoDBLogLevel, LogWriteFunction> & {
+    flush(): Promise<void>;
+};
+
+export type MongoLogId = {
+    __value: number;
+};
 
 export type LogPayload = {
     id: MongoLogId;
@@ -32,14 +48,14 @@ export interface ILogger {
     critical(payload: LogPayload): void;
     alert(payload: LogPayload): void;
     emergency(payload: LogPayload): void;
-    flush(): Promise<void>;
+    flush(): Promise<PromiseSettledResult<void>[]>;
 }
+
+export type LoggerConfig = {
+    keychain: IKeychain;
+};
 
 export interface ICompositeLogger extends ILogger {
     addLogger(logger: ILogger): void;
     setAttribute(key: string, value: string): void;
 }
-
-export type IMcpConnection = Pick<McpServer, "isConnected" | "sendLoggingMessage"> & {
-    readonly mcpLogLevel: LogLevel;
-};

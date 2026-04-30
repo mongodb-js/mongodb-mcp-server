@@ -38,12 +38,12 @@ importers:
       '@mongodb-js/mcp-core':
         specifier: workspace:*
         version: link:packages/core
+      '@mongodb-js/mcp-logging':
+        specifier: workspace:*
+        version: link:packages/logging
       '@mongodb-js/mcp-metrics':
         specifier: workspace:*
         version: link:packages/metrics
-      '@mongodb-js/mcp-node-utils':
-        specifier: workspace:*
-        version: link:packages/node-utils
       '@mongodb-js/mcp-types':
         specifier: workspace:*
         version: link:packages/types
@@ -80,24 +80,18 @@ importers:
       mongodb-connection-string-url:
         specifier: ^7.0.1
         version: 7.0.1
+      mongodb-log-writer:
+        specifier: ^2.5.7
+        version: 2.5.7(bson@7.2.0)
       mongodb-redact:
         specifier: ^1.4.6
         version: 1.4.7
       mongodb-schema:
         specifier: ^12.7.0
         version: 12.7.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
-      node-fetch:
-        specifier: ^3.3.2
-        version: 3.3.2
       node-machine-id:
         specifier: 1.1.12
         version: 1.1.12
-      oauth4webapi:
-        specifier: ^3.8.5
-        version: 3.8.5
-      openapi-fetch:
-        specifier: ^0.17.0
-        version: 0.17.0
       semver:
         specifier: ^7.7.2
         version: 7.7.4
@@ -219,6 +213,9 @@ importers:
       mongodb-runner:
         specifier: ^6.7.6
         version: 6.7.6(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
+      oauth4webapi:
+        specifier: ^3.8.5
+        version: 3.8.5
       openapi-types:
         specifier: ^12.1.3
         version: 12.1.3
@@ -286,6 +283,9 @@ importers:
       '@mongodb-js/mcp-core':
         specifier: workspace:*
         version: link:../core
+      '@mongodb-js/mcp-logging':
+        specifier: workspace:*
+        version: link:../logging
       '@mongodb-js/mcp-types':
         specifier: workspace:*
         version: link:../types
@@ -314,12 +314,31 @@ importers:
       '@mongodb-js/mcp-types':
         specifier: workspace:*
         version: link:../types
-      mongodb-log-writer:
-        specifier: ^2.5.7
-        version: 2.5.7(bson@7.2.0)
       mongodb-redact:
         specifier: ^1.1.6
         version: 1.4.7
+    devDependencies:
+      '@mongodb-js/mcp-logging':
+        specifier: workspace:*
+        version: link:../logging
+      '@types/node':
+        specifier: ^25.6.0
+        version: 25.6.0
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.4
+        version: 4.1.4(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/browser-playwright@4.1.4)(@vitest/coverage-v8@4.1.4)(happy-dom@20.9.0)(jsdom@29.0.2(@noble/hashes@1.8.0))(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
+
+  packages/logging:
+    dependencies:
+      '@mongodb-js/mcp-core':
+        specifier: workspace:*
+        version: link:../core
+      '@mongodb-js/mcp-types':
+        specifier: workspace:*
+        version: link:../types
     devDependencies:
       '@types/node':
         specifier: ^25.6.0
@@ -348,13 +367,6 @@ importers:
         version: 4.1.4(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/browser-playwright@4.1.4)(@vitest/coverage-v8@4.1.4)(happy-dom@20.9.0)(jsdom@29.0.2(@noble/hashes@1.8.0))(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
 
   packages/node-utils:
-    dependencies:
-      '@mongodb-js/mcp-core':
-        specifier: workspace:*
-        version: link:../core
-      mongodb-log-writer:
-        specifier: ^2.5.7
-        version: 2.5.7(bson@7.2.0)
     devDependencies:
       '@types/node':
         specifier: ^25.6.0
@@ -367,16 +379,17 @@ importers:
         version: 4.1.4(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/browser-playwright@4.1.4)(@vitest/coverage-v8@4.1.4)(happy-dom@20.9.0)(jsdom@29.0.2(@noble/hashes@1.8.0))(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
 
   packages/types:
-    devDependencies:
+    dependencies:
       '@modelcontextprotocol/sdk':
         specifier: ^1.29.0
         version: 1.29.0(zod@4.3.6)
+      mongodb-redact:
+        specifier: ^1.4.6
+        version: 1.4.7
+    devDependencies:
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
-      mongodb-log-writer:
-        specifier: ^2.5.7
-        version: 2.5.7(bson@7.2.0)
       typescript:
         specifier: ^5.9.2
         version: 5.9.3

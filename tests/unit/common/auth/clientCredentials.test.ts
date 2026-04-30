@@ -34,12 +34,14 @@ describe("ClientCredentialsAuthProvider", () => {
         });
 
         it("should initialize oauth2Issuer with correct endpoints", () => {
+            /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access -- private issuer shape for tests */
             // @ts-expect-error accessing private property for testing
             const issuer = authProvider.oauth2Issuer;
             expect(issuer).toBeDefined();
             expect(issuer?.issuer).toBe(mockOptions.baseUrl);
             expect(issuer?.token_endpoint).toBe("https://api.test.com/api/oauth/token");
             expect(issuer?.revocation_endpoint).toBe("https://api.test.com/api/oauth/revoke");
+            /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
         });
     });
 

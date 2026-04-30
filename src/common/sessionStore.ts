@@ -1,5 +1,5 @@
 import type { LoggerBase } from "@mongodb-js/mcp-core";
-import { LogId } from "@mongodb-js/mcp-core";
+import { LogId } from "@mongodb-js/mcp-logging";
 import type { ManagedTimeout } from "./managedTimeout.js";
 import { setManagedTimeout } from "./managedTimeout.js";
 import type { Metrics, DefaultMetrics } from "@mongodb-js/mcp-metrics";

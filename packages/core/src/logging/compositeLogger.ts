@@ -1,5 +1,11 @@
-import type { LoggerType, LogLevel, LogPayload } from "@mongodb-js/mcp-types";
+import type { IKeychain, LoggerType, LogLevel, LogPayload } from "@mongodb-js/mcp-types";
 import { LoggerBase } from "./loggerBase.js";
+
+const noopKeychain: IKeychain = {
+    register(): void {},
+    clearAllSecrets(): void {},
+    allSecrets: [],
+};
 
 export class CompositeLogger extends LoggerBase {
     protected readonly type?: LoggerType;
@@ -7,8 +13,12 @@ export class CompositeLogger extends LoggerBase {
     private readonly loggers: LoggerBase[] = [];
     private readonly attributes: Record<string, string> = {};
 
-    constructor(...loggers: LoggerBase[]) {
-        super();
+    constructor(
+        { keychain = noopKeychain, loggers }: { keychain?: IKeychain; loggers: LoggerBase[] } = {
+            loggers: [],
+        }
+    ) {
+        super({ keychain });
         this.loggers = loggers;
     }
 
@@ -34,7 +44,8 @@ export class CompositeLogger extends LoggerBase {
         this.attributes[key] = value;
     }
 
-    public override async flush(): Promise<void> {
-        await Promise.all(this.loggers.map((logger) => logger.flush()));
+    public override async flush(): Promise<PromiseSettledResult<void>[]> {
+        const results = await Promise.allSettled(this.loggers.map((logger) => logger.flush()));
+        return results.flatMap((r) => (r.status === "fulfilled" ? r.value : [r]));
     }
 }

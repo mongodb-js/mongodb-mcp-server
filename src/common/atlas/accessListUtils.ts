@@ -1,5 +1,5 @@
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
-import { LogId } from "@mongodb-js/mcp-core";
+import { LogId } from "@mongodb-js/mcp-logging";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 
 export const DEFAULT_ACCESS_LIST_COMMENT = "Added by MongoDB MCP Server to enable tool access";

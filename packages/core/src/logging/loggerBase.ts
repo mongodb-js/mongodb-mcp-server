@@ -1,15 +1,23 @@
 import { EventEmitter } from "events";
 import { redact } from "mongodb-redact";
-import type { Keychain } from "../keychain.js";
-import type { DefaultEventMap, EventMap, ILogger, LoggerType, LogLevel, LogPayload } from "@mongodb-js/mcp-types";
+import type {
+    DefaultEventMap,
+    EventMap,
+    IKeychain,
+    ILogger,
+    LoggerConfig,
+    LoggerType,
+    LogLevel,
+    LogPayload,
+} from "@mongodb-js/mcp-types";
 
 export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extends EventEmitter<T> implements ILogger {
     private readonly defaultUnredactedLogger: LoggerType = "mcp";
-    private readonly keychain: Keychain | undefined;
+    private readonly keychain: IKeychain;
 
-    constructor(options?: { keychain: Keychain }) {
+    constructor(options: LoggerConfig) {
         super();
-        this.keychain = options?.keychain;
+        this.keychain = options.keychain;
     }
 
     public log(level: LogLevel, payload: LogPayload): void {
@@ -100,25 +108,7 @@ export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extend
         this.log("emergency", payload);
     }
 
-    public async flush(): Promise<void> {}
-
-    protected mapToMongoDBLogLevel(level: LogLevel): "info" | "warn" | "error" | "debug" | "fatal" {
-        switch (level) {
-            case "info":
-                return "info";
-            case "warning":
-                return "warn";
-            case "error":
-                return "error";
-            case "notice":
-            case "debug":
-                return "debug";
-            case "critical":
-            case "alert":
-            case "emergency":
-                return "fatal";
-            default:
-                return "info";
-        }
+    public flush(): Promise<PromiseSettledResult<void>[]> {
+        return Promise.resolve([]);
     }
 }

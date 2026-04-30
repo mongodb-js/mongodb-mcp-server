@@ -25,10 +25,7 @@
     "compile": "tsc --build tsconfig.json",
     "test": "vitest --run"
   },
-  "dependencies": {
-    "@mongodb-js/mcp-core": "workspace:*",
-    "mongodb-log-writer": "^2.5.7"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/node": "^25.6.0",
     "typescript": "^5.9.2",

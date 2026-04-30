@@ -146,9 +146,7 @@ export class ApiClient implements IApiClient {
         }>;
     }
 
-    public async sendEvents(
-        options: { events: unknown[]; signal?: AbortSignal } = { events: [] }
-    ): Promise<void> {
+    public async sendEvents(options: { events: unknown[]; signal?: AbortSignal } = { events: [] }): Promise<void> {
         const { events, signal = AbortSignal.timeout(DEFAULT_SEND_TIMEOUT_MS) } = options;
         if (!this.authProvider) {
             await this.sendUnauthEvents(events, signal);

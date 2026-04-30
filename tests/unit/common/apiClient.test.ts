@@ -156,6 +156,7 @@ describe("ApiClient", () => {
             }));
 
             // @ts-expect-error accessing private property for testing
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- mocking openapi-fetch client
             apiClient.client.GET = mockGet;
 
             const result = await apiClient.listGroups();
@@ -177,6 +178,7 @@ describe("ApiClient", () => {
             }));
 
             // @ts-expect-error accessing private property for testing
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- mocking openapi-fetch client
             apiClient.client.GET = mockGet;
 
             await expect(apiClient.listGroups()).rejects.toThrow();

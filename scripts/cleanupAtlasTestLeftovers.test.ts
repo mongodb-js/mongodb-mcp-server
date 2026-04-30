@@ -1,5 +1,5 @@
 import { ApiClient, type Group, type AtlasOrganization } from "@mongodb-js/mcp-atlas-api-client";
-import { ConsoleLogger } from "@mongodb-js/mcp-core";
+import { ConsoleLogger } from "@mongodb-js/mcp-logging";
 import { Keychain } from "../src/lib.js";
 import { describe, it } from "vitest";
 

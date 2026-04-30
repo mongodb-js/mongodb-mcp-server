@@ -1,4 +1,8 @@
-import { mongoLogId } from "mongodb-log-writer";
+import type { MongoLogId } from "@mongodb-js/mcp-types";
+
+function mongoLogId(id: number): MongoLogId {
+    return { __value: id };
+}
 
 export const LogId = {
     serverStartFailure: mongoLogId(1_000_001),

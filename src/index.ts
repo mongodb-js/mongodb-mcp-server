@@ -37,7 +37,10 @@ function enableFipsIfRequested(): void {
 enableFipsIfRequested();
 
 import crypto from "crypto";
-import { ConsoleLogger, LogId, Keychain } from "@mongodb-js/mcp-core";
+import { type LoggerBase, Keychain } from "@mongodb-js/mcp-core";
+import { ConsoleLogger, DiskLogger, LogId } from "@mongodb-js/mcp-logging";
+import { MongoLogManager } from "mongodb-log-writer";
+import * as fs from "fs/promises";
 import { parseUserConfig } from "./common/config/parseUserConfig.js";
 import { type UserConfig } from "./common/config/userConfig.js";
 import { packageInfo } from "./common/packageInfo.js";
@@ -93,13 +96,17 @@ async function main(): Promise<void> {
         await handleDryRunRequest(config);
     }
 
+    const loggers = await createDefaultLoggers(config);
+
     const transportRunner =
         config.transport === "stdio"
             ? new StdioRunner({
                   userConfig: config,
+                  loggers,
               })
             : new StreamableHttpRunner({
                   userConfig: config,
+                  loggers,
               });
     const shutdown = (): void => {
         transportRunner.logger.info({
@@ -209,4 +216,37 @@ export async function handleDryRunRequest(config: UserConfig): Promise<never> {
         console.error(`Fatal error running server in dry run mode: ${error as string}`);
         process.exit(1);
     }
+}
+
+async function createDefaultLoggers(config: UserConfig): Promise<LoggerBase[]> {
+    const loggers: LoggerBase[] = [];
+
+    if (config.loggers.includes("stderr")) {
+        loggers.push(new ConsoleLogger({ keychain: Keychain.root }));
+    }
+
+    if (config.loggers.includes("disk")) {
+        await fs.mkdir(config.logPath, { recursive: true });
+
+        const manager = new MongoLogManager({
+            directory: config.logPath,
+            retentionDays: 30,
+            onwarn: console.warn,
+            onerror: console.error,
+            gzip: false,
+            retentionGB: 1,
+        });
+
+        await manager.cleanupOldLogFiles();
+        const logWriter = await manager.createLogWriter();
+
+        loggers.push(
+            new DiskLogger({
+                logWriter,
+                keychain: Keychain.root,
+            })
+        );
+    }
+
+    return loggers;
 }

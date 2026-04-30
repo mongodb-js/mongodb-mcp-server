@@ -4,7 +4,7 @@ import type {
     FlexClusterDescription20241113,
     ApiClient,
 } from "@mongodb-js/mcp-atlas-api-client";
-import { LogId } from "@mongodb-js/mcp-core";
+import { LogId } from "@mongodb-js/mcp-logging";
 import { ConnectionString } from "mongodb-connection-string-url";
 
 type AtlasProcessId = `${string}:${number}`;
