@@ -3,6 +3,7 @@ import { redact } from "mongodb-redact";
 import type {
     DefaultEventMap,
     EventMap,
+    IKeychain,
     ILogger,
     LoggerConfig,
     LoggerType,
@@ -12,7 +13,7 @@ import type {
 
 export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extends EventEmitter<T> implements ILogger {
     private readonly defaultUnredactedLogger: LoggerType = "mcp";
-    private readonly keychain: LoggerConfig["keychain"];
+    private readonly keychain: IKeychain;
 
     constructor(options: LoggerConfig) {
         super();

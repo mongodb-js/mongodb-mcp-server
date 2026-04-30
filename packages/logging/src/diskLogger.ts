@@ -1,17 +1,17 @@
 import { LoggerBase } from "@mongodb-js/mcp-core";
-import type { LogLevel, LogPayload, LoggerType, IKeychain, LogWriter } from "@mongodb-js/mcp-types";
+import type { LogLevel, LogPayload, LoggerType, LogWriter, LoggerConfig } from "@mongodb-js/mcp-types";
 
 export type DiskLoggerOptions = {
     logWriter: LogWriter;
-    keychain: IKeychain;
-};
+} & LoggerConfig;
 
 export class DiskLogger extends LoggerBase {
     private readonly logWriter: LogWriter;
 
     public constructor(options: DiskLoggerOptions) {
-        super({ keychain: options.keychain });
-        this.logWriter = options.logWriter;
+        const { logWriter, ...loggerOptions } = options;
+        super(loggerOptions);
+        this.logWriter = logWriter;
     }
 
     protected readonly type: LoggerType = "disk";
