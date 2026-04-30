@@ -9,7 +9,7 @@ import {
 } from "../../../src/common/config/configUtils.js";
 import { Keychain } from "../../../src/common/keychain.js";
 import type { Secret } from "../../../src/common/keychain.js";
-import { createEnvironment } from "../../utils/index.js";
+import { createEnvironment, useClearEnvironment } from "../../utils/index.js";
 import path from "path";
 import { TRANSPORT_PAYLOAD_LIMITS } from "../../../src/transports/constants.js";
 import { getConfigMeta } from "../../../src/common/config/configOverrides.js";
@@ -64,33 +64,37 @@ const CONFIG_FIXTURES = {
 };
 
 describe("config", () => {
-    it("should generate defaults from UserConfigSchema that match expected values", () => {
-        expect(UserConfigSchema.parse({})).toStrictEqual(expectedDefaults);
-    });
+    describe("defaults", () => {
+        useClearEnvironment("MDB_MCP_");
 
-    it("should generate defaults when no config sources are populated", () => {
-        expect(parseUserConfig({ args: [] })).toStrictEqual({
-            parsed: expectedDefaults,
-            warnings: [],
-            error: undefined,
+        it("should generate defaults from UserConfigSchema that match expected values", () => {
+            expect(UserConfigSchema.parse({})).toStrictEqual(expectedDefaults);
         });
-    });
 
-    it("can override defaults in the schema and those are populated instead", () => {
-        expect(
-            parseUserConfig({
-                args: [],
-                overrides: {
-                    exportTimeoutMs: UserConfigSchema.shape.exportTimeoutMs.default(123),
+        it("should generate defaults when no config sources are populated", () => {
+            expect(parseUserConfig({ args: [] })).toStrictEqual({
+                parsed: expectedDefaults,
+                warnings: [],
+                error: undefined,
+            });
+        });
+
+        it("can override defaults in the schema and those are populated instead", () => {
+            expect(
+                parseUserConfig({
+                    args: [],
+                    overrides: {
+                        exportTimeoutMs: UserConfigSchema.shape.exportTimeoutMs.default(123),
+                    },
+                })
+            ).toStrictEqual({
+                parsed: {
+                    ...expectedDefaults,
+                    exportTimeoutMs: 123,
                 },
-            })
-        ).toStrictEqual({
-            parsed: {
-                ...expectedDefaults,
-                exportTimeoutMs: 123,
-            },
-            warnings: [],
-            error: undefined,
+                warnings: [],
+                error: undefined,
+            });
         });
     });
 

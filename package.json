@@ -82,7 +82,7 @@
     "generate:api": "./scripts/generate.sh",
     "generate:arguments": "pnpm --filter @mongodb-js/mcp-scripts generate",
     "pretest": "pnpm run build",
-    "test": "vitest --project eslint-rules --project unit-and-integration --coverage --run && pnpm --filter @mongodb-js/mcp-ui test",
+    "test": "vitest --project eslint-rules --project unit-and-integration --project ui --coverage --run",
     "test:accuracy": "sh ./scripts/accuracy/runAccuracyTests.sh",
     "test:browser": "pnpm --filter browser test",
     "test:long-running-tests": "vitest --project long-running-tests --coverage",

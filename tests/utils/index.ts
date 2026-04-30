@@ -1,3 +1,4 @@
+import { beforeEach, afterEach } from "vitest";
 import { type ConnectionManagerEvents } from "../../src/common/connectionManager.js";
 import { type ConnectionManager } from "../../src/lib.js";
 
@@ -19,6 +20,31 @@ export function createEnvironment(): {
             }
         },
     };
+}
+
+/** Clears environment variables that start with the given prefix.
+ *  Creates a clean environment for the test by saving the original values of the variables and restoring them after the test.
+ */
+export function useClearEnvironment(prefix: string): void {
+    let saved: Record<string, string | undefined> = {};
+
+    beforeEach(() => {
+        saved = {};
+        for (const key of Object.keys(process.env)) {
+            if (key.startsWith(prefix)) {
+                saved[key] = process.env[key];
+                delete process.env[key];
+            }
+        }
+    });
+
+    afterEach(() => {
+        for (const [key, value] of Object.entries(saved)) {
+            if (value !== undefined) {
+                process.env[key] = value;
+            }
+        }
+    });
 }
 
 /**
