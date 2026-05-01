@@ -5,7 +5,7 @@
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, resolve } from "node:path";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { cp, mkdir, rm, stat, writeFile, readdir } from "node:fs/promises";
+import { cp, mkdir, rm, stat, writeFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import type { PackageJson as LoosePackageJson, SetRequired } from "type-fest";
 
