@@ -10,23 +10,12 @@ vi.mock("@inquirer/prompts", () => ({
     confirm: vi.fn(),
 }));
 
-vi.mock("@inquirer/select", () => ({
-    default: vi.fn(),
-}));
-
 import { spawn } from "node:child_process";
 import { confirm } from "@inquirer/prompts";
-import select from "@inquirer/select";
-import {
-    buildSkillsAddArgs,
-    installSkills,
-    promptAndInstallSkills,
-    NO_SKILLS_MESSAGE,
-} from "../../../src/setup/installSkills.js";
+import { buildSkillsAddArgs, installSkills, promptAndInstallSkills } from "../../../src/setup/installSkills.js";
 
 const spawnMock = vi.mocked(spawn);
 const confirmMock = vi.mocked(confirm);
-const selectMock = vi.mocked(select);
 
 /**
  * Produce a fake ChildProcess that emits a `close` event with the given exit code
@@ -49,23 +38,9 @@ function fakeChildProcessKilled(signal: NodeJS.Signals): ChildProcess {
 }
 
 describe("buildSkillsAddArgs", () => {
-    it("assembles args for project-scope install (no -g)", () => {
-        const args = buildSkillsAddArgs("cursor", false);
-        expect(args).toEqual(["--yes", "skills@1", "add", "mongodb/agent-skills", "--agent", "cursor", "-y"]);
-    });
-
-    it("assembles args for user-scope install (adds -g)", () => {
-        const args = buildSkillsAddArgs("claude-code", true);
-        expect(args).toEqual([
-            "--yes",
-            "skills@1",
-            "add",
-            "mongodb/agent-skills",
-            "--agent",
-            "claude-code",
-            "-y",
-            "-g",
-        ]);
+    it("assembles args for the global skills install (always -g)", () => {
+        const args = buildSkillsAddArgs("cursor");
+        expect(args).toEqual(["--yes", "skills@1", "add", "mongodb/agent-skills", "--agent", "cursor", "-y", "-g"]);
     });
 });
 
@@ -84,69 +59,38 @@ describe("installSkills", () => {
         consoleErrorSpy.mockRestore();
     });
 
-    it("short-circuits with 'no-agent-id' for Claude Desktop and does not spawn", async () => {
-        const result = await installSkills({ tool: "claudeDesktop", cwd: "/tmp" });
-
-        expect(result).toEqual({ status: "skipped", reason: "no-agent-id" });
-        expect(spawnMock).not.toHaveBeenCalled();
-    });
-
-    it("prints the no-skills-support message when the tool has no agent ID", async () => {
-        await installSkills({ tool: "claudeDesktop", cwd: "/tmp" });
-        const printed = consoleLogSpy.mock.calls.map((c: unknown[]) => String(c[0])).join("\n");
-        expect(printed).toContain(NO_SKILLS_MESSAGE);
-    });
-
-    it("invokes npx skills@1 with project-scope args when global is false", async () => {
+    it("invokes npx skills@1 with -g and the supplied agent id", async () => {
         spawnMock.mockReturnValue(fakeChildProcess(0));
 
-        await installSkills({ tool: "cursor", cwd: "/workdir", global: false });
+        await installSkills({ agentId: "cursor", cwd: "/workdir" });
 
         expect(spawnMock).toHaveBeenCalledTimes(1);
         const [cmd, args, opts] = spawnMock.mock.calls[0]!;
         expect(cmd).toBe("npx");
-        expect(args).toEqual(["--yes", "skills@1", "add", "mongodb/agent-skills", "--agent", "cursor", "-y"]);
+        expect(args).toEqual(["--yes", "skills@1", "add", "mongodb/agent-skills", "--agent", "cursor", "-y", "-g"]);
         expect(opts).toMatchObject({ stdio: "inherit", cwd: "/workdir" });
     });
 
-    it("invokes npx skills@1 with -g when global is true", async () => {
+    it("returns installed when the CLI exits 0", async () => {
         spawnMock.mockReturnValue(fakeChildProcess(0));
 
-        await installSkills({ tool: "claudeCode", cwd: "/workdir", global: true });
+        const result = await installSkills({ agentId: "cursor", cwd: "/tmp" });
 
-        const [, args] = spawnMock.mock.calls[0]!;
-        expect(args).toContain("-g");
-        expect(args).toContain("claude-code");
+        expect(result).toEqual({ status: "installed" });
     });
 
-    it("returns installed with project scope by default when the CLI exits 0", async () => {
-        spawnMock.mockReturnValue(fakeChildProcess(0));
-
-        const result = await installSkills({ tool: "cursor", cwd: "/tmp" });
-
-        expect(result).toEqual({ status: "installed", scope: "project" });
-    });
-
-    it("returns installed with user scope when global=true", async () => {
-        spawnMock.mockReturnValue(fakeChildProcess(0));
-
-        const result = await installSkills({ tool: "cursor", cwd: "/tmp", global: true });
-
-        expect(result).toEqual({ status: "installed", scope: "user" });
-    });
-
-    it("returns failed with exitCode and the scope that was attempted", async () => {
+    it("returns failed with exitCode when the CLI exits non-zero", async () => {
         spawnMock.mockReturnValue(fakeChildProcess(2));
 
-        const result = await installSkills({ tool: "cursor", cwd: "/tmp", global: true });
+        const result = await installSkills({ agentId: "cursor", cwd: "/tmp" });
 
-        expect(result).toEqual({ status: "failed", exitCode: 2, scope: "user" });
+        expect(result).toEqual({ status: "failed", exitCode: 2 });
     });
 
     it("prints a failure message including the exit code and a manual-fallback command", async () => {
         spawnMock.mockReturnValue(fakeChildProcess(7));
 
-        await installSkills({ tool: "cursor", cwd: "/tmp" });
+        await installSkills({ agentId: "cursor", cwd: "/tmp" });
 
         const printed = [...consoleLogSpy.mock.calls, ...consoleErrorSpy.mock.calls]
             .map((c: unknown[]) => String(c[0]))
@@ -154,20 +98,8 @@ describe("installSkills", () => {
         expect(printed).toContain("exit 7");
         // The retry command must mirror the real invocation — full npx command
         // including the pinned CLI and flags actually used.
-        expect(printed).toContain("npx --yes skills@1 add mongodb/agent-skills --agent cursor -y");
-        expect(printed).toContain("https://github.com/mongodb/agent-skills");
-    });
-
-    it("retry command in failure message preserves -g when scope was user (global=true)", async () => {
-        spawnMock.mockReturnValue(fakeChildProcess(3));
-
-        await installSkills({ tool: "cursor", cwd: "/tmp", global: true });
-
-        const printed = [...consoleLogSpy.mock.calls, ...consoleErrorSpy.mock.calls]
-            .map((c: unknown[]) => String(c[0]))
-            .join("\n");
-        // Full user-scope retry command, including -g at the end.
         expect(printed).toContain("npx --yes skills@1 add mongodb/agent-skills --agent cursor -y -g");
+        expect(printed).toContain("https://github.com/mongodb/agent-skills");
     });
 
     it("returns { status: 'failed' } when spawn emits an 'error' event (does not throw)", async () => {
@@ -177,7 +109,7 @@ describe("installSkills", () => {
 
         // The whole point of this test: installSkills must not propagate the
         // error out of runSetup. Returning any "failed" outcome is enough.
-        const result = await installSkills({ tool: "cursor", cwd: "/tmp" });
+        const result = await installSkills({ agentId: "cursor", cwd: "/tmp" });
 
         expect(result.status).toBe("failed");
     });
@@ -185,7 +117,7 @@ describe("installSkills", () => {
     it("treats a signal-killed subprocess (close fires with code=null) as failed, not installed", async () => {
         spawnMock.mockReturnValue(fakeChildProcessKilled("SIGTERM"));
 
-        const result = await installSkills({ tool: "cursor", cwd: "/tmp" });
+        const result = await installSkills({ agentId: "cursor", cwd: "/tmp" });
 
         expect(result.status).toBe("failed");
         // Exit code should be the spawn-error sentinel, not 0.
@@ -195,7 +127,7 @@ describe("installSkills", () => {
     it("prints the signal name to stderr when the subprocess is killed by a signal", async () => {
         spawnMock.mockReturnValue(fakeChildProcessKilled("SIGKILL"));
 
-        await installSkills({ tool: "cursor", cwd: "/tmp" });
+        await installSkills({ agentId: "cursor", cwd: "/tmp" });
 
         const printed = consoleErrorSpy.mock.calls.map((c: unknown[]) => String(c[0])).join("\n");
         expect(printed).toContain("SIGKILL");
@@ -203,56 +135,16 @@ describe("installSkills", () => {
 });
 
 describe("promptAndInstallSkills", () => {
-    const originalEnv = { ...process.env };
     let consoleLogSpy: MockInstance<typeof console.log>;
 
     beforeEach(() => {
         spawnMock.mockReset();
         confirmMock.mockReset();
-        selectMock.mockReset();
-        delete process.env.MDB_MCP_SKIP_SKILLS_INSTALL;
         consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
     });
 
     afterEach(() => {
-        process.env = { ...originalEnv };
         consoleLogSpy.mockRestore();
-    });
-
-    it("returns env-skip when MDB_MCP_SKIP_SKILLS_INSTALL is 'true'", async () => {
-        process.env.MDB_MCP_SKIP_SKILLS_INSTALL = "true";
-
-        const result = await promptAndInstallSkills({ tool: "cursor", cwd: "/tmp" });
-
-        expect(result).toEqual({ status: "skipped", reason: "env-skip" });
-        expect(confirmMock).not.toHaveBeenCalled();
-        expect(spawnMock).not.toHaveBeenCalled();
-    });
-
-    it("proceeds when MDB_MCP_SKIP_SKILLS_INSTALL is 'false'", async () => {
-        process.env.MDB_MCP_SKIP_SKILLS_INSTALL = "false";
-        confirmMock.mockResolvedValue(false); // decline to keep the test short
-
-        const result = await promptAndInstallSkills({ tool: "cursor", cwd: "/tmp" });
-
-        expect(confirmMock).toHaveBeenCalled();
-        expect(result).toEqual({ status: "skipped", reason: "user-declined" });
-    });
-
-    it("returns failed (not throws) when MDB_MCP_SKIP_SKILLS_INSTALL has an invalid value, and prints a warning", async () => {
-        process.env.MDB_MCP_SKIP_SKILLS_INSTALL = "yes"; // parseBoolean rejects this
-        const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-        try {
-            const result = await promptAndInstallSkills({ tool: "cursor", cwd: "/tmp" });
-
-            // Must not throw — setup has already written MCP config, so a bad
-            // env var here should degrade to a failed outcome, not kill setup.
-            expect(result.status).toBe("failed");
-            const warnings = consoleWarnSpy.mock.calls.map((c: unknown[]) => String(c[0])).join("\n");
-            expect(warnings).toMatch(/invalid boolean/i);
-        } finally {
-            consoleWarnSpy.mockRestore();
-        }
     });
 
     it("propagates ExitPromptError from inquirer so runSetup's Ctrl+C handler can run", async () => {
@@ -271,7 +163,6 @@ describe("promptAndInstallSkills", () => {
 
         expect(result).toEqual({ status: "skipped", reason: "no-agent-id" });
         expect(confirmMock).not.toHaveBeenCalled();
-        expect(selectMock).not.toHaveBeenCalled();
         expect(spawnMock).not.toHaveBeenCalled();
     });
 
@@ -281,71 +172,19 @@ describe("promptAndInstallSkills", () => {
         const result = await promptAndInstallSkills({ tool: "cursor", cwd: "/tmp" });
 
         expect(result).toEqual({ status: "skipped", reason: "user-declined" });
-        expect(selectMock).not.toHaveBeenCalled();
         expect(spawnMock).not.toHaveBeenCalled();
     });
 
-    it("asks for scope after Y/n=yes and installs at opts.cwd (no -g) when scope='project'", async () => {
+    it("installs after Y/n=yes — no scope prompt", async () => {
         spawnMock.mockReturnValue(fakeChildProcess(0));
         confirmMock.mockResolvedValue(true);
-        selectMock.mockResolvedValue("project" as unknown as never);
 
         const result = await promptAndInstallSkills({ tool: "cursor", cwd: "/some/project/dir" });
 
-        expect(result).toEqual({ status: "installed", scope: "project" });
-        expect(selectMock).toHaveBeenCalled();
+        expect(result).toEqual({ status: "installed" });
         const [, args, opts] = spawnMock.mock.calls[0]!;
-        expect(args).not.toContain("-g");
+        // Always global now — no project/user prompt.
+        expect(args).toContain("-g");
         expect(opts).toMatchObject({ cwd: "/some/project/dir" });
-    });
-
-    it("passes global=true when scope='user'", async () => {
-        spawnMock.mockReturnValue(fakeChildProcess(0));
-        confirmMock.mockResolvedValue(true);
-        selectMock.mockResolvedValue("user" as unknown as never);
-
-        await promptAndInstallSkills({ tool: "cursor", cwd: "/tmp" });
-
-        const [, args] = spawnMock.mock.calls[0]!;
-        expect(args).toContain("-g");
-    });
-
-    it("always defaults scope to 'project'", async () => {
-        spawnMock.mockReturnValue(fakeChildProcess(0));
-        confirmMock.mockResolvedValue(true);
-        selectMock.mockResolvedValue("project" as unknown as never);
-
-        await promptAndInstallSkills({ tool: "cursor", cwd: "/some/dir" });
-
-        expect(selectMock).toHaveBeenCalledTimes(1);
-        const config = selectMock.mock.calls[0]![0] as { default?: string };
-        expect(config.default).toBe("project");
-    });
-
-    it("includes opts.cwd in the 'Project' choice label", async () => {
-        spawnMock.mockReturnValue(fakeChildProcess(0));
-        confirmMock.mockResolvedValue(true);
-        selectMock.mockResolvedValue("project" as unknown as never);
-
-        await promptAndInstallSkills({ tool: "cursor", cwd: "/some/unique/path" });
-
-        const config = selectMock.mock.calls[0]![0] as {
-            choices: ReadonlyArray<{ value: string; name: string }>;
-        };
-        const projectChoice = config.choices.find((c) => c.value === "project");
-        expect(projectChoice).toBeDefined();
-        expect(projectChoice!.name).toContain("/some/unique/path");
-    });
-
-    it("passes opts.cwd as the spawn cwd when scope='user' (even with -g)", async () => {
-        spawnMock.mockReturnValue(fakeChildProcess(0));
-        confirmMock.mockResolvedValue(true);
-        selectMock.mockResolvedValue("user" as unknown as never);
-
-        await promptAndInstallSkills({ tool: "cursor", cwd: "/some/caller/dir" });
-
-        const [, args, opts] = spawnMock.mock.calls[0]!;
-        expect(args).toContain("-g");
-        expect(opts).toMatchObject({ cwd: "/some/caller/dir" });
     });
 });

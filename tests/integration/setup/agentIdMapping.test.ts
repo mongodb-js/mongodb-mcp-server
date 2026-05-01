@@ -7,7 +7,7 @@ import { AI_TOOL_REGISTRY, type AIToolType } from "../../../src/setup/aiTool.js"
 import { buildSkillsAddArgs } from "../../../src/setup/installSkills.js";
 
 /**
- * Verifies every `AIToolType`'s `getSkillsAgentId()` returns a value the pinned
+ * Verifies every `AIToolType`'s `skillsAgentId` returns a value the pinned
  * `skills` CLI actually accepts, by running a real install for each agent into
  * an isolated temp directory and asserting exit 0.
  *
@@ -23,7 +23,7 @@ import { buildSkillsAddArgs } from "../../../src/setup/installSkills.js";
 type Mapping = { toolType: AIToolType; agentId: string };
 
 const MAPPINGS: Mapping[] = Object.entries(AI_TOOL_REGISTRY)
-    .map(([toolType, tool]) => ({ toolType: toolType as AIToolType, agentId: tool.getSkillsAgentId() }))
+    .map(([toolType, tool]) => ({ toolType: toolType as AIToolType, agentId: tool.skillsAgentId }))
     .filter((m): m is Mapping => m.agentId !== null);
 
 const RUN_NETWORK_TESTS = process.env.MDB_MCP_RUN_NETWORK_TESTS === "true";
@@ -45,7 +45,7 @@ describe.skipIf(!RUN_NETWORK_TESTS)("skills CLI agent ID mapping", () => {
             const safeName = agentId.replace(/[^a-z0-9]/gi, "-");
             const testCwd = fs.mkdtempSync(path.join(tmpRoot, `${safeName}-`));
 
-            const args = buildSkillsAddArgs(agentId, false);
+            const args = buildSkillsAddArgs(agentId);
             // `shell: true` — on Windows, `npx` is a `.cmd` shim that direct
             // `spawn`/`spawnSync` can't resolve; the shell handles PATHEXT.
             const result = spawnSync("npx", args, {

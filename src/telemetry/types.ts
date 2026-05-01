@@ -94,9 +94,6 @@ export type SetupEventProperties = {
     /** Whether the Node.js version satisfies the package's engines range. */
     node_version_ok?: TelemetryBoolSet;
 
-    /** Whether the current OS platform is supported by the setup wizard. */
-    platform_supported?: TelemetryBoolSet;
-
     /** Whether the user supplied a MongoDB connection string. */
     connection_string_provided?: TelemetryBoolSet;
 
@@ -122,10 +119,7 @@ export type SetupEventProperties = {
     skills_install_status?: "installed" | "skipped" | "failed";
 
     /** If the skills step was skipped, why. */
-    skills_skip_reason?: "no-agent-id" | "user-declined" | "env-skip";
-
-    /** Install scope the user chose — present whenever an install was attempted. */
-    skills_install_scope?: "project" | "user";
+    skills_skip_reason?: "no-agent-id" | "user-declined";
 
     /** If skills install failed, the subprocess exit code (-1 sentinel for spawn errors). */
     skills_install_exit_code?: number;

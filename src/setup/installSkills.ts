@@ -2,23 +2,16 @@
 import { spawn } from "node:child_process";
 import chalk from "chalk";
 import { confirm } from "@inquirer/prompts";
-import select from "@inquirer/select";
 import { AI_TOOL_REGISTRY, type AIToolType } from "./aiTool.js";
-import { parseBoolean } from "../common/config/configUtils.js";
-
-export type SkillsScope = "project" | "user";
 
 export type SkillsInstallOutcome =
-    | { status: "installed"; scope: SkillsScope }
-    | { status: "skipped"; reason: "no-agent-id" | "user-declined" | "env-skip" }
-    // `scope` is optional on failed because the promptAndInstallSkills wrapper
-    // can catch errors that happen before the scope prompt resolves.
-    | { status: "failed"; exitCode: number; scope?: SkillsScope };
+    | { status: "installed" }
+    | { status: "skipped"; reason: "no-agent-id" | "user-declined" }
+    | { status: "failed"; exitCode: number };
 
 export interface InstallSkillsOptions {
-    tool: AIToolType;
+    agentId: string;
     cwd: string;
-    global?: boolean;
 }
 
 export interface PromptAndInstallSkillsOptions {
@@ -35,48 +28,33 @@ export const NO_SKILLS_MESSAGE =
     `\n` +
     `  ${SKILLS_REPO_URL}`;
 
-/**
- * Setup-only env var that bypasses the skills install prompt entirely.
- * Set to `"true"` for non-interactive setup (CI, provisioning scripts).
- * Accepts only the literal strings `"true"` or `"false"` — anything else
- * is rejected by `parseBoolean` and surfaces as a `failed` outcome with a
- * warning so setup still completes.
- */
-const SKIP_ENV_VAR = "MDB_MCP_SKIP_SKILLS_INSTALL";
 const SKILLS_PACKAGE_VERSION = "1";
 const SKILLS_CLI_PIN = `skills@${SKILLS_PACKAGE_VERSION}`;
 
-/** Assemble the args for `npx` to invoke the pinned skills CLI. */
-export function buildSkillsAddArgs(agentId: string, global: boolean): string[] {
-    const args = ["--yes", SKILLS_CLI_PIN, "add", SKILLS_REPO, "--agent", agentId, "-y"];
-    if (global) {
-        args.push("-g");
-    }
-    return args;
+/**
+ * Assemble the args for `npx` to invoke the pinned skills CLI. Skills are
+ * always installed globally (`-g`) so they're available across the user's
+ * projects, matching how the MCP server itself is installed.
+ */
+export function buildSkillsAddArgs(agentId: string): string[] {
+    return ["--yes", SKILLS_CLI_PIN, "add", SKILLS_REPO, "--agent", agentId, "-y", "-g"];
 }
 
 /**
- * Shell out to `skills add` for the given tool. Non-zero exit is reported to
- * the user but does not throw — setup has already succeeded by this point.
+ * Shell out to `skills add`.
+ * Non-zero exit is reported to the user but does not throw
+ * since setup has already succeeded by this point.
  */
 export async function installSkills(opts: InstallSkillsOptions): Promise<SkillsInstallOutcome> {
-    const agentId = AI_TOOL_REGISTRY[opts.tool].getSkillsAgentId();
-    if (agentId === null) {
-        console.log(NO_SKILLS_MESSAGE);
-        return { status: "skipped", reason: "no-agent-id" };
-    }
-
-    const global = opts.global ?? false;
-    const scope: SkillsScope = global ? "user" : "project";
-    const args = buildSkillsAddArgs(agentId, global);
+    const args = buildSkillsAddArgs(opts.agentId);
     const exitCode = await runSkillsAdd(args, opts.cwd);
 
     if (exitCode === 0) {
-        return { status: "installed", scope };
+        return { status: "installed" };
     }
 
     printInstallFailure(exitCode, args);
-    return { status: "failed", exitCode, scope };
+    return { status: "failed", exitCode };
 }
 
 // Sentinel exit code used when `spawn` itself fails before the process runs
@@ -126,24 +104,19 @@ function printInstallFailure(exitCode: number, args: string[]): void {
 }
 
 /**
- * Prompt the user for whether to install skills, choose a scope, and call
- * `installSkills`. Honors `MDB_MCP_SKIP_SKILLS_INSTALL` as a non-interactive
- * off switch. Null-agent tools (Claude Desktop) skip prompts entirely.
+ * Prompt the user for whether to install skills and call `installSkills`.
+ * Null-agent tools (Claude Desktop) skip prompts entirely.
  *
  * Never throws — except `ExitPromptError`, which is re-thrown so `runSetup`'s
  * outer Ctrl+C handler can print "Setup cancelled". All other errors
- * (invalid skip-env-var value, unexpected prompt failure, etc.) are logged
- * as warnings and converted to a `failed` outcome so setup can still print
- * its success summary.
+ * (unexpected prompt failure, etc.) are logged as warnings and converted to a
+ * `failed` outcome so setup can still print its success summary.
  */
 export async function promptAndInstallSkills(opts: PromptAndInstallSkillsOptions): Promise<SkillsInstallOutcome> {
     try {
-        if (parseBoolean(process.env[SKIP_ENV_VAR]) === true) {
-            return { status: "skipped", reason: "env-skip" };
-        }
-
         const tool = AI_TOOL_REGISTRY[opts.tool];
-        if (tool.getSkillsAgentId() === null) {
+        const agentId = tool.skillsAgentId;
+        if (agentId === null) {
             console.log(NO_SKILLS_MESSAGE);
             return { status: "skipped", reason: "no-agent-id" };
         }
@@ -156,20 +129,7 @@ export async function promptAndInstallSkills(opts: PromptAndInstallSkillsOptions
             return { status: "skipped", reason: "user-declined" };
         }
 
-        const scope = await select<"project" | "user">({
-            message: "Install scope?",
-            default: "project",
-            choices: [
-                { value: "project", name: `Project (${opts.cwd}/)` },
-                { value: "user", name: "User (global)" },
-            ],
-        });
-
-        return await installSkills({
-            tool: opts.tool,
-            cwd: opts.cwd,
-            global: scope === "user",
-        });
+        return await installSkills({ agentId, cwd: opts.cwd });
     } catch (error: unknown) {
         // Ctrl+C: inquirer throws ExitPromptError. Let it propagate so the
         // top-level runSetup handler can exit cleanly.

@@ -268,11 +268,11 @@ export abstract class AITool {
     }
 
     /**
-     * Returns the skills.sh agent ID this tool maps to, or null if [skills.sh](https://skills.sh)
+     * The skills.sh agent ID this tool maps to, or null if [skills.sh](https://skills.sh)
      * has no entry for it (e.g. Claude Desktop — no filesystem skills).
      * Install paths are owned by `skills add`; we only map identity.
      */
-    getSkillsAgentId(): string | null {
+    get skillsAgentId(): string | null {
         return null;
     }
 }
@@ -297,7 +297,7 @@ class Cursor extends AITool {
         }
     }
     tip = `Tip: Press ${getPlatform() === "mac" ? "Cmd+I" : "Ctrl+I"} in Cursor to open the Agent panel.\n`;
-    override getSkillsAgentId(): string {
+    override get skillsAgentId(): string {
         return "cursor";
     }
 }
@@ -335,7 +335,7 @@ class VSCode extends AITool {
         }
     }
     tip = `Tip: Press ${getPlatform() === "mac" ? "Cmd+Shift+I" : "Ctrl+Shift+I"} in VS Code to open the Copilot panel.\n`;
-    override getSkillsAgentId(): string {
+    override get skillsAgentId(): string {
         return "github-copilot";
     }
 }
@@ -360,7 +360,7 @@ class Windsurf extends AITool {
         }
     }
     tip = `Tip: Press ${getPlatform() === "mac" ? "Cmd+L" : "Ctrl+L"} in Windsurf to open the AI panel.\n`;
-    override getSkillsAgentId(): string {
+    override get skillsAgentId(): string {
         return "windsurf";
     }
 }
@@ -397,7 +397,7 @@ class ClaudeCode extends AITool {
     get configPath(): string {
         return path.join(getBasePath(true), ".claude.json");
     }
-    override getSkillsAgentId(): string {
+    override get skillsAgentId(): string {
         return "claude-code";
     }
 }
@@ -427,7 +427,7 @@ class OpenCode extends AITool {
             enabled: true,
         };
     }
-    override getSkillsAgentId(): string {
+    override get skillsAgentId(): string {
         return "opencode";
     }
 }

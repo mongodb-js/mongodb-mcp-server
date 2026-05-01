@@ -124,15 +124,10 @@ export class SetupTelemetry {
         this.emit("started");
     }
 
-    public emitPrerequisitesChecked(props: {
-        nodeVersionOk: boolean;
-        hasDocker?: boolean;
-        platformSupported?: boolean;
-    }): void {
+    public emitPrerequisitesChecked(props: { nodeVersionOk: boolean; hasDocker?: boolean }): void {
         this.updateContext({
             node_version_ok: toBoolSet(props.nodeVersionOk),
             has_docker: toBoolSet(props.hasDocker),
-            platform_supported: toBoolSet(props.platformSupported),
         });
         this.emit("prerequisites_checked");
     }
@@ -194,11 +189,8 @@ export class SetupTelemetry {
         const patch: Partial<SetupEventProperties> = { skills_install_status: outcome.status };
         if (outcome.status === "skipped") {
             patch.skills_skip_reason = outcome.reason;
-        } else if (outcome.status === "installed" || outcome.status === "failed") {
-            patch.skills_install_scope = outcome.scope;
-            if (outcome.status === "failed") {
-                patch.skills_install_exit_code = outcome.exitCode;
-            }
+        } else if (outcome.status === "failed") {
+            patch.skills_install_exit_code = outcome.exitCode;
         }
         this.updateContext(patch);
         this.emit("skills_install_prompted");

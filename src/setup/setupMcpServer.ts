@@ -448,7 +448,7 @@ export const runSetup = async (config: UserConfig): Promise<never> => {
         printInstructions();
 
         const hasDocker = await validateDocker();
-        setupTelemetry.emitPrerequisitesChecked({ nodeVersionOk, hasDocker, platformSupported });
+        setupTelemetry.emitPrerequisitesChecked({ nodeVersionOk, hasDocker });
 
         const tool = await promptForAITool(platform);
         const displayName = AI_TOOL_REGISTRY[tool].name;
