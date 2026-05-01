@@ -28,7 +28,7 @@ export {
     type OperationType,
     type ToolCategory,
     formatUntrustedData,
-} from "./tool.js";
+} from "./toolBase.js";
 export type { DefaultMetrics } from "@mongodb-js/mcp-metrics";
 export { getRandomUUID } from "./randomUUID.js";
 export { TRANSPORT_PAYLOAD_LIMITS } from "./transportConstants.js";

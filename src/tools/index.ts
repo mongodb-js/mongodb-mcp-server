@@ -5,11 +5,10 @@ import * as AssistantTools from "./assistant/tools.js";
 import type { ToolClass } from "./tool.js";
 
 // Export the collection of tools for easier reference
-export const AllTools: ToolClass[] = Object.values({
-    ...MongoDbTools,
-    ...AtlasTools,
-    ...AssistantTools,
-}).concat(AtlasLocalTools);
+export const AllTools: ToolClass[] = [
+    ...Object.values({ ...MongoDbTools, ...AtlasTools, ...AssistantTools }),
+    ...AtlasLocalTools,
+];
 
 export { MongoDBToolBase } from "./mongodb/mongodbTool.js";
 
