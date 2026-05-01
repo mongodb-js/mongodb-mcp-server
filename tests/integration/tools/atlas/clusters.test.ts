@@ -265,5 +265,49 @@ describeWithAtlas("clusters", (integration) => {
                 });
             });
         });
+        describe("atlas-upgrade-cluster", () => {
+            it("should have correct metadata", async () => {
+                const { tools } = await integration.mcpClient().listTools();
+                const upgradeCluster = tools.find((tool) => tool.name === "atlas-upgrade-cluster");
+
+                expectDefined(upgradeCluster);
+                expect(upgradeCluster.inputSchema.type).toBe("object");
+                expectDefined(upgradeCluster.inputSchema.properties);
+                expect(upgradeCluster.inputSchema.properties).toHaveProperty("projectId");
+                expect(upgradeCluster.inputSchema.properties).toHaveProperty("clusterName");
+                expect(upgradeCluster.inputSchema.properties).toHaveProperty("targetTier");
+                expect(upgradeCluster.inputSchema.properties).toHaveProperty("provider");
+                expect(upgradeCluster.inputSchema.properties).toHaveProperty("region");
+            });
+
+            withCluster(integration, ({ getProjectId: getUpgradeProjectId, getClusterName: getUpgradeClusterName }) => {
+                describe("when not connected to the cluster being upgraded", () => {
+                    it("upgrades FREE cluster to FLEX with explicit projectId and clusterName", async () => {
+                        const response = await integration.mcpClient().callTool({
+                            name: "atlas-upgrade-cluster",
+                            arguments: {
+                                projectId: getUpgradeProjectId(),
+                                clusterName: getUpgradeClusterName(),
+                            },
+                        });
+                        const content = getResponseContent(response.content);
+                        expect(content).toContain(getUpgradeClusterName());
+                        expect(content).toContain("being upgraded");
+                    });
+                });
+            });
+
+            describe("when connected to the cluster being upgraded", () => {
+                it("upgrades FREE cluster to FLEX using session state without explicit params", async () => {
+                    const response = await integration.mcpClient().callTool({
+                        name: "atlas-upgrade-cluster",
+                        arguments: {},
+                    });
+                    const content = getResponseContent(response.content);
+                    expect(content).toContain(clusterName);
+                    expect(content).toContain("being upgraded");
+                });
+            });
+        });
     });
 });

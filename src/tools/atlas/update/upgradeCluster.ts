@@ -29,7 +29,7 @@ const DEDICATED_CLUSTER_DEFAULTS = {
 
 type FreeToM10Body = {
     name: string;
-    providerSettings: { providerName: string; instanceSizeName: "M10"; regionName?: string };
+    providerSettings: { providerName?: string; instanceSizeName: "M10"; regionName?: string };
 };
 
 type FlexToM10Body = {
@@ -46,7 +46,12 @@ type FlexToM10Body = {
     autoScaling: typeof DEDICATED_CLUSTER_DEFAULTS.autoScaling;
 };
 
-function buildM10UpgradeBody(baseTier: "FREE", clusterName: string, provider: string, region?: string): FreeToM10Body;
+function buildM10UpgradeBody(
+    baseTier: "FREE",
+    clusterName: string,
+    provider: string | undefined,
+    region?: string
+): FreeToM10Body;
 function buildM10UpgradeBody(baseTier: "FLEX", clusterName: string, provider?: string, region?: string): FlexToM10Body;
 function buildM10UpgradeBody(
     baseTier: "FREE" | "FLEX",
@@ -58,7 +63,7 @@ function buildM10UpgradeBody(
         return {
             name: clusterName,
             providerSettings: {
-                providerName: provider ?? "",
+                ...(provider !== undefined && { providerName: provider }),
                 instanceSizeName: DEDICATED_CLUSTER_DEFAULTS.regionConfig.electableSpecs.instanceSize,
                 ...(region !== undefined && { regionName: region }),
             },
@@ -105,7 +110,9 @@ export class UpgradeClusterTool extends AtlasToolBase {
             .describe("Cloud provider (e.g. AWS, GCP, AZURE). If omitted, the existing value is preserved."),
         region: AtlasArgs.region()
             .optional()
-            .describe("Cloud provider region in Atlas format using uppercase letters and underscores (e.g. US_EAST_1). If omitted, the existing value is preserved."),
+            .describe(
+                "Cloud provider region in Atlas format using uppercase letters and underscores (e.g. US_EAST_1). If omitted, the existing value is preserved."
+            ),
     };
 
     private upgradeContext?: {
@@ -164,7 +171,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
                     projectId,
                     clusterName,
                     target,
-                    args.provider ?? sessionCluster?.provider ?? "AWS",
+                    args.provider ?? sessionCluster?.provider,
                     args.region ?? sessionCluster?.region
                 );
             }
@@ -213,7 +220,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
             const firstRegionConfig = clusterResult.raw.replicationSpecs?.[0]?.regionConfigs?.[0] as
                 | { backingProviderName?: string; regionName?: string }
                 | undefined;
-            const backingProviderName = args.provider ?? firstRegionConfig?.backingProviderName ?? "AWS";
+            const backingProviderName = args.provider ?? firstRegionConfig?.backingProviderName;
             const regionName = args.region ?? firstRegionConfig?.regionName;
             this.upgradeContext = {
                 originalTier: "free",
@@ -240,7 +247,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
         projectId: string,
         clusterName: string,
         target: "FLEX" | "M10",
-        backingProviderName: string,
+        backingProviderName: string | undefined,
         regionName: string | undefined
     ): Promise<CallToolResult> {
         if (target === "FLEX") {
@@ -251,7 +258,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
                     providerSettings: {
                         providerName: "FLEX",
                         instanceSizeName: "FLEX",
-                        backingProviderName,
+                        ...(backingProviderName !== undefined && { backingProviderName }),
                         ...(regionName !== undefined && { regionName }),
                     },
                 },
