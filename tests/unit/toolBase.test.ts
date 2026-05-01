@@ -51,7 +51,7 @@ describe("ToolBase", () => {
         } as unknown as UserConfig;
 
         mockAtlasTelemetry = {
-            isAtlasTelemetryEnabled: () => true,
+            isTelemetryEnabled: () => true,
             emitEvents: vi.fn(),
         } as unknown as AtlasTelemetry;
 
