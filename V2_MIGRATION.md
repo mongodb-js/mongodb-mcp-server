@@ -74,24 +74,24 @@ The telemetry implementation has been extracted into a standalone package. All t
 
 All telemetry types are now prefixed with `Telemetry` or `Atlas`:
 
-| Old name | New name |
-|---|---|
-| `BaseEvent` | `TelemetryBaseEvent` |
-| `CommonProperties` | `TelemetryCommonProperties` |
-| `CommonStaticProperties` | `TelemetryCommonStaticProperties` |
-| `TelemetryEvent<T>` | `TelemetryEvent<T>` (unchanged) |
-| `TelemetryResult` | `TelemetryResult` (unchanged) |
-| `TelemetryBoolSet` | `TelemetryBoolSet` (unchanged) |
-| `TelemetryToolMetadata` | `TelemetryToolMetadata` (unchanged) |
-| `ToolEvent` | `TelemetryToolEvent` |
-| `ConnectionMetadata` | `AtlasConnectionMetadata` |
-| `AtlasMetadata` | `AtlasMetadata` (unchanged) |
-| `AtlasLocalToolMetadata` | `AtlasLocalToolMetadata` (unchanged) |
-| `PerfAdvisorToolMetadata` | `AtlasPerfAdvisorToolMetadata` |
-| `StreamsToolMetadata` | `AtlasStreamsToolMetadata` |
-| `SetupStage` | `TelemetrySetupStage` |
-| `SetupEvent` | `TelemetrySetupEvent` |
-| `SetupEventProperties` | `TelemetrySetupEventProperties` |
+| Old name                  | New name                             |
+| ------------------------- | ------------------------------------ |
+| `BaseEvent`               | `TelemetryBaseEvent`                 |
+| `CommonProperties`        | `TelemetryCommonProperties`          |
+| `CommonStaticProperties`  | `TelemetryCommonStaticProperties`    |
+| `TelemetryEvent<T>`       | `TelemetryEvent<T>` (unchanged)      |
+| `TelemetryResult`         | `TelemetryResult` (unchanged)        |
+| `TelemetryBoolSet`        | `TelemetryBoolSet` (unchanged)       |
+| `TelemetryToolMetadata`   | `TelemetryToolMetadata` (unchanged)  |
+| `ToolEvent`               | `TelemetryToolEvent`                 |
+| `ConnectionMetadata`      | `AtlasConnectionMetadata`            |
+| `AtlasMetadata`           | `AtlasMetadata` (unchanged)          |
+| `AtlasLocalToolMetadata`  | `AtlasLocalToolMetadata` (unchanged) |
+| `PerfAdvisorToolMetadata` | `AtlasPerfAdvisorToolMetadata`       |
+| `StreamsToolMetadata`     | `AtlasStreamsToolMetadata`           |
+| `SetupStage`              | `TelemetrySetupStage`                |
+| `SetupEvent`              | `TelemetrySetupEvent`                |
+| `SetupEventProperties`    | `TelemetrySetupEventProperties`      |
 
 ### `EventCache` import
 
