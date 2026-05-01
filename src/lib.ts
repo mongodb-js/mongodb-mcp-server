@@ -22,7 +22,7 @@ import { defaultCreateConnectionManager } from "./common/connectionManager.js";
 const createMCPConnectionManager = defaultCreateConnectionManager;
 export { createMCPConnectionManager, defaultCreateConnectionManager };
 
-export { defaultCreateAtlasLocalClient } from "./common/atlasLocal.js";
+export { defaultCreateAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 
 export {
     LoggerBase,

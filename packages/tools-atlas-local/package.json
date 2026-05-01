@@ -22,7 +22,8 @@
         "@mongodb-js/atlas-local": "^1.3.0",
         "@mongodb-js/mcp-core": "workspace:*",
         "@mongodb-js/mcp-logging": "workspace:*",
-        "@mongodb-js/mcp-types": "workspace:*"
+        "@mongodb-js/mcp-types": "workspace:*",
+        "zod": "^4.0.0"
     },
     "devDependencies": {
         "@types/node": "^25.6.0",

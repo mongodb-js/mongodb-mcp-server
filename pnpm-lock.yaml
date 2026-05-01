@@ -281,19 +281,34 @@ importers:
 
   packages/core:
     dependencies:
+      '@mcp-ui/server':
+        specifier: ^5.13.1
+        version: 5.16.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@4.3.6)
       '@modelcontextprotocol/sdk':
         specifier: ^1.29.0
         version: 1.29.0(zod@4.3.6)
-      '@mongodb-js/mcp-types':
-        specifier: workspace:*
-        version: link:../types
-      mongodb-redact:
-        specifier: ^1.1.6
-        version: 1.4.7
-    devDependencies:
       '@mongodb-js/mcp-logging':
         specifier: workspace:*
         version: link:../logging
+      '@mongodb-js/mcp-metrics':
+        specifier: workspace:*
+        version: link:../metrics
+      '@mongodb-js/mcp-types':
+        specifier: workspace:*
+        version: link:../types
+      '@mongodb-js/mcp-ui':
+        specifier: workspace:*
+        version: link:../ui
+      bson:
+        specifier: ^7.2.0
+        version: 7.2.0
+      mongodb-redact:
+        specifier: ^1.1.6
+        version: 1.4.7
+      zod:
+        specifier: ^4.0.0
+        version: 4.3.6
+    devDependencies:
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
@@ -390,6 +405,9 @@ importers:
       '@mongodb-js/mcp-types':
         specifier: workspace:*
         version: link:../types
+      zod:
+        specifier: ^4.0.0
+        version: 4.3.6
     devDependencies:
       '@types/node':
         specifier: ^25.6.0

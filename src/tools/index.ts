@@ -1,5 +1,5 @@
 import * as AtlasTools from "./atlas/tools.js";
-import * as AtlasLocalTools from "./atlasLocal/tools.js";
+import { AtlasLocalTools } from "@mongodb-js/mcp-tools-atlas-local";
 import * as MongoDbTools from "./mongodb/tools.js";
 import * as AssistantTools from "./assistant/tools.js";
 import type { ToolClass } from "./tool.js";
@@ -8,15 +8,14 @@ import type { ToolClass } from "./tool.js";
 export const AllTools: ToolClass[] = Object.values({
     ...MongoDbTools,
     ...AtlasTools,
-    ...AtlasLocalTools,
     ...AssistantTools,
-});
+}).concat(AtlasLocalTools);
 
 export { MongoDBToolBase } from "./mongodb/mongodbTool.js";
 
 // Export all the individual tools for handpicking
 export * from "./atlas/tools.js";
-export * from "./atlasLocal/tools.js";
+export * from "@mongodb-js/mcp-tools-atlas-local";
 export * from "./mongodb/tools.js";
 export * from "./assistant/tools.js";
 

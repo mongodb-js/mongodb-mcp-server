@@ -15,8 +15,8 @@ import {
 } from "../common/connectionErrorHandler.js";
 import type { CommonProperties } from "../telemetry/types.js";
 import { Elicitation } from "../elicitation.js";
-import type { AtlasLocalClientFactoryFn } from "../common/atlasLocal.js";
-import { defaultCreateAtlasLocalClient } from "../common/atlasLocal.js";
+import type { AtlasLocalClientFactoryFn } from "@mongodb-js/mcp-tools-atlas-local";
+import { defaultCreateAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 import { applyConfigOverrides } from "../common/config/configOverrides.js";
 import { ApiClient, type ApiClientOptions } from "@mongodb-js/mcp-atlas-api-client";
 

@@ -12,7 +12,7 @@ import { formatError, getPlatform } from "./setupAiToolsUtils.js";
 import { packageInfo } from "../common/packageInfo.js";
 import { getAuthType } from "../common/connectionInfo.js";
 import { type UserConfig } from "../common/config/userConfig.js";
-import { defaultCreateAtlasLocalClient } from "../common/atlasLocal.js";
+import { defaultCreateAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 import { NoopLogger } from "@mongodb-js/mcp-core";
 import type { TelemetryResult } from "../telemetry/types.js";
 import { SetupTelemetry } from "./setupTelemetry.js";
