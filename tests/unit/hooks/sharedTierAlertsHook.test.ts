@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import type { MockInstance, MockedFunction } from "vitest";
 import * as clusterModule from "../../../src/common/atlas/cluster.js";
 import type { Cluster } from "../../../src/common/atlas/cluster.js";
 import { runSharedTierAlertsHook } from "../../../src/common/atlas/sharedTierAlertsHook.js";
@@ -6,14 +7,18 @@ import type { ApiClient } from "../../../src/common/atlas/apiClient.js";
 import type { Telemetry } from "../../../src/telemetry/telemetry.js";
 import type { LoggerBase } from "../../../src/common/logging/loggerBase.js";
 import { LogId } from "../../../src/common/logging/index.js";
+import type { LogPayload } from "../../../src/common/logging/loggingTypes.js";
+import type { BaseEvent } from "../../../src/telemetry/types.js";
+
+type ListAlertsResult = Awaited<ReturnType<ApiClient["listAlerts"]>>;
 
 describe("runSharedTierAlertsHook", () => {
-    let listAlerts: ReturnType<typeof vi.fn>;
-    let emitEvents: ReturnType<typeof vi.fn>;
-    let warning: ReturnType<typeof vi.fn>;
+    let listAlerts: MockedFunction<ApiClient["listAlerts"]>;
+    let emitEvents: MockedFunction<(events: BaseEvent[]) => void>;
+    let warning: MockedFunction<(payload: LogPayload) => void>;
     let telemetry: Telemetry;
     let logger: LoggerBase;
-    let inspectClusterSpy: ReturnType<typeof vi.spyOn>;
+    let inspectClusterSpy: MockInstance<typeof clusterModule.inspectCluster>;
 
     const baseParams: {
         projectId: string;
@@ -30,9 +35,9 @@ describe("runSharedTierAlertsHook", () => {
     };
 
     beforeEach(() => {
-        listAlerts = vi.fn();
-        emitEvents = vi.fn();
-        warning = vi.fn();
+        listAlerts = vi.fn() as MockedFunction<ApiClient["listAlerts"]>;
+        emitEvents = vi.fn() as MockedFunction<(events: BaseEvent[]) => void>;
+        warning = vi.fn() as MockedFunction<(payload: LogPayload) => void>;
         telemetry = {
             isTelemetryEnabled: () => true,
             emitEvents,
@@ -40,7 +45,9 @@ describe("runSharedTierAlertsHook", () => {
         logger = {
             warning,
         } as unknown as LoggerBase;
-        inspectClusterSpy = vi.spyOn(clusterModule, "inspectCluster");
+        inspectClusterSpy = vi.spyOn(clusterModule, "inspectCluster") as MockInstance<
+            typeof clusterModule.inspectCluster
+        >;
         inspectClusterSpy.mockResolvedValue({ instanceType: "DEDICATED" } as Cluster);
         baseParams.apiClient = { listAlerts } as unknown as ApiClient;
         baseParams.telemetry = telemetry;
@@ -69,11 +76,9 @@ describe("runSharedTierAlertsHook", () => {
 
         expect(result).toBeNull();
         expect(listAlerts).not.toHaveBeenCalled();
-        expect(warning).toHaveBeenCalledWith(
-            expect.objectContaining({
-                message: expect.stringContaining("not found"),
-            })
-        );
+        expect(warning).toHaveBeenCalledTimes(1);
+        const inspectFailPayload = warning.mock.calls[0]?.[0];
+        expect(inspectFailPayload?.message).toContain("not found");
     });
 
     it("filters alerts by event type, metric, and cluster name", async () => {
@@ -111,7 +116,7 @@ describe("runSharedTierAlertsHook", () => {
                 },
             ],
             totalCount: 4,
-        });
+        } as unknown as ListAlertsResult);
 
         const result = await runSharedTierAlertsHook({
             ...baseParams,
@@ -123,10 +128,11 @@ describe("runSharedTierAlertsHook", () => {
         expect(emitEvents).toHaveBeenCalledTimes(1);
         const firstBatch = emitEvents.mock.calls[0]?.[0];
         expect(firstBatch).toBeDefined();
-        const event = firstBatch![0] as { properties: Record<string, unknown> };
-        expect(event.properties.command).toBe("shared tier alerts");
-        expect(event.properties.Tier).toBe("Flex");
-        const alerts = event.properties.Alerts as { id: string }[];
+        const event = firstBatch![0]!;
+        const props = event.properties as Record<string, unknown>;
+        expect(props.command).toBe("shared tier alerts");
+        expect(props.Tier).toBe("Flex");
+        const alerts = props.Alerts as { id: string }[];
         expect(Array.isArray(alerts)).toBe(true);
         expect(alerts.map((x) => x.id).sort()).toEqual(["a1", "a4"]);
     });
@@ -144,7 +150,7 @@ describe("runSharedTierAlertsHook", () => {
                 },
             ],
             totalCount: 1,
-        });
+        } as unknown as ListAlertsResult);
 
         const result = await runSharedTierAlertsHook({
             ...baseParams,
@@ -164,13 +170,11 @@ describe("runSharedTierAlertsHook", () => {
 
         expect(result).toBeNull();
         expect(emitEvents).not.toHaveBeenCalled();
-        expect(warning).toHaveBeenCalledWith(
-            expect.objectContaining({
-                id: LogId.atlasSharedTierAlertsHookWarning,
-                context: "shared-tier-alerts-hook",
-                message: expect.stringContaining("network down"),
-            })
-        );
+        expect(warning).toHaveBeenCalledTimes(1);
+        const listAlertsFailPayload = warning.mock.calls[0]?.[0];
+        expect(listAlertsFailPayload?.id).toBe(LogId.atlasSharedTierAlertsHookWarning);
+        expect(listAlertsFailPayload?.context).toBe("shared-tier-alerts-hook");
+        expect(listAlertsFailPayload?.message).toContain("network down");
     });
 
     it("matches LOGICAL_SIZE among mixed OPEN alerts on one page", async () => {
@@ -191,7 +195,7 @@ describe("runSharedTierAlertsHook", () => {
                     clusterName: "my-cluster",
                 },
             ],
-        });
+        } as unknown as ListAlertsResult);
 
         const result = await runSharedTierAlertsHook({
             ...baseParams,

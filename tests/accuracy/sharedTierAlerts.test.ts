@@ -2,6 +2,7 @@ import { expect } from "vitest";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
 import { Matcher } from "./sdk/matcher.js";
+import type { VercelAgentPromptResult } from "./sdk/agent.js";
 
 const atlasConnectClusterWithAlerts: CallToolResult = {
     content: [
@@ -21,12 +22,11 @@ const atlasConnectClusterWithAlerts: CallToolResult = {
 
 describeAccuracyTests([
     {
-        prompt:
-            "I'm connected to my free Atlas cluster in project acc-test-project named acc-test-free-cluster. Tell me if this cluster is close to any connection or storage limits and what I should do next.",
+        prompt: "I'm connected to my free Atlas cluster in project acc-test-project named acc-test-free-cluster. Tell me if this cluster is close to any connection or storage limits and what I should do next.",
         systemPrompt:
             "The user may refer to an Atlas deployment by project id and cluster name. If they ask about limits or alerts on that Atlas cluster, call the atlas-connect-cluster tool with those identifiers so you can read the server's response, then summarize limits and next steps from the tool output.",
         mockedTools: {
-            "atlas-connect-cluster": () => atlasConnectClusterWithAlerts,
+            "atlas-connect-cluster": (): CallToolResult => atlasConnectClusterWithAlerts,
         },
         expectedToolCalls: [
             {
@@ -43,7 +43,7 @@ describeAccuracyTests([
                 },
             },
         ],
-        validateAgentResult: (result) => {
+        validateAgentResult: (result: VercelAgentPromptResult): void => {
             const t = result.text.toLowerCase();
             expect(
                 t.includes("alert") ||

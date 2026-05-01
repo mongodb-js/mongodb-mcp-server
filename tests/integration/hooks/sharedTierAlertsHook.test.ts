@@ -10,7 +10,9 @@ describeWithAtlas("shared-tier-alerts-hook integration", (integration) => {
         it("calls listAlerts with groupId and OPEN status without throwing", async () => {
             const server = integration.mcpServer();
             const apiClient = server.getApiClient();
-            const inspectSpy = vi.spyOn(clusterModule, "inspectCluster").mockResolvedValue({ instanceType: "FREE" } as Cluster);
+            const inspectSpy = vi
+                .spyOn(clusterModule, "inspectCluster")
+                .mockResolvedValue({ instanceType: "FREE" } as Cluster);
             const listSpy = vi.spyOn(apiClient, "listAlerts").mockResolvedValue({ results: [] });
 
             const telemetry = {
@@ -30,19 +32,27 @@ describeWithAtlas("shared-tier-alerts-hook integration", (integration) => {
 
             expect(inspectSpy).toHaveBeenCalled();
             expect(listSpy).toHaveBeenCalled();
-            expect(listSpy).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    params: expect.objectContaining({
-                        path: { groupId: getProjectId() },
-                        query: expect.objectContaining({
-                            status: "OPEN",
-                            itemsPerPage: 100,
-                            pageNum: 1,
-                            includeCount: true,
-                        }),
-                    }),
-                })
-            );
+
+            const projectId = getProjectId();
+            const firstListAlertsArg = listSpy.mock.calls[0]?.[0] as
+                | {
+                      params: {
+                          path: { groupId: string };
+                          query: {
+                              status?: string;
+                              itemsPerPage?: number;
+                              pageNum?: number;
+                              includeCount?: boolean;
+                          };
+                      };
+                  }
+                | undefined;
+            expect(firstListAlertsArg).toBeDefined();
+            expect(firstListAlertsArg?.params.path.groupId).toBe(projectId);
+            expect(firstListAlertsArg?.params.query.status).toBe("OPEN");
+            expect(firstListAlertsArg?.params.query.itemsPerPage).toBe(100);
+            expect(firstListAlertsArg?.params.query.pageNum).toBe(1);
+            expect(firstListAlertsArg?.params.query.includeCount).toBe(true);
 
             inspectSpy.mockRestore();
             listSpy.mockRestore();
