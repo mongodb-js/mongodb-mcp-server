@@ -5,7 +5,7 @@
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, resolve } from "node:path";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { cp, mkdir, rm, stat, writeFile } from "node:fs/promises";
+import { cp, mkdir, rm, stat, writeFile, readdir } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import type { PackageJson as LoosePackageJson, SetRequired } from "type-fest";
 
@@ -74,7 +74,10 @@ function expandGlob(globPattern: string): string[] {
     // Only supports a trailing /* — sufficient for this repo.
     if (globPattern.endsWith("/*")) {
         const parent = resolve(paths.repoRoot, globPattern.slice(0, -2));
-        if (!existsSync(parent)) return [];
+        if (!existsSync(parent)) {
+            return [];
+        }
+
         return readdirSync(parent, { withFileTypes: true })
             .filter((d) => d.isDirectory())
             .map((d) => resolve(parent, d.name));
@@ -92,11 +95,12 @@ function discoverWorkspacePackages(rootPkg: PackageJson): WorkspacePackage[] {
             .filter(([, v]) => typeof v === "string" && v.startsWith("workspace:"))
             .map(([k]) => k)
     );
-    if (workspaceNames.size === 0) return [];
+    if (workspaceNames.size === 0) {
+        return [];
+    }
 
     // Read pnpm-workspace.yaml to find the package globs.
-    const wsYamlPath = resolve(paths.repoRoot, "pnpm-workspace.yaml");
-    const wsYaml = readFileSync(wsYamlPath, "utf8");
+    const wsYaml = readFileSync(resolve(paths.repoRoot, "pnpm-workspace.yaml"), "utf8");
     const globs = parseWorkspaceGlobs(wsYaml);
 
     // For each glob, expand to package directories and read each package.json.
@@ -155,6 +159,10 @@ export function buildStagingPackageJson(rootPkg: PackageJson): PackageJson {
         type: "module",
         dependencies,
         optionalDependencies,
+        // Carry the root's pnpm.overrides into the staging package so transitive resolution
+        // stays aligned with what the root install (and CI) tested against. Without this,
+        // pnpm's lockfile rewrite drops the overrides during the staging install.
+        pnpm: rootPkg.pnpm ?? {},
     };
 }
 
@@ -178,6 +186,20 @@ async function runMcpbValidate(): Promise<void> {
     await spawnAsync("pnpm", ["exec", "mcpb", "validate", manifestPath], paths.stagingDir);
 }
 
+// Delete a package directory only if its package.json declares `cpu` or `os` constraints —
+// i.e. it really is the platform-specific binary we expected to find. Defensive: if a
+// transitive renames or restructures and the dir no longer holds a platform package, we
+// skip the deletion instead of removing something legitimate.
+async function rmIfPlatformSpecific(pkgDir: string): Promise<void> {
+    const pkgJsonPath = resolve(pkgDir, "package.json");
+    if (existsSync(pkgJsonPath)) {
+        const pkgJson = JSON.parse(readFileSync(pkgJsonPath, "utf8")) as PackageJson;
+        if (pkgJson.cpu?.length || pkgJson.os?.length) {
+            await rm(pkgDir, { recursive: true, force: true });
+        }
+    }
+}
+
 async function stageDependencies(rootPkg: PackageJson): Promise<void> {
     const stagingPkg = buildStagingPackageJson(rootPkg);
     const workspacePkgs = discoverWorkspacePackages(rootPkg);
@@ -196,21 +218,47 @@ async function stageDependencies(rootPkg: PackageJson): Promise<void> {
 
     await writeFile(resolve(paths.stagingDir, "package.json"), JSON.stringify(stagingPkg, null, 2) + "\n");
 
+    // Seed the staging dir with the root's lockfile so transitive versions match what CI
+    // tested against. pnpm will incrementally update entries for the deps we changed
+    // (workspace:* → file:, atlas-local platforms force-added) while preserving the locked
+    // versions for everything else.
+    await cp(resolve(paths.repoRoot, "pnpm-lock.yaml"), resolve(paths.stagingDir, "pnpm-lock.yaml"));
+
+    // No --config.supported-architectures here: that would fan out cross-platform optional
+    // deps (e.g. all four @oven/bun-linux-* variants on Linux runners). We only need the
+    // host's optional deps for the install to succeed; the atlas-local platform binaries we
+    // care about are listed as required deps in buildStagingPackageJson, so they install
+    // unconditionally.
     await spawnAsync(
         "pnpm",
-        [
-            "install",
-            "--prod",
-            "--ignore-workspace",
-            "--node-linker=hoisted",
-            "--config.supported-architectures.os={darwin,linux,win32}",
-            "--config.supported-architectures.cpu={x64,arm64}",
-        ],
+        ["install", "--prod", "--ignore-workspace", "--node-linker=hoisted", "--no-frozen-lockfile"],
         paths.stagingDir
     );
 
-    // Kerberos returns transitively via @mongodb-js/devtools-connect. Strip it.
-    const kerberosDir = resolve(paths.stagingDir, "node_modules", "kerberos");
+    const stagedNodeModules = resolve(paths.stagingDir, "node_modules");
+
+    // Strip @modelcontextprotocol/ext-apps's bundled dev tooling: Bun runtime binaries
+    // (@oven/bun-*) and Rollup native bindings (@rollup/rollup-*). They land here because
+    // ext-apps's optionalDependencies match the host platform, but the MCP server doesn't
+    // use ext-apps's build pipeline at runtime. Each rm verifies the target really is a
+    // platform-specific package (cpu/os constraints in its package.json) before deleting.
+    const ovenDir = resolve(stagedNodeModules, "@oven");
+    if (existsSync(ovenDir)) {
+        const entries = readdirSync(ovenDir);
+        await Promise.all(entries.map((entry) => rmIfPlatformSpecific(resolve(ovenDir, entry))));
+    }
+    const rollupDir = resolve(stagedNodeModules, "@rollup");
+    if (existsSync(rollupDir)) {
+        const entries = readdirSync(rollupDir);
+        await Promise.all(
+            entries
+                .filter((entry) => entry.startsWith("rollup-"))
+                .map((entry) => rmIfPlatformSpecific(resolve(rollupDir, entry)))
+        );
+    }
+
+    // Kerberos isn't supported as the package is platform-specific and can't be installed for all platforms.
+    const kerberosDir = resolve(stagedNodeModules, "kerberos");
     if (existsSync(kerberosDir)) {
         await rm(kerberosDir, { recursive: true, force: true });
     }
