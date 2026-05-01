@@ -7,10 +7,14 @@
 import type { AggregationCursor } from 'mongodb';
 import { ApiClient } from '@mongodb-js/mcp-atlas-api-client';
 import { ApiClientOptions } from '@mongodb-js/mcp-atlas-api-client';
+import type { AtlasConnectionMetadata } from '@mongodb-js/mcp-atlas-telemetry';
+import { AtlasTelemetry } from '@mongodb-js/mcp-atlas-telemetry';
 import { AuthProvider } from '@mongodb-js/mcp-atlas-api-client';
+import { TelemetryBaseEvent as BaseEvent } from '@mongodb-js/mcp-atlas-telemetry';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { Client } from '@mongodb-js/atlas-local';
 import type { CloseableTransport } from '@mongodb-js/mcp-types';
+import { TelemetryCommonProperties as CommonProperties } from '@mongodb-js/mcp-atlas-telemetry';
 import { CompositeLogger } from '@mongodb-js/mcp-core';
 import { ConnectionInfo } from '@mongosh/arg-parser';
 import { ConsoleLogger } from '@mongodb-js/mcp-logging';
@@ -21,6 +25,7 @@ import { DefaultEventMap } from '@mongodb-js/mcp-core';
 import { DefaultMetrics } from '@mongodb-js/mcp-metrics';
 import { defaultParserOptions as defaultParserOptions_2 } from '@mongosh/arg-parser/arg-parser';
 import type { ElicitRequestFormParams } from '@modelcontextprotocol/sdk/types.js';
+import { EventCache } from '@mongodb-js/mcp-atlas-telemetry';
 import EventEmitter from 'events';
 import { EventMap } from '@mongodb-js/mcp-core';
 import express from 'express';
@@ -49,7 +54,10 @@ import { RequestContext } from '@mongodb-js/mcp-atlas-api-client';
 import { Secret } from 'mongodb-redact';
 import type { SessionCloseReason } from '@mongodb-js/mcp-types';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import type { TelemetryEvents } from '@mongodb-js/mcp-types';
+import { TelemetryConfig } from '@mongodb-js/mcp-atlas-telemetry';
+import { TelemetryEvent } from '@mongodb-js/mcp-atlas-telemetry';
+import { TelemetryEvents } from '@mongodb-js/mcp-atlas-telemetry';
+import type { TelemetryToolMetadata } from '@mongodb-js/mcp-atlas-telemetry';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import type { TransportRequestContext } from '@mongodb-js/mcp-types';
@@ -81,28 +89,15 @@ export function applyConfigOverrides<TUserConfig extends UserConfig = UserConfig
     request?: RequestContext_2;
 }): TUserConfig;
 
+export { AtlasTelemetry }
+
 export { AuthProvider }
 
-// @public (undocumented)
-export type BaseEvent = TelemetryEvent<unknown>;
+export { BaseEvent }
 
 export { CloseableTransport }
 
-// Warning: (ae-forgotten-export) The symbol "CommonStaticProperties" needs to be exported by the entry point lib.d.ts
-//
-// @public
-export type CommonProperties = {
-    device_id?: string;
-    is_container_env?: TelemetryBoolSet;
-    mcp_client_version?: string;
-    mcp_client_name?: string;
-    transport?: "stdio" | "http";
-    config_atlas_auth?: TelemetryBoolSet;
-    config_connection_string?: TelemetryBoolSet;
-    session_id?: string;
-    hosting_mode?: string;
-    has_docker?: TelemetryBoolSet;
-} & CommonStaticProperties;
+export { CommonProperties }
 
 export { CompositeLogger }
 
@@ -386,22 +381,7 @@ export enum ErrorCodes {
     NotConnectedToMongoDB = 1000000
 }
 
-// @public
-export class EventCache {
-    constructor();
-    appendEvents(events: BaseEvent[]): void;
-    getEvents(): {
-        id: number;
-        event: BaseEvent;
-    }[];
-    static getInstance(): EventCache;
-    processOldestBatch<T>(batchSize: number, processor: (events: BaseEvent[]) => Promise<{
-        removeProcessed: boolean;
-        result: T;
-    }>): Promise<T | undefined>;
-    removeEvents(ids: number[]): void;
-    get size(): number;
-}
+export { EventCache }
 
 export { EventMap }
 
@@ -643,7 +623,7 @@ export interface ServerOptions<TUserConfig extends UserConfig = UserConfig, TCon
     // (undocumented)
     session: Session;
     // (undocumented)
-    telemetry: Telemetry;
+    telemetry: AtlasTelemetry;
     toolContext?: TContext;
     tools?: AnyToolClass[];
     // (undocumented)
@@ -805,47 +785,9 @@ export type StreamableHttpTransportRunnerConfig<TUserConfig extends UserConfig =
     createMcpHttpServer?: CreateMcpHttpServerFn<TUserConfig, TContext>;
 };
 
-// @public (undocumented)
-export class Telemetry {
-    // (undocumented)
-    close(): Promise<void>;
-    // @deprecated (undocumented)
-    static create(session: Session, userConfig: UserConfig, deviceId: DeviceId, options?: {
-        commonProperties?: Partial<CommonProperties>;
-        eventCache?: EventCache;
-    }): Telemetry;
-    // (undocumented)
-    static create(config: TelemetryConfig): Telemetry;
-    emitEvents(events: BaseEvent[]): void;
-    // (undocumented)
-    readonly events: EventEmitter<TelemetryEvents>;
-    getCommonProperties(): CommonProperties;
-    isTelemetryEnabled(): boolean;
-    setupPromise: Promise<[string, boolean]> | undefined;
-}
+export { TelemetryConfig }
 
-// @public
-export interface TelemetryConfig {
-    apiClient: ApiClient;
-    deviceId: DeviceId;
-    enabled: boolean;
-    eventCache?: EventCache;
-    getCommonProperties?: () => Partial<CommonProperties>;
-    keychain?: Keychain;
-    logger: LoggerBase;
-}
-
-// @public
-export type TelemetryEvent<T> = {
-    timestamp: string;
-    source: "mdbmcp";
-    properties: T & {
-        component: string;
-        duration_ms: number;
-        result: TelemetryResult;
-        category: string;
-    } & Record<string, string | number | string[]>;
-};
+export { TelemetryEvent }
 
 export { TelemetryEvents }
 
@@ -1086,8 +1028,6 @@ export const UserConfigSchema: z.ZodObject<{
 //
 // src/common/config/configOverrides.ts:29:5 - (ae-forgotten-export) The symbol "RequestContext_2" needs to be exported by the entry point lib.d.ts
 // src/common/exportsManager.ts:165:9 - (ae-forgotten-export) The symbol "JSONExportFormat" needs to be exported by the entry point lib.d.ts
-// src/telemetry/types.ts:17:9 - (ae-forgotten-export) The symbol "TelemetryResult" needs to be exported by the entry point lib.d.ts
-// src/telemetry/types.ts:176:5 - (ae-forgotten-export) The symbol "TelemetryBoolSet" needs to be exported by the entry point lib.d.ts
 
 // (No @packageDocumentation comment for this package)
 
