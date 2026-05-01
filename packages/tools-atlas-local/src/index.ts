@@ -2,4 +2,4 @@ export {
     defaultCreateAtlasLocalClient,
     type AtlasLocalClientFactoryFn,
     type LibraryLoader,
-} from "@mongodb-js/mcp-tools-atlas-local";
+} from "./atlasLocalClient.js";

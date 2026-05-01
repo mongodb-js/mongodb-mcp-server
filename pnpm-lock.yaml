@@ -44,6 +44,9 @@ importers:
       '@mongodb-js/mcp-metrics':
         specifier: workspace:*
         version: link:packages/metrics
+      '@mongodb-js/mcp-tools-atlas-local':
+        specifier: workspace:*
+        version: link:packages/tools-atlas-local
       '@mongodb-js/mcp-types':
         specifier: workspace:*
         version: link:packages/types
@@ -372,6 +375,28 @@ importers:
       vite:
         specifier: ^8.0.8
         version: 8.0.10(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3)
+
+  packages/tools-atlas-local:
+    dependencies:
+      '@mongodb-js/atlas-local':
+        specifier: ^1.3.0
+        version: 1.3.0
+      '@mongodb-js/mcp-core':
+        specifier: workspace:*
+        version: link:../core
+      '@mongodb-js/mcp-logging':
+        specifier: workspace:*
+        version: link:../logging
+      '@mongodb-js/mcp-types':
+        specifier: workspace:*
+        version: link:../types
+    devDependencies:
+      '@types/node':
+        specifier: ^25.6.0
+        version: 25.6.0
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.3
 
   packages/types:
     dependencies:
@@ -8614,7 +8639,6 @@ snapshots:
       '@mongodb-js/atlas-local-linux-arm64-gnu': 1.3.0
       '@mongodb-js/atlas-local-linux-x64-gnu': 1.3.0
       '@mongodb-js/atlas-local-win32-x64-msvc': 1.3.0
-    optional: true
 
   '@mongodb-js/device-id@0.4.6': {}
 
