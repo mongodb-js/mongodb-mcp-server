@@ -3,7 +3,7 @@ import { AtlasToolBase } from "../atlasTool.js";
 import type { ToolArgs } from "../../tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
-import type { StreamsToolMetadata } from "../../../telemetry/types.js";
+import type { AtlasStreamsToolMetadata as StreamsToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 
 export abstract class StreamsToolBase extends AtlasToolBase {
     protected override handleError(

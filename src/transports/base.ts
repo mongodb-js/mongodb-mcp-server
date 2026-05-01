@@ -2,7 +2,7 @@ import type { UserConfig } from "../common/config/userConfig.js";
 import { packageInfo } from "../common/packageInfo.js";
 import { type AnyToolClass, Server, type ServerOptions } from "../server.js";
 import { Session, type SessionOptions } from "../common/session.js";
-import { Telemetry } from "../telemetry/telemetry.js";
+import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import { McpServer, type LoggerBase, CompositeLogger } from "@mongodb-js/mcp-core";
 import { McpLogger } from "@mongodb-js/mcp-logging";
 import { Keychain } from "@mongodb-js/mcp-core";
@@ -13,7 +13,7 @@ import {
     type ConnectionErrorHandler,
     connectionErrorHandler as defaultConnectionErrorHandler,
 } from "../common/connectionErrorHandler.js";
-import type { CommonProperties } from "../telemetry/types.js";
+import type { TelemetryCommonProperties } from "@mongodb-js/mcp-atlas-telemetry";
 import { Elicitation } from "../elicitation.js";
 import type { AtlasLocalClientFactoryFn } from "../common/atlasLocal.js";
 import { defaultCreateAtlasLocalClient } from "../common/atlasLocal.js";
@@ -46,7 +46,7 @@ export type CustomizableServerOptions<TUserConfig extends UserConfig = UserConfi
      * the telemetry backend. Most, if not all, of the properties are captured
      * automatically.
      */
-    telemetryProperties?: Partial<CommonProperties>;
+    telemetryProperties?: Partial<TelemetryCommonProperties>;
 };
 
 /**
@@ -170,7 +170,7 @@ export type TransportRunnerConfig<
     /**
      * @deprecated This field will be removed in a future version. Use `createServer({ serverOptions: {telemetryProperties: MyCustomTelemetryProperties} })` instead.
      */
-    telemetryProperties?: Partial<CommonProperties>;
+    telemetryProperties?: Partial<TelemetryCommonProperties>;
 
     /** @deprecated Use `createServer({ serverOptions: {tools: [...AllTools, MyCustomTool]} })` instead */
     tools?: AnyToolClass[];
@@ -210,7 +210,7 @@ export abstract class TransportRunnerBase<
     /** @deprecated This method will be removed in a future version. Extend `StreamableHttpRunner` and override `createServerForRequest` instead. */
     protected readonly createAtlasLocalClient: AtlasLocalClientFactoryFn;
     /** @deprecated This field will be removed in a future version. Use `start({ serverOptions: {telemetryProperties: MyCustomTelemetryProperties} })` instead. */
-    protected readonly telemetryProperties: Partial<CommonProperties>;
+    protected readonly telemetryProperties: Partial<TelemetryCommonProperties>;
     /** @deprecated This field will be removed in a future version. Use `start({ serverOptions: {tools: [...AllTools, MyCustomTool]} })` instead. */
     protected readonly tools?: AnyToolClass[];
     /** @deprecated This method will be removed in a future version. Extend `StreamableHttpRunner` and override `createServerForRequest` instead. */
@@ -304,12 +304,13 @@ export abstract class TransportRunnerBase<
             keychain: Keychain.root,
             apiClient: sessionOptions?.apiClient ?? apiClient,
         });
-        const telemetry = Telemetry.create({
+        const telemetry = AtlasTelemetry.create({
             logger,
             deviceId: this.deviceId,
             apiClient: session.apiClient,
             keychain: session.keychain,
             enabled: userConfig.telemetry === "enabled",
+            machineMetadata: buildMachineMetadata(packageInfo.mcpServerName, packageInfo.version),
             getCommonProperties: () => ({
                 ...(serverOptions?.telemetryProperties ?? this.telemetryProperties),
                 transport: userConfig.transport,

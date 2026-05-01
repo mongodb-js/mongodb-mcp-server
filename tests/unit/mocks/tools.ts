@@ -2,7 +2,7 @@ import { z } from "zod";
 import { ToolBase } from "../../../src/tools/tool.js";
 import type { OperationType, ToolArgs, ToolCategory } from "../../../src/tools/tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { TelemetryToolMetadata } from "../../../src/telemetry/types.js";
+import type { TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 
 /** General-purpose tool used by most ToolBase unit tests. */
 export class TestTool extends ToolBase {

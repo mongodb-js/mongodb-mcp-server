@@ -3,7 +3,7 @@ import { AtlasLocalToolBase } from "../atlasLocalTool.js";
 import type { OperationType, ToolArgs } from "../../tool.js";
 import type { Client } from "@mongodb-js/atlas-local";
 import { CommonArgs } from "../../args.js";
-import type { ConnectionMetadata } from "../../../telemetry/types.js";
+import type { AtlasConnectionMetadata as ConnectionMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 
 export class ConnectDeploymentTool extends AtlasLocalToolBase {
     static toolName = "atlas-local-connect-deployment";

@@ -5,10 +5,8 @@ import { Resources } from "./resources/resources.js";
 import type { LogLevel } from "@mongodb-js/mcp-core";
 import { MCP_LOG_LEVELS } from "@mongodb-js/mcp-core";
 import { LogId } from "@mongodb-js/mcp-logging";
-import type { Telemetry } from "./telemetry/telemetry.js";
+import type { AtlasTelemetry, TelemetryServerEvent, TelemetryServerCommand } from "@mongodb-js/mcp-atlas-telemetry";
 import type { UserConfig } from "./common/config/userConfig.js";
-import { type ServerEvent } from "./telemetry/types.js";
-import { type ServerCommand } from "./telemetry/types.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import {
     CallToolRequestSchema,
@@ -37,7 +35,7 @@ export interface ServerOptions<
     session: Session;
     userConfig: TUserConfig;
     mcpServer: McpServer;
-    telemetry: Telemetry;
+    telemetry: AtlasTelemetry;
     elicitation: Elicitation;
     /** @deprecated Will be removed in a future version. Use `SessionOptions.connectionErrorHandler` instead. */
     connectionErrorHandler: ConnectionErrorHandler;
@@ -112,7 +110,7 @@ export class Server<
 > {
     public readonly session: Session;
     public readonly mcpServer: McpServer;
-    private readonly telemetry: Telemetry;
+    private readonly telemetry: AtlasTelemetry;
     public readonly userConfig: TUserConfig;
     public readonly elicitation: Elicitation;
     private readonly toolConstructors: AnyToolClass[];
@@ -282,8 +280,8 @@ export class Server<
         }
     }
 
-    private emitServerTelemetryEvent(command: ServerCommand, commandDuration: number, error?: Error): void {
-        const event: ServerEvent = {
+    private emitServerTelemetryEvent(command: TelemetryServerCommand, commandDuration: number, error?: Error): void {
+        const event: TelemetryServerEvent = {
             timestamp: new Date().toISOString(),
             source: "mdbmcp",
             properties: {

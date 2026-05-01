@@ -1,11 +1,11 @@
 import { ReactiveResource } from "../resource.js";
 import type { UserConfig } from "../../common/config/userConfig.js";
-import type { Telemetry } from "../../telemetry/telemetry.js";
+import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { Session } from "../../lib.js";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 
 export class ConfigResource extends ReactiveResource<UserConfig, readonly []> {
-    constructor(session: Session, config: UserConfig, telemetry: Telemetry) {
+    constructor(session: Session, config: UserConfig, telemetry: AtlasTelemetry) {
         super({
             resourceConfiguration: {
                 name: "config",

@@ -3,8 +3,12 @@ import type { RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { Session } from "../common/session.js";
 import { LogId } from "@mongodb-js/mcp-logging";
-import type { Telemetry } from "../telemetry/telemetry.js";
-import type { ConnectionMetadata, TelemetryToolMetadata, ToolEvent } from "../telemetry/types.js";
+import type {
+    AtlasTelemetry,
+    AtlasConnectionMetadata,
+    TelemetryToolMetadata,
+    TelemetryToolEvent,
+} from "@mongodb-js/mcp-atlas-telemetry";
 import type { UserConfig } from "../common/config/userConfig.js";
 import type { Server } from "../server.js";
 import type { Elicitation } from "../elicitation.js";
@@ -117,7 +121,7 @@ export type ToolConstructorParams<
      *
      * See `src/telemetry/telemetry.ts` for further reference.
      */
-    telemetry: Telemetry;
+    telemetry: AtlasTelemetry;
 
     /**
      * The elicitation service for requesting user confirmation.
@@ -282,7 +286,7 @@ export type ToolClass<
  * - `session` - Access to MongoDB connection, logger, and other session
  *   resources
  * - `config` - Server configuration (`UserConfig`)
- * - `telemetry` - Telemetry service for tracking usage
+ * - `telemetry` - AtlasTelemetry service for tracking usage
  * - `elicitation` - Service for requesting user confirmations
  *
  * ## Instance Properties Set by Constructor
@@ -521,7 +525,7 @@ export abstract class ToolBase<
             const toolCallResult = await this.execute(args, context);
             const result = await this.appendUIResource(toolCallResult);
 
-            this.emitToolEvent(args, { startTime, result });
+            this.emitTelemetryToolEvent(args, { startTime, result });
 
             const durationSeconds = (Date.now() - startTime) / 1000;
 
@@ -549,7 +553,7 @@ export abstract class ToolBase<
                 message: `Error executing ${this.name}: ${error as string}`,
             });
             const toolResult = await this.handleError(error, args);
-            this.emitToolEvent(args, { startTime, result: toolResult });
+            this.emitTelemetryToolEvent(args, { startTime, result: toolResult });
 
             const durationSeconds = (Date.now() - startTime) / 1000;
             this.metrics.get("toolExecutionDuration").observe(
@@ -631,7 +635,7 @@ export abstract class ToolBase<
      * Access to the telemetry service. Use this to emit custom telemetry events
      * if needed.
      */
-    protected readonly telemetry: Telemetry;
+    protected readonly telemetry: AtlasTelemetry;
 
     /**
      * Access to the elicitation service. Use this to request user confirmations
@@ -863,7 +867,7 @@ export abstract class ToolBase<
      * @param result - Whether the command succeeded or failed
      * @param args - The arguments passed to the tool
      */
-    private emitToolEvent(
+    private emitTelemetryToolEvent(
         args: ToolArgs<typeof this.argsShape>,
         { startTime, result }: { startTime: number; result: CallToolResult }
     ): void {
@@ -872,7 +876,7 @@ export abstract class ToolBase<
         }
         const duration = Date.now() - startTime;
         const metadata = this.resolveTelemetryMetadata(args, { result });
-        const event: ToolEvent = {
+        const event: TelemetryToolEvent = {
             timestamp: new Date().toISOString(),
             source: "mdbmcp",
             properties: {
@@ -892,8 +896,8 @@ export abstract class ToolBase<
         return this.config.previewFeatures.includes(feature);
     }
 
-    protected getConnectionInfoMetadata(): ConnectionMetadata {
-        const metadata: ConnectionMetadata = {};
+    protected getConnectionInfoMetadata(): AtlasConnectionMetadata {
+        const metadata: AtlasConnectionMetadata = {};
 
         if (this.session === undefined) {
             return metadata;

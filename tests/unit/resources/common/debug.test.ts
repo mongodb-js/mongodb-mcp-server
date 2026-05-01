@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DebugResource } from "../../../../src/resources/common/debug.js";
 import { Session } from "../../../../src/common/session.js";
-import { Telemetry } from "../../../../src/telemetry/telemetry.js";
+import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
 import { MCPConnectionManager } from "../../../../src/common/connectionManager.js";
 import { ExportsManager } from "../../../../src/common/exportsManager.js";
@@ -36,12 +36,13 @@ describe("debug resource", () => {
         })
     );
 
-    const telemetry = Telemetry.create({
+    const telemetry = AtlasTelemetry.create({
         logger,
         deviceId,
         apiClient: session.apiClient,
         keychain: session.keychain,
         enabled: false,
+        machineMetadata: buildMachineMetadata("test-server", "0.0.0"),
     });
 
     let debugResource: DebugResource = new DebugResource(session, defaultTestConfig, telemetry);

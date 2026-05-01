@@ -138,6 +138,7 @@
   },
   "dependencies": {
     "@mongodb-js/mcp-atlas-api-client": "workspace:*",
+    "@mongodb-js/mcp-atlas-telemetry": "workspace:*",
     "@mongodb-js/mcp-core": "workspace:*",
     "@mongodb-js/mcp-logging": "workspace:*",
     "@mongodb-js/mcp-types": "workspace:*",
@@ -155,7 +156,6 @@
     "chalk": "^5.6.2",
     "express": "^5.2.1",
     "jsonc-parser": "^3.3.1",
-    "lru-cache": "^11.2.6",
     "mongodb": "^7.1.1",
     "mongodb-build-info": "^1.9.7",
     "mongodb-log-writer": "^2.5.7",
