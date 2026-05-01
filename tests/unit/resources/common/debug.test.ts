@@ -36,7 +36,13 @@ describe("debug resource", () => {
         })
     );
 
-    const telemetry = Telemetry.create(session, { ...defaultTestConfig, telemetry: "disabled" }, deviceId);
+    const telemetry = Telemetry.create({
+        logger,
+        deviceId,
+        apiClient: session.apiClient,
+        keychain: session.keychain,
+        enabled: false,
+    });
 
     let debugResource: DebugResource = new DebugResource(session, defaultTestConfig, telemetry);
 

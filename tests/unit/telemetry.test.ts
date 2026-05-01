@@ -7,6 +7,7 @@ import {
     SEND_INTERVAL_MS,
     INITIAL_BACKOFF_MS,
     MAX_BACKOFF_MS,
+    type TelemetryConfig,
 } from "../../src/telemetry/telemetry.js";
 import type { BaseEvent, CommonProperties, TelemetryEvent, TelemetryResult } from "../../src/telemetry/types.js";
 import { EventCache } from "../../src/telemetry/eventCache.js";
@@ -16,7 +17,6 @@ import type { MockedFunction, MockInstance } from "vitest";
 import type { DeviceId } from "../../src/helpers/deviceId.js";
 import { defaultTestConfig, expectDefined } from "../integration/helpers.js";
 import { Keychain } from "@mongodb-js/mcp-core";
-import { type UserConfig } from "../../src/common/config/userConfig.js";
 
 // Mock container detection to avoid file I/O in tests
 vi.mock("../../src/helpers/container.js", () => ({
@@ -59,10 +59,30 @@ describe("Telemetry", () => {
             ) => Promise<T | undefined>
         >;
     };
-    let session: Session;
+    let keychain: Keychain;
     let telemetry: Telemetry;
     let mockDeviceId: DeviceId;
-    let config: UserConfig;
+    const sessionId = "test-session-id";
+    const mcpClient = { name: "test-agent", version: "1.0.0" };
+
+    function createTelemetry(overrides: Partial<TelemetryConfig> = {}): Telemetry {
+        return Telemetry.create({
+            logger: new NullLogger(),
+            deviceId: mockDeviceId,
+            apiClient: mockApiClient as unknown as ApiClient,
+            keychain,
+            enabled: true,
+            getCommonProperties: () => ({
+                transport: "stdio",
+                mcp_client_version: mcpClient.version,
+                mcp_client_name: mcpClient.name,
+                session_id: sessionId,
+                config_atlas_auth: mockApiClient.isAuthConfigured() ? "true" : "false",
+                config_connection_string: "false",
+            }),
+            ...overrides,
+        });
+    }
 
     // In-memory store backing the stateful mock EventCache
     let _cachedEvents: BaseEvent[] = [];
@@ -121,7 +141,6 @@ describe("Telemetry", () => {
     beforeEach(() => {
         vi.useFakeTimers();
         _cachedEvents = [];
-        config = { ...defaultTestConfig, telemetry: "enabled" };
         vi.clearAllMocks();
 
         mockApiClient = {
@@ -167,22 +186,10 @@ describe("Telemetry", () => {
             get: vi.fn().mockResolvedValue("test-device-id"),
         } as unknown as DeviceId;
 
-        session = {
-            apiClient: mockApiClient as unknown as ApiClient,
-            sessionId: "test-session-id",
-            agentRunner: { name: "test-agent", version: "1.0.0" } as const,
-            mcpClient: { name: "test-agent", version: "1.0.0" },
-            close: vi.fn().mockResolvedValue(undefined),
-            setAgentRunner: vi.fn().mockResolvedValue(undefined),
-            logger: new NoopLogger(),
-            keychain: new Keychain(),
-        } as unknown as Session;
-
-        telemetry = Telemetry.create(session, config, mockDeviceId, {
-            eventCache: mockEventCache as unknown as EventCache,
+        keychain = new Keychain();
+        telemetry = createTelemetry({
+            enabled: true,
         });
-
-        config.telemetry = "enabled";
     });
 
     afterEach(() => {
@@ -276,9 +283,8 @@ describe("Telemetry", () => {
 
         it("should add hostingMode to events if set", async () => {
             vi.clearAllTimers();
-            telemetry = Telemetry.create(session, config, mockDeviceId, {
-                eventCache: mockEventCache as unknown as EventCache,
-                commonProperties: { hosting_mode: "vscode-extension" },
+            telemetry = createTelemetry({
+                getCommonProperties: () => ({ hosting_mode: "vscode-extension" }),
             });
             await telemetry.setupPromise;
 
@@ -305,38 +311,32 @@ describe("Telemetry", () => {
             it("should successfully resolve the device ID", async () => {
                 vi.clearAllTimers();
                 const devId = { get: vi.fn().mockResolvedValue("test-device-id") } as unknown as DeviceId;
-                telemetry = Telemetry.create(session, config, devId);
+                telemetry = createTelemetry({ deviceId: devId });
 
-                expect(telemetry["isBufferingEvents"]).toBe(true);
                 expect(telemetry.getCommonProperties().device_id).toBe(undefined);
 
                 await telemetry.setupPromise;
 
-                expect(telemetry["isBufferingEvents"]).toBe(false);
                 expect(telemetry.getCommonProperties().device_id).toBe("test-device-id");
             });
 
             it("should handle device ID resolution failure gracefully", async () => {
                 vi.clearAllTimers();
                 const devId = { get: vi.fn().mockResolvedValue("unknown") } as unknown as DeviceId;
-                telemetry = Telemetry.create(session, config, devId);
+                telemetry = createTelemetry({ deviceId: devId });
 
-                expect(telemetry["isBufferingEvents"]).toBe(true);
                 await telemetry.setupPromise;
 
-                expect(telemetry["isBufferingEvents"]).toBe(false);
                 expect(telemetry.getCommonProperties().device_id).toBe("unknown");
             });
 
             it("should handle device ID timeout gracefully", async () => {
                 vi.clearAllTimers();
                 const devId = { get: vi.fn().mockResolvedValue("unknown") } as unknown as DeviceId;
-                telemetry = Telemetry.create(session, config, devId);
+                telemetry = createTelemetry({ deviceId: devId });
 
-                expect(telemetry["isBufferingEvents"]).toBe(true);
                 await telemetry.setupPromise;
 
-                expect(telemetry["isBufferingEvents"]).toBe(false);
                 expect(telemetry.getCommonProperties().device_id).toBe("unknown");
             });
         });
@@ -420,11 +420,10 @@ describe("Telemetry", () => {
 
     describe("when telemetry is disabled", () => {
         beforeEach(() => {
-            config.telemetry = "disabled";
-        });
-
-        afterEach(() => {
-            config.telemetry = "enabled";
+            vi.clearAllTimers();
+            telemetry = createTelemetry({
+                enabled: false,
+            });
         });
 
         it("should not send or cache events", async () => {
@@ -466,12 +465,12 @@ describe("Telemetry", () => {
     describe("when secrets are registered", () => {
         describe("comprehensive redaction coverage", () => {
             it("should redact sensitive data from CommonStaticProperties", async () => {
-                session.keychain.register("secret-server-version", "password");
-                session.keychain.register("secret-server-name", "password");
-                session.keychain.register("secret-password", "password");
-                session.keychain.register("secret-key", "password");
-                session.keychain.register("secret-token", "password");
-                session.keychain.register("secret-password-version", "password");
+                keychain.register("secret-server-version", "password");
+                keychain.register("secret-server-name", "password");
+                keychain.register("secret-password", "password");
+                keychain.register("secret-key", "password");
+                keychain.register("secret-token", "password");
+                keychain.register("secret-password-version", "password");
 
                 const sensitiveStaticProps = {
                     mcp_server_version: "secret-server-version",
@@ -483,10 +482,7 @@ describe("Telemetry", () => {
                 };
 
                 vi.clearAllTimers();
-                telemetry = Telemetry.create(session, config, mockDeviceId, {
-                    eventCache: mockEventCache as unknown as EventCache,
-                    commonProperties: sensitiveStaticProps,
-                });
+                telemetry = createTelemetry({ getCommonProperties: () => sensitiveStaticProps });
                 await telemetry.setupPromise;
 
                 await emitEventsForTest([createTestEvent()]);
@@ -507,8 +503,8 @@ describe("Telemetry", () => {
             });
 
             it("should redact sensitive data from CommonProperties", async () => {
-                session.keychain.register("test-device-id", "password");
-                session.keychain.register(session.sessionId, "password");
+                keychain.register("test-device-id", "password");
+                keychain.register(sessionId, "password");
 
                 await telemetry.setupPromise;
                 await emitEventsForTest([createTestEvent()]);
@@ -524,9 +520,9 @@ describe("Telemetry", () => {
             });
 
             it("should redact sensitive data that is added to events", async () => {
-                session.keychain.register("test-device-id", "password");
-                session.keychain.register(session.sessionId, "password");
-                session.keychain.register("test-component", "password");
+                keychain.register("test-device-id", "password");
+                keychain.register(sessionId, "password");
+                keychain.register("test-component", "password");
 
                 await telemetry.setupPromise;
                 await emitEventsForTest([createTestEvent()]);
@@ -586,9 +582,9 @@ describe("Telemetry", () => {
             mockApiClient.sendEvents.mockResolvedValue(undefined);
 
             vi.clearAllTimers();
-            const raceTelemetry = Telemetry.create(session, config, mockDeviceId, {
-                eventCache,
-            });
+            // Route the Telemetry instance to the real cache via the mocked getInstance.
+            vi.spyOn(EventCache, "getInstance").mockReturnValue(eventCache);
+            const raceTelemetry = createTelemetry();
             await raceTelemetry.setupPromise;
 
             await Promise.all([raceTelemetry["sendBatch"](), raceTelemetry["sendBatch"]()]);
@@ -621,25 +617,17 @@ describe("Telemetry credentials handling", () => {
         get: vi.fn().mockResolvedValue("test-device-id"),
     } as unknown as DeviceId;
 
-    function createMockSession(apiClient: ApiClient): Session {
-        return {
-            apiClient,
-            sessionId: "test-session-id",
-            mcpClient: { name: "test-agent", version: "1.0.0" },
-            logger: new NoopLogger(),
-            keychain: new Keychain(),
-        } as unknown as Session;
-    }
-
     beforeEach(() => {
         vi.useFakeTimers();
         fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue(new Response(null, { status: 200 }));
+        vi.spyOn(EventCache, "getInstance").mockReturnValue(new EventCache());
     });
 
     afterEach(() => {
         vi.useRealTimers();
         fetchSpy.mockRestore();
         vi.clearAllMocks();
+        vi.restoreAllMocks();
     });
 
     it.each([
@@ -673,9 +661,12 @@ describe("Telemetry credentials handling", () => {
             expect(apiClient.isAuthConfigured()).toBe(false);
         }
 
-        const config: UserConfig = { ...defaultTestConfig, telemetry: "enabled" };
-        const telemetry = Telemetry.create(createMockSession(apiClient), config, mockDeviceId, {
-            eventCache: new EventCache(),
+        const telemetry = Telemetry.create({
+            logger: new NullLogger(),
+            deviceId: mockDeviceId,
+            apiClient,
+            keychain: new Keychain(),
+            enabled: true,
         });
         await telemetry.setupPromise;
 

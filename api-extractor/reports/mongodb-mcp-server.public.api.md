@@ -101,6 +101,7 @@ export type CommonProperties = {
     config_connection_string?: TelemetryBoolSet;
     session_id?: string;
     hosting_mode?: string;
+    has_docker?: TelemetryBoolSet;
 } & CommonStaticProperties;
 
 export { CompositeLogger }
@@ -808,17 +809,30 @@ export type StreamableHttpTransportRunnerConfig<TUserConfig extends UserConfig =
 export class Telemetry {
     // (undocumented)
     close(): Promise<void>;
-    // (undocumented)
-    static create(session: Session, userConfig: UserConfig, deviceId: DeviceId, input?: {
+    // @deprecated (undocumented)
+    static create(session: Session, userConfig: UserConfig, deviceId: DeviceId, options?: {
         commonProperties?: Partial<CommonProperties>;
         eventCache?: EventCache;
     }): Telemetry;
+    // (undocumented)
+    static create(config: TelemetryConfig): Telemetry;
     emitEvents(events: BaseEvent[]): void;
     // (undocumented)
     readonly events: EventEmitter<TelemetryEvents>;
     getCommonProperties(): CommonProperties;
     isTelemetryEnabled(): boolean;
     setupPromise: Promise<[string, boolean]> | undefined;
+}
+
+// @public
+export interface TelemetryConfig {
+    apiClient: ApiClient;
+    deviceId: DeviceId;
+    enabled: boolean;
+    eventCache?: EventCache;
+    getCommonProperties?: () => Partial<CommonProperties>;
+    keychain?: Keychain;
+    logger: LoggerBase;
 }
 
 // @public
@@ -1073,7 +1087,7 @@ export const UserConfigSchema: z.ZodObject<{
 // src/common/config/configOverrides.ts:29:5 - (ae-forgotten-export) The symbol "RequestContext_2" needs to be exported by the entry point lib.d.ts
 // src/common/exportsManager.ts:165:9 - (ae-forgotten-export) The symbol "JSONExportFormat" needs to be exported by the entry point lib.d.ts
 // src/telemetry/types.ts:17:9 - (ae-forgotten-export) The symbol "TelemetryResult" needs to be exported by the entry point lib.d.ts
-// src/telemetry/types.ts:100:5 - (ae-forgotten-export) The symbol "TelemetryBoolSet" needs to be exported by the entry point lib.d.ts
+// src/telemetry/types.ts:176:5 - (ae-forgotten-export) The symbol "TelemetryBoolSet" needs to be exported by the entry point lib.d.ts
 
 // (No @packageDocumentation comment for this package)
 
