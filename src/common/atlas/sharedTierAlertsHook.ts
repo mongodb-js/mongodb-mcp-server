@@ -2,8 +2,6 @@ import type { ApiClient } from "./apiClient.js";
 import { inspectCluster } from "./cluster.js";
 import type { LoggerBase } from "../logging/loggerBase.js";
 import { LogId } from "../logging/index.js";
-import type { Telemetry } from "../../telemetry/telemetry.js";
-import type { BaseEvent } from "../../telemetry/types.js";
 
 const SHARED_TIER_EVENT_TYPES = new Set<string>(["OUTSIDE_METRIC_THRESHOLD", "OUTSIDE_FLEX_METRIC_THRESHOLD"]);
 
@@ -17,8 +15,14 @@ const SHARED_TIER_METRICS = new Set<string>([
 /** One page of OPEN alerts (same defaults as atlas-list-alerts); sufficient for shared-tier MVP. */
 const LIST_ALERTS_PAGE_SIZE = 100;
 
-/** Alert objects included on the MongoDB MCP telemetry event (`Alerts` property). */
-export interface SharedTierAlertsTelemetryItem {
+export interface RunSharedTierAlertsHookParams {
+    projectId: string;
+    clusterName: string;
+    apiClient: ApiClient;
+    logger: LoggerBase;
+}
+
+interface SharedTierAlertItem {
     id: string;
     eventTypeName: string;
     metricName: string;
@@ -26,14 +30,6 @@ export interface SharedTierAlertsTelemetryItem {
     status: string;
     created?: string;
     updated?: string;
-}
-
-export interface RunSharedTierAlertsHookParams {
-    projectId: string;
-    clusterName: string;
-    apiClient: ApiClient;
-    telemetry: Telemetry;
-    logger: LoggerBase;
 }
 
 function asRecord(alert: unknown): Record<string, unknown> {
@@ -69,7 +65,7 @@ function toMatched(
     alert: Record<string, unknown>,
     eventTypeName: string,
     metricName: string
-): SharedTierAlertsTelemetryItem | undefined {
+): SharedTierAlertItem | undefined {
     const id = readString(alert, "id");
     const clusterName = readString(alert, "clusterName");
     const status = readString(alert, "status");
@@ -89,10 +85,6 @@ function toMatched(
     };
 }
 
-function telemetryTier(instanceType: "FREE" | "FLEX"): "Free" | "Flex" {
-    return instanceType === "FREE" ? "Free" : "Flex";
-}
-
 function buildRecommendationParagraph(clusterName: string, metricNames: string[]): string {
     const unique = [...new Set(metricNames)].sort();
     const metricsList = unique.join(", ");
@@ -104,13 +96,14 @@ function buildRecommendationParagraph(clusterName: string, metricNames: string[]
 }
 
 /**
- * Post-connect: inspect tier; for Free/Flex only, fetch OPEN alerts and return upgrade guidance when TD filters match.
- * Emits telemetry when any alerts match. Dedicated clusters: one inspectCluster then return null (no listAlerts).
+ * Post-connect: inspect tier; for Free/Flex only, fetch OPEN alerts and return upgrade guidance when filters match.
+ * Returns tier, JSON-serialized alerts, and recommendation text for the caller to surface and attach to telemetry.
+ * Dedicated clusters: one inspectCluster then return null (no listAlerts).
  */
 export async function runSharedTierAlertsHook(
     params: RunSharedTierAlertsHookParams
-): Promise<{ recommendationText: string } | null> {
-    const { projectId, clusterName, apiClient, telemetry, logger } = params;
+): Promise<{ recommendationText: string; tier: "Free" | "Flex"; alerts: string[] } | null> {
+    const { projectId, clusterName, apiClient, logger } = params;
 
     let instanceType: "FREE" | "FLEX" | "DEDICATED" | undefined;
     try {
@@ -130,7 +123,6 @@ export async function runSharedTierAlertsHook(
         return null;
     }
 
-    const started = Date.now();
     let data;
     try {
         data = await apiClient.listAlerts({
@@ -159,7 +151,7 @@ export async function runSharedTierAlertsHook(
         return null;
     }
 
-    const collectedById = new Map<string, SharedTierAlertsTelemetryItem>();
+    const collectedById = new Map<string, SharedTierAlertItem>();
     for (const raw of results) {
         const alert = asRecord(raw);
         const matched = matchesFilters(alert, clusterName);
@@ -177,41 +169,15 @@ export async function runSharedTierAlertsHook(
         return null;
     }
 
-    const Alerts: SharedTierAlertsTelemetryItem[] = collected.map(
-        ({ id, eventTypeName, metricName, clusterName: cn, status, created, updated }) => ({
-            id,
-            eventTypeName,
-            metricName,
-            clusterName: cn,
-            status,
-            ...(created !== undefined ? { created } : {}),
-            ...(updated !== undefined ? { updated } : {}),
-        })
-    );
-
-    const tier = telemetryTier(instanceType);
-    // `Alerts` is an array of objects (per MCP telemetry spec); `TelemetryEvent` index signature is primitives-only.
-    const event = {
-        timestamp: new Date().toISOString(),
-        source: "mdbmcp" as const,
-        properties: {
-            command: "shared tier alerts",
-            category: "atlas",
-            component: "tool",
-            duration_ms: Math.max(0, Date.now() - started),
-            result: "success" as const,
-            Tier: tier,
-            Alerts,
-            project_id: projectId,
-            cluster_name: clusterName,
-        },
-    } as unknown as BaseEvent;
-    telemetry.emitEvents([event]);
+    const tier = instanceType === "FREE" ? "Free" : "Flex";
+    const alerts = collected.map((item) => JSON.stringify(item));
 
     return {
         recommendationText: buildRecommendationParagraph(
             clusterName,
             collected.map((a) => a.metricName)
         ),
+        tier,
+        alerts,
     };
 }

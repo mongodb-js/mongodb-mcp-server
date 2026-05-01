@@ -3,7 +3,6 @@ import * as clusterModule from "../../../src/common/atlas/cluster.js";
 import type { Cluster } from "../../../src/common/atlas/cluster.js";
 import { describeWithAtlas, withProject } from "../tools/atlas/atlasHelpers.js";
 import { runSharedTierAlertsHook } from "../../../src/common/atlas/sharedTierAlertsHook.js";
-import type { Telemetry } from "../../../src/telemetry/telemetry.js";
 
 describeWithAtlas("shared-tier-alerts-hook integration", (integration) => {
     withProject(integration, ({ getProjectId }) => {
@@ -13,17 +12,11 @@ describeWithAtlas("shared-tier-alerts-hook integration", (integration) => {
             const inspectSpy = vi.spyOn(clusterModule, "inspectCluster").mockResolvedValue({ instanceType: "FREE" } as Cluster);
             const listSpy = vi.spyOn(apiClient, "listAlerts").mockResolvedValue({ results: [] });
 
-            const telemetry = {
-                isTelemetryEnabled: () => true,
-                emitEvents: vi.fn(),
-            } as unknown as Telemetry;
-
             await expect(
                 runSharedTierAlertsHook({
                     projectId: getProjectId(),
                     clusterName: "integration-test-cluster",
                     apiClient,
-                    telemetry,
                     logger: server.session.logger,
                 })
             ).resolves.toBeDefined();
