@@ -15,7 +15,7 @@ import { defaultCreateAtlasLocalClient } from "../../../src/common/atlasLocal.js
 import { InMemoryTransport } from "../../../src/transports/inMemoryTransport.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
-import { ApiClient } from "../../../src/lib.js";
+import { ApiClient, Telemetry } from "../../../src/lib.js";
 import { MockMetrics } from "../../unit/mocks/metrics.js";
 
 describeWithMongoDB(

@@ -1,7 +1,8 @@
 import { randomUUID } from "crypto";
-import { ApiClient } from "../common/atlas/apiClient.js";
-import type { Keychain } from "../common/keychain.js";
-import { NullLogger } from "../common/logging/index.js";
+import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import type { Keychain } from "@mongodb-js/mcp-core";
+import { NoopLogger } from "@mongodb-js/mcp-core";
+import { packageInfo } from "../common/packageInfo.js";
 import { DeviceId } from "../helpers/deviceId.js";
 import { Telemetry } from "../telemetry/telemetry.js";
 import type {
@@ -56,9 +57,13 @@ export class SetupTelemetry {
         config: { apiBaseUrl: string; telemetry: "enabled" | "disabled" },
         keychain: Keychain
     ): SetupTelemetry {
-        const logger = new NullLogger();
+        const logger = new NoopLogger();
         const deviceId = DeviceId.create(logger);
-        const apiClient = new ApiClient({ baseUrl: config.apiBaseUrl }, logger);
+        const apiClient = new ApiClient({
+            baseUrl: config.apiBaseUrl,
+            userAgent: `AtlasMCP/${packageInfo.version} (${process.platform}; ${process.arch})`,
+            logger,
+        });
         const telemetry = Telemetry.create({
             logger,
             deviceId,

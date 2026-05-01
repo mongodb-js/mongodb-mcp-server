@@ -19,7 +19,7 @@ import { ErrorCodes } from "../../../../src/common/errors.js";
 import { Keychain } from "@mongodb-js/mcp-core";
 import { Elicitation } from "../../../../src/elicitation.js";
 import * as MongoDbTools from "../../../../src/tools/mongodb/tools.js";
-import { ApiClient } from "../../../../src/lib.js";
+import { ApiClient, Telemetry } from "../../../../src/lib.js";
 import { MockMetrics } from "../../../unit/mocks/metrics.js";
 
 const injectedErrorHandler: ConnectionErrorHandler = (error) => {

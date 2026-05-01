@@ -16,7 +16,7 @@ import { defaultCreateAtlasLocalClient } from "../common/atlasLocal.js";
 import { NoopLogger } from "@mongodb-js/mcp-core";
 import type { TelemetryResult } from "../telemetry/types.js";
 import { SetupTelemetry } from "./setupTelemetry.js";
-import { Keychain, registerGlobalSecretToRedact } from "../common/keychain.js";
+import { Keychain, registerGlobalSecretToRedact } from "@mongodb-js/mcp-core";
 
 const buildEnvObject = (
     connectionString: string,

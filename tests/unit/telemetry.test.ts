@@ -1,5 +1,4 @@
 import { ApiClient, ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
-import type { Session } from "../../src/common/session.js";
 import {
     Telemetry,
     nextBackoffMs,
@@ -15,7 +14,7 @@ import { afterAll, afterEach, beforeEach, describe, it, vi, expect } from "vites
 import { NoopLogger } from "@mongodb-js/mcp-core";
 import type { MockedFunction, MockInstance } from "vitest";
 import type { DeviceId } from "../../src/helpers/deviceId.js";
-import { defaultTestConfig, expectDefined } from "../integration/helpers.js";
+import { expectDefined } from "../integration/helpers.js";
 import { Keychain } from "@mongodb-js/mcp-core";
 
 // Mock container detection to avoid file I/O in tests
@@ -67,7 +66,7 @@ describe("Telemetry", () => {
 
     function createTelemetry(overrides: Partial<TelemetryConfig> = {}): Telemetry {
         return Telemetry.create({
-            logger: new NullLogger(),
+            logger: new NoopLogger(),
             deviceId: mockDeviceId,
             apiClient: mockApiClient as unknown as ApiClient,
             keychain,
@@ -662,7 +661,7 @@ describe("Telemetry credentials handling", () => {
         }
 
         const telemetry = Telemetry.create({
-            logger: new NullLogger(),
+            logger: new NoopLogger(),
             deviceId: mockDeviceId,
             apiClient,
             keychain: new Keychain(),
