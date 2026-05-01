@@ -35,6 +35,8 @@ export class ConnectClusterTool extends AtlasToolBase {
     static operationType: OperationType = "connect";
     public argsShape = ConnectClusterArgs;
 
+    private sharedTierHookResult: { tier: "Free" | "Flex"; alerts: string[] } | null = null;
+
     private queryConnection(
         projectId: string,
         clusterName: string
@@ -215,6 +217,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         clusterName,
         connectionType,
     }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+        this.sharedTierHookResult = null;
         const ipAccessListUpdated = await ensureCurrentIpInAccessList(this.apiClient, projectId);
         let createdUser = false;
 
@@ -282,10 +285,10 @@ export class ConnectClusterTool extends AtlasToolBase {
                             projectId: atlas.projectId,
                             clusterName: atlas.clusterName,
                             apiClient: this.apiClient,
-                            telemetry: this.telemetry,
                             logger: this.session.logger,
                         });
                         if (hookResult !== null) {
+                            this.sharedTierHookResult = { tier: hookResult.tier, alerts: hookResult.alerts };
                             content.push({
                                 type: "text",
                                 text: hookResult.recommendationText,
@@ -345,6 +348,16 @@ export class ConnectClusterTool extends AtlasToolBase {
             // delete the project_id from the parent metadata to avoid duplication
             delete parentMetadata.project_id;
         }
-        return { ...parentMetadata, ...connectionMetadata };
+        const sharedTierMetadata: Pick<
+            ConnectionMetadata,
+            "shared_tier_alerts_detected" | "shared_tier_tier" | "shared_tier_alerts"
+        > = this.sharedTierHookResult
+            ? {
+                  shared_tier_alerts_detected: "true",
+                  shared_tier_tier: this.sharedTierHookResult.tier,
+                  shared_tier_alerts: this.sharedTierHookResult.alerts,
+              }
+            : {};
+        return { ...parentMetadata, ...connectionMetadata, ...sharedTierMetadata };
     }
 }
