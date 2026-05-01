@@ -2,7 +2,7 @@
 // Run with: node scripts/createMcpb.ts [--validate-only]
 // Erasable TS only: no enum/namespace/parameter-properties/decorators.
 
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, resolve } from "node:path";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { cp, mkdir, rm, stat, writeFile } from "node:fs/promises";
@@ -15,11 +15,15 @@ function spawnAsync(cmd: string, args: string[], cwd: string): Promise<void> {
     return new Promise((resolvePromise, rejectPromise) => {
         const child = spawn(cmd, args, { cwd, stdio: "inherit", shell: process.platform === "win32" });
         child.on("error", rejectPromise);
-        child.on("exit", (code) => {
+        child.on("exit", (code, signal) => {
             if (code === 0) {
                 resolvePromise();
             } else {
-                rejectPromise(new Error(`${cmd} ${args.join(" ")} exited with code ${code}`));
+                rejectPromise(
+                    new Error(
+                        `${cmd} ${args.join(" ")} exited with code ${code ?? "null"} and signal ${signal ?? "null"}`
+                    )
+                );
             }
         });
     });
@@ -139,6 +143,11 @@ export function buildStagingPackageJson(rootPkg: PackageJson): PackageJson {
         dependencies[pkg] = exactVersion;
     }
 
+    // Promote @mongodb-js/atlas-local from optional to required so the install can't silently
+    // skip it. Without it, the platform binaries we just force-added are unreachable at runtime.
+    dependencies["@mongodb-js/atlas-local"] = atlasLocalRange;
+    delete optionalDependencies["@mongodb-js/atlas-local"];
+
     return {
         name: "mongodb-mcp-server-mcpb-staging",
         version: rootPkg.version,
@@ -176,11 +185,12 @@ async function stageDependencies(rootPkg: PackageJson): Promise<void> {
     // Rewrite workspace:* refs to file:<absolute-path>. pnpm install will read each
     // package's own package.json for transitives and install them.
     for (const ws of workspacePkgs) {
-        if (ws.name in stagingPkg.dependencies) {
-            stagingPkg.dependencies[ws.name] = `file:${ws.dir}`;
+        const fileSpec = pathToFileURL(ws.dir).href;
+        if (stagingPkg.dependencies && ws.name in stagingPkg.dependencies) {
+            stagingPkg.dependencies[ws.name] = fileSpec;
         }
         if (stagingPkg.optionalDependencies && ws.name in stagingPkg.optionalDependencies) {
-            stagingPkg.optionalDependencies[ws.name] = `file:${ws.dir}`;
+            stagingPkg.optionalDependencies[ws.name] = fileSpec;
         }
     }
 
@@ -218,26 +228,25 @@ async function stageDependencies(rootPkg: PackageJson): Promise<void> {
             },
             null,
             2
-        )
+        ) + "\n"
     );
 }
 
 function verifyStagedDeps(): void {
     const stagingNodeModules = resolve(paths.stagingDir, "node_modules");
 
-    // Required: every atlas-local platform package.
-    const missing = ATLAS_LOCAL_PLATFORM_PACKAGES.filter(
-        (pkg) => !existsSync(resolve(stagingNodeModules, ...pkg.split("/")))
-    );
+    // Required: @mongodb-js/atlas-local itself plus every atlas-local platform package.
+    const required = ["@mongodb-js/atlas-local", ...ATLAS_LOCAL_PLATFORM_PACKAGES];
+    const missing = required.filter((pkg) => !existsSync(resolve(stagingNodeModules, ...pkg.split("/"))));
 
     if (missing.length > 0) {
         throw new Error(
-            `mcpb: missing required platform packages in staging node_modules:\n  - ${missing.join("\n  - ")}`
+            `mcpb: missing required atlas-local packages in staging node_modules:\n  - ${missing.join("\n  - ")}`
         );
     }
 
     // Sanity check: stageDependencies removes kerberos post-install as it's platform-specific and
-    // we there's no way to add it for all platforms.
+    // there's no way to add it for all platforms.
     if (existsSync(resolve(stagingNodeModules, "kerberos"))) {
         throw new Error(
             "mcpb: kerberos was installed in the staging tree but the bundle is supposed to exclude it. Investigate which package re-pulled it."
