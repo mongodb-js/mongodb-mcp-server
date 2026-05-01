@@ -298,6 +298,27 @@ describeWithAtlas("clusters", (integration) => {
             });
 
             describe("when connected to the cluster being upgraded", () => {
+                beforeAll(() => {
+                    const session: Session = integration.mcpServer().session;
+                    (session.connectionManager as unknown as { state: unknown }).state = {
+                        tag: "disconnected",
+                        connectedAtlasCluster: {
+                            username: "testuser",
+                            projectId: getProjectId(),
+                            clusterName,
+                            instanceType: "FREE" as const,
+                            provider: "AWS",
+                            region: "US_EAST_1",
+                            expiryDate: new Date(Date.now() + 3_600_000),
+                        },
+                    };
+                });
+
+                afterAll(() => {
+                    const session: Session = integration.mcpServer().session;
+                    (session.connectionManager as unknown as { state: unknown }).state = { tag: "disconnected" };
+                });
+
                 it("upgrades FREE cluster to FLEX using session state without explicit params", async () => {
                     const response = await integration.mcpClient().callTool({
                         name: "atlas-upgrade-cluster",

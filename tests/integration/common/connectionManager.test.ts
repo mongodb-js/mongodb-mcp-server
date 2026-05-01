@@ -142,6 +142,7 @@ describeWithMongoDB("Connection Manager", (integration) => {
                 username: "",
                 projectId: "",
                 clusterName: "My Atlas Cluster",
+                instanceType: "FREE" as const,
                 expiryDate: new Date(),
             };
 
