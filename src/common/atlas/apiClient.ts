@@ -879,7 +879,7 @@ export class ApiClient {
         body: {
             name: string;
             providerSettings: {
-                providerName: string;
+                providerName?: string;
                 instanceSizeName: "FLEX" | "M10";
                 backingProviderName?: string;
                 regionName?: string;
