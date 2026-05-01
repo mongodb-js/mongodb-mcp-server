@@ -37,7 +37,7 @@ export interface TelemetryConfig {
      * API client used to send events. Always required — the pipeline would
      * otherwise buffer events in the cache forever. When no Atlas credentials
      * are configured, callers should still pass an unauthenticated
-     * {@link ApiClient}; it will route telemetry through the unauth endpoint.
+     * `ApiClient`; it will route telemetry through the unauth endpoint.
      */
     apiClient: ApiClient;
 
