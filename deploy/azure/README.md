@@ -43,7 +43,7 @@ When using `bicep/paramsWithAuthEnabled.json`, provide tenant and app-specific v
 - `authTenantId`: The tenant ID (directory ID) of the Microsoft Entra tenant that owns the identities interacting with the MCP server. Obtain it via `az account show --query tenantId -o tsv`.
 - `authAllowedClientApps` (optional): Provide an array of application (client) IDs for every client that should be allowed to request tokens for the MongoDB MCP server (for example, front-end apps, automation scripts, or integration partners). Omit this property to allow all clients without any filtering.
 
-For deeper guidance on Microsoft Entra authentication in Azure Container Apps, see the official docs: <https://learn.microsoft.com/en-us/azure/container-apps/authentication-entra>. Use "Option 2: Use an existing registration created separately". Once the bicep is executed, it will "Enable Microsoft Entra ID in your container app" and thus you dont need to manually do that. When you connect to the local MongoDB MCP server hosted in ACA from Microsoft Foundry, select "Authentication" as "Microsoft Entra" and "Type" as "Project Managed Identity" and provide the application (client) ID as the "Audience" to authenticate using the Entra ID registered app.
+For deeper guidance on Microsoft Entra authentication in Azure Container Apps, see the official docs: <https://learn.microsoft.com/en-us/azure/container-apps/authentication-entra>. Use "Option 2: Use an existing registration created separately". Once the bicep is executed, it will "Enable Microsoft Entra ID in your container app" and thus you don't need to manually do that. When you connect to the local MongoDB MCP server hosted in ACA from Microsoft Foundry, select "Authentication" as "Microsoft Entra" and "Type" as "Project Managed Identity" and provide the application (client) ID as the "Audience" to authenticate using the Entra ID registered app.
 
 ## Deploy the Bicep Template
 
@@ -58,7 +58,7 @@ For deeper guidance on Microsoft Entra authentication in Azure Container Apps, s
 
    **Mac and Linux example**
 
-   ```Linux
+   ```bash
    export location="eastus"                     \
    export resourceGroup="mongodb-mcp-demo-rg"   \
    export templateFile="bicep/main.bicep"       \
@@ -67,13 +67,13 @@ For deeper guidance on Microsoft Entra authentication in Azure Container Apps, s
 
 2. **Create the resource group (if it does not exist):**
 
-   ```powershell or linux
+   ```powershell
    az group create --name $resourceGroup --location $location
    ```
 
 3. **Validate the deployment (optional but recommended):**
 
-   ```powershell or linux
+   ```powershell
    az deployment group what-if \
       --resource-group $resourceGroup \
       --template-file $templateFile \
@@ -109,7 +109,7 @@ To apply changes:
 
 Remove the deployed resources when no longer needed:
 
-```powershell or linux
+```powershell
 az group delete --name $resourceGroup --yes --no-wait
 ```
 
