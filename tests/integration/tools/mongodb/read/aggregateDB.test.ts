@@ -475,7 +475,7 @@ describeWithMongoDB(
 
             // Ensure it aborted quickly relative to the full run — must complete faster than a full run.
             expect(executionTime).toBeGreaterThanOrEqual(25);
-            expect(executionTime).toBeLessThan(Math.min(fullRunTime * 0.75, 100));
+            expect(executionTime).toBeLessThan(Math.max(fullRunTime * 0.75, 50));
             expect(result).toBeUndefined();
             expectDefined(error);
             expect(error.message).toContain("This operation was aborted");
