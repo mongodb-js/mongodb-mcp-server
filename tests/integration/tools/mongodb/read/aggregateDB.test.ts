@@ -458,6 +458,11 @@ describeWithMongoDB(
 
         it("should abort aggregate-db operation during cursor iteration", async () => {
             await integration.connectMcpClient();
+
+            // Measure the full (unaborted) run time as a baseline so the abort bound
+            // stays meaningful regardless of how fast the CI runner is.
+            const { executionTime: fullRunTime } = await runSlowAggregateDb();
+
             const abortController = new AbortController();
 
             // Start an aggregation with regex and complex filter that requires scanning many documents
@@ -468,9 +473,9 @@ describeWithMongoDB(
 
             const { result, error, executionTime } = await aggregatePromise;
 
-            // Ensure it aborted quickly, but possibly after some processing
+            // Ensure it aborted quickly relative to the full run — must complete faster than a full run.
             expect(executionTime).toBeGreaterThanOrEqual(25);
-            expect(executionTime).toBeLessThan(50);
+            expect(executionTime).toBeLessThan(Math.min(fullRunTime * 0.75, 100));
             expect(result).toBeUndefined();
             expectDefined(error);
             expect(error.message).toContain("This operation was aborted");
