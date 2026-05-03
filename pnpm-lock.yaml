@@ -130,8 +130,8 @@ importers:
         specifier: ^0.2.0
         version: 0.2.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@4.4.2)
       '@microsoft/api-extractor':
-        specifier: ^7.58.5
-        version: 7.58.5(@types/node@25.6.0)
+        specifier: ^7.58.7
+        version: 7.58.7(@types/node@25.6.0)
       '@modelcontextprotocol/inspector':
         specifier: ^0.21.2
         version: 0.21.2(@preact/signals-core@1.13.0)(@types/node@25.6.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(typescript@5.9.3)
@@ -1246,8 +1246,8 @@ packages:
   '@microsoft/api-extractor-model@7.33.8':
     resolution: {integrity: sha512-aIcoQggPyer3B6Ze3usz0YWC/oBwUHfRH5ETUsr+oT2BRA6SfTJl7IKPcPZkX4UR+PohowzW4uMxsvjrn8vm+w==}
 
-  '@microsoft/api-extractor@7.58.5':
-    resolution: {integrity: sha512-pKQs2MBtGCVcIs1pxkSjhb1GGxYaS3KRCoi7Ki6qCJw6S/zx5ZYvC3CX39RpexBqYcO0asphyrqdW2ifyuSX6A==}
+  '@microsoft/api-extractor@7.58.7':
+    resolution: {integrity: sha512-yK6OycD46gIzLRpj6ueVUWPk1ACSpkN1LBo05gY1qPTylbWyUCanXfH7+VgkI5LJrJoRSQR5F04XuCffCXLOBw==}
     hasBin: true
 
   '@microsoft/tsdoc-config@0.18.1':
@@ -2767,16 +2767,16 @@ packages:
   '@rushstack/rig-package@0.7.3':
     resolution: {integrity: sha512-aAA518n6wxxjCfnTAOjQnm7ngNE0FVHxHAw2pxKlIhxrMn0XQjGcXKF0oKWpjBgJOmsaJpVob/v+zr3zxgPWuA==}
 
-  '@rushstack/terminal@0.23.0':
-    resolution: {integrity: sha512-7FfI9irLqnBDxCvMEXdEXLDjaouZsGbKkeGfmW8IOn8aYi7DV9aaXaEQHCcVxWMvEDOkuTf4y6RMDgIY5CFuUQ==}
+  '@rushstack/terminal@0.24.0':
+    resolution: {integrity: sha512-8ZQS4MMaGsv27EXCBiH7WMPkRZrffeDoIevs6z9TM5dzqiY6+Hn4evfK/G+gvgBTjfvfkHIZPQQmalmI2sM4TQ==}
     peerDependencies:
       '@types/node': '*'
     peerDependenciesMeta:
       '@types/node':
         optional: true
 
-  '@rushstack/ts-command-line@5.3.8':
-    resolution: {integrity: sha512-vKL4fVR2TdnMdCmlP71nZUzbNANOYlR7NfN+J/YL9UIvicDIEB+ZtH38LcJECOZUwHia8C5Mg98kc4kPt/ev5w==}
+  '@rushstack/ts-command-line@5.3.9':
+    resolution: {integrity: sha512-GIHqU+sRGQ3LGWAZu1O+9Yh++qwtyNIIGuNbcWHJjBTm2qRez0cwINUHZ+pQLR8UuzZDcMajrDaNbUYoaL/XtQ==}
 
   '@smithy/abort-controller@4.2.11':
     resolution: {integrity: sha512-Hj4WoYWMJnSpM6/kchsm4bUNTL9XiSyhvoMb2KIq4VJzyDt7JpGHUZHkVNPZVC7YE1tf8tPeVauxpFBKGW4/KQ==}
@@ -4574,10 +4574,6 @@ packages:
 
   hash.js@1.1.7:
     resolution: {integrity: sha512-taOaskGt4z4SOANNseOviYDvjEJinIkRgmp7LbKP2YTTmVxWBl87s/uzK9r+44BclBSp2X7K1hqeNfz9JbBeXA==}
-
-  hasown@2.0.2:
-    resolution: {integrity: sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ==}
-    engines: {node: '>= 0.4'}
 
   hasown@2.0.3:
     resolution: {integrity: sha512-ej4AhfhfL2Q2zpMmLo7U1Uv9+PyhIZpgQLGT1F9miIGmiCJIoCgSmczFdrc97mWT4kVY72KA+WnnhJ5pghSvSg==}
@@ -8279,15 +8275,15 @@ snapshots:
     transitivePeerDependencies:
       - '@types/node'
 
-  '@microsoft/api-extractor@7.58.5(@types/node@25.6.0)':
+  '@microsoft/api-extractor@7.58.7(@types/node@25.6.0)':
     dependencies:
       '@microsoft/api-extractor-model': 7.33.8(@types/node@25.6.0)
       '@microsoft/tsdoc': 0.16.0
       '@microsoft/tsdoc-config': 0.18.1
       '@rushstack/node-core-library': 5.23.1(@types/node@25.6.0)
       '@rushstack/rig-package': 0.7.3
-      '@rushstack/terminal': 0.23.0(@types/node@25.6.0)
-      '@rushstack/ts-command-line': 5.3.8(@types/node@25.6.0)
+      '@rushstack/terminal': 0.24.0(@types/node@25.6.0)
+      '@rushstack/ts-command-line': 5.3.9(@types/node@25.6.0)
       diff: 8.0.4
       minimatch: 10.2.3
       resolve: 1.22.12
@@ -9809,7 +9805,7 @@ snapshots:
       jju: 1.4.0
       resolve: 1.22.12
 
-  '@rushstack/terminal@0.23.0(@types/node@25.6.0)':
+  '@rushstack/terminal@0.24.0(@types/node@25.6.0)':
     dependencies:
       '@rushstack/node-core-library': 5.23.1(@types/node@25.6.0)
       '@rushstack/problem-matcher': 0.2.1(@types/node@25.6.0)
@@ -9817,9 +9813,9 @@ snapshots:
     optionalDependencies:
       '@types/node': 25.6.0
 
-  '@rushstack/ts-command-line@5.3.8(@types/node@25.6.0)':
+  '@rushstack/ts-command-line@5.3.9(@types/node@25.6.0)':
     dependencies:
-      '@rushstack/terminal': 0.23.0(@types/node@25.6.0)
+      '@rushstack/terminal': 0.24.0(@types/node@25.6.0)
       '@types/argparse': 1.0.38
       argparse: 1.0.10
       string-argv: 0.3.2
@@ -11492,7 +11488,7 @@ snapshots:
       has-property-descriptors: 1.0.2
       has-proto: 1.2.0
       has-symbols: 1.1.0
-      hasown: 2.0.2
+      hasown: 2.0.3
       internal-slot: 1.1.0
       is-array-buffer: 3.0.5
       is-callable: 1.2.7
@@ -11961,7 +11957,7 @@ snapshots:
       get-proto: 1.0.1
       gopd: 1.2.0
       has-symbols: 1.1.0
-      hasown: 2.0.2
+      hasown: 2.0.3
       math-intrinsics: 1.1.0
 
   get-nonce@1.0.1: {}
@@ -12103,10 +12099,6 @@ snapshots:
     dependencies:
       inherits: 2.0.4
       minimalistic-assert: 1.0.1
-
-  hasown@2.0.2:
-    dependencies:
-      function-bind: 1.1.2
 
   hasown@2.0.3:
     dependencies:
@@ -12325,7 +12317,7 @@ snapshots:
       call-bound: 1.0.4
       gopd: 1.2.0
       has-tostringtag: 1.0.2
-      hasown: 2.0.2
+      hasown: 2.0.3
 
   is-set@2.0.3: {}
 
