@@ -124,7 +124,7 @@
     "@typescript-eslint/parser": "^8.58.2",
     "@vitejs/plugin-react": "^6.0.1",
     "@vitest/coverage-v8": "^4.1.4",
-    "@vitest/eslint-plugin": "^1.6.15",
+    "@vitest/eslint-plugin": "^1.6.16",
     "ai": "^6.0.168",
     "concurrently": "^9.2.1",
     "duplexpair": "^1.0.2",
