@@ -19,7 +19,8 @@ import { ErrorCodes } from "../../../../src/common/errors.js";
 import { Keychain } from "@mongodb-js/mcp-core";
 import { Elicitation } from "../../../../src/elicitation.js";
 import * as MongoDbTools from "../../../../src/tools/mongodb/tools.js";
-import { ApiClient, Telemetry } from "../../../../src/lib.js";
+import { ApiClient } from "../../../../src/lib.js";
+import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import { MockMetrics } from "../../../unit/mocks/metrics.js";
 
 const injectedErrorHandler: ConnectionErrorHandler = (error) => {
@@ -116,12 +117,13 @@ describe("MongoDBTool implementations", () => {
             }),
         });
 
-        const telemetry = Telemetry.create({
+        const telemetry = AtlasTelemetry.create({
             logger,
             deviceId,
             apiClient: session.apiClient,
             keychain: session.keychain,
             enabled: false,
+            machineMetadata: buildMachineMetadata("test-server", "0.0.0"),
         });
 
         const clientTransport = new InMemoryTransport();

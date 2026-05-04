@@ -12,17 +12,17 @@ export { LoggerBase, CompositeLogger, type EventMap, type DefaultEventMap } from
 export type { Metrics, MetricDefinitions } from "@mongodb-js/mcp-metrics";
 export type { TransportRequestContext } from "./transports/base.js";
 export type {
-    CommonProperties,
+    TelemetryCommonProperties as CommonProperties,
     TelemetryBoolSet,
-    CommonStaticProperties,
+    TelemetryCommonStaticProperties as CommonStaticProperties,
     TelemetryResult,
     TelemetryToolMetadata,
-    ConnectionMetadata,
+    AtlasConnectionMetadata as ConnectionMetadata,
     AtlasMetadata,
     AtlasLocalToolMetadata,
-    PerfAdvisorToolMetadata,
-    StreamsToolMetadata,
-} from "./telemetry/types.js";
+    AtlasPerfAdvisorToolMetadata as PerfAdvisorToolMetadata,
+    AtlasStreamsToolMetadata as StreamsToolMetadata,
+} from "@mongodb-js/mcp-atlas-telemetry";
 export { Session, type SessionOptions, type SessionEvents } from "./common/session.js";
 export type { CustomizableServerOptions, CustomizableSessionOptions } from "./transports/base.js";
 export type { LogLevel, LogPayload, LoggerType } from "@mongodb-js/mcp-core";
@@ -74,10 +74,13 @@ export {
     type ToolArgs,
     type ToolExecutionContext,
 } from "./tools/tool.js";
-export { Telemetry } from "./telemetry/telemetry.js";
-export type { TelemetryEvents, TelemetryConfig } from "./telemetry/telemetry.js";
-export type { TelemetryEvent, BaseEvent } from "./telemetry/types.js";
-export { EventCache } from "./telemetry/eventCache.js";
+export { AtlasTelemetry as Telemetry, EventCache } from "@mongodb-js/mcp-atlas-telemetry";
+export type {
+    TelemetryEvents,
+    TelemetryConfig,
+    TelemetryEvent,
+    TelemetryBaseEvent as BaseEvent,
+} from "@mongodb-js/mcp-atlas-telemetry";
 export { ErrorCodes, MongoDBError } from "./common/errors.js";
 export type { AuthProvider, Credentials } from "@mongodb-js/mcp-atlas-api-client";
 export type {

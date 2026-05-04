@@ -16,7 +16,7 @@ import type { InsertManyOutput } from "../../../../../src/tools/mongodb/create/i
 import { beforeEach, afterEach, expect, it, vi } from "vitest";
 import { ObjectId } from "bson";
 import type { Collection } from "mongodb";
-import type { ToolEvent } from "../../../../../src/telemetry/types.js";
+import type { TelemetryToolEvent as ToolEvent } from "@mongodb-js/mcp-atlas-telemetry";
 
 describeWithMongoDB("insertMany tool when search is disabled", (integration) => {
     validateToolMetadata(

@@ -6,10 +6,10 @@ import { StreamsToolBase } from "../../../../../src/tools/atlas/streams/streamsT
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import type { Session } from "../../../../../src/common/session.js";
 import type { UserConfig } from "../../../../../src/common/config/userConfig.js";
-import type { Telemetry } from "../../../../../src/telemetry/telemetry.js";
+import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { Elicitation } from "../../../../../src/elicitation.js";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
-import type { TelemetryToolMetadata } from "../../../../../src/telemetry/types.js";
+import type { TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics } from "../../../mocks/metrics.js";
 import { Keychain } from "@mongodb-js/mcp-core";
@@ -63,7 +63,7 @@ function createApiClientError(status: number, message: string): ApiClientError {
 describe("StreamsToolBase", () => {
     let mockSession: Session;
     let mockConfig: UserConfig;
-    let mockTelemetry: Telemetry;
+    let mockTelemetry: AtlasTelemetry;
     let mockElicitation: Elicitation;
     let tool: TestStreamsTool;
 
@@ -92,7 +92,7 @@ describe("StreamsToolBase", () => {
         mockTelemetry = {
             isTelemetryEnabled: () => true,
             emitEvents: vi.fn(),
-        } as unknown as Telemetry;
+        } as unknown as AtlasTelemetry;
 
         mockElicitation = {
             requestConfirmation: vi.fn(),

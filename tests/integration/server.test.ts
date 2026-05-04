@@ -7,14 +7,15 @@ import { defaultTestConfig, expectDefined, InMemoryLogger } from "./helpers.js";
 import { describeWithMongoDB } from "./tools/mongodb/mongodbHelpers.js";
 import { afterEach, describe, expect, it } from "vitest";
 import type { LoggerBase, UserConfig } from "../../src/lib.js";
-import { ApiClient, Elicitation, Keychain, Telemetry } from "../../src/lib.js";
+import { ApiClient, Elicitation, Keychain } from "../../src/lib.js";
+import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import { defaultCreateAtlasLocalClient } from "../../src/common/atlasLocal.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Server } from "../../src/server.js";
 import { connectionErrorHandler } from "../../src/common/connectionErrorHandler.js";
 import { type OperationType, ToolBase, type ToolCategory, type ToolClass } from "../../src/tools/tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { TelemetryToolMetadata } from "../../src/telemetry/types.js";
+import type { TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import { InMemoryTransport } from "../../src/transports/inMemoryTransport.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { TRANSPORT_PAYLOAD_LIMITS } from "../../src/transports/constants.js";
@@ -198,12 +199,13 @@ describe("Server integration test", () => {
             }),
         });
 
-        const telemetry = Telemetry.create({
+        const telemetry = AtlasTelemetry.create({
             logger,
             deviceId,
             apiClient: session.apiClient,
             keychain: session.keychain,
             enabled: false,
+            machineMetadata: buildMachineMetadata("test-server", "0.0.0"),
         });
 
         const mcpServerInstance = new McpServer({ name: "test", version: "1.0" });

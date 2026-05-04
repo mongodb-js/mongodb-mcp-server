@@ -1,14 +1,7 @@
 import type { MockInstance } from "vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-    ApiClient,
-    CompositeLogger,
-    Keychain,
-    Telemetry,
-    type DeviceId,
-    type Session,
-    UserConfigSchema,
-} from "mongodb-mcp-server/web";
+import { ApiClient, CompositeLogger, Keychain, Telemetry, type DeviceId, type Session } from "mongodb-mcp-server/web";
+import { buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 
 /**
  * Browser regression test: the MCP server ships a `mongodb-mcp-server/web`
@@ -66,11 +59,15 @@ describe("Telemetry in browser environment", () => {
         });
         expect(apiClient.isAuthConfigured()).toBe(false);
 
-        const telemetry = Telemetry.create(
-            createMockSession(apiClient),
-            UserConfigSchema.parse({ telemetry: "enabled" }),
-            mockDeviceId
-        );
+        const session = createMockSession(apiClient);
+        const telemetry = Telemetry.create({
+            logger: session.logger,
+            deviceId: mockDeviceId,
+            apiClient,
+            keychain: session.keychain,
+            enabled: true,
+            machineMetadata: buildMachineMetadata("browser-test-server", "1.0.0"),
+        });
 
         await expect(telemetry.setupPromise).resolves.toBeDefined();
 

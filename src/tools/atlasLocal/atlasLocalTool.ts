@@ -3,7 +3,7 @@ import type { ToolArgs, ToolCategory, ToolExecutionContext } from "../tool.js";
 import { ToolBase } from "../tool.js";
 import type { Client } from "@mongodb-js/atlas-local";
 import { LogId } from "@mongodb-js/mcp-logging";
-import type { ConnectionMetadata } from "../../telemetry/types.js";
+import type { AtlasConnectionMetadata as ConnectionMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 
 export const AtlasLocalToolMetadataDeploymentIdKey = "deploymentId";
 

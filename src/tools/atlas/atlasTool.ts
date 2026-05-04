@@ -1,4 +1,4 @@
-import type { AtlasMetadata } from "../../telemetry/types.js";
+import type { AtlasMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import { ToolBase, type ToolArgs, type ToolCategory } from "../tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { LogId } from "@mongodb-js/mcp-logging";

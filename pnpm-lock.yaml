@@ -35,6 +35,9 @@ importers:
       '@mongodb-js/mcp-atlas-api-client':
         specifier: workspace:*
         version: link:packages/atlas-api-client
+      '@mongodb-js/mcp-atlas-telemetry':
+        specifier: workspace:*
+        version: link:packages/atlas-telemetry
       '@mongodb-js/mcp-core':
         specifier: workspace:*
         version: link:packages/core
@@ -71,9 +74,6 @@ importers:
       jsonc-parser:
         specifier: ^3.3.1
         version: 3.3.1
-      lru-cache:
-        specifier: ^11.2.6
-        version: 11.2.6
       mongodb:
         specifier: ^7.1.1
         version: 7.1.1(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
@@ -275,6 +275,37 @@ importers:
       typescript:
         specifier: ^5.9.2
         version: 5.9.3
+
+  packages/atlas-telemetry:
+    dependencies:
+      '@mongodb-js/mcp-atlas-api-client':
+        specifier: workspace:*
+        version: link:../atlas-api-client
+      '@mongodb-js/mcp-core':
+        specifier: workspace:*
+        version: link:../core
+      '@mongodb-js/mcp-logging':
+        specifier: workspace:*
+        version: link:../logging
+      '@mongodb-js/mcp-types':
+        specifier: workspace:*
+        version: link:../types
+      lru-cache:
+        specifier: ^11.2.6
+        version: 11.3.5
+      mongodb-redact:
+        specifier: ^1.4.6
+        version: 1.4.7
+    devDependencies:
+      '@types/node':
+        specifier: ^25.6.0
+        version: 25.6.0
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.4
+        version: 4.1.4(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/browser-playwright@4.1.4)(@vitest/coverage-v8@4.1.4)(happy-dom@20.9.0)(jsdom@29.0.2(@noble/hashes@1.8.0))(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
 
   packages/core:
     dependencies:
@@ -5259,10 +5290,6 @@ packages:
 
   lru-cache@10.4.3:
     resolution: {integrity: sha512-JNAzZcXrCt42VGLuYz0zfAzDfAvJWW6AfYlDBQyDV5DClI2m5sAmK+OIO7s59XfsRsWHp02jAJrRadPRGTt6SQ==}
-
-  lru-cache@11.2.6:
-    resolution: {integrity: sha512-ESL2CrkS/2wTPfuend7Zhkzo2u0daGJ/A2VucJOgQ/C48S/zB8MMeMHSGKYpXhIjbPxfuezITkaBH1wqv00DDQ==}
-    engines: {node: 20 || >=22}
 
   lru-cache@11.3.5:
     resolution: {integrity: sha512-NxVFwLAnrd9i7KUBxC4DrUhmgjzOs+1Qm50D3oF1/oL+r1NpZ4gA7xvG0/zJ8evR7zIKn4vLf7qTNduWFtCrRw==}
@@ -12783,8 +12810,6 @@ snapshots:
       js-tokens: 4.0.0
 
   lru-cache@10.4.3: {}
-
-  lru-cache@11.2.6: {}
 
   lru-cache@11.3.5: {}
 

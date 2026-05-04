@@ -2,6 +2,7 @@ export { LoggerBase } from "./logging/loggerBase.js";
 export { NoopLogger } from "./logging/noopLogger.js";
 export { CompositeLogger } from "./logging/compositeLogger.js";
 export { Keychain, registerGlobalSecretToRedact } from "./keychain.js";
+export { NoopTelemetry } from "./telemetry/noopTelemetry.js";
 export type {
     LogLevel,
     LogPayload,

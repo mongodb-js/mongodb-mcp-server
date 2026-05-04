@@ -123,6 +123,7 @@ export default defineConfig([
         "**/dist/**",
         "packages/*/dist/**",
         "packages/atlas-api-client/openapi.d.ts",
+        ".claude/**",
         "src/ui/lib",
         "coverage",
         "global.d.ts",

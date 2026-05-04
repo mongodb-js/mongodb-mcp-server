@@ -7,16 +7,23 @@
 import type { AggregationCursor } from 'mongodb';
 import { ApiClient } from '@mongodb-js/mcp-atlas-api-client';
 import { ApiClientOptions } from '@mongodb-js/mcp-atlas-api-client';
+import { AtlasLocalToolMetadata } from '@mongodb-js/mcp-atlas-telemetry';
+import { AtlasMetadata } from '@mongodb-js/mcp-atlas-telemetry';
 import { AuthProvider } from '@mongodb-js/mcp-atlas-api-client';
+import { TelemetryBaseEvent as BaseEvent } from '@mongodb-js/mcp-atlas-telemetry';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { Client } from '@mongodb-js/atlas-local';
+import { TelemetryCommonProperties as CommonProperties } from '@mongodb-js/mcp-atlas-telemetry';
+import { TelemetryCommonStaticProperties as CommonStaticProperties } from '@mongodb-js/mcp-atlas-telemetry';
 import { CompositeLogger } from '@mongodb-js/mcp-core';
 import { ConnectionInfo } from '@mongosh/arg-parser';
+import { AtlasConnectionMetadata as ConnectionMetadata } from '@mongodb-js/mcp-atlas-telemetry';
 import { createDefaultMetrics } from '@mongodb-js/mcp-metrics';
 import { Credentials } from '@mongodb-js/mcp-atlas-api-client';
 import { DefaultEventMap } from '@mongodb-js/mcp-core';
 import { DefaultMetrics } from '@mongodb-js/mcp-metrics';
 import type { ElicitRequestFormParams } from '@modelcontextprotocol/sdk/types.js';
+import { EventCache } from '@mongodb-js/mcp-atlas-telemetry';
 import { EventEmitter } from 'events';
 import { EventMap } from '@mongodb-js/mcp-core';
 import type { FindCursor } from 'mongodb';
@@ -31,9 +38,17 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { MetricDefinitions } from '@mongodb-js/mcp-metrics';
 import { Metrics } from '@mongodb-js/mcp-metrics';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
+import { AtlasPerfAdvisorToolMetadata as PerfAdvisorToolMetadata } from '@mongodb-js/mcp-atlas-telemetry';
 import { RequestContext } from '@mongodb-js/mcp-atlas-api-client';
 import { Secret } from 'mongodb-redact';
-import type { TelemetryEvents } from '@mongodb-js/mcp-types';
+import { AtlasStreamsToolMetadata as StreamsToolMetadata } from '@mongodb-js/mcp-atlas-telemetry';
+import { AtlasTelemetry as Telemetry } from '@mongodb-js/mcp-atlas-telemetry';
+import { TelemetryBoolSet } from '@mongodb-js/mcp-atlas-telemetry';
+import { TelemetryConfig } from '@mongodb-js/mcp-atlas-telemetry';
+import { TelemetryEvent } from '@mongodb-js/mcp-atlas-telemetry';
+import { TelemetryEvents } from '@mongodb-js/mcp-atlas-telemetry';
+import { TelemetryResult } from '@mongodb-js/mcp-atlas-telemetry';
+import { TelemetryToolMetadata } from '@mongodb-js/mcp-atlas-telemetry';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import type { TransportRequestContext } from '@mongodb-js/mcp-types';
@@ -72,24 +87,16 @@ export type AtlasLocalClientFactoryFn = (input: {
     loader?: LibraryLoader;
 }) => Promise<Client | undefined>;
 
-// @public (undocumented)
-export type AtlasLocalToolMetadata = {
-    atlas_local_deployment_id?: string;
-};
+export { AtlasLocalToolMetadata }
 
-// @public (undocumented)
-export type AtlasMetadata = {
-    project_id?: string;
-    org_id?: string;
-};
+export { AtlasMetadata }
 
 export { AuthProvider }
 
 // @public
 export type AvailableExport = Pick<StoredExport, "exportName" | "exportTitle" | "exportURI" | "exportPath">;
 
-// @public (undocumented)
-export type BaseEvent = TelemetryEvent<unknown>;
+export { BaseEvent }
 
 // @public (undocumented)
 export interface CommonExportData {
@@ -103,29 +110,9 @@ export interface CommonExportData {
     exportURI: string;
 }
 
-// @public
-export type CommonProperties = {
-    device_id?: string;
-    is_container_env?: TelemetryBoolSet;
-    mcp_client_version?: string;
-    mcp_client_name?: string;
-    transport?: "stdio" | "http";
-    config_atlas_auth?: TelemetryBoolSet;
-    config_connection_string?: TelemetryBoolSet;
-    session_id?: string;
-    hosting_mode?: string;
-    has_docker?: TelemetryBoolSet;
-} & CommonStaticProperties;
+export { CommonProperties }
 
-// @public
-export type CommonStaticProperties = {
-    mcp_server_version: string;
-    mcp_server_name: string;
-    platform: string;
-    arch: string;
-    os_type: string;
-    os_version?: string;
-};
+export { CommonStaticProperties }
 
 export { CompositeLogger }
 
@@ -198,11 +185,7 @@ export type ConnectionManagerFactoryFn = (createParams: {
     userConfig: UserConfig;
 }) => Promise<ConnectionManager>;
 
-// @public (undocumented)
-export type ConnectionMetadata = AtlasMetadata & AtlasLocalToolMetadata & {
-    connection_auth_type?: string;
-    connection_host_type?: string;
-};
+export { ConnectionMetadata }
 
 // @public (undocumented)
 export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"> {
@@ -364,22 +347,7 @@ export enum ErrorCodes {
     NotConnectedToMongoDB = 1000000
 }
 
-// @public
-export class EventCache {
-    constructor();
-    appendEvents(events: BaseEvent[]): void;
-    getEvents(): {
-        id: number;
-        event: BaseEvent;
-    }[];
-    static getInstance(): EventCache;
-    processOldestBatch<T>(batchSize: number, processor: (events: BaseEvent[]) => Promise<{
-        removeProcessed: boolean;
-        result: T;
-    }>): Promise<T | undefined>;
-    removeEvents(ids: number[]): void;
-    get size(): number;
-}
+export { EventCache }
 
 export { EventMap }
 
@@ -465,10 +433,7 @@ export type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
 // @public
 export type OperationType = "metadata" | "read" | "create" | "delete" | "update" | "connect";
 
-// @public (undocumented)
-export type PerfAdvisorToolMetadata = AtlasMetadata & ConnectionMetadata & {
-    operations: string[];
-};
+export { PerfAdvisorToolMetadata }
 
 // @public (undocumented)
 export type PreviewFeature = (typeof previewFeatureValues)[number];
@@ -631,64 +596,21 @@ export interface SessionOptions<TUserConfig extends UserConfig = UserConfig> {
 // @public (undocumented)
 export type StoredExport = ReadyExport | InProgressExport;
 
-// @public (undocumented)
-export type StreamsToolMetadata = AtlasMetadata & {
-    action?: string;
-    resource?: string;
-};
+export { StreamsToolMetadata }
 
-// @public (undocumented)
-export class Telemetry {
-    // (undocumented)
-    close(): Promise<void>;
-    // @deprecated (undocumented)
-    static create(session: Session, userConfig: UserConfig, deviceId: DeviceId, options?: {
-        commonProperties?: Partial<CommonProperties>;
-        eventCache?: EventCache;
-    }): Telemetry;
-    // (undocumented)
-    static create(config: TelemetryConfig): Telemetry;
-    emitEvents(events: BaseEvent[]): void;
-    // (undocumented)
-    readonly events: EventEmitter<TelemetryEvents>;
-    getCommonProperties(): CommonProperties;
-    isTelemetryEnabled(): boolean;
-    setupPromise: Promise<[string, boolean]> | undefined;
-}
+export { Telemetry }
 
-// @public (undocumented)
-export type TelemetryBoolSet = "true" | "false";
+export { TelemetryBoolSet }
 
-// @public
-export interface TelemetryConfig {
-    apiClient: ApiClient;
-    deviceId: DeviceId;
-    enabled: boolean;
-    eventCache?: EventCache;
-    getCommonProperties?: () => Partial<CommonProperties>;
-    keychain?: Keychain;
-    logger: LoggerBase;
-}
+export { TelemetryConfig }
 
-// @public
-export type TelemetryEvent<T> = {
-    timestamp: string;
-    source: "mdbmcp";
-    properties: T & {
-        component: string;
-        duration_ms: number;
-        result: TelemetryResult;
-        category: string;
-    } & Record<string, string | number | string[]>;
-};
+export { TelemetryEvent }
 
 export { TelemetryEvents }
 
-// @public
-export type TelemetryResult = "success" | "failure";
+export { TelemetryResult }
 
-// @public
-export type TelemetryToolMetadata = AtlasMetadata | ConnectionMetadata | PerfAdvisorToolMetadata | StreamsToolMetadata;
+export { TelemetryToolMetadata }
 
 // @public (undocumented)
 export type ToolArgs<T extends ZodRawShape> = {

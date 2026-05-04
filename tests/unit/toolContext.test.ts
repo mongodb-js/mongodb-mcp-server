@@ -6,10 +6,10 @@ import { Server } from "../../src/server.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Session } from "../../src/common/session.js";
 import { UserConfigSchema } from "../../src/common/config/userConfig.js";
-import type { Telemetry } from "../../src/telemetry/telemetry.js";
+import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { Elicitation } from "../../src/elicitation.js";
 import { connectionErrorHandler } from "../../src/common/connectionErrorHandler.js";
-import type { TelemetryToolMetadata } from "../../src/telemetry/types.js";
+import type { TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import type { UserConfig } from "../../src/lib.js";
 import { MockMetrics } from "./mocks/metrics.js";
 
@@ -103,7 +103,7 @@ describe("Tool Context", () => {
         const telemetry = {
             isTelemetryEnabled: () => false,
             emitEvents: () => {},
-        } as unknown as Telemetry;
+        } as unknown as AtlasTelemetry;
 
         const elicitation = {
             requestConfirmation: () => Promise.resolve(true),
@@ -175,7 +175,7 @@ describe("Tool Context", () => {
         const telemetry = {
             isTelemetryEnabled: () => false,
             emitEvents: () => {},
-        } as unknown as Telemetry;
+        } as unknown as AtlasTelemetry;
 
         const elicitation = {
             requestConfirmation: () => Promise.resolve(true),
