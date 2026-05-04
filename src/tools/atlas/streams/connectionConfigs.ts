@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { PrivateLinkConnectionConfig } from "./privateLinkConfig.js";
 
 const AuthenticationSchema = z
     .object({
@@ -106,20 +107,6 @@ export const SchemaRegistryConnectionConfig = z
     })
     .strict();
 
-export const PrivateLinkConnectionConfig = z
-    .object({
-        provider: z.enum(["AWS", "AZURE", "GCP"]),
-        region: z.string().optional(),
-        vendor: z.string().optional(),
-        arn: z.string().optional(),
-        dnsDomain: z.string().optional(),
-        dnsSubDomain: z.array(z.string()).optional(),
-        serviceEndpointId: z.string().optional(),
-        azureResourceIds: z.array(z.string()).optional(),
-        gcpServiceAttachmentUris: z.array(z.string()).optional(),
-    })
-    .passthrough();
-
 /**
  * Fields that cannot be patched on an existing connection. Kept on the create-mode
  * schema (so users can set them at creation time), stripped from the update-mode
@@ -211,6 +198,8 @@ function getCreateSchema(connectionType: string): z.ZodObject<z.ZodRawShape> | n
             return HttpsConnectionConfig;
         case "SchemaRegistry":
             return SchemaRegistryConnectionConfig;
+        case "PrivateLink":
+            return PrivateLinkConnectionConfig;
         default:
             return null;
     }

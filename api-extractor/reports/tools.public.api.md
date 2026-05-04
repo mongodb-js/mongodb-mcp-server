@@ -1268,9 +1268,9 @@ export class StreamsBuildTool extends StreamsToolBase {
             Cluster: "Cluster";
             Kafka: "Kafka";
             S3: "S3";
-            Https: "Https";
             AWSKinesisDataStreams: "AWSKinesisDataStreams";
             AWSLambda: "AWSLambda";
+            Https: "Https";
             SchemaRegistry: "SchemaRegistry";
             Sample: "Sample";
         }>>;
@@ -1400,93 +1400,113 @@ export class StreamsManageTool extends StreamsToolBase {
     argsShape: {
         projectId: z.ZodString;
         workspaceName: z.ZodString;
-        action: z.ZodEnum<{
-            "start-processor": "start-processor";
-            "stop-processor": "stop-processor";
-            "modify-processor": "modify-processor";
-            "update-workspace": "update-workspace";
-            "update-connection": "update-connection";
-            "accept-peering": "accept-peering";
-            "reject-peering": "reject-peering";
-        }>;
-        resourceName: z.ZodOptional<z.ZodString>;
-        tier: z.ZodOptional<z.ZodEnum<{
-            SP50: "SP50";
-            SP30: "SP30";
-            SP10: "SP10";
-            SP5: "SP5";
-            SP2: "SP2";
-        }>>;
-        resumeFromCheckpoint: z.ZodOptional<z.ZodBoolean>;
-        startAtOperationTime: z.ZodOptional<z.ZodString>;
-        pipeline: z.ZodOptional<z.ZodArray<z.ZodRecord<z.ZodString, z.ZodUnknown>>>;
-        dlq: z.ZodOptional<z.ZodObject<{
-            connectionName: z.ZodString;
-            db: z.ZodString;
-            coll: z.ZodString;
-        }, z.core.$strip>>;
-        newName: z.ZodOptional<z.ZodString>;
-        newRegion: z.ZodOptional<z.ZodString>;
-        newTier: z.ZodOptional<z.ZodEnum<{
-            SP50: "SP50";
-            SP30: "SP30";
-            SP10: "SP10";
-            SP5: "SP5";
-            SP2: "SP2";
-        }>>;
-        connectionConfig: z.ZodOptional<z.ZodObject<{
-            bootstrapServers: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodArray<z.ZodString>]>, z.ZodTransform<string, string | string[]>>>;
-            authentication: z.ZodOptional<z.ZodObject<{
-                mechanism: z.ZodOptional<z.ZodEnum<{
-                    PLAIN: "PLAIN";
-                    "SCRAM-256": "SCRAM-256";
-                    "SCRAM-512": "SCRAM-512";
-                    OAUTHBEARER: "OAUTHBEARER";
-                }>>;
-                username: z.ZodOptional<z.ZodString>;
-                password: z.ZodOptional<z.ZodString>;
-            }, z.core.$loose>>;
-            security: z.ZodOptional<z.ZodObject<{
-                protocol: z.ZodOptional<z.ZodEnum<{
-                    SASL_SSL: "SASL_SSL";
-                    SASL_PLAINTEXT: "SASL_PLAINTEXT";
-                    SSL: "SSL";
-                }>>;
-            }, z.core.$loose>>;
-            clusterName: z.ZodOptional<z.ZodString>;
-            dbRoleToExecute: z.ZodOptional<z.ZodObject<{
-                role: z.ZodOptional<z.ZodString>;
-                type: z.ZodOptional<z.ZodEnum<{
-                    CUSTOM: "CUSTOM";
-                    BUILT_IN: "BUILT_IN";
-                }>>;
+        operation: z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodObject<{
+            action: z.ZodLiteral<"start-processor">;
+            resourceName: z.ZodString;
+            tier: z.ZodOptional<z.ZodEnum<{
+                SP50: "SP50";
+                SP30: "SP30";
+                SP10: "SP10";
+                SP5: "SP5";
+                SP2: "SP2";
+            }>>;
+            resumeFromCheckpoint: z.ZodOptional<z.ZodBoolean>;
+            startAtOperationTime: z.ZodOptional<z.ZodString>;
+        }, z.core.$strip>, z.ZodObject<{
+            action: z.ZodLiteral<"stop-processor">;
+            resourceName: z.ZodString;
+        }, z.core.$strip>, z.ZodObject<{
+            action: z.ZodLiteral<"modify-processor">;
+            resourceName: z.ZodString;
+            pipeline: z.ZodOptional<z.ZodArray<z.ZodRecord<z.ZodString, z.ZodUnknown>>>;
+            dlq: z.ZodOptional<z.ZodObject<{
+                connectionName: z.ZodString;
+                db: z.ZodString;
+                coll: z.ZodString;
             }, z.core.$strip>>;
-            aws: z.ZodOptional<z.ZodObject<{
-                roleArn: z.ZodOptional<z.ZodString>;
-                testBucket: z.ZodOptional<z.ZodString>;
-            }, z.core.$loose>>;
-            url: z.ZodOptional<z.ZodString>;
-            headers: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
-            provider: z.ZodOptional<z.ZodString>;
-            schemaRegistryUrls: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodArray<z.ZodString>, z.ZodString]>, z.ZodTransform<string[], string | string[]>>>;
-            schemaRegistryAuthentication: z.ZodOptional<z.ZodObject<{
-                type: z.ZodOptional<z.ZodEnum<{
-                    USER_INFO: "USER_INFO";
-                    SASL_INHERIT: "SASL_INHERIT";
-                }>>;
-                username: z.ZodOptional<z.ZodString>;
-                password: z.ZodOptional<z.ZodString>;
-            }, z.core.$loose>>;
-            networking: z.ZodOptional<z.ZodObject<{
-                access: z.ZodOptional<z.ZodObject<{
-                    type: z.ZodOptional<z.ZodString>;
-                    connectionId: z.ZodOptional<z.ZodString>;
+            newName: z.ZodOptional<z.ZodString>;
+        }, z.core.$strip>, z.ZodObject<{
+            action: z.ZodLiteral<"update-workspace">;
+            newRegion: z.ZodOptional<z.ZodString>;
+            newTier: z.ZodOptional<z.ZodEnum<{
+                SP50: "SP50";
+                SP30: "SP30";
+                SP10: "SP10";
+                SP5: "SP5";
+                SP2: "SP2";
+            }>>;
+        }, z.core.$strip>, z.ZodObject<{
+            action: z.ZodLiteral<"update-connection">;
+            resourceName: z.ZodString;
+            connectionConfig: z.ZodObject<{
+                bootstrapServers: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodArray<z.ZodString>]>, z.ZodTransform<string, string | string[]>>>;
+                authentication: z.ZodOptional<z.ZodObject<{
+                    mechanism: z.ZodOptional<z.ZodEnum<{
+                        PLAIN: "PLAIN";
+                        "SCRAM-256": "SCRAM-256";
+                        "SCRAM-512": "SCRAM-512";
+                        OAUTHBEARER: "OAUTHBEARER";
+                    }>>;
+                    username: z.ZodOptional<z.ZodString>;
+                    password: z.ZodOptional<z.ZodString>;
                 }, z.core.$loose>>;
-            }, z.core.$loose>>;
-        }, z.core.$loose>>;
-        peeringId: z.ZodOptional<z.ZodString>;
-        requesterAccountId: z.ZodOptional<z.ZodString>;
-        requesterVpcId: z.ZodOptional<z.ZodString>;
+                security: z.ZodOptional<z.ZodObject<{
+                    protocol: z.ZodOptional<z.ZodEnum<{
+                        SASL_SSL: "SASL_SSL";
+                        SASL_PLAINTEXT: "SASL_PLAINTEXT";
+                        SSL: "SSL";
+                    }>>;
+                }, z.core.$loose>>;
+                clusterName: z.ZodOptional<z.ZodString>;
+                dbRoleToExecute: z.ZodOptional<z.ZodObject<{
+                    role: z.ZodOptional<z.ZodString>;
+                    type: z.ZodOptional<z.ZodEnum<{
+                        CUSTOM: "CUSTOM";
+                        BUILT_IN: "BUILT_IN";
+                    }>>;
+                }, z.core.$strip>>;
+                aws: z.ZodOptional<z.ZodObject<{
+                    roleArn: z.ZodOptional<z.ZodString>;
+                    testBucket: z.ZodOptional<z.ZodString>;
+                }, z.core.$loose>>;
+                url: z.ZodOptional<z.ZodString>;
+                headers: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
+                provider: z.ZodOptional<z.ZodString>;
+                schemaRegistryUrls: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodArray<z.ZodString>, z.ZodString]>, z.ZodTransform<string[], string | string[]>>>;
+                schemaRegistryAuthentication: z.ZodOptional<z.ZodObject<{
+                    type: z.ZodOptional<z.ZodEnum<{
+                        USER_INFO: "USER_INFO";
+                        SASL_INHERIT: "SASL_INHERIT";
+                    }>>;
+                    username: z.ZodOptional<z.ZodString>;
+                    password: z.ZodOptional<z.ZodString>;
+                }, z.core.$loose>>;
+                networking: z.ZodOptional<z.ZodObject<{
+                    access: z.ZodOptional<z.ZodObject<{
+                        type: z.ZodOptional<z.ZodString>;
+                        connectionId: z.ZodOptional<z.ZodString>;
+                    }, z.core.$loose>>;
+                }, z.core.$loose>>;
+            }, z.core.$loose>;
+            connectionType: z.ZodOptional<z.ZodEnum<{
+                Cluster: "Cluster";
+                Kafka: "Kafka";
+                S3: "S3";
+                AWSKinesisDataStreams: "AWSKinesisDataStreams";
+                AWSLambda: "AWSLambda";
+                Https: "Https";
+                SchemaRegistry: "SchemaRegistry";
+                Sample: "Sample";
+            }>>;
+        }, z.core.$strip>, z.ZodObject<{
+            action: z.ZodLiteral<"accept-peering">;
+            peeringId: z.ZodString;
+            requesterAccountId: z.ZodString;
+            requesterVpcId: z.ZodString;
+        }, z.core.$strip>, z.ZodObject<{
+            action: z.ZodLiteral<"reject-peering">;
+            peeringId: z.ZodString;
+        }, z.core.$strip>], "action">>;
     };
     // (undocumented)
     description: string;

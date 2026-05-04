@@ -825,6 +825,8 @@ export class StreamsBuildTool extends StreamsToolBase {
         if (!args.privateLinkConfig.provider) {
             throw new Error("privateLinkConfig.provider is required. Choose from: AWS, AZURE, GCP.");
         }
+        const validationError = rejectInvalidConnectionConfig(args.privateLinkConfig, "PrivateLink", "create");
+        if (validationError) return validationError;
 
         const body: Record<string, unknown> = {
             ...args.privateLinkConfig,

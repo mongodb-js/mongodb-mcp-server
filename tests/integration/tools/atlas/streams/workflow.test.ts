@@ -54,8 +54,6 @@ describeWithStreams("atlas-streams workflows", (integration) => {
                                 action: "update-connection",
                                 resourceName: connectionName,
                                 connectionConfig: {
-                                    name: connectionName,
-                                    type: "Https",
                                     url: "https://httpbin.org/get",
                                 },
                             },
