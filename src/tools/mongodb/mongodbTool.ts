@@ -6,7 +6,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ErrorCodes, MongoDBError } from "../../common/errors.js";
 import { LogId } from "@mongodb-js/mcp-logging";
 import type { Server } from "../../server.js";
-import type { ConnectionMetadata } from "../../telemetry/types.js";
+import type { ConnectionMetadata } from "@mongodb-js/mcp-types";
 import type { Session } from "../../common/session.js";
 import type { UserConfig } from "../../common/config/userConfig.js";
 

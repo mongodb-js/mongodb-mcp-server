@@ -14,7 +14,7 @@ import { getAuthType } from "../common/connectionInfo.js";
 import { type UserConfig } from "../common/config/userConfig.js";
 import { defaultCreateAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 import { NoopLogger } from "@mongodb-js/mcp-core";
-import type { TelemetryResult } from "../telemetry/types.js";
+import type { TelemetryResult } from "@mongodb-js/mcp-atlas-telemetry";
 import { SetupTelemetry } from "./setupTelemetry.js";
 import { Keychain, registerGlobalSecretToRedact } from "@mongodb-js/mcp-core";
 

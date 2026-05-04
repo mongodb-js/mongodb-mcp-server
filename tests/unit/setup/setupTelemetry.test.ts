@@ -1,24 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SetupTelemetry } from "../../../src/setup/setupTelemetry.js";
-import type { Telemetry } from "../../../src/telemetry/telemetry.js";
-import type { BaseEvent, SetupEventProperties } from "../../../src/telemetry/types.js";
+import type { ITelemetry } from "@mongodb-js/mcp-types";
+import type { TelemetrySetupEvent } from "@mongodb-js/mcp-atlas-telemetry";
 import type { DeviceId } from "../../../src/helpers/deviceId.js";
 
-type EmittedEvent = BaseEvent & { properties: SetupEventProperties };
-
 function createMockTelemetry(): {
-    telemetry: Telemetry;
-    emitted: EmittedEvent[];
+    telemetry: ITelemetry;
+    emitted: TelemetrySetupEvent[];
     closeMock: ReturnType<typeof vi.fn>;
 } {
-    const emitted: EmittedEvent[] = [];
+    const emitted: TelemetrySetupEvent[] = [];
     const closeMock = vi.fn().mockResolvedValue(undefined);
-    const telemetry = {
-        emitEvents: vi.fn().mockImplementation((events: EmittedEvent[]) => {
+    const telemetry: ITelemetry = {
+        emitEvents: vi.fn().mockImplementation((events: TelemetrySetupEvent[]) => {
             emitted.push(...events);
         }),
         close: closeMock,
-    } as unknown as Telemetry;
+        isTelemetryEnabled: vi.fn().mockReturnValue(true),
+    };
     return { telemetry, emitted, closeMock };
 }
 

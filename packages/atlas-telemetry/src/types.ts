@@ -2,7 +2,7 @@
  * Result type constants for telemetry events
  */
 export type TelemetryResult = "success" | "failure";
-export type ServerCommand = "start" | "stop";
+export type TelemetryServerCommand = "start" | "stop";
 export type TelemetryBoolSet = "true" | "false";
 
 /**
@@ -19,12 +19,12 @@ export type TelemetryEvent<T> = {
     } & Record<string, string | number | string[]>;
 };
 
-export type BaseEvent = TelemetryEvent<unknown>;
+export type TelemetryBaseEvent = TelemetryEvent<unknown>;
 
 /**
  * Interface for tool events
  */
-export type ToolEventProperties = {
+export type TelemetryToolEventProperties = {
     command: string;
     error_code?: string;
     error_type?: string;
@@ -32,13 +32,13 @@ export type ToolEventProperties = {
     is_atlas?: boolean;
 } & TelemetryToolMetadata;
 
-export type ToolEvent = TelemetryEvent<ToolEventProperties>;
+export type TelemetryToolEvent = TelemetryEvent<TelemetryToolEventProperties>;
 
 /**
  * Interface for server events
  */
-export type ServerEventProperties = {
-    command: ServerCommand;
+export type TelemetryServerEventProperties = {
+    command: TelemetryServerCommand;
     reason?: string;
     startup_time_ms?: number;
     runtime_duration_ms?: number;
@@ -48,14 +48,14 @@ export type ServerEventProperties = {
     previewFeatures?: string[];
 };
 
-export type ServerEvent = TelemetryEvent<ServerEventProperties>;
+export type TelemetryServerEvent = TelemetryEvent<TelemetryServerEventProperties>;
 
 /**
  * Commands emitted by the interactive setup CLI. Each command corresponds to
  * a single logical step of the wizard, so downstream analytics can reason
  * about drop-off between steps as well as overall completion rates.
  */
-export type SetupStage =
+export type TelemetrySetupStage =
     | "started"
     | "prerequisites_checked"
     | "ai_tool_selected"
@@ -75,8 +75,8 @@ export type SetupStage =
  * accumulated context known up to that point so each event is independently
  * queryable.
  */
-export type SetupEventProperties = {
-    stage: SetupStage;
+export type TelemetrySetupEventProperties = {
+    stage: TelemetrySetupStage;
 
     /**
      * Random id generated at the start of a setup run. All events emitted by
@@ -115,21 +115,21 @@ export type SetupEventProperties = {
     opened_config_file?: TelemetryBoolSet;
 
     /** On terminal events, the last completed step before terminating. */
-    last_stage?: SetupStage;
+    last_stage?: TelemetrySetupStage;
 
     /** Populated on failure events (and where a step failed with an error). */
     error_type?: string;
 
     /** Total wall-clock duration of the setup run, set on terminal events. */
     total_duration_ms?: number;
-} & Pick<CommonProperties, "has_docker">;
+} & Pick<TelemetryCommonProperties, "has_docker">;
 
-export type SetupEvent = TelemetryEvent<SetupEventProperties>;
+export type TelemetrySetupEvent = TelemetryEvent<TelemetrySetupEventProperties>;
 
 /**
  * Interface for static properties, they can be fetched once and reused.
  */
-export type CommonStaticProperties = {
+export type TelemetryCommonStaticProperties = {
     /**
      * The version of the MCP server (as read from package.json).
      */
@@ -164,7 +164,7 @@ export type CommonStaticProperties = {
 /**
  * Common properties for all events that might change.
  */
-export type CommonProperties = {
+export type TelemetryCommonProperties = {
     /**
      * The device id - will be populated with the machine id when it resolves.
      */
@@ -216,14 +216,18 @@ export type CommonProperties = {
      * A boolean indicating whether a Docker daemon is available on the machine.
      */
     has_docker?: TelemetryBoolSet;
-} & CommonStaticProperties;
+} & TelemetryCommonStaticProperties;
 
 /**
  * Telemetry metadata that can be provided by tools when emitting telemetry events.
  * For MongoDB tools, this is typically empty, while for Atlas tools, this should include
  * the project and organization IDs if available.
  */
-export type TelemetryToolMetadata = AtlasMetadata | ConnectionMetadata | PerfAdvisorToolMetadata | StreamsToolMetadata;
+export type TelemetryToolMetadata =
+    | AtlasMetadata
+    | AtlasConnectionMetadata
+    | AtlasPerfAdvisorToolMetadata
+    | AtlasStreamsToolMetadata;
 
 export type AtlasMetadata = {
     project_id?: string;
@@ -234,18 +238,18 @@ export type AtlasLocalToolMetadata = {
     atlas_local_deployment_id?: string;
 };
 
-export type ConnectionMetadata = AtlasMetadata &
+export type AtlasConnectionMetadata = AtlasMetadata &
     AtlasLocalToolMetadata & {
         connection_auth_type?: string;
         connection_host_type?: string;
     };
 
-export type PerfAdvisorToolMetadata = AtlasMetadata &
-    ConnectionMetadata & {
+export type AtlasPerfAdvisorToolMetadata = AtlasMetadata &
+    AtlasConnectionMetadata & {
         operations: string[];
     };
 
-export type StreamsToolMetadata = AtlasMetadata & {
+export type AtlasStreamsToolMetadata = AtlasMetadata & {
     action?: string;
     resource?: string;
 };

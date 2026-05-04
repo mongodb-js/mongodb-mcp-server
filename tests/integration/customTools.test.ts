@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { ToolBase, type ToolArgs } from "../../src/tools/index.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
-import type { TelemetryToolMetadata } from "../../src/telemetry/types.js";
+import type { TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import { defaultTestConfig, setupIntegrationTest } from "./helpers.js";
 
 describe("Custom Tools", () => {

@@ -15,7 +15,8 @@ import { defaultCreateAtlasLocalClient } from "../../../src/common/atlasLocal.js
 import { InMemoryTransport } from "../../../src/transports/inMemoryTransport.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
-import { ApiClient, Telemetry } from "../../../src/lib.js";
+import { ApiClient } from "../../../src/lib.js";
+import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import { MockMetrics } from "../../unit/mocks/metrics.js";
 
 describeWithMongoDB(
@@ -194,12 +195,13 @@ describe("mcpUI feature with custom UIs", () => {
             }),
         });
 
-        const telemetry = Telemetry.create({
+        const telemetry = AtlasTelemetry.create({
             logger,
             deviceId,
             apiClient: session.apiClient,
             keychain: session.keychain,
             enabled: false,
+            machineMetadata: buildMachineMetadata("test-server", "0.0.0"),
         });
         const mcpServerInstance = new McpServer({ name: "test", version: "1.0" });
         const elicitation = new Elicitation({ server: mcpServerInstance.server });

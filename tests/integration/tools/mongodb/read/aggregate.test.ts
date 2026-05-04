@@ -19,7 +19,7 @@ import * as constants from "../../../../../src/helpers/constants.js";
 import { freshInsertDocuments } from "./find.test.js";
 import { BSON } from "bson";
 import { DOCUMENT_EMBEDDINGS } from "./vyai/embeddings.js";
-import type { ToolEvent } from "../../../../../src/telemetry/types.js";
+import type { TelemetryToolEvent as ToolEvent } from "@mongodb-js/mcp-atlas-telemetry";
 import type { Client } from "@modelcontextprotocol/sdk/client";
 import { pipelineDescriptionWithVectorSearch } from "../../../../../src/tools/mongodb/read/aggregate.js";
 import type { Collection } from "mongodb";

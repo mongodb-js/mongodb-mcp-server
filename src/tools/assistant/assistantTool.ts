@@ -1,6 +1,6 @@
 import type { ToolConstructorParams } from "../tool.js";
 import { ToolBase } from "../tool.js";
-import type { TelemetryToolMetadata } from "../../telemetry/types.js";
+import type { TelemetryToolMetadata } from "@mongodb-js/mcp-types";
 import { createFetch } from "@mongodb-js/devtools-proxy-support";
 import type { Server } from "../../server.js";
 import { packageInfo } from "../../common/packageInfo.js";

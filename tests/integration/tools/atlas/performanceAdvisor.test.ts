@@ -20,7 +20,7 @@ import {
 } from "./atlasHelpers.js";
 import type { Mock, MockInstance } from "vitest";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { BaseEvent, ToolEvent } from "../../../../src/telemetry/types.js";
+import type { TelemetryBaseEvent as BaseEvent, TelemetryToolEvent as ToolEvent } from "@mongodb-js/mcp-atlas-telemetry";
 
 describeWithAtlas("performanceAdvisor", (integration) => {
     withProject(integration, ({ getProjectId }) => {

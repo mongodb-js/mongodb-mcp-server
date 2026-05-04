@@ -3,7 +3,7 @@ import type { ToolConstructorParams } from "../../../../../src/tools/tool.js";
 import { StreamsTeardownTool } from "../../../../../src/tools/atlas/streams/teardown.js";
 import type { Session } from "../../../../../src/common/session.js";
 import type { UserConfig } from "../../../../../src/common/config/userConfig.js";
-import type { Telemetry } from "../../../../../src/telemetry/telemetry.js";
+import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { Elicitation } from "../../../../../src/elicitation.js";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
@@ -52,7 +52,7 @@ describe("StreamsTeardownTool", () => {
         const mockTelemetry = {
             isTelemetryEnabled: () => true,
             emitEvents: vi.fn(),
-        } as unknown as Telemetry;
+        } as unknown as AtlasTelemetry;
 
         const mockElicitation = {
             requestConfirmation: vi.fn().mockResolvedValue(true),

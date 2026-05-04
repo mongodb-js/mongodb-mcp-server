@@ -21,7 +21,7 @@ import { UserConfigSchema } from "../../src/common/config/userConfig.js";
 import type { OperationType } from "../../src/tools/tool.js";
 import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { MockMetrics } from "../unit/mocks/metrics.js";
-import { Telemetry } from "../../src/telemetry/telemetry.js";
+import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 
 interface Parameter {
     name: string;
@@ -133,12 +133,13 @@ export function setupIntegrationTest(
 
         userConfig.telemetry = "disabled";
 
-        const telemetry = Telemetry.create({
+        const telemetry = AtlasTelemetry.create({
             logger,
             deviceId,
             apiClient: session.apiClient,
             keychain: session.keychain,
             enabled: false,
+            machineMetadata: buildMachineMetadata("test-server", "0.0.0"),
         });
 
         const mcpServerInstance = new McpServer({

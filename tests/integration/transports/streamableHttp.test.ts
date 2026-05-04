@@ -18,7 +18,7 @@ import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/se
 import type { OperationType, ToolArgs, ToolCategory, ToolExecutionContext } from "../../../src/tools/tool.js";
 import { ToolBase } from "../../../src/tools/tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { TelemetryToolMetadata } from "../../../src/telemetry/types.js";
+import type { TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import type { RequestContext } from "../../../src/transports/base.js";
 import type { AnyToolClass, Server } from "../../../src/lib.js";
 import type { IncomingMessage } from "node:http";

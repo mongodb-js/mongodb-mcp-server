@@ -51,7 +51,7 @@ describe("Build Test", () => {
                 "Server",
                 "Session",
                 "StreamableHttpRunner",
-                "Telemetry",
+                "AtlasTelemetry",
                 "Elicitation",
             ])
         );

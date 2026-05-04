@@ -13,7 +13,7 @@ import {
     SLOW_QUERY_LOGS_COPY,
 } from "../../../common/atlas/performanceAdvisorUtils.js";
 import { AtlasArgs } from "../../args.js";
-import type { PerfAdvisorToolMetadata } from "../../../telemetry/types.js";
+import type { AtlasPerfAdvisorToolMetadata as PerfAdvisorToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 
 const PerformanceAdvisorOperationType = z.enum([
     "suggestedIndexes",

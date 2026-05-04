@@ -1,7 +1,7 @@
 import type { Server } from "../server.js";
 import type { Session } from "../common/session.js";
 import type { UserConfig } from "../common/config/userConfig.js";
-import type { Telemetry } from "../telemetry/telemetry.js";
+import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { SessionEvents } from "../common/session.js";
 import type { ReadResourceCallback, ResourceMetadata } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { LogId } from "@mongodb-js/mcp-logging";
@@ -28,7 +28,7 @@ export abstract class ReactiveResource<
     protected server?: Server<TUserConfig, TContext>;
     protected session: Session;
     protected config: UserConfig;
-    protected telemetry: Telemetry;
+    protected telemetry: AtlasTelemetry;
 
     protected current: Value;
     protected readonly name: string;
@@ -48,7 +48,7 @@ export abstract class ReactiveResource<
         options: ReactiveResourceOptions<Value, RelevantEvents>;
         session: Session;
         config: UserConfig;
-        telemetry: Telemetry;
+        telemetry: AtlasTelemetry;
         current?: Value;
     }) {
         this.session = session;

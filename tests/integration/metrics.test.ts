@@ -7,7 +7,7 @@ import { parsePrometheusValue } from "./metricsHelpers.js";
 import type { UserConfig } from "../../src/common/config/userConfig.js";
 import { ToolBase } from "../../src/tools/tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { TelemetryToolMetadata } from "../../src/telemetry/types.js";
+import type { TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import { PrometheusMetrics, createDefaultMetrics, type DefaultMetrics, Counter } from "@mongodb-js/mcp-metrics";
 import { EchoTool, ErrorTool, NoopTool } from "../unit/mocks/tools.js";
 import type { OperationType, ToolCategory } from "../../src/tools/tool.js";

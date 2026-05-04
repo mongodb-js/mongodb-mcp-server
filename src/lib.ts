@@ -81,10 +81,14 @@ export {
     type ConnectionErrorHandlerContext,
 } from "./common/connectionErrorHandler.js";
 export { ErrorCodes, MongoDBError } from "./common/errors.js";
-export { Telemetry } from "./telemetry/telemetry.js";
-export { type TelemetryEvent, type CommonProperties, type BaseEvent } from "./telemetry/types.js";
-export type { TelemetryEvents, TelemetryConfig } from "./telemetry/telemetry.js";
-export { EventCache } from "./telemetry/eventCache.js";
+export { AtlasTelemetry, EventCache } from "@mongodb-js/mcp-atlas-telemetry";
+export type {
+    TelemetryEvent,
+    TelemetryCommonProperties as CommonProperties,
+    TelemetryBaseEvent as BaseEvent,
+    TelemetryEvents,
+    TelemetryConfig,
+} from "@mongodb-js/mcp-atlas-telemetry";
 export { Keychain, registerGlobalSecretToRedact } from "@mongodb-js/mcp-core";
 export type { Secret } from "mongodb-redact";
 export { Elicitation } from "./elicitation.js";

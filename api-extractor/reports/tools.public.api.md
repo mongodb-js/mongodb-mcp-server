@@ -6,6 +6,11 @@
 
 import type { AggregationCursor } from 'mongodb';
 import type { ApiClient } from '@mongodb-js/mcp-atlas-api-client';
+import type { AtlasConnectionMetadata } from '@mongodb-js/mcp-atlas-telemetry';
+import type { AtlasMetadata } from '@mongodb-js/mcp-atlas-telemetry';
+import type { AtlasPerfAdvisorToolMetadata } from '@mongodb-js/mcp-atlas-telemetry';
+import type { AtlasStreamsToolMetadata } from '@mongodb-js/mcp-atlas-telemetry';
+import type { AtlasTelemetry } from '@mongodb-js/mcp-atlas-telemetry';
 import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { Client } from '@mongodb-js/atlas-local';
 import type { CompositeLogger } from '@mongodb-js/mcp-core';
@@ -14,7 +19,6 @@ import type { DefaultMetrics } from '@mongodb-js/mcp-metrics';
 import type { ElicitRequestFormParams } from '@modelcontextprotocol/sdk/types.js';
 import EventEmitter from 'events';
 import type { FindCursor } from 'mongodb';
-import type { IDeviceId } from '@mongodb-js/mcp-types';
 import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
 import type { Keychain } from '@mongodb-js/mcp-core';
 import { LoggerBase } from '@mongodb-js/mcp-core';
@@ -22,7 +26,7 @@ import type { LogLevel } from '@mongodb-js/mcp-core';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { Metrics } from '@mongodb-js/mcp-metrics';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
-import type { TelemetryEvents } from '@mongodb-js/mcp-types';
+import type { TelemetryToolMetadata } from '@mongodb-js/mcp-atlas-telemetry';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import type { UIRegistry } from '@mongodb-js/mcp-ui';
@@ -223,12 +227,10 @@ export class ConnectClusterTool extends AtlasToolBase {
     protected execute(input: ToolArgs<typeof ConnectClusterTool.argsShape>): Promise<CallToolResult>;
     // (undocumented)
     static operationType: OperationType;
-    // Warning: (ae-forgotten-export) The symbol "ConnectionMetadata" needs to be exported by the entry point index.d.ts
-    //
     // (undocumented)
     protected resolveTelemetryMetadata(args: ToolArgs<typeof ConnectClusterTool.argsShape>, input: {
         result: CallToolResult;
-    }): ConnectionMetadata;
+    }): AtlasConnectionMetadata;
     // (undocumented)
     static toolName: string;
 }
@@ -252,7 +254,7 @@ export class ConnectDeploymentTool extends AtlasLocalToolBase {
     // (undocumented)
     protected resolveTelemetryMetadata(args: ToolArgs<typeof ConnectDeploymentTool.argsShape>, input: {
         result: CallToolResult;
-    }): ConnectionMetadata;
+    }): AtlasConnectionMetadata;
     // (undocumented)
     static toolName: string;
 }
@@ -877,12 +879,10 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
     protected execute(input: ToolArgs<typeof GetPerformanceAdvisorTool.argsShape>): Promise<CallToolResult>;
     // (undocumented)
     static operationType: OperationType;
-    // Warning: (ae-forgotten-export) The symbol "PerfAdvisorToolMetadata" needs to be exported by the entry point index.d.ts
-    //
     // (undocumented)
     protected resolveTelemetryMetadata(args: ToolArgs<typeof GetPerformanceAdvisorTool.argsShape>, input: {
         result: CallToolResult;
-    }): PerfAdvisorToolMetadata;
+    }): AtlasPerfAdvisorToolMetadata;
     // (undocumented)
     static toolName: string;
 }
@@ -1171,7 +1171,7 @@ export abstract class MongoDBToolBase extends ToolBase {
     register(server: Server): boolean;
     protected resolveTelemetryMetadata(_args: ToolArgs<typeof MongoDBToolBase.argsShape>, input: {
         result: CallToolResult;
-    }): ConnectionMetadata;
+    }): AtlasConnectionMetadata;
     // (undocumented)
     protected server?: Server;
 }
@@ -1572,7 +1572,7 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
     protected abstract execute(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     protected getConfirmationMessage(args: ToolArgs<typeof ToolBase.argsShape>): string;
     // (undocumented)
-    protected getConnectionInfoMetadata(): ConnectionMetadata;
+    protected getConnectionInfoMetadata(): AtlasConnectionMetadata;
     protected handleError(error: unknown, args: z.infer<z.ZodObject<typeof ToolBase.argsShape>>): Promise<CallToolResult> | CallToolResult;
     invoke(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)
@@ -1588,14 +1588,12 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
     // (undocumented)
     register(server: Server<TUserConfig, TContext, TMetrics>): boolean;
     requiresConfirmation(): boolean;
-    // Warning: (ae-forgotten-export) The symbol "TelemetryToolMetadata" needs to be exported by the entry point index.d.ts
     protected abstract resolveTelemetryMetadata(args: ToolArgs<typeof ToolBase.argsShape>, input: {
         result: CallToolResult;
     }): TelemetryToolMetadata;
     // Warning: (ae-forgotten-export) The symbol "Session" needs to be exported by the entry point index.d.ts
     protected readonly session: Session;
-    // Warning: (ae-forgotten-export) The symbol "Telemetry" needs to be exported by the entry point index.d.ts
-    protected readonly telemetry: Telemetry;
+    protected readonly telemetry: AtlasTelemetry;
     protected get toolMeta(): Record<string, unknown>;
     // (undocumented)
     protected verifyAllowed(): boolean;
@@ -1620,7 +1618,7 @@ export type ToolConstructorParams<TUserConfig extends UserConfig = UserConfig, T
     operationType: OperationType;
     session: Session;
     config: TUserConfig;
-    telemetry: Telemetry;
+    telemetry: AtlasTelemetry;
     elicitation: Elicitation;
     metrics: Metrics<TMetrics>;
     uiRegistry?: UIRegistry;

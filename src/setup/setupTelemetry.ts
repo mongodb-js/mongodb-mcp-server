@@ -4,14 +4,15 @@ import type { Keychain } from "@mongodb-js/mcp-core";
 import { NoopLogger } from "@mongodb-js/mcp-core";
 import { packageInfo } from "../common/packageInfo.js";
 import { DeviceId } from "../helpers/deviceId.js";
-import { Telemetry } from "../telemetry/telemetry.js";
+import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
+import type { ITelemetry } from "@mongodb-js/mcp-types";
 import type {
-    SetupStage,
-    SetupEvent,
-    SetupEventProperties,
+    TelemetrySetupStage,
+    TelemetrySetupEvent,
+    TelemetrySetupEventProperties,
     TelemetryBoolSet,
     TelemetryResult,
-} from "../telemetry/types.js";
+} from "@mongodb-js/mcp-atlas-telemetry";
 
 /**
  * Context accumulated as the user progresses through the setup wizard. Each
@@ -19,7 +20,7 @@ import type {
  * event is independently queryable downstream.
  */
 export type SetupTelemetryContext = Omit<
-    SetupEventProperties,
+    TelemetrySetupEventProperties,
     "stage" | "setup_session_id" | "last_step" | "error_type" | "total_duration_ms"
 >;
 
@@ -44,14 +45,14 @@ export class SetupTelemetry {
     private readonly setupSessionId: string = randomUUID();
     private readonly startedAt: number = Date.now();
     private stepStartedAt: number = this.startedAt;
-    private lastStep: SetupStage | undefined;
+    private lastStep: TelemetrySetupStage | undefined;
     private context: SetupTelemetryContext = {};
 
     /**
      * Builds a fully-wired {@link SetupTelemetry} for the setup CLI: a silent
      * logger (so telemetry's internal logging doesn't leak into the
      * interactive wizard), a fresh {@link DeviceId}, an unauthenticated
-     * {@link ApiClient}, and a {@link Telemetry} instance.
+     * {@link ApiClient}, and an {@link AtlasTelemetry} instance.
      */
     public static create(
         config: { apiBaseUrl: string; telemetry: "enabled" | "disabled" },
@@ -64,12 +65,13 @@ export class SetupTelemetry {
             userAgent: `AtlasMCP/${packageInfo.version} (${process.platform}; ${process.arch})`,
             logger,
         });
-        const telemetry = Telemetry.create({
+        const telemetry = AtlasTelemetry.create({
             logger,
             deviceId,
             apiClient,
             keychain,
             enabled: config.telemetry === "enabled",
+            machineMetadata: buildMachineMetadata(packageInfo.mcpServerName, packageInfo.version),
         });
         return new SetupTelemetry(telemetry, deviceId);
     }
@@ -79,7 +81,7 @@ export class SetupTelemetry {
      * telemetry pipeline. Production code should use {@link SetupTelemetry.create}.
      */
     public constructor(
-        private readonly telemetry: Telemetry,
+        private readonly telemetry: ITelemetry,
         private readonly deviceId: DeviceId
     ) {}
 
@@ -98,12 +100,12 @@ export class SetupTelemetry {
      * own code path failed (e.g. writing the editor config threw).
      */
     private emit(
-        stage: SetupStage,
-        extra: Partial<SetupEventProperties> = {},
+        stage: TelemetrySetupStage,
+        extra: Partial<TelemetrySetupEventProperties> = {},
         result: TelemetryResult = "success"
     ): void {
         const now = Date.now();
-        const event: SetupEvent = {
+        const event: TelemetrySetupEvent = {
             timestamp: new Date(now).toISOString(),
             source: "mdbmcp",
             properties: {

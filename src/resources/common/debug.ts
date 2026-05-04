@@ -1,5 +1,5 @@
 import { ReactiveResource } from "../resource.js";
-import type { Telemetry } from "../../telemetry/telemetry.js";
+import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { Session, UserConfig } from "../../lib.js";
 import type { AtlasClusterConnectionInfo, ConnectionStateErrored } from "../../common/connectionManager.js";
 import type { ConnectionStringInfo } from "../../common/connectionInfo.js";
@@ -15,7 +15,7 @@ export class DebugResource extends ReactiveResource<
     ConnectionStateDebuggingInformation,
     readonly ["connect", "disconnect", "close", "connection-error"]
 > {
-    constructor(session: Session, config: UserConfig, telemetry: Telemetry) {
+    constructor(session: Session, config: UserConfig, telemetry: AtlasTelemetry) {
         super({
             resourceConfiguration: {
                 name: "debug-mongodb",
