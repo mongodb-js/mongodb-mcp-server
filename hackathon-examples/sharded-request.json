@@ -1,0 +1,57 @@
+{
+  "name": "example-sharded",
+  "clusterType": "SHARDED",
+  "terminationProtectionEnabled": false,
+  "replicationSpecs": [
+    {
+      "zoneName": "Zone 1",
+      "regionConfigs": [
+        {
+          "providerName": "AWS",
+          "regionName": "US_EAST_1",
+          "priority": 7,
+          "electableSpecs": {
+            "instanceSize": "M30",
+            "nodeCount": 3
+          },
+          "autoScaling": {
+            "compute": {
+              "enabled": true,
+              "scaleDownEnabled": true,
+              "minInstanceSize": "M30",
+              "maxInstanceSize": "M60"
+            },
+            "diskGB": {
+              "enabled": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "zoneName": "Zone 1",
+      "regionConfigs": [
+        {
+          "providerName": "AWS",
+          "regionName": "US_EAST_1",
+          "priority": 7,
+          "electableSpecs": {
+            "instanceSize": "M30",
+            "nodeCount": 3
+          },
+          "autoScaling": {
+            "compute": {
+              "enabled": true,
+              "scaleDownEnabled": true,
+              "minInstanceSize": "M30",
+              "maxInstanceSize": "M60"
+            },
+            "diskGB": {
+              "enabled": true
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

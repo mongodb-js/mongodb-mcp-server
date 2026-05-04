@@ -1,0 +1,32 @@
+{
+  "name": "example-replica-set",
+  "clusterType": "REPLICASET",
+  "terminationProtectionEnabled": false,
+  "replicationSpecs": [
+    {
+      "zoneName": "Zone 1",
+      "regionConfigs": [
+        {
+          "providerName": "AWS",
+          "regionName": "US_EAST_1",
+          "priority": 7,
+          "electableSpecs": {
+            "instanceSize": "M10",
+            "nodeCount": 3
+          },
+          "autoScaling": {
+            "compute": {
+              "enabled": true,
+              "scaleDownEnabled": true,
+              "minInstanceSize": "M10",
+              "maxInstanceSize": "M40"
+            },
+            "diskGB": {
+              "enabled": true
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
