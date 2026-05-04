@@ -8,7 +8,7 @@ param containerAppEnvironmentName string = ''
 param containerAppName string = 'mongo-mcp-server-app'
 
 @description('Docker image to deploy')
-param containerImage string = 'mongodb/mongodb-mcp-server:latest'
+param containerImage string = 'mongodb/mongodb-mcp-server:1.10.0'
 
 @description('Container CPU (vCPU) as string. Allowed: 0.25 - 2.0 in 0.25 increments')
 @allowed([
@@ -68,12 +68,8 @@ param authAllowedClientApps array = []
 @description('MongoDB Connection String')
 param mdbConnectionString string
 
-@secure()
-@description('Optional MongoDB Voyage API Key. Leave empty when the Search tool is not used.')
-param mdbVoyageApiKey string = ''
 
 var useExistingContainerAppEnvironment = !empty(containerAppEnvironmentName)
-var hasVoyageApiKey = !empty(mdbVoyageApiKey)
 
 // Reuse an existing ACA environment when one is supplied.
 resource existingContainerAppEnv 'Microsoft.App/managedEnvironments@2024-02-02-preview' existing = if (useExistingContainerAppEnvironment) {
@@ -97,17 +93,12 @@ var envVarsArray = [
   }
 ]
 
-var containerAppSecrets = concat([
+var containerAppSecrets = [
   {
     name: 'mdb-mcp-connection-string'
     value: mdbConnectionString
   }
-], hasVoyageApiKey ? [
-  {
-    name: 'mdb-mcp-voyage-api-key'
-    value: mdbVoyageApiKey
-  }
-] : [])
+]
 
 var connectionSecretEnvVars = [
   {
@@ -115,13 +106,6 @@ var connectionSecretEnvVars = [
     secretRef: 'mdb-mcp-connection-string'
   }
 ]
-
-var voyageSecretEnvVars = hasVoyageApiKey ? [
-  {
-    name: 'MDB_MCP_VOYAGE_API_KEY'
-    secretRef: 'mdb-mcp-voyage-api-key'
-  }
-] : []
 
 // Additional environment variables injected when MicrosoftMIBasedAuth is enabled (merged after user-provided vars so user can override if desired)
 var authEnvVars = authMode == 'MicrosoftMIBasedAuth'
@@ -184,8 +168,7 @@ resource containerApp 'Microsoft.App/containerApps@2024-02-02-preview' = {
           env: concat(
             envVarsArray,
             authEnvVars,
-            connectionSecretEnvVars,
-            voyageSecretEnvVars
+            connectionSecretEnvVars
           )
         }
       ]

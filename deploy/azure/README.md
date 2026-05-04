@@ -8,7 +8,7 @@ This directory contains an Azure Bicep template (`bicep/main.bicep`) and support
 
 - Azure CLI (2.55.0 or later) installed and signed in (`az login`).
 - Azure subscription with permissions to deploy the required resources.
-- MongoDB MCP server container image available in dockerhub registry (mongodb/mongodb-mcp-server:latest). 
+- MongoDB MCP server container image available in dockerhub registry (mongodb/mongodb-mcp-server:1.10.0). This bicep is tested with version 1.10.0. Please change the parameter files to use other versions of the MongoDB MCP server docker image.
 
 ## Parameter Files
 

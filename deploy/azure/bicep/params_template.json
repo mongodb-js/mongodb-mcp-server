@@ -4,7 +4,7 @@
   "parameters": {
     "containerAppName": { "value": "mongo-mcp-without-auth" },
     "containerAppEnvironmentName": { "value": "" },
-    "containerImage": { "value": "mongodb/mongodb-mcp-server:latest" },
+    "containerImage": { "value": "mongodb/mongodb-mcp-server:1.10.0" },
     "containerCpu": { "value": "1.0" },
     "containerMemory": { "value": "2Gi" },
     "appEnvironmentVars": {
@@ -18,7 +18,6 @@
       }
     },
     "mdbConnectionString": { "value": "<MONGODB_CONNECTION_STRING>" },
-    "mdbVoyageApiKey": { "value": "" },
     "authMode": { "value": "NOAUTH" }
   }
 }
