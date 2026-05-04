@@ -185,6 +185,51 @@ export class ApiClient {
     // (undocumented)
     updateStreamWorkspace(options: FetchOptions<operations["updateGroupStreamWorkspace"]>): Promise<components["schemas"]["StreamsTenant"]>;
     // (undocumented)
+    upgradeFlexToDedicated(options: {
+        groupId: string;
+        body: {
+            name: string;
+            clusterType: "REPLICASET";
+            replicationSpecs: Array<{
+                regionConfigs: Array<{
+                    providerName?: string;
+                    regionName?: string;
+                    priority: number;
+                    electableSpecs: {
+                        instanceSize: string;
+                        nodeCount: number;
+                    };
+                }>;
+            }>;
+            autoScaling: {
+                compute: {
+                    enabled: boolean;
+                    scaleDownEnabled: boolean;
+                    minInstanceSize: string;
+                    maxInstanceSize: string;
+                };
+                diskGBEnabled: boolean;
+            };
+        };
+    }): Promise<{
+        id?: string;
+    }>;
+    // (undocumented)
+    upgradeSharedTierCluster(options: {
+        groupId: string;
+        body: {
+            name: string;
+            providerSettings: {
+                providerName?: string;
+                instanceSizeName: "FLEX" | "M10";
+                backingProviderName?: string;
+                regionName?: string;
+            };
+        };
+    }): Promise<{
+        id?: string;
+    }>;
+    // (undocumented)
     validateAuthConfig(): Promise<void>;
     // (undocumented)
     withStreamSampleConnections(options: FetchOptions<operations["withGroupStreamSampleConnections"]>): Promise<components["schemas"]["StreamsTenant"]>;
