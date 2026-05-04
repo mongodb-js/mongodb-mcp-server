@@ -461,7 +461,10 @@ describeWithMongoDB(
 
             // Measure the full (unaborted) run time as a baseline so the abort bound
             // stays meaningful regardless of how fast the CI runner is.
-            const { executionTime: fullRunTime } = await runSlowAggregateDb();
+            const { result: baselineResult, error: baselineError, executionTime: fullRunTime } = await runSlowAggregateDb();
+            // Validate the baseline actually completed so its timing is a meaningful reference.
+            expectDefined(baselineResult);
+            expect(baselineError).toBeUndefined();
 
             const abortController = new AbortController();
 
