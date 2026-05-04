@@ -28,31 +28,29 @@ export class DiskBasedResultStorage implements AccuracyResultStorage {
 
     async updateRunStatus(commitSHA: string, runId: string, status: AccuracyRunStatuses): Promise<void> {
         const resultFilePath = this.getAccuracyResultFilePath(commitSHA, runId);
-        try {
-            await fs.access(resultFilePath);
-        } catch {
-            // No results file means no tests completed - nothing to update.
-            return;
-        }
-        await this.withFileLock(resultFilePath, async () => {
-            const accuracyResult = await this.getAccuracyResultWithoutLock(resultFilePath);
-            if (!accuracyResult) {
-                throw new Error("Results not found!");
-            }
+        await this.withFileLock(
+            resultFilePath,
+            async () => {
+                const accuracyResult = await this.getAccuracyResultWithoutLock(resultFilePath);
+                if (!accuracyResult) {
+                    throw new Error("Results not found!");
+                }
 
-            await fs.writeFile(
-                resultFilePath,
-                JSON.stringify(
-                    {
-                        ...accuracyResult,
-                        runStatus: status,
-                    },
-                    null,
-                    2
-                ),
-                { encoding: "utf8" }
-            );
-        });
+                await fs.writeFile(
+                    resultFilePath,
+                    JSON.stringify(
+                        {
+                            ...accuracyResult,
+                            runStatus: status,
+                        },
+                        null,
+                        2
+                    ),
+                    { encoding: "utf8" }
+                );
+            },
+            { ignoreNotFound: true }
+        );
 
         // This bit is important to mark the current run as the latest run for a
         // commit so that we can use that during baseline comparison.
@@ -172,12 +170,25 @@ export class DiskBasedResultStorage implements AccuracyResultStorage {
         }
     }
 
-    private async withFileLock<R>(filePath: string, callback: () => Promise<R>): Promise<R> {
+    private async withFileLock<R>(filePath: string, callback: () => Promise<R>): Promise<R>;
+    private async withFileLock<R>(
+        filePath: string,
+        callback: () => Promise<R>,
+        options: { ignoreNotFound: true }
+    ): Promise<R | undefined>;
+    private async withFileLock<R>(
+        filePath: string,
+        callback: () => Promise<R>,
+        { ignoreNotFound = false }: { ignoreNotFound?: boolean } = {}
+    ): Promise<R | undefined> {
         let releaseLock: (() => Promise<void>) | undefined;
         try {
             releaseLock = await lock(filePath, { retries: 10 });
             return await callback();
         } catch (error) {
+            if (ignoreNotFound && (error as NodeJS.ErrnoException).code === "ENOENT") {
+                return undefined;
+            }
             console.warn(`Could not acquire lock for file - ${filePath}.`, error);
             throw error;
         } finally {

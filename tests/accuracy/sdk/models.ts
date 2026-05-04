@@ -98,7 +98,11 @@ function getConfiguredModelAllowList(): Set<string> | null {
         return null;
     }
 
-    const models = modelAllowList.split(",").map((item) => item.trim());
+    const models = modelAllowList
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+
     if (!models.length) {
         return null;
     }

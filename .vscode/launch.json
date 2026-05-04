@@ -64,8 +64,8 @@
       "cwd": "${workspaceFolder}",
       "env": {
         "MDB_ACCURACY_RUN_ID": "debug-run",
-        "MDB_MCP_API_CLIENT_ID": "test-atlas-client-id",
-        "MDB_MCP_API_CLIENT_SECRET": "test-atlas-client-secret"
+        "MDB_API_CLIENT_ID": "test-atlas-client-id",
+        "MDB_API_CLIENT_SECRET": "test-atlas-client-secret"
       }
     }
   ]

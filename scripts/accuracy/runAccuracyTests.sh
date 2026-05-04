@@ -11,8 +11,8 @@ export MDB_ACCURACY_RUN_ID=$(pnpm dlx uuid v4)
 
 # For providing Atlas API credentials (required for Atlas tools)
 # Set dummy values for testing (allows Atlas tools to be registered for mocking)
-export MDB_MCP_API_CLIENT_ID=${MDB_MCP_API_CLIENT_ID:-"test-atlas-client-id"}
-export MDB_MCP_API_CLIENT_SECRET=${MDB_MCP_API_CLIENT_SECRET:-"test-atlas-client-secret"}
+export MDB_API_CLIENT_ID=${MDB_API_CLIENT_ID:-"test-atlas-client-id"}
+export MDB_API_CLIENT_SECRET=${MDB_API_CLIENT_SECRET:-"test-atlas-client-secret"}
 
 # For providing a mongodb based storage to store accuracy result
 # export MDB_ACCURACY_MDB_URL=""
@@ -23,7 +23,7 @@ export MDB_MCP_API_CLIENT_SECRET=${MDB_MCP_API_CLIENT_SECRET:-"test-atlas-client
 # specified in the command line. Such as:
 # pnpm run test:accuracy -- tests/accuracy/some-test.test.ts
 echo "Running accuracy tests with MDB_ACCURACY_RUN_ID '$MDB_ACCURACY_RUN_ID'"
-vitest --config vitest.config.ts --project=accuracy --coverage=false --max-workers=8 --run "$@"
+vitest --config vitest.config.ts --project=accuracy --coverage=false --max-workers="${MDB_ACCURACY_MAX_WORKERS:-8}" --run "$@"
 
 # Preserving the exit code from test run to correctly notify in the CI
 # environments when the tests fail.
