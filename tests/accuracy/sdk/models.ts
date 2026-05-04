@@ -1,7 +1,7 @@
 import type { LanguageModel } from "ai";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createAzure } from "@ai-sdk/azure";
 import { createOpenAI } from "@ai-sdk/openai";
+import { createAnthropic } from "@ai-sdk/anthropic";
 
 export interface Model<VercelModel extends LanguageModel = LanguageModel> {
     readonly modelName: string;
@@ -11,8 +11,35 @@ export interface Model<VercelModel extends LanguageModel = LanguageModel> {
     getModel(): VercelModel;
 }
 
-export class OpenAIModel implements Model {
-    readonly provider = "OpenAI";
+class GroveOpenAICompatibleModel implements Model {
+    readonly provider: string;
+    readonly displayName: string;
+
+    constructor(
+        readonly modelName: string,
+        providerName: string
+    ) {
+        this.provider = `Grove/${providerName}`;
+        this.displayName = `${this.provider} - ${modelName}`;
+    }
+
+    isAvailable(): boolean {
+        return !!process.env.MDB_GROVE_API_KEY;
+    }
+
+    getModel(): LanguageModel {
+        return createOpenAI({
+            baseURL: "https://grove-gateway-prod.azure-api.net/grove-foundry-prod/openai/v1",
+            apiKey: process.env.MDB_GROVE_API_KEY,
+            headers: {
+                "api-key": process.env.MDB_GROVE_API_KEY ?? "",
+            },
+        }).chat(this.modelName);
+    }
+}
+
+class GroveAnthropicModel implements Model {
+    readonly provider = "Grove/Anthropic";
     readonly displayName: string;
 
     constructor(readonly modelName: string) {
@@ -20,17 +47,21 @@ export class OpenAIModel implements Model {
     }
 
     isAvailable(): boolean {
-        return !!process.env.MDB_OPEN_AI_API_KEY;
+        return !!process.env.MDB_GROVE_API_KEY;
     }
 
     getModel(): LanguageModel {
-        return createOpenAI({
-            apiKey: process.env.MDB_OPEN_AI_API_KEY,
+        return createAnthropic({
+            baseURL: "https://grove-gateway-prod.azure-api.net/grove-foundry-prod/anthropic/v1",
+            apiKey: process.env.MDB_GROVE_API_KEY,
+            headers: {
+                "api-key": process.env.MDB_GROVE_API_KEY ?? "",
+            },
         }).chat(this.modelName);
     }
 }
 
-export class AzureOpenAIModel implements Model {
+class AzureOpenAIModel implements Model {
     readonly provider = "Azure";
     readonly displayName: string;
 
@@ -52,27 +83,40 @@ export class AzureOpenAIModel implements Model {
     }
 }
 
-export class GeminiModel implements Model {
-    readonly provider = "Google";
-    readonly displayName: string;
+const ALL_TESTABLE_MODELS: Model[] = [
+    new GroveOpenAICompatibleModel("gpt-5.5", "OpenAI"),
+    new GroveOpenAICompatibleModel("Kimi-K2.6", "Kimi"),
+    new GroveOpenAICompatibleModel("grok-4-20-reasoning", "Grok"),
+    new GroveOpenAICompatibleModel("deepseek-r1-0528", "DeepSeek"),
+    new GroveAnthropicModel("claude-sonnet-4-6"),
+    new AzureOpenAIModel("gpt-4o"),
+];
 
-    constructor(readonly modelName: string) {
-        this.displayName = `${this.provider} - ${modelName}`;
+function getConfiguredModelAllowList(): Set<string> | null {
+    const modelAllowList = process.env.MDB_ACCURACY_MODEL_ALLOWLIST?.trim();
+    if (!modelAllowList) {
+        return null;
     }
 
-    isAvailable(): boolean {
-        return !!process.env.MDB_GEMINI_API_KEY;
+    const models = modelAllowList.split(",").map((item) => item.trim());
+    if (!models.length) {
+        return null;
     }
 
-    getModel(): LanguageModel {
-        return createGoogleGenerativeAI({
-            apiKey: process.env.MDB_GEMINI_API_KEY,
-        }).chat(this.modelName);
-    }
+    return new Set(models);
 }
 
-const ALL_TESTABLE_MODELS: Model[] = [new AzureOpenAIModel("gpt-4o")];
-
 export function getAvailableModels(): Model[] {
-    return ALL_TESTABLE_MODELS.filter((model) => model.isAvailable());
+    const allowList = getConfiguredModelAllowList();
+    return ALL_TESTABLE_MODELS.filter((model) => {
+        if (!model.isAvailable()) {
+            return false;
+        }
+
+        if (!allowList) {
+            return true;
+        }
+
+        return allowList.has(model.modelName);
+    });
 }

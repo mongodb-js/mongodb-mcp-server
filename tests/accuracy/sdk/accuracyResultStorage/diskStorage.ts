@@ -28,6 +28,12 @@ export class DiskBasedResultStorage implements AccuracyResultStorage {
 
     async updateRunStatus(commitSHA: string, runId: string, status: AccuracyRunStatuses): Promise<void> {
         const resultFilePath = this.getAccuracyResultFilePath(commitSHA, runId);
+        try {
+            await fs.access(resultFilePath);
+        } catch {
+            // No results file means no tests completed - nothing to update.
+            return;
+        }
         await this.withFileLock(resultFilePath, async () => {
             const accuracyResult = await this.getAccuracyResultWithoutLock(resultFilePath);
             if (!accuracyResult) {

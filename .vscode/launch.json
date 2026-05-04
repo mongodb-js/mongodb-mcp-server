@@ -44,6 +44,29 @@
         "scripts/generate/index.ts"
       ],
       "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Accuracy Tests",
+      "autoAttachChildProcesses": true,
+      "skipFiles": ["<node_internals>/**"],
+      "smartStep": true,
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["exec", "vitest"],
+      "args": [
+        "--config", "vitest.config.ts",
+        "--project", "accuracy",
+        "--coverage=false",
+        "--max-workers=1",
+        "--run"
+      ],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "MDB_ACCURACY_RUN_ID": "debug-run",
+        "MDB_MCP_API_CLIENT_ID": "test-atlas-client-id",
+        "MDB_MCP_API_CLIENT_SECRET": "test-atlas-client-secret"
+      }
     }
   ]
 }
