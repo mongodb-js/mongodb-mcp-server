@@ -5,8 +5,10 @@
 ```ts
 
 import type { AggregationCursor } from 'mongodb';
+import { AnyToolBase } from '@mongodb-js/mcp-core';
 import { ApiClient } from '@mongodb-js/mcp-atlas-api-client';
 import { ApiClientOptions } from '@mongodb-js/mcp-atlas-api-client';
+import { AtlasLocalClientFactoryFn } from '@mongodb-js/mcp-tools-atlas-local';
 import { AtlasLocalToolMetadata } from '@mongodb-js/mcp-atlas-telemetry';
 import { AtlasMetadata } from '@mongodb-js/mcp-atlas-telemetry';
 import { AuthProvider } from '@mongodb-js/mcp-atlas-api-client';
@@ -30,6 +32,7 @@ import type { FindCursor } from 'mongodb';
 import type { IDeviceId } from '@mongodb-js/mcp-types';
 import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
 import { Keychain } from '@mongodb-js/mcp-core';
+import { LibraryLoader } from '@mongodb-js/mcp-tools-atlas-local';
 import { LoggerBase } from '@mongodb-js/mcp-core';
 import { LoggerType } from '@mongodb-js/mcp-core';
 import { LogLevel } from '@mongodb-js/mcp-core';
@@ -38,6 +41,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { MetricDefinitions } from '@mongodb-js/mcp-metrics';
 import { Metrics } from '@mongodb-js/mcp-metrics';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
+import { OperationType } from '@mongodb-js/mcp-core';
 import { AtlasPerfAdvisorToolMetadata as PerfAdvisorToolMetadata } from '@mongodb-js/mcp-atlas-telemetry';
 import { RequestContext } from '@mongodb-js/mcp-atlas-api-client';
 import { Secret } from 'mongodb-redact';
@@ -49,18 +53,21 @@ import { TelemetryEvent } from '@mongodb-js/mcp-atlas-telemetry';
 import { TelemetryEvents } from '@mongodb-js/mcp-atlas-telemetry';
 import { TelemetryResult } from '@mongodb-js/mcp-atlas-telemetry';
 import { TelemetryToolMetadata } from '@mongodb-js/mcp-atlas-telemetry';
-import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
+import { ToolArgs } from '@mongodb-js/mcp-core';
+import { ToolBase } from '@mongodb-js/mcp-core';
+import { ToolCategory } from '@mongodb-js/mcp-core';
+import { ToolClass } from '@mongodb-js/mcp-core';
+import { ToolConstructorParams } from '@mongodb-js/mcp-core';
+import { ToolExecutionContext } from '@mongodb-js/mcp-core';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import type { TransportRequestContext } from '@mongodb-js/mcp-types';
 import { UIRegistry } from '@mongodb-js/mcp-ui';
 import { z } from 'zod';
-import type { ZodRawShape } from 'zod';
 
 // @public (undocumented)
 export type AnyConnectionState = ConnectionStateConnected | ConnectionStateConnecting | ConnectionStateDisconnected | ConnectionStateErrored;
 
-// @public (undocumented)
-export type AnyToolBase = ToolBase<any, any, any>;
+export { AnyToolBase }
 
 // @public (undocumented)
 export type AnyToolClass = ToolClass<any, any, any>;
@@ -81,11 +88,7 @@ export interface AtlasClusterConnectionInfo {
     username: string;
 }
 
-// @public (undocumented)
-export type AtlasLocalClientFactoryFn = (input: {
-    logger: LoggerBase;
-    loader?: LibraryLoader;
-}) => Promise<Client | undefined>;
+export { AtlasLocalClientFactoryFn }
 
 export { AtlasLocalToolMetadata }
 
@@ -402,11 +405,7 @@ export const jsonExportFormat: z.ZodEnum<{
 
 export { Keychain }
 
-// @public (undocumented)
-export interface LibraryLoader {
-    // (undocumented)
-    loadAtlasLocalClient: (logger: LoggerBase) => Promise<typeof Client | undefined>;
-}
+export { LibraryLoader }
 
 export { LoggerBase }
 
@@ -430,8 +429,7 @@ export class MongoDBError<ErrorCode extends ErrorCodes = ErrorCodes> extends Err
 // @public (undocumented)
 export type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
 
-// @public
-export type OperationType = "metadata" | "read" | "create" | "delete" | "update" | "connect";
+export { OperationType }
 
 export { PerfAdvisorToolMetadata }
 
@@ -612,87 +610,17 @@ export { TelemetryResult }
 
 export { TelemetryToolMetadata }
 
-// @public (undocumented)
-export type ToolArgs<T extends ZodRawShape> = {
-    [K in keyof T]: z.infer<T[K]>;
-};
+export { ToolArgs }
 
-// @public
-export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> {
-    constructor(input: ToolConstructorParams<TUserConfig, TContext, TMetrics>);
-    // (undocumented)
-    get annotations(): ToolAnnotations;
-    abstract argsShape: ZodRawShape;
-    readonly category: ToolCategory;
-    protected readonly config: TUserConfig;
-    protected readonly context?: TContext;
-    abstract description: string;
-    // (undocumented)
-    disable(): void;
-    protected readonly elicitation: Elicitation;
-    // (undocumented)
-    enable(): void;
-    protected abstract execute(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
-    protected getConfirmationMessage(args: ToolArgs<typeof ToolBase.argsShape>): string;
-    // (undocumented)
-    protected getConnectionInfoMetadata(): ConnectionMetadata;
-    protected handleError(error: unknown, args: z.infer<z.ZodObject<typeof ToolBase.argsShape>>): Promise<CallToolResult> | CallToolResult;
-    invoke(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
-    // (undocumented)
-    isEnabled(): boolean;
-    // (undocumented)
-    protected isFeatureEnabled(feature: PreviewFeature): boolean;
-    protected readonly metrics: Metrics<TMetrics>;
-    readonly name: string;
-    readonly operationType: OperationType;
-    outputSchema?: ZodRawShape;
-    // (undocumented)
-    register(server: Server<TUserConfig, TContext, TMetrics>): boolean;
-    requiresConfirmation(): boolean;
-    protected abstract resolveTelemetryMetadata(args: ToolArgs<typeof ToolBase.argsShape>, input: {
-        result: CallToolResult;
-    }): TelemetryToolMetadata;
-    protected readonly session: Session;
-    protected readonly telemetry: Telemetry;
-    protected get toolMeta(): Record<string, unknown>;
-    // (undocumented)
-    protected verifyAllowed(): boolean;
-    verifyConfirmed(args: ToolArgs<typeof ToolBase.argsShape>): Promise<boolean>;
-}
+export { ToolBase }
 
-// @public
-export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant";
+export { ToolCategory }
 
-// @public
-export type ToolClass<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> = {
-    new (params: ToolConstructorParams<TUserConfig, TContext, TMetrics>): ToolBase<TUserConfig, TContext, TMetrics>;
-    toolName: string;
-    category: ToolCategory;
-    operationType: OperationType;
-};
+export { ToolClass }
 
-// @public
-export type ToolConstructorParams<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> = {
-    name: string;
-    category: ToolCategory;
-    operationType: OperationType;
-    session: Session;
-    config: TUserConfig;
-    telemetry: Telemetry;
-    elicitation: Elicitation;
-    metrics: Metrics<TMetrics>;
-    uiRegistry?: UIRegistry;
-    context?: TContext;
-};
+export { ToolConstructorParams }
 
-// @public (undocumented)
-export interface ToolExecutionContext {
-    requestInfo?: {
-        headers?: Record<string, unknown>;
-    };
-    // (undocumented)
-    signal: AbortSignal;
-}
+export { ToolExecutionContext }
 
 export { TransportRequestContext }
 

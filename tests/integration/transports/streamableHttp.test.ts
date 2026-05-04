@@ -1257,8 +1257,8 @@ describe("StreamableHttpRunner", () => {
                             {
                                 type: "text",
                                 text: JSON.stringify({
-                                    readOnly: this.session["userConfig"].readOnly,
-                                    maxDocumentsPerQuery: this.session["userConfig"].maxDocumentsPerQuery,
+                                    readOnly: this.config.readOnly,
+                                    maxDocumentsPerQuery: this.config.maxDocumentsPerQuery,
                                     permissions: this.context?.permissions,
                                 }),
                             },

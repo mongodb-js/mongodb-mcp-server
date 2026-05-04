@@ -26,7 +26,7 @@ import type { Metrics, DefaultMetrics } from "@mongodb-js/mcp-metrics";
 import type { IMetrics } from "@mongodb-js/mcp-types";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type AnyToolClass = ToolClass<any, any>;
+export type AnyToolClass = ToolClass<any, any, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 export interface ServerOptions<
     TUserConfig extends UserConfig = UserConfig,

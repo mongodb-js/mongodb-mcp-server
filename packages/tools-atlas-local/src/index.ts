@@ -1,8 +1,4 @@
-export {
-    defaultCreateAtlasLocalClient,
-    type AtlasLocalClientFactoryFn,
-    type LibraryLoader,
-} from "./atlasLocalClient.js";
+export { createAtlasLocalClient, type AtlasLocalClientFactoryFn, type LibraryLoader } from "./atlasLocalClient.js";
 export {
     AtlasLocalToolBase,
     type IAtlasLocalConfig,

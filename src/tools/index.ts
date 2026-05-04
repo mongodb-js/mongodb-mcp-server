@@ -5,7 +5,8 @@ import * as AssistantTools from "./assistant/tools.js";
 import type { ToolClass } from "./tool.js";
 
 // Export the collection of tools for easier reference
-export const AllTools: ToolClass<any, any>[] = [
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const AllTools: ToolClass<any, any, any>[] = [
     ...Object.values({ ...MongoDbTools, ...AtlasTools, ...AssistantTools }),
     ...AtlasLocalTools,
 ];

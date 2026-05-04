@@ -1,3 +1,4 @@
+import type { DefaultMetrics } from "@mongodb-js/mcp-metrics";
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ToolConstructorParams } from "../../../../../src/tools/tool.js";
@@ -64,7 +65,7 @@ describe("StreamsManageTool", () => {
             requestConfirmation: vi.fn().mockResolvedValue(true),
         } as unknown as Elicitation;
 
-        const params: ToolConstructorParams = {
+        const params: ToolConstructorParams<UserConfig, unknown, DefaultMetrics> = {
             name: StreamsManageTool.toolName,
             category: "atlas",
             operationType: StreamsManageTool.operationType,

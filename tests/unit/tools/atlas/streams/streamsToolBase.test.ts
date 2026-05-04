@@ -13,6 +13,7 @@ import type { TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics } from "../../../mocks/metrics.js";
 import { Keychain } from "@mongodb-js/mcp-core";
+import type { DefaultMetrics } from "@mongodb-js/mcp-metrics";
 
 class TestStreamsTool extends StreamsToolBase {
     static toolName = "test-streams-tool";
@@ -98,7 +99,7 @@ describe("StreamsToolBase", () => {
             requestConfirmation: vi.fn(),
         } as unknown as Elicitation;
 
-        const params: ToolConstructorParams = {
+        const params: ToolConstructorParams<UserConfig, unknown, DefaultMetrics> = {
             name: TestStreamsTool.toolName,
             category: "atlas",
             operationType: TestStreamsTool.operationType,

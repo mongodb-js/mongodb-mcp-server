@@ -47,7 +47,7 @@ class DefaultLibraryLoader implements LibraryLoader {
     }
 }
 
-export const defaultCreateAtlasLocalClient: AtlasLocalClientFactoryFn = async ({ logger, loader }) => {
+export const createAtlasLocalClient: AtlasLocalClientFactoryFn = async ({ logger, loader }) => {
     const libraryLoader = loader ?? DefaultLibraryLoader.instance;
     const client = await libraryLoader.loadAtlasLocalClient(logger);
 

@@ -59,4 +59,3 @@ export interface ICompositeLogger extends ILogger {
     addLogger(logger: ILogger): void;
     setAttribute(key: string, value: string): void;
 }
-

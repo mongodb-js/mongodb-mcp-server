@@ -28,6 +28,7 @@
     "test": "vitest --run"
   },
   "dependencies": {
+    "@mongodb-js/mcp-types": "workspace:*",
     "prom-client": "^15.1.3"
   },
   "devDependencies": {

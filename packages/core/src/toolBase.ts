@@ -9,7 +9,7 @@ import type { IToolSession } from "@mongodb-js/mcp-types";
 import type { IElicitation } from "@mongodb-js/mcp-types";
 import type { PreviewFeature } from "@mongodb-js/mcp-types";
 import type { IUIRegistry } from "@mongodb-js/mcp-types";
-import type { IMetrics, IObservable, MongoLogId } from "@mongodb-js/mcp-types";
+import type { IMetrics, IObservable, MetricDefinitions, MongoLogId } from "@mongodb-js/mcp-types";
 import { createUIResource, type UIResource } from "@mcp-ui/server";
 
 const LogId = {
@@ -84,7 +84,7 @@ export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant";
 export type ToolConstructorParams<
     TUserConfig extends IToolConfig = IToolConfig,
     TContext = unknown,
-    
+    TMetricsDefinitions extends MetricDefinitions = MetricDefinitions,
 > = {
     /**
      * The unique name of this tool (injected from the static
@@ -138,7 +138,7 @@ export type ToolConstructorParams<
      *
      * See `src/common/metrics/index.ts` for further reference.
      */
-    metrics: IMetrics;
+    metrics: IMetrics<TMetricsDefinitions>;
 
     uiRegistry?: IUIRegistry;
 
@@ -212,9 +212,12 @@ export type ToolConstructorParams<
 export type ToolClass<
     TUserConfig extends IToolConfig = IToolConfig,
     TContext = unknown,
+    TMetricsDefinitions extends MetricDefinitions = MetricDefinitions,
 > = {
     /** Constructor signature for the tool class */
-    new (params: ToolConstructorParams<TUserConfig, TContext>): ToolBase<TUserConfig, TContext>;
+    new (
+        params: ToolConstructorParams<TUserConfig, TContext, TMetricsDefinitions>
+    ): ToolBase<TUserConfig, TContext, TMetricsDefinitions>;
 
     /**
      * The unique name of this tool.
@@ -312,6 +315,7 @@ export type ToolClass<
 export abstract class ToolBase<
     TUserConfig extends IToolConfig = IToolConfig,
     TContext = unknown,
+    TMetricsDefinitions extends MetricDefinitions = MetricDefinitions,
 > {
     /**
      * The unique name of this tool.
@@ -648,7 +652,7 @@ export abstract class ToolBase<
      * Access to the metrics service. Use this to emit custom metrics events
      * if needed.
      */
-    protected readonly metrics: IMetrics;
+    protected readonly metrics: IMetrics<TMetricsDefinitions>;
 
     private readonly uiRegistry?: IUIRegistry;
 
@@ -681,7 +685,7 @@ export abstract class ToolBase<
         metrics,
         uiRegistry,
         context,
-    }: ToolConstructorParams<TUserConfig, TContext>) {
+    }: ToolConstructorParams<TUserConfig, TContext, TMetricsDefinitions>) {
         this.name = name;
         this.category = category;
         this.operationType = operationType;
@@ -959,7 +963,7 @@ export abstract class ToolBase<
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type AnyToolBase = ToolBase<any, any>;
+export type AnyToolBase = ToolBase<any, any, any>;
 
 /**
  * Formats potentially untrusted data to be included in tool responses. The data is wrapped in unique tags

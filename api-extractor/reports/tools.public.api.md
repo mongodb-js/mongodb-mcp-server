@@ -5,6 +5,7 @@
 ```ts
 
 import type { AggregationCursor } from 'mongodb';
+import { AnyToolBase } from '@mongodb-js/mcp-core';
 import type { ApiClient } from '@mongodb-js/mcp-atlas-api-client';
 import type { AtlasConnectionMetadata } from '@mongodb-js/mcp-atlas-telemetry';
 import type { AtlasMetadata } from '@mongodb-js/mcp-atlas-telemetry';
@@ -15,6 +16,7 @@ import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { Client } from '@mongodb-js/atlas-local';
 import type { CompositeLogger } from '@mongodb-js/mcp-core';
 import { ConnectionInfo } from '@mongosh/arg-parser';
+import type { ConnectionMetadata } from '@mongodb-js/mcp-types';
 import type { DefaultMetrics } from '@mongodb-js/mcp-metrics';
 import type { ElicitRequestFormParams } from '@modelcontextprotocol/sdk/types.js';
 import EventEmitter from 'events';
@@ -26,15 +28,21 @@ import type { LogLevel } from '@mongodb-js/mcp-core';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { Metrics } from '@mongodb-js/mcp-metrics';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
-import type { TelemetryToolMetadata } from '@mongodb-js/mcp-atlas-telemetry';
-import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
+import { OperationType } from '@mongodb-js/mcp-core';
+import type { TelemetryToolMetadata } from '@mongodb-js/mcp-types';
+import { ToolArgs } from '@mongodb-js/mcp-core';
+import { ToolBase } from '@mongodb-js/mcp-core';
+import { ToolCategory } from '@mongodb-js/mcp-core';
+import { ToolClass } from '@mongodb-js/mcp-core';
+import { ToolConstructorParams } from '@mongodb-js/mcp-core';
+import { ToolExecutionContext } from '@mongodb-js/mcp-core';
+import { ToolResult } from '@mongodb-js/mcp-core';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import type { UIRegistry } from '@mongodb-js/mcp-ui';
-import { z } from 'zod';
+import z from 'zod';
 import { ZodDefault } from 'zod';
 import { ZodEnum } from 'zod';
 import { ZodOptional } from 'zod';
-import type { ZodRawShape } from 'zod';
 import { ZodRecord } from 'zod';
 import { ZodString } from 'zod';
 import { ZodUnknown } from 'zod';
@@ -103,7 +111,7 @@ export class AggregateTool extends MongoDBToolBase {
 }
 
 // @public (undocumented)
-export const AllTools: ToolClass[];
+export const AllTools: ToolClass<any, any, any>[];
 
 // Warning: (ae-forgotten-export) The symbol "CollectionIndexesOutputSchema" needs to be exported by the entry point index.d.ts
 //
@@ -235,30 +243,6 @@ export class ConnectClusterTool extends AtlasToolBase {
     static toolName: string;
 }
 
-// Warning: (ae-forgotten-export) The symbol "AtlasLocalToolBase" needs to be exported by the entry point index.d.ts
-//
-// @public (undocumented)
-export class ConnectDeploymentTool extends AtlasLocalToolBase {
-    // (undocumented)
-    argsShape: {
-        deploymentName: ZodString;
-    };
-    // (undocumented)
-    description: string;
-    // (undocumented)
-    protected executeWithAtlasLocalClient(input: ToolArgs<typeof ConnectDeploymentTool.argsShape>, input2: {
-        client: Client;
-    }): Promise<CallToolResult>;
-    // (undocumented)
-    static operationType: OperationType;
-    // (undocumented)
-    protected resolveTelemetryMetadata(args: ToolArgs<typeof ConnectDeploymentTool.argsShape>, input: {
-        result: CallToolResult;
-    }): AtlasConnectionMetadata;
-    // (undocumented)
-    static toolName: string;
-}
-
 // @public (undocumented)
 export class ConnectTool extends MongoDBToolBase {
     constructor(params: ToolConstructorParams);
@@ -375,26 +359,6 @@ export class CreateDBUserTool extends AtlasToolBase {
 }
 
 // @public (undocumented)
-export class CreateDeploymentTool extends AtlasLocalToolBase {
-    // (undocumented)
-    argsShape: {
-        deploymentName: z.ZodOptional<z.ZodString>;
-        loadSampleData: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
-        imageTag: z.ZodDefault<z.ZodOptional<z.ZodString>>;
-    };
-    // (undocumented)
-    description: string;
-    // (undocumented)
-    protected executeWithAtlasLocalClient(input: ToolArgs<typeof CreateDeploymentTool.argsShape>, input2: {
-        client: Client;
-    }): Promise<CallToolResult>;
-    // (undocumented)
-    static operationType: OperationType;
-    // (undocumented)
-    static toolName: string;
-}
-
-// @public (undocumented)
 export class CreateFreeClusterTool extends AtlasToolBase {
     // (undocumented)
     argsShape: {
@@ -468,13 +432,13 @@ export class CreateIndexTool extends MongoDBToolBase {
                         number: "number";
                         boolean: "boolean";
                         date: "date";
-                        uuid: "uuid";
                         autocomplete: "autocomplete";
                         document: "document";
                         embeddedDocuments: "embeddedDocuments";
                         geo: "geo";
                         objectId: "objectId";
                         token: "token";
+                        uuid: "uuid";
                     }>;
                 }, z.core.$loose>>>;
             }, z.core.$strip>;
@@ -542,24 +506,6 @@ export class DbStatsTool extends MongoDBToolBase {
     outputSchema: {
         stats: z.ZodRecord<z.ZodString, z.ZodUnknown>;
     };
-    // (undocumented)
-    static toolName: string;
-}
-
-// @public (undocumented)
-export class DeleteDeploymentTool extends AtlasLocalToolBase {
-    // (undocumented)
-    argsShape: {
-        deploymentName: ZodString;
-    };
-    // (undocumented)
-    description: string;
-    // (undocumented)
-    protected executeWithAtlasLocalClient(input: ToolArgs<typeof DeleteDeploymentTool.argsShape>, input2: {
-        client: Client;
-    }): Promise<CallToolResult>;
-    // (undocumented)
-    static operationType: OperationType;
     // (undocumented)
     static toolName: string;
 }
@@ -1060,22 +1006,6 @@ export class ListDBUsersTool extends AtlasToolBase {
     static toolName: string;
 }
 
-// @public (undocumented)
-export class ListDeploymentsTool extends AtlasLocalToolBase {
-    // (undocumented)
-    argsShape: {};
-    // (undocumented)
-    description: string;
-    // (undocumented)
-    protected executeWithAtlasLocalClient(_args: ToolArgs<typeof ListDeploymentsTool.argsShape>, input: {
-        client: Client;
-    }): Promise<CallToolResult>;
-    // (undocumented)
-    static operationType: OperationType;
-    // (undocumented)
-    static toolName: string;
-}
-
 // Warning: (ae-forgotten-export) The symbol "AssistantToolBase" needs to be exported by the entry point index.d.ts
 //
 // @public (undocumented)
@@ -1159,6 +1089,10 @@ export class LogsTool extends MongoDBToolBase {
 export abstract class MongoDBToolBase extends ToolBase {
     // (undocumented)
     static category: ToolCategory;
+    // Warning: (ae-forgotten-export) The symbol "UserConfig" needs to be exported by the entry point index.d.ts
+    //
+    // (undocumented)
+    protected readonly config: UserConfig;
     // (undocumented)
     protected ensureConnected(): Promise<NodeDriverServiceProvider>;
     protected getOperationOptions(signal?: AbortSignal): {
@@ -1171,13 +1105,16 @@ export abstract class MongoDBToolBase extends ToolBase {
     register(server: Server): boolean;
     protected resolveTelemetryMetadata(_args: ToolArgs<typeof MongoDBToolBase.argsShape>, input: {
         result: CallToolResult;
-    }): AtlasConnectionMetadata;
+    }): ConnectionMetadata;
     // (undocumented)
     protected server?: Server;
+    // Warning: (ae-forgotten-export) The symbol "Session" needs to be exported by the entry point index.d.ts
+    //
+    // (undocumented)
+    protected readonly session: Session;
 }
 
-// @public
-export type OperationType = "metadata" | "read" | "create" | "delete" | "update" | "connect";
+export { OperationType }
 
 // Warning: (ae-forgotten-export) The symbol "RenameCollectionOutputSchema" needs to be exported by the entry point index.d.ts
 //
@@ -1546,104 +1483,19 @@ export class SwitchConnectionTool extends MongoDBToolBase {
     static toolName: string;
 }
 
-// @public (undocumented)
-export type ToolArgs<T extends ZodRawShape> = {
-    [K in keyof T]: z.infer<T[K]>;
-};
+export { ToolArgs }
 
-// Warning: (ae-forgotten-export) The symbol "UserConfig" needs to be exported by the entry point index.d.ts
-//
-// @public
-export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> {
-    constructor(input: ToolConstructorParams<TUserConfig, TContext, TMetrics>);
-    // (undocumented)
-    get annotations(): ToolAnnotations;
-    abstract argsShape: ZodRawShape;
-    readonly category: ToolCategory;
-    protected readonly config: TUserConfig;
-    protected readonly context?: TContext;
-    abstract description: string;
-    // (undocumented)
-    disable(): void;
-    // Warning: (ae-forgotten-export) The symbol "Elicitation" needs to be exported by the entry point index.d.ts
-    protected readonly elicitation: Elicitation;
-    // (undocumented)
-    enable(): void;
-    protected abstract execute(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
-    protected getConfirmationMessage(args: ToolArgs<typeof ToolBase.argsShape>): string;
-    // (undocumented)
-    protected getConnectionInfoMetadata(): AtlasConnectionMetadata;
-    protected handleError(error: unknown, args: z.infer<z.ZodObject<typeof ToolBase.argsShape>>): Promise<CallToolResult> | CallToolResult;
-    invoke(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
-    // (undocumented)
-    isEnabled(): boolean;
-    // Warning: (ae-forgotten-export) The symbol "PreviewFeature" needs to be exported by the entry point index.d.ts
-    //
-    // (undocumented)
-    protected isFeatureEnabled(feature: PreviewFeature): boolean;
-    protected readonly metrics: Metrics<TMetrics>;
-    readonly name: string;
-    readonly operationType: OperationType;
-    outputSchema?: ZodRawShape;
-    // (undocumented)
-    register(server: Server<TUserConfig, TContext, TMetrics>): boolean;
-    requiresConfirmation(): boolean;
-    protected abstract resolveTelemetryMetadata(args: ToolArgs<typeof ToolBase.argsShape>, input: {
-        result: CallToolResult;
-    }): TelemetryToolMetadata;
-    // Warning: (ae-forgotten-export) The symbol "Session" needs to be exported by the entry point index.d.ts
-    protected readonly session: Session;
-    protected readonly telemetry: AtlasTelemetry;
-    protected get toolMeta(): Record<string, unknown>;
-    // (undocumented)
-    protected verifyAllowed(): boolean;
-    verifyConfirmed(args: ToolArgs<typeof ToolBase.argsShape>): Promise<boolean>;
-}
+export { ToolBase }
 
-// @public
-export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant";
+export { ToolCategory }
 
-// @public
-export type ToolClass<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> = {
-    new (params: ToolConstructorParams<TUserConfig, TContext, TMetrics>): ToolBase<TUserConfig, TContext, TMetrics>;
-    toolName: string;
-    category: ToolCategory;
-    operationType: OperationType;
-};
+export { ToolClass }
 
-// @public
-export type ToolConstructorParams<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> = {
-    name: string;
-    category: ToolCategory;
-    operationType: OperationType;
-    session: Session;
-    config: TUserConfig;
-    telemetry: AtlasTelemetry;
-    elicitation: Elicitation;
-    metrics: Metrics<TMetrics>;
-    uiRegistry?: UIRegistry;
-    context?: TContext;
-};
+export { ToolConstructorParams }
 
-// @public (undocumented)
-export interface ToolExecutionContext {
-    requestInfo?: {
-        headers?: Record<string, unknown>;
-    };
-    // (undocumented)
-    signal: AbortSignal;
-}
+export { ToolExecutionContext }
 
-// Warning: (ae-forgotten-export) The symbol "StructuredToolResult" needs to be exported by the entry point index.d.ts
-//
-// @public (undocumented)
-export type ToolResult<OutputSchema extends ZodRawShape | undefined = undefined> = OutputSchema extends ZodRawShape ? StructuredToolResult<OutputSchema> : {
-    content: {
-        type: "text";
-        text: string;
-    }[];
-    isError?: boolean;
-};
+export { ToolResult }
 
 // Warning: (ae-forgotten-export) The symbol "UpdateManyOutputSchema" needs to be exported by the entry point index.d.ts
 //
@@ -1678,6 +1530,9 @@ export class UpdateManyTool extends MongoDBToolBase {
     // (undocumented)
     static toolName: string;
 }
+
+
+export * from "@mongodb-js/mcp-tools-atlas-local";
 
 // (No @packageDocumentation comment for this package)
 

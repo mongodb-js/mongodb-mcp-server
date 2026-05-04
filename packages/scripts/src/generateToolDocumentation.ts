@@ -11,7 +11,7 @@ import { fileURLToPath } from "url";
 import { AllTools } from "mongodb-mcp-server/tools";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { UserConfigSchema } from "mongodb-mcp-server";
-import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
+import { PrometheusMetrics, createDefaultMetrics, type IMetrics } from "@mongodb-js/mcp-metrics";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -30,7 +30,8 @@ const overrides: Record<string, string> = {
 
 function extractToolInformation(): ToolInfo[] {
     const tools: ToolInfo[] = [];
-    const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() }) as IMetrics<any>;
 
     for (const ToolClass of AllTools) {
         // Create a minimal instance to access instance properties

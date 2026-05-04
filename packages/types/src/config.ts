@@ -1,7 +1,7 @@
 export type TransportType = "stdio" | "http";
 
 export interface IToolConfig {
-    transport: TransportType | string;
+    transport: string;
     httpBodyLimit?: number;
     readOnly: boolean;
     disabledTools: string[];

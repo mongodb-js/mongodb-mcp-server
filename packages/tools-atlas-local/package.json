@@ -1,32 +1,32 @@
 {
-    "name": "@mongodb-js/mcp-tools-atlas-local",
-    "version": "1.11.0-prerelease.1",
-    "private": true,
-    "type": "module",
-    "description": "Atlas Local tools and client for MongoDB MCP server",
-    "exports": {
-        ".": {
-            "types": "./dist/index.d.ts",
-            "default": "./dist/index.js"
-        }
-    },
-    "main": "./dist/index.js",
-    "types": "./dist/index.d.ts",
-    "files": [
-        "dist"
-    ],
-    "scripts": {
-        "compile": "tsc --build tsconfig.json"
-    },
-    "dependencies": {
-        "@mongodb-js/atlas-local": "^1.3.0",
-        "@mongodb-js/mcp-core": "workspace:*",
-        "@mongodb-js/mcp-logging": "workspace:*",
-        "@mongodb-js/mcp-types": "workspace:*",
-        "zod": "^4.0.0"
-    },
-    "devDependencies": {
-        "@types/node": "^25.6.0",
-        "typescript": "^5.9.2"
+  "name": "@mongodb-js/mcp-tools-atlas-local",
+  "version": "1.11.0-prerelease.1",
+  "private": true,
+  "type": "module",
+  "description": "Atlas Local tools and client for MongoDB MCP server",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "compile": "tsc --build tsconfig.json"
+  },
+  "dependencies": {
+    "@mongodb-js/atlas-local": "^1.3.0",
+    "@mongodb-js/mcp-core": "workspace:*",
+    "@mongodb-js/mcp-logging": "workspace:*",
+    "@mongodb-js/mcp-types": "workspace:*",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "typescript": "^5.9.2"
+  }
 }

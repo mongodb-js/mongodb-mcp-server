@@ -1,4 +1,5 @@
 import { Counter, Histogram } from "prom-client";
+import type { PrometheusMetricDefinitions } from "./types.js";
 
 /**
  * Creates a new set of default metrics for an MCP server.
@@ -28,7 +29,7 @@ export function createDefaultMetrics() {
             labelNames: ["reason"] as const,
             registers: [],
         }),
-    } as const;
+    } as const satisfies PrometheusMetricDefinitions;
 }
 
 export type DefaultMetrics = ReturnType<typeof createDefaultMetrics>;
