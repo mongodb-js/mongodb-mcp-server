@@ -340,6 +340,12 @@ Point the client at the built entry and pass the same env vars. Example config:
 
 Rebuild (`pnpm run build`) and restart the MCP server inside the client after each code change.
 
+**Common pitfalls when the client says "Could not attach to MCP server":**
+
+- **Use an absolute path for `command`.** GUI clients like Claude Desktop don't inherit your shell PATH, so `"command": "node"` resolved via `nvm`/`asdf`/`fnm` shims will fail to launch. Use the absolute path printed by `which node` from a shell where the right Node is active (e.g. `/Users/you/.asdf/installs/nodejs/22.17.0/bin/node`).
+- **Confirm the active Node satisfies the engine range** (`^20.19 || ^22.12 || >=24`). Version-mismatch crashes only surface in the per-server log — the UI just shows a generic attach error.
+- **Avoid `npx -y github:<owner>/mongodb-mcp-server#<branch>` for stdio MCP clients.** A cold install of this package's dependency tree (mongodb driver, AWS SDK, native modules) typically takes 1–2 minutes, which exceeds Claude Desktop's startup timeout (~60s) and is fragile in Claude Code too. `npx` also resolves `node` from PATH rather than its own install dir, so the runtime Node may not satisfy the engine range even if you point at a recent npm. Build locally and use the snippet above.
+
 ### 5.4 Automated integration tests
 
 The Atlas integration harness in [tests/integration/tools/atlas/atlasHelpers.ts](tests/integration/tools/atlas/atlasHelpers.ts) defaults `apiBaseUrl` to `https://cloud-dev.mongodb.com` when no override is set. To run them:
