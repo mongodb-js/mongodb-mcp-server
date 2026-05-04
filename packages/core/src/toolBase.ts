@@ -2,7 +2,6 @@ import type { z, ZodRawShape } from "zod";
 import type { RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { LogId } from "@mongodb-js/mcp-logging";
 import type { ITelemetry } from "@mongodb-js/mcp-types";
 import type { ConnectionMetadata, TelemetryToolMetadata, ToolEvent } from "@mongodb-js/mcp-types";
 import type { IToolConfig } from "@mongodb-js/mcp-types";
@@ -10,8 +9,15 @@ import type { IToolSession } from "@mongodb-js/mcp-types";
 import type { IElicitation } from "@mongodb-js/mcp-types";
 import type { PreviewFeature } from "@mongodb-js/mcp-types";
 import type { IUIRegistry } from "@mongodb-js/mcp-types";
+import type { IMetrics, IObservable, MongoLogId } from "@mongodb-js/mcp-types";
 import { createUIResource, type UIResource } from "@mcp-ui/server";
-import type { DefaultMetrics, Metrics } from "@mongodb-js/mcp-metrics";
+
+const LogId = {
+    toolExecute: { __value: 1_003_001 } as MongoLogId,
+    toolExecuteFailure: { __value: 1_003_002 } as MongoLogId,
+    toolDisabled: { __value: 1_003_003 } as MongoLogId,
+    toolMetadataChange: { __value: 1_003_004 } as MongoLogId,
+} as const;
 import { TRANSPORT_PAYLOAD_LIMITS } from "./transportConstants.js";
 import type { TransportType } from "@mongodb-js/mcp-types";
 import { getRandomUUID } from "./randomUUID.js";
@@ -78,7 +84,7 @@ export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant";
 export type ToolConstructorParams<
     TUserConfig extends IToolConfig = IToolConfig,
     TContext = unknown,
-    TMetrics extends DefaultMetrics = DefaultMetrics,
+    
 > = {
     /**
      * The unique name of this tool (injected from the static
@@ -132,7 +138,7 @@ export type ToolConstructorParams<
      *
      * See `src/common/metrics/index.ts` for further reference.
      */
-    metrics: Metrics<TMetrics>;
+    metrics: IMetrics;
 
     uiRegistry?: IUIRegistry;
 
@@ -206,10 +212,9 @@ export type ToolConstructorParams<
 export type ToolClass<
     TUserConfig extends IToolConfig = IToolConfig,
     TContext = unknown,
-    TMetrics extends DefaultMetrics = DefaultMetrics,
 > = {
     /** Constructor signature for the tool class */
-    new (params: ToolConstructorParams<TUserConfig, TContext, TMetrics>): ToolBase<TUserConfig, TContext, TMetrics>;
+    new (params: ToolConstructorParams<TUserConfig, TContext>): ToolBase<TUserConfig, TContext>;
 
     /**
      * The unique name of this tool.
@@ -307,7 +312,6 @@ export type ToolClass<
 export abstract class ToolBase<
     TUserConfig extends IToolConfig = IToolConfig,
     TContext = unknown,
-    TMetrics extends DefaultMetrics = DefaultMetrics,
 > {
     /**
      * The unique name of this tool.
@@ -526,7 +530,7 @@ export abstract class ToolBase<
 
             const durationSeconds = (Date.now() - startTime) / 1000;
 
-            this.metrics.get("toolExecutionDuration").observe(
+            (this.metrics.get("toolExecutionDuration") as IObservable).observe(
                 {
                     tool_name: this.name,
                     category: this.category,
@@ -553,7 +557,7 @@ export abstract class ToolBase<
             this.emitToolEvent(args, { startTime, result: toolResult });
 
             const durationSeconds = (Date.now() - startTime) / 1000;
-            this.metrics.get("toolExecutionDuration").observe(
+            (this.metrics.get("toolExecutionDuration") as IObservable).observe(
                 {
                     tool_name: this.name,
                     category: this.category,
@@ -644,7 +648,7 @@ export abstract class ToolBase<
      * Access to the metrics service. Use this to emit custom metrics events
      * if needed.
      */
-    protected readonly metrics: Metrics<TMetrics>;
+    protected readonly metrics: IMetrics;
 
     private readonly uiRegistry?: IUIRegistry;
 
@@ -677,7 +681,7 @@ export abstract class ToolBase<
         metrics,
         uiRegistry,
         context,
-    }: ToolConstructorParams<TUserConfig, TContext, TMetrics>) {
+    }: ToolConstructorParams<TUserConfig, TContext>) {
         this.name = name;
         this.category = category;
         this.operationType = operationType;
@@ -955,7 +959,7 @@ export abstract class ToolBase<
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type AnyToolBase = ToolBase<any, any, any>;
+export type AnyToolBase = ToolBase<any, any>;
 
 /**
  * Formats potentially untrusted data to be included in tool responses. The data is wrapped in unique tags

@@ -318,18 +318,9 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.29.0
         version: 1.29.0(zod@4.3.6)
-      '@mongodb-js/mcp-logging':
-        specifier: workspace:*
-        version: link:../logging
-      '@mongodb-js/mcp-metrics':
-        specifier: workspace:*
-        version: link:../metrics
       '@mongodb-js/mcp-types':
         specifier: workspace:*
         version: link:../types
-      '@mongodb-js/mcp-ui':
-        specifier: workspace:*
-        version: link:../ui
       bson:
         specifier: ^7.2.0
         version: 7.2.0
