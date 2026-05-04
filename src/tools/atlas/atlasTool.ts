@@ -5,8 +5,12 @@ import { LogId } from "@mongodb-js/mcp-logging";
 import { z } from "zod";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import type { Session } from "../../common/session.js";
+import type { UserConfig } from "../../common/config/userConfig.js";
 
 export abstract class AtlasToolBase extends ToolBase {
+    declare protected readonly session: Session;
+    declare protected readonly config: UserConfig;
     public static category: ToolCategory = "atlas";
 
     protected verifyAllowed(): boolean {

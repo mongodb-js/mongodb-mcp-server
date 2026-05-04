@@ -18,11 +18,11 @@ export class ConnectTool extends MongoDBToolBase {
 
     constructor(params: ToolConstructorParams) {
         super(params);
-        params.session.on("connect", () => {
+        this.session.on("connect", () => {
             this.disable();
         });
 
-        params.session.on("disconnect", () => {
+        this.session.on("disconnect", () => {
             this.enable();
         });
     }

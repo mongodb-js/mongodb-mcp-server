@@ -1,7 +1,7 @@
 import type { z, ZodRawShape } from "zod";
 import type { RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { LogId } from "@mongodb-js/mcp-logging";
 import type { ITelemetry } from "@mongodb-js/mcp-types";
 import type { ConnectionMetadata, TelemetryToolMetadata, ToolEvent } from "@mongodb-js/mcp-types";
@@ -11,8 +11,7 @@ import type { IElicitation } from "@mongodb-js/mcp-types";
 import type { PreviewFeature } from "@mongodb-js/mcp-types";
 import type { IUIRegistry } from "@mongodb-js/mcp-types";
 import { createUIResource, type UIResource } from "@mcp-ui/server";
-import type { IMetrics, MetricDefinitions } from "@mongodb-js/mcp-types";
-import type { DefaultMetrics } from "@mongodb-js/mcp-metrics";
+import type { DefaultMetrics, Metrics } from "@mongodb-js/mcp-metrics";
 import { TRANSPORT_PAYLOAD_LIMITS } from "./transportConstants.js";
 import type { TransportType } from "@mongodb-js/mcp-types";
 import { getRandomUUID } from "./randomUUID.js";
@@ -133,7 +132,7 @@ export type ToolConstructorParams<
      *
      * See `src/common/metrics/index.ts` for further reference.
      */
-    metrics: IMetrics<TMetrics>;
+    metrics: Metrics<TMetrics>;
 
     uiRegistry?: IUIRegistry;
 
@@ -645,7 +644,7 @@ export abstract class ToolBase<
      * Access to the metrics service. Use this to emit custom metrics events
      * if needed.
      */
-    protected readonly metrics: IMetrics<TMetrics>;
+    protected readonly metrics: Metrics<TMetrics>;
 
     private readonly uiRegistry?: IUIRegistry;
 

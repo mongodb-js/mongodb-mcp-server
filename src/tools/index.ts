@@ -5,7 +5,7 @@ import * as AssistantTools from "./assistant/tools.js";
 import type { ToolClass } from "./tool.js";
 
 // Export the collection of tools for easier reference
-export const AllTools: ToolClass[] = [
+export const AllTools: ToolClass<any, any, any>[] = [
     ...Object.values({ ...MongoDbTools, ...AtlasTools, ...AssistantTools }),
     ...AtlasLocalTools,
 ];

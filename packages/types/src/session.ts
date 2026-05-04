@@ -22,5 +22,5 @@ export interface ISession {
 export interface IToolSession extends ISession {
     readonly keychain: IKeychain;
     readonly connectionStringInfo?: { authType?: string; hostType?: string };
-    readonly connectedAtlasCluster?: { projectId?: string };
+    readonly connectedAtlasCluster?: { projectId?: string; clusterName?: string };
 }

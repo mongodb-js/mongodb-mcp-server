@@ -23,11 +23,11 @@ export class SwitchConnectionTool extends MongoDBToolBase {
 
     constructor(params: ToolConstructorParams) {
         super(params);
-        params.session.on("connect", () => {
+        this.session.on("connect", () => {
             this.enable();
         });
 
-        params.session.on("disconnect", () => {
+        this.session.on("disconnect", () => {
             this.disable();
         });
     }
