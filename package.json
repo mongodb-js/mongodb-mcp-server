@@ -132,6 +132,7 @@
     "@vitest/coverage-v8": "^4.1.8",
     "@vitest/eslint-plugin": "^1.6.19",
     "ai": "^6.0.175",
+    "braintrust": "^3.9.0",
     "concurrently": "^9.2.1",
     "duplexpair": "^1.0.2",
     "eslint": "^10.2.0",
