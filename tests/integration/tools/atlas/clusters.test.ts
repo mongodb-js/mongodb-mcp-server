@@ -281,6 +281,8 @@ describeWithAtlas("clusters", (integration) => {
             });
 
             withCluster(integration, ({ getProjectId: getUpgradeProjectId, getClusterName: getUpgradeClusterName }) => {
+                // This withCluster creates a dedicated FREE cluster for the upgrade test.
+                // The test makes a real upgrade API call; withCluster's cleanup handles teardown regardless of tier.
                 describe("when not connected to the cluster being upgraded", () => {
                     it("upgrades FREE cluster to FLEX with explicit projectId and clusterName", async () => {
                         const response = await integration.mcpClient().callTool({
@@ -297,6 +299,9 @@ describeWithAtlas("clusters", (integration) => {
                 });
             });
 
+            // Simulates being "connected" to the outer cluster (created by atlas-create-free-cluster above).
+            // The session state is patched so the tool picks up projectId/clusterName without explicit args,
+            // then makes a real upgrade API call against that outer cluster.
             describe("when connected to the cluster being upgraded", () => {
                 beforeAll(() => {
                     const session: Session = integration.mcpServer().session;

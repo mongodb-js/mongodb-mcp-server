@@ -890,6 +890,7 @@ export class ApiClient {
         const url = new URL(`api/atlas/v2/groups/${options.groupId}/clusters/tenantUpgrade`, this.options.baseUrl);
         const response = await this.customFetch(url.toString(), {
             method: "POST",
+            signal: AbortSignal.timeout(DEFAULT_SEND_TIMEOUT_MS),
             headers: {
                 ...authHeaders,
                 "Content-Type": `application/vnd.atlas.${LEGACY_ATLAS_API_VERSION}+json`,
@@ -932,6 +933,7 @@ export class ApiClient {
         const url = new URL(`api/atlas/v2/groups/${options.groupId}/flexClusters:tenantUpgrade`, this.options.baseUrl);
         const response = await this.customFetch(url.toString(), {
             method: "POST",
+            signal: AbortSignal.timeout(DEFAULT_SEND_TIMEOUT_MS),
             headers: {
                 ...authHeaders,
                 "Content-Type": `application/vnd.atlas.${ATLAS_API_VERSION}+json`,

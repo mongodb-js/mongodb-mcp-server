@@ -7,9 +7,14 @@ import type { Telemetry } from "../../../../../src/telemetry/telemetry.js";
 import type { Elicitation } from "../../../../../src/elicitation.js";
 import type { CompositeLogger } from "../../../../../src/common/logging/index.js";
 import type { ApiClient } from "../../../../../src/common/atlas/apiClient.js";
+import { ApiClientError } from "../../../../../src/common/atlas/apiClientError.js";
 import type { AtlasClusterConnectionInfo } from "../../../../../src/common/connectionInfo.js";
 import { UIRegistry } from "../../../../../src/ui/registry/index.js";
 import { MockMetrics } from "../../../mocks/metrics.js";
+
+function notFoundError(): ApiClientError {
+    return ApiClientError.fromError(new Response(null, { status: 404, statusText: "Not Found" }), "cluster not found");
+}
 
 const FREE_CLUSTER_RAW = {
     id: "free-cluster-id",
@@ -164,7 +169,7 @@ describe("UpgradeClusterTool", () => {
         });
 
         it("returns error when attempting to upgrade FLEX to FLEX (not connected)", async () => {
-            mockApiClient.getCluster!.mockRejectedValue(new Error("not found"));
+            mockApiClient.getCluster!.mockRejectedValue(notFoundError());
             mockApiClient.getFlexCluster!.mockResolvedValue(FLEX_CLUSTER_RAW);
 
             const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "FLEX" });
@@ -319,7 +324,7 @@ describe("UpgradeClusterTool", () => {
 
     describe("not connected — FLEX cluster", () => {
         beforeEach(() => {
-            mockApiClient.getCluster!.mockRejectedValue(new Error("cluster not found in regular API"));
+            mockApiClient.getCluster!.mockRejectedValue(notFoundError());
             mockApiClient.getFlexCluster!.mockResolvedValue(FLEX_CLUSTER_RAW);
         });
 
@@ -390,11 +395,72 @@ describe("UpgradeClusterTool", () => {
             expect(call.body.replicationSpecs[0]!.regionConfigs[0]!["regionName"]).toBeUndefined();
         });
 
-        it("falls back to getFlexCluster when getCluster throws", async () => {
+        it("falls back to getFlexCluster when getCluster throws 404", async () => {
             await exec({ projectId: "proj1", clusterName: "MyCluster" });
 
             expect(mockApiClient.getCluster).toHaveBeenCalledTimes(1);
             expect(mockApiClient.getFlexCluster).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    describe("API failure handling", () => {
+        it("propagates non-404 error from getCluster without falling through to getFlexCluster", async () => {
+            const serverError = ApiClientError.fromError(
+                new Response(null, { status: 500, statusText: "Internal Server Error" }),
+                "internal server error"
+            );
+            mockApiClient.getCluster!.mockRejectedValue(serverError);
+
+            await expect(exec({ projectId: "proj1", clusterName: "MyCluster" })).rejects.toThrow();
+            expect(mockApiClient.getFlexCluster).not.toHaveBeenCalled();
+        });
+
+        it("propagates plain errors from getCluster without falling through to getFlexCluster", async () => {
+            mockApiClient.getCluster!.mockRejectedValue(new Error("network timeout"));
+
+            await expect(exec({ projectId: "proj1", clusterName: "MyCluster" })).rejects.toThrow("network timeout");
+            expect(mockApiClient.getFlexCluster).not.toHaveBeenCalled();
+        });
+
+        it("propagates error when upgradeSharedTierCluster throws (FREE to FLEX)", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
+            mockApiClient.upgradeSharedTierCluster!.mockRejectedValue(new Error("upgrade quota exceeded"));
+
+            await expect(exec({ projectId: "proj1", clusterName: "MyCluster" })).rejects.toThrow(
+                "upgrade quota exceeded"
+            );
+        });
+
+        it("propagates error when upgradeSharedTierCluster throws (FREE to M10)", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
+            mockApiClient.upgradeSharedTierCluster!.mockRejectedValue(new Error("upgrade quota exceeded"));
+
+            await expect(exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M10" })).rejects.toThrow(
+                "upgrade quota exceeded"
+            );
+        });
+
+        it("propagates error when upgradeFlexToDedicated throws", async () => {
+            mockApiClient.getCluster!.mockRejectedValue(notFoundError());
+            mockApiClient.getFlexCluster!.mockResolvedValue(FLEX_CLUSTER_RAW);
+            mockApiClient.upgradeFlexToDedicated!.mockRejectedValue(new Error("upgrade quota exceeded"));
+
+            await expect(exec({ projectId: "proj1", clusterName: "MyCluster" })).rejects.toThrow(
+                "upgrade quota exceeded"
+            );
+        });
+
+        it("resets upgradeContext on successive calls so stale metadata does not bleed through", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
+
+            await exec({ projectId: "proj1", clusterName: "MyCluster" });
+            expect(tool["upgradeContext"]?.originalTier).toBe("free");
+
+            mockApiClient.getCluster!.mockRejectedValue(notFoundError());
+            mockApiClient.getFlexCluster!.mockResolvedValue(FLEX_CLUSTER_RAW);
+
+            await exec({ projectId: "proj1", clusterName: "MyCluster" });
+            expect(tool["upgradeContext"]?.originalTier).toBe("flex");
         });
     });
 
@@ -604,7 +670,7 @@ describe("UpgradeClusterTool", () => {
         });
 
         it("records originalTier=flex and targetTier=m10 for FLEX to M10 upgrade", async () => {
-            mockApiClient.getCluster!.mockRejectedValue(new Error("not found"));
+            mockApiClient.getCluster!.mockRejectedValue(notFoundError());
             mockApiClient.getFlexCluster!.mockResolvedValue(FLEX_CLUSTER_RAW);
 
             await exec({ projectId: "proj1", clusterName: "MyCluster" });
@@ -631,8 +697,24 @@ describe("UpgradeClusterTool", () => {
             void mockTelemetry;
         });
 
-        it("excludes provider and region from metadata when not provided as args", async () => {
+        it("includes provider and region from cluster fetch when not provided as args", async () => {
             mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
+
+            await exec({ projectId: "proj1", clusterName: "MyCluster" });
+
+            const resolvedMetadata = tool["resolveTelemetryMetadata"](
+                { projectId: "proj1", clusterName: "MyCluster" } as never,
+                { result: { content: [] } as never }
+            );
+            expect(resolvedMetadata.provider).toBe("AWS");
+            expect(resolvedMetadata.region).toBe("US_EAST_1");
+        });
+
+        it("excludes provider and region from metadata when cluster has no provider data", async () => {
+            mockApiClient.getCluster!.mockResolvedValue({
+                id: "free-cluster-id",
+                replicationSpecs: [{ regionConfigs: [{ electableSpecs: { instanceSize: "M0" } }] }],
+            });
 
             await exec({ projectId: "proj1", clusterName: "MyCluster" });
 

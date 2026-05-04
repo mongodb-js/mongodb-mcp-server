@@ -4,6 +4,7 @@ import { type OperationType, type ToolArgs } from "../../tool.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import { formatCluster } from "../../../common/atlas/cluster.js";
 import type { ApiClient } from "../../../common/atlas/apiClient.js";
+import { ApiClientError } from "../../../common/atlas/apiClientError.js";
 import { AtlasArgs } from "../../args.js";
 import type { UpgradeClusterMetadata } from "../../../telemetry/types.js";
 
@@ -46,12 +47,7 @@ type FlexToM10Body = {
     autoScaling: typeof DEDICATED_CLUSTER_DEFAULTS.autoScaling;
 };
 
-function buildM10UpgradeBody(
-    baseTier: "FREE",
-    clusterName: string,
-    provider: string | undefined,
-    region?: string
-): FreeToM10Body;
+function buildM10UpgradeBody(baseTier: "FREE", clusterName: string, provider?: string, region?: string): FreeToM10Body;
 function buildM10UpgradeBody(baseTier: "FLEX", clusterName: string, provider?: string, region?: string): FlexToM10Body;
 function buildM10UpgradeBody(
     baseTier: "FREE" | "FLEX",
@@ -120,9 +116,13 @@ export class UpgradeClusterTool extends AtlasToolBase {
         targetTier: "flex" | "m10";
         originalClusterId?: string;
         targetClusterId?: string;
+        resolvedProvider?: string;
+        resolvedRegion?: string;
     };
 
     protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+        this.upgradeContext = undefined;
+
         const projectId = args.projectId ?? this.session.connectedAtlasCluster?.projectId;
         const clusterName = args.clusterName ?? this.session.connectedAtlasCluster?.clusterName;
 
@@ -145,7 +145,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
                 : undefined;
 
         // Connected: instanceType is already known — skip all API fetches.
-        // provider/region come from args only (no fetched defaults).
+        // provider/region fall back to session state; no API-fetched defaults.
         if (knownInstanceType !== undefined) {
             if (knownInstanceType === "DEDICATED") {
                 return {
@@ -165,27 +165,24 @@ export class UpgradeClusterTool extends AtlasToolBase {
                     isError: true,
                 };
             }
+            const resolvedProvider = args.provider ?? sessionCluster?.provider;
+            const resolvedRegion = args.region ?? sessionCluster?.region;
             if (knownInstanceType === "FREE") {
-                this.upgradeContext = { originalTier: "free", targetTier: target === "FLEX" ? "flex" : "m10" };
-                return this.upgradeFreeCluster(
-                    projectId,
-                    clusterName,
-                    target,
-                    args.provider ?? sessionCluster?.provider,
-                    args.region ?? sessionCluster?.region
-                );
+                this.upgradeContext = {
+                    originalTier: "free",
+                    targetTier: target === "FLEX" ? "flex" : "m10",
+                    resolvedProvider,
+                    resolvedRegion,
+                };
+                return this.upgradeFreeCluster(projectId, clusterName, target, resolvedProvider, resolvedRegion);
             }
-            this.upgradeContext = { originalTier: "flex", targetTier: "m10" };
-            return this.upgradeFlexCluster(
-                projectId,
-                clusterName,
-                args.provider ?? sessionCluster?.provider,
-                args.region ?? sessionCluster?.region
-            );
+            this.upgradeContext = { originalTier: "flex", targetTier: "m10", resolvedProvider, resolvedRegion };
+            return this.upgradeFlexCluster(projectId, clusterName, resolvedProvider, resolvedRegion);
         }
 
         // Not connected: fetch to determine the tier, reusing the raw result for provider/region defaults.
-        // Try the regular clusters API first (FREE/DEDICATED), fall back to the flex API.
+        // Try the regular clusters API first (FREE/DEDICATED). Only fall back to the flex API on 404,
+        // which is the expected response when the cluster is a Flex cluster type.
         let clusterResult: ClusterResult;
         try {
             clusterResult = {
@@ -194,7 +191,10 @@ export class UpgradeClusterTool extends AtlasToolBase {
                     params: { path: { groupId: projectId, clusterName } },
                 }),
             };
-        } catch {
+        } catch (err) {
+            if (!(err instanceof ApiClientError) || err.response.status !== 404) {
+                throw err;
+            }
             clusterResult = {
                 kind: "flex",
                 raw: await this.apiClient.getFlexCluster({
@@ -220,14 +220,16 @@ export class UpgradeClusterTool extends AtlasToolBase {
             const firstRegionConfig = clusterResult.raw.replicationSpecs?.[0]?.regionConfigs?.[0] as
                 | { backingProviderName?: string; regionName?: string }
                 | undefined;
-            const backingProviderName = args.provider ?? firstRegionConfig?.backingProviderName;
-            const regionName = args.region ?? firstRegionConfig?.regionName;
+            const resolvedProvider = args.provider ?? firstRegionConfig?.backingProviderName;
+            const resolvedRegion = args.region ?? firstRegionConfig?.regionName;
             this.upgradeContext = {
                 originalTier: "free",
                 targetTier: target === "FLEX" ? "flex" : "m10",
                 originalClusterId: clusterResult.raw.id,
+                resolvedProvider,
+                resolvedRegion,
             };
-            return this.upgradeFreeCluster(projectId, clusterName, target, backingProviderName, regionName);
+            return this.upgradeFreeCluster(projectId, clusterName, target, resolvedProvider, resolvedRegion);
         }
 
         // FLEX cluster
@@ -239,7 +241,12 @@ export class UpgradeClusterTool extends AtlasToolBase {
         }
         const provider = args.provider ?? clusterResult.raw.providerSettings?.backingProviderName;
         const flexRegion = args.region ?? clusterResult.raw.providerSettings?.regionName;
-        this.upgradeContext = { originalTier: "flex", targetTier: "m10" };
+        this.upgradeContext = {
+            originalTier: "flex",
+            targetTier: "m10",
+            resolvedProvider: provider,
+            resolvedRegion: flexRegion,
+        };
         return this.upgradeFlexCluster(projectId, clusterName, provider, flexRegion);
     }
 
@@ -321,8 +328,8 @@ export class UpgradeClusterTool extends AtlasToolBase {
             target_tier: this.upgradeContext?.targetTier,
             original_cluster_id: this.upgradeContext?.originalClusterId,
             target_cluster_id: this.upgradeContext?.targetClusterId,
-            ...(args.provider !== undefined && { provider: args.provider }),
-            ...(args.region !== undefined && { region: args.region }),
+            provider: this.upgradeContext?.resolvedProvider,
+            region: this.upgradeContext?.resolvedRegion,
         };
     }
 }
