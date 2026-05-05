@@ -13,3 +13,4 @@ export type * from "./ui.js";
 export type * from "./resources.js";
 export type * from "./telemetry.js";
 export type * from "./helpers.js";
+export * from "./mongodbErrors.js";
