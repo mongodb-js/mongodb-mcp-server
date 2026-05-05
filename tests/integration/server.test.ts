@@ -16,9 +16,8 @@ import { connectionErrorHandler } from "../../src/common/connectionErrorHandler.
 import { type OperationType, ToolBase, type ToolCategory, type ToolClass } from "../../src/tools/tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
-import { InMemoryTransport } from "../../src/transports/inMemoryTransport.js";
+import { InMemoryTransport, TRANSPORT_PAYLOAD_LIMITS } from "@mongodb-js/mcp-transports";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
-import { TRANSPORT_PAYLOAD_LIMITS } from "../../src/transports/constants.js";
 import { MockMetrics } from "../unit/mocks/metrics.js";
 
 class TestToolOne extends ToolBase {

@@ -11,7 +11,7 @@ import { Keychain } from "@mongodb-js/mcp-core";
 import type { Secret } from "@mongodb-js/mcp-core";
 import { createEnvironment, useClearEnvironment } from "../../utils/index.js";
 import path from "path";
-import { TRANSPORT_PAYLOAD_LIMITS } from "../../../src/transports/constants.js";
+import { TRANSPORT_PAYLOAD_LIMITS } from "@mongodb-js/mcp-transports";
 import { getConfigMeta } from "../../../src/common/config/configOverrides.js";
 
 // Expected hardcoded values (what we had before)

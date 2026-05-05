@@ -10,7 +10,7 @@ import { Session } from "../../../../src/common/session.js";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
 import { DeviceId } from "../../../../src/helpers/deviceId.js";
 import { ExportsManager } from "../../../../src/common/exportsManager.js";
-import { InMemoryTransport } from "../../../../src/transports/inMemoryTransport.js";
+import { InMemoryTransport } from "@mongodb-js/mcp-transports";
 import { Server } from "../../../../src/server.js";
 import { type ConnectionErrorHandler, connectionErrorHandler } from "../../../../src/common/connectionErrorHandler.js";
 import { defaultTestConfig, expectDefined } from "../../helpers.js";

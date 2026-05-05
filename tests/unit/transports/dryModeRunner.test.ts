@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { DryRunModeRunner, type DryRunModeTestHelpers } from "../../../src/transports/dryModeRunner.js";
+import { DryRunModeRunner, type DryRunModeTestHelpers, type TransportRunnerConfig } from "@mongodb-js/mcp-transports";
 import { type UserConfig } from "../../../src/common/config/userConfig.js";
-import { type TransportRunnerConfig } from "../../../src/transports/base.js";
 import { defaultTestConfig } from "../../integration/helpers.js";
 
 describe("DryModeRunner", () => {

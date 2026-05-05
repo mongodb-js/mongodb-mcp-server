@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { MonitoringServer } from "../../../src/transports/monitoringServer.js";
+import { MonitoringServer } from "@mongodb-js/mcp-transports";
 import { NoopLogger } from "@mongodb-js/mcp-core";
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
 
