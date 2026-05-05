@@ -6,6 +6,7 @@ export { ensureCurrentIpInAccessList, DEFAULT_ACCESS_LIST_COMMENT } from "./help
 export { getDefaultRoleFromConfig } from "./helpers/roles.js";
 export {
     AtlasArgs,
+    CommonArgs,
     ALLOWED_PROJECT_NAME_CHARACTERS_ERROR,
     ALLOWED_USERNAME_CHARACTERS_ERROR,
     ALLOWED_REGION_CHARACTERS_ERROR,

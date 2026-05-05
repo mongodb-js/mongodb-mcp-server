@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
     AtlasArgs,
+    CommonArgs,
     ALLOWED_PROJECT_NAME_CHARACTERS_ERROR,
     ALLOWED_USERNAME_CHARACTERS_ERROR,
     ALLOWED_REGION_CHARACTERS_ERROR,
     ALLOWED_CLUSTER_NAME_CHARACTERS_ERROR,
     NO_UNICODE_ERROR,
 } from "@mongodb-js/mcp-tools-atlas";
-import { CommonArgs } from "../../src/tools/args.js";
 
 describe("Tool args", () => {
     describe("CommonArgs", () => {
