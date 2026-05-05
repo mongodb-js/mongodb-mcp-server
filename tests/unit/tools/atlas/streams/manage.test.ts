@@ -1,10 +1,8 @@
 import type { DefaultMetrics } from "@mongodb-js/mcp-metrics";
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ToolConstructorParams } from "../../../../../src/tools/tool.js";
-import { StreamsManageTool } from "../../../../../src/tools/atlas/streams/manage.js";
-import type { Session } from "../../../../../src/common/session.js";
-import type { UserConfig } from "../../../../../src/common/config/userConfig.js";
+import type { ToolConstructorParams, IAtlasConfig, IAtlasSession } from "@mongodb-js/mcp-tools-atlas";
+import { StreamsManageTool } from "@mongodb-js/mcp-tools-atlas";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { Elicitation } from "../../../../../src/elicitation.js";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
@@ -46,7 +44,7 @@ describe("StreamsManageTool", () => {
         const mockSession = {
             logger: typedLogger,
             apiClient: mockApiClient as unknown as ApiClient,
-        } as unknown as Session;
+        } as unknown as IAtlasSession;
 
         const mockConfig = {
             confirmationRequiredTools: [],
@@ -54,7 +52,8 @@ describe("StreamsManageTool", () => {
             disabledTools: [],
             apiClientId: "test-id",
             apiClientSecret: "test-secret",
-        } as unknown as UserConfig;
+            atlasTemporaryDatabaseUserLifetimeMs: 3600000,
+        } as unknown as IAtlasConfig;
 
         const mockTelemetry = {
             isTelemetryEnabled: () => true,
@@ -65,11 +64,11 @@ describe("StreamsManageTool", () => {
             requestConfirmation: vi.fn().mockResolvedValue(true),
         } as unknown as Elicitation;
 
-        const params: ToolConstructorParams<UserConfig, unknown, DefaultMetrics> = {
+        const params: ToolConstructorParams<IAtlasConfig, unknown, DefaultMetrics> = {
             name: StreamsManageTool.toolName,
             category: "atlas",
             operationType: StreamsManageTool.operationType,
-            session: mockSession,
+            session: mockSession as unknown as ToolConstructorParams<IAtlasConfig, unknown, DefaultMetrics>["session"],
             config: mockConfig,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,

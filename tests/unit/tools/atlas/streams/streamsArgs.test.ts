@@ -3,7 +3,7 @@ import {
     ConnectionConfig,
     PrivateLinkConfig,
     StreamsArgs,
-} from "../../../../../src/tools/atlas/streams/streamsArgs.js";
+} from "@mongodb-js/mcp-tools-atlas";
 
 describe("StreamsArgs", () => {
     describe("workspaceName", () => {
