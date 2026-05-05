@@ -106,7 +106,6 @@
     "@types/proper-lockfile": "^4.1.4",
     "@types/semver": "^7.7.0",
     "@types/yargs-parser": "^21.0.3",
-<<<<<<< HEAD
     "@typescript-eslint/parser": "^8.58.2",
     "@vitejs/plugin-react": "^6.0.1",
     "@vitest/coverage-v8": "^4.1.4",
@@ -117,7 +116,6 @@
     "eslint": "^10.2.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
-<<<<<<< HEAD
     "globals": "^17.5.0",
     "happy-dom": "^20.9.0",
     "husky": "^9.1.7",
@@ -170,7 +168,8 @@
     "semver": "^7.7.2",
     "ts-levenshtein": "^1.0.7",
     "yaml": "^2.8.1",
-    "zod": "^4.4.2"
+    "zod": "^4.4.2",
+    "@mongodb-js/mcp-tools-mongodb": "workspace:*"
   },
   "peerDependencies": {
     "@types/express": "^5.0.3"
