@@ -102,6 +102,14 @@ describeAccuracyTests([
     {
         prompt: `List the clusters in project "${PROJECT_ID}", then upgrade "${CLUSTER_NAME}" to Flex tier`,
         mockedTools: {
+            "atlas-list-projects": (): CallToolResult => ({
+                content: [
+                    {
+                        type: "text",
+                        text: JSON.stringify([{ name: "MyProject", id: PROJECT_ID }]),
+                    },
+                ],
+            }),
             "atlas-list-clusters": (): CallToolResult => ({
                 content: [
                     {
@@ -113,6 +121,11 @@ describeAccuracyTests([
             "atlas-upgrade-cluster": mockUpgradeResponse(CLUSTER_NAME, "Free", "Flex"),
         },
         expectedToolCalls: [
+            {
+                toolName: "atlas-list-projects",
+                parameters: {},
+                optional: true,
+            },
             {
                 toolName: "atlas-list-clusters",
                 parameters: {

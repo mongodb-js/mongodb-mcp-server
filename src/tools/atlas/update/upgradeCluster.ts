@@ -7,10 +7,7 @@ import type { ApiClient } from "../../../common/atlas/apiClient.js";
 import { ApiClientError } from "../../../common/atlas/apiClientError.js";
 import { AtlasArgs } from "../../args.js";
 import type { UpgradeClusterMetadata } from "../../../telemetry/types.js";
-
-type ClusterResult =
-    | { kind: "regular"; raw: Awaited<ReturnType<ApiClient["getCluster"]>> }
-    | { kind: "flex"; raw: Awaited<ReturnType<ApiClient["getFlexCluster"]>> };
+import type { AtlasClusterConnectionInfo } from "../../../common/connectionInfo.js";
 
 const ALLOWED_PROVIDER_REGEX = /^[A-Z_]+$/;
 
@@ -83,6 +80,59 @@ function buildM10UpgradeBody(
     };
 }
 
+type ResolvedClusterInfo = {
+    instanceType: "FREE" | "FLEX" | "DEDICATED";
+    provider?: string;
+    region?: string;
+    originalClusterId?: string;
+};
+
+async function resolveClusterInfo(
+    apiClient: Pick<ApiClient, "getCluster" | "getFlexCluster">,
+    projectId: string,
+    clusterName: string,
+    argOverrides: { provider?: string; region?: string },
+    sessionCluster: AtlasClusterConnectionInfo | undefined
+): Promise<ResolvedClusterInfo> {
+    const knownInstanceType =
+        sessionCluster?.projectId === projectId && sessionCluster?.clusterName === clusterName
+            ? sessionCluster.instanceType
+            : undefined;
+
+    if (knownInstanceType !== undefined) {
+        return {
+            instanceType: knownInstanceType,
+            provider: argOverrides.provider ?? sessionCluster?.provider,
+            region: argOverrides.region ?? sessionCluster?.region,
+        };
+    }
+
+    try {
+        const raw = await apiClient.getCluster({ params: { path: { groupId: projectId, clusterName } } });
+        const cluster = formatCluster(raw);
+        const firstRegionConfig = raw.replicationSpecs?.[0]?.regionConfigs?.[0] as
+            | { backingProviderName?: string; regionName?: string }
+            | undefined;
+        return {
+            instanceType: cluster.instanceType,
+            provider: argOverrides.provider ?? firstRegionConfig?.backingProviderName,
+            region: argOverrides.region ?? firstRegionConfig?.regionName,
+            originalClusterId: raw.id,
+        };
+    } catch (err) {
+        if (!(err instanceof ApiClientError) || err.response.status !== 404) {
+            throw err;
+        }
+        const raw = await apiClient.getFlexCluster({ params: { path: { groupId: projectId, name: clusterName } } });
+        return {
+            instanceType: "FLEX",
+            provider: argOverrides.provider ?? raw.providerSettings?.backingProviderName,
+            region: argOverrides.region ?? raw.providerSettings?.regionName,
+            originalClusterId: raw.id,
+        };
+    }
+}
+
 export class UpgradeClusterTool extends AtlasToolBase {
     static toolName = "atlas-upgrade-cluster";
     public description =
@@ -138,116 +188,47 @@ export class UpgradeClusterTool extends AtlasToolBase {
             };
         }
 
-        const sessionCluster = this.session.connectedAtlasCluster;
-        const knownInstanceType =
-            sessionCluster?.projectId === projectId && sessionCluster?.clusterName === clusterName
-                ? sessionCluster.instanceType
-                : undefined;
+        const clusterInfo = await resolveClusterInfo(
+            this.apiClient,
+            projectId,
+            clusterName,
+            { provider: args.provider, region: args.region },
+            this.session.connectedAtlasCluster
+        );
 
-        // Connected: instanceType is already known — skip all API fetches.
-        // provider/region fall back to session state; no API-fetched defaults.
-        if (knownInstanceType !== undefined) {
-            if (knownInstanceType === "DEDICATED") {
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: `Cluster "${clusterName}" is already at the Dedicated tier and cannot be upgraded further.`,
-                        },
-                    ],
-                    isError: true,
-                };
-            }
-            const target = args.targetTier ?? (knownInstanceType === "FREE" ? "FLEX" : "M10");
-            if (knownInstanceType === "FLEX" && target === "FLEX") {
-                return {
-                    content: [{ type: "text", text: `Cluster "${clusterName}" is already a Flex cluster.` }],
-                    isError: true,
-                };
-            }
-            const resolvedProvider = args.provider ?? sessionCluster?.provider;
-            const resolvedRegion = args.region ?? sessionCluster?.region;
-            if (knownInstanceType === "FREE") {
-                this.upgradeContext = {
-                    originalTier: "free",
-                    targetTier: target === "FLEX" ? "flex" : "m10",
-                    resolvedProvider,
-                    resolvedRegion,
-                };
-                return this.upgradeFreeCluster(projectId, clusterName, target, resolvedProvider, resolvedRegion);
-            }
-            this.upgradeContext = { originalTier: "flex", targetTier: "m10", resolvedProvider, resolvedRegion };
-            return this.upgradeFlexCluster(projectId, clusterName, resolvedProvider, resolvedRegion);
-        }
-
-        // Not connected: fetch to determine the tier, reusing the raw result for provider/region defaults.
-        // Try the regular clusters API first (FREE/DEDICATED). Only fall back to the flex API on 404,
-        // which is the expected response when the cluster is a Flex cluster type.
-        let clusterResult: ClusterResult;
-        try {
-            clusterResult = {
-                kind: "regular",
-                raw: await this.apiClient.getCluster({
-                    params: { path: { groupId: projectId, clusterName } },
-                }),
-            };
-        } catch (err) {
-            if (!(err instanceof ApiClientError) || err.response.status !== 404) {
-                throw err;
-            }
-            clusterResult = {
-                kind: "flex",
-                raw: await this.apiClient.getFlexCluster({
-                    params: { path: { groupId: projectId, name: clusterName } },
-                }),
+        if (clusterInfo.instanceType === "DEDICATED") {
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: `Cluster "${clusterName}" is already at the Dedicated tier and cannot be upgraded further.`,
+                    },
+                ],
+                isError: true,
             };
         }
 
-        if (clusterResult.kind === "regular") {
-            const cluster = formatCluster(clusterResult.raw);
-            if (cluster.instanceType === "DEDICATED") {
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: `Cluster "${clusterName}" is already at the Dedicated tier and cannot be upgraded further.`,
-                        },
-                    ],
-                    isError: true,
-                };
-            }
-            const target = args.targetTier ?? "FLEX";
-            const firstRegionConfig = clusterResult.raw.replicationSpecs?.[0]?.regionConfigs?.[0] as
-                | { backingProviderName?: string; regionName?: string }
-                | undefined;
-            const resolvedProvider = args.provider ?? firstRegionConfig?.backingProviderName;
-            const resolvedRegion = args.region ?? firstRegionConfig?.regionName;
-            this.upgradeContext = {
-                originalTier: "free",
-                targetTier: target === "FLEX" ? "flex" : "m10",
-                originalClusterId: clusterResult.raw.id,
-                resolvedProvider,
-                resolvedRegion,
-            };
-            return this.upgradeFreeCluster(projectId, clusterName, target, resolvedProvider, resolvedRegion);
-        }
+        const target = args.targetTier ?? (clusterInfo.instanceType === "FREE" ? "FLEX" : "M10");
 
-        // FLEX cluster
-        if (args.targetTier === "FLEX") {
+        if (clusterInfo.instanceType === "FLEX" && target === "FLEX") {
             return {
                 content: [{ type: "text", text: `Cluster "${clusterName}" is already a Flex cluster.` }],
                 isError: true,
             };
         }
-        const provider = args.provider ?? clusterResult.raw.providerSettings?.backingProviderName;
-        const flexRegion = args.region ?? clusterResult.raw.providerSettings?.regionName;
+
         this.upgradeContext = {
-            originalTier: "flex",
-            targetTier: "m10",
-            resolvedProvider: provider,
-            resolvedRegion: flexRegion,
+            originalTier: clusterInfo.instanceType === "FREE" ? "free" : "flex",
+            targetTier: target === "FLEX" ? "flex" : "m10",
+            originalClusterId: clusterInfo.originalClusterId,
+            resolvedProvider: clusterInfo.provider,
+            resolvedRegion: clusterInfo.region,
         };
-        return this.upgradeFlexCluster(projectId, clusterName, provider, flexRegion);
+
+        if (clusterInfo.instanceType === "FREE") {
+            return this.upgradeFreeCluster(projectId, clusterName, target, clusterInfo.provider, clusterInfo.region);
+        }
+        return this.upgradeFlexCluster(projectId, clusterName, clusterInfo.provider, clusterInfo.region);
     }
 
     private async upgradeFreeCluster(
