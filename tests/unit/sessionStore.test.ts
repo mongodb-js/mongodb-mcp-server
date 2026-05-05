@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { SessionStore, type CloseableTransport } from "../../src/common/sessionStore.js";
+import { SessionStore, type CloseableTransport } from "@mongodb-js/mcp-transports";
 import type { LoggerBase } from "@mongodb-js/mcp-core";
 import { MockMetrics } from "./mocks/metrics.js";
 
