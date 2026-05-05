@@ -12,7 +12,7 @@ export type DropCollectionOutput = z.infer<z.ZodObject<typeof DropCollectionOutp
 
 export class DropCollectionTool extends MongoDBToolBase {
     static toolName = "drop-collection";
-    public description = "Drop a collection from a MongoDB database";
+    public description = "Removes a collection or view from the database. The method also removes any indexes associated with the dropped collection.";
     public override outputSchema = DropCollectionOutputSchema;
     public argsShape = {
         ...CollOperationArgs,
@@ -30,7 +30,7 @@ export class DropCollectionTool extends MongoDBToolBase {
         return {
             content: [
                 {
-                    text: `Collection "${collection}" dropped from database "${database}".`,
+                    text: `Successfully dropped collection "${collection}" from database "${database}"`,
                     type: "text",
                 },
             ],

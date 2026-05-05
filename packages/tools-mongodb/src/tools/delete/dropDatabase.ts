@@ -11,7 +11,7 @@ export type DropDatabaseOutput = z.infer<z.ZodObject<typeof DropDatabaseOutputSc
 
 export class DropDatabaseTool extends MongoDBToolBase {
     static toolName = "drop-database";
-    public description = "Drop a MongoDB database";
+    public description = "Removes the specified database, deleting the associated data files";
     public override outputSchema = DropDatabaseOutputSchema;
     public argsShape = {
         ...DBOperationArgs,
@@ -28,7 +28,7 @@ export class DropDatabaseTool extends MongoDBToolBase {
         return {
             content: [
                 {
-                    text: `Database "${database}" dropped.`,
+                    text: `Successfully dropped database "${database}"`,
                     type: "text",
                 },
             ],

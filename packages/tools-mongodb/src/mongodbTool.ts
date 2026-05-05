@@ -45,7 +45,10 @@ export abstract class MongoDBToolBase extends ToolBase<IMongoDBConfig, unknown, 
         }
 
         if (!this.session.isConnectedToMongoDB) {
-            throw new MongoDBError(ErrorCodes.NotConnectedToMongoDB, "Not connected to MongoDB");
+            throw new MongoDBError(
+                ErrorCodes.NotConnectedToMongoDB,
+                "You need to connect to a MongoDB instance before you can access its data."
+            );
         }
 
         return this.session.serviceProvider;

@@ -13,7 +13,7 @@ export type DropIndexOutput = z.infer<z.ZodObject<typeof DropIndexOutputSchema>>
 
 export class DropIndexTool extends MongoDBToolBase {
     static toolName = "drop-index";
-    public description = "Drop an index from a MongoDB collection";
+    public description = "Drop an index for the provided database and collection.";
     public override outputSchema = DropIndexOutputSchema;
     public argsShape = {
         ...CollOperationArgs,
@@ -36,7 +36,7 @@ export class DropIndexTool extends MongoDBToolBase {
         return {
             content: [
                 {
-                    text: `Index "${indexName}" dropped from collection "${collection}" in database "${database}".`,
+                    text: `Successfully dropped the index from the provided namespace.`,
                     type: "text",
                 },
             ],
