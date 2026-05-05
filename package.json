@@ -166,7 +166,6 @@
     "node-machine-id": "1.1.12",
     "semver": "^7.7.2",
     "ts-levenshtein": "^1.0.7",
-    "yaml": "^2.8.1",
     "zod": "^4.0.0"
   },
   "peerDependencies": {
