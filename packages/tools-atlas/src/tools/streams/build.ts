@@ -689,7 +689,9 @@ export class StreamsBuildTool extends StreamsToolBase {
         if (missingNames.length === 0) return null;
 
         const availableList =
-            availableNames.size > 0 ? [...availableNames].map((n) => `  - ${n}`).join("\n") : "  (no connections found)";
+            availableNames.size > 0
+                ? [...availableNames].map((n) => `  - ${n}`).join("\n")
+                : "  (no connections found)";
 
         return {
             content: [

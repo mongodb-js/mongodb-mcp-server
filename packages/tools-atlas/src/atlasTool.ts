@@ -1,6 +1,6 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ToolBase } from "@mongodb-js/mcp-core";
-import type { ToolArgs, ToolCategory, OperationType } from "@mongodb-js/mcp-core";
+import type { ToolArgs, ToolCategory } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import { LogId } from "@mongodb-js/mcp-logging";

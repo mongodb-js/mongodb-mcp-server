@@ -2,8 +2,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "../../atlasTool.js";
 import type { OperationType } from "@mongodb-js/mcp-core";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
-import type { ToolArgs } from "@mongodb-js/mcp-core";
-import { AtlasArgs } from "../../args.js";
+import { AtlasToolBase } from "../../atlasTool.js";
 
 export class ListOrganizationsTool extends AtlasToolBase {
     static toolName = "atlas-list-orgs";

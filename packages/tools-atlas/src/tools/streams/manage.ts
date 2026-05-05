@@ -237,7 +237,9 @@ export class StreamsManageTool extends StreamsToolBase {
         }
 
         const hasStartOptions =
-            args.tier !== undefined || args.resumeFromCheckpoint !== undefined || args.startAtOperationTime !== undefined;
+            args.tier !== undefined ||
+            args.resumeFromCheckpoint !== undefined ||
+            args.startAtOperationTime !== undefined;
 
         if (hasStartOptions) {
             const startBody: Record<string, unknown> = {};

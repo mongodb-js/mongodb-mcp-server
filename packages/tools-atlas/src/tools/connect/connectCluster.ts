@@ -8,7 +8,7 @@ import { ensureCurrentIpInAccessList } from "../../helpers/accessListUtils.js";
 import { getDefaultRoleFromConfig } from "../../helpers/roles.js";
 import { AtlasArgs } from "../../args.js";
 import type { AtlasConnectionMetadata as ConnectionMetadata } from "@mongodb-js/mcp-atlas-telemetry";
-import type { IAtlasSession, AtlasClusterConnectionInfo } from "../../atlasTool.js";
+import type { AtlasClusterConnectionInfo } from "../../atlasTool.js";
 
 const addedIpAccessListMessage =
     "Note: Your current IP address has been added to the Atlas project's IP access list to enable secure connection.";
@@ -38,7 +38,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         projectId: string,
         clusterName: string
     ): "connected" | "disconnected" | "connecting" | "connected-to-other-cluster" | "unknown" {
-        const session = this.session as IAtlasSession;
+        const session = this.session;
         if (!session.connectedAtlasCluster) {
             if (session.isConnectedToMongoDB) {
                 return "connected-to-other-cluster";
@@ -47,7 +47,9 @@ export class ConnectClusterTool extends AtlasToolBase {
         }
 
         // Access the connection manager through session
-        const currentConectionState = (session as unknown as { connectionManager?: { currentConnectionState?: { tag: string } } }).connectionManager?.currentConnectionState;
+        const currentConectionState = (
+            session as unknown as { connectionManager?: { currentConnectionState?: { tag: string } } }
+        ).connectionManager?.currentConnectionState;
         if (
             session.connectedAtlasCluster.projectId !== projectId ||
             session.connectedAtlasCluster.clusterName !== clusterName
@@ -68,9 +70,9 @@ export class ConnectClusterTool extends AtlasToolBase {
                     message: `error querying cluster: ${(currentConectionState as unknown as { errorReason?: string }).errorReason}`,
                 });
                 return "unknown";
+            default:
+                return "unknown";
         }
-
-        return "unknown";
     }
 
     private async prepareClusterConnection(
@@ -143,7 +145,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         this.session.logger.debug({
             id: LogId.atlasConnectAttempt,
             context: "atlas-connect-cluster",
-            message: `attempting to connect to cluster: ${(this.session as IAtlasSession).connectedAtlasCluster?.clusterName}`,
+            message: `attempting to connect to cluster: ${this.session.connectedAtlasCluster?.clusterName}`,
             noRedaction: true,
         });
 
@@ -153,7 +155,14 @@ export class ConnectClusterTool extends AtlasToolBase {
                 lastError = undefined;
 
                 // Connect to MongoDB via the session
-                await (this.session as unknown as { connectToMongoDB(settings: { connectionString: string; atlas?: AtlasClusterConnectionInfo }): Promise<void> }).connectToMongoDB({ connectionString, atlas });
+                await (
+                    this.session as unknown as {
+                        connectToMongoDB(settings: {
+                            connectionString: string;
+                            atlas?: AtlasClusterConnectionInfo;
+                        }): Promise<void>;
+                    }
+                ).connectToMongoDB({ connectionString, atlas });
                 break;
             } catch (err: unknown) {
                 const error = err instanceof Error ? err : new Error(String(err));
@@ -169,7 +178,7 @@ export class ConnectClusterTool extends AtlasToolBase {
                 await sleep(500); // wait for 500ms before retrying
             }
 
-            const session = this.session as IAtlasSession;
+            const session = this.session;
             if (
                 !session.connectedAtlasCluster ||
                 session.connectedAtlasCluster.projectId !== atlas.projectId ||
@@ -180,7 +189,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         }
 
         if (lastError) {
-            const session = this.session as IAtlasSession;
+            const session = this.session;
             if (
                 session.connectedAtlasCluster?.projectId === atlas.projectId &&
                 session.connectedAtlasCluster?.clusterName === atlas.clusterName &&
@@ -211,7 +220,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         this.session.logger.debug({
             id: LogId.atlasConnectSucceeded,
             context: "atlas-connect-cluster",
-            message: `connected to cluster: ${(this.session as IAtlasSession).connectedAtlasCluster?.clusterName}`,
+            message: `connected to cluster: ${this.session.connectedAtlasCluster?.clusterName}`,
             noRedaction: true,
         });
     }
