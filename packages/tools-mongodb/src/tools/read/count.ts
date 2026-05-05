@@ -1,8 +1,8 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolExecutionContext } from "@mongodb-js/mcp-core";
-import { checkIndexUsage } from "../../../helpers/indexCheck.js";
-import { zEJSON } from "../../../args.js";
+import { checkIndexUsage } from "../../helpers/indexCheck.js";
+import { zEJSON } from "../../args.js";
 
 export const CountArgs = {
     query: zEJSON()

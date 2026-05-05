@@ -3,14 +3,14 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolExecutionContext } from "@mongodb-js/mcp-core";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
-import { checkIndexUsage } from "../../../helpers/indexCheck.js";
-import { zEJSON } from "../../../args.js";
+import { checkIndexUsage } from "../../helpers/indexCheck.js";
+import { zEJSON } from "../../args.js";
 import type { FindCursor } from "mongodb";
 import { EJSON } from "bson";
-import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorUntilMaxBytes.js";
-import { operationWithFallback } from "../../../helpers/operationWithFallback.js";
-import { ONE_MB, QUERY_COUNT_MAX_TIME_MS_CAP, CURSOR_LIMITS_TO_LLM_TEXT } from "../../../helpers/constants.js";
-import { SortDirectionSchema } from "../../mongodbSchemas.js";
+import { collectCursorUntilMaxBytesLimit } from "../../helpers/collectCursorUntilMaxBytes.js";
+import { operationWithFallback } from "../../helpers/operationWithFallback.js";
+import { ONE_MB, QUERY_COUNT_MAX_TIME_MS_CAP, CURSOR_LIMITS_TO_LLM_TEXT } from "../../helpers/constants.js";
+import { SortDirectionSchema } from "../mongodbSchemas.js";
 import { LogId } from "@mongodb-js/mcp-logging";
 
 export const FindArgs = {

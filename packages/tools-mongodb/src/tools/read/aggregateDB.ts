@@ -6,19 +6,19 @@ import { DBOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolExecutionContext } from "@mongodb-js/mcp-core";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
 import { type Document, EJSON } from "bson";
-import { ErrorCodes, MongoDBError } from "../../../connection/errors.js";
-import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorUntilMaxBytes.js";
-import { operationWithFallback } from "../../../helpers/operationWithFallback.js";
-import { AGG_COUNT_MAX_TIME_MS_CAP, ONE_MB, CURSOR_LIMITS_TO_LLM_TEXT } from "../../../helpers/constants.js";
+import { ErrorCodes, MongoDBError } from "../../connection/errors.js";
+import { collectCursorUntilMaxBytesLimit } from "../../helpers/collectCursorUntilMaxBytes.js";
+import { operationWithFallback } from "../../helpers/operationWithFallback.js";
+import { AGG_COUNT_MAX_TIME_MS_CAP, ONE_MB, CURSOR_LIMITS_TO_LLM_TEXT } from "../../helpers/constants.js";
 import { LogId } from "@mongodb-js/mcp-logging";
-import { AnyAggregateStage, DB_AGGREGATE_STAGE_OPERATORS } from "../../mongodbSchemas.js";
+import { AnyAggregateStage, DB_AGGREGATE_STAGE_OPERATORS } from "../mongodbSchemas.js";
 
 export const AggregateArgs = {
     pipeline: z
         .array(AnyAggregateStage)
         .min(1)
         .describe(
-            `An array of aggregation stages to execute. The first stage must be a database-level aggregation stage (one of ${DB_AGGREGATE_STAGE_OPERATORS.map((op) => `\`${op}\``).join(", ")}). https://www.mongodb.com/docs/manual/reference/mql/aggregation-stages/#db.aggregate---stages`
+            `An array of aggregation stages to execute. The first stage must be a database-level aggregation stage (one of ${DB_AGGREGATE_STAGE_OPERATORS.map((op: string) => `\`${op}\``).join(", ")}). https://www.mongodb.com/docs/manual/reference/mql/aggregation-stages/#db.aggregate---stages`
         ),
 };
 

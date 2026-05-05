@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "@mongodb-js/mcp-core";
-import { zEJSON } from "../../../args.js";
+import { zEJSON } from "../../args.js";
 
 const DeleteManyOutputSchema = {
     database: z.string(),

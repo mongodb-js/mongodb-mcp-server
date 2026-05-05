@@ -2,7 +2,7 @@ import { z } from "zod";
 import { type ToolArgs, ToolBase, formatUntrustedData } from "@mongodb-js/mcp-core";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { ErrorCodes, MongoDBError } from "../connection/errors.js";
+import { ErrorCodes, MongoDBError } from "./connection/errors.js";
 import { LogId } from "@mongodb-js/mcp-logging";
 import type { ConnectionMetadata, ToolCategory } from "@mongodb-js/mcp-types";
 import type { IMongoDBSession } from "./mongodbSession.js";

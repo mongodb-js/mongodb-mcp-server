@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "@mongodb-js/mcp-core";
-import { zEJSON } from "../../../args.js";
+import { zEJSON } from "../../args.js";
 import { EJSON } from "bson";
 
 const InsertManyOutputSchema = {
@@ -45,7 +45,7 @@ export class InsertManyTool extends MongoDBToolBase {
                 database,
                 collection,
                 insertedCount: result.insertedCount,
-                insertedIds: result.insertedIds.map((id) => EJSON.stringify(id)),
+                insertedIds: Object.values(result.insertedIds).map((id: unknown) => EJSON.stringify(id)),
             },
         };
     }

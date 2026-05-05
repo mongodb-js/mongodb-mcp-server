@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "@mongodb-js/mcp-core";
-import { IndexDirectionSchema } from "../../mongodbSchemas.js";
+import { IndexDirectionSchema } from "../mongodbSchemas.js";
 
 const CreateIndexOutputSchema = {
     database: z.string(),

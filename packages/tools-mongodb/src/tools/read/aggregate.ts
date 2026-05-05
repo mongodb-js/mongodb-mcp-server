@@ -5,18 +5,18 @@ import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-d
 import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolExecutionContext } from "@mongodb-js/mcp-core";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
-import { checkIndexUsage } from "../../../helpers/indexCheck.js";
+import { checkIndexUsage } from "../../helpers/indexCheck.js";
 import { type Document, EJSON } from "bson";
-import { ErrorCodes, MongoDBError } from "../../../connection/errors.js";
-import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorUntilMaxBytes.js";
-import { operationWithFallback } from "../../../helpers/operationWithFallback.js";
-import { AGG_COUNT_MAX_TIME_MS_CAP, ONE_MB, CURSOR_LIMITS_TO_LLM_TEXT } from "../../../helpers/constants.js";
+import { ErrorCodes, MongoDBError } from "../../connection/errors.js";
+import { collectCursorUntilMaxBytesLimit } from "../../helpers/collectCursorUntilMaxBytes.js";
+import { operationWithFallback } from "../../helpers/operationWithFallback.js";
+import { AGG_COUNT_MAX_TIME_MS_CAP, ONE_MB, CURSOR_LIMITS_TO_LLM_TEXT } from "../../helpers/constants.js";
 import { LogId } from "@mongodb-js/mcp-logging";
-import { AnyAggregateStage, VectorSearchStage } from "../../mongodbSchemas.js";
+import { AnyAggregateStage, VectorSearchStage } from "../mongodbSchemas.js";
 import {
     assertVectorSearchFilterFieldsAreIndexed,
     type SearchIndex,
-} from "../../../helpers/assertVectorSearchFilterFieldsAreIndexed.js";
+} from "../../helpers/assertVectorSearchFilterFieldsAreIndexed.js";
 
 export const pipelineDescriptionWithVectorSearch = `\
 An array of aggregation stages to execute.

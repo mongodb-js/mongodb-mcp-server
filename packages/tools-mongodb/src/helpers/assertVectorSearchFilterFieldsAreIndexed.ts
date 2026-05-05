@@ -2,7 +2,7 @@
 
 import type z from "zod";
 import { ErrorCodes, MongoDBError } from "../connection/errors.js";
-import type { VectorSearchStage } from "../tools/metadata/vectorSearch.js";
+import type { VectorSearchStage } from "../tools/mongodbSchemas.js";
 import { type CompositeLogger } from "@mongodb-js/mcp-core";
 import { LogId } from "@mongodb-js/mcp-logging";
 
