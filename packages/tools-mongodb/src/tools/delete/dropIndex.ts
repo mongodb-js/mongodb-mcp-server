@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "@mongodb-js/mcp-core";
+import type { ToolArgs, OperationType, ToolResult } from "@mongodb-js/mcp-core";
 
 const DropIndexOutputSchema = {
     database: z.string(),
@@ -28,7 +28,10 @@ export class DropIndexTool extends MongoDBToolBase {
     }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
         const provider = await this.ensureConnected();
 
-        await provider.dropIndexes(database, collection, [indexName]);
+        await provider.runCommandWithCheck(database, {
+            dropIndexes: collection,
+            index: indexName,
+        });
 
         return {
             content: [

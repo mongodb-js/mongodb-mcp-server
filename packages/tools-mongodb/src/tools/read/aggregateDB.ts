@@ -54,8 +54,9 @@ The maximum number of bytes to return in the response. This value is capped by t
                 successMessage = "The aggregation pipeline executed successfully.";
             } else {
                 const cappedResultsPipeline = [...pipeline];
-                if (this.config.maxDocumentsPerQuery > 0) {
-                    cappedResultsPipeline.push({ $limit: this.config.maxDocumentsPerQuery });
+                const maxDocs = this.config.maxDocumentsPerQuery;
+                if (maxDocs !== undefined && maxDocs > 0) {
+                    cappedResultsPipeline.push({ $limit: maxDocs });
                 }
                 aggregationCursor = provider.aggregateDb(database, cappedResultsPipeline, {
                     ...this.getOperationOptions(signal),
@@ -81,9 +82,9 @@ The maximum number of bytes to return in the response. This value is capped by t
                 // maxDocumentsPerQuery then we know for sure that the results were
                 // capped.
                 const aggregationResultsCappedByMaxDocumentsLimit =
-                    this.config.maxDocumentsPerQuery > 0 &&
+                    (this.config.maxDocumentsPerQuery ?? 0) > 0 &&
                     !!totalDocuments &&
-                    totalDocuments > this.config.maxDocumentsPerQuery;
+                    totalDocuments > (this.config.maxDocumentsPerQuery ?? 0);
 
                 documents = cursorResults.documents;
                 successMessage = this.generateMessage({

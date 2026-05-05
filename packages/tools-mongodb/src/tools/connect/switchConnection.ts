@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { MongoDBToolBase } from "../../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "@mongodb-js/mcp-core";
+import type { ToolArgs, OperationType, ToolResult } from "@mongodb-js/mcp-core";
 
 export class SwitchConnectionTool extends MongoDBToolBase {
     static toolName = "switch-connection";
@@ -10,9 +10,7 @@ export class SwitchConnectionTool extends MongoDBToolBase {
     };
     static operationType: OperationType = "connect";
 
-    protected async execute({
-        connectionString,
-    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult> {
+    protected async execute({ connectionString }: ToolArgs<typeof this.argsShape>): Promise<ToolResult> {
         // First disconnect from current connection
         await this.session.connectionManager.disconnect();
 

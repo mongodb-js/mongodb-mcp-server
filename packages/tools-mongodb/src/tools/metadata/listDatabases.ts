@@ -5,7 +5,13 @@ import { EJSON } from "bson";
 import z from "zod";
 
 const ListDatabasesOutputSchema = {
-    databases: z.array(z.record(z.string(), z.unknown())),
+    databases: z.array(
+        z.object({
+            name: z.string(),
+            sizeOnDisk: z.number().optional(),
+            empty: z.boolean().optional(),
+        })
+    ),
 };
 
 export type ListDatabasesOutput = z.infer<z.ZodObject<typeof ListDatabasesOutputSchema>>;
@@ -28,15 +34,25 @@ export class ListDatabasesTool extends MongoDBToolBase {
             ...this.getOperationOptions(signal),
         });
 
-        const databases = (result.databases || []) as Record<string, unknown>[];
+        const databases = (result.databases || []) as Array<{
+            name: string;
+            sizeOnDisk?: number;
+            empty?: boolean;
+        }>;
+
+        const databasesData = databases.map((db) => ({
+            name: db.name,
+            sizeOnDisk: db.sizeOnDisk,
+            empty: db.empty,
+        }));
 
         return {
             content: formatUntrustedData(
                 `Found ${databases.length} database(s) in the MongoDB instance.`,
-                ...(databases.length > 0 ? [EJSON.stringify(databases)] : [])
+                ...(databases.length > 0 ? [EJSON.stringify(databasesData)] : [])
             ),
             structuredContent: {
-                databases,
+                databases: databasesData,
             },
         };
     }

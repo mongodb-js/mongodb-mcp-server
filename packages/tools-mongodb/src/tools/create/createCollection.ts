@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { DBOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "@mongodb-js/mcp-core";
+import type { ToolArgs, OperationType, ToolResult } from "@mongodb-js/mcp-core";
 
 const CreateCollectionOutputSchema = {
     database: z.string(),

@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolResult } from "@mongodb-js/mcp-core";
-import { checkIndexUsage } from "../../../helpers/indexCheck.js";
-import { zEJSON } from "../../../args.js";
+import { checkIndexUsage } from "../../helpers/indexCheck.js";
+import { zEJSON } from "../../args.js";
 
 const UpdateManyOutputSchema = {
     database: z.string(),

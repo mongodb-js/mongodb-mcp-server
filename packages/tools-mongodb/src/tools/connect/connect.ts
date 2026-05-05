@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { MongoDBToolBase } from "../../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "@mongodb-js/mcp-core";
-import type { ConnectionSettings } from "../../../connection/connectionManager.js";
+import type { ToolArgs, OperationType, ToolResult } from "@mongodb-js/mcp-core";
+import type { ConnectionSettings } from "../../connection/connectionManager.js";
 
 export class ConnectTool extends MongoDBToolBase {
     static toolName = "connect";
@@ -11,9 +11,7 @@ export class ConnectTool extends MongoDBToolBase {
     };
     static operationType: OperationType = "connect";
 
-    protected async execute({
-        connectionString,
-    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult> {
+    protected async execute({ connectionString }: ToolArgs<typeof this.argsShape>): Promise<ToolResult> {
         const settings: ConnectionSettings = {
             connectionString,
         };

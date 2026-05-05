@@ -7,7 +7,7 @@ import {
     getResponseElements,
     getDataFromUntrustedContent,
 } from "../../../helpers.js";
-import type { DbStatsOutput } from "../../../../../src/tools/mongodb/metadata/dbStats.js";
+import type { DbStatsOutput } from "@mongodb-js/mcp-tools-mongodb";
 import * as crypto from "crypto";
 import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 import { describe, expect, it } from "vitest";

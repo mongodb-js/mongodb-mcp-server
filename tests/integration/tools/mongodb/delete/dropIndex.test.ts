@@ -17,7 +17,7 @@ import {
 } from "../mongodbHelpers.js";
 import { createMockElicitInput } from "../../../../utils/elicitationMocks.js";
 import { Elicitation } from "../../../../../src/elicitation.js";
-import type { DropIndexOutput } from "../../../../../src/tools/mongodb/delete/dropIndex.js";
+import type { DropIndexOutput } from "@mongodb-js/mcp-tools-mongodb";
 
 function setupForClassicIndexes(integration: MongoDBIntegrationTestCase): {
     getMoviesCollection: () => Collection;

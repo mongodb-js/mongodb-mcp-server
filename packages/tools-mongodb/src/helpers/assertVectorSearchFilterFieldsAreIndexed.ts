@@ -3,7 +3,7 @@
 import type z from "zod";
 import { ErrorCodes, MongoDBError } from "../connection/errors.js";
 import type { VectorSearchStage } from "../tools/mongodbSchemas.js";
-import { type CompositeLogger } from "@mongodb-js/mcp-core";
+import type { ICompositeLogger } from "@mongodb-js/mcp-types";
 import { LogId } from "@mongodb-js/mcp-logging";
 
 // https://www.mongodb.com/docs/atlas/atlas-vector-search/vector-search-stage/#mongodb-vector-search-pre-filter
@@ -40,7 +40,7 @@ export function assertVectorSearchFilterFieldsAreIndexed({
 }: {
     searchIndexes: SearchIndex[];
     pipeline: Record<string, unknown>[];
-    logger: CompositeLogger;
+    logger: ICompositeLogger;
 }): void {
     const searchIndexesWithFilterFields = searchIndexes
         // Ensure we only process vector search indexes and not lexical search ones

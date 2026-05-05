@@ -4,7 +4,7 @@ import {
     validateThrowsForInvalidArguments,
     getResponseElements,
 } from "../../../helpers.js";
-import type { ExplainOutput } from "../../../../../src/tools/mongodb/metadata/explain.js";
+import type { ExplainOutput } from "@mongodb-js/mcp-tools-mongodb";
 import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 import { beforeEach, describe, expect, it } from "vitest";
 

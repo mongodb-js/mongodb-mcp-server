@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "@mongodb-js/mcp-core";
+import type { ToolArgs, OperationType, ToolResult } from "@mongodb-js/mcp-core";
 import { zEJSON } from "../../args.js";
 import { EJSON } from "bson";
 
@@ -19,9 +19,7 @@ export class InsertManyTool extends MongoDBToolBase {
     public override outputSchema = InsertManyOutputSchema;
     public argsShape = {
         ...CollOperationArgs,
-        documents: z
-            .array(zEJSON())
-            .describe("An array of documents to insert into the collection"),
+        documents: z.array(zEJSON()).describe("An array of documents to insert into the collection"),
     };
     static operationType: OperationType = "create";
 

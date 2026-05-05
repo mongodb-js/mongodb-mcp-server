@@ -22,10 +22,7 @@ export const ErrorCodes = {
 export class MongoDBError extends Error {
     code: ErrorCode;
 
-    constructor(
-        code: ErrorCode,
-        message: string
-    ) {
+    constructor(code: ErrorCode, message: string) {
         super(message);
         this.code = code;
     }

@@ -8,7 +8,7 @@ import {
     expectDefined,
     getResponseElements,
 } from "../../../helpers.js";
-import type { CreateIndexOutput } from "../../../../../src/tools/mongodb/create/createIndex.js";
+import type { CreateIndexOutput } from "@mongodb-js/mcp-tools-mongodb";
 import { ObjectId, type Collection, type Document, type IndexDirection } from "mongodb";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 

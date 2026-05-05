@@ -15,13 +15,13 @@ import {
     waitUntilSearchIndexIsQueryable,
     waitUntilSearchIsReady,
 } from "../mongodbHelpers.js";
-import * as constants from "../../../../../src/helpers/constants.js";
+import * as constants from "@mongodb-js/mcp-tools-mongodb";
 import { freshInsertDocuments } from "./find.test.js";
 import { BSON } from "bson";
 import { DOCUMENT_EMBEDDINGS } from "./vyai/embeddings.js";
 import type { TelemetryToolEvent as ToolEvent } from "@mongodb-js/mcp-atlas-telemetry";
 import type { Client } from "@modelcontextprotocol/sdk/client";
-import { pipelineDescriptionWithVectorSearch } from "../../../../../src/tools/mongodb/read/aggregate.js";
+import { pipelineDescriptionWithVectorSearch } from "@mongodb-js/mcp-tools-mongodb";
 import type { Collection } from "mongodb";
 
 describeWithMongoDB("aggregate tool", (integration) => {

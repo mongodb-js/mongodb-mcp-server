@@ -37,10 +37,7 @@ export class DbStatsTool extends MongoDBToolBase {
         );
 
         return {
-            content: formatUntrustedData(
-                `Statistics for database "${database}":`,
-                EJSON.stringify(stats)
-            ),
+            content: formatUntrustedData(`Statistics for database "${database}":`, EJSON.stringify(stats)),
             structuredContent: {
                 stats,
             },

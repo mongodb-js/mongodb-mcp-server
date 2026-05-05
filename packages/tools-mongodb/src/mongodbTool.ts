@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { type ToolArgs, ToolBase, formatUntrustedData } from "@mongodb-js/mcp-core";
+import { type ToolArgs, ToolBase } from "@mongodb-js/mcp-core";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ErrorCodes, MongoDBError } from "./connection/errors.js";
 import { LogId } from "@mongodb-js/mcp-logging";
-import type { ConnectionMetadata, ToolCategory } from "@mongodb-js/mcp-types";
+import type { ConnectionMetadata, ToolCategory, MetricDefinitions } from "@mongodb-js/mcp-types";
 import type { IMongoDBSession } from "./mongodbSession.js";
 import type { IMongoDBConfig } from "./mongodbConfig.js";
 
@@ -17,7 +17,7 @@ export const CollOperationArgs = {
     collection: z.string().describe("Collection name"),
 };
 
-export abstract class MongoDBToolBase extends ToolBase<IMongoDBConfig, unknown, Record<string, never>> {
+export abstract class MongoDBToolBase extends ToolBase<IMongoDBConfig, unknown, MetricDefinitions> {
     declare protected readonly session: IMongoDBSession;
     static category: ToolCategory = "mongodb";
 
@@ -101,6 +101,8 @@ export abstract class MongoDBToolBase extends ToolBase<IMongoDBConfig, unknown, 
                         isError: true,
                     };
                 }
+                default:
+                    return super.handleError(error, args);
             }
         }
 

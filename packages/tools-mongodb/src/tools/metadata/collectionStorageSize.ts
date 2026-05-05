@@ -1,7 +1,6 @@
 import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "@mongodb-js/mcp-core";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
-import { EJSON } from "bson";
 import z from "zod";
 
 const CollectionStorageSizeOutputSchema = {
@@ -10,47 +9,63 @@ const CollectionStorageSizeOutputSchema = {
     avgObjSize: z.number(),
     storageSize: z.number(),
     totalIndexSize: z.number(),
+    units: z.string(),
 };
 
 export type CollectionStorageSizeOutput = z.infer<z.ZodObject<typeof CollectionStorageSizeOutputSchema>>;
 
 export class CollectionStorageSizeTool extends MongoDBToolBase {
     static toolName = "collection-storage-size";
-    public description = "Get storage statistics for a MongoDB collection";
+    public description = "Get the storage size statistics for a MongoDB collection";
     public argsShape = {
         ...CollOperationArgs,
+        scale: z.enum(["MB", "GB"]).optional().default("MB").describe("The scale to use for the size (MB or GB)"),
     };
     public override outputSchema = CollectionStorageSizeOutputSchema;
 
     static operationType: OperationType = "metadata";
 
     protected async execute(
-        { database, collection }: ToolArgs<typeof this.argsShape>,
+        { database, collection, scale }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
         const provider = await this.ensureConnected();
 
-        const stats = await provider.runCommandWithCheck(
+        const stats = (await provider.runCommandWithCheck(
             database,
-            {
-                collStats: collection,
-            },
+            { collStats: collection },
             {
                 ...this.getOperationOptions(signal),
             }
-        );
+        )) as {
+            count: number;
+            avgObjSize: number;
+            storageSize: number;
+            totalIndexSize: number;
+        };
+
+        const scaleFactor = scale === "GB" ? 1024 * 1024 * 1024 : 1024 * 1024;
+        const size = stats.storageSize / scaleFactor;
 
         return {
             content: formatUntrustedData(
                 `Storage statistics for "${database}.${collection}":`,
-                EJSON.stringify(stats)
+                JSON.stringify({
+                    size,
+                    units: scale,
+                    count: stats.count,
+                    avgObjSize: stats.avgObjSize,
+                    storageSize: stats.storageSize,
+                    totalIndexSize: stats.totalIndexSize,
+                })
             ),
             structuredContent: {
-                size: stats.size as number,
-                count: stats.count as number,
-                avgObjSize: stats.avgObjSize as number,
-                storageSize: stats.storageSize as number,
-                totalIndexSize: stats.totalIndexSize as number,
+                size,
+                count: stats.count,
+                avgObjSize: stats.avgObjSize,
+                storageSize: stats.storageSize,
+                totalIndexSize: stats.totalIndexSize,
+                units: scale,
             },
         };
     }

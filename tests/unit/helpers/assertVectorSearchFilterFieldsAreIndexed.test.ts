@@ -3,8 +3,8 @@ import {
     assertVectorSearchFilterFieldsAreIndexed,
     collectFieldsFromVectorSearchFilter,
     type SearchIndex,
-} from "../../../src/helpers/assertVectorSearchFilterFieldsAreIndexed.js";
-import { ErrorCodes, MongoDBError } from "../../../src/common/errors.js";
+} from "@mongodb-js/mcp-tools-mongodb";
+import { ErrorCodes, MongoDBError } from "@mongodb-js/mcp-tools-mongodb";
 import { type CompositeLogger } from "@mongodb-js/mcp-core";
 import { LogId } from "@mongodb-js/mcp-logging";
 

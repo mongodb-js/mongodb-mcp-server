@@ -3,9 +3,9 @@ import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
 import { getSimplifiedSchema } from "mongodb-schema";
 import z from "zod";
-import { ONE_MB } from "../../../helpers/constants.js";
-import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorUntilMaxBytes.js";
-import { isObjectEmpty } from "../../../helpers/isObjectEmpty.js";
+import { ONE_MB } from "../../helpers/constants.js";
+import { collectCursorUntilMaxBytesLimit } from "../../helpers/collectCursorUntilMaxBytes.js";
+import { isObjectEmpty } from "../../helpers/isObjectEmpty.js";
 
 const MAXIMUM_SAMPLE_SIZE_HARD_LIMIT = 50_000;
 

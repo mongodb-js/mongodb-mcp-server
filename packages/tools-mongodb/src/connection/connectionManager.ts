@@ -56,12 +56,19 @@ export interface IPackageInfo {
 
 export class ConnectionStateConnected implements ConnectionState {
     public tag = "connected" as const;
+    public serviceProvider: NodeDriverServiceProvider;
+    public connectionStringInfo?: ConnectionStringInfo;
+    public connectedAtlasCluster?: AtlasClusterConnectionInfo;
 
     constructor(
-        public serviceProvider: NodeDriverServiceProvider,
-        public connectionStringInfo?: ConnectionStringInfo,
-        public connectedAtlasCluster?: AtlasClusterConnectionInfo
-    ) {}
+        serviceProvider: NodeDriverServiceProvider,
+        connectionStringInfo?: ConnectionStringInfo,
+        connectedAtlasCluster?: AtlasClusterConnectionInfo
+    ) {
+        this.serviceProvider = serviceProvider;
+        this.connectionStringInfo = connectionStringInfo;
+        this.connectedAtlasCluster = connectedAtlasCluster;
+    }
 
     private _isSearchSupported?: boolean;
 
@@ -244,21 +251,25 @@ export class MCPConnectionManager extends ConnectionManager {
     private deviceId: IDeviceId;
     private bus: EventEmitter;
     private packageInfo: IPackageInfo;
+    private userConfig: IUserConfig;
+    private logger: LoggerBase;
 
     constructor(
-        private userConfig: IUserConfig,
-        private logger: LoggerBase,
+        userConfig: IUserConfig,
+        logger: LoggerBase,
         deviceId: IDeviceId,
         packageInfo: IPackageInfo,
         bus?: EventEmitter
     ) {
         super();
+        this.userConfig = userConfig;
+        this.logger = logger;
+        this.deviceId = deviceId;
+        this.packageInfo = packageInfo;
         this.bus = bus ?? new EventEmitter();
         this.bus.on("mongodb-oidc-plugin:auth-failed", this.onOidcAuthFailed.bind(this));
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
         this.bus.on("mongodb-oidc-plugin:auth-succeeded", this.onOidcAuthSucceeded.bind(this));
-        this.deviceId = deviceId;
-        this.packageInfo = packageInfo;
     }
 
     override async connect(settings: ConnectionSettings): Promise<AnyConnectionState> {
@@ -326,7 +337,7 @@ export class MCPConnectionManager extends ConnectionManager {
                 connectionStringInfo,
                 connectedAtlasCluster: settings.atlas,
             });
-            throw new Error(`Failed to connect: ${errorReason}`);
+            throw new Error(`Failed to connect: ${errorReason}`, { cause: error });
         }
 
         try {
@@ -352,7 +363,7 @@ export class MCPConnectionManager extends ConnectionManager {
                 connectionStringInfo,
                 connectedAtlasCluster: settings.atlas,
             });
-            throw new Error(`Failed to connect: ${errorReason}`);
+            throw new Error(`Failed to connect: ${errorReason}`, { cause: error });
         }
     }
 
@@ -477,6 +488,11 @@ export type ConnectionManagerFactoryFn = (createParams: {
     packageInfo: IPackageInfo;
 }) => Promise<ConnectionManager>;
 
-export const defaultCreateConnectionManager: ConnectionManagerFactoryFn = ({ logger, deviceId, userConfig, packageInfo }) => {
+export const defaultCreateConnectionManager: ConnectionManagerFactoryFn = ({
+    logger,
+    deviceId,
+    userConfig,
+    packageInfo,
+}) => {
     return Promise.resolve(new MCPConnectionManager(userConfig, logger, deviceId, packageInfo));
 };

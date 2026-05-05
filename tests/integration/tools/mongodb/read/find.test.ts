@@ -8,7 +8,7 @@ import {
     expectDefined,
     defaultTestConfig,
 } from "../../../helpers.js";
-import * as constants from "../../../../../src/helpers/constants.js";
+import * as constants from "@mongodb-js/mcp-tools-mongodb";
 import { describeWithMongoDB, getDocsFromUntrustedContent, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 import type { Client } from "@modelcontextprotocol/sdk/client";
 

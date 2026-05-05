@@ -9,7 +9,7 @@ import {
     databaseInvalidArgs,
     expectDefined,
 } from "../../../helpers.js";
-import type { DropDatabaseOutput } from "../../../../../src/tools/mongodb/delete/dropDatabase.js";
+import type { DropDatabaseOutput } from "@mongodb-js/mcp-tools-mongodb";
 
 describeWithMongoDB("dropDatabase tool", (integration) => {
     validateToolMetadata(
