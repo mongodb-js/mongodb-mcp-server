@@ -287,6 +287,7 @@ export class ConnectClusterTool extends AtlasToolBase {
                         const hookResult = await runSharedTierAlertsHook({
                             projectId: atlas.projectId,
                             clusterName: atlas.clusterName,
+                            instanceType: atlas.instanceType,
                             apiClient: this.apiClient,
                             logger: this.session.logger,
                         });

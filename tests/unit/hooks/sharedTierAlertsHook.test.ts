@@ -1,7 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import type { MockInstance, MockedFunction } from "vitest";
-import * as clusterModule from "../../../src/common/atlas/cluster.js";
-import type { Cluster } from "../../../src/common/atlas/cluster.js";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { MockedFunction } from "vitest";
 import { runSharedTierAlertsHook } from "../../../src/common/atlas/sharedTierAlertsHook.js";
 import type { ApiClient } from "../../../src/common/atlas/apiClient.js";
 import type { LoggerBase } from "../../../src/common/logging/loggerBase.js";
@@ -14,16 +12,17 @@ describe("runSharedTierAlertsHook", () => {
     let listAlerts: MockedFunction<ApiClient["listAlerts"]>;
     let warning: MockedFunction<(payload: LogPayload) => void>;
     let logger: LoggerBase;
-    let inspectClusterSpy: MockInstance<typeof clusterModule.inspectCluster>;
 
     const baseParams: {
         projectId: string;
         clusterName: string;
+        instanceType: "FREE" | "FLEX" | "DEDICATED";
         apiClient: ApiClient;
         logger: LoggerBase;
     } = {
         projectId: "group-1",
         clusterName: "my-cluster",
+        instanceType: "DEDICATED",
         apiClient: {} as ApiClient,
         logger: {} as LoggerBase,
     };
@@ -34,42 +33,20 @@ describe("runSharedTierAlertsHook", () => {
         logger = {
             warning,
         } as unknown as LoggerBase;
-        inspectClusterSpy = vi.spyOn(clusterModule, "inspectCluster") as MockInstance<
-            typeof clusterModule.inspectCluster
-        >;
-        inspectClusterSpy.mockResolvedValue({ instanceType: "DEDICATED" } as Cluster);
         baseParams.apiClient = { listAlerts } as unknown as ApiClient;
         baseParams.logger = logger;
-    });
-
-    afterEach(() => {
-        inspectClusterSpy.mockRestore();
     });
 
     it("returns null and does not call listAlerts for dedicated tier", async () => {
         const result = await runSharedTierAlertsHook({
             ...baseParams,
+            instanceType: "DEDICATED",
         });
         expect(result).toBeNull();
         expect(listAlerts).not.toHaveBeenCalled();
-    });
-
-    it("returns null when inspectCluster fails", async () => {
-        inspectClusterSpy.mockRejectedValue(new Error("not found"));
-
-        const result = await runSharedTierAlertsHook({
-            ...baseParams,
-        });
-
-        expect(result).toBeNull();
-        expect(listAlerts).not.toHaveBeenCalled();
-        expect(warning).toHaveBeenCalledTimes(1);
-        const inspectFailPayload = warning.mock.calls[0]?.[0];
-        expect(inspectFailPayload?.message).toContain("not found");
     });
 
     it("filters alerts by event type, metric, and cluster name", async () => {
-        inspectClusterSpy.mockResolvedValue({ instanceType: "FLEX" } as Cluster);
         listAlerts.mockResolvedValue({
             results: [
                 {
@@ -107,6 +84,7 @@ describe("runSharedTierAlertsHook", () => {
 
         const result = await runSharedTierAlertsHook({
             ...baseParams,
+            instanceType: "FLEX",
         });
 
         expect(result).not.toBeNull();
@@ -119,7 +97,6 @@ describe("runSharedTierAlertsHook", () => {
     });
 
     it("returns null when no alerts match", async () => {
-        inspectClusterSpy.mockResolvedValue({ instanceType: "FREE" } as Cluster);
         listAlerts.mockResolvedValue({
             results: [
                 {
@@ -135,17 +112,18 @@ describe("runSharedTierAlertsHook", () => {
 
         const result = await runSharedTierAlertsHook({
             ...baseParams,
+            instanceType: "FREE",
         });
 
         expect(result).toBeNull();
     });
 
     it("logs a warning and returns null when listAlerts rejects", async () => {
-        inspectClusterSpy.mockResolvedValue({ instanceType: "FREE" } as Cluster);
         listAlerts.mockRejectedValue(new Error("network down"));
 
         const result = await runSharedTierAlertsHook({
             ...baseParams,
+            instanceType: "FREE",
         });
 
         expect(result).toBeNull();
@@ -157,7 +135,6 @@ describe("runSharedTierAlertsHook", () => {
     });
 
     it("matches LOGICAL_SIZE among mixed OPEN alerts on one page", async () => {
-        inspectClusterSpy.mockResolvedValue({ instanceType: "FREE" } as Cluster);
         listAlerts.mockResolvedValue({
             results: [
                 {
@@ -178,6 +155,7 @@ describe("runSharedTierAlertsHook", () => {
 
         const result = await runSharedTierAlertsHook({
             ...baseParams,
+            instanceType: "FREE",
         });
 
         expect(listAlerts).toHaveBeenCalledTimes(1);

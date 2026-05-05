@@ -1,7 +1,8 @@
 import type { ApiClient } from "./apiClient.js";
-import { inspectCluster } from "./cluster.js";
 import type { LoggerBase } from "../logging/loggerBase.js";
 import { LogId } from "../logging/index.js";
+
+type AlertResult = Awaited<ReturnType<ApiClient["listAlerts"]>>["results"][number];
 
 const SHARED_TIER_EVENT_TYPES = new Set<string>(["OUTSIDE_METRIC_THRESHOLD", "OUTSIDE_FLEX_METRIC_THRESHOLD"]);
 
@@ -18,6 +19,7 @@ const LIST_ALERTS_PAGE_SIZE = 100;
 export interface RunSharedTierAlertsHookParams {
     projectId: string;
     clusterName: string;
+    instanceType: "FREE" | "FLEX" | "DEDICATED";
     apiClient: ApiClient;
     logger: LoggerBase;
 }
@@ -32,92 +34,57 @@ interface SharedTierAlertItem {
     updated?: string;
 }
 
-function asRecord(alert: unknown): Record<string, unknown> {
-    return typeof alert === "object" && alert !== null ? (alert as Record<string, unknown>) : {};
-}
-
-function readString(r: Record<string, unknown>, key: string): string | undefined {
-    const v = r[key];
-    return typeof v === "string" ? v : undefined;
-}
-
 function isSharedTierInstanceType(t: "FREE" | "FLEX" | "DEDICATED" | undefined): t is "FREE" | "FLEX" {
     return t === "FREE" || t === "FLEX";
 }
 
 function matchesFilters(
-    alert: Record<string, unknown>,
+    alert: AlertResult,
     clusterName: string
 ): { eventTypeName: string; metricName: string } | undefined {
-    const eventTypeName = readString(alert, "eventTypeName");
-    const metricName = readString(alert, "metricName");
-    const alertCluster = readString(alert, "clusterName");
-    if (!eventTypeName || !metricName || alertCluster !== clusterName) {
-        return undefined;
-    }
-    if (!SHARED_TIER_EVENT_TYPES.has(eventTypeName) || !SHARED_TIER_METRICS.has(metricName)) {
-        return undefined;
-    }
+    const eventTypeName = String(alert.eventTypeName);
+    const metricName = "metricName" in alert ? alert.metricName : undefined;
+    const alertCluster = "clusterName" in alert ? alert.clusterName : undefined;
+    if (!metricName || alertCluster !== clusterName) return undefined;
+    if (!SHARED_TIER_EVENT_TYPES.has(eventTypeName) || !SHARED_TIER_METRICS.has(metricName)) return undefined;
     return { eventTypeName, metricName };
 }
 
 function toMatched(
-    alert: Record<string, unknown>,
+    alert: AlertResult,
     eventTypeName: string,
-    metricName: string
-): SharedTierAlertItem | undefined {
-    const id = readString(alert, "id");
-    const clusterName = readString(alert, "clusterName");
-    const status = readString(alert, "status");
-    if (!id || !clusterName || !status) {
-        return undefined;
-    }
-    const created = readString(alert, "created");
-    const updated = readString(alert, "updated");
+    metricName: string,
+    clusterName: string
+): SharedTierAlertItem {
     return {
-        id,
+        id: alert.id,
         eventTypeName,
         metricName,
         clusterName,
-        status,
-        ...(created !== undefined ? { created } : {}),
-        ...(updated !== undefined ? { updated } : {}),
+        status: alert.status,
+        ...(alert.created !== undefined ? { created: alert.created } : {}),
+        ...(alert.updated !== undefined ? { updated: alert.updated } : {}),
     };
 }
 
-function buildRecommendationParagraph(clusterName: string, metricNames: string[]): string {
+function buildRecommendationParagraph(clusterName: string, tier: "Free" | "Flex", metricNames: string[]): string {
     const unique = [...new Set(metricNames)].sort();
     const metricsList = unique.join(", ");
     return (
         `Note: Atlas reports open shared-tier threshold alerts for cluster "${clusterName}" affecting: ${metricsList}. ` +
-        `You may be near connection or storage limits on this Free/Flex deployment. ` +
-        `Consider upgrading capacity (for example moving to Flex or a paid tier such as M10 or larger) if you need more headroom.`
+        `You may be near connection or storage limits on this ${tier} tier deployment. ` +
+        `Consider upgrading to a paid tier for more headroom — use the atlas-upgrade-cluster tool to upgrade "${clusterName}".`
     );
 }
 
 /**
  * Post-connect: inspect tier; for Free/Flex only, fetch OPEN alerts and return upgrade guidance when filters match.
  * Returns tier, JSON-serialized alerts, and recommendation text for the caller to surface and attach to telemetry.
- * Dedicated clusters: one inspectCluster then return null (no listAlerts).
  */
 export async function runSharedTierAlertsHook(
     params: RunSharedTierAlertsHookParams
 ): Promise<{ recommendationText: string; tier: "Free" | "Flex"; alerts: string[] } | null> {
-    const { projectId, clusterName, apiClient, logger } = params;
-
-    let instanceType: "FREE" | "FLEX" | "DEDICATED" | undefined;
-    try {
-        const cluster = await inspectCluster(apiClient, projectId, clusterName);
-        instanceType = cluster.instanceType;
-    } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : String(err);
-        logger.warning({
-            id: LogId.atlasSharedTierAlertsHookWarning,
-            context: "shared-tier-alerts-hook",
-            message: `Failed to inspect cluster for shared-tier hook: ${message}`,
-        });
-        return null;
-    }
+    const { projectId, clusterName, instanceType, apiClient, logger } = params;
 
     if (!isSharedTierInstanceType(instanceType)) {
         return null;
@@ -152,16 +119,13 @@ export async function runSharedTierAlertsHook(
     }
 
     const collectedById = new Map<string, SharedTierAlertItem>();
-    for (const raw of results) {
-        const alert = asRecord(raw);
+    for (const alert of results) {
         const matched = matchesFilters(alert, clusterName);
         if (!matched) {
             continue;
         }
-        const row = toMatched(alert, matched.eventTypeName, matched.metricName);
-        if (row) {
-            collectedById.set(row.id, row);
-        }
+        const row = toMatched(alert, matched.eventTypeName, matched.metricName, clusterName);
+        collectedById.set(row.id, row);
     }
 
     const collected = [...collectedById.values()];
@@ -175,6 +139,7 @@ export async function runSharedTierAlertsHook(
     return {
         recommendationText: buildRecommendationParagraph(
             clusterName,
+            tier,
             collected.map((a) => a.metricName)
         ),
         tier,
