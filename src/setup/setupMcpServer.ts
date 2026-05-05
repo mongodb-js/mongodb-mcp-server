@@ -12,7 +12,7 @@ import { formatError, getPlatform } from "./setupAiToolsUtils.js";
 import { packageInfo } from "../common/packageInfo.js";
 import { getAuthType } from "../common/connectionInfo.js";
 import { type UserConfig } from "../common/config/userConfig.js";
-import { defaultCreateAtlasLocalClient } from "../common/atlasLocal.js";
+import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 import { NoopLogger } from "@mongodb-js/mcp-core";
 import type { TelemetryResult } from "@mongodb-js/mcp-atlas-telemetry";
 import { SetupTelemetry } from "./setupTelemetry.js";
@@ -163,7 +163,7 @@ const validateNodeVersion = (): boolean => {
 };
 
 const validateDocker = async (): Promise<boolean> => {
-    const client = await defaultCreateAtlasLocalClient({ logger: new NoopLogger() });
+    const client = await createAtlasLocalClient({ logger: new NoopLogger() });
     if (client) {
         try {
             // Use the client to confirm docker is available and running

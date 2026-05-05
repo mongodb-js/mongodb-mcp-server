@@ -5,9 +5,10 @@
 ```ts
 
 import type { AggregationCursor } from 'mongodb';
+import { AnyToolBase } from '@mongodb-js/mcp-core';
 import { ApiClient } from '@mongodb-js/mcp-atlas-api-client';
 import { ApiClientOptions } from '@mongodb-js/mcp-atlas-api-client';
-import type { AtlasConnectionMetadata } from '@mongodb-js/mcp-atlas-telemetry';
+import type { AtlasLocalClientFactoryFn } from '@mongodb-js/mcp-tools-atlas-local';
 import { AtlasTelemetry } from '@mongodb-js/mcp-atlas-telemetry';
 import { AuthProvider } from '@mongodb-js/mcp-atlas-api-client';
 import { TelemetryBaseEvent as BaseEvent } from '@mongodb-js/mcp-atlas-telemetry';
@@ -19,6 +20,7 @@ import { CompositeLogger } from '@mongodb-js/mcp-core';
 import { ConnectionInfo } from '@mongosh/arg-parser';
 import { ConsoleLogger } from '@mongodb-js/mcp-logging';
 import { Counter } from '@mongodb-js/mcp-metrics';
+import { createAtlasLocalClient } from '@mongodb-js/mcp-tools-atlas-local';
 import { createDefaultMetrics } from '@mongodb-js/mcp-metrics';
 import { Credentials } from '@mongodb-js/mcp-atlas-api-client';
 import { DefaultEventMap } from '@mongodb-js/mcp-core';
@@ -57,25 +59,20 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { TelemetryConfig } from '@mongodb-js/mcp-atlas-telemetry';
 import { TelemetryEvent } from '@mongodb-js/mcp-atlas-telemetry';
 import { TelemetryEvents } from '@mongodb-js/mcp-atlas-telemetry';
-import type { TelemetryToolMetadata } from '@mongodb-js/mcp-atlas-telemetry';
-import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
+import { ToolCategory } from '@mongodb-js/mcp-core';
+import { ToolClass } from '@mongodb-js/mcp-core';
+import { ToolExecutionContext } from '@mongodb-js/mcp-core';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import type { TransportRequestContext } from '@mongodb-js/mcp-types';
 import { UIRegistry } from '@mongodb-js/mcp-ui';
 import { UIRegistryOptions } from '@mongodb-js/mcp-ui';
 import { z } from 'zod';
-import type { ZodRawShape } from 'zod';
 
 // @public (undocumented)
 export type AnyConnectionState = ConnectionStateConnected | ConnectionStateConnecting | ConnectionStateDisconnected | ConnectionStateErrored;
 
-// Warning: (ae-forgotten-export) The symbol "ToolBase" needs to be exported by the entry point lib.d.ts
-//
-// @public (undocumented)
-export type AnyToolBase = ToolBase<any, any, any>;
+export { AnyToolBase }
 
-// Warning: (ae-forgotten-export) The symbol "ToolClass" needs to be exported by the entry point lib.d.ts
-//
 // @public (undocumented)
 export type AnyToolClass = ToolClass<any, any, any>;
 
@@ -252,6 +249,8 @@ export { ConsoleLogger }
 
 export { Counter }
 
+export { createAtlasLocalClient }
+
 // @public
 export const createDefaultMcpHttpServer: <TUserConfig extends UserConfig = UserConfig, TContext = unknown>(args: MCPHttpServerConstructorArgs<TUserConfig, TContext>) => MCPHttpServer<TUserConfig, TContext>;
 
@@ -290,11 +289,6 @@ export type CustomizableServerOptions<TUserConfig extends UserConfig = UserConfi
 
 // @public (undocumented)
 export type CustomizableSessionOptions<TUserConfig extends UserConfig = UserConfig> = Partial<Pick<SessionOptions<TUserConfig>, "userConfig" | "apiClient" | "atlasLocalClient" | "connectionManager" | "connectionErrorHandler">>;
-
-// Warning: (ae-forgotten-export) The symbol "AtlasLocalClientFactoryFn" needs to be exported by the entry point lib.d.ts
-//
-// @public (undocumented)
-export const defaultCreateAtlasLocalClient: AtlasLocalClientFactoryFn;
 
 // @public (undocumented)
 export const defaultCreateConnectionManager: ConnectionManagerFactoryFn;
@@ -791,17 +785,9 @@ export { TelemetryEvent }
 
 export { TelemetryEvents }
 
-// @public
-export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant";
+export { ToolCategory }
 
-// @public (undocumented)
-export interface ToolExecutionContext {
-    requestInfo?: {
-        headers?: Record<string, unknown>;
-    };
-    // (undocumented)
-    signal: AbortSignal;
-}
+export { ToolExecutionContext }
 
 export { TransportRequestContext }
 

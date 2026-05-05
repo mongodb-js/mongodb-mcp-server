@@ -1,5 +1,5 @@
 import type { ILogger } from "./logging.js";
-import type { IMetrics, MetricDefinitions } from "./metrics.js";
+import type { IMetrics } from "./metrics.js";
 
 export type CloseableTransport = {
     close(): Promise<void>;
@@ -14,13 +14,12 @@ export interface ISessionStore<T extends CloseableTransport = CloseableTransport
     closeAllSessions(): Promise<void>;
 }
 
-export type SessionStoreConstructorArgs<TMetrics extends MetricDefinitions = MetricDefinitions> = {
+export type SessionStoreConstructorArgs = {
     options: { idleTimeoutMS: number; notificationTimeoutMS: number };
     logger: ILogger;
-    metrics: IMetrics<TMetrics>;
+    metrics: IMetrics;
 };
 
-export type CreateSessionStoreFn<
-    TTransport extends CloseableTransport = CloseableTransport,
-    TMetrics extends MetricDefinitions = MetricDefinitions,
-> = (args: SessionStoreConstructorArgs<TMetrics>) => ISessionStore<TTransport>;
+export type CreateSessionStoreFn<TTransport extends CloseableTransport = CloseableTransport> = (
+    args: SessionStoreConstructorArgs
+) => ISessionStore<TTransport>;

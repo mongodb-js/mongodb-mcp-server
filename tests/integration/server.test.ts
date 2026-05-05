@@ -9,7 +9,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { LoggerBase, UserConfig } from "../../src/lib.js";
 import { ApiClient, Elicitation, Keychain } from "../../src/lib.js";
 import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
-import { defaultCreateAtlasLocalClient } from "../../src/common/atlasLocal.js";
+import { createAtlasLocalClient } from "../../src/lib.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Server } from "../../src/server.js";
 import { connectionErrorHandler } from "../../src/common/connectionErrorHandler.js";
@@ -187,7 +187,7 @@ describe("Server integration test", () => {
             connectionManager,
             keychain: Keychain.root,
             connectionErrorHandler,
-            atlasLocalClient: await defaultCreateAtlasLocalClient({ logger }),
+            atlasLocalClient: await createAtlasLocalClient({ logger }),
             apiClient: new ApiClient({
                 baseUrl: config.apiBaseUrl,
                 credentials: {

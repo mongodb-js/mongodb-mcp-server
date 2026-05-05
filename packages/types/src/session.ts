@@ -1,4 +1,5 @@
 import type { ICompositeLogger } from "./logging.js";
+import type { IKeychain } from "./keychain.js";
 
 export type SessionEvents = {
     connect: [];
@@ -16,5 +17,10 @@ export interface ISession {
     disconnect(): Promise<void>;
     close(): Promise<void>;
     readonly isConnectedToMongoDB: boolean;
-    on<K extends keyof SessionEvents>(options: { event: K; listener: (...args: SessionEvents[K]) => void }): this;
+}
+
+export interface IToolSession extends ISession {
+    readonly keychain: IKeychain;
+    readonly connectionStringInfo?: { authType?: string; hostType?: string };
+    readonly connectedAtlasCluster?: { projectId?: string; clusterName?: string };
 }

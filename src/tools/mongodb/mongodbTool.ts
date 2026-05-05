@@ -6,7 +6,9 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ErrorCodes, MongoDBError } from "../../common/errors.js";
 import { LogId } from "@mongodb-js/mcp-logging";
 import type { Server } from "../../server.js";
-import type { AtlasConnectionMetadata as ConnectionMetadata } from "@mongodb-js/mcp-atlas-telemetry";
+import type { ConnectionMetadata } from "@mongodb-js/mcp-types";
+import type { Session } from "../../common/session.js";
+import type { UserConfig } from "../../common/config/userConfig.js";
 
 export const DBOperationArgs = {
     database: z.string().describe("Database name"),
@@ -18,6 +20,8 @@ export const CollOperationArgs = {
 };
 
 export abstract class MongoDBToolBase extends ToolBase {
+    declare protected readonly session: Session;
+    declare protected readonly config: UserConfig;
     protected server?: Server;
     static category: ToolCategory = "mongodb";
 

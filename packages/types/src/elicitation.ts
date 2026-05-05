@@ -5,5 +5,5 @@ export type ElicitedInputResult =
 export interface IElicitation {
     supportsElicitation(): boolean;
     requestConfirmation(message: string): Promise<boolean>;
-    requestInput(options: { message: string; schema: unknown }): Promise<ElicitedInputResult>;
+    requestInput(message: string, schema: unknown): Promise<ElicitedInputResult>;
 }

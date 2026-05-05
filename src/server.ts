@@ -23,9 +23,10 @@ import type { Elicitation } from "./elicitation.js";
 import { AllTools } from "./tools/index.js";
 import type { UIRegistry } from "@mongodb-js/mcp-ui";
 import type { Metrics, DefaultMetrics } from "@mongodb-js/mcp-metrics";
+import type { IMetrics } from "@mongodb-js/mcp-types";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type AnyToolClass = ToolClass<any, any, any>;
+export type AnyToolClass = ToolClass<any, any, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 export interface ServerOptions<
     TUserConfig extends UserConfig = UserConfig,
@@ -321,7 +322,7 @@ export class Server<
                 config: this.userConfig,
                 telemetry: this.telemetry,
                 elicitation: this.elicitation,
-                metrics: this.metrics,
+                metrics: this.metrics as IMetrics,
                 uiRegistry: this.uiRegistry,
                 context: this.toolContext,
             });

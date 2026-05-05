@@ -1,8 +1,8 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { AtlasLocalToolBase } from "../atlasLocalTool.js";
-import type { OperationType, ToolArgs } from "../../tool.js";
+import { AtlasLocalToolBase } from "../../atlasLocalTool.js";
+import type { OperationType, ToolArgs } from "@mongodb-js/mcp-core";
 import type { Client, CreateDeploymentOptions } from "@mongodb-js/atlas-local";
-import { CommonArgs } from "../../args.js";
+import { CommonArgs } from "@mongodb-js/mcp-core";
 import z from "zod";
 
 export class CreateDeploymentTool extends AtlasLocalToolBase {

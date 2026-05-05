@@ -11,7 +11,7 @@ import { DeviceId } from "../../../src/helpers/deviceId.js";
 import { connectionErrorHandler } from "../../../src/common/connectionErrorHandler.js";
 import { Keychain } from "@mongodb-js/mcp-core";
 import { Elicitation } from "../../../src/elicitation.js";
-import { defaultCreateAtlasLocalClient } from "../../../src/common/atlasLocal.js";
+import { createAtlasLocalClient } from "../../../src/lib.js";
 import { InMemoryTransport } from "../../../src/transports/inMemoryTransport.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
@@ -183,7 +183,7 @@ describe("mcpUI feature with custom UIs", () => {
             connectionManager,
             keychain: Keychain.root,
             connectionErrorHandler,
-            atlasLocalClient: await defaultCreateAtlasLocalClient({ logger }),
+            atlasLocalClient: await createAtlasLocalClient({ logger }),
             apiClient: new ApiClient({
                 baseUrl: userConfig.apiBaseUrl,
                 credentials: {

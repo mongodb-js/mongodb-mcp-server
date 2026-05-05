@@ -9,6 +9,7 @@ import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics } from "../../../mocks/metrics.js";
+import type { DefaultMetrics } from "@mongodb-js/mcp-metrics";
 
 describe("StreamsDiscoverTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
@@ -55,7 +56,7 @@ describe("StreamsDiscoverTool", () => {
             requestConfirmation: vi.fn(),
         } as unknown as Elicitation;
 
-        const params: ToolConstructorParams = {
+        const params: ToolConstructorParams<UserConfig, unknown, DefaultMetrics> = {
             name: StreamsDiscoverTool.toolName,
             category: "atlas",
             operationType: StreamsDiscoverTool.operationType,

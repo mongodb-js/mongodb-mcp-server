@@ -15,8 +15,8 @@ import {
 } from "../common/connectionErrorHandler.js";
 import type { TelemetryCommonProperties } from "@mongodb-js/mcp-atlas-telemetry";
 import { Elicitation } from "../elicitation.js";
-import type { AtlasLocalClientFactoryFn } from "../common/atlasLocal.js";
-import { defaultCreateAtlasLocalClient } from "../common/atlasLocal.js";
+import type { AtlasLocalClientFactoryFn } from "@mongodb-js/mcp-tools-atlas-local";
+import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 import { applyConfigOverrides } from "../common/config/configOverrides.js";
 import { ApiClient, type ApiClientOptions } from "@mongodb-js/mcp-atlas-api-client";
 
@@ -222,7 +222,7 @@ export abstract class TransportRunnerBase<
         userConfig,
         createConnectionManager = defaultCreateConnectionManager,
         connectionErrorHandler = defaultConnectionErrorHandler,
-        createAtlasLocalClient = defaultCreateAtlasLocalClient,
+        createAtlasLocalClient: createAtlasLocalClientFn = createAtlasLocalClient,
         loggers,
         metrics,
         telemetryProperties = {},
@@ -233,7 +233,7 @@ export abstract class TransportRunnerBase<
         this.userConfig = userConfig;
         this.createConnectionManager = createConnectionManager;
         this.connectionErrorHandler = connectionErrorHandler;
-        this.createAtlasLocalClient = createAtlasLocalClient;
+        this.createAtlasLocalClient = createAtlasLocalClientFn;
         this.telemetryProperties = telemetryProperties;
         this.tools = tools;
         this.createSessionConfig = createSessionConfig;

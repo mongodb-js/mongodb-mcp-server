@@ -16,7 +16,7 @@ import { connectionErrorHandler } from "../../src/common/connectionErrorHandler.
 import { Keychain } from "@mongodb-js/mcp-core";
 import { Elicitation } from "../../src/elicitation.js";
 import type { MockClientCapabilities, createMockElicitInput } from "../utils/elicitationMocks.js";
-import { defaultCreateAtlasLocalClient } from "../../src/common/atlasLocal.js";
+import { createAtlasLocalClient } from "../../src/lib.js";
 import { UserConfigSchema } from "../../src/common/config/userConfig.js";
 import type { OperationType } from "../../src/tools/tool.js";
 import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
@@ -107,7 +107,7 @@ export function setupIntegrationTest(
             connectionManager,
             keychain: new Keychain(),
             connectionErrorHandler,
-            atlasLocalClient: await defaultCreateAtlasLocalClient({ logger }),
+            atlasLocalClient: await createAtlasLocalClient({ logger }),
             apiClient: new ApiClient({
                 baseUrl: userConfig.apiBaseUrl,
                 credentials: {

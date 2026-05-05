@@ -63,7 +63,7 @@ export {
     jsonExportFormat,
 } from "./common/exportsManager.js";
 export { ApiClient, type ApiClientOptions, type RequestContext } from "@mongodb-js/mcp-atlas-api-client";
-export type { AtlasLocalClientFactoryFn, LibraryLoader } from "./common/atlasLocal.js";
+export type { AtlasLocalClientFactoryFn, LibraryLoader } from "@mongodb-js/mcp-tools-atlas-local";
 export { UIRegistry } from "@mongodb-js/mcp-ui";
 export {
     ToolBase,

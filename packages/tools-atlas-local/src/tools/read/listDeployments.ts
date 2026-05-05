@@ -1,7 +1,7 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { AtlasLocalToolBase } from "../atlasLocalTool.js";
-import type { OperationType, ToolArgs } from "../../tool.js";
-import { formatUntrustedData } from "../../tool.js";
+import { AtlasLocalToolBase } from "../../atlasLocalTool.js";
+import type { OperationType, ToolArgs } from "@mongodb-js/mcp-core";
+import { formatUntrustedData } from "@mongodb-js/mcp-core";
 import type { Deployment } from "@mongodb-js/atlas-local";
 import type { Client } from "@mongodb-js/atlas-local";
 

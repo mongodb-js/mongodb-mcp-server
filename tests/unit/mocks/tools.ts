@@ -3,9 +3,11 @@ import { ToolBase } from "../../../src/tools/tool.js";
 import type { OperationType, ToolArgs, ToolCategory } from "../../../src/tools/tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
+import type { DefaultMetrics } from "@mongodb-js/mcp-metrics";
+import type { IToolConfig } from "@mongodb-js/mcp-types";
 
 /** General-purpose tool used by most ToolBase unit tests. */
-export class TestTool extends ToolBase {
+export class TestTool extends ToolBase<IToolConfig, unknown, DefaultMetrics> {
     static toolName = "test-tool";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "delete";
@@ -34,7 +36,7 @@ export class TestTool extends ToolBase {
 }
 
 /** Tool that returns structured content, used by appendUIResource tests. */
-export class TestToolWithOutputSchema extends ToolBase {
+export class TestToolWithOutputSchema extends ToolBase<IToolConfig, unknown, DefaultMetrics> {
     static toolName = "test-tool-with-output-schema";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "metadata";
@@ -60,7 +62,7 @@ export class TestToolWithOutputSchema extends ToolBase {
 }
 
 /** Tool that declares an outputSchema but never returns structuredContent. */
-export class TestToolWithoutStructuredContent extends ToolBase {
+export class TestToolWithoutStructuredContent extends ToolBase<IToolConfig, unknown, DefaultMetrics> {
     static toolName = "test-tool-without-structured";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "metadata";
@@ -84,7 +86,7 @@ export class TestToolWithoutStructuredContent extends ToolBase {
 }
 
 /** Tool whose execute() always throws – used by error-path tests. */
-export class ErrorTool extends ToolBase {
+export class ErrorTool extends ToolBase<IToolConfig, unknown, DefaultMetrics> {
     static toolName = "error-tool";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "read";
@@ -101,7 +103,7 @@ export class ErrorTool extends ToolBase {
 }
 
 /** Minimal tool that returns a static "ok" response. */
-export class EchoTool extends ToolBase {
+export class EchoTool extends ToolBase<IToolConfig, unknown, DefaultMetrics> {
     static toolName = "echo-tool";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "read";
@@ -118,7 +120,7 @@ export class EchoTool extends ToolBase {
 }
 
 /** No-op tool used for session / lifecycle tests that don't need tool logic. */
-export class NoopTool extends ToolBase {
+export class NoopTool extends ToolBase<IToolConfig, unknown, DefaultMetrics> {
     static toolName = "noop-tool";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "read";

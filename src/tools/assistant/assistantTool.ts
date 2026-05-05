@@ -1,15 +1,20 @@
-import { ToolBase, type ToolConstructorParams } from "../tool.js";
-import type { TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
+import type { ToolConstructorParams } from "../tool.js";
+import { ToolBase } from "../tool.js";
+import type { TelemetryToolMetadata } from "@mongodb-js/mcp-types";
 import { createFetch } from "@mongodb-js/devtools-proxy-support";
 import type { Server } from "../../server.js";
 import { packageInfo } from "../../common/packageInfo.js";
+import type { Session } from "../../common/session.js";
+import type { UserConfig } from "../../common/config/userConfig.js";
 
 export abstract class AssistantToolBase extends ToolBase {
+    declare protected readonly session: Session;
+    declare protected readonly config: UserConfig;
     protected server?: Server;
     protected baseUrl: URL;
     protected requiredHeaders: Headers;
 
-    constructor(params: ToolConstructorParams) {
+    constructor(params: ToolConstructorParams<UserConfig>) {
         super(params);
         this.baseUrl = new URL(params.config.assistantBaseUrl);
         this.requiredHeaders = new Headers({
