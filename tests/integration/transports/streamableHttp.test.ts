@@ -1,10 +1,12 @@
 import type express from "express";
-import { StreamableHttpRunner, MCPHttpServer } from "../../../src/transports/streamableHttp.js";
 import {
+    StreamableHttpRunner,
+    MCPHttpServer,
     createDefaultSessionStore,
     type ISessionStore,
     type SessionCloseReason,
-} from "../../../src/common/sessionStore.js";
+    type RequestContext,
+} from "@mongodb-js/mcp-transports";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
@@ -19,7 +21,6 @@ import type { OperationType, ToolArgs, ToolCategory, ToolExecutionContext } from
 import { ToolBase } from "../../../src/tools/tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
-import type { RequestContext } from "../../../src/transports/base.js";
 import type { AnyToolClass, Server } from "../../../src/lib.js";
 import type { IncomingMessage } from "node:http";
 import { AsyncLocalStorage } from "node:async_hooks";

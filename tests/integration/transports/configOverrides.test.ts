@@ -1,10 +1,9 @@
-import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js";
+import { StreamableHttpRunner, type TransportRunnerConfig, type RequestContext } from "@mongodb-js/mcp-transports";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, afterEach, beforeEach } from "vitest";
 import { defaultTestConfig, expectDefined } from "../helpers.js";
-import type { TransportRunnerConfig, UserConfig } from "../../../src/lib.js";
-import type { RequestContext } from "../../../src/transports/base.js";
+import type { UserConfig } from "../../../src/lib.js";
 
 describe("Config Overrides via HTTP", () => {
     let runner: StreamableHttpRunner;

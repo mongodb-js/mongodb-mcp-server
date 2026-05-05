@@ -1,8 +1,8 @@
-import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js";
+import { StreamableHttpRunner, type TransportRunnerConfig } from "@mongodb-js/mcp-transports";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { afterEach, describe, expect, it } from "vitest";
-import type { TransportRunnerConfig, UserConfig } from "../../../src/lib.js";
+import type { UserConfig } from "../../../src/lib.js";
 import { defaultTestConfig, expectDefined } from "../helpers.js";
 
 describe("createSessionConfig", () => {

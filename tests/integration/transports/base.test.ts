@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js";
+import { StreamableHttpRunner } from "@mongodb-js/mcp-transports";
 import { defaultTestConfig } from "../helpers.js";
 import type { UIRegistry } from "@mongodb-js/mcp-ui";
 import type { Server } from "../../../src/server.js";
