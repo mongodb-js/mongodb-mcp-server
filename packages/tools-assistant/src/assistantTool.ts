@@ -1,31 +1,30 @@
-import type { ToolConstructorParams } from "../tool.js";
-import { ToolBase } from "../tool.js";
-import type { TelemetryToolMetadata } from "@mongodb-js/mcp-types";
+import { ToolBase } from "@mongodb-js/mcp-core";
+import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
+import type { TelemetryToolMetadata, IToolConfig, ToolCategory } from "@mongodb-js/mcp-types";
 import { createFetch } from "@mongodb-js/devtools-proxy-support";
-import type { Server } from "../../server.js";
-import { packageInfo } from "../../common/packageInfo.js";
-import type { Session } from "../../common/session.js";
-import type { UserConfig } from "../../common/config/userConfig.js";
 
-export abstract class AssistantToolBase extends ToolBase {
-    declare protected readonly session: Session;
-    declare protected readonly config: UserConfig;
-    protected server?: Server;
+export const DEFAULT_ASSISTANT_BASE_URL = "https://knowledge.mongodb.com/api/v1/";
+
+export interface IAssistantConfig extends IToolConfig {
+    assistantBaseUrl?: string;
+    serverVersion?: string;
+}
+
+export abstract class AssistantToolBase extends ToolBase<IAssistantConfig> {
+    static category: ToolCategory = "assistant";
+
     protected baseUrl: URL;
     protected requiredHeaders: Headers;
 
-    constructor(params: ToolConstructorParams<UserConfig>) {
+    constructor(params: ToolConstructorParams<IAssistantConfig>) {
         super(params);
-        this.baseUrl = new URL(params.config.assistantBaseUrl);
+        this.baseUrl = new URL(params.config.assistantBaseUrl ?? DEFAULT_ASSISTANT_BASE_URL);
         this.requiredHeaders = new Headers({
             "x-request-origin": "mongodb-mcp-server",
-            "user-agent": packageInfo.version ? `mongodb-mcp-server/v${packageInfo.version}` : "mongodb-mcp-server",
+            "user-agent": params.config.serverVersion
+                ? `mongodb-mcp-server/v${params.config.serverVersion}`
+                : "mongodb-mcp-server",
         });
-    }
-
-    public register(server: Server): boolean {
-        this.server = server;
-        return super.register(server);
     }
 
     protected resolveTelemetryMetadata(): TelemetryToolMetadata {
