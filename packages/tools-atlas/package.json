@@ -1,0 +1,34 @@
+{
+  "name": "@mongodb-js/mcp-tools-atlas",
+  "version": "1.11.0-prerelease.1",
+  "private": true,
+  "type": "module",
+  "description": "Atlas tools for MongoDB MCP server",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "compile": "tsc --build tsconfig.json",
+    "test": "vitest --run"
+  },
+  "dependencies": {
+    "@mongodb-js/mcp-atlas-api-client": "workspace:*",
+    "@mongodb-js/mcp-atlas-telemetry": "workspace:*",
+    "@mongodb-js/mcp-core": "workspace:*",
+    "@mongodb-js/mcp-logging": "workspace:*",
+    "@mongodb-js/mcp-types": "workspace:*",
+    "mongodb-connection-string-url": "^7.0.1",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "typescript": "^5.9.2",
+    "vitest": "^4.1.4"
+  }
+}
