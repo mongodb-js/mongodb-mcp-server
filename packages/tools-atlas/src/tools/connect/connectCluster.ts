@@ -47,9 +47,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         }
 
         // Access the connection manager through session
-        const currentConectionState = (
-            session as unknown as { connectionManager?: { currentConnectionState?: { tag: string } } }
-        ).connectionManager?.currentConnectionState;
+        const currentConectionState = session.connectionManager?.currentConnectionState;
         if (
             session.connectedAtlasCluster.projectId !== projectId ||
             session.connectedAtlasCluster.clusterName !== clusterName
@@ -67,7 +65,7 @@ export class ConnectClusterTool extends AtlasToolBase {
                 this.session.logger.debug({
                     id: LogId.atlasConnectFailure,
                     context: "atlas-connect-cluster",
-                    message: `error querying cluster: ${(currentConectionState as unknown as { errorReason?: string }).errorReason}`,
+                    message: `error querying cluster: ${currentConectionState.errorReason}`,
                 });
                 return "unknown";
             default:
@@ -155,14 +153,7 @@ export class ConnectClusterTool extends AtlasToolBase {
                 lastError = undefined;
 
                 // Connect to MongoDB via the session
-                await (
-                    this.session as unknown as {
-                        connectToMongoDB(settings: {
-                            connectionString: string;
-                            atlas?: AtlasClusterConnectionInfo;
-                        }): Promise<void>;
-                    }
-                ).connectToMongoDB({ connectionString, atlas });
+                await this.session.connectToMongoDB({ connectionString, atlas });
                 break;
             } catch (err: unknown) {
                 const error = err instanceof Error ? err : new Error(String(err));
