@@ -120,7 +120,9 @@ async function resolveClusterInfo(
             originalClusterId: raw.id,
         };
     } catch (err) {
-        if (!(err instanceof ApiClientError) || err.response.status !== 404) {
+        // Atlas returns 400 for Flex clusters on the regular cluster endpoint ("cannot be used in the Cluster API")
+        // and 404 when the cluster simply doesn't exist. Both signal "try the flex endpoint instead".
+        if (!(err instanceof ApiClientError) || (err.response.status !== 404 && err.response.status !== 400)) {
             throw err;
         }
         const raw = await apiClient.getFlexCluster({ params: { path: { groupId: projectId, name: clusterName } } });
