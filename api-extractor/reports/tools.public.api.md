@@ -373,6 +373,44 @@ export class CreateDBUserTool extends AtlasToolBase {
 }
 
 // @public (undocumented)
+export class CreateDedicatedClusterTool extends AtlasToolBase {
+    // (undocumented)
+    argsShape: {
+        projectId: z.ZodString;
+        name: z.ZodString;
+        preset: z.ZodEnum<{
+            development: "development";
+            production: "production";
+        }>;
+        provider: z.ZodDefault<z.ZodEnum<{
+            AWS: "AWS";
+            AZURE: "AZURE";
+            GCP: "GCP";
+        }>>;
+        region: z.ZodOptional<z.ZodString>;
+        instanceSize: z.ZodOptional<z.ZodEnum<{
+            M10: "M10";
+            M20: "M20";
+            M30: "M30";
+            M40: "M40";
+            M50: "M50";
+            M60: "M60";
+            M80: "M80";
+        }>>;
+        shards: z.ZodOptional<z.ZodNumber>;
+        secondaryRegion: z.ZodOptional<z.ZodString>;
+    };
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    protected execute(input: ToolArgs<typeof CreateDedicatedClusterTool.argsShape>): Promise<CallToolResult>;
+    // (undocumented)
+    static operationType: OperationType;
+    // (undocumented)
+    static toolName: string;
+}
+
+// @public (undocumented)
 export class CreateDeploymentTool extends AtlasLocalToolBase {
     // (undocumented)
     argsShape: {

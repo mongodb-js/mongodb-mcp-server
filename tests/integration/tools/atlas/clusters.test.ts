@@ -65,6 +65,54 @@ describeWithAtlas("clusters", (integration) => {
             });
         });
 
+        describe("atlas-create-dedicated-cluster", () => {
+            const dedicatedClusterName = "DedicatedTest-" + randomId();
+
+            afterAll(async () => {
+                const projectId = getProjectId();
+                if (projectId) {
+                    await deleteCluster(integration.mcpServer().session, projectId, dedicatedClusterName);
+                }
+            });
+
+            it("should have correct metadata", async () => {
+                const { tools } = await integration.mcpClient().listTools();
+                const tool = tools.find((t) => t.name === "atlas-create-dedicated-cluster");
+
+                expectDefined(tool);
+                expect(tool.inputSchema.type).toBe("object");
+                expectDefined(tool.inputSchema.properties);
+                expect(tool.inputSchema.properties).toHaveProperty("projectId");
+                expect(tool.inputSchema.properties).toHaveProperty("name");
+                expect(tool.inputSchema.properties).toHaveProperty("preset");
+                expect(tool.inputSchema.properties).toHaveProperty("provider");
+                expect(tool.inputSchema.properties).toHaveProperty("region");
+                expect(tool.inputSchema.properties).toHaveProperty("instanceSize");
+                expect(tool.inputSchema.properties).toHaveProperty("shards");
+                expect(tool.inputSchema.properties).toHaveProperty("secondaryRegion");
+            });
+
+            it("should create a development cluster", async () => {
+                const projectId = getProjectId();
+
+                const response = await integration.mcpClient().callTool({
+                    name: "atlas-create-dedicated-cluster",
+                    arguments: {
+                        projectId,
+                        name: dedicatedClusterName,
+                        preset: "development",
+                        provider: "AWS",
+                    },
+                });
+
+                const content = getResponseContent(response.content);
+                expect(content).toContain(dedicatedClusterName);
+                expect(content).toContain("development");
+                expect(content).toContain("M10");
+                expect(content).toContain("disabled"); // backup disabled for dev
+            });
+        });
+
         describe("atlas-inspect-cluster", () => {
             it("should have correct metadata", async () => {
                 const { tools } = await integration.mcpClient().listTools();
