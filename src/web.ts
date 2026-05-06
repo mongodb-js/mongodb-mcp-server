@@ -22,6 +22,7 @@ export type {
     AtlasLocalToolMetadata,
     AtlasPerfAdvisorToolMetadata as PerfAdvisorToolMetadata,
     AtlasStreamsToolMetadata as StreamsToolMetadata,
+    UpgradeClusterMetadata,
 } from "@mongodb-js/mcp-atlas-telemetry";
 export { Session, type SessionOptions, type SessionEvents } from "./common/session.js";
 export type { CustomizableServerOptions, CustomizableSessionOptions } from "./transports/base.js";
@@ -48,8 +49,8 @@ export type {
     ConnectionState,
     OIDCConnectionAuthType,
     ConnectionTag,
-} from "./common/connectionManager.js";
-export { ConnectionManager, ConnectionStateConnected } from "./common/connectionManager.js";
+} from "@mongodb-js/mcp-tools-mongodb";
+export type { ConnectionManager, ConnectionStateConnected } from "@mongodb-js/mcp-tools-mongodb";
 export {
     ExportsManager,
     type AvailableExport,
@@ -61,7 +62,7 @@ export {
     type InProgressExport,
     type CommonExportData,
     jsonExportFormat,
-} from "./common/exportsManager.js";
+} from "@mongodb-js/mcp-tools-mongodb";
 export { ApiClient, type ApiClientOptions, type RequestContext } from "@mongodb-js/mcp-atlas-api-client";
 export type { AtlasLocalClientFactoryFn, LibraryLoader } from "@mongodb-js/mcp-tools-atlas-local";
 export { UIRegistry } from "@mongodb-js/mcp-ui";
@@ -73,7 +74,7 @@ export {
     type OperationType,
     type ToolArgs,
     type ToolExecutionContext,
-} from "./tools/tool.js";
+} from "@mongodb-js/mcp-core";
 export { AtlasTelemetry as Telemetry, EventCache } from "@mongodb-js/mcp-atlas-telemetry";
 export type {
     TelemetryEvents,

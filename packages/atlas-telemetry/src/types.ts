@@ -227,7 +227,8 @@ export type TelemetryToolMetadata =
     | AtlasMetadata
     | AtlasConnectionMetadata
     | AtlasPerfAdvisorToolMetadata
-    | AtlasStreamsToolMetadata;
+    | AtlasStreamsToolMetadata
+    | UpgradeClusterMetadata;
 
 export type AtlasMetadata = {
     project_id?: string;
@@ -252,4 +253,13 @@ export type AtlasPerfAdvisorToolMetadata = AtlasMetadata &
 export type AtlasStreamsToolMetadata = AtlasMetadata & {
     action?: string;
     resource?: string;
+};
+
+export type UpgradeClusterMetadata = AtlasMetadata & {
+    original_tier?: "free" | "flex";
+    target_tier?: "flex" | "m10";
+    original_cluster_id?: string;
+    target_cluster_id?: string;
+    provider?: string;
+    region?: string;
 };

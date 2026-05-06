@@ -14,7 +14,12 @@ const config: KnipConfig = {
                 "eslint-rules/*.js",
             ],
             ignore: ["tests/integration/fixtures/curl.mjs", "tests/vitest.d.ts"],
-            ignoreDependencies: ["@mongodb-js/atlas-local", "@emotion/css", "@leafygreen-ui/table"],
+            ignoreDependencies: [
+                "@mongodb-js/atlas-local",
+                "@emotion/css",
+                "@leafygreen-ui/table",
+                "@mongodb-js/mcp-tools-mongodb",
+            ],
         },
         "packages/ui": {
             entry: ["src/index.ts!"],

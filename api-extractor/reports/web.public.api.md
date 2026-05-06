@@ -5,21 +5,36 @@
 ```ts
 
 import type { AggregationCursor } from 'mongodb';
+import { AnyConnectionState } from '@mongodb-js/mcp-tools-mongodb';
 import { AnyToolBase } from '@mongodb-js/mcp-core';
 import { ApiClient } from '@mongodb-js/mcp-atlas-api-client';
 import { ApiClientOptions } from '@mongodb-js/mcp-atlas-api-client';
+import { AtlasClusterConnectionInfo } from '@mongodb-js/mcp-tools-mongodb';
 import { AtlasLocalClientFactoryFn } from '@mongodb-js/mcp-tools-atlas-local';
 import { AtlasLocalToolMetadata } from '@mongodb-js/mcp-atlas-telemetry';
 import { AtlasMetadata } from '@mongodb-js/mcp-atlas-telemetry';
 import { AuthProvider } from '@mongodb-js/mcp-atlas-api-client';
+import { AvailableExport } from '@mongodb-js/mcp-tools-mongodb';
 import { TelemetryBaseEvent as BaseEvent } from '@mongodb-js/mcp-atlas-telemetry';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { Client } from '@mongodb-js/atlas-local';
+import { CommonExportData } from '@mongodb-js/mcp-tools-mongodb';
 import { TelemetryCommonProperties as CommonProperties } from '@mongodb-js/mcp-atlas-telemetry';
 import { TelemetryCommonStaticProperties as CommonStaticProperties } from '@mongodb-js/mcp-atlas-telemetry';
 import { CompositeLogger } from '@mongodb-js/mcp-core';
 import { ConnectionInfo } from '@mongosh/arg-parser';
+import { ConnectionManager } from '@mongodb-js/mcp-tools-mongodb';
+import { ConnectionManagerEvents } from '@mongodb-js/mcp-tools-mongodb';
+import { ConnectionManagerFactoryFn } from '@mongodb-js/mcp-tools-mongodb';
 import { AtlasConnectionMetadata as ConnectionMetadata } from '@mongodb-js/mcp-atlas-telemetry';
+import { ConnectionSettings } from '@mongodb-js/mcp-tools-mongodb';
+import { ConnectionState } from '@mongodb-js/mcp-tools-mongodb';
+import { ConnectionStateConnected } from '@mongodb-js/mcp-tools-mongodb';
+import { ConnectionStateConnecting } from '@mongodb-js/mcp-tools-mongodb';
+import { ConnectionStateDisconnected } from '@mongodb-js/mcp-tools-mongodb';
+import { ConnectionStateErrored } from '@mongodb-js/mcp-tools-mongodb';
+import { ConnectionStringInfo } from '@mongodb-js/mcp-tools-mongodb';
+import { ConnectionTag } from '@mongodb-js/mcp-tools-mongodb';
 import { createDefaultMetrics } from '@mongodb-js/mcp-metrics';
 import { Credentials } from '@mongodb-js/mcp-atlas-api-client';
 import { DefaultEventMap } from '@mongodb-js/mcp-core';
@@ -28,9 +43,15 @@ import type { ElicitRequestFormParams } from '@modelcontextprotocol/sdk/types.js
 import { EventCache } from '@mongodb-js/mcp-atlas-telemetry';
 import { EventEmitter } from 'events';
 import { EventMap } from '@mongodb-js/mcp-core';
+import { ExportsManager } from '@mongodb-js/mcp-tools-mongodb';
+import { ExportsManagerConfig } from '@mongodb-js/mcp-tools-mongodb';
+import { ExportsManagerEvents } from '@mongodb-js/mcp-tools-mongodb';
 import type { FindCursor } from 'mongodb';
 import type { IDeviceId } from '@mongodb-js/mcp-types';
 import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
+import { InProgressExport } from '@mongodb-js/mcp-tools-mongodb';
+import { JSONExportFormat } from '@mongodb-js/mcp-tools-mongodb';
+import { jsonExportFormat } from '@mongodb-js/mcp-tools-mongodb';
 import { Keychain } from '@mongodb-js/mcp-core';
 import { LibraryLoader } from '@mongodb-js/mcp-tools-atlas-local';
 import { LoggerBase } from '@mongodb-js/mcp-core';
@@ -41,10 +62,13 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { MetricDefinitions } from '@mongodb-js/mcp-metrics';
 import { Metrics } from '@mongodb-js/mcp-metrics';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
+import { OIDCConnectionAuthType } from '@mongodb-js/mcp-tools-mongodb';
 import { OperationType } from '@mongodb-js/mcp-core';
 import { AtlasPerfAdvisorToolMetadata as PerfAdvisorToolMetadata } from '@mongodb-js/mcp-atlas-telemetry';
+import { ReadyExport } from '@mongodb-js/mcp-tools-mongodb';
 import { RequestContext } from '@mongodb-js/mcp-atlas-api-client';
 import { Secret } from 'mongodb-redact';
+import { StoredExport } from '@mongodb-js/mcp-tools-mongodb';
 import { AtlasStreamsToolMetadata as StreamsToolMetadata } from '@mongodb-js/mcp-atlas-telemetry';
 import { AtlasTelemetry as Telemetry } from '@mongodb-js/mcp-atlas-telemetry';
 import { TelemetryBoolSet } from '@mongodb-js/mcp-atlas-telemetry';
@@ -62,10 +86,10 @@ import { ToolExecutionContext } from '@mongodb-js/mcp-core';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import type { TransportRequestContext } from '@mongodb-js/mcp-types';
 import { UIRegistry } from '@mongodb-js/mcp-ui';
+import { UpgradeClusterMetadata } from '@mongodb-js/mcp-atlas-telemetry';
 import { z } from 'zod';
 
-// @public (undocumented)
-export type AnyConnectionState = ConnectionStateConnected | ConnectionStateConnecting | ConnectionStateDisconnected | ConnectionStateErrored;
+export { AnyConnectionState }
 
 export { AnyToolBase }
 
@@ -76,23 +100,7 @@ export { ApiClient }
 
 export { ApiClientOptions }
 
-// @public
-export interface AtlasClusterConnectionInfo {
-    // (undocumented)
-    clusterName: string;
-    // (undocumented)
-    expiryDate: Date;
-    // (undocumented)
-    instanceType: "FREE" | "FLEX" | "DEDICATED";
-    // (undocumented)
-    projectId: string;
-    // (undocumented)
-    provider?: string;
-    // (undocumented)
-    region?: string;
-    // (undocumented)
-    username: string;
-}
+export { AtlasClusterConnectionInfo }
 
 export { AtlasLocalClientFactoryFn }
 
@@ -102,22 +110,11 @@ export { AtlasMetadata }
 
 export { AuthProvider }
 
-// @public
-export type AvailableExport = Pick<StoredExport, "exportName" | "exportTitle" | "exportURI" | "exportPath">;
+export { AvailableExport }
 
 export { BaseEvent }
 
-// @public (undocumented)
-export interface CommonExportData {
-    // (undocumented)
-    exportName: string;
-    // (undocumented)
-    exportPath: string;
-    // (undocumented)
-    exportTitle: string;
-    // (undocumented)
-    exportURI: string;
-}
+export { CommonExportData }
 
 export { CommonProperties }
 
@@ -137,7 +134,7 @@ export type ConnectionErrorHandler = (error: MongoDBError<ErrorCodes.NotConnecte
 // @public (undocumented)
 export type ConnectionErrorHandlerContext = {
     availableTools: AnyToolBase[];
-    connectionState: AnyConnectionState;
+    connectionState: AnyConnectionState_2;
 };
 
 // @public (undocumented)
@@ -148,114 +145,25 @@ export type ConnectionErrorUnhandled = {
 // @public (undocumented)
 export type ConnectionInfoOIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
 
-// @public (undocumented)
-export abstract class ConnectionManager {
-    constructor();
-    // (undocumented)
-    protected changeState<Event extends keyof ConnectionManagerEvents, State extends ConnectionManagerEvents[Event][0]>(event: Event, newState: State): State;
-    // (undocumented)
-    clientName: string;
-    // (undocumented)
-    abstract close(): Promise<void>;
-    // (undocumented)
-    abstract connect(settings: ConnectionSettings): Promise<AnyConnectionState>;
-    // (undocumented)
-    get currentConnectionState(): AnyConnectionState;
-    // (undocumented)
-    abstract disconnect(): Promise<ConnectionStateDisconnected | ConnectionStateErrored>;
-    // (undocumented)
-    readonly events: Pick<EventEmitter<ConnectionManagerEvents>, "on" | "off" | "once">;
-    // (undocumented)
-    protected readonly _events: EventEmitter<ConnectionManagerEvents>;
-    // (undocumented)
-    setClientName(clientName: string): void;
-}
+export { ConnectionManager }
 
-// @public (undocumented)
-export interface ConnectionManagerEvents {
-    // (undocumented)
-    "connection-close": [ConnectionStateDisconnected];
-    // (undocumented)
-    "connection-error": [ConnectionStateErrored];
-    // (undocumented)
-    "connection-request": [AnyConnectionState];
-    // (undocumented)
-    "connection-success": [ConnectionStateConnected];
-    // (undocumented)
-    "connection-time-out": [ConnectionStateErrored];
-    // (undocumented)
-    close: [AnyConnectionState];
-}
+export { ConnectionManagerEvents }
 
-// @public
-export type ConnectionManagerFactoryFn = (createParams: {
-    logger: LoggerBase;
-    deviceId: DeviceId;
-    userConfig: UserConfig;
-}) => Promise<ConnectionManager>;
+export { ConnectionManagerFactoryFn }
 
 export { ConnectionMetadata }
 
-// @public (undocumented)
-export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"> {
-    // (undocumented)
-    atlas?: AtlasClusterConnectionInfo;
-    // (undocumented)
-    driverOptions?: ConnectionInfo["driverOptions"];
-}
+export { ConnectionSettings }
 
-// @public (undocumented)
-export interface ConnectionState {
-    // (undocumented)
-    connectedAtlasCluster?: AtlasClusterConnectionInfo;
-    // (undocumented)
-    connectionStringInfo?: ConnectionStringInfo;
-    // (undocumented)
-    tag: ConnectionTag;
-}
+export { ConnectionState }
 
-// @public (undocumented)
-export class ConnectionStateConnected implements ConnectionState {
-    constructor(serviceProvider: NodeDriverServiceProvider, connectionStringInfo?: ConnectionStringInfo | undefined, connectedAtlasCluster?: AtlasClusterConnectionInfo | undefined);
-    // (undocumented)
-    connectedAtlasCluster?: AtlasClusterConnectionInfo | undefined;
-    // (undocumented)
-    connectionStringInfo?: ConnectionStringInfo | undefined;
-    // (undocumented)
-    isSearchSupported(logger: LoggerBase): Promise<boolean>;
-    // (undocumented)
-    serviceProvider: NodeDriverServiceProvider;
-    // (undocumented)
-    tag: "connected";
-}
+export { ConnectionStateConnected }
 
-// @public (undocumented)
-export interface ConnectionStateConnecting extends ConnectionState {
-    // (undocumented)
-    oidcConnectionType: OIDCConnectionAuthType;
-    // (undocumented)
-    oidcLoginUrl?: string;
-    // (undocumented)
-    oidcUserCode?: string;
-    // (undocumented)
-    serviceProvider: Promise<NodeDriverServiceProvider>;
-    // (undocumented)
-    tag: "connecting";
-}
+export { ConnectionStateConnecting }
 
-// @public (undocumented)
-export interface ConnectionStateDisconnected extends ConnectionState {
-    // (undocumented)
-    tag: "disconnected";
-}
+export { ConnectionStateDisconnected }
 
-// @public (undocumented)
-export interface ConnectionStateErrored extends ConnectionState {
-    // (undocumented)
-    errorReason: string;
-    // (undocumented)
-    tag: "errored";
-}
+export { ConnectionStateErrored }
 
 // @public (undocumented)
 export type ConnectionStringAuthType = "scram" | "ldap" | "kerberos" | ConnectionInfoOIDCConnectionAuthType | "x.509";
@@ -263,16 +171,9 @@ export type ConnectionStringAuthType = "scram" | "ldap" | "kerberos" | Connectio
 // @public
 export type ConnectionStringHostType = "local" | "atlas" | "atlas_local" | "unknown";
 
-// @public
-export interface ConnectionStringInfo {
-    // (undocumented)
-    authType: ConnectionStringAuthType;
-    // (undocumented)
-    hostType: ConnectionStringHostType;
-}
+export { ConnectionStringInfo }
 
-// @public (undocumented)
-export type ConnectionTag = "connected" | "connecting" | "disconnected" | "errored";
+export { ConnectionTag }
 
 export { createDefaultMetrics }
 
@@ -360,57 +261,20 @@ export { EventCache }
 
 export { EventMap }
 
-// @public (undocumented)
-export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
-    // (undocumented)
-    get availableExports(): AvailableExport[];
-    // (undocumented)
-    close(): Promise<void>;
-    // (undocumented)
-    createJSONExport(input: {
-        input: FindCursor | AggregationCursor;
-        exportName: string;
-        exportTitle: string;
-        jsonExportFormat: JSONExportFormat;
-    }): Promise<AvailableExport>;
-    // (undocumented)
-    protected init(): void;
-    // (undocumented)
-    static init(config: ExportsManagerConfig, logger: LoggerBase, sessionId?: string): ExportsManager;
-    // (undocumented)
-    readExport(exportName: string): Promise<{
-        content: string;
-        docsTransformed: number;
-    }>;
-}
+export { ExportsManager }
 
-// @public (undocumented)
-export type ExportsManagerConfig = Pick<UserConfig, "exportsPath" | "exportTimeoutMs" | "exportCleanupIntervalMs">;
+export { ExportsManagerConfig }
 
-// @public (undocumented)
-export type ExportsManagerEvents = {
-    closed: [];
-    "export-expired": [string];
-    "export-available": [string];
-};
+export { ExportsManagerEvents }
 
 // @public
 export function getRandomUUID(): string;
 
-// @public (undocumented)
-export interface InProgressExport extends CommonExportData {
-    // (undocumented)
-    exportStatus: "in-progress";
-}
+export { InProgressExport }
 
-// @public (undocumented)
-export type JSONExportFormat = z.infer<typeof jsonExportFormat>;
+export { JSONExportFormat }
 
-// @public (undocumented)
-export const jsonExportFormat: z.ZodEnum<{
-    relaxed: "relaxed";
-    canonical: "canonical";
-}>;
+export { jsonExportFormat }
 
 export { Keychain }
 
@@ -435,8 +299,7 @@ export class MongoDBError<ErrorCode extends ErrorCodes = ErrorCodes> extends Err
     code: ErrorCode;
 }
 
-// @public (undocumented)
-export type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
+export { OIDCConnectionAuthType }
 
 export { OperationType }
 
@@ -448,15 +311,7 @@ export type PreviewFeature = (typeof previewFeatureValues)[number];
 // @public (undocumented)
 export const previewFeatureValues: readonly ["mcpUI"];
 
-// @public (undocumented)
-export interface ReadyExport extends CommonExportData {
-    // (undocumented)
-    docsTransformed: number;
-    // (undocumented)
-    exportCreatedAt: number;
-    // (undocumented)
-    exportStatus: "ready";
-}
+export { ReadyExport }
 
 export { RequestContext }
 
@@ -534,22 +389,32 @@ export class Session extends EventEmitter<SessionEvents> {
     readonly atlasLocalClient?: Client;
     // (undocumented)
     close(): Promise<void>;
+    // Warning: (ae-forgotten-export) The symbol "AtlasClusterConnectionInfo_2" needs to be exported by the entry point web.d.ts
+    //
     // (undocumented)
-    get connectedAtlasCluster(): AtlasClusterConnectionInfo | undefined;
+    get connectedAtlasCluster(): AtlasClusterConnectionInfo_2 | undefined;
     // (undocumented)
     readonly connectionErrorHandler: ConnectionErrorHandler;
+    // Warning: (ae-forgotten-export) The symbol "ConnectionManager_2" needs to be exported by the entry point web.d.ts
+    //
     // (undocumented)
-    readonly connectionManager: ConnectionManager;
+    readonly connectionManager: ConnectionManager_2;
+    // Warning: (ae-forgotten-export) The symbol "ConnectionStringInfo_2" needs to be exported by the entry point web.d.ts
+    //
     // (undocumented)
-    get connectionStringInfo(): ConnectionStringInfo | undefined;
+    get connectionStringInfo(): ConnectionStringInfo_2 | undefined;
     // (undocumented)
     connectToConfiguredConnection(): Promise<void>;
+    // Warning: (ae-forgotten-export) The symbol "ConnectionSettings_2" needs to be exported by the entry point web.d.ts
+    //
     // (undocumented)
-    connectToMongoDB(settings: ConnectionSettings): Promise<void>;
+    connectToMongoDB(settings: ConnectionSettings_2): Promise<void>;
     // (undocumented)
     disconnect(): Promise<void>;
+    // Warning: (ae-forgotten-export) The symbol "ExportsManager_2" needs to be exported by the entry point web.d.ts
+    //
     // (undocumented)
-    readonly exportsManager: ExportsManager;
+    readonly exportsManager: ExportsManager_2;
     // (undocumented)
     get isConnectedToMongoDB(): boolean;
     // (undocumented)
@@ -577,7 +442,7 @@ export type SessionEvents = {
     connect: [];
     close: [];
     disconnect: [];
-    "connection-error": [ConnectionStateErrored];
+    "connection-error": [ConnectionStateErrored_2];
 };
 
 // @public (undocumented)
@@ -589,9 +454,9 @@ export interface SessionOptions<TUserConfig extends UserConfig = UserConfig> {
     // (undocumented)
     connectionErrorHandler: ConnectionErrorHandler;
     // (undocumented)
-    connectionManager: ConnectionManager;
+    connectionManager: ConnectionManager_2;
     // (undocumented)
-    exportsManager: ExportsManager;
+    exportsManager: ExportsManager_2;
     // (undocumented)
     keychain: Keychain;
     // (undocumented)
@@ -600,8 +465,7 @@ export interface SessionOptions<TUserConfig extends UserConfig = UserConfig> {
     userConfig: TUserConfig;
 }
 
-// @public (undocumented)
-export type StoredExport = ReadyExport | InProgressExport;
+export { StoredExport }
 
 export { StreamsToolMetadata }
 
@@ -651,8 +515,10 @@ export abstract class TransportRunnerBase<TUserConfig extends UserConfig = UserC
     protected readonly createApiClient: ApiClientFactoryFn;
     // @deprecated (undocumented)
     protected readonly createAtlasLocalClient: AtlasLocalClientFactoryFn;
+    // Warning: (ae-forgotten-export) The symbol "ConnectionManagerFactoryFn_2" needs to be exported by the entry point web.d.ts
+    //
     // @deprecated (undocumented)
-    protected readonly createConnectionManager: ConnectionManagerFactoryFn;
+    protected readonly createConnectionManager: ConnectionManagerFactoryFn_2;
     protected createServer(input?: {
         userConfig?: TUserConfig;
         logger?: CompositeLogger;
@@ -688,7 +554,7 @@ export abstract class TransportRunnerBase<TUserConfig extends UserConfig = UserC
 // @public
 export type TransportRunnerConfig<TUserConfig extends UserConfig = UserConfig, TMetrics extends DefaultMetrics = DefaultMetrics> = {
     userConfig: TUserConfig;
-    createConnectionManager?: ConnectionManagerFactoryFn;
+    createConnectionManager?: ConnectionManagerFactoryFn_2;
     connectionErrorHandler?: ConnectionErrorHandler;
     createAtlasLocalClient?: AtlasLocalClientFactoryFn;
     loggers?: LoggerBase[];
@@ -700,6 +566,8 @@ export type TransportRunnerConfig<TUserConfig extends UserConfig = UserConfig, T
 };
 
 export { UIRegistry }
+
+export { UpgradeClusterMetadata }
 
 // @public (undocumented)
 export type UserConfig = z.infer<typeof UserConfigSchema>;
@@ -852,6 +720,11 @@ export const UserConfigSchema: z.ZodObject<{
     }>]>>;
     browser: z.ZodOptional<z.ZodUnion<readonly [z.ZodLiteral<false>, z.ZodString]>>;
 }, z.core.$strip>;
+
+// Warnings were encountered during analysis:
+//
+// src/common/connectionErrorHandler.ts:11:78 - (ae-forgotten-export) The symbol "AnyConnectionState_2" needs to be exported by the entry point web.d.ts
+// src/common/session.ts:39:5 - (ae-forgotten-export) The symbol "ConnectionStateErrored_2" needs to be exported by the entry point web.d.ts
 
 // (No @packageDocumentation comment for this package)
 
