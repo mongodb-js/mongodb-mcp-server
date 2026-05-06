@@ -122,14 +122,8 @@ import("../../../dist/esm/helpers/getRandomUUID.js").then(({ getRandomUUID }) =>
         const script = `
 ${simulateBrowserEnvironment}
 
-// Mock globalThis.crypto without randomUUID using Object.defineProperty
-Object.defineProperty(globalThis, 'crypto', {
-    value: {
-        getRandomValues: function() {}
-    },
-    writable: true,
-    configurable: true
-});
+// Mock globalThis.crypto without randomUUID
+delete globalThis.crypto.randomUUID;
 
 // Now import and test
 import("../../../dist/esm/helpers/getRandomUUID.js").then(({ getRandomUUID }) => {
