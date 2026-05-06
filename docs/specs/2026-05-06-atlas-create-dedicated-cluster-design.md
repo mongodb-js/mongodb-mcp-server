@@ -48,7 +48,7 @@ All fields optional except `projectId`. Elicitation targets the four fields a us
 | `autoScalingMaxInstanceSize` | `string` | `"M40"` | no | Required when `autoScaling: true`                                                                              |
 | `mongoDBMajorVersion` | `string` | omitted | no | e.g. `"8.0"`. Atlas picks its default (latest stable) when absent                                              |
 | `versionReleaseSystem` | `"LTS" \| "CONTINUOUS"` | omitted | no | Opt-in. Mutually exclusive with `mongoDBMajorVersion`                                                          |
-| `backupEnabled` | `boolean` | `false` | no | Enables cloud backup (continuous snapshots). Requires M10+; strongly recommended for production |
+| `backupEnabled` | `boolean` | `true` | no | Enables cloud backup (continuous snapshots). Defaults to `true` — set to `false` only for dev/test clusters where cost matters more than durability |
 | `pitEnabled` | `boolean` | `false` | no | Enables point-in-time recovery. Requires `backupEnabled: true` |
 | `terminationProtectionEnabled` | `boolean` | `false` | no |                                                                                                                |
 
@@ -209,7 +209,7 @@ No Atlas credentials needed. Fast, always run in CI.
 - Validation error: `autoScalingMaxInstanceSize: "M10"` + `instanceSize: "M20"` → rejects
 - Validation error: `versionReleaseSystem: "CONTINUOUS"` + `mongoDBMajorVersion: "8.0"` → rejects
 - Validation error: `pitEnabled: true` + `backupEnabled: false` → rejects before API call
-- Body builder: `backupEnabled: true` appears in request body
+- Body builder: `backupEnabled: true` appears in request body by default
 - Body builder: `pitEnabled: true` + `backupEnabled: true` → both appear in request body
 - Body builder: REPLICASET produces 1 `replicationSpecs` entry
 - Body builder: `numShards: 3` produces 3 identical `replicationSpecs` entries
