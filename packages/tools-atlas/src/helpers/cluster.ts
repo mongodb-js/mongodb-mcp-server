@@ -16,6 +16,7 @@ function extractProcessIds(connectionString: string): Array<AtlasProcessId> {
     const connectionStringUrl = new ConnectionString(connectionString);
     return connectionStringUrl.hosts as Array<AtlasProcessId>;
 }
+
 export interface Cluster {
     name?: string;
     instanceType: "FREE" | "DEDICATED" | "FLEX";

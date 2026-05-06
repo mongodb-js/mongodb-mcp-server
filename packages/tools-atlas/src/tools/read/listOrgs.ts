@@ -1,7 +1,7 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { AtlasToolBase } from "../atlasTool.js";
-import type { OperationType } from "../../tool.js";
-import { formatUntrustedData } from "../../tool.js";
+import { AtlasToolBase } from "../../atlasTool.js";
+import type { OperationType } from "@mongodb-js/mcp-core";
+import { formatUntrustedData } from "@mongodb-js/mcp-core";
 
 export class ListOrganizationsTool extends AtlasToolBase {
     static toolName = "atlas-list-orgs";

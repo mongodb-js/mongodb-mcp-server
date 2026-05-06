@@ -1,8 +1,8 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { type ToolArgs, type OperationType } from "../../tool.js";
-import { AtlasToolBase } from "../atlasTool.js";
+import { type ToolArgs, type OperationType } from "@mongodb-js/mcp-core";
+import { AtlasToolBase } from "../../atlasTool.js";
 import type { ClusterDescription20240805 } from "@mongodb-js/mcp-atlas-api-client";
-import { ensureCurrentIpInAccessList } from "../../../common/atlas/accessListUtils.js";
+import { ensureCurrentIpInAccessList } from "../../helpers/accessListUtils.js";
 import { AtlasArgs } from "../../args.js";
 
 export class CreateFreeClusterTool extends AtlasToolBase {

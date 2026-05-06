@@ -126,6 +126,7 @@ All MongoDB-specific tools, connection management, and related utilities have be
 The following are now exported from `@mongodb-js/mcp-tools-mongodb`:
 
 #### Tools
+
 - `ConnectTool`, `SwitchConnectionTool`
 - `FindTool`, `AggregateTool`, `AggregateDBTool`, `CountTool`, `ExportTool`
 - `CreateIndexTool`, `InsertManyTool`, `CreateCollectionTool`
@@ -135,12 +136,14 @@ The following are now exported from `@mongodb-js/mcp-tools-mongodb`:
 - `DbStatsTool`, `ExplainTool`, `ListCollectionsTool`, `ListDatabasesTool`, `LogsTool`
 
 #### Base classes and types
+
 - `MongoDBToolBase` - Base class for all MongoDB tools
 - `IMongoDBConfig` - Configuration interface for MongoDB tools
 - `IMongoDBSession` - Session interface for MongoDB operations
 - `ConnectionErrorOutcome` - Type for connection error handling
 
 #### Connection management
+
 - `ConnectionManager`, `MCPConnectionManager`
 - `ConnectionStateConnected`, `ConnectionSettings`, `AnyConnectionState`
 - `ConnectionManagerEvents`, `ConnectionStateConnecting`, `ConnectionStateDisconnected`
@@ -148,19 +151,23 @@ The following are now exported from `@mongodb-js/mcp-tools-mongodb`:
 - `IDeviceId`, `IPackageInfo`, `IUserConfig`
 
 #### Connection utilities
+
 - `getConnectionStringInfo`, `ConnectionStringInfo`, `ConnectionStringAuthType`
 - `ConnectionStringHostType`, `AtlasClusterConnectionInfo`, `OIDCConnectionAuthType`
 - `setAppNameParamIfMissing`, `validateConnectionString`, `AppNameComponents`
 
 #### Error handling
+
 - `ErrorCodes` - MongoDB-specific error codes
 - `MongoDBError` - MongoDB error class
 
 #### Schemas
+
 - `IndexDirectionSchema`, `SortDirectionSchema`, `VectorSearchStage`
 - `pipelineDescriptionWithVectorSearch`, `FindArgs`
 
 #### Output types
+
 - `CreateCollectionOutput`, `InsertManyOutput`, `CreateIndexOutput`
 - `DeleteManyOutput`, `DropCollectionOutput`, `DropDatabaseOutput`, `DropIndexOutput`
 - `RenameCollectionOutput`, `UpdateManyOutput`
@@ -168,6 +175,7 @@ The following are now exported from `@mongodb-js/mcp-tools-mongodb`:
 - `DbStatsOutput`, `ExplainOutput`, `ListCollectionsOutput`, `ListDatabasesOutput`, `LogsOutput`
 
 #### Helper functions
+
 - `collectCursorUntilMaxBytesLimit` - Cursor batching utility
 - `operationWithFallback` - Operation retry utility
 - `assertVectorSearchFilterFieldsAreIndexed`, `collectFieldsFromVectorSearchFilter`
@@ -176,10 +184,12 @@ The following are now exported from `@mongodb-js/mcp-tools-mongodb`:
 - `zEJSON`, `toEJSON` - EJSON parsing utilities
 
 #### Constants
+
 - `QUERY_COUNT_MAX_TIME_MS_CAP`, `AGG_COUNT_MAX_TIME_MS_CAP`
 - `ONE_MB`, `CURSOR_LIMITS_TO_LLM_TEXT`
 
 #### Tools array
+
 - `MongoDBTools` - Array of all MongoDB tool classes
 
 ### Import changes for test files

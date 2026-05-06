@@ -1,14 +1,14 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { AtlasToolBase } from "../atlasTool.js";
-import type { ToolArgs, OperationType } from "../../tool.js";
-import { formatUntrustedData } from "../../tool.js";
+import { AtlasToolBase } from "../../atlasTool.js";
+import type { ToolArgs, OperationType } from "@mongodb-js/mcp-core";
+import { formatUntrustedData } from "@mongodb-js/mcp-core";
 import type {
     PaginatedClusterDescription20240805,
     PaginatedOrgGroupView,
     Group,
     PaginatedFlexClusters20241113,
 } from "@mongodb-js/mcp-atlas-api-client";
-import { formatCluster, formatFlexCluster } from "../../../common/atlas/cluster.js";
+import { formatCluster, formatFlexCluster } from "../../helpers/cluster.js";
 import { AtlasArgs } from "../../args.js";
 
 export const ListClustersArgs = {

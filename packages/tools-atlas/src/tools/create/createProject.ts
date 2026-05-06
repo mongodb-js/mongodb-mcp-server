@@ -1,6 +1,6 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { type OperationType, type ToolArgs } from "../../tool.js";
-import { AtlasToolBase } from "../atlasTool.js";
+import { type OperationType, type ToolArgs } from "@mongodb-js/mcp-core";
+import { AtlasToolBase } from "../../atlasTool.js";
 import type { Group } from "@mongodb-js/mcp-atlas-api-client";
 import { AtlasArgs } from "../../args.js";
 
