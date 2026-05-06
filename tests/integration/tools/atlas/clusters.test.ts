@@ -265,5 +265,88 @@ describeWithAtlas("clusters", (integration) => {
                 });
             });
         });
+
+        describe("atlas-create-dedicated-cluster", () => {
+            const dedicatedClusterName = "DedicatedClusterTest-" + randomId();
+
+            afterAll(async () => {
+                const projectId = getProjectId();
+                if (projectId) {
+                    const session: Session = integration.mcpServer().session;
+                    await deleteCluster(session, projectId, dedicatedClusterName);
+                }
+            });
+
+            it("should have correct metadata", async () => {
+                const { tools } = await integration.mcpClient().listTools();
+                const tool = tools.find((t) => t.name === "atlas-create-dedicated-cluster");
+
+                expectDefined(tool);
+                expect(tool.inputSchema.type).toBe("object");
+                expectDefined(tool.inputSchema.properties);
+                expect(tool.inputSchema.properties).toHaveProperty("projectId");
+                expect(tool.inputSchema.properties).toHaveProperty("name");
+                expect(tool.inputSchema.properties).toHaveProperty("provider");
+                expect(tool.inputSchema.properties).toHaveProperty("region");
+                expect(tool.inputSchema.properties).toHaveProperty("instanceSize");
+                expect(tool.inputSchema.properties).toHaveProperty("numShards");
+                expect(tool.inputSchema.properties).toHaveProperty("backupEnabled");
+                expect(tool.inputSchema.properties).toHaveProperty("pitEnabled");
+            });
+
+            it("should reject sharded cluster with instanceSize below M30", async () => {
+                const projectId = getProjectId();
+                const response = await integration.mcpClient().callTool({
+                    name: "atlas-create-dedicated-cluster",
+                    arguments: { projectId, name: dedicatedClusterName, numShards: 2, instanceSize: "M10" },
+                });
+                expect(response.isError).toBe(true);
+                const content = getResponseContent(response.content);
+                expect(content).toContain("M30");
+            });
+
+            it("should reject pitEnabled without backupEnabled", async () => {
+                const projectId = getProjectId();
+                const response = await integration.mcpClient().callTool({
+                    name: "atlas-create-dedicated-cluster",
+                    arguments: {
+                        projectId,
+                        name: dedicatedClusterName,
+                        pitEnabled: true,
+                        backupEnabled: false,
+                    },
+                });
+                expect(response.isError).toBe(true);
+                const content = getResponseContent(response.content);
+                expect(content).toContain("backupEnabled");
+            });
+
+            it("should create a replica set cluster", async () => {
+                const projectId = getProjectId();
+                const response = await integration.mcpClient().callTool({
+                    name: "atlas-create-dedicated-cluster",
+                    arguments: {
+                        projectId,
+                        name: dedicatedClusterName,
+                        provider: "AWS",
+                        region: "US_EAST_1",
+                        instanceSize: "M10",
+                    },
+                });
+                expect(response.isError).toBeFalsy();
+                const content = getResponseContent(response.content);
+                expect(content).toContain(dedicatedClusterName);
+                expect(content).toContain("creation initiated");
+                expect(content).toContain("REPLICASET");
+
+                // Verify cluster exists in Atlas
+                const session: Session = integration.mcpServer().session;
+                assertApiClientIsAvailable(session);
+                const cluster = await session.apiClient.getCluster({
+                    params: { path: { groupId: projectId, clusterName: dedicatedClusterName } },
+                });
+                expect(cluster.name).toBe(dedicatedClusterName);
+            });
+        });
     });
 });
