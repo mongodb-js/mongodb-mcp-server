@@ -1217,7 +1217,7 @@ export const UserConfigSchema: z.ZodObject<{
     apiClientId: z.ZodOptional<z.ZodString>;
     apiClientSecret: z.ZodOptional<z.ZodString>;
     connectionString: z.ZodOptional<z.ZodString>;
-    loggers: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodEnum<{
+    loggers: z.ZodDefault<z.ZodPipe<z.ZodTransform<string[] | undefined, string | string[] | undefined>, z.ZodArray<z.ZodEnum<{
         disk: "disk";
         mcp: "mcp";
         stderr: "stderr";
@@ -1233,10 +1233,10 @@ export const UserConfigSchema: z.ZodObject<{
         alert: "alert";
         emergency: "emergency";
     }>>;
-    disabledTools: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodString>>>;
-    confirmationRequiredTools: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodString>>>;
-    readOnly: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
-    indexCheck: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
+    disabledTools: z.ZodDefault<z.ZodPipe<z.ZodTransform<string[] | undefined, string | string[] | undefined>, z.ZodArray<z.ZodString>>>;
+    confirmationRequiredTools: z.ZodDefault<z.ZodPipe<z.ZodTransform<string[] | undefined, string | string[] | undefined>, z.ZodArray<z.ZodString>>>;
+    readOnly: z.ZodDefault<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodBoolean>>;
+    indexCheck: z.ZodDefault<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodBoolean>>;
     telemetry: z.ZodDefault<z.ZodEnum<{
         enabled: "enabled";
         disabled: "disabled";
@@ -1259,10 +1259,10 @@ export const UserConfigSchema: z.ZodObject<{
     exportCleanupIntervalMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     atlasTemporaryDatabaseUserLifetimeMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     voyageApiKey: z.ZodDefault<z.ZodString>;
-    previewFeatures: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodEnum<{
+    previewFeatures: z.ZodDefault<z.ZodPipe<z.ZodTransform<string[] | undefined, string | string[] | undefined>, z.ZodArray<z.ZodEnum<{
         mcpUI: "mcpUI";
     }>>>>;
-    allowRequestOverrides: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
+    allowRequestOverrides: z.ZodDefault<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodBoolean>>;
     dryRun: z.ZodDefault<z.ZodBoolean>;
     externallyManagedSessions: z.ZodDefault<z.ZodBoolean>;
     httpResponseType: z.ZodDefault<z.ZodEnum<{
@@ -1273,7 +1273,7 @@ export const UserConfigSchema: z.ZodObject<{
     healthCheckHost: z.ZodOptional<z.ZodString>;
     monitoringServerPort: z.ZodOptional<z.ZodNumber>;
     monitoringServerHost: z.ZodOptional<z.ZodString>;
-    monitoringServerFeatures: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodEnum<{
+    monitoringServerFeatures: z.ZodDefault<z.ZodPipe<z.ZodTransform<string[] | undefined, string | string[] | undefined>, z.ZodArray<z.ZodEnum<{
         metrics: "metrics";
         "health-check": "health-check";
     }>>>>;
@@ -1364,7 +1364,7 @@ export const UserConfigSchema: z.ZodObject<{
 // src/common/config/configOverrides.ts:29:5 - (ae-forgotten-export) The symbol "RequestContext_2" needs to be exported by the entry point lib.d.ts
 // src/common/exportsManager.ts:166:9 - (ae-forgotten-export) The symbol "JSONExportFormat" needs to be exported by the entry point lib.d.ts
 // src/telemetry/types.ts:17:9 - (ae-forgotten-export) The symbol "TelemetryResult" needs to be exported by the entry point lib.d.ts
-// src/telemetry/types.ts:176:5 - (ae-forgotten-export) The symbol "TelemetryBoolSet" needs to be exported by the entry point lib.d.ts
+// src/telemetry/types.ts:186:5 - (ae-forgotten-export) The symbol "TelemetryBoolSet" needs to be exported by the entry point lib.d.ts
 
 // (No @packageDocumentation comment for this package)
 
