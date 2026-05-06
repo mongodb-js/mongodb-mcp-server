@@ -1,5 +1,5 @@
 import { beforeEach, afterEach } from "vitest";
-import { type ConnectionManagerEvents } from "../../src/common/connectionManager.js";
+import { type ConnectionManagerEvents } from "@mongodb-js/mcp-tools-mongodb";
 import { type ConnectionManager } from "../../src/lib.js";
 
 export function createEnvironment(): {

@@ -1,7 +1,7 @@
-import { MCPConnectionManager } from "../../src/common/connectionManager.js";
-import { ExportsManager } from "../../src/common/exportsManager.js";
+import { MCPConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
+import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
-import { DeviceId } from "../../src/helpers/deviceId.js";
+import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { Session } from "../../src/common/session.js";
 import { defaultTestConfig, expectDefined, InMemoryLogger } from "./helpers.js";
 import { describeWithMongoDB } from "./tools/mongodb/mongodbHelpers.js";

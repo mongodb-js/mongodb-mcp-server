@@ -18,7 +18,7 @@ export interface IMongoDBConfig extends IToolConfig {
 
 export interface IMongoDBSession extends IToolSession {
   isConnectedToMongoDB: boolean;
-  connectedAtlasCluster?: { clusterName: string };
+  connectedAtlasCluster?: { clusterName: string; projectId: string };
   serviceProvider: NodeDriverServiceProvider;
   connectToConfiguredConnection(): Promise<void>;
   connectToMongoDB(settings: { connectionString: string }): Promise<void>;
@@ -27,9 +27,9 @@ export interface IMongoDBSession extends IToolSession {
     context: { availableTools: unknown[]; connectionState: unknown }
   ): Promise<{ errorHandled: boolean; result: CallToolResult }>;
   connectionManager: { currentConnectionState: unknown };
-  exportsManager?: { createJSONExport: (params: unknown) => Promise<unknown> };
-  assertSearchSupported?(): Promise<void>;
-  isSearchSupported?(): Promise<boolean>;
+  exportsManager: { createJSONExport: (params: unknown) => Promise<unknown> };
+  assertSearchSupported(): Promise<void>;
+  isSearchSupported(): Promise<boolean>;
   on(event: "connect" | "disconnect", listener: () => void): void;
 }
 

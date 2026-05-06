@@ -6,7 +6,7 @@ import process from "process";
 import type { MongoDBIntegrationTestCase } from "../tools/mongodb/mongodbHelpers.js";
 import { describeWithMongoDB, isCommunityServer, getServerVersion } from "../tools/mongodb/mongodbHelpers.js";
 import { defaultTestConfig, responseAsText, timeout, waitUntil } from "../helpers.js";
-import type { ConnectionStateConnected, ConnectionStateConnecting } from "../../../src/common/connectionManager.js";
+import type { ConnectionStateConnected, ConnectionStateConnecting } from "@mongodb-js/mcp-tools-mongodb";
 import type { UserConfig } from "../../../src/common/config/userConfig.js";
 import path from "path";
 import type { OIDCMockProviderConfig } from "@mongodb-js/oidc-mock-provider";

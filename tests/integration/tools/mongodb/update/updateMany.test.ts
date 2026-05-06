@@ -6,7 +6,7 @@ import {
 } from "../../../helpers.js";
 import { beforeEach, describe, expect, it } from "vitest";
 import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
-import type { UpdateManyOutput } from "../../../../../src/tools/mongodb/update/updateMany.js";
+import type { UpdateManyOutput } from "@mongodb-js/mcp-tools-mongodb";
 
 describeWithMongoDB("updateMany tool", (integration) => {
     validateToolMetadata(

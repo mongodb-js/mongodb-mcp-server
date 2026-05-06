@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import type { FindCursor } from "mongodb";
 import { calculateObjectSize } from "bson";
-import { collectCursorUntilMaxBytesLimit } from "../../../src/helpers/collectCursorUntilMaxBytes.js";
+import { collectCursorUntilMaxBytesLimit } from "@mongodb-js/mcp-tools-mongodb";
 
 describe("collectCursorUntilMaxBytesLimit", () => {
     function createMockCursor(

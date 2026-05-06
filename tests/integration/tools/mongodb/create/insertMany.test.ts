@@ -12,7 +12,7 @@ import {
     validateThrowsForInvalidArguments,
     expectDefined,
 } from "../../../helpers.js";
-import type { InsertManyOutput } from "../../../../../src/tools/mongodb/create/insertMany.js";
+import type { InsertManyOutput } from "@mongodb-js/mcp-tools-mongodb";
 import { beforeEach, afterEach, expect, it, vi } from "vitest";
 import { ObjectId } from "bson";
 import type { Collection } from "mongodb";

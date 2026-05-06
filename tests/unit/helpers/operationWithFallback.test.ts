@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { operationWithFallback } from "../../../src/helpers/operationWithFallback.js";
+import { operationWithFallback } from "@mongodb-js/mcp-tools-mongodb";
 
 describe("operationWithFallback", () => {
     it("returns operation result when operation succeeds", async () => {

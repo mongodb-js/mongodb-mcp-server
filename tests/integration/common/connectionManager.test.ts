@@ -1,5 +1,5 @@
-import type { ConnectionManagerEvents, ConnectionStateConnected } from "../../../src/common/connectionManager.js";
-import { getAuthType, type ConnectionStringAuthType } from "../../../src/common/connectionInfo.js";
+import type { ConnectionManagerEvents, ConnectionStateConnected } from "@mongodb-js/mcp-tools-mongodb";
+import { getAuthType, type ConnectionStringAuthType } from "@mongodb-js/mcp-tools-mongodb";
 import type { UserConfig } from "../../../src/common/config/userConfig.js";
 import { describeWithMongoDB, waitUntilSearchIsReady } from "../tools/mongodb/mongodbHelpers.js";
 import { MongoServerError } from "mongodb";

@@ -1,5 +1,5 @@
 import type { Collection, IndexDirection } from "mongodb";
-import type { CollectionIndexesOutput } from "../../../../../src/tools/mongodb/metadata/collectionIndexes.js";
+import type { CollectionIndexesOutput } from "@mongodb-js/mcp-tools-mongodb";
 import {
     databaseCollectionParameters,
     validateToolMetadata,
