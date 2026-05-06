@@ -41,7 +41,6 @@ import { DefaultEventMap } from '@mongodb-js/mcp-core';
 import { DefaultMetrics } from '@mongodb-js/mcp-metrics';
 import { DeviceId } from '@mongodb-js/mcp-tools-mongodb';
 import type { ElicitRequestFormParams } from '@modelcontextprotocol/sdk/types.js';
-import { ErrorCodes } from '@mongodb-js/mcp-tools-mongodb';
 import { EventCache } from '@mongodb-js/mcp-atlas-telemetry';
 import EventEmitter from 'events';
 import { EventMap } from '@mongodb-js/mcp-core';
@@ -62,7 +61,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { MetricDefinitions } from '@mongodb-js/mcp-metrics';
 import { Metrics } from '@mongodb-js/mcp-metrics';
 import { MisconfiguredConnectionStringErrorCode } from '@mongodb-js/mcp-tools-mongodb';
-import { MongoDBError } from '@mongodb-js/mcp-tools-mongodb';
+import { MongoDBError as MongoDBError_2 } from '@mongodb-js/mcp-tools-mongodb';
 import type { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
 import { NotConnectedToMongoDBErrorCode } from '@mongodb-js/mcp-tools-mongodb';
 import { OIDCConnectionAuthType } from '@mongodb-js/mcp-tools-mongodb';
@@ -133,7 +132,7 @@ export type ConnectionErrorHandled = {
 };
 
 // @public (undocumented)
-export type ConnectionErrorHandler = (error: MongoDBError<NotConnectedToMongoDBErrorCode | MisconfiguredConnectionStringErrorCode>, additionalContext: ConnectionErrorHandlerContext) => ConnectionErrorUnhandled | ConnectionErrorHandled | Promise<ConnectionErrorUnhandled | ConnectionErrorHandled>;
+export type ConnectionErrorHandler = (error: MongoDBError_2<NotConnectedToMongoDBErrorCode | MisconfiguredConnectionStringErrorCode>, additionalContext: ConnectionErrorHandlerContext) => ConnectionErrorUnhandled | ConnectionErrorHandled | Promise<ConnectionErrorUnhandled | ConnectionErrorHandled>;
 
 // @public (undocumented)
 export type ConnectionErrorHandlerContext = {
@@ -230,7 +229,25 @@ export type ElicitedInputResult = {
     fields?: undefined;
 };
 
-export { ErrorCodes }
+// @public (undocumented)
+export enum ErrorCodes {
+    // (undocumented)
+    AtlasSearchNotSupported = 1000004,
+    // (undocumented)
+    AtlasVectorSearchIndexNotFound = 1000006,
+    // (undocumented)
+    AtlasVectorSearchInvalidQuery = 1000007,
+    // (undocumented)
+    ForbiddenCollscan = 1000002,
+    // (undocumented)
+    ForbiddenWriteOperation = 1000003,
+    // (undocumented)
+    InvalidPipeline = 1000008,
+    // (undocumented)
+    MisconfiguredConnectionString = 1000001,
+    // (undocumented)
+    NotConnectedToMongoDB = 1000000
+}
 
 export { EventCache }
 
@@ -241,6 +258,9 @@ export { ExportsManager }
 export { ExportsManagerConfig }
 
 export { ExportsManagerEvents }
+
+// @public
+export function getRandomUUID(): string;
 
 export { InProgressExport }
 
@@ -264,7 +284,12 @@ export { MetricDefinitions }
 
 export { Metrics }
 
-export { MongoDBError }
+// @public (undocumented)
+export class MongoDBError<ErrorCode extends ErrorCodes = ErrorCodes> extends Error {
+    constructor(code: ErrorCode, message: string);
+    // (undocumented)
+    code: ErrorCode;
+}
 
 export { OIDCConnectionAuthType as ConnectionInfoOIDCConnectionAuthType }
 export { OIDCConnectionAuthType }

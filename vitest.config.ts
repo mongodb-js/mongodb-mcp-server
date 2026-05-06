@@ -45,7 +45,13 @@ export default defineConfig({
                 test: {
                     name: "unit-and-integration",
                     include: ["**/*.test.ts"],
-                    exclude: [...vitestDefaultExcludes, "scripts/**", "tests/accuracy/**", ...longRunningTests],
+                    exclude: [
+                        ...vitestDefaultExcludes,
+                        "scripts/**",
+                        "tests/accuracy/**",
+                        "tests/browser/**",
+                        ...longRunningTests,
+                    ],
                 },
             },
             {

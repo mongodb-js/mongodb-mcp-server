@@ -81,7 +81,8 @@ export type {
     TelemetryEvent,
     TelemetryBaseEvent as BaseEvent,
 } from "@mongodb-js/mcp-atlas-telemetry";
-export { ErrorCodes, MongoDBError } from "@mongodb-js/mcp-tools-mongodb";
+export { ErrorCodes, MongoDBError } from "./common/errors.js";
+export { getRandomUUID } from "./helpers/getRandomUUID.js";
 export type { AuthProvider, Credentials } from "@mongodb-js/mcp-atlas-api-client";
 export type {
     ConnectionStringAuthType,

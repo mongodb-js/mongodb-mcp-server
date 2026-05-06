@@ -13,13 +13,12 @@ export type {
     ConnectionStateDisconnected,
     ConnectionStateErrored,
     AnyConnectionState,
-    ConnectionManager,
     ConnectionManagerFactoryFn,
     ConnectionManagerEvents,
     ConnectionTag,
     OIDCConnectionAuthType,
 } from "./common/connectionManager.js";
-export { defaultCreateConnectionManager, MCPConnectionManager } from "./common/connectionManager.js";
+export { defaultCreateConnectionManager, MCPConnectionManager, ConnectionManager } from "./common/connectionManager.js";
 export type {
     ConnectionStringInfo,
     ConnectionStringAuthType,

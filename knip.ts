@@ -36,6 +36,23 @@ const config: KnipConfig = {
         "packages/types": {
             ignoreDependencies: ["@modelcontextprotocol/sdk", "mongodb-redact"],
         },
+        "packages/tools-mongodb": {
+            ignoreDependencies: [
+                "@mongodb-js/device-id",
+                "@mongodb-js/mcp-core",
+                "@mongodb-js/mcp-logging",
+                "@mongodb-js/mcp-types",
+                "@mongosh/arg-parser",
+                "@mongosh/service-provider-node-driver",
+                "bson",
+                "mongodb",
+                "mongodb-build-info",
+                "mongodb-connection-string-url",
+                "mongodb-schema",
+                "node-machine-id",
+                "zod",
+            ],
+        },
         "tests/browser": {
             entry: ["tests/**/*.ts", "polyfills/**/*.ts", "utils/**/*.ts", "vitest.config.ts", "setup.ts"],
         },
