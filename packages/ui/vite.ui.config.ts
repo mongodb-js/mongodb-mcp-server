@@ -165,7 +165,7 @@ export default defineConfig({
             globals: {
                 Buffer: true,
             },
-        }) as unknown as PluginOption,
+        }),
         react(),
         viteSingleFile({
             removeViteModuleLoader: true,

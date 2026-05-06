@@ -25,7 +25,7 @@ describe("ApiClient", () => {
                 os_type: "test-os",
                 component: "test-component",
                 duration_ms: 100,
-                result: "success" as TelemetryResult,
+                result: "success",
                 category: "test-category",
             },
         },

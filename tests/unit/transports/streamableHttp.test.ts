@@ -32,7 +32,7 @@ describe("StreamableHttpRunner", () => {
                     port: 3002,
                     features: ["health-check"],
                     logger: new NoopLogger(),
-                    metrics: new MockMetrics() as unknown as Metrics<DefaultMetrics>,
+                    metrics: new MockMetrics(),
                 });
 
                 const createMonitoringServer: CreateMonitoringServerFn<DefaultMetrics> = () => customServer;

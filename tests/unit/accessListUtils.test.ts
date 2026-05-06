@@ -7,8 +7,8 @@ import { NoopLogger } from "@mongodb-js/mcp-core";
 describe("accessListUtils", () => {
     it("should add the current IP to the access list", async () => {
         const apiClient = {
-            getIpInfo: vi.fn().mockResolvedValue({ currentIpv4Address: "127.0.0.1" } as never),
-            createAccessListEntry: vi.fn().mockResolvedValue(undefined as never),
+            getIpInfo: vi.fn().mockResolvedValue({ currentIpv4Address: "127.0.0.1" }),
+            createAccessListEntry: vi.fn().mockResolvedValue(undefined),
             logger: new NoopLogger(),
         } as unknown as ApiClient;
         await ensureCurrentIpInAccessList(apiClient, "projectId");
@@ -21,12 +21,12 @@ describe("accessListUtils", () => {
 
     it("should not fail if the current IP is already in the access list", async () => {
         const apiClient = {
-            getIpInfo: vi.fn().mockResolvedValue({ currentIpv4Address: "127.0.0.1" } as never),
+            getIpInfo: vi.fn().mockResolvedValue({ currentIpv4Address: "127.0.0.1" }),
             createAccessListEntry: vi.fn().mockRejectedValue(
                 ApiClientError.fromError({
                     response: { status: 409, statusText: "Conflict" } as Response,
                     error: { message: "Conflict" } as never,
-                }) as never
+                })
             ),
             logger: new NoopLogger(),
         } as unknown as ApiClient;

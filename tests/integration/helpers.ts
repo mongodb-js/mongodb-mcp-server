@@ -127,7 +127,7 @@ export function setupIntegrationTest(
                 value: {
                     validateAuthConfig: mockFn,
                     close: mockCloseFn,
-                } as unknown as ApiClient,
+                },
             });
         }
 

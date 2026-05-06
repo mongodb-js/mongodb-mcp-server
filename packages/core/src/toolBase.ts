@@ -13,10 +13,10 @@ import type { IMetrics, IObservable, MetricDefinitions, MongoLogId } from "@mong
 import { createUIResource, type UIResource } from "@mcp-ui/server";
 
 const LogId = {
-    toolExecute: { __value: 1_003_001 } as MongoLogId,
-    toolExecuteFailure: { __value: 1_003_002 } as MongoLogId,
-    toolDisabled: { __value: 1_003_003 } as MongoLogId,
-    toolMetadataChange: { __value: 1_003_004 } as MongoLogId,
+    toolExecute: { __value: 1_003_001 },
+    toolExecuteFailure: { __value: 1_003_002 },
+    toolDisabled: { __value: 1_003_003 },
+    toolMetadataChange: { __value: 1_003_004 },
 } as const;
 import { TRANSPORT_PAYLOAD_LIMITS } from "./transportConstants.js";
 import { getRandomUUID } from "./randomUUID.js";

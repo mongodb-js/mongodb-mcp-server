@@ -59,7 +59,7 @@ describe("StreamsDiscoverTool", () => {
             name: StreamsDiscoverTool.toolName,
             category: "atlas",
             operationType: StreamsDiscoverTool.operationType,
-            session: mockSession as unknown as ToolConstructorParams<IAtlasConfig, unknown, DefaultMetrics>["session"],
+            session: mockSession,
             config: mockConfig,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
@@ -504,7 +504,7 @@ describe("StreamsDiscoverTool", () => {
         it("should return error for unknown action", async () => {
             const result = await exec({
                 ...baseArgs,
-                action: "nonexistent" as never,
+                action: "nonexistent",
             });
 
             expect(result.isError).toBe(true);
