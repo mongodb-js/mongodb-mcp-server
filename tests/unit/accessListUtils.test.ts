@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
-import { ensureCurrentIpInAccessList, DEFAULT_ACCESS_LIST_COMMENT } from "../../src/common/atlas/accessListUtils.js";
+import { ensureCurrentIpInAccessList, DEFAULT_ACCESS_LIST_COMMENT } from "@mongodb-js/mcp-tools-atlas";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import { NoopLogger } from "@mongodb-js/mcp-core";
 

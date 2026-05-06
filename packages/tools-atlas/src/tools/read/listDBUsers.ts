@@ -1,7 +1,7 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { AtlasToolBase } from "../atlasTool.js";
-import type { ToolArgs, OperationType } from "../../tool.js";
-import { formatUntrustedData } from "../../tool.js";
+import { AtlasToolBase } from "../../atlasTool.js";
+import type { ToolArgs, OperationType } from "@mongodb-js/mcp-core";
+import { formatUntrustedData } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
 
 export const ListDBUsersArgs = {

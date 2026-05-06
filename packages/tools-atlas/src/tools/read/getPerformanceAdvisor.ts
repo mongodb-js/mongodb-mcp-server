@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { AtlasToolBase } from "../atlasTool.js";
+import { AtlasToolBase } from "../../atlasTool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { OperationType, ToolArgs } from "../../tool.js";
-import { formatUntrustedData } from "../../tool.js";
+import type { OperationType, ToolArgs } from "@mongodb-js/mcp-core";
+import { formatUntrustedData } from "@mongodb-js/mcp-core";
 import {
     getSuggestedIndexes,
     getDropIndexSuggestions,
@@ -11,7 +11,7 @@ import {
     DEFAULT_SLOW_QUERY_LOGS_LIMIT,
     SUGGESTED_INDEXES_COPY,
     SLOW_QUERY_LOGS_COPY,
-} from "../../../common/atlas/performanceAdvisorUtils.js";
+} from "../../helpers/performanceAdvisorUtils.js";
 import { AtlasArgs } from "../../args.js";
 import type { AtlasPerfAdvisorToolMetadata as PerfAdvisorToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 

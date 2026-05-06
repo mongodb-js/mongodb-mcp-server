@@ -1,19 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { OperationType, ToolArgs, ToolConstructorParams } from "../../../../../src/tools/tool.js";
-import { StreamsToolBase } from "../../../../../src/tools/atlas/streams/streamsToolBase.js";
+import type { ToolConstructorParams, OperationType, ToolArgs } from "@mongodb-js/mcp-core";
+import { StreamsToolBase } from "@mongodb-js/mcp-tools-atlas";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
-import type { Session } from "../../../../../src/common/session.js";
-import type { UserConfig } from "../../../../../src/common/config/userConfig.js";
-import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
+import type { AtlasTelemetry, TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import type { Elicitation } from "../../../../../src/elicitation.js";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
-import type { TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics } from "../../../mocks/metrics.js";
 import { Keychain } from "@mongodb-js/mcp-core";
 import type { DefaultMetrics } from "@mongodb-js/mcp-metrics";
+import type { IAtlasConfig, IAtlasSession } from "@mongodb-js/mcp-tools-atlas";
 
 class TestStreamsTool extends StreamsToolBase {
     static toolName = "test-streams-tool";
@@ -62,8 +60,8 @@ function createApiClientError(status: number, message: string): ApiClientError {
 }
 
 describe("StreamsToolBase", () => {
-    let mockSession: Session;
-    let mockConfig: UserConfig;
+    let mockSession: IAtlasSession;
+    let mockConfig: IAtlasConfig;
     let mockTelemetry: AtlasTelemetry;
     let mockElicitation: Elicitation;
     let tool: TestStreamsTool;
@@ -80,7 +78,7 @@ describe("StreamsToolBase", () => {
             logger: mockLogger,
             apiClient: {},
             keychain: new Keychain(),
-        } as unknown as Session;
+        } as unknown as IAtlasSession;
 
         mockConfig = {
             confirmationRequiredTools: [],
@@ -88,7 +86,8 @@ describe("StreamsToolBase", () => {
             disabledTools: [],
             apiClientId: "test-id",
             apiClientSecret: "test-secret",
-        } as unknown as UserConfig;
+            atlasTemporaryDatabaseUserLifetimeMs: 3600000,
+        } as unknown as IAtlasConfig;
 
         mockTelemetry = {
             isTelemetryEnabled: () => true,
@@ -99,11 +98,11 @@ describe("StreamsToolBase", () => {
             requestConfirmation: vi.fn(),
         } as unknown as Elicitation;
 
-        const params: ToolConstructorParams<UserConfig, unknown, DefaultMetrics> = {
+        const params: ToolConstructorParams<IAtlasConfig, unknown, DefaultMetrics> = {
             name: TestStreamsTool.toolName,
             category: "atlas",
             operationType: TestStreamsTool.operationType,
-            session: mockSession,
+            session: mockSession as unknown as ToolConstructorParams<IAtlasConfig, unknown, DefaultMetrics>["session"],
             config: mockConfig,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,

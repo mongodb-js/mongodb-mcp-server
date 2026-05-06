@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { StreamsToolBase } from "./streamsToolBase.js";
+import { StreamsToolBase } from "../../streams/streamsToolBase.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { ElicitRequestFormParams } from "@modelcontextprotocol/sdk/types.js";
-import type { OperationType, ToolArgs } from "../../tool.js";
+import type { OperationType, ToolArgs } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
-import { ConnectionConfig, PrivateLinkConfig, StreamsArgs } from "./streamsArgs.js";
+import { ConnectionConfig, PrivateLinkConfig, StreamsArgs } from "../../streams/streamsArgs.js";
 
 const BuildResource = z.enum(["workspace", "connection", "processor", "privatelink"]);
 

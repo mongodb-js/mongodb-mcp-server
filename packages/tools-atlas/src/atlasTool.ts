@@ -1,17 +1,41 @@
-import type { AtlasMetadata } from "@mongodb-js/mcp-atlas-telemetry";
-import { ToolBase, type ToolArgs, type ToolCategory } from "../tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { ToolBase } from "@mongodb-js/mcp-core";
+import type { ToolArgs, ToolCategory } from "@mongodb-js/mcp-core";
+import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import { LogId } from "@mongodb-js/mcp-logging";
 import { z } from "zod";
-import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
-import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
-import type { Session } from "../../common/session.js";
-import type { UserConfig } from "../../common/config/userConfig.js";
+import type { IToolConfig, IToolSession, AtlasMetadata } from "@mongodb-js/mcp-types";
 
-export abstract class AtlasToolBase extends ToolBase {
-    declare protected readonly session: Session;
-    declare protected readonly config: UserConfig;
-    public static category: ToolCategory = "atlas";
+export interface IAtlasConfig extends IToolConfig {
+    apiClientId?: string;
+    apiClientSecret?: string;
+    atlasTemporaryDatabaseUserLifetimeMs?: number;
+}
+
+export interface AtlasClusterConnectionInfo {
+    username: string;
+    projectId: string;
+    clusterName: string;
+    expiryDate: Date;
+}
+
+export interface IAtlasSession extends IToolSession {
+    readonly apiClient?: ApiClient;
+    readonly connectedAtlasCluster?: AtlasClusterConnectionInfo;
+    readonly connectionManager?: {
+        currentConnectionState: {
+            tag: string;
+            errorReason?: string;
+        };
+    };
+    connectToMongoDB(settings: { connectionString: string; atlas?: AtlasClusterConnectionInfo }): Promise<void>;
+}
+
+export abstract class AtlasToolBase extends ToolBase<IAtlasConfig> {
+    static category: ToolCategory = "atlas";
+
+    declare protected readonly session: IAtlasSession;
 
     protected verifyAllowed(): boolean {
         if (!this.config.apiClientId || !this.config.apiClientSecret) {

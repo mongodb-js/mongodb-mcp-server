@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { StreamsToolBase } from "./streamsToolBase.js";
+import { StreamsToolBase } from "../../streams/streamsToolBase.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { OperationType, ToolArgs } from "../../tool.js";
-import { formatUntrustedData } from "../../tool.js";
+import type { OperationType, ToolArgs } from "@mongodb-js/mcp-core";
+import { formatUntrustedData } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
-import { StreamsArgs } from "./streamsArgs.js";
+import { StreamsArgs } from "../../streams/streamsArgs.js";
 
 const DiscoverAction = z.enum([
     "list-workspaces",

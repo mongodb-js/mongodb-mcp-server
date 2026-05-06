@@ -1,10 +1,10 @@
 import { z } from "zod";
-import type { ToolArgs, OperationType } from "../../tool.js";
+import type { ToolArgs, OperationType } from "@mongodb-js/mcp-core";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { AtlasToolBase } from "../atlasTool.js";
+import { AtlasToolBase } from "../../atlasTool.js";
 import type { CloudDatabaseUser, DatabaseUserRole } from "@mongodb-js/mcp-atlas-api-client";
-import { generateSecurePassword } from "../../../helpers/generatePassword.js";
-import { ensureCurrentIpInAccessList } from "../../../common/atlas/accessListUtils.js";
+import { generateSecurePassword } from "../../helpers/generatePassword.js";
+import { ensureCurrentIpInAccessList } from "../../helpers/accessListUtils.js";
 import { AtlasArgs, CommonArgs } from "../../args.js";
 
 export const CreateDBUserArgs = {

@@ -1,14 +1,14 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { type OperationType, type ToolArgs } from "../../tool.js";
-import { AtlasToolBase } from "../atlasTool.js";
-import { generateSecurePassword } from "../../../helpers/generatePassword.js";
+import { type OperationType, type ToolArgs } from "@mongodb-js/mcp-core";
+import { AtlasToolBase } from "../../atlasTool.js";
+import { generateSecurePassword } from "../../helpers/generatePassword.js";
 import { LogId } from "@mongodb-js/mcp-logging";
-import { getConnectionString, inspectCluster } from "../../../common/atlas/cluster.js";
-import { ensureCurrentIpInAccessList } from "../../../common/atlas/accessListUtils.js";
-import type { AtlasClusterConnectionInfo } from "../../../common/connectionManager.js";
-import { getDefaultRoleFromConfig } from "../../../common/atlas/roles.js";
+import { getConnectionString, inspectCluster } from "../../helpers/cluster.js";
+import { ensureCurrentIpInAccessList } from "../../helpers/accessListUtils.js";
+import { getDefaultRoleFromConfig } from "../../helpers/roles.js";
 import { AtlasArgs } from "../../args.js";
 import type { AtlasConnectionMetadata as ConnectionMetadata } from "@mongodb-js/mcp-atlas-telemetry";
+import type { AtlasClusterConnectionInfo } from "../../atlasTool.js";
 
 const addedIpAccessListMessage =
     "Note: Your current IP address has been added to the Atlas project's IP access list to enable secure connection.";
@@ -38,22 +38,24 @@ export class ConnectClusterTool extends AtlasToolBase {
         projectId: string,
         clusterName: string
     ): "connected" | "disconnected" | "connecting" | "connected-to-other-cluster" | "unknown" {
-        if (!this.session.connectedAtlasCluster) {
-            if (this.session.isConnectedToMongoDB) {
+        const session = this.session;
+        if (!session.connectedAtlasCluster) {
+            if (session.isConnectedToMongoDB) {
                 return "connected-to-other-cluster";
             }
             return "disconnected";
         }
 
-        const currentConectionState = this.session.connectionManager.currentConnectionState;
+        // Access the connection manager through session
+        const currentConectionState = session.connectionManager?.currentConnectionState;
         if (
-            this.session.connectedAtlasCluster.projectId !== projectId ||
-            this.session.connectedAtlasCluster.clusterName !== clusterName
+            session.connectedAtlasCluster.projectId !== projectId ||
+            session.connectedAtlasCluster.clusterName !== clusterName
         ) {
             return "connected-to-other-cluster";
         }
 
-        switch (currentConectionState.tag) {
+        switch (currentConectionState?.tag) {
             case "connecting":
             case "disconnected": // we might still be calling Atlas APIs and not attempted yet to connect to MongoDB, but we are still "connecting"
                 return "connecting";
@@ -65,6 +67,8 @@ export class ConnectClusterTool extends AtlasToolBase {
                     context: "atlas-connect-cluster",
                     message: `error querying cluster: ${currentConectionState.errorReason}`,
                 });
+                return "unknown";
+            default:
                 return "unknown";
         }
     }
@@ -89,7 +93,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         const username = `mcpUser${Math.floor(Math.random() * 100000)}`;
         const password = await generateSecurePassword();
 
-        const expiryDate = new Date(Date.now() + this.config.atlasTemporaryDatabaseUserLifetimeMs);
+        const expiryDate = new Date(Date.now() + (this.config.atlasTemporaryDatabaseUserLifetimeMs ?? 3600000));
         const role = getDefaultRoleFromConfig(this.config);
 
         await this.apiClient.createDatabaseUser({
@@ -148,6 +152,7 @@ export class ConnectClusterTool extends AtlasToolBase {
             try {
                 lastError = undefined;
 
+                // Connect to MongoDB via the session
                 await this.session.connectToMongoDB({ connectionString, atlas });
                 break;
             } catch (err: unknown) {
@@ -164,27 +169,29 @@ export class ConnectClusterTool extends AtlasToolBase {
                 await sleep(500); // wait for 500ms before retrying
             }
 
+            const session = this.session;
             if (
-                !this.session.connectedAtlasCluster ||
-                this.session.connectedAtlasCluster.projectId !== atlas.projectId ||
-                this.session.connectedAtlasCluster.clusterName !== atlas.clusterName
+                !session.connectedAtlasCluster ||
+                session.connectedAtlasCluster.projectId !== atlas.projectId ||
+                session.connectedAtlasCluster.clusterName !== atlas.clusterName
             ) {
                 throw new Error("Cluster connection aborted");
             }
         }
 
         if (lastError) {
+            const session = this.session;
             if (
-                this.session.connectedAtlasCluster?.projectId === atlas.projectId &&
-                this.session.connectedAtlasCluster?.clusterName === atlas.clusterName &&
-                this.session.connectedAtlasCluster?.username
+                session.connectedAtlasCluster?.projectId === atlas.projectId &&
+                session.connectedAtlasCluster?.clusterName === atlas.clusterName &&
+                session.connectedAtlasCluster?.username
             ) {
                 void this.apiClient
                     .deleteDatabaseUser({
                         params: {
                             path: {
-                                groupId: this.session.connectedAtlasCluster.projectId,
-                                username: this.session.connectedAtlasCluster.username,
+                                groupId: session.connectedAtlasCluster.projectId,
+                                username: session.connectedAtlasCluster.username,
                                 databaseName: "admin",
                             },
                         },

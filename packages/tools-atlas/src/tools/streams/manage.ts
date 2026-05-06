@@ -1,9 +1,9 @@
 import { z } from "zod";
-import { StreamsToolBase } from "./streamsToolBase.js";
+import { StreamsToolBase } from "../../streams/streamsToolBase.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { OperationType, ToolArgs } from "../../tool.js";
+import type { OperationType, ToolArgs } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
-import { ConnectionConfig, StreamsArgs } from "./streamsArgs.js";
+import { ConnectionConfig, StreamsArgs } from "../../streams/streamsArgs.js";
 import { LogId } from "@mongodb-js/mcp-logging";
 
 const ManageAction = z.enum([

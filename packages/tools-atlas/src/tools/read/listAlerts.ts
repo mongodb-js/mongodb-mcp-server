@@ -1,7 +1,7 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
-import { type OperationType, type ToolArgs, formatUntrustedData } from "../../tool.js";
-import { AtlasToolBase } from "../atlasTool.js";
+import { type OperationType, type ToolArgs, formatUntrustedData } from "@mongodb-js/mcp-core";
+import { AtlasToolBase } from "../../atlasTool.js";
 import { AtlasArgs } from "../../args.js";
 
 const AlertStatus = z.enum(["OPEN", "TRACKING", "CLOSED"]);
