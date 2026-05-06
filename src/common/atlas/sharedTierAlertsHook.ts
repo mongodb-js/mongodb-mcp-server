@@ -1,20 +1,22 @@
+import { z } from "zod";
 import type { ApiClient } from "./apiClient.js";
 import type { LoggerBase } from "../logging/loggerBase.js";
 import { LogId } from "../logging/index.js";
 
-type AlertResult = Awaited<ReturnType<ApiClient["listAlerts"]>>["results"][number];
-
-const SHARED_TIER_EVENT_TYPES = new Set<string>(["OUTSIDE_METRIC_THRESHOLD", "OUTSIDE_FLEX_METRIC_THRESHOLD"]);
-
-const SHARED_TIER_METRICS = new Set<string>([
-    "CONNECTIONS_PERCENT",
-    "FLEX_CONNECTIONS_PERCENT",
-    "FLEX_DATA_SIZE_TOTAL",
-    "LOGICAL_SIZE",
-]);
-
 /** One page of OPEN alerts (same defaults as atlas-list-alerts); sufficient for shared-tier MVP. */
 const LIST_ALERTS_PAGE_SIZE = 100;
+
+const SharedTierAlertSchema = z.object({
+    id: z.string(),
+    eventTypeName: z.enum(["OUTSIDE_METRIC_THRESHOLD", "OUTSIDE_FLEX_METRIC_THRESHOLD"]),
+    metricName: z.enum(["CONNECTIONS_PERCENT", "FLEX_CONNECTIONS_PERCENT", "FLEX_DATA_SIZE_TOTAL", "LOGICAL_SIZE"]),
+    clusterName: z.string(),
+    status: z.string(),
+    created: z.string().optional(),
+    updated: z.string().optional(),
+});
+
+type SharedTierAlertItem = z.infer<typeof SharedTierAlertSchema>;
 
 export interface RunSharedTierAlertsHookParams {
     projectId: string;
@@ -24,47 +26,8 @@ export interface RunSharedTierAlertsHookParams {
     logger: LoggerBase;
 }
 
-interface SharedTierAlertItem {
-    id: string;
-    eventTypeName: string;
-    metricName: string;
-    clusterName: string;
-    status: string;
-    created?: string;
-    updated?: string;
-}
-
 function isSharedTierInstanceType(t: "FREE" | "FLEX" | "DEDICATED" | undefined): t is "FREE" | "FLEX" {
     return t === "FREE" || t === "FLEX";
-}
-
-function matchesFilters(
-    alert: AlertResult,
-    clusterName: string
-): { eventTypeName: string; metricName: string } | undefined {
-    const eventTypeName = String(alert.eventTypeName);
-    const metricName = "metricName" in alert ? alert.metricName : undefined;
-    const alertCluster = "clusterName" in alert ? alert.clusterName : undefined;
-    if (!metricName || alertCluster !== clusterName) return undefined;
-    if (!SHARED_TIER_EVENT_TYPES.has(eventTypeName) || !SHARED_TIER_METRICS.has(metricName)) return undefined;
-    return { eventTypeName, metricName };
-}
-
-function toMatched(
-    alert: AlertResult,
-    eventTypeName: string,
-    metricName: string,
-    clusterName: string
-): SharedTierAlertItem {
-    return {
-        id: alert.id,
-        eventTypeName,
-        metricName,
-        clusterName,
-        status: alert.status,
-        ...(alert.created !== undefined ? { created: alert.created } : {}),
-        ...(alert.updated !== undefined ? { updated: alert.updated } : {}),
-    };
 }
 
 function buildRecommendationParagraph(clusterName: string, tier: "Free" | "Flex", metricNames: string[]): string {
@@ -120,12 +83,11 @@ export async function runSharedTierAlertsHook(
 
     const collectedById = new Map<string, SharedTierAlertItem>();
     for (const alert of results) {
-        const matched = matchesFilters(alert, clusterName);
-        if (!matched) {
+        const parsed = SharedTierAlertSchema.safeParse(alert);
+        if (!parsed.success || parsed.data.clusterName !== clusterName) {
             continue;
         }
-        const row = toMatched(alert, matched.eventTypeName, matched.metricName, clusterName);
-        collectedById.set(row.id, row);
+        collectedById.set(parsed.data.id, parsed.data);
     }
 
     const collected = [...collectedById.values()];
