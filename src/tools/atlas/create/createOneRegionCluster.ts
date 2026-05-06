@@ -4,7 +4,7 @@ import { type ToolArgs, type OperationType } from "../../tool.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import type { ClusterDescription20240805 } from "../../../common/atlas/openapi.js";
 import { AtlasArgs } from "../../args.js";
-import { sharedClusterArgsShape, buildReplicationSpec, buildClusterBody } from "./clusterShared.js";
+import { sharedClusterArgsShape, buildReplicationSpec, buildClusterBody, validateSharedArgs } from "./clusterShared.js";
 
 export class CreateOneRegionClusterTool extends AtlasToolBase {
     static toolName = "atlas-create-one-region";
@@ -47,23 +47,14 @@ export class CreateOneRegionClusterTool extends AtlasToolBase {
             diskSizeGb,
             diskGBEnabled,
             shardCount,
+            tags,
+            terminationProtectionEnabled,
             region,
             nodeCount,
         } = args;
 
-        if (pitEnabled && !backupEnabled) {
-            return {
-                content: [{ type: "text", text: "pitEnabled requires backupEnabled to be true" }],
-                isError: true,
-            };
-        }
-
-        if (shardCount !== undefined && clusterType !== "SHARDED") {
-            return {
-                content: [{ type: "text", text: "shardCount is only valid when clusterType is SHARDED" }],
-                isError: true,
-            };
-        }
+        const validationError = validateSharedArgs(args);
+        if (validationError) return validationError;
 
         const replicationSpec = buildReplicationSpec(
             [{ name: region, provider, priority: 7, nodeCount }],
@@ -80,6 +71,8 @@ export class CreateOneRegionClusterTool extends AtlasToolBase {
             pitEnabled,
             diskSizeGb,
             shardCount,
+            tags,
+            terminationProtectionEnabled,
             replicationSpec
         );
 
@@ -89,7 +82,10 @@ export class CreateOneRegionClusterTool extends AtlasToolBase {
         });
 
         return {
-            content: [{ type: "text", text: `Cluster "${name}" is being created in region "${region}".` }],
+            content: [
+                { type: "text", text: `Cluster "${name}" is being created in region "${region}".` },
+                { type: "text", text: `Ensure your IP is in the project access list before connecting.` },
+            ],
         };
     }
 }

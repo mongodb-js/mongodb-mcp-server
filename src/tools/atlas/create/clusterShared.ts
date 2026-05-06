@@ -1,3 +1,4 @@
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 
 export const DEDICATED_SIZES = [
@@ -17,19 +18,23 @@ export const DEDICATED_SIZES = [
 
 export type DedicatedSize = (typeof DEDICATED_SIZES)[number];
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+interface AutoScalingSpec {
+    compute?: { enabled: true; scaleDownEnabled: true; minInstanceSize: DedicatedSize; maxInstanceSize: DedicatedSize };
+    diskGBEnabled: boolean;
+}
+
 export function buildAutoScaling(
     instanceSize: DedicatedSize | undefined,
     minInstanceSize: DedicatedSize,
     maxInstanceSize: DedicatedSize,
     diskGBEnabled: boolean
-) {
+): AutoScalingSpec {
     const fixedSize = !!instanceSize;
     return {
         ...(!fixedSize && {
             compute: {
-                enabled: true,
-                scaleDownEnabled: true,
+                enabled: true as const,
+                scaleDownEnabled: true as const,
                 minInstanceSize,
                 maxInstanceSize,
             },
@@ -45,14 +50,25 @@ export interface RegionSpec {
     nodeCount: number;
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+interface RegionConfig {
+    providerName: string;
+    regionName: string;
+    priority: number;
+    electableSpecs: { instanceSize: DedicatedSize; nodeCount: number };
+    autoScaling: AutoScalingSpec;
+}
+
+export interface ReplicationSpec {
+    regionConfigs: RegionConfig[];
+}
+
 export function buildReplicationSpec(
     regions: RegionSpec[],
     instanceSize: DedicatedSize | undefined,
     minInstanceSize: DedicatedSize,
     maxInstanceSize: DedicatedSize,
     diskGBEnabled: boolean
-) {
+): ReplicationSpec {
     return {
         regionConfigs: regions.map(({ name, provider, priority, nodeCount }) => ({
             providerName: provider,
@@ -131,9 +147,47 @@ export const sharedClusterArgsShape = {
         .describe(
             "Key-value tags for billing, data classification, and governance. Recommended keys: Environment (dev/staging/prod), Team, Application, CostCenter. Values 1–255 chars."
         ),
+    terminationProtectionEnabled: z
+        .boolean()
+        .default(false)
+        .describe(
+            "Prevent accidental cluster deletion. Enable for production clusters. When true, Atlas rejects all delete requests until you explicitly disable it."
+        ),
 };
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+export function validateSharedArgs(args: {
+    pitEnabled: boolean;
+    backupEnabled: boolean;
+    shardCount?: number;
+    clusterType: string;
+}): CallToolResult | null {
+    if (args.pitEnabled && !args.backupEnabled) {
+        return {
+            content: [{ type: "text", text: "pitEnabled requires backupEnabled to be true" }],
+            isError: true,
+        };
+    }
+    if (args.shardCount !== undefined && args.clusterType !== "SHARDED") {
+        return {
+            content: [{ type: "text", text: "shardCount is only valid when clusterType is SHARDED" }],
+            isError: true,
+        };
+    }
+    return null;
+}
+
+interface ClusterBodySpec {
+    name: string;
+    clusterType: string;
+    backupEnabled: boolean;
+    pitEnabled: boolean;
+    terminationProtectionEnabled: boolean;
+    paused: false;
+    diskSizeGB?: number;
+    tags: { key: string; value: string }[];
+    replicationSpecs: ReplicationSpec[];
+}
+
 export function buildClusterBody(
     name: string,
     clusterType: "REPLICASET" | "SHARDED",
@@ -141,8 +195,10 @@ export function buildClusterBody(
     pitEnabled: boolean,
     diskSizeGb: number | undefined,
     shardCount: number | undefined,
-    replicationSpec: ReturnType<typeof buildReplicationSpec>
-) {
+    tags: Record<string, string>,
+    terminationProtectionEnabled: boolean,
+    replicationSpec: ReplicationSpec
+): ClusterBodySpec {
     const numShards = clusterType === "SHARDED" ? (shardCount ?? 1) : 1;
     const replicationSpecs = Array.from({ length: numShards }, () => replicationSpec);
     return {
@@ -150,9 +206,10 @@ export function buildClusterBody(
         clusterType,
         backupEnabled,
         pitEnabled,
-        terminationProtectionEnabled: false,
+        terminationProtectionEnabled,
         paused: false,
         ...(diskSizeGb && { diskSizeGB: diskSizeGb }),
+        tags: Object.entries(tags).map(([key, value]) => ({ key, value })),
         replicationSpecs,
     };
 }

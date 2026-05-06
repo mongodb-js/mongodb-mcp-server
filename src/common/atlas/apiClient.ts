@@ -366,7 +366,11 @@ export class ApiClient {
         return data;
     }
 
-    async updateCluster(groupId: string, clusterName: string, body: Record<string, unknown>): Promise<void> {
+    async updateCluster(
+        groupId: string,
+        clusterName: string,
+        body: Record<string, unknown>
+    ): Promise<components["schemas"]["ClusterDescription20240805"]> {
         const authHeaders = (await this.authProvider?.getAuthHeaders()) ?? {};
         const url = new URL(
             `api/atlas/v2/groups/${encodeURIComponent(groupId)}/clusters/${encodeURIComponent(clusterName)}`,
@@ -385,6 +389,7 @@ export class ApiClient {
         if (!response.ok) {
             throw await ApiClientError.fromResponse(response);
         }
+        return response.json() as Promise<components["schemas"]["ClusterDescription20240805"]>;
     }
 
     async listDropIndexSuggestions(

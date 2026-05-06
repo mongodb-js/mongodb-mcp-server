@@ -4,7 +4,7 @@ import { type ToolArgs, type OperationType } from "../../tool.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import type { ClusterDescription20240805 } from "../../../common/atlas/openapi.js";
 import { AtlasArgs } from "../../args.js";
-import { sharedClusterArgsShape, buildReplicationSpec, buildClusterBody } from "./clusterShared.js";
+import { sharedClusterArgsShape, buildReplicationSpec, buildClusterBody, validateSharedArgs } from "./clusterShared.js";
 
 export class CreateTwoRegionClusterTool extends AtlasToolBase {
     static toolName = "atlas-create-two-regions";
@@ -52,24 +52,15 @@ export class CreateTwoRegionClusterTool extends AtlasToolBase {
             diskSizeGb,
             diskGBEnabled,
             shardCount,
+            tags,
+            terminationProtectionEnabled,
             region1,
             region2,
             provider2,
         } = args;
 
-        if (pitEnabled && !backupEnabled) {
-            return {
-                content: [{ type: "text", text: "pitEnabled requires backupEnabled to be true" }],
-                isError: true,
-            };
-        }
-
-        if (shardCount !== undefined && clusterType !== "SHARDED") {
-            return {
-                content: [{ type: "text", text: "shardCount is only valid when clusterType is SHARDED" }],
-                isError: true,
-            };
-        }
+        const validationError = validateSharedArgs(args);
+        if (validationError) return validationError;
 
         const replicationSpec = buildReplicationSpec(
             [
@@ -89,6 +80,8 @@ export class CreateTwoRegionClusterTool extends AtlasToolBase {
             pitEnabled,
             diskSizeGb,
             shardCount,
+            tags,
+            terminationProtectionEnabled,
             replicationSpec
         );
 
@@ -101,8 +94,9 @@ export class CreateTwoRegionClusterTool extends AtlasToolBase {
             content: [
                 {
                     type: "text",
-                    text: `Cluster "${name}" is being created across regions "${region1}" (primary, 3 nodes) and "${region2}" (secondary, 2 nodes).`,
+                    text: `Cluster "${name}" is being created across regions "${region1}" (primary, 3 nodes) and "${region2}" (secondary, 2 nodes). Node count is fixed: 3 primary + 2 secondary = 5 total.`,
                 },
+                { type: "text", text: `Ensure your IP is in the project access list before connecting.` },
             ],
         };
     }

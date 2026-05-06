@@ -4,7 +4,7 @@ import { type ToolArgs, type OperationType } from "../../tool.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import type { ClusterDescription20240805 } from "../../../common/atlas/openapi.js";
 import { AtlasArgs } from "../../args.js";
-import { sharedClusterArgsShape, buildReplicationSpec, buildClusterBody } from "./clusterShared.js";
+import { sharedClusterArgsShape, buildReplicationSpec, buildClusterBody, validateSharedArgs } from "./clusterShared.js";
 
 export class CreateThreeRegionClusterTool extends AtlasToolBase {
     static toolName = "atlas-create-three-regions";
@@ -67,6 +67,8 @@ export class CreateThreeRegionClusterTool extends AtlasToolBase {
             diskSizeGb,
             diskGBEnabled,
             shardCount,
+            tags,
+            terminationProtectionEnabled,
             region1,
             region2,
             region3,
@@ -75,19 +77,8 @@ export class CreateThreeRegionClusterTool extends AtlasToolBase {
             nodeCount,
         } = args;
 
-        if (pitEnabled && !backupEnabled) {
-            return {
-                content: [{ type: "text", text: "pitEnabled requires backupEnabled to be true" }],
-                isError: true,
-            };
-        }
-
-        if (shardCount !== undefined && clusterType !== "SHARDED") {
-            return {
-                content: [{ type: "text", text: "shardCount is only valid when clusterType is SHARDED" }],
-                isError: true,
-            };
-        }
+        const validationError = validateSharedArgs(args);
+        if (validationError) return validationError;
 
         const replicationSpec = buildReplicationSpec(
             [
@@ -108,6 +99,8 @@ export class CreateThreeRegionClusterTool extends AtlasToolBase {
             pitEnabled,
             diskSizeGb,
             shardCount,
+            tags,
+            terminationProtectionEnabled,
             replicationSpec
         );
 
@@ -122,6 +115,7 @@ export class CreateThreeRegionClusterTool extends AtlasToolBase {
                     type: "text",
                     text: `Cluster "${name}" is being created across three regions: "${region1}" (primary), "${region2}" (secondary), "${region3}" (tertiary) with ${nodeCount} nodes per region.`,
                 },
+                { type: "text", text: `Ensure your IP is in the project access list before connecting.` },
             ],
         };
     }
