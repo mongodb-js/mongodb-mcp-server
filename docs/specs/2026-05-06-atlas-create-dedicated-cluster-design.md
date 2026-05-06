@@ -33,15 +33,15 @@ A new MCP tool that creates a dedicated MongoDB Atlas cluster (M10+). Fills the 
 
 ## Args Shape
 
-All fields optional except `projectId`. Elicitation targets the four fields a user must consciously decide. Everything else has sensible defaults.
+All fields optional except `projectId`. Elicitation targets only `name` (the only field without a sensible default). Everything else has sensible defaults.
 
 | Param | Type | Default | Elicited | Notes                                                                                                          |
 |---|---|---|---|----------------------------------------------------------------------------------------------------------------|
 | `projectId` | `string` | — | no | Required. `AtlasArgs.projectId()`                                                                              |
 | `name` | `string` | — | **yes** | `AtlasArgs.clusterName()`                                                                                      |
-| `provider` | `"AWS" \| "GCP" \| "AZURE"` | `"AWS"` | **yes** |                                                                                                                |
-| `region` | `string` | `"US_EAST_1"` | **yes** | Provider-specific region name                                                                                  |
-| `instanceSize` | `string` | `"M10"` | **yes** | M10–M80 dedicated tiers                                                                                        |
+| `provider` | `"AWS" \| "GCP" \| "AZURE"` | `"AWS"` | no |                                                                                                                |
+| `region` | `string` | `"US_EAST_1"` | no | Provider-specific region name                                                                                  |
+| `instanceSize` | `string` | `"M10"` | no | M10–M80 dedicated tiers                                                                                        |
 | `numShards` | `number` | `1` | no | ≥2 → SHARDED; enforces M30+                                                                                    |
 | `additionalRegions` | `string[]` | `[]` | no | Secondary regions; priorities auto-assigned 6, 5, 4…; inherit same `instanceSize` and `autoScaling` as primary |
 | `autoScaling` | `boolean` | `true` | no | Enables compute + disk autoscaling                                                                             |
@@ -83,30 +83,27 @@ issues the pause).
 
 ## Elicitation Flow
 
-Only `name`, `provider`, `region`, and `instanceSize` trigger elicitation when missing. The form shows only the fields that are actually absent.
+Only `name` triggers elicitation — it is the only argument without a sensible default. `provider`, `region`, and `instanceSize` have Zod defaults (`"AWS"`, `"US_EAST_1"`, `"M10"`) and are never absent.
 
 ```
 execute() called
     │
-    ├─ all 4 fields present? ──────────────────────────────► Phase 2: Validate
+    ├─ name present? ───────────────────────────────────────► Phase 2: Validate
     │
-    └─ any missing?
+    └─ name missing?
           │
           ├─ supportsElicitation() = true
           │       │
-          │       └─ show form (missing fields only)
+          │       └─ show form: { name: "Cluster Name" }
           │               │
-          │               ├─ accepted ──► fill fields ──► Phase 2: Validate
+          │               ├─ accepted ──► fill name ──► Phase 2: Validate
           │               └─ cancelled ──► return "Operation cancelled."
           │
           └─ supportsElicitation() = false
                   │
                   └─ return structured missing-fields message:
                      "To create a dedicated cluster I need:
-                      - name: cluster name
-                      - provider: AWS, GCP, or AZURE
-                      - region: e.g. US_EAST_1
-                      - instanceSize: M10, M20, M30, ..."
+                      - name: cluster name (letters, numbers, hyphens)"
                      (Claude reads this and asks the user conversationally)
 ```
 
