@@ -248,7 +248,9 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
                 break;
             case "vectorSearch":
                 {
-                    if (this.session.assertSearchSupported) { await this.session.assertSearchSupported(); }
+                    if (this.session.assertSearchSupported) {
+                        await this.session.assertSearchSupported();
+                    }
                     indexes = await provider.createSearchIndexes(database, collection, [
                         {
                             name,
@@ -266,7 +268,9 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
                 break;
             case "search":
                 {
-                    if (this.session.assertSearchSupported) { await this.session.assertSearchSupported(); }
+                    if (this.session.assertSearchSupported) {
+                        await this.session.assertSearchSupported();
+                    }
                     indexes = await provider.createSearchIndexes(database, collection, [
                         {
                             name,

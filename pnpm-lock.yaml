@@ -486,6 +486,9 @@ importers:
 
   packages/tools-mongodb:
     dependencies:
+      '@mongodb-js/device-id':
+        specifier: ^0.4.6
+        version: 0.4.6
       '@mongodb-js/mcp-core':
         specifier: workspace:*
         version: link:../core
@@ -507,9 +510,21 @@ importers:
       mongodb:
         specifier: ^7.1.1
         version: 7.1.1(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
+      mongodb-build-info:
+        specifier: ^1.9.7
+        version: 1.9.7
+      mongodb-connection-string-url:
+        specifier: ^7.0.1
+        version: 7.0.1
       mongodb-redact:
         specifier: ^1.4.6
         version: 1.4.7
+      mongodb-schema:
+        specifier: ^12.7.0
+        version: 12.7.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
+      node-machine-id:
+        specifier: 1.1.12
+        version: 1.1.12
       zod:
         specifier: ^4.4.2
         version: 4.4.3

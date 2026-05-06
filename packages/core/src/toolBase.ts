@@ -19,7 +19,6 @@ const LogId = {
     toolMetadataChange: { __value: 1_003_004 } as MongoLogId,
 } as const;
 import { TRANSPORT_PAYLOAD_LIMITS } from "./transportConstants.js";
-import type { TransportType } from "@mongodb-js/mcp-types";
 import { getRandomUUID } from "./randomUUID.js";
 import { redact } from "mongodb-redact";
 
@@ -443,8 +442,7 @@ export abstract class ToolBase<
      */
     protected get toolMeta(): Record<string, unknown> {
         const transport = this.config.transport;
-        let maxRequestPayloadBytes =
-            TRANSPORT_PAYLOAD_LIMITS[transport as TransportType] ?? TRANSPORT_PAYLOAD_LIMITS.stdio;
+        let maxRequestPayloadBytes = TRANSPORT_PAYLOAD_LIMITS[transport] ?? TRANSPORT_PAYLOAD_LIMITS.stdio;
 
         // If the transport is http and the httpBodyLimit is set, use the httpBodyLimit
         if (transport === "http" && this.config.httpBodyLimit) {

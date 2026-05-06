@@ -59,19 +59,19 @@ export {
     type CreateSessionConfigFn,
     type TransportRequestContext,
 } from "./transports/base.js";
-export {
+export type {
     ConnectionManager,
     ConnectionStateConnected,
-    type AnyConnectionState,
-    type ConnectionState,
-    type ConnectionStateConnecting,
-    type ConnectionStateDisconnected,
-    type ConnectionStateErrored,
-    type ConnectionManagerFactoryFn,
-    type ConnectionSettings,
-    type ConnectionManagerEvents,
-    type ConnectionTag,
-    type OIDCConnectionAuthType,
+    AnyConnectionState,
+    ConnectionState,
+    ConnectionStateConnecting,
+    ConnectionStateDisconnected,
+    ConnectionStateErrored,
+    ConnectionManagerFactoryFn,
+    ConnectionSettings,
+    ConnectionManagerEvents,
+    ConnectionTag,
+    OIDCConnectionAuthType,
 } from "@mongodb-js/mcp-tools-mongodb";
 export {
     connectionErrorHandler,

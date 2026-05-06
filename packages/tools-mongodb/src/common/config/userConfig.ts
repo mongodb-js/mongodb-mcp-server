@@ -307,5 +307,3 @@ export const UserConfigSchema = z.object({
 });
 
 export type UserConfig = z.infer<typeof UserConfigSchema>;
-
-export const ALL_CONFIG_KEYS = Object.keys(UserConfigSchema.shape) as (keyof UserConfig)[];

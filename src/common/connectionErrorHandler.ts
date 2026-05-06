@@ -1,5 +1,10 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { ErrorCodes, type MongoDBError, type NotConnectedToMongoDBErrorCode, type MisconfiguredConnectionStringErrorCode } from "@mongodb-js/mcp-tools-mongodb";
+import {
+    ErrorCodes,
+    type MongoDBError,
+    type NotConnectedToMongoDBErrorCode,
+    type MisconfiguredConnectionStringErrorCode,
+} from "@mongodb-js/mcp-tools-mongodb";
 import type { AnyConnectionState } from "@mongodb-js/mcp-tools-mongodb";
 import type { AnyToolBase } from "../tools/tool.js";
 

@@ -244,12 +244,7 @@ export class MCPConnectionManager extends ConnectionManager {
     private userConfig: UserConfig;
     private logger: LoggerBase;
 
-    constructor(
-        userConfig: UserConfig,
-        logger: LoggerBase,
-        deviceId: DeviceId,
-        bus?: EventEmitter
-    ) {
+    constructor(userConfig: UserConfig, logger: LoggerBase, deviceId: DeviceId, bus?: EventEmitter) {
         super();
         this.userConfig = userConfig;
         this.logger = logger;

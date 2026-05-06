@@ -9,13 +9,13 @@ export const ErrorCodes = {
     InvalidPipeline: 1_000_008,
 } as const;
 
-export type ErrorCode = typeof ErrorCodes[keyof typeof ErrorCodes];
+export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];
 export type NotConnectedToMongoDBErrorCode = typeof ErrorCodes.NotConnectedToMongoDB;
 export type MisconfiguredConnectionStringErrorCode = typeof ErrorCodes.MisconfiguredConnectionString;
 
 export class MongoDBError<ErrorCodeType extends ErrorCode = ErrorCode> extends Error {
     declare code: ErrorCodeType;
-    
+
     constructor(code: ErrorCodeType, message: string) {
         super(message);
         this.code = code;

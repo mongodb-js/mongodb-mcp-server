@@ -49,7 +49,7 @@ export type {
     OIDCConnectionAuthType,
     ConnectionTag,
 } from "@mongodb-js/mcp-tools-mongodb";
-export { ConnectionManager, ConnectionStateConnected } from "@mongodb-js/mcp-tools-mongodb";
+export type { ConnectionManager, ConnectionStateConnected } from "@mongodb-js/mcp-tools-mongodb";
 export {
     ExportsManager,
     type AvailableExport,

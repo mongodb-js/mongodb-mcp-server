@@ -4,6 +4,7 @@ import { MongoDBTools } from "@mongodb-js/mcp-tools-mongodb";
 import * as AssistantTools from "./assistant/tools.js";
 import type { ToolClass } from "./tool.js";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const AllTools: ToolClass<any, any, any>[] = [
     ...MongoDBTools,
     ...Object.values(AssistantTools),
@@ -23,12 +24,12 @@ export { AtlasTools, AtlasToolBase, type IAtlasConfig, type IAtlasSession } from
 export type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-tools-mongodb";
 
 export {
-  ToolBase,
-  type ToolClass,
-  type ToolConstructorParams,
-  type ToolCategory,
-  type OperationType,
-  type ToolArgs,
-  type ToolExecutionContext,
-  type ToolResult,
+    ToolBase,
+    type ToolClass,
+    type ToolConstructorParams,
+    type ToolCategory,
+    type OperationType,
+    type ToolArgs,
+    type ToolExecutionContext,
+    type ToolResult,
 } from "./tool.js";

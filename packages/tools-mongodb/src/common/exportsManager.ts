@@ -76,11 +76,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
     private readonly config: ExportsManagerConfig;
     private readonly logger: LoggerBase;
 
-    private constructor(
-        exportsDirectoryPath: string,
-        config: ExportsManagerConfig,
-        logger: LoggerBase
-    ) {
+    private constructor(exportsDirectoryPath: string, config: ExportsManagerConfig, logger: LoggerBase) {
         super();
         this.exportsDirectoryPath = exportsDirectoryPath;
         this.config = config;

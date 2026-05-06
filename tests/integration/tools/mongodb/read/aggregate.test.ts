@@ -15,9 +15,10 @@ import {
     waitUntilSearchIndexIsQueryable,
     waitUntilSearchIsReady,
 } from "../mongodbHelpers.js";
+import type * as ConstantsModule from "@mongodb-js/mcp-tools-mongodb";
 import * as constants from "@mongodb-js/mcp-tools-mongodb";
 vi.mock("@mongodb-js/mcp-tools-mongodb", async (importOriginal) => {
-    const mod = await importOriginal<typeof import("@mongodb-js/mcp-tools-mongodb")>();
+    const mod = await importOriginal<typeof ConstantsModule>();
     return {
         ...mod,
         AGG_COUNT_MAX_TIME_MS_CAP: 60000,
@@ -336,7 +337,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
 
         it("should abort count operation and respond with indeterminable count", async () => {
             // Mock AGG_COUNT_MAX_TIME_MS_CAP to a very small value to trigger timeout
-Object.defineProperty(constants, "AGG_COUNT_MAX_TIME_MS_CAP", { value: 0.1 });
+            Object.defineProperty(constants, "AGG_COUNT_MAX_TIME_MS_CAP", { value: 0.1 });
             await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "aggregate",

@@ -92,14 +92,14 @@ export class ExportTool extends MongoDBToolBase {
             throw new Error("Exports manager is not available");
         }
 
-        const exportResult = await this.session.exportsManager.createJSONExport({
+        const exportResult = (await this.session.exportsManager.createJSONExport({
             input: cursor,
             exportName,
             exportTitle:
                 exportTitle ||
                 `Export for namespace ${database}.${collection} requested on ${new Date().toLocaleString()}`,
             jsonExportFormat,
-        }) as { exportURI: string; exportPath: string };
+        })) as { exportURI: string; exportPath: string };
         const { exportURI, exportPath } = exportResult;
         const toolCallContent: CallToolResult["content"] = [
             // Not all the clients as of this commit understands how to
