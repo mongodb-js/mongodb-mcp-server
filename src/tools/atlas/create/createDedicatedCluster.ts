@@ -7,7 +7,7 @@ import { AtlasArgs } from "../../args.js";
 
 function parseInstanceSizeNum(size: string): number {
     const match = size.match(/(\d+)/);
-    return match ? parseInt(match[1], 10) : 0;
+    return match && match[1] ? parseInt(match[1], 10) : 0;
 }
 
 export class CreateDedicatedClusterTool extends AtlasToolBase {
