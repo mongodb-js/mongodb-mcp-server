@@ -123,6 +123,9 @@ export class ConnectClusterTool extends AtlasToolBase {
             username,
             projectId,
             clusterName,
+            instanceType: cluster.instanceType,
+            provider: cluster.provider,
+            region: cluster.region,
             expiryDate,
         };
 

@@ -83,7 +83,13 @@ export interface AtlasClusterConnectionInfo {
     // (undocumented)
     expiryDate: Date;
     // (undocumented)
+    instanceType: "FREE" | "FLEX" | "DEDICATED";
+    // (undocumented)
     projectId: string;
+    // (undocumented)
+    provider?: string;
+    // (undocumented)
+    region?: string;
     // (undocumented)
     username: string;
 }
