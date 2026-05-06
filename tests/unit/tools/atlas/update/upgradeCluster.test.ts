@@ -16,6 +16,13 @@ function notFoundError(): ApiClientError {
     return ApiClientError.fromError(new Response(null, { status: 404, statusText: "Not Found" }), "cluster not found");
 }
 
+function flexOnRegularApiError(): ApiClientError {
+    return ApiClientError.fromError(
+        new Response(null, { status: 400, statusText: "Bad Request" }),
+        "Flex cluster cannot be used in the Cluster API"
+    );
+}
+
 const FREE_CLUSTER_RAW = {
     id: "free-cluster-id",
     replicationSpecs: [
@@ -399,6 +406,16 @@ describe("UpgradeClusterTool", () => {
             await exec({ projectId: "proj1", clusterName: "MyCluster" });
 
             expect(mockApiClient.getCluster).toHaveBeenCalledTimes(1);
+            expect(mockApiClient.getFlexCluster).toHaveBeenCalledTimes(1);
+        });
+
+        it("falls back to getFlexCluster when getCluster throws 400 (Flex cluster on regular API)", async () => {
+            mockApiClient.getCluster!.mockRejectedValue(flexOnRegularApiError());
+            mockApiClient.getFlexCluster!.mockResolvedValue(FLEX_CLUSTER_RAW);
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
+
+            expect(result.isError).toBeFalsy();
             expect(mockApiClient.getFlexCluster).toHaveBeenCalledTimes(1);
         });
     });

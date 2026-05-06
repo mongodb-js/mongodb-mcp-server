@@ -16,13 +16,23 @@ function mockUpgradeResponse(clusterName: string, fromTier: string, toTier: stri
 const PROJECT_ID = "proj-accuracy-test";
 const CLUSTER_NAME = "MyCluster";
 
+const mockListProjects = {
+    "atlas-list-projects": (): CallToolResult => ({
+        content: [{ type: "text", text: JSON.stringify([{ name: "MyProject", id: PROJECT_ID }]) }],
+    }),
+};
+
+const optionalListProjects = [{ toolName: "atlas-list-projects", parameters: {}, optional: true as const }];
+
 describeAccuracyTests([
     {
         prompt: `Upgrade the free cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}" to Flex tier`,
         mockedTools: {
+            ...mockListProjects,
             "atlas-upgrade-cluster": mockUpgradeResponse(CLUSTER_NAME, "Free", "Flex"),
         },
         expectedToolCalls: [
+            ...optionalListProjects,
             {
                 toolName: "atlas-upgrade-cluster",
                 parameters: {
@@ -36,9 +46,11 @@ describeAccuracyTests([
     {
         prompt: `Upgrade the cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}" to M10 Dedicated`,
         mockedTools: {
+            ...mockListProjects,
             "atlas-upgrade-cluster": mockUpgradeResponse(CLUSTER_NAME, "Free", "M10 Dedicated"),
         },
         expectedToolCalls: [
+            ...optionalListProjects,
             {
                 toolName: "atlas-upgrade-cluster",
                 parameters: {
@@ -52,9 +64,11 @@ describeAccuracyTests([
     {
         prompt: `Upgrade my free cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}" directly to M10 Dedicated, skipping Flex`,
         mockedTools: {
+            ...mockListProjects,
             "atlas-upgrade-cluster": mockUpgradeResponse(CLUSTER_NAME, "Free", "M10 Dedicated"),
         },
         expectedToolCalls: [
+            ...optionalListProjects,
             {
                 toolName: "atlas-upgrade-cluster",
                 parameters: {
@@ -68,9 +82,11 @@ describeAccuracyTests([
     {
         prompt: `Upgrade the Flex cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}" to Dedicated`,
         mockedTools: {
+            ...mockListProjects,
             "atlas-upgrade-cluster": mockUpgradeResponse(CLUSTER_NAME, "Flex", "M10 Dedicated"),
         },
         expectedToolCalls: [
+            ...optionalListProjects,
             {
                 toolName: "atlas-upgrade-cluster",
                 parameters: {
@@ -84,9 +100,11 @@ describeAccuracyTests([
     {
         prompt: `Upgrade cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}" to M10 using AWS in the US_EAST_1 region`,
         mockedTools: {
+            ...mockListProjects,
             "atlas-upgrade-cluster": mockUpgradeResponse(CLUSTER_NAME, "Free", "M10 Dedicated"),
         },
         expectedToolCalls: [
+            ...optionalListProjects,
             {
                 toolName: "atlas-upgrade-cluster",
                 parameters: {
@@ -102,14 +120,7 @@ describeAccuracyTests([
     {
         prompt: `List the clusters in project "${PROJECT_ID}", then upgrade "${CLUSTER_NAME}" to Flex tier`,
         mockedTools: {
-            "atlas-list-projects": (): CallToolResult => ({
-                content: [
-                    {
-                        type: "text",
-                        text: JSON.stringify([{ name: "MyProject", id: PROJECT_ID }]),
-                    },
-                ],
-            }),
+            ...mockListProjects,
             "atlas-list-clusters": (): CallToolResult => ({
                 content: [
                     {
@@ -121,11 +132,7 @@ describeAccuracyTests([
             "atlas-upgrade-cluster": mockUpgradeResponse(CLUSTER_NAME, "Free", "Flex"),
         },
         expectedToolCalls: [
-            {
-                toolName: "atlas-list-projects",
-                parameters: {},
-                optional: true,
-            },
+            ...optionalListProjects,
             {
                 toolName: "atlas-list-clusters",
                 parameters: {
