@@ -2,7 +2,6 @@ import { z } from "zod";
 import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
 import { type ToolArgs, type OperationType, formatUntrustedData, type ToolResult } from "@mongodb-js/mcp-core";
 import { zEJSON } from "../../args.js";
-import { type Document } from "bson";
 
 const InsertManyOutputSchema = {
     database: z.string(),

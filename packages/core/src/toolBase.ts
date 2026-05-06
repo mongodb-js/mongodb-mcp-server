@@ -9,7 +9,7 @@ import type { IToolSession } from "@mongodb-js/mcp-types";
 import type { IElicitation } from "@mongodb-js/mcp-types";
 import type { PreviewFeature } from "@mongodb-js/mcp-types";
 import type { IUIRegistry } from "@mongodb-js/mcp-types";
-import type { IMetrics, IObservable, MetricDefinitions, MongoLogId } from "@mongodb-js/mcp-types";
+import type { IMetrics, IObservable, MetricDefinitions } from "@mongodb-js/mcp-types";
 import { createUIResource, type UIResource } from "@mcp-ui/server";
 
 const LogId = {
