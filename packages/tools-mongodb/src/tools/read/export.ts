@@ -88,14 +88,19 @@ export class ExportTool extends MongoDBToolBase {
 
         const exportName = `${new ObjectId().toString()}.json`;
 
-        const { exportURI, exportPath } = await this.session!.exportsManager.createJSONExport({
+        if (!this.session.exportsManager) {
+            throw new Error("Exports manager is not available");
+        }
+
+        const exportResult = await this.session.exportsManager.createJSONExport({
             input: cursor,
             exportName,
             exportTitle:
                 exportTitle ||
                 `Export for namespace ${database}.${collection} requested on ${new Date().toLocaleString()}`,
             jsonExportFormat,
-        });
+        }) as { exportURI: string; exportPath: string };
+        const { exportURI, exportPath } = exportResult;
         const toolCallContent: CallToolResult["content"] = [
             // Not all the clients as of this commit understands how to
             // parse a resource_link so we provide a text result for them to
@@ -129,6 +134,6 @@ export class ExportTool extends MongoDBToolBase {
     }
 
     private isServerRunningLocally(): boolean {
-        return this.config.transport === "stdio" || ["127.0.0.1", "localhost"].includes(this.config.httpHost);
+        return this.config.transport === "stdio" || ["127.0.0.1", "localhost"].includes(this.config.httpHost || "");
     }
 }

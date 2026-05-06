@@ -16,7 +16,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import type { AnyToolBase, ToolCategory, ToolClass } from "./tools/tool.js";
 export type { ToolCategory } from "./tools/tool.js";
-import { validateConnectionString } from "./helpers/connectionOptions.js";
+import { validateConnectionString } from "@mongodb-js/mcp-tools-mongodb";
 import { packageInfo } from "./common/packageInfo.js";
 import { type ConnectionErrorHandler } from "./common/connectionErrorHandler.js";
 import type { Elicitation } from "./elicitation.js";

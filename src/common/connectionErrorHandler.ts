@@ -1,10 +1,10 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { ErrorCodes, type MongoDBError } from "./errors.js";
-import type { AnyConnectionState } from "./connectionManager.js";
+import { ErrorCodes, type MongoDBError, type NotConnectedToMongoDBErrorCode, type MisconfiguredConnectionStringErrorCode } from "@mongodb-js/mcp-tools-mongodb";
+import type { AnyConnectionState } from "@mongodb-js/mcp-tools-mongodb";
 import type { AnyToolBase } from "../tools/tool.js";
 
 export type ConnectionErrorHandler = (
-    error: MongoDBError<ErrorCodes.NotConnectedToMongoDB | ErrorCodes.MisconfiguredConnectionString>,
+    error: MongoDBError<NotConnectedToMongoDBErrorCode | MisconfiguredConnectionStringErrorCode>,
     additionalContext: ConnectionErrorHandlerContext
 ) => ConnectionErrorUnhandled | ConnectionErrorHandled | Promise<ConnectionErrorUnhandled | ConnectionErrorHandled>;
 

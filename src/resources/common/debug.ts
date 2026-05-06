@@ -1,8 +1,8 @@
 import { ReactiveResource } from "../resource.js";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { Session, UserConfig } from "../../lib.js";
-import type { AtlasClusterConnectionInfo, ConnectionStateErrored } from "../../common/connectionManager.js";
-import type { ConnectionStringInfo } from "../../common/connectionInfo.js";
+import type { AtlasClusterConnectionInfo, ConnectionStateErrored } from "@mongodb-js/mcp-tools-mongodb";
+import type { ConnectionStringInfo } from "@mongodb-js/mcp-tools-mongodb";
 
 type ConnectionStateDebuggingInformation = {
     readonly tag: "connected" | "connecting" | "disconnected" | "errored";

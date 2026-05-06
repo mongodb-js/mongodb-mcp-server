@@ -10,11 +10,11 @@ import type {
     ConnectionSettings,
     ConnectionStateConnected,
     ConnectionStateErrored,
-} from "./connectionManager.js";
-import type { ConnectionStringInfo } from "./connectionInfo.js";
+} from "@mongodb-js/mcp-tools-mongodb";
+import type { ConnectionStringInfo } from "@mongodb-js/mcp-tools-mongodb";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { ErrorCodes, MongoDBError } from "./errors.js";
-import type { ExportsManager } from "./exportsManager.js";
+import { ErrorCodes, MongoDBError } from "@mongodb-js/mcp-tools-mongodb";
+import type { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import type { Client } from "@mongodb-js/atlas-local";
 import type { Keychain } from "@mongodb-js/mcp-core";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";

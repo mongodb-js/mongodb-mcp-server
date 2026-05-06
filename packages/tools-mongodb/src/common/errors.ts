@@ -10,6 +10,8 @@ export const ErrorCodes = {
 } as const;
 
 export type ErrorCode = typeof ErrorCodes[keyof typeof ErrorCodes];
+export type NotConnectedToMongoDBErrorCode = typeof ErrorCodes.NotConnectedToMongoDB;
+export type MisconfiguredConnectionStringErrorCode = typeof ErrorCodes.MisconfiguredConnectionString;
 
 export class MongoDBError<ErrorCodeType extends ErrorCode = ErrorCode> extends Error {
     declare code: ErrorCodeType;

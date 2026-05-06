@@ -13,7 +13,7 @@ import type { CustomizableServerOptions, Server, UserConfig } from "../lib.js";
 import { applyConfigOverrides } from "../common/config/configOverrides.js";
 import { packageInfo } from "../common/packageInfo.js";
 import type { Metrics, DefaultMetrics } from "@mongodb-js/mcp-metrics";
-import type { MonitoringServerFeature } from "../common/schemas.js";
+import type { MonitoringServerFeature } from "@mongodb-js/mcp-tools-mongodb";
 import {
     MCPHttpServer,
     type CreateMcpHttpServerFn,

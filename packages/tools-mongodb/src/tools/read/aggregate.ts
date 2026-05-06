@@ -69,11 +69,11 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
         try {
             const provider = await this.ensureConnected();
             await this.assertOnlyUsesPermittedStages(pipeline);
-            if (await this.session!.isSearchSupported()) {
+            if (this.session.isSearchSupported && await this.session.isSearchSupported()) {
                 assertVectorSearchFilterFieldsAreIndexed({
                     searchIndexes: (await provider.getSearchIndexes(database, collection)) as SearchIndex[],
                     pipeline,
-                    logger: this.session.logger as unknown as import("@mongodb-js/mcp-core").LoggerBase,
+                    logger: this.session.logger,
                 });
             }
 
@@ -103,7 +103,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                                     )
                                     .explain("queryPlanner");
                             },
-                            logger: this.session.logger as unknown as import("@mongodb-js/mcp-core").LoggerBase,
+                            logger: this.session.logger,
                         });
                         break;
                     case "non-existent-index":
@@ -146,7 +146,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                     }),
                     collectCursorUntilMaxBytesLimit({
                         cursor: aggregationCursor,
-                        configuredMaxBytesPerQuery: this.config.maxBytesPerQuery,
+                        configuredMaxBytesPerQuery: this.config.maxBytesPerQuery || 0,
                         toolResponseBytesLimit: responseBytesLimit,
                         abortSignal: signal,
                     }),
@@ -199,7 +199,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
 
     private async assertOnlyUsesPermittedStages(pipeline: Record<string, unknown>[]): Promise<void> {
         const writeOperations: OperationType[] = ["update", "create", "delete"];
-        const isSearchSupported = await this.session!.isSearchSupported();
+        const isSearchSupported = this.session.isSearchSupported ? await this.session.isSearchSupported() : false;
 
         let writeStageForbiddenError = "";
 
@@ -294,7 +294,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
             return ["not-vector-search-query"];
         }
 
-        const isSearchSupported = await this.session!.isSearchSupported();
+        const isSearchSupported = this.session.isSearchSupported ? await this.session.isSearchSupported() : false;
         let indexExists = false;
         if (isSearchSupported) {
             const provider = await this.ensureConnected();

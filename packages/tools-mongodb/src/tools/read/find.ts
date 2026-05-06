@@ -68,7 +68,7 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
                             })
                             .explain("queryPlanner");
                     },
-                    logger: this.session.logger as unknown as import("@mongodb-js/mcp-core").LoggerBase,
+                    logger: this.session.logger,
                 });
             }
 
