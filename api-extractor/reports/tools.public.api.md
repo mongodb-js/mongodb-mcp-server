@@ -503,6 +503,82 @@ export class CreateIndexTool extends MongoDBToolBase {
 }
 
 // @public (undocumented)
+export class CreateOneRegionClusterTool extends AtlasToolBase {
+    // (undocumented)
+    argsShape: {
+        region: z.ZodDefault<z.ZodString>;
+        nodeCount: z.ZodDefault<z.ZodNumber>;
+        clusterType: z.ZodDefault<z.ZodEnum<{
+            REPLICASET: "REPLICASET";
+            SHARDED: "SHARDED";
+        }>>;
+        provider: z.ZodDefault<z.ZodEnum<{
+            AWS: "AWS";
+            AZURE: "AZURE";
+            GCP: "GCP";
+        }>>;
+        instanceSize: z.ZodOptional<z.ZodEnum<{
+            M10: "M10";
+            M20: "M20";
+            M30: "M30";
+            M40: "M40";
+            M50: "M50";
+            M60: "M60";
+            M80: "M80";
+            M140: "M140";
+            M200: "M200";
+            M300: "M300";
+            M400: "M400";
+            M700: "M700";
+        }>>;
+        minInstanceSize: z.ZodDefault<z.ZodEnum<{
+            M10: "M10";
+            M20: "M20";
+            M30: "M30";
+            M40: "M40";
+            M50: "M50";
+            M60: "M60";
+            M80: "M80";
+            M140: "M140";
+            M200: "M200";
+            M300: "M300";
+            M400: "M400";
+            M700: "M700";
+        }>>;
+        maxInstanceSize: z.ZodDefault<z.ZodEnum<{
+            M10: "M10";
+            M20: "M20";
+            M30: "M30";
+            M40: "M40";
+            M50: "M50";
+            M60: "M60";
+            M80: "M80";
+            M140: "M140";
+            M200: "M200";
+            M300: "M300";
+            M400: "M400";
+            M700: "M700";
+        }>>;
+        backupEnabled: z.ZodDefault<z.ZodBoolean>;
+        pitEnabled: z.ZodDefault<z.ZodBoolean>;
+        diskSizeGb: z.ZodOptional<z.ZodNumber>;
+        diskGBEnabled: z.ZodDefault<z.ZodBoolean>;
+        shardCount: z.ZodOptional<z.ZodNumber>;
+        tags: z.ZodDefault<z.ZodRecord<z.ZodString, z.ZodString>>;
+        projectId: z.ZodString;
+        name: z.ZodString;
+    };
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    protected execute(args: ToolArgs<typeof CreateOneRegionClusterTool.argsShape>): Promise<CallToolResult>;
+    // (undocumented)
+    static operationType: OperationType;
+    // (undocumented)
+    static toolName: string;
+}
+
+// @public (undocumented)
 export class CreateProjectTool extends AtlasToolBase {
     // (undocumented)
     argsShape: {
@@ -513,6 +589,175 @@ export class CreateProjectTool extends AtlasToolBase {
     description: string;
     // (undocumented)
     protected execute(input: ToolArgs<typeof CreateProjectTool.argsShape>): Promise<CallToolResult>;
+    // (undocumented)
+    static operationType: OperationType;
+    // (undocumented)
+    static toolName: string;
+}
+
+// @public (undocumented)
+export class CreateThreeRegionClusterTool extends AtlasToolBase {
+    // (undocumented)
+    argsShape: {
+        region1: z.ZodDefault<z.ZodString>;
+        region2: z.ZodDefault<z.ZodString>;
+        region3: z.ZodDefault<z.ZodString>;
+        provider2: z.ZodOptional<z.ZodEnum<{
+            AWS: "AWS";
+            AZURE: "AZURE";
+            GCP: "GCP";
+        }>>;
+        provider3: z.ZodOptional<z.ZodEnum<{
+            AWS: "AWS";
+            AZURE: "AZURE";
+            GCP: "GCP";
+        }>>;
+        nodeCount: z.ZodDefault<z.ZodNumber>;
+        clusterType: z.ZodDefault<z.ZodEnum<{
+            REPLICASET: "REPLICASET";
+            SHARDED: "SHARDED";
+        }>>;
+        provider: z.ZodDefault<z.ZodEnum<{
+            AWS: "AWS";
+            AZURE: "AZURE";
+            GCP: "GCP";
+        }>>;
+        instanceSize: z.ZodOptional<z.ZodEnum<{
+            M10: "M10";
+            M20: "M20";
+            M30: "M30";
+            M40: "M40";
+            M50: "M50";
+            M60: "M60";
+            M80: "M80";
+            M140: "M140";
+            M200: "M200";
+            M300: "M300";
+            M400: "M400";
+            M700: "M700";
+        }>>;
+        minInstanceSize: z.ZodDefault<z.ZodEnum<{
+            M10: "M10";
+            M20: "M20";
+            M30: "M30";
+            M40: "M40";
+            M50: "M50";
+            M60: "M60";
+            M80: "M80";
+            M140: "M140";
+            M200: "M200";
+            M300: "M300";
+            M400: "M400";
+            M700: "M700";
+        }>>;
+        maxInstanceSize: z.ZodDefault<z.ZodEnum<{
+            M10: "M10";
+            M20: "M20";
+            M30: "M30";
+            M40: "M40";
+            M50: "M50";
+            M60: "M60";
+            M80: "M80";
+            M140: "M140";
+            M200: "M200";
+            M300: "M300";
+            M400: "M400";
+            M700: "M700";
+        }>>;
+        backupEnabled: z.ZodDefault<z.ZodBoolean>;
+        pitEnabled: z.ZodDefault<z.ZodBoolean>;
+        diskSizeGb: z.ZodOptional<z.ZodNumber>;
+        diskGBEnabled: z.ZodDefault<z.ZodBoolean>;
+        shardCount: z.ZodOptional<z.ZodNumber>;
+        tags: z.ZodDefault<z.ZodRecord<z.ZodString, z.ZodString>>;
+        projectId: z.ZodString;
+        name: z.ZodString;
+    };
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    protected execute(args: ToolArgs<typeof CreateThreeRegionClusterTool.argsShape>): Promise<CallToolResult>;
+    // (undocumented)
+    static operationType: OperationType;
+    // (undocumented)
+    static toolName: string;
+}
+
+// @public (undocumented)
+export class CreateTwoRegionClusterTool extends AtlasToolBase {
+    // (undocumented)
+    argsShape: {
+        region1: z.ZodDefault<z.ZodString>;
+        region2: z.ZodDefault<z.ZodString>;
+        provider2: z.ZodOptional<z.ZodEnum<{
+            AWS: "AWS";
+            AZURE: "AZURE";
+            GCP: "GCP";
+        }>>;
+        clusterType: z.ZodDefault<z.ZodEnum<{
+            REPLICASET: "REPLICASET";
+            SHARDED: "SHARDED";
+        }>>;
+        provider: z.ZodDefault<z.ZodEnum<{
+            AWS: "AWS";
+            AZURE: "AZURE";
+            GCP: "GCP";
+        }>>;
+        instanceSize: z.ZodOptional<z.ZodEnum<{
+            M10: "M10";
+            M20: "M20";
+            M30: "M30";
+            M40: "M40";
+            M50: "M50";
+            M60: "M60";
+            M80: "M80";
+            M140: "M140";
+            M200: "M200";
+            M300: "M300";
+            M400: "M400";
+            M700: "M700";
+        }>>;
+        minInstanceSize: z.ZodDefault<z.ZodEnum<{
+            M10: "M10";
+            M20: "M20";
+            M30: "M30";
+            M40: "M40";
+            M50: "M50";
+            M60: "M60";
+            M80: "M80";
+            M140: "M140";
+            M200: "M200";
+            M300: "M300";
+            M400: "M400";
+            M700: "M700";
+        }>>;
+        maxInstanceSize: z.ZodDefault<z.ZodEnum<{
+            M10: "M10";
+            M20: "M20";
+            M30: "M30";
+            M40: "M40";
+            M50: "M50";
+            M60: "M60";
+            M80: "M80";
+            M140: "M140";
+            M200: "M200";
+            M300: "M300";
+            M400: "M400";
+            M700: "M700";
+        }>>;
+        backupEnabled: z.ZodDefault<z.ZodBoolean>;
+        pitEnabled: z.ZodDefault<z.ZodBoolean>;
+        diskSizeGb: z.ZodOptional<z.ZodNumber>;
+        diskGBEnabled: z.ZodDefault<z.ZodBoolean>;
+        shardCount: z.ZodOptional<z.ZodNumber>;
+        tags: z.ZodDefault<z.ZodRecord<z.ZodString, z.ZodString>>;
+        projectId: z.ZodString;
+        name: z.ZodString;
+    };
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    protected execute(args: ToolArgs<typeof CreateTwoRegionClusterTool.argsShape>): Promise<CallToolResult>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -1179,6 +1424,23 @@ export abstract class MongoDBToolBase extends ToolBase {
 // @public
 export type OperationType = "metadata" | "read" | "create" | "delete" | "update" | "connect";
 
+// @public (undocumented)
+export class PauseClusterTool extends AtlasToolBase {
+    // (undocumented)
+    argsShape: {
+        projectId: ZodString;
+        clusterName: ZodString;
+    };
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    protected execute(input: ToolArgs<typeof PauseClusterTool.argsShape>): Promise<CallToolResult>;
+    // (undocumented)
+    static operationType: OperationType;
+    // (undocumented)
+    static toolName: string;
+}
+
 // Warning: (ae-forgotten-export) The symbol "RenameCollectionOutputSchema" needs to be exported by the entry point index.d.ts
 //
 // @public (undocumented)
@@ -1208,6 +1470,23 @@ export class RenameCollectionTool extends MongoDBToolBase {
         newCollection: z.ZodString;
         renamed: z.ZodBoolean;
     };
+    // (undocumented)
+    static toolName: string;
+}
+
+// @public (undocumented)
+export class ResumeClusterTool extends AtlasToolBase {
+    // (undocumented)
+    argsShape: {
+        projectId: ZodString;
+        clusterName: ZodString;
+    };
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    protected execute(input: ToolArgs<typeof ResumeClusterTool.argsShape>): Promise<CallToolResult>;
+    // (undocumented)
+    static operationType: OperationType;
     // (undocumented)
     static toolName: string;
 }

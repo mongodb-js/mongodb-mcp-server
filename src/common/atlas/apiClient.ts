@@ -366,6 +366,27 @@ export class ApiClient {
         return data;
     }
 
+    async updateCluster(groupId: string, clusterName: string, body: Record<string, unknown>): Promise<void> {
+        const authHeaders = (await this.authProvider?.getAuthHeaders()) ?? {};
+        const url = new URL(
+            `api/atlas/v2/groups/${encodeURIComponent(groupId)}/clusters/${encodeURIComponent(clusterName)}`,
+            this.options.baseUrl
+        );
+        const response = await this.customFetch(url.toString(), {
+            method: "PATCH",
+            headers: {
+                ...authHeaders,
+                "Content-Type": `application/vnd.atlas.${ATLAS_API_VERSION}+json`,
+                Accept: `application/vnd.atlas.${ATLAS_API_VERSION}+json`,
+                "User-Agent": this.options.userAgent,
+            },
+            body: JSON.stringify(body),
+        });
+        if (!response.ok) {
+            throw await ApiClientError.fromResponse(response);
+        }
+    }
+
     async listDropIndexSuggestions(
         options: FetchOptions<operations["listGroupClusterPerformanceAdvisorDropIndexSuggestions"]>
     ): Promise<components["schemas"]["DropIndexSuggestionsResponse"]> {
