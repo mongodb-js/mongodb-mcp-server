@@ -18,7 +18,7 @@ import { setupMongoDBIntegrationTest } from "./mongodbHelpers.js";
 import { ErrorCodes } from "@mongodb-js/mcp-tools-mongodb";
 import { Keychain } from "@mongodb-js/mcp-core";
 import { Elicitation } from "../../../../src/elicitation.js";
-import * as MongoDbTools from "@mongodb-js/mcp-tools-mongodb";
+import { MongoDBTools } from "@mongodb-js/mcp-tools-mongodb";
 import { ApiClient } from "../../../../src/lib.js";
 import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import { MockMetrics } from "../../../unit/mocks/metrics.js";
@@ -90,7 +90,7 @@ describe("MongoDBTool implementations", () => {
 
     async function cleanupAndStartServer(
         config: Partial<UserConfig> | undefined = {},
-        toolConstructors: ToolClass[] = [...Object.values(MongoDbTools), RandomTool],
+        toolConstructors: ToolClass[] = [...Object.values(MongoDBTools), RandomTool],
         errorHandler: ConnectionErrorHandler | undefined = connectionErrorHandler
     ): Promise<void> {
         await cleanup();
@@ -258,7 +258,7 @@ describe("MongoDBTool implementations", () => {
         beforeEach(async () => {
             await cleanupAndStartServer(
                 defaultTestConfig,
-                [...Object.values(MongoDbTools), RandomTool],
+                [...Object.values(MongoDBTools), RandomTool],
                 injectedErrorHandler
             );
         });
@@ -286,7 +286,7 @@ describe("MongoDBTool implementations", () => {
                 // This is a misconfigured connection string
                 await cleanupAndStartServer(
                     { connectionString: "mongodb://localhost:1234" },
-                    [...Object.values(MongoDbTools), RandomTool],
+                    [...Object.values(MongoDBTools), RandomTool],
                     injectedErrorHandler
                 );
                 const toolResponse = await mcpClient?.callTool({
@@ -310,7 +310,7 @@ describe("MongoDBTool implementations", () => {
                 // This is a misconfigured connection string
                 await cleanupAndStartServer(
                     { connectionString: mdbIntegration.connectionString(), indexCheck: true },
-                    [...Object.values(MongoDbTools), RandomTool],
+                    [...Object.values(MongoDBTools), RandomTool],
                     injectedErrorHandler
                 );
                 const toolResponse = await mcpClient?.callTool({

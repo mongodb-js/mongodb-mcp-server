@@ -9,6 +9,13 @@ import {
     defaultTestConfig,
 } from "../../../helpers.js";
 import * as constants from "@mongodb-js/mcp-tools-mongodb";
+vi.mock("@mongodb-js/mcp-tools-mongodb", async (importOriginal) => {
+    const mod = await importOriginal<typeof import("@mongodb-js/mcp-tools-mongodb")>();
+    return {
+        ...mod,
+        QUERY_COUNT_MAX_TIME_MS_CAP: 10000,
+    };
+});
 import { describeWithMongoDB, getDocsFromUntrustedContent, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 import type { Client } from "@modelcontextprotocol/sdk/client";
 
@@ -279,7 +286,8 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
         });
 
         it("should abort count operation and respond with indeterminable count", async () => {
-            vi.spyOn(constants, "QUERY_COUNT_MAX_TIME_MS_CAP", "get").mockReturnValue(0.1);
+            // Mock QUERY_COUNT_MAX_TIME_MS_CAP to a very small value to trigger timeout
+Object.defineProperty(constants, "QUERY_COUNT_MAX_TIME_MS_CAP", { value: 0.1 });
             await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "find",
