@@ -522,12 +522,6 @@ importers:
       mongodb-schema:
         specifier: ^12.7.0
         version: 12.7.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
-      node-machine-id:
-        specifier: 1.1.12
-        version: 1.1.12
-      zod:
-        specifier: ^4.4.2
-        version: 4.4.3
     devDependencies:
       '@types/node':
         specifier: ^25.6.0
