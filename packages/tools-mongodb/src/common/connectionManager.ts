@@ -52,11 +52,19 @@ export const defaultDriverOptions: ConnectionInfo["driverOptions"] = {
 export class ConnectionStateConnected implements ConnectionState {
     public tag = "connected" as const;
 
+    declare serviceProvider: NodeDriverServiceProvider;
+    declare connectionStringInfo?: ConnectionStringInfo;
+    declare connectedAtlasCluster?: AtlasClusterConnectionInfo;
+
     constructor(
-        public serviceProvider: NodeDriverServiceProvider,
-        public connectionStringInfo?: ConnectionStringInfo,
-        public connectedAtlasCluster?: AtlasClusterConnectionInfo
-    ) {}
+        serviceProvider: NodeDriverServiceProvider,
+        connectionStringInfo?: ConnectionStringInfo,
+        connectedAtlasCluster?: AtlasClusterConnectionInfo
+    ) {
+        this.serviceProvider = serviceProvider;
+        this.connectionStringInfo = connectionStringInfo;
+        this.connectedAtlasCluster = connectedAtlasCluster;
+    }
 
     private _isSearchSupported?: boolean;
 
@@ -233,13 +241,18 @@ export class MCPConnectionManager extends ConnectionManager {
     private deviceId: DeviceId;
     private bus: EventEmitter;
 
+    private userConfig: UserConfig;
+    private logger: LoggerBase;
+
     constructor(
-        private userConfig: UserConfig,
-        private logger: LoggerBase,
+        userConfig: UserConfig,
+        logger: LoggerBase,
         deviceId: DeviceId,
         bus?: EventEmitter
     ) {
         super();
+        this.userConfig = userConfig;
+        this.logger = logger;
         this.bus = bus ?? new EventEmitter();
         this.bus.on("mongodb-oidc-plugin:auth-failed", this.onOidcAuthFailed.bind(this));
         // eslint-disable-next-line @typescript-eslint/no-misused-promises

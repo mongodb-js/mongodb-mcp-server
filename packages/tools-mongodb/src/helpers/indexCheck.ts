@@ -1,6 +1,6 @@
 import type { Document } from "mongodb";
 import { ErrorCodes, MongoDBError } from "../common/errors.js";
-import { type LoggerBase } from "@mongodb-js/mcp-core";
+import type { ICompositeLogger } from "@mongodb-js/mcp-types";
 import { LogId } from "@mongodb-js/mcp-logging";
 
 /**
@@ -67,7 +67,7 @@ export async function checkIndexUsage({
     collection: string;
     operation: string;
     explainCallback: () => Promise<Document>;
-    logger: LoggerBase;
+    logger: ICompositeLogger;
 }): Promise<void> {
     try {
         const explainResult = await explainCallback();

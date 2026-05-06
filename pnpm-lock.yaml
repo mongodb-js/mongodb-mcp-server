@@ -484,6 +484,43 @@ importers:
         specifier: ^5.9.2
         version: 5.9.3
 
+  packages/tools-mongodb:
+    dependencies:
+      '@mongodb-js/mcp-core':
+        specifier: workspace:*
+        version: link:../core
+      '@mongodb-js/mcp-logging':
+        specifier: workspace:*
+        version: link:../logging
+      '@mongodb-js/mcp-types':
+        specifier: workspace:*
+        version: link:../types
+      '@mongosh/arg-parser':
+        specifier: ^5.0.2
+        version: 5.0.2(zod@4.4.3)
+      '@mongosh/service-provider-node-driver':
+        specifier: ^5.0.2
+        version: 5.0.2(mongodb-log-writer@2.5.7(bson@7.2.0))
+      bson:
+        specifier: ^7.2.0
+        version: 7.2.0
+      mongodb:
+        specifier: ^7.1.1
+        version: 7.1.1(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
+      mongodb-redact:
+        specifier: ^1.4.6
+        version: 1.4.7
+      zod:
+        specifier: ^4.4.2
+        version: 4.4.3
+    devDependencies:
+      '@types/node':
+        specifier: ^25.6.0
+        version: 25.6.0
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.3
+
   packages/types:
     dependencies:
       '@modelcontextprotocol/sdk':

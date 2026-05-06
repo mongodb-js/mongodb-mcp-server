@@ -1,7 +1,7 @@
 import type { UserConfig } from "./userConfig.js";
 import { UserConfigSchema, configRegistry } from "./userConfig.js";
 import type { RequestContext } from "../../transports/base.js";
-import type { ConfigFieldMeta, OverrideBehavior } from "./configUtils.js";
+import type { ConfigFieldMeta, OverrideBehavior } from "./userConfig.js";
 
 export class ConfigOverrideError extends Error {
     constructor(message: string) {

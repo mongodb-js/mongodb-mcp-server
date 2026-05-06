@@ -73,7 +73,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                 assertVectorSearchFilterFieldsAreIndexed({
                     searchIndexes: (await provider.getSearchIndexes(database, collection)) as SearchIndex[],
                     pipeline,
-                    logger: this.session.logger,
+                    logger: this.session.logger as unknown as import("@mongodb-js/mcp-core").LoggerBase,
                 });
             }
 
@@ -103,7 +103,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                                     )
                                     .explain("queryPlanner");
                             },
-                            logger: this.session.logger,
+                            logger: this.session.logger as unknown as import("@mongodb-js/mcp-core").LoggerBase,
                         });
                         break;
                     case "non-existent-index":
@@ -129,7 +129,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                 successMessage = "The aggregation pipeline executed successfully.";
             } else {
                 const cappedResultsPipeline: Document[] = [...pipeline];
-                if (this.config.maxDocumentsPerQuery > 0) {
+                if (this.config.maxDocumentsPerQuery! > 0) {
                     cappedResultsPipeline.push({ $limit: this.config.maxDocumentsPerQuery });
                 }
                 aggregationCursor = provider.aggregate(database, collection, cappedResultsPipeline, {
@@ -157,9 +157,9 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                 // maxDocumentsPerQuery then we know for sure that the results were
                 // capped.
                 const aggregationResultsCappedByMaxDocumentsLimit =
-                    this.config.maxDocumentsPerQuery > 0 &&
+                    this.config.maxDocumentsPerQuery! > 0 &&
                     !!totalDocuments &&
-                    totalDocuments > this.config.maxDocumentsPerQuery;
+                    totalDocuments > (this.config.maxDocumentsPerQuery || 0);
 
                 documents = cursorResults.documents;
                 successMessage = this.generateMessage({

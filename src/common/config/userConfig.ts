@@ -9,11 +9,11 @@ import {
     onlyStricterLogLevelOverride,
     onlySubsetOfBaseValueOverride,
     parseBoolean,
-} from "../../common/config/configUtils.js";
+} from "./configUtils.js";
 import { MCP_LOG_LEVELS } from "@mongodb-js/mcp-core";
 import { monitoringServerFeatureValues, previewFeatureValues } from "../schemas.js";
 import { argMetadata, CliOptionsSchema as MongoshCliOptionsSchema } from "@mongosh/arg-parser/arg-parser";
-import { TRANSPORT_PAYLOAD_LIMITS } from "@mongodb-js/mcp-core";
+import { TRANSPORT_PAYLOAD_LIMITS } from "../../transports/constants.js";
 
 export const configRegistry = z.registry<ConfigFieldMeta>();
 

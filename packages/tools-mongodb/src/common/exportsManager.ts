@@ -72,12 +72,19 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
     private exportsCleanupInterval?: NodeJS.Timeout;
     private readonly shutdownController: AbortController = new AbortController();
 
+    private readonly exportsDirectoryPath: string;
+    private readonly config: ExportsManagerConfig;
+    private readonly logger: LoggerBase;
+
     private constructor(
-        private readonly exportsDirectoryPath: string,
-        private readonly config: ExportsManagerConfig,
-        private readonly logger: LoggerBase
+        exportsDirectoryPath: string,
+        config: ExportsManagerConfig,
+        logger: LoggerBase
     ) {
         super();
+        this.exportsDirectoryPath = exportsDirectoryPath;
+        this.config = config;
+        this.logger = logger;
     }
 
     public get availableExports(): AvailableExport[] {
