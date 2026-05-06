@@ -116,6 +116,9 @@ Does not set up network access or database users. After creation, use atlas-conn
                     return { content: [{ type: "text", text: "Operation cancelled." }] };
                 }
                 name = result.fields.name;
+                if (!name) {
+                    return { content: [{ type: "text", text: "Operation cancelled." }] };
+                }
             } else {
                 return {
                     content: [
@@ -215,7 +218,7 @@ Does not set up network access or database users. After creation, use atlas-conn
             terminationProtectionEnabled,
             backupEnabled,
             ...(pitEnabled && { pitEnabled }),
-            replicationSpecs: Array(numShards).fill(replicationSpec),
+            replicationSpecs: Array.from({ length: numShards }, () => structuredClone(replicationSpec)),
             ...(mongoDBMajorVersion && { mongoDBMajorVersion }),
             ...(versionReleaseSystem && { versionReleaseSystem }),
         } as unknown as ClusterDescription20240805;

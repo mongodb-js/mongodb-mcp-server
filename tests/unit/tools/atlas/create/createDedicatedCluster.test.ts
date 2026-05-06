@@ -199,11 +199,15 @@ describe("CreateDedicatedClusterTool", () => {
             expect(body.replicationSpecs).toHaveLength(1);
         });
 
-        it("produces 3 identical replicationSpecs entries for numShards: 3", async () => {
+        it("produces 3 independent replicationSpecs entries for numShards: 3", async () => {
             await exec({ ...baseArgs, numShards: 3, instanceSize: "M30", autoScalingMaxInstanceSize: "M40" });
             const body = mockApiClient.createCluster.mock.calls[0][0].body;
             expect(body.clusterType).toBe("SHARDED");
             expect(body.replicationSpecs).toHaveLength(3);
+            // Verify entries are independent objects (not shared references)
+            expect(body.replicationSpecs[0]).not.toBe(body.replicationSpecs[1]);
+            expect(body.replicationSpecs[0].regionConfigs[0].regionName).toBe("US_EAST_1");
+            expect(body.replicationSpecs[1].regionConfigs[0].regionName).toBe("US_EAST_1");
         });
 
         it("produces regionConfigs with priorities 7, 6, 5 for 2 additionalRegions", async () => {
@@ -296,6 +300,18 @@ describe("CreateDedicatedClusterTool", () => {
             expect(body.name).toBe("elicited-cluster");
             const text = (result.content[0] as { text: string }).text;
             expect(text).toContain("elicited-cluster");
+        });
+
+        it("returns 'Operation cancelled.' when elicitation returns empty name", async () => {
+            mockElicitation.supportsElicitation.mockReturnValue(true);
+            mockElicitation.requestInput.mockResolvedValue({
+                accepted: true,
+                fields: { name: "" },
+            });
+            const result = await exec({ ...baseArgs, name: undefined });
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toBe("Operation cancelled.");
+            expect(mockApiClient.createCluster).not.toHaveBeenCalled();
         });
     });
 });
