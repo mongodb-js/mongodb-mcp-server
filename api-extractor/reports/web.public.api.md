@@ -388,6 +388,9 @@ export type ExportsManagerEvents = {
     "export-available": [string];
 };
 
+// @public
+export function getRandomUUID(): string;
+
 // @public (undocumented)
 export interface InProgressExport extends CommonExportData {
     // (undocumented)
