@@ -99,7 +99,7 @@ jobs:
       - name: Publish to NPM
         run: |
           pnpm publish --tag ${{ needs.check.outputs.RELEASE_CHANNEL }} --no-git-checks
-          pnpm -r --filter './packages/*' publish --tag ${{ needs.check.outputs.RELEASE_CHANNEL }} --no-git-checks
+          pnpm -r --filter './packages/*' publish --tag ${{ needs.check.outputs.RELEASE_CHANNEL }} --no-git-checks --access public
 
       - name: Generate AI release summary
         id: ai-summary

@@ -1,7 +1,6 @@
 {
   "name": "@mongodb-js/mcp-types",
-  "version": "1.11.0-prerelease.1",
-  "private": true,
+  "version": "1.11.0-prerelease.2",
   "type": "module",
   "description": "Shared TypeScript types and interfaces for MongoDB MCP server packages",
   "exports": {
@@ -23,6 +22,6 @@
     "@types/node": "^25.6.0",
     "mongodb-log-writer": "^2.5.7",
     "typescript": "^5.9.2",
-    "vitest": "^4.1.4"
+    "vitest": "^4.1.5"
   }
 }

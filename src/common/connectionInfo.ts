@@ -29,6 +29,9 @@ export interface AtlasClusterConnectionInfo {
     username: string;
     projectId: string;
     clusterName: string;
+    instanceType: "FREE" | "FLEX" | "DEDICATED";
+    provider?: string;
+    region?: string;
     expiryDate: Date;
 }
 
