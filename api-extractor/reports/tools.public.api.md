@@ -1681,6 +1681,35 @@ export class UpdateManyTool extends MongoDBToolBase {
     static toolName: string;
 }
 
+// @public (undocumented)
+export class UpgradeClusterTool extends AtlasToolBase {
+    // (undocumented)
+    argsShape: {
+        projectId: z.ZodOptional<z.ZodString>;
+        clusterName: z.ZodOptional<z.ZodString>;
+        targetTier: z.ZodOptional<z.ZodEnum<{
+            FLEX: "FLEX";
+            M10: "M10";
+        }>>;
+        provider: z.ZodOptional<z.ZodString>;
+        region: z.ZodOptional<z.ZodString>;
+    };
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    protected execute(args: ToolArgs<typeof UpgradeClusterTool.argsShape>): Promise<CallToolResult>;
+    // (undocumented)
+    static operationType: OperationType;
+    // Warning: (ae-forgotten-export) The symbol "UpgradeClusterMetadata" needs to be exported by the entry point index.d.ts
+    //
+    // (undocumented)
+    protected resolveTelemetryMetadata(args: ToolArgs<typeof UpgradeClusterTool.argsShape>, context: {
+        result: CallToolResult;
+    }): UpgradeClusterMetadata;
+    // (undocumented)
+    static toolName: string;
+}
+
 // Warnings were encountered during analysis:
 //
 // src/tools/tool.ts:136:5 - (ae-forgotten-export) The symbol "UIRegistry" needs to be exported by the entry point index.d.ts

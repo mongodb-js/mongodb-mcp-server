@@ -169,6 +169,51 @@ export class ApiClient {
     // (undocumented)
     updateStreamWorkspace(options: FetchOptions<operations["updateGroupStreamWorkspace"]>): Promise<components["schemas"]["StreamsTenant"]>;
     // (undocumented)
+    upgradeFlexToDedicated(options: {
+        groupId: string;
+        body: {
+            name: string;
+            clusterType: "REPLICASET";
+            replicationSpecs: Array<{
+                regionConfigs: Array<{
+                    providerName?: string;
+                    regionName?: string;
+                    priority: number;
+                    electableSpecs: {
+                        instanceSize: string;
+                        nodeCount: number;
+                    };
+                }>;
+            }>;
+            autoScaling: {
+                compute: {
+                    enabled: boolean;
+                    scaleDownEnabled: boolean;
+                    minInstanceSize: string;
+                    maxInstanceSize: string;
+                };
+                diskGBEnabled: boolean;
+            };
+        };
+    }): Promise<{
+        id?: string;
+    }>;
+    // (undocumented)
+    upgradeSharedTierCluster(options: {
+        groupId: string;
+        body: {
+            name: string;
+            providerSettings: {
+                providerName?: string;
+                instanceSizeName: "FLEX" | "M10";
+                backingProviderName?: string;
+                regionName?: string;
+            };
+        };
+    }): Promise<{
+        id?: string;
+    }>;
+    // (undocumented)
     validateAuthConfig(): Promise<void>;
     // (undocumented)
     withStreamSampleConnections(options: FetchOptions<operations["withGroupStreamSampleConnections"]>): Promise<components["schemas"]["StreamsTenant"]>;
@@ -196,7 +241,13 @@ export interface AtlasClusterConnectionInfo {
     // (undocumented)
     expiryDate: Date;
     // (undocumented)
+    instanceType: "FREE" | "FLEX" | "DEDICATED";
+    // (undocumented)
     projectId: string;
+    // (undocumented)
+    provider?: string;
+    // (undocumented)
+    region?: string;
     // (undocumented)
     username: string;
 }
@@ -581,6 +632,9 @@ export type ExportsManagerEvents = {
     "export-available": [string];
 };
 
+// @public
+export function getRandomUUID(): string;
+
 // @public (undocumented)
 export interface InProgressExport extends CommonExportData {
     // (undocumented)
@@ -907,7 +961,7 @@ export { TelemetryEvents }
 export type TelemetryResult = "success" | "failure";
 
 // @public
-export type TelemetryToolMetadata = AtlasMetadata | ConnectionMetadata | PerfAdvisorToolMetadata | StreamsToolMetadata;
+export type TelemetryToolMetadata = AtlasMetadata | ConnectionMetadata | PerfAdvisorToolMetadata | StreamsToolMetadata | UpgradeClusterMetadata;
 
 // @public (undocumented)
 export type ToolArgs<T extends ZodRawShape> = {
@@ -1064,6 +1118,16 @@ export class UIRegistry {
     });
     get(toolName: string): Promise<string | null>;
 }
+
+// @public (undocumented)
+export type UpgradeClusterMetadata = AtlasMetadata & {
+    original_tier?: "free" | "flex";
+    target_tier?: "flex" | "m10";
+    original_cluster_id?: string;
+    target_cluster_id?: string;
+    provider?: string;
+    region?: string;
+};
 
 // @public (undocumented)
 export type UserConfig = z.infer<typeof UserConfigSchema>;
