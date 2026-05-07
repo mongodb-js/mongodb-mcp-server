@@ -39,6 +39,9 @@
       "ae-missing-release-tag": {
         "logLevel": "none"
       },
+      "ae-forgotten-export": {
+        "addToApiReportFile": false
+      },
       "ae-unresolved-link": {
         "logLevel": "warning"
       }

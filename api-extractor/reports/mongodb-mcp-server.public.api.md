@@ -47,13 +47,9 @@ import type { ZodRawShape } from 'zod';
 // @public (undocumented)
 export type AnyConnectionState = ConnectionStateConnected | ConnectionStateConnecting | ConnectionStateDisconnected | ConnectionStateErrored;
 
-// Warning: (ae-forgotten-export) The symbol "ToolBase" needs to be exported by the entry point lib.d.ts
-//
 // @public (undocumented)
 export type AnyToolBase = ToolBase<any, any, any>;
 
-// Warning: (ae-forgotten-export) The symbol "ToolClass" needs to be exported by the entry point lib.d.ts
-//
 // @public (undocumented)
 export type AnyToolClass = ToolClass<any, any, any>;
 
@@ -271,8 +267,6 @@ export type BaseEvent = TelemetryEvent<unknown>;
 
 export { CloseableTransport }
 
-// Warning: (ae-forgotten-export) The symbol "CommonStaticProperties" needs to be exported by the entry point lib.d.ts
-//
 // @public
 export type CommonProperties = {
     device_id?: string;
@@ -378,8 +372,6 @@ export type ConnectionManagerFactoryFn = (createParams: {
 
 // @public (undocumented)
 export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"> {
-    // Warning: (ae-forgotten-export) The symbol "AtlasClusterConnectionInfo" needs to be exported by the entry point lib.d.ts
-    //
     // (undocumented)
     atlas?: AtlasClusterConnectionInfo;
     // (undocumented)
@@ -390,8 +382,6 @@ export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"
 export interface ConnectionState {
     // (undocumented)
     connectedAtlasCluster?: AtlasClusterConnectionInfo;
-    // Warning: (ae-forgotten-export) The symbol "ConnectionStringInfo" needs to be exported by the entry point lib.d.ts
-    //
     // (undocumented)
     connectionStringInfo?: ConnectionStringInfo;
     // (undocumented)
@@ -503,8 +493,6 @@ export type CustomizableSessionOptions<TUserConfig extends UserConfig = UserConf
 // @public (undocumented)
 export const defaultCreateApiClient: ApiClientFactoryFn;
 
-// Warning: (ae-forgotten-export) The symbol "AtlasLocalClientFactoryFn" needs to be exported by the entry point lib.d.ts
-//
 // @public (undocumented)
 export const defaultCreateAtlasLocalClient: AtlasLocalClientFactoryFn;
 
@@ -569,7 +557,6 @@ export class Elicitation {
         required: string[];
     };
     requestConfirmation(message: string): Promise<boolean>;
-    // Warning: (ae-forgotten-export) The symbol "ElicitedInputResult" needs to be exported by the entry point lib.d.ts
     requestInput(message: string, schema: ElicitRequestFormParams["requestedSchema"]): Promise<ElicitedInputResult>;
     supportsElicitation(): boolean;
 }
@@ -614,12 +601,8 @@ export class EventCache {
 // @public (undocumented)
 export type EventMap<T> = Record<keyof T, any[]>;
 
-// Warning: (ae-forgotten-export) The symbol "ExportsManagerEvents" needs to be exported by the entry point lib.d.ts
-//
 // @public (undocumented)
 export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
-    // Warning: (ae-forgotten-export) The symbol "AvailableExport" needs to be exported by the entry point lib.d.ts
-    //
     // (undocumented)
     get availableExports(): AvailableExport[];
     // (undocumented)
@@ -633,8 +616,6 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
     }): Promise<AvailableExport>;
     // (undocumented)
     protected init(): void;
-    // Warning: (ae-forgotten-export) The symbol "ExportsManagerConfig" needs to be exported by the entry point lib.d.ts
-    //
     // (undocumented)
     static init(config: ExportsManagerConfig, logger: LoggerBase, sessionId?: string): ExportsManager;
     // (undocumented)
@@ -729,8 +710,6 @@ export interface LogPayload {
     noRedaction?: boolean | LoggerType | LoggerType[];
 }
 
-// Warning: (ae-forgotten-export) The symbol "ExpressBasedHttpServer" needs to be exported by the entry point lib.d.ts
-//
 // @public (undocumented)
 export class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unknown> extends ExpressBasedHttpServer {
     constructor(input: MCPHttpServerConstructorArgs<TUserConfig, TContext>);
@@ -807,8 +786,6 @@ export type MonitoringServerConstructorArgs<TMetrics extends DefaultMetrics = De
     metrics: Metrics<TMetrics>;
 };
 
-// Warning: (ae-forgotten-export) The symbol "monitoringServerFeatureValues" needs to be exported by the entry point lib.d.ts
-//
 // @public (undocumented)
 export type MonitoringServerFeature = (typeof monitoringServerFeatureValues)[number];
 
@@ -1358,13 +1335,6 @@ export const UserConfigSchema: z.ZodObject<{
     }>]>>;
     browser: z.ZodOptional<z.ZodUnion<readonly [z.ZodLiteral<false>, z.ZodString]>>;
 }, z.core.$strip>;
-
-// Warnings were encountered during analysis:
-//
-// src/common/config/configOverrides.ts:29:5 - (ae-forgotten-export) The symbol "RequestContext_2" needs to be exported by the entry point lib.d.ts
-// src/common/exportsManager.ts:166:9 - (ae-forgotten-export) The symbol "JSONExportFormat" needs to be exported by the entry point lib.d.ts
-// src/telemetry/types.ts:17:9 - (ae-forgotten-export) The symbol "TelemetryResult" needs to be exported by the entry point lib.d.ts
-// src/telemetry/types.ts:186:5 - (ae-forgotten-export) The symbol "TelemetryBoolSet" needs to be exported by the entry point lib.d.ts
 
 // (No @packageDocumentation comment for this package)
 

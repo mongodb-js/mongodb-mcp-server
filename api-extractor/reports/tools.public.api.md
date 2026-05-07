@@ -101,8 +101,6 @@ export class AggregateTool extends MongoDBToolBase {
 // @public (undocumented)
 export const AllTools: ToolClass[];
 
-// Warning: (ae-forgotten-export) The symbol "CollectionIndexesOutputSchema" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export type CollectionIndexesOutput = z.infer<z.ZodObject<typeof CollectionIndexesOutputSchema>>;
 
@@ -115,11 +113,8 @@ export class CollectionIndexesTool extends MongoDBToolBase {
     };
     // (undocumented)
     description: string;
-    // Warning: (ae-forgotten-export) The symbol "CollOperationArgs" needs to be exported by the entry point index.d.ts
-    //
     // (undocumented)
     protected execute(input: ToolArgs<typeof CollOperationArgs>): Promise<ToolResult<typeof CollectionIndexesTool.outputSchema>>;
-    // Warning: (ae-forgotten-export) The symbol "SearchIndexStatus" needs to be exported by the entry point index.d.ts
     protected extractSearchIndexDetails(indexes: Record<string, unknown>[]): SearchIndexStatus[];
     // (undocumented)
     protected handleError(error: unknown, args: ToolArgs<typeof CollectionIndexesTool.argsShape>): Promise<CallToolResult>;
@@ -145,8 +140,6 @@ export class CollectionIndexesTool extends MongoDBToolBase {
     static toolName: string;
 }
 
-// Warning: (ae-forgotten-export) The symbol "CollectionSchemaOutputSchema" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export type CollectionSchemaOutput = z.infer<z.ZodObject<typeof CollectionSchemaOutputSchema>>;
 
@@ -174,8 +167,6 @@ export class CollectionSchemaTool extends MongoDBToolBase {
     static toolName: string;
 }
 
-// Warning: (ae-forgotten-export) The symbol "CollectionStorageSizeOutputSchema" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export type CollectionStorageSizeOutput = z.infer<z.ZodObject<typeof CollectionStorageSizeOutputSchema>>;
 
@@ -203,8 +194,6 @@ export class CollectionStorageSizeTool extends MongoDBToolBase {
     static toolName: string;
 }
 
-// Warning: (ae-forgotten-export) The symbol "AtlasToolBase" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export class ConnectClusterTool extends AtlasToolBase {
     // (undocumented)
@@ -223,8 +212,6 @@ export class ConnectClusterTool extends AtlasToolBase {
     protected execute(input: ToolArgs<typeof ConnectClusterTool.argsShape>): Promise<CallToolResult>;
     // (undocumented)
     static operationType: OperationType;
-    // Warning: (ae-forgotten-export) The symbol "ConnectionMetadata" needs to be exported by the entry point index.d.ts
-    //
     // (undocumented)
     protected resolveTelemetryMetadata(args: ToolArgs<typeof ConnectClusterTool.argsShape>, input: {
         result: CallToolResult;
@@ -233,8 +220,6 @@ export class ConnectClusterTool extends AtlasToolBase {
     static toolName: string;
 }
 
-// Warning: (ae-forgotten-export) The symbol "AtlasLocalToolBase" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export class ConnectDeploymentTool extends AtlasLocalToolBase {
     // (undocumented)
@@ -270,8 +255,6 @@ export class ConnectTool extends MongoDBToolBase {
     protected execute(input: ToolArgs<typeof ConnectTool.argsShape>): Promise<CallToolResult>;
     // (undocumented)
     static operationType: OperationType;
-    // Warning: (ae-forgotten-export) The symbol "Server" needs to be exported by the entry point index.d.ts
-    //
     // (undocumented)
     register(server: Server): boolean;
     // (undocumented)
@@ -318,8 +301,6 @@ export class CreateAccessListTool extends AtlasToolBase {
     static toolName: string;
 }
 
-// Warning: (ae-forgotten-export) The symbol "CreateCollectionOutputSchema" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export type CreateCollectionOutput = z.infer<z.ZodObject<typeof CreateCollectionOutputSchema>>;
 
@@ -410,8 +391,6 @@ export class CreateFreeClusterTool extends AtlasToolBase {
     static toolName: string;
 }
 
-// Warning: (ae-forgotten-export) The symbol "CreateIndexOutputSchema" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export type CreateIndexOutput = z.infer<z.ZodObject<typeof CreateIndexOutputSchema>>;
 
@@ -519,8 +498,6 @@ export class CreateProjectTool extends AtlasToolBase {
     static toolName: string;
 }
 
-// Warning: (ae-forgotten-export) The symbol "DbStatsOutputSchema" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export type DbStatsOutput = z.infer<z.ZodObject<typeof DbStatsOutputSchema>>;
 
@@ -562,8 +539,6 @@ export class DeleteDeploymentTool extends AtlasLocalToolBase {
     static toolName: string;
 }
 
-// Warning: (ae-forgotten-export) The symbol "DeleteManyOutputSchema" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export type DeleteManyOutput = z.infer<z.ZodObject<typeof DeleteManyOutputSchema>>;
 
@@ -593,8 +568,6 @@ export class DeleteManyTool extends MongoDBToolBase {
     static toolName: string;
 }
 
-// Warning: (ae-forgotten-export) The symbol "DropCollectionOutputSchema" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export type DropCollectionOutput = z.infer<z.ZodObject<typeof DropCollectionOutputSchema>>;
 
@@ -623,8 +596,6 @@ export class DropCollectionTool extends MongoDBToolBase {
     static toolName: string;
 }
 
-// Warning: (ae-forgotten-export) The symbol "DropDatabaseOutputSchema" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export type DropDatabaseOutput = z.infer<z.ZodObject<typeof DropDatabaseOutputSchema>>;
 
@@ -651,8 +622,6 @@ export class DropDatabaseTool extends MongoDBToolBase {
     static toolName: string;
 }
 
-// Warning: (ae-forgotten-export) The symbol "DropIndexOutputSchema" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export type DropIndexOutput = z.infer<z.ZodObject<typeof DropIndexOutputSchema>>;
 
@@ -687,8 +656,6 @@ export class DropIndexTool extends MongoDBToolBase {
     static toolName: string;
 }
 
-// Warning: (ae-forgotten-export) The symbol "ExplainOutputSchema" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export type ExplainOutput = z.infer<z.ZodObject<typeof ExplainOutputSchema>>;
 
@@ -877,8 +844,6 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
     protected execute(input: ToolArgs<typeof GetPerformanceAdvisorTool.argsShape>): Promise<CallToolResult>;
     // (undocumented)
     static operationType: OperationType;
-    // Warning: (ae-forgotten-export) The symbol "PerfAdvisorToolMetadata" needs to be exported by the entry point index.d.ts
-    //
     // (undocumented)
     protected resolveTelemetryMetadata(args: ToolArgs<typeof GetPerformanceAdvisorTool.argsShape>, input: {
         result: CallToolResult;
@@ -887,8 +852,6 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
     static toolName: string;
 }
 
-// Warning: (ae-forgotten-export) The symbol "InsertManyOutputSchema" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export type InsertManyOutput = z.infer<z.ZodObject<typeof InsertManyOutputSchema>>;
 
@@ -989,8 +952,6 @@ export class ListClustersTool extends AtlasToolBase {
     static toolName: string;
 }
 
-// Warning: (ae-forgotten-export) The symbol "ListCollectionsOutputSchema" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export type ListCollectionsOutput = z.infer<z.ZodObject<typeof ListCollectionsOutputSchema>>;
 
@@ -1017,8 +978,6 @@ export class ListCollectionsTool extends MongoDBToolBase {
     static toolName: string;
 }
 
-// Warning: (ae-forgotten-export) The symbol "ListDatabasesOutputSchema" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export type ListDatabasesOutput = z.infer<z.ZodObject<typeof ListDatabasesOutputSchema>>;
 
@@ -1076,8 +1035,6 @@ export class ListDeploymentsTool extends AtlasLocalToolBase {
     static toolName: string;
 }
 
-// Warning: (ae-forgotten-export) The symbol "AssistantToolBase" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export class ListKnowledgeSourcesTool extends AssistantToolBase {
     // (undocumented)
@@ -1124,8 +1081,6 @@ export class ListProjectsTool extends AtlasToolBase {
     static toolName: string;
 }
 
-// Warning: (ae-forgotten-export) The symbol "LogsOutputSchema" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export type LogsOutput = z.infer<z.ZodObject<typeof LogsOutputSchema>>;
 
@@ -1179,8 +1134,6 @@ export abstract class MongoDBToolBase extends ToolBase {
 // @public
 export type OperationType = "metadata" | "read" | "create" | "delete" | "update" | "connect";
 
-// Warning: (ae-forgotten-export) The symbol "RenameCollectionOutputSchema" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export type RenameCollectionOutput = z.infer<z.ZodObject<typeof RenameCollectionOutputSchema>>;
 
@@ -1235,8 +1188,6 @@ export class SearchKnowledgeTool extends AssistantToolBase {
     static toolName: string;
 }
 
-// Warning: (ae-forgotten-export) The symbol "StreamsToolBase" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export class StreamsBuildTool extends StreamsToolBase {
     // (undocumented)
@@ -1551,8 +1502,6 @@ export type ToolArgs<T extends ZodRawShape> = {
     [K in keyof T]: z.infer<T[K]>;
 };
 
-// Warning: (ae-forgotten-export) The symbol "UserConfig" needs to be exported by the entry point index.d.ts
-//
 // @public
 export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> {
     constructor(input: ToolConstructorParams<TUserConfig, TContext, TMetrics>);
@@ -1565,7 +1514,6 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
     abstract description: string;
     // (undocumented)
     disable(): void;
-    // Warning: (ae-forgotten-export) The symbol "Elicitation" needs to be exported by the entry point index.d.ts
     protected readonly elicitation: Elicitation;
     // (undocumented)
     enable(): void;
@@ -1577,8 +1525,6 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
     invoke(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)
     isEnabled(): boolean;
-    // Warning: (ae-forgotten-export) The symbol "PreviewFeature" needs to be exported by the entry point index.d.ts
-    //
     // (undocumented)
     protected isFeatureEnabled(feature: PreviewFeature): boolean;
     protected readonly metrics: Metrics<TMetrics>;
@@ -1588,13 +1534,10 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
     // (undocumented)
     register(server: Server<TUserConfig, TContext, TMetrics>): boolean;
     requiresConfirmation(): boolean;
-    // Warning: (ae-forgotten-export) The symbol "TelemetryToolMetadata" needs to be exported by the entry point index.d.ts
     protected abstract resolveTelemetryMetadata(args: ToolArgs<typeof ToolBase.argsShape>, input: {
         result: CallToolResult;
     }): TelemetryToolMetadata;
-    // Warning: (ae-forgotten-export) The symbol "Session" needs to be exported by the entry point index.d.ts
     protected readonly session: Session;
-    // Warning: (ae-forgotten-export) The symbol "Telemetry" needs to be exported by the entry point index.d.ts
     protected readonly telemetry: Telemetry;
     protected get toolMeta(): Record<string, unknown>;
     // (undocumented)
@@ -1636,8 +1579,6 @@ export interface ToolExecutionContext {
     signal: AbortSignal;
 }
 
-// Warning: (ae-forgotten-export) The symbol "StructuredToolResult" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export type ToolResult<OutputSchema extends ZodRawShape | undefined = undefined> = OutputSchema extends ZodRawShape ? StructuredToolResult<OutputSchema> : {
     content: {
@@ -1647,8 +1588,6 @@ export type ToolResult<OutputSchema extends ZodRawShape | undefined = undefined>
     isError?: boolean;
 };
 
-// Warning: (ae-forgotten-export) The symbol "UpdateManyOutputSchema" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export type UpdateManyOutput = z.infer<z.ZodObject<typeof UpdateManyOutputSchema>>;
 
@@ -1700,8 +1639,6 @@ export class UpgradeClusterTool extends AtlasToolBase {
     protected execute(args: ToolArgs<typeof UpgradeClusterTool.argsShape>): Promise<CallToolResult>;
     // (undocumented)
     static operationType: OperationType;
-    // Warning: (ae-forgotten-export) The symbol "UpgradeClusterMetadata" needs to be exported by the entry point index.d.ts
-    //
     // (undocumented)
     protected resolveTelemetryMetadata(args: ToolArgs<typeof UpgradeClusterTool.argsShape>, context: {
         result: CallToolResult;
@@ -1709,10 +1646,6 @@ export class UpgradeClusterTool extends AtlasToolBase {
     // (undocumented)
     static toolName: string;
 }
-
-// Warnings were encountered during analysis:
-//
-// src/tools/tool.ts:136:5 - (ae-forgotten-export) The symbol "UIRegistry" needs to be exported by the entry point index.d.ts
 
 // (No @packageDocumentation comment for this package)
 
