@@ -40,7 +40,8 @@
         "logLevel": "none"
       },
       "ae-forgotten-export": {
-        "addToApiReportFile": false
+        "addToApiReportFile": false,
+        "logLevel": "none"
       },
       "ae-unresolved-link": {
         "logLevel": "warning"
