@@ -10,6 +10,11 @@ overrides:
   bson: ^7.2.0
   zod: ^4.4.2
 
+patchedDependencies:
+  mongodb-runner@6.7.6:
+    hash: b729ea0039fab91e19d6b0ffaa2b4199124d0cee58ecc8d6f3b4c30498ee530c
+    path: patches/mongodb-runner@6.7.6.patch
+
 importers:
 
   .:
@@ -212,7 +217,7 @@ importers:
         version: 6.4.1
       mongodb-runner:
         specifier: ^6.7.6
-        version: 6.7.6(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
+        version: 6.7.6(patch_hash=b729ea0039fab91e19d6b0ffaa2b4199124d0cee58ecc8d6f3b4c30498ee530c)(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
       openapi-types:
         specifier: ^12.1.3
         version: 12.1.3
@@ -12757,7 +12762,7 @@ snapshots:
       mongodb-connection-string-url: 7.0.1
       regexp.escape: 2.0.1
 
-  mongodb-runner@6.7.6(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7):
+  mongodb-runner@6.7.6(patch_hash=b729ea0039fab91e19d6b0ffaa2b4199124d0cee58ecc8d6f3b4c30498ee530c)(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7):
     dependencies:
       '@mongodb-js/mongodb-downloader': 1.1.11
       '@mongodb-js/oidc-mock-provider': 0.13.9

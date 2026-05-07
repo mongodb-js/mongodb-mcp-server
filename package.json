@@ -203,6 +203,9 @@
       "kerberos": "^7.0.0",
       "bson": "^7.2.0",
       "zod": "^4.4.2"
+    },
+    "patchedDependencies": {
+      "mongodb-runner@6.7.6": "patches/mongodb-runner@6.7.6.patch"
     }
   },
   "overrides": {
