@@ -74,6 +74,8 @@ export abstract class ExpressBasedHttpServer {
 
             const server = this.httpServer;
 
+            server.closeAllConnections();
+
             await new Promise((resolve, reject) => {
                 server.close((err?: Error) => {
                     if (err) {
