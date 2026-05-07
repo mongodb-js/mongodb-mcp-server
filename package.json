@@ -145,7 +145,7 @@
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "semver": "^7.7.4",
-    "simple-git": "^3.32.3",
+    "simple-git": "^3.36.0",
     "testcontainers": "^11.14.0",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2",
