@@ -53,9 +53,8 @@ export async function runSharedTierAlertsHook(
         return null;
     }
 
-    let data;
-    try {
-        data = await apiClient.listAlerts({
+    const data = await apiClient
+        .listAlerts({
             params: {
                 path: { groupId: projectId },
                 query: {
@@ -65,19 +64,23 @@ export async function runSharedTierAlertsHook(
                     includeCount: true,
                 },
             },
-        });
-    } catch (err: unknown) {
+        })
+        .catch((err: unknown) => {
         const message = err instanceof Error ? err.message : String(err);
         logger.warning({
             id: LogId.atlasSharedTierAlertsHookWarning,
             context: "shared-tier-alerts-hook",
             message: `Failed to list Atlas alerts for shared-tier hook: ${message}`,
         });
+            return null;
+        });
+
+    if (!data) {
         return null;
     }
 
-    const results = data?.results;
-    if (!results?.length) {
+    const { results } = data;
+    if (!results.length) {
         return null;
     }
 
