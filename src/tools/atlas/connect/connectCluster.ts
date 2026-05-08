@@ -9,6 +9,7 @@ import { runSharedTierAlertsHook } from "../../../common/atlas/sharedTierAlertsH
 import type { AtlasClusterConnectionInfo } from "../../../common/connectionManager.js";
 import { getDefaultRoleFromConfig } from "../../../common/atlas/roles.js";
 import { AtlasArgs } from "../../args.js";
+import { SHARED_TIER_METRIC_NAMES } from "../../../telemetry/types.js";
 import type { ConnectionMetadata } from "../../../telemetry/types.js";
 
 const addedIpAccessListMessage =
@@ -30,10 +31,23 @@ export const ConnectClusterArgs = {
 };
 
 const ConnectClusterOutputSchema = {
-    shared_tier_alerts_detected: z.enum(["true"]).optional(),
-    shared_tier_tier: z.enum(["Free", "Flex"]).optional(),
-    shared_tier_alerts: z.array(z.string()).optional(),
+    connected: z.boolean(),
+    addedCurrentIp: z.boolean(),
+    createdTemporaryUser: z.boolean(),
+    sharedTierAlertsDetected: z.boolean().optional(),
+    sharedTierTier: z.enum(["Free", "Flex"]).optional(),
+    sharedTierAlerts: z.enum(SHARED_TIER_METRIC_NAMES).array().optional(),
 };
+
+export type ConnectClusterOutput = z.infer<z.ZodObject<typeof ConnectClusterOutputSchema>>;
+
+function transformTelemetryFormat(sc: ConnectClusterOutput): Partial<ConnectionMetadata> {
+    return {
+        shared_tier_alerts_detected: sc.sharedTierAlertsDetected,
+        shared_tier_tier: sc.sharedTierTier,
+        shared_tier_alerts: sc.sharedTierAlerts,
+    };
+}
 
 export class ConnectClusterTool extends AtlasToolBase {
     static toolName = "atlas-connect-cluster";
@@ -286,6 +300,12 @@ export class ConnectClusterTool extends AtlasToolBase {
                         });
                     }
 
+                    const baseStructuredContent = {
+                        connected: true,
+                        addedCurrentIp: ipAccessListUpdated,
+                        createdTemporaryUser: createdUser,
+                    };
+
                     const atlas = this.session.connectedAtlasCluster;
                     if (atlas !== undefined && ["FREE", "FLEX"].includes(atlas.instanceType)) {
                         const hookResult = await runSharedTierAlertsHook({
@@ -303,15 +323,16 @@ export class ConnectClusterTool extends AtlasToolBase {
                             return {
                                 content,
                                 structuredContent: {
-                                    shared_tier_alerts_detected: "true" as const,
-                                    shared_tier_tier: hookResult.tier,
-                                    shared_tier_alerts: hookResult.alerts,
+                                    ...baseStructuredContent,
+                                    sharedTierAlertsDetected: true,
+                                    sharedTierTier: hookResult.tier,
+                                    sharedTierAlerts: hookResult.alerts,
                                 },
                             };
                         }
                     }
 
-                    return { content, structuredContent: {} };
+                    return { content, structuredContent: baseStructuredContent };
                 }
                 case "connecting":
                 case "unknown":
@@ -350,7 +371,14 @@ export class ConnectClusterTool extends AtlasToolBase {
             });
         }
 
-        return { content, structuredContent: {} };
+        return {
+            content,
+            structuredContent: {
+                connected: false,
+                addedCurrentIp: ipAccessListUpdated,
+                createdTemporaryUser: createdUser,
+            },
+        };
     }
 
     protected override resolveTelemetryMetadata(
@@ -366,7 +394,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         return {
             ...parentMetadata,
             ...connectionMetadata,
-            ...result.structuredContent,
+            ...transformTelemetryFormat(result.structuredContent),
         };
     }
 }

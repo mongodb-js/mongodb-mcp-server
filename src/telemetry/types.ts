@@ -249,13 +249,21 @@ export type AtlasLocalToolMetadata = {
     atlas_local_deployment_id?: string;
 };
 
+export type SharedTierTier = "Free" | "Flex";
+export const SHARED_TIER_METRIC_NAMES = [
+    "CONNECTIONS_PERCENT",
+    "FLEX_CONNECTIONS_PERCENT",
+    "FLEX_DATA_SIZE_TOTAL",
+    "LOGICAL_SIZE",
+] as const;
+export type SharedTierMetricName = (typeof SHARED_TIER_METRIC_NAMES)[number];
 export type ConnectionMetadata = AtlasMetadata &
     AtlasLocalToolMetadata & {
         connection_auth_type?: string;
         connection_host_type?: string;
-        shared_tier_alerts_detected?: TelemetryBoolSet;
-        shared_tier_tier?: "Free" | "Flex";
-        shared_tier_alerts?: string[];
+        shared_tier_alerts_detected?: boolean;
+        shared_tier_tier?: SharedTierTier;
+        shared_tier_alerts?: SharedTierMetricName[];
     };
 
 export type PerfAdvisorToolMetadata = AtlasMetadata &

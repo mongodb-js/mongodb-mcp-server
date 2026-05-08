@@ -2,6 +2,8 @@ import { z } from "zod";
 import type { ApiClient } from "./apiClient.js";
 import type { LoggerBase } from "../logging/loggerBase.js";
 import { LogId } from "../logging/index.js";
+import { SHARED_TIER_METRIC_NAMES } from "../../telemetry/types.js";
+import type { SharedTierMetricName, SharedTierTier } from "../../telemetry/types.js";
 
 /** One page of OPEN alerts (same defaults as atlas-list-alerts); sufficient for shared-tier MVP. */
 const LIST_ALERTS_PAGE_SIZE = 100;
@@ -9,7 +11,7 @@ const LIST_ALERTS_PAGE_SIZE = 100;
 const SharedTierAlertSchema = z.object({
     id: z.string(),
     eventTypeName: z.enum(["OUTSIDE_METRIC_THRESHOLD", "OUTSIDE_FLEX_METRIC_THRESHOLD"]),
-    metricName: z.enum(["CONNECTIONS_PERCENT", "FLEX_CONNECTIONS_PERCENT", "FLEX_DATA_SIZE_TOTAL", "LOGICAL_SIZE"]),
+    metricName: z.enum(SHARED_TIER_METRIC_NAMES),
     clusterName: z.string(),
     status: z.string(),
     created: z.string().optional(),
@@ -28,9 +30,12 @@ function isSharedTierInstanceType(t: "FREE" | "FLEX" | "DEDICATED" | undefined):
     return t === "FREE" || t === "FLEX";
 }
 
-function buildRecommendationParagraph(clusterName: string, tier: "Free" | "Flex", metricNames: string[]): string {
-    const unique = [...new Set(metricNames)].sort();
-    const metricsList = unique.join(", ");
+function buildRecommendationParagraph(
+    clusterName: string,
+    tier: SharedTierTier,
+    metricNames: SharedTierMetricName[]
+): string {
+    const metricsList = [...metricNames].sort().join(", ");
     return (
         `Note: Atlas reports open shared-tier threshold alerts for cluster "${clusterName}" affecting: ${metricsList}. ` +
         `You may be near connection or storage limits on this ${tier} tier deployment. ` +
@@ -44,7 +49,7 @@ function buildRecommendationParagraph(clusterName: string, tier: "Free" | "Flex"
  */
 export async function runSharedTierAlertsHook(
     params: RunSharedTierAlertsHookParams
-): Promise<{ recommendationText: string; tier: "Free" | "Flex"; alerts: string[] } | undefined> {
+): Promise<{ recommendationText: string; tier: SharedTierTier; alerts: SharedTierMetricName[] } | undefined> {
     const { projectId, clusterName, instanceType, apiClient, logger } = params;
 
     if (!isSharedTierInstanceType(instanceType)) {
@@ -74,7 +79,6 @@ export async function runSharedTierAlertsHook(
         return undefined;
     }
 
-    // set used to deduplicate metric names — multiple open alerts can share the same metric
     const alerts = [
         ...new Set(
             (data?.results ?? []).flatMap((alert) => {

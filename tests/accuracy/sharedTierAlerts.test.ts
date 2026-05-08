@@ -18,6 +18,14 @@ const atlasConnectClusterWithAlerts: CallToolResult = {
                 `Consider upgrading capacity (for example moving to Flex or a paid tier such as M10 or larger) if you need more headroom.`,
         },
     ],
+    structuredContent: {
+        connected: true,
+        addedCurrentIp: false,
+        createdTemporaryUser: true,
+        sharedTierAlertsDetected: true,
+        sharedTierTier: "Free",
+        sharedTierAlerts: ["CONNECTIONS_PERCENT", "FLEX_DATA_SIZE_TOTAL"],
+    },
 };
 
 describeAccuracyTests([

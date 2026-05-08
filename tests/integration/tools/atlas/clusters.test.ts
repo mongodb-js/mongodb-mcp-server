@@ -1,4 +1,5 @@
 import type { Session } from "../../../../src/common/session.js";
+import type { ConnectClusterOutput } from "../../../../src/tools/atlas/connect/connectCluster.js";
 import { expectDefined, getResponseContent } from "../../helpers.js";
 import {
     describeWithAtlas,
@@ -171,6 +172,7 @@ describeWithAtlas("clusters", (integration) => {
                     const content = getResponseContent(response.content);
                     expect(content).toContain("Connected to cluster");
                     expect(content).toContain(clusterName);
+                    const structuredContent = response.structuredContent as ConnectClusterOutput;
                     if (content.includes(`Connected to cluster "${clusterName}"`)) {
                         connected = true;
 
@@ -181,9 +183,20 @@ describeWithAtlas("clusters", (integration) => {
                             "Note: A temporary user has been created to enable secure connection to the cluster. For more information, see https://dochub.mongodb.org/core/mongodb-mcp-server-tools-considerations"
                         );
 
+                        // structuredContent must mirror content
+                        expect(structuredContent.connected).toBe(true);
+                        expect(structuredContent.createdTemporaryUser).toBe(
+                            content.includes("A temporary user has been created")
+                        );
+                        expect(structuredContent.addedCurrentIp).toBe(content.includes("IP address has been added"));
+                        expect(structuredContent.sharedTierAlertsDetected ?? false).toBe(
+                            content.includes("shared-tier threshold alerts")
+                        );
+
                         break;
                     } else {
                         expect(content).toContain(`Attempting to connect to cluster "${clusterName}"...`);
+                        expect(structuredContent.connected).toBe(false);
                     }
                     await sleep(500);
                 }
