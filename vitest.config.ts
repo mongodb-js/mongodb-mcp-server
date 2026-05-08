@@ -23,6 +23,7 @@ if (process.env.SKIP_ATLAS_LOCAL_TESTS === "true") {
 export default defineConfig({
     test: {
         environment: "node",
+        pool: "threads",
         testTimeout: 3600000,
         hookTimeout: 3600000,
         setupFiles: ["./tests/setup.ts"],
