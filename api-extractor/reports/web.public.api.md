@@ -410,8 +410,8 @@ export type ConnectionMetadata = AtlasMetadata & AtlasLocalToolMetadata & {
     connection_auth_type?: string;
     connection_host_type?: string;
     shared_tier_alerts_detected?: TelemetryBoolSet;
-    shared_tier_tier?: "Free" | "Flex";
-    shared_tier_alerts?: string[];
+    shared_tier_tier?: SharedTierTier;
+    shared_tier_alerts?: SharedTierMetricName[];
 };
 
 // @public (undocumented)
@@ -1283,6 +1283,11 @@ export const UserConfigSchema: z.ZodObject<{
     }>]>>;
     browser: z.ZodOptional<z.ZodUnion<readonly [z.ZodLiteral<false>, z.ZodString]>>;
 }, z.core.$strip>;
+
+// Warnings were encountered during analysis:
+//
+// src/telemetry/types.ts:265:9 - (ae-forgotten-export) The symbol "SharedTierTier" needs to be exported by the entry point web.d.ts
+// src/telemetry/types.ts:266:9 - (ae-forgotten-export) The symbol "SharedTierMetricName" needs to be exported by the entry point web.d.ts
 
 // (No @packageDocumentation comment for this package)
 

@@ -43,7 +43,8 @@ export type ConnectClusterOutput = z.infer<z.ZodObject<typeof ConnectClusterOutp
 
 function transformTelemetryFormat(sc: ConnectClusterOutput): Partial<ConnectionMetadata> {
     return {
-        shared_tier_alerts_detected: sc.sharedTierAlertsDetected,
+        // TelemetryBoolSet type required
+        shared_tier_alerts_detected: sc.sharedTierAlertsDetected ? "true" : "false",
         shared_tier_tier: sc.sharedTierTier,
         shared_tier_alerts: sc.sharedTierAlerts,
     };

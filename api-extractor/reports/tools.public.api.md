@@ -224,14 +224,20 @@ export class ConnectClusterTool extends AtlasToolBase {
     static operationType: OperationType;
     // (undocumented)
     outputSchema: {
-        shared_tier_alerts_detected: z.ZodOptional<z.ZodEnum<{
-            true: "true";
-        }>>;
-        shared_tier_tier: z.ZodOptional<z.ZodEnum<{
+        connected: z.ZodBoolean;
+        addedCurrentIp: z.ZodBoolean;
+        createdTemporaryUser: z.ZodBoolean;
+        sharedTierAlertsDetected: z.ZodOptional<z.ZodBoolean>;
+        sharedTierTier: z.ZodOptional<z.ZodEnum<{
             Free: "Free";
             Flex: "Flex";
         }>>;
-        shared_tier_alerts: z.ZodOptional<z.ZodArray<z.ZodString>>;
+        sharedTierAlerts: z.ZodOptional<z.ZodArray<z.ZodEnum<{
+            CONNECTIONS_PERCENT: "CONNECTIONS_PERCENT";
+            FLEX_CONNECTIONS_PERCENT: "FLEX_CONNECTIONS_PERCENT";
+            FLEX_DATA_SIZE_TOTAL: "FLEX_DATA_SIZE_TOTAL";
+            LOGICAL_SIZE: "LOGICAL_SIZE";
+        }>>>;
     };
     // Warning: (ae-forgotten-export) The symbol "ConnectionMetadata" needs to be exported by the entry point index.d.ts
     //
@@ -1722,7 +1728,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
 
 // Warnings were encountered during analysis:
 //
-// src/tools/atlas/connect/connectCluster.ts:358:23 - (ae-forgotten-export) The symbol "ConnectClusterOutputSchema" needs to be exported by the entry point index.d.ts
+// src/tools/atlas/connect/connectCluster.ts:387:23 - (ae-forgotten-export) The symbol "ConnectClusterOutputSchema" needs to be exported by the entry point index.d.ts
 // src/tools/tool.ts:136:5 - (ae-forgotten-export) The symbol "UIRegistry" needs to be exported by the entry point index.d.ts
 
 // (No @packageDocumentation comment for this package)
