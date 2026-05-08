@@ -255,6 +255,10 @@ describeWithAtlas("clusters", (integration) => {
             });
 
             describe("when not connected", () => {
+                beforeAll(async () => {
+                    await integration.mcpServer().session.disconnect();
+                });
+
                 it("prompts for atlas-connect-cluster when querying mongodb", async () => {
                     const response = await integration.mcpClient().callTool({
                         name: "find",
