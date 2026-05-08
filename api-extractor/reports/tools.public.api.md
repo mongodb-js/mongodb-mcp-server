@@ -28,7 +28,6 @@ import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import { z } from 'zod';
 import { ZodDefault } from 'zod';
-import { ZodEnum } from 'zod';
 import { ZodOptional } from 'zod';
 import type { ZodRawShape } from 'zod';
 import { ZodRecord } from 'zod';
@@ -209,25 +208,36 @@ export class CollectionStorageSizeTool extends MongoDBToolBase {
 export class ConnectClusterTool extends AtlasToolBase {
     // (undocumented)
     argsShape: {
-        projectId: ZodString;
-        clusterName: ZodString;
-        connectionType: ZodDefault<ZodEnum<    {
-        standard: "standard";
-        private: "private";
-        privateEndpoint: "privateEndpoint";
+        projectId: z.ZodString;
+        clusterName: z.ZodString;
+        connectionType: z.ZodDefault<z.ZodEnum<{
+            standard: "standard";
+            private: "private";
+            privateEndpoint: "privateEndpoint";
         }>>;
     };
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof ConnectClusterTool.argsShape>): Promise<CallToolResult>;
+    protected execute(input: ToolArgs<typeof ConnectClusterTool.argsShape>): Promise<ToolResult<typeof ConnectClusterTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
+    // (undocumented)
+    outputSchema: {
+        shared_tier_alerts_detected: z.ZodOptional<z.ZodEnum<{
+            true: "true";
+        }>>;
+        shared_tier_tier: z.ZodOptional<z.ZodEnum<{
+            Free: "Free";
+            Flex: "Flex";
+        }>>;
+        shared_tier_alerts: z.ZodOptional<z.ZodArray<z.ZodString>>;
+    };
     // Warning: (ae-forgotten-export) The symbol "ConnectionMetadata" needs to be exported by the entry point index.d.ts
     //
     // (undocumented)
     protected resolveTelemetryMetadata(args: ToolArgs<typeof ConnectClusterTool.argsShape>, input: {
-        result: CallToolResult;
+        result: ToolResult<typeof ConnectClusterOutputSchema>;
     }): ConnectionMetadata;
     // (undocumented)
     static toolName: string;
@@ -1712,6 +1722,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
 
 // Warnings were encountered during analysis:
 //
+// src/tools/atlas/connect/connectCluster.ts:358:23 - (ae-forgotten-export) The symbol "ConnectClusterOutputSchema" needs to be exported by the entry point index.d.ts
 // src/tools/tool.ts:136:5 - (ae-forgotten-export) The symbol "UIRegistry" needs to be exported by the entry point index.d.ts
 
 // (No @packageDocumentation comment for this package)
