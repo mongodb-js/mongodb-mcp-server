@@ -91,9 +91,7 @@ describe("runSharedTierAlertsHook", () => {
         expect(result!.recommendationText).toContain("CONNECTIONS_PERCENT");
         expect(result!.recommendationText).toContain("FLEX_DATA_SIZE_TOTAL");
         expect(result!.tier).toBe("Flex");
-        expect(Array.isArray(result!.alerts)).toBe(true);
-        const parsedAlerts = result!.alerts.map((s) => JSON.parse(s) as { id: string });
-        expect(parsedAlerts.map((a) => a.id).sort()).toEqual(["a1", "a4"]);
+        expect(result!.alerts).toEqual(["CONNECTIONS_PERCENT", "FLEX_DATA_SIZE_TOTAL"]);
     });
 
     it("returns null when no alerts match", async () => {
@@ -162,7 +160,6 @@ describe("runSharedTierAlertsHook", () => {
         expect(result).not.toBeNull();
         expect(result!.recommendationText).toContain("LOGICAL_SIZE");
         expect(result!.tier).toBe("Free");
-        const parsedAlerts = result!.alerts.map((s) => JSON.parse(s) as { id: string });
-        expect(parsedAlerts[0]?.id).toBe("hit");
+        expect(result!.alerts).toEqual(["LOGICAL_SIZE"]);
     });
 });

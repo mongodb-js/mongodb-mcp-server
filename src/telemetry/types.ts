@@ -254,7 +254,7 @@ export type ConnectionMetadata = AtlasMetadata &
         connection_auth_type?: string;
         connection_host_type?: string;
         shared_tier_alerts_detected?: TelemetryBoolSet;
-        shared_tier_tier?: string;
+        shared_tier_tier?: "Free" | "Flex";
         shared_tier_alerts?: string[];
     };
 

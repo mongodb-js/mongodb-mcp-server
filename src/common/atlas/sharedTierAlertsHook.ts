@@ -66,12 +66,12 @@ export async function runSharedTierAlertsHook(
             },
         })
         .catch((err: unknown) => {
-        const message = err instanceof Error ? err.message : String(err);
-        logger.warning({
-            id: LogId.atlasSharedTierAlertsHookWarning,
-            context: "shared-tier-alerts-hook",
-            message: `Failed to list Atlas alerts for shared-tier hook: ${message}`,
-        });
+            const message = err instanceof Error ? err.message : String(err);
+            logger.warning({
+                id: LogId.atlasSharedTierAlertsHookWarning,
+                context: "shared-tier-alerts-hook",
+                message: `Failed to list Atlas alerts for shared-tier hook: ${message}`,
+            });
             return null;
         });
 
@@ -99,7 +99,7 @@ export async function runSharedTierAlertsHook(
     }
 
     const tier = instanceType === "FREE" ? "Free" : "Flex";
-    const alerts = collected.map((item) => JSON.stringify(item));
+    const alerts = [...new Set(collected.map((item) => item.metricName))];
 
     return {
         recommendationText: buildRecommendationParagraph(
