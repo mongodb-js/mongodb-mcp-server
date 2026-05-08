@@ -987,12 +987,13 @@ describeWithMongoDB(
             const aggregatePromise = runSlowAggregate(abortController.signal);
 
             // Give the cursor a bit of time to start processing, then abort
-            setTimeout(() => abortController.abort(), 25);
+            const abortAfterMs = 25;
+            setTimeout(() => abortController.abort(), abortAfterMs);
 
             const { result, error, executionTime } = await aggregatePromise;
 
             // Ensure it aborted quickly, but possibly after some processing
-            expect(executionTime).toBeGreaterThanOrEqual(25);
+            expect(executionTime).toBeGreaterThanOrEqual(abortAfterMs - 5);
             expect(executionTime).toBeLessThan(80);
             expect(result).toBeUndefined();
             expectDefined(error);

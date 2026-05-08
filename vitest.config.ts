@@ -24,9 +24,9 @@ if (process.env.SKIP_ATLAS_LOCAL_TESTS === "true") {
 export default defineConfig({
     test: {
         environment: "node",
-        // Vitest's default forks pool is flaky on Windows CI when multiple
-        // forked workers exit at the end of a run.
-        fileParallelism: !isWindows,
+        // Avoid the flaky Windows child-process fork pool while keeping test
+        // files parallelized.
+        pool: isWindows ? "threads" : undefined,
         testTimeout: 3600000,
         hookTimeout: 3600000,
         setupFiles: ["./tests/setup.ts"],

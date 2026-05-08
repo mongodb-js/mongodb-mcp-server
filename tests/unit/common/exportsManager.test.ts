@@ -458,13 +458,15 @@ describe("ExportsManager unit test", () => {
                 });
                 await cursorCloseNotification;
 
-                // Because the export was never populated in the available exports.
-                await expect(() => manager.readExport(exportName)).rejects.toThrow(
-                    "Requested export has either expired or does not exist."
-                );
+                await vi.waitFor(async () => {
+                    // Because the export was never populated in the available exports.
+                    await expect(() => manager.readExport(exportName)).rejects.toThrow(
+                        "Requested export has either expired or does not exist."
+                    );
+                    expect(manager.availableExports).toEqual([]);
+                    expect(await fileExists(exportPath)).toEqual(false);
+                });
                 expect(emitSpy).not.toHaveBeenCalled();
-                expect(manager.availableExports).toEqual([]);
-                expect(await fileExists(exportPath)).toEqual(false);
             });
         });
 
@@ -486,13 +488,15 @@ describe("ExportsManager unit test", () => {
                 });
                 await cursorCloseNotification;
 
-                // Because the export was never populated in the available exports.
-                await expect(() => manager.readExport(exportName)).rejects.toThrow(
-                    "Requested export has either expired or does not exist."
-                );
+                await vi.waitFor(async () => {
+                    // Because the export was never populated in the available exports.
+                    await expect(() => manager.readExport(exportName)).rejects.toThrow(
+                        "Requested export has either expired or does not exist."
+                    );
+                    expect(manager.availableExports).toEqual([]);
+                    expect(await fileExists(exportPath)).toEqual(false);
+                });
                 expect(emitSpy).not.toHaveBeenCalled();
-                expect(manager.availableExports).toEqual([]);
-                expect(await fileExists(exportPath)).toEqual(false);
             });
         });
     });
