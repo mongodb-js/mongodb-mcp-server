@@ -1,20 +1,15 @@
 import z from "zod";
-import { toEJSON, zEJSON } from "../args.js";
+import { zEJSON } from "../args.js";
 
 export const AnyAggregateStage = zEJSON();
 
-export const DBAggregateStage = z
-    .record(
-        z.union([
-            z.literal("$changeStream"),
-            z.literal("$currentOp"),
-            z.literal("$documents"),
-            z.literal("$listLocalSessions"),
-            z.literal("$queryStats"),
-        ]),
-        z.unknown()
-    )
-    .transform(toEJSON);
+export const DB_AGGREGATE_STAGE_OPERATORS = [
+    "$changeStream",
+    "$currentOp",
+    "$documents",
+    "$listLocalSessions",
+    "$queryStats",
+] as const;
 
 // Mirrors mongodb's IndexDirection type. The driver additionally accepts
 // arbitrary `number` values, but only 1 and -1 are meaningful in practice -

@@ -11,7 +11,6 @@ import { CompositeLogger } from "../../../../src/common/logging/index.js";
 import { DeviceId } from "../../../../src/helpers/deviceId.js";
 import { ExportsManager } from "../../../../src/common/exportsManager.js";
 import { InMemoryTransport } from "../../../../src/transports/inMemoryTransport.js";
-import { Telemetry } from "../../../../src/telemetry/telemetry.js";
 import { Server } from "../../../../src/server.js";
 import { type ConnectionErrorHandler, connectionErrorHandler } from "../../../../src/common/connectionErrorHandler.js";
 import { defaultTestConfig, expectDefined } from "../../helpers.js";
@@ -20,7 +19,7 @@ import { ErrorCodes } from "../../../../src/common/errors.js";
 import { Keychain } from "../../../../src/common/keychain.js";
 import { Elicitation } from "../../../../src/elicitation.js";
 import * as MongoDbTools from "../../../../src/tools/mongodb/tools.js";
-import { defaultCreateApiClient } from "../../../../src/lib.js";
+import { defaultCreateApiClient, Telemetry } from "../../../../src/lib.js";
 import { MockMetrics } from "../../../unit/mocks/metrics.js";
 
 const injectedErrorHandler: ConnectionErrorHandler = (error) => {
@@ -117,7 +116,14 @@ describe("MongoDBTool implementations", () => {
                 logger
             ),
         });
-        const telemetry = Telemetry.create(session, userConfig, deviceId);
+
+        const telemetry = Telemetry.create({
+            logger,
+            deviceId,
+            apiClient: session.apiClient,
+            keychain: session.keychain,
+            enabled: false,
+        });
 
         const clientTransport = new InMemoryTransport();
         const serverTransport = new InMemoryTransport();

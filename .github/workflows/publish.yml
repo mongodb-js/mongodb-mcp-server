@@ -86,7 +86,7 @@ jobs:
       - uses: pnpm/action-setup@v5
       - uses: actions/setup-node@v6
         with:
-          node-version-file: package.json
+          node-version: "24"
           registry-url: "https://registry.npmjs.org"
           cache: "pnpm"
 
@@ -94,6 +94,8 @@ jobs:
         run: |
           pnpm install --frozen-lockfile
           pnpm run build
+      - name: Build .mcpb
+        run: pnpm run build:mcpb
       - name: Publish to NPM
         run: |
           pnpm publish --tag ${{ needs.check.outputs.RELEASE_CHANNEL }} --no-git-checks
@@ -115,6 +117,7 @@ jobs:
           set -e
 
           gh release create ${{ needs.check.outputs.GIT_TAG_VERSION }} \
+            dist-mcpb/*.mcpb \
             --title "${{ needs.check.outputs.GIT_TAG_VERSION }}" \
             --notes-file "${{ steps.ai-summary.outputs.notes_file }}" \
             --target ${{ github.sha }} \

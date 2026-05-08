@@ -40,7 +40,7 @@ export class AggregateDBTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
         responseBytesLimit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
-        pipeline: z.ZodTuple<[z.ZodPipe<z.ZodRecord<z.ZodUnion<readonly [z.ZodLiteral<"$changeStream">, z.ZodLiteral<"$currentOp">, z.ZodLiteral<"$documents">, z.ZodLiteral<"$listLocalSessions">, z.ZodLiteral<"$queryStats">]>, z.ZodUnknown>, z.ZodTransform<Record<"$changeStream" | "$currentOp" | "$documents" | "$listLocalSessions" | "$queryStats", unknown>, Record<"$changeStream" | "$currentOp" | "$documents" | "$listLocalSessions" | "$queryStats", unknown>>>], z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+        pipeline: z.ZodArray<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
         database: z.ZodString;
     };
     // (undocumented)
@@ -1677,6 +1677,35 @@ export class UpdateManyTool extends MongoDBToolBase {
         upsertedCount: z.ZodNumber;
         upsertedId: z.ZodOptional<z.ZodString>;
     };
+    // (undocumented)
+    static toolName: string;
+}
+
+// @public (undocumented)
+export class UpgradeClusterTool extends AtlasToolBase {
+    // (undocumented)
+    argsShape: {
+        projectId: z.ZodOptional<z.ZodString>;
+        clusterName: z.ZodOptional<z.ZodString>;
+        targetTier: z.ZodOptional<z.ZodEnum<{
+            FLEX: "FLEX";
+            M10: "M10";
+        }>>;
+        provider: z.ZodOptional<z.ZodString>;
+        region: z.ZodOptional<z.ZodString>;
+    };
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    protected execute(args: ToolArgs<typeof UpgradeClusterTool.argsShape>): Promise<CallToolResult>;
+    // (undocumented)
+    static operationType: OperationType;
+    // Warning: (ae-forgotten-export) The symbol "UpgradeClusterMetadata" needs to be exported by the entry point index.d.ts
+    //
+    // (undocumented)
+    protected resolveTelemetryMetadata(args: ToolArgs<typeof UpgradeClusterTool.argsShape>, context: {
+        result: CallToolResult;
+    }): UpgradeClusterMetadata;
     // (undocumented)
     static toolName: string;
 }

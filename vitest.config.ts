@@ -47,7 +47,13 @@ export default defineConfig({
                 test: {
                     name: "unit-and-integration",
                     include: ["**/*.test.ts"],
-                    exclude: [...vitestDefaultExcludes, "scripts/**", "tests/accuracy/**", ...longRunningTests],
+                    exclude: [
+                        ...vitestDefaultExcludes,
+                        "scripts/**",
+                        "tests/accuracy/**",
+                        "tests/browser/**",
+                        ...longRunningTests,
+                    ],
                 },
             },
             {
@@ -69,6 +75,13 @@ export default defineConfig({
                 test: {
                     name: "atlas-cleanup",
                     include: ["scripts/cleanupAtlasTestLeftovers.test.ts"],
+                },
+            },
+            {
+                extends: true,
+                test: {
+                    name: "mcpb-build-script",
+                    include: ["scripts/createMcpb.test.ts"],
                 },
             },
             {

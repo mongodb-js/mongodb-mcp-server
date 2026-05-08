@@ -169,6 +169,51 @@ export class ApiClient {
     // (undocumented)
     updateStreamWorkspace(options: FetchOptions<operations["updateGroupStreamWorkspace"]>): Promise<components["schemas"]["StreamsTenant"]>;
     // (undocumented)
+    upgradeFlexToDedicated(options: {
+        groupId: string;
+        body: {
+            name: string;
+            clusterType: "REPLICASET";
+            replicationSpecs: Array<{
+                regionConfigs: Array<{
+                    providerName?: string;
+                    regionName?: string;
+                    priority: number;
+                    electableSpecs: {
+                        instanceSize: string;
+                        nodeCount: number;
+                    };
+                }>;
+            }>;
+            autoScaling: {
+                compute: {
+                    enabled: boolean;
+                    scaleDownEnabled: boolean;
+                    minInstanceSize: string;
+                    maxInstanceSize: string;
+                };
+                diskGBEnabled: boolean;
+            };
+        };
+    }): Promise<{
+        id?: string;
+    }>;
+    // (undocumented)
+    upgradeSharedTierCluster(options: {
+        groupId: string;
+        body: {
+            name: string;
+            providerSettings: {
+                providerName?: string;
+                instanceSizeName: "FLEX" | "M10";
+                backingProviderName?: string;
+                regionName?: string;
+            };
+        };
+    }): Promise<{
+        id?: string;
+    }>;
+    // (undocumented)
     validateAuthConfig(): Promise<void>;
     // (undocumented)
     withStreamSampleConnections(options: FetchOptions<operations["withGroupStreamSampleConnections"]>): Promise<components["schemas"]["StreamsTenant"]>;
@@ -196,7 +241,13 @@ export interface AtlasClusterConnectionInfo {
     // (undocumented)
     expiryDate: Date;
     // (undocumented)
+    instanceType: "FREE" | "FLEX" | "DEDICATED";
+    // (undocumented)
     projectId: string;
+    // (undocumented)
+    provider?: string;
+    // (undocumented)
+    region?: string;
     // (undocumented)
     username: string;
 }
@@ -257,6 +308,7 @@ export type CommonProperties = {
     config_connection_string?: TelemetryBoolSet;
     session_id?: string;
     hosting_mode?: string;
+    has_docker?: TelemetryBoolSet;
 } & CommonStaticProperties;
 
 // @public
@@ -519,6 +571,8 @@ export enum ErrorCodes {
     // (undocumented)
     ForbiddenWriteOperation = 1000003,
     // (undocumented)
+    InvalidPipeline = 1000008,
+    // (undocumented)
     MisconfiguredConnectionString = 1000001,
     // (undocumented)
     NotConnectedToMongoDB = 1000000
@@ -577,6 +631,9 @@ export type ExportsManagerEvents = {
     "export-expired": [string];
     "export-available": [string];
 };
+
+// @public
+export function getRandomUUID(): string;
 
 // @public (undocumented)
 export interface InProgressExport extends CommonExportData {
@@ -801,7 +858,7 @@ export class Session extends EventEmitter<SessionEvents> {
     // (undocumented)
     readonly keychain: Keychain;
     // (undocumented)
-    logger: CompositeLogger;
+    readonly logger: CompositeLogger;
     // (undocumented)
     mcpClient?: {
         name?: string;
@@ -857,11 +914,13 @@ export type StreamsToolMetadata = AtlasMetadata & {
 export class Telemetry {
     // (undocumented)
     close(): Promise<void>;
-    // (undocumented)
-    static create(session: Session, userConfig: UserConfig, deviceId: DeviceId, input?: {
+    // @deprecated (undocumented)
+    static create(session: Session, userConfig: UserConfig, deviceId: DeviceId, options?: {
         commonProperties?: Partial<CommonProperties>;
         eventCache?: EventCache;
     }): Telemetry;
+    // (undocumented)
+    static create(config: TelemetryConfig): Telemetry;
     emitEvents(events: BaseEvent[]): void;
     // (undocumented)
     readonly events: EventEmitter<TelemetryEvents>;
@@ -872,6 +931,17 @@ export class Telemetry {
 
 // @public (undocumented)
 export type TelemetryBoolSet = "true" | "false";
+
+// @public
+export interface TelemetryConfig {
+    apiClient: ApiClient;
+    deviceId: DeviceId;
+    enabled: boolean;
+    eventCache?: EventCache;
+    getCommonProperties?: () => Partial<CommonProperties>;
+    keychain?: Keychain;
+    logger: LoggerBase;
+}
 
 // @public
 export type TelemetryEvent<T> = {
@@ -891,7 +961,7 @@ export { TelemetryEvents }
 export type TelemetryResult = "success" | "failure";
 
 // @public
-export type TelemetryToolMetadata = AtlasMetadata | ConnectionMetadata | PerfAdvisorToolMetadata | StreamsToolMetadata;
+export type TelemetryToolMetadata = AtlasMetadata | ConnectionMetadata | PerfAdvisorToolMetadata | StreamsToolMetadata | UpgradeClusterMetadata;
 
 // @public (undocumented)
 export type ToolArgs<T extends ZodRawShape> = {
@@ -1050,6 +1120,16 @@ export class UIRegistry {
 }
 
 // @public (undocumented)
+export type UpgradeClusterMetadata = AtlasMetadata & {
+    original_tier?: "free" | "flex";
+    target_tier?: "flex" | "m10";
+    original_cluster_id?: string;
+    target_cluster_id?: string;
+    provider?: string;
+    region?: string;
+};
+
+// @public (undocumented)
 export type UserConfig = z.infer<typeof UserConfigSchema>;
 
 // @public (undocumented)
@@ -1059,7 +1139,7 @@ export const UserConfigSchema: z.ZodObject<{
     apiClientId: z.ZodOptional<z.ZodString>;
     apiClientSecret: z.ZodOptional<z.ZodString>;
     connectionString: z.ZodOptional<z.ZodString>;
-    loggers: z.ZodDefault<z.ZodPipe<z.ZodTransform<string[] | undefined, string | string[] | undefined>, z.ZodArray<z.ZodEnum<{
+    loggers: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodEnum<{
         disk: "disk";
         mcp: "mcp";
         stderr: "stderr";
@@ -1075,10 +1155,10 @@ export const UserConfigSchema: z.ZodObject<{
         alert: "alert";
         emergency: "emergency";
     }>>;
-    disabledTools: z.ZodDefault<z.ZodPipe<z.ZodTransform<string[] | undefined, string | string[] | undefined>, z.ZodArray<z.ZodString>>>;
-    confirmationRequiredTools: z.ZodDefault<z.ZodPipe<z.ZodTransform<string[] | undefined, string | string[] | undefined>, z.ZodArray<z.ZodString>>>;
-    readOnly: z.ZodDefault<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodBoolean>>;
-    indexCheck: z.ZodDefault<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodBoolean>>;
+    disabledTools: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodString>>>;
+    confirmationRequiredTools: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodString>>>;
+    readOnly: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
+    indexCheck: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
     telemetry: z.ZodDefault<z.ZodEnum<{
         enabled: "enabled";
         disabled: "disabled";
@@ -1101,10 +1181,10 @@ export const UserConfigSchema: z.ZodObject<{
     exportCleanupIntervalMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     atlasTemporaryDatabaseUserLifetimeMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     voyageApiKey: z.ZodDefault<z.ZodString>;
-    previewFeatures: z.ZodDefault<z.ZodPipe<z.ZodTransform<string[] | undefined, string | string[] | undefined>, z.ZodArray<z.ZodEnum<{
+    previewFeatures: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodEnum<{
         mcpUI: "mcpUI";
     }>>>>;
-    allowRequestOverrides: z.ZodDefault<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodBoolean>>;
+    allowRequestOverrides: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
     dryRun: z.ZodDefault<z.ZodBoolean>;
     externallyManagedSessions: z.ZodDefault<z.ZodBoolean>;
     httpResponseType: z.ZodDefault<z.ZodEnum<{
@@ -1115,7 +1195,7 @@ export const UserConfigSchema: z.ZodObject<{
     healthCheckHost: z.ZodOptional<z.ZodString>;
     monitoringServerPort: z.ZodOptional<z.ZodNumber>;
     monitoringServerHost: z.ZodOptional<z.ZodString>;
-    monitoringServerFeatures: z.ZodDefault<z.ZodPipe<z.ZodTransform<string[] | undefined, string | string[] | undefined>, z.ZodArray<z.ZodEnum<{
+    monitoringServerFeatures: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodEnum<{
         metrics: "metrics";
         "health-check": "health-check";
     }>>>>;

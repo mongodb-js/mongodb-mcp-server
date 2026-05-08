@@ -1,9 +1,9 @@
 {
   "name": "mongodb-mcp-server",
   "description": "MongoDB Model Context Protocol Server",
-  "version": "1.11.0-prerelease.1",
+  "version": "1.11.0-prerelease.2",
   "type": "module",
-  "packageManager": "pnpm@10.23.0",
+  "packageManager": "pnpm@10.33.2",
   "mcpName": "io.github.mongodb-js/mongodb-mcp-server",
   "exports": {
     ".": {
@@ -71,6 +71,8 @@
     "build:update-package-version": "tsx scripts/updatePackageVersion.ts",
     "build:esm": "tsc --project tsconfig.esm.json",
     "build:cjs": "tsc --project tsconfig.cjs.json",
+    "prebuild:mcpb": "pnpm run build",
+    "build:mcpb": "node scripts/createMcpb.ts",
     "build:universal-package": "tsx scripts/createUniversalPackage.ts",
     "compile": "concurrently \"pnpm run build:esm\" \"pnpm run build:cjs\" && pnpm run build:universal-package",
     "build": "pnpm run -r --include-workspace-root compile",
@@ -92,11 +94,13 @@
     "generate:api": "./scripts/generate.sh",
     "generate:arguments": "tsx --tsconfig scripts/generate/tsconfig.json scripts/generate/index.ts",
     "pretest": "pnpm run build",
-    "test": "vitest --project eslint-rules --project unit-and-integration --coverage --run",
+    "test": "vitest --project eslint-rules --project unit-and-integration --project mcpb-build-script --coverage --run",
     "test:accuracy": "sh ./scripts/accuracy/runAccuracyTests.sh",
     "test:browser": "pnpm --filter browser test",
     "test:long-running-tests": "vitest --project long-running-tests --coverage",
     "test:local": "SKIP_ATLAS_INTEGRATION_TESTS=true SKIP_ATLAS_LOCAL_TESTS=true pnpm run test",
+    "prevalidate:mcpb": "pnpm run build",
+    "validate:mcpb": "node scripts/createMcpb.ts --validate-only",
     "atlas:cleanup": "vitest --project atlas-cleanup"
   },
   "license": "Apache-2.0",
@@ -106,11 +110,12 @@
     "@ai-sdk/google": "^3.0.64",
     "@ai-sdk/mcp": "^1.0.36",
     "@ai-sdk/openai": "^3.0.53",
+    "@anthropic-ai/mcpb": "2.1.2",
     "@emotion/css": "^11.13.5",
     "@eslint/js": "^10.0.1",
     "@lg-mcp/embeddable-uis": "^0.1.0",
     "@lg-mcp/hooks": "^0.2.0",
-    "@microsoft/api-extractor": "^7.58.5",
+    "@microsoft/api-extractor": "^7.58.7",
     "@modelcontextprotocol/inspector": "^0.21.2",
     "@mongodb-js/oidc-mock-provider": "^0.13.7",
     "@redocly/cli": "^2.29.0",
@@ -122,17 +127,17 @@
     "@types/react-dom": "^19.2.3",
     "@types/semver": "^7.7.0",
     "@types/yargs-parser": "^21.0.3",
-    "@typescript-eslint/parser": "^8.58.1",
+    "@typescript-eslint/parser": "^8.58.2",
     "@vitejs/plugin-react": "^6.0.1",
-    "@vitest/coverage-v8": "^4.1.4",
-    "@vitest/eslint-plugin": "^1.6.15",
+    "@vitest/coverage-v8": "^4.1.5",
+    "@vitest/eslint-plugin": "^1.6.16",
     "ai": "^6.0.168",
     "concurrently": "^9.2.1",
     "duplexpair": "^1.0.2",
     "eslint": "^10.2.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
-    "globals": "^17.4.0",
+    "globals": "^17.5.0",
     "happy-dom": "^20.9.0",
     "husky": "^9.1.7",
     "jsdom": "^29.0.2",
@@ -146,19 +151,19 @@
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "semver": "^7.7.4",
-    "simple-git": "^3.32.3",
+    "simple-git": "^3.36.0",
     "testcontainers": "^11.14.0",
     "tsx": "^4.20.5",
+    "type-fest": "^5.6.0",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.58.2",
     "uuid": "^14.0.0",
     "vite": "^8.0.8",
     "vite-plugin-node-polyfills": "^0.26.0",
     "vite-plugin-singlefile": "^2.3.2",
-    "vitest": "^4.1.4"
+    "vitest": "^4.1.5"
   },
   "dependencies": {
-    "@mongodb-js/mcp-types": "workspace:*",
     "@inquirer/prompts": "^8.0.2",
     "@inquirer/select": "^5.1.3",
     "@mcp-ui/server": "^5.13.1",
@@ -166,6 +171,7 @@
     "@mongodb-js/device-id": "^0.4.6",
     "@mongodb-js/devtools-proxy-support": "^0.7.8",
     "@mongodb-js/mcp-metrics": "workspace:*",
+    "@mongodb-js/mcp-types": "workspace:*",
     "@mongosh/arg-parser": "^5.0.2",
     "@mongosh/service-provider-node-driver": "^5.0.2",
     "bson": "^7.2.0",
@@ -186,7 +192,7 @@
     "semver": "^7.7.2",
     "ts-levenshtein": "^1.0.7",
     "yaml": "^2.8.1",
-    "zod": "^4.0.0"
+    "zod": "^4.4.2"
   },
   "peerDependencies": {
     "@types/express": "^5.0.3"
@@ -203,13 +209,13 @@
       "mongodb": "^7.1.1",
       "kerberos": "^7.0.0",
       "bson": "^7.2.0",
-      "zod": "^4.0.0"
+      "zod": "^4.4.2"
     }
   },
   "overrides": {
     "mongodb": "^7.1.1",
     "kerberos": "^7.0.0",
     "bson": "^7.2.0",
-    "zod": "^4.0.0"
+    "zod": "^4.4.2"
   }
 }
