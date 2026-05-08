@@ -1,5 +1,5 @@
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { type OperationType, type ToolArgs } from "../../tool.js";
+import { type OperationType, type ToolArgs, type ToolResult } from "../../tool.js";
+import { z } from "zod";
 import { AtlasToolBase } from "../atlasTool.js";
 import { generateSecurePassword } from "../../../helpers/generatePassword.js";
 import { LogId } from "../../../common/logging/index.js";
@@ -29,13 +29,18 @@ export const ConnectClusterArgs = {
     ),
 };
 
+const ConnectClusterOutputSchema = {
+    shared_tier_alerts_detected: z.enum(["true"]).optional(),
+    shared_tier_tier: z.enum(["Free", "Flex"]).optional(),
+    shared_tier_alerts: z.array(z.string()).optional(),
+};
+
 export class ConnectClusterTool extends AtlasToolBase {
     static toolName = "atlas-connect-cluster";
     public description = "Connect to MongoDB Atlas cluster";
     static operationType: OperationType = "connect";
     public argsShape = ConnectClusterArgs;
-
-    private sharedTierHookResult: { tier: "Free" | "Flex"; alerts: string[] } | null = null;
+    public override outputSchema = ConnectClusterOutputSchema;
 
     private queryConnection(
         projectId: string,
@@ -219,8 +224,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         projectId,
         clusterName,
         connectionType,
-    }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
-        this.sharedTierHookResult = null;
+    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
         const ipAccessListUpdated = await ensureCurrentIpInAccessList(this.apiClient, projectId);
         let createdUser = false;
 
@@ -261,7 +265,7 @@ export class ConnectClusterTool extends AtlasToolBase {
             const state = this.queryConnection(projectId, clusterName);
             switch (state) {
                 case "connected": {
-                    const content: CallToolResult["content"] = [
+                    const content: { type: "text"; text: string }[] = [
                         {
                             type: "text",
                             text: `Connected to cluster "${clusterName}".`,
@@ -283,7 +287,7 @@ export class ConnectClusterTool extends AtlasToolBase {
                     }
 
                     const atlas = this.session.connectedAtlasCluster;
-                    if (atlas !== undefined) {
+                    if (atlas !== undefined && ["FREE", "FLEX"].includes(atlas.instanceType)) {
                         const hookResult = await runSharedTierAlertsHook({
                             projectId: atlas.projectId,
                             clusterName: atlas.clusterName,
@@ -291,16 +295,23 @@ export class ConnectClusterTool extends AtlasToolBase {
                             apiClient: this.apiClient,
                             logger: this.session.logger,
                         });
-                        if (hookResult !== null) {
-                            this.sharedTierHookResult = { tier: hookResult.tier, alerts: hookResult.alerts };
+                        if (hookResult !== undefined) {
                             content.push({
                                 type: "text",
                                 text: hookResult.recommendationText,
                             });
+                            return {
+                                content,
+                                structuredContent: {
+                                    shared_tier_alerts_detected: "true" as const,
+                                    shared_tier_tier: hookResult.tier,
+                                    shared_tier_alerts: hookResult.alerts,
+                                },
+                            };
                         }
                     }
 
-                    return { content };
+                    return { content, structuredContent: {} };
                 }
                 case "connecting":
                 case "unknown":
@@ -314,37 +325,37 @@ export class ConnectClusterTool extends AtlasToolBase {
             await sleep(500); // wait 500ms before checking the connection state again
         }
 
-        const content: CallToolResult["content"] = [
+        const content: { type: "text"; text: string }[] = [
             {
-                type: "text" as const,
+                type: "text",
                 text: `Attempting to connect to cluster "${clusterName}"...`,
             },
             {
-                type: "text" as const,
+                type: "text",
                 text: `Warning: Provisioning a user and connecting to the cluster may take more time, please check again in a few seconds.`,
             },
         ];
 
         if (ipAccessListUpdated) {
             content.push({
-                type: "text" as const,
+                type: "text",
                 text: addedIpAccessListMessage,
             });
         }
 
         if (createdUser) {
             content.push({
-                type: "text" as const,
+                type: "text",
                 text: createdUserMessage,
             });
         }
 
-        return { content };
+        return { content, structuredContent: {} };
     }
 
     protected override resolveTelemetryMetadata(
         args: ToolArgs<typeof this.argsShape>,
-        { result }: { result: CallToolResult }
+        { result }: { result: ToolResult<typeof ConnectClusterOutputSchema> }
     ): ConnectionMetadata {
         const parentMetadata = super.resolveTelemetryMetadata(args, { result });
         const connectionMetadata = this.getConnectionInfoMetadata();
@@ -352,16 +363,10 @@ export class ConnectClusterTool extends AtlasToolBase {
             // delete the project_id from the parent metadata to avoid duplication
             delete parentMetadata.project_id;
         }
-        const sharedTierMetadata: Pick<
-            ConnectionMetadata,
-            "shared_tier_alerts_detected" | "shared_tier_tier" | "shared_tier_alerts"
-        > = this.sharedTierHookResult
-            ? {
-                  shared_tier_alerts_detected: "true",
-                  shared_tier_tier: this.sharedTierHookResult.tier,
-                  shared_tier_alerts: this.sharedTierHookResult.alerts,
-              }
-            : {};
-        return { ...parentMetadata, ...connectionMetadata, ...sharedTierMetadata };
+        return {
+            ...parentMetadata,
+            ...connectionMetadata,
+            ...result.structuredContent,
+        };
     }
 }

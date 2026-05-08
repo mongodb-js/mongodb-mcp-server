@@ -37,12 +37,12 @@ describe("runSharedTierAlertsHook", () => {
         baseParams.logger = logger;
     });
 
-    it("returns null and does not call listAlerts for dedicated tier", async () => {
+    it("returns undefined and does not call listAlerts for dedicated tier", async () => {
         const result = await runSharedTierAlertsHook({
             ...baseParams,
             instanceType: "DEDICATED",
         });
-        expect(result).toBeNull();
+        expect(result).toBeUndefined();
         expect(listAlerts).not.toHaveBeenCalled();
     });
 
@@ -87,14 +87,14 @@ describe("runSharedTierAlertsHook", () => {
             instanceType: "FLEX",
         });
 
-        expect(result).not.toBeNull();
+        expect(result).toBeDefined();
         expect(result!.recommendationText).toContain("CONNECTIONS_PERCENT");
         expect(result!.recommendationText).toContain("FLEX_DATA_SIZE_TOTAL");
         expect(result!.tier).toBe("Flex");
         expect(result!.alerts).toEqual(["CONNECTIONS_PERCENT", "FLEX_DATA_SIZE_TOTAL"]);
     });
 
-    it("returns null when no alerts match", async () => {
+    it("returns undefined when no alerts match", async () => {
         listAlerts.mockResolvedValue({
             results: [
                 {
@@ -113,10 +113,10 @@ describe("runSharedTierAlertsHook", () => {
             instanceType: "FREE",
         });
 
-        expect(result).toBeNull();
+        expect(result).toBeUndefined();
     });
 
-    it("logs a warning and returns null when listAlerts rejects", async () => {
+    it("logs a warning and returns undefined when listAlerts rejects", async () => {
         listAlerts.mockRejectedValue(new Error("network down"));
 
         const result = await runSharedTierAlertsHook({
@@ -124,7 +124,7 @@ describe("runSharedTierAlertsHook", () => {
             instanceType: "FREE",
         });
 
-        expect(result).toBeNull();
+        expect(result).toBeUndefined();
         expect(warning).toHaveBeenCalledTimes(1);
         const listAlertsFailPayload = warning.mock.calls[0]?.[0];
         expect(listAlertsFailPayload?.id).toBe(LogId.atlasSharedTierAlertsHookWarning);
@@ -157,7 +157,7 @@ describe("runSharedTierAlertsHook", () => {
         });
 
         expect(listAlerts).toHaveBeenCalledTimes(1);
-        expect(result).not.toBeNull();
+        expect(result).toBeDefined();
         expect(result!.recommendationText).toContain("LOGICAL_SIZE");
         expect(result!.tier).toBe("Free");
         expect(result!.alerts).toEqual(["LOGICAL_SIZE"]);

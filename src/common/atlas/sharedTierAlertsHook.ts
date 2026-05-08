@@ -16,8 +16,6 @@ const SharedTierAlertSchema = z.object({
     updated: z.string().optional(),
 });
 
-type SharedTierAlertItem = z.infer<typeof SharedTierAlertSchema>;
-
 export interface RunSharedTierAlertsHookParams {
     projectId: string;
     clusterName: string;
@@ -46,15 +44,16 @@ function buildRecommendationParagraph(clusterName: string, tier: "Free" | "Flex"
  */
 export async function runSharedTierAlertsHook(
     params: RunSharedTierAlertsHookParams
-): Promise<{ recommendationText: string; tier: "Free" | "Flex"; alerts: string[] } | null> {
+): Promise<{ recommendationText: string; tier: "Free" | "Flex"; alerts: string[] } | undefined> {
     const { projectId, clusterName, instanceType, apiClient, logger } = params;
 
     if (!isSharedTierInstanceType(instanceType)) {
-        return null;
+        return undefined;
     }
 
-    const data = await apiClient
-        .listAlerts({
+    let data;
+    try {
+        data = await apiClient.listAlerts({
             params: {
                 path: { groupId: projectId },
                 query: {
@@ -64,49 +63,35 @@ export async function runSharedTierAlertsHook(
                     includeCount: true,
                 },
             },
-        })
-        .catch((err: unknown) => {
-            const message = err instanceof Error ? err.message : String(err);
-            logger.warning({
-                id: LogId.atlasSharedTierAlertsHookWarning,
-                context: "shared-tier-alerts-hook",
-                message: `Failed to list Atlas alerts for shared-tier hook: ${message}`,
-            });
-            return null;
         });
-
-    if (!data) {
-        return null;
+    } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        logger.warning({
+            id: LogId.atlasSharedTierAlertsHookWarning,
+            context: "shared-tier-alerts-hook",
+            message: `Failed to list Atlas alerts for shared-tier hook: ${message}`,
+        });
+        return undefined;
     }
 
-    const { results } = data;
-    if (!results.length) {
-        return null;
-    }
+    // set used to deduplicate metric names — multiple open alerts can share the same metric
+    const alerts = [
+        ...new Set(
+            (data?.results ?? []).flatMap((alert) => {
+                const parsed = SharedTierAlertSchema.safeParse(alert);
+                return parsed.success && parsed.data.clusterName === clusterName ? [parsed.data.metricName] : [];
+            })
+        ),
+    ];
 
-    const collectedById = new Map<string, SharedTierAlertItem>();
-    for (const alert of results) {
-        const parsed = SharedTierAlertSchema.safeParse(alert);
-        if (!parsed.success || parsed.data.clusterName !== clusterName) {
-            continue;
-        }
-        collectedById.set(parsed.data.id, parsed.data);
-    }
-
-    const collected = [...collectedById.values()];
-    if (collected.length === 0) {
-        return null;
+    if (!alerts.length) {
+        return undefined;
     }
 
     const tier = instanceType === "FREE" ? "Free" : "Flex";
-    const alerts = [...new Set(collected.map((item) => item.metricName))];
 
     return {
-        recommendationText: buildRecommendationParagraph(
-            clusterName,
-            tier,
-            collected.map((a) => a.metricName)
-        ),
+        recommendationText: buildRecommendationParagraph(clusterName, tier, alerts),
         tier,
         alerts,
     };
