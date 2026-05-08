@@ -122,3 +122,4 @@ export {
     Histogram,
     Counter,
 } from "@mongodb-js/mcp-metrics";
+export * from "./transports/jsonRpcErrorCodes.js";
