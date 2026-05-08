@@ -1,0 +1,105 @@
+{
+  "manifest_version": "0.1",
+  "name": "mongodb-mcp-server",
+  "display_name": "MongoDB",
+  "version": "1.11.0-prerelease.1",
+  "description": "Official MongoDB desktop extension (MCP Server). Connect to databases, explore data, manage collections, optimize queries, generate reliable code, implement best practices, develop advanced features, and more.",
+  "long_description": "Connect Claude Desktop to MongoDB Atlas and self-managed MongoDB deployments.\n\nManage your Atlas resources — clusters, projects, network access, and database users — directly from Claude. Query and inspect your data using find and aggregation, explore schemas, and manage indexes. Spin up local Atlas environments via Docker with Atlas Local, and add semantic search to your workflows using Vector Search with Voyage AI embeddings.\n\nFull documentation at [mongodb.com/docs/mcp-server](https://www.mongodb.com/docs/mcp-server/).",
+  "author": {
+    "name": "MongoDB",
+    "email": "agent-plugins@mongodb.com",
+    "url": "https://www.mongodb.com"
+  },
+  "homepage": "https://www.mongodb.com/docs/mcp-server/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mongodb-js/mongodb-mcp-server"
+  },
+  "documentation": "https://www.mongodb.com/docs/mcp-server/",
+  "license": "Apache-2.0",
+  "keywords": [
+    "mongodb",
+    "database",
+    "mcp",
+    "vector-search"
+  ],
+  "icon": "icon.png",
+  "compatibility": {
+    "claude_desktop": ">=0.10.0",
+    "platforms": [
+      "darwin",
+      "win32",
+      "linux"
+    ],
+    "runtimes": {
+      "node": ">=20.19.0"
+    }
+  },
+  "server": {
+    "type": "node",
+    "entry_point": "server/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": [
+        "${__dirname}/server/index.js",
+        "--transport",
+        "stdio"
+      ],
+      "env": {
+        "MDB_MCP_CONNECTION_STRING": "${user_config.connection_string}",
+        "MDB_MCP_API_CLIENT_ID": "${user_config.atlas_client_id}",
+        "MDB_MCP_API_CLIENT_SECRET": "${user_config.atlas_client_secret}",
+        "MDB_MCP_VOYAGE_API_KEY": "${user_config.voyage_api_key}",
+        "MDB_MCP_READ_ONLY": "${user_config.read_only}",
+        "MDB_MCP_DISABLED_TOOLS": "${user_config.disabled_tools}"
+      }
+    }
+  },
+  "user_config": {
+    "connection_string": {
+      "type": "string",
+      "title": "MongoDB connection string",
+      "description": "Optional. If omitted, you can connect to an Atlas deployment or a local MongoDB instance at runtime.",
+      "sensitive": true,
+      "required": false,
+      "default": ""
+    },
+    "atlas_client_id": {
+      "type": "string",
+      "title": "Atlas API client ID",
+      "description": "Required for Atlas tools.",
+      "sensitive": true,
+      "required": false,
+      "default": ""
+    },
+    "atlas_client_secret": {
+      "type": "string",
+      "title": "Atlas API client secret",
+      "description": "Required for Atlas tools.",
+      "sensitive": true,
+      "required": false,
+      "default": ""
+    },
+    "voyage_api_key": {
+      "type": "string",
+      "title": "Voyage AI API key",
+      "description": "Required for Atlas Local auto-embed vector search.",
+      "sensitive": true,
+      "required": false,
+      "default": ""
+    },
+    "read_only": {
+      "type": "boolean",
+      "title": "Read-only mode",
+      "description": "Disable create/update/delete operations.",
+      "default": true
+    },
+    "disabled_tools": {
+      "type": "string",
+      "title": "Disabled tools",
+      "description": "Comma-separated tool names, operation types, or categories to disable.",
+      "required": false,
+      "default": ""
+    }
+  }
+}

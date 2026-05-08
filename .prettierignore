@@ -9,3 +9,4 @@ src/ui/lib/loaders.ts
 temp
 api-extractor/reports
 .github/workflows/*.lock.yml
+packaging/mcpb/manifest.json

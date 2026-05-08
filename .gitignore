@@ -21,3 +21,7 @@ temp
 # Development tool files
 .yalc
 yalc.lock
+
+# .mcpb build artifacts
+mcpb-build/
+dist-mcpb/
