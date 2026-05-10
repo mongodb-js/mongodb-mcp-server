@@ -11,6 +11,7 @@ import { ApiClientError } from "../../../../../src/common/atlas/apiClientError.j
 import type { AtlasClusterConnectionInfo } from "../../../../../src/common/connectionInfo.js";
 import { UIRegistry } from "../../../../../src/ui/registry/index.js";
 import { MockMetrics } from "../../../mocks/metrics.js";
+import type { Keychain } from "../../../../../src/lib.js";
 
 function notFoundError(): ApiClientError {
     return ApiClientError.fromError(new Response(null, { status: 404, statusText: "Not Found" }), "cluster not found");
@@ -87,6 +88,7 @@ describe("UpgradeClusterTool", () => {
             logger: mockLogger,
             apiClient: mockApiClient as unknown as ApiClient,
             connectedAtlasCluster: connectedCluster,
+            keychain: { allSecrets: [] } as unknown as Keychain,
         };
 
         const mockConfig = {
@@ -122,7 +124,7 @@ describe("UpgradeClusterTool", () => {
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    const exec = (args: Record<string, unknown>) => tool["execute"](args as never);
+    const exec = (args: Record<string, unknown>) => tool["invoke"](args as never, {} as never);
 
     beforeEach(() => {
         tool = buildTool();
@@ -130,7 +132,7 @@ describe("UpgradeClusterTool", () => {
 
     describe("error cases", () => {
         it("returns error when projectId and clusterName are missing and not connected", async () => {
-            const result = await tool["invoke"]({} as never, {} as never);
+            const result = await exec({});
 
             expect(result.isError).toBe(true);
             const text = (result.content[0] as { text: string }).text;
@@ -138,7 +140,7 @@ describe("UpgradeClusterTool", () => {
         });
 
         it("returns error when only projectId is provided and not connected", async () => {
-            const result = await tool["invoke"]({ projectId: "proj1" } as never, {} as never);
+            const result = await exec({ projectId: "proj1" });
 
             expect(result.isError).toBe(true);
             const text = (result.content[0] as { text: string }).text;
@@ -148,7 +150,7 @@ describe("UpgradeClusterTool", () => {
         it("returns error for DEDICATED cluster when not connected", async () => {
             mockApiClient.getCluster!.mockResolvedValue(DEDICATED_CLUSTER_RAW);
 
-            const result = await tool["invoke"]({ projectId: "proj1", clusterName: "MyCluster" } as never, {} as never);
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
 
             expect(result.isError).toBe(true);
             const text = (result.content[0] as { text: string }).text;
@@ -167,7 +169,7 @@ describe("UpgradeClusterTool", () => {
             };
             tool = buildTool(connectedCluster);
 
-            const result = await tool["invoke"]({ projectId: "proj1", clusterName: "MyCluster" } as never, {} as never);
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
 
             expect(result.isError).toBe(true);
             const text = (result.content[0] as { text: string }).text;
@@ -179,10 +181,7 @@ describe("UpgradeClusterTool", () => {
             mockApiClient.getCluster!.mockRejectedValue(notFoundError());
             mockApiClient.getFlexCluster!.mockResolvedValue(FLEX_CLUSTER_RAW);
 
-            const result = await tool["invoke"](
-                { projectId: "proj1", clusterName: "MyCluster", targetTier: "FLEX" } as never,
-                {} as never
-            );
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "FLEX" });
 
             expect(result.isError).toBe(true);
             const text = (result.content[0] as { text: string }).text;
@@ -201,10 +200,7 @@ describe("UpgradeClusterTool", () => {
             };
             tool = buildTool(connectedCluster);
 
-            const result = await tool["invoke"](
-                { projectId: "proj1", clusterName: "MyCluster", targetTier: "FLEX" } as never,
-                {} as never
-            );
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "FLEX" });
 
             expect(result.isError).toBe(true);
             const text = (result.content[0] as { text: string }).text;
@@ -427,50 +423,49 @@ describe("UpgradeClusterTool", () => {
     });
 
     describe("API failure handling", () => {
-        it("propagates non-404 error from getCluster without falling through to getFlexCluster", async () => {
+        it("returns error for non-404 getCluster failure without falling through to getFlexCluster", async () => {
             const serverError = ApiClientError.fromError(
                 new Response(null, { status: 500, statusText: "Internal Server Error" }),
                 "internal server error"
             );
             mockApiClient.getCluster!.mockRejectedValue(serverError);
 
-            await expect(exec({ projectId: "proj1", clusterName: "MyCluster" })).rejects.toThrow();
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
+            expect(result.isError).toBe(true);
             expect(mockApiClient.getFlexCluster).not.toHaveBeenCalled();
         });
 
-        it("propagates plain errors from getCluster without falling through to getFlexCluster", async () => {
+        it("returns error for plain getCluster failure without falling through to getFlexCluster", async () => {
             mockApiClient.getCluster!.mockRejectedValue(new Error("network timeout"));
 
-            await expect(exec({ projectId: "proj1", clusterName: "MyCluster" })).rejects.toThrow("network timeout");
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
+            expect(result.isError).toBe(true);
             expect(mockApiClient.getFlexCluster).not.toHaveBeenCalled();
         });
 
-        it("propagates error when upgradeSharedTierCluster throws (FREE to FLEX)", async () => {
+        it("returns error when upgradeSharedTierCluster throws (FREE to FLEX)", async () => {
             mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
             mockApiClient.upgradeSharedTierCluster!.mockRejectedValue(new Error("upgrade quota exceeded"));
 
-            await expect(exec({ projectId: "proj1", clusterName: "MyCluster" })).rejects.toThrow(
-                "upgrade quota exceeded"
-            );
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
+            expect(result.isError).toBe(true);
         });
 
-        it("propagates error when upgradeSharedTierCluster throws (FREE to M10)", async () => {
+        it("returns error when upgradeSharedTierCluster throws (FREE to M10)", async () => {
             mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
             mockApiClient.upgradeSharedTierCluster!.mockRejectedValue(new Error("upgrade quota exceeded"));
 
-            await expect(exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M10" })).rejects.toThrow(
-                "upgrade quota exceeded"
-            );
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M10" });
+            expect(result.isError).toBe(true);
         });
 
-        it("propagates error when upgradeFlexToDedicated throws", async () => {
+        it("returns error when upgradeFlexToDedicated throws", async () => {
             mockApiClient.getCluster!.mockRejectedValue(notFoundError());
             mockApiClient.getFlexCluster!.mockResolvedValue(FLEX_CLUSTER_RAW);
             mockApiClient.upgradeFlexToDedicated!.mockRejectedValue(new Error("upgrade quota exceeded"));
 
-            await expect(exec({ projectId: "proj1", clusterName: "MyCluster" })).rejects.toThrow(
-                "upgrade quota exceeded"
-            );
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
+            expect(result.isError).toBe(true);
         });
     });
 
@@ -778,7 +773,7 @@ describe("UpgradeClusterTool", () => {
             expect(metadata).not.toHaveProperty("target_cluster_id");
         });
 
-        it("returns empty metadata fields when result has no structuredContent (error path)", async () => {
+        it("returns empty metadata fields when result has no structuredContent (error path)", () => {
             const metadata = tool["resolveTelemetryMetadata"](
                 { projectId: "proj1", clusterName: "MyCluster" } as never,
                 { result: { content: [] } as never }
