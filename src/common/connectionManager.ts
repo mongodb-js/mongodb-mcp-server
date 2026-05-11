@@ -228,6 +228,22 @@ export abstract class ConnectionManager {
     abstract close(): Promise<void>;
 }
 
+/**
+ * Default {@link ConnectionManager} implementation used by the MongoDB MCP
+ * server.
+ *
+ * Establishes and tears down MongoDB connections via mongosh's
+ * {@link NodeDriverServiceProvider}, applying MCP-specific defaults such as
+ * the `appName` (composed from package info, device id and client name) and
+ * driver options (read/write concerns, proxy and OIDC settings).
+ *
+ * Tracks connection lifecycle as an {@link AnyConnectionState} and emits
+ * `connection-request`, `connection-success`, `connection-error`,
+ * `connection-close` and `close` events on {@link ConnectionManager.events}.
+ * For OIDC connection strings it stays in the `connecting` state until the
+ * OIDC plugin reports auth success or failure (via the shared event bus),
+ * surfacing device-flow verification URL and user code when applicable.
+ */
 export class MCPConnectionManager extends ConnectionManager {
     private deviceId: DeviceId;
     private bus: EventEmitter;
