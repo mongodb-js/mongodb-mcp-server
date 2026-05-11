@@ -6,5 +6,4 @@ src/ui/lib/loaders.ts
 temp
 **/reports/*.api.md
 .github/workflows/*.lock.yml
-.claude/**
 packaging/mcpb/manifest.json

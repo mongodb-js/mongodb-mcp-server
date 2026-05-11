@@ -14,10 +14,12 @@ export class StdioRunner<
         super(config);
     }
 
-    async start(input?: {
-        serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
-        sessionOptions?: CustomizableSessionOptions<TUserConfig>;
-    }): Promise<void> {
+    async start(
+        input: {
+            serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
+            sessionOptions?: CustomizableSessionOptions<TUserConfig>;
+        } = {}
+    ): Promise<void> {
         const transport = new StdioServerTransport();
         const server = await this.setupServer(undefined, input);
         await server.connect(transport);
