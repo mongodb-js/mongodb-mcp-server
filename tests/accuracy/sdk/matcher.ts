@@ -20,6 +20,16 @@ export abstract class Matcher {
         return new CompositeMatcher(matchers);
     }
 
+    /**
+     * Asserts that a parameter must NOT be present (i.e., is `undefined`).
+     * Use this in test definitions to strictly forbid an extra param that
+     * would otherwise cause the score to drop to 0.
+     *
+     * Example — ensure the model does NOT send a `limit` param:
+     * ```
+     * { toolName: "find", parameters: { db: "test", collection: "users", limit: Matcher.undefined } }
+     * ```
+     */
     public static get undefined(): Matcher {
         return new UndefinedMatcher();
     }

@@ -63,7 +63,7 @@ const listProjectsAndClustersToolCalls = [
 describeAccuracyTests([
     // Test for Suggested Indexes operation
     {
-        prompt: "Can you give me index suggestions for the database 'mflix' in the project 'mflix' and cluster 'mflix-cluster'?",
+        prompt: "Can you give me index suggestions for the database 'mflix' in the project named 'mflix' and cluster 'mflix-cluster'?",
         expectedToolCalls: [
             ...listProjectsAndClustersToolCalls,
             {
@@ -95,7 +95,7 @@ describeAccuracyTests([
     },
     // Test for Slow Query Logs operation
     {
-        prompt: "Show me the slow query logs for the 'mflix' project and 'mflix-cluster' cluster for the namespaces 'mflix.movies' and 'mflix.shows' since January 1st, 2023",
+        prompt: "Show me the slow query logs for the project named 'mflix' and 'mflix-cluster' cluster for the namespaces 'mflix.movies' and 'mflix.shows' since January 1st, 2023",
         expectedToolCalls: [
             ...listProjectsAndClustersToolCalls,
             {
@@ -113,7 +113,7 @@ describeAccuracyTests([
     },
     // Test for Schema Suggestions operation
     {
-        prompt: "Give me schema suggestions for the 'mflix' project and 'mflix-cluster' cluster",
+        prompt: "Give me schema recommendations for the project named 'mflix' and 'mflix-cluster' cluster",
         expectedToolCalls: [
             ...listProjectsAndClustersToolCalls,
             {
@@ -129,7 +129,7 @@ describeAccuracyTests([
     },
     // Test for all operations
     {
-        prompt: "Show me all performance advisor recommendations for the 'mflix' project and 'mflix-cluster' cluster",
+        prompt: "Show me all performance advisor recommendations for the project named 'mflix' and 'mflix-cluster' cluster",
         expectedToolCalls: [
             ...listProjectsAndClustersToolCalls,
             {

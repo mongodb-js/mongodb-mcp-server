@@ -4,13 +4,13 @@ import type { OperationType } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 
 export class ListOrganizationsTool extends AtlasToolBase {
-    public name = "atlas-list-orgs";
-    protected description = "List MongoDB Atlas organizations";
+    static toolName = "atlas-list-orgs";
+    public description = "List MongoDB Atlas organizations";
     static operationType: OperationType = "read";
-    protected argsShape = {};
+    public argsShape = {};
 
     protected async execute(): Promise<CallToolResult> {
-        const data = await this.session.apiClient.listOrgs();
+        const data = await this.apiClient.listOrgs();
 
         if (!data?.results?.length) {
             return {

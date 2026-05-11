@@ -5,7 +5,7 @@ import type {
 } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Server } from "../../server.js";
-import { LogId } from "../../common/logger.js";
+import { LogId } from "../../common/logging/index.js";
 import type { Session } from "../../common/session.js";
 import { formatUntrustedData } from "../../tools/tool.js";
 

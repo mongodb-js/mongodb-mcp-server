@@ -1,0 +1,74 @@
+services:
+  mongod:
+    image: mongodb/mongodb-community-server:latest
+    command: >-
+      mongod
+      --config /etc/mongod.conf
+      --replSetMember=mongod:27017
+    secrets:
+      - mongot_password
+    ports:
+      # Bind to random available port on host
+      - "0:27017"
+    volumes:
+      - mongod-data:/data/db
+      - ./config/mongod.conf:/etc/mongod.conf:ro
+      - ./init-mongo.sh:/docker-entrypoint-initdb.d/init-mongo.sh:ro
+    healthcheck:
+      test:
+        ["CMD", "mongosh", "--eval", "db.adminCommand('ping').ok", "--quiet"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  mongot:
+    depends_on:
+      - mongod
+    image: mongodb/mongodb-community-search:latest
+    secrets:
+      - mongot_password
+      - voyage_query_key
+      - voyage_indexing_key
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        # Copy secrets to expected location in container
+        cp /run/secrets/mongot_password /mongot-community/pwfile
+        cp /run/secrets/voyage_query_key /etc/voyage-api-query-key
+        cp /run/secrets/voyage_indexing_key /etc/voyage-api-indexing-key
+
+        # Ensure readonly permissions for the credentials
+        chmod 400 /mongot-community/pwfile /etc/voyage-api-query-key /etc/voyage-api-indexing-key
+
+        # Enabling this flag allows the underlying mongot to report back the index
+        # building status for the new auto-embed indexes. We should not rely this
+        # for any user-facing features as it is prone to malfunction for
+        # auto-embed indexes.
+        exec /mongot-community/mongot --config=/mongot-community/config.default.yml --internalListAllIndexesForTesting=true
+    volumes:
+      - mongot-data:/data/mongot
+      - ./config/mongot.conf:/mongot-community/config.default.yml
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'curl -f http://localhost:8080/health | grep -q ''"status":"SERVING"''',
+        ]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+      start_period: 40s
+
+volumes:
+  mongod-data:
+  mongot-data:
+
+secrets:
+  mongot_password:
+    environment: MONGOT_PASSWORD
+  voyage_query_key:
+    environment: VOYAGE_QUERY_KEY
+  voyage_indexing_key:
+    environment: VOYAGE_INDEXING_KEY

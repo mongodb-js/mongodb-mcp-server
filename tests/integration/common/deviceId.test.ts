@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { DeviceId } from "../../../src/helpers/deviceId.js";
-import { CompositeLogger } from "../../../src/common/logger.js";
+import { CompositeLogger } from "../../../src/common/logging/index.js";
 import nodeMachineId from "node-machine-id";
 
 describe("Device ID", () => {

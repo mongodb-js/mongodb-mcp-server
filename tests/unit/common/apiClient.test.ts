@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiClient } from "../../../src/common/atlas/apiClient.js";
+import { packageInfo } from "../../../src/common/packageInfo.js";
 import type { CommonProperties, TelemetryEvent, TelemetryResult } from "../../../src/telemetry/types.js";
-import { NullLogger } from "../../../tests/utils/index.js";
+import { NullLogger } from "../../../src/common/logging/index.js";
 
 describe("ApiClient", () => {
     let apiClient: ApiClient;
@@ -40,7 +41,11 @@ describe("ApiClient", () => {
         );
 
         // @ts-expect-error accessing private property for testing
-        apiClient.getAccessToken = vi.fn().mockResolvedValue("mockToken");
+        apiClient.authProvider.validate = vi.fn().mockResolvedValue(true);
+        // @ts-expect-error accessing private property for testing
+        apiClient.authProvider.getAuthHeaders = vi.fn().mockResolvedValue({
+            Authorization: "Bearer mockToken",
+        });
     });
 
     afterEach(() => {
@@ -50,7 +55,91 @@ describe("ApiClient", () => {
     describe("constructor", () => {
         it("should create a client with the correct configuration", () => {
             expect(apiClient).toBeDefined();
-            expect(apiClient.hasCredentials()).toBeDefined();
+            expect(apiClient.isAuthConfigured()).toBeDefined();
+        });
+    });
+
+    describe("User-Agent", () => {
+        it("should use custom userAgent when provided in options", async () => {
+            const mockFetch = vi.spyOn(global, "fetch");
+            mockFetch.mockResolvedValueOnce(new Response(null, { status: 200 }));
+
+            await apiClient.sendEvents(mockEvents);
+
+            expect(mockFetch).toHaveBeenCalledTimes(1);
+            const call = mockFetch.mock.calls[0];
+            expect(call).toBeDefined();
+            const [url, init] = call!;
+            expect(url instanceof URL ? url.href : url).toBe("https://api.test.com/api/private/v1.0/telemetry/events");
+            const headers = init?.headers as Record<string, string>;
+            expect(headers).toBeDefined();
+            expect(headers["User-Agent"]).toBe("test-user-agent");
+            expect(init?.signal).toBeInstanceOf(AbortSignal);
+        });
+
+        it("should use default userAgent with version, platform, and arch when not provided", async () => {
+            const clientWithoutUserAgent = new ApiClient(
+                {
+                    baseUrl: "https://api.test.com",
+                    credentials: {
+                        clientId: "test-client-id",
+                        clientSecret: "test-client-secret",
+                    },
+                },
+                new NullLogger()
+            );
+            // @ts-expect-error accessing private property for testing
+            clientWithoutUserAgent.authProvider.getAuthHeaders = vi.fn().mockRejectedValue(new Error("No token"));
+
+            const mockFetch = vi.spyOn(global, "fetch");
+            mockFetch.mockResolvedValueOnce(new Response(null, { status: 200 }));
+
+            await clientWithoutUserAgent.sendEvents(mockEvents);
+
+            expect(mockFetch).toHaveBeenCalledTimes(1);
+            const call = mockFetch.mock.calls[0];
+            expect(call).toBeDefined();
+            const [url, init] = call!;
+            expect(url instanceof URL ? url.href : url).toBe(
+                "https://api.test.com/api/private/unauth/telemetry/events"
+            );
+            const expectedDefaultUserAgent = `AtlasMCP/${packageInfo.version} (${process.platform}; ${process.arch})`;
+            const headers = init?.headers as Record<string, string>;
+            expect(headers).toBeDefined();
+            expect(headers["User-Agent"]).toBe(expectedDefaultUserAgent);
+        });
+
+        it("should not include hostname in default userAgent", async () => {
+            const clientWithoutUserAgent = new ApiClient(
+                {
+                    baseUrl: "https://api.test.com",
+                    credentials: {
+                        clientId: "test-client-id",
+                        clientSecret: "test-client-secret",
+                    },
+                },
+                new NullLogger()
+            );
+            // @ts-expect-error accessing private property for testing
+            clientWithoutUserAgent.authProvider.getAuthHeaders = vi.fn().mockRejectedValue(new Error("No token"));
+
+            const mockFetch = vi.spyOn(global, "fetch");
+            mockFetch.mockResolvedValueOnce(new Response(null, { status: 200 }));
+
+            await clientWithoutUserAgent.sendEvents(mockEvents);
+
+            const call = mockFetch.mock.calls[0];
+            expect(call).toBeDefined();
+            const init = call![1] as RequestInit;
+            const headers = init.headers as Record<string, string>;
+            const userAgent = headers["User-Agent"];
+            expect(userAgent).toBeDefined();
+            // Default format is AtlasMCP/version (platform; arch) — no third segment (hostname)
+            expect(userAgent).toMatch(
+                new RegExp(`^AtlasMCP/${packageInfo.version} \\(${process.platform}; ${process.arch}\\)$`)
+            );
+            expect(userAgent).not.toContain("; unknown");
+            expect(userAgent).not.toMatch(/\bhostname\b/i);
         });
     });
 
@@ -106,16 +195,19 @@ describe("ApiClient", () => {
             await apiClient.sendEvents(mockEvents);
 
             const url = new URL("api/private/v1.0/telemetry/events", "https://api.test.com");
-            expect(mockFetch).toHaveBeenCalledWith(url, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: "Bearer mockToken",
-                    Accept: "application/json",
-                    "User-Agent": "test-user-agent",
-                },
-                body: JSON.stringify(mockEvents),
-            });
+            expect(mockFetch).toHaveBeenCalledWith(
+                url,
+                expect.objectContaining({
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: "Bearer mockToken",
+                        Accept: "application/json",
+                        "User-Agent": "test-user-agent",
+                    },
+                    body: JSON.stringify(mockEvents),
+                })
+            );
         });
 
         it("should fall back to unauthenticated endpoint when token is not available via exception", async () => {
@@ -123,20 +215,23 @@ describe("ApiClient", () => {
             mockFetch.mockResolvedValueOnce(new Response(null, { status: 200 }));
 
             // @ts-expect-error accessing private property for testing
-            apiClient.getAccessToken = vi.fn().mockRejectedValue(new Error("No access token available"));
+            apiClient.authProvider.getAuthHeaders = vi.fn().mockRejectedValue(new Error("No access token available"));
 
             await apiClient.sendEvents(mockEvents);
 
             const url = new URL("api/private/unauth/telemetry/events", "https://api.test.com");
-            expect(mockFetch).toHaveBeenCalledWith(url, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Accept: "application/json",
-                    "User-Agent": "test-user-agent",
-                },
-                body: JSON.stringify(mockEvents),
-            });
+            expect(mockFetch).toHaveBeenCalledWith(
+                url,
+                expect.objectContaining({
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Accept: "application/json",
+                        "User-Agent": "test-user-agent",
+                    },
+                    body: JSON.stringify(mockEvents),
+                })
+            );
         });
 
         it("should fall back to unauthenticated endpoint when token is undefined", async () => {
@@ -144,20 +239,23 @@ describe("ApiClient", () => {
             mockFetch.mockResolvedValueOnce(new Response(null, { status: 200 }));
 
             // @ts-expect-error accessing private property for testing
-            apiClient.getAccessToken = vi.fn().mockReturnValueOnce(undefined);
+            apiClient.authProvider.getAuthHeaders = vi.fn().mockResolvedValue(undefined);
 
             await apiClient.sendEvents(mockEvents);
 
             const url = new URL("api/private/unauth/telemetry/events", "https://api.test.com");
-            expect(mockFetch).toHaveBeenCalledWith(url, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Accept: "application/json",
-                    "User-Agent": "test-user-agent",
-                },
-                body: JSON.stringify(mockEvents),
-            });
+            expect(mockFetch).toHaveBeenCalledWith(
+                url,
+                expect.objectContaining({
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Accept: "application/json",
+                        "User-Agent": "test-user-agent",
+                    },
+                    body: JSON.stringify(mockEvents),
+                })
+            );
         });
 
         it("should fall back to unauthenticated endpoint on 401 error", async () => {
@@ -170,15 +268,18 @@ describe("ApiClient", () => {
 
             const url = new URL("api/private/unauth/telemetry/events", "https://api.test.com");
             expect(mockFetch).toHaveBeenCalledTimes(2);
-            expect(mockFetch).toHaveBeenLastCalledWith(url, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Accept: "application/json",
-                    "User-Agent": "test-user-agent",
-                },
-                body: JSON.stringify(mockEvents),
-            });
+            expect(mockFetch).toHaveBeenLastCalledWith(
+                url,
+                expect.objectContaining({
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Accept: "application/json",
+                        "User-Agent": "test-user-agent",
+                    },
+                    body: JSON.stringify(mockEvents),
+                })
+            );
         });
 
         it("should throw error when both authenticated and unauthenticated requests fail", async () => {
@@ -189,9 +290,114 @@ describe("ApiClient", () => {
 
             const mockToken = "test-token";
             // @ts-expect-error accessing private property for testing
-            apiClient.getAccessToken = vi.fn().mockResolvedValue(mockToken);
+            apiClient.authProvider.getAuthHeaders = vi.fn().mockResolvedValue({
+                Authorization: `Bearer ${mockToken}`,
+            });
 
             await expect(apiClient.sendEvents(mockEvents)).rejects.toThrow();
+        });
+    });
+
+    describe("upgradeSharedTierCluster", () => {
+        const upgradeOptions = {
+            groupId: "test-group-id",
+            body: {
+                name: "MyCluster",
+                providerSettings: {
+                    providerName: "FLEX",
+                    instanceSizeName: "FLEX" as const,
+                    backingProviderName: "AWS",
+                    regionName: "US_EAST_1",
+                },
+            },
+        };
+
+        it("should POST to the tenant upgrade endpoint with legacy API version headers", async () => {
+            const mockCustomFetch = vi
+                .spyOn(apiClient as unknown as { customFetch: typeof fetch }, "customFetch")
+                .mockResolvedValue(new Response(JSON.stringify({ id: "upgraded-cluster-id" }), { status: 200 }));
+
+            const result = await apiClient.upgradeSharedTierCluster(upgradeOptions);
+
+            expect(mockCustomFetch).toHaveBeenCalledWith(
+                "https://api.test.com/api/atlas/v2/groups/test-group-id/clusters/tenantUpgrade",
+                expect.objectContaining({
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/vnd.atlas.2023-01-01+json",
+                        Accept: "application/vnd.atlas.2023-01-01+json",
+                        Authorization: "Bearer mockToken",
+                        "User-Agent": "test-user-agent",
+                    },
+                    body: JSON.stringify(upgradeOptions.body),
+                })
+            );
+            expect(result).toEqual({ id: "upgraded-cluster-id" });
+        });
+
+        it("should throw when the response is not ok", async () => {
+            vi.spyOn(apiClient as unknown as { customFetch: typeof fetch }, "customFetch").mockResolvedValue(
+                new Response(JSON.stringify({ error: "Bad Request" }), { status: 400 })
+            );
+
+            await expect(apiClient.upgradeSharedTierCluster(upgradeOptions)).rejects.toThrow();
+        });
+    });
+
+    describe("upgradeFlexToDedicated", () => {
+        const upgradeOptions = {
+            groupId: "test-group-id",
+            body: {
+                name: "MyCluster",
+                clusterType: "REPLICASET" as const,
+                replicationSpecs: [
+                    {
+                        regionConfigs: [
+                            {
+                                providerName: "AWS",
+                                regionName: "US_EAST_1",
+                                priority: 7,
+                                electableSpecs: { instanceSize: "M10", nodeCount: 3 },
+                            },
+                        ],
+                    },
+                ],
+                autoScaling: {
+                    compute: { enabled: true, scaleDownEnabled: true, minInstanceSize: "M10", maxInstanceSize: "M30" },
+                    diskGBEnabled: true,
+                },
+            },
+        };
+
+        it("should POST to the flex tenant upgrade endpoint with current API version headers", async () => {
+            const mockCustomFetch = vi
+                .spyOn(apiClient as unknown as { customFetch: typeof fetch }, "customFetch")
+                .mockResolvedValue(new Response(JSON.stringify({ id: "upgraded-cluster-id" }), { status: 200 }));
+
+            const result = await apiClient.upgradeFlexToDedicated(upgradeOptions);
+
+            expect(mockCustomFetch).toHaveBeenCalledWith(
+                "https://api.test.com/api/atlas/v2/groups/test-group-id/flexClusters:tenantUpgrade",
+                expect.objectContaining({
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/vnd.atlas.2025-03-12+json",
+                        Accept: "application/vnd.atlas.2025-03-12+json",
+                        Authorization: "Bearer mockToken",
+                        "User-Agent": "test-user-agent",
+                    },
+                    body: JSON.stringify(upgradeOptions.body),
+                })
+            );
+            expect(result).toEqual({ id: "upgraded-cluster-id" });
+        });
+
+        it("should throw when the response is not ok", async () => {
+            vi.spyOn(apiClient as unknown as { customFetch: typeof fetch }, "customFetch").mockResolvedValue(
+                new Response(JSON.stringify({ error: "Bad Request" }), { status: 400 })
+            );
+
+            await expect(apiClient.upgradeFlexToDedicated(upgradeOptions)).rejects.toThrow();
         });
     });
 });

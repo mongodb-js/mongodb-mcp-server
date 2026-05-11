@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { DeviceId } from "../../../src/helpers/deviceId.js";
 import { getDeviceId } from "@mongodb-js/device-id";
-import { CompositeLogger } from "../../../src/common/logger.js";
+import { CompositeLogger } from "../../../src/common/logging/index.js";
 
 // Mock the dependencies
 vi.mock("@mongodb-js/device-id");
@@ -13,7 +13,7 @@ describe("deviceId", () => {
     let deviceId: DeviceId;
 
     beforeEach(() => {
-        vi.clearAllMocks();
+        vi.resetAllMocks();
         testLogger = new CompositeLogger();
     });
 

@@ -15,11 +15,13 @@ coverage
 # Generated assets by accuracy runs
 .accuracy
 
+temp
 .DS_Store
 
 # Development tool files
 .yalc
 yalc.lock
 
-# Generated UI files
-src/ui/lib
+# .mcpb build artifacts
+mcpb-build/
+dist-mcpb/

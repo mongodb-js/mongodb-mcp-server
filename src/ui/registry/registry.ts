@@ -1,10 +1,31 @@
-// Converts kebab-case to PascalCase: "list-databases" -> "ListDatabases"
-function toPascalCase(kebabCase: string): string {
-    return kebabCase
-        .split("-")
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join("");
-}
+// The type assertion is needed because the file is auto-generated and may not exist during type checking
+type UILoaders = Record<string, (() => Promise<string>) | undefined>;
+
+import { uiLoaders as _uiLoaders } from "../lib/loaders.js";
+const uiLoaders = _uiLoaders as UILoaders;
+
+export type UIRegistryOptions = {
+    /**
+     * Custom UIs for tools. Function that returns HTML strings for tool names.
+     * Use this to add UIs to tools or replace the default bundled UIs.
+     * The function is called lazily when a UI is requested, allowing you to
+     * defer loading large HTML files until needed.
+     *
+     * ```ts
+     * import { readFileSync } from 'fs';
+     * const server = new Server({
+     *     // ... other options
+     *     customUIs: (toolName) => {
+     *         if (toolName === 'list-databases') {
+     *             return readFileSync('./my-custom-ui.html', 'utf-8');
+     *         }
+     *         return null;
+     *     }
+     * });
+     * ```
+     */
+    customUIs?: (toolName: string) => string | null | Promise<string | null>;
+};
 
 /**
  * UI Registry that manages bundled UI HTML strings for tools.
@@ -33,10 +54,13 @@ export class UIRegistry {
             return cached;
         }
 
+        const loader = uiLoaders[toolName];
+        if (!loader) {
+            return null;
+        }
+
         try {
-            const module = (await import(`../lib/tools/${toolName}.js`)) as Record<string, string>;
-            const exportName = `${toPascalCase(toolName)}Html`;
-            const html = module[exportName]; // HTML generated at build time
+            const html = await loader();
             if (html === undefined) {
                 return null;
             }

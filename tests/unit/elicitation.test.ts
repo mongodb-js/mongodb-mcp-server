@@ -79,11 +79,14 @@ describe("Elicitation", () => {
             expect(result).toBe(true);
             expect(mockGetClientCapabilities).toHaveBeenCalledTimes(1);
             expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
-            expect(mockElicitInput.mock).toHaveBeenCalledWith({
-                message: testMessage,
-                requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
-                mode: "form",
-            });
+            expect(mockElicitInput.mock).toHaveBeenCalledWith(
+                {
+                    message: testMessage,
+                    requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
+                    mode: "form",
+                },
+                { timeout: 300000 }
+            );
         });
 
         it("should return false when user selects 'No' with action 'accept'", async () => {
@@ -133,6 +136,84 @@ describe("Elicitation", () => {
 
             await expect(elicitation.requestConfirmation(testMessage)).rejects.toThrow("Elicitation failed");
             expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    describe("requestInput", () => {
+        const testMessage = "Please provide connection details.";
+        const testSchema = {
+            type: "object" as const,
+            properties: {
+                username: { type: "string" as const, title: "Username", description: "Your username" },
+                password: { type: "string" as const, title: "Password", description: "Your password" },
+            },
+            required: ["username", "password"],
+        };
+
+        it("should return accepted:false when client does not support elicitation", async () => {
+            mockGetClientCapabilities.mockReturnValue({});
+
+            const result = await elicitation.requestInput(testMessage, testSchema);
+
+            expect(result).toEqual({ accepted: false });
+            expect(mockElicitInput.mock).not.toHaveBeenCalled();
+        });
+
+        it("should return accepted:true with fields when user accepts", async () => {
+            mockGetClientCapabilities.mockReturnValue({ elicitation: {} });
+            mockElicitInput.acceptWith({ username: "admin", password: "secret" });
+
+            const result = await elicitation.requestInput(testMessage, testSchema);
+
+            expect(result).toEqual({ accepted: true, fields: { username: "admin", password: "secret" } });
+            expect(mockElicitInput.mock).toHaveBeenCalledWith(
+                { mode: "form", message: testMessage, requestedSchema: testSchema },
+                { timeout: 300000 }
+            );
+        });
+
+        it("should return accepted:false when user cancels", async () => {
+            mockGetClientCapabilities.mockReturnValue({ elicitation: {} });
+            mockElicitInput.cancel();
+
+            const result = await elicitation.requestInput(testMessage, testSchema);
+
+            expect(result).toEqual({ accepted: false });
+        });
+
+        it("should return accepted:false when action is not accept", async () => {
+            mockGetClientCapabilities.mockReturnValue({ elicitation: {} });
+            mockElicitInput.mock.mockResolvedValue({ action: "decline", content: undefined });
+
+            const result = await elicitation.requestInput(testMessage, testSchema);
+
+            expect(result).toEqual({ accepted: false });
+        });
+
+        it("should return accepted:false when content is undefined", async () => {
+            mockGetClientCapabilities.mockReturnValue({ elicitation: {} });
+            mockElicitInput.acceptWith(undefined);
+
+            const result = await elicitation.requestInput(testMessage, testSchema);
+
+            expect(result).toEqual({ accepted: false });
+        });
+
+        it("should filter out non-string field values", async () => {
+            mockGetClientCapabilities.mockReturnValue({ elicitation: {} });
+            mockElicitInput.acceptWith({ username: "admin", count: 42, flag: true });
+
+            const result = await elicitation.requestInput(testMessage, testSchema);
+
+            expect(result).toEqual({ accepted: true, fields: { username: "admin" } });
+        });
+
+        it("should handle elicitInput erroring", async () => {
+            mockGetClientCapabilities.mockReturnValue({ elicitation: {} });
+            const error = new Error("Input failed");
+            mockElicitInput.rejectWith(error);
+
+            await expect(elicitation.requestInput(testMessage, testSchema)).rejects.toThrow("Input failed");
         });
     });
 });

@@ -1,11 +1,8 @@
 import type { MongoClientOptions } from "mongodb";
 import { ConnectionString } from "mongodb-connection-string-url";
+import type { AppNameComponents } from "@mongodb-js/mcp-types";
 
-export interface AppNameComponents {
-    appName: string;
-    deviceId?: Promise<string>;
-    clientName?: string;
-}
+export type { AppNameComponents };
 
 /**
  * Sets the appName parameter with the extended format: appName--deviceId--clientName
@@ -53,7 +50,8 @@ export function validateConnectionString(connectionString: string, looseValidati
         new ConnectionString(connectionString, { looseValidation });
     } catch (error) {
         throw new Error(
-            `Invalid connection string with error: ${error instanceof Error ? error.message : String(error)}`
+            `Invalid connection string with error: ${error instanceof Error ? error.message : String(error)}`,
+            { cause: error }
         );
     }
 }

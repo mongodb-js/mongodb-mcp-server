@@ -4,12 +4,16 @@ import { ToolBase } from "../tool.js";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ErrorCodes, MongoDBError } from "../../common/errors.js";
-import { LogId } from "../../common/logger.js";
+import { LogId } from "../../common/logging/index.js";
 import type { Server } from "../../server.js";
 import type { ConnectionMetadata } from "../../telemetry/types.js";
 
-export const DbOperationArgs = {
+export const DBOperationArgs = {
     database: z.string().describe("Database name"),
+};
+
+export const CollOperationArgs = {
+    ...DBOperationArgs,
     collection: z.string().describe("Collection name"),
 };
 
@@ -47,8 +51,15 @@ export abstract class MongoDBToolBase extends ToolBase {
         return this.session.serviceProvider;
     }
 
-    protected ensureSearchIsSupported(): Promise<void> {
-        return this.session.assertSearchSupported();
+    /**
+     * Returns common operation options (signal, maxTimeMS) to pass to service provider methods.
+     * If `maxTimeMS` is configured, it will be included in the returned options.
+     */
+    protected getOperationOptions(signal?: AbortSignal): { signal?: AbortSignal; maxTimeMS?: number } {
+        return {
+            ...(signal && { signal }),
+            ...(this.config.maxTimeMS !== undefined && { maxTimeMS: this.config.maxTimeMS }),
+        };
     }
 
     public register(server: Server): boolean {
@@ -56,10 +67,7 @@ export abstract class MongoDBToolBase extends ToolBase {
         return super.register(server);
     }
 
-    protected handleError(
-        error: unknown,
-        args: ToolArgs<typeof this.argsShape>
-    ): Promise<CallToolResult> | CallToolResult {
+    protected async handleError(error: unknown, args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         if (error instanceof MongoDBError) {
             switch (error.code) {
                 case ErrorCodes.NotConnectedToMongoDB:
@@ -67,11 +75,11 @@ export abstract class MongoDBToolBase extends ToolBase {
                     const connectionError = error as MongoDBError<
                         ErrorCodes.NotConnectedToMongoDB | ErrorCodes.MisconfiguredConnectionString
                     >;
-                    const outcome = this.server?.connectionErrorHandler(connectionError, {
+                    const outcome = await this.session.connectionErrorHandler(connectionError, {
                         availableTools: this.server?.tools ?? [],
                         connectionState: this.session.connectionManager.currentConnectionState,
                     });
-                    if (outcome?.errorHandled) {
+                    if (outcome.errorHandled) {
                         return outcome.result;
                     }
 

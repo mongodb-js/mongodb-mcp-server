@@ -12,8 +12,8 @@ const vitestDefaultExcludes = [
 
 const longRunningTests = ["tests/integration/tools/atlas/performanceAdvisor.test.ts"];
 
-if (process.env.SKIP_ATLAS_TESTS === "true") {
-    vitestDefaultExcludes.push("**/atlas/**");
+if (process.env.SKIP_ATLAS_INTEGRATION_TESTS === "true") {
+    vitestDefaultExcludes.push("**/integration/**/atlas/**");
 }
 
 if (process.env.SKIP_ATLAS_LOCAL_TESTS === "true") {
@@ -47,7 +47,13 @@ export default defineConfig({
                 test: {
                     name: "unit-and-integration",
                     include: ["**/*.test.ts"],
-                    exclude: [...vitestDefaultExcludes, "scripts/**", "tests/accuracy/**", ...longRunningTests],
+                    exclude: [
+                        ...vitestDefaultExcludes,
+                        "scripts/**",
+                        "tests/accuracy/**",
+                        "tests/browser/**",
+                        ...longRunningTests,
+                    ],
                 },
             },
             {
@@ -74,10 +80,26 @@ export default defineConfig({
             {
                 extends: true,
                 test: {
+                    name: "mcpb-build-script",
+                    include: ["scripts/createMcpb.test.ts"],
+                },
+            },
+            {
+                extends: true,
+                test: {
                     name: "long-running-tests",
                     include: [...longRunningTests],
                     testTimeout: 7200000, // 2 hours for long-running tests
                     hookTimeout: 7200000,
+                },
+            },
+            {
+                extends: true,
+                test: {
+                    name: "ui-components",
+                    include: ["tests/unit/ui/**/*.test.tsx"],
+                    environment: "happy-dom",
+                    setupFiles: ["./tests/setup.ts", "./tests/setupReact.ts"],
                 },
             },
         ],

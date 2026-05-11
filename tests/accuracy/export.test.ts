@@ -93,6 +93,7 @@ describeAccuracyTests([
                                 filter: { genres: "Horror" },
                                 sort: { runtime: 1 },
                                 limit: 2,
+                                projection: Matcher.anyValue,
                             },
                         },
                     ],
@@ -102,7 +103,7 @@ describeAccuracyTests([
         ],
     },
     {
-        prompt: "Export an aggregation that groups all movie titles by the field release_year from mflix.movies",
+        prompt: "Export an aggregation that groups all movie titles by the field release_year from mflix.movies under field movie_titles",
         expectedToolCalls: [
             {
                 toolName: "export",
@@ -116,20 +117,12 @@ describeAccuracyTests([
                             arguments: {
                                 pipeline: [
                                     {
-                                        $group: Matcher.anyOf(
-                                            Matcher.value({
-                                                _id: "$release_year",
-                                                titles: {
-                                                    $push: "$title",
-                                                },
-                                            }),
-                                            Matcher.value({
-                                                _id: "$release_year",
-                                                movies: {
-                                                    $push: "$title",
-                                                },
-                                            })
-                                        ),
+                                        $group: {
+                                            _id: "$release_year",
+                                            movie_titles: {
+                                                $push: "$title",
+                                            },
+                                        },
                                     },
                                 ],
                             },

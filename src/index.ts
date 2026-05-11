@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable no-console */
 
 function enableFipsIfRequested(): void {
     let fipsError: Error | undefined;
@@ -36,7 +37,7 @@ function enableFipsIfRequested(): void {
 enableFipsIfRequested();
 
 import crypto from "crypto";
-import { ConsoleLogger, LogId } from "./common/logger.js";
+import { ConsoleLogger, LogId } from "./common/logging/index.js";
 import { parseUserConfig } from "./common/config/parseUserConfig.js";
 import { type UserConfig } from "./common/config/userConfig.js";
 import { packageInfo } from "./common/packageInfo.js";
@@ -45,9 +46,17 @@ import { StreamableHttpRunner } from "./transports/streamableHttp.js";
 import { systemCA } from "@mongodb-js/devtools-proxy-support";
 import { Keychain } from "./common/keychain.js";
 import { DryRunModeRunner } from "./transports/dryModeRunner.js";
+import { runSetup } from "./setup/setupMcpServer.js";
 
 async function main(): Promise<void> {
     systemCA().catch(() => undefined); // load system CA asynchronously as in mongosh
+
+    const args = process.argv.slice(2);
+    const isSetupRequested = args[0] === "setup";
+    if (isSetupRequested) {
+        // remove the "setup" argument so it doesn't interfere with arg parsings
+        args.shift();
+    }
 
     const {
         error,
@@ -74,6 +83,10 @@ async function main(): Promise<void> {
 
     if (config.version) {
         handleVersionRequest();
+    }
+
+    if (isSetupRequested) {
+        await runSetup(config);
     }
 
     if (config.dryRun) {
@@ -127,7 +140,6 @@ async function main(): Promise<void> {
             id: LogId.serverCloseRequested,
             context: "server",
             message: `Closing server due to error: ${error as string}`,
-            noRedaction: true,
         });
 
         try {

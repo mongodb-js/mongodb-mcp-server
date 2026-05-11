@@ -1,13 +1,10 @@
-import type {
-    ConnectionManagerEvents,
-    ConnectionStateConnected,
-    ConnectionStringAuthType,
-} from "../../../src/common/connectionManager.js";
-
-import { MCPConnectionManager } from "../../../src/common/connectionManager.js";
+import type { ConnectionManagerEvents, ConnectionStateConnected } from "../../../src/common/connectionManager.js";
+import { getAuthType, type ConnectionStringAuthType } from "../../../src/common/connectionInfo.js";
 import type { UserConfig } from "../../../src/common/config/userConfig.js";
-import { describeWithMongoDB } from "../tools/mongodb/mongodbHelpers.js";
+import { describeWithMongoDB, waitUntilSearchIsReady } from "../tools/mongodb/mongodbHelpers.js";
+import { MongoServerError } from "mongodb";
 import { describe, beforeEach, expect, it, vi, afterEach } from "vitest";
+import type { MockInstance } from "vitest";
 import { type TestConnectionManager } from "../../utils/index.js";
 
 describeWithMongoDB("Connection Manager", (integration) => {
@@ -45,7 +42,10 @@ describeWithMongoDB("Connection Manager", (integration) => {
             };
 
             for (const [event, spy] of Object.entries(connectionManagerSpies)) {
-                connectionManager().events.on(event as keyof ConnectionManagerEvents, spy);
+                connectionManager().events.on(
+                    event as keyof ConnectionManagerEvents,
+                    spy as (...args: ConnectionManagerEvents[keyof ConnectionManagerEvents]) => void
+                );
             }
 
             await connectionManager().connect({
@@ -124,7 +124,10 @@ describeWithMongoDB("Connection Manager", (integration) => {
                 expect(connectionManagerSpies["connection-error"]).toHaveBeenCalledWith({
                     tag: "errored",
                     connectedAtlasCluster: undefined,
-                    connectionStringAuthType: "scram",
+                    connectionStringInfo: {
+                        authType: "scram",
+                        hostType: "unknown",
+                    },
                     errorReason: "Unable to parse localhost:xxxxx with URL",
                 });
             });
@@ -139,6 +142,7 @@ describeWithMongoDB("Connection Manager", (integration) => {
                 username: "",
                 projectId: "",
                 clusterName: "My Atlas Cluster",
+                instanceType: "FREE" as const,
                 expiryDate: new Date(),
             };
 
@@ -161,7 +165,10 @@ describeWithMongoDB("Connection Manager", (integration) => {
                 expect(connectionManagerSpies["connection-error"]).toHaveBeenCalledWith({
                     tag: "errored",
                     connectedAtlasCluster: atlas,
-                    connectionStringAuthType: "scram",
+                    connectionStringInfo: {
+                        authType: "scram",
+                        hostType: "atlas",
+                    },
                     errorReason: "Unable to parse localhost:xxxxx with URL",
                 });
             });
@@ -178,6 +185,276 @@ describeWithMongoDB("Connection Manager", (integration) => {
         });
     });
 });
+
+const SEARCH_PROBE_ROOT_USER = { username: "root", password: "rootpw" };
+const SEARCH_PROBE_SINGLE_DB_USER = { username: "singledb", password: "singledbpw" };
+const SEARCH_PROBE_NO_USER_DB_USER = { username: "adminonly", password: "adminonlypw" };
+const SEARCH_PROBE_USER_DB = "userdata";
+
+describeWithMongoDB(
+    "Connection Manager — isSearchSupported database probe",
+    (integration) => {
+        async function connectAndSpy(connectionString: string): Promise<{
+            getSearchIndexesSpy: MockInstance;
+            listDatabasesSpy: MockInstance;
+            connectionState: ConnectionStateConnected;
+        }> {
+            const session = integration.mcpServer().session;
+            await session.connectToMongoDB({ connectionString });
+
+            const state = session.connectionManager.currentConnectionState;
+            if (state.tag !== "connected") {
+                throw new Error(`Expected state 'connected', got '${state.tag}'`);
+            }
+
+            return {
+                getSearchIndexesSpy: vi.spyOn(state.serviceProvider, "getSearchIndexes"),
+                listDatabasesSpy: vi.spyOn(state.serviceProvider, "listDatabases"),
+                connectionState: state,
+            };
+        }
+
+        beforeEach(async () => {
+            await integration
+                .mongoClient()
+                .db(SEARCH_PROBE_USER_DB)
+                .collection("fixture")
+                .insertOne({ ensureDbExists: true });
+        });
+
+        afterEach(async () => {
+            const session = integration.mcpServer().session;
+            await session.disconnect();
+
+            try {
+                await integration.mongoClient().db(SEARCH_PROBE_USER_DB).dropDatabase();
+            } catch {
+                // best-effort cleanup
+            }
+        });
+
+        describe("when the connected user has access to a single non-system database", () => {
+            it("probes search support against that accessible database", async () => {
+                const restrictedConnectionString = integration.connectionStringForUser({
+                    username: SEARCH_PROBE_SINGLE_DB_USER.username,
+                    password: SEARCH_PROBE_SINGLE_DB_USER.password,
+                    authSource: "admin",
+                    defaultDatabase: SEARCH_PROBE_USER_DB,
+                });
+
+                const { getSearchIndexesSpy, connectionState } = await connectAndSpy(restrictedConnectionString);
+
+                const result = await connectionState.isSearchSupported(integration.mcpServer().session.logger);
+                expect(result).toBe(false);
+
+                expect(getSearchIndexesSpy).toHaveBeenCalledTimes(1);
+                expect(getSearchIndexesSpy.mock.calls[0]?.[0]).toBe(SEARCH_PROBE_USER_DB);
+                expect(getSearchIndexesSpy.mock.calls[0]?.[0]).not.toBe("#mongodb-mcp");
+            });
+        });
+
+        describe("when the connected user has no accessible non-system databases", () => {
+            it("still probes the hardcoded #mongodb-mcp database after the initial DB", async () => {
+                const restrictedConnectionString = integration.connectionStringForUser({
+                    username: SEARCH_PROBE_NO_USER_DB_USER.username,
+                    password: SEARCH_PROBE_NO_USER_DB_USER.password,
+                    authSource: "admin",
+                });
+
+                const { getSearchIndexesSpy, listDatabasesSpy, connectionState } =
+                    await connectAndSpy(restrictedConnectionString);
+
+                const result = await connectionState.isSearchSupported(integration.mcpServer().session.logger);
+                expect(result).toBe(true);
+
+                expect(listDatabasesSpy).toHaveBeenCalledTimes(1);
+                const probedDatabases = getSearchIndexesSpy.mock.calls.map((call) => call[0] as string);
+                expect(probedDatabases).toHaveLength(2);
+                expect(probedDatabases[0]).toBe(connectionState.serviceProvider.mongoClient.options.dbName);
+                expect(probedDatabases[1]).toBe("#mongodb-mcp");
+            });
+        });
+
+        describe("when the connection default database is system database", () => {
+            it("does not probe it and falls back to #mongodb-mcp", async () => {
+                const connectionString = integration.connectionStringForUser({
+                    username: SEARCH_PROBE_ROOT_USER.username,
+                    password: SEARCH_PROBE_ROOT_USER.password,
+                    authSource: "admin",
+                    defaultDatabase: "admin",
+                });
+
+                const { getSearchIndexesSpy, listDatabasesSpy, connectionState } =
+                    await connectAndSpy(connectionString);
+
+                expect(connectionState.serviceProvider.mongoClient.options.dbName).toBe("admin");
+
+                listDatabasesSpy.mockResolvedValue({
+                    databases: [{ name: "admin" }, { name: "config" }, { name: "local" }],
+                });
+
+                const result = await connectionState.isSearchSupported(integration.mcpServer().session.logger);
+
+                // False because when probing #mongodb-mcp, it will fail with SearchNotEnabled
+                // because the instance we're connected to is not search-capable.
+                expect(result).toBe(false);
+
+                const probedDatabases = getSearchIndexesSpy.mock.calls.map((call) => call[0] as string);
+                expect(probedDatabases).not.toContain("admin");
+                expect(probedDatabases).toEqual(["#mongodb-mcp"]);
+            });
+        });
+
+        describe("when listDatabases returns many non-system databases", () => {
+            it("only probes the first 10 non-system names from the listing (plus initial DB and fallback)", async () => {
+                const rootConnectionString = integration.connectionStringForUser({
+                    username: SEARCH_PROBE_ROOT_USER.username,
+                    password: SEARCH_PROBE_ROOT_USER.password,
+                    authSource: "admin",
+                    defaultDatabase: "probeanchor",
+                });
+
+                const { getSearchIndexesSpy, listDatabasesSpy, connectionState } =
+                    await connectAndSpy(rootConnectionString);
+
+                expect(connectionState.serviceProvider.initialDb).toBe("probeanchor");
+
+                const dbs = Array.from({ length: 15 }, (_, i) => ({
+                    name: `extradb${i}`,
+                }));
+
+                listDatabasesSpy.mockResolvedValue({
+                    databases: [{ name: "admin" }, { name: "local" }, { name: "config" }, ...dbs],
+                });
+
+                getSearchIndexesSpy.mockRejectedValue(
+                    new MongoServerError({
+                        message: "not authorized",
+                        code: 13,
+                        codeName: "Unauthorized",
+                    })
+                );
+
+                const result = await connectionState.isSearchSupported(integration.mcpServer().session.logger);
+                expect(result).toBe(true);
+
+                const probed = getSearchIndexesSpy.mock.calls.map((call) => call[0] as string);
+                expect(probed[0]).toBe("probeanchor");
+                for (let i = 0; i < 10; i++) {
+                    expect(probed).toContain(`extradb${i}`);
+                }
+                for (let i = 10; i < dbs.length; i++) {
+                    expect(probed).not.toContain(`extradb${i}`);
+                }
+                expect(probed.at(-1)).toBe("#mongodb-mcp");
+                expect(probed).toHaveLength(12);
+            });
+        });
+
+        describe("when listDatabases itself fails", () => {
+            it("still probes using the service provider initial database first", async () => {
+                const rootConnectionString = integration.connectionStringForUser({
+                    username: SEARCH_PROBE_ROOT_USER.username,
+                    password: SEARCH_PROBE_ROOT_USER.password,
+                    authSource: "admin",
+                });
+
+                const { getSearchIndexesSpy, listDatabasesSpy, connectionState } =
+                    await connectAndSpy(rootConnectionString);
+
+                listDatabasesSpy.mockRejectedValueOnce(new Error("simulated failure"));
+
+                const result = await connectionState.isSearchSupported(integration.mcpServer().session.logger);
+                // False because when probing #mongodb-mcp, it will fail with SearchNotEnabled
+                // because the instance we're connected to is not search-capable.
+                expect(result).toBe(false);
+
+                expect(listDatabasesSpy).toHaveBeenCalledTimes(1);
+                expect(getSearchIndexesSpy).toHaveBeenCalledTimes(1);
+                expect(getSearchIndexesSpy.mock.calls[0]?.[0]).toBe(connectionState.serviceProvider.initialDb);
+            });
+        });
+
+        describe("caching behaviour", () => {
+            it("only probes the server once across multiple isSearchSupported() calls", async () => {
+                const rootConnectionString = integration.connectionStringForUser({
+                    username: SEARCH_PROBE_ROOT_USER.username,
+                    password: SEARCH_PROBE_ROOT_USER.password,
+                    authSource: "admin",
+                });
+
+                const { getSearchIndexesSpy, listDatabasesSpy, connectionState } =
+                    await connectAndSpy(rootConnectionString);
+
+                const logger = integration.mcpServer().session.logger;
+                const first = await connectionState.isSearchSupported(logger);
+                const second = await connectionState.isSearchSupported(logger);
+                const third = await connectionState.isSearchSupported(logger);
+
+                expect(first).toBe(false);
+                expect(first).toBe(second);
+                expect(second).toBe(third);
+                expect(getSearchIndexesSpy).toHaveBeenCalledTimes(1);
+                expect(listDatabasesSpy).toHaveBeenCalledTimes(1);
+            });
+        });
+    },
+    {
+        downloadOptions: {
+            runner: true,
+            downloadOptions: { enterprise: false },
+            serverArgs: [],
+            users: [
+                {
+                    username: SEARCH_PROBE_ROOT_USER.username,
+                    password: SEARCH_PROBE_ROOT_USER.password,
+                    roles: [{ role: "root", db: "admin" }],
+                },
+                {
+                    username: SEARCH_PROBE_SINGLE_DB_USER.username,
+                    password: SEARCH_PROBE_SINGLE_DB_USER.password,
+                    roles: [{ role: "readWrite", db: SEARCH_PROBE_USER_DB }],
+                },
+                {
+                    username: SEARCH_PROBE_NO_USER_DB_USER.username,
+                    password: SEARCH_PROBE_NO_USER_DB_USER.password,
+                    roles: [{ role: "read", db: "admin" }],
+                },
+            ],
+        },
+    }
+);
+
+describeWithMongoDB(
+    "Connection Manager — isSearchSupported on search-capable cluster",
+    (integration) => {
+        beforeEach(async () => {
+            await waitUntilSearchIsReady(integration.mongoClient());
+        });
+
+        afterEach(async () => {
+            const cm = integration.mcpServer().session.connectionManager as TestConnectionManager;
+            await cm.disconnect();
+            cm.changeState("connection-close", { tag: "disconnected" });
+        });
+
+        it("returns true when Atlas Local Search is enabled", async () => {
+            const session = integration.mcpServer().session;
+            await session.connectToMongoDB({ connectionString: integration.connectionString() });
+
+            const state = session.connectionManager.currentConnectionState;
+            if (state.tag !== "connected") {
+                throw new Error(`Expected state 'connected', got '${state.tag}'`);
+            }
+
+            const result = await state.isSearchSupported(integration.mcpServer().session.logger);
+            expect(result).toBe(true);
+        });
+    },
+    {
+        downloadOptions: { search: true },
+    }
+);
 
 describe("Connection Manager connection type inference", () => {
     const testCases = [
@@ -226,12 +503,7 @@ describe("Connection Manager connection type inference", () => {
 
     for (const { userConfig, connectionString, connectionType } of testCases) {
         it(`infers ${connectionType} from ${connectionString}`, () => {
-            const actualConnectionType = MCPConnectionManager.inferConnectionTypeFromSettings(
-                userConfig as UserConfig,
-                {
-                    connectionString,
-                }
-            );
+            const actualConnectionType = getAuthType(userConfig as UserConfig, connectionString);
 
             expect(actualConnectionType).toBe(connectionType);
         });

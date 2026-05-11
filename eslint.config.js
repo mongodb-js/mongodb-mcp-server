@@ -1,4 +1,3 @@
-import path from "path";
 import { defineConfig, globalIgnores } from "eslint/config";
 import js from "@eslint/js";
 import globals from "globals";
@@ -7,9 +6,15 @@ import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended"
 import vitestPlugin from "@vitest/eslint-plugin";
 import enforceZodV4 from "./eslint-rules/enforce-zod-v4.js";
 
-const testFiles = ["tests/**/*.test.ts", "tests/**/*.ts"];
+const testFiles = [
+    "tests/**/*.test.ts",
+    "tests/**/*.test.tsx",
+    "tests/**/*.ts",
+    "tests/**/*.tsx",
+    "packages/**/*.test.ts",
+];
 
-const files = [...testFiles, "src/**/*.ts", "src/**/*.tsx", "scripts/**/*.ts"];
+const files = [...testFiles, "src/**/*.ts", "src/**/*.tsx", "scripts/**/*.ts", "packages/**/*.ts"];
 
 export default defineConfig([
     { files, plugins: { js }, extends: ["js/recommended"] },
@@ -27,6 +32,8 @@ export default defineConfig([
         rules: {
             ...vitestPlugin.configs.recommended.rules,
             "vitest/valid-title": "off",
+            "vitest/no-conditional-expect": "off",
+            "vitest/no-standalone-expect": "off",
             "vitest/expect-expect": [
                 "error",
                 {
@@ -35,9 +42,9 @@ export default defineConfig([
             ],
         },
     },
-    tseslint.configs.recommendedTypeChecked,
     {
         files,
+        extends: [tseslint.configs.recommendedTypeChecked],
         languageOptions: {
             parserOptions: {
                 project: "./tsconfig.json",
@@ -48,7 +55,7 @@ export default defineConfig([
     {
         files,
         rules: {
-            "@typescript-eslint/switch-exhaustiveness-check": "error",
+            "@typescript-eslint/switch-exhaustiveness-check": ["error", { considerDefaultExhaustiveForUnions: true }],
             "@typescript-eslint/no-non-null-assertion": "error",
             "@typescript-eslint/consistent-type-imports": ["error", { prefer: "type-imports" }],
             "@typescript-eslint/consistent-type-exports": [
@@ -75,11 +82,46 @@ export default defineConfig([
         },
         rules: {
             "enforce-zod-v4/enforce-zod-v4": "error",
+            "no-restricted-imports": [
+                "error",
+                {
+                    paths: [
+                        {
+                            name: "assert",
+                            message:
+                                "Use explicit error handling or test framework assertions (e.g., vitest's expect) instead.",
+                        },
+                        {
+                            name: "node:assert",
+                            message:
+                                "Use explicit error handling or test framework assertions (e.g., vitest's expect) instead.",
+                        },
+                    ],
+                },
+            ],
+            "no-console": ["error"],
+        },
+    },
+    {
+        files: testFiles,
+        rules: {
+            /** Allow null assertions in test files */
+            "@typescript-eslint/no-non-null-assertion": "off",
+        },
+    },
+    {
+        files: ["tests/browser/**/*.ts"],
+        languageOptions: {
+            parserOptions: {
+                project: "./tests/browser/tsconfig.json",
+                tsconfigRootDir: import.meta.dirname,
+            },
         },
     },
     globalIgnores([
         "node_modules",
-        "dist",
+        "**/dist/**",
+        "packages/*/dist/**",
         "src/common/atlas/openapi.d.ts",
         "src/ui/lib",
         "coverage",
@@ -89,6 +131,7 @@ export default defineConfig([
         "vite.ui.config.ts",
         "src/types/*.d.ts",
         "tests/integration/fixtures/",
+        "tests/browser/polyfills/**",
         "eslint-rules",
         ".yalc",
     ]),

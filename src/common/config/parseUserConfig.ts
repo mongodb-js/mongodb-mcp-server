@@ -1,15 +1,16 @@
 import { type CliOptions, generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import { Keychain } from "../keychain.js";
 import type { Secret } from "../keychain.js";
-import { matchingConfigKey } from "./configUtils.js";
-import { UserConfigSchema, type UserConfig } from "./userConfig.js";
+import { UserConfigSchema, ALL_CONFIG_KEYS, type UserConfig } from "./userConfig.js";
 import {
     defaultParserOptions as defaultArgParserOptions,
-    parseArgsWithCliOptions,
+    createParseArgsWithCliOptions,
     CliOptionsSchema,
     UnknownArgumentError,
 } from "@mongosh/arg-parser/arg-parser";
-import { z as z4 } from "zod/v4";
+import { z } from "zod";
+import * as levenshteinModule from "ts-levenshtein";
+const levenshtein = levenshteinModule.default;
 
 export type ParserOptions = typeof defaultArgParserOptions;
 
@@ -34,7 +35,7 @@ export function parseUserConfig({
     parserOptions = defaultParserOptions,
 }: {
     args: string[];
-    overrides?: z4.ZodRawShape;
+    overrides?: z.ZodRawShape;
     parserOptions?: ParserOptions;
 }): {
     warnings: string[];
@@ -42,7 +43,7 @@ export function parseUserConfig({
     error: string | undefined;
 } {
     const schema = overrides
-        ? z4.object({
+        ? z.object({
               ...UserConfigSchema.shape,
               ...overrides,
           })
@@ -105,15 +106,16 @@ function parseUserConfigSources<T extends typeof UserConfigSchema>({
 }): {
     error: string | undefined;
     warnings: string[];
-    parsed: Partial<CliOptions & z4.infer<T>>;
+    parsed: Partial<CliOptions & z.infer<T>>;
 } {
-    let parsed: Partial<CliOptions & z4.infer<T>>;
+    let parsed: Partial<CliOptions & z.infer<T>>;
     let deprecated: Record<string, string>;
     try {
-        const { parsed: parsedResult, deprecated: deprecatedResult } = parseArgsWithCliOptions({
-            args,
+        const { parsed: parsedResult, deprecated: deprecatedResult } = createParseArgsWithCliOptions({
             schema,
             parserOptions,
+        })({
+            args,
         });
         parsed = parsedResult;
         deprecated = deprecatedResult as Record<string, string>;
@@ -173,6 +175,24 @@ function registerKnownSecretsInRootKeychain(userConfig: Partial<UserConfig>): vo
     maybeRegister(userConfig.tlsCertificateKeyFile, "url");
     maybeRegister(userConfig.tlsCertificateKeyFilePassword, "password");
     maybeRegister(userConfig.username, "user");
+    maybeRegister(userConfig.voyageApiKey, "password");
+    maybeRegister(userConfig.connectionString, "mongodb uri");
+}
+
+function matchingConfigKey(key: string): string | undefined {
+    let minLev = Number.MAX_VALUE;
+    let suggestion = undefined;
+    for (const validKey of ALL_CONFIG_KEYS) {
+        const lev = levenshtein.get(key, validKey);
+        // Accepting up to 2 typos and should be better than whatever previous
+        // suggestion was.
+        if (lev <= 2 && lev < minLev) {
+            minLev = lev;
+            suggestion = validKey;
+        }
+    }
+
+    return suggestion;
 }
 
 function getWarnings(config: Partial<UserConfig>, cliArguments: string[]): string[] {
@@ -184,20 +204,5 @@ function getWarnings(config: Partial<UserConfig>, cliArguments: string[]): strin
         );
     }
 
-    const searchEnabled = config.previewFeatures?.includes("search");
-    const embeddingsProviderConfigured = !!config.voyageApiKey;
-    if (searchEnabled && !embeddingsProviderConfigured) {
-        warnings.push(`\
-Warning: Vector search is enabled but no embeddings provider is configured.
-- Set an embeddings provider configuration option to enable auto-embeddings during document insertion and text-based queries with $vectorSearch.\
-`);
-    }
-
-    if (!searchEnabled && embeddingsProviderConfigured) {
-        warnings.push(`\
-Warning: An embeddings provider is configured but the 'search' preview feature is not enabled.
-- Enable vector search by adding 'search' to the 'previewFeatures' configuration option, or remove the embeddings provider configuration if not needed.\
-`);
-    }
     return warnings;
 }
