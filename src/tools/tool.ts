@@ -1,9 +1,8 @@
-import type { z } from "zod";
-import { type ZodRawShape } from "zod";
+import type { z, ZodRawShape } from "zod";
 import type { RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { Session } from "../common/session.js";
-import { LogId } from "../common/logger.js";
+import { LogId } from "../common/logging/index.js";
 import type { Telemetry } from "../telemetry/telemetry.js";
 import type { ConnectionMetadata, TelemetryToolMetadata, ToolEvent } from "../telemetry/types.js";
 import type { UserConfig } from "../common/config/userConfig.js";
@@ -11,14 +10,35 @@ import type { Server } from "../server.js";
 import type { Elicitation } from "../elicitation.js";
 import type { PreviewFeature } from "../common/schemas.js";
 import type { UIRegistry } from "../ui/registry/index.js";
-import { createUIResource } from "@mcp-ui/server";
+import { createUIResource, type UIResource } from "@mcp-ui/server";
+import { TRANSPORT_PAYLOAD_LIMITS, type TransportType } from "../transports/constants.js";
+import { getRandomUUID } from "../helpers/getRandomUUID.js";
+import type { Metrics, DefaultMetrics } from "@mongodb-js/mcp-metrics";
+import { redact } from "mongodb-redact";
 
 export type ToolArgs<T extends ZodRawShape> = {
     [K in keyof T]: z.infer<T[K]>;
 };
 
-export type ToolExecutionContext = {
+export interface ToolExecutionContext {
     signal: AbortSignal;
+    /**
+     * Request context object available only when running atop
+     * StreamableHttpTransport.
+     */
+    requestInfo?: {
+        headers?: Record<string, unknown>;
+    };
+}
+
+export type ToolResult<OutputSchema extends ZodRawShape | undefined = undefined> = OutputSchema extends ZodRawShape
+    ? StructuredToolResult<OutputSchema>
+    : { content: { type: "text"; text: string }[]; isError?: boolean };
+
+type StructuredToolResult<OutputSchema extends ZodRawShape> = {
+    content: { type: "text"; text: string }[];
+    isError?: boolean;
+    structuredContent: z.infer<z.ZodObject<OutputSchema>>;
 };
 
 /**
@@ -42,8 +62,9 @@ export type OperationType = "metadata" | "read" | "create" | "delete" | "update"
  *   aggregating data, listing databases/collections/indexes, creating indexes, etc.
  * - `atlas` is used for tools that interact with MongoDB Atlas, such as listing clusters, creating clusters, etc.
  * - `atlas-local` is used for tools that interact with local Atlas deployments.
+ * - `assistant` is used for tools that interact with the Assistant, such as searching the public knowledge base.
  */
-export type ToolCategory = "mongodb" | "atlas" | "atlas-local";
+export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant";
 
 /**
  * Parameters passed to the constructor of all tools that extends `ToolBase`.
@@ -53,7 +74,17 @@ export type ToolCategory = "mongodb" | "atlas" | "atlas-local";
  *
  * See `Server.registerTools` method in `src/server.ts` for further reference.
  */
-export type ToolConstructorParams = {
+export type ToolConstructorParams<
+    TUserConfig extends UserConfig = UserConfig,
+    TContext = unknown,
+    TMetrics extends DefaultMetrics = DefaultMetrics,
+> = {
+    /**
+     * The unique name of this tool (injected from the static
+     * `toolName` property on the Tool class).
+     */
+    name: string;
+
     /**
      * The category that the tool belongs to (injected from the static
      * `category` property on the Tool class).
@@ -79,7 +110,7 @@ export type ToolConstructorParams = {
      *
      * See `src/common/config/userConfig.ts` for further reference.
      */
-    config: UserConfig;
+    config: TUserConfig;
 
     /**
      * The telemetry service for tracking tool usage.
@@ -94,15 +125,43 @@ export type ToolConstructorParams = {
      * See `src/elicitation.ts` for further reference.
      */
     elicitation: Elicitation;
-    uiRegistry: UIRegistry;
+
+    /**
+     * The metrics service for tracking tool usage.
+     *
+     * See `src/common/metrics/index.ts` for further reference.
+     */
+    metrics: Metrics<TMetrics>;
+
+    uiRegistry?: UIRegistry;
+
+    /**
+     * Optional custom context object that will be available to tools.
+     *
+     * Library consumers can provide custom context data that will be
+     * available during tool execution. This is useful for passing shared
+     * services used by multiple tools.
+     *
+     * @example
+     * ```typescript
+     * const runner = new StreamableHttpRunner({
+     *   userConfig: { ... },
+     *   toolContext: {
+     *     tenantId: "my-tenant",
+     *     userId: "user-123",
+     *   },
+     * });
+     * ```
+     */
+    context?: TContext;
 };
 
 /**
  * The type that all tool classes must conform to when implementing custom tools
  * for the MongoDB MCP Server.
  *
- * This type enforces that tool classes have static properties `category` and
- * `operationType` which are injected during instantiation of tool classes.
+ * This type enforces that tool classes have static properties `toolName`, `category`,
+ * and `operationType` which are injected during instantiation of tool classes.
  *
  * @example
  * ```typescript
@@ -112,13 +171,13 @@ export type ToolConstructorParams = {
  *
  * class MyCustomTool extends ToolBase {
  *   // Required static properties for ToolClass conformance
+ *   static toolName = "my-custom-tool";
  *   static category: ToolCategory = "mongodb";
  *   static operationType: OperationType = "read";
  *
  *   // Required abstract properties
- *   override name = "my-custom-tool";
- *   protected description = "My custom tool description";
- *   protected argsShape = {
+ *   public description = "My custom tool description";
+ *   public argsShape = {
  *     query: z.string().describe("The query parameter"),
  *   };
  *
@@ -143,9 +202,20 @@ export type ToolConstructorParams = {
  * });
  * ```
  */
-export type ToolClass = {
+export type ToolClass<
+    TUserConfig extends UserConfig = UserConfig,
+    TContext = unknown,
+    TMetrics extends DefaultMetrics = DefaultMetrics,
+> = {
     /** Constructor signature for the tool class */
-    new (params: ToolConstructorParams): ToolBase;
+    new (params: ToolConstructorParams<TUserConfig, TContext, TMetrics>): ToolBase<TUserConfig, TContext, TMetrics>;
+
+    /**
+     * The unique name of this tool.
+     *
+     * Must be unique across all tools in the server.
+     */
+    toolName: string;
 
     /** The category that the tool belongs to */
     category: ToolCategory;
@@ -164,9 +234,9 @@ export type ToolClass = {
  *
  * To create a custom tool, you must:
  * 1. Extend the `ToolBase` class
- * 2. Define static properties: `category` and `operationType`
- * 3. Implement required abstract members: `name`, `description`,
- *    `argsShape`, `execute()`, `resolveTelemetryMetadata()`
+ * 2. Define static properties: `toolName`, `category`, and `operationType`
+ * 3. Implement required abstract members: `description`, `argsShape`,
+ *    `execute()`, `resolveTelemetryMetadata()`
  *
  * @example Basic Custom Tool
  * ```typescript
@@ -175,14 +245,14 @@ export type ToolClass = {
  * import { z } from "zod";
  *
  * class MyCustomTool extends ToolBase {
- *   // Required static property for ToolClass conformance
+ *   // Required static properties for ToolClass conformance
+ *   static toolName = "my-custom-tool";
  *   static category: ToolCategory = "mongodb";
  *   static operationType: OperationType = "read";
  *
  *   // Required abstract properties
- *   override name = "my-custom-tool";
- *   protected description = "My custom tool description";
- *   protected argsShape = {
+ *   public description = "My custom tool description";
+ *   public argsShape = {
  *     query: z.string().describe("The query parameter"),
  *   };
  *
@@ -219,6 +289,7 @@ export type ToolClass = {
  *
  * The following properties are automatically set when the tool is instantiated
  * by the server (derived from the static properties):
+ * - `name` - The tool's unique name (from static `toolName`)
  * - `category` - The tool's category (from static `category`)
  * - `operationType` - The tool's operation type (from static `operationType`)
  *
@@ -232,20 +303,24 @@ export type ToolClass = {
  * @see {@link ToolConstructorParams} for the parameters passed to the
  * constructor
  */
-export abstract class ToolBase {
+export abstract class ToolBase<
+    TUserConfig extends UserConfig = UserConfig,
+    TContext = unknown,
+    TMetrics extends DefaultMetrics = DefaultMetrics,
+> {
     /**
      * The unique name of this tool.
      *
      * Must be unique across all tools in the server.
      */
-    public abstract name: string;
+    public readonly name: string;
 
     /**
      * The category of this tool.
      *
      * @see {@link ToolCategory} for the available tool categories.
      */
-    public category: ToolCategory;
+    public readonly category: ToolCategory;
 
     /**
      * The type of operation this tool performs.
@@ -255,7 +330,7 @@ export abstract class ToolBase {
      *
      * @see {@link OperationType} for the available tool operations.
      */
-    public operationType: OperationType;
+    public readonly operationType: OperationType;
 
     /**
      * Human-readable description of what the tool does.
@@ -263,7 +338,7 @@ export abstract class ToolBase {
      * This is shown to the MCP client and helps the LLM understand when to use
      * this tool.
      */
-    protected abstract description: string;
+    public abstract description: string;
 
     /**
      * Zod schema defining the tool's arguments.
@@ -272,13 +347,13 @@ export abstract class ToolBase {
      *
      * @example
      * ```typescript
-     * protected argsShape = {
+     * public argsShape = {
      *   query: z.string().describe("The search query"),
      *   limit: z.number().optional().describe("Maximum results to return"),
      * };
      * ```
      */
-    protected abstract argsShape: ZodRawShape;
+    public abstract argsShape: ZodRawShape;
 
     /**
      * Optional Zod schema defining the tool's structured output.
@@ -302,11 +377,11 @@ export abstract class ToolBase {
      * }
      * ```
      */
-    protected outputSchema?: ZodRawShape;
+    public outputSchema?: ZodRawShape;
 
     private registeredTool: RegisteredTool | undefined;
 
-    protected get annotations(): ToolAnnotations {
+    public get annotations(): ToolAnnotations {
         const annotations: ToolAnnotations = {
             title: this.name,
         };
@@ -335,6 +410,47 @@ export abstract class ToolBase {
     }
 
     /**
+     * Returns tool-specific metadata that will be included in the tool's `_meta` field.
+     *
+     * This getter computes metadata based on the current configuration, including
+     * transport-specific constraints like request payload size limits.
+     *
+     * The metadata includes:
+     * - `com.mongodb/transport`: The transport protocol in use ("stdio" or "http")
+     * - `com.mongodb/maxRequestPayloadBytes`: Maximum request payload size for the current transport
+     *
+     * Subclasses can override this to add custom metadata. When overriding,
+     * call `super.toolMeta` and spread its result to preserve base metadata.
+     *
+     * @example
+     * ```typescript
+     * protected override get toolMeta(): Record<string, unknown> {
+     *   return {
+     *     ...super.toolMeta,
+     *     "com.mongodb/customField": "value",
+     *   };
+     * }
+     * ```
+     */
+    protected get toolMeta(): Record<string, unknown> {
+        const transport = this.config.transport;
+        let maxRequestPayloadBytes =
+            TRANSPORT_PAYLOAD_LIMITS[transport as TransportType] ?? TRANSPORT_PAYLOAD_LIMITS.stdio;
+
+        // If the transport is http and the httpBodyLimit is set, use the httpBodyLimit
+        if (transport === "http" && this.config.httpBodyLimit) {
+            maxRequestPayloadBytes = this.config.httpBodyLimit;
+        }
+
+        return {
+            /** The transport protocol this server is using */
+            "com.mongodb/transport": transport,
+            /** Maximum request payload size in bytes for this transport */
+            "com.mongodb/maxRequestPayloadBytes": maxRequestPayloadBytes,
+        };
+    }
+
+    /**
      * A function that is registered as the tool execution callback and is
      * called with the expected arguments.
      *
@@ -343,11 +459,12 @@ export abstract class ToolBase {
      * result conforming to the MCP protocol.
      *
      * @param args - The validated arguments passed to the tool
+     * @param context - The execution context containing signal and optional request info
      * @returns A promise resolving to the tool execution result
      *
      * @example
      * ```typescript
-     * protected async execute(args: { query: string }): Promise<CallToolResult> {
+     * protected async execute(args: { query: string }, context): Promise<CallToolResult> {
      *   const results = await this.session.db.collection('items').find({
      *     name: { $regex: args.query, $options: 'i' }
      *   }).toArray();
@@ -363,8 +480,92 @@ export abstract class ToolBase {
      */
     protected abstract execute(
         args: ToolArgs<typeof this.argsShape>,
-        { signal }: ToolExecutionContext
+        context: ToolExecutionContext
     ): Promise<CallToolResult>;
+
+    /** This is used internally by the server to invoke the tool. It can also be run manually to call the tool directly. */
+    public async invoke(args: ToolArgs<typeof this.argsShape>, context: ToolExecutionContext): Promise<CallToolResult> {
+        let startTime: number = Date.now();
+
+        try {
+            if (this.requiresConfirmation()) {
+                if (!(await this.verifyConfirmed(args))) {
+                    this.session.logger.debug({
+                        id: LogId.toolExecute,
+                        context: "tool",
+                        message: `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`,
+                        noRedaction: true,
+                    });
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`,
+                            },
+                        ],
+                        isError: true,
+                    };
+                }
+                // We do not want to include the elicitation time in the tool execution time
+                // so we reset the startTime to the current time. We may want to consider adding
+                // a separate field for elicitation time in the future.
+                startTime = Date.now();
+            }
+            this.session.logger.debug({
+                id: LogId.toolExecute,
+                context: "tool",
+                message: `Executing tool ${this.name}`,
+                noRedaction: true,
+            });
+
+            const toolCallResult = await this.execute(args, context);
+            const result = await this.appendUIResource(toolCallResult);
+
+            this.emitToolEvent(args, { startTime, result });
+
+            const durationSeconds = (Date.now() - startTime) / 1000;
+
+            this.metrics.get("toolExecutionDuration").observe(
+                {
+                    tool_name: this.name,
+                    category: this.category,
+                    status: result.isError ? "error" : "success",
+                    operation_type: this.operationType,
+                },
+                durationSeconds
+            );
+
+            this.session.logger.debug({
+                id: LogId.toolExecute,
+                context: "tool",
+                message: `Executed tool ${this.name}`,
+                noRedaction: true,
+            });
+            return result;
+        } catch (error: unknown) {
+            this.session.logger.error({
+                id: LogId.toolExecuteFailure,
+                context: "tool",
+                message: `Error executing ${this.name}: ${error as string}`,
+            });
+            const toolResult = await this.handleError(error, args);
+            this.emitToolEvent(args, { startTime, result: toolResult });
+
+            const durationSeconds = (Date.now() - startTime) / 1000;
+            this.metrics.get("toolExecutionDuration").observe(
+                {
+                    tool_name: this.name,
+                    category: this.category,
+                    status: "error",
+                    operation_type: this.operationType,
+                    error_type: error instanceof Error ? error.name : "unknown",
+                },
+                durationSeconds
+            );
+
+            return toolResult;
+        }
+    }
 
     /**
      * Get the confirmation message shown to users when this tool requires
@@ -388,6 +589,11 @@ export abstract class ToolBase {
         return `You are about to execute the \`${this.name}\` tool which requires additional confirmation. Would you like to proceed?`;
     }
 
+    /** Checks if the tool requires elicitation */
+    public requiresConfirmation(): boolean {
+        return this.config.confirmationRequiredTools.includes(this.name);
+    }
+
     /**
      * Check if the user has confirmed the tool execution (if required by
      * configuration).
@@ -401,7 +607,7 @@ export abstract class ToolBase {
      * required, `false` otherwise
      */
     public async verifyConfirmed(args: ToolArgs<typeof this.argsShape>): Promise<boolean> {
-        if (!this.config.confirmationRequiredTools.includes(this.name)) {
+        if (!this.requiresConfirmation()) {
             return true;
         }
 
@@ -419,7 +625,7 @@ export abstract class ToolBase {
      * settings including connection strings, feature flags, and operational
      * limits.
      */
-    protected readonly config: UserConfig;
+    protected readonly config: TUserConfig;
 
     /**
      * Access to the telemetry service. Use this to emit custom telemetry events
@@ -432,82 +638,61 @@ export abstract class ToolBase {
      * or inputs during tool execution.
      */
     protected readonly elicitation: Elicitation;
-    private readonly uiRegistry: UIRegistry;
+
+    /**
+     * Access to the metrics service. Use this to emit custom metrics events
+     * if needed.
+     */
+    protected readonly metrics: Metrics<TMetrics>;
+
+    private readonly uiRegistry?: UIRegistry;
+
+    /**
+     * Optional custom context object provided during tool construction.
+     *
+     * Library consumers can use this for passing shared services used by multiple tools.
+     *
+     * @example
+     * ```typescript
+     * class MyTool extends ToolBase {
+     *   protected async execute(args, { authService }) {
+     *     // Access custom context
+     *     const user = await authService.getUser();
+     *     // ...
+     *   }
+     * }
+     * ```
+     */
+    protected readonly context?: TContext;
+
     constructor({
+        name,
         category,
         operationType,
         session,
         config,
         telemetry,
         elicitation,
+        metrics,
         uiRegistry,
-    }: ToolConstructorParams) {
+        context,
+    }: ToolConstructorParams<TUserConfig, TContext, TMetrics>) {
+        this.name = name;
         this.category = category;
         this.operationType = operationType;
         this.session = session;
         this.config = config;
         this.telemetry = telemetry;
         this.elicitation = elicitation;
+        this.metrics = metrics;
         this.uiRegistry = uiRegistry;
+        this.context = context;
     }
 
-    public register(server: Server): boolean {
+    public register(server: Server<TUserConfig, TContext, TMetrics>): boolean {
         if (!this.verifyAllowed()) {
             return false;
         }
-
-        const callback = async (
-            args: ToolArgs<typeof this.argsShape>,
-            { signal }: ToolExecutionContext
-        ): Promise<CallToolResult> => {
-            const startTime = Date.now();
-            try {
-                if (!(await this.verifyConfirmed(args))) {
-                    this.session.logger.debug({
-                        id: LogId.toolExecute,
-                        context: "tool",
-                        message: `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`,
-                        noRedaction: true,
-                    });
-                    return {
-                        content: [
-                            {
-                                type: "text",
-                                text: `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`,
-                            },
-                        ],
-                    };
-                }
-                this.session.logger.debug({
-                    id: LogId.toolExecute,
-                    context: "tool",
-                    message: `Executing tool ${this.name}`,
-                    noRedaction: true,
-                });
-
-                const toolCallResult = await this.execute(args, { signal });
-                const result = await this.appendUIResource(toolCallResult);
-
-                this.emitToolEvent(args, { startTime, result });
-
-                this.session.logger.debug({
-                    id: LogId.toolExecute,
-                    context: "tool",
-                    message: `Executed tool ${this.name}`,
-                    noRedaction: true,
-                });
-                return result;
-            } catch (error: unknown) {
-                this.session.logger.error({
-                    id: LogId.toolExecuteFailure,
-                    context: "tool",
-                    message: `Error executing ${this.name}: ${error as string}`,
-                });
-                const toolResult = await this.handleError(error, args);
-                this.emitToolEvent(args, { startTime, result: toolResult });
-                return toolResult;
-            }
-        };
 
         this.registeredTool =
             // Note: We use explicit type casting here to avoid  "excessively deep and possibly infinite" errors
@@ -521,6 +706,7 @@ export abstract class ToolBase {
                         inputSchema?: ZodRawShape;
                         outputSchema?: ZodRawShape;
                         annotations?: ToolAnnotations;
+                        _meta?: Record<string, unknown>;
                     },
                     cb: (args: ToolArgs<ZodRawShape>, extra: ToolExecutionContext) => Promise<CallToolResult>
                 ) => RegisteredTool
@@ -531,8 +717,9 @@ export abstract class ToolBase {
                     inputSchema: this.argsShape,
                     outputSchema: this.outputSchema,
                     annotations: this.annotations,
+                    _meta: this.toolMeta,
                 },
-                callback
+                this.invoke.bind(this)
             );
 
         return true;
@@ -542,7 +729,7 @@ export abstract class ToolBase {
         return this.registeredTool?.enabled ?? false;
     }
 
-    protected disable(): void {
+    public disable(): void {
         if (!this.registeredTool) {
             this.session.logger.warning({
                 id: LogId.toolMetadataChange,
@@ -554,7 +741,7 @@ export abstract class ToolBase {
         this.registeredTool.disable();
     }
 
-    protected enable(): void {
+    public enable(): void {
         if (!this.registeredTool) {
             this.session.logger.warning({
                 id: LogId.toolMetadataChange,
@@ -628,11 +815,13 @@ export abstract class ToolBase {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         args: z.infer<z.ZodObject<typeof this.argsShape>>
     ): Promise<CallToolResult> | CallToolResult {
+        const rawMessage = error instanceof Error ? error.message : String(error);
+        const safeMessage = redact(rawMessage, this.session.keychain.allSecrets);
         return {
             content: [
                 {
                     type: "text",
-                    text: `Error running ${this.name}: ${error instanceof Error ? error.message : String(error)}`,
+                    text: `Error running ${this.name}: ${safeMessage}`,
                 },
             ],
             isError: true,
@@ -705,13 +894,20 @@ export abstract class ToolBase {
 
     protected getConnectionInfoMetadata(): ConnectionMetadata {
         const metadata: ConnectionMetadata = {};
-        if (this.session.connectedAtlasCluster?.projectId) {
-            metadata.project_id = this.session.connectedAtlasCluster.projectId;
+
+        if (this.session === undefined) {
+            return metadata;
         }
 
-        const connectionStringAuthType = this.session.connectionStringAuthType;
-        if (connectionStringAuthType !== undefined) {
-            metadata.connection_auth_type = connectionStringAuthType;
+        if (this.session.connectionStringInfo !== undefined) {
+            metadata.connection_auth_type = this.session.connectionStringInfo.authType;
+            metadata.connection_host_type = this.session.connectionStringInfo.hostType;
+        }
+
+        if (this.session.connectedAtlasCluster !== undefined) {
+            if (this.session.connectedAtlasCluster.projectId) {
+                metadata.project_id = this.session.connectedAtlasCluster.projectId;
+            }
         }
 
         return metadata;
@@ -728,29 +924,37 @@ export abstract class ToolBase {
             return result;
         }
 
-        const uiHtml = await this.uiRegistry.get(this.name);
-        if (!uiHtml || !result.structuredContent) {
-            return result;
+        let uiResource: UIResource | undefined;
+        if (this.uiRegistry) {
+            const uiHtml = await this.uiRegistry.get(this.name);
+            if (!uiHtml || !result.structuredContent) {
+                return result;
+            }
+            uiResource = createUIResource({
+                uri: `ui://${this.name}`,
+                content: {
+                    type: "rawHtml",
+                    htmlString: uiHtml,
+                },
+                encoding: "text",
+                uiMetadata: {
+                    "initial-render-data": result.structuredContent,
+                },
+            });
         }
 
-        const uiResource = createUIResource({
-            uri: `ui://${this.name}`,
-            content: {
-                type: "rawHtml",
-                htmlString: uiHtml,
-            },
-            encoding: "text",
-            uiMetadata: {
-                "initial-render-data": result.structuredContent,
-            },
-        });
+        const resultContent = result.content || [];
+        const content = uiResource ? [...resultContent, uiResource] : resultContent;
 
         return {
             ...result,
-            content: [...(result.content || []), uiResource],
+            content,
         };
     }
 }
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AnyToolBase = ToolBase<any, any, any>;
 
 /**
  * Formats potentially untrusted data to be included in tool responses. The data is wrapped in unique tags
@@ -761,7 +965,7 @@ export abstract class ToolBase {
  * @returns A tool response content that can be directly returned.
  */
 export function formatUntrustedData(description: string, ...data: string[]): { text: string; type: "text" }[] {
-    const uuid = crypto.randomUUID();
+    const uuid = getRandomUUID();
 
     const openingTag = `<untrusted-user-data-${uuid}>`;
     const closingTag = `</untrusted-user-data-${uuid}>`;

@@ -1,16 +1,24 @@
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType } from "../../tool.js";
+import { DBOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import type { ToolArgs, OperationType, ToolResult } from "../../tool.js";
+import { z } from "zod";
+
+const DropDatabaseOutputSchema = {
+    database: z.string(),
+    dropped: z.boolean(),
+};
+
+export type DropDatabaseOutput = z.infer<z.ZodObject<typeof DropDatabaseOutputSchema>>;
 
 export class DropDatabaseTool extends MongoDBToolBase {
-    public name = "drop-database";
-    protected description = "Removes the specified database, deleting the associated data files";
-    protected argsShape = {
-        database: DbOperationArgs.database,
-    };
+    static toolName = "drop-database";
+    public description = "Removes the specified database, deleting the associated data files";
+    public argsShape = DBOperationArgs;
+    public override outputSchema = DropDatabaseOutputSchema;
     static operationType: OperationType = "delete";
 
-    protected async execute({ database }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute({
+        database,
+    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
         const provider = await this.ensureConnected();
         const result = await provider.dropDatabase(database);
 
@@ -21,6 +29,10 @@ export class DropDatabaseTool extends MongoDBToolBase {
                     type: "text",
                 },
             ],
+            structuredContent: {
+                database,
+                dropped: Boolean(result.ok),
+            },
         };
     }
 

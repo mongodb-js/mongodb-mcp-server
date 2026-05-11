@@ -2,10 +2,11 @@ import { ReactiveResource } from "../resource.js";
 import type { Telemetry } from "../../telemetry/telemetry.js";
 import type { Session, UserConfig } from "../../lib.js";
 import type { AtlasClusterConnectionInfo, ConnectionStateErrored } from "../../common/connectionManager.js";
+import type { ConnectionStringInfo } from "../../common/connectionInfo.js";
 
 type ConnectionStateDebuggingInformation = {
     readonly tag: "connected" | "connecting" | "disconnected" | "errored";
-    readonly connectionStringAuthType?: "scram" | "ldap" | "kerberos" | "oidc-auth-flow" | "oidc-device-flow" | "x.509";
+    readonly connectionStringInfo?: ConnectionStringInfo;
     readonly errorReason?: string;
     readonly connectedAtlasCluster?: AtlasClusterConnectionInfo;
 };
@@ -43,7 +44,7 @@ export class DebugResource extends ReactiveResource<
             case "connection-error": {
                 return {
                     tag: "errored",
-                    connectionStringAuthType: event?.connectionStringAuthType,
+                    connectionStringInfo: event?.connectionStringInfo,
                     connectedAtlasCluster: event?.connectedAtlasCluster,
                     errorReason:
                         event?.errorReason ??
@@ -71,8 +72,8 @@ export class DebugResource extends ReactiveResource<
                     result += `Attempted connecting to Atlas Cluster "${this.current.connectedAtlasCluster.clusterName}" in project with id "${this.current.connectedAtlasCluster.projectId}".\n`;
                 }
 
-                if (this.current.connectionStringAuthType !== undefined) {
-                    result += `The inferred authentication mechanism is "${this.current.connectionStringAuthType}".\n`;
+                if (this.current.connectionStringInfo?.authType !== undefined) {
+                    result += `The inferred authentication mechanism is "${this.current.connectionStringInfo.authType}".\n`;
                 }
                 result += `<error>${this.current.errorReason}</error>`;
                 break;

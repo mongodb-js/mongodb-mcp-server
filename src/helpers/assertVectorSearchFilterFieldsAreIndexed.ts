@@ -3,7 +3,7 @@
 import type z from "zod";
 import { ErrorCodes, MongoDBError } from "../common/errors.js";
 import type { VectorSearchStage } from "../tools/mongodb/mongodbSchemas.js";
-import { type CompositeLogger, LogId } from "../common/logger.js";
+import { type CompositeLogger, LogId } from "../common/logging/index.js";
 
 // https://www.mongodb.com/docs/atlas/atlas-vector-search/vector-search-stage/#mongodb-vector-search-pre-filter
 const ALLOWED_LOGICAL_OPERATORS = ["$not", "$nor", "$and", "$or"];

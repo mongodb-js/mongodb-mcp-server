@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DebugResource } from "../../../../src/resources/common/debug.js";
 import { Session } from "../../../../src/common/session.js";
-import { Telemetry } from "../../../../src/telemetry/telemetry.js";
-import { CompositeLogger } from "../../../../src/common/logger.js";
+import { CompositeLogger } from "../../../../src/common/logging/index.js";
 import { MCPConnectionManager } from "../../../../src/common/connectionManager.js";
 import { ExportsManager } from "../../../../src/common/exportsManager.js";
 import { DeviceId } from "../../../../src/helpers/deviceId.js";
 import { Keychain } from "../../../../src/common/keychain.js";
-import { VectorSearchEmbeddingsManager } from "../../../../src/common/search/vectorSearchEmbeddingsManager.js";
 import { defaultTestConfig } from "../../../integration/helpers.js";
+import { connectionErrorHandler } from "../../../../src/common/connectionErrorHandler.js";
+import { defaultCreateApiClient, Telemetry } from "../../../../src/lib.js";
 
 describe("debug resource", () => {
     const logger = new CompositeLogger();
@@ -22,11 +22,27 @@ describe("debug resource", () => {
             exportsManager: ExportsManager.init(defaultTestConfig, logger),
             connectionManager,
             keychain: new Keychain(),
-            vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(defaultTestConfig, connectionManager),
+            connectionErrorHandler,
+            apiClient: defaultCreateApiClient(
+                {
+                    baseUrl: defaultTestConfig.apiBaseUrl,
+                    credentials: {
+                        clientId: defaultTestConfig.apiClientId,
+                        clientSecret: defaultTestConfig.apiClientSecret,
+                    },
+                },
+                logger
+            ),
         })
     );
 
-    const telemetry = Telemetry.create(session, { ...defaultTestConfig, telemetry: "disabled" }, deviceId);
+    const telemetry = Telemetry.create({
+        logger,
+        deviceId,
+        apiClient: session.apiClient,
+        keychain: session.keychain,
+        enabled: false,
+    });
 
     let debugResource: DebugResource = new DebugResource(session, defaultTestConfig, telemetry);
 
@@ -72,7 +88,10 @@ describe("debug resource", () => {
     it("should show the inferred authentication type", async () => {
         debugResource.reduceApply("connection-error", {
             tag: "errored",
-            connectionStringAuthType: "scram",
+            connectionStringInfo: {
+                authType: "scram",
+                hostType: "local",
+            },
             errorReason: "Error message from the server",
         });
 
@@ -86,12 +105,16 @@ describe("debug resource", () => {
     it("should show the atlas cluster information when provided", async () => {
         debugResource.reduceApply("connection-error", {
             tag: "errored",
-            connectionStringAuthType: "scram",
+            connectionStringInfo: {
+                authType: "scram",
+                hostType: "atlas",
+            },
             errorReason: "Error message from the server",
             connectedAtlasCluster: {
                 clusterName: "My Test Cluster",
                 projectId: "COFFEEFABADA",
                 username: "",
+                instanceType: "FREE",
                 expiryDate: new Date(),
             },
         });

@@ -5,10 +5,10 @@ import type { Client } from "@mongodb-js/atlas-local";
 import { CommonArgs } from "../../args.js";
 
 export class DeleteDeploymentTool extends AtlasLocalToolBase {
-    public name = "atlas-local-delete-deployment";
-    protected description = "Delete a MongoDB Atlas local deployment";
+    static toolName = "atlas-local-delete-deployment";
+    public description = "Delete a MongoDB Atlas local deployment";
     static operationType: OperationType = "delete";
-    protected argsShape = {
+    public argsShape = {
         deploymentName: CommonArgs.string().describe("Name of the deployment to delete"),
     };
 

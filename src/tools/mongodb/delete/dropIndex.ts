@@ -1,29 +1,33 @@
 import z from "zod";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import { type ToolArgs, type OperationType, formatUntrustedData } from "../../tool.js";
+import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { type ToolArgs, type OperationType, formatUntrustedData, type ToolResult } from "../../tool.js";
+
+const DropIndexOutputSchema = {
+    database: z.string(),
+    collection: z.string(),
+    indexName: z.string(),
+    dropped: z.boolean(),
+};
+
+export type DropIndexOutput = z.infer<z.ZodObject<typeof DropIndexOutputSchema>>;
 
 export class DropIndexTool extends MongoDBToolBase {
-    public name = "drop-index";
-    protected description = "Drop an index for the provided database and collection.";
-    protected argsShape = {
-        ...DbOperationArgs,
+    static toolName = "drop-index";
+    public description = "Drop an index for the provided database and collection.";
+    public argsShape = {
+        ...CollOperationArgs,
         indexName: z.string().nonempty().describe("The name of the index to be dropped."),
-        type: this.isFeatureEnabled("search")
-            ? z
-                  .enum(["classic", "search"])
-                  .describe(
-                      "The type of index to be deleted. Use 'classic' for standard indexes and 'search' for atlas search and vector search indexes."
-                  )
-            : z
-                  .literal("classic")
-                  .default("classic")
-                  .describe("The type of index to be deleted. Is always set to 'classic'."),
+        type: z
+            .enum(["classic", "search"])
+            .describe(
+                "The type of index to be deleted. Use 'classic' for standard indexes and 'search' for atlas search and vector search indexes."
+            ),
     };
+    public override outputSchema = DropIndexOutputSchema;
     static operationType: OperationType = "delete";
 
-    protected async execute(toolArgs: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute(toolArgs: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
         const provider = await this.ensureConnected();
         switch (toolArgs.type) {
             case "classic":
@@ -36,7 +40,7 @@ export class DropIndexTool extends MongoDBToolBase {
     private async dropClassicIndex(
         provider: NodeDriverServiceProvider,
         { database, collection, indexName }: ToolArgs<typeof this.argsShape>
-    ): Promise<CallToolResult> {
+    ): Promise<ToolResult<typeof this.outputSchema>> {
         const result = await provider.runCommand(database, {
             dropIndexes: collection,
             index: indexName,
@@ -51,14 +55,20 @@ export class DropIndexTool extends MongoDBToolBase {
                 })
             ),
             isError: result.ok ? undefined : true,
+            structuredContent: {
+                database,
+                collection,
+                indexName,
+                dropped: Boolean(result.ok),
+            },
         };
     }
 
     private async dropSearchIndex(
         provider: NodeDriverServiceProvider,
         { database, collection, indexName }: ToolArgs<typeof this.argsShape>
-    ): Promise<CallToolResult> {
-        await this.ensureSearchIsSupported();
+    ): Promise<ToolResult<typeof this.outputSchema>> {
+        await this.session.assertSearchSupported();
         const indexes = await provider.getSearchIndexes(database, collection, indexName);
         if (indexes.length === 0) {
             return {
@@ -67,6 +77,12 @@ export class DropIndexTool extends MongoDBToolBase {
                     JSON.stringify({ indexName, namespace: `${database}.${collection}` })
                 ),
                 isError: true,
+                structuredContent: {
+                    database,
+                    collection,
+                    indexName,
+                    dropped: false,
+                },
             };
         }
 
@@ -79,6 +95,12 @@ export class DropIndexTool extends MongoDBToolBase {
                     namespace: `${database}.${collection}`,
                 })
             ),
+            structuredContent: {
+                database,
+                collection,
+                indexName,
+                dropped: true,
+            },
         };
     }
 

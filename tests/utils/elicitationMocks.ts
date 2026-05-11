@@ -11,9 +11,7 @@ export type MockClientCapabilities = {
 
 export type MockElicitResult = {
     action: string;
-    content?: {
-        confirmation?: string;
-    };
+    content?: Record<string, unknown>;
 };
 
 /**
@@ -23,7 +21,7 @@ export function createMockElicitInput(): {
     mock: MockedFunction<() => Promise<MockElicitResult>>;
     confirmYes: () => void;
     confirmNo: () => void;
-    acceptWith: (content: { confirmation?: string } | undefined) => void;
+    acceptWith: (content: Record<string, unknown> | undefined) => void;
     cancel: () => void;
     rejectWith: (error: Error) => void;
     clear: () => void;
@@ -42,7 +40,7 @@ export function createMockElicitInput(): {
                 action: "accept",
                 content: { confirmation: "No" },
             }),
-        acceptWith: (content: { confirmation?: string } | undefined) =>
+        acceptWith: (content: Record<string, unknown> | undefined) =>
             mockFn.mockResolvedValue({
                 action: "accept",
                 content,

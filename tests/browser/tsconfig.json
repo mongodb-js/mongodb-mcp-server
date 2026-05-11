@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "lib": ["ES2022", "DOM"],
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "paths": {
+      "mongodb-mcp-server": ["../../src/lib"],
+      "mongodb-mcp-server/web": ["../../src/web"],
+      "ts-levenshtein": ["../../node_modules/ts-levenshtein/dist/index.d.mts"]
+    }
+  },
+  "include": ["**/*.ts"]
+}

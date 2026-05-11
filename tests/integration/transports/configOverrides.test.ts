@@ -22,7 +22,7 @@ describe("Config Overrides via HTTP", () => {
 
     // Helper function to connect client with headers
     async function connectClient(headers: Record<string, string> = {}): Promise<void> {
-        transport = new StreamableHTTPClientTransport(new URL(`${runner.serverAddress}/mcp`), {
+        transport = new StreamableHTTPClientTransport(new URL(`${runner["mcpServer"]!.serverAddress}/mcp`), {
             requestInit: { headers },
         });
         await client.connect(transport);
@@ -63,7 +63,7 @@ describe("Config Overrides via HTTP", () => {
                 expect.fail("Expected an error to be thrown");
             } catch (error) {
                 if (!(error instanceof Error)) {
-                    throw new Error("Expected an error to be thrown");
+                    throw new Error("Expected an error to be thrown", { cause: error });
                 }
                 expect(error.message).toContain("Request overrides are not enabled");
             }
@@ -110,7 +110,7 @@ describe("Config Overrides via HTTP", () => {
                 expect.fail("Expected an error to be thrown");
             } catch (error) {
                 if (!(error instanceof Error)) {
-                    throw new Error("Expected an error to be thrown");
+                    throw new Error("Expected an error to be thrown", { cause: error });
                 }
                 expect(error.message).toContain("Error POSTing to endpoint");
                 expect(error.message).toContain(`Config key connectionString is not allowed to be overridden`);
@@ -197,7 +197,7 @@ describe("Config Overrides via HTTP", () => {
                 expect.fail("Expected an error to be thrown");
             } catch (error) {
                 if (!(error instanceof Error)) {
-                    throw new Error("Expected an error to be thrown");
+                    throw new Error("Expected an error to be thrown", { cause: error });
                 }
                 expect(error.message).toContain("Error POSTing to endpoint");
                 expect(error.message).toContain(`Config key ${configKey} is not allowed to be overridden`);
@@ -220,7 +220,7 @@ describe("Config Overrides via HTTP", () => {
                 expect.fail("Expected an error to be thrown");
             } catch (error) {
                 if (!(error instanceof Error)) {
-                    throw new Error("Expected an error to be thrown");
+                    throw new Error("Expected an error to be thrown", { cause: error });
                 }
                 expect(error.message).toContain("Error POSTing to endpoint");
                 // Should contain at least one of the not-allowed field errors
@@ -377,7 +377,7 @@ describe("Config Overrides via HTTP", () => {
                 expect.fail("Expected an error to be thrown");
             } catch (error) {
                 if (!(error instanceof Error)) {
-                    throw new Error("Expected an error to be thrown");
+                    throw new Error("Expected an error to be thrown", { cause: error });
                 }
                 expect(error.message).toContain("Error POSTing to endpoint");
                 expect(error.message).toContain(`Cannot apply override for readOnly: Can only set to true`);
@@ -453,7 +453,7 @@ describe("Config Overrides via HTTP", () => {
                 expect.fail("Expected an error to be thrown");
             } catch (error) {
                 if (!(error instanceof Error)) {
-                    throw new Error("Expected an error to be thrown");
+                    throw new Error("Expected an error to be thrown", { cause: error });
                 }
                 expect(error.message).toContain("Error POSTing to endpoint");
                 expect(error.message).toContain(
@@ -477,7 +477,7 @@ describe("Config Overrides via HTTP", () => {
                 expect.fail("Expected an error to be thrown");
             } catch (error) {
                 if (!(error instanceof Error)) {
-                    throw new Error("Expected an error to be thrown");
+                    throw new Error("Expected an error to be thrown", { cause: error });
                 }
                 expect(error.message).toContain("Error POSTing to endpoint");
                 expect(error.message).toContain(
@@ -493,12 +493,12 @@ describe("Config Overrides via HTTP", () => {
                 await startRunner({
                     ...defaultTestConfig,
                     httpPort: 0,
-                    previewFeatures: ["search"],
+                    previewFeatures: ["mcpUI"],
                     allowRequestOverrides: true,
                 });
 
                 await connectClient({
-                    ["x-mongodb-mcp-preview-features"]: "search",
+                    ["x-mongodb-mcp-preview-features"]: "mcpUI",
                 });
 
                 const response = await client.listTools();
@@ -509,7 +509,7 @@ describe("Config Overrides via HTTP", () => {
                 await startRunner({
                     ...defaultTestConfig,
                     httpPort: 0,
-                    previewFeatures: ["search"],
+                    previewFeatures: ["mcpUI"],
                     allowRequestOverrides: true,
                 });
 
@@ -532,12 +532,12 @@ describe("Config Overrides via HTTP", () => {
                 // Empty array trying to override with non-empty should fail (superset)
                 try {
                     await connectClient({
-                        ["x-mongodb-mcp-preview-features"]: "search",
+                        ["x-mongodb-mcp-preview-features"]: "mcpUI",
                     });
                     expect.fail("Expected an error to be thrown");
                 } catch (error) {
                     if (!(error instanceof Error)) {
-                        throw new Error("Expected an error to be thrown");
+                        throw new Error("Expected an error to be thrown", { cause: error });
                     }
                     expect(error.message).toContain("Error POSTing to endpoint");
                     expect(error.message).toContain(

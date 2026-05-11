@@ -2,18 +2,24 @@ import z from "zod";
 import { ObjectId } from "bson";
 import type { AggregationCursor, FindCursor } from "mongodb";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { OperationType, ToolArgs } from "../../tool.js";
-import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import type { OperationType, ToolArgs, ToolExecutionContext } from "../../tool.js";
+import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { FindArgs } from "./find.js";
 import { jsonExportFormat } from "../../../common/exportsManager.js";
-import { getAggregateArgs } from "./aggregate.js";
+import { AggregateArgs } from "./aggregate.js";
 
 export class ExportTool extends MongoDBToolBase {
-    public name = "export";
-    protected description = "Export a query or aggregation results in the specified EJSON format.";
-    protected argsShape = {
-        ...DbOperationArgs,
+    static toolName = "export";
+    public description = "Export a query or aggregation results in the specified EJSON format.";
+    public argsShape = {
+        ...CollOperationArgs,
         exportTitle: z.string().describe("A short description to uniquely identify the export."),
+        // Note: Although it is not required to wrap the discriminated union in
+        // an array here because we only expect exactly one exportTarget to be
+        // provided here, we unfortunately cannot use the discriminatedUnion as
+        // is because Cursor is unable to construct payload for tool calls where
+        // the input schema contains a discriminated union without such
+        // wrapping. This is a workaround for enabling the tool calls on Cursor.
         exportTarget: z
             .array(
                 z.discriminatedUnion("name", [
@@ -32,9 +38,7 @@ export class ExportTool extends MongoDBToolBase {
                         name: z
                             .literal("aggregate")
                             .describe("The literal name 'aggregate' to represent an aggregation cursor as target."),
-                        arguments: z
-                            .object(getAggregateArgs(this.isFeatureEnabled("search")))
-                            .describe("The arguments for 'aggregate' operation."),
+                        arguments: z.object(AggregateArgs).describe("The arguments for 'aggregate' operation."),
                     }),
                 ])
             )
@@ -51,13 +55,10 @@ export class ExportTool extends MongoDBToolBase {
     };
     static operationType: OperationType = "read";
 
-    protected async execute({
-        database,
-        collection,
-        jsonExportFormat,
-        exportTitle,
-        exportTarget: target,
-    }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute(
+        { database, collection, jsonExportFormat, exportTitle, exportTarget: target }: ToolArgs<typeof this.argsShape>,
+        { signal }: ToolExecutionContext
+    ): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
         const exportTarget = target[0];
         if (!exportTarget) {
@@ -73,6 +74,7 @@ export class ExportTool extends MongoDBToolBase {
                 limit,
                 promoteValues: false,
                 bsonRegExp: true,
+                ...this.getOperationOptions(signal),
             });
         } else {
             const { pipeline } = exportTarget.arguments;
@@ -80,6 +82,7 @@ export class ExportTool extends MongoDBToolBase {
                 promoteValues: false,
                 bsonRegExp: true,
                 allowDiskUse: true,
+                ...this.getOperationOptions(signal),
             });
         }
 

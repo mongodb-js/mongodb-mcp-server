@@ -1,110 +1,100 @@
 import createClient from "openapi-fetch";
 import type { ClientOptions, FetchOptions, Client, Middleware } from "openapi-fetch";
 import { ApiClientError } from "./apiClientError.js";
-import type { paths, operations } from "./openapi.js";
+import type { components, paths, operations } from "./openapi.js";
 import type { CommonProperties, TelemetryEvent } from "../../telemetry/types.js";
 import { packageInfo } from "../packageInfo.js";
-import type { LoggerBase } from "../logger.js";
-import { LogId } from "../logger.js";
+import type { LoggerBase } from "../logging/index.js";
 import { createFetch } from "@mongodb-js/devtools-proxy-support";
-import * as oauth from "oauth4webapi";
 import { Request as NodeFetchRequest } from "node-fetch";
+import type { Credentials, AuthProvider } from "./auth/authProvider.js";
+import { AuthProviderFactory } from "./auth/authProvider.js";
 
 const ATLAS_API_VERSION = "2025-03-12";
+const LEGACY_ATLAS_API_VERSION = "2023-01-01";
+const DEFAULT_SEND_TIMEOUT_MS = 5_000;
 
-export interface ApiClientCredentials {
-    clientId: string;
-    clientSecret: string;
+/**
+ * Detects whether we're running on Node.js as opposed to a browser/web
+ * environment. We rely on `process.versions.node` rather than `typeof process`
+ * because bundlers (e.g. Vite) may replace `process` with a literal object
+ * shim in the browser build, which would still be `"object"` at runtime.
+ */
+function isNodeRuntime(): boolean {
+    return typeof process !== "undefined" && process.versions !== undefined && process.versions.node !== undefined;
 }
 
 export interface ApiClientOptions {
-    credentials?: ApiClientCredentials;
     baseUrl: string;
     userAgent?: string;
+    credentials?: Credentials;
+    requestContext?: RequestContext;
 }
 
-export interface AccessToken {
-    access_token: string;
-    expires_at?: number;
-}
+export type RequestContext = {
+    headers?: Record<string, string | string[] | undefined>;
+};
+
+export type ApiClientFactoryFn = (options: ApiClientOptions, logger: LoggerBase) => ApiClient;
+
+export const defaultCreateApiClient: ApiClientFactoryFn = (options, logger) => {
+    return new ApiClient(options, logger);
+};
 
 export class ApiClient {
     private readonly options: {
         baseUrl: string;
         userAgent: string;
-        credentials?: {
-            clientId: string;
-            clientSecret: string;
-        };
     };
 
-    // createFetch assumes that the first parameter of fetch is always a string
-    // with the URL. However, fetch can also receive a Request object. While
-    // the typechecking complains, createFetch does passthrough the parameters
-    // so it works fine.
-    private static customFetch: typeof fetch = createFetch({
-        useEnvironmentVariableProxies: true,
-    }) as unknown as typeof fetch;
+    private customFetch: typeof fetch;
 
     private client: Client<paths>;
 
-    private oauth2Client?: oauth.Client;
-    private oauth2Issuer?: oauth.AuthorizationServer;
-    private accessToken?: AccessToken;
-
-    public hasCredentials(): boolean {
-        return !!this.oauth2Client && !!this.oauth2Issuer;
+    public isAuthConfigured(): boolean {
+        return !!this.authProvider;
     }
-
-    private isAccessTokenValid(): boolean {
-        return !!(
-            this.accessToken &&
-            this.accessToken.expires_at !== undefined &&
-            this.accessToken.expires_at > Date.now()
-        );
-    }
-
-    private getAccessToken = async (): Promise<string | undefined> => {
-        if (!this.hasCredentials()) {
-            return undefined;
-        }
-
-        if (!this.isAccessTokenValid()) {
-            this.accessToken = await this.getNewAccessToken();
-        }
-
-        return this.accessToken?.access_token;
-    };
-
-    private authMiddleware: Middleware = {
-        onRequest: async ({ request, schemaPath }) => {
-            if (schemaPath.startsWith("/api/private/unauth") || schemaPath.startsWith("/api/oauth")) {
-                return undefined;
-            }
-
-            try {
-                const accessToken = await this.getAccessToken();
-                if (accessToken) {
-                    request.headers.set("Authorization", `Bearer ${accessToken}`);
-                }
-                return request;
-            } catch {
-                // ignore not availble tokens, API will return 401
-                return undefined;
-            }
-        },
-    };
 
     constructor(
         options: ApiClientOptions,
-        public readonly logger: LoggerBase
+        public readonly logger: LoggerBase,
+        public readonly authProvider?: AuthProvider
     ) {
+        // In Node we use `createFetch` from devtools-proxy-support to pick up
+        // environment-variable proxy configuration and system CA trust, and we
+        // use node-fetch's Request since its interface is a superset of the
+        // web Request. In the browser those Node-only concerns don't apply and
+        // the implementations aren't available, so we fall back to the native
+        // `fetch`/`Request` globals.
+        if (isNodeRuntime()) {
+            // createFetch assumes that the first parameter of fetch is always a string
+            // with the URL. However, fetch can also receive a Request object. While
+            // the typechecking complains, createFetch does passthrough the parameters
+            // so it works fine. That said, node-fetch has incompatibilities with the web version
+            // of fetch and can lead to genuine issues so we would like to move away of node-fetch dependency.
+            this.customFetch = createFetch({
+                useEnvironmentVariableProxies: true,
+            }) as unknown as typeof fetch;
+        } else {
+            this.customFetch = globalThis.fetch.bind(globalThis);
+        }
         this.options = {
             ...options,
             userAgent:
-                options.userAgent ||
-                `AtlasMCP/${packageInfo.version} (${process.platform}; ${process.arch}; ${process.env.HOSTNAME || "unknown"})`,
+                options.userAgent ??
+                `AtlasMCP/${packageInfo.version} (${isNodeRuntime() ? `${process.platform}; ${process.arch}` : "browser"})`,
         };
+
+        this.authProvider =
+            authProvider ??
+            AuthProviderFactory.create(
+                {
+                    apiBaseUrl: this.options.baseUrl,
+                    userAgent: this.options.userAgent,
+                    credentials: options.credentials ?? {},
+                },
+                logger
+            );
 
         this.client = createClient<paths>({
             baseUrl: this.options.baseUrl,
@@ -112,123 +102,59 @@ export class ApiClient {
                 "User-Agent": this.options.userAgent,
                 Accept: `application/vnd.atlas.${ATLAS_API_VERSION}+json`,
             },
-            fetch: ApiClient.customFetch,
+            fetch: this.customFetch,
             // NodeFetchRequest has more overloadings than the native Request
             // so it complains here. However, the interfaces are actually compatible
             // so it's not a real problem, just a type checking problem.
-            Request: NodeFetchRequest as unknown as ClientOptions["Request"],
+            Request: (isNodeRuntime() ? NodeFetchRequest : globalThis.Request) as unknown as ClientOptions["Request"],
         });
 
-        if (this.options.credentials?.clientId && this.options.credentials?.clientSecret) {
-            this.oauth2Issuer = {
-                issuer: this.options.baseUrl,
-                token_endpoint: new URL("/api/oauth/token", this.options.baseUrl).toString(),
-                revocation_endpoint: new URL("/api/oauth/revoke", this.options.baseUrl).toString(),
-                token_endpoint_auth_methods_supported: ["client_secret_basic"],
-                grant_types_supported: ["client_credentials"],
-            };
-
-            this.oauth2Client = {
-                client_id: this.options.credentials.clientId,
-                client_secret: this.options.credentials.clientSecret,
-            };
-
-            this.client.use(this.authMiddleware);
+        if (this.authProvider) {
+            this.client.use(this.createAuthMiddleware());
         }
     }
 
-    private getOauthClientAuth(): { client: oauth.Client | undefined; clientAuth: oauth.ClientAuth | undefined } {
-        if (this.options.credentials?.clientId && this.options.credentials.clientSecret) {
-            const clientSecret = this.options.credentials.clientSecret;
-            const clientId = this.options.credentials.clientId;
+    private createAuthMiddleware(): Middleware {
+        return {
+            onRequest: async ({ request, schemaPath }): Promise<Request | undefined> => {
+                if (schemaPath.startsWith("/api/private/unauth") || schemaPath.startsWith("/api/oauth")) {
+                    return undefined;
+                }
 
-            // We are using our own ClientAuth because ClientSecretBasic URL encodes wrongly
-            // the username and password (for example, encodes `_` to %5F, which is wrong).
-            return {
-                client: { client_id: clientId },
-                clientAuth: (_as, client, _body, headers): void => {
-                    const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
-                    headers.set("Authorization", `Basic ${credentials}`);
-                },
-            };
-        }
-
-        return { client: undefined, clientAuth: undefined };
-    }
-
-    private async getNewAccessToken(): Promise<AccessToken | undefined> {
-        if (!this.hasCredentials() || !this.oauth2Issuer) {
-            return undefined;
-        }
-
-        const { client, clientAuth } = this.getOauthClientAuth();
-        if (client && clientAuth) {
-            try {
-                const response = await oauth.clientCredentialsGrantRequest(
-                    this.oauth2Issuer,
-                    client,
-                    clientAuth,
-                    new URLSearchParams(),
-                    {
-                        [oauth.customFetch]: ApiClient.customFetch,
-                        headers: {
-                            "User-Agent": this.options.userAgent,
-                        },
+                try {
+                    const authHeaders = (await this.authProvider?.getAuthHeaders()) ?? {};
+                    for (const [key, value] of Object.entries(authHeaders)) {
+                        request.headers.set(key, value);
                     }
-                );
-
-                const result = await oauth.processClientCredentialsResponse(this.oauth2Issuer, client, response);
-                this.accessToken = {
-                    access_token: result.access_token,
-                    expires_at: Date.now() + (result.expires_in ?? 0) * 1000,
-                };
-            } catch (error: unknown) {
-                const err = error instanceof Error ? error : new Error(String(error));
-                this.logger.error({
-                    id: LogId.atlasConnectFailure,
-                    context: "apiClient",
-                    message: `Failed to request access token: ${err.message}`,
-                });
-            }
-            return this.accessToken;
-        }
-
-        return undefined;
+                    return request;
+                } catch {
+                    // ignore not available tokens, API will return 401
+                    return undefined;
+                }
+            },
+        };
     }
 
-    public async validateAccessToken(): Promise<void> {
-        await this.getAccessToken();
+    public async validateAuthConfig(): Promise<void> {
+        await this.authProvider?.validate();
     }
 
     public async close(): Promise<void> {
-        const { client, clientAuth } = this.getOauthClientAuth();
-        try {
-            if (this.oauth2Issuer && this.accessToken && client && clientAuth) {
-                await oauth.revocationRequest(this.oauth2Issuer, client, clientAuth, this.accessToken.access_token);
-            }
-        } catch (error: unknown) {
-            const err = error instanceof Error ? error : new Error(String(error));
-            this.logger.error({
-                id: LogId.atlasApiRevokeFailure,
-                context: "apiClient",
-                message: `Failed to revoke access token: ${err.message}`,
-            });
-        }
-        this.accessToken = undefined;
+        await this.authProvider?.revoke();
     }
 
     public async getIpInfo(): Promise<{
         currentIpv4Address: string;
     }> {
-        const accessToken = await this.getAccessToken();
+        const authHeaders = (await this.authProvider?.getAuthHeaders()) ?? {};
 
         const endpoint = "api/private/ipinfo";
         const url = new URL(endpoint, this.options.baseUrl);
         const response = await fetch(url, {
             method: "GET",
             headers: {
+                ...authHeaders,
                 Accept: "application/json",
-                Authorization: `Bearer ${accessToken}`,
                 "User-Agent": this.options.userAgent,
             },
         });
@@ -242,14 +168,17 @@ export class ApiClient {
         }>;
     }
 
-    public async sendEvents(events: TelemetryEvent<CommonProperties>[]): Promise<void> {
-        if (!this.options.credentials) {
-            await this.sendUnauthEvents(events);
+    public async sendEvents(
+        events: TelemetryEvent<CommonProperties>[],
+        { signal = AbortSignal.timeout(DEFAULT_SEND_TIMEOUT_MS) }: { signal?: AbortSignal } = {}
+    ): Promise<void> {
+        if (!this.authProvider) {
+            await this.sendUnauthEvents(events, signal);
             return;
         }
 
         try {
-            await this.sendAuthEvents(events);
+            await this.sendAuthEvents(events, signal);
         } catch (error) {
             if (error instanceof ApiClientError) {
                 if (error.response.status !== 401) {
@@ -260,25 +189,26 @@ export class ApiClient {
             // send unauth events if any of the following are true:
             // 1: the token is not valid (not ApiClientError)
             // 2: if the api responded with 401 (ApiClientError with status 401)
-            await this.sendUnauthEvents(events);
+            await this.sendUnauthEvents(events, signal);
         }
     }
 
-    private async sendAuthEvents(events: TelemetryEvent<CommonProperties>[]): Promise<void> {
-        const accessToken = await this.getAccessToken();
-        if (!accessToken) {
+    private async sendAuthEvents(events: TelemetryEvent<CommonProperties>[], signal?: AbortSignal): Promise<void> {
+        const authHeaders = await this.authProvider?.getAuthHeaders();
+        if (!authHeaders) {
             throw new Error("No access token available");
         }
         const authUrl = new URL("api/private/v1.0/telemetry/events", this.options.baseUrl);
         const response = await fetch(authUrl, {
             method: "POST",
             headers: {
+                ...authHeaders,
                 Accept: "application/json",
                 "Content-Type": "application/json",
                 "User-Agent": this.options.userAgent,
-                Authorization: `Bearer ${accessToken}`,
             },
             body: JSON.stringify(events),
+            signal,
         });
 
         if (!response.ok) {
@@ -286,7 +216,7 @@ export class ApiClient {
         }
     }
 
-    private async sendUnauthEvents(events: TelemetryEvent<CommonProperties>[]): Promise<void> {
+    private async sendUnauthEvents(events: TelemetryEvent<CommonProperties>[], signal?: AbortSignal): Promise<void> {
         const headers: Record<string, string> = {
             Accept: "application/json",
             "Content-Type": "application/json",
@@ -298,6 +228,7 @@ export class ApiClient {
             method: "POST",
             headers,
             body: JSON.stringify(events),
+            signal,
         });
 
         if (!response.ok) {
@@ -306,8 +237,10 @@ export class ApiClient {
     }
 
     // DO NOT EDIT. This is auto-generated code.
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listClusterDetails(options?: FetchOptions<operations["listClusterDetails"]>) {
+    /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+    async listClusterDetails(
+        options?: FetchOptions<operations["listClusterDetails"]>
+    ): Promise<components["schemas"]["PaginatedOrgGroupView"]> {
         const { data, error, response } = await this.client.GET("/api/atlas/v2/clusters", options);
         if (error) {
             throw ApiClientError.fromError(response, error);
@@ -315,8 +248,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listGroups(options?: FetchOptions<operations["listGroups"]>) {
+    async listGroups(
+        options?: FetchOptions<operations["listGroups"]>
+    ): Promise<components["schemas"]["PaginatedAtlasGroupView"]> {
         const { data, error, response } = await this.client.GET("/api/atlas/v2/groups", options);
         if (error) {
             throw ApiClientError.fromError(response, error);
@@ -324,8 +258,7 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async createGroup(options: FetchOptions<operations["createGroup"]>) {
+    async createGroup(options: FetchOptions<operations["createGroup"]>): Promise<components["schemas"]["Group"]> {
         const { data, error, response } = await this.client.POST("/api/atlas/v2/groups", options);
         if (error) {
             throw ApiClientError.fromError(response, error);
@@ -341,8 +274,7 @@ export class ApiClient {
         }
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async getGroup(options: FetchOptions<operations["getGroup"]>) {
+    async getGroup(options: FetchOptions<operations["getGroup"]>): Promise<components["schemas"]["Group"]> {
         const { data, error, response } = await this.client.GET("/api/atlas/v2/groups/{groupId}", options);
         if (error) {
             throw ApiClientError.fromError(response, error);
@@ -350,8 +282,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listAccessListEntries(options: FetchOptions<operations["listGroupAccessListEntries"]>) {
+    async listAccessListEntries(
+        options: FetchOptions<operations["listGroupAccessListEntries"]>
+    ): Promise<components["schemas"]["PaginatedNetworkAccessView"]> {
         const { data, error, response } = await this.client.GET("/api/atlas/v2/groups/{groupId}/accessList", options);
         if (error) {
             throw ApiClientError.fromError(response, error);
@@ -359,8 +292,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async createAccessListEntry(options: FetchOptions<operations["createGroupAccessListEntry"]>) {
+    async createAccessListEntry(
+        options: FetchOptions<operations["createGroupAccessListEntry"]>
+    ): Promise<components["schemas"]["PaginatedNetworkAccessView"]> {
         const { data, error, response } = await this.client.POST("/api/atlas/v2/groups/{groupId}/accessList", options);
         if (error) {
             throw ApiClientError.fromError(response, error);
@@ -379,8 +313,9 @@ export class ApiClient {
         }
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listAlerts(options: FetchOptions<operations["listGroupAlerts"]>) {
+    async listAlerts(
+        options: FetchOptions<operations["listGroupAlerts"]>
+    ): Promise<components["schemas"]["PaginatedAlertView"]> {
         const { data, error, response } = await this.client.GET("/api/atlas/v2/groups/{groupId}/alerts", options);
         if (error) {
             throw ApiClientError.fromError(response, error);
@@ -388,8 +323,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listClusters(options: FetchOptions<operations["listGroupClusters"]>) {
+    async listClusters(
+        options: FetchOptions<operations["listGroupClusters"]>
+    ): Promise<components["schemas"]["PaginatedClusterDescription20240805"]> {
         const { data, error, response } = await this.client.GET("/api/atlas/v2/groups/{groupId}/clusters", options);
         if (error) {
             throw ApiClientError.fromError(response, error);
@@ -397,8 +333,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async createCluster(options: FetchOptions<operations["createGroupCluster"]>) {
+    async createCluster(
+        options: FetchOptions<operations["createGroupCluster"]>
+    ): Promise<components["schemas"]["ClusterDescription20240805"]> {
         const { data, error, response } = await this.client.POST("/api/atlas/v2/groups/{groupId}/clusters", options);
         if (error) {
             throw ApiClientError.fromError(response, error);
@@ -417,8 +354,9 @@ export class ApiClient {
         }
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async getCluster(options: FetchOptions<operations["getGroupCluster"]>) {
+    async getCluster(
+        options: FetchOptions<operations["getGroupCluster"]>
+    ): Promise<components["schemas"]["ClusterDescription20240805"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}",
             options
@@ -429,10 +367,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     async listDropIndexSuggestions(
         options: FetchOptions<operations["listGroupClusterPerformanceAdvisorDropIndexSuggestions"]>
-    ) {
+    ): Promise<components["schemas"]["DropIndexSuggestionsResponse"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}/performanceAdvisor/dropIndexSuggestions",
             options
@@ -443,8 +380,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listSchemaAdvice(options: FetchOptions<operations["listGroupClusterPerformanceAdvisorSchemaAdvice"]>) {
+    async listSchemaAdvice(
+        options: FetchOptions<operations["listGroupClusterPerformanceAdvisorSchemaAdvice"]>
+    ): Promise<components["schemas"]["SchemaAdvisorResponse"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}/performanceAdvisor/schemaAdvice",
             options
@@ -455,10 +393,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     async listClusterSuggestedIndexes(
         options: FetchOptions<operations["listGroupClusterPerformanceAdvisorSuggestedIndexes"]>
-    ) {
+    ): Promise<components["schemas"]["PerformanceAdvisorResponse"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}/performanceAdvisor/suggestedIndexes",
             options
@@ -469,8 +406,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listDatabaseUsers(options: FetchOptions<operations["listGroupDatabaseUsers"]>) {
+    async listDatabaseUsers(
+        options: FetchOptions<operations["listGroupDatabaseUsers"]>
+    ): Promise<components["schemas"]["PaginatedApiAtlasDatabaseUserView"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/databaseUsers",
             options
@@ -481,8 +419,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async createDatabaseUser(options: FetchOptions<operations["createGroupDatabaseUser"]>) {
+    async createDatabaseUser(
+        options: FetchOptions<operations["createGroupDatabaseUser"]>
+    ): Promise<components["schemas"]["CloudDatabaseUser"]> {
         const { data, error, response } = await this.client.POST(
             "/api/atlas/v2/groups/{groupId}/databaseUsers",
             options
@@ -504,8 +443,9 @@ export class ApiClient {
         }
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listFlexClusters(options: FetchOptions<operations["listGroupFlexClusters"]>) {
+    async listFlexClusters(
+        options: FetchOptions<operations["listGroupFlexClusters"]>
+    ): Promise<components["schemas"]["PaginatedFlexClusters20241113"]> {
         const { data, error, response } = await this.client.GET("/api/atlas/v2/groups/{groupId}/flexClusters", options);
         if (error) {
             throw ApiClientError.fromError(response, error);
@@ -513,8 +453,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async createFlexCluster(options: FetchOptions<operations["createGroupFlexCluster"]>) {
+    async createFlexCluster(
+        options: FetchOptions<operations["createGroupFlexCluster"]>
+    ): Promise<components["schemas"]["FlexClusterDescription20241113"]> {
         const { data, error, response } = await this.client.POST(
             "/api/atlas/v2/groups/{groupId}/flexClusters",
             options
@@ -536,8 +477,9 @@ export class ApiClient {
         }
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async getFlexCluster(options: FetchOptions<operations["getGroupFlexCluster"]>) {
+    async getFlexCluster(
+        options: FetchOptions<operations["getGroupFlexCluster"]>
+    ): Promise<components["schemas"]["FlexClusterDescription20241113"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/flexClusters/{name}",
             options
@@ -548,8 +490,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listSlowQueryLogs(options: FetchOptions<operations["listGroupProcessPerformanceAdvisorSlowQueryLogs"]>) {
+    async listSlowQueryLogs(
+        options: FetchOptions<operations["listGroupProcessPerformanceAdvisorSlowQueryLogs"]>
+    ): Promise<components["schemas"]["PerformanceAdvisorSlowQueryList"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/processes/{processId}/performanceAdvisor/slowQueryLogs",
             options
@@ -560,8 +503,358 @@ export class ApiClient {
         return data;
     }
 
+    async listStreamWorkspaces(
+        options: FetchOptions<operations["listGroupStreamWorkspaces"]>
+    ): Promise<components["schemas"]["PaginatedApiStreamsTenantView"]> {
+        const { data, error, response } = await this.client.GET("/api/atlas/v2/groups/{groupId}/streams", options);
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    async createStreamWorkspace(
+        options: FetchOptions<operations["createGroupStreamWorkspace"]>
+    ): Promise<components["schemas"]["StreamsTenant"]> {
+        const { data, error, response } = await this.client.POST("/api/atlas/v2/groups/{groupId}/streams", options);
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    async getAccountDetails(
+        options: FetchOptions<operations["getGroupStreamAccountDetails"]>
+    ): Promise<components["schemas"]["AccountDetails"]> {
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/streams/accountDetails",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    async listPrivateLinkConnections(
+        options: FetchOptions<operations["listGroupStreamPrivateLinkConnections"]>
+    ): Promise<components["schemas"]["PaginatedApiStreamsPrivateLinkView"]> {
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/streams/privateLinkConnections",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    async createPrivateLinkConnection(
+        options: FetchOptions<operations["createGroupStreamPrivateLinkConnection"]>
+    ): Promise<components["schemas"]["StreamsPrivateLinkConnection"]> {
+        const { data, error, response } = await this.client.POST(
+            "/api/atlas/v2/groups/{groupId}/streams/privateLinkConnections",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listOrgs(options?: FetchOptions<operations["listOrgs"]>) {
+    async deletePrivateLinkConnection(options: FetchOptions<operations["deleteGroupStreamPrivateLinkConnection"]>) {
+        const { error, response } = await this.client.DELETE(
+            "/api/atlas/v2/groups/{groupId}/streams/privateLinkConnections/{connectionId}",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+    }
+
+    async getPrivateLinkConnection(
+        options: FetchOptions<operations["getGroupStreamPrivateLinkConnection"]>
+    ): Promise<components["schemas"]["StreamsPrivateLinkConnection"]> {
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/streams/privateLinkConnections/{connectionId}",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async deleteVpcPeeringConnection(options: FetchOptions<operations["deleteGroupStreamVpcPeeringConnection"]>) {
+        const { error, response } = await this.client.DELETE(
+            "/api/atlas/v2/groups/{groupId}/streams/vpcPeeringConnections/{id}",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async acceptVpcPeeringConnection(options: FetchOptions<operations["acceptGroupStreamVpcPeeringConnection"]>) {
+        const { error, response } = await this.client.POST(
+            "/api/atlas/v2/groups/{groupId}/streams/vpcPeeringConnections/{id}:accept",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async rejectVpcPeeringConnection(options: FetchOptions<operations["rejectGroupStreamVpcPeeringConnection"]>) {
+        const { error, response } = await this.client.POST(
+            "/api/atlas/v2/groups/{groupId}/streams/vpcPeeringConnections/{id}:reject",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async deleteStreamWorkspace(options: FetchOptions<operations["deleteGroupStreamWorkspace"]>) {
+        const { error, response } = await this.client.DELETE(
+            "/api/atlas/v2/groups/{groupId}/streams/{tenantName}",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+    }
+
+    async getStreamWorkspace(
+        options: FetchOptions<operations["getGroupStreamWorkspace"]>
+    ): Promise<components["schemas"]["StreamsTenant"]> {
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/streams/{tenantName}",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    async updateStreamWorkspace(
+        options: FetchOptions<operations["updateGroupStreamWorkspace"]>
+    ): Promise<components["schemas"]["StreamsTenant"]> {
+        const { data, error, response } = await this.client.PATCH(
+            "/api/atlas/v2/groups/{groupId}/streams/{tenantName}",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async downloadAuditLogs(options: FetchOptions<operations["downloadGroupStreamAuditLogs"]>) {
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/auditLogs",
+            { ...options, headers: { Accept: "application/vnd.atlas.2023-02-01+gzip", ...options?.headers } }
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    async listStreamConnections(
+        options: FetchOptions<operations["listGroupStreamConnections"]>
+    ): Promise<components["schemas"]["PaginatedApiStreamsConnectionView"]> {
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/connections",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    async createStreamConnection(
+        options: FetchOptions<operations["createGroupStreamConnection"]>
+    ): Promise<components["schemas"]["StreamsConnection"]> {
+        const { data, error, response } = await this.client.POST(
+            "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/connections",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async deleteStreamConnection(options: FetchOptions<operations["deleteGroupStreamConnection"]>) {
+        const { error, response } = await this.client.DELETE(
+            "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/connections/{connectionName}",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+    }
+
+    async getStreamConnection(
+        options: FetchOptions<operations["getGroupStreamConnection"]>
+    ): Promise<components["schemas"]["StreamsConnection"]> {
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/connections/{connectionName}",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    async updateStreamConnection(
+        options: FetchOptions<operations["updateGroupStreamConnection"]>
+    ): Promise<components["schemas"]["StreamsConnection"]> {
+        const { data, error, response } = await this.client.PATCH(
+            "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/connections/{connectionName}",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    async createStreamProcessor(
+        options: FetchOptions<operations["createGroupStreamProcessor"]>
+    ): Promise<components["schemas"]["StreamsProcessor"]> {
+        const { data, error, response } = await this.client.POST(
+            "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/processor",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async deleteStreamProcessor(options: FetchOptions<operations["deleteGroupStreamProcessor"]>) {
+        const { error, response } = await this.client.DELETE(
+            "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/processor/{processorName}",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+    }
+
+    async getStreamProcessor(
+        options: FetchOptions<operations["getGroupStreamProcessor"]>
+    ): Promise<components["schemas"]["StreamsProcessorWithStats"]> {
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/processor/{processorName}",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    async updateStreamProcessor(
+        options: FetchOptions<operations["updateGroupStreamProcessor"]>
+    ): Promise<components["schemas"]["StreamsProcessorWithStats"]> {
+        const { data, error, response } = await this.client.PATCH(
+            "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/processor/{processorName}",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async startStreamProcessor(options: FetchOptions<operations["startGroupStreamProcessor"]>) {
+        const { error, response } = await this.client.POST(
+            "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/processor/{processorName}:start",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async startStreamProcessorWith(options: FetchOptions<operations["startGroupStreamProcessorWith"]>) {
+        const { error, response } = await this.client.POST(
+            "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/processor/{processorName}:startWith",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async stopStreamProcessor(options: FetchOptions<operations["stopGroupStreamProcessor"]>) {
+        const { error, response } = await this.client.POST(
+            "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/processor/{processorName}:stop",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+    }
+
+    async getStreamProcessors(
+        options: FetchOptions<operations["getGroupStreamProcessors"]>
+    ): Promise<components["schemas"]["PaginatedApiStreamsStreamProcessorWithStatsView"]> {
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/processors",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async downloadOperationalLogs(options: FetchOptions<operations["downloadGroupStreamOperationalLogs"]>) {
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/streams/{tenantName}:downloadOperationalLogs",
+            { ...options, headers: { Accept: "application/vnd.atlas.2025-03-12+gzip", ...options?.headers } }
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    async withStreamSampleConnections(
+        options: FetchOptions<operations["withGroupStreamSampleConnections"]>
+    ): Promise<components["schemas"]["StreamsTenant"]> {
+        const { data, error, response } = await this.client.POST(
+            "/api/atlas/v2/groups/{groupId}/streams:withSampleConnections",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    async listOrgs(
+        options?: FetchOptions<operations["listOrgs"]>
+    ): Promise<components["schemas"]["PaginatedOrganizationView"]> {
         const { data, error, response } = await this.client.GET("/api/atlas/v2/orgs", options);
         if (error) {
             throw ApiClientError.fromError(response, error);
@@ -569,14 +862,89 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async getOrgGroups(options: FetchOptions<operations["getOrgGroups"]>) {
+    async getOrgGroups(
+        options: FetchOptions<operations["getOrgGroups"]>
+    ): Promise<components["schemas"]["PaginatedAtlasGroupView"]> {
         const { data, error, response } = await this.client.GET("/api/atlas/v2/orgs/{orgId}/groups", options);
         if (error) {
             throw ApiClientError.fromError(response, error);
         }
         return data;
     }
-
+    /* eslint-enable @typescript-eslint/no-unsafe-assignment */
     // DO NOT EDIT. This is auto-generated code.
+
+    async upgradeSharedTierCluster(options: {
+        groupId: string;
+        body: {
+            name: string;
+            providerSettings: {
+                providerName?: string;
+                instanceSizeName: "FLEX" | "M10";
+                backingProviderName?: string;
+                regionName?: string;
+            };
+        };
+    }): Promise<{ id?: string }> {
+        const authHeaders = (await this.authProvider?.getAuthHeaders()) ?? {};
+        const url = new URL(`api/atlas/v2/groups/${options.groupId}/clusters/tenantUpgrade`, this.options.baseUrl);
+        const response = await this.customFetch(url.toString(), {
+            method: "POST",
+            signal: AbortSignal.timeout(DEFAULT_SEND_TIMEOUT_MS),
+            headers: {
+                ...authHeaders,
+                "Content-Type": `application/vnd.atlas.${LEGACY_ATLAS_API_VERSION}+json`,
+                Accept: `application/vnd.atlas.${LEGACY_ATLAS_API_VERSION}+json`,
+                "User-Agent": this.options.userAgent,
+            },
+            body: JSON.stringify(options.body),
+        });
+        if (!response.ok) {
+            throw await ApiClientError.fromResponse(response);
+        }
+        return (await response.json()) as { id?: string };
+    }
+
+    async upgradeFlexToDedicated(options: {
+        groupId: string;
+        body: {
+            name: string;
+            clusterType: "REPLICASET";
+            replicationSpecs: Array<{
+                regionConfigs: Array<{
+                    providerName?: string;
+                    regionName?: string;
+                    priority: number;
+                    electableSpecs: { instanceSize: string; nodeCount: number };
+                }>;
+            }>;
+            autoScaling: {
+                compute: {
+                    enabled: boolean;
+                    scaleDownEnabled: boolean;
+                    minInstanceSize: string;
+                    maxInstanceSize: string;
+                };
+                diskGBEnabled: boolean;
+            };
+        };
+    }): Promise<{ id?: string }> {
+        const authHeaders = (await this.authProvider?.getAuthHeaders()) ?? {};
+        const url = new URL(`api/atlas/v2/groups/${options.groupId}/flexClusters:tenantUpgrade`, this.options.baseUrl);
+        const response = await this.customFetch(url.toString(), {
+            method: "POST",
+            signal: AbortSignal.timeout(DEFAULT_SEND_TIMEOUT_MS),
+            headers: {
+                ...authHeaders,
+                "Content-Type": `application/vnd.atlas.${ATLAS_API_VERSION}+json`,
+                Accept: `application/vnd.atlas.${ATLAS_API_VERSION}+json`,
+                "User-Agent": this.options.userAgent,
+            },
+            body: JSON.stringify(options.body),
+        });
+        if (!response.ok) {
+            throw await ApiClientError.fromResponse(response);
+        }
+        return (await response.json()) as { id?: string };
+    }
 }

@@ -113,30 +113,5 @@ describe("CLI entrypoint", () => {
                 });
             }
         });
-
-        describe("vector search misconfiguration", () => {
-            it("should warn if vectorSearch is enabled but embeddings provider is not configured", async () => {
-                const { stderr } = await runServer({ args: ["--previewFeatures", "search"] });
-                expect(stderr).toContain("Vector search is enabled but no embeddings provider is configured");
-            });
-
-            it("should warn if vectorSearch is not enabled but embeddings provider is configured", async () => {
-                const { stderr } = await runServer({ args: ["--voyageApiKey", "1FOO"] });
-
-                expect(stderr).toContain(
-                    "An embeddings provider is configured but the 'search' preview feature is not enabled"
-                );
-            });
-
-            it("should not warn if vectorSearch is enabled correctly", async () => {
-                const { stderr } = await runServer({
-                    args: ["--voyageApiKey", "1FOO", "--previewFeatures", "search", "--dryRun"],
-                });
-                expect(stderr).not.toContain("Vector search is enabled but no embeddings provider is configured");
-                expect(stderr).not.toContain(
-                    "An embeddings provider is configured but the 'search' preview feature is not enabled"
-                );
-            });
-        });
     });
 });

@@ -1,6 +1,7 @@
 import type { LanguageModel } from "ai";
 import type { experimental_createMCPClient } from "@ai-sdk/mcp";
 import { stepCountIs, generateText } from "ai";
+import type { ModelMessage } from "ai";
 import type { Model } from "./models.js";
 
 const systemPrompt = [
@@ -35,7 +36,7 @@ export type PromptDefinition = string | string[];
 // Generic interface for Agent, in case we need to switch to some other agent
 // development SDK
 export interface Agent<Model = unknown, Tools = unknown, Result = unknown> {
-    prompt(prompt: PromptDefinition, model: Model, tools: Tools): Promise<Result>;
+    prompt(prompt: PromptDefinition, model: Model, tools: Tools, additionalSystemPrompt?: string): Promise<Result>;
 }
 
 export function getVercelToolCallingAgent(
@@ -45,7 +46,8 @@ export function getVercelToolCallingAgent(
         async prompt(
             prompt: PromptDefinition,
             model: Model<LanguageModel>,
-            tools: VercelMCPClientTools
+            tools: VercelMCPClientTools,
+            additionalSystemPrompt?: string
         ): Promise<VercelAgentPromptResult> {
             let prompts: string[];
             if (typeof prompt === "string") {
@@ -65,14 +67,21 @@ export function getVercelToolCallingAgent(
                 },
             };
 
+            const conversationHistory: ModelMessage[] = [];
+
             for (const p of prompts) {
+                conversationHistory.push({ role: "user", content: p });
+
                 const intermediateResult = await generateText({
                     model: model.getModel(),
-                    system: [...systemPrompt, requestedSystemPrompt].filter(Boolean).join("\n"),
-                    prompt: p,
+                    system: [...systemPrompt, requestedSystemPrompt, additionalSystemPrompt].filter(Boolean).join("\n"),
+                    messages: conversationHistory,
                     tools,
                     stopWhen: stepCountIs(100),
                 });
+
+                // Add assistant response messages to conversation history for next turn
+                conversationHistory.push(...(intermediateResult.response.messages as ModelMessage[]));
 
                 result.text += intermediateResult.text;
                 result.messages.push(...intermediateResult.response.messages);

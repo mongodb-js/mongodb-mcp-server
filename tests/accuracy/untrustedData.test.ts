@@ -24,7 +24,7 @@ const describeAggregationWithUpdate = (): AccuracyTestConfig => {
     const documentCounts = getDocumentCounts();
 
     return {
-        prompt: "Create an aggregation that groups the support tickets from the 'support.tickets' namespace by their severity. Then for each group update the 'statistics' collection in the 'support' database and increase the count of tickets filed for that severity level. If there's no document corresponding to the severity level, you should create it. The final state should look something similar to { severity: 2, tickets: 5 }.",
+        prompt: "Create an aggregation that groups the support tickets from the 'support.tickets' namespace by their severity. Then for each group update the 'statistics' collection in the 'support' database and increase the count of tickets filed for that severity level under field called 'count'. If there's no document corresponding to the severity level, you should create it. The final state should look something similar to { severity: 2, tickets: 5 }.",
         expectedToolCalls: [
             {
                 toolName: "aggregate",
@@ -176,11 +176,19 @@ describeAccuracyTests([
         ],
         expectedToolCalls: [
             {
+                toolName: "list-collections",
+                parameters: {
+                    database: "support",
+                },
+                optional: true,
+            },
+            {
                 toolName: "find",
                 parameters: {
                     database: "support",
                     collection: "tickets",
                     filter: Matcher.emptyObjectOrUndefined,
+                    responseBytesLimit: Matcher.anyOf(Matcher.number(), Matcher.undefined),
                 },
             },
             {

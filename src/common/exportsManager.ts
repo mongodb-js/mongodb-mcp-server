@@ -11,30 +11,30 @@ import { pipeline } from "stream/promises";
 import type { MongoLogId } from "mongodb-log-writer";
 
 import type { UserConfig } from "./config/userConfig.js";
-import type { LoggerBase } from "./logger.js";
-import { LogId } from "./logger.js";
+import type { LoggerBase } from "./logging/index.js";
+import { LogId } from "./logging/index.js";
 
 export const jsonExportFormat = z.enum(["relaxed", "canonical"]);
 export type JSONExportFormat = z.infer<typeof jsonExportFormat>;
 
-interface CommonExportData {
+export interface CommonExportData {
     exportName: string;
     exportTitle: string;
     exportURI: string;
     exportPath: string;
 }
 
-interface ReadyExport extends CommonExportData {
+export interface ReadyExport extends CommonExportData {
     exportStatus: "ready";
     exportCreatedAt: number;
     docsTransformed: number;
 }
 
-interface InProgressExport extends CommonExportData {
+export interface InProgressExport extends CommonExportData {
     exportStatus: "in-progress";
 }
 
-type StoredExport = ReadyExport | InProgressExport;
+export type StoredExport = ReadyExport | InProgressExport;
 
 /**
  * Ideally just exportName and exportURI should be made publicly available but
@@ -61,7 +61,7 @@ export type AvailableExport = Pick<StoredExport, "exportName" | "exportTitle" | 
 
 export type ExportsManagerConfig = Pick<UserConfig, "exportsPath" | "exportTimeoutMs" | "exportCleanupIntervalMs">;
 
-type ExportsManagerEvents = {
+export type ExportsManagerEvents = {
     closed: [];
     "export-expired": [string];
     "export-available": [string];

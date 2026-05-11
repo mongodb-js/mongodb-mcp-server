@@ -8,6 +8,7 @@ import {
     validateThrowsForInvalidArguments,
     expectDefined,
 } from "../../../helpers.js";
+import type { CollectionStorageSizeOutput } from "../../../../../src/tools/mongodb/metadata/collectionStorageSize.js";
 import * as crypto from "crypto";
 import { describe, expect, it } from "vitest";
 
@@ -33,6 +34,9 @@ describeWithMongoDB("collectionStorageSize tool", (integration) => {
             expect(content).toEqual(
                 `The size of "${integration.randomDbName()}.foo" cannot be determined because the collection does not exist.`
             );
+
+            // For error case, structured content is not required (isError: true)
+            expect(response.structuredContent).toBeUndefined();
         });
     });
 
@@ -72,6 +76,14 @@ describeWithMongoDB("collectionStorageSize tool", (integration) => {
                 expectDefined(size?.[2]);
                 expect(parseFloat(size?.[1] || "")).toBeGreaterThan(0);
                 expect(size?.[2]).toBe(test.expectedScale);
+
+                // Validate structured content
+                const structuredContent = response.structuredContent as CollectionStorageSizeOutput;
+                expect(structuredContent.size).toBeGreaterThan(0);
+                expect(structuredContent.units).toBe(test.expectedScale);
+
+                // Verify structured content matches parsed content
+                expect(structuredContent.size).toBeCloseTo(parseFloat(size?.[1] || ""), 2);
             });
         }
     });

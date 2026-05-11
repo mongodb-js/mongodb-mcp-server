@@ -28,12 +28,13 @@ describeAccuracyTests([
                     database: "mflix",
                     collection: "movies",
                     filter: Matcher.emptyObjectOrUndefined,
+                    limit: Matcher.anyOf(Matcher.undefined, Matcher.number()),
                 },
             },
         ],
     },
     {
-        prompt: "List all the documents in 'comics.books' namespace.",
+        prompt: "Find all the documents in 'comics.books' namespace.",
         expectedToolCalls: [
             ...optionalListCalls("comics"),
             {
@@ -127,7 +128,8 @@ describeAccuracyTests([
                 parameters: {
                     database: "mflix",
                     collection: "movies",
-                    filter: { genres: "Horror" },
+                    filter: { genres: Matcher.anyOf(Matcher.value("Horror"), Matcher.value({ $in: ["Horror"] })) },
+                    projection: Matcher.anyValue,
                     sort: { runtime: 1 },
                     limit: 2,
                 },

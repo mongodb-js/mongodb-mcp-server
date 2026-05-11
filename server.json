@@ -1,17 +1,17 @@
 {
-  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.mongodb-js/mongodb-mcp-server",
   "description": "MongoDB Model Context Protocol Server",
   "repository": {
     "url": "https://github.com/mongodb-js/mongodb-mcp-server",
     "source": "github"
   },
-  "version": "1.3.1",
+  "version": "1.11.0-prerelease.2",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "mongodb-mcp-server",
-      "version": "1.3.1",
+      "version": "1.11.0-prerelease.2",
       "transport": {
         "type": "stdio"
       },
@@ -36,6 +36,13 @@
           "isRequired": false,
           "format": "string",
           "isSecret": true
+        },
+        {
+          "name": "MDB_MCP_ASSISTANT_BASE_URL",
+          "description": "Base URL for the MongoDB Assistant API.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
         },
         {
           "name": "MDB_MCP_ATLAS_TEMPORARY_DATABASE_USER_LIFETIME_MS",
@@ -73,13 +80,6 @@
           "isSecret": false
         },
         {
-          "name": "MDB_MCP_EMBEDDINGS_VALIDATION",
-          "description": "When set to false, disables validation of embeddings dimensions.",
-          "isRequired": false,
-          "format": "boolean",
-          "isSecret": false
-        },
-        {
           "name": "MDB_MCP_EXPORT_CLEANUP_INTERVAL_MS",
           "description": "Time in milliseconds between export cleanup cycles that remove expired export files.",
           "isRequired": false,
@@ -101,6 +101,34 @@
           "isSecret": false
         },
         {
+          "name": "MDB_MCP_EXTERNALLY_MANAGED_SESSIONS",
+          "description": "When true, the HTTP transport allows requests with a session ID supplied externally through the 'mcp-session-id' header. When an external ID is supplied, the initialization request is optional.",
+          "isRequired": false,
+          "format": "boolean",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_HEALTH_CHECK_HOST",
+          "description": "Deprecated. Use `monitoringServerHost` instead. Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_HEALTH_CHECK_PORT",
+          "description": "Deprecated. Use `monitoringServerPort` instead. Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_HTTP_BODY_LIMIT",
+          "description": "Maximum size of the HTTP request body in bytes (only used when transport is 'http'). This value is passed as the optional limit parameter to the Express.js json() middleware.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
           "name": "MDB_MCP_HTTP_HEADERS",
           "description": "Header that the HTTP server will validate when making requests (only used when transport is 'http').",
           "isRequired": false,
@@ -119,6 +147,13 @@
           "description": "Port number for the HTTP server (only used when transport is 'http'). Use 0 for a random port.",
           "isRequired": false,
           "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_HTTP_RESPONSE_TYPE",
+          "description": "The HTTP response type for tool responses: 'sse' for Server-Sent Events, 'json' for standard JSON responses.",
+          "isRequired": false,
+          "format": "string",
           "isSecret": false
         },
         {
@@ -164,6 +199,41 @@
           "isSecret": false
         },
         {
+          "name": "MDB_MCP_MAX_TIME_M_S",
+          "description": "The maximum time in milliseconds that operations are allowed to run on the MongoDB server. When set, this value is passed as the maxTimeMS option to read operations such as find, aggregate, and count.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_MCP_CLIENT_LOG_LEVEL",
+          "description": "Minimum severity level for log messages forwarded to the MCP client.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_MONITORING_SERVER_FEATURES",
+          "description": "Features to expose on the monitoring server (only used when transport is 'http' and monitoringServerHost/monitoringServerPort are set).",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_MONITORING_SERVER_HOST",
+          "description": "Host address to bind the monitoring HTTP server to (only used when transport is 'http'). If provided, `monitoringServerPort` must also be set.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_MONITORING_SERVER_PORT",
+          "description": "Port number for the monitoring HTTP server (only used when transport is 'http'). If provided, `monitoringServerHost` must also be set.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
           "name": "MDB_MCP_NOTIFICATION_TIMEOUT_MS",
           "description": "Notification timeout for a client to be aware of disconnect (only applies to http transport).",
           "isRequired": false,
@@ -199,22 +269,8 @@
           "isSecret": false
         },
         {
-          "name": "MDB_MCP_VECTOR_SEARCH_DIMENSIONS",
-          "description": "Default number of dimensions for vector search embeddings.",
-          "isRequired": false,
-          "format": "number",
-          "isSecret": false
-        },
-        {
-          "name": "MDB_MCP_VECTOR_SEARCH_SIMILARITY_FUNCTION",
-          "description": "Default similarity function for vector search: 'euclidean', 'cosine', or 'dotProduct'.",
-          "isRequired": false,
-          "format": "string",
-          "isSecret": false
-        },
-        {
           "name": "MDB_MCP_VOYAGE_API_KEY",
-          "description": "API key for Voyage AI embeddings service (required for vector search operations with text-to-embedding conversion).",
+          "description": "API key for Voyage AI embeddings service (required for creating Atlas Local deployments with auto-embed vector search capabilities).",
           "isRequired": false,
           "format": "string",
           "isSecret": true
@@ -238,6 +294,12 @@
           "type": "named",
           "name": "--apiClientSecret",
           "description": "Atlas API client secret for authentication. Required for running Atlas tools.",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--assistantBaseUrl",
+          "description": "Base URL for the MongoDB Assistant API.",
           "isRequired": false
         },
         {
@@ -274,13 +336,6 @@
         },
         {
           "type": "named",
-          "name": "--embeddingsValidation",
-          "description": "When set to false, disables validation of embeddings dimensions.",
-          "isRequired": false,
-          "format": "boolean"
-        },
-        {
-          "type": "named",
           "name": "--exportCleanupIntervalMs",
           "description": "Time in milliseconds between export cleanup cycles that remove expired export files.",
           "isRequired": false,
@@ -301,6 +356,33 @@
         },
         {
           "type": "named",
+          "name": "--externallyManagedSessions",
+          "description": "When true, the HTTP transport allows requests with a session ID supplied externally through the 'mcp-session-id' header. When an external ID is supplied, the initialization request is optional.",
+          "isRequired": false,
+          "format": "boolean"
+        },
+        {
+          "type": "named",
+          "name": "--healthCheckHost",
+          "description": "Deprecated. Use `monitoringServerHost` instead. Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--healthCheckPort",
+          "description": "Deprecated. Use `monitoringServerPort` instead. Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "type": "named",
+          "name": "--httpBodyLimit",
+          "description": "Maximum size of the HTTP request body in bytes (only used when transport is 'http'). This value is passed as the optional limit parameter to the Express.js json() middleware.",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "type": "named",
           "name": "--httpHeaders",
           "description": "Header that the HTTP server will validate when making requests (only used when transport is 'http').",
           "isRequired": false
@@ -317,6 +399,12 @@
           "description": "Port number for the HTTP server (only used when transport is 'http'). Use 0 for a random port.",
           "isRequired": false,
           "format": "number"
+        },
+        {
+          "type": "named",
+          "name": "--httpResponseType",
+          "description": "The HTTP response type for tool responses: 'sse' for Server-Sent Events, 'json' for standard JSON responses.",
+          "isRequired": false
         },
         {
           "type": "named",
@@ -360,6 +448,38 @@
         },
         {
           "type": "named",
+          "name": "--maxTimeMS",
+          "description": "The maximum time in milliseconds that operations are allowed to run on the MongoDB server. When set, this value is passed as the maxTimeMS option to read operations such as find, aggregate, and count.",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "type": "named",
+          "name": "--mcpClientLogLevel",
+          "description": "Minimum severity level for log messages forwarded to the MCP client.",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--monitoringServerFeatures",
+          "description": "Features to expose on the monitoring server (only used when transport is 'http' and monitoringServerHost/monitoringServerPort are set).",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--monitoringServerHost",
+          "description": "Host address to bind the monitoring HTTP server to (only used when transport is 'http'). If provided, `monitoringServerPort` must also be set.",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--monitoringServerPort",
+          "description": "Port number for the monitoring HTTP server (only used when transport is 'http'). If provided, `monitoringServerHost` must also be set.",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "type": "named",
           "name": "--notificationTimeoutMs",
           "description": "Notification timeout for a client to be aware of disconnect (only applies to http transport).",
           "isRequired": false,
@@ -392,28 +512,15 @@
         },
         {
           "type": "named",
-          "name": "--vectorSearchDimensions",
-          "description": "Default number of dimensions for vector search embeddings.",
-          "isRequired": false,
-          "format": "number"
-        },
-        {
-          "type": "named",
-          "name": "--vectorSearchSimilarityFunction",
-          "description": "Default similarity function for vector search: 'euclidean', 'cosine', or 'dotProduct'.",
-          "isRequired": false
-        },
-        {
-          "type": "named",
           "name": "--voyageApiKey",
-          "description": "API key for Voyage AI embeddings service (required for vector search operations with text-to-embedding conversion).",
+          "description": "API key for Voyage AI embeddings service (required for creating Atlas Local deployments with auto-embed vector search capabilities).",
           "isRequired": false
         }
       ]
     },
     {
       "registryType": "oci",
-      "identifier": "docker.io/mongodb/mongodb-mcp-server:1.3.1",
+      "identifier": "docker.io/mongodb/mongodb-mcp-server:1.11.0-prerelease.2",
       "transport": {
         "type": "stdio"
       },
@@ -438,6 +545,13 @@
           "isRequired": false,
           "format": "string",
           "isSecret": true
+        },
+        {
+          "name": "MDB_MCP_ASSISTANT_BASE_URL",
+          "description": "Base URL for the MongoDB Assistant API.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
         },
         {
           "name": "MDB_MCP_ATLAS_TEMPORARY_DATABASE_USER_LIFETIME_MS",
@@ -475,13 +589,6 @@
           "isSecret": false
         },
         {
-          "name": "MDB_MCP_EMBEDDINGS_VALIDATION",
-          "description": "When set to false, disables validation of embeddings dimensions.",
-          "isRequired": false,
-          "format": "boolean",
-          "isSecret": false
-        },
-        {
           "name": "MDB_MCP_EXPORT_CLEANUP_INTERVAL_MS",
           "description": "Time in milliseconds between export cleanup cycles that remove expired export files.",
           "isRequired": false,
@@ -503,6 +610,34 @@
           "isSecret": false
         },
         {
+          "name": "MDB_MCP_EXTERNALLY_MANAGED_SESSIONS",
+          "description": "When true, the HTTP transport allows requests with a session ID supplied externally through the 'mcp-session-id' header. When an external ID is supplied, the initialization request is optional.",
+          "isRequired": false,
+          "format": "boolean",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_HEALTH_CHECK_HOST",
+          "description": "Deprecated. Use `monitoringServerHost` instead. Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_HEALTH_CHECK_PORT",
+          "description": "Deprecated. Use `monitoringServerPort` instead. Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_HTTP_BODY_LIMIT",
+          "description": "Maximum size of the HTTP request body in bytes (only used when transport is 'http'). This value is passed as the optional limit parameter to the Express.js json() middleware.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
           "name": "MDB_MCP_HTTP_HEADERS",
           "description": "Header that the HTTP server will validate when making requests (only used when transport is 'http').",
           "isRequired": false,
@@ -521,6 +656,13 @@
           "description": "Port number for the HTTP server (only used when transport is 'http'). Use 0 for a random port.",
           "isRequired": false,
           "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_HTTP_RESPONSE_TYPE",
+          "description": "The HTTP response type for tool responses: 'sse' for Server-Sent Events, 'json' for standard JSON responses.",
+          "isRequired": false,
+          "format": "string",
           "isSecret": false
         },
         {
@@ -566,6 +708,41 @@
           "isSecret": false
         },
         {
+          "name": "MDB_MCP_MAX_TIME_M_S",
+          "description": "The maximum time in milliseconds that operations are allowed to run on the MongoDB server. When set, this value is passed as the maxTimeMS option to read operations such as find, aggregate, and count.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_MCP_CLIENT_LOG_LEVEL",
+          "description": "Minimum severity level for log messages forwarded to the MCP client.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_MONITORING_SERVER_FEATURES",
+          "description": "Features to expose on the monitoring server (only used when transport is 'http' and monitoringServerHost/monitoringServerPort are set).",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_MONITORING_SERVER_HOST",
+          "description": "Host address to bind the monitoring HTTP server to (only used when transport is 'http'). If provided, `monitoringServerPort` must also be set.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_MONITORING_SERVER_PORT",
+          "description": "Port number for the monitoring HTTP server (only used when transport is 'http'). If provided, `monitoringServerHost` must also be set.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
           "name": "MDB_MCP_NOTIFICATION_TIMEOUT_MS",
           "description": "Notification timeout for a client to be aware of disconnect (only applies to http transport).",
           "isRequired": false,
@@ -601,22 +778,8 @@
           "isSecret": false
         },
         {
-          "name": "MDB_MCP_VECTOR_SEARCH_DIMENSIONS",
-          "description": "Default number of dimensions for vector search embeddings.",
-          "isRequired": false,
-          "format": "number",
-          "isSecret": false
-        },
-        {
-          "name": "MDB_MCP_VECTOR_SEARCH_SIMILARITY_FUNCTION",
-          "description": "Default similarity function for vector search: 'euclidean', 'cosine', or 'dotProduct'.",
-          "isRequired": false,
-          "format": "string",
-          "isSecret": false
-        },
-        {
           "name": "MDB_MCP_VOYAGE_API_KEY",
-          "description": "API key for Voyage AI embeddings service (required for vector search operations with text-to-embedding conversion).",
+          "description": "API key for Voyage AI embeddings service (required for creating Atlas Local deployments with auto-embed vector search capabilities).",
           "isRequired": false,
           "format": "string",
           "isSecret": true
@@ -640,6 +803,12 @@
           "type": "named",
           "name": "--apiClientSecret",
           "description": "Atlas API client secret for authentication. Required for running Atlas tools.",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--assistantBaseUrl",
+          "description": "Base URL for the MongoDB Assistant API.",
           "isRequired": false
         },
         {
@@ -676,13 +845,6 @@
         },
         {
           "type": "named",
-          "name": "--embeddingsValidation",
-          "description": "When set to false, disables validation of embeddings dimensions.",
-          "isRequired": false,
-          "format": "boolean"
-        },
-        {
-          "type": "named",
           "name": "--exportCleanupIntervalMs",
           "description": "Time in milliseconds between export cleanup cycles that remove expired export files.",
           "isRequired": false,
@@ -703,6 +865,33 @@
         },
         {
           "type": "named",
+          "name": "--externallyManagedSessions",
+          "description": "When true, the HTTP transport allows requests with a session ID supplied externally through the 'mcp-session-id' header. When an external ID is supplied, the initialization request is optional.",
+          "isRequired": false,
+          "format": "boolean"
+        },
+        {
+          "type": "named",
+          "name": "--healthCheckHost",
+          "description": "Deprecated. Use `monitoringServerHost` instead. Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--healthCheckPort",
+          "description": "Deprecated. Use `monitoringServerPort` instead. Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "type": "named",
+          "name": "--httpBodyLimit",
+          "description": "Maximum size of the HTTP request body in bytes (only used when transport is 'http'). This value is passed as the optional limit parameter to the Express.js json() middleware.",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "type": "named",
           "name": "--httpHeaders",
           "description": "Header that the HTTP server will validate when making requests (only used when transport is 'http').",
           "isRequired": false
@@ -719,6 +908,12 @@
           "description": "Port number for the HTTP server (only used when transport is 'http'). Use 0 for a random port.",
           "isRequired": false,
           "format": "number"
+        },
+        {
+          "type": "named",
+          "name": "--httpResponseType",
+          "description": "The HTTP response type for tool responses: 'sse' for Server-Sent Events, 'json' for standard JSON responses.",
+          "isRequired": false
         },
         {
           "type": "named",
@@ -762,6 +957,38 @@
         },
         {
           "type": "named",
+          "name": "--maxTimeMS",
+          "description": "The maximum time in milliseconds that operations are allowed to run on the MongoDB server. When set, this value is passed as the maxTimeMS option to read operations such as find, aggregate, and count.",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "type": "named",
+          "name": "--mcpClientLogLevel",
+          "description": "Minimum severity level for log messages forwarded to the MCP client.",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--monitoringServerFeatures",
+          "description": "Features to expose on the monitoring server (only used when transport is 'http' and monitoringServerHost/monitoringServerPort are set).",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--monitoringServerHost",
+          "description": "Host address to bind the monitoring HTTP server to (only used when transport is 'http'). If provided, `monitoringServerPort` must also be set.",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--monitoringServerPort",
+          "description": "Port number for the monitoring HTTP server (only used when transport is 'http'). If provided, `monitoringServerHost` must also be set.",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "type": "named",
           "name": "--notificationTimeoutMs",
           "description": "Notification timeout for a client to be aware of disconnect (only applies to http transport).",
           "isRequired": false,
@@ -794,21 +1021,8 @@
         },
         {
           "type": "named",
-          "name": "--vectorSearchDimensions",
-          "description": "Default number of dimensions for vector search embeddings.",
-          "isRequired": false,
-          "format": "number"
-        },
-        {
-          "type": "named",
-          "name": "--vectorSearchSimilarityFunction",
-          "description": "Default similarity function for vector search: 'euclidean', 'cosine', or 'dotProduct'.",
-          "isRequired": false
-        },
-        {
-          "type": "named",
           "name": "--voyageApiKey",
-          "description": "API key for Voyage AI embeddings service (required for vector search operations with text-to-embedding conversion).",
+          "description": "API key for Voyage AI embeddings service (required for creating Atlas Local deployments with auto-embed vector search capabilities).",
           "isRequired": false
         }
       ]

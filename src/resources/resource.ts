@@ -4,7 +4,7 @@ import type { UserConfig } from "../common/config/userConfig.js";
 import type { Telemetry } from "../telemetry/telemetry.js";
 import type { SessionEvents } from "../common/session.js";
 import type { ReadResourceCallback, ResourceMetadata } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { LogId } from "../common/logger.js";
+import { LogId } from "../common/logging/index.js";
 
 type PayloadOf<K extends keyof SessionEvents> = SessionEvents[K][0];
 
@@ -19,8 +19,13 @@ export type ReactiveResourceOptions<Value, RelevantEvents extends readonly (keyo
     events: RelevantEvents;
 };
 
-export abstract class ReactiveResource<Value, RelevantEvents extends readonly (keyof SessionEvents)[]> {
-    protected server?: Server;
+export abstract class ReactiveResource<
+    Value,
+    RelevantEvents extends readonly (keyof SessionEvents)[],
+    TUserConfig extends UserConfig = UserConfig,
+    TContext = unknown,
+> {
+    protected server?: Server<TUserConfig, TContext>;
     protected session: Session;
     protected config: UserConfig;
     protected telemetry: Telemetry;
@@ -68,7 +73,7 @@ export abstract class ReactiveResource<Value, RelevantEvents extends readonly (k
         }
     }
 
-    public register(server: Server): void {
+    public register(server: Server<TUserConfig, TContext>): void {
         this.server = server;
         this.server.mcpServer.registerResource(this.name, this.uri, this.resourceConfig, this.resourceCallback);
     }

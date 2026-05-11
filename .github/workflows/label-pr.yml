@@ -1,0 +1,61 @@
+name: Label PR
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+permissions:
+  pull-requests: write
+  issues: write
+
+jobs:
+  label:
+    if: github.event.pull_request.user.login != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Apply label based on conventional commit prefix
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          set -e
+
+          TITLE="$PR_TITLE"
+
+          if [[ "$TITLE" =~ ^feat(\(|!|:) ]]; then
+            LABEL="type: feature"
+          elif [[ "$TITLE" =~ ^fix(\(|!|:) ]]; then
+            LABEL="type: bug"
+          elif [[ "$TITLE" =~ ^docs(\(|!|:) ]]; then
+            LABEL="type: docs"
+          elif [[ "$TITLE" =~ ^chore\(deps ]]; then
+            LABEL="type: dependencies"
+          else
+            # covers: chore, ci, refactor, style, test, build, ops, revert
+            # and any PR using the no-title-validation escape hatch
+            LABEL="type: chore"
+          fi
+
+          echo "Determined label: $LABEL"
+
+          # Fetch current type: labels
+          LABELS=$(gh pr view "$PR_NUMBER" --json labels --jq '[.labels[].name | select(startswith("type: "))]')
+
+          # Remove any type: labels that differ from the new one
+          LABELS_TO_REMOVE=$(echo "$LABELS" | jq -r --arg l "$LABEL" '[.[] | select(. != $l)] | join(",")')
+          if [[ -n "$LABELS_TO_REMOVE" ]]; then
+            gh pr edit "$PR_NUMBER" --remove-label "$LABELS_TO_REMOVE"
+            echo "Removed labels: $LABELS_TO_REMOVE"
+          fi
+
+          # Only add the label if it's not already present
+          if ! echo "$LABELS" | jq -e --arg l "$LABEL" 'contains([$l])' > /dev/null; then
+            gh pr edit "$PR_NUMBER" --add-label "$LABEL"
+            echo "Added label: $LABEL"
+          fi

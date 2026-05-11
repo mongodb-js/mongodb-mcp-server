@@ -1,7 +1,14 @@
 import type { MockInstance } from "vitest";
 import { describe, beforeEach, afterEach, vi, it, expect } from "vitest";
-import type { LoggerType, LogLevel } from "../../src/common/logger.js";
-import { CompositeLogger, ConsoleLogger, DiskLogger, LogId, McpLogger } from "../../src/common/logger.js";
+import type { LoggerType, LogLevel } from "../../src/common/logging/index.js";
+import {
+    CompositeLogger,
+    ConsoleLogger,
+    DiskLogger,
+    LogId,
+    McpLogger,
+    MCP_LOG_LEVELS,
+} from "../../src/common/logging/index.js";
 import os from "os";
 import * as path from "path";
 import * as fs from "fs/promises";
@@ -96,6 +103,33 @@ describe("Logger", () => {
 
             expect(getLastConsoleMessage()).to.contain("Your password is <password>");
             expect(getLastConsoleMessage()).to.not.contain("123456");
+        });
+
+        it("redacts sensitive information in attributes", () => {
+            keychain.register("123456", "password");
+            consoleLogger.info({
+                id: LogId.serverInitialized,
+                context: "test",
+                message: "Safe message",
+                attributes: { sessionKey: "contains 123456 value" },
+            });
+
+            expect(consoleErrorSpy).toHaveBeenCalledOnce();
+            expect(getLastConsoleMessage()).to.contain("sessionKey=contains <password> value");
+            expect(getLastConsoleMessage()).to.not.contain("123456");
+        });
+
+        it("redacts sensitive information from built-in patterns in attributes", () => {
+            consoleLogger.info({
+                id: LogId.serverInitialized,
+                context: "test",
+                message: "Safe message",
+                attributes: { detail: "contact foo@bar.com for info" },
+            });
+
+            expect(consoleErrorSpy).toHaveBeenCalledOnce();
+            expect(getLastConsoleMessage()).to.contain("detail=contact <email> for info");
+            expect(getLastConsoleMessage()).to.not.contain("foo@bar.com");
         });
 
         it("allows disabling redaction for all loggers", () => {
@@ -360,7 +394,7 @@ describe("Logger", () => {
         });
 
         it("MCPLogger.LOG_LEVELS contains all possible levels", () => {
-            expect(McpLogger.LOG_LEVELS).toEqual(LoggingMessageNotificationSchema.shape.params.shape.level.options);
+            expect(MCP_LOG_LEVELS).toEqual(LoggingMessageNotificationSchema.shape.params.shape.level.options);
         });
     });
 });

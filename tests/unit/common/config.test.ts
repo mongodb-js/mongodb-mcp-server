@@ -11,10 +11,13 @@ import { Keychain } from "../../../src/common/keychain.js";
 import type { Secret } from "../../../src/common/keychain.js";
 import { createEnvironment } from "../../utils/index.js";
 import path from "path";
+import { TRANSPORT_PAYLOAD_LIMITS } from "../../../src/transports/constants.js";
+import { getConfigMeta } from "../../../src/common/config/configOverrides.js";
 
 // Expected hardcoded values (what we had before)
 const expectedDefaults = {
     apiBaseUrl: "https://cloud.mongodb.com/",
+    assistantBaseUrl: "https://knowledge.mongodb.com/api/v1/",
     logPath: getLogPath(),
     exportsPath: getExportsPath(),
     exportTimeoutMs: 5 * 60 * 1000, // 5 minutes
@@ -31,24 +34,28 @@ const expectedDefaults = {
         "drop-collection",
         "delete-many",
         "drop-index",
+        "atlas-streams-manage",
+        "atlas-streams-teardown",
     ],
     transport: "stdio",
     httpPort: 3000,
     httpHost: "127.0.0.1",
+    mcpClientLogLevel: "debug",
     loggers: ["disk", "mcp"],
     idleTimeoutMs: 10 * 60 * 1000, // 10 minutes
     notificationTimeoutMs: 9 * 60 * 1000, // 9 minutes
     httpHeaders: {},
+    httpBodyLimit: TRANSPORT_PAYLOAD_LIMITS.http,
     maxDocumentsPerQuery: 100,
     maxBytesPerQuery: 16 * 1024 * 1024, // ~16 mb
     atlasTemporaryDatabaseUserLifetimeMs: 4 * 60 * 60 * 1000, // 4 hours
     voyageApiKey: "",
-    vectorSearchDimensions: 1024,
-    vectorSearchSimilarityFunction: "euclidean",
-    embeddingsValidation: true,
     previewFeatures: [],
     dryRun: false,
     allowRequestOverrides: false,
+    externallyManagedSessions: false,
+    httpResponseType: "sse",
+    monitoringServerFeatures: ["health-check"],
 };
 
 const CONFIG_FIXTURES = {
@@ -124,6 +131,7 @@ describe("config", () => {
                 { envVar: "MDB_MCP_TRANSPORT", property: "transport", value: "http" },
                 { envVar: "MDB_MCP_HTTP_PORT", property: "httpPort", value: 8080 },
                 { envVar: "MDB_MCP_HTTP_HOST", property: "httpHost", value: "localhost" },
+                { envVar: "MDB_MCP_HTTP_BODY_LIMIT", property: "httpBodyLimit", value: 10 * 1024 * 1024 },
                 { envVar: "MDB_MCP_IDLE_TIMEOUT_MS", property: "idleTimeoutMs", value: 5000 },
                 { envVar: "MDB_MCP_NOTIFICATION_TIMEOUT_MS", property: "notificationTimeoutMs", value: 5000 },
                 {
@@ -220,6 +228,10 @@ describe("config", () => {
                 {
                     cli: ["--httpPort", "8080"],
                     expected: { httpPort: 8080 },
+                },
+                {
+                    cli: ["--httpBodyLimit", "52428800"],
+                    expected: { httpBodyLimit: 50 * 1024 * 1024 },
                 },
                 {
                     cli: ["--idleTimeoutMs", "42"],
@@ -889,6 +901,20 @@ describe("keychain management", () => {
         it(`should register ${cliArg} as a secret of kind ${secretKind} in the root keychain`, () => {
             parseUserConfig({ args: [`--${cliArg}`, cliArg] });
             expect(keychain.allSecrets).toEqual([{ value: cliArg, kind: secretKind }]);
+        });
+    }
+
+    const secretsFromSchema = Object.keys(UserConfigSchema.shape).filter((key) => {
+        const meta = getConfigMeta(key as keyof UserConfig);
+        return meta?.isSecret === true;
+    });
+
+    for (const secretKey of secretsFromSchema) {
+        it(`should register ${secretKey} as a secret in the root keychain`, () => {
+            parseUserConfig({ args: [`--${secretKey}`, secretKey] });
+
+            const registeredSecret = keychain.allSecrets.find((s) => s.value === secretKey);
+            expect(registeredSecret).toBeDefined();
         });
     }
 });

@@ -1,0 +1,17 @@
+changelog:
+  exclude:
+    labels:
+      - "type: chore"
+  categories:
+    - title: "🚀 Features"
+      labels:
+        - "type: feature"
+    - title: "🐛 Bug Fixes"
+      labels:
+        - "type: bug"
+    - title: "📖 Documentation"
+      labels:
+        - "type: docs"
+    - title: "📦 Dependencies"
+      labels:
+        - "type: dependencies"

@@ -6,6 +6,7 @@ import {
 } from "../../../helpers.js";
 import { describe, expect, it } from "vitest";
 import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
+import type { RenameCollectionOutput } from "../../../../../src/tools/mongodb/update/renameCollection.js";
 
 describeWithMongoDB("renameCollection tool", (integration) => {
     validateToolMetadata(integration, "rename-collection", "Renames a collection in a MongoDB database", "update", [
@@ -80,6 +81,12 @@ describeWithMongoDB("renameCollection tool", (integration) => {
                 `Collection "before" renamed to "after" in database "${integration.randomDbName()}".`
             );
 
+            const structuredContent = response.structuredContent as RenameCollectionOutput;
+            expect(structuredContent.database).toBe(integration.randomDbName());
+            expect(structuredContent.oldCollection).toBe("before");
+            expect(structuredContent.newCollection).toBe("after");
+            expect(structuredContent.renamed).toBe(true);
+
             const docsInBefore = await integration
                 .mongoClient()
                 .db(integration.randomDbName())
@@ -115,6 +122,12 @@ describeWithMongoDB("renameCollection tool", (integration) => {
             expect(content).toEqual(
                 `Cannot rename "${integration.randomDbName()}.before" to "after" because the target collection already exists. If you want to overwrite it, set the "dropTarget" argument to true.`
             );
+
+            const structuredContent = response.structuredContent as RenameCollectionOutput;
+            expect(structuredContent.database).toBe(integration.randomDbName());
+            expect(structuredContent.oldCollection).toBe("before");
+            expect(structuredContent.newCollection).toBe("after");
+            expect(structuredContent.renamed).toBe(false);
 
             // Ensure no data was lost
             const docsInBefore = await integration

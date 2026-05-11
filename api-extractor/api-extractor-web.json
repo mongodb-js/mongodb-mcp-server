@@ -1,0 +1,12 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/api-extractor/v7/api-extractor.schema.json",
+  "extends": "../api-extractor.json",
+
+  "mainEntryPointFilePath": "<projectFolder>/dist/esm/web.d.ts",
+
+  "apiReport": {
+    "enabled": true,
+    "reportFolder": "<projectFolder>/api-extractor/reports/",
+    "reportFileName": "web"
+  }
+}

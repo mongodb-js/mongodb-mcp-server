@@ -7,11 +7,10 @@ import { type OperationType, type ToolClass } from "../../../../src/tools/tool.j
 import { type UserConfig } from "../../../../src/common/config/userConfig.js";
 import { MCPConnectionManager } from "../../../../src/common/connectionManager.js";
 import { Session } from "../../../../src/common/session.js";
-import { CompositeLogger } from "../../../../src/common/logger.js";
+import { CompositeLogger } from "../../../../src/common/logging/index.js";
 import { DeviceId } from "../../../../src/helpers/deviceId.js";
 import { ExportsManager } from "../../../../src/common/exportsManager.js";
 import { InMemoryTransport } from "../../../../src/transports/inMemoryTransport.js";
-import { Telemetry } from "../../../../src/telemetry/telemetry.js";
 import { Server } from "../../../../src/server.js";
 import { type ConnectionErrorHandler, connectionErrorHandler } from "../../../../src/common/connectionErrorHandler.js";
 import { defaultTestConfig, expectDefined } from "../../helpers.js";
@@ -20,7 +19,8 @@ import { ErrorCodes } from "../../../../src/common/errors.js";
 import { Keychain } from "../../../../src/common/keychain.js";
 import { Elicitation } from "../../../../src/elicitation.js";
 import * as MongoDbTools from "../../../../src/tools/mongodb/tools.js";
-import { VectorSearchEmbeddingsManager } from "../../../../src/common/search/vectorSearchEmbeddingsManager.js";
+import { defaultCreateApiClient, Telemetry } from "../../../../src/lib.js";
+import { MockMetrics } from "../../../unit/mocks/metrics.js";
 
 const injectedErrorHandler: ConnectionErrorHandler = (error) => {
     switch (error.code) {
@@ -54,27 +54,27 @@ const injectedErrorHandler: ConnectionErrorHandler = (error) => {
 };
 
 class RandomTool extends MongoDBToolBase {
-    name = "Random";
+    static toolName = "Random";
     static operationType: OperationType = "read";
-    protected description = "This is a tool.";
-    protected argsShape = {};
-    public async execute(): Promise<CallToolResult> {
+    public description = "This is a tool.";
+    public argsShape = {};
+    protected async execute(): Promise<CallToolResult> {
         await this.ensureConnected();
         return { content: [{ type: "text", text: "Something" }] };
     }
 }
 
 class UnusableVoyageTool extends MongoDBToolBase {
-    name = "UnusableVoyageTool";
+    static toolName = "UnusableVoyageTool";
     static operationType: OperationType = "read";
-    protected description = "This is a Voyage tool.";
-    protected argsShape = {};
+    public description = "This is a Voyage tool.";
+    public argsShape = {};
 
     override verifyAllowed(): boolean {
         return false;
     }
 
-    public async execute(): Promise<CallToolResult> {
+    protected async execute(): Promise<CallToolResult> {
         await this.ensureConnected();
         return { content: [{ type: "text", text: "Something" }] };
     }
@@ -104,9 +104,26 @@ describe("MongoDBTool implementations", () => {
             exportsManager,
             connectionManager,
             keychain: new Keychain(),
-            vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(userConfig, connectionManager),
+            connectionErrorHandler: errorHandler,
+            apiClient: defaultCreateApiClient(
+                {
+                    baseUrl: userConfig.apiBaseUrl,
+                    credentials: {
+                        clientId: userConfig.apiClientId,
+                        clientSecret: userConfig.apiClientSecret,
+                    },
+                },
+                logger
+            ),
         });
-        const telemetry = Telemetry.create(session, userConfig, deviceId);
+
+        const telemetry = Telemetry.create({
+            logger,
+            deviceId,
+            apiClient: session.apiClient,
+            keychain: session.keychain,
+            enabled: false,
+        });
 
         const clientTransport = new InMemoryTransport();
         const serverTransport = new InMemoryTransport();
@@ -141,6 +158,7 @@ describe("MongoDBTool implementations", () => {
             connectionErrorHandler: errorHandler,
             elicitation,
             tools: toolConstructors,
+            metrics: new MockMetrics(),
         });
 
         await mcpServer.connect(serverTransport);
@@ -340,9 +358,10 @@ describe("MongoDBTool implementations", () => {
             expect(metadata).toEqual({});
             expect(metadata).not.toHaveProperty("project_id");
             expect(metadata).not.toHaveProperty("connection_auth_type");
+            expect(metadata).not.toHaveProperty("connection_host_type");
         });
 
-        it("should return metadata with connection_auth_type when connected via connection string", async () => {
+        it("should return metadata with connection_auth_type and host_type when connected via connection string", async () => {
             await cleanupAndStartServer({ connectionString: mdbIntegration.connectionString() });
             // Connect to MongoDB to set the connection state
             await mcpClient?.callTool({
@@ -357,11 +376,85 @@ describe("MongoDBTool implementations", () => {
             const result: CallToolResult = { content: [{ type: "text", text: "test" }] };
             const metadata = randomTool["resolveTelemetryMetadata"](result, {} as never);
 
-            // When connected via connection string, connection_auth_type should be set
-            // The actual value depends on the connection string, but it should be present
+            // When connected via connection string, connection_auth_type and host_type should be set
+            // The actual value depends on the connection string, but they should be present
             expect(metadata).toHaveProperty("connection_auth_type");
             expect(typeof metadata.connection_auth_type).toBe("string");
             expect(metadata.connection_auth_type).toBe("scram");
+            expect(metadata).toHaveProperty("connection_host_type");
+            expect(typeof metadata.connection_host_type).toBe("string");
+        });
+    });
+
+    describe("getOperationOptions", () => {
+        it("should return only signal when maxTimeMS is not configured", async () => {
+            await cleanupAndStartServer();
+            const tool = mcpServer?.tools.find((t) => t.name === "Random");
+            expectDefined(tool);
+            const randomTool = tool as RandomTool;
+
+            const signal = AbortSignal.timeout(5000);
+            const options = randomTool["getOperationOptions"](signal);
+
+            expect(options).toEqual({ signal });
+            expect(options).not.toHaveProperty("maxTimeMS");
+        });
+
+        it("should return signal and maxTimeMS when maxTimeMS is configured", async () => {
+            await cleanupAndStartServer({ maxTimeMS: 30000 });
+            const tool = mcpServer?.tools.find((t) => t.name === "Random");
+            expectDefined(tool);
+            const randomTool = tool as RandomTool;
+
+            const signal = AbortSignal.timeout(5000);
+            const options = randomTool["getOperationOptions"](signal);
+
+            expect(options).toEqual({ signal, maxTimeMS: 30000 });
+        });
+
+        it("should return only maxTimeMS when signal is undefined", async () => {
+            await cleanupAndStartServer({ maxTimeMS: 15000 });
+            const tool = mcpServer?.tools.find((t) => t.name === "Random");
+            expectDefined(tool);
+            const randomTool = tool as RandomTool;
+
+            const options = randomTool["getOperationOptions"](undefined);
+
+            expect(options).toEqual({ maxTimeMS: 15000 });
+        });
+
+        it("should return empty object when neither signal nor maxTimeMS is provided", async () => {
+            await cleanupAndStartServer();
+            const tool = mcpServer?.tools.find((t) => t.name === "Random");
+            expectDefined(tool);
+            const randomTool = tool as RandomTool;
+
+            const options = randomTool["getOperationOptions"](undefined);
+
+            expect(options).toEqual({});
+        });
+
+        it("should treat maxTimeMS of 0 as a valid value", async () => {
+            await cleanupAndStartServer({ maxTimeMS: 0 });
+            const tool = mcpServer?.tools.find((t) => t.name === "Random");
+            expectDefined(tool);
+            const randomTool = tool as RandomTool;
+
+            const signal = AbortSignal.timeout(5000);
+            const options = randomTool["getOperationOptions"](signal);
+
+            expect(options).toEqual({ signal, maxTimeMS: 0 });
+        });
+
+        it("should return maxTimeMS 0 without signal", async () => {
+            await cleanupAndStartServer({ maxTimeMS: 0 });
+            const tool = mcpServer?.tools.find((t) => t.name === "Random");
+            expectDefined(tool);
+            const randomTool = tool as RandomTool;
+
+            const options = randomTool["getOperationOptions"](undefined);
+
+            expect(options).toEqual({ maxTimeMS: 0 });
         });
     });
 });

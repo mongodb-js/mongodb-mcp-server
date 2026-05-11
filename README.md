@@ -14,6 +14,7 @@ A Model Context Protocol server for interacting with MongoDB Databases and Mongo
 - [🛠️ Supported Tools](#supported-tools)
   - [MongoDB Atlas Tools](#mongodb-atlas-tools)
   - [MongoDB Database Tools](#mongodb-database-tools)
+  - [MongoDB Assistant Tools](#mongodb-assistant-tools)
 - [📄 Supported Resources](#supported-resources)
 - [⚙️ Configuration](#configuration)
   - [Configuration Options](#configuration-options)
@@ -60,6 +61,8 @@ Note: The configuration file syntax can be different across clients. Please refe
 - **VSCode**: https://code.visualstudio.com/docs/copilot/chat/mcp-servers
 - **Claude Desktop**: https://modelcontextprotocol.io/quickstart/user
 - **Cursor**: https://docs.cursor.com/context/model-context-protocol
+- **Copilot CLI**: https://docs.github.com/en/copilot/concepts/agents/about-copilot-cli
+- **Opencode CLI**: https://opencode.ai/docs/mcp-servers
 
 > **Default Safety Notice:** All examples below include `--readOnly` by default to ensure safe, read-only access to your data. Remove `--readOnly` if you need to enable write operations.
 
@@ -277,38 +280,62 @@ npx -y mongodb-mcp-server@latest --transport http --httpHost=0.0.0.0 --httpPort=
 
 > **Note:** The default transport is `stdio`, which is suitable for integration with most MCP clients. Use `http` transport if you need to interact with the server over HTTP.
 
+#### Option 6: Copilot CLI
+
+You can use the Copilot CLI to interactively add the MCP server:
+
+```shell
+/mcp add
+```
+
+Alternatively, create or edit the configuration file `~/.copilot/mcp-config.json` and add:
+
+```json
+{
+  "mcpServers": {
+    "MongoDB": {
+      "command": "npx",
+      "args": ["-y", "mongodb-mcp-server@latest", "--readOnly"],
+      "env": {
+        "MDB_MCP_CONNECTION_STRING": "mongodb://localhost:27017/myDatabase"
+      }
+    }
+  }
+}
+```
+
+For more information, see the [Copilot CLI documentation](https://docs.github.com/en/copilot/concepts/agents/about-copilot-cli).
+
+#### Option 7: OpenCode
+
+Create or edit your OpenCode config file (`~/.config/opencode/opencode.json` or project-specific `./opencode.json`):
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "MongoDB": {
+      "type": "local",
+      "command": ["npx", "-y", "mongodb-mcp-server@latest", "--readOnly"],
+      "enabled": true,
+      "environment": {
+        "MDB_MCP_CONNECTION_STRING": "mongodb://localhost:27017/myDatabase"
+      }
+    }
+  }
+}
+```
+
+For more information about configuring OpenCode as an MCP client, including the expected syntax and options, see the [OpenCode MCP servers documentation](https://opencode.ai/docs/mcp-servers/).
+
 ## 🛠️ Supported Tools
 
 ### Tool List
 
-#### MongoDB Atlas Tools
-
-- `atlas-connect-cluster` - Connect to MongoDB Atlas cluster
-- `atlas-create-access-list` - Allow Ip/CIDR ranges to access your MongoDB Atlas clusters.
-- `atlas-create-db-user` - Create an MongoDB Atlas database user
-- `atlas-create-free-cluster` - Create a free MongoDB Atlas cluster
-- `atlas-create-project` - Create a MongoDB Atlas project
-- `atlas-get-performance-advisor` - Get MongoDB Atlas performance advisor recommendations, which includes the operations: suggested indexes, drop index suggestions, schema suggestions, and a sample of the most recent (max 50) slow query logs
-- `atlas-inspect-access-list` - Inspect Ip/CIDR ranges with access to your MongoDB Atlas clusters.
-- `atlas-inspect-cluster` - Inspect MongoDB Atlas cluster
-- `atlas-list-alerts` - List MongoDB Atlas alerts
-- `atlas-list-clusters` - List MongoDB Atlas clusters
-- `atlas-list-db-users` - List MongoDB Atlas database users
-- `atlas-list-orgs` - List MongoDB Atlas organizations
-- `atlas-list-projects` - List MongoDB Atlas projects
-
-NOTE: atlas tools are only available when you set credentials on [configuration](#configuration) section.
-
-#### MongoDB Atlas Local Tools
-
-- `atlas-local-connect-deployment` - Connect to a MongoDB Atlas Local deployment
-- `atlas-local-create-deployment` - Create a MongoDB Atlas local deployment
-- `atlas-local-delete-deployment` - Delete a MongoDB Atlas local deployment
-- `atlas-local-list-deployments` - List MongoDB Atlas local deployments
-
 #### MongoDB Database Tools
 
 - `aggregate` - Run an aggregation against a MongoDB collection
+- `aggregate-db` - Run an aggregation against a MongoDB database
 - `collection-indexes` - Describe the indexes for a collection
 - `collection-schema` - Describe the schema for a collection
 - `collection-storage-size` - Gets the size of the collection
@@ -324,13 +351,47 @@ NOTE: atlas tools are only available when you set credentials on [configuration]
 - `explain` - Returns statistics describing the execution of the winning plan chosen by the query optimizer for the evaluated method
 - `export` - Export a query or aggregation results in the specified EJSON format.
 - `find` - Run a find query against a MongoDB collection
-- `insert-many` - Insert an array of documents into a MongoDB collection
+- `insert-many` - Insert an array of documents into a MongoDB collection. If the list of documents is above com.mongodb/maxRequestPayloadBytes, consider inserting them in batches.
 - `list-collections` - List all collections for a given database
 - `list-databases` - List all databases for a MongoDB connection
 - `mongodb-logs` - Returns the most recent logged mongod events
 - `rename-collection` - Renames a collection in a MongoDB database
 - `switch-connection` - Switch to a different MongoDB connection
-- `update-many` - Updates all documents that match the specified filter for a collection
+- `update-many` - Updates all documents that match the specified filter for a collection. If the list of documents is above com.mongodb/maxRequestPayloadBytes, consider updating them in batches.
+
+#### MongoDB Atlas Tools
+
+- `atlas-connect-cluster` - Connect to MongoDB Atlas cluster
+- `atlas-create-access-list` - Allow Ip/CIDR ranges to access your MongoDB Atlas clusters.
+- `atlas-create-db-user` - Create an MongoDB Atlas database user
+- `atlas-create-free-cluster` - Create a free MongoDB Atlas cluster
+- `atlas-create-project` - Create a MongoDB Atlas project
+- `atlas-get-performance-advisor` - Get MongoDB Atlas performance advisor recommendations and suggestions, which includes the operations: suggested indexes, drop index suggestions, schema suggestions, and a sample of the most recent (max 50) slow query logs
+- `atlas-inspect-access-list` - Inspect Ip/CIDR ranges with access to your MongoDB Atlas clusters.
+- `atlas-inspect-cluster` - Inspect metadata of a MongoDB Atlas cluster
+- `atlas-list-alerts` - List MongoDB Atlas alerts
+- `atlas-list-clusters` - List MongoDB Atlas clusters
+- `atlas-list-db-users` - List MongoDB Atlas database users
+- `atlas-list-orgs` - List MongoDB Atlas organizations
+- `atlas-list-projects` - List MongoDB Atlas projects
+- `atlas-streams-build` - Create Atlas Stream Processing resources. Use this tool for 'set up a Kafka pipeline', 'create a workspace', 'add a connection', or 'deploy a processor'. Use resource='workspace' to create a new workspace (specify cloud provider, region, and tier). Use resource='connection' to add a data source or sink to an existing workspace. Use resource='processor' to deploy a stream processor with a pipeline. Use resource='privatelink' to set up private networking. Typical workflow: create workspace → add connections → deploy processor.
+- `atlas-streams-discover` - Discover and inspect Atlas Stream Processing resources. Also use for 'why is my processor failing', 'what workspaces do I have', 'show processor stats', or 'check processor health'. Use 'list-workspaces' to see all workspaces in a project. Use inspect actions for details on a specific resource. Use 'diagnose-processor' for a combined health report including state, stats, connection health, and recent errors. Use 'get-networking' for PrivateLink and account details.
+- `atlas-streams-manage` - Manage Atlas Stream Processing resources: start/stop processors, modify pipelines, update configurations. Also use for 'change the pipeline', 'scale up my processor', or 'update my workspace tier'. Common workflow: action='stop-processor' → action='modify-processor' → action='start-processor'. Use `atlas-streams-discover` with action 'inspect-processor' to check state before managing.
+- `atlas-streams-teardown` - Delete Atlas Stream Processing resources. Also use for 'remove my workspace', 'disconnect a source', 'delete all processors', or 'clean up my streams environment'. Performs basic safety checks before deletion: summarizes counts of processors and connections, highlights connections referenced by processors where possible, and surfaces API errors if processors are still running when deletion is attempted. Use `atlas-streams-discover` to review resources before deleting.
+
+NOTE: atlas tools are only available when you set credentials on [configuration](#configuration) section.
+
+#### MongoDB Atlas Local Tools
+
+- `atlas-local-connect-deployment` - Connect to a MongoDB Atlas Local deployment
+- `atlas-local-create-deployment` - Create a MongoDB Atlas local deployment. Default image is preview. When the user does not specify an image tag, inform them that preview is used by default and provide this link for more information: https://hub.docker.com/r/mongodb/mongodb-atlas-local
+- `atlas-local-delete-deployment` - Delete a MongoDB Atlas local deployment
+- `atlas-local-list-deployments` - List MongoDB Atlas local deployments
+
+#### MongoDB Assistant Tools
+
+- `list-knowledge-sources` - List available data sources in the MongoDB Assistant knowledge base. Use this to explore available data sources or to find search filter parameters to use in search-knowledge.
+- `search-knowledge` - Search for information in the MongoDB Assistant knowledge base. This includes official documentation, curated expert guidance, and other resources provided by MongoDB. Supports filtering by data source and version.
 
 ## 📄 Supported Resources
 
@@ -350,37 +411,45 @@ The MongoDB MCP Server can be configured using multiple methods, with the follow
 
 ### Configuration Options
 
-| Environment Variable / CLI Option                                                              | Default                                                                                                | Description                                                                                                                                                                                     |
-| ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `MDB_MCP_ALLOW_REQUEST_OVERRIDES` / `--allowRequestOverrides`                                  | `false`                                                                                                | When set to true, allows configuration values to be overridden via request headers and query parameters.                                                                                        |
-| `MDB_MCP_API_CLIENT_ID` / `--apiClientId`                                                      | `<not set>`                                                                                            | Atlas API client ID for authentication. Required for running Atlas tools.                                                                                                                       |
-| `MDB_MCP_API_CLIENT_SECRET` / `--apiClientSecret`                                              | `<not set>`                                                                                            | Atlas API client secret for authentication. Required for running Atlas tools.                                                                                                                   |
-| `MDB_MCP_ATLAS_TEMPORARY_DATABASE_USER_LIFETIME_MS` / `--atlasTemporaryDatabaseUserLifetimeMs` | `14400000`                                                                                             | Time in milliseconds that temporary database users created when connecting to MongoDB Atlas clusters will remain active before being automatically deleted.                                     |
-| `MDB_MCP_CONFIRMATION_REQUIRED_TOOLS` / `--confirmationRequiredTools`                          | `"atlas-create-access-list,atlas-create-db-user,drop-database,drop-collection,delete-many,drop-index"` | Comma separated values of tool names that require user confirmation before execution. Requires the client to support elicitation.                                                               |
-| `MDB_MCP_CONNECTION_STRING` / `--connectionString`                                             | `<not set>`                                                                                            | MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data.                                     |
-| `MDB_MCP_DISABLED_TOOLS` / `--disabledTools`                                                   | `""`                                                                                                   | Comma separated values of tool names, operation types, and/or categories of tools that will be disabled.                                                                                        |
-| `MDB_MCP_DRY_RUN` / `--dryRun`                                                                 | `false`                                                                                                | When true, runs the server in dry mode: dumps configuration and enabled tools, then exits without starting the server.                                                                          |
-| `MDB_MCP_EMBEDDINGS_VALIDATION` / `--embeddingsValidation`                                     | `true`                                                                                                 | When set to false, disables validation of embeddings dimensions.                                                                                                                                |
-| `MDB_MCP_EXPORT_CLEANUP_INTERVAL_MS` / `--exportCleanupIntervalMs`                             | `120000`                                                                                               | Time in milliseconds between export cleanup cycles that remove expired export files.                                                                                                            |
-| `MDB_MCP_EXPORT_TIMEOUT_MS` / `--exportTimeoutMs`                                              | `300000`                                                                                               | Time in milliseconds after which an export is considered expired and eligible for cleanup.                                                                                                      |
-| `MDB_MCP_EXPORTS_PATH` / `--exportsPath`                                                       | see below\*                                                                                            | Folder to store exported data files.                                                                                                                                                            |
-| `MDB_MCP_HTTP_HEADERS` / `--httpHeaders`                                                       | `"{}"`                                                                                                 | Header that the HTTP server will validate when making requests (only used when transport is 'http').                                                                                            |
-| `MDB_MCP_HTTP_HOST` / `--httpHost`                                                             | `"127.0.0.1"`                                                                                          | Host address to bind the HTTP server to (only used when transport is 'http').                                                                                                                   |
-| `MDB_MCP_HTTP_PORT` / `--httpPort`                                                             | `3000`                                                                                                 | Port number for the HTTP server (only used when transport is 'http'). Use 0 for a random port.                                                                                                  |
-| `MDB_MCP_IDLE_TIMEOUT_MS` / `--idleTimeoutMs`                                                  | `600000`                                                                                               | Idle timeout for a client to disconnect (only applies to http transport).                                                                                                                       |
-| `MDB_MCP_INDEX_CHECK` / `--indexCheck`                                                         | `false`                                                                                                | When set to true, enforces that query operations must use an index, rejecting queries that perform a collection scan.                                                                           |
-| `MDB_MCP_LOG_PATH` / `--logPath`                                                               | see below\*                                                                                            | Folder to store logs.                                                                                                                                                                           |
-| `MDB_MCP_LOGGERS` / `--loggers`                                                                | `"disk,mcp"` see below\*                                                                               | Comma separated values of logger types.                                                                                                                                                         |
-| `MDB_MCP_MAX_BYTES_PER_QUERY` / `--maxBytesPerQuery`                                           | `16777216`                                                                                             | The maximum size in bytes for results from a find or aggregate tool call. This serves as an upper bound for the responseBytesLimit parameter in those tools.                                    |
-| `MDB_MCP_MAX_DOCUMENTS_PER_QUERY` / `--maxDocumentsPerQuery`                                   | `100`                                                                                                  | The maximum number of documents that can be returned by a find or aggregate tool call. For the find tool, the effective limit will be the smaller of this value and the tool's limit parameter. |
-| `MDB_MCP_NOTIFICATION_TIMEOUT_MS` / `--notificationTimeoutMs`                                  | `540000`                                                                                               | Notification timeout for a client to be aware of disconnect (only applies to http transport).                                                                                                   |
-| `MDB_MCP_PREVIEW_FEATURES` / `--previewFeatures`                                               | `""`                                                                                                   | Comma separated values of preview features that are enabled.                                                                                                                                    |
-| `MDB_MCP_READ_ONLY` / `--readOnly`                                                             | `false`                                                                                                | When set to true, only allows read, connect, and metadata operation types, disabling create/update/delete operations.                                                                           |
-| `MDB_MCP_TELEMETRY` / `--telemetry`                                                            | `"enabled"`                                                                                            | When set to disabled, disables telemetry collection.                                                                                                                                            |
-| `MDB_MCP_TRANSPORT` / `--transport`                                                            | `"stdio"`                                                                                              | Either 'stdio' or 'http'.                                                                                                                                                                       |
-| `MDB_MCP_VECTOR_SEARCH_DIMENSIONS` / `--vectorSearchDimensions`                                | `1024`                                                                                                 | Default number of dimensions for vector search embeddings.                                                                                                                                      |
-| `MDB_MCP_VECTOR_SEARCH_SIMILARITY_FUNCTION` / `--vectorSearchSimilarityFunction`               | `"euclidean"`                                                                                          | Default similarity function for vector search: 'euclidean', 'cosine', or 'dotProduct'.                                                                                                          |
-| `MDB_MCP_VOYAGE_API_KEY` / `--voyageApiKey`                                                    | `""`                                                                                                   | API key for Voyage AI embeddings service (required for vector search operations with text-to-embedding conversion).                                                                             |
+| Environment Variable / CLI Option                                                              | Default                                                                                                                                            | Description                                                                                                                                                                                              |
+| ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MDB_MCP_ALLOW_REQUEST_OVERRIDES` / `--allowRequestOverrides`                                  | `false`                                                                                                                                            | When set to true, allows configuration values to be overridden via request headers and query parameters.                                                                                                 |
+| `MDB_MCP_API_CLIENT_ID` / `--apiClientId`                                                      | `<not set>`                                                                                                                                        | Atlas API client ID for authentication. Required for running Atlas tools.                                                                                                                                |
+| `MDB_MCP_API_CLIENT_SECRET` / `--apiClientSecret`                                              | `<not set>`                                                                                                                                        | Atlas API client secret for authentication. Required for running Atlas tools.                                                                                                                            |
+| `MDB_MCP_ASSISTANT_BASE_URL` / `--assistantBaseUrl`                                            | `"https://knowledge.mongodb.com/api/v1/"`                                                                                                          | Base URL for the MongoDB Assistant API.                                                                                                                                                                  |
+| `MDB_MCP_ATLAS_TEMPORARY_DATABASE_USER_LIFETIME_MS` / `--atlasTemporaryDatabaseUserLifetimeMs` | `14400000`                                                                                                                                         | Time in milliseconds that temporary database users created when connecting to MongoDB Atlas clusters will remain active before being automatically deleted.                                              |
+| `MDB_MCP_CONFIRMATION_REQUIRED_TOOLS` / `--confirmationRequiredTools`                          | `"atlas-create-access-list,atlas-create-db-user,drop-database,drop-collection,delete-many,drop-index,atlas-streams-manage,atlas-streams-teardown"` | Comma separated values of tool names that require user confirmation before execution. Requires the client to support elicitation.                                                                        |
+| `MDB_MCP_CONNECTION_STRING` / `--connectionString`                                             | `<not set>`                                                                                                                                        | MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data.                                              |
+| `MDB_MCP_DISABLED_TOOLS` / `--disabledTools`                                                   | `""`                                                                                                                                               | Comma separated values of tool names, operation types, and/or categories of tools that will be disabled.                                                                                                 |
+| `MDB_MCP_DRY_RUN` / `--dryRun`                                                                 | `false`                                                                                                                                            | When true, runs the server in dry mode: dumps configuration and enabled tools, then exits without starting the server.                                                                                   |
+| `MDB_MCP_EXPORT_CLEANUP_INTERVAL_MS` / `--exportCleanupIntervalMs`                             | `120000`                                                                                                                                           | Time in milliseconds between export cleanup cycles that remove expired export files.                                                                                                                     |
+| `MDB_MCP_EXPORT_TIMEOUT_MS` / `--exportTimeoutMs`                                              | `300000`                                                                                                                                           | Time in milliseconds after which an export is considered expired and eligible for cleanup.                                                                                                               |
+| `MDB_MCP_EXPORTS_PATH` / `--exportsPath`                                                       | see below\*                                                                                                                                        | Folder to store exported data files.                                                                                                                                                                     |
+| `MDB_MCP_EXTERNALLY_MANAGED_SESSIONS` / `--externallyManagedSessions`                          | `false`                                                                                                                                            | When true, the HTTP transport allows requests with a session ID supplied externally through the 'mcp-session-id' header. When an external ID is supplied, the initialization request is optional.        |
+| `MDB_MCP_HEALTH_CHECK_HOST` / `--healthCheckHost`                                              | `<not set>`                                                                                                                                        | Deprecated. Use `monitoringServerHost` instead. Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.               |
+| `MDB_MCP_HEALTH_CHECK_PORT` / `--healthCheckPort`                                              | `<not set>`                                                                                                                                        | Deprecated. Use `monitoringServerPort` instead. Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.                       |
+| `MDB_MCP_HTTP_BODY_LIMIT` / `--httpBodyLimit`                                                  | `102400`                                                                                                                                           | Maximum size of the HTTP request body in bytes (only used when transport is 'http'). This value is passed as the optional limit parameter to the Express.js json() middleware.                           |
+| `MDB_MCP_HTTP_HEADERS` / `--httpHeaders`                                                       | `"{}"`                                                                                                                                             | Header that the HTTP server will validate when making requests (only used when transport is 'http').                                                                                                     |
+| `MDB_MCP_HTTP_HOST` / `--httpHost`                                                             | `"127.0.0.1"`                                                                                                                                      | Host address to bind the HTTP server to (only used when transport is 'http').                                                                                                                            |
+| `MDB_MCP_HTTP_PORT` / `--httpPort`                                                             | `3000`                                                                                                                                             | Port number for the HTTP server (only used when transport is 'http'). Use 0 for a random port.                                                                                                           |
+| `MDB_MCP_HTTP_RESPONSE_TYPE` / `--httpResponseType`                                            | `"sse"`                                                                                                                                            | The HTTP response type for tool responses: 'sse' for Server-Sent Events, 'json' for standard JSON responses.                                                                                             |
+| `MDB_MCP_IDLE_TIMEOUT_MS` / `--idleTimeoutMs`                                                  | `600000`                                                                                                                                           | Idle timeout for a client to disconnect (only applies to http transport).                                                                                                                                |
+| `MDB_MCP_INDEX_CHECK` / `--indexCheck`                                                         | `false`                                                                                                                                            | When set to true, enforces that query operations must use an index, rejecting queries that perform a collection scan.                                                                                    |
+| `MDB_MCP_LOG_PATH` / `--logPath`                                                               | see below\*                                                                                                                                        | Folder to store logs.                                                                                                                                                                                    |
+| `MDB_MCP_LOGGERS` / `--loggers`                                                                | `"disk,mcp"` see below\*                                                                                                                           | Comma separated values of logger types.                                                                                                                                                                  |
+| `MDB_MCP_MAX_BYTES_PER_QUERY` / `--maxBytesPerQuery`                                           | `16777216`                                                                                                                                         | The maximum size in bytes for results from a find or aggregate tool call. This serves as an upper bound for the responseBytesLimit parameter in those tools.                                             |
+| `MDB_MCP_MAX_DOCUMENTS_PER_QUERY` / `--maxDocumentsPerQuery`                                   | `100`                                                                                                                                              | The maximum number of documents that can be returned by a find or aggregate tool call. For the find tool, the effective limit will be the smaller of this value and the tool's limit parameter.          |
+| `MDB_MCP_MAX_TIME_M_S` / `--maxTimeMS`                                                         | `<not set>`                                                                                                                                        | The maximum time in milliseconds that operations are allowed to run on the MongoDB server. When set, this value is passed as the maxTimeMS option to read operations such as find, aggregate, and count. |
+| `MDB_MCP_MCP_CLIENT_LOG_LEVEL` / `--mcpClientLogLevel`                                         | `"debug"`                                                                                                                                          | Minimum severity level for log messages forwarded to the MCP client.                                                                                                                                     |
+| `MDB_MCP_MONITORING_SERVER_FEATURES` / `--monitoringServerFeatures`                            | `"health-check"`                                                                                                                                   | Features to expose on the monitoring server (only used when transport is 'http' and monitoringServerHost/monitoringServerPort are set).                                                                  |
+| `MDB_MCP_MONITORING_SERVER_HOST` / `--monitoringServerHost`                                    | `<not set>`                                                                                                                                        | Host address to bind the monitoring HTTP server to (only used when transport is 'http'). If provided, `monitoringServerPort` must also be set.                                                           |
+| `MDB_MCP_MONITORING_SERVER_PORT` / `--monitoringServerPort`                                    | `<not set>`                                                                                                                                        | Port number for the monitoring HTTP server (only used when transport is 'http'). If provided, `monitoringServerHost` must also be set.                                                                   |
+| `MDB_MCP_NOTIFICATION_TIMEOUT_MS` / `--notificationTimeoutMs`                                  | `540000`                                                                                                                                           | Notification timeout for a client to be aware of disconnect (only applies to http transport).                                                                                                            |
+| `MDB_MCP_PREVIEW_FEATURES` / `--previewFeatures`                                               | `""`                                                                                                                                               | Comma separated values of preview features that are enabled.                                                                                                                                             |
+| `MDB_MCP_READ_ONLY` / `--readOnly`                                                             | `false`                                                                                                                                            | When set to true, only allows read, connect, and metadata operation types, disabling create/update/delete operations.                                                                                    |
+| `MDB_MCP_TELEMETRY` / `--telemetry`                                                            | `"enabled"`                                                                                                                                        | When set to disabled, disables telemetry collection.                                                                                                                                                     |
+| `MDB_MCP_TRANSPORT` / `--transport`                                                            | `"stdio"`                                                                                                                                          | Either 'stdio' or 'http'.                                                                                                                                                                                |
+| `MDB_MCP_VOYAGE_API_KEY` / `--voyageApiKey`                                                    | `""`                                                                                                                                               | API key for Voyage AI embeddings service (required for creating Atlas Local deployments with auto-embed vector search capabilities).                                                                     |
 
 #### Logger Options
 
@@ -510,14 +579,12 @@ You can disable telemetry using:
 
 The MongoDB MCP Server may offer functionality that is still in development and may change in future releases. These features are considered "preview features" and are not enabled by default. Generally, these features are well tested, but may not offer the complete functionality we intend to provide in the final release or we'd like to gather feedback before making them generally available. To enable one or more preview features, use the `previewFeatures` configuration option.
 
-- For **environment variable** configuration, use a comma-separated string: `export MDB_MCP_PREVIEW_FEATURES="search,feature1,feature2"`.
-- For **command-line argument** configuration, use a space-separated string: `--previewFeatures search feature1 feature2`.
+- For **environment variable** configuration, use a comma-separated string: `export MDB_MCP_PREVIEW_FEATURES="feature1,feature2"`.
+- For **command-line argument** configuration, use a space-separated string: `--previewFeatures feature1 feature2`.
 
 List of available preview features:
 
-- `search` - Enables tools or functionality related to Atlas Search and Vector Search in MongoDB Atlas:
-  - Index management, such as creating, listing, and dropping search and vector search indexes.
-  - Querying collections using vector search capabilities. This requires a configured embedding model that will be used to generate vector representations of the query data. Currently, only [Voyage AI](https://www.voyageai.com) embedding models are supported. Set the `voyageApiKey` configuration option with your Voyage AI API key to use this feature.
+- `mcpUI` - Enables an optional web-based UI for interacting with the MCP server.
 
 ### Atlas API Access
 
@@ -552,14 +619,15 @@ To learn more about Service Accounts, check the [MongoDB Atlas documentation](ht
 
 #### Quick Reference: Required roles per operation
 
-| What you want to do                  | Safest Role to Assign (where)           |
-| ------------------------------------ | --------------------------------------- |
-| List orgs/projects                   | Org Member or Org Read Only (Org)       |
-| Create new projects                  | Org Project Creator (Org)               |
-| View clusters/databases in a project | Project Read Only (Project)             |
-| Create/manage clusters in a project  | Project Cluster Manager (Project)       |
-| Manage project access lists          | Project IP Access List Admin (Project)  |
-| Manage database users                | Project Database Access Admin (Project) |
+| What you want to do                  | Safest Role to Assign (where)             |
+| ------------------------------------ | ----------------------------------------- |
+| List orgs/projects                   | Org Member or Org Read Only (Org)         |
+| Create new projects                  | Org Project Creator (Org)                 |
+| View clusters/databases in a project | Project Read Only (Project)               |
+| Create/manage clusters in a project  | Project Cluster Manager (Project)         |
+| Manage project access lists          | Project IP Access List Admin (Project)    |
+| Manage database users                | Project Database Access Admin (Project)   |
+| Manage stream processing resources   | Project Stream Processing Owner (Project) |
 
 - **Prefer project-level roles** for most operations. Assign only to the specific projects you need to manage or view.
 - **Avoid Organization Owner** unless you require full administrative control over all projects and settings in the organization.
