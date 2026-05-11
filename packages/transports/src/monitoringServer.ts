@@ -1,53 +1,60 @@
 import type express from "express";
-import { LogId } from "@mongodb-js/mcp-logging";
-import type {
-    DefaultMetrics,
-    MonitoringServerFeature,
-    Metrics,
-    LoggerBase,
-    UserConfig,
-    MonitoringServerConstructorArgs,
-} from "../lib.js";
+import type { ILogger, IMetrics, MetricDefinitions, MonitoringServerFeature } from "@mongodb-js/mcp-types";
+import { LogId } from "@mongodb-js/mcp-core";
 import { ExpressBasedHttpServer } from "./expressBasedHttpServer.js";
 
-export class MonitoringServer<TMetrics extends DefaultMetrics = DefaultMetrics> extends ExpressBasedHttpServer {
-    private readonly features: MonitoringServerFeature[];
-    private readonly metrics: Metrics<TMetrics>;
+/**
+ * Configuration options for MonitoringServer (not including dependencies).
+ */
+export type MonitoringServerConfig = {
+    /** Host to bind the monitoring server to */
+    host: string;
+    /** Port to bind the monitoring server to */
+    port: number;
+    /** Features to enable on the monitoring server */
+    features: MonitoringServerFeature[];
+};
 
-    constructor({
-        host,
-        port,
-        features,
-        logger,
-        metrics,
-    }: {
-        host: string;
-        port: number;
-        features: MonitoringServerFeature[];
-        logger: LoggerBase;
-        metrics: Metrics<TMetrics>;
-    }) {
+/**
+ * Dependencies required by MonitoringServer.
+ */
+export type MonitoringServerDependencies<TMetrics extends MetricDefinitions = MetricDefinitions> = {
+    /** Logger for the server */
+    logger: ILogger;
+    /** Metrics instance */
+    metrics: IMetrics<TMetrics>;
+};
+
+/**
+ * Complete options for creating a MonitoringServer instance.
+ */
+export type MonitoringServerOptions<TMetrics extends MetricDefinitions = MetricDefinitions> =
+    MonitoringServerConfig & MonitoringServerDependencies<TMetrics>;
+
+/**
+ * HTTP server that provides monitoring endpoints like health checks and metrics.
+ *
+ * To customize behavior, extend this class and override methods:
+ *
+ * @example
+ * ```typescript
+ * class MyMonitoringServer extends MonitoringServer {
+ *   protected override async setupRoutes(): Promise<void> {
+ *     // Add custom routes
+ *     this.app.get("/custom", (req, res) => res.json({ custom: true }));
+ *     await super.setupRoutes();
+ *   }
+ * }
+ * ```
+ */
+export class MonitoringServer<TMetrics extends MetricDefinitions = MetricDefinitions> extends ExpressBasedHttpServer {
+    private readonly features: MonitoringServerFeature[];
+    private readonly metrics: IMetrics<TMetrics>;
+
+    constructor({ host, port, features, logger, metrics }: MonitoringServerOptions<TMetrics>) {
         super({ port, hostname: host, logger, logContext: "monitoringServer" });
         this.features = features;
         this.metrics = metrics;
-    }
-
-    static fromConfig<TMetrics extends DefaultMetrics = DefaultMetrics>({
-        userConfig,
-        logger,
-        metrics,
-    }: {
-        userConfig: UserConfig;
-        logger: LoggerBase;
-        metrics: Metrics<TMetrics>;
-    }): MonitoringServer<TMetrics> | undefined {
-        const host = userConfig.monitoringServerHost ?? userConfig.healthCheckHost;
-        const port = userConfig.monitoringServerPort ?? userConfig.healthCheckPort;
-        if (host === undefined || port === undefined) {
-            return undefined;
-        }
-
-        return new MonitoringServer({ host, port, features: userConfig.monitoringServerFeatures, logger, metrics });
     }
 
     protected override setupRoutes(): Promise<void> {
@@ -57,11 +64,10 @@ export class MonitoringServer<TMetrics extends DefaultMetrics = DefaultMetrics> 
             });
         }
 
-        if (this.features.includes("metrics") && this.metrics?.getMetrics) {
-            const getMetrics = this.metrics.getMetrics.bind(this.metrics);
+        if (this.features.includes("metrics")) {
             this.app.get("/metrics", async (_req: express.Request, res: express.Response) => {
                 try {
-                    const output = await getMetrics();
+                    const output = await this.metrics.getMetrics();
                     res.set("Content-Type", "text/plain");
                     res.send(output);
                 } catch (error: unknown) {
@@ -78,20 +84,3 @@ export class MonitoringServer<TMetrics extends DefaultMetrics = DefaultMetrics> 
         return Promise.resolve();
     }
 }
-
-/**
- * A function to create a custom MonitoringServer instance.
- * When provided, the runner will use this function instead of the default MonitoringServer constructor.
- */
-export type CreateMonitoringServerFn<TMetrics extends DefaultMetrics = DefaultMetrics> = (
-    args: MonitoringServerConstructorArgs<TMetrics>
-) => MonitoringServer<TMetrics> | undefined;
-
-/**
- * Creates a default MonitoringServer instance from the provided constructor arguments.
- */
-export const createDefaultMonitoringServer: <TMetrics extends DefaultMetrics = DefaultMetrics>(
-    args: MonitoringServerConstructorArgs<TMetrics>
-) => MonitoringServer<TMetrics> = <TMetrics extends DefaultMetrics = DefaultMetrics>(
-    args: MonitoringServerConstructorArgs<TMetrics>
-) => new MonitoringServer<TMetrics>(args);

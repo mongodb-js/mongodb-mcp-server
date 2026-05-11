@@ -1,34 +1,53 @@
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { LogId } from "@mongodb-js/mcp-logging";
-import type { Server } from "../server.js";
-import type { CustomizableServerOptions } from "./base.js";
-import type { CustomizableSessionOptions } from "./base.js";
-import { TransportRunnerBase, type TransportRunnerConfig } from "./base.js";
-import type { UserConfig } from "../lib.js";
-import type { DefaultMetrics } from "@mongodb-js/mcp-metrics";
+import type { MetricDefinitions } from "@mongodb-js/mcp-types";
+import { LogId } from "@mongodb-js/mcp-core";
+import { TransportRunnerBase } from "./base.js";
+import type { StdioRunnerOptions, CustomizableServerOptions, CustomizableSessionOptions } from "./types.js";
 
+/**
+ * Transport runner for stdio (standard input/output) transport.
+ * This is the default transport for MCP servers.
+ *
+ * To customize server creation, extend this class and override the `createServer()` method:
+ *
+ * @example
+ * ```typescript
+ * class MyStdioRunner extends StdioRunner {
+ *   protected override async createServer({ serverOptions, sessionOptions }) {
+ *     return new MyServer({ ... });
+ *   }
+ * }
+ *
+ * const runner = new MyStdioRunner({ loggers, metrics });
+ * ```
+ */
 export class StdioRunner<
-    TUserConfig extends UserConfig = UserConfig,
+    TServer extends {
+        connect(transport: StdioServerTransport): Promise<void>;
+        close(): Promise<void>;
+    } = {
+        connect(transport: StdioServerTransport): Promise<void>;
+        close(): Promise<void>;
+    },
     TContext = unknown,
-    TMetrics extends DefaultMetrics = DefaultMetrics,
-> extends TransportRunnerBase<TUserConfig, TContext, TMetrics> {
-    private server: Server<TUserConfig, TContext> | undefined;
+    TMetrics extends MetricDefinitions = MetricDefinitions,
+> extends TransportRunnerBase<TServer, TContext, TMetrics> {
+    private server: TServer | undefined;
 
-    constructor(config: TransportRunnerConfig<TUserConfig, TMetrics>) {
-        super(config);
+    constructor({ loggers, metrics }: StdioRunnerOptions<TMetrics>) {
+        super({ loggers, metrics });
     }
 
     async start({
         serverOptions,
         sessionOptions,
     }: {
-        serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
-        sessionOptions?: CustomizableSessionOptions<TUserConfig>;
+        serverOptions?: CustomizableServerOptions<TContext>;
+        sessionOptions?: CustomizableSessionOptions;
     } = {}): Promise<void> {
         try {
             this.server = await this.createServer({ serverOptions, sessionOptions });
             const transport = new StdioServerTransport();
-
             await this.server.connect(transport);
         } catch (error: unknown) {
             this.logger.emergency({
@@ -40,7 +59,22 @@ export class StdioRunner<
         }
     }
 
-    async closeTransport(): Promise<void> {
+    /**
+     * Stops the stdio transport runner.
+     * This closes the server connection.
+     */
+    async stop(): Promise<void> {
         await this.server?.close();
     }
+
+    /**
+     * Creates the server instance. Must be implemented by subclasses.
+     */
+    protected abstract createServer({
+        serverOptions,
+        sessionOptions,
+    }: {
+        serverOptions?: CustomizableServerOptions<TContext>;
+        sessionOptions?: CustomizableSessionOptions;
+    }): Promise<TServer>;
 }

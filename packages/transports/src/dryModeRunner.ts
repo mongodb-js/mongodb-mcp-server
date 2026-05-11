@@ -1,8 +1,11 @@
+import type { MetricDefinitions } from "@mongodb-js/mcp-types";
+import { TransportRunnerBase } from "./base.js";
 import { InMemoryTransport } from "./inMemoryTransport.js";
-import { type CustomizableSessionOptions, TransportRunnerBase, type TransportRunnerConfig } from "./base.js";
-import { type Server } from "../server.js";
-import type { CustomizableServerOptions } from "../lib.js";
+import type { DryRunModeRunnerOptions, CustomizableServerOptions, CustomizableSessionOptions } from "./types.js";
 
+/**
+ * Test helpers interface for dry run mode.
+ */
 export type DryRunModeTestHelpers = {
     logger: {
         log(this: void, message: string): void;
@@ -10,39 +13,64 @@ export type DryRunModeTestHelpers = {
     };
 };
 
-type DryRunModeRunnerConfig = TransportRunnerConfig & DryRunModeTestHelpers;
-
-export class DryRunModeRunner extends TransportRunnerBase {
-    private server: Server | undefined;
+/**
+ * Transport runner for dry-run mode.
+ * Dumps configuration and enabled tools, then exits without starting the server.
+ *
+ * To customize server creation, extend this class and override the `createServer()` method:
+ *
+ * @example
+ * ```typescript
+ * class MyDryRunRunner extends DryRunModeRunner {
+ *   protected override async createServer({ serverOptions, sessionOptions }) {
+ *     return new MyServer({ ... });
+ *   }
+ * }
+ *
+ * const runner = new MyDryRunRunner({ loggers, metrics, consoleLogger });
+ * ```
+ */
+export class DryRunModeRunner<
+    TServer extends {
+        tools: { name: string; category: string; isEnabled(): boolean }[];
+        connect(transport: InMemoryTransport): Promise<void>;
+        close(): Promise<void>;
+    } = {
+        tools: { name: string; category: string; isEnabled(): boolean }[];
+        connect(transport: InMemoryTransport): Promise<void>;
+        close(): Promise<void>;
+    },
+    TContext = unknown,
+    TMetrics extends MetricDefinitions = MetricDefinitions,
+> extends TransportRunnerBase<TServer, TContext, TMetrics> {
+    private server: TServer | undefined;
     private consoleLogger: DryRunModeTestHelpers["logger"];
 
-    constructor({ logger, ...transportRunnerConfig }: DryRunModeRunnerConfig) {
-        super(transportRunnerConfig);
-        this.consoleLogger = logger;
+    constructor({ loggers, metrics, consoleLogger }: DryRunModeRunnerOptions<TMetrics>) {
+        super({ loggers, metrics });
+        this.consoleLogger = consoleLogger;
     }
 
     override async start({
         serverOptions,
         sessionOptions,
     }: {
-        serverOptions?: CustomizableServerOptions;
+        serverOptions?: CustomizableServerOptions<TContext>;
         sessionOptions?: CustomizableSessionOptions;
     } = {}): Promise<void> {
         this.server = await this.createServer({ serverOptions, sessionOptions });
         const transport = new InMemoryTransport();
 
         await this.server.connect(transport);
-        this.dumpConfig();
         this.dumpTools();
     }
 
-    override async closeTransport(): Promise<void> {
+    /**
+     * Stops the dry run mode runner.
+     * This closes the server connection.
+     */
+    override async stop(): Promise<void> {
         await this.server?.close();
-    }
-
-    private dumpConfig(): void {
-        this.consoleLogger.log("Configuration:");
-        this.consoleLogger.log(JSON.stringify(this.userConfig, null, 2));
     }
 
     private dumpTools(): void {
@@ -56,4 +84,15 @@ export class DryRunModeRunner extends TransportRunnerBase {
         this.consoleLogger.log("Enabled tools:");
         this.consoleLogger.log(JSON.stringify(tools, null, 2));
     }
+
+    /**
+     * Creates the server instance. Must be implemented by subclasses.
+     */
+    protected abstract createServer({
+        serverOptions,
+        sessionOptions,
+    }: {
+        serverOptions?: CustomizableServerOptions<TContext>;
+        sessionOptions?: CustomizableSessionOptions;
+    }): Promise<TServer>;
 }
