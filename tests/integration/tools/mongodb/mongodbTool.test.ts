@@ -3,7 +3,7 @@ import { type CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { MongoDBToolBase } from "@mongodb-js/mcp-tools-mongodb";
-import { type OperationType, type ToolClass } from "../../../../src/tools/tool.js";
+import { type OperationType } from "../../../../src/tools/tool.js";
 import { type UserConfig } from "../../../../src/common/config/userConfig.js";
 import { MCPConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
 import { Session } from "../../../../src/common/session.js";
@@ -11,7 +11,7 @@ import { CompositeLogger } from "@mongodb-js/mcp-core";
 import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { InMemoryTransport } from "../../../../src/transports/inMemoryTransport.js";
-import { Server } from "../../../../src/server.js";
+import { Server, type AnyToolClass } from "../../../../src/server.js";
 import { type ConnectionErrorHandler, connectionErrorHandler } from "../../../../src/common/connectionErrorHandler.js";
 import { defaultTestConfig, expectDefined } from "../../helpers.js";
 import { setupMongoDBIntegrationTest } from "./mongodbHelpers.js";
@@ -90,7 +90,7 @@ describe("MongoDBTool implementations", () => {
 
     async function cleanupAndStartServer(
         config: Partial<UserConfig> | undefined = {},
-        toolConstructors: ToolClass[] = [...Object.values(MongoDBTools), RandomTool],
+        toolConstructors: AnyToolClass[] = [...Object.values(MongoDBTools), RandomTool],
         errorHandler: ConnectionErrorHandler | undefined = connectionErrorHandler
     ): Promise<void> {
         await cleanup();

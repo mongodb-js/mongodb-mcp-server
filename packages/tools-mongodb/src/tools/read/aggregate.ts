@@ -129,7 +129,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                 successMessage = "The aggregation pipeline executed successfully.";
             } else {
                 const cappedResultsPipeline: Document[] = [...pipeline];
-                if ((this.config.maxDocumentsPerQuery ?? 0) > 0) {
+                if (this.config.maxDocumentsPerQuery > 0) {
                     cappedResultsPipeline.push({ $limit: this.config.maxDocumentsPerQuery });
                 }
                 aggregationCursor = provider.aggregate(database, collection, cappedResultsPipeline, {
@@ -157,9 +157,9 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                 // maxDocumentsPerQuery then we know for sure that the results were
                 // capped.
                 const aggregationResultsCappedByMaxDocumentsLimit =
-                    (this.config.maxDocumentsPerQuery ?? 0) > 0 &&
+                    this.config.maxDocumentsPerQuery > 0 &&
                     !!totalDocuments &&
-                    totalDocuments > (this.config.maxDocumentsPerQuery || 0);
+                    totalDocuments > this.config.maxDocumentsPerQuery;
 
                 documents = cursorResults.documents;
                 successMessage = this.generateMessage({

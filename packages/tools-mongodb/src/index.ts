@@ -77,4 +77,6 @@ export * from "./tools/tools.js";
 
 import * as tools from "./tools/tools.js";
 import type { ToolClass } from "@mongodb-js/mcp-core";
-export const MongoDBTools: ToolClass[] = Object.values(tools);
+import type { IMongoDBConfig } from "./mongodbTool.js";
+
+export const MongoDBTools: ToolClass<IMongoDBConfig>[] = Object.values(tools);

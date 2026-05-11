@@ -163,12 +163,9 @@ Returning ${documents.length} documents${appliedLimitsText ? ` ${appliedLimitsTe
         cappedBy: "config.maxDocumentsPerQuery" | undefined;
         limit: number | undefined;
     } {
-        const configuredLimit: number = parseInt(String(this.config.maxDocumentsPerQuery), 10);
+        const configuredLimit = this.config.maxDocumentsPerQuery;
 
-        // Setting configured maxDocumentsPerQuery to negative, zero or nullish
-        // is equivalent to disabling the max limit applied on documents
-        const configuredLimitIsNotApplicable = Number.isNaN(configuredLimit) || configuredLimit <= 0;
-        if (configuredLimitIsNotApplicable) {
+        if (!Number.isFinite(configuredLimit) || configuredLimit <= 0) {
             return { cappedBy: undefined, limit: providedLimit ?? undefined };
         }
 

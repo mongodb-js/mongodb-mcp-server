@@ -3,6 +3,7 @@ import { type CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
 import { MongoDBToolBase } from "../../mongodbTool.js";
 import { type ToolArgs, type OperationType, type ToolConstructorParams } from "@mongodb-js/mcp-core";
+import type { IMongoDBConfig } from "../../mongodbTool.js";
 import type { McpServer } from "@mongodb-js/mcp-core";
 
 export class SwitchConnectionTool extends MongoDBToolBase {
@@ -21,7 +22,7 @@ export class SwitchConnectionTool extends MongoDBToolBase {
 
     static operationType: OperationType = "connect";
 
-    constructor(params: ToolConstructorParams) {
+    constructor(params: ToolConstructorParams<IMongoDBConfig>) {
         super(params);
         this.session.on("connect", () => {
             this.enable();

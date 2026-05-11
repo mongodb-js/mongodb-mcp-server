@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ToolArgs, ToolCategory } from "@mongodb-js/mcp-core";
+import type { ToolArgs, ToolCategory, ToolConstructorParams } from "@mongodb-js/mcp-core";
 import { ToolBase } from "@mongodb-js/mcp-core";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
@@ -7,14 +7,15 @@ import { ErrorCodes, MongoDBError } from "./common/errors.js";
 import { LogId } from "@mongodb-js/mcp-logging";
 import type { ConnectionMetadata, IToolConfig, IToolSession } from "@mongodb-js/mcp-types";
 
-export interface IMongoDBConfig extends IToolConfig {
-    connectionString?: string;
-    indexCheck?: boolean;
-    maxTimeMS?: number;
-    maxDocumentsPerQuery?: number;
-    maxBytesPerQuery?: number;
-    httpHost?: string;
-}
+/** MongoDB tool subset of server config; Mongo-specific keys are always present (use `undefined` where unset). */
+export type IMongoDBConfig = IToolConfig & {
+    connectionString: string | undefined;
+    indexCheck: boolean;
+    maxTimeMS: number | undefined;
+    maxDocumentsPerQuery: number;
+    maxBytesPerQuery: number;
+    httpHost: string;
+};
 
 export interface IMongoDBSession extends IToolSession {
     isConnectedToMongoDB: boolean;
@@ -43,8 +44,13 @@ export const CollOperationArgs = {
 };
 
 export abstract class MongoDBToolBase extends ToolBase<IMongoDBConfig> {
+    declare protected readonly config: IMongoDBConfig;
     declare protected readonly session: IMongoDBSession;
     static category: ToolCategory = "mongodb";
+
+    constructor(params: ToolConstructorParams<IMongoDBConfig>) {
+        super(params);
+    }
 
     protected async ensureConnected(): Promise<NodeDriverServiceProvider> {
         if (!this.session.isConnectedToMongoDB) {

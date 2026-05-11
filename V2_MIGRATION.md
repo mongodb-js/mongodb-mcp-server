@@ -138,7 +138,7 @@ The following are now exported from `@mongodb-js/mcp-tools-mongodb`:
 #### Base classes and types
 
 - `MongoDBToolBase` - Base class for all MongoDB tools
-- `IMongoDBConfig` - Configuration interface for MongoDB tools
+- `IMongoDBConfig` - Configuration type for MongoDB tools (see below)
 - `IMongoDBSession` - Session interface for MongoDB operations
 - `ConnectionErrorOutcome` - Type for connection error handling
 
@@ -190,7 +190,19 @@ The following are now exported from `@mongodb-js/mcp-tools-mongodb`:
 
 #### Tools array
 
-- `MongoDBTools` - Array of all MongoDB tool classes
+- `MongoDBTools` - Array of all MongoDB tool classes (`ToolClass<IMongoDBConfig>[]`)
+
+### `IMongoDBConfig` and `MongoDBToolBase`
+
+`IMongoDBConfig` is a **type** (not a separate runtime value) that intersects `IToolConfig` with MongoDB-specific fields. Those Mongo fields are **required keys on the type**: `connectionString`, `indexCheck`, `maxTimeMS`, `maxDocumentsPerQuery`, `maxBytesPerQuery`, and `httpHost`.
+
+For settings that may be unset at runtime, `connectionString` and `maxTimeMS` are typed as `string | undefined` and `number | undefined` respectively—the properties must still exist on the object; use `undefined` when there is no value.
+
+`MongoDBToolBase` **does not** fill in defaults in its constructor anymore (for example, it no longer applies `maxDocumentsPerQuery ?? 100`). Callers must pass a config object that already satisfies `IMongoDBConfig`, typically by using parsed server configuration (for example `UserConfigSchema.parse(...)`) where schema defaults supply fields such as `maxDocumentsPerQuery`.
+
+Built-in MongoDB tool constructors expect `ToolConstructorParams<IMongoDBConfig>`. The exported `MongoDBTools` array is typed as `ToolClass<IMongoDBConfig>[]`, not `ToolClass[]`.
+
+If you combine MongoDB tools with other tools behind a parameter typed as `ToolClass` (the default generic uses `IToolConfig`), TypeScript may reject the mixed array because MongoDB tool constructors require the narrower config. In that situation, widen the type—for example `AnyToolClass[]` from `mongodb-mcp-server` (exported alongside `Server`; equivalent to `ToolClass<any, any, any>[]`)—or keep MongoDB-only lists typed as `ToolClass<IMongoDBConfig>[]`.
 
 ### Import changes for test files
 
