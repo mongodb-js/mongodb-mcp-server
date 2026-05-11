@@ -94,13 +94,17 @@ export class AccuracyTestingClient {
 
         const args = [MCP_SERVER_CLI_SCRIPT, mdbConnectionString, ...additionalArgs];
 
+        // Strip MDB_MCP_* env vars so the local MCP config (e.g.
+        // readOnly, disabledTools) doesn't bleed into the test server process.
+        const env = Object.fromEntries(
+            Object.entries(process.env).filter(([key]) => !key.startsWith("MDB_MCP_"))
+        ) as Record<string, string>;
+        env.DO_NOT_TRACK = "1";
+
         const clientTransport = new StdioClientTransport({
             command: process.execPath,
             args,
-            env: {
-                ...process.env,
-                DO_NOT_TRACK: "1",
-            },
+            env,
         });
 
         const client = await createMCPClient({

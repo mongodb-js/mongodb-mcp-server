@@ -18,8 +18,7 @@ jobs:
       pull-requests: write
     if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'accuracy-tests')
     env:
-      MDB_OPEN_AI_API_KEY: ${{ secrets.ACCURACY_OPEN_AI_API_KEY }}
-      MDB_GEMINI_API_KEY: ${{ secrets.ACCURACY_GEMINI_API_KEY }}
+      MDB_GROVE_API_KEY: ${{ secrets.ACCURACY_GROVE_API_KEY }}
       MDB_AZURE_OPEN_AI_API_KEY: ${{ secrets.ACCURACY_AZURE_OPEN_AI_API_KEY }}
       MDB_AZURE_OPEN_AI_API_URL: ${{ vars.ACCURACY_AZURE_OPEN_AI_API_URL_V2 }}
       MDB_ACCURACY_MDB_URL: ${{ secrets.ACCURACY_MDB_CONNECTION_STRING }}

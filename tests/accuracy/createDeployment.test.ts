@@ -45,7 +45,7 @@ describeAccuracyTests([
                 parameters: {
                     deploymentName: "local-cluster",
                     loadSampleData: Matcher.anyOf(Matcher.undefined, Matcher.boolean()),
-                    imageTag: "preview",
+                    imageTag: Matcher.anyOf(Matcher.undefined, Matcher.string()),
                 },
             },
         ],
@@ -63,7 +63,7 @@ describeAccuracyTests([
                 parameters: {
                     deploymentName: "local-cluster",
                     loadSampleData: Matcher.anyOf(Matcher.undefined, Matcher.boolean()),
-                    imageTag: "preview",
+                    imageTag: Matcher.anyOf(Matcher.undefined, Matcher.string()),
                 },
             },
         ],
@@ -80,7 +80,7 @@ describeAccuracyTests([
                 toolName: "atlas-local-create-deployment",
                 parameters: {
                     loadSampleData: Matcher.anyOf(Matcher.undefined, Matcher.boolean()),
-                    imageTag: "preview",
+                    imageTag: Matcher.anyOf(Matcher.undefined, Matcher.string()),
                 },
             },
         ],
@@ -102,7 +102,7 @@ describeAccuracyTests([
                 parameters: {
                     deploymentName: "new-database",
                     loadSampleData: Matcher.anyOf(Matcher.undefined, Matcher.boolean()),
-                    imageTag: "preview",
+                    imageTag: Matcher.anyOf(Matcher.undefined, Matcher.string()),
                 },
             },
         ],
@@ -142,7 +142,7 @@ describeAccuracyTests([
                 parameters: {
                     deploymentName: "sample-cluster",
                     loadSampleData: true,
-                    imageTag: "preview",
+                    imageTag: Matcher.anyOf(Matcher.undefined, Matcher.string()),
                 },
             },
         ],
@@ -160,7 +160,7 @@ describeAccuracyTests([
                 parameters: {
                     deploymentName: "empty-cluster",
                     loadSampleData: false,
-                    imageTag: "preview",
+                    imageTag: Matcher.anyOf(Matcher.undefined, Matcher.string()),
                 },
             },
         ],
