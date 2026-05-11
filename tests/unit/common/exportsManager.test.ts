@@ -4,7 +4,7 @@ import { Readable, Transform } from "stream";
 import type { FindCursor } from "mongodb";
 import { Long } from "mongodb";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ExportsManagerConfig } from "@mongodb-js/mcp-tools-mongodb";
+import type { ExportsManagerOptions } from "@mongodb-js/mcp-tools-mongodb";
 import { ensureExtension, isExportExpired, ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import type { AvailableExport } from "@mongodb-js/mcp-tools-mongodb";
 import { ROOT_DIR } from "../../accuracy/sdk/constants.js";
@@ -15,7 +15,7 @@ import { CompositeLogger } from "@mongodb-js/mcp-core";
 
 const logger = new CompositeLogger();
 const exportsPath = path.join(ROOT_DIR, "tests", "tmp", `exports-${Date.now()}`);
-const exportsManagerConfig: ExportsManagerConfig = {
+const exportsManagerConfig: Omit<ExportsManagerOptions, "exportsDirectoryPath"> = {
     exportsPath,
     exportTimeoutMs: defaultTestConfig.exportTimeoutMs,
     exportCleanupIntervalMs: defaultTestConfig.exportCleanupIntervalMs,

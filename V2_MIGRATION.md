@@ -147,7 +147,7 @@ The following are now exported from `@mongodb-js/mcp-tools-mongodb`:
 - `ConnectionManager`, `MCPConnectionManager`
 - `ConnectionStateConnected`, `ConnectionSettings`, `AnyConnectionState`
 - `ConnectionManagerEvents`, `ConnectionStateConnecting`, `ConnectionStateDisconnected`
-- `ConnectionStateErrored`, `ConnectionManagerFactoryFn`, `defaultCreateConnectionManager`
+- `ConnectionStateErrored`, `ConnectionManagerFactoryFn`
 - `IDeviceId`, `IPackageInfo`, `IUserConfig`
 
 #### Connection utilities

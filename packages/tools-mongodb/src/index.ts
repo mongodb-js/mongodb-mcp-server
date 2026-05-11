@@ -19,7 +19,7 @@ export type {
     ConnectionTag,
     OIDCConnectionAuthType,
 } from "./common/connectionManager.js";
-export { defaultCreateConnectionManager, MCPConnectionManager, ConnectionManager } from "./common/connectionManager.js";
+export { MCPConnectionManager, ConnectionManager } from "./common/connectionManager.js";
 export type {
     ConnectionStringInfo,
     ConnectionStringAuthType,
@@ -40,7 +40,7 @@ export {
     ExportsManager,
     type JSONExportFormat,
     type AvailableExport,
-    type ExportsManagerConfig,
+    type ExportsManagerOptions,
     type StoredExport,
     type ExportsManagerEvents,
     type ReadyExport,

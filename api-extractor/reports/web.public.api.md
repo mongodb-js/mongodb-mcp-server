@@ -45,8 +45,8 @@ import { EventCache } from '@mongodb-js/mcp-atlas-telemetry';
 import EventEmitter from 'events';
 import { EventMap } from '@mongodb-js/mcp-core';
 import { ExportsManager } from '@mongodb-js/mcp-tools-mongodb';
-import { ExportsManagerConfig } from '@mongodb-js/mcp-tools-mongodb';
 import { ExportsManagerEvents } from '@mongodb-js/mcp-tools-mongodb';
+import { ExportsManagerOptions } from '@mongodb-js/mcp-tools-mongodb';
 import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
 import { InProgressExport } from '@mongodb-js/mcp-tools-mongodb';
 import { JSONExportFormat } from '@mongodb-js/mcp-tools-mongodb';
@@ -256,9 +256,9 @@ export { EventMap }
 
 export { ExportsManager }
 
-export { ExportsManagerConfig }
-
 export { ExportsManagerEvents }
+
+export { ExportsManagerOptions }
 
 // @public
 export function getRandomUUID(): string;

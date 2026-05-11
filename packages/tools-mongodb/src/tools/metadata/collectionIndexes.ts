@@ -48,7 +48,7 @@ export class CollectionIndexesTool extends MongoDBToolBase {
         }));
 
         const searchIndexes: SearchIndexStatus[] = [];
-        if (this.session.isSearchSupported ? await this.session.isSearchSupported() : false) {
+        if (await this.session.isSearchSupported()) {
             const searchIndexDefinitions = await provider.getSearchIndexes(database, collection);
             searchIndexes.push(...this.extractSearchIndexDetails(searchIndexDefinitions));
         }

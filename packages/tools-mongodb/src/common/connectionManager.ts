@@ -52,15 +52,19 @@ export const defaultDriverOptions: ConnectionInfo["driverOptions"] = {
 export class ConnectionStateConnected implements ConnectionState {
     public tag = "connected" as const;
 
-    declare serviceProvider: NodeDriverServiceProvider;
-    declare connectionStringInfo?: ConnectionStringInfo;
-    declare connectedAtlasCluster?: AtlasClusterConnectionInfo;
+    public serviceProvider: NodeDriverServiceProvider;
+    public connectionStringInfo?: ConnectionStringInfo;
+    public connectedAtlasCluster?: AtlasClusterConnectionInfo;
 
-    constructor(
-        serviceProvider: NodeDriverServiceProvider,
-        connectionStringInfo?: ConnectionStringInfo,
-        connectedAtlasCluster?: AtlasClusterConnectionInfo
-    ) {
+    constructor({
+        serviceProvider,
+        connectionStringInfo,
+        connectedAtlasCluster,
+    }: {
+        serviceProvider: NodeDriverServiceProvider;
+        connectionStringInfo?: ConnectionStringInfo;
+        connectedAtlasCluster?: AtlasClusterConnectionInfo;
+    }) {
         this.serviceProvider = serviceProvider;
         this.connectionStringInfo = connectionStringInfo;
         this.connectedAtlasCluster = connectedAtlasCluster;
@@ -343,7 +347,11 @@ export class MCPConnectionManager extends ConnectionManager {
 
             return this.changeState(
                 "connection-success",
-                new ConnectionStateConnected(await serviceProvider, connectionStringInfo, settings.atlas)
+                new ConnectionStateConnected({
+                    serviceProvider: await serviceProvider,
+                    connectionStringInfo,
+                    connectedAtlasCluster: settings.atlas,
+                })
             );
         } catch (error: unknown) {
             const errorReason = error instanceof Error ? error.message : `${error as string}`;
@@ -412,11 +420,11 @@ export class MCPConnectionManager extends ConnectionManager {
         ) {
             this.changeState(
                 "connection-success",
-                new ConnectionStateConnected(
-                    await this.currentConnectionState.serviceProvider,
-                    this.currentConnectionState.connectionStringInfo,
-                    this.currentConnectionState.connectedAtlasCluster
-                )
+                new ConnectionStateConnected({
+                    serviceProvider: await this.currentConnectionState.serviceProvider,
+                    connectionStringInfo: this.currentConnectionState.connectionStringInfo,
+                    connectedAtlasCluster: this.currentConnectionState.connectedAtlasCluster,
+                })
             );
         }
 
@@ -478,7 +486,3 @@ export type ConnectionManagerFactoryOptions = {
 };
 
 export type ConnectionManagerFactoryFn = (params: ConnectionManagerFactoryOptions) => Promise<ConnectionManager>;
-
-export const defaultCreateConnectionManager: ConnectionManagerFactoryFn = ({ logger, deviceId, options }) => {
-    return Promise.resolve(new MCPConnectionManager({ options, logger, deviceId }));
-};

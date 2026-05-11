@@ -69,7 +69,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
         try {
             const provider = await this.ensureConnected();
             await this.assertOnlyUsesPermittedStages(pipeline);
-            if (this.session.isSearchSupported && (await this.session.isSearchSupported())) {
+            if (await this.session.isSearchSupported()) {
                 assertVectorSearchFilterFieldsAreIndexed({
                     searchIndexes: (await provider.getSearchIndexes(database, collection)) as SearchIndex[],
                     pipeline,
@@ -199,7 +199,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
 
     private async assertOnlyUsesPermittedStages(pipeline: Record<string, unknown>[]): Promise<void> {
         const writeOperations: OperationType[] = ["update", "create", "delete"];
-        const isSearchSupported = this.session.isSearchSupported ? await this.session.isSearchSupported() : false;
+        const isSearchSupported = await this.session.isSearchSupported();
 
         let writeStageForbiddenError = "";
 
@@ -294,7 +294,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
             return ["not-vector-search-query"];
         }
 
-        const isSearchSupported = this.session.isSearchSupported ? await this.session.isSearchSupported() : false;
+        const isSearchSupported = await this.session.isSearchSupported();
         let indexExists = false;
         if (isSearchSupported) {
             const provider = await this.ensureConnected();

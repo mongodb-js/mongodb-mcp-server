@@ -17,11 +17,6 @@ export function parseArgsWithCliOptions(cliArguments: string[]): {
     });
 }
 
-import { defaultCreateConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
-/** @deprecated Use `defaultCreateConnectionManager` instead. */
-const createMCPConnectionManager = defaultCreateConnectionManager;
-export { createMCPConnectionManager, defaultCreateConnectionManager };
-
 export { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 
 export {
@@ -61,6 +56,7 @@ export {
 } from "./transports/base.js";
 export {
     ConnectionManager,
+    MCPConnectionManager,
     type ConnectionStateConnected,
     type AnyConnectionState,
     type ConnectionState,

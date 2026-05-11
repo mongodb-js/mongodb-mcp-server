@@ -54,7 +54,7 @@ export type { ConnectionManager, ConnectionStateConnected } from "@mongodb-js/mc
 export {
     ExportsManager,
     type AvailableExport,
-    type ExportsManagerConfig,
+    type ExportsManagerOptions,
     type JSONExportFormat,
     type StoredExport,
     type ExportsManagerEvents,

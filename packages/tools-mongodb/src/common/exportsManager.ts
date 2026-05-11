@@ -12,12 +12,13 @@ import { type LoggerBase } from "@mongodb-js/mcp-core";
 import { LogId } from "@mongodb-js/mcp-logging";
 import type { MongoLogId } from "@mongodb-js/mcp-types";
 
-/** Fields ExportsManager needs from server or custom config (no full UserConfig required). */
-export interface ExportsManagerConfig {
+/** Options for `ExportsManager`, including the resolved per-session export directory. */
+export type ExportsManagerOptions = {
     exportsPath: string;
+    exportsDirectoryPath: string;
     exportTimeoutMs: number;
     exportCleanupIntervalMs: number;
-}
+};
 
 export const jsonExportFormat = z.enum(["relaxed", "canonical"]);
 export type JSONExportFormat = z.infer<typeof jsonExportFormat>;
@@ -70,25 +71,17 @@ export type ExportsManagerEvents = {
     "export-available": [string];
 };
 
-export type ExportsManagerConstructorOptions = {
-    exportsDirectoryPath: string;
-    options: ExportsManagerConfig;
-    logger: LoggerBase;
-};
-
 export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
     private storedExports: Record<StoredExport["exportName"], StoredExport> = {};
     private exportsCleanupInProgress: boolean = false;
     private exportsCleanupInterval?: NodeJS.Timeout;
     private readonly shutdownController: AbortController = new AbortController();
 
-    private readonly exportsDirectoryPath: string;
-    private readonly options: ExportsManagerConfig;
+    private readonly options: ExportsManagerOptions;
     private readonly logger: LoggerBase;
 
-    private constructor({ exportsDirectoryPath, options, logger }: ExportsManagerConstructorOptions) {
+    private constructor({ options, logger }: { options: ExportsManagerOptions; logger: LoggerBase }) {
         super();
-        this.exportsDirectoryPath = exportsDirectoryPath;
         this.options = options;
         this.logger = logger;
     }
@@ -126,7 +119,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
         try {
             clearInterval(this.exportsCleanupInterval);
             this.shutdownController.abort();
-            await fs.rm(this.exportsDirectoryPath, { force: true, recursive: true });
+            await fs.rm(this.options.exportsDirectoryPath, { force: true, recursive: true });
             this.emit("closed");
         } catch (error) {
             this.logger.error({
@@ -186,7 +179,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
                 );
             }
             const exportURI = `exported-data://${encodeURIComponent(exportNameWithExtension)}`;
-            const exportFilePath = path.join(this.exportsDirectoryPath, exportNameWithExtension);
+            const exportFilePath = path.join(this.options.exportsDirectoryPath, exportNameWithExtension);
             const inProgressExport: InProgressExport = (this.storedExports[exportNameWithExtension] = {
                 exportName: exportNameWithExtension,
                 exportTitle,
@@ -220,7 +213,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
             let pipeSuccessful = false;
             let docsTransformed = 0;
             try {
-                await fs.mkdir(this.exportsDirectoryPath, { recursive: true });
+                await fs.mkdir(this.options.exportsDirectoryPath, { recursive: true });
                 const outputStream = createWriteStream(inProgressExport.exportPath);
                 const ejsonTransform = this.docToEJSONStream(this.getEJSONOptionsForFormat(jsonExportFormat));
                 await pipeline([input.stream(), ejsonTransform, outputStream], {
@@ -377,12 +370,15 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
         logger,
         sessionId = new ObjectId().toString(),
     }: {
-        options: ExportsManagerConfig;
+        options: Omit<ExportsManagerOptions, "exportsDirectoryPath">;
         logger: LoggerBase;
         sessionId?: string;
     }): ExportsManager {
-        const exportsDirectoryPath = path.join(options.exportsPath, sessionId);
-        const exportsManager = new ExportsManager({ exportsDirectoryPath, options, logger });
+        const exportsManagerOptions: ExportsManagerOptions = {
+            ...options,
+            exportsDirectoryPath: path.join(options.exportsPath, sessionId),
+        };
+        const exportsManager = new ExportsManager({ options: exportsManagerOptions, logger });
         exportsManager.init();
         return exportsManager;
     }

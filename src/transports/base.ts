@@ -8,7 +8,11 @@ import { McpLogger } from "@mongodb-js/mcp-logging";
 import { Keychain } from "@mongodb-js/mcp-core";
 import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
-import { defaultCreateConnectionManager, type ConnectionManagerFactoryFn } from "@mongodb-js/mcp-tools-mongodb";
+import {
+    MCPConnectionManager,
+    type ConnectionManager,
+    type ConnectionManagerFactoryFn,
+} from "@mongodb-js/mcp-tools-mongodb";
 import {
     type ConnectionErrorHandler,
     connectionErrorHandler as defaultConnectionErrorHandler,
@@ -220,7 +224,8 @@ export abstract class TransportRunnerBase<
 
     protected constructor({
         userConfig,
-        createConnectionManager = defaultCreateConnectionManager,
+        createConnectionManager = (params): Promise<ConnectionManager> =>
+            Promise.resolve(new MCPConnectionManager(params)),
         connectionErrorHandler = defaultConnectionErrorHandler,
         createAtlasLocalClient: createAtlasLocalClientFn = createAtlasLocalClient,
         loggers,
