@@ -272,11 +272,11 @@ export abstract class TransportRunnerBase<
             }
         );
 
-        const exportsManager = ExportsManager.init(userConfig, logger);
+        const exportsManager = ExportsManager.init({ options: userConfig, logger });
 
         const connectionManager =
             sessionOptions?.connectionManager ??
-            (await this.createConnectionManager({ logger: logger, deviceId: this.deviceId, userConfig }));
+            (await this.createConnectionManager({ logger: logger, deviceId: this.deviceId, options: userConfig }));
 
         const { apiClientId, apiClientSecret } = userConfig;
         const apiClientOptions: ApiClientOptions = {
@@ -386,7 +386,7 @@ export abstract class TransportRunnerBase<
                 connectionManager: await this.createConnectionManager({
                     logger: this.logger,
                     deviceId: this.deviceId,
-                    userConfig,
+                    options: userConfig,
                 }),
                 atlasLocalClient: await this.createAtlasLocalClient({ logger: this.logger }),
                 apiClient:

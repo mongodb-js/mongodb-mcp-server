@@ -8,10 +8,16 @@ import type { EJSONOptions } from "bson";
 import { EJSON, ObjectId } from "bson";
 import { Transform } from "stream";
 import { pipeline } from "stream/promises";
-import type { UserConfig } from "./config/userConfig.js";
 import { type LoggerBase } from "@mongodb-js/mcp-core";
 import { LogId } from "@mongodb-js/mcp-logging";
 import type { MongoLogId } from "@mongodb-js/mcp-types";
+
+/** Fields ExportsManager needs from server or custom config (no full UserConfig required). */
+export interface ExportsManagerConfig {
+    exportsPath: string;
+    exportTimeoutMs: number;
+    exportCleanupIntervalMs: number;
+}
 
 export const jsonExportFormat = z.enum(["relaxed", "canonical"]);
 export type JSONExportFormat = z.infer<typeof jsonExportFormat>;
@@ -58,12 +64,16 @@ export type StoredExport = ReadyExport | InProgressExport;
  * JIRA: https://jira.mongodb.org/browse/MCP-104 */
 export type AvailableExport = Pick<StoredExport, "exportName" | "exportTitle" | "exportURI" | "exportPath">;
 
-export type ExportsManagerConfig = Pick<UserConfig, "exportsPath" | "exportTimeoutMs" | "exportCleanupIntervalMs">;
-
 export type ExportsManagerEvents = {
     closed: [];
     "export-expired": [string];
     "export-available": [string];
+};
+
+export type ExportsManagerConstructorOptions = {
+    exportsDirectoryPath: string;
+    options: ExportsManagerConfig;
+    logger: LoggerBase;
 };
 
 export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
@@ -73,13 +83,13 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
     private readonly shutdownController: AbortController = new AbortController();
 
     private readonly exportsDirectoryPath: string;
-    private readonly config: ExportsManagerConfig;
+    private readonly options: ExportsManagerConfig;
     private readonly logger: LoggerBase;
 
-    private constructor(exportsDirectoryPath: string, config: ExportsManagerConfig, logger: LoggerBase) {
+    private constructor({ exportsDirectoryPath, options, logger }: ExportsManagerConstructorOptions) {
         super();
         this.exportsDirectoryPath = exportsDirectoryPath;
-        this.config = config;
+        this.options = options;
         this.logger = logger;
     }
 
@@ -89,7 +99,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
             .filter((storedExport) => {
                 return (
                     storedExport.exportStatus === "ready" &&
-                    !isExportExpired(storedExport.exportCreatedAt, this.config.exportTimeoutMs)
+                    !isExportExpired(storedExport.exportCreatedAt, this.options.exportTimeoutMs)
                 );
             })
             .map(({ exportName, exportTitle, exportURI, exportPath }) => ({
@@ -104,7 +114,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
         if (!this.exportsCleanupInterval) {
             this.exportsCleanupInterval = setInterval(
                 () => void this.cleanupExpiredExports(),
-                this.config.exportCleanupIntervalMs
+                this.options.exportCleanupIntervalMs
             );
         }
     }
@@ -308,7 +318,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
             for (const expiredExport of Object.values(this.storedExports)) {
                 if (
                     expiredExport.exportStatus === "ready" &&
-                    isExportExpired(expiredExport.exportCreatedAt, this.config.exportTimeoutMs)
+                    isExportExpired(expiredExport.exportCreatedAt, this.options.exportTimeoutMs)
                 ) {
                     exportsForCleanup.push(expiredExport);
                     delete this.storedExports[expiredExport.exportName];
@@ -362,13 +372,17 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
         }
     }
 
-    static init(
-        config: ExportsManagerConfig,
-        logger: LoggerBase,
-        sessionId = new ObjectId().toString()
-    ): ExportsManager {
-        const exportsDirectoryPath = path.join(config.exportsPath, sessionId);
-        const exportsManager = new ExportsManager(exportsDirectoryPath, config, logger);
+    static init({
+        options,
+        logger,
+        sessionId = new ObjectId().toString(),
+    }: {
+        options: ExportsManagerConfig;
+        logger: LoggerBase;
+        sessionId?: string;
+    }): ExportsManager {
+        const exportsDirectoryPath = path.join(options.exportsPath, sessionId);
+        const exportsManager = new ExportsManager({ exportsDirectoryPath, options, logger });
         exportsManager.init();
         return exportsManager;
     }

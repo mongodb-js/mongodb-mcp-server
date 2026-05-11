@@ -178,8 +178,8 @@ describe("Server integration test", () => {
     ): Promise<{ server: Server; transport: Transport }> => {
         const logger = new CompositeLogger({ loggers });
         const deviceId = DeviceId.create(logger);
-        const connectionManager = new MCPConnectionManager(config, logger, deviceId);
-        const exportsManager = ExportsManager.init(config, logger);
+        const connectionManager = new MCPConnectionManager({ options: config, logger, deviceId });
+        const exportsManager = ExportsManager.init({ options: config, logger });
         const session = new Session({
             userConfig: config,
             logger,

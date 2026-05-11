@@ -26,7 +26,11 @@ describe("Session", () => {
         const logger = new CompositeLogger();
 
         mockDeviceId = MockDeviceId;
-        const connectionManager = new MCPConnectionManager(defaultTestConfig, logger, mockDeviceId);
+        const connectionManager = new MCPConnectionManager({
+            options: defaultTestConfig,
+            logger,
+            deviceId: mockDeviceId,
+        });
 
         session = new Session({
             userConfig: {
@@ -35,7 +39,7 @@ describe("Session", () => {
                 apiBaseUrl: "https://api.test.com",
             },
             logger,
-            exportsManager: ExportsManager.init(defaultTestConfig, logger),
+            exportsManager: ExportsManager.init({ options: defaultTestConfig, logger: logger }),
             connectionManager: connectionManager,
             keychain: new Keychain(),
             apiClient: new ApiClient({

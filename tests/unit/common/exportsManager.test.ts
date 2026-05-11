@@ -149,7 +149,7 @@ describe("ExportsManager unit test", () => {
 
     beforeEach(async () => {
         await fs.mkdir(exportsManagerConfig.exportsPath, { recursive: true });
-        manager = ExportsManager.init(exportsManagerConfig, logger);
+        manager = ExportsManager.init({ options: exportsManagerConfig, logger });
 
         let notifyManagerClosed: () => void;
         managerClosedPromise = new Promise((resolve): void => {
@@ -516,15 +516,15 @@ describe("ExportsManager unit test", () => {
 
         it("should not clean up in-progress exports", async () => {
             const { exportName, uniqueExportsId } = getExportNameAndPath();
-            const manager = ExportsManager.init(
-                {
+            const manager = ExportsManager.init({
+                options: {
                     ...exportsManagerConfig,
                     exportTimeoutMs: 100,
                     exportCleanupIntervalMs: 50,
                 },
-                new CompositeLogger(),
-                uniqueExportsId
-            );
+                logger: new CompositeLogger(),
+                sessionId: uniqueExportsId,
+            });
             const { cursor } = createDummyFindCursorWithDelay([{ name: "Test" }], 2000);
             await manager.createJSONExport({
                 input: cursor,
@@ -544,15 +544,15 @@ describe("ExportsManager unit test", () => {
 
         it("should cleanup expired exports", async () => {
             const { exportName, exportPath, exportURI, uniqueExportsId } = getExportNameAndPath();
-            const manager = ExportsManager.init(
-                {
+            const manager = ExportsManager.init({
+                options: {
                     ...exportsManagerConfig,
                     exportTimeoutMs: 100,
                     exportCleanupIntervalMs: 50,
                 },
-                new CompositeLogger(),
-                uniqueExportsId
-            );
+                logger: new CompositeLogger(),
+                sessionId: uniqueExportsId,
+            });
             await manager.createJSONExport({
                 input: cursor,
                 exportName,

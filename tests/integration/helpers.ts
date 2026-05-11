@@ -95,10 +95,10 @@ export function setupIntegrationTest(
             }
         );
 
-        const exportsManager = ExportsManager.init(userConfig, logger);
+        const exportsManager = ExportsManager.init({ options: userConfig, logger: logger });
 
         deviceId = DeviceId.create(logger);
-        const connectionManager = new MCPConnectionManager(userConfig, logger, deviceId);
+        const connectionManager = new MCPConnectionManager({ options: userConfig, logger: logger, deviceId: deviceId });
 
         const session = new Session({
             userConfig,

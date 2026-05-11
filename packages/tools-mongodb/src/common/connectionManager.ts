@@ -3,7 +3,6 @@ import { MongoServerError } from "mongodb";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { generateConnectionInfoFromCliArgs, type ConnectionInfo } from "@mongosh/arg-parser";
 import type { DeviceId } from "../helpers/deviceId.js";
-import { type UserConfig } from "./config/userConfig.js";
 import { MongoDBError, ErrorCodes } from "./errors.js";
 import { type LoggerBase } from "@mongodb-js/mcp-core";
 import { LogId } from "@mongodb-js/mcp-logging";
@@ -13,6 +12,7 @@ import {
     getConnectionStringInfo,
     type ConnectionStringInfo,
     type AtlasClusterConnectionInfo,
+    type ConnectionInfoOptions,
 } from "./connectionInfo.js";
 
 export type { ConnectionStringInfo, ConnectionStringAuthType, AtlasClusterConnectionInfo } from "./connectionInfo.js";
@@ -237,16 +237,23 @@ export abstract class ConnectionManager {
     abstract close(): Promise<void>;
 }
 
+export interface MCPConnectionManagerOptions {
+    options: ConnectionInfoOptions;
+    logger: LoggerBase;
+    deviceId: DeviceId;
+    bus?: EventEmitter;
+}
+
 export class MCPConnectionManager extends ConnectionManager {
     private deviceId: DeviceId;
     private bus: EventEmitter;
 
-    private userConfig: UserConfig;
+    private options: ConnectionInfoOptions;
     private logger: LoggerBase;
 
-    constructor(userConfig: UserConfig, logger: LoggerBase, deviceId: DeviceId, bus?: EventEmitter) {
+    constructor({ options, logger, deviceId, bus }: MCPConnectionManagerOptions) {
         super();
-        this.userConfig = userConfig;
+        this.options = options;
         this.logger = logger;
         this.bus = bus ?? new EventEmitter();
         this.bus.on("mongodb-oidc-plugin:auth-failed", this.onOidcAuthFailed.bind(this));
@@ -298,7 +305,7 @@ export class MCPConnectionManager extends ConnectionManager {
 
             connectionStringInfo = getConnectionStringInfo(
                 connectionInfo.connectionString,
-                this.userConfig,
+                this.options,
                 settings.atlas
             );
 
@@ -464,12 +471,14 @@ export class MCPConnectionManager extends ConnectionManager {
  * management if they need to. To support that, we enable injecting connection
  * manager implementation through a factory function.
  */
-export type ConnectionManagerFactoryFn = (createParams: {
+export type ConnectionManagerFactoryOptions = {
     logger: LoggerBase;
     deviceId: DeviceId;
-    userConfig: UserConfig;
-}) => Promise<ConnectionManager>;
+    options: ConnectionInfoOptions;
+};
 
-export const defaultCreateConnectionManager: ConnectionManagerFactoryFn = ({ logger, deviceId, userConfig }) => {
-    return Promise.resolve(new MCPConnectionManager(userConfig, logger, deviceId));
+export type ConnectionManagerFactoryFn = (params: ConnectionManagerFactoryOptions) => Promise<ConnectionManager>;
+
+export const defaultCreateConnectionManager: ConnectionManagerFactoryFn = ({ logger, deviceId, options }) => {
+    return Promise.resolve(new MCPConnectionManager({ options, logger, deviceId }));
 };

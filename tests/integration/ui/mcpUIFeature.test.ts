@@ -173,8 +173,12 @@ describe("mcpUI feature with custom UIs", () => {
         };
         const logger = new CompositeLogger();
         const deviceId = DeviceId.create(logger);
-        const connectionManager = new MCPConnectionManager(userConfig, logger, deviceId);
-        const exportsManager = ExportsManager.init(userConfig, logger);
+        const connectionManager = new MCPConnectionManager({
+            options: userConfig,
+            logger,
+            deviceId,
+        });
+        const exportsManager = ExportsManager.init({ options: userConfig, logger });
 
         const session = new Session({
             userConfig,

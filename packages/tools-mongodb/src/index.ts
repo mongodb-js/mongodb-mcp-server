@@ -14,6 +14,7 @@ export type {
     ConnectionStateErrored,
     AnyConnectionState,
     ConnectionManagerFactoryFn,
+    ConnectionManagerFactoryOptions,
     ConnectionManagerEvents,
     ConnectionTag,
     OIDCConnectionAuthType,
@@ -24,6 +25,7 @@ export type {
     ConnectionStringAuthType,
     AtlasClusterConnectionInfo,
     ConnectionStringHostType,
+    ConnectionInfoOptions,
 } from "./common/connectionInfo.js";
 export { getAuthType, getHostType, getConnectionStringInfo } from "./common/connectionInfo.js";
 export { ErrorCodes, MongoDBError } from "./common/errors.js";

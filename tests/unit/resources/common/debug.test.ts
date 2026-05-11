@@ -14,13 +14,17 @@ import { ApiClient } from "../../../../src/lib.js";
 describe("debug resource", () => {
     const logger = new CompositeLogger();
     const deviceId = DeviceId.create(logger);
-    const connectionManager = new MCPConnectionManager(defaultTestConfig, logger, deviceId);
+    const connectionManager = new MCPConnectionManager({
+        options: defaultTestConfig,
+        logger,
+        deviceId,
+    });
 
     const session = vi.mocked(
         new Session({
             userConfig: defaultTestConfig,
             logger,
-            exportsManager: ExportsManager.init(defaultTestConfig, logger),
+            exportsManager: ExportsManager.init({ options: defaultTestConfig, logger: logger }),
             connectionManager,
             keychain: new Keychain(),
             connectionErrorHandler,
