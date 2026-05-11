@@ -61,7 +61,7 @@ describe("StreamsBuildTool", () => {
             name: StreamsBuildTool.toolName,
             category: "atlas",
             operationType: StreamsBuildTool.operationType,
-            session: mockSession as unknown as ToolConstructorParams<IAtlasConfig, unknown, DefaultMetrics>["session"],
+            session: mockSession,
             config: mockConfig,
             telemetry: mockTelemetry,
             elicitation: mockElicitation as unknown as Elicitation,

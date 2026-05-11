@@ -50,7 +50,7 @@ describe("Session", () => {
             connectionErrorHandler: defaultConnectionErrorHandler,
         });
 
-        MockNodeDriverServiceProvider.connect = vi.fn().mockResolvedValue({} as unknown as NodeDriverServiceProvider);
+        MockNodeDriverServiceProvider.connect = vi.fn().mockResolvedValue({});
         MockDeviceId.get = vi.fn().mockResolvedValue("test-device-id");
     });
 
@@ -156,7 +156,7 @@ describe("Session", () => {
                 insertOne: insertOneMock,
                 dropDatabase: vi.fn().mockResolvedValue({}),
                 listDatabases: listDatabasesMock,
-            } as unknown as NodeDriverServiceProvider);
+            });
         });
 
         it("should return 'available' if listing search indexes succeed and create search indexes succeed", async () => {
@@ -204,7 +204,7 @@ describe("Session", () => {
                 initialDb: "test",
                 getSearchIndexes: getSearchIndexesMock,
                 listDatabases: vi.fn().mockResolvedValue({ databases: [] }),
-            } as unknown as NodeDriverServiceProvider);
+            });
         });
 
         it("should not throw if it is available", async () => {

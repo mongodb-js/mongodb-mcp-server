@@ -1,11 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { packageInfo } from "../../../src/common/packageInfo.js";
-import type {
-    TelemetryCommonProperties as CommonProperties,
-    TelemetryEvent,
-    TelemetryResult,
-} from "@mongodb-js/mcp-atlas-telemetry";
+import type { TelemetryCommonProperties as CommonProperties, TelemetryEvent } from "@mongodb-js/mcp-atlas-telemetry";
 import { NoopLogger } from "@mongodb-js/mcp-core";
 
 describe("ApiClient", () => {
@@ -25,7 +21,7 @@ describe("ApiClient", () => {
                 os_type: "test-os",
                 component: "test-component",
                 duration_ms: 100,
-                result: "success" as TelemetryResult,
+                result: "success",
                 category: "test-category",
             },
         },

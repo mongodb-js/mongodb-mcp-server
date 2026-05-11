@@ -9,7 +9,7 @@ import { cp, mkdir, rm, stat, writeFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import type { PackageJson as LoosePackageJson, SetRequired } from "type-fest";
 
-type PackageJson = SetRequired<LoosePackageJson, "name" | "version" | "dependencies">;
+export type PackageJson = SetRequired<LoosePackageJson, "name" | "version" | "dependencies">;
 
 function spawnAsync(cmd: string, args: string[], cwd: string): Promise<void> {
     return new Promise((resolvePromise, rejectPromise) => {
@@ -87,9 +87,13 @@ function expandGlob(globPattern: string): string[] {
     return existsSync(literal) ? [literal] : [];
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 function discoverWorkspacePackages(rootPkg: PackageJson): WorkspacePackage[] {
     // Collect names of root deps that use `workspace:*` (or any `workspace:` protocol).
-    const all = { ...(rootPkg.dependencies ?? {}), ...(rootPkg.optionalDependencies ?? {}) };
+    const deps = (rootPkg.dependencies ?? {}) as Record<string, string>;
+    const optDeps = (rootPkg.optionalDependencies ?? {}) as Record<string, string>;
+    const all = { ...deps, ...optDeps };
     const workspaceNames = new Set(
         Object.entries(all)
             .filter(([, v]) => typeof v === "string" && v.startsWith("workspace:"))
@@ -109,8 +113,11 @@ function discoverWorkspacePackages(rootPkg: PackageJson): WorkspacePackage[] {
         for (const pkgDir of expandGlob(globPattern)) {
             const pkgJsonPath = resolve(pkgDir, "package.json");
             if (!existsSync(pkgJsonPath)) continue;
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             const pkgJson = JSON.parse(readFileSync(pkgJsonPath, "utf8")) as PackageJson;
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
             if (pkgJson.name && workspaceNames.has(pkgJson.name)) {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
                 found.push({ name: pkgJson.name, dir: pkgDir });
             }
         }
@@ -154,6 +161,7 @@ export function buildStagingPackageJson(rootPkg: PackageJson): PackageJson {
 
     return {
         name: "mongodb-mcp-server-mcpb-staging",
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         version: rootPkg.version,
         private: true,
         type: "module",
@@ -162,7 +170,7 @@ export function buildStagingPackageJson(rootPkg: PackageJson): PackageJson {
         // Carry the root's pnpm.overrides into the staging package so transitive resolution
         // stays aligned with what the root install (and CI) tested against. Without this,
         // pnpm's lockfile rewrite drops the overrides during the staging install.
-        pnpm: rootPkg.pnpm ?? {},
+        pnpm: (rootPkg as { pnpm?: Record<string, unknown> }).pnpm ?? {},
     };
 }
 
@@ -194,7 +202,9 @@ async function rmIfPlatformSpecific(pkgDir: string): Promise<void> {
     const pkgJsonPath = resolve(pkgDir, "package.json");
     if (existsSync(pkgJsonPath)) {
         const pkgJson = JSON.parse(readFileSync(pkgJsonPath, "utf8")) as PackageJson;
-        if (pkgJson.cpu?.length || pkgJson.os?.length) {
+        const cpu = (pkgJson as { cpu?: string[] }).cpu;
+        const os = (pkgJson as { os?: string[] }).os;
+        if (cpu?.length || os?.length) {
             await rm(pkgDir, { recursive: true, force: true });
         }
     }
@@ -208,11 +218,13 @@ async function stageDependencies(rootPkg: PackageJson): Promise<void> {
     // package's own package.json for transitives and install them.
     for (const ws of workspacePkgs) {
         const fileSpec = pathToFileURL(ws.dir).href;
-        if (stagingPkg.dependencies && ws.name in stagingPkg.dependencies) {
-            stagingPkg.dependencies[ws.name] = fileSpec;
+        const deps = stagingPkg.dependencies as Record<string, string> | undefined;
+        const optDeps = stagingPkg.optionalDependencies as Record<string, string> | undefined;
+        if (deps && ws.name in deps) {
+            deps[ws.name] = fileSpec;
         }
-        if (stagingPkg.optionalDependencies && ws.name in stagingPkg.optionalDependencies) {
-            stagingPkg.optionalDependencies[ws.name] = fileSpec;
+        if (optDeps && ws.name in optDeps) {
+            optDeps[ws.name] = fileSpec;
         }
     }
 
@@ -270,6 +282,7 @@ async function stageDependencies(rootPkg: PackageJson): Promise<void> {
         JSON.stringify(
             {
                 name: "mongodb-mcp-server-mcpb",
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
                 version: rootPkg.version,
                 private: true,
                 type: "module",

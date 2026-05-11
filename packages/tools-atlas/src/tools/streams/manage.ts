@@ -249,7 +249,7 @@ export class StreamsManageTool extends StreamsToolBase {
 
             await this.apiClient.startStreamProcessorWith({
                 params: { path: { groupId: args.projectId, tenantName: args.workspaceName, processorName: name } },
-                body: startBody as never,
+                body: startBody,
             });
         } else {
             await this.apiClient.startStreamProcessor({
@@ -355,7 +355,7 @@ export class StreamsManageTool extends StreamsToolBase {
 
         await this.apiClient.updateStreamProcessor({
             params: { path: { groupId: args.projectId, tenantName: args.workspaceName, processorName: name } },
-            body: body as never,
+            body: body,
         });
 
         const changes = Object.keys(body).join(", ");
@@ -414,7 +414,7 @@ export class StreamsManageTool extends StreamsToolBase {
 
         const updated = await this.apiClient.updateStreamWorkspace({
             params: { path: { groupId: args.projectId, tenantName: args.workspaceName } },
-            body: body as never,
+            body: body,
         });
 
         const updatedRegion = updated?.dataProcessRegion?.region;

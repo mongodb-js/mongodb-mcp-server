@@ -49,8 +49,8 @@ export type {
     ConnectionState,
     OIDCConnectionAuthType,
     ConnectionTag,
-} from "@mongodb-js/mcp-tools-mongodb";
-export type { ConnectionManager, ConnectionStateConnected } from "@mongodb-js/mcp-tools-mongodb";
+} from "./common/connectionManager.js";
+export type { ConnectionManager, ConnectionStateConnected } from "./common/connectionManager.js";
 export {
     ExportsManager,
     type AvailableExport,
@@ -62,7 +62,7 @@ export {
     type InProgressExport,
     type CommonExportData,
     jsonExportFormat,
-} from "@mongodb-js/mcp-tools-mongodb";
+} from "./common/exportsManager.js";
 export { ApiClient, type ApiClientOptions, type RequestContext } from "@mongodb-js/mcp-atlas-api-client";
 export type { AtlasLocalClientFactoryFn, LibraryLoader } from "@mongodb-js/mcp-tools-atlas-local";
 export { UIRegistry } from "@mongodb-js/mcp-ui";
