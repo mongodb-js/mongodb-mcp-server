@@ -7,7 +7,7 @@ import { dirname, resolve } from "node:path";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { cp, mkdir, rm, stat, writeFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
-import type { PackageJson as LoosePackageJson, SetRequired } from "type-fest";
+import type { PackageJson as LoosePackageJson, SetRequired, JsonValue } from "type-fest";
 
 export type PackageJson = SetRequired<LoosePackageJson, "name" | "version" | "dependencies">;
 
@@ -87,8 +87,6 @@ function expandGlob(globPattern: string): string[] {
     return existsSync(literal) ? [literal] : [];
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 function discoverWorkspacePackages(rootPkg: PackageJson): WorkspacePackage[] {
     // Collect names of root deps that use `workspace:*` (or any `workspace:` protocol).
     const deps = (rootPkg.dependencies ?? {}) as Record<string, string>;
@@ -113,11 +111,8 @@ function discoverWorkspacePackages(rootPkg: PackageJson): WorkspacePackage[] {
         for (const pkgDir of expandGlob(globPattern)) {
             const pkgJsonPath = resolve(pkgDir, "package.json");
             if (!existsSync(pkgJsonPath)) continue;
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             const pkgJson = JSON.parse(readFileSync(pkgJsonPath, "utf8")) as PackageJson;
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
             if (pkgJson.name && workspaceNames.has(pkgJson.name)) {
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
                 found.push({ name: pkgJson.name, dir: pkgDir });
             }
         }
@@ -161,7 +156,6 @@ export function buildStagingPackageJson(rootPkg: PackageJson): PackageJson {
 
     return {
         name: "mongodb-mcp-server-mcpb-staging",
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         version: rootPkg.version,
         private: true,
         type: "module",
@@ -170,7 +164,7 @@ export function buildStagingPackageJson(rootPkg: PackageJson): PackageJson {
         // Carry the root's pnpm.overrides into the staging package so transitive resolution
         // stays aligned with what the root install (and CI) tested against. Without this,
         // pnpm's lockfile rewrite drops the overrides during the staging install.
-        pnpm: (rootPkg as { pnpm?: Record<string, unknown> }).pnpm ?? {},
+        pnpm: (rootPkg as { pnpm?: Record<string, JsonValue> }).pnpm ?? {},
     };
 }
 
@@ -282,7 +276,6 @@ async function stageDependencies(rootPkg: PackageJson): Promise<void> {
         JSON.stringify(
             {
                 name: "mongodb-mcp-server-mcpb",
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
                 version: rootPkg.version,
                 private: true,
                 type: "module",

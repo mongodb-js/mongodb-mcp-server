@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, it, expect } from "vitest";
 import { buildStagingPackageJson, ATLAS_LOCAL_PLATFORM_PACKAGES } from "./createMcpb.js";
 import type { PackageJson } from "./createMcpb.js";
@@ -34,11 +33,11 @@ describe("buildStagingPackageJson", () => {
     });
 
     it("matches the @mongodb-js/atlas-local version when adding platform pkgs", () => {
-        const custom: PackageJson = {
+        const custom = {
             ...rootPkg,
             dependencies: { ...(rootPkg.dependencies as Record<string, string>), "@mongodb-js/atlas-local": "^2.0.0" },
         };
-        const staged = buildStagingPackageJson(custom);
+        const staged = buildStagingPackageJson(custom as unknown as PackageJson);
         const deps = staged.dependencies as Record<string, string>;
         for (const pkg of ATLAS_LOCAL_PLATFORM_PACKAGES) {
             expect(deps[pkg]).toBe("2.0.0");
