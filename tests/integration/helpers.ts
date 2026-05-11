@@ -5,7 +5,7 @@ import { Session } from "../../src/common/session.js";
 import { Server, type ServerOptions } from "../../src/server.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "../../src/transports/inMemoryTransport.js";
+import { InMemoryTransport } from "@mongodb-js/mcp-transports";
 import { type UserConfig } from "../../src/common/config/userConfig.js";
 import { ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";

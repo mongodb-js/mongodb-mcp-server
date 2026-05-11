@@ -1,4 +1,5 @@
-import { StreamableHttpRunner } from "../../src/transports/streamableHttp.js";
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+import { StreamableHttpRunner } from "@mongodb-js/mcp-transports";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, beforeEach, afterEach } from "vitest";

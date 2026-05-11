@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { applyConfigOverrides, getConfigMeta, nameToConfigKey } from "../../../../src/common/config/configOverrides.js";
 import { onlyStricterLogLevelOverride } from "../../../../src/common/config/configUtils.js";
 import { UserConfigSchema, type UserConfig } from "../../../../src/common/config/userConfig.js";
-import type { RequestContext } from "../../../../src/transports/base.js";
+import type { TransportRequestContext } from "@mongodb-js/mcp-types";
 
 describe("configOverrides", () => {
     const baseConfig: Partial<UserConfig> = {
@@ -63,7 +63,7 @@ describe("configOverrides", () => {
 
         describe("boolean edge cases", () => {
             it("should parse correctly for true value", () => {
-                const request: RequestContext = {
+                const request: TransportRequestContext = {
                     headers: {
                         "x-mongodb-mcp-read-only": "true",
                     },
@@ -73,7 +73,7 @@ describe("configOverrides", () => {
             });
 
             it("should parse correctly for false value", () => {
-                const request: RequestContext = {
+                const request: TransportRequestContext = {
                     headers: {
                         "x-mongodb-mcp-read-only": "false",
                     },
@@ -84,7 +84,7 @@ describe("configOverrides", () => {
 
             for (const value of ["True", "False", "TRUE", "FALSE", "0", "1", ""]) {
                 it(`should throw an error for ${value}`, () => {
-                    const request: RequestContext = {
+                    const request: TransportRequestContext = {
                         headers: {
                             "x-mongodb-mcp-read-only": value,
                         },
@@ -103,7 +103,7 @@ describe("configOverrides", () => {
 
         describe("allowRequestOverrides", () => {
             it("should not apply overrides when allowRequestOverrides is false", () => {
-                const request: RequestContext = {
+                const request: TransportRequestContext = {
                     headers: {
                         "x-mongodb-mcp-read-only": "true",
                         "x-mongodb-mcp-idle-timeout-ms": "300000",
@@ -119,7 +119,7 @@ describe("configOverrides", () => {
             });
 
             it("should apply overrides when allowRequestOverrides is true", () => {
-                const request: RequestContext = {
+                const request: TransportRequestContext = {
                     headers: {
                         "x-mongodb-mcp-read-only": "true",
                         "x-mongodb-mcp-idle-timeout-ms": "300000",
@@ -132,7 +132,7 @@ describe("configOverrides", () => {
             });
 
             it("should not apply overrides by default when allowRequestOverrides is not set", () => {
-                const request: RequestContext = {
+                const request: TransportRequestContext = {
                     headers: {
                         "x-mongodb-mcp-read-only": "true",
                     },
@@ -147,7 +147,7 @@ describe("configOverrides", () => {
 
         describe("override behavior", () => {
             it("should override boolean values with override behavior", () => {
-                const request: RequestContext = {
+                const request: TransportRequestContext = {
                     headers: {
                         "x-mongodb-mcp-read-only": "true",
                     },
@@ -159,7 +159,7 @@ describe("configOverrides", () => {
 
         describe("merge behavior", () => {
             it("should merge array values", () => {
-                const request: RequestContext = {
+                const request: TransportRequestContext = {
                     headers: {
                         "x-mongodb-mcp-disabled-tools": "tool2,tool3",
                     },
@@ -169,7 +169,7 @@ describe("configOverrides", () => {
             });
 
             it("should merge multiple array fields", () => {
-                const request: RequestContext = {
+                const request: TransportRequestContext = {
                     headers: {
                         "x-mongodb-mcp-disabled-tools": "tool2",
                         "x-mongodb-mcp-confirmation-required-tools": "drop-collection",
@@ -183,7 +183,7 @@ describe("configOverrides", () => {
             });
 
             it("should not be able to merge loggers", () => {
-                const request: RequestContext = {
+                const request: TransportRequestContext = {
                     headers: {
                         "x-mongodb-mcp-loggers": "stderr",
                     },
@@ -235,7 +235,7 @@ describe("configOverrides", () => {
             });
 
             it("should throw an error for not-allowed fields", () => {
-                const request: RequestContext = {
+                const request: TransportRequestContext = {
                     headers: {
                         "x-mongodb-mcp-api-base-url": "https://malicious.com/",
                         "x-mongodb-mcp-max-bytes-per-query": "999999",
@@ -257,7 +257,7 @@ describe("configOverrides", () => {
             });
 
             it.each(secretFields)("should not allow overriding secret fields - $0", () => {
-                const request: RequestContext = {
+                const request: TransportRequestContext = {
                     headers: {
                         "x-mongodb-mcp-voyage-api-key": "test",
                     },
@@ -291,7 +291,7 @@ describe("configOverrides", () => {
             });
 
             it("should allow readOnly override from false to true", () => {
-                const request: RequestContext = { headers: { "x-mongodb-mcp-read-only": "true" } };
+                const request: TransportRequestContext = { headers: { "x-mongodb-mcp-read-only": "true" } };
                 const result = applyConfigOverrides({
                     baseConfig: { ...baseConfig, readOnly: false } as UserConfig,
                     request,
@@ -300,14 +300,14 @@ describe("configOverrides", () => {
             });
 
             it("should throw when trying to override readOnly from true to false", () => {
-                const request: RequestContext = { headers: { "x-mongodb-mcp-read-only": "false" } };
+                const request: TransportRequestContext = { headers: { "x-mongodb-mcp-read-only": "false" } };
                 expect(() =>
                     applyConfigOverrides({ baseConfig: { ...baseConfig, readOnly: true } as UserConfig, request })
                 ).toThrow("Cannot apply override for readOnly: Can only set to true");
             });
 
             it("should allow indexCheck override from false to true", () => {
-                const request: RequestContext = { headers: { "x-mongodb-mcp-index-check": "true" } };
+                const request: TransportRequestContext = { headers: { "x-mongodb-mcp-index-check": "true" } };
                 const result = applyConfigOverrides({
                     baseConfig: { ...baseConfig, indexCheck: false } as UserConfig,
                     request,
@@ -316,7 +316,7 @@ describe("configOverrides", () => {
             });
 
             it("should throw when trying to override indexCheck from true to false", () => {
-                const request: RequestContext = { headers: { "x-mongodb-mcp-index-check": "false" } };
+                const request: TransportRequestContext = { headers: { "x-mongodb-mcp-index-check": "false" } };
                 expect(() =>
                     applyConfigOverrides({ baseConfig: { ...baseConfig, indexCheck: true } as UserConfig, request })
                 ).toThrow("Cannot apply override for indexCheck: Can only set to true");
@@ -329,7 +329,7 @@ describe("configOverrides", () => {
                 // MCP log levels in order (least to most severe):
                 // debug < info < notice < warning < error < critical < alert < emergency
                 it("should allow override to the same log level (equal)", () => {
-                    const request: RequestContext = {
+                    const request: TransportRequestContext = {
                         headers: { "x-mongodb-mcp-mcp-client-log-level": "info" },
                     };
                     const result = applyConfigOverrides({
@@ -341,7 +341,7 @@ describe("configOverrides", () => {
 
                 it("should allow override to a stricter (higher severity) log level", () => {
                     // debug -> info (stricter)
-                    const request1: RequestContext = {
+                    const request1: TransportRequestContext = {
                         headers: { "x-mongodb-mcp-mcp-client-log-level": "info" },
                     };
                     const result1 = applyConfigOverrides({
@@ -351,7 +351,7 @@ describe("configOverrides", () => {
                     expect(result1.mcpClientLogLevel).toBe("info");
 
                     // debug -> error (stricter - skip multiple levels)
-                    const request2: RequestContext = {
+                    const request2: TransportRequestContext = {
                         headers: { "x-mongodb-mcp-mcp-client-log-level": "error" },
                     };
                     const result2 = applyConfigOverrides({
@@ -361,7 +361,7 @@ describe("configOverrides", () => {
                     expect(result2.mcpClientLogLevel).toBe("error");
 
                     // info -> warning (stricter - adjacent)
-                    const request3: RequestContext = {
+                    const request3: TransportRequestContext = {
                         headers: { "x-mongodb-mcp-mcp-client-log-level": "warning" },
                     };
                     const result3 = applyConfigOverrides({
@@ -371,7 +371,7 @@ describe("configOverrides", () => {
                     expect(result3.mcpClientLogLevel).toBe("warning");
 
                     // warning -> emergency (stricter - most severe)
-                    const request4: RequestContext = {
+                    const request4: TransportRequestContext = {
                         headers: { "x-mongodb-mcp-mcp-client-log-level": "emergency" },
                     };
                     const result4 = applyConfigOverrides({
@@ -383,7 +383,7 @@ describe("configOverrides", () => {
 
                 it("should reject override to a looser (lower severity) log level", () => {
                     // error -> debug (looser)
-                    const request: RequestContext = {
+                    const request: TransportRequestContext = {
                         headers: { "x-mongodb-mcp-mcp-client-log-level": "debug" },
                     };
                     expect(() =>
@@ -393,7 +393,7 @@ describe("configOverrides", () => {
 
                 it("should reject override to a looser adjacent log level", () => {
                     // warning -> info (looser - adjacent)
-                    const request: RequestContext = {
+                    const request: TransportRequestContext = {
                         headers: { "x-mongodb-mcp-mcp-client-log-level": "info" },
                     };
                     expect(() =>
@@ -403,7 +403,7 @@ describe("configOverrides", () => {
 
                 it("should reject override from most severe to any other level", () => {
                     // emergency -> emergency (same - allowed)
-                    const sameRequest: RequestContext = {
+                    const sameRequest: TransportRequestContext = {
                         headers: { "x-mongodb-mcp-mcp-client-log-level": "emergency" },
                     };
                     const sameResult = applyConfigOverrides({
@@ -413,7 +413,7 @@ describe("configOverrides", () => {
                     expect(sameResult.mcpClientLogLevel).toBe("emergency");
 
                     // emergency -> anything else (rejected)
-                    const looserRequest: RequestContext = {
+                    const looserRequest: TransportRequestContext = {
                         headers: { "x-mongodb-mcp-mcp-client-log-level": "alert" },
                     };
                     expect(() =>
@@ -428,7 +428,7 @@ describe("configOverrides", () => {
                     // debug -> any level should be allowed
                     const levels = ["debug", "info", "notice", "warning", "error", "critical", "alert", "emergency"];
                     for (const level of levels) {
-                        const request: RequestContext = {
+                        const request: TransportRequestContext = {
                             headers: { "x-mongodb-mcp-mcp-client-log-level": level },
                         };
                         const result = applyConfigOverrides({
@@ -443,7 +443,7 @@ describe("configOverrides", () => {
 
         describe("query parameter overrides", () => {
             it("should apply overrides from query parameters", () => {
-                const request: RequestContext = {
+                const request: TransportRequestContext = {
                     query: {
                         mongodbMcpReadOnly: "true",
                         mongodbMcpIdleTimeoutMs: "400000",
@@ -455,7 +455,7 @@ describe("configOverrides", () => {
             });
 
             it("should merge arrays from query parameters", () => {
-                const request: RequestContext = {
+                const request: TransportRequestContext = {
                     query: {
                         mongodbMcpDisabledTools: "tool2,tool3",
                     },
@@ -467,7 +467,7 @@ describe("configOverrides", () => {
 
         describe("precedence", () => {
             it("should give query parameters precedence over headers", () => {
-                const request: RequestContext = {
+                const request: TransportRequestContext = {
                     headers: {
                         "x-mongodb-mcp-idle-timeout-ms": "300000",
                     },
@@ -480,7 +480,7 @@ describe("configOverrides", () => {
             });
 
             it("should merge arrays from both headers and query", () => {
-                const request: RequestContext = {
+                const request: TransportRequestContext = {
                     headers: {
                         "x-mongodb-mcp-disabled-tools": "tool2",
                     },
@@ -496,7 +496,7 @@ describe("configOverrides", () => {
 
         describe("edge cases", () => {
             it("should error with values which do not match the schema", () => {
-                const request: RequestContext = {
+                const request: TransportRequestContext = {
                     headers: {
                         "x-mongodb-mcp-idle-timeout-ms": "not-a-number",
                     },
@@ -507,7 +507,7 @@ describe("configOverrides", () => {
             });
 
             it("should handle empty string values for arrays", () => {
-                const request: RequestContext = {
+                const request: TransportRequestContext = {
                     headers: {
                         "x-mongodb-mcp-disabled-tools": "",
                     },
@@ -519,7 +519,7 @@ describe("configOverrides", () => {
             });
 
             it("should trim whitespace in array values", () => {
-                const request: RequestContext = {
+                const request: TransportRequestContext = {
                     headers: {
                         "x-mongodb-mcp-disabled-tools": " tool2 , tool3 ",
                     },
@@ -529,7 +529,7 @@ describe("configOverrides", () => {
             });
 
             it("should handle case-insensitive header names", () => {
-                const request: RequestContext = {
+                const request: TransportRequestContext = {
                     headers: {
                         "X-MongoDB-MCP-Read-Only": "true",
                     },
@@ -539,7 +539,7 @@ describe("configOverrides", () => {
             });
 
             it("should handle array values sent as multiple headers", () => {
-                const request: RequestContext = {
+                const request: TransportRequestContext = {
                     headers: {
                         "x-mongodb-mcp-disabled-tools": ["tool2", "tool3"],
                     },

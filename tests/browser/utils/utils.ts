@@ -9,6 +9,7 @@ export class BrowserTestRunner extends TransportRunnerBase {
     }
 
     async start(): Promise<void> {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
         await this.setupServer();
 
         // Create MCP client

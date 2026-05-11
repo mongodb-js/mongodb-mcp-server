@@ -1,10 +1,11 @@
-import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js";
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
+import { StreamableHttpRunner } from "@mongodb-js/mcp-transports";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, afterEach, beforeEach } from "vitest";
 import { defaultTestConfig, expectDefined } from "../helpers.js";
 import type { TransportRunnerConfig, UserConfig } from "../../../src/lib.js";
-import type { RequestContext } from "../../../src/transports/base.js";
+import type { TransportRequestContext } from "@mongodb-js/mcp-types";
 
 describe("Config Overrides via HTTP", () => {
     let runner: StreamableHttpRunner;
@@ -272,7 +273,7 @@ describe("Config Overrides via HTTP", () => {
                 request,
             }: {
                 userConfig: typeof userConfig;
-                request?: RequestContext;
+                request?: TransportRequestContext;
             }): typeof userConfig => {
                 expectDefined(request);
                 expectDefined(request.headers);
@@ -310,12 +311,12 @@ describe("Config Overrides via HTTP", () => {
                 allowRequestOverrides: true,
             };
 
-            let capturedRequest: RequestContext | undefined;
+            let capturedRequest: TransportRequestContext | undefined;
             const createSessionConfig: TransportRunnerConfig["createSessionConfig"] = ({
                 request,
             }: {
                 userConfig: typeof userConfig;
-                request?: RequestContext;
+                request?: TransportRequestContext;
             }): Promise<typeof userConfig> => {
                 expectDefined(request);
                 expectDefined(request.headers);

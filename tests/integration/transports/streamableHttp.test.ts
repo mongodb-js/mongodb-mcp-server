@@ -1,10 +1,12 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return, @typescript-eslint/require-await */
 import type express from "express";
-import { StreamableHttpRunner, MCPHttpServer } from "../../../src/transports/streamableHttp.js";
 import {
-    createDefaultSessionStore,
+    StreamableHttpRunner,
+    MCPHttpServer,
+    SessionStore,
     type ISessionStore,
     type SessionCloseReason,
-} from "../../../src/common/sessionStore.js";
+} from "@mongodb-js/mcp-transports";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
@@ -19,7 +21,7 @@ import type { OperationType, ToolArgs, ToolCategory, ToolExecutionContext } from
 import { ToolBase } from "../../../src/tools/tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
-import type { RequestContext } from "../../../src/transports/base.js";
+import type { TransportRequestContext } from "@mongodb-js/mcp-types";
 import type { AnyToolClass, Server } from "../../../src/lib.js";
 import type { IncomingMessage } from "node:http";
 import { AsyncLocalStorage } from "node:async_hooks";
@@ -631,8 +633,10 @@ describe("StreamableHttpRunner", () => {
 
                     const ownershipRunner = new StreamableHttpRunner({
                         userConfig: config,
+
                         createSessionStore: (args): ISessionStore<StreamableHTTPServerTransport> => {
-                            const inner = createDefaultSessionStore<StreamableHTTPServerTransport>(args);
+                            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+                            const inner = new SessionStore<StreamableHTTPServerTransport>(args);
                             return new OwnershipSessionStore(inner);
                         },
                     });
@@ -807,6 +811,7 @@ describe("StreamableHttpRunner", () => {
                             );
                             super.setupMiddlewares();
                         }
+                        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
                     })(args);
                 },
             });
@@ -830,6 +835,7 @@ describe("StreamableHttpRunner", () => {
                             });
                             super.setupMiddlewares();
                         }
+                        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
                     })(args);
                 },
             });
@@ -1204,7 +1210,7 @@ describe("StreamableHttpRunner", () => {
                 protected async createServerForRequest({
                     request,
                 }: {
-                    request: RequestContext;
+                    request: TransportRequestContext;
                 }): Promise<Server<UserConfig, ToolContext>> {
                     // Extract custom header to determine configuration
                     const userRole = request.headers?.["x-user-role"];
@@ -1375,7 +1381,7 @@ describe("StreamableHttpRunner", () => {
                 protected override async createServerForRequest({
                     request,
                 }: {
-                    request: RequestContext;
+                    request: TransportRequestContext;
                 }): Promise<Server<UserConfig, ToolContext>> {
                     const userRole = request.headers?.["x-user-role"];
 

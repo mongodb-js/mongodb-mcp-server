@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { describe, it, expect, afterEach } from "vitest";
-import { MonitoringServer } from "../../../src/transports/monitoringServer.js";
+import { MonitoringServer } from "@mongodb-js/mcp-transports";
 import { NoopLogger } from "@mongodb-js/mcp-core";
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
 
@@ -47,7 +48,7 @@ describe("MonitoringServer", () => {
 
             const response = await fetch(`${server.serverAddress}/health`);
             expect(response.status).toBe(200);
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
             const body = await response.json();
             expect(body).toEqual({ status: "ok" });
         });

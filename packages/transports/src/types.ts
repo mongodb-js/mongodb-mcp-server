@@ -1,9 +1,12 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { ICompositeLogger, IKeychain } from "@mongodb-js/mcp-types";
-import type { IMetrics, MetricDefinitions } from "@mongodb-js/mcp-types";
+import type { IMetrics } from "@mongodb-js/mcp-types";
 import type { LogLevel, LoggerBase } from "@mongodb-js/mcp-core";
 import type { InMemoryTransport } from "./inMemoryTransport.js";
+
+// Re-export MetricDefinitions types from @mongodb-js/mcp-types for convenience
+export type { MetricDefinitions, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
 
 /**
  * Options for creating an MCP server instance.
@@ -130,5 +133,3 @@ export type CustomizableSessionOptions = {
     /** Connection error handler */
     connectionErrorHandler?: unknown;
 };
-
-export type { MetricDefinitions, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";

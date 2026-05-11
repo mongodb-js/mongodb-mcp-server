@@ -1,9 +1,14 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { StreamableHttpRunner, MonitoringServer, type ISessionStore } from "@mongodb-js/mcp-transports";
+import {
+    StreamableHttpRunner,
+    MonitoringServer,
+    type ISessionStore,
+    type MonitoringServerOptions,
+} from "@mongodb-js/mcp-transports";
 import { defaultTestConfig } from "../../integration/helpers.js";
 import type express from "express";
 import type { DefaultMetrics } from "@mongodb-js/mcp-metrics";
-import type { IMetrics } from "@mongodb-js/mcp-types";
 import { NoopLogger } from "@mongodb-js/mcp-core";
 import { MockMetrics } from "../mocks/metrics.js";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
@@ -52,6 +57,7 @@ describe("StreamableHttpRunner", () => {
 
             it("supports extending MonitoringServer with custom routes via hook", async () => {
                 const createMonitoringServer: CreateMonitoringServerFn<DefaultMetrics> = (args) => {
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
                     return new CustomMonitoringServer(args);
                 };
 
@@ -238,9 +244,9 @@ describe("StreamableHttpRunner", () => {
                     idleTimeoutMS: 120_000,
                     notificationTimeoutMS: 60_000,
                 },
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
                 logger: expect.any(Object),
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
                 metrics: expect.any(Object),
             });
         });
@@ -261,7 +267,7 @@ function getSessionStore(runner: StreamableHttpRunner<any>): ISessionStore<Strea
 }
 
 class CustomMonitoringServer extends MonitoringServer {
-    constructor(args: MonitoringServerConstructorArgs<DefaultMetrics>) {
+    constructor(args: MonitoringServerOptions<DefaultMetrics>) {
         super(args);
     }
 

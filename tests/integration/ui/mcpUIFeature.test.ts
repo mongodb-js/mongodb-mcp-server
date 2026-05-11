@@ -12,7 +12,7 @@ import { connectionErrorHandler } from "../../../src/common/connectionErrorHandl
 import { Keychain } from "@mongodb-js/mcp-core";
 import { Elicitation } from "../../../src/elicitation.js";
 import { createAtlasLocalClient } from "../../../src/lib.js";
-import { InMemoryTransport } from "../../../src/transports/inMemoryTransport.js";
+import { InMemoryTransport } from "@mongodb-js/mcp-transports";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { ApiClient } from "../../../src/lib.js";
