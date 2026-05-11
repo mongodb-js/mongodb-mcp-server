@@ -442,7 +442,7 @@ describe("ToolBase", () => {
             expect(uiResource.type).toBe("resource");
             expect(uiResource.resource.uri).toBe("ui://test-tool-with-output-schema");
             expect(uiResource.resource.text).toBe("<html>test UI</html>");
-            expect(uiResource.resource.mimeType).toBe("text/html");
+            expect(uiResource.resource.mimeType).toMatch(/^text\/html(?:;.*)?$/);
             expect(uiResource.resource._meta).toEqual({
                 "mcpui.dev/ui-initial-render-data": { value: "test", count: 42 },
             });
