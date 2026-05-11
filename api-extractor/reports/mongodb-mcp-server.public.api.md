@@ -747,6 +747,17 @@ export interface LogPayload {
     noRedaction?: boolean | LoggerType | LoggerType[];
 }
 
+// @public (undocumented)
+export class MCPConnectionManager extends ConnectionManager {
+    constructor(userConfig: UserConfig, logger: LoggerBase, deviceId: DeviceId, bus?: EventEmitter);
+    // (undocumented)
+    close(): Promise<void>;
+    // (undocumented)
+    connect(settings: ConnectionSettings): Promise<AnyConnectionState>;
+    // (undocumented)
+    disconnect(): Promise<ConnectionStateDisconnected | ConnectionStateErrored>;
+}
+
 // Warning: (ae-forgotten-export) The symbol "ExpressBasedHttpServer" needs to be exported by the entry point lib.d.ts
 //
 // @public (undocumented)
