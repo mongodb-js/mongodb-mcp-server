@@ -12,13 +12,10 @@ export type {
     CustomizableServerOptions,
     CustomizableSessionOptions,
 
-    // Re-exports from mcp-types
-    TransportRequestContext,
     MetricDefinitions,
     DefaultMetricDefinitions,
 } from "./types.js";
 
-// Re-exports from mcp-types (transport config types moved there)
 export type {
     HttpServerConfig,
     MonitoringServerConfig,
@@ -28,9 +25,9 @@ export type {
     SessionStoreConstructorArgs,
     CloseableTransport,
     SessionCloseReason,
+    TransportRequestContext,
 } from "@mongodb-js/mcp-types";
 
-// Re-export StreamableHttpRunnerOptions from streamableHttp.ts
 export type { StreamableHttpRunnerOptions } from "./streamableHttp.js";
 
 // Base transport runner
