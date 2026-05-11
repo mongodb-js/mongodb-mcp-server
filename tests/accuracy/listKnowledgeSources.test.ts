@@ -1,8 +1,8 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
 import { type MockedTools } from "./sdk/accuracyTestingClient.js";
-import { ListKnowledgeSourcesToolName } from "../../src/tools/assistant/listKnowledgeSources.js";
-import { SearchKnowledgeToolName } from "../../src/tools/assistant/searchKnowledge.js";
+import { ListKnowledgeSourcesToolName } from "@mongodb-js/mcp-tools-assistant";
+import { SearchKnowledgeToolName } from "@mongodb-js/mcp-tools-assistant";
 
 export const mockListKnowledgeSourcesResult: CallToolResult = {
     content: [

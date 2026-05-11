@@ -78,6 +78,13 @@ export default defineConfig({
             {
                 extends: true,
                 test: {
+                    name: "mcpb-build-script",
+                    include: ["scripts/createMcpb.test.ts"],
+                },
+            },
+            {
+                extends: true,
+                test: {
                     name: "long-running-tests",
                     include: [...longRunningTests],
                     testTimeout: 7200000, // 2 hours for long-running tests

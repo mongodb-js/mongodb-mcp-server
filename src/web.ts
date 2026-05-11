@@ -22,6 +22,7 @@ export type {
     AtlasLocalToolMetadata,
     AtlasPerfAdvisorToolMetadata as PerfAdvisorToolMetadata,
     AtlasStreamsToolMetadata as StreamsToolMetadata,
+    UpgradeClusterMetadata,
 } from "@mongodb-js/mcp-atlas-telemetry";
 export { Session, type SessionOptions, type SessionEvents } from "./common/session.js";
 export type { CustomizableServerOptions, CustomizableSessionOptions } from "./transports/base.js";
@@ -73,7 +74,7 @@ export {
     type OperationType,
     type ToolArgs,
     type ToolExecutionContext,
-} from "./tools/tool.js";
+} from "@mongodb-js/mcp-core";
 export { AtlasTelemetry as Telemetry, EventCache } from "@mongodb-js/mcp-atlas-telemetry";
 export type {
     TelemetryEvents,

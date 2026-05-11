@@ -30,3 +30,9 @@ export const packageInfo: {
 // Write to packageInfo.ts
 const packageInfoPath = join(import.meta.dirname, "..", "src", "common", "packageInfo.ts");
 writeFileSync(packageInfoPath, packageInfoContent);
+
+// Keep the .mcpb manifest's version in lockstep with package.json.
+const manifestPath = join(import.meta.dirname, "..", "packaging", "mcpb", "manifest.json");
+const manifest = JSON.parse(readFileSync(manifestPath, "utf-8")) as { version: string };
+manifest.version = packageJson.version;
+writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");

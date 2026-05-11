@@ -39,6 +39,7 @@ export {
     StreamsBuildTool,
     StreamsManageTool,
     StreamsTeardownTool,
+    UpgradeClusterTool,
 } from "./tools/tools.js";
 
 import {
@@ -59,6 +60,7 @@ import {
     StreamsBuildTool,
     StreamsManageTool,
     StreamsTeardownTool,
+    UpgradeClusterTool,
 } from "./tools/tools.js";
 import type { ToolClass } from "@mongodb-js/mcp-core";
 export const AtlasTools: ToolClass[] = [
@@ -79,4 +81,5 @@ export const AtlasTools: ToolClass[] = [
     StreamsBuildTool,
     StreamsManageTool,
     StreamsTeardownTool,
+    UpgradeClusterTool,
 ];

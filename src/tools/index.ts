@@ -1,15 +1,15 @@
 import { AtlasTools } from "@mongodb-js/mcp-tools-atlas";
 import { AtlasLocalTools } from "@mongodb-js/mcp-tools-atlas-local";
 import { MongoDBTools } from "@mongodb-js/mcp-tools-mongodb";
-import * as AssistantTools from "./assistant/tools.js";
+import { AssistantTools } from "@mongodb-js/mcp-tools-assistant";
 import type { ToolClass } from "./tool.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const AllTools: ToolClass<any, any, any>[] = [
     ...MongoDBTools,
-    ...Object.values(AssistantTools),
     ...AtlasTools,
     ...AtlasLocalTools,
+    ...AssistantTools,
 ];
 
 export { MongoDBToolBase, type IMongoDBConfig, type IMongoDBSession } from "@mongodb-js/mcp-tools-mongodb";
@@ -17,7 +17,7 @@ export { MongoDBToolBase, type IMongoDBConfig, type IMongoDBSession } from "@mon
 // Export all the individual tools for handpicking
 export * from "@mongodb-js/mcp-tools-atlas-local";
 export * from "@mongodb-js/mcp-tools-mongodb";
-export * from "./assistant/tools.js";
+export * from "@mongodb-js/mcp-tools-assistant";
 // Re-export from atlas, but exclude AtlasClusterConnectionInfo since it's also in mongodb package
 export { AtlasTools, AtlasToolBase, type IAtlasConfig, type IAtlasSession } from "@mongodb-js/mcp-tools-atlas";
 // Export AtlasClusterConnectionInfo explicitly from mongodb package

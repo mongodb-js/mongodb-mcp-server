@@ -1,12 +1,9 @@
 dist
-coverage
-package-lock.json
-tests/tmp
-**/openapi.d.ts
-pnpm-lock.yaml
-src/ui/lib/tools
+node_modules
+*.lock
+resources/
 src/ui/lib/loaders.ts
 temp
 **/reports/*.api.md
 .github/workflows/*.lock.yml
-.claude/**
+packaging/mcpb/manifest.json

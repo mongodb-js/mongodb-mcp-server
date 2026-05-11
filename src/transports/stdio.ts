@@ -1,6 +1,4 @@
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { LogId } from "@mongodb-js/mcp-logging";
-import type { Server } from "../server.js";
 import type { CustomizableServerOptions } from "./base.js";
 import type { CustomizableSessionOptions } from "./base.js";
 import { TransportRunnerBase, type TransportRunnerConfig } from "./base.js";
@@ -12,35 +10,22 @@ export class StdioRunner<
     TContext = unknown,
     TMetrics extends DefaultMetrics = DefaultMetrics,
 > extends TransportRunnerBase<TUserConfig, TContext, TMetrics> {
-    private server: Server<TUserConfig, TContext> | undefined;
-
     constructor(config: TransportRunnerConfig<TUserConfig, TMetrics>) {
         super(config);
     }
 
-    async start({
-        serverOptions,
-        sessionOptions,
-    }: {
-        serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
-        sessionOptions?: CustomizableSessionOptions<TUserConfig>;
-    } = {}): Promise<void> {
-        try {
-            this.server = await this.createServer({ serverOptions, sessionOptions });
-            const transport = new StdioServerTransport();
-
-            await this.server.connect(transport);
-        } catch (error: unknown) {
-            this.logger.emergency({
-                id: LogId.serverStartFailure,
-                context: "server",
-                message: `Fatal error running server: ${error as string}`,
-            });
-            process.exit(1);
-        }
+    async start(
+        input: {
+            serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
+            sessionOptions?: CustomizableSessionOptions<TUserConfig>;
+        } = {}
+    ): Promise<void> {
+        const transport = new StdioServerTransport();
+        const server = await this.setupServer(undefined, input);
+        await server.connect(transport);
     }
 
     async closeTransport(): Promise<void> {
-        await this.server?.close();
+        // Stdio transport doesn't need explicit cleanup
     }
 }
