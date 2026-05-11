@@ -25,7 +25,6 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { Metrics } from '@mongodb-js/mcp-metrics';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
 import { OperationType } from '@mongodb-js/mcp-core';
-import type { TelemetryToolMetadata } from '@mongodb-js/mcp-types';
 import { ToolArgs } from '@mongodb-js/mcp-core';
 import { ToolBase } from '@mongodb-js/mcp-core';
 import { ToolCategory } from '@mongodb-js/mcp-core';
@@ -772,24 +771,6 @@ export class ListDatabasesTool extends MongoDBToolBase {
     static toolName: string;
 }
 
-// Warning: (ae-forgotten-export) The symbol "AssistantToolBase" needs to be exported by the entry point index.d.ts
-//
-// @public (undocumented)
-export class ListKnowledgeSourcesTool extends AssistantToolBase {
-    // (undocumented)
-    argsShape: {};
-    // (undocumented)
-    static category: ToolCategory;
-    // (undocumented)
-    description: string;
-    // (undocumented)
-    protected execute(): Promise<CallToolResult>;
-    // (undocumented)
-    static operationType: OperationType;
-    // (undocumented)
-    static toolName: string;
-}
-
 // Warning: (ae-forgotten-export) The symbol "LogsOutputSchema" needs to be exported by the entry point index.d.ts
 //
 // @public (undocumented)
@@ -886,29 +867,6 @@ export class RenameCollectionTool extends MongoDBToolBase {
 }
 
 // @public (undocumented)
-export class SearchKnowledgeTool extends AssistantToolBase {
-    // (undocumented)
-    argsShape: {
-        query: z.ZodString;
-        limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
-        dataSources: z.ZodOptional<z.ZodArray<z.ZodObject<{
-            name: z.ZodString;
-            versionLabel: z.ZodOptional<z.ZodString>;
-        }, z.core.$strip>>>;
-    };
-    // (undocumented)
-    static category: ToolCategory;
-    // (undocumented)
-    description: string;
-    // (undocumented)
-    protected execute(args: ToolArgs<typeof SearchKnowledgeTool.argsShape>): Promise<CallToolResult>;
-    // (undocumented)
-    static operationType: OperationType;
-    // (undocumented)
-    static toolName: string;
-}
-
-// @public (undocumented)
 export class SwitchConnectionTool extends MongoDBToolBase {
     constructor(params: ToolConstructorParams);
     // (undocumented)
@@ -976,6 +934,7 @@ export class UpdateManyTool extends MongoDBToolBase {
 }
 
 
+export * from "@mongodb-js/mcp-tools-assistant";
 export * from "@mongodb-js/mcp-tools-atlas";
 export * from "@mongodb-js/mcp-tools-atlas-local";
 

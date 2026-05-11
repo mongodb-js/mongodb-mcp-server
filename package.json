@@ -146,7 +146,8 @@
     "vite": "^8.0.8",
     "vite-plugin-node-polyfills": "^0.26.0",
     "vite-plugin-singlefile": "^2.3.2",
-    "vitest": "^4.1.5"
+    "vitest": "^4.1.5",
+    "yaml": "^2.8.1"
   },
   "dependencies": {
     "@inquirer/prompts": "^8.0.2",
@@ -159,6 +160,7 @@
     "@mongodb-js/mcp-core": "workspace:*",
     "@mongodb-js/mcp-logging": "workspace:*",
     "@mongodb-js/mcp-metrics": "workspace:*",
+    "@mongodb-js/mcp-tools-assistant": "workspace:*",
     "@mongodb-js/mcp-tools-atlas": "workspace:*",
     "@mongodb-js/mcp-tools-atlas-local": "workspace:*",
     "@mongodb-js/mcp-types": "workspace:*",
@@ -178,7 +180,6 @@
     "node-machine-id": "1.1.12",
     "semver": "^7.7.2",
     "ts-levenshtein": "^1.0.7",
-    "yaml": "^2.8.1",
     "zod": "^4.4.2"
   },
   "peerDependencies": {
