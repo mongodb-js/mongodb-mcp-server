@@ -43,6 +43,8 @@ const config: KnipConfig = {
                 "@redocly/cli",
                 "@types/yargs-parser",
                 "@vitejs/plugin-react",
+                "oauth4webapi",
+                "openapi-fetch",
                 "openapi-typescript",
                 "openapi-typescript-helpers",
                 "semver",
