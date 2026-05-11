@@ -667,22 +667,22 @@ export interface ISessionStore<T extends CloseableTransport = CloseableTransport
     getSession(sessionId: string): Promise<T | undefined>;
 }
 
-// @public (undocumented)
+// @public
 export const JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION = -32005;
 
-// @public (undocumented)
+// @public
 export const JSON_RPC_ERROR_CODE_INVALID_REQUEST = -32004;
 
 // @public
 export const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
 
-// @public (undocumented)
+// @public
 export const JSON_RPC_ERROR_CODE_SESSION_ID_INVALID = -32002;
 
-// @public (undocumented)
+// @public
 export const JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED = -32001;
 
-// @public (undocumented)
+// @public
 export const JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND = -32003;
 
 // @public
@@ -750,11 +750,8 @@ export interface LogPayload {
 // @public
 export class MCPConnectionManager extends ConnectionManager {
     constructor(userConfig: UserConfig, logger: LoggerBase, deviceId: DeviceId, bus?: EventEmitter);
-    // (undocumented)
     close(): Promise<void>;
-    // (undocumented)
     connect(settings: ConnectionSettings): Promise<AnyConnectionState>;
-    // (undocumented)
     disconnect(): Promise<ConnectionStateDisconnected | ConnectionStateErrored>;
 }
 
