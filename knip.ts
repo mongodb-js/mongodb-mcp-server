@@ -25,10 +25,15 @@ const config: KnipConfig = {
         "packages/types": {
             ignoreDependencies: ["@modelcontextprotocol/sdk", "mongodb-redact"],
         },
+        "packages/transports": {
+            entry: ["src/index.ts!"],
+        },
         "tests/browser": {
             entry: ["tests/**/*.ts", "polyfills/**/*.ts", "utils/**/*.ts", "vitest.config.ts", "setup.ts"],
         },
     },
+    // For library packages, exports from entry points are public API
+    includeEntryExports: true,
     ignoreExportsUsedInFile: true,
 };
 

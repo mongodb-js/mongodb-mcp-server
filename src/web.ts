@@ -1,16 +1,16 @@
 export {
     TransportRunnerBase,
-    type TransportRunnerConfig,
-    type CreateSessionConfigFn,
-    type RequestContext as TransportRequestContextDeprecated,
-} from "./transports/base.js";
+    type TransportRunnerBaseOptions as TransportRunnerConfig,
+    type CustomizableSessionOptions as CreateSessionConfigFn,
+    type TransportRequestContext as TransportRequestContextDeprecated,
+} from "@mongodb-js/mcp-transports";
 export { UserConfigSchema, type UserConfig } from "./common/config/userConfig.js";
 export { createDefaultMetrics, type DefaultMetrics } from "@mongodb-js/mcp-metrics";
 export { Server, type ServerOptions, type AnyToolClass, type ToolCategory } from "./server.js";
 export { DeviceId } from "./helpers/deviceId.js";
 export { LoggerBase, CompositeLogger, type EventMap, type DefaultEventMap } from "@mongodb-js/mcp-core";
 export type { Metrics, MetricDefinitions } from "@mongodb-js/mcp-metrics";
-export type { TransportRequestContext } from "./transports/base.js";
+export type { TransportRequestContext } from "@mongodb-js/mcp-transports";
 export type {
     TelemetryCommonProperties as CommonProperties,
     TelemetryBoolSet,
@@ -24,7 +24,7 @@ export type {
     AtlasStreamsToolMetadata as StreamsToolMetadata,
 } from "@mongodb-js/mcp-atlas-telemetry";
 export { Session, type SessionOptions, type SessionEvents } from "./common/session.js";
-export type { CustomizableServerOptions, CustomizableSessionOptions } from "./transports/base.js";
+export type { CustomizableServerOptions, CustomizableSessionOptions } from "@mongodb-js/mcp-transports";
 export type { LogLevel, LogPayload, LoggerType } from "@mongodb-js/mcp-core";
 export { Keychain } from "@mongodb-js/mcp-core";
 export type { Secret } from "mongodb-redact";

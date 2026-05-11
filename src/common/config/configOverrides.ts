@@ -1,6 +1,6 @@
 import type { UserConfig } from "./userConfig.js";
 import { UserConfigSchema, configRegistry } from "./userConfig.js";
-import type { RequestContext } from "../../transports/base.js";
+import type { TransportRequestContext } from "@mongodb-js/mcp-transports";
 import type { ConfigFieldMeta, OverrideBehavior } from "./configUtils.js";
 
 export class ConfigOverrideError extends Error {
@@ -26,7 +26,7 @@ export function applyConfigOverrides<TUserConfig extends UserConfig = UserConfig
     request,
 }: {
     baseConfig: TUserConfig;
-    request?: RequestContext;
+    request?: TransportRequestContext;
 }): TUserConfig {
     if (!request) {
         return baseConfig;
