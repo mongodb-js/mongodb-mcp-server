@@ -92,8 +92,8 @@ export class ListClustersTool extends AtlasToolBase {
 
     private formatClustersTable(
         project: Group,
-        clusters?: PaginatedClusterDescription20240805,
-        flexClusters?: PaginatedFlexClusters20241113
+        clusters: PaginatedClusterDescription20240805 | undefined,
+        flexClusters: PaginatedFlexClusters20241113 | undefined
     ): CallToolResult {
         // Check if both traditional clusters and flex clusters are absent
         if (!clusters?.results?.length && !flexClusters?.results?.length) {
