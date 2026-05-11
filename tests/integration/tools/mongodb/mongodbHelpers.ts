@@ -11,7 +11,7 @@ import {
     getDataFromUntrustedContent,
 } from "../../helpers.js";
 import type { UserConfig } from "../../../../src/common/config/userConfig.js";
-import type { ServerOptions } from "../../../../src/server.js";
+import type { Server, ServerOptions } from "../../../../src/server.js";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { EJSON } from "bson";
 import { MongoDBClusterProcess } from "./mongodbClusterProcess.js";
@@ -183,6 +183,17 @@ export function setupMongoDBIntegrationTest(
     };
 }
 
+/** MongoDB tools hold a shallow config snapshot from registration; align with live {@link Server.userConfig}. */
+function syncMongoToolsConfigConnectionString(mcpServer: Server): void {
+    const connectionString = mcpServer.userConfig.connectionString;
+    for (const tool of mcpServer.tools) {
+        if (tool.category === "mongodb") {
+            (tool as unknown as { config: { connectionString: string | undefined } }).config.connectionString =
+                connectionString;
+        }
+    }
+}
+
 export function validateAutoConnectBehavior(
     integration: IntegrationTest & MongoDBIntegrationTest,
     name: string,
@@ -200,10 +211,12 @@ export function validateAutoConnectBehavior(
 
         afterEach(() => {
             integration.mcpServer().userConfig.connectionString = undefined;
+            syncMongoToolsConfigConnectionString(integration.mcpServer());
         });
 
         it("connects automatically if connection string is configured", async () => {
             integration.mcpServer().userConfig.connectionString = integration.connectionString();
+            syncMongoToolsConfigConnectionString(integration.mcpServer());
 
             const validationInfo = validation();
 
