@@ -20,6 +20,13 @@ if (process.env.SKIP_ATLAS_LOCAL_TESTS === "true") {
     vitestDefaultExcludes.push("**/atlas-local/**");
 }
 
+// TODO: Re-enable on Windows once the worker fork crash is resolved.
+// The aggregate test file's Vitest worker exits unexpectedly on Windows runners,
+// leaving an orphan mongod and failing the whole run with exit code 1.
+if (process.platform === "win32") {
+    vitestDefaultExcludes.push("**/integration/tools/mongodb/read/aggregate.test.ts");
+}
+
 export default defineConfig({
     test: {
         environment: "node",
