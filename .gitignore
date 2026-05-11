@@ -1,28 +1,32 @@
-.node_repl_history
-*.tgz
-.mongosh*mongosh_repl_history
-mongosh*config
-package-lock.json
-.yarn
-.idea
-*.swp
+dist
+node_modules
+
+.vscode/mcp.json
+.github/prompts/*
+
+# Environment variables
+.env
+
+# Sensitive
+state.json
+
+tests/tmp
+coverage
+# Generated assets by accuracy runs
+.accuracy
+
+temp
 .DS_Store
 
 # Development tool files
 .yalc
 yalc.lock
 
-CLAUDE.md
-.claude/
-
 # .mcpb build artifacts
 mcpb-build/
 dist-mcpb/
 
-# Build output
-dist/
-packages/*/dist/
-*.tsbuildinfo
+.claude
+CLAUDE.md
 
-# Test artifacts
-tests/tmp/
+**/tsconfig.tsbuildinfo
