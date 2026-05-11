@@ -223,7 +223,7 @@ export class MCPHttpServer<
 
         const initPromise = (async (): Promise<void> => {
             const request: TransportRequestContext = {
-                headers: req.headers as Record<string, string | string[] | undefined>,
+                headers: req.headers,
                 query: req.query as Record<string, string | string[] | undefined>,
             };
             const server = await this.createServerForRequest({

@@ -7,7 +7,7 @@ import {
 import { MonitoringServer } from "../../../src/transports/monitoringServer.js";
 import { defaultTestConfig } from "../../integration/helpers.js";
 import type express from "express";
-import type { DefaultMetrics, Metrics } from "../../../src/lib.js";
+import type { DefaultMetrics } from "../../../src/lib.js";
 import { NoopLogger } from "@mongodb-js/mcp-core";
 import { MockMetrics } from "../mocks/metrics.js";
 import type { CreateSessionStoreFn, ISessionStore } from "../../../src/common/sessionStore.js";
@@ -32,7 +32,7 @@ describe("StreamableHttpRunner", () => {
                     port: 3002,
                     features: ["health-check"],
                     logger: new NoopLogger(),
-                    metrics: new MockMetrics() as unknown as Metrics<DefaultMetrics>,
+                    metrics: new MockMetrics(),
                 });
 
                 const createMonitoringServer: CreateMonitoringServerFn<DefaultMetrics> = () => customServer;

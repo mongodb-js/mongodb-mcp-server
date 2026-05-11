@@ -115,6 +115,7 @@ describe("debug resource", () => {
                 clusterName: "My Test Cluster",
                 projectId: "COFFEEFABADA",
                 username: "",
+                instanceType: "FREE",
                 expiryDate: new Date(),
             },
         });

@@ -1,11 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { packageInfo } from "../../../src/common/packageInfo.js";
-import type {
-    TelemetryCommonProperties as CommonProperties,
-    TelemetryEvent,
-    TelemetryResult,
-} from "@mongodb-js/mcp-atlas-telemetry";
+import type { TelemetryCommonProperties as CommonProperties, TelemetryEvent } from "@mongodb-js/mcp-atlas-telemetry";
 import { NoopLogger } from "@mongodb-js/mcp-core";
 
 describe("ApiClient", () => {
@@ -25,7 +21,7 @@ describe("ApiClient", () => {
                 os_type: "test-os",
                 component: "test-component",
                 duration_ms: 100,
-                result: "success" as TelemetryResult,
+                result: "success",
                 category: "test-category",
             },
         },
@@ -265,6 +261,109 @@ describe("ApiClient", () => {
             });
 
             await expect(apiClient.sendEvents({ events: mockEvents })).rejects.toThrow();
+        });
+    });
+
+    describe("upgradeSharedTierCluster", () => {
+        const upgradeOptions = {
+            groupId: "test-group-id",
+            body: {
+                name: "MyCluster",
+                providerSettings: {
+                    providerName: "FLEX",
+                    instanceSizeName: "FLEX" as const,
+                    backingProviderName: "AWS",
+                    regionName: "US_EAST_1",
+                },
+            },
+        };
+
+        it("should POST to the tenant upgrade endpoint with legacy API version headers", async () => {
+            const mockCustomFetch = vi
+                .spyOn(apiClient as unknown as { customFetch: typeof fetch }, "customFetch")
+                .mockResolvedValue(new Response(JSON.stringify({ id: "upgraded-cluster-id" }), { status: 200 }));
+
+            const result = await apiClient.upgradeSharedTierCluster(upgradeOptions);
+
+            expect(mockCustomFetch).toHaveBeenCalledWith(
+                "https://api.test.com/api/atlas/v2/groups/test-group-id/clusters/tenantUpgrade",
+                expect.objectContaining({
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/vnd.atlas.2023-01-01+json",
+                        Accept: "application/vnd.atlas.2023-01-01+json",
+                        Authorization: "Bearer mockToken",
+                        "User-Agent": "test-user-agent",
+                    },
+                    body: JSON.stringify(upgradeOptions.body),
+                })
+            );
+            expect(result).toEqual({ id: "upgraded-cluster-id" });
+        });
+
+        it("should throw when the response is not ok", async () => {
+            vi.spyOn(apiClient as unknown as { customFetch: typeof fetch }, "customFetch").mockResolvedValue(
+                new Response(JSON.stringify({ error: "Bad Request" }), { status: 400 })
+            );
+
+            await expect(apiClient.upgradeSharedTierCluster(upgradeOptions)).rejects.toThrow();
+        });
+    });
+
+    describe("upgradeFlexToDedicated", () => {
+        const upgradeOptions = {
+            groupId: "test-group-id",
+            body: {
+                name: "MyCluster",
+                clusterType: "REPLICASET" as const,
+                replicationSpecs: [
+                    {
+                        regionConfigs: [
+                            {
+                                providerName: "AWS",
+                                regionName: "US_EAST_1",
+                                priority: 7,
+                                electableSpecs: { instanceSize: "M10", nodeCount: 3 },
+                            },
+                        ],
+                    },
+                ],
+                autoScaling: {
+                    compute: { enabled: true, scaleDownEnabled: true, minInstanceSize: "M10", maxInstanceSize: "M30" },
+                    diskGBEnabled: true,
+                },
+            },
+        };
+
+        it("should POST to the flex tenant upgrade endpoint with current API version headers", async () => {
+            const mockCustomFetch = vi
+                .spyOn(apiClient as unknown as { customFetch: typeof fetch }, "customFetch")
+                .mockResolvedValue(new Response(JSON.stringify({ id: "upgraded-cluster-id" }), { status: 200 }));
+
+            const result = await apiClient.upgradeFlexToDedicated(upgradeOptions);
+
+            expect(mockCustomFetch).toHaveBeenCalledWith(
+                "https://api.test.com/api/atlas/v2/groups/test-group-id/flexClusters:tenantUpgrade",
+                expect.objectContaining({
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/vnd.atlas.2025-03-12+json",
+                        Accept: "application/vnd.atlas.2025-03-12+json",
+                        Authorization: "Bearer mockToken",
+                        "User-Agent": "test-user-agent",
+                    },
+                    body: JSON.stringify(upgradeOptions.body),
+                })
+            );
+            expect(result).toEqual({ id: "upgraded-cluster-id" });
+        });
+
+        it("should throw when the response is not ok", async () => {
+            vi.spyOn(apiClient as unknown as { customFetch: typeof fetch }, "customFetch").mockResolvedValue(
+                new Response(JSON.stringify({ error: "Bad Request" }), { status: 400 })
+            );
+
+            await expect(apiClient.upgradeFlexToDedicated(upgradeOptions)).rejects.toThrow();
         });
     });
 });

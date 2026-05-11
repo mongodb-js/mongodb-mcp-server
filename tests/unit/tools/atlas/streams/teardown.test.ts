@@ -1,8 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ToolConstructorParams } from "../../../../../src/tools/tool.js";
-import { StreamsTeardownTool } from "../../../../../src/tools/atlas/streams/teardown.js";
-import type { Session } from "../../../../../src/common/session.js";
-import type { UserConfig } from "../../../../../src/common/config/userConfig.js";
+import type { ToolConstructorParams, IAtlasConfig, IAtlasSession } from "@mongodb-js/mcp-tools-atlas";
+import { StreamsTeardownTool } from "@mongodb-js/mcp-tools-atlas";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { Elicitation } from "../../../../../src/elicitation.js";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
@@ -40,7 +38,7 @@ describe("StreamsTeardownTool", () => {
         const mockSession = {
             logger: typedLogger,
             apiClient: mockApiClient as unknown as ApiClient,
-        } as unknown as Session;
+        } as unknown as IAtlasSession;
 
         const mockConfig = {
             confirmationRequiredTools: [],
@@ -48,7 +46,8 @@ describe("StreamsTeardownTool", () => {
             disabledTools: [],
             apiClientId: "test-id",
             apiClientSecret: "test-secret",
-        } as unknown as UserConfig;
+            atlasTemporaryDatabaseUserLifetimeMs: 3600000,
+        } as unknown as IAtlasConfig;
 
         const mockTelemetry = {
             isTelemetryEnabled: () => true,
@@ -59,7 +58,7 @@ describe("StreamsTeardownTool", () => {
             requestConfirmation: vi.fn().mockResolvedValue(true),
         } as unknown as Elicitation;
 
-        const params: ToolConstructorParams<UserConfig, unknown, DefaultMetrics> = {
+        const params: ToolConstructorParams<IAtlasConfig, unknown, DefaultMetrics> = {
             name: StreamsTeardownTool.toolName,
             category: "atlas",
             operationType: StreamsTeardownTool.operationType,

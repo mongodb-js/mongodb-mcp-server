@@ -6,6 +6,7 @@ import { packageInfo } from "../common/packageInfo.js";
 import { DeviceId } from "../helpers/deviceId.js";
 import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import type { ITelemetry } from "@mongodb-js/mcp-types";
+import type { SkillsInstallOutcome } from "./installSkills.js";
 import type {
     TelemetrySetupStage,
     TelemetrySetupEvent,
@@ -189,6 +190,17 @@ export class SetupTelemetry {
             used_default_config_path: toBoolSet(props.usedDefaultConfigPath),
         });
         this.emit("editor_configured", props.error ? { error_type: errorName(props.error) } : {}, props.result);
+    }
+
+    public emitSkillsInstallPrompted(outcome: SkillsInstallOutcome): void {
+        const patch: Partial<TelemetrySetupEventProperties> = { skills_install_status: outcome.status };
+        if (outcome.status === "skipped") {
+            patch.skills_skip_reason = outcome.reason;
+        } else if (outcome.status === "failed") {
+            patch.skills_install_exit_code = outcome.exitCode;
+        }
+        this.updateContext(patch);
+        this.emit("skills_install_prompted");
     }
 
     public emitOpenConfigPrompted(props: { opened: boolean; result: TelemetryResult; error?: unknown }): void {
