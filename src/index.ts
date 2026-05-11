@@ -47,11 +47,11 @@ import { packageInfo } from "./common/packageInfo.js";
 import {
     StdioRunner,
     StreamableHttpRunner,
-    DryRunModeRunner,
     MCPHttpServer,
     MonitoringServer,
     SessionStore,
 } from "@mongodb-js/mcp-transports";
+import { DryRunModeRunner } from "./transports/dryModeRunner.js";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { systemCA } from "@mongodb-js/devtools-proxy-support";
 import { runSetup } from "./setup/setupMcpServer.js";
@@ -63,13 +63,12 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SetupTelemetry } from "./setup/setupTelemetry.js";
 import { Elicitation } from "./elicitation.js";
 import { connectionErrorHandler } from "./common/connectionErrorHandler.js";
-import { defaultCreateConnectionManager } from "./common/connectionManager.js";
+import { MCPConnectionManager, ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
-import { ExportsManager } from "./common/exportsManager.js";
 import { Keychain as CoreKeychain } from "@mongodb-js/mcp-core";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
-import type { DeviceId } from "./helpers/deviceId.js";
+import type { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import type { HttpServerConfig, SessionManagementConfig } from "@mongodb-js/mcp-types";
 
 /**
@@ -100,11 +99,11 @@ class MongoDBMCPHttpServer extends MCPHttpServer<Server> {
     }
 
     protected override async createServer(): Promise<Server> {
-        return createServerForConfig(
-            this.userConfig,
-            this.baseLogger,
-            this.metrics as PrometheusMetrics<DefaultMetrics>
-        );
+        return createServerForConfig({
+            config: this.userConfig,
+            logger: this.baseLogger,
+            metrics: this.metrics as PrometheusMetrics<DefaultMetrics>,
+        });
     }
 }
 
@@ -166,7 +165,7 @@ async function main(): Promise<void> {
             loggers,
             metrics: metrics as IMetrics<MetricDefinitions>,
             createServer: async (): Promise<Server> => {
-                return createServerForConfig(config, baseLogger, metrics);
+                return createServerForConfig({ config, logger: baseLogger, metrics });
             },
         });
     } else {
@@ -307,23 +306,21 @@ export async function handleDryRunRequest(config: UserConfig): Promise<never> {
         const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
         const consoleLogger = new ConsoleLogger({ keychain: Keychain.root });
         const compositeLogger = new CompositeLogger({ loggers: [consoleLogger] });
+
+        // Create the server instance
+        const server = await createServerForConfig({ config, logger: compositeLogger, metrics });
+
         const runner = new DryRunModeRunner({
-            loggers: [],
-            metrics: metrics as IMetrics<MetricDefinitions>,
-            consoleLogger: {
-                log(message: string): void {
-                    console.log(message);
-                },
-                error(message: string): void {
-                    console.error(message);
-                },
+            logger: {
+                log: console.log,
+                error: console.error,
             },
-            createServer: async (): Promise<Server> => {
-                return createServerForConfig(config, compositeLogger, metrics);
-            },
+            userConfig: config,
+            server,
+            metrics: metrics as IMetrics<DefaultMetricDefinitions>,
         });
         await runner.start();
-        await runner.close();
+        await runner.stop();
         process.exit(0);
     } catch (error) {
         console.error(`Fatal error running server in dry run mode: ${error as string}`);
@@ -365,20 +362,33 @@ async function createDefaultLoggers(config: UserConfig): Promise<CompositeLogger
     return [new CompositeLogger({ loggers: baseLoggers })];
 }
 
-async function createServerForConfig(
-    config: UserConfig,
-    logger: CompositeLogger,
-    metrics: PrometheusMetrics<DefaultMetrics>
-): Promise<Server> {
+type CreateServerOptions = {
+    config: UserConfig;
+    logger: CompositeLogger;
+    metrics: PrometheusMetrics<DefaultMetrics>;
+};
+
+async function createServerForConfig({ config, logger, metrics }: CreateServerOptions): Promise<Server> {
     const keychain = CoreKeychain.root;
 
     // Create exports manager using the static init method
-    const exportsManager = ExportsManager.init(config, logger);
+    const exportsManager = ExportsManager.init({
+        options: {
+            exportsPath: config.exportsPath,
+            exportTimeoutMs: config.exportTimeoutMs,
+            exportCleanupIntervalMs: config.exportCleanupIntervalMs,
+        },
+        logger,
+    });
 
-    const connectionManager = await defaultCreateConnectionManager({
+    const connectionManager = new MCPConnectionManager({
         logger,
         deviceId: {} as DeviceId,
-        userConfig: config,
+        options: {
+            connectionInfo: { transport: "http", httpHost: "localhost" },
+            displayName: "mongodb-mcp-server",
+            version: packageInfo.version,
+        },
     });
 
     let apiClient: ApiClient | undefined;

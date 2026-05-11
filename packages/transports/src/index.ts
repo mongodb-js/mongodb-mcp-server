@@ -11,7 +11,6 @@ export type {
     // Customizable Options
     CustomizableServerOptions,
     CustomizableSessionOptions,
-
     MetricDefinitions,
     DefaultMetricDefinitions,
 } from "./types.js";
@@ -36,7 +35,6 @@ export { TransportRunnerBase } from "./base.js";
 // Concrete transport runners
 export { StdioRunner } from "./stdio.js";
 export { StreamableHttpRunner } from "./streamableHttp.js";
-export { DryRunModeRunner, type DryRunModeTestHelpers } from "./dryModeRunner.js";
 
 // HTTP Servers
 export { MCPHttpServer, type MCPHttpServerOptions } from "./mcpHttpServer.js";

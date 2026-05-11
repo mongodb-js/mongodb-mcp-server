@@ -1,6 +1,29 @@
 import type { KnipConfig } from "knip";
 
 const config: KnipConfig = {
+    // Symbols re-exported for npm consumers without in-repo imports (library public API).
+    ignoreIssues: {
+        "packages/core/src/telemetry/noopTelemetry.ts": ["exports"],
+        "packages/logging/src/mcpLogger.ts": ["exports"],
+        "packages/transports/src/mcpHttpServer.ts": ["exports"],
+        "src/common/config/configOverrides.ts": ["exports"],
+        "src/common/errors.ts": ["exports"],
+        "src/helpers/getRandomUUID.ts": ["exports"],
+        "src/lib.ts": ["exports"],
+        "packages/atlas-api-client/src/index.ts": ["types"],
+        "packages/atlas-telemetry/src/types.ts": ["types"],
+        "packages/tools-mongodb/src/common/connectionManager.ts": ["types"],
+        "packages/tools-mongodb/src/common/schemas.ts": ["types"],
+        "packages/transports/src/types.ts": ["types"],
+        "packages/types/src/apiClient.ts": ["types"],
+        "packages/types/src/metrics.ts": ["types"],
+        "packages/types/src/resources.ts": ["types"],
+        "packages/types/src/session.ts": ["types"],
+        "packages/types/src/sessionStore.ts": ["types"],
+        "packages/types/src/tool.ts": ["types"],
+        "packages/types/src/transport.ts": ["types"],
+        "packages/types/src/transports.ts": ["types"],
+    },
     workspaces: {
         ".": {
             entry: [
@@ -16,6 +39,7 @@ const config: KnipConfig = {
                 "vite.ui.config.ts",
             ],
             ignore: [
+                "packages/atlas-api-client/openapi.d.ts",
                 "tests/integration/fixtures/curl.mjs",
                 "tests/vitest.d.ts",
                 "src/ui/build/mount.tsx",

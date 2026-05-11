@@ -211,14 +211,14 @@ const runner = new StreamableHttpRunner({
 
 Several types have been moved or renamed:
 
-| Old location                                      | New location                                         |
-| ------------------------------------------------- | ---------------------------------------------------- |
-| `TransportRunnerConfig`                           | `TransportRunnerBaseOptions`                         |
-| `StreamableHttpTransportRunnerConfig`             | `StreamableHttpRunnerOptions`                        |
-| `MonitoringServerConfig` (from streamableHttp.ts) | `MonitoringServerConfig` (from types.ts)             |
+| Old location                                      | New location                                                                    |
+| ------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `TransportRunnerConfig`                           | `TransportRunnerBaseOptions`                                                    |
+| `StreamableHttpTransportRunnerConfig`             | `StreamableHttpRunnerOptions`                                                   |
+| `MonitoringServerConfig` (from streamableHttp.ts) | `MonitoringServerConfig` (from types.ts)                                        |
 | `CreateSessionConfigFn`                           | Removed - extend `StreamableHttpRunner` and override `createServerForRequest()` |
-| `CustomizableServerOptions`                       | Same name, moved to `@mongodb-js/mcp-transports`     |
-| `CustomizableSessionOptions`                      | Same name, moved to `@mongodb-js/mcp-transports`     |
+| `CustomizableServerOptions`                       | Same name, moved to `@mongodb-js/mcp-transports`                                |
+| `CustomizableSessionOptions`                      | Same name, moved to `@mongodb-js/mcp-transports`                                |
 
 ### Removed from Transports
 

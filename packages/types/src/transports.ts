@@ -1,3 +1,6 @@
+import type { ILogger } from "./logging.js";
+import type { IMetrics, MetricDefinitions } from "./metrics.js";
+
 /**
  * Configuration for HTTP servers used by transport runners.
  */
@@ -46,6 +49,29 @@ export type SessionManagementConfig = {
     /** Whether to allow externally managed sessions */
     externallyManagedSessions: boolean;
 };
+
+/**
+ * Constructor arguments for creating a monitoring server.
+ */
+export type MonitoringServerConstructorArgs<TMetrics extends MetricDefinitions = MetricDefinitions> = {
+    /** Host to bind the monitoring server to */
+    host: string;
+    /** Port to bind the monitoring server to */
+    port: number;
+    /** Features to enable on the monitoring server */
+    features: MonitoringServerFeature[];
+    /** Logger for the server */
+    logger: ILogger;
+    /** Metrics instance */
+    metrics: IMetrics<TMetrics>;
+};
+
+/**
+ * Factory function type for creating a monitoring server.
+ */
+export type CreateMonitoringServerFn<TMetrics extends MetricDefinitions = MetricDefinitions> = (
+    args: MonitoringServerConstructorArgs<TMetrics>
+) => object | undefined;
 
 /**
  * Configuration options for transport runners.
