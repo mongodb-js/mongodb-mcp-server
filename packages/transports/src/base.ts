@@ -1,6 +1,6 @@
 import { CompositeLogger, type LoggerBase } from "@mongodb-js/mcp-core";
-import type { ILogger, IMetrics, MetricDefinitions } from "@mongodb-js/mcp-types";
-import type { CustomizableServerOptions, CustomizableSessionOptions, ServerOptions } from "./types.js";
+import type { IMetrics, MetricDefinitions } from "@mongodb-js/mcp-types";
+import type { CustomizableServerOptions, CustomizableSessionOptions } from "./types.js";
 
 /**
  * Base class for all transport runners.

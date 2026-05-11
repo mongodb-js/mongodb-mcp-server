@@ -1,5 +1,5 @@
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import type { MetricDefinitions, ISessionStore } from "@mongodb-js/mcp-types";
+import type { MetricDefinitions, ISessionStore, IMetrics, TransportRequestContext } from "@mongodb-js/mcp-types";
 import type { LoggerBase } from "@mongodb-js/mcp-core";
 import { LogId } from "@mongodb-js/mcp-core";
 import { TransportRunnerBase } from "./base.js";
@@ -27,7 +27,7 @@ export type StreamableHttpRunnerOptions<TMetrics extends MetricDefinitions = Met
     loggers?: LoggerBase[];
 
     /** Optional metrics instance */
-    metrics?: import("@mongodb-js/mcp-types").IMetrics<TMetrics>;
+    metrics?: IMetrics<TMetrics>;
 };
 
 /**
@@ -81,13 +81,13 @@ export class StreamableHttpRunner<
     }
 
     /** Starts the transport runner. */
-    async start({
-        serverOptions,
-        sessionOptions,
-    }: {
-        serverOptions?: CustomizableServerOptions<TContext>;
-        sessionOptions?: CustomizableSessionOptions;
-    } = {}): Promise<void> {
+    async start(
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used by subclasses
+        _options: {
+            serverOptions?: CustomizableServerOptions<TContext>;
+            sessionOptions?: CustomizableSessionOptions;
+        } = {}
+    ): Promise<void> {
         this.validateConfig();
 
         await this.mcpHttpServer.start();
@@ -115,13 +115,13 @@ export class StreamableHttpRunner<
      * is not used by StreamableHttpRunner since server creation happens inside
      * MCPHttpServer. This stub implementation throws an error if called.
      */
-    protected createServer({
-        serverOptions,
-        sessionOptions,
-    }: {
-        serverOptions?: CustomizableServerOptions<TContext>;
-        sessionOptions?: CustomizableSessionOptions;
-    }): Promise<TServer> {
+    protected createServer(
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Required by base class signature
+        _options: {
+            serverOptions?: CustomizableServerOptions<TContext>;
+            sessionOptions?: CustomizableSessionOptions;
+        }
+    ): Promise<TServer> {
         throw new Error(
             "StreamableHttpRunner.createServer() should not be called directly. " +
                 "Server creation is handled by the MCPHttpServer's createServer callback."
@@ -132,18 +132,14 @@ export class StreamableHttpRunner<
      * Creates a server instance for a specific request.
      * Override this method in subclasses to customize per-request server creation.
      */
-    protected createServerForRequest({
-        serverOptions,
-        sessionOptions,
-        request,
-    }: {
+    protected createServerForRequest(_options: {
         serverOptions?: CustomizableServerOptions<TContext>;
         sessionOptions?: CustomizableSessionOptions;
-        request: import("@mongodb-js/mcp-types").TransportRequestContext;
+        request: TransportRequestContext;
     }): Promise<TServer> {
         // Default implementation just creates a regular server
         // Subclasses can override to customize based on the request
-        return this.createServer({ serverOptions, sessionOptions });
+        return this.createServer({ serverOptions: _options.serverOptions, sessionOptions: _options.sessionOptions });
     }
 
     private shouldWarnAboutHttpHost(httpHost: string): boolean {

@@ -1,7 +1,6 @@
 import type {
     ILogger,
     IMetrics,
-    ICounter,
     CloseableTransport,
     SessionCloseReason,
     DefaultMetricDefinitions,

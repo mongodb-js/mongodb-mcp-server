@@ -28,8 +28,8 @@ export type MonitoringServerDependencies<TMetrics extends MetricDefinitions = Me
 /**
  * Complete options for creating a MonitoringServer instance.
  */
-export type MonitoringServerOptions<TMetrics extends MetricDefinitions = MetricDefinitions> =
-    MonitoringServerConfig & MonitoringServerDependencies<TMetrics>;
+export type MonitoringServerOptions<TMetrics extends MetricDefinitions = MetricDefinitions> = MonitoringServerConfig &
+    MonitoringServerDependencies<TMetrics>;
 
 /**
  * HTTP server that provides monitoring endpoints like health checks and metrics.

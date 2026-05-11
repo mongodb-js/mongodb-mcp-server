@@ -26,7 +26,9 @@ import {
  * Options for creating an MCPHttpServer instance.
  */
 export type MCPHttpServerOptions<
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used by subclasses
     TServer = unknown,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used by subclasses
     TContext = unknown,
     TMetrics extends MetricDefinitions = MetricDefinitions,
 > = {
@@ -94,6 +96,7 @@ export class MCPHttpServer<
      * Creates a new server instance. Override this method in subclasses
      * to customize server creation for each new session.
      */
+    // eslint-disable-next-line @typescript-eslint/require-await -- Subclasses may need async
     protected async createServer(): Promise<TServer> {
         throw new Error("MCPHttpServer.createServer() must be overridden in a subclass");
     }
@@ -103,6 +106,7 @@ export class MCPHttpServer<
      * in subclasses to customize per-request server creation. The default
      * implementation delegates to createServer().
      */
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used by subclasses
     protected async createServerForRequest(request: TransportRequestContext): Promise<TServer> {
         return this.createServer();
     }
@@ -150,36 +154,38 @@ export class MCPHttpServer<
         }
 
         let failedPings = 0;
-        const keepAliveLoop = setInterval(async () => {
-            try {
-                server.session?.logger.debug({
-                    id: LogId.streamableHttpTransportKeepAlive,
-                    context: "streamableHttpTransport",
-                    message: "Sending ping",
-                });
-
-                await transport.send({
-                    jsonrpc: "2.0",
-                    method: "ping",
-                });
-                failedPings = 0;
-            } catch (err) {
+        const keepAliveLoop = setInterval((): void => {
+            void (async (): Promise<void> => {
                 try {
-                    failedPings++;
-                    server.session?.logger.warning({
-                        id: LogId.streamableHttpTransportKeepAliveFailure,
+                    server.session?.logger.debug({
+                        id: LogId.streamableHttpTransportKeepAlive,
                         context: "streamableHttpTransport",
-                        message: `Error sending ping (attempt #${failedPings}): ${err instanceof Error ? err.message : String(err)}`,
+                        message: "Sending ping",
                     });
 
-                    if (failedPings > 3) {
-                        clearInterval(keepAliveLoop);
-                        await transport.close();
+                    await transport.send({
+                        jsonrpc: "2.0",
+                        method: "ping",
+                    });
+                    failedPings = 0;
+                } catch (err) {
+                    try {
+                        failedPings++;
+                        server.session?.logger.warning({
+                            id: LogId.streamableHttpTransportKeepAliveFailure,
+                            context: "streamableHttpTransport",
+                            message: `Error sending ping (attempt #${failedPings}): ${err instanceof Error ? err.message : String(err)}`,
+                        });
+
+                        if (failedPings > 3) {
+                            clearInterval(keepAliveLoop);
+                            await transport.close();
+                        }
+                    } catch {
+                        // Ignore the error of the transport close
                     }
-                } catch {
-                    // Ignore the error of the transport close
                 }
-            }
+            })();
         }, 30_000);
 
         return keepAliveLoop;
@@ -330,6 +336,7 @@ export class MCPHttpServer<
         }
     }
 
+    // eslint-disable-next-line @typescript-eslint/require-await -- Required for override signature
     protected override async setupRoutes(): Promise<void> {
         this.setupMiddlewares();
 

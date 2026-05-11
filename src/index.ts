@@ -69,7 +69,8 @@ import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { ExportsManager } from "./common/exportsManager.js";
 import { Keychain as CoreKeychain } from "@mongodb-js/mcp-core";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
-import { DeviceId } from "./helpers/deviceId.js";
+import type { DeviceId } from "./helpers/deviceId.js";
+import type { HttpServerConfig, SessionManagementConfig } from "@mongodb-js/mcp-types";
 
 /**
  * Concrete MCPHttpServer implementation that creates Server instances for each session.
@@ -87,8 +88,8 @@ class MongoDBMCPHttpServer extends MCPHttpServer<Server> {
         sessionStore,
     }: {
         userConfig: UserConfig;
-        httpOptions: import("@mongodb-js/mcp-types").HttpServerConfig;
-        sessionOptions: import("@mongodb-js/mcp-types").SessionManagementConfig;
+        httpOptions: HttpServerConfig;
+        sessionOptions: SessionManagementConfig;
         logger: CompositeLogger;
         metrics: IMetrics<DefaultMetricDefinitions>;
         sessionStore: SessionStore<StreamableHTTPServerTransport>;
@@ -164,7 +165,7 @@ async function main(): Promise<void> {
         transportRunner = new StdioRunner({
             loggers,
             metrics: metrics as IMetrics<MetricDefinitions>,
-            createServer: async () => {
+            createServer: async (): Promise<Server> => {
                 return createServerForConfig(config, baseLogger, metrics);
             },
         });
@@ -317,7 +318,7 @@ export async function handleDryRunRequest(config: UserConfig): Promise<never> {
                     console.error(message);
                 },
             },
-            createServer: async () => {
+            createServer: async (): Promise<Server> => {
                 return createServerForConfig(config, compositeLogger, metrics);
             },
         });
@@ -414,13 +415,17 @@ async function createServerForConfig(
 
     const elicitation = new Elicitation({ server: mcpServer.server });
 
+    if (!apiClient) {
+        throw new Error("API client is required but not available. Please provide clientId and clientSecret.");
+    }
+
     const session = new Session({
         userConfig: config,
         logger,
         exportsManager,
         connectionManager,
         keychain,
-        apiClient: apiClient!, // session requires this but we may not have it
+        apiClient,
         connectionErrorHandler,
         atlasLocalClient,
     });

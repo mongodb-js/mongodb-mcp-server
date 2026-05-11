@@ -101,6 +101,8 @@ export class DryRunModeRunner<
         if (this.serverFactory) {
             return this.serverFactory({ serverOptions, sessionOptions }) as Promise<TServer>;
         }
-        throw new Error("Either provide createServer option or extend DryRunModeRunner and override createServer() method");
+        throw new Error(
+            "Either provide createServer option or extend DryRunModeRunner and override createServer() method"
+        );
     }
 }
