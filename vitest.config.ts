@@ -20,12 +20,11 @@ if (process.env.SKIP_ATLAS_LOCAL_TESTS === "true") {
     vitestDefaultExcludes.push("**/atlas-local/**");
 }
 
-// TODO: Re-enable on Windows once the worker fork crash is resolved.
-// The aggregate test file's Vitest worker exits unexpectedly on Windows runners,
-// leaving an orphan mongod and failing the whole run with exit code 1.
-if (process.platform === "win32") {
-    vitestDefaultExcludes.push("**/integration/tools/mongodb/read/aggregate.test.ts");
-}
+// TODO: Re-enable parallel execution on Windows once the worker fork crash is resolved.
+// On Windows runners, parallel Vitest worker forks crash non-deterministically (different
+// integration test files each run), leaving orphan mongod processes and failing the run
+// with exit code 1. Forcing a single fork avoids the resource contention that triggers it.
+const isWindows = process.platform === "win32";
 
 export default defineConfig({
     test: {
@@ -33,6 +32,14 @@ export default defineConfig({
         testTimeout: 3600000,
         hookTimeout: 3600000,
         setupFiles: ["./tests/setup.ts"],
+        ...(isWindows && {
+            pool: "forks",
+            poolOptions: {
+                forks: {
+                    singleFork: true,
+                },
+            },
+        }),
         coverage: {
             exclude: [
                 // Required: import.meta.glob() in src/ui creates Vite virtual modules (\0 prefixed paths)
