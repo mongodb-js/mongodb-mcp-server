@@ -12,7 +12,7 @@ This directory contains an Azure Bicep template (`bicep/main.bicep`) and support
 
 ## Parameter Files
 
-Two sample parameter files are provided to help you tailor deployments. Copy these files and remove the suffix "_template" part to create parameter files as "bicep/params.json" and "bicep/paramsWithAuthEnabled.json".
+Two sample parameter files are provided to help you tailor deployments. Copy these files and remove the suffix "\_template" part to create parameter files as "bicep/params.json" and "bicep/paramsWithAuthEnabled.json".
 
 - `bicep/params_template.json`: Baseline configuration that deploys the MongoDB MCP server with authentication disabled or using default settings. Use this when testing in development environments or when external authentication is not required.
 - `bicep/paramsWithAuthEnabled_template.json`: Extends the baseline deployment and enables Microsoft Entra ID (Azure AD) authentication using managed identity and client application IDs. Use this when you want the server protected with Azure AD authentication via managed identity.
@@ -23,14 +23,14 @@ Two sample parameter files are provided to help you tailor deployments. Copy the
 - Leave `containerAppEnvironmentName` empty to let the template create a new managed environment.
 - If you reuse an existing environment, ensure it is in a healthy provisioned state before deployment. You can verify that with:
 
-   ```bash
-   az containerapp env show \
-      --resource-group <RESOURCE_GROUP> \
-      --name <CONTAINER_APP_ENVIRONMENT_NAME> \
-      --query properties.provisioningState -o tsv
-   ```
+  ```bash
+  az containerapp env show \
+     --resource-group <RESOURCE_GROUP> \
+     --name <CONTAINER_APP_ENVIRONMENT_NAME> \
+     --query properties.provisioningState -o tsv
+  ```
 
-   The deployment should only proceed when the command returns `Succeeded`.
+  The deployment should only proceed when the command returns `Succeeded`.
 
 > **Tip:** Update the image reference, secrets, networking, and any other environment-specific values in the chosen parameter file before deployment.
 

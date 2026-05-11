@@ -15,7 +15,7 @@
         "MDB_MCP_TRANSPORT": "http",
         "MDB_MCP_LOGGERS": "disk,mcp,stderr",
         "MDB_MCP_LOG_PATH": "/tmp/mongodb-mcp"
-        }
+      }
     },
     "mdbConnectionString": { "value": "<MONGODB_CONNECTION_STRING>" },
     "authMode": { "value": "MicrosoftMIBasedAuth" },
