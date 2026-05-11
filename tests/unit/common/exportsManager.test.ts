@@ -4,9 +4,9 @@ import { Readable, Transform } from "stream";
 import type { FindCursor } from "mongodb";
 import { Long } from "mongodb";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ExportsManagerConfig } from "../../../src/common/exportsManager.js";
-import { ensureExtension, isExportExpired, ExportsManager } from "../../../src/common/exportsManager.js";
-import type { AvailableExport } from "../../../src/common/exportsManager.js";
+import type { ExportsManagerOptions } from "@mongodb-js/mcp-tools-mongodb";
+import { ensureExtension, isExportExpired, ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
+import type { AvailableExport } from "@mongodb-js/mcp-tools-mongodb";
 import { ROOT_DIR } from "../../accuracy/sdk/constants.js";
 import { defaultTestConfig, timeout } from "../../integration/helpers.js";
 import type { EJSONOptions } from "bson";
@@ -15,7 +15,7 @@ import { CompositeLogger } from "@mongodb-js/mcp-core";
 
 const logger = new CompositeLogger();
 const exportsPath = path.join(ROOT_DIR, "tests", "tmp", `exports-${Date.now()}`);
-const exportsManagerConfig: ExportsManagerConfig = {
+const exportsManagerConfig: Omit<ExportsManagerOptions, "exportsDirectoryPath"> = {
     exportsPath,
     exportTimeoutMs: defaultTestConfig.exportTimeoutMs,
     exportCleanupIntervalMs: defaultTestConfig.exportCleanupIntervalMs,
@@ -149,7 +149,7 @@ describe("ExportsManager unit test", () => {
 
     beforeEach(async () => {
         await fs.mkdir(exportsManagerConfig.exportsPath, { recursive: true });
-        manager = ExportsManager.init(exportsManagerConfig, logger);
+        manager = ExportsManager.init({ options: exportsManagerConfig, logger });
 
         let notifyManagerClosed: () => void;
         managerClosedPromise = new Promise((resolve): void => {
@@ -516,15 +516,15 @@ describe("ExportsManager unit test", () => {
 
         it("should not clean up in-progress exports", async () => {
             const { exportName, uniqueExportsId } = getExportNameAndPath();
-            const manager = ExportsManager.init(
-                {
+            const manager = ExportsManager.init({
+                options: {
                     ...exportsManagerConfig,
                     exportTimeoutMs: 100,
                     exportCleanupIntervalMs: 50,
                 },
-                new CompositeLogger(),
-                uniqueExportsId
-            );
+                logger: new CompositeLogger(),
+                sessionId: uniqueExportsId,
+            });
             const { cursor } = createDummyFindCursorWithDelay([{ name: "Test" }], 2000);
             await manager.createJSONExport({
                 input: cursor,
@@ -544,15 +544,15 @@ describe("ExportsManager unit test", () => {
 
         it("should cleanup expired exports", async () => {
             const { exportName, exportPath, exportURI, uniqueExportsId } = getExportNameAndPath();
-            const manager = ExportsManager.init(
-                {
+            const manager = ExportsManager.init({
+                options: {
                     ...exportsManagerConfig,
                     exportTimeoutMs: 100,
                     exportCleanupIntervalMs: 50,
                 },
-                new CompositeLogger(),
-                uniqueExportsId
-            );
+                logger: new CompositeLogger(),
+                sessionId: uniqueExportsId,
+            });
             await manager.createJSONExport({
                 input: cursor,
                 exportName,

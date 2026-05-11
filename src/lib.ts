@@ -1,4 +1,10 @@
-export { Server, type ServerOptions, type AnyToolClass, type ToolCategory } from "./server.js";
+export {
+    Server,
+    type ServerOptions,
+    type MongoDBToolsRuntimeConfig,
+    type AnyToolClass,
+    type ToolCategory,
+} from "./server.js";
 export { Session, type SessionOptions, type SessionEvents } from "./common/session.js";
 export { type UserConfig, UserConfigSchema, configRegistry } from "./common/config/userConfig.js";
 export { parseUserConfig, defaultParserOptions, type ParserOptions } from "./common/config/parseUserConfig.js";
@@ -16,11 +22,6 @@ export function parseArgsWithCliOptions(cliArguments: string[]): {
         args: cliArguments,
     });
 }
-
-import { defaultCreateConnectionManager } from "./common/connectionManager.js";
-/** @deprecated Use `defaultCreateConnectionManager` instead. */
-const createMCPConnectionManager = defaultCreateConnectionManager;
-export { createMCPConnectionManager, defaultCreateConnectionManager };
 
 export { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 
@@ -61,18 +62,20 @@ export {
 } from "./transports/base.js";
 export {
     ConnectionManager,
-    ConnectionStateConnected,
+    MCPConnectionManager,
+    type ConnectionStateConnected,
     type AnyConnectionState,
     type ConnectionState,
     type ConnectionStateConnecting,
     type ConnectionStateDisconnected,
     type ConnectionStateErrored,
     type ConnectionManagerFactoryFn,
+    type ConnectionManagerFactoryOptions,
     type ConnectionSettings,
     type ConnectionManagerEvents,
     type ConnectionTag,
     type OIDCConnectionAuthType,
-} from "./common/connectionManager.js";
+} from "@mongodb-js/mcp-tools-mongodb";
 export {
     connectionErrorHandler,
     type ConnectionErrorHandler,
@@ -80,7 +83,12 @@ export {
     type ConnectionErrorUnhandled,
     type ConnectionErrorHandlerContext,
 } from "./common/connectionErrorHandler.js";
-export { ErrorCodes, MongoDBError } from "./common/errors.js";
+export {
+    ErrorCodes,
+    MongoDBError,
+    QUERY_COUNT_MAX_TIME_MS_CAP,
+    AGG_COUNT_MAX_TIME_MS_CAP,
+} from "@mongodb-js/mcp-tools-mongodb";
 export { AtlasTelemetry, EventCache } from "@mongodb-js/mcp-atlas-telemetry";
 export type {
     TelemetryEvent,
@@ -102,9 +110,9 @@ export {
     type CreateSessionStoreFn,
     type SessionStoreConstructorArgs,
 } from "./common/sessionStore.js";
-export { ExportsManager } from "./common/exportsManager.js";
-export { DeviceId } from "./helpers/deviceId.js";
-export type { MonitoringServerFeature } from "./common/schemas.js";
+export { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
+export { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
+export type { MonitoringServerFeature } from "@mongodb-js/mcp-tools-mongodb";
 export { ApiClient, type ApiClientOptions, type RequestContext } from "@mongodb-js/mcp-atlas-api-client";
 export type { AuthProvider, Credentials } from "@mongodb-js/mcp-atlas-api-client";
 export { type UIRegistryOptions, UIRegistry } from "@mongodb-js/mcp-ui";

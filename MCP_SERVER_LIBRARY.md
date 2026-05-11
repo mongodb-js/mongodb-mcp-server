@@ -68,7 +68,6 @@ import {
   MongoDBError,
   ErrorCodes,
   connectionErrorHandler,
-  defaultCreateConnectionManager,
   applyConfigOverrides,
   // ... and more
 } from "mongodb-mcp-server";
@@ -897,14 +896,14 @@ See "Example: Integration with Request Overrides" for further details on how to 
 
 You can provide a custom connection manager to control how the MongoDB MCP server connects to a MongoDB instance. The main use case for this is if connection handling is done differently in your application. For example, the [MongoDB extension for VS Code](https://github.com/mongodb-js/vscode/blob/f45a4c774ffc01e9aed38f6ef00224bf921d9784/src/mcp/mcpConnectionManager.ts#L30) provides its own implementation of ConnectionManager because the connection handling is done by the extension itself.
 
-The default connection manager factory (`defaultCreateConnectionManager`) is also exported if you need to use the default implementation.
+When using `MCPConnectionManager`, pass **`options`**: an object with **`connectionInfo`** (transport / browser hints for OIDC inference—the parsed `UserConfig` satisfies this), **`displayName`** (product title), and **`version`** (product version string). Those labels are combined into the MongoDB driver `appName` when not already set on the URI. The core server fills them from `userConfig` + `packageInfo` when it builds the manager for you.
 
 ```typescript
 import {
   ConnectionManager,
+  MCPConnectionManager,
   StreamableHttpRunner,
   UserConfigSchema,
-  defaultCreateConnectionManager,
 } from "mongodb-mcp-server";
 import type { Server } from "mongodb-mcp-server";
 import type { RequestContext } from "mongodb-mcp-server";
@@ -918,10 +917,14 @@ class CustomStreamableHttpRunner extends StreamableHttpRunner {
   }): Promise<Server> {
     // Create a custom connection manager instance
     // This example uses the default, but you can provide your own implementation
-    const customConnectionManager = await defaultCreateConnectionManager({
+    const customConnectionManager = new MCPConnectionManager({
       logger: this.logger,
-      userConfig: this.userConfig,
       deviceId: this.deviceId,
+      options: {
+        connectionInfo: this.userConfig,
+        displayName: "My MCP Host",
+        version: "1.0.0",
+      },
     });
 
     // Create the server with the custom connection manager

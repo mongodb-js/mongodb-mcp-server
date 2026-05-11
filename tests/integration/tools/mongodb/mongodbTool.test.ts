@@ -2,23 +2,23 @@ import { vi, it, describe, beforeEach, afterEach, afterAll, expect } from "vites
 import { type CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { MongoDBToolBase } from "../../../../src/tools/mongodb/mongodbTool.js";
-import { type OperationType, type ToolClass } from "../../../../src/tools/tool.js";
+import { MongoDBToolBase } from "@mongodb-js/mcp-tools-mongodb";
+import { type OperationType } from "../../../../src/tools/tool.js";
 import { type UserConfig } from "../../../../src/common/config/userConfig.js";
-import { MCPConnectionManager } from "../../../../src/common/connectionManager.js";
+import { MCPConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
 import { Session } from "../../../../src/common/session.js";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
-import { DeviceId } from "../../../../src/helpers/deviceId.js";
-import { ExportsManager } from "../../../../src/common/exportsManager.js";
+import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
+import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { InMemoryTransport } from "../../../../src/transports/inMemoryTransport.js";
-import { Server } from "../../../../src/server.js";
+import { Server, type AnyToolClass } from "../../../../src/server.js";
 import { type ConnectionErrorHandler, connectionErrorHandler } from "../../../../src/common/connectionErrorHandler.js";
-import { defaultTestConfig, expectDefined } from "../../helpers.js";
+import { defaultTestConfig, expectDefined, testConnectionManagerDriverLabels } from "../../helpers.js";
 import { setupMongoDBIntegrationTest } from "./mongodbHelpers.js";
-import { ErrorCodes } from "../../../../src/common/errors.js";
+import { ErrorCodes } from "@mongodb-js/mcp-tools-mongodb";
 import { Keychain } from "@mongodb-js/mcp-core";
 import { Elicitation } from "../../../../src/elicitation.js";
-import * as MongoDbTools from "../../../../src/tools/mongodb/tools.js";
+import { MongoDBTools } from "@mongodb-js/mcp-tools-mongodb";
 import { ApiClient } from "../../../../src/lib.js";
 import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import { MockMetrics } from "../../../unit/mocks/metrics.js";
@@ -90,15 +90,22 @@ describe("MongoDBTool implementations", () => {
 
     async function cleanupAndStartServer(
         config: Partial<UserConfig> | undefined = {},
-        toolConstructors: ToolClass[] = [...Object.values(MongoDbTools), RandomTool],
+        toolConstructors: AnyToolClass[] = [...Object.values(MongoDBTools), RandomTool],
         errorHandler: ConnectionErrorHandler | undefined = connectionErrorHandler
     ): Promise<void> {
         await cleanup();
         const userConfig: UserConfig = { ...defaultTestConfig, telemetry: "disabled", ...config };
         const logger = new CompositeLogger();
-        const exportsManager = ExportsManager.init(userConfig, logger);
+        const exportsManager = ExportsManager.init({ options: userConfig, logger: logger });
         deviceId = DeviceId.create(logger);
-        const connectionManager = new MCPConnectionManager(userConfig, logger, deviceId);
+        const connectionManager = new MCPConnectionManager({
+            logger: logger,
+            deviceId: deviceId,
+            options: {
+                connectionInfo: userConfig,
+                ...testConnectionManagerDriverLabels,
+            },
+        });
         const session = new Session({
             userConfig,
             logger,
@@ -258,7 +265,7 @@ describe("MongoDBTool implementations", () => {
         beforeEach(async () => {
             await cleanupAndStartServer(
                 defaultTestConfig,
-                [...Object.values(MongoDbTools), RandomTool],
+                [...Object.values(MongoDBTools), RandomTool],
                 injectedErrorHandler
             );
         });
@@ -286,7 +293,7 @@ describe("MongoDBTool implementations", () => {
                 // This is a misconfigured connection string
                 await cleanupAndStartServer(
                     { connectionString: "mongodb://localhost:1234" },
-                    [...Object.values(MongoDbTools), RandomTool],
+                    [...Object.values(MongoDBTools), RandomTool],
                     injectedErrorHandler
                 );
                 const toolResponse = await mcpClient?.callTool({
@@ -310,7 +317,7 @@ describe("MongoDBTool implementations", () => {
                 // This is a misconfigured connection string
                 await cleanupAndStartServer(
                     { connectionString: mdbIntegration.connectionString(), indexCheck: true },
-                    [...Object.values(MongoDbTools), RandomTool],
+                    [...Object.values(MongoDBTools), RandomTool],
                     injectedErrorHandler
                 );
                 const toolResponse = await mcpClient?.callTool({

@@ -1,4 +1,4 @@
-import { DeviceId } from "../../src/helpers/deviceId.js";
+import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { describe, expect, it } from "vitest";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
 import { Keychain } from "@mongodb-js/mcp-core";

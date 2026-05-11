@@ -1,4 +1,5 @@
 export type * from "./config.js";
+export type { AtlasClusterConnectionInfo } from "./connection.js";
 export type * from "./schemas.js";
 export type * from "./session.js";
 export type * from "./sessionStore.js";

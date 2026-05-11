@@ -7,7 +7,7 @@ import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import { AtlasArgs } from "../../args.js";
 import type { UpgradeClusterMetadata } from "@mongodb-js/mcp-atlas-telemetry";
-import type { AtlasClusterConnectionInfo } from "../../atlasTool.js";
+import type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-types";
 
 const ALLOWED_PROVIDER_REGEX = /^[A-Z_]+$/;
 

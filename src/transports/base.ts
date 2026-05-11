@@ -6,9 +6,13 @@ import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-tele
 import { McpServer, type LoggerBase, CompositeLogger } from "@mongodb-js/mcp-core";
 import { McpLogger } from "@mongodb-js/mcp-logging";
 import { Keychain } from "@mongodb-js/mcp-core";
-import { ExportsManager } from "../common/exportsManager.js";
-import { DeviceId } from "../helpers/deviceId.js";
-import { defaultCreateConnectionManager, type ConnectionManagerFactoryFn } from "../common/connectionManager.js";
+import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
+import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
+import {
+    MCPConnectionManager,
+    type ConnectionManager,
+    type ConnectionManagerFactoryFn,
+} from "@mongodb-js/mcp-tools-mongodb";
 import {
     type ConnectionErrorHandler,
     connectionErrorHandler as defaultConnectionErrorHandler,
@@ -220,7 +224,8 @@ export abstract class TransportRunnerBase<
 
     protected constructor({
         userConfig,
-        createConnectionManager = defaultCreateConnectionManager,
+        createConnectionManager = (params): Promise<ConnectionManager> =>
+            Promise.resolve(new MCPConnectionManager(params)),
         connectionErrorHandler = defaultConnectionErrorHandler,
         createAtlasLocalClient: createAtlasLocalClientFn = createAtlasLocalClient,
         loggers,
@@ -272,11 +277,19 @@ export abstract class TransportRunnerBase<
             }
         );
 
-        const exportsManager = ExportsManager.init(userConfig, logger);
+        const exportsManager = ExportsManager.init({ options: userConfig, logger });
 
         const connectionManager =
             sessionOptions?.connectionManager ??
-            (await this.createConnectionManager({ logger: logger, deviceId: this.deviceId, userConfig }));
+            (await this.createConnectionManager({
+                logger: logger,
+                deviceId: this.deviceId,
+                options: {
+                    connectionInfo: userConfig,
+                    displayName: packageInfo.mcpServerName,
+                    version: packageInfo.version,
+                },
+            }));
 
         const { apiClientId, apiClientSecret } = userConfig;
         const apiClientOptions: ApiClientOptions = {
@@ -386,7 +399,11 @@ export abstract class TransportRunnerBase<
                 connectionManager: await this.createConnectionManager({
                     logger: this.logger,
                     deviceId: this.deviceId,
-                    userConfig,
+                    options: {
+                        connectionInfo: userConfig,
+                        displayName: packageInfo.mcpServerName,
+                        version: packageInfo.version,
+                    },
                 }),
                 atlasLocalClient: await this.createAtlasLocalClient({ logger: this.logger }),
                 apiClient:

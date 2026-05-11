@@ -50,6 +50,13 @@ const config: KnipConfig = {
                 "semver",
                 "vite-plugin-node-polyfills",
                 "vite-plugin-singlefile",
+                // These are used by @mongodb-js/mcp-tools-mongodb package, keep for transitive dependency resolution
+                "@mongodb-js/device-id",
+                "mongodb",
+                "mongodb-build-info",
+                "mongodb-connection-string-url",
+                "mongodb-schema",
+                "node-machine-id",
             ],
         },
         "packages/ui": {

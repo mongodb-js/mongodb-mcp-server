@@ -4,12 +4,12 @@ import { MongoServerError } from "mongodb";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { Session } from "../../../src/common/session.js";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
-import { MCPConnectionManager } from "../../../src/common/connectionManager.js";
-import { ExportsManager } from "../../../src/common/exportsManager.js";
-import { DeviceId } from "../../../src/helpers/deviceId.js";
+import { MCPConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
+import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
+import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { Keychain } from "@mongodb-js/mcp-core";
-import { ErrorCodes, MongoDBError } from "../../../src/common/errors.js";
-import { defaultTestConfig } from "../../integration/helpers.js";
+import { ErrorCodes, MongoDBError } from "@mongodb-js/mcp-tools-mongodb";
+import { defaultTestConfig, testConnectionManagerDriverLabels } from "../../integration/helpers.js";
 import { connectionErrorHandler as defaultConnectionErrorHandler } from "../../../src/common/connectionErrorHandler.js";
 import { ApiClient } from "../../../src/lib.js";
 
@@ -26,7 +26,14 @@ describe("Session", () => {
         const logger = new CompositeLogger();
 
         mockDeviceId = MockDeviceId;
-        const connectionManager = new MCPConnectionManager(defaultTestConfig, logger, mockDeviceId);
+        const connectionManager = new MCPConnectionManager({
+            logger,
+            deviceId: mockDeviceId,
+            options: {
+                connectionInfo: defaultTestConfig,
+                ...testConnectionManagerDriverLabels,
+            },
+        });
 
         session = new Session({
             userConfig: {
@@ -35,7 +42,7 @@ describe("Session", () => {
                 apiBaseUrl: "https://api.test.com",
             },
             logger,
-            exportsManager: ExportsManager.init(defaultTestConfig, logger),
+            exportsManager: ExportsManager.init({ options: defaultTestConfig, logger: logger }),
             connectionManager: connectionManager,
             keychain: new Keychain(),
             apiClient: new ApiClient({

@@ -8,7 +8,7 @@ import {
     validateThrowsForInvalidArguments,
     expectDefined,
 } from "../../../helpers.js";
-import type { CollectionStorageSizeOutput } from "../../../../../src/tools/mongodb/metadata/collectionStorageSize.js";
+import type { CollectionStorageSizeOutput } from "@mongodb-js/mcp-tools-mongodb";
 import * as crypto from "crypto";
 import { describe, expect, it } from "vitest";
 

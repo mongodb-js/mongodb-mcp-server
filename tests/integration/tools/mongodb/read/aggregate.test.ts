@@ -11,23 +11,24 @@ import {
     createVectorSearchIndexAndWait,
     describeWithMongoDB,
     getDocsFromUntrustedContent,
+    syncMongoToolsConfigFromUserConfig,
     validateAutoConnectBehavior,
     waitUntilSearchIndexIsQueryable,
     waitUntilSearchIsReady,
 } from "../mongodbHelpers.js";
-import * as constants from "../../../../../src/helpers/constants.js";
 import { freshInsertDocuments } from "./find.test.js";
 import { BSON } from "bson";
 import { DOCUMENT_EMBEDDINGS } from "./vyai/embeddings.js";
 import type { TelemetryToolEvent as ToolEvent } from "@mongodb-js/mcp-atlas-telemetry";
 import type { Client } from "@modelcontextprotocol/sdk/client";
-import { pipelineDescriptionWithVectorSearch } from "../../../../../src/tools/mongodb/read/aggregate.js";
+import { QUERY_COUNT_MAX_TIME_MS_CAP, pipelineDescriptionWithVectorSearch } from "@mongodb-js/mcp-tools-mongodb";
 import type { Collection } from "mongodb";
 
 describeWithMongoDB("aggregate tool", (integration) => {
     afterEach(() => {
         integration.mcpServer().userConfig.readOnly = false;
         integration.mcpServer().userConfig.disabledTools = [];
+        syncMongoToolsConfigFromUserConfig(integration.mcpServer());
     });
 
     validateToolMetadata(integration, "aggregate", "Run an aggregation against a MongoDB collection", "read", [
@@ -126,6 +127,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
     it("can not run $out stages in readOnly mode", async () => {
         await integration.connectMcpClient();
         integration.mcpServer().userConfig.readOnly = true;
+        syncMongoToolsConfigFromUserConfig(integration.mcpServer());
         const response = await integration.mcpClient().callTool({
             name: "aggregate",
             arguments: {
@@ -143,6 +145,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
     it("can not run $merge stages in readOnly mode", async () => {
         await integration.connectMcpClient();
         integration.mcpServer().userConfig.readOnly = true;
+        syncMongoToolsConfigFromUserConfig(integration.mcpServer());
         const response = await integration.mcpClient().callTool({
             name: "aggregate",
             arguments: {
@@ -269,6 +272,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
         it(`can not run $out stages when ${disabledOpType} operation is disabled`, async () => {
             await integration.connectMcpClient();
             integration.mcpServer().userConfig.disabledTools = [disabledOpType];
+            syncMongoToolsConfigFromUserConfig(integration.mcpServer());
             const response = await integration.mcpClient().callTool({
                 name: "aggregate",
                 arguments: {
@@ -286,6 +290,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
         it(`can not run $merge stages when ${disabledOpType} operation is disabled`, async () => {
             await integration.connectMcpClient();
             integration.mcpServer().userConfig.disabledTools = [disabledOpType];
+            syncMongoToolsConfigFromUserConfig(integration.mcpServer());
             const response = await integration.mcpClient().callTool({
                 name: "aggregate",
                 arguments: {
@@ -311,54 +316,66 @@ describeWithMongoDB("aggregate tool", (integration) => {
             expectedResponse: "The aggregation resulted in 0 documents",
         };
     });
-
-    describe("when counting documents exceed the configured count maxTimeMS", () => {
-        beforeEach(async () => {
-            await freshInsertDocuments({
-                collection: integration.mongoClient().db(integration.randomDbName()).collection("people"),
-                count: 1000,
-                documentMapper(index) {
-                    return { name: `Person ${index}`, age: index };
-                },
-            });
-        });
-
-        afterEach(() => {
-            vi.resetAllMocks();
-        });
-
-        it("should abort count operation and respond with indeterminable count", async () => {
-            vi.spyOn(constants, "AGG_COUNT_MAX_TIME_MS_CAP", "get").mockReturnValue(0.1);
-            await integration.connectMcpClient();
-            const response = await integration.mcpClient().callTool({
-                name: "aggregate",
-                arguments: {
-                    database: integration.randomDbName(),
-                    collection: "people",
-                    pipeline: [{ $match: { age: { $gte: 10 } } }, { $sort: { name: -1 } }],
-                },
-            });
-            const content = getResponseContent(response);
-            expect(content).toContain("The aggregation resulted in indeterminable number of documents");
-            expect(content).toContain(`Returning 100 documents.`);
-            const docs = getDocsFromUntrustedContent(content);
-            expect(docs[0]).toEqual(
-                expect.objectContaining({
-                    _id: expect.any(Object) as object,
-                    name: "Person 999",
-                    age: 999,
-                })
-            );
-            expect(docs[1]).toEqual(
-                expect.objectContaining({
-                    _id: expect.any(Object) as object,
-                    name: "Person 998",
-                    age: 998,
-                })
-            );
-        });
-    });
 });
+
+describeWithMongoDB(
+    "aggregate tool — aggregation count maxTimeMS runtime override",
+    (integration) => {
+        describe("when counting documents exceed the configured count maxTimeMS", () => {
+            beforeEach(async () => {
+                await freshInsertDocuments({
+                    collection: integration.mongoClient().db(integration.randomDbName()).collection("people"),
+                    count: 1000,
+                    documentMapper(index) {
+                        return { name: `Person ${index}`, age: index };
+                    },
+                });
+            });
+
+            afterEach(() => {
+                vi.resetAllMocks();
+            });
+
+            it("should abort count operation and respond with indeterminable count", async () => {
+                await integration.connectMcpClient();
+                const response = await integration.mcpClient().callTool({
+                    name: "aggregate",
+                    arguments: {
+                        database: integration.randomDbName(),
+                        collection: "people",
+                        pipeline: [{ $match: { age: { $gte: 10 } } }, { $sort: { name: -1 } }],
+                    },
+                });
+                const content = getResponseContent(response);
+                expect(content).toContain("The aggregation resulted in indeterminable number of documents");
+                expect(content).toContain(`Returning 100 documents.`);
+                const docs = getDocsFromUntrustedContent(content);
+                expect(docs[0]).toEqual(
+                    expect.objectContaining({
+                        _id: expect.any(Object) as object,
+                        name: "Person 999",
+                        age: 999,
+                    })
+                );
+                expect(docs[1]).toEqual(
+                    expect.objectContaining({
+                        _id: expect.any(Object) as object,
+                        name: "Person 998",
+                        age: 998,
+                    })
+                );
+            });
+        });
+    },
+    {
+        serverOptions: {
+            runtimeConfig: {
+                queryCountMaxTimeMsCap: QUERY_COUNT_MAX_TIME_MS_CAP,
+                aggregationCountMaxTimeMsCap: 0.1,
+            },
+        },
+    }
+);
 
 describeWithMongoDB(
     "aggregate tool with configured max documents per query",

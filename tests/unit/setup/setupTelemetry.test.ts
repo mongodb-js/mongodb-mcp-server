@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SetupTelemetry } from "../../../src/setup/setupTelemetry.js";
 import type { ITelemetry } from "@mongodb-js/mcp-types";
 import type { TelemetrySetupEvent } from "@mongodb-js/mcp-atlas-telemetry";
-import type { DeviceId } from "../../../src/helpers/deviceId.js";
+import type { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 
 function createMockTelemetry(): {
     telemetry: ITelemetry;
