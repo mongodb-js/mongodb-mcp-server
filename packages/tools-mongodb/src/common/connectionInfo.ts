@@ -6,7 +6,7 @@ import { ConnectionString } from "mongodb-connection-string-url";
  * Minimum fields needed for OIDC auth-type inference when resolving connection metadata.
  * Callers may pass a superset (e.g. full `UserConfig`) as long as these are present.
  */
-export interface ConnectionInfoOptions {
+export interface ConnectionInfo {
     transport: "stdio" | "http";
     httpHost: string;
     browser?: string | false;
@@ -47,17 +47,17 @@ export interface AtlasClusterConnectionInfo {
 /**
  * Get metadata about the connection string including authentication type and host type.
  * @param connectionString - The connection string to analyze.
- * @param options - Transport / browser hints used to determine auth type.
+ * @param connectionInfo - Transport / browser hints used to determine auth type.
  * @param atlasInfo - Optional Atlas cluster connection info. If provided, host type is set to "atlas".
  * @returns The connection string metadata.
  */
 export function getConnectionStringInfo(
     connectionString: string,
-    options: ConnectionInfoOptions,
+    connectionInfo: ConnectionInfo,
     atlasInfo?: AtlasClusterConnectionInfo
 ): ConnectionStringInfo {
     return {
-        authType: getAuthType(options, connectionString),
+        authType: getAuthType(connectionInfo, connectionString),
         hostType: atlasInfo !== undefined ? "atlas" : getHostType(connectionString),
     };
 }
@@ -76,24 +76,24 @@ export function getHostType(connectionString: string): ConnectionStringHostType 
 
 /**
  * Infer the authentication type from the connection string and options.
- * @param options - Transport / browser hints.
+ * @param connectionInfo - Transport / browser hints.
  * @param connectionString - The connection string to infer the auth type from.
  * @returns The inferred authentication type.
  */
-export function getAuthType(options: ConnectionInfoOptions, connectionString: string): ConnectionStringAuthType {
+export function getAuthType(connectionInfo: ConnectionInfo, connectionString: string): ConnectionStringAuthType {
     const connString = new ConnectionString(connectionString);
     const searchParams = connString.typedSearchParams<MongoClientOptions>();
 
     switch (searchParams.get("authMechanism")) {
         case "MONGODB-OIDC": {
-            if (options.transport === "stdio" && options.browser) {
+            if (connectionInfo.transport === "stdio" && connectionInfo.browser) {
                 return "oidc-auth-flow";
             }
 
             if (
-                options.transport === "http" &&
-                (options.httpHost === "127.0.0.1" || options.httpHost === "localhost") &&
-                options.browser
+                connectionInfo.transport === "http" &&
+                (connectionInfo.httpHost === "127.0.0.1" || connectionInfo.httpHost === "localhost") &&
+                connectionInfo.browser
             ) {
                 return "oidc-auth-flow";
             }

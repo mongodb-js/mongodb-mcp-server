@@ -9,7 +9,7 @@ import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { Keychain } from "@mongodb-js/mcp-core";
 import { ErrorCodes, MongoDBError } from "@mongodb-js/mcp-tools-mongodb";
-import { defaultTestConfig } from "../../integration/helpers.js";
+import { defaultTestConfig, testMcpDriverMetadata } from "../../integration/helpers.js";
 import { connectionErrorHandler as defaultConnectionErrorHandler } from "../../../src/common/connectionErrorHandler.js";
 import { ApiClient } from "../../../src/lib.js";
 
@@ -27,9 +27,12 @@ describe("Session", () => {
 
         mockDeviceId = MockDeviceId;
         const connectionManager = new MCPConnectionManager({
-            options: defaultTestConfig,
             logger,
             deviceId: mockDeviceId,
+            options: {
+                connectionInfo: defaultTestConfig,
+                metadata: testMcpDriverMetadata,
+            },
         });
 
         session = new Session({

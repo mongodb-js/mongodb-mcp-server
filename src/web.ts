@@ -40,6 +40,7 @@ export type {
     ConnectionStateConnecting,
     ConnectionSettings,
     ConnectionManagerFactoryFn,
+    ConnectionManagerFactoryOptions,
     AtlasClusterConnectionInfo,
     ConnectionStringInfo,
     AnyConnectionState,

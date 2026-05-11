@@ -25,7 +25,7 @@ export type {
     ConnectionStringAuthType,
     AtlasClusterConnectionInfo,
     ConnectionStringHostType,
-    ConnectionInfoOptions,
+    ConnectionInfo,
 } from "./common/connectionInfo.js";
 export { getAuthType, getHostType, getConnectionStringInfo } from "./common/connectionInfo.js";
 export { ErrorCodes, MongoDBError } from "./common/errors.js";

@@ -7,7 +7,7 @@ import { MCPConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
 import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { Keychain } from "@mongodb-js/mcp-core";
-import { defaultTestConfig } from "../../../integration/helpers.js";
+import { defaultTestConfig, testMcpDriverMetadata } from "../../../integration/helpers.js";
 import { connectionErrorHandler } from "../../../../src/common/connectionErrorHandler.js";
 import { ApiClient } from "../../../../src/lib.js";
 
@@ -15,9 +15,12 @@ describe("debug resource", () => {
     const logger = new CompositeLogger();
     const deviceId = DeviceId.create(logger);
     const connectionManager = new MCPConnectionManager({
-        options: defaultTestConfig,
         logger,
         deviceId,
+        options: {
+            connectionInfo: defaultTestConfig,
+            metadata: testMcpDriverMetadata,
+        },
     });
 
     const session = vi.mocked(

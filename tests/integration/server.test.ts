@@ -3,7 +3,7 @@ import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
 import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { Session } from "../../src/common/session.js";
-import { defaultTestConfig, expectDefined, InMemoryLogger } from "./helpers.js";
+import { defaultTestConfig, expectDefined, InMemoryLogger, testMcpDriverMetadata } from "./helpers.js";
 import { describeWithMongoDB } from "./tools/mongodb/mongodbHelpers.js";
 import { afterEach, describe, expect, it } from "vitest";
 import type { LoggerBase, UserConfig } from "../../src/lib.js";
@@ -178,7 +178,14 @@ describe("Server integration test", () => {
     ): Promise<{ server: Server; transport: Transport }> => {
         const logger = new CompositeLogger({ loggers });
         const deviceId = DeviceId.create(logger);
-        const connectionManager = new MCPConnectionManager({ options: config, logger, deviceId });
+        const connectionManager = new MCPConnectionManager({
+            logger,
+            deviceId,
+            options: {
+                connectionInfo: config,
+                metadata: testMcpDriverMetadata,
+            },
+        });
         const exportsManager = ExportsManager.init({ options: config, logger });
         const session = new Session({
             userConfig: config,

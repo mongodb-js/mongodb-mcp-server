@@ -21,6 +21,7 @@ import { CompositeLogger } from '@mongodb-js/mcp-core';
 import { ConnectionManager } from '@mongodb-js/mcp-tools-mongodb';
 import { ConnectionManagerEvents } from '@mongodb-js/mcp-tools-mongodb';
 import { ConnectionManagerFactoryFn } from '@mongodb-js/mcp-tools-mongodb';
+import { ConnectionManagerFactoryOptions } from '@mongodb-js/mcp-tools-mongodb';
 import { ConnectionSettings } from '@mongodb-js/mcp-tools-mongodb';
 import { ConnectionState } from '@mongodb-js/mcp-tools-mongodb';
 import { ConnectionStateConnected } from '@mongodb-js/mcp-tools-mongodb';
@@ -153,6 +154,8 @@ export { ConnectionManager }
 export { ConnectionManagerEvents }
 
 export { ConnectionManagerFactoryFn }
+
+export { ConnectionManagerFactoryOptions }
 
 export { ConnectionSettings }
 

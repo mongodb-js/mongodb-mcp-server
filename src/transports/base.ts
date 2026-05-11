@@ -281,7 +281,14 @@ export abstract class TransportRunnerBase<
 
         const connectionManager =
             sessionOptions?.connectionManager ??
-            (await this.createConnectionManager({ logger: logger, deviceId: this.deviceId, options: userConfig }));
+            (await this.createConnectionManager({
+                logger: logger,
+                deviceId: this.deviceId,
+                options: {
+                    connectionInfo: userConfig,
+                    metadata: `${packageInfo.mcpServerName} ${packageInfo.version}`,
+                },
+            }));
 
         const { apiClientId, apiClientSecret } = userConfig;
         const apiClientOptions: ApiClientOptions = {
@@ -391,7 +398,10 @@ export abstract class TransportRunnerBase<
                 connectionManager: await this.createConnectionManager({
                     logger: this.logger,
                     deviceId: this.deviceId,
-                    options: userConfig,
+                    options: {
+                        connectionInfo: userConfig,
+                        metadata: `${packageInfo.mcpServerName} ${packageInfo.version}`,
+                    },
                 }),
                 atlasLocalClient: await this.createAtlasLocalClient({ logger: this.logger }),
                 apiClient:

@@ -200,7 +200,10 @@ export class StreamableHttpRunner<
                     (await this.createConnectionManager({
                         logger,
                         deviceId: this.deviceId,
-                        options: userConfig,
+                        options: {
+                            connectionInfo: userConfig,
+                            metadata: `${packageInfo.mcpServerName} ${packageInfo.version}`,
+                        },
                     })),
                 atlasLocalClient: sessionOptions?.atlasLocalClient ?? (await this.createAtlasLocalClient({ logger })),
                 apiClient:

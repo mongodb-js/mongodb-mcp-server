@@ -24,6 +24,7 @@ import { CompositeLogger } from '@mongodb-js/mcp-core';
 import { ConnectionManager } from '@mongodb-js/mcp-tools-mongodb';
 import { ConnectionManagerEvents } from '@mongodb-js/mcp-tools-mongodb';
 import { ConnectionManagerFactoryFn } from '@mongodb-js/mcp-tools-mongodb';
+import { ConnectionManagerFactoryOptions } from '@mongodb-js/mcp-tools-mongodb';
 import { AtlasConnectionMetadata as ConnectionMetadata } from '@mongodb-js/mcp-atlas-telemetry';
 import { ConnectionSettings } from '@mongodb-js/mcp-tools-mongodb';
 import { ConnectionState } from '@mongodb-js/mcp-tools-mongodb';
@@ -151,6 +152,8 @@ export { ConnectionManager }
 export { ConnectionManagerEvents }
 
 export { ConnectionManagerFactoryFn }
+
+export { ConnectionManagerFactoryOptions }
 
 export { ConnectionMetadata }
 

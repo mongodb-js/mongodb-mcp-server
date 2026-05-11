@@ -1,24 +1,23 @@
 import { EventEmitter } from "events";
 import { MongoServerError } from "mongodb";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { generateConnectionInfoFromCliArgs, type ConnectionInfo } from "@mongosh/arg-parser";
+import { generateConnectionInfoFromCliArgs, type ConnectionInfo as MongoshConnectionInfo } from "@mongosh/arg-parser";
 import type { DeviceId } from "../helpers/deviceId.js";
 import { MongoDBError, ErrorCodes } from "./errors.js";
 import { type LoggerBase } from "@mongodb-js/mcp-core";
 import { LogId } from "@mongodb-js/mcp-logging";
-import { packageInfo } from "./packageInfo.js";
 import { type AppNameComponents, setAppNameParamIfMissing } from "../helpers/connectionOptions.js";
 import {
     getConnectionStringInfo,
     type ConnectionStringInfo,
     type AtlasClusterConnectionInfo,
-    type ConnectionInfoOptions,
+    type ConnectionInfo,
 } from "./connectionInfo.js";
 
 export type { ConnectionStringInfo, ConnectionStringAuthType, AtlasClusterConnectionInfo } from "./connectionInfo.js";
 
-export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"> {
-    driverOptions?: ConnectionInfo["driverOptions"];
+export interface ConnectionSettings extends Omit<MongoshConnectionInfo, "driverOptions"> {
+    driverOptions?: MongoshConnectionInfo["driverOptions"];
     atlas?: AtlasClusterConnectionInfo;
 }
 
@@ -36,7 +35,7 @@ const SEARCH_PROBE_COLLECTION_NAME = "test";
 /** See https://github.com/mongodb/mongo/blob/master/src/mongo/base/error_codes.yml (SearchNotEnabled). */
 const MONGODB_SEARCH_NOT_ENABLED_ERROR_CODE = 31082;
 
-export const defaultDriverOptions: ConnectionInfo["driverOptions"] = {
+export const defaultDriverOptions: MongoshConnectionInfo["driverOptions"] = {
     readConcern: {
         level: "local",
     },
@@ -241,10 +240,15 @@ export abstract class ConnectionManager {
     abstract close(): Promise<void>;
 }
 
-export interface MCPConnectionManagerOptions {
-    options: ConnectionInfoOptions;
+export interface ConnectionManagerOptions {
     logger: LoggerBase;
     deviceId: DeviceId;
+    options: {
+        /** Transport / browser hints for OIDC auth inference. */
+        connectionInfo: ConnectionInfo;
+        /** Segment merged into MongoDB driver `appName` when not already set on the URI. */
+        metadata: string;
+    };
     bus?: EventEmitter;
 }
 
@@ -252,10 +256,10 @@ export class MCPConnectionManager extends ConnectionManager {
     private deviceId: DeviceId;
     private bus: EventEmitter;
 
-    private options: ConnectionInfoOptions;
+    private readonly options: ConnectionManagerOptions["options"];
     private logger: LoggerBase;
 
-    constructor({ options, logger, deviceId, bus }: MCPConnectionManagerOptions) {
+    constructor({ logger, deviceId, bus, options }: ConnectionManagerOptions) {
         super();
         this.options = options;
         this.logger = logger;
@@ -279,7 +283,7 @@ export class MCPConnectionManager extends ConnectionManager {
         try {
             settings = { ...settings };
             const appNameComponents: AppNameComponents = {
-                appName: `${packageInfo.mcpServerName} ${packageInfo.version}`,
+                appName: this.options.metadata,
                 deviceId: this.deviceId.get(),
                 clientName: this.clientName,
             };
@@ -289,7 +293,7 @@ export class MCPConnectionManager extends ConnectionManager {
                 components: appNameComponents,
             });
 
-            const connectionInfo: ConnectionInfo = settings.driverOptions
+            const mongoshConnectionInfo: MongoshConnectionInfo = settings.driverOptions
                 ? {
                       connectionString: settings.connectionString,
                       driverOptions: settings.driverOptions,
@@ -299,26 +303,26 @@ export class MCPConnectionManager extends ConnectionManager {
                       connectionSpecifier: settings.connectionString,
                   });
 
-            if (connectionInfo.driverOptions.oidc) {
-                connectionInfo.driverOptions.oidc.allowedFlows ??= ["auth-code"];
-                connectionInfo.driverOptions.oidc.notifyDeviceFlow ??= this.onOidcNotifyDeviceFlow.bind(this);
+            if (mongoshConnectionInfo.driverOptions.oidc) {
+                mongoshConnectionInfo.driverOptions.oidc.allowedFlows ??= ["auth-code"];
+                mongoshConnectionInfo.driverOptions.oidc.notifyDeviceFlow ??= this.onOidcNotifyDeviceFlow.bind(this);
             }
 
-            connectionInfo.driverOptions.proxy ??= { useEnvironmentVariableProxies: true };
-            connectionInfo.driverOptions.applyProxyToOIDC ??= true;
+            mongoshConnectionInfo.driverOptions.proxy ??= { useEnvironmentVariableProxies: true };
+            mongoshConnectionInfo.driverOptions.applyProxyToOIDC ??= true;
 
             connectionStringInfo = getConnectionStringInfo(
-                connectionInfo.connectionString,
-                this.options,
+                mongoshConnectionInfo.connectionString,
+                this.options.connectionInfo,
                 settings.atlas
             );
 
             serviceProvider = NodeDriverServiceProvider.connect(
-                connectionInfo.connectionString,
+                mongoshConnectionInfo.connectionString,
                 {
                     productDocsLink: "https://github.com/mongodb-js/mongodb-mcp-server/",
                     productName: "MongoDB MCP",
-                    ...connectionInfo.driverOptions,
+                    ...mongoshConnectionInfo.driverOptions,
                 },
                 undefined,
                 this.bus
@@ -482,7 +486,7 @@ export class MCPConnectionManager extends ConnectionManager {
 export type ConnectionManagerFactoryOptions = {
     logger: LoggerBase;
     deviceId: DeviceId;
-    options: ConnectionInfoOptions;
+    options: ConnectionManagerOptions["options"];
 };
 
 export type ConnectionManagerFactoryFn = (params: ConnectionManagerFactoryOptions) => Promise<ConnectionManager>;
