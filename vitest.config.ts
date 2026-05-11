@@ -20,20 +20,12 @@ if (process.env.SKIP_ATLAS_LOCAL_TESTS === "true") {
     vitestDefaultExcludes.push("**/atlas-local/**");
 }
 
-// TODO: Re-enable parallel execution on Windows once the worker fork crash is resolved.
-// On Windows runners, parallel Vitest worker forks crash non-deterministically (different
-// integration test files each run), leaving orphan mongod processes and failing the run
-// with exit code 1. Forcing serial file execution avoids the resource contention that
-// triggers it.
-const isWindows = process.platform === "win32";
-
 export default defineConfig({
     test: {
         environment: "node",
         testTimeout: 3600000,
         hookTimeout: 3600000,
         setupFiles: ["./tests/setup.ts"],
-        ...(isWindows && { maxWorkers: 1, isolate: false }),
         coverage: {
             exclude: [
                 // Required: import.meta.glob() in src/ui creates Vite virtual modules (\0 prefixed paths)
