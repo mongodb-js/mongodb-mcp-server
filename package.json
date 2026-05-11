@@ -139,7 +139,7 @@
     "globals": "^17.5.0",
     "happy-dom": "^20.9.0",
     "husky": "^9.1.7",
-    "jsdom": "^29.0.2",
+    "jsdom": "^29.1.1",
     "knip": "^6.4.1",
     "mongodb-runner": "^6.7.6",
     "openapi-types": "^12.1.3",
