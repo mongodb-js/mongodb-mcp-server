@@ -1,9 +1,17 @@
 {
   "name": "@mongodb-js/mcp-types",
-  "version": "1.11.0-prerelease.1",
-  "private": true,
-  "type": "module",
   "description": "Shared TypeScript types and interfaces for MongoDB MCP server packages",
+  "version": "1.11.0-prerelease.2",
+  "type": "module",
+  "license": "Apache-2.0",
+  "author": "MongoDB <info@mongodb.com>",
+  "repository": {
+    "url": "https://github.com/mongodb-js/mongodb-mcp-server.git",
+    "directory": "packages/metrics"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -26,6 +34,6 @@
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@types/node": "^25.6.0",
     "typescript": "^5.9.2",
-    "vitest": "^4.1.4"
+    "vitest": "^4.1.5"
   }
 }

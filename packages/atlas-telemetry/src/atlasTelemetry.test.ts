@@ -193,13 +193,13 @@ describe("AtlasTelemetry", () => {
                         return result;
                     }
                 ),
-        } as unknown as typeof mockEventCache;
+        };
         vi.spyOn(EventCache, "getInstance").mockReturnValue(mockEventCache as unknown as EventCache);
 
         mockDeviceId = {
             get: vi.fn().mockResolvedValue("test-device-id"),
             close: vi.fn(),
-        } as unknown as IDeviceId;
+        };
 
         keychain = new Keychain();
         telemetry = createAtlasTelemetry({
@@ -705,7 +705,7 @@ describe("AtlasTelemetry credentials handling", () => {
                 properties: {
                     component: "test-component",
                     duration_ms: 0,
-                    result: "success" as TelemetryResult,
+                    result: "success",
                     category: "test",
                     command: "test-command",
                 },

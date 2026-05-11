@@ -48,7 +48,7 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
 
     beforeEach(() => {
         tokenFetches = 0;
-        getTokenPayload = ((metadata) => {
+        getTokenPayload = (metadata): ReturnType<OIDCMockProviderConfig["getTokenPayload"]> => {
             tokenFetches++;
             return {
                 expires_in: 1,
@@ -59,7 +59,7 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
                     aud: "resource-server-audience-value",
                 },
             };
-        }) as OIDCMockProviderConfig["getTokenPayload"];
+        };
     });
 
     /**

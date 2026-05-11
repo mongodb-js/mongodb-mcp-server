@@ -1,8 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ToolConstructorParams } from "../../../../../src/tools/tool.js";
-import { StreamsDiscoverTool } from "../../../../../src/tools/atlas/streams/discover.js";
-import type { Session } from "../../../../../src/common/session.js";
-import type { UserConfig } from "../../../../../src/common/config/userConfig.js";
+import type { ToolConstructorParams, IAtlasConfig, IAtlasSession } from "@mongodb-js/mcp-tools-atlas";
+import { StreamsDiscoverTool } from "@mongodb-js/mcp-tools-atlas";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { Elicitation } from "../../../../../src/elicitation.js";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
@@ -37,7 +35,7 @@ describe("StreamsDiscoverTool", () => {
         const mockSession = {
             logger: mockLogger,
             apiClient: mockApiClient as unknown as ApiClient,
-        } as unknown as Session;
+        } as unknown as IAtlasSession;
 
         const mockConfig = {
             confirmationRequiredTools: [],
@@ -45,7 +43,8 @@ describe("StreamsDiscoverTool", () => {
             disabledTools: [],
             apiClientId: "test-id",
             apiClientSecret: "test-secret",
-        } as unknown as UserConfig;
+            atlasTemporaryDatabaseUserLifetimeMs: 3600000,
+        } as unknown as IAtlasConfig;
 
         const mockTelemetry = {
             isTelemetryEnabled: () => true,
@@ -56,7 +55,7 @@ describe("StreamsDiscoverTool", () => {
             requestConfirmation: vi.fn(),
         } as unknown as Elicitation;
 
-        const params: ToolConstructorParams<UserConfig, unknown, DefaultMetrics> = {
+        const params: ToolConstructorParams<IAtlasConfig, unknown, DefaultMetrics> = {
             name: StreamsDiscoverTool.toolName,
             category: "atlas",
             operationType: StreamsDiscoverTool.operationType,
@@ -505,7 +504,7 @@ describe("StreamsDiscoverTool", () => {
         it("should return error for unknown action", async () => {
             const result = await exec({
                 ...baseArgs,
-                action: "nonexistent" as never,
+                action: "nonexistent",
             });
 
             expect(result.isError).toBe(true);

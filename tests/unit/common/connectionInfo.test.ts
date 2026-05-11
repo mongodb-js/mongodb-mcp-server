@@ -218,6 +218,7 @@ describe("connectionInfo", () => {
             username: "testuser",
             projectId: "project123",
             clusterName: "TestCluster",
+            instanceType: "FREE",
             expiryDate: new Date("2025-12-31"),
         };
 

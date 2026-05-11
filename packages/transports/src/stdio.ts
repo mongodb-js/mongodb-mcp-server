@@ -33,9 +33,11 @@ export class StdioRunner<
     TMetrics extends MetricDefinitions = MetricDefinitions,
 > extends TransportRunnerBase<TServer, TContext, TMetrics> {
     private server: TServer | undefined;
+    private serverFactory?: StdioRunnerOptions<TMetrics>["createServer"];
 
-    constructor({ loggers, metrics }: StdioRunnerOptions<TMetrics>) {
+    constructor({ loggers, metrics, createServer }: StdioRunnerOptions<TMetrics>) {
         super({ loggers, metrics });
+        this.serverFactory = createServer;
     }
 
     async start({
@@ -68,13 +70,19 @@ export class StdioRunner<
     }
 
     /**
-     * Creates the server instance. Must be implemented by subclasses.
+     * Creates the server instance.
+     * Uses the serverFactory if provided, otherwise must be overridden by subclasses.
      */
-    protected abstract createServer({
+    protected async createServer({
         serverOptions,
         sessionOptions,
     }: {
         serverOptions?: CustomizableServerOptions<TContext>;
         sessionOptions?: CustomizableSessionOptions;
-    }): Promise<TServer>;
+    }): Promise<TServer> {
+        if (this.serverFactory) {
+            return this.serverFactory({ serverOptions, sessionOptions }) as Promise<TServer>;
+        }
+        throw new Error("Either provide createServer option or extend StdioRunner and override createServer() method");
+    }
 }

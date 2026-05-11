@@ -1,4 +1,4 @@
-import { defineConfig, type Plugin, type PluginOption } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { viteSingleFile } from "vite-plugin-singlefile";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
@@ -165,7 +165,7 @@ export default defineConfig({
             globals: {
                 Buffer: true,
             },
-        }) as unknown as PluginOption,
+        }),
         react(),
         viteSingleFile({
             removeViteModuleLoader: true,

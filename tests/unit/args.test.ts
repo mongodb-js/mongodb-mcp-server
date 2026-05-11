@@ -7,7 +7,7 @@ import {
     ALLOWED_REGION_CHARACTERS_ERROR,
     ALLOWED_CLUSTER_NAME_CHARACTERS_ERROR,
     NO_UNICODE_ERROR,
-} from "../../src/tools/args.js";
+} from "@mongodb-js/mcp-tools-atlas";
 
 describe("Tool args", () => {
     describe("CommonArgs", () => {

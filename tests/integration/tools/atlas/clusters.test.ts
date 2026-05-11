@@ -265,5 +265,75 @@ describeWithAtlas("clusters", (integration) => {
                 });
             });
         });
+        describe("atlas-upgrade-cluster", () => {
+            it("should have correct metadata", async () => {
+                const { tools } = await integration.mcpClient().listTools();
+                const upgradeCluster = tools.find((tool) => tool.name === "atlas-upgrade-cluster");
+
+                expectDefined(upgradeCluster);
+                expect(upgradeCluster.inputSchema.type).toBe("object");
+                expectDefined(upgradeCluster.inputSchema.properties);
+                expect(upgradeCluster.inputSchema.properties).toHaveProperty("projectId");
+                expect(upgradeCluster.inputSchema.properties).toHaveProperty("clusterName");
+                expect(upgradeCluster.inputSchema.properties).toHaveProperty("targetTier");
+                expect(upgradeCluster.inputSchema.properties).toHaveProperty("provider");
+                expect(upgradeCluster.inputSchema.properties).toHaveProperty("region");
+            });
+
+            withCluster(integration, ({ getProjectId: getUpgradeProjectId, getClusterName: getUpgradeClusterName }) => {
+                // This withCluster creates a dedicated FREE cluster for the upgrade test.
+                // The test makes a real upgrade API call; withCluster's cleanup handles teardown regardless of tier.
+                describe("when not connected to the cluster being upgraded", () => {
+                    it("upgrades FREE cluster to FLEX with explicit projectId and clusterName", async () => {
+                        const response = await integration.mcpClient().callTool({
+                            name: "atlas-upgrade-cluster",
+                            arguments: {
+                                projectId: getUpgradeProjectId(),
+                                clusterName: getUpgradeClusterName(),
+                            },
+                        });
+                        const content = getResponseContent(response.content);
+                        expect(content).toContain(getUpgradeClusterName());
+                        expect(content).toContain("being upgraded");
+                    });
+                });
+            });
+
+            // Simulates being "connected" to the outer cluster (created by atlas-create-free-cluster above).
+            // The session state is patched so the tool picks up projectId/clusterName without explicit args,
+            // then makes a real upgrade API call against that outer cluster.
+            describe("when connected to the cluster being upgraded", () => {
+                beforeAll(() => {
+                    const session: Session = integration.mcpServer().session;
+                    (session.connectionManager as unknown as { state: unknown }).state = {
+                        tag: "disconnected",
+                        connectedAtlasCluster: {
+                            username: "testuser",
+                            projectId: getProjectId(),
+                            clusterName,
+                            instanceType: "FREE" as const,
+                            provider: "AWS",
+                            region: "US_EAST_1",
+                            expiryDate: new Date(Date.now() + 3_600_000),
+                        },
+                    };
+                });
+
+                afterAll(() => {
+                    const session: Session = integration.mcpServer().session;
+                    (session.connectionManager as unknown as { state: unknown }).state = { tag: "disconnected" };
+                });
+
+                it("upgrades FREE cluster to FLEX using session state without explicit params", async () => {
+                    const response = await integration.mcpClient().callTool({
+                        name: "atlas-upgrade-cluster",
+                        arguments: {},
+                    });
+                    const content = getResponseContent(response.content);
+                    expect(content).toContain(clusterName);
+                    expect(content).toContain("being upgraded");
+                });
+            });
+        });
     });
 });

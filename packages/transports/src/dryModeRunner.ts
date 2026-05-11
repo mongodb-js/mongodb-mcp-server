@@ -45,10 +45,12 @@ export class DryRunModeRunner<
 > extends TransportRunnerBase<TServer, TContext, TMetrics> {
     private server: TServer | undefined;
     private consoleLogger: DryRunModeTestHelpers["logger"];
+    private serverFactory?: DryRunModeRunnerOptions<TMetrics>["createServer"];
 
-    constructor({ loggers, metrics, consoleLogger }: DryRunModeRunnerOptions<TMetrics>) {
+    constructor({ loggers, metrics, consoleLogger, createServer }: DryRunModeRunnerOptions<TMetrics>) {
         super({ loggers, metrics });
         this.consoleLogger = consoleLogger;
+        this.serverFactory = createServer;
     }
 
     override async start({
@@ -86,13 +88,19 @@ export class DryRunModeRunner<
     }
 
     /**
-     * Creates the server instance. Must be implemented by subclasses.
+     * Creates the server instance.
+     * Uses the serverFactory if provided, otherwise must be overridden by subclasses.
      */
-    protected abstract createServer({
+    protected async createServer({
         serverOptions,
         sessionOptions,
     }: {
         serverOptions?: CustomizableServerOptions<TContext>;
         sessionOptions?: CustomizableSessionOptions;
-    }): Promise<TServer>;
+    }): Promise<TServer> {
+        if (this.serverFactory) {
+            return this.serverFactory({ serverOptions, sessionOptions }) as Promise<TServer>;
+        }
+        throw new Error("Either provide createServer option or extend DryRunModeRunner and override createServer() method");
+    }
 }

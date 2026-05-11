@@ -9,14 +9,14 @@ import type { IToolSession } from "@mongodb-js/mcp-types";
 import type { IElicitation } from "@mongodb-js/mcp-types";
 import type { PreviewFeature } from "@mongodb-js/mcp-types";
 import type { IUIRegistry } from "@mongodb-js/mcp-types";
-import type { IMetrics, IObservable, MetricDefinitions, MongoLogId } from "@mongodb-js/mcp-types";
+import type { IMetrics, IObservable, MetricDefinitions } from "@mongodb-js/mcp-types";
 import { createUIResource, type UIResource } from "@mcp-ui/server";
 
 const LogId = {
-    toolExecute: { __value: 1_003_001 } as MongoLogId,
-    toolExecuteFailure: { __value: 1_003_002 } as MongoLogId,
-    toolDisabled: { __value: 1_003_003 } as MongoLogId,
-    toolMetadataChange: { __value: 1_003_004 } as MongoLogId,
+    toolExecute: { __value: 1_003_001 },
+    toolExecuteFailure: { __value: 1_003_002 },
+    toolDisabled: { __value: 1_003_003 },
+    toolMetadataChange: { __value: 1_003_004 },
 } as const;
 import { TRANSPORT_PAYLOAD_LIMITS } from "./transportConstants.js";
 import type { TransportType } from "@mongodb-js/mcp-types";

@@ -1,8 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ToolConstructorParams } from "../../../../../src/tools/tool.js";
-import { ListAlertsTool } from "../../../../../src/tools/atlas/read/listAlerts.js";
-import type { Session } from "../../../../../src/common/session.js";
-import type { UserConfig } from "../../../../../src/common/config/userConfig.js";
+import type { ToolConstructorParams, IAtlasConfig, IAtlasSession } from "@mongodb-js/mcp-tools-atlas";
+import { ListAlertsTool } from "@mongodb-js/mcp-tools-atlas";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { Elicitation } from "../../../../../src/elicitation.js";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
@@ -30,7 +28,7 @@ describe("ListAlertsTool", () => {
         const mockSession = {
             logger: mockLogger,
             apiClient: mockApiClient as unknown as ApiClient,
-        } as unknown as Session;
+        } as unknown as IAtlasSession;
 
         const mockConfig = {
             confirmationRequiredTools: [],
@@ -38,7 +36,8 @@ describe("ListAlertsTool", () => {
             disabledTools: [],
             apiClientId: "test-id",
             apiClientSecret: "test-secret",
-        } as unknown as UserConfig;
+            atlasTemporaryDatabaseUserLifetimeMs: 3600000,
+        } as unknown as IAtlasConfig;
 
         const mockTelemetry = {
             isTelemetryEnabled: () => true,
@@ -49,7 +48,7 @@ describe("ListAlertsTool", () => {
             requestConfirmation: vi.fn(),
         } as unknown as Elicitation;
 
-        const params: ToolConstructorParams<UserConfig, unknown, DefaultMetrics> = {
+        const params: ToolConstructorParams<IAtlasConfig, unknown, DefaultMetrics> = {
             name: ListAlertsTool.toolName,
             category: "atlas",
             operationType: ListAlertsTool.operationType,

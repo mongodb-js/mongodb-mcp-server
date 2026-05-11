@@ -3,6 +3,7 @@ import type { ICompositeLogger, IKeychain } from "@mongodb-js/mcp-types";
 import type { IMetrics, MetricDefinitions } from "@mongodb-js/mcp-types";
 import type { TransportRequestContext } from "@mongodb-js/mcp-types";
 import type { LogLevel, LoggerBase } from "@mongodb-js/mcp-core";
+import type { InMemoryTransport } from "./inMemoryTransport.js";
 
 /**
  * Options for creating an MCP server instance.
@@ -58,10 +59,26 @@ export type TransportRunnerBaseOptions<TMetrics extends MetricDefinitions = Metr
 };
 
 /**
+ * Server factory function type for creating server instances.
+ */
+export type ServerFactory<TServer> = (options: {
+    serverOptions?: CustomizableServerOptions;
+    sessionOptions?: CustomizableSessionOptions;
+}) => Promise<TServer>;
+
+/**
  * Configuration for the StdioRunner.
  */
 export type StdioRunnerOptions<TMetrics extends MetricDefinitions = MetricDefinitions> =
-    TransportRunnerBaseOptions<TMetrics>;
+    TransportRunnerBaseOptions<TMetrics> & {
+        /** Factory function for creating server instances */
+        createServer?: ServerFactory<
+            {
+                connect(transport: import("@modelcontextprotocol/sdk/server/stdio.js").StdioServerTransport): Promise<void>;
+                close(): Promise<void>;
+            }
+        >;
+    };
 
 /**
  * Configuration for the DryRunModeRunner.
@@ -73,6 +90,14 @@ export type DryRunModeRunnerOptions<TMetrics extends MetricDefinitions = MetricD
             log(message: string): void;
             error(message: string): void;
         };
+        /** Factory function for creating server instances */
+        createServer?: ServerFactory<
+            {
+                tools: { name: string; category: string; isEnabled(): boolean }[];
+                connect(transport: InMemoryTransport): Promise<void>;
+                close(): Promise<void>;
+            }
+        >;
     };
 
 /**

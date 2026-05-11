@@ -619,25 +619,23 @@ describe("onlyStricterLogLevelOverride", () => {
         });
 
         it("should throw for non-string old value", () => {
-            expect(() => overrideFn(123 as unknown as string, "error")).toThrow("Expected string log level values");
-            expect(() => overrideFn(null as unknown as string, "error")).toThrow("Expected string log level values");
+            expect(() => overrideFn(123, "error")).toThrow("Expected string log level values");
+            expect(() => overrideFn(null, "error")).toThrow("Expected string log level values");
             expect(() => overrideFn(undefined as unknown as string, "error")).toThrow(
                 "Expected string log level values"
             );
         });
 
         it("should throw for non-string new value", () => {
-            expect(() => overrideFn("error", 123 as unknown as string)).toThrow("Expected string log level values");
-            expect(() => overrideFn("error", null as unknown as string)).toThrow("Expected string log level values");
+            expect(() => overrideFn("error", 123)).toThrow("Expected string log level values");
+            expect(() => overrideFn("error", null)).toThrow("Expected string log level values");
             expect(() => overrideFn("error", undefined as unknown as string)).toThrow(
                 "Expected string log level values"
             );
         });
 
         it("should throw when both values are non-strings", () => {
-            expect(() => overrideFn(123 as unknown as string, 456 as unknown as string)).toThrow(
-                "Expected string log level values"
-            );
+            expect(() => overrideFn(123, 456)).toThrow("Expected string log level values");
         });
     });
 

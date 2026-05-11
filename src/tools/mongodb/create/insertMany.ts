@@ -2,7 +2,6 @@ import { z } from "zod";
 import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { type ToolArgs, type OperationType, formatUntrustedData, type ToolResult } from "../../tool.js";
 import { zEJSON } from "../../args.js";
-import { type Document } from "bson";
 
 const InsertManyOutputSchema = {
     database: z.string(),
@@ -35,7 +34,7 @@ export class InsertManyTool extends MongoDBToolBase {
     }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
         const provider = await this.ensureConnected();
 
-        const result = await provider.insertMany(database, collection, documents as Document[]);
+        const result = await provider.insertMany(database, collection, documents);
         const insertedIds = Object.values(result.insertedIds);
         const content = formatUntrustedData(
             "Documents were inserted successfully.",

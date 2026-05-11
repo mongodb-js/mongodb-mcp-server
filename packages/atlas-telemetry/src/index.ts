@@ -31,4 +31,5 @@ export type {
     AtlasConnectionMetadata,
     AtlasPerfAdvisorToolMetadata,
     AtlasStreamsToolMetadata,
+    UpgradeClusterMetadata,
 } from "./types.js";

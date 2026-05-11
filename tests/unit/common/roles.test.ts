@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getDefaultRoleFromConfig } from "../../../src/common/atlas/roles.js";
+import { getDefaultRoleFromConfig } from "@mongodb-js/mcp-tools-atlas";
 import { UserConfigSchema, type UserConfig } from "../../../src/common/config/userConfig.js";
 
 describe("getDefaultRoleFromConfig", () => {

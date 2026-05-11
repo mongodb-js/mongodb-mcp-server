@@ -46,7 +46,6 @@ export { MCPHttpServer, type MCPHttpServerOptions } from "./mcpHttpServer.js";
 export {
     MonitoringServer,
     type MonitoringServerOptions,
-    type MonitoringServerConfig,
     type MonitoringServerDependencies,
 } from "./monitoringServer.js";
 

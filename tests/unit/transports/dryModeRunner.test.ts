@@ -15,7 +15,7 @@ describe("DryModeRunner", () => {
         };
         runnerConfig = {
             userConfig: defaultTestConfig,
-        } as TransportRunnerConfig;
+        };
     });
 
     afterEach(() => {
