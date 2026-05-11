@@ -1,0 +1,38 @@
+{
+  "name": "@mongodb-js/mcp-apps",
+  "version": "1.11.0-prerelease.1",
+  "private": true,
+  "type": "module",
+  "description": "MCP Apps for MongoDB MCP server",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "compile": "vite build --config vite.apps.config.ts && tsc --build tsconfig.json"
+  },
+  "dependencies": {
+    "@mongodb-js/mcp-types": "workspace:*"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/ext-apps": "^1.2.0",
+    "@types/node": "^25.6.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2",
+    "vite": "^8.0.8",
+    "vite-plugin-node-polyfills": "^0.26.0",
+    "vite-plugin-singlefile": "^2.3.2"
+  }
+}

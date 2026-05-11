@@ -39,6 +39,20 @@ export class ConnectTool extends MongoDBToolBase {
         return registrationSuccessful;
     }
 
+    protected override handleError(error: unknown, args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+        // Send connecttion errors back as-is, don't wrap them in the generic
+        // error message from the base class
+        if (error instanceof Error) {
+            return Promise.resolve({
+                isError: true,
+                content: [{ type: "text", text: error.message }],
+            });
+        }
+
+        // For other types of errors, use the default error handling from the base class
+        return super.handleError(error, args);
+    }
+
     protected override async execute({ connectionString }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         await this.session.connectToMongoDB({ connectionString });
 

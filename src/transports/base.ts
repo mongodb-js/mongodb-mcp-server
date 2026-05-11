@@ -22,6 +22,7 @@ import { ApiClient, type ApiClientOptions } from "@mongodb-js/mcp-atlas-api-clie
 
 type ApiClientFactoryFn = (options: ApiClientOptions) => ApiClient;
 import type { UIRegistry } from "@mongodb-js/mcp-ui";
+import type { AppRegistry } from "@mongodb-js/mcp-apps";
 import { PrometheusMetrics, createDefaultMetrics, type Metrics, type DefaultMetrics } from "@mongodb-js/mcp-metrics";
 
 import type { LogLevel, TransportRequestContext } from "@mongodb-js/mcp-types";
@@ -39,7 +40,7 @@ export type CustomizableSessionOptions<TUserConfig extends UserConfig = UserConf
 >;
 
 export type CustomizableServerOptions<TUserConfig extends UserConfig = UserConfig, TContext = unknown> = Partial<
-    Pick<ServerOptions<TUserConfig, TContext>, "uiRegistry" | "tools" | "toolContext" | "elicitation">
+    Pick<ServerOptions<TUserConfig, TContext>, "uiRegistry" | "appRegistry" | "tools" | "toolContext" | "elicitation">
 > & {
     /**
      * An optional key value pair of telemetry properties that are reported to
@@ -329,6 +330,12 @@ export abstract class TransportRunnerBase<
             uiRegistry = new uiRegistryModule.UIRegistry();
         }
 
+        let appRegistry: AppRegistry | undefined = serverOptions?.appRegistry;
+        if (!appRegistry && userConfig.previewFeatures.includes("mcpApps")) {
+            const appRegistryModule = await import("@mongodb-js/mcp-apps");
+            appRegistry = new appRegistryModule.AppRegistry();
+        }
+
         const result = new Server<TUserConfig, TContext>({
             mcpServer,
             session,
@@ -338,6 +345,7 @@ export abstract class TransportRunnerBase<
             elicitation: serverOptions?.elicitation ?? new Elicitation({ server: mcpServer.server }),
             tools: serverOptions?.tools ?? this.tools,
             uiRegistry,
+            appRegistry,
             toolContext: serverOptions?.toolContext,
             metrics: this.metrics,
         });

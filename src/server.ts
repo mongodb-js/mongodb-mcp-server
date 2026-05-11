@@ -22,6 +22,7 @@ import { type ConnectionErrorHandler } from "./common/connectionErrorHandler.js"
 import type { Elicitation } from "./elicitation.js";
 import { AllTools } from "./tools/index.js";
 import type { UIRegistry } from "@mongodb-js/mcp-ui";
+import type { AppRegistry } from "@mongodb-js/mcp-apps";
 import type { Metrics, DefaultMetrics } from "@mongodb-js/mcp-metrics";
 import type { IMetrics } from "@mongodb-js/mcp-types";
 
@@ -40,6 +41,7 @@ export interface ServerOptions<
     /** @deprecated Will be removed in a future version. Use `SessionOptions.connectionErrorHandler` instead. */
     connectionErrorHandler: ConnectionErrorHandler;
     uiRegistry?: UIRegistry;
+    appRegistry?: AppRegistry;
     metrics: Metrics<TMetrics>;
     /**
      * An optional list of tools constructors to be registered to the MongoDB
@@ -117,6 +119,7 @@ export class Server<
     public readonly tools: AnyToolBase[] = [];
     public readonly connectionErrorHandler: ConnectionErrorHandler;
     public readonly uiRegistry?: UIRegistry;
+    public readonly appRegistry?: AppRegistry;
     public readonly toolContext?: TContext;
     public readonly metrics: Metrics<TMetrics>;
 
@@ -140,6 +143,7 @@ export class Server<
         elicitation,
         tools,
         uiRegistry,
+        appRegistry,
         toolContext,
         metrics,
     }: ServerOptions<TUserConfig, TContext, TMetrics>) {
@@ -152,6 +156,7 @@ export class Server<
         this.connectionErrorHandler = connectionErrorHandler;
         this.toolConstructors = tools ?? AllTools;
         this.uiRegistry = uiRegistry;
+        this.appRegistry = appRegistry;
         this.toolContext = toolContext;
         this.metrics = metrics;
 
@@ -164,6 +169,7 @@ export class Server<
         // Register resources after the server is initialized so they can listen to events like
         // connection events.
         this.registerResources();
+        await this.registerAppResources();
         this.mcpServer.server.registerCapabilities({
             logging: {},
             resources: { listChanged: true, subscribe: true },
@@ -335,6 +341,42 @@ export class Server<
         for (const resourceConstructor of Resources) {
             const resource = new resourceConstructor(this.session, this.userConfig, this.telemetry);
             resource.register(this);
+        }
+    }
+
+    public async registerAppResources(): Promise<void> {
+        if (!this.appRegistry) return;
+
+        for (const appName of this.appRegistry.appNames()) {
+            const html = await this.appRegistry.get(appName);
+            if (!html) continue;
+
+            const uri = `ui://${appName}`;
+
+            // Register the HTML bundle as a resource at ui://{appName}
+            this.mcpServer.registerResource(
+                appName,
+                uri,
+                { description: `MCP App: ${appName}`, mimeType: "text/html;profile=mcp-app" },
+                async (resourceUri) => ({
+                    contents: [{ uri: resourceUri.href, mimeType: "text/html;profile=mcp-app", text: html }],
+                })
+            );
+
+            // Register a tool carrying the ui metadata — this is what makes the MCP Apps tab
+            // pick up the app. The tool name matches the app name so clients can link them.
+            (this.mcpServer.registerTool as (
+                name: string,
+                config: { description?: string; _meta?: Record<string, unknown> },
+                cb: () => Promise<{ content: { type: string; text: string }[] }>
+            ) => void)(
+                appName,
+                {
+                    description: `Open the ${appName} app`,
+                    _meta: { ui: { resourceUri: uri } },
+                },
+                async () => ({ content: [{ type: "text", text: `Use the ${appName} interface.` }] })
+            );
         }
     }
 

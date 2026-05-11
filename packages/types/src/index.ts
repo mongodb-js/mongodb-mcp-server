@@ -10,6 +10,7 @@ export type * from "./transport.js";
 export type * from "./apiClient.js";
 export type * from "./metrics.js";
 export type * from "./ui.js";
+export type * from "./apps.js";
 export type * from "./resources.js";
 export type * from "./telemetry.js";
 export type * from "./helpers.js";

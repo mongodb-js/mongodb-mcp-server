@@ -557,6 +557,7 @@ export abstract class ToolBase<
                 context: "tool",
                 message: `Error executing ${this.name}: ${error as string}`,
             });
+
             const toolResult = await this.handleError(error, args);
             this.emitToolEvent(args, { startTime, result: toolResult });
 

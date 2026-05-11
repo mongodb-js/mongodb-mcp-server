@@ -160,6 +160,12 @@ export function setupIntegrationTest(
             uiRegistry = new UIRegistry();
         }
 
+        let appRegistry = serverOptions?.appRegistry;
+        if (!appRegistry && userConfig.previewFeatures.includes("mcpApps")) {
+            const { AppRegistry } = await import("@mongodb-js/mcp-apps");
+            appRegistry = new AppRegistry();
+        }
+
         mcpServer = new Server({
             session,
             userConfig,
@@ -168,6 +174,7 @@ export function setupIntegrationTest(
             elicitation,
             connectionErrorHandler,
             uiRegistry,
+            appRegistry,
             metrics: new MockMetrics(),
             ...serverOptions,
         });

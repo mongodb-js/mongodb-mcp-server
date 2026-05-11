@@ -161,6 +161,7 @@
     "@mongodb-js/mcp-metrics": "workspace:*",
     "@mongodb-js/mcp-tools-atlas": "workspace:*",
     "@mongodb-js/mcp-tools-atlas-local": "workspace:*",
+    "@mongodb-js/mcp-apps": "workspace:*",
     "@mongodb-js/mcp-types": "workspace:*",
     "@mongodb-js/mcp-ui": "workspace:*",
     "@mongosh/arg-parser": "^5.0.2",

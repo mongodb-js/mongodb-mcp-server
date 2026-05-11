@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js";
 import { defaultTestConfig } from "../helpers.js";
 import type { UIRegistry } from "@mongodb-js/mcp-ui";
+import type { AppRegistry } from "@mongodb-js/mcp-apps";
 import type { Server } from "../../../src/server.js";
 
 describe("TransportRunnerBase", () => {
@@ -101,6 +102,59 @@ describe("TransportRunnerBase", () => {
             expect(server.uiRegistry).toBeDefined();
             expect(server.uiRegistry).toHaveProperty("get");
             expect(typeof server.uiRegistry?.get).toBe("function");
+        });
+    });
+
+    describe("AppRegistry conditional import", () => {
+        it("should not set AppRegistry when mcpApps preview feature is not enabled", async () => {
+            const runner = new StreamableHttpRunner({
+                userConfig: {
+                    ...defaultTestConfig,
+                    httpPort: 0,
+                    previewFeatures: [],
+                },
+            });
+
+            server = await runner["setupServer"]();
+
+            expect(server.appRegistry).toBeUndefined();
+        });
+
+        it("should set AppRegistry when mcpApps preview feature is enabled", async () => {
+            const runner = new StreamableHttpRunner({
+                userConfig: {
+                    ...defaultTestConfig,
+                    httpPort: 0,
+                    previewFeatures: ["mcpApps"],
+                },
+            });
+
+            server = await runner["setupServer"]();
+
+            expect(server.appRegistry).toBeDefined();
+            expect(server.appRegistry).toHaveProperty("get");
+            expect(typeof server.appRegistry?.get).toBe("function");
+        });
+
+        it("should use provided AppRegistry from serverOptions when available", async () => {
+            const runner = new StreamableHttpRunner({
+                userConfig: {
+                    ...defaultTestConfig,
+                    httpPort: 0,
+                    previewFeatures: ["mcpApps"],
+                },
+            });
+
+            const mockAppRegistry: AppRegistry = {
+                get: vi.fn(),
+                appNames: vi.fn().mockReturnValue([]),
+            } as unknown as AppRegistry;
+
+            server = await runner["setupServer"](undefined, {
+                serverOptions: { appRegistry: mockAppRegistry },
+            });
+
+            expect(server.appRegistry).toBe(mockAppRegistry);
         });
     });
 });
