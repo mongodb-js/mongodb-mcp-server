@@ -23,7 +23,8 @@ if (process.env.SKIP_ATLAS_LOCAL_TESTS === "true") {
 // TODO: Re-enable parallel execution on Windows once the worker fork crash is resolved.
 // On Windows runners, parallel Vitest worker forks crash non-deterministically (different
 // integration test files each run), leaving orphan mongod processes and failing the run
-// with exit code 1. Forcing a single fork avoids the resource contention that triggers it.
+// with exit code 1. Forcing serial file execution avoids the resource contention that
+// triggers it.
 const isWindows = process.platform === "win32";
 
 export default defineConfig({
@@ -32,14 +33,7 @@ export default defineConfig({
         testTimeout: 3600000,
         hookTimeout: 3600000,
         setupFiles: ["./tests/setup.ts"],
-        ...(isWindows && {
-            pool: "forks",
-            poolOptions: {
-                forks: {
-                    singleFork: true,
-                },
-            },
-        }),
+        ...(isWindows && { maxWorkers: 1 }),
         coverage: {
             exclude: [
                 // Required: import.meta.glob() in src/ui creates Vite virtual modules (\0 prefixed paths)
