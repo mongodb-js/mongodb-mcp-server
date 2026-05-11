@@ -92,7 +92,8 @@ export type TestSuiteConfig = {
 };
 
 export const defaultTestSuiteConfig: TestSuiteConfig = {
-    getUserConfig: () => defaultTestConfig,
+    /** Clone so parallel test workers / files never share one `userConfig` instance (would race on readOnly/disabledTools and break tool sync). */
+    getUserConfig: () => structuredClone(defaultTestConfig),
     downloadOptions: DEFAULT_MONGODB_PROCESS_OPTIONS,
 };
 
@@ -183,13 +184,12 @@ export function setupMongoDBIntegrationTest(
     };
 }
 
-/** MongoDB tools hold a shallow config snapshot from registration; align with live {@link Server.userConfig}. */
-function syncMongoToolsConfigConnectionString(mcpServer: Server): void {
-    const connectionString = mcpServer.userConfig.connectionString;
+/** MongoDB tools hold a shallow config snapshot from registration; merge live {@link Server.userConfig} into each tool's config. */
+export function syncMongoToolsConfigFromUserConfig(mcpServer: Server): void {
+    const { userConfig } = mcpServer;
     for (const tool of mcpServer.tools) {
         if (tool.category === "mongodb") {
-            (tool as unknown as { config: { connectionString: string | undefined } }).config.connectionString =
-                connectionString;
+            Object.assign((tool as unknown as { config: object }).config, userConfig);
         }
     }
 }
@@ -211,12 +211,12 @@ export function validateAutoConnectBehavior(
 
         afterEach(() => {
             integration.mcpServer().userConfig.connectionString = undefined;
-            syncMongoToolsConfigConnectionString(integration.mcpServer());
+            syncMongoToolsConfigFromUserConfig(integration.mcpServer());
         });
 
         it("connects automatically if connection string is configured", async () => {
             integration.mcpServer().userConfig.connectionString = integration.connectionString();
-            syncMongoToolsConfigConnectionString(integration.mcpServer());
+            syncMongoToolsConfigFromUserConfig(integration.mcpServer());
 
             const validationInfo = validation();
 
