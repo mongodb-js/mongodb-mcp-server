@@ -4,7 +4,7 @@
   "parameters": {
     "containerAppName": { "value": "mongo-mcp-without-auth" },
     "containerAppEnvironmentName": { "value": "" },
-    "containerImage": { "value": "mongodb/mongodb-mcp-server:1.10.0" },
+    //"containerImage": { "value": "mongodb/mongodb-mcp-server:1.10.0" },   Omitted as now its kept up to date on every release 
     "containerCpu": { "value": "1.0" },
     "containerMemory": { "value": "2Gi" },
     "appEnvironmentVars": {
