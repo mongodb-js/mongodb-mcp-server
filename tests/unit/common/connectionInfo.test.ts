@@ -4,8 +4,8 @@ import {
     getAuthType,
     getConnectionStringInfo,
     type ConnectionStringAuthType,
-    type AtlasClusterConnectionInfo,
 } from "@mongodb-js/mcp-tools-mongodb";
+import type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-types";
 import type { UserConfig } from "../../../src/common/config/userConfig.js";
 
 describe("connectionInfo", () => {

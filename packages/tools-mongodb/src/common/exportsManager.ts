@@ -23,6 +23,13 @@ export type ExportsManagerOptions = {
 export const jsonExportFormat = z.enum(["relaxed", "canonical"]);
 export type JSONExportFormat = z.infer<typeof jsonExportFormat>;
 
+export type CreateJSONExportParams = {
+    input: FindCursor | AggregationCursor;
+    exportName: string;
+    exportTitle: string;
+    jsonExportFormat: JSONExportFormat;
+};
+
 export interface CommonExportData {
     exportName: string;
     exportTitle: string;
@@ -164,12 +171,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
         exportName,
         exportTitle,
         jsonExportFormat,
-    }: {
-        input: FindCursor | AggregationCursor;
-        exportName: string;
-        exportTitle: string;
-        jsonExportFormat: JSONExportFormat;
-    }): Promise<AvailableExport> {
+    }: CreateJSONExportParams): Promise<AvailableExport> {
         try {
             this.assertIsNotShuttingDown();
             const exportNameWithExtension = decodeAndNormalize(ensureExtension(exportName, "json"));

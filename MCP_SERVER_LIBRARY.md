@@ -896,7 +896,7 @@ See "Example: Integration with Request Overrides" for further details on how to 
 
 You can provide a custom connection manager to control how the MongoDB MCP server connects to a MongoDB instance. The main use case for this is if connection handling is done differently in your application. For example, the [MongoDB extension for VS Code](https://github.com/mongodb-js/vscode/blob/f45a4c774ffc01e9aed38f6ef00224bf921d9784/src/mcp/mcpConnectionManager.ts#L30) provides its own implementation of ConnectionManager because the connection handling is done by the extension itself.
 
-When using `MCPConnectionManager`, pass **`options`**: an object with **`connectionInfo`** (transport / browser hints for OIDC inference—the parsed `UserConfig` satisfies this) and **`metadata`** (the MongoDB driver client metadata segment, typically `"<product name> <version>"`). The core server fills both from `userConfig` + `packageInfo` when it builds the manager for you.
+When using `MCPConnectionManager`, pass **`options`**: an object with **`connectionInfo`** (transport / browser hints for OIDC inference—the parsed `UserConfig` satisfies this), **`displayName`** (product title), and **`version`** (product version string). Those labels are combined into the MongoDB driver `appName` when not already set on the URI. The core server fills them from `userConfig` + `packageInfo` when it builds the manager for you.
 
 ```typescript
 import {
@@ -922,7 +922,8 @@ class CustomStreamableHttpRunner extends StreamableHttpRunner {
       deviceId: this.deviceId,
       options: {
         connectionInfo: this.userConfig,
-        metadata: "My MCP Host 1.0.0",
+        displayName: "My MCP Host",
+        version: "1.0.0",
       },
     });
 

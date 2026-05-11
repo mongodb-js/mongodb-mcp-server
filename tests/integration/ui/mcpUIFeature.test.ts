@@ -1,6 +1,11 @@
 import { describe, expect, it, afterAll } from "vitest";
 import { describeWithMongoDB } from "../tools/mongodb/mongodbHelpers.js";
-import { defaultTestConfig, expectDefined, getResponseElements, testMcpDriverMetadata } from "../helpers.js";
+import {
+    defaultTestConfig,
+    expectDefined,
+    getResponseElements,
+    testConnectionManagerDriverLabels,
+} from "../helpers.js";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
 import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { Session } from "../../../src/common/session.js";
@@ -178,7 +183,7 @@ describe("mcpUI feature with custom UIs", () => {
             deviceId,
             options: {
                 connectionInfo: userConfig,
-                metadata: testMcpDriverMetadata,
+                ...testConnectionManagerDriverLabels,
             },
         });
         const exportsManager = ExportsManager.init({ options: userConfig, logger });

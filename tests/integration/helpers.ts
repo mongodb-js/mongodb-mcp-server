@@ -56,8 +56,11 @@ export const defaultTestConfig: UserConfig = {
 
 export const DEFAULT_LONG_RUNNING_TEST_WAIT_TIMEOUT_MS = 1_200_000;
 
-/** MongoDB driver metadata segment for tests; mirrors root `packageInfo`. */
-export const testMcpDriverMetadata = `${packageInfo.mcpServerName} ${packageInfo.version}`;
+/** Driver product labels for tests; mirrors root `packageInfo`. */
+export const testConnectionManagerDriverLabels = {
+    displayName: packageInfo.mcpServerName,
+    version: packageInfo.version,
+} as const;
 
 export function setupIntegrationTest(
     getUserConfig: () => UserConfig,
@@ -107,7 +110,7 @@ export function setupIntegrationTest(
             deviceId: deviceId,
             options: {
                 connectionInfo: userConfig,
-                metadata: testMcpDriverMetadata,
+                ...testConnectionManagerDriverLabels,
             },
         });
 

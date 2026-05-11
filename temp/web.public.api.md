@@ -9,6 +9,7 @@ import { AnyToolBase } from '@mongodb-js/mcp-core';
 import { ApiClient } from '@mongodb-js/mcp-atlas-api-client';
 import { ApiClientOptions } from '@mongodb-js/mcp-atlas-api-client';
 import { AtlasClusterConnectionInfo } from '@mongodb-js/mcp-tools-mongodb';
+import type { AtlasClusterConnectionInfo as AtlasClusterConnectionInfo_2 } from '@mongodb-js/mcp-types';
 import { AtlasLocalClientFactoryFn } from '@mongodb-js/mcp-tools-atlas-local';
 import { AtlasLocalToolMetadata } from '@mongodb-js/mcp-atlas-telemetry';
 import { AtlasMetadata } from '@mongodb-js/mcp-atlas-telemetry';
@@ -385,7 +386,7 @@ export class Session extends EventEmitter<SessionEvents> {
     // (undocumented)
     close(): Promise<void>;
     // (undocumented)
-    get connectedAtlasCluster(): AtlasClusterConnectionInfo | undefined;
+    get connectedAtlasCluster(): AtlasClusterConnectionInfo_2 | undefined;
     // (undocumented)
     readonly connectionErrorHandler: ConnectionErrorHandler;
     // (undocumented)

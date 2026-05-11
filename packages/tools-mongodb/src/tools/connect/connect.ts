@@ -1,9 +1,7 @@
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { MongoDBToolBase } from "../../mongodbTool.js";
+import { MongoDBToolBase, type IMongoDBConfig, type MongoDBToolRegistrationServer } from "../../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolConstructorParams } from "@mongodb-js/mcp-core";
-import type { IMongoDBConfig } from "../../mongodbTool.js";
-import type { McpServer } from "@mongodb-js/mcp-core";
 export class ConnectTool extends MongoDBToolBase {
     static toolName = "connect";
     public override description =
@@ -28,7 +26,7 @@ export class ConnectTool extends MongoDBToolBase {
         });
     }
 
-    public override register(server: { mcpServer: McpServer }): boolean {
+    public override register(server: MongoDBToolRegistrationServer): boolean {
         const registrationSuccessful = super.register(server);
         /**
          * When connected to mongodb we want to swap connect with

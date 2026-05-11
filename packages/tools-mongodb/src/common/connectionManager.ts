@@ -246,8 +246,9 @@ export interface ConnectionManagerOptions {
     options: {
         /** Transport / browser hints for OIDC auth inference. */
         connectionInfo: ConnectionInfo;
-        /** Segment merged into MongoDB driver `appName` when not already set on the URI. */
-        metadata: string;
+        /** Host application title merged into MongoDB driver `appName` when not already set on the URI. */
+        displayName: string;
+        version: string;
     };
     bus?: EventEmitter;
 }
@@ -283,7 +284,7 @@ export class MCPConnectionManager extends ConnectionManager {
         try {
             settings = { ...settings };
             const appNameComponents: AppNameComponents = {
-                appName: this.options.metadata,
+                appName: `${this.options.displayName} ${this.options.version}`,
                 deviceId: this.deviceId.get(),
                 clientName: this.clientName,
             };

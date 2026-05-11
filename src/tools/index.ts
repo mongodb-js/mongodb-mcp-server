@@ -18,10 +18,8 @@ export { MongoDBToolBase, type IMongoDBConfig, type IMongoDBSession } from "@mon
 export * from "@mongodb-js/mcp-tools-atlas-local";
 export * from "@mongodb-js/mcp-tools-mongodb";
 export * from "@mongodb-js/mcp-tools-assistant";
-// Re-export from atlas, but exclude AtlasClusterConnectionInfo since it's also in mongodb package
+// Named atlas exports (avoid star-export duplication with mongodb tools package).
 export { AtlasTools, AtlasToolBase, type IAtlasConfig, type IAtlasSession } from "@mongodb-js/mcp-tools-atlas";
-// Export AtlasClusterConnectionInfo explicitly from mongodb package
-export type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-tools-mongodb";
 
 export {
     ToolBase,

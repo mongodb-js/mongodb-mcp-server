@@ -286,7 +286,8 @@ export abstract class TransportRunnerBase<
                 deviceId: this.deviceId,
                 options: {
                     connectionInfo: userConfig,
-                    metadata: `${packageInfo.mcpServerName} ${packageInfo.version}`,
+                    displayName: packageInfo.mcpServerName,
+                    version: packageInfo.version,
                 },
             }));
 
@@ -400,7 +401,8 @@ export abstract class TransportRunnerBase<
                     deviceId: this.deviceId,
                     options: {
                         connectionInfo: userConfig,
-                        metadata: `${packageInfo.mcpServerName} ${packageInfo.version}`,
+                        displayName: packageInfo.mcpServerName,
+                        version: packageInfo.version,
                     },
                 }),
                 atlasLocalClient: await this.createAtlasLocalClient({ logger: this.logger }),

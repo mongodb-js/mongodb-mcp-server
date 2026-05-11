@@ -8,7 +8,7 @@ import { ensureCurrentIpInAccessList } from "../../helpers/accessListUtils.js";
 import { getDefaultRoleFromConfig } from "../../helpers/roles.js";
 import { AtlasArgs } from "../../args.js";
 import type { AtlasConnectionMetadata as ConnectionMetadata } from "@mongodb-js/mcp-atlas-telemetry";
-import type { AtlasClusterConnectionInfo } from "../../atlasTool.js";
+import type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-types";
 
 const addedIpAccessListMessage =
     "Note: Your current IP address has been added to the Atlas project's IP access list to enable secure connection.";

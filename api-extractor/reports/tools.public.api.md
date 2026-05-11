@@ -4,7 +4,6 @@
 
 ```ts
 
-import { AtlasClusterConnectionInfo } from '@mongodb-js/mcp-tools-mongodb';
 import { AtlasToolBase } from '@mongodb-js/mcp-tools-atlas';
 import { AtlasTools } from '@mongodb-js/mcp-tools-atlas';
 import { IAtlasConfig } from '@mongodb-js/mcp-tools-atlas';
@@ -23,8 +22,6 @@ import { ToolResult } from '@mongodb-js/mcp-core';
 
 // @public (undocumented)
 export const AllTools: ToolClass<any, any, any>[];
-
-export { AtlasClusterConnectionInfo }
 
 export { AtlasToolBase }
 

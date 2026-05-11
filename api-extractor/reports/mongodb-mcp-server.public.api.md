@@ -8,7 +8,7 @@ import { AnyConnectionState } from '@mongodb-js/mcp-tools-mongodb';
 import { AnyToolBase } from '@mongodb-js/mcp-core';
 import { ApiClient } from '@mongodb-js/mcp-atlas-api-client';
 import { ApiClientOptions } from '@mongodb-js/mcp-atlas-api-client';
-import type { AtlasClusterConnectionInfo } from '@mongodb-js/mcp-tools-mongodb';
+import type { AtlasClusterConnectionInfo } from '@mongodb-js/mcp-types';
 import type { AtlasLocalClientFactoryFn } from '@mongodb-js/mcp-tools-atlas-local';
 import { AtlasTelemetry } from '@mongodb-js/mcp-atlas-telemetry';
 import { AuthProvider } from '@mongodb-js/mcp-atlas-api-client';

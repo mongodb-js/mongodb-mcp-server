@@ -146,7 +146,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                     }),
                     collectCursorUntilMaxBytesLimit({
                         cursor: aggregationCursor,
-                        configuredMaxBytesPerQuery: this.config.maxBytesPerQuery || 0,
+                        configuredMaxBytesPerQuery: this.config.maxBytesPerQuery,
                         toolResponseBytesLimit: responseBytesLimit,
                         abortSignal: signal,
                     }),

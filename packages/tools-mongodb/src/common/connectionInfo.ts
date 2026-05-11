@@ -1,6 +1,8 @@
 import { isAtlas } from "mongodb-build-info";
 import type { MongoClientOptions } from "mongodb";
 import { ConnectionString } from "mongodb-connection-string-url";
+import type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-types";
+export type { AtlasClusterConnectionInfo };
 
 /**
  * Minimum fields needed for OIDC auth-type inference when resolving connection metadata.
@@ -28,20 +30,6 @@ export type ConnectionStringAuthType = "scram" | "ldap" | "kerberos" | OIDCConne
 export interface ConnectionStringInfo {
     authType: ConnectionStringAuthType;
     hostType: ConnectionStringHostType;
-}
-
-/**
- * Atlas cluster connection info containing details about the connected Atlas cluster.
- * When provided, indicates the connection is to an Atlas cluster.
- */
-export interface AtlasClusterConnectionInfo {
-    username: string;
-    projectId: string;
-    clusterName: string;
-    instanceType: "FREE" | "FLEX" | "DEDICATED";
-    provider?: string;
-    region?: string;
-    expiryDate: Date;
 }
 
 /**

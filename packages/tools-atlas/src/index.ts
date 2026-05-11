@@ -1,4 +1,5 @@
-export { AtlasToolBase, type IAtlasConfig, type IAtlasSession, type AtlasClusterConnectionInfo } from "./atlasTool.js";
+export type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-types";
+export { AtlasToolBase, type IAtlasConfig, type IAtlasSession } from "./atlasTool.js";
 export { StreamsToolBase } from "./streams/streamsToolBase.js";
 export { StreamsArgs, ConnectionConfig, PrivateLinkConfig } from "./streams/streamsArgs.js";
 export { type ToolConstructorParams } from "@mongodb-js/mcp-core";

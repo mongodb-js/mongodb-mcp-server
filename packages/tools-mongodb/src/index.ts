@@ -2,6 +2,7 @@ export {
     MongoDBToolBase,
     type IMongoDBConfig,
     type IMongoDBSession,
+    type MongoDBToolRegistrationServer,
     DBOperationArgs,
     CollOperationArgs,
 } from "./mongodbTool.js";
@@ -40,6 +41,7 @@ export {
     ExportsManager,
     type JSONExportFormat,
     type AvailableExport,
+    type CreateJSONExportParams,
     type ExportsManagerOptions,
     type StoredExport,
     type ExportsManagerEvents,

@@ -1,7 +1,8 @@
 import { ReactiveResource } from "../resource.js";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { Session, UserConfig } from "../../lib.js";
-import type { AtlasClusterConnectionInfo, ConnectionStateErrored } from "@mongodb-js/mcp-tools-mongodb";
+import type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-types";
+import type { ConnectionStateErrored } from "@mongodb-js/mcp-tools-mongodb";
 import type { ConnectionStringInfo } from "@mongodb-js/mcp-tools-mongodb";
 
 type ConnectionStateDebuggingInformation = {
