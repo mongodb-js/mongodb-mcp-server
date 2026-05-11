@@ -61,7 +61,7 @@ export {
 } from "./transports/base.js";
 export {
     ConnectionManager,
-    ConnectionStateConnected,
+    type ConnectionStateConnected,
     type AnyConnectionState,
     type ConnectionState,
     type ConnectionStateConnecting,
