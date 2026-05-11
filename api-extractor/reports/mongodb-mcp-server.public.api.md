@@ -747,7 +747,7 @@ export interface LogPayload {
     noRedaction?: boolean | LoggerType | LoggerType[];
 }
 
-// @public (undocumented)
+// @public
 export class MCPConnectionManager extends ConnectionManager {
     constructor(userConfig: UserConfig, logger: LoggerBase, deviceId: DeviceId, bus?: EventEmitter);
     // (undocumented)
