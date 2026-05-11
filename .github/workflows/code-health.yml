@@ -36,7 +36,10 @@ jobs:
           cache: "pnpm"
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      # TODO: Re-enable on Windows once the silent worker fork crash / mongod cleanup
+      # leak is resolved. See MCP-495.
       - name: Run tests
+        if: matrix.os != 'windows-latest'
         run: pnpm test
         env:
           SKIP_ATLAS_INTEGRATION_TESTS: "true"
