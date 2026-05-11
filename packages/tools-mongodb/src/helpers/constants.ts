@@ -1,5 +1,5 @@
 /**
- * A cap for the maxTimeMS used for FindCursor.countDocuments.
+ * A cap for the maxTimeMS used for FindCursor.countDocuments when config.queryCountMaxTimeMsCap is unset.
  *
  * The number is relatively smaller because we expect the count documents query
  * to be finished sooner if not by the time the batch of documents is retrieved
@@ -9,7 +9,7 @@ export const QUERY_COUNT_MAX_TIME_MS_CAP: number = 10_000;
 
 /**
  * A cap for the maxTimeMS used for counting resulting documents of an
- * aggregation.
+ * aggregation when config.aggregationCountMaxTimeMsCap is unset.
  */
 export const AGG_COUNT_MAX_TIME_MS_CAP: number = 60_000;
 

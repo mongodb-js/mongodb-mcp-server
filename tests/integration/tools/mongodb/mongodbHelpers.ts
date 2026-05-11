@@ -11,6 +11,7 @@ import {
     getDataFromUntrustedContent,
 } from "../../helpers.js";
 import type { UserConfig } from "../../../../src/common/config/userConfig.js";
+import type { ServerOptions } from "../../../../src/server.js";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { EJSON } from "bson";
 import { MongoDBClusterProcess } from "./mongodbClusterProcess.js";
@@ -87,6 +88,7 @@ export type TestSuiteConfig = {
     downloadOptions: MongoClusterConfiguration;
     getMockElicitationInput?: () => ReturnType<typeof createMockElicitInput>;
     getClientCapabilities?: () => MockClientCapabilities;
+    serverOptions?: Partial<ServerOptions>;
 };
 
 export const defaultTestSuiteConfig: TestSuiteConfig = {
@@ -99,10 +101,11 @@ export function describeWithMongoDB(
     fn: (integration: MongoDBIntegrationTestCase) => void,
     partialTestSuiteConfig?: Partial<TestSuiteConfig>
 ): void {
-    const { getUserConfig, downloadOptions, getMockElicitationInput, getClientCapabilities } = {
+    const merged: TestSuiteConfig = {
         ...defaultTestSuiteConfig,
         ...partialTestSuiteConfig,
     };
+    const { getUserConfig, downloadOptions, getMockElicitationInput, getClientCapabilities, serverOptions } = merged;
     describe.skipIf(!MongoDBClusterProcess.isConfigurationSupportedInCurrentEnv(downloadOptions))(name, () => {
         const mdbIntegration = setupMongoDBIntegrationTest(downloadOptions);
         const mockElicitInput = getMockElicitationInput?.();
@@ -110,7 +113,7 @@ export function describeWithMongoDB(
             () => ({
                 ...getUserConfig(mdbIntegration),
             }),
-            { elicitInput: mockElicitInput, getClientCapabilities }
+            { elicitInput: mockElicitInput, getClientCapabilities, serverOptions }
         );
 
         fn({

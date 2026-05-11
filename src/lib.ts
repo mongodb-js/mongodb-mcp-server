@@ -1,4 +1,10 @@
-export { Server, type ServerOptions, type AnyToolClass, type ToolCategory } from "./server.js";
+export {
+    Server,
+    type ServerOptions,
+    type MongoDBToolsRuntimeConfig,
+    type AnyToolClass,
+    type ToolCategory,
+} from "./server.js";
 export { Session, type SessionOptions, type SessionEvents } from "./common/session.js";
 export { type UserConfig, UserConfigSchema, configRegistry } from "./common/config/userConfig.js";
 export { parseUserConfig, defaultParserOptions, type ParserOptions } from "./common/config/parseUserConfig.js";
@@ -77,7 +83,12 @@ export {
     type ConnectionErrorUnhandled,
     type ConnectionErrorHandlerContext,
 } from "./common/connectionErrorHandler.js";
-export { ErrorCodes, MongoDBError } from "@mongodb-js/mcp-tools-mongodb";
+export {
+    ErrorCodes,
+    MongoDBError,
+    QUERY_COUNT_MAX_TIME_MS_CAP,
+    AGG_COUNT_MAX_TIME_MS_CAP,
+} from "@mongodb-js/mcp-tools-mongodb";
 export { AtlasTelemetry, EventCache } from "@mongodb-js/mcp-atlas-telemetry";
 export type {
     TelemetryEvent,

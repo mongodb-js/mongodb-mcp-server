@@ -10,7 +10,7 @@ import { type Document, EJSON } from "bson";
 import { ErrorCodes, MongoDBError } from "../../common/errors.js";
 import { collectCursorUntilMaxBytesLimit } from "../../helpers/collectCursorUntilMaxBytes.js";
 import { operationWithFallback } from "../../helpers/operationWithFallback.js";
-import { AGG_COUNT_MAX_TIME_MS_CAP, ONE_MB, CURSOR_LIMITS_TO_LLM_TEXT } from "../../helpers/constants.js";
+import { ONE_MB, CURSOR_LIMITS_TO_LLM_TEXT } from "../../helpers/constants.js";
 import { LogId } from "@mongodb-js/mcp-logging";
 import { AnyAggregateStage, VectorSearchStage } from "../../mongodbSchemas.js";
 import {
@@ -248,11 +248,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                 .aggregate(database, collection, resultsCountAggregation, {
                     signal: abortSignal,
                 })
-                .maxTimeMS(
-                    this.config.maxTimeMS !== undefined
-                        ? Math.min(this.config.maxTimeMS, AGG_COUNT_MAX_TIME_MS_CAP)
-                        : AGG_COUNT_MAX_TIME_MS_CAP
-                )
+                .maxTimeMS(this.getAggregationCountDocumentsMaxTimeMS())
                 .toArray();
 
             const documentWithCount: unknown = aggregationResults.length === 1 ? aggregationResults[0] : undefined;

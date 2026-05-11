@@ -4,6 +4,7 @@
 
 ```ts
 
+import { AGG_COUNT_MAX_TIME_MS_CAP } from '@mongodb-js/mcp-tools-mongodb';
 import { AnyConnectionState } from '@mongodb-js/mcp-tools-mongodb';
 import { AnyToolBase } from '@mongodb-js/mcp-core';
 import { ApiClient } from '@mongodb-js/mcp-atlas-api-client';
@@ -69,6 +70,7 @@ import { NotConnectedToMongoDBErrorCode } from '@mongodb-js/mcp-tools-mongodb';
 import { OIDCConnectionAuthType } from '@mongodb-js/mcp-tools-mongodb';
 import { PrometheusMetrics } from '@mongodb-js/mcp-metrics';
 import { PrometheusMetricsOptions } from '@mongodb-js/mcp-metrics';
+import { QUERY_COUNT_MAX_TIME_MS_CAP } from '@mongodb-js/mcp-tools-mongodb';
 import { registerGlobalSecretToRedact } from '@mongodb-js/mcp-core';
 import { Registry } from '@mongodb-js/mcp-metrics';
 import { RequestContext } from '@mongodb-js/mcp-atlas-api-client';
@@ -86,6 +88,8 @@ import type { TransportRequestContext } from '@mongodb-js/mcp-types';
 import { UIRegistry } from '@mongodb-js/mcp-ui';
 import { UIRegistryOptions } from '@mongodb-js/mcp-ui';
 import { z } from 'zod';
+
+export { AGG_COUNT_MAX_TIME_MS_CAP }
 
 export { AnyConnectionState }
 
@@ -350,6 +354,12 @@ export { Metrics }
 
 export { MongoDBError }
 
+// @public
+export type MongoDBToolsRuntimeConfig = {
+    queryCountMaxTimeMsCap: number;
+    aggregationCountMaxTimeMsCap: number;
+};
+
 // @public (undocumented)
 export class MonitoringServer<TMetrics extends DefaultMetrics = DefaultMetrics> extends ExpressBasedHttpServer {
     constructor(input: {
@@ -418,6 +428,8 @@ export { PrometheusMetrics }
 
 export { PrometheusMetricsOptions }
 
+export { QUERY_COUNT_MAX_TIME_MS_CAP }
+
 export { registerGlobalSecretToRedact }
 
 export { Registry }
@@ -475,6 +487,7 @@ export interface ServerOptions<TUserConfig extends UserConfig = UserConfig, TCon
     mcpServer: McpServer;
     // (undocumented)
     metrics: Metrics<TMetrics>;
+    runtimeConfig?: MongoDBToolsRuntimeConfig;
     // (undocumented)
     session: Session;
     // (undocumented)

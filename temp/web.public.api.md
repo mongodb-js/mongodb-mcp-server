@@ -296,6 +296,12 @@ export class MongoDBError<ErrorCode extends ErrorCodes = ErrorCodes> extends Err
     code: ErrorCode;
 }
 
+// @public
+export type MongoDBToolsRuntimeConfig = {
+    queryCountMaxTimeMsCap: number;
+    aggregationCountMaxTimeMsCap: number;
+};
+
 export { OIDCConnectionAuthType as ConnectionInfoOIDCConnectionAuthType }
 export { OIDCConnectionAuthType }
 
@@ -362,6 +368,7 @@ export interface ServerOptions<TUserConfig extends UserConfig = UserConfig, TCon
     mcpServer: McpServer;
     // (undocumented)
     metrics: Metrics<TMetrics>;
+    runtimeConfig?: MongoDBToolsRuntimeConfig;
     // (undocumented)
     session: Session;
     // (undocumented)

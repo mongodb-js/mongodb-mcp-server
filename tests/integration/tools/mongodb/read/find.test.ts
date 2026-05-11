@@ -8,15 +8,7 @@ import {
     expectDefined,
     defaultTestConfig,
 } from "../../../helpers.js";
-import type * as ConstantsModule from "@mongodb-js/mcp-tools-mongodb";
-import * as constants from "@mongodb-js/mcp-tools-mongodb";
-vi.mock("@mongodb-js/mcp-tools-mongodb", async (importOriginal) => {
-    const mod = await importOriginal<typeof ConstantsModule>();
-    return {
-        ...mod,
-        QUERY_COUNT_MAX_TIME_MS_CAP: 10000,
-    };
-});
+import { AGG_COUNT_MAX_TIME_MS_CAP } from "@mongodb-js/mcp-tools-mongodb";
 import { describeWithMongoDB, getDocsFromUntrustedContent, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 import type { Client } from "@modelcontextprotocol/sdk/client";
 
@@ -273,35 +265,46 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
             expectedResponse: 'Query on collection "coll1" resulted in 0 documents.',
         };
     });
-
-    describe("when counting documents exceed the configured count maxTimeMS", () => {
-        beforeEach(async () => {
-            await freshInsertDocuments({
-                collection: integration.mongoClient().db(integration.randomDbName()).collection("foo"),
-                count: 10,
-            });
-        });
-
-        afterEach(() => {
-            vi.resetAllMocks();
-        });
-
-        it("should abort count operation and respond with indeterminable count", async () => {
-            // Mock QUERY_COUNT_MAX_TIME_MS_CAP to a very small value to trigger timeout
-            Object.defineProperty(constants, "QUERY_COUNT_MAX_TIME_MS_CAP", { value: 0.1 });
-            await integration.connectMcpClient();
-            const response = await integration.mcpClient().callTool({
-                name: "find",
-                arguments: { database: integration.randomDbName(), collection: "foo" },
-            });
-            const content = getResponseContent(response);
-            expect(content).toContain('Query on collection "foo" resulted in indeterminable number of documents.');
-
-            const docs = getDocsFromUntrustedContent(content);
-            expect(docs.length).toEqual(10);
-        });
-    });
 });
+
+describeWithMongoDB(
+    "find tool — count maxTimeMS runtime override",
+    (integration) => {
+        describe("when counting documents exceed the configured count maxTimeMS", () => {
+            beforeEach(async () => {
+                await freshInsertDocuments({
+                    collection: integration.mongoClient().db(integration.randomDbName()).collection("foo"),
+                    count: 10,
+                });
+            });
+
+            afterEach(() => {
+                vi.resetAllMocks();
+            });
+
+            it("should abort count operation and respond with indeterminable count", async () => {
+                await integration.connectMcpClient();
+                const response = await integration.mcpClient().callTool({
+                    name: "find",
+                    arguments: { database: integration.randomDbName(), collection: "foo" },
+                });
+                const content = getResponseContent(response);
+                expect(content).toContain('Query on collection "foo" resulted in indeterminable number of documents.');
+
+                const docs = getDocsFromUntrustedContent(content);
+                expect(docs.length).toEqual(10);
+            });
+        });
+    },
+    {
+        serverOptions: {
+            runtimeConfig: {
+                queryCountMaxTimeMsCap: 0.1,
+                aggregationCountMaxTimeMsCap: AGG_COUNT_MAX_TIME_MS_CAP,
+            },
+        },
+    }
+);
 
 describeWithMongoDB(
     "find tool with configured max documents per query",

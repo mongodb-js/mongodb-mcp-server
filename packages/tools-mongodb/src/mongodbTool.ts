@@ -8,7 +8,7 @@ import { LogId } from "@mongodb-js/mcp-logging";
 import type { ConnectionMetadata, IToolConfig, IToolSession } from "@mongodb-js/mcp-types";
 import type { AvailableExport, CreateJSONExportParams } from "./common/exportsManager.js";
 
-/** MongoDB tool subset of server config; Mongo-specific keys are always present (use `undefined` where unset). */
+/** MongoDB tool subset of server config. */
 export type IMongoDBConfig = IToolConfig & {
     connectionString: string | undefined;
     indexCheck: boolean;
@@ -16,6 +16,8 @@ export type IMongoDBConfig = IToolConfig & {
     maxDocumentsPerQuery: number;
     maxBytesPerQuery: number;
     httpHost: string;
+    queryCountMaxTimeMsCap: number;
+    aggregationCountMaxTimeMsCap: number;
 };
 
 export interface IMongoDBSession extends IToolSession {
@@ -51,7 +53,7 @@ export const CollOperationArgs = {
 export type MongoDBToolRegistrationServer = {
     mcpServer: McpServer;
     readonly tools?: readonly unknown[];
-    isToolCategoryAvailable?(name: ToolCategory): boolean;
+    isToolCategoryAvailable(name: ToolCategory): boolean;
 };
 
 export abstract class MongoDBToolBase extends ToolBase<IMongoDBConfig> {
@@ -64,6 +66,18 @@ export abstract class MongoDBToolBase extends ToolBase<IMongoDBConfig> {
 
     constructor(params: ToolConstructorParams<IMongoDBConfig>) {
         super(params);
+    }
+
+    /** Effective maxTimeMS for find countDocuments. */
+    protected getFindCountDocumentsMaxTimeMS(): number {
+        const cap = this.config.queryCountMaxTimeMsCap;
+        return this.config.maxTimeMS !== undefined ? Math.min(this.config.maxTimeMS, cap) : cap;
+    }
+
+    /** Effective maxTimeMS for aggregation preliminary $count. */
+    protected getAggregationCountDocumentsMaxTimeMS(): number {
+        const cap = this.config.aggregationCountMaxTimeMsCap;
+        return this.config.maxTimeMS !== undefined ? Math.min(this.config.maxTimeMS, cap) : cap;
     }
 
     public override register(server: MongoDBToolRegistrationServer): boolean {
@@ -139,7 +153,7 @@ export abstract class MongoDBToolBase extends ToolBase<IMongoDBConfig> {
                         isError: true,
                     };
                 case ErrorCodes.AtlasSearchNotSupported: {
-                    const CTA = this.server?.isToolCategoryAvailable?.("atlas-local")
+                    const CTA = this.server?.isToolCategoryAvailable("atlas-local")
                         ? "`atlas-local` tools"
                         : "Atlas CLI";
                     return {

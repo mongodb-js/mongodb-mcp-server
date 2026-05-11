@@ -6,7 +6,13 @@ export {
 } from "./transports/base.js";
 export { UserConfigSchema, type UserConfig } from "./common/config/userConfig.js";
 export { createDefaultMetrics, type DefaultMetrics } from "@mongodb-js/mcp-metrics";
-export { Server, type ServerOptions, type AnyToolClass, type ToolCategory } from "./server.js";
+export {
+    Server,
+    type ServerOptions,
+    type MongoDBToolsRuntimeConfig,
+    type AnyToolClass,
+    type ToolCategory,
+} from "./server.js";
 export { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 export { LoggerBase, CompositeLogger, type EventMap, type DefaultEventMap } from "@mongodb-js/mcp-core";
 export type { Metrics, MetricDefinitions } from "@mongodb-js/mcp-metrics";
