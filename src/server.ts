@@ -16,7 +16,12 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import type { AnyToolBase, ToolCategory, ToolClass } from "./tools/tool.js";
 export type { ToolCategory } from "./tools/tool.js";
-import { validateConnectionString } from "./helpers/connectionOptions.js";
+import {
+    validateConnectionString,
+    type IMongoDBConfig,
+    QUERY_COUNT_MAX_TIME_MS_CAP,
+    AGG_COUNT_MAX_TIME_MS_CAP,
+} from "@mongodb-js/mcp-tools-mongodb";
 import { packageInfo } from "./common/packageInfo.js";
 import { type ConnectionErrorHandler } from "./common/connectionErrorHandler.js";
 import type { Elicitation } from "./elicitation.js";
@@ -26,6 +31,12 @@ import type { Metrics, DefaultMetrics } from "@mongodb-js/mcp-metrics";
 import type { IMetrics } from "@mongodb-js/mcp-types";
 
 export type AnyToolClass = ToolClass<any, any, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+/** MongoDB read-tool count-phase maxTimeMS caps applied when registering MongoDB tools (binary-only). */
+export type MongoDBToolsRuntimeConfig = {
+    queryCountMaxTimeMsCap: number;
+    aggregationCountMaxTimeMsCap: number;
+};
 
 export interface ServerOptions<
     TUserConfig extends UserConfig = UserConfig,
@@ -101,6 +112,11 @@ export interface ServerOptions<
      * ```
      */
     toolContext?: TContext;
+    /**
+     * MongoDB read-tool count-phase maxTimeMS caps. Omit to use built-in defaults
+     * from `@mongodb-js/mcp-tools-mongodb` (`QUERY_COUNT_MAX_TIME_MS_CAP` and `AGG_COUNT_MAX_TIME_MS_CAP`).
+     */
+    runtimeConfig?: MongoDBToolsRuntimeConfig;
 }
 
 export class Server<
@@ -119,6 +135,8 @@ export class Server<
     public readonly uiRegistry?: UIRegistry;
     public readonly toolContext?: TContext;
     public readonly metrics: Metrics<TMetrics>;
+
+    private readonly runtimeConfig: MongoDBToolsRuntimeConfig;
 
     private _mcpLogLevel: LogLevel;
     /** Lowest log level allowed to be sent to the MCP client. */
@@ -142,6 +160,10 @@ export class Server<
         uiRegistry,
         toolContext,
         metrics,
+        runtimeConfig = {
+            queryCountMaxTimeMsCap: QUERY_COUNT_MAX_TIME_MS_CAP,
+            aggregationCountMaxTimeMsCap: AGG_COUNT_MAX_TIME_MS_CAP,
+        },
     }: ServerOptions<TUserConfig, TContext, TMetrics>) {
         this.startTime = Date.now();
         this.session = session;
@@ -154,6 +176,7 @@ export class Server<
         this.uiRegistry = uiRegistry;
         this.toolContext = toolContext;
         this.metrics = metrics;
+        this.runtimeConfig = runtimeConfig;
 
         this._mcpLogLevel = userConfig.mcpClientLogLevel;
         this.mcpLogLevelFloor = this._mcpLogLevel;
@@ -313,12 +336,14 @@ export class Server<
 
     public registerTools(): void {
         for (const toolConstructor of this.toolConstructors) {
+            const config = { ...this.userConfig, ...this.runtimeConfig } as IMongoDBConfig | UserConfig;
+
             const tool = new toolConstructor({
                 name: toolConstructor.toolName,
                 category: toolConstructor.category,
                 operationType: toolConstructor.operationType,
                 session: this.session,
-                config: this.userConfig,
+                config,
                 telemetry: this.telemetry,
                 elicitation: this.elicitation,
                 metrics: this.metrics as IMetrics,

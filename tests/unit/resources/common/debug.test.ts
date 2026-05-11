@@ -3,24 +3,31 @@ import { DebugResource } from "../../../../src/resources/common/debug.js";
 import { Session } from "../../../../src/common/session.js";
 import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
-import { MCPConnectionManager } from "../../../../src/common/connectionManager.js";
-import { ExportsManager } from "../../../../src/common/exportsManager.js";
-import { DeviceId } from "../../../../src/helpers/deviceId.js";
+import { MCPConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
+import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
+import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { Keychain } from "@mongodb-js/mcp-core";
-import { defaultTestConfig } from "../../../integration/helpers.js";
+import { defaultTestConfig, testConnectionManagerDriverLabels } from "../../../integration/helpers.js";
 import { connectionErrorHandler } from "../../../../src/common/connectionErrorHandler.js";
 import { ApiClient } from "../../../../src/lib.js";
 
 describe("debug resource", () => {
     const logger = new CompositeLogger();
     const deviceId = DeviceId.create(logger);
-    const connectionManager = new MCPConnectionManager(defaultTestConfig, logger, deviceId);
+    const connectionManager = new MCPConnectionManager({
+        logger,
+        deviceId,
+        options: {
+            connectionInfo: defaultTestConfig,
+            ...testConnectionManagerDriverLabels,
+        },
+    });
 
     const session = vi.mocked(
         new Session({
             userConfig: defaultTestConfig,
             logger,
-            exportsManager: ExportsManager.init(defaultTestConfig, logger),
+            exportsManager: ExportsManager.init({ options: defaultTestConfig, logger: logger }),
             connectionManager,
             keychain: new Keychain(),
             connectionErrorHandler,

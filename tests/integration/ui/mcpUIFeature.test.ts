@@ -1,13 +1,18 @@
 import { describe, expect, it, afterAll } from "vitest";
 import { describeWithMongoDB } from "../tools/mongodb/mongodbHelpers.js";
-import { defaultTestConfig, expectDefined, getResponseElements } from "../helpers.js";
+import {
+    defaultTestConfig,
+    expectDefined,
+    getResponseElements,
+    testConnectionManagerDriverLabels,
+} from "../helpers.js";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
-import { ExportsManager } from "../../../src/common/exportsManager.js";
+import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { Session } from "../../../src/common/session.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Server } from "../../../src/server.js";
-import { MCPConnectionManager } from "../../../src/common/connectionManager.js";
-import { DeviceId } from "../../../src/helpers/deviceId.js";
+import { MCPConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
+import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { connectionErrorHandler } from "../../../src/common/connectionErrorHandler.js";
 import { Keychain } from "@mongodb-js/mcp-core";
 import { Elicitation } from "../../../src/elicitation.js";
@@ -173,8 +178,15 @@ describe("mcpUI feature with custom UIs", () => {
         };
         const logger = new CompositeLogger();
         const deviceId = DeviceId.create(logger);
-        const connectionManager = new MCPConnectionManager(userConfig, logger, deviceId);
-        const exportsManager = ExportsManager.init(userConfig, logger);
+        const connectionManager = new MCPConnectionManager({
+            logger,
+            deviceId,
+            options: {
+                connectionInfo: userConfig,
+                ...testConnectionManagerDriverLabels,
+            },
+        });
+        const exportsManager = ExportsManager.init({ options: userConfig, logger });
 
         const session = new Session({
             userConfig,

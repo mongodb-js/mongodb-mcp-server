@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { DeviceId } from "../../../src/helpers/deviceId.js";
+import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { getDeviceId } from "@mongodb-js/device-id";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
 

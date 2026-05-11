@@ -6,7 +6,7 @@ import {
 } from "../../../helpers.js";
 import { describe, expect, it } from "vitest";
 import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
-import type { RenameCollectionOutput } from "../../../../../src/tools/mongodb/update/renameCollection.js";
+import type { RenameCollectionOutput } from "@mongodb-js/mcp-tools-mongodb";
 
 describeWithMongoDB("renameCollection tool", (integration) => {
     validateToolMetadata(integration, "rename-collection", "Renames a collection in a MongoDB database", "update", [

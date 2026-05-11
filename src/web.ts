@@ -6,8 +6,14 @@ export {
 } from "@mongodb-js/mcp-transports";
 export { UserConfigSchema, type UserConfig } from "./common/config/userConfig.js";
 export { createDefaultMetrics, type DefaultMetrics } from "@mongodb-js/mcp-metrics";
-export { Server, type ServerOptions, type AnyToolClass, type ToolCategory } from "./server.js";
-export { DeviceId } from "./helpers/deviceId.js";
+export {
+    Server,
+    type ServerOptions,
+    type MongoDBToolsRuntimeConfig,
+    type AnyToolClass,
+    type ToolCategory,
+} from "./server.js";
+export { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 export { LoggerBase, CompositeLogger, type EventMap, type DefaultEventMap } from "@mongodb-js/mcp-core";
 export type { Metrics, MetricDefinitions } from "@mongodb-js/mcp-metrics";
 export type { TransportRequestContext } from "@mongodb-js/mcp-transports";
@@ -40,6 +46,7 @@ export type {
     ConnectionStateConnecting,
     ConnectionSettings,
     ConnectionManagerFactoryFn,
+    ConnectionManagerFactoryOptions,
     AtlasClusterConnectionInfo,
     ConnectionStringInfo,
     AnyConnectionState,
@@ -49,12 +56,12 @@ export type {
     ConnectionState,
     OIDCConnectionAuthType,
     ConnectionTag,
-} from "./common/connectionManager.js";
-export type { ConnectionManager, ConnectionStateConnected } from "./common/connectionManager.js";
+} from "@mongodb-js/mcp-tools-mongodb";
+export type { ConnectionManager, ConnectionStateConnected } from "@mongodb-js/mcp-tools-mongodb";
 export {
     ExportsManager,
     type AvailableExport,
-    type ExportsManagerConfig,
+    type ExportsManagerOptions,
     type JSONExportFormat,
     type StoredExport,
     type ExportsManagerEvents,
@@ -62,7 +69,7 @@ export {
     type InProgressExport,
     type CommonExportData,
     jsonExportFormat,
-} from "./common/exportsManager.js";
+} from "@mongodb-js/mcp-tools-mongodb";
 export { ApiClient, type ApiClientOptions, type RequestContext } from "@mongodb-js/mcp-atlas-api-client";
 export type { AtlasLocalClientFactoryFn, LibraryLoader } from "@mongodb-js/mcp-tools-atlas-local";
 export { UIRegistry } from "@mongodb-js/mcp-ui";
@@ -89,5 +96,5 @@ export type {
     ConnectionStringAuthType,
     ConnectionStringHostType,
     OIDCConnectionAuthType as ConnectionInfoOIDCConnectionAuthType,
-} from "./common/connectionInfo.js";
-export type { PreviewFeature, previewFeatureValues } from "./common/schemas.js";
+} from "@mongodb-js/mcp-tools-mongodb";
+export type { PreviewFeature, previewFeatureValues } from "@mongodb-js/mcp-tools-mongodb";

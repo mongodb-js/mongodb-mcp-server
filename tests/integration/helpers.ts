@@ -1,6 +1,6 @@
 import type { LoggerType, LogLevel, LogPayload } from "@mongodb-js/mcp-core";
 import { CompositeLogger, LoggerBase } from "@mongodb-js/mcp-core";
-import { ExportsManager } from "../../src/common/exportsManager.js";
+import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { Session } from "../../src/common/session.js";
 import { Server, type ServerOptions } from "../../src/server.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -9,9 +9,9 @@ import { InMemoryTransport } from "@mongodb-js/mcp-transports";
 import { type UserConfig } from "../../src/common/config/userConfig.js";
 import { ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import type { ConnectionManager, ConnectionState } from "../../src/common/connectionManager.js";
-import { MCPConnectionManager } from "../../src/common/connectionManager.js";
-import { DeviceId } from "../../src/helpers/deviceId.js";
+import type { ConnectionManager, ConnectionState } from "@mongodb-js/mcp-tools-mongodb";
+import { MCPConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
+import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { connectionErrorHandler } from "../../src/common/connectionErrorHandler.js";
 import { Keychain } from "@mongodb-js/mcp-core";
 import { Elicitation } from "../../src/elicitation.js";
@@ -22,6 +22,7 @@ import type { OperationType } from "../../src/tools/tool.js";
 import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { MockMetrics } from "../unit/mocks/metrics.js";
 import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
+import { packageInfo } from "../../src/common/packageInfo.js";
 
 interface Parameter {
     name: string;
@@ -54,6 +55,12 @@ export const defaultTestConfig: UserConfig = {
 };
 
 export const DEFAULT_LONG_RUNNING_TEST_WAIT_TIMEOUT_MS = 1_200_000;
+
+/** Driver product labels for tests; mirrors root `packageInfo`. */
+export const testConnectionManagerDriverLabels = {
+    displayName: packageInfo.mcpServerName,
+    version: packageInfo.version,
+} as const;
 
 export function setupIntegrationTest(
     getUserConfig: () => UserConfig,
@@ -95,10 +102,17 @@ export function setupIntegrationTest(
             }
         );
 
-        const exportsManager = ExportsManager.init(userConfig, logger);
+        const exportsManager = ExportsManager.init({ options: userConfig, logger: logger });
 
         deviceId = DeviceId.create(logger);
-        const connectionManager = new MCPConnectionManager(userConfig, logger, deviceId);
+        const connectionManager = new MCPConnectionManager({
+            logger: logger,
+            deviceId: deviceId,
+            options: {
+                connectionInfo: userConfig,
+                ...testConnectionManagerDriverLabels,
+            },
+        });
 
         const session = new Session({
             userConfig,

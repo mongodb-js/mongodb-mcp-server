@@ -12,7 +12,7 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import { type LoggerBase } from "@mongodb-js/mcp-core";
 import { LogId } from "@mongodb-js/mcp-logging";
-import { defaultCreateConnectionManager } from "../../../src/common/connectionManager.js";
+import { MCPConnectionManager, type ConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
 import { Keychain } from "@mongodb-js/mcp-core";
 import { defaultTestConfig, InMemoryLogger, timeout } from "../helpers.js";
 import { type UserConfig } from "../../../src/common/config/userConfig.js";
@@ -241,7 +241,8 @@ describe("StreamableHttpRunner", () => {
             const logger = new InMemoryLogger({ keychain: new Keychain() });
             const runner = new StreamableHttpRunner({
                 userConfig: config,
-                createConnectionManager: defaultCreateConnectionManager,
+                createConnectionManager: (params): Promise<ConnectionManager> =>
+                    Promise.resolve(new MCPConnectionManager(params)),
                 loggers: [logger],
             });
             await runner.start();

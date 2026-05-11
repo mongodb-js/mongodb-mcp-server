@@ -10,7 +10,7 @@ import { AI_TOOL_REGISTRY, openConfigSettings, TOOLS_WITHOUT_EDITORS } from "./a
 import type { Platform } from "./setupAiToolsUtils.js";
 import { formatError, getPlatform } from "./setupAiToolsUtils.js";
 import { packageInfo } from "../common/packageInfo.js";
-import { getAuthType } from "../common/connectionInfo.js";
+import { getAuthType } from "@mongodb-js/mcp-tools-mongodb";
 import { type UserConfig } from "../common/config/userConfig.js";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 import { NoopLogger } from "@mongodb-js/mcp-core";

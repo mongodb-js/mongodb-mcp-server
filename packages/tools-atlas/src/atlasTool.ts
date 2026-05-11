@@ -5,22 +5,12 @@ import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import { LogId } from "@mongodb-js/mcp-logging";
 import { z } from "zod";
-import type { IToolConfig, IToolSession, AtlasMetadata } from "@mongodb-js/mcp-types";
+import type { AtlasClusterConnectionInfo, IToolConfig, IToolSession, AtlasMetadata } from "@mongodb-js/mcp-types";
 
 export interface IAtlasConfig extends IToolConfig {
     apiClientId?: string;
     apiClientSecret?: string;
     atlasTemporaryDatabaseUserLifetimeMs?: number;
-}
-
-export interface AtlasClusterConnectionInfo {
-    username: string;
-    projectId: string;
-    clusterName: string;
-    instanceType: "FREE" | "FLEX" | "DEDICATED";
-    provider?: string;
-    region?: string;
-    expiryDate: Date;
 }
 
 export interface IAtlasSession extends IToolSession {

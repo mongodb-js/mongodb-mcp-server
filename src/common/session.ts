@@ -4,17 +4,17 @@ import type { Implementation } from "@modelcontextprotocol/sdk/types.js";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import { LogId } from "@mongodb-js/mcp-logging";
 import EventEmitter from "events";
+import type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-types";
 import type {
-    AtlasClusterConnectionInfo,
     ConnectionManager,
     ConnectionSettings,
     ConnectionStateConnected,
     ConnectionStateErrored,
-} from "./connectionManager.js";
-import type { ConnectionStringInfo } from "./connectionInfo.js";
+} from "@mongodb-js/mcp-tools-mongodb";
+import type { ConnectionStringInfo } from "@mongodb-js/mcp-tools-mongodb";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { ErrorCodes, MongoDBError } from "./errors.js";
-import type { ExportsManager } from "./exportsManager.js";
+import { ErrorCodes, MongoDBError } from "@mongodb-js/mcp-tools-mongodb";
+import type { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import type { Client } from "@mongodb-js/atlas-local";
 import type { Keychain } from "@mongodb-js/mcp-core";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";

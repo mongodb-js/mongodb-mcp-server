@@ -5,7 +5,7 @@ import {
     getResponseElements,
     getDataFromUntrustedContent,
 } from "../../../helpers.js";
-import type { LogsOutput } from "../../../../../src/tools/mongodb/metadata/logs.js";
+import type { LogsOutput } from "@mongodb-js/mcp-tools-mongodb";
 import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 
 describeWithMongoDB("logs tool", (integration) => {

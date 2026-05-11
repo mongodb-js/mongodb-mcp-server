@@ -7,7 +7,7 @@ import {
     validateThrowsForInvalidArguments,
 } from "../../../helpers.js";
 import { describe, expect, it } from "vitest";
-import type { DeleteManyOutput } from "../../../../../src/tools/mongodb/delete/deleteMany.js";
+import type { DeleteManyOutput } from "@mongodb-js/mcp-tools-mongodb";
 
 describeWithMongoDB("deleteMany tool", (integration) => {
     validateToolMetadata(

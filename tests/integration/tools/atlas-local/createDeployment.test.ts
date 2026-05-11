@@ -5,8 +5,8 @@ import {
     describeWithAtlasLocal,
     describeWithAtlasLocalDisabled,
 } from "./atlasLocalHelpers.js";
-import type { ListDatabasesOutput } from "../../../../src/tools/mongodb/metadata/listDatabases.js";
-import type { ListCollectionsOutput } from "../../../../src/tools/mongodb/metadata/listCollections.js";
+import type { ListDatabasesOutput } from "@mongodb-js/mcp-tools-mongodb";
+import type { ListCollectionsOutput } from "@mongodb-js/mcp-tools-mongodb";
 
 // Config used for tests that require a voyageApiKey.
 const configWithVoyageApiKey = { ...defaultTestConfig, voyageApiKey: "test-voyage-api-key" };
