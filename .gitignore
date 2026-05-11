@@ -1,22 +1,11 @@
-dist
-node_modules
-*.tsbuildinfo
-
-.vscode/mcp.json
-.github/prompts/*
-
-# Environment variables
-.env
-
-# Sensitive
-state.json
-
-tests/tmp
-coverage
-# Generated assets by accuracy runs
-.accuracy
-
-temp
+.node_repl_history
+*.tgz
+.mongosh*mongosh_repl_history
+mongosh*config
+package-lock.json
+.yarn
+.idea
+*.swp
 .DS_Store
 
 # Development tool files
@@ -25,3 +14,15 @@ yalc.lock
 
 CLAUDE.md
 .claude/
+
+# .mcpb build artifacts
+mcpb-build/
+dist-mcpb/
+
+# Build output
+dist/
+packages/*/dist/
+*.tsbuildinfo
+
+# Test artifacts
+tests/tmp/
