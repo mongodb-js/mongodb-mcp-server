@@ -165,7 +165,7 @@
   "dependencies": {
     "@inquirer/prompts": "^8.0.2",
     "@inquirer/select": "^5.1.3",
-    "@mcp-ui/server": "^5.13.1",
+    "@mcp-ui/server": "^6.1.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@mongodb-js/device-id": "^0.4.11",
     "@mongodb-js/devtools-proxy-support": "^0.7.8",
