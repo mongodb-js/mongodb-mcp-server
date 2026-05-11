@@ -33,7 +33,7 @@ export default defineConfig({
         testTimeout: 3600000,
         hookTimeout: 3600000,
         setupFiles: ["./tests/setup.ts"],
-        ...(isWindows && { maxWorkers: 1 }),
+        ...(isWindows && { maxWorkers: 1, isolate: false }),
         coverage: {
             exclude: [
                 // Required: import.meta.glob() in src/ui creates Vite virtual modules (\0 prefixed paths)
