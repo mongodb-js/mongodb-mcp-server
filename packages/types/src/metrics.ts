@@ -1,15 +1,23 @@
 /**
- * Base type for metric definitions.
- * Each key is a metric name, and the value is the metric type.
+ * Base constraint for metric definitions.
+ * Used as a generic bound — concrete definitions should NOT intersect with this
+ * type directly, as that introduces a string index signature.
  */
 export type MetricDefinitions = Record<string, unknown>;
+
+/**
+ * Labels type for metrics.
+ * Compatible with prom-client's LabelValues<T> which allows partial records
+ * with string or number values.
+ */
+export type MetricLabels = Partial<Record<string, string | number>>;
 
 /**
  * Interface for observable metrics (like histograms).
  * Used for recording values that can be observed over time.
  */
 export interface IObservable {
-    observe(labels: Record<string, string>, value: number): void;
+    observe(labels: MetricLabels, value: number): void;
 }
 
 /**
@@ -17,7 +25,7 @@ export interface IObservable {
  * Used for counting events, can be incremented.
  */
 export interface ICounter {
-    inc(labels?: Record<string, string>): void;
+    inc(labels?: MetricLabels, value?: number): void;
 }
 
 /**
@@ -33,7 +41,7 @@ export interface ICounter {
  * });
  * ```
  */
-export type DefaultMetricDefinitions = MetricDefinitions & {
+export type DefaultMetricDefinitions = {
     /** Counter for tracking created sessions */
     sessionCreated: ICounter;
     /** Counter for tracking closed sessions with reason label */
@@ -52,9 +60,3 @@ export interface IMetrics<TMetricsDefinitions extends MetricDefinitions = Metric
     /** Get all metrics as a formatted string (e.g., Prometheus format) */
     getMetrics(): Promise<string>;
 }
-
-/**
- * Type alias for any metrics interface.
- * Use this when the specific metric definitions don't matter.
- */
-export type AnyMetrics = IMetrics;

@@ -1,8 +1,8 @@
 {
   "extends": "./tsconfig.build.json",
   "compilerOptions": {
-    "module": "CommonJS",
-    "moduleResolution": "Node",
+    "module": "commonjs",
+    "moduleResolution": "node",
     "outDir": "./dist/cjs",
     "paths": {
       "mongodb-connection-string-url": [
