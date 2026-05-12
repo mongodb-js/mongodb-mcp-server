@@ -4,7 +4,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { afterEach, describe, expect, it } from "vitest";
 import type { UserConfig } from "../../../src/lib.js";
-import { defaultTestConfig, expectDefined } from "../helpers.js";
+import { defaultTestConfig, expectDefined, sleep } from "../helpers.js";
 import { Server } from "../../../src/server.js";
 import type { HttpServerConfig, SessionManagementConfig } from "@mongodb-js/mcp-types";
 import { CompositeLogger, Keychain, NoopTelemetry } from "@mongodb-js/mcp-core";
@@ -214,6 +214,7 @@ describe("createSessionConfig (via createServerForRequest override)", () => {
             runner = result.runner;
             getServerAddress = result.getServerAddress;
             await runner.start();
+            await sleep(100);
 
             client = new Client({ name: "test-client", version: "1.0.0" });
             transport = new StreamableHTTPClientTransport(new URL(`${getServerAddress()}/mcp`));
@@ -230,6 +231,7 @@ describe("createSessionConfig (via createServerForRequest override)", () => {
             runner = result.runner;
             getServerAddress = result.getServerAddress;
             await runner.start();
+            await sleep(100);
 
             client = new Client({ name: "test-client", version: "1.0.0" });
             transport = new StreamableHTTPClientTransport(new URL(`${getServerAddress()}/mcp`));
@@ -254,6 +256,7 @@ describe("createSessionConfig (via createServerForRequest override)", () => {
             runner = result.runner;
             getServerAddress = result.getServerAddress;
             await runner.start();
+            await sleep(100);
 
             client = new Client({ name: "test-client", version: "1.0.0" });
             transport = new StreamableHTTPClientTransport(new URL(`${getServerAddress()}/mcp`));
@@ -283,6 +286,7 @@ describe("createSessionConfig (via createServerForRequest override)", () => {
             runner = result.runner;
             getServerAddress = result.getServerAddress;
             await runner.start();
+            await sleep(100);
 
             // Error should occur when a client tries to connect
             client = new Client({ name: "test-client", version: "1.0.0" });
