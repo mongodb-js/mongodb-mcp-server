@@ -1,9 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { ICompositeLogger, MetricDefinitions, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
 import type { IMetrics } from "@mongodb-js/mcp-types";
 import type { LogLevel, LoggerBase } from "@mongodb-js/mcp-core";
-import type { InMemoryTransport } from "./inMemoryTransport.js";
 
 // Re-export MetricDefinitions types from @mongodb-js/mcp-types for convenience
 export type { MetricDefinitions, DefaultMetricDefinitions };
@@ -39,54 +37,6 @@ export type TransportRunnerBaseOptions<TMetrics extends MetricDefinitions = Metr
     /** Optional loggers to use */
     loggers?: LoggerBase[];
 };
-
-/**
- * Server factory function type for creating server instances.
- */
-export type ServerFactory<TServer> = (options: {
-    serverOptions?: CustomizableServerOptions;
-    sessionOptions?: CustomizableSessionOptions;
-}) => Promise<TServer>;
-
-/**
- * StdioServer type for StdioRunner.
- */
-export type StdioServer = {
-    connect(transport: StdioServerTransport): Promise<void>;
-    close(): Promise<void>;
-};
-
-/**
- * Configuration for the StdioRunner.
- */
-export type StdioRunnerOptions<TMetrics extends MetricDefinitions = MetricDefinitions> =
-    TransportRunnerBaseOptions<TMetrics> & {
-        /** Factory function for creating server instances */
-        createServer?: ServerFactory<StdioServer>;
-    };
-
-/**
- * DryRunServer type for DryRunModeRunner.
- */
-export type DryRunServer = {
-    tools: { name: string; category: string; isEnabled(): boolean }[];
-    connect(transport: InMemoryTransport): Promise<void>;
-    close(): Promise<void>;
-};
-
-/**
- * Configuration for the DryRunModeRunner.
- */
-export type DryRunModeRunnerOptions<TMetrics extends MetricDefinitions = MetricDefinitions> =
-    TransportRunnerBaseOptions<TMetrics> & {
-        /** Console logger for outputting config and tools */
-        consoleLogger: {
-            log(message: string): void;
-            error(message: string): void;
-        };
-        /** Factory function for creating server instances */
-        createServer?: ServerFactory<DryRunServer>;
-    };
 
 /**
  * Options that can be customized when starting a runner.

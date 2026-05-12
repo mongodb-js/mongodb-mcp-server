@@ -7,7 +7,8 @@ import type {
     ISessionStore,
     SessionStoreConstructorArgs,
 } from "@mongodb-js/mcp-types";
-import { LogId, setManagedTimeout, type ManagedTimeout } from "@mongodb-js/mcp-core";
+import { LogId } from "./logId.js";
+import { setManagedTimeout, type ManagedTimeout } from "./managedTimeout.js";
 
 export type { ISessionStore, SessionStoreConstructorArgs };
 

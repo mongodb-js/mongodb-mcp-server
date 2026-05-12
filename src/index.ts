@@ -49,8 +49,8 @@ import {
     StreamableHttpRunner,
     MCPHttpServer,
     MonitoringServer,
-    SessionStore,
-} from "@mongodb-js/mcp-transports";
+} from "@mongodb-js/mcp-http-transports";
+import { SessionStore } from "@mongodb-js/mcp-core";
 import { DryRunModeRunner } from "./transports/dryModeRunner.js";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { systemCA } from "@mongodb-js/devtools-proxy-support";

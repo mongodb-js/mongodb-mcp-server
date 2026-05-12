@@ -37,6 +37,7 @@ export {
 } from "@mongodb-js/mcp-core";
 export { McpLogger } from "@mongodb-js/mcp-logging";
 export { ConsoleLogger } from "@mongodb-js/mcp-logging";
+// HTTP-specific transports
 export {
     StreamableHttpRunner,
     MCPHttpServer,
@@ -45,16 +46,18 @@ export {
     type MonitoringServerConfig,
     type MCPHttpServerOptions,
     type MonitoringServerOptions,
-} from "@mongodb-js/mcp-transports";
+    StdioRunner,
+} from "@mongodb-js/mcp-http-transports";
 export type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-export { StdioRunner } from "@mongodb-js/mcp-transports";
+
+// Web-friendly transports (from core)
 export {
     TransportRunnerBase,
     type TransportRunnerBaseOptions as TransportRunnerConfig,
     type CustomizableServerOptions,
     type CustomizableSessionOptions,
     type TransportRequestContext,
-} from "@mongodb-js/mcp-transports";
+} from "@mongodb-js/mcp-core";
 export {
     ConnectionManager,
     MCPConnectionManager,
@@ -96,7 +99,7 @@ export { Keychain, registerGlobalSecretToRedact } from "@mongodb-js/mcp-core";
 export type { Secret } from "mongodb-redact";
 export { Elicitation } from "./elicitation.js";
 export { applyConfigOverrides, ConfigOverrideError } from "./common/config/configOverrides.js";
-export { SessionStore, type ISessionStore, type SessionStoreConstructorArgs } from "@mongodb-js/mcp-transports";
+export { SessionStore, type ISessionStore, type SessionStoreConstructorArgs } from "@mongodb-js/mcp-core";
 export type { CloseableTransport, SessionCloseReason } from "@mongodb-js/mcp-types";
 export { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 export { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
@@ -124,4 +127,4 @@ export {
     JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND,
     JSON_RPC_ERROR_CODE_INVALID_REQUEST,
     JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION,
-} from "@mongodb-js/mcp-transports";
+} from "@mongodb-js/mcp-core";

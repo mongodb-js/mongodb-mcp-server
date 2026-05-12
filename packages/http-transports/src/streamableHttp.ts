@@ -1,23 +1,12 @@
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { MetricDefinitions, ISessionStore, IMetrics, TransportRequestContext } from "@mongodb-js/mcp-types";
 import type { LoggerBase } from "@mongodb-js/mcp-core";
-import { LogId } from "@mongodb-js/mcp-core";
-import { TransportRunnerBase } from "./base.js";
+import { LogId, TransportRunnerBase } from "@mongodb-js/mcp-core";
 import { MCPHttpServer } from "./mcpHttpServer.js";
 import { MonitoringServer } from "./monitoringServer.js";
 import type { CustomizableServerOptions, CustomizableSessionOptions } from "./types.js";
 
 export { MonitoringServer, MCPHttpServer };
-
-// Re-export error codes
-export {
-    JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
-    JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED,
-    JSON_RPC_ERROR_CODE_SESSION_ID_INVALID,
-    JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND,
-    JSON_RPC_ERROR_CODE_INVALID_REQUEST,
-    JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION,
-} from "./jsonRpcErrorCodes.js";
 
 /**
  * Options for StreamableHttpRunner.

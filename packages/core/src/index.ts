@@ -36,6 +36,27 @@ export { CommonArgs, NO_UNICODE_ERROR } from "./args.js";
 export { LogId } from "./logId.js";
 export { setManagedTimeout, type ManagedTimeout } from "./managedTimeout.js";
 
+// Web-friendly transports
+export { InMemoryTransport } from "./inMemoryTransport.js";
+export { SessionStore, type ISessionStore, type SessionStoreConstructorArgs } from "./sessionStore.js";
+export { TransportRunnerBase } from "./transportRunnerBase.js";
+export {
+    JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
+    JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED,
+    JSON_RPC_ERROR_CODE_SESSION_ID_INVALID,
+    JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND,
+    JSON_RPC_ERROR_CODE_INVALID_REQUEST,
+    JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION,
+} from "./jsonRpcErrorCodes.js";
+export type {
+    ServerOptions,
+    TransportRunnerBaseOptions,
+    CustomizableServerOptions,
+    CustomizableSessionOptions,
+    MetricDefinitions,
+    DefaultMetricDefinitions,
+} from "./transports.js";
+
 export const MCP_LOG_LEVELS: readonly LogLevel[] = [
     "debug",
     "info",

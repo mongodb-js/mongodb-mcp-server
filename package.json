@@ -164,7 +164,7 @@
     "@mongodb-js/mcp-tools-assistant": "workspace:*",
     "@mongodb-js/mcp-tools-atlas": "workspace:*",
     "@mongodb-js/mcp-tools-atlas-local": "workspace:*",
-    "@mongodb-js/mcp-transports": "workspace:*",
+    "@mongodb-js/mcp-http-transports": "workspace:*",
     "@mongodb-js/mcp-types": "workspace:*",
     "@mongodb-js/mcp-ui": "workspace:*",
     "@mongosh/arg-parser": "^5.0.2",

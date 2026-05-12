@@ -69,7 +69,7 @@ const config: KnipConfig = {
         "packages/types": {
             ignoreDependencies: ["@modelcontextprotocol/sdk", "mongodb-redact"],
         },
-        "packages/transports": {
+        "packages/http-transports": {
             entry: ["src/index.ts!"],
         },
         "packages/tools-mongodb": {

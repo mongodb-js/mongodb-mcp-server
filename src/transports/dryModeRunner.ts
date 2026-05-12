@@ -1,7 +1,6 @@
 import type { MetricDefinitions, IMetrics } from "@mongodb-js/mcp-types";
-import { TransportRunnerBase } from "@mongodb-js/mcp-transports";
-import { InMemoryTransport } from "@mongodb-js/mcp-transports";
-import type { CustomizableServerOptions, CustomizableSessionOptions } from "@mongodb-js/mcp-transports";
+import { TransportRunnerBase, InMemoryTransport } from "@mongodb-js/mcp-core";
+import type { CustomizableServerOptions, CustomizableSessionOptions } from "@mongodb-js/mcp-core";
 import type { UserConfig } from "../common/config/userConfig.js";
 
 /**

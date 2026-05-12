@@ -11,16 +11,16 @@ import type {
     HttpServerConfig,
     SessionManagementConfig,
 } from "@mongodb-js/mcp-types";
-import { LogId } from "@mongodb-js/mcp-core";
-import { ExpressBasedHttpServer } from "./expressBasedHttpServer.js";
 import {
+    LogId,
     JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED,
     JSON_RPC_ERROR_CODE_SESSION_ID_INVALID,
     JSON_RPC_ERROR_CODE_INVALID_REQUEST,
     JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND,
     JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION,
     JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
-} from "./jsonRpcErrorCodes.js";
+} from "@mongodb-js/mcp-core";
+import { ExpressBasedHttpServer } from "./expressBasedHttpServer.js";
 
 /**
  * Options for creating an MCPHttpServer instance.

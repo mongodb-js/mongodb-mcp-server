@@ -1,7 +1,6 @@
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { MetricDefinitions } from "@mongodb-js/mcp-types";
-import { LogId } from "@mongodb-js/mcp-core";
-import { TransportRunnerBase } from "./base.js";
+import { LogId, TransportRunnerBase } from "@mongodb-js/mcp-core";
 import type { StdioRunnerOptions, CustomizableServerOptions, CustomizableSessionOptions } from "./types.js";
 
 /**
