@@ -4,10 +4,6 @@ function mongoLogId(id: number): MongoLogId {
     return { __value: id };
 }
 
-/**
- * Log IDs for use across all MCP packages.
- * These are defined in @mongodb-js/mcp-core to avoid circular dependencies.
- */
 export const LogId = {
     serverStartFailure: mongoLogId(1_000_001),
     serverInitialized: mongoLogId(1_000_002),
