@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { describe, it, expect, afterEach } from "vitest";
-import { MonitoringServer } from "@mongodb-js/mcp-transports";
+import { MonitoringServer } from "@mongodb-js/mcp-http-transports";
 import { NoopLogger } from "@mongodb-js/mcp-core";
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
 

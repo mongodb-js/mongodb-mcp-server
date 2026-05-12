@@ -44,12 +44,7 @@ import * as fs from "fs/promises";
 import { parseUserConfig } from "./common/config/parseUserConfig.js";
 import { type UserConfig } from "./common/config/userConfig.js";
 import { packageInfo } from "./common/packageInfo.js";
-import {
-    StdioRunner,
-    StreamableHttpRunner,
-    MCPHttpServer,
-    MonitoringServer,
-} from "@mongodb-js/mcp-http-transports";
+import { StdioRunner, StreamableHttpRunner, MCPHttpServer, MonitoringServer } from "@mongodb-js/mcp-http-transports";
 import { SessionStore } from "@mongodb-js/mcp-core";
 import { DryRunModeRunner } from "./transports/dryModeRunner.js";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";

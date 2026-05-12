@@ -2,10 +2,9 @@ import type express from "express";
 import {
     StreamableHttpRunner,
     MCPHttpServer,
-    SessionStore,
-    type ISessionStore,
-    type SessionCloseReason,
-} from "@mongodb-js/mcp-transports";
+} from "@mongodb-js/mcp-http-transports";
+import { SessionStore, type ISessionStore } from "@mongodb-js/mcp-core";
+import type { SessionCloseReason } from "@mongodb-js/mcp-types";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";

@@ -5,7 +5,7 @@ function mongoLogId(id: number): MongoLogId {
 }
 
 /**
- * Transport-related log IDs for use by @mongodb-js/mcp-transports.
+ * Transport-related log IDs for use by @mongodb-js/mcp-http-transports.
  * These are defined in @mongodb-js/mcp-core to avoid circular dependencies.
  */
 export const LogId = {

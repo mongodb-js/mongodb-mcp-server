@@ -1,10 +1,10 @@
 import { Client } from "@modelcontextprotocol/sdk/client";
-import { TransportRunnerBase } from "mongodb-mcp-server/web";
+import { TransportRunnerBase } from "@mongodb-js/mcp-core";
 import type {
     CustomizableServerOptions,
     CustomizableSessionOptions,
     TransportRunnerBaseOptions,
-} from "@mongodb-js/mcp-transports";
+} from "@mongodb-js/mcp-core";
 
 // Browser-specific server type
 interface BrowserServer {

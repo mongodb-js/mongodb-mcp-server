@@ -1,4 +1,5 @@
-import { StreamableHttpRunner, MCPHttpServer, SessionStore } from "@mongodb-js/mcp-transports";
+import { StreamableHttpRunner, MCPHttpServer } from "@mongodb-js/mcp-http-transports";
+import { SessionStore } from "@mongodb-js/mcp-core";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, afterEach, beforeEach, vi } from "vitest";

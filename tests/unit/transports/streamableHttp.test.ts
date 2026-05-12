@@ -3,10 +3,9 @@ import {
     StreamableHttpRunner,
     MonitoringServer,
     MCPHttpServer,
-    SessionStore,
-    type ISessionStore,
     type MonitoringServerOptions,
-} from "@mongodb-js/mcp-transports";
+} from "@mongodb-js/mcp-http-transports";
+import { SessionStore, type ISessionStore } from "@mongodb-js/mcp-core";
 import { defaultTestConfig } from "../../integration/helpers.js";
 import type { Request, Response } from "express";
 import { NoopLogger, CompositeLogger, type LoggerBase } from "@mongodb-js/mcp-core";

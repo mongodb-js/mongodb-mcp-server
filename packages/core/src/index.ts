@@ -57,6 +57,8 @@ export type {
     DefaultMetricDefinitions,
 } from "./transports.js";
 
+export type { TransportRequestContext, CloseableTransport } from "@mongodb-js/mcp-types";
+
 export const MCP_LOG_LEVELS: readonly LogLevel[] = [
     "debug",
     "info",
