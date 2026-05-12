@@ -687,6 +687,8 @@ export class Keychain implements IKeychain {
 
 export { LibraryLoader }
 
+// Warning: (ae-forgotten-export) The symbol "ILogger" needs to be exported by the entry point web.d.ts
+//
 // @public (undocumented)
 export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extends EventEmitter<T> implements ILogger {
     // Warning: (ae-forgotten-export) The symbol "LoggerConfig" needs to be exported by the entry point web.d.ts
@@ -1023,12 +1025,16 @@ export abstract class ToolBase<TUserConfig extends IToolConfig = IToolConfig, TC
     enable(): void;
     protected abstract execute(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     protected getConfirmationMessage(args: ToolArgs<typeof ToolBase.argsShape>): string;
+    // Warning: (ae-forgotten-export) The symbol "ConnectionMetadata_2" needs to be exported by the entry point web.d.ts
+    //
     // (undocumented)
     protected getConnectionInfoMetadata(): ConnectionMetadata_2;
     protected handleError(error: unknown, args: z.infer<z.ZodObject<typeof ToolBase.argsShape>>): Promise<CallToolResult> | CallToolResult;
     invoke(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)
     isEnabled(): boolean;
+    // Warning: (ae-forgotten-export) The symbol "PreviewFeature_2" needs to be exported by the entry point web.d.ts
+    //
     // (undocumented)
     protected isFeatureEnabled(feature: PreviewFeature_2): boolean;
     protected readonly metrics: IMetrics<TMetricsDefinitions>;
@@ -1293,25 +1299,10 @@ export const UserConfigSchema: z.ZodObject<{
 
 // Warnings were encountered during analysis:
 //
-// packages/atlas-api-client/openapi.d.ts:1981:9 - (ae-forgotten-export) The symbol "WithRequired" needs to be exported by the entry point web.d.ts
 // packages/core/src/logging/compositeLogger.ts:17:49 - (ae-forgotten-export) The symbol "IKeychain" needs to be exported by the entry point web.d.ts
 // packages/core/src/toolBase.ts:142:5 - (ae-forgotten-export) The symbol "IUIRegistry" needs to be exported by the entry point web.d.ts
-// packages/tools-mongodb/src/common/connectionManager.ts:252:9 - (ae-forgotten-export) The symbol "ConnectionInfo_2" needs to be exported by the entry point web.d.ts
 // packages/tools-mongodb/src/common/connectionManager.ts:540:5 - (ae-forgotten-export) The symbol "ConnectionManagerOptions" needs to be exported by the entry point web.d.ts
-// packages/tools-mongodb/src/common/errors.ts:12:1 - (ae-forgotten-export) The symbol "ErrorCodes_2" needs to be exported by the entry point web.d.ts
-// packages/tools-mongodb/src/common/errors.ts:16:1 - (ae-forgotten-export) The symbol "ErrorCode" needs to be exported by the entry point web.d.ts
-// packages/types/src/config.ts:6:5 - (ae-forgotten-export) The symbol "TransportType" needs to be exported by the entry point web.d.ts
-// packages/types/src/config.ts:11:5 - (ae-forgotten-export) The symbol "PreviewFeature_2" needs to be exported by the entry point web.d.ts
-// packages/types/src/elicitation.ts:8:5 - (ae-forgotten-export) The symbol "ElicitedInputResult_2" needs to be exported by the entry point web.d.ts
 // packages/types/src/logging.ts:34:5 - (ae-forgotten-export) The symbol "MongoLogId" needs to be exported by the entry point web.d.ts
-// packages/types/src/logging.ts:58:1 - (ae-forgotten-export) The symbol "ILogger" needs to be exported by the entry point web.d.ts
-// packages/types/src/session.ts:13:5 - (ae-forgotten-export) The symbol "ICompositeLogger" needs to be exported by the entry point web.d.ts
-// packages/types/src/session.ts:22:1 - (ae-forgotten-export) The symbol "ISession" needs to be exported by the entry point web.d.ts
-// packages/types/src/telemetry.ts:45:1 - (ae-forgotten-export) The symbol "AtlasMetadata_2" needs to be exported by the entry point web.d.ts
-// packages/types/src/telemetry.ts:45:1 - (ae-forgotten-export) The symbol "AtlasLocalToolMetadata_2" needs to be exported by the entry point web.d.ts
-// packages/types/src/telemetry.ts:51:1 - (ae-forgotten-export) The symbol "ConnectionMetadata_2" needs to be exported by the entry point web.d.ts
-// packages/types/src/telemetry.ts:61:1 - (ae-forgotten-export) The symbol "PerfAdvisorToolMetadata_2" needs to be exported by the entry point web.d.ts
-// packages/types/src/telemetry.ts:61:1 - (ae-forgotten-export) The symbol "StreamsToolMetadata_2" needs to be exported by the entry point web.d.ts
 
 // (No @packageDocumentation comment for this package)
 

@@ -1254,6 +1254,8 @@ export type TransportRunnerConfig<TMetrics extends MetricDefinitions = MetricDef
     loggers?: LoggerBase[];
 };
 
+// Warning: (ae-forgotten-export) The symbol "IUIRegistry" needs to be exported by the entry point lib.d.ts
+//
 // @public
 export class UIRegistry implements IUIRegistry {
     constructor(options?: UIRegistryOptions);
@@ -1420,48 +1422,15 @@ export const UserConfigSchema: z.ZodObject<{
 
 // Warnings were encountered during analysis:
 //
-// packages/atlas-api-client/openapi.d.ts:1981:9 - (ae-forgotten-export) The symbol "WithRequired" needs to be exported by the entry point lib.d.ts
 // packages/atlas-telemetry/src/types.ts:17:9 - (ae-forgotten-export) The symbol "TelemetryResult" needs to be exported by the entry point lib.d.ts
 // packages/atlas-telemetry/src/types.ts:186:5 - (ae-forgotten-export) The symbol "TelemetryBoolSet" needs to be exported by the entry point lib.d.ts
 // packages/core/src/logging/compositeLogger.ts:17:49 - (ae-forgotten-export) The symbol "IKeychain" needs to be exported by the entry point lib.d.ts
-// packages/core/src/toolBase.ts:142:5 - (ae-forgotten-export) The symbol "IUIRegistry" needs to be exported by the entry point lib.d.ts
-// packages/core/src/toolBase.ts:314:1 - (ae-forgotten-export) The symbol "IToolConfig" needs to be exported by the entry point lib.d.ts
-// packages/core/src/toolBase.ts:341:5 - (ae-forgotten-export) The symbol "OperationType" needs to be exported by the entry point lib.d.ts
-// packages/core/src/toolBase.ts:488:5 - (ae-forgotten-export) The symbol "ToolArgs" needs to be exported by the entry point lib.d.ts
-// packages/core/src/toolBase.ts:628:5 - (ae-forgotten-export) The symbol "IToolSession" needs to be exported by the entry point lib.d.ts
-// packages/core/src/toolBase.ts:647:5 - (ae-forgotten-export) The symbol "IElicitation" needs to be exported by the entry point lib.d.ts
-// packages/core/src/toolBase.ts:673:43 - (ae-forgotten-export) The symbol "ToolConstructorParams" needs to be exported by the entry point lib.d.ts
-// packages/core/src/toolBase.ts:862:5 - (ae-forgotten-export) The symbol "TelemetryToolMetadata" needs to be exported by the entry point lib.d.ts
-// packages/http-transports/src/expressBasedHttpServer.ts:19:5 - (ae-forgotten-export) The symbol "ILogger" needs to be exported by the entry point lib.d.ts
-// packages/http-transports/src/expressBasedHttpServer.ts:21:5 - (ae-forgotten-export) The symbol "ExpressConfig" needs to be exported by the entry point lib.d.ts
+// packages/http-transports/src/mcpHttpServer.ts:41:5 - (ae-forgotten-export) The symbol "ICompositeLogger" needs to be exported by the entry point lib.d.ts
 // packages/http-transports/src/monitoringServer.ts:15:5 - (ae-forgotten-export) The symbol "MonitoringServerFeature_2" needs to be exported by the entry point lib.d.ts
-// packages/tools-mongodb/src/common/connectionInfo.ts:24:1 - (ae-forgotten-export) The symbol "OIDCConnectionAuthType_2" needs to be exported by the entry point lib.d.ts
-// packages/tools-mongodb/src/common/connectionInfo.ts:31:5 - (ae-forgotten-export) The symbol "ConnectionStringAuthType" needs to be exported by the entry point lib.d.ts
-// packages/tools-mongodb/src/common/connectionInfo.ts:32:5 - (ae-forgotten-export) The symbol "ConnectionStringHostType" needs to be exported by the entry point lib.d.ts
-// packages/tools-mongodb/src/common/connectionManager.ts:252:9 - (ae-forgotten-export) The symbol "ConnectionInfo_2" needs to be exported by the entry point lib.d.ts
 // packages/tools-mongodb/src/common/connectionManager.ts:540:5 - (ae-forgotten-export) The symbol "ConnectionManagerOptions" needs to be exported by the entry point lib.d.ts
-// packages/tools-mongodb/src/common/exportsManager.ts:23:1 - (ae-forgotten-export) The symbol "jsonExportFormat" needs to be exported by the entry point lib.d.ts
-// packages/tools-mongodb/src/common/exportsManager.ts:29:5 - (ae-forgotten-export) The symbol "JSONExportFormat" needs to be exported by the entry point lib.d.ts
-// packages/tools-mongodb/src/common/exportsManager.ts:45:1 - (ae-forgotten-export) The symbol "CommonExportData" needs to be exported by the entry point lib.d.ts
-// packages/tools-mongodb/src/common/exportsManager.ts:49:1 - (ae-forgotten-export) The symbol "ReadyExport" needs to be exported by the entry point lib.d.ts
-// packages/tools-mongodb/src/common/exportsManager.ts:49:1 - (ae-forgotten-export) The symbol "InProgressExport" needs to be exported by the entry point lib.d.ts
-// packages/tools-mongodb/src/common/exportsManager.ts:72:1 - (ae-forgotten-export) The symbol "StoredExport" needs to be exported by the entry point lib.d.ts
 // packages/tools-mongodb/src/common/exportsManager.ts:374:9 - (ae-forgotten-export) The symbol "ExportsManagerOptions" needs to be exported by the entry point lib.d.ts
-// packages/types/src/config.ts:6:5 - (ae-forgotten-export) The symbol "TransportType" needs to be exported by the entry point lib.d.ts
-// packages/types/src/config.ts:11:5 - (ae-forgotten-export) The symbol "PreviewFeature" needs to be exported by the entry point lib.d.ts
-// packages/types/src/elicitation.ts:8:5 - (ae-forgotten-export) The symbol "ElicitedInputResult" needs to be exported by the entry point lib.d.ts
 // packages/types/src/logging.ts:34:5 - (ae-forgotten-export) The symbol "MongoLogId" needs to be exported by the entry point lib.d.ts
-// packages/types/src/metrics.ts:38:5 - (ae-forgotten-export) The symbol "ICounter" needs to be exported by the entry point lib.d.ts
-// packages/types/src/metrics.ts:42:5 - (ae-forgotten-export) The symbol "IObservable" needs to be exported by the entry point lib.d.ts
-// packages/types/src/session.ts:13:5 - (ae-forgotten-export) The symbol "ICompositeLogger" needs to be exported by the entry point lib.d.ts
-// packages/types/src/session.ts:22:1 - (ae-forgotten-export) The symbol "ISession" needs to be exported by the entry point lib.d.ts
-// packages/types/src/telemetry.ts:45:1 - (ae-forgotten-export) The symbol "AtlasMetadata" needs to be exported by the entry point lib.d.ts
-// packages/types/src/telemetry.ts:45:1 - (ae-forgotten-export) The symbol "AtlasLocalToolMetadata" needs to be exported by the entry point lib.d.ts
-// packages/types/src/telemetry.ts:51:1 - (ae-forgotten-export) The symbol "ConnectionMetadata" needs to be exported by the entry point lib.d.ts
-// packages/types/src/telemetry.ts:61:1 - (ae-forgotten-export) The symbol "PerfAdvisorToolMetadata" needs to be exported by the entry point lib.d.ts
-// packages/types/src/telemetry.ts:61:1 - (ae-forgotten-export) The symbol "StreamsToolMetadata" needs to be exported by the entry point lib.d.ts
-// src/common/config/configUtils.ts:12:1 - (ae-forgotten-export) The symbol "CustomOverrideLogic" needs to be exported by the entry point lib.d.ts
-// src/common/config/configUtils.ts:38:5 - (ae-forgotten-export) The symbol "OverrideBehavior" needs to be exported by the entry point lib.d.ts
+// packages/types/src/sessionStore.ts:12:59 - (ae-forgotten-export) The symbol "ILogger" needs to be exported by the entry point lib.d.ts
 
 // (No @packageDocumentation comment for this package)
 

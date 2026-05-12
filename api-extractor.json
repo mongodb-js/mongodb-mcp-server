@@ -27,9 +27,7 @@
   },
 
   "docModel": {
-    "enabled": true,
-    "apiJsonFilePath": "<projectFolder>/api-extractor/reports/<unscopedPackageName>.api.json",
-    "includeForgottenExports": true
+    "enabled": false
   },
 
   "dtsRollup": {
@@ -54,7 +52,7 @@
         "logLevel": "none"
       },
       "ae-unresolved-link": {
-        "logLevel": "warning"
+        "logLevel": "none"
       }
     },
     "tsdocMessageReporting": {

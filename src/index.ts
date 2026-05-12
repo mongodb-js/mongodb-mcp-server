@@ -56,15 +56,15 @@ import type { IMetrics, MetricDefinitions, DefaultMetricDefinitions } from "@mon
 import { Server } from "./server.js";
 import { Session } from "./common/session.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { SetupTelemetry } from "./setup/setupTelemetry.js";
+
 import { Elicitation } from "./elicitation.js";
 import { connectionErrorHandler } from "./common/connectionErrorHandler.js";
 import { MCPConnectionManager, ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { Keychain as CoreKeychain } from "@mongodb-js/mcp-core";
-import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
-import type { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
+import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
+import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import type { HttpServerConfig, SessionManagementConfig } from "@mongodb-js/mcp-types";
 
 /**
@@ -410,9 +410,11 @@ async function createServerForConfig({ config, logger, metrics }: CreateServerOp
         logger,
     });
 
+    const deviceId = DeviceId.create(logger);
+
     const connectionManager = new MCPConnectionManager({
         logger,
-        deviceId: {} as DeviceId,
+        deviceId,
         options: {
             connectionInfo: { transport: "http", httpHost: "localhost" },
             displayName: "mongodb-mcp-server",
@@ -433,13 +435,14 @@ async function createServerForConfig({ config, logger, metrics }: CreateServerOp
     const atlasLocalClient = await createAtlasLocalClient({
         logger,
     });
-
-    // Create setup telemetry using the static create method and cast to AtlasTelemetry
-    const setupTelemetry = SetupTelemetry.create(
-        { apiBaseUrl: config.apiBaseUrl, telemetry: config.telemetry },
-        keychain
-    );
-    const telemetry = setupTelemetry as unknown as AtlasTelemetry;
+    const telemetry = AtlasTelemetry.create({
+        logger,
+        deviceId,
+        apiClient,
+        keychain,
+        enabled: config.telemetry === "enabled",
+        machineMetadata: buildMachineMetadata(packageInfo.mcpServerName, packageInfo.version),
+    });
 
     const mcpServer = new McpServer({
         name: "mongodb-mcp-server",
