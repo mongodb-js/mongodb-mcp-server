@@ -11,6 +11,11 @@ import type { AtlasClusterConnectionInfo } from "../../../common/connectionInfo.
 
 const ALLOWED_PROVIDER_REGEX = /^[A-Z_]+$/;
 
+const REGION_RECOMMENDATIONS = `Common region mappings by provider (default recommendation: AWS US_EAST_1):
+AWS: "East Coast"/"Virginia"/"US East" → US_EAST_1, "Ohio" → US_EAST_2, "California"/"West Coast" → US_WEST_2, "Southeast Asia"/"APAC"/"Singapore" → AP_SOUTHEAST_1, "Europe"/"EU"/"Ireland" → EU_WEST_1.
+GCP: "Central US" → CENTRAL_US, "Western US" → WESTERN_US, "Southeast Asia"/"APAC" → SOUTHEASTERN_ASIA_PACIFIC, "Europe"/"EU" → WESTERN_EUROPE.
+AZURE: "East US" → US_EAST_2, "West US" → US_WEST_2, "Europe"/"EU" → EUROPE_NORTH.`;
+
 // Hardcoded defaults for all dedicated (M10) upgrade paths.
 // provider and region are the only fields callers may override.
 const DEDICATED_CLUSTER_DEFAULTS = {
@@ -137,8 +142,7 @@ async function resolveClusterInfo(
 
 export class UpgradeClusterTool extends AtlasToolBase {
     static toolName = "atlas-upgrade-cluster";
-    public description =
-        "Upgrade a MongoDB Atlas cluster tier. Upgrades Free (M0) clusters to Flex or M10 Dedicated, or Flex clusters to M10 Dedicated. The upgrade path is determined automatically from the current tier unless overridden with targetTier.";
+    public description = `Upgrade a MongoDB Atlas cluster tier. Upgrades Free (M0) clusters to Flex or M10 Dedicated, or Flex clusters to M10 Dedicated. The upgrade path is determined automatically from the current tier unless overridden with targetTier. Note to LLM: If provider and region are not already known, ask for both together in a single question before calling this tool. ${REGION_RECOMMENDATIONS}`;
     static operationType: OperationType = "update";
     public argsShape = {
         projectId: AtlasArgs.projectId()

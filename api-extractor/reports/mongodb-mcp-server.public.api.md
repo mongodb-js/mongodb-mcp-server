@@ -668,6 +668,24 @@ export interface ISessionStore<T extends CloseableTransport = CloseableTransport
 }
 
 // @public
+export const JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION = -32005;
+
+// @public
+export const JSON_RPC_ERROR_CODE_INVALID_REQUEST = -32004;
+
+// @public
+export const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
+
+// @public
+export const JSON_RPC_ERROR_CODE_SESSION_ID_INVALID = -32002;
+
+// @public
+export const JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED = -32001;
+
+// @public
+export const JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND = -32003;
+
+// @public
 export class Keychain {
     constructor();
     // (undocumented)
@@ -729,11 +747,21 @@ export interface LogPayload {
     noRedaction?: boolean | LoggerType | LoggerType[];
 }
 
+// @public
+export class MCPConnectionManager extends ConnectionManager {
+    constructor(userConfig: UserConfig, logger: LoggerBase, deviceId: DeviceId, bus?: EventEmitter);
+    close(): Promise<void>;
+    connect(settings: ConnectionSettings): Promise<AnyConnectionState>;
+    disconnect(): Promise<ConnectionStateDisconnected | ConnectionStateErrored>;
+}
+
 // Warning: (ae-forgotten-export) The symbol "ExpressBasedHttpServer" needs to be exported by the entry point lib.d.ts
 //
 // @public (undocumented)
 export class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unknown> extends ExpressBasedHttpServer {
     constructor(input: MCPHttpServerConstructorArgs<TUserConfig, TContext>);
+    // (undocumented)
+    protected readonly sessionStore: ISessionStore<StreamableHTTPServerTransport>;
     // (undocumented)
     protected setupMiddlewares(): void;
     // (undocumented)
