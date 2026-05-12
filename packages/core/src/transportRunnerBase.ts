@@ -5,14 +5,9 @@ import type { CustomizableServerOptions, CustomizableSessionOptions, MetricDefin
 
 /**
  * Base class for all transport runners.
- * Provides common functionality. Subclasses should override `createServer()`
- * to customize server instantiation.
+ * Provides common lifecycle management (start/stop/close) and logging.
  */
-export abstract class TransportRunnerBase<
-    TServer = unknown,
-    TContext = unknown,
-    TMetrics extends MetricDefinitions = MetricDefinitions,
-> {
+export abstract class TransportRunnerBase<TContext = unknown, TMetrics extends MetricDefinitions = MetricDefinitions> {
     public logger: CompositeLogger;
     public metrics: IMetrics<TMetrics>;
 
@@ -23,15 +18,6 @@ export abstract class TransportRunnerBase<
         const baseLoggers = loggers ?? [];
         this.logger = new CompositeLogger({ loggers: baseLoggers });
     }
-
-    /**
-     * Creates a new MCP server instance with the provided configuration.
-     * Subclasses should override this method to customize server creation.
-     */
-    protected abstract createServer(options: {
-        serverOptions?: CustomizableServerOptions<TContext>;
-        sessionOptions?: CustomizableSessionOptions;
-    }): Promise<TServer>;
 
     /**
      * Starts the transport runner.

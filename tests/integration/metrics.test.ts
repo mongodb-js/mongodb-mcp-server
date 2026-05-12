@@ -121,7 +121,7 @@ async function createTestServer(
 }
 
 // Custom MCPHttpServer that creates test servers with custom tools/metrics
-class TestMCPHttpServer extends MCPHttpServer<Server, unknown, DefaultMetricDefinitions> {
+class TestMCPHttpServer extends MCPHttpServer<Server, DefaultMetricDefinitions> {
     private userConfig: UserConfig;
     private tools?: AnyToolClass[];
     private customMetrics?: PrometheusMetrics<DefaultMetrics>;

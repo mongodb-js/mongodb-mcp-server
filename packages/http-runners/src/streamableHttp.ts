@@ -1,5 +1,5 @@
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import type { MetricDefinitions, ISessionStore, IMetrics, TransportRequestContext } from "@mongodb-js/mcp-types";
+import type { MetricDefinitions, ISessionStore, IMetrics } from "@mongodb-js/mcp-types";
 import type { LoggerBase } from "@mongodb-js/mcp-core";
 import { LogId, TransportRunnerBase } from "@mongodb-js/mcp-core";
 import { MCPHttpServer } from "./mcpHttpServer.js";
@@ -23,17 +23,9 @@ export type StreamableHttpRunnerOptions<TMetrics extends MetricDefinitions = Met
  * Transport runner for HTTP transport with streamable responses.
  * Supports both SSE and JSON response types.
  *
- * To customize server creation, extend this class and override the `createServer()` method:
- *
- * @example
- * ```typescript
- * class MyStreamableHttpRunner extends StreamableHttpRunner {
- *   protected override async createServer({ serverOptions, sessionOptions, request }) {
- *     // Custom server creation logic
- *     return new MyServer({ ... });
- *   }
- * }
- * ```
+ * Server creation is handled by the `MCPHttpServer` instance passed to the constructor.
+ * To customize per-request server creation, extend `MCPHttpServer` and override
+ * the `createServerForRequest()` method.
  */
 export class StreamableHttpRunner<
     TServer extends {
@@ -47,8 +39,8 @@ export class StreamableHttpRunner<
     },
     TContext = unknown,
     TMetrics extends MetricDefinitions = MetricDefinitions,
-> extends TransportRunnerBase<TServer, TContext, TMetrics> {
-    protected mcpHttpServer: MCPHttpServer<TServer, TContext, TMetrics>;
+> extends TransportRunnerBase<TContext, TMetrics> {
+    protected mcpHttpServer: MCPHttpServer<TServer, TMetrics>;
     protected monitoringServer: MonitoringServer<TMetrics> | undefined;
     protected sessionStore: ISessionStore<StreamableHTTPServerTransport>;
 
@@ -59,7 +51,7 @@ export class StreamableHttpRunner<
         monitoringServer,
         sessionStore,
     }: StreamableHttpRunnerOptions<TMetrics> & {
-        mcpHttpServer: MCPHttpServer<TServer, TContext, TMetrics>;
+        mcpHttpServer: MCPHttpServer<TServer, TMetrics>;
         monitoringServer?: MonitoringServer<TMetrics>;
         sessionStore: ISessionStore<StreamableHTTPServerTransport>;
     }) {
@@ -97,38 +89,6 @@ export class StreamableHttpRunner<
      */
     async stop(): Promise<void> {
         await Promise.all([this.mcpHttpServer?.stop(), this.monitoringServer?.stop()]);
-    }
-
-    /**
-     * Creates a server instance. This method is required by the base class but
-     * is not used by StreamableHttpRunner since server creation happens inside
-     * MCPHttpServer. This stub implementation throws an error if called.
-     */
-    protected createServer(
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Required by base class signature
-        _options: {
-            serverOptions?: CustomizableServerOptions<TContext>;
-            sessionOptions?: CustomizableSessionOptions;
-        }
-    ): Promise<TServer> {
-        throw new Error(
-            "StreamableHttpRunner.createServer() should not be called directly. " +
-                "Server creation is handled by the MCPHttpServer's createServer callback."
-        );
-    }
-
-    /**
-     * Creates a server instance for a specific request.
-     * Override this method in subclasses to customize per-request server creation.
-     */
-    protected createServerForRequest(_options: {
-        serverOptions?: CustomizableServerOptions<TContext>;
-        sessionOptions?: CustomizableSessionOptions;
-        request: TransportRequestContext;
-    }): Promise<TServer> {
-        // Default implementation just creates a regular server
-        // Subclasses can override to customize based on the request
-        return this.createServer({ serverOptions: _options.serverOptions, sessionOptions: _options.sessionOptions });
     }
 
     private shouldWarnAboutHttpHost(httpHost: string): boolean {

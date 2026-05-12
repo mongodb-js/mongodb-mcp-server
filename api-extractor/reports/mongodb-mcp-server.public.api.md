@@ -762,21 +762,21 @@ export class MCPConnectionManager extends ConnectionManager {
 // Warning: (ae-forgotten-export) The symbol "ExpressBasedHttpServer" needs to be exported by the entry point lib.d.ts
 //
 // @public
-export abstract class MCPHttpServer<TServer = unknown, TContext = unknown, TMetrics extends MetricDefinitions = MetricDefinitions> extends ExpressBasedHttpServer {
-    constructor(input: MCPHttpServerOptions<TServer, TContext, TMetrics>);
+export abstract class MCPHttpServer<TServer = unknown, TMetrics extends MetricDefinitions = MetricDefinitions> extends ExpressBasedHttpServer {
+    constructor(input: MCPHttpServerOptions<TMetrics>);
     protected abstract createServerForRequest(request: TransportRequestContext): Promise<TServer>;
-    // Warning: (ae-forgotten-export) The symbol "HttpServerConfig" needs to be exported by the entry point lib.d.ts
+    // Warning: (ae-forgotten-export) The symbol "HttpServerOptions" needs to be exported by the entry point lib.d.ts
     //
     // (undocumented)
-    readonly httpConfig: HttpServerConfig;
+    readonly httpOptions: HttpServerOptions;
     // Warning: (ae-forgotten-export) The symbol "IMetrics" needs to be exported by the entry point lib.d.ts
     //
     // (undocumented)
     protected readonly metrics: IMetrics<TMetrics>;
-    // Warning: (ae-forgotten-export) The symbol "SessionManagementConfig" needs to be exported by the entry point lib.d.ts
+    // Warning: (ae-forgotten-export) The symbol "SessionManagementOptions" needs to be exported by the entry point lib.d.ts
     //
     // (undocumented)
-    readonly sessionConfig: SessionManagementConfig;
+    readonly sessionOptions: SessionManagementOptions;
     // (undocumented)
     protected setupMiddlewares(): void;
     // (undocumented)
@@ -786,9 +786,9 @@ export abstract class MCPHttpServer<TServer = unknown, TContext = unknown, TMetr
 }
 
 // @public
-export type MCPHttpServerOptions<TServer = unknown, TContext = unknown, TMetrics extends MetricDefinitions = MetricDefinitions> = {
-    httpOptions: HttpServerConfig;
-    sessionOptions: SessionManagementConfig;
+export type MCPHttpServerOptions<TMetrics extends MetricDefinitions = MetricDefinitions> = {
+    httpOptions: HttpServerOptions;
+    sessionOptions: SessionManagementOptions;
     logger: ICompositeLogger;
     metrics: IMetrics<TMetrics>;
     sessionStore: ISessionStore<StreamableHTTPServerTransport>;
@@ -836,27 +836,29 @@ export type MongoDBToolsRuntimeConfig = {
 
 // @public
 export class MonitoringServer<TMetrics extends MetricDefinitions = MetricDefinitions> extends ExpressBasedHttpServer {
-    constructor(input: MonitoringServerOptions<TMetrics>);
+    constructor(input: MonitoringServerConstructorParams<TMetrics>);
     // (undocumented)
     protected setupRoutes(): Promise<void>;
 }
 
+// Warning: (ae-forgotten-export) The symbol "MonitoringServerDependencies" needs to be exported by the entry point lib.d.ts
+//
 // @public
-export type MonitoringServerConfig = {
-    host: string;
-    port: number;
-    features: MonitoringServerFeature_2[];
-};
+export type MonitoringServerConstructorParams<TMetrics extends MetricDefinitions = MetricDefinitions> = {
+    options: MonitoringServerOptions;
+} & MonitoringServerDependencies<TMetrics>;
 
 // Warning: (ae-forgotten-export) The symbol "monitoringServerFeatureValues" needs to be exported by the entry point lib.d.ts
 //
 // @public (undocumented)
 export type MonitoringServerFeature = (typeof monitoringServerFeatureValues)[number];
 
-// Warning: (ae-forgotten-export) The symbol "MonitoringServerDependencies" needs to be exported by the entry point lib.d.ts
-//
 // @public
-export type MonitoringServerOptions<TMetrics extends MetricDefinitions = MetricDefinitions> = MonitoringServerConfig & MonitoringServerDependencies<TMetrics>;
+export type MonitoringServerOptions = {
+    host: string;
+    port: number;
+    features: MonitoringServerFeature_2[];
+};
 
 // @public (undocumented)
 export class NoopLogger extends LoggerBase {
@@ -1104,7 +1106,7 @@ export class StdioRunner<TServer extends {
 } = {
     connect(transport: StdioServerTransport): Promise<void>;
     close(): Promise<void>;
-}, TContext = unknown, TMetrics extends MetricDefinitions = MetricDefinitions> extends TransportRunnerBase<TServer, TContext, TMetrics> {
+}, TContext = unknown, TMetrics extends MetricDefinitions = MetricDefinitions> extends TransportRunnerBase<TContext, TMetrics> {
     constructor(input: {
         loggers?: LoggerBase[];
         metrics: IMetrics<TMetrics>;
@@ -1142,23 +1144,14 @@ export class StreamableHttpRunner<TServer extends {
             setAttribute(key: string, value: string): void;
         };
     };
-}, TContext = unknown, TMetrics extends MetricDefinitions = MetricDefinitions> extends TransportRunnerBase<TServer, TContext, TMetrics> {
+}, TContext = unknown, TMetrics extends MetricDefinitions = MetricDefinitions> extends TransportRunnerBase<TContext, TMetrics> {
     constructor(input: StreamableHttpTransportRunnerConfig<TMetrics> & {
-        mcpHttpServer: MCPHttpServer<TServer, TContext, TMetrics>;
+        mcpHttpServer: MCPHttpServer<TServer, TMetrics>;
         monitoringServer?: MonitoringServer<TMetrics>;
         sessionStore: ISessionStore<StreamableHTTPServerTransport>;
     });
-    protected createServer(_options: {
-        serverOptions?: CustomizableServerOptions<TContext>;
-        sessionOptions?: CustomizableSessionOptions;
-    }): Promise<TServer>;
-    protected createServerForRequest(_options: {
-        serverOptions?: CustomizableServerOptions<TContext>;
-        sessionOptions?: CustomizableSessionOptions;
-        request: TransportRequestContext;
-    }): Promise<TServer>;
     // (undocumented)
-    protected mcpHttpServer: MCPHttpServer<TServer, TContext, TMetrics>;
+    protected mcpHttpServer: MCPHttpServer<TServer, TMetrics>;
     // (undocumented)
     protected monitoringServer: MonitoringServer<TMetrics> | undefined;
     // (undocumented)
@@ -1228,16 +1221,12 @@ export type TransportRequestContext = {
 };
 
 // @public
-export abstract class TransportRunnerBase<TServer = unknown, TContext = unknown, TMetrics extends MetricDefinitions = MetricDefinitions> {
+export abstract class TransportRunnerBase<TContext = unknown, TMetrics extends MetricDefinitions = MetricDefinitions> {
     protected constructor(input: {
         loggers?: LoggerBase[];
         metrics: IMetrics<TMetrics>;
     });
     close(): Promise<void>;
-    protected abstract createServer(options: {
-        serverOptions?: CustomizableServerOptions<TContext>;
-        sessionOptions?: CustomizableSessionOptions;
-    }): Promise<TServer>;
     // (undocumented)
     logger: CompositeLogger;
     // (undocumented)
@@ -1426,7 +1415,7 @@ export const UserConfigSchema: z.ZodObject<{
 // packages/atlas-telemetry/src/types.ts:17:9 - (ae-forgotten-export) The symbol "TelemetryResult" needs to be exported by the entry point lib.d.ts
 // packages/atlas-telemetry/src/types.ts:186:5 - (ae-forgotten-export) The symbol "TelemetryBoolSet" needs to be exported by the entry point lib.d.ts
 // packages/core/src/logging/compositeLogger.ts:17:49 - (ae-forgotten-export) The symbol "IKeychain" needs to be exported by the entry point lib.d.ts
-// packages/http-runners/src/mcpHttpServer.ts:42:5 - (ae-forgotten-export) The symbol "ICompositeLogger" needs to be exported by the entry point lib.d.ts
+// packages/http-runners/src/mcpHttpServer.ts:36:5 - (ae-forgotten-export) The symbol "ICompositeLogger" needs to be exported by the entry point lib.d.ts
 // packages/http-runners/src/monitoringServer.ts:15:5 - (ae-forgotten-export) The symbol "MonitoringServerFeature_2" needs to be exported by the entry point lib.d.ts
 // packages/tools-mongodb/src/common/connectionManager.ts:540:5 - (ae-forgotten-export) The symbol "ConnectionManagerOptions" needs to be exported by the entry point lib.d.ts
 // packages/tools-mongodb/src/common/exportsManager.ts:374:9 - (ae-forgotten-export) The symbol "ExportsManagerOptions" needs to be exported by the entry point lib.d.ts

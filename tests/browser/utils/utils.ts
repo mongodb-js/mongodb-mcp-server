@@ -6,31 +6,11 @@ import type {
     TransportRunnerBaseOptions,
 } from "@mongodb-js/mcp-core";
 
-// Browser-specific server type
-interface BrowserServer {
-    connect(): Promise<void>;
-    close(): Promise<void>;
-}
-
-export class BrowserTestRunner extends TransportRunnerBase<BrowserServer> {
+export class BrowserTestRunner extends TransportRunnerBase {
     private client: Client | null = null;
 
     constructor(options: TransportRunnerBaseOptions) {
         super(options);
-    }
-
-    protected createServer(
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        _options: {
-            serverOptions?: CustomizableServerOptions<unknown>;
-            sessionOptions?: CustomizableSessionOptions;
-        }
-    ): Promise<BrowserServer> {
-        // Browser tests don't need a real server
-        return Promise.resolve({
-            connect: async (): Promise<void> => {},
-            close: async (): Promise<void> => {},
-        });
     }
 
     start(

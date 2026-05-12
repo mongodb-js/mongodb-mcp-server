@@ -33,7 +33,7 @@ export class StdioRunner<
     },
     TContext = unknown,
     TMetrics extends MetricDefinitions = MetricDefinitions,
-> extends TransportRunnerBase<TServer, TContext, TMetrics> {
+> extends TransportRunnerBase<TContext, TMetrics> {
     private server: TServer | undefined;
     private createServerCallback?: (options: {
         serverOptions?: CustomizableServerOptions<TContext>;

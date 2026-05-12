@@ -27,13 +27,7 @@ import { ExpressBasedHttpServer } from "./expressBasedHttpServer.js";
 /**
  * Options for creating an MCPHttpServer instance.
  */
-export type MCPHttpServerOptions<
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used by subclasses
-    TServer = unknown,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used by subclasses
-    TContext = unknown,
-    TMetrics extends MetricDefinitions = MetricDefinitions,
-> = {
+export type MCPHttpServerOptions<TMetrics extends MetricDefinitions = MetricDefinitions> = {
     /** HTTP server options */
     httpOptions: HttpServerOptions;
     /** Session management options */
@@ -61,7 +55,6 @@ export type MCPHttpServerOptions<
  */
 export abstract class MCPHttpServer<
     TServer = unknown,
-    TContext = unknown,
     TMetrics extends MetricDefinitions = MetricDefinitions,
 > extends ExpressBasedHttpServer {
     private readonly sessionStore: ISessionStore<StreamableHTTPServerTransport>;
@@ -70,13 +63,7 @@ export abstract class MCPHttpServer<
     protected readonly metrics: IMetrics<TMetrics>;
     private readonly pendingInitializations = new Map<string, Promise<void>>();
 
-    constructor({
-        httpOptions,
-        sessionOptions,
-        logger,
-        metrics,
-        sessionStore,
-    }: MCPHttpServerOptions<TServer, TContext, TMetrics>) {
+    constructor({ httpOptions, sessionOptions, logger, metrics, sessionStore }: MCPHttpServerOptions<TMetrics>) {
         super({
             port: httpOptions.port,
             hostname: httpOptions.host,

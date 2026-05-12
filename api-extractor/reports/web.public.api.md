@@ -1101,16 +1101,12 @@ export { TransportRequestContext }
 export { TransportRequestContext as TransportRequestContextDeprecated }
 
 // @public
-export abstract class TransportRunnerBase<TServer = unknown, TContext = unknown, TMetrics extends MetricDefinitions = MetricDefinitions> {
+export abstract class TransportRunnerBase<TContext = unknown, TMetrics extends MetricDefinitions = MetricDefinitions> {
     protected constructor(input: {
         loggers?: LoggerBase[];
         metrics: IMetrics<TMetrics>;
     });
     close(): Promise<void>;
-    protected abstract createServer(options: {
-        serverOptions?: CustomizableServerOptions<TContext>;
-        sessionOptions?: CustomizableSessionOptions;
-    }): Promise<TServer>;
     // (undocumented)
     logger: CompositeLogger;
     // (undocumented)

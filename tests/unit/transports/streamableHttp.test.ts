@@ -3,7 +3,7 @@ import {
     StreamableHttpRunner,
     MonitoringServer,
     MCPHttpServer,
-    type MonitoringServerOptions,
+    type MonitoringServerConstructorParams,
 } from "@mongodb-js/mcp-http-runners";
 import { SessionStore, type ISessionStore } from "@mongodb-js/mcp-core";
 import { defaultTestConfig } from "../../integration/helpers.js";
@@ -152,9 +152,11 @@ describe("StreamableHttpRunner", () => {
 
             it("supports extending MonitoringServer with custom routes", async () => {
                 const customMonitoringServer = new CustomMonitoringServer({
-                    host: "127.0.0.1",
-                    port: 3002,
-                    features: ["health-check", "metrics"],
+                    options: {
+                        host: "127.0.0.1",
+                        port: 3002,
+                        features: ["health-check", "metrics"],
+                    },
                     logger: new NoopLogger(),
                     metrics: new MockMetrics() as unknown as IMetrics<DefaultMetricDefinitions>,
                 });
@@ -330,7 +332,7 @@ function getSessionStore(runner: StreamableHttpRunner<any>): ISessionStore<Strea
 }
 
 class CustomMonitoringServer extends MonitoringServer {
-    constructor(args: MonitoringServerOptions) {
+    constructor(args: MonitoringServerConstructorParams) {
         super(args);
     }
 

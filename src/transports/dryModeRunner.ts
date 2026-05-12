@@ -45,7 +45,7 @@ export class DryRunModeRunner<
     TServer extends DryRunServer = DryRunServer,
     TContext = unknown,
     TMetrics extends MetricDefinitions = MetricDefinitions,
-> extends TransportRunnerBase<TServer, TContext, TMetrics> {
+> extends TransportRunnerBase<TContext, TMetrics> {
     private server: TServer;
     private consoleLogger: DryRunLogger;
     private userConfig: UserConfig;
@@ -55,10 +55,6 @@ export class DryRunModeRunner<
         this.userConfig = userConfig;
         this.consoleLogger = logger;
         this.server = server as TServer;
-    }
-
-    protected async createServer(): Promise<TServer> {
-        return Promise.resolve(this.server);
     }
 
     override async start(): Promise<void> {
