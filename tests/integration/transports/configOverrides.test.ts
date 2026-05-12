@@ -30,6 +30,7 @@ import { packageInfo } from "../../../src/common/packageInfo.js";
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
 import type { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
+import { NoopTelemetry } from "@mongodb-js/mcp-core";
 
 // Custom MCPHttpServer that applies config overrides from request headers
 class ConfigOverrideMCPHttpServer extends MCPHttpServer<Server> {
@@ -129,7 +130,7 @@ async function createTestServer(config: UserConfig): Promise<Server> {
         session,
         userConfig: config,
         mcpServer,
-        telemetry: {} as unknown as AtlasTelemetry,
+        telemetry: new NoopTelemetry() as unknown as AtlasTelemetry,
         connectionErrorHandler,
         elicitation,
         metrics,

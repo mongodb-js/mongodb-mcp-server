@@ -7,7 +7,7 @@ import type { UserConfig } from "../../../src/lib.js";
 import { defaultTestConfig, expectDefined } from "../helpers.js";
 import { Server } from "../../../src/server.js";
 import type { HttpServerConfig, SessionManagementConfig } from "@mongodb-js/mcp-types";
-import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
+import { CompositeLogger, Keychain, NoopTelemetry } from "@mongodb-js/mcp-core";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
@@ -90,7 +90,7 @@ async function createTestServer(config: UserConfig): Promise<Server> {
         session,
         userConfig: config,
         mcpServer,
-        telemetry: {} as unknown as AtlasTelemetry,
+        telemetry: new NoopTelemetry() as unknown as AtlasTelemetry,
         connectionErrorHandler,
         elicitation,
         metrics,

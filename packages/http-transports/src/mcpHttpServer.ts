@@ -19,6 +19,7 @@ import {
     JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND,
     JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION,
     JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
+    UserFacingError,
 } from "@mongodb-js/mcp-core";
 import { ExpressBasedHttpServer } from "./expressBasedHttpServer.js";
 
@@ -453,13 +454,15 @@ export class MCPHttpServer<
     ) {
         return (req: express.Request, res: express.Response, next: express.NextFunction): void => {
             fn(req, res, next).catch((error) => {
+                const errorMessage = error instanceof Error ? error.message : String(error);
                 this.logger.error({
                     id: LogId.streamableHttpTransportRequestFailure,
                     context: "streamableHttpTransport",
-                    message: `Error handling request: ${error instanceof Error ? error.message : String(error)}`,
+                    message: `Error handling request: ${errorMessage}`,
                 });
 
-                const message = `failed to handle request`;
+                // Only propagate error messages for user-facing errors
+                const message = error instanceof UserFacingError ? error.message : `failed to handle request`;
 
                 res.status(400).json({
                     jsonrpc: "2.0",

@@ -105,6 +105,7 @@ import { TransportRunnerBase } from '@mongodb-js/mcp-core';
 import { TransportRunnerBaseOptions as TransportRunnerConfig } from '@mongodb-js/mcp-core';
 import { UIRegistry } from '@mongodb-js/mcp-ui';
 import { UIRegistryOptions } from '@mongodb-js/mcp-ui';
+import { UserFacingError } from '@mongodb-js/mcp-core';
 import { z } from 'zod';
 
 export { AGG_COUNT_MAX_TIME_MS_CAP }
@@ -139,7 +140,7 @@ export { CommonProperties }
 export { CompositeLogger }
 
 // @public (undocumented)
-export class ConfigOverrideError extends Error {
+export class ConfigOverrideError extends UserFacingError {
     constructor(message: string);
 }
 

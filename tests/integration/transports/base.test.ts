@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { defaultTestConfig } from "../helpers.js";
-import type { UIRegistry } from "@mongodb-js/mcp-ui";
+import { UIRegistry } from "@mongodb-js/mcp-ui";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { Server } from "../../../src/server.js";
@@ -8,7 +8,7 @@ import { Session } from "../../../src/common/session.js";
 import { Elicitation } from "../../../src/elicitation.js";
 import { connectionErrorHandler } from "../../../src/common/connectionErrorHandler.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
+import { CompositeLogger, Keychain, NoopTelemetry } from "@mongodb-js/mcp-core";
 import { MCPConnectionManager, ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
@@ -81,11 +81,15 @@ async function createTestServer({ config, uiRegistry }: CreateServerOptions): Pr
 
     const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
 
+    if (!uiRegistry && config.previewFeatures.includes("mcpUI")) {
+        uiRegistry = new UIRegistry();
+    }
+
     const server = new Server({
         session,
         userConfig: config,
         mcpServer,
-        telemetry: {} as unknown as AtlasTelemetry,
+        telemetry: new NoopTelemetry() as unknown as AtlasTelemetry,
         connectionErrorHandler,
         elicitation,
         metrics,
