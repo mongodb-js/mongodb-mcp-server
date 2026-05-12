@@ -26,7 +26,7 @@ import { type ConnectionErrorHandler } from "./common/connectionErrorHandler.js"
 import type { Elicitation } from "./elicitation.js";
 import { AllTools } from "./tools/index.js";
 import type { UIRegistry } from "@mongodb-js/mcp-ui";
-import type { Metrics, DefaultMetrics } from "@mongodb-js/mcp-metrics";
+import type { Metrics, DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
 import type { IMetrics } from "@mongodb-js/mcp-types";
 
 export type AnyToolClass = ToolClass<any, any, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -40,7 +40,7 @@ export type MongoDBToolsRuntimeConfig = {
 export interface ServerOptions<
     TUserConfig extends UserConfig = UserConfig,
     TContext = unknown,
-    TMetrics extends DefaultMetrics = DefaultMetrics,
+    TMetrics extends DefaultPrometheusMetricDefinitions = DefaultPrometheusMetricDefinitions,
 > {
     session: Session;
     userConfig: TUserConfig;
@@ -121,7 +121,7 @@ export interface ServerOptions<
 export class Server<
     TUserConfig extends UserConfig = UserConfig,
     TContext = unknown,
-    TMetrics extends DefaultMetrics = DefaultMetrics,
+    TMetrics extends DefaultPrometheusMetricDefinitions = DefaultPrometheusMetricDefinitions,
 > {
     public readonly session: Session;
     public readonly mcpServer: McpServer;

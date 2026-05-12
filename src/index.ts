@@ -51,7 +51,11 @@ import { DryRunModeRunner } from "./transports/dryModeRunner.js";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { systemCA } from "@mongodb-js/devtools-proxy-support";
 import { runSetup } from "./setup/setupMcpServer.js";
-import { PrometheusMetrics, createDefaultMetrics, type DefaultMetrics } from "@mongodb-js/mcp-metrics";
+import {
+    PrometheusMetrics,
+    createDefaultMetrics,
+    type DefaultPrometheusMetricDefinitions,
+} from "@mongodb-js/mcp-metrics";
 import type { IMetrics, MetricDefinitions, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
 import { Server } from "./server.js";
 import { Session } from "./common/session.js";
@@ -73,7 +77,7 @@ import type { HttpServerOptions, SessionManagementOptions } from "@mongodb-js/mc
 class MongoDBStdioRunner extends StdioRunner<Server> {
     private userConfig: UserConfig;
     private baseLogger: CompositeLogger;
-    private serverMetrics: PrometheusMetrics<DefaultMetrics>;
+    private serverMetrics: PrometheusMetrics<DefaultPrometheusMetricDefinitions>;
 
     constructor({
         loggers,
@@ -82,7 +86,7 @@ class MongoDBStdioRunner extends StdioRunner<Server> {
         baseLogger,
     }: {
         loggers: LoggerBase[];
-        metrics: PrometheusMetrics<DefaultMetrics>;
+        metrics: PrometheusMetrics<DefaultPrometheusMetricDefinitions>;
         userConfig: UserConfig;
         baseLogger: CompositeLogger;
     }) {
@@ -132,7 +136,7 @@ class MongoDBMCPHttpServer extends MCPHttpServer<Server> {
         return createServerForConfig({
             config: this.userConfig,
             logger: this.baseLogger,
-            metrics: this.metrics as PrometheusMetrics<DefaultMetrics>,
+            metrics: this.metrics as PrometheusMetrics<DefaultPrometheusMetricDefinitions>,
         });
     }
 }
@@ -204,7 +208,7 @@ async function main(): Promise<void> {
                 notificationTimeoutMS: 3000000,
             },
             logger: baseLogger,
-            metrics: metrics as IMetrics<DefaultMetricDefinitions>,
+            metrics: metrics,
         });
 
         const compositeLogger = new CompositeLogger({ loggers });
@@ -223,20 +227,20 @@ async function main(): Promise<void> {
                 notificationTimeoutMs: 3000000,
             },
             logger: compositeLogger,
-            metrics: metrics as IMetrics<DefaultMetricDefinitions>,
+            metrics: metrics,
             sessionStore,
         });
 
         let monitoringServer: MonitoringServer | undefined;
         if (config.monitoringServerHost && config.monitoringServerPort) {
-            monitoringServer = new MonitoringServer({
+            monitoringServer = new MonitoringServer<DefaultPrometheusMetricDefinitions>({
                 options: {
                     host: config.monitoringServerHost,
                     port: config.monitoringServerPort,
                     features: config.monitoringServerFeatures,
                 },
                 logger: loggers[0] ?? new ConsoleLogger({ keychain: Keychain.root }),
-                metrics: metrics as IMetrics<DefaultMetricDefinitions>,
+                metrics: metrics,
             });
         }
 
@@ -348,7 +352,7 @@ export async function handleDryRunRequest(config: UserConfig): Promise<never> {
             },
             userConfig: config,
             server,
-            metrics: metrics as IMetrics<DefaultMetricDefinitions>,
+            metrics: metrics,
         });
         await runner.start();
         await runner.stop();
@@ -396,7 +400,7 @@ async function createDefaultLoggers(config: UserConfig): Promise<CompositeLogger
 type CreateServerOptions = {
     config: UserConfig;
     logger: CompositeLogger;
-    metrics: PrometheusMetrics<DefaultMetrics>;
+    metrics: PrometheusMetrics<DefaultPrometheusMetricDefinitions>;
 };
 
 async function createServerForConfig({ config, logger, metrics }: CreateServerOptions): Promise<Server> {

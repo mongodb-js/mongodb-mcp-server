@@ -112,7 +112,7 @@ export { type ToolExecutionContext, type AnyToolBase } from "./tools/tool.js";
 export {
     PrometheusMetrics,
     createDefaultMetrics,
-    type DefaultMetrics,
+    type DefaultPrometheusMetricDefinitions,
     type Metrics,
     type MetricDefinitions,
     type PrometheusMetricsOptions,

@@ -76,7 +76,7 @@ function createStreamableHttpRunnerFromConfig(options: {
                     features: userConfig.monitoringServerFeatures,
                 },
                 logger,
-                metrics: metrics as IMetrics<DefaultMetricDefinitions>,
+                metrics: metrics,
             });
         }
     }
@@ -129,7 +129,9 @@ describe("StreamableHttpRunner", () => {
                         features: ["health-check"],
                     },
                     logger: new NoopLogger(),
-                    metrics: new MockMetrics() as unknown as IMetrics<DefaultMetricDefinitions>,
+                    metrics: new MockMetrics() as unknown as ConstructorParameters<
+                        typeof MonitoringServer
+                    >[0]["metrics"],
                 });
 
                 runner = createStreamableHttpRunnerFromConfig({
@@ -158,7 +160,9 @@ describe("StreamableHttpRunner", () => {
                         features: ["health-check", "metrics"],
                     },
                     logger: new NoopLogger(),
-                    metrics: new MockMetrics() as unknown as IMetrics<DefaultMetricDefinitions>,
+                    metrics: new MockMetrics() as unknown as ConstructorParameters<
+                        typeof CustomMonitoringServer
+                    >[0]["metrics"],
                 });
 
                 runner = createStreamableHttpRunnerFromConfig({
@@ -331,8 +335,8 @@ function getSessionStore(runner: StreamableHttpRunner<any>): ISessionStore<Strea
         .sessionStore;
 }
 
-class CustomMonitoringServer extends MonitoringServer {
-    constructor(args: MonitoringServerConstructorParams) {
+class CustomMonitoringServer extends MonitoringServer<DefaultMetricDefinitions> {
+    constructor(args: MonitoringServerConstructorParams<DefaultMetricDefinitions>) {
         super(args);
     }
 

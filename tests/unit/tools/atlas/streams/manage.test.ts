@@ -1,4 +1,4 @@
-import type { DefaultMetrics } from "@mongodb-js/mcp-metrics";
+import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ToolConstructorParams, IAtlasConfig, IAtlasSession } from "@mongodb-js/mcp-tools-atlas";
@@ -64,7 +64,7 @@ describe("StreamsManageTool", () => {
             requestConfirmation: vi.fn().mockResolvedValue(true),
         } as unknown as Elicitation;
 
-        const params: ToolConstructorParams<IAtlasConfig, unknown, DefaultMetrics> = {
+        const params: ToolConstructorParams<IAtlasConfig, unknown, DefaultPrometheusMetricDefinitions> = {
             name: StreamsManageTool.toolName,
             category: "atlas",
             operationType: StreamsManageTool.operationType,

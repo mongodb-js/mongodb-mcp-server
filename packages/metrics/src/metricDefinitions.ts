@@ -1,4 +1,5 @@
 import { Counter, Histogram } from "prom-client";
+import type { DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
 import type { PrometheusMetricDefinitions } from "./types.js";
 
 /**
@@ -29,7 +30,7 @@ export function createDefaultMetrics() {
             labelNames: ["reason"] as const,
             registers: [],
         }),
-    } as const satisfies PrometheusMetricDefinitions;
+    } satisfies DefaultMetricDefinitions & PrometheusMetricDefinitions;
 }
 
-export type DefaultMetrics = ReturnType<typeof createDefaultMetrics>;
+export type DefaultPrometheusMetricDefinitions = ReturnType<typeof createDefaultMetrics>;

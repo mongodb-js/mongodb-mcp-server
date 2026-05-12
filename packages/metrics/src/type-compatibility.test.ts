@@ -4,11 +4,11 @@ import { PrometheusMetrics, createDefaultMetrics } from "./index.js";
 
 /**
  * Type compatibility test for metrics interfaces.
- * This verifies that PrometheusMetrics<DefaultMetrics> can be assigned to
+ * This verifies that PrometheusMetrics<DefaultPrometheusMetricDefinitions> can be assigned to
  * IMetrics<DefaultMetricDefinitions> without requiring type assertions.
  */
 describe("metrics type compatibility", () => {
-    it("PrometheusMetrics<DefaultMetrics> should be assignable to IMetrics<DefaultMetricDefinitions>", () => {
+    it("PrometheusMetrics<DefaultPrometheusMetricDefinitions> should be assignable to IMetrics<DefaultMetricDefinitions>", () => {
         const prometheusMetrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
 
         const metrics: IMetrics<DefaultMetricDefinitions> = prometheusMetrics;

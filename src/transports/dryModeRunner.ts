@@ -1,6 +1,7 @@
 import type { MetricDefinitions, IMetrics } from "@mongodb-js/mcp-types";
 import { TransportRunnerBase, InMemoryTransport } from "@mongodb-js/mcp-core";
 import type { UserConfig } from "../common/config/userConfig.js";
+import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
 
 /**
  * Server interface for dry run mode.
@@ -41,20 +42,16 @@ export type DryRunModeRunnerOptions<TMetrics extends MetricDefinitions = MetricD
  * await runner.start();
  * ```
  */
-export class DryRunModeRunner<
-    TServer extends DryRunServer = DryRunServer,
-    TContext = unknown,
-    TMetrics extends MetricDefinitions = MetricDefinitions,
-> extends TransportRunnerBase<TContext, TMetrics> {
-    private server: TServer;
+export class DryRunModeRunner extends TransportRunnerBase<unknown, DefaultPrometheusMetricDefinitions> {
+    private server: DryRunServer;
     private consoleLogger: DryRunLogger;
     private userConfig: UserConfig;
 
-    constructor({ logger, metrics, userConfig, server }: DryRunModeRunnerOptions<TMetrics>) {
+    constructor({ logger, metrics, userConfig, server }: DryRunModeRunnerOptions<DefaultPrometheusMetricDefinitions>) {
         super({ loggers: [], metrics });
         this.userConfig = userConfig;
         this.consoleLogger = logger;
-        this.server = server as TServer;
+        this.server = server;
     }
 
     override async start(): Promise<void> {

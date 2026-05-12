@@ -7,7 +7,12 @@ import type { UserConfig } from "../../src/common/config/userConfig.js";
 import { ToolBase } from "../../src/tools/tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { TelemetryToolMetadata, AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
-import { PrometheusMetrics, createDefaultMetrics, type DefaultMetrics, Counter } from "@mongodb-js/mcp-metrics";
+import {
+    PrometheusMetrics,
+    createDefaultMetrics,
+    type DefaultPrometheusMetricDefinitions,
+    Counter,
+} from "@mongodb-js/mcp-metrics";
 import type { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { EchoTool, ErrorTool, NoopTool } from "../unit/mocks/tools.js";
 import type { OperationType, ToolCategory } from "../../src/tools/tool.js";
@@ -41,7 +46,7 @@ async function createTestServer(
     config: UserConfig,
     options: {
         tools?: AnyToolClass[];
-        metrics?: PrometheusMetrics<DefaultMetrics>;
+        metrics?: PrometheusMetrics<DefaultPrometheusMetricDefinitions>;
     } = {}
 ): Promise<Server> {
     const logger = new CompositeLogger({ loggers: [] });
@@ -124,7 +129,7 @@ async function createTestServer(
 class TestMCPHttpServer extends MCPHttpServer<Server, DefaultMetricDefinitions> {
     private userConfig: UserConfig;
     private tools?: AnyToolClass[];
-    private customMetrics?: PrometheusMetrics<DefaultMetrics>;
+    private customMetrics?: PrometheusMetrics<DefaultPrometheusMetricDefinitions>;
 
     constructor({
         userConfig,
@@ -143,7 +148,7 @@ class TestMCPHttpServer extends MCPHttpServer<Server, DefaultMetricDefinitions> 
         metrics: IMetrics<DefaultMetricDefinitions>;
         sessionStore: SessionStore<StreamableHTTPServerTransport>;
         tools?: AnyToolClass[];
-        customMetrics?: PrometheusMetrics<DefaultMetrics>;
+        customMetrics?: PrometheusMetrics<DefaultPrometheusMetricDefinitions>;
     }) {
         super({ httpOptions, sessionOptions, logger, metrics, sessionStore });
         this.userConfig = userConfig;
@@ -154,7 +159,9 @@ class TestMCPHttpServer extends MCPHttpServer<Server, DefaultMetricDefinitions> 
     protected override async createServerForRequest(): Promise<Server> {
         return createTestServer(this.userConfig, {
             tools: this.tools,
-            metrics: this.customMetrics ?? (this.metrics as unknown as PrometheusMetrics<DefaultMetrics>),
+            metrics:
+                this.customMetrics ??
+                (this.metrics as unknown as PrometheusMetrics<DefaultPrometheusMetricDefinitions>),
         });
     }
 }
@@ -164,7 +171,7 @@ function createMetricsTestRunner(
     config: UserConfig,
     options: {
         tools?: AnyToolClass[];
-        customMetrics?: PrometheusMetrics<DefaultMetrics>;
+        customMetrics?: PrometheusMetrics<DefaultPrometheusMetricDefinitions>;
     } = {}
 ): {
     runner: StreamableHttpRunner<Server>;
@@ -180,7 +187,7 @@ function createMetricsTestRunner(
             notificationTimeoutMS: config.notificationTimeoutMs,
         },
         logger,
-        metrics: metrics as IMetrics<DefaultMetricDefinitions>,
+        metrics: metrics,
     });
 
     const mcpHttpServer = new TestMCPHttpServer({
@@ -196,7 +203,7 @@ function createMetricsTestRunner(
             externallyManagedSessions: config.externallyManagedSessions,
         },
         logger,
-        metrics: metrics as IMetrics<DefaultMetricDefinitions>,
+        metrics: metrics,
         sessionStore,
         tools: options.tools,
         customMetrics: options.customMetrics,
@@ -209,11 +216,11 @@ function createMetricsTestRunner(
             features: config.monitoringServerFeatures,
         },
         logger,
-        metrics: metrics as IMetrics<DefaultMetricDefinitions>,
+        metrics: metrics,
     });
 
     const runner = new StreamableHttpRunner<Server>({
-        metrics: metrics as IMetrics<DefaultMetricDefinitions>,
+        metrics: metrics,
         mcpHttpServer,
         monitoringServer,
         sessionStore,
@@ -351,7 +358,7 @@ describe("/metrics endpoint", () => {
     });
 
     it("exposes custom metrics in /metrics output", async () => {
-        type CustomMetrics = DefaultMetrics & { callCount: Counter<"tool_name"> };
+        type CustomMetrics = DefaultPrometheusMetricDefinitions & { callCount: Counter<"tool_name"> };
 
         const customMetrics = new PrometheusMetrics({
             definitions: {

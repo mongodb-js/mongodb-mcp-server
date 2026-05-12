@@ -186,7 +186,7 @@ function createStreamableHttpRunner(
             notificationTimeoutMS: config.notificationTimeoutMs,
         },
         logger,
-        metrics: metrics as IMetrics<DefaultMetricDefinitions>,
+        metrics: metrics,
     });
 
     const mcpHttpServer = new TestMCPHttpServer({
@@ -204,7 +204,7 @@ function createStreamableHttpRunner(
             externallyManagedSessions: config.externallyManagedSessions,
         },
         logger,
-        metrics: metrics as IMetrics<DefaultMetricDefinitions>,
+        metrics: metrics,
         sessionStore,
         tools: options.tools,
         toolContext: options.toolContext,
@@ -213,7 +213,7 @@ function createStreamableHttpRunner(
     return Promise.resolve(
         new StreamableHttpRunner<Server>({
             loggers: options.loggers,
-            metrics: metrics as IMetrics<DefaultMetricDefinitions>,
+            metrics: metrics,
             mcpHttpServer,
             sessionStore,
         })
@@ -816,7 +816,7 @@ describe("StreamableHttpRunner", () => {
                             notificationTimeoutMS: config.notificationTimeoutMs,
                         },
                         logger,
-                        metrics: metrics as IMetrics<DefaultMetricDefinitions>,
+                        metrics: metrics,
                     });
 
                     const ownershipStore = new OwnershipSessionStore(innerSessionStore);
@@ -834,12 +834,12 @@ describe("StreamableHttpRunner", () => {
                             externallyManagedSessions: config.externallyManagedSessions,
                         },
                         logger,
-                        metrics: metrics as IMetrics<DefaultMetricDefinitions>,
+                        metrics: metrics,
                         sessionStore: ownershipStore,
                     });
 
                     const ownershipRunner = new StreamableHttpRunner<Server>({
-                        metrics: metrics as IMetrics<DefaultMetricDefinitions>,
+                        metrics: metrics,
                         mcpHttpServer,
                         sessionStore: ownershipStore,
                     });
@@ -1025,7 +1025,7 @@ describe("StreamableHttpRunner", () => {
                     notificationTimeoutMS: config.notificationTimeoutMs,
                 },
                 logger,
-                metrics: metrics as IMetrics<DefaultMetricDefinitions>,
+                metrics: metrics,
             });
 
             const customMcpHttpServer = new CustomTestMCPHttpServer({
@@ -1041,12 +1041,12 @@ describe("StreamableHttpRunner", () => {
                     externallyManagedSessions: config.externallyManagedSessions,
                 },
                 logger,
-                metrics: metrics as IMetrics<DefaultMetricDefinitions>,
+                metrics: metrics,
                 sessionStore,
             });
 
             runner = new StreamableHttpRunner<Server>({
-                metrics: metrics as IMetrics<DefaultMetricDefinitions>,
+                metrics: metrics,
                 mcpHttpServer: customMcpHttpServer,
                 sessionStore,
             });
@@ -1080,7 +1080,7 @@ describe("StreamableHttpRunner", () => {
                     notificationTimeoutMS: config.notificationTimeoutMs,
                 },
                 logger,
-                metrics: metrics as IMetrics<DefaultMetricDefinitions>,
+                metrics: metrics,
             });
 
             const rejectingMcpHttpServer = new RejectingMCPHttpServer({
@@ -1096,12 +1096,12 @@ describe("StreamableHttpRunner", () => {
                     externallyManagedSessions: config.externallyManagedSessions,
                 },
                 logger,
-                metrics: metrics as IMetrics<DefaultMetricDefinitions>,
+                metrics: metrics,
                 sessionStore,
             });
 
             runner = new StreamableHttpRunner<Server>({
-                metrics: metrics as IMetrics<DefaultMetricDefinitions>,
+                metrics: metrics,
                 mcpHttpServer: rejectingMcpHttpServer,
                 sessionStore,
             });
@@ -1239,7 +1239,7 @@ describe("StreamableHttpRunner", () => {
                     notificationTimeoutMS: config.notificationTimeoutMs,
                 },
                 logger,
-                metrics: metrics as IMetrics<DefaultMetricDefinitions>,
+                metrics: metrics,
             });
 
             const customMcpHttpServer = new CustomTestMCPHttpServer({
@@ -1255,12 +1255,12 @@ describe("StreamableHttpRunner", () => {
                     externallyManagedSessions: config.externallyManagedSessions,
                 },
                 logger,
-                metrics: metrics as IMetrics<DefaultMetricDefinitions>,
+                metrics: metrics,
                 sessionStore,
             });
 
             runner = new StreamableHttpRunner<Server>({
-                metrics: metrics as IMetrics<DefaultMetricDefinitions>,
+                metrics: metrics,
                 mcpHttpServer: customMcpHttpServer,
                 sessionStore,
             });
@@ -1356,7 +1356,7 @@ describe("StreamableHttpRunner", () => {
                     notificationTimeoutMS: config.notificationTimeoutMs,
                 },
                 logger,
-                metrics: metrics as IMetrics<DefaultMetricDefinitions>,
+                metrics: metrics,
             });
 
             const customMcpHttpServer = new CustomTestMCPHttpServer({
@@ -1372,12 +1372,12 @@ describe("StreamableHttpRunner", () => {
                     externallyManagedSessions: config.externallyManagedSessions,
                 },
                 logger,
-                metrics: metrics as IMetrics<DefaultMetricDefinitions>,
+                metrics: metrics,
                 sessionStore,
             });
 
             runner = new StreamableHttpRunner<Server>({
-                metrics: metrics as IMetrics<DefaultMetricDefinitions>,
+                metrics: metrics,
                 mcpHttpServer: customMcpHttpServer,
                 sessionStore,
             });

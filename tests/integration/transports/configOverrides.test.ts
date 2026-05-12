@@ -153,7 +153,7 @@ function createConfigOverrideRunner(baseConfig: UserConfig): Promise<{
             notificationTimeoutMS: baseConfig.notificationTimeoutMs,
         },
         logger,
-        metrics: metrics as IMetrics<DefaultMetricDefinitions>,
+        metrics: metrics,
     });
 
     const mcpHttpServer = new ConfigOverrideMCPHttpServer({
@@ -169,12 +169,12 @@ function createConfigOverrideRunner(baseConfig: UserConfig): Promise<{
             externallyManagedSessions: baseConfig.externallyManagedSessions,
         },
         logger,
-        metrics: metrics as IMetrics<DefaultMetricDefinitions>,
+        metrics: metrics,
         sessionStore,
     });
 
     const runner = new StreamableHttpRunner<Server>({
-        metrics: metrics as IMetrics<DefaultMetricDefinitions>,
+        metrics: metrics,
         mcpHttpServer,
         sessionStore,
     });

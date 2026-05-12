@@ -149,7 +149,7 @@ function createConfigModifyingRunner(
             notificationTimeoutMS: baseConfig.notificationTimeoutMs,
         },
         logger,
-        metrics: metrics as IMetrics<DefaultMetricDefinitions>,
+        metrics: metrics,
     });
 
     const mcpHttpServer = new ConfigModifyingMCPHttpServer({
@@ -166,12 +166,12 @@ function createConfigModifyingRunner(
             externallyManagedSessions: baseConfig.externallyManagedSessions,
         },
         logger,
-        metrics: metrics as IMetrics<DefaultMetricDefinitions>,
+        metrics: metrics,
         sessionStore,
     });
 
     const runner = new StreamableHttpRunner<Server>({
-        metrics: metrics as IMetrics<DefaultMetricDefinitions>,
+        metrics: metrics,
         mcpHttpServer,
         sessionStore,
     });

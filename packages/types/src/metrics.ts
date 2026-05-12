@@ -1,14 +1,10 @@
 /**
  * Base constraint for metric definitions.
- * Used as a generic bound — concrete definitions should NOT intersect with this
- * type directly, as that introduces a string index signature.
  */
 export type MetricDefinitions = Record<string, unknown>;
 
 /**
  * Labels type for metrics.
- * Compatible with prom-client's LabelValues<T> which allows partial records
- * with string or number values.
  */
 export type MetricLabels = Partial<Record<string, string | number>>;
 
@@ -36,7 +32,7 @@ export interface ICounter {
  * ```typescript
  * // Usage with session store
  * const store = new SessionStore({
- *   metrics: myMetrics as IMetrics<DefaultMetricDefinitions>,
+ *   metrics: myMetrics,
  *   ...
  * });
  * ```

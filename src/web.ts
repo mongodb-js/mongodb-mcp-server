@@ -5,7 +5,7 @@ export {
     type TransportRequestContext as TransportRequestContextDeprecated,
 } from "@mongodb-js/mcp-core";
 export { UserConfigSchema, type UserConfig } from "./common/config/userConfig.js";
-export { createDefaultMetrics, type DefaultMetrics } from "@mongodb-js/mcp-metrics";
+export { createDefaultMetrics, type DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
 export {
     Server,
     type ServerOptions,
