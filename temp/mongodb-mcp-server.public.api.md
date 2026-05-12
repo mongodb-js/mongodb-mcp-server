@@ -304,6 +304,24 @@ export interface ISessionStore<T extends CloseableTransport = CloseableTransport
     getSession(sessionId: string): Promise<T | undefined>;
 }
 
+// @public
+export const JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION = -32005;
+
+// @public
+export const JSON_RPC_ERROR_CODE_INVALID_REQUEST = -32004;
+
+// @public
+export const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
+
+// @public
+export const JSON_RPC_ERROR_CODE_SESSION_ID_INVALID = -32002;
+
+// @public
+export const JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED = -32001;
+
+// @public
+export const JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND = -32003;
+
 export { Keychain }
 
 export { LoggerBase }
@@ -321,6 +339,8 @@ export { MCPConnectionManager }
 // @public (undocumented)
 export class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unknown> extends ExpressBasedHttpServer {
     constructor(input: MCPHttpServerConstructorArgs<TUserConfig, TContext>);
+    // (undocumented)
+    protected readonly sessionStore: ISessionStore<StreamableHTTPServerTransport>;
     // (undocumented)
     protected setupMiddlewares(): void;
     // (undocumented)
