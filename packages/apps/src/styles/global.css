@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+/* Tailwind v4 auto-detection doesn't scan source files when Vite root is the cache dir */
+@source "../apps/**/*.{ts,tsx}";
+@source "../build/**/*.{ts,tsx}";
+
+@layer base {
+    :root {
+        /* Light defaults — OS dark mode and explicit [data-theme] override below */
+        color-scheme: light dark;
+        --color-text-primary: #111827;
+        --color-text-secondary: #6b7280;
+        --color-text-inverse: #ffffff;
+        --color-text-danger: #dc2626;
+        --color-text-success: #16a34a;
+        --color-background-secondary: #ffffff;
+        --color-background-inverse: #111827;
+        --color-background-inverse-hover: #1f2937;
+        --color-border-primary: #d1d5db;
+        --color-ring-primary: var(--color-text-primary);
+        --border-radius-md: 0.375rem;
+        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+
+        @media (prefers-color-scheme: dark) {
+            color-scheme: dark;
+            --color-text-primary: #f9fafb;
+            --color-text-secondary: #9ca3af;
+            --color-text-inverse: #f9fafb;
+            --color-text-danger: #f87171;
+            --color-text-success: #4ade80;
+            --color-background-inverse: #1f2937;
+            --color-background-inverse-hover: #374151;
+            --color-background-secondary: transparent;
+            --color-border-primary: #4b5563;
+        }
+
+        /* Explicit theme set by useHostStyles — overrides OS preference (higher specificity) */
+        &[data-theme="dark"] {
+            color-scheme: dark;
+            --color-text-primary: #f9fafb;
+            --color-text-secondary: #9ca3af;
+            --color-text-inverse: #f9fafb;
+            --color-text-danger: #f87171;
+            --color-text-success: #4ade80;
+            --color-background-inverse: #1f2937;
+            --color-background-inverse-hover: #374151;
+            --color-background-secondary: transparent;
+            --color-border-primary: #4b5563;
+        }
+
+        &[data-theme="light"] {
+            color-scheme: light;
+            --color-text-primary: #111827;
+            --color-text-secondary: #6b7280;
+            --color-text-inverse: #ffffff;
+            --color-text-danger: #dc2626;
+            --color-text-success: #16a34a;
+            --color-background-secondary: #ffffff;
+            --color-background-inverse: #111827;
+            --color-border-primary: #d1d5db;
+        }
+    }
+
+    html,
+    body {
+        height: 100%;
+        background: transparent;
+    }
+
+    body {
+        @apply font-sans text-[13px] antialiased;
+    }
+}

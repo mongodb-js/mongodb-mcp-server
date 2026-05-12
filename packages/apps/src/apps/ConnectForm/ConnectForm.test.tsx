@@ -5,13 +5,14 @@ import { ConnectForm } from "./ConnectForm.js";
 
 vi.mock("@modelcontextprotocol/ext-apps/react", () => ({
     useApp: vi.fn(),
+    useHostStyles: vi.fn(),
 }));
 
 import { useApp } from "@modelcontextprotocol/ext-apps/react";
 const mockUseApp = vi.mocked(useApp);
 
 function makeApp(callServerTool: ReturnType<typeof vi.fn> = vi.fn()) {
-    return { callServerTool };
+    return { callServerTool, getHostContext: vi.fn().mockReturnValue(null) };
 }
 
 afterEach(() => {

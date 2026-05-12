@@ -1,5 +1,5 @@
-import React, { useState, type ReactElement } from "react";
-import { useApp } from "@modelcontextprotocol/ext-apps/react";
+import React, { useState, useEffect, type ReactElement } from "react";
+import { useApp, useHostStyles } from "@modelcontextprotocol/ext-apps/react";
 
 export const ConnectForm = (): ReactElement => {
     const {
@@ -10,6 +10,30 @@ export const ConnectForm = (): ReactElement => {
         appInfo: { name: "connect-form", version: "1.0.0" },
         capabilities: {},
     });
+
+    useHostStyles(app, app?.getHostContext());
+
+    // ext-apps 1.2.0 bug: useHostFonts overwrites useHostStyleVariables' onhostcontextchanged
+    // subscription, so runtime theme/variable changes are silently dropped. Chain on top.
+    useEffect(() => {
+        if (!app) return;
+        const prev = app.onhostcontextchanged;
+        app.onhostcontextchanged = (ctx) => {
+            prev?.(ctx);
+            if (ctx.theme) {
+                document.documentElement.setAttribute("data-theme", ctx.theme);
+                document.documentElement.style.colorScheme = ctx.theme;
+            }
+            if (ctx.styles?.variables) {
+                for (const [k, v] of Object.entries(ctx.styles.variables)) {
+                    if (v != null) document.documentElement.style.setProperty(k, v);
+                }
+            }
+        };
+        return () => {
+            app.onhostcontextchanged = prev;
+        };
+    }, [app]);
 
     const [connectionString, setConnectionString] = useState("mongodb://localhost:27017");
     const [status, setStatus] = useState<"idle" | "connecting" | "success" | "error">("idle");
@@ -38,18 +62,30 @@ export const ConnectForm = (): ReactElement => {
     };
 
     if (hostError) {
-        return <div>Failed to connect to MCP host: {hostError.message}</div>;
+        return (
+            <div className="p-4 text-sm text-[var(--color-text-danger)]">
+                Failed to connect to MCP host: {hostError.message}
+            </div>
+        );
     }
 
     return (
-        <div className="connect-form">
-            <h2>Connect to MongoDB</h2>
+        <div className="p-4">
+            <h2 className="mb-3 text-sm font-medium text-[var(--color-text-primary)]">Connect to MongoDB</h2>
             {status === "success" ? (
-                <p className="success">Connected successfully!</p>
+                <p className="flex items-center gap-2 text-sm text-[var(--color-text-success)]">
+                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-text-success)]" />
+                    Connected successfully!
+                </p>
             ) : (
                 <>
-                    <form onSubmit={handleSubmit}>
-                        <label htmlFor="connection-string">Connection String</label>
+                    <form onSubmit={handleSubmit} className="flex w-full flex-col gap-2">
+                        <label
+                            htmlFor="connection-string"
+                            className="text-xs font-medium text-[var(--color-text-secondary)]"
+                        >
+                            Connection String
+                        </label>
                         <input
                             id="connection-string"
                             type="text"
@@ -58,12 +94,19 @@ export const ConnectForm = (): ReactElement => {
                             placeholder="mongodb://localhost:27017"
                             required
                             disabled={!isConnected || status === "connecting"}
+                            className="w-full rounded-[var(--border-radius-md)] border border-[var(--color-border-primary)] bg-[var(--color-background-secondary)] px-3 py-1.5 font-mono text-sm text-[var(--color-text-primary)] shadow-[var(--shadow-sm)] outline-none focus:ring-1 focus:ring-[var(--color-ring-primary)] disabled:opacity-50"
                         />
-                        <button type="submit" disabled={!isConnected || status === "connecting"}>
+                        <button
+                            type="submit"
+                            disabled={!isConnected || status === "connecting"}
+                            className="cursor-pointer self-start rounded-[var(--border-radius-md)] bg-[var(--color-background-inverse)] px-3 py-1.5 text-sm font-medium text-[var(--color-text-inverse)] shadow-[var(--shadow-sm)] outline-none hover:bg-[var(--color-background-inverse-hover)] active:opacity-80 focus:ring-1 focus:ring-[var(--color-ring-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+                        >
                             {status === "connecting" ? "Connecting…" : "Connect"}
                         </button>
                     </form>
-                    {status === "error" && errorMessage && <p className="error">{errorMessage}</p>}
+                    {status === "error" && errorMessage && (
+                        <p className="mt-2 text-xs text-[var(--color-text-danger)]">{errorMessage}</p>
+                    )}
                 </>
             )}
         </div>

@@ -1,5 +1,6 @@
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 import { viteSingleFile } from "vite-plugin-singlefile";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync, rmSync } from "fs";
@@ -154,6 +155,7 @@ export default defineConfig({
             },
         }),
         react(),
+        tailwindcss(),
         viteSingleFile({
             removeViteModuleLoader: true,
         }),

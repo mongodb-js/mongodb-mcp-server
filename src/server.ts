@@ -365,17 +365,22 @@ export class Server<
 
             // Register a tool carrying the ui metadata — this is what makes the MCP Apps tab
             // pick up the app. The tool name matches the app name so clients can link them.
-            (this.mcpServer.registerTool as (
-                name: string,
-                config: { description?: string; _meta?: Record<string, unknown> },
-                cb: () => Promise<{ content: { type: string; text: string }[] }>
-            ) => void)(
+            // Both _meta keys are set for compatibility: ui.resourceUri (new) and
+            // "ui/resourceUri" (legacy, checked by some hosts including Claude Desktop).
+            this.mcpServer.registerTool(
                 appName,
                 {
                     description: `Open the ${appName} app`,
-                    _meta: { ui: { resourceUri: uri } },
+                    _meta: { ui: { resourceUri: uri }, "ui/resourceUri": uri },
                 },
-                async () => ({ content: [{ type: "text", text: `Use the ${appName} interface.` }] })
+                async () => ({
+                    content: [
+                        {
+                            type: "resource" as const,
+                            resource: { uri, mimeType: "text/html;profile=mcp-app", text: html },
+                        },
+                    ],
+                })
             );
         }
     }
