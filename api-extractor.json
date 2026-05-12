@@ -3,6 +3,18 @@
 
   "mainEntryPointFilePath": "<projectFolder>/dist/esm/lib.d.ts",
 
+  "bundledPackages": [
+    "@mongodb-js/mcp-core",
+    "@mongodb-js/mcp-http-transports",
+    "@mongodb-js/mcp-tools-mongodb",
+    "@mongodb-js/mcp-atlas-api-client",
+    "@mongodb-js/mcp-atlas-telemetry",
+    "@mongodb-js/mcp-logging",
+    "@mongodb-js/mcp-metrics",
+    "@mongodb-js/mcp-types",
+    "@mongodb-js/mcp-ui"
+  ],
+
   "compiler": {
     "tsconfigFilePath": "<projectFolder>/tsconfig.esm.json"
   },
@@ -40,7 +52,7 @@
         "logLevel": "none"
       },
       "ae-unresolved-link": {
-        "logLevel": "warning"
+        "logLevel": "none"
       }
     },
     "tsdocMessageReporting": {
