@@ -1,4 +1,4 @@
-import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import express from "express";
 import type {
@@ -195,6 +195,23 @@ export class MCPHttpServer<
         return crypto.randomUUID();
     }
 
+    /**
+     * Ensures the session for the given sessionId is initialized, serializing
+     * concurrent initialization attempts so only one runs at a time.
+     *
+     * If a session already exists in the store, this is a no-op.
+     * If another request is already initializing this session, this call waits
+     * for that initialization to complete.
+     * Otherwise, this call performs the initialization.
+     *
+     * After this method resolves, the caller should look up the transport from
+     * the session store via `sessionStore.getSession()`.
+     *
+     * When `isImplicitInitialization` is true, the transport is pre-configured as
+     * initialized (bypassing the MCP initialize handshake) so that it can handle
+     * non-initialize requests immediately. When false, the transport is left in
+     * its default state so it can process the initialize request normally.
+     */
     private async ensureSessionInitialized({
         req,
         sessionId: providedSessionId,
@@ -204,14 +221,13 @@ export class MCPHttpServer<
         sessionId?: string;
         isImplicitInitialization: boolean;
     }): Promise<string> {
-        const { StreamableHTTPServerTransport } = await import("@modelcontextprotocol/sdk/server/streamableHttp.js");
-
         const sessionId = providedSessionId ?? this.getRandomUUID();
 
         if (await this.sessionStore.getSession(sessionId)) {
             return sessionId;
         }
 
+        // Serialize initializations: if another request is initializing, wait for it
         const pendingInit = this.pendingInitializations.get(sessionId);
         if (pendingInit) {
             this.logger.debug({
@@ -239,25 +255,27 @@ export class MCPHttpServer<
                 query: req.query as Record<string, string | string[] | undefined>,
             };
 
-            // Use createServerForRequest to create server for this request
             const server = await this.createServerForRequest(request);
 
             const transport = new StreamableHTTPServerTransport({
                 sessionIdGenerator: (): string => sessionId,
                 enableJsonResponse: this.httpConfig.responseType === "json",
-                onsessionclosed: async (sid): Promise<void> => {
+                onsessionclosed: async (sessionId): Promise<void> => {
                     try {
-                        await this.sessionStore.closeSession({ sessionId: sid, reason: "transport_closed" });
+                        await this.sessionStore.closeSession({ sessionId, reason: "transport_closed" });
                     } catch (error) {
                         this.logger.error({
                             id: LogId.streamableHttpTransportSessionCloseFailure,
                             context: "streamableHttpTransport",
-                            message: `Error closing session ${sid}: ${error instanceof Error ? error.message : String(error)}`,
+                            message: `Error closing session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
                         });
                     }
                 },
             });
 
+            // HACK: When we're implicitly initializing the session, we want to configure the session id and _initialized flag on the transport
+            // so that it believes it actually went through the initialization flow. Without it, we'd get errors like "transport not initialized"
+            // when we try to use it without initialize request
             if (isImplicitInitialization) {
                 const internalTransport = transport["_webStandardTransport"] as {
                     _initialized: boolean;
@@ -306,10 +324,12 @@ export class MCPHttpServer<
                 context: "streamableHttpTransport",
                 message: `Failed to initialize session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
             });
+            // Remove the partially initialized session on failure so that
+            // subsequent requests don't see a broken session and can retry
             try {
                 await this.sessionStore.closeSession({ sessionId, reason: "unknown" });
             } catch {
-                // Session might not be in the store
+                // Session might not be in the store, that's fine
             }
             throw error;
         } finally {
