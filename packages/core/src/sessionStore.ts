@@ -66,14 +66,14 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         const session = this.sessions[sessionId];
         if (!session) {
             this.logger.warning({
-                id: LogId.sessionStoreSessionCloseNotificationFailure,
+                id: LogId.sessionCloseNotificationFailure,
                 context: "sessionStore",
                 message: `session ${sessionId} not found, no notification delivered`,
             });
             return;
         }
         session.logger.info({
-            id: LogId.sessionStoreSessionCloseNotification,
+            id: LogId.sessionCloseNotification,
             context: "sessionStore",
             message: "Session is about to be closed due to inactivity",
         });
@@ -88,7 +88,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         const abortTimeout = setManagedTimeout(async () => {
             if (this.sessions[sessionId]) {
                 this.sessions[sessionId].logger.info({
-                    id: LogId.sessionStoreSessionCloseNotification,
+                    id: LogId.sessionCloseNotification,
                     context: "sessionStore",
                     message: "Session closed due to inactivity",
                 });
@@ -136,7 +136,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
                 await session.transport.close();
             } catch (error) {
                 this.logger.error({
-                    id: LogId.sessionStoreSessionCloseFailure,
+                    id: LogId.sessionCloseFailure,
                     context: "streamableHttpTransport",
                     message: `Error closing transport ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
                 });

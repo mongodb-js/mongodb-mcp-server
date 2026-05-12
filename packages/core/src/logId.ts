@@ -56,9 +56,9 @@ export const LogId = {
     toolValidationError: mongoLogId(1_005_004),
 
     streamableHttpTransportStarted: mongoLogId(1_006_001),
-    sessionStoreSessionCloseFailure: mongoLogId(1_006_002),
-    sessionStoreSessionCloseNotification: mongoLogId(1_006_003),
-    sessionStoreSessionCloseNotificationFailure: mongoLogId(1_006_004),
+    sessionCloseFailure: mongoLogId(1_006_002),
+    sessionCloseNotification: mongoLogId(1_006_003),
+    sessionCloseNotificationFailure: mongoLogId(1_006_004),
     streamableHttpTransportRequestFailure: mongoLogId(1_006_005),
     streamableHttpTransportCloseFailure: mongoLogId(1_006_006),
     streamableHttpTransportKeepAliveFailure: mongoLogId(1_006_007),

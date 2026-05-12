@@ -238,7 +238,7 @@ export abstract class MCPHttpServer<
                         await this.sessionStore.closeSession({ sessionId, reason: "transport_closed" });
                     } catch (error) {
                         this.logger.error({
-                            id: LogId.streamableHttpTransportSessionCloseFailure,
+                            id: LogId.sessionCloseFailure,
                             context: "streamableHttpTransport",
                             message: `Error closing session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
                         });
