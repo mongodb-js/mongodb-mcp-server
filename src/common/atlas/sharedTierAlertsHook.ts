@@ -65,7 +65,7 @@ export async function runSharedTierAlertsHook({
                     status: "OPEN",
                     itemsPerPage: LIST_ALERTS_PAGE_SIZE,
                     pageNum: 1,
-                    includeCount: true,
+                    includeCount: false,
                 },
             },
         });
