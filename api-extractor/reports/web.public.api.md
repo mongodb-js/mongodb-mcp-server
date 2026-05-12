@@ -4,133 +4,333 @@
 
 ```ts
 
-import { AnyConnectionState } from '@mongodb-js/mcp-tools-mongodb';
-import { AnyToolBase } from '@mongodb-js/mcp-core';
-import { ApiClient } from '@mongodb-js/mcp-atlas-api-client';
-import { ApiClientOptions } from '@mongodb-js/mcp-atlas-api-client';
-import { AtlasClusterConnectionInfo } from '@mongodb-js/mcp-tools-mongodb';
-import type { AtlasClusterConnectionInfo as AtlasClusterConnectionInfo_2 } from '@mongodb-js/mcp-types';
+import type { AggregationCursor } from 'mongodb';
 import { AtlasLocalClientFactoryFn } from '@mongodb-js/mcp-tools-atlas-local';
-import { AtlasLocalToolMetadata } from '@mongodb-js/mcp-atlas-telemetry';
-import { AtlasMetadata } from '@mongodb-js/mcp-atlas-telemetry';
-import { AuthProvider } from '@mongodb-js/mcp-atlas-api-client';
-import { AvailableExport } from '@mongodb-js/mcp-tools-mongodb';
-import { TelemetryBaseEvent as BaseEvent } from '@mongodb-js/mcp-atlas-telemetry';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { Client } from '@mongodb-js/atlas-local';
-import { CommonExportData } from '@mongodb-js/mcp-tools-mongodb';
-import { TelemetryCommonProperties as CommonProperties } from '@mongodb-js/mcp-atlas-telemetry';
-import { TelemetryCommonStaticProperties as CommonStaticProperties } from '@mongodb-js/mcp-atlas-telemetry';
-import { CompositeLogger } from '@mongodb-js/mcp-core';
-import { ConnectionManager } from '@mongodb-js/mcp-tools-mongodb';
-import { ConnectionManagerEvents } from '@mongodb-js/mcp-tools-mongodb';
-import { ConnectionManagerFactoryFn } from '@mongodb-js/mcp-tools-mongodb';
-import { ConnectionManagerFactoryOptions } from '@mongodb-js/mcp-tools-mongodb';
-import { AtlasConnectionMetadata as ConnectionMetadata } from '@mongodb-js/mcp-atlas-telemetry';
-import { ConnectionSettings } from '@mongodb-js/mcp-tools-mongodb';
-import { ConnectionState } from '@mongodb-js/mcp-tools-mongodb';
-import { ConnectionStateConnected } from '@mongodb-js/mcp-tools-mongodb';
-import { ConnectionStateConnecting } from '@mongodb-js/mcp-tools-mongodb';
-import { ConnectionStateDisconnected } from '@mongodb-js/mcp-tools-mongodb';
-import { ConnectionStateErrored } from '@mongodb-js/mcp-tools-mongodb';
-import { ConnectionStringAuthType } from '@mongodb-js/mcp-tools-mongodb';
-import { ConnectionStringHostType } from '@mongodb-js/mcp-tools-mongodb';
-import { ConnectionStringInfo } from '@mongodb-js/mcp-tools-mongodb';
-import { ConnectionTag } from '@mongodb-js/mcp-tools-mongodb';
-import { createDefaultMetrics } from '@mongodb-js/mcp-metrics';
-import { Credentials } from '@mongodb-js/mcp-atlas-api-client';
-import { CustomizableServerOptions } from '@mongodb-js/mcp-core';
-import { CustomizableSessionOptions } from '@mongodb-js/mcp-core';
-import { DefaultEventMap } from '@mongodb-js/mcp-core';
-import { DefaultMetrics } from '@mongodb-js/mcp-metrics';
-import { DeviceId } from '@mongodb-js/mcp-tools-mongodb';
+import { ConnectionInfo } from '@mongosh/arg-parser';
+import { Counter } from 'prom-client';
 import type { ElicitRequestFormParams } from '@modelcontextprotocol/sdk/types.js';
-import { EventCache } from '@mongodb-js/mcp-atlas-telemetry';
-import EventEmitter from 'events';
-import { EventMap } from '@mongodb-js/mcp-core';
-import { ExportsManager } from '@mongodb-js/mcp-tools-mongodb';
-import { ExportsManagerEvents } from '@mongodb-js/mcp-tools-mongodb';
-import { ExportsManagerOptions } from '@mongodb-js/mcp-tools-mongodb';
+import { EventEmitter } from 'events';
+import type { FetchOptions } from 'openapi-fetch';
+import type { FindCursor } from 'mongodb';
+import type { Gauge } from 'prom-client';
+import { Histogram } from 'prom-client';
 import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
-import { InProgressExport } from '@mongodb-js/mcp-tools-mongodb';
-import { JSONExportFormat } from '@mongodb-js/mcp-tools-mongodb';
-import { jsonExportFormat } from '@mongodb-js/mcp-tools-mongodb';
-import { Keychain } from '@mongodb-js/mcp-core';
 import { LibraryLoader } from '@mongodb-js/mcp-tools-atlas-local';
-import { LoggerBase } from '@mongodb-js/mcp-core';
-import { LoggerType } from '@mongodb-js/mcp-core';
-import { LogLevel } from '@mongodb-js/mcp-core';
-import { LogPayload } from '@mongodb-js/mcp-core';
+import type { LoggingMessageNotification } from '@modelcontextprotocol/sdk/types.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { MetricDefinitions } from '@mongodb-js/mcp-metrics';
-import { Metrics } from '@mongodb-js/mcp-metrics';
-import { MisconfiguredConnectionStringErrorCode } from '@mongodb-js/mcp-tools-mongodb';
-import { MongoDBError as MongoDBError_2 } from '@mongodb-js/mcp-tools-mongodb';
-import type { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
-import { NotConnectedToMongoDBErrorCode } from '@mongodb-js/mcp-tools-mongodb';
-import { OIDCConnectionAuthType } from '@mongodb-js/mcp-tools-mongodb';
-import { OperationType } from '@mongodb-js/mcp-core';
-import { AtlasPerfAdvisorToolMetadata as PerfAdvisorToolMetadata } from '@mongodb-js/mcp-atlas-telemetry';
-import { PreviewFeature } from '@mongodb-js/mcp-tools-mongodb';
-import { previewFeatureValues } from '@mongodb-js/mcp-tools-mongodb';
-import { ReadyExport } from '@mongodb-js/mcp-tools-mongodb';
-import { RequestContext } from '@mongodb-js/mcp-atlas-api-client';
+import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
 import { Secret } from 'mongodb-redact';
-import { StoredExport } from '@mongodb-js/mcp-tools-mongodb';
-import { AtlasStreamsToolMetadata as StreamsToolMetadata } from '@mongodb-js/mcp-atlas-telemetry';
-import { AtlasTelemetry as Telemetry } from '@mongodb-js/mcp-atlas-telemetry';
-import { TelemetryBoolSet } from '@mongodb-js/mcp-atlas-telemetry';
-import { TelemetryConfig } from '@mongodb-js/mcp-atlas-telemetry';
-import { TelemetryEvent } from '@mongodb-js/mcp-atlas-telemetry';
-import { TelemetryEvents } from '@mongodb-js/mcp-atlas-telemetry';
-import { TelemetryResult } from '@mongodb-js/mcp-atlas-telemetry';
-import { TelemetryToolMetadata } from '@mongodb-js/mcp-atlas-telemetry';
-import { ToolArgs } from '@mongodb-js/mcp-core';
-import { ToolBase } from '@mongodb-js/mcp-core';
-import { ToolCategory } from '@mongodb-js/mcp-core';
-import { ToolClass } from '@mongodb-js/mcp-core';
-import { ToolConstructorParams } from '@mongodb-js/mcp-core';
-import { ToolExecutionContext } from '@mongodb-js/mcp-core';
+import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
-import { TransportRequestContext } from '@mongodb-js/mcp-core';
-import { TransportRunnerBase } from '@mongodb-js/mcp-core';
-import { TransportRunnerBaseOptions as TransportRunnerConfig } from '@mongodb-js/mcp-core';
-import { UIRegistry } from '@mongodb-js/mcp-ui';
-import { UpgradeClusterMetadata } from '@mongodb-js/mcp-atlas-telemetry';
 import { z } from 'zod';
+import type { ZodRawShape } from 'zod';
 
-export { AnyConnectionState }
+// @public (undocumented)
+export type AnyConnectionState = ConnectionStateConnected | ConnectionStateConnecting | ConnectionStateDisconnected | ConnectionStateErrored;
 
-export { AnyToolBase }
+// @public (undocumented)
+export type AnyToolBase = ToolBase<any, any, any>;
 
 // @public (undocumented)
 export type AnyToolClass = ToolClass<any, any, any>;
 
-export { ApiClient }
+// Warning: (ae-forgotten-export) The symbol "IApiClient" needs to be exported by the entry point web.d.ts
+//
+// @public (undocumented)
+export class ApiClient implements IApiClient {
+    constructor(options: ApiClientOptions);
+    // (undocumented)
+    acceptVpcPeeringConnection(options: FetchOptions<operations["acceptGroupStreamVpcPeeringConnection"]>): Promise<void>;
+    // (undocumented)
+    readonly authProvider?: AuthProvider;
+    // (undocumented)
+    close(): Promise<void>;
+    // (undocumented)
+    createAccessListEntry(options: FetchOptions<operations["createGroupAccessListEntry"]>): Promise<components["schemas"]["PaginatedNetworkAccessView"]>;
+    // (undocumented)
+    createCluster(options: FetchOptions<operations["createGroupCluster"]>): Promise<components["schemas"]["ClusterDescription20240805"]>;
+    // (undocumented)
+    createDatabaseUser(options: FetchOptions<operations["createGroupDatabaseUser"]>): Promise<components["schemas"]["CloudDatabaseUser"]>;
+    // (undocumented)
+    createFlexCluster(options: FetchOptions<operations["createGroupFlexCluster"]>): Promise<components["schemas"]["FlexClusterDescription20241113"]>;
+    // (undocumented)
+    createGroup(options: FetchOptions<operations["createGroup"]>): Promise<components["schemas"]["Group"]>;
+    // (undocumented)
+    createPrivateLinkConnection(options: FetchOptions<operations["createGroupStreamPrivateLinkConnection"]>): Promise<components["schemas"]["StreamsPrivateLinkConnection"]>;
+    // (undocumented)
+    createStreamConnection(options: FetchOptions<operations["createGroupStreamConnection"]>): Promise<components["schemas"]["StreamsConnection"]>;
+    // (undocumented)
+    createStreamProcessor(options: FetchOptions<operations["createGroupStreamProcessor"]>): Promise<components["schemas"]["StreamsProcessor"]>;
+    // (undocumented)
+    createStreamWorkspace(options: FetchOptions<operations["createGroupStreamWorkspace"]>): Promise<components["schemas"]["StreamsTenant"]>;
+    // (undocumented)
+    deleteAccessListEntry(options: FetchOptions<operations["deleteGroupAccessListEntry"]>): Promise<void>;
+    // (undocumented)
+    deleteCluster(options: FetchOptions<operations["deleteGroupCluster"]>): Promise<void>;
+    // (undocumented)
+    deleteDatabaseUser(options: FetchOptions<operations["deleteGroupDatabaseUser"]>): Promise<void>;
+    // (undocumented)
+    deleteFlexCluster(options: FetchOptions<operations["deleteGroupFlexCluster"]>): Promise<void>;
+    // (undocumented)
+    deleteGroup(options: FetchOptions<operations["deleteGroup"]>): Promise<void>;
+    // (undocumented)
+    deletePrivateLinkConnection(options: FetchOptions<operations["deleteGroupStreamPrivateLinkConnection"]>): Promise<void>;
+    // (undocumented)
+    deleteStreamConnection(options: FetchOptions<operations["deleteGroupStreamConnection"]>): Promise<void>;
+    // (undocumented)
+    deleteStreamProcessor(options: FetchOptions<operations["deleteGroupStreamProcessor"]>): Promise<void>;
+    // (undocumented)
+    deleteStreamWorkspace(options: FetchOptions<operations["deleteGroupStreamWorkspace"]>): Promise<void>;
+    // (undocumented)
+    deleteVpcPeeringConnection(options: FetchOptions<operations["deleteGroupStreamVpcPeeringConnection"]>): Promise<void>;
+    // (undocumented)
+    downloadAuditLogs(options: FetchOptions<operations["downloadGroupStreamAuditLogs"]>): Promise<string>;
+    // (undocumented)
+    downloadOperationalLogs(options: FetchOptions<operations["downloadGroupStreamOperationalLogs"]>): Promise<string>;
+    // (undocumented)
+    getAccountDetails(options: FetchOptions<operations["getGroupStreamAccountDetails"]>): Promise<components["schemas"]["AccountDetails"]>;
+    // (undocumented)
+    getCluster(options: FetchOptions<operations["getGroupCluster"]>): Promise<components["schemas"]["ClusterDescription20240805"]>;
+    // (undocumented)
+    getFlexCluster(options: FetchOptions<operations["getGroupFlexCluster"]>): Promise<components["schemas"]["FlexClusterDescription20241113"]>;
+    // (undocumented)
+    getGroup(options: FetchOptions<operations["getGroup"]>): Promise<components["schemas"]["Group"]>;
+    // (undocumented)
+    getIpInfo(): Promise<{
+        currentIpv4Address: string;
+    }>;
+    // (undocumented)
+    getOrgGroups(options: FetchOptions<operations["getOrgGroups"]>): Promise<components["schemas"]["PaginatedAtlasGroupView"]>;
+    // (undocumented)
+    getPrivateLinkConnection(options: FetchOptions<operations["getGroupStreamPrivateLinkConnection"]>): Promise<components["schemas"]["StreamsPrivateLinkConnection"]>;
+    // (undocumented)
+    getStreamConnection(options: FetchOptions<operations["getGroupStreamConnection"]>): Promise<components["schemas"]["StreamsConnection"]>;
+    // (undocumented)
+    getStreamProcessor(options: FetchOptions<operations["getGroupStreamProcessor"]>): Promise<components["schemas"]["StreamsProcessorWithStats"]>;
+    // (undocumented)
+    getStreamProcessors(options: FetchOptions<operations["getGroupStreamProcessors"]>): Promise<components["schemas"]["PaginatedApiStreamsStreamProcessorWithStatsView"]>;
+    // (undocumented)
+    getStreamWorkspace(options: FetchOptions<operations["getGroupStreamWorkspace"]>): Promise<components["schemas"]["StreamsTenant"]>;
+    // (undocumented)
+    isAuthConfigured(): boolean;
+    // (undocumented)
+    listAccessListEntries(options: FetchOptions<operations["listGroupAccessListEntries"]>): Promise<components["schemas"]["PaginatedNetworkAccessView"]>;
+    // (undocumented)
+    listAlerts(options: FetchOptions<operations["listGroupAlerts"]>): Promise<components["schemas"]["PaginatedAlertView"]>;
+    // Warning: (ae-forgotten-export) The symbol "operations" needs to be exported by the entry point web.d.ts
+    // Warning: (ae-forgotten-export) The symbol "components" needs to be exported by the entry point web.d.ts
+    //
+    // (undocumented)
+    listClusterDetails(options?: FetchOptions<operations["listClusterDetails"]>): Promise<components["schemas"]["PaginatedOrgGroupView"]>;
+    // (undocumented)
+    listClusters(options: FetchOptions<operations["listGroupClusters"]>): Promise<components["schemas"]["PaginatedClusterDescription20240805"]>;
+    // (undocumented)
+    listClusterSuggestedIndexes(options: FetchOptions<operations["listGroupClusterPerformanceAdvisorSuggestedIndexes"]>): Promise<components["schemas"]["PerformanceAdvisorResponse"]>;
+    // (undocumented)
+    listDatabaseUsers(options: FetchOptions<operations["listGroupDatabaseUsers"]>): Promise<components["schemas"]["PaginatedApiAtlasDatabaseUserView"]>;
+    // (undocumented)
+    listDropIndexSuggestions(options: FetchOptions<operations["listGroupClusterPerformanceAdvisorDropIndexSuggestions"]>): Promise<components["schemas"]["DropIndexSuggestionsResponse"]>;
+    // (undocumented)
+    listFlexClusters(options: FetchOptions<operations["listGroupFlexClusters"]>): Promise<components["schemas"]["PaginatedFlexClusters20241113"]>;
+    // (undocumented)
+    listGroups(options?: FetchOptions<operations["listGroups"]>): Promise<components["schemas"]["PaginatedAtlasGroupView"]>;
+    // (undocumented)
+    listOrgs(options?: FetchOptions<operations["listOrgs"]>): Promise<components["schemas"]["PaginatedOrganizationView"]>;
+    // (undocumented)
+    listPrivateLinkConnections(options: FetchOptions<operations["listGroupStreamPrivateLinkConnections"]>): Promise<components["schemas"]["PaginatedApiStreamsPrivateLinkView"]>;
+    // (undocumented)
+    listSchemaAdvice(options: FetchOptions<operations["listGroupClusterPerformanceAdvisorSchemaAdvice"]>): Promise<components["schemas"]["SchemaAdvisorResponse"]>;
+    // (undocumented)
+    listSlowQueryLogs(options: FetchOptions<operations["listGroupProcessPerformanceAdvisorSlowQueryLogs"]>): Promise<components["schemas"]["PerformanceAdvisorSlowQueryList"]>;
+    // (undocumented)
+    listStreamConnections(options: FetchOptions<operations["listGroupStreamConnections"]>): Promise<components["schemas"]["PaginatedApiStreamsConnectionView"]>;
+    // (undocumented)
+    listStreamWorkspaces(options: FetchOptions<operations["listGroupStreamWorkspaces"]>): Promise<components["schemas"]["PaginatedApiStreamsTenantView"]>;
+    // (undocumented)
+    readonly logger: LoggerBase;
+    // (undocumented)
+    rejectVpcPeeringConnection(options: FetchOptions<operations["rejectGroupStreamVpcPeeringConnection"]>): Promise<void>;
+    // (undocumented)
+    sendEvents(options?: {
+        events: unknown[];
+        signal?: AbortSignal;
+    }): Promise<void>;
+    // (undocumented)
+    startStreamProcessor(options: FetchOptions<operations["startGroupStreamProcessor"]>): Promise<void>;
+    // (undocumented)
+    startStreamProcessorWith(options: FetchOptions<operations["startGroupStreamProcessorWith"]>): Promise<void>;
+    // (undocumented)
+    stopStreamProcessor(options: FetchOptions<operations["stopGroupStreamProcessor"]>): Promise<void>;
+    // (undocumented)
+    updateStreamConnection(options: FetchOptions<operations["updateGroupStreamConnection"]>): Promise<components["schemas"]["StreamsConnection"]>;
+    // (undocumented)
+    updateStreamProcessor(options: FetchOptions<operations["updateGroupStreamProcessor"]>): Promise<components["schemas"]["StreamsProcessorWithStats"]>;
+    // (undocumented)
+    updateStreamWorkspace(options: FetchOptions<operations["updateGroupStreamWorkspace"]>): Promise<components["schemas"]["StreamsTenant"]>;
+    // (undocumented)
+    upgradeFlexToDedicated(options: {
+        groupId: string;
+        body: {
+            name: string;
+            clusterType: "REPLICASET";
+            replicationSpecs: Array<{
+                regionConfigs: Array<{
+                    providerName?: string;
+                    regionName?: string;
+                    priority: number;
+                    electableSpecs: {
+                        instanceSize: string;
+                        nodeCount: number;
+                    };
+                }>;
+            }>;
+            autoScaling: {
+                compute: {
+                    enabled: boolean;
+                    scaleDownEnabled: boolean;
+                    minInstanceSize: string;
+                    maxInstanceSize: string;
+                };
+                diskGBEnabled: boolean;
+            };
+        };
+    }): Promise<{
+        id?: string;
+    }>;
+    // (undocumented)
+    upgradeSharedTierCluster(options: {
+        groupId: string;
+        body: {
+            name: string;
+            providerSettings: {
+                providerName?: string;
+                instanceSizeName: "FLEX" | "M10";
+                backingProviderName?: string;
+                regionName?: string;
+            };
+        };
+    }): Promise<{
+        id?: string;
+    }>;
+    // (undocumented)
+    validateAuthConfig(): Promise<void>;
+    // (undocumented)
+    withStreamSampleConnections(options: FetchOptions<operations["withGroupStreamSampleConnections"]>): Promise<components["schemas"]["StreamsTenant"]>;
+}
 
-export { ApiClientOptions }
+// @public (undocumented)
+export interface ApiClientOptions {
+    // (undocumented)
+    authProvider?: AuthProvider;
+    // (undocumented)
+    baseUrl: string;
+    // (undocumented)
+    credentials?: Credentials;
+    // (undocumented)
+    logger: LoggerBase;
+    // (undocumented)
+    requestContext?: RequestContext;
+    // (undocumented)
+    userAgent: string;
+}
 
-export { AtlasClusterConnectionInfo }
+// @public
+export type AtlasClusterConnectionInfo = {
+    username: string;
+    projectId: string;
+    clusterName: string;
+    instanceType: "FREE" | "FLEX" | "DEDICATED";
+    provider?: string;
+    region?: string;
+    expiryDate: Date;
+};
 
 export { AtlasLocalClientFactoryFn }
 
-export { AtlasLocalToolMetadata }
+// @public (undocumented)
+export type AtlasLocalToolMetadata = {
+    atlas_local_deployment_id?: string;
+};
 
-export { AtlasMetadata }
+// @public (undocumented)
+export type AtlasMetadata = {
+    project_id?: string;
+    org_id?: string;
+};
 
-export { AuthProvider }
+// @public
+export interface AuthProvider {
+    // (undocumented)
+    getAuthHeaders(): Promise<Record<string, string> | undefined>;
+    // (undocumented)
+    revoke(): Promise<void>;
+    // (undocumented)
+    validate(): Promise<boolean>;
+}
 
-export { AvailableExport }
+// @public
+export type AvailableExport = Pick<StoredExport, "exportName" | "exportTitle" | "exportURI" | "exportPath">;
 
-export { BaseEvent }
+// @public (undocumented)
+export type BaseEvent = TelemetryEvent<unknown>;
 
-export { CommonExportData }
+// @public (undocumented)
+export interface CommonExportData {
+    // (undocumented)
+    exportName: string;
+    // (undocumented)
+    exportPath: string;
+    // (undocumented)
+    exportTitle: string;
+    // (undocumented)
+    exportURI: string;
+}
 
-export { CommonProperties }
+// @public
+export type CommonProperties = {
+    device_id?: string;
+    is_container_env?: TelemetryBoolSet;
+    mcp_client_version?: string;
+    mcp_client_name?: string;
+    transport?: "stdio" | "http";
+    config_atlas_auth?: TelemetryBoolSet;
+    config_connection_string?: TelemetryBoolSet;
+    session_id?: string;
+    hosting_mode?: string;
+    has_docker?: TelemetryBoolSet;
+} & CommonStaticProperties;
 
-export { CommonStaticProperties }
+// @public
+export type CommonStaticProperties = {
+    mcp_server_version: string;
+    mcp_server_name: string;
+    platform: string;
+    arch: string;
+    os_type: string;
+    os_version?: string;
+};
 
-export { CompositeLogger }
+// @public (undocumented)
+export class CompositeLogger extends LoggerBase {
+    constructor(input?: {
+        keychain?: IKeychain;
+        loggers: LoggerBase[];
+    });
+    // (undocumented)
+    addLogger(logger: LoggerBase): void;
+    // (undocumented)
+    flush(): Promise<PromiseSettledResult<void>[]>;
+    // (undocumented)
+    log(level: LogLevel, payload: LogPayload): void;
+    // (undocumented)
+    protected logCore(): void;
+    // (undocumented)
+    setAttribute(key: string, value: string): void;
+    // (undocumented)
+    protected readonly type?: LoggerType;
+}
 
 // @public (undocumented)
 export type ConnectionErrorHandled = {
@@ -138,6 +338,10 @@ export type ConnectionErrorHandled = {
     result: CallToolResult;
 };
 
+// Warning: (ae-forgotten-export) The symbol "MongoDBError_2" needs to be exported by the entry point web.d.ts
+// Warning: (ae-forgotten-export) The symbol "NotConnectedToMongoDBErrorCode" needs to be exported by the entry point web.d.ts
+// Warning: (ae-forgotten-export) The symbol "MisconfiguredConnectionStringErrorCode" needs to be exported by the entry point web.d.ts
+//
 // @public (undocumented)
 export type ConnectionErrorHandler = (error: MongoDBError_2<NotConnectedToMongoDBErrorCode | MisconfiguredConnectionStringErrorCode>, additionalContext: ConnectionErrorHandlerContext) => ConnectionErrorUnhandled | ConnectionErrorHandled | Promise<ConnectionErrorUnhandled | ConnectionErrorHandled>;
 
@@ -152,50 +356,191 @@ export type ConnectionErrorUnhandled = {
     errorHandled: false;
 };
 
-export { ConnectionManager }
+// @public (undocumented)
+export abstract class ConnectionManager {
+    constructor();
+    // (undocumented)
+    protected changeState<Event extends keyof ConnectionManagerEvents, State extends ConnectionManagerEvents[Event][0]>(event: Event, newState: State): State;
+    // (undocumented)
+    clientName: string;
+    // (undocumented)
+    abstract close(): Promise<void>;
+    // (undocumented)
+    abstract connect(settings: ConnectionSettings): Promise<AnyConnectionState>;
+    // (undocumented)
+    get currentConnectionState(): AnyConnectionState;
+    // (undocumented)
+    abstract disconnect(): Promise<ConnectionStateDisconnected | ConnectionStateErrored>;
+    // (undocumented)
+    readonly events: Pick<EventEmitter<ConnectionManagerEvents>, "on" | "off" | "once">;
+    // (undocumented)
+    protected readonly _events: EventEmitter<ConnectionManagerEvents>;
+    // (undocumented)
+    setClientName(clientName: string): void;
+}
 
-export { ConnectionManagerEvents }
+// @public (undocumented)
+export interface ConnectionManagerEvents {
+    // (undocumented)
+    "connection-close": [ConnectionStateDisconnected];
+    // (undocumented)
+    "connection-error": [ConnectionStateErrored];
+    // (undocumented)
+    "connection-request": [AnyConnectionState];
+    // (undocumented)
+    "connection-success": [ConnectionStateConnected];
+    // (undocumented)
+    "connection-time-out": [ConnectionStateErrored];
+    // (undocumented)
+    close: [AnyConnectionState];
+}
 
-export { ConnectionManagerFactoryFn }
+// @public (undocumented)
+export type ConnectionManagerFactoryFn = (params: ConnectionManagerFactoryOptions) => Promise<ConnectionManager>;
 
-export { ConnectionManagerFactoryOptions }
+// @public
+export type ConnectionManagerFactoryOptions = {
+    logger: LoggerBase;
+    deviceId: DeviceId;
+    options: ConnectionManagerOptions["options"];
+};
 
-export { ConnectionMetadata }
+// @public (undocumented)
+export type ConnectionMetadata = AtlasMetadata & AtlasLocalToolMetadata & {
+    connection_auth_type?: string;
+    connection_host_type?: string;
+};
 
-export { ConnectionSettings }
+// @public (undocumented)
+export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"> {
+    // (undocumented)
+    atlas?: AtlasClusterConnectionInfo;
+    // (undocumented)
+    driverOptions?: ConnectionInfo["driverOptions"];
+}
 
-export { ConnectionState }
+// @public (undocumented)
+export interface ConnectionState {
+    // (undocumented)
+    connectedAtlasCluster?: AtlasClusterConnectionInfo;
+    // (undocumented)
+    connectionStringInfo?: ConnectionStringInfo;
+    // (undocumented)
+    tag: ConnectionTag;
+}
 
-export { ConnectionStateConnected }
+// @public (undocumented)
+export class ConnectionStateConnected implements ConnectionState {
+    constructor(input: {
+        serviceProvider: NodeDriverServiceProvider;
+        connectionStringInfo?: ConnectionStringInfo;
+        connectedAtlasCluster?: AtlasClusterConnectionInfo;
+    });
+    // (undocumented)
+    connectedAtlasCluster?: AtlasClusterConnectionInfo;
+    // (undocumented)
+    connectionStringInfo?: ConnectionStringInfo;
+    // (undocumented)
+    isSearchSupported(logger: LoggerBase): Promise<boolean>;
+    // (undocumented)
+    serviceProvider: NodeDriverServiceProvider;
+    // (undocumented)
+    tag: "connected";
+}
 
-export { ConnectionStateConnecting }
+// @public (undocumented)
+export interface ConnectionStateConnecting extends ConnectionState {
+    // (undocumented)
+    oidcConnectionType: OIDCConnectionAuthType;
+    // (undocumented)
+    oidcLoginUrl?: string;
+    // (undocumented)
+    oidcUserCode?: string;
+    // (undocumented)
+    serviceProvider: Promise<NodeDriverServiceProvider>;
+    // (undocumented)
+    tag: "connecting";
+}
 
-export { ConnectionStateDisconnected }
+// @public (undocumented)
+export interface ConnectionStateDisconnected extends ConnectionState {
+    // (undocumented)
+    tag: "disconnected";
+}
 
-export { ConnectionStateErrored }
+// @public (undocumented)
+export interface ConnectionStateErrored extends ConnectionState {
+    // (undocumented)
+    errorReason: string;
+    // (undocumented)
+    tag: "errored";
+}
 
-export { ConnectionStringAuthType }
+// Warning: (ae-forgotten-export) The symbol "OIDCConnectionAuthType_2" needs to be exported by the entry point web.d.ts
+//
+// @public (undocumented)
+export type ConnectionStringAuthType = "scram" | "ldap" | "kerberos" | OIDCConnectionAuthType_2 | "x.509";
 
-export { ConnectionStringHostType }
+// @public
+export type ConnectionStringHostType = "local" | "atlas" | "atlas_local" | "unknown";
 
-export { ConnectionStringInfo }
+// @public
+export interface ConnectionStringInfo {
+    // (undocumented)
+    authType: ConnectionStringAuthType;
+    // (undocumented)
+    hostType: ConnectionStringHostType;
+}
 
-export { ConnectionTag }
+// @public (undocumented)
+export type ConnectionTag = "connected" | "connecting" | "disconnected" | "errored";
 
-export { createDefaultMetrics }
+// @public
+export function createDefaultMetrics(): {
+    readonly toolExecutionDuration: Histogram<"tool_name" | "category" | "status" | "operation_type" | "error_type">;
+    readonly sessionCreated: Counter<string>;
+    readonly sessionClosed: Counter<"reason">;
+};
 
-export { Credentials }
+// @public (undocumented)
+export interface Credentials {
+    // (undocumented)
+    clientId?: string;
+    // (undocumented)
+    clientSecret?: string;
+}
 
-export { CustomizableServerOptions }
+// @public
+export type CustomizableServerOptions<TContext = unknown> = {
+    toolContext?: TContext;
+    telemetryProperties?: Record<string, string>;
+};
 
+// @public
+type CustomizableSessionOptions = {
+    apiClient?: unknown;
+    atlasLocalClient?: unknown;
+    connectionManager?: unknown;
+    connectionErrorHandler?: unknown;
+};
 export { CustomizableSessionOptions as CreateSessionConfigFn }
 export { CustomizableSessionOptions }
 
-export { DefaultEventMap }
+// @public (undocumented)
+export type DefaultEventMap = Record<string, never[]>;
 
-export { DefaultMetrics }
+// @public (undocumented)
+export type DefaultMetrics = ReturnType<typeof createDefaultMetrics>;
 
-export { DeviceId }
+// Warning: (ae-forgotten-export) The symbol "IDeviceId" needs to be exported by the entry point web.d.ts
+//
+// @public (undocumented)
+export class DeviceId implements IDeviceId {
+    close(): void;
+    // (undocumented)
+    static create(logger: LoggerBase, timeout?: number): DeviceId;
+    get(): Promise<string>;
+}
 
 // @public (undocumented)
 export class Elicitation {
@@ -249,40 +594,155 @@ export enum ErrorCodes {
     NotConnectedToMongoDB = 1000000
 }
 
-export { EventCache }
+// @public
+export class EventCache {
+    constructor();
+    appendEvents(events: BaseEvent[]): void;
+    getEvents(): {
+        id: number;
+        event: BaseEvent;
+    }[];
+    static getInstance(): EventCache;
+    processOldestBatch<T>(batchSize: number, processor: (events: BaseEvent[]) => Promise<{
+        removeProcessed: boolean;
+        result: T;
+    }>): Promise<T | undefined>;
+    removeEvents(ids: number[]): void;
+    get size(): number;
+}
 
-export { EventMap }
+// @public (undocumented)
+export type EventMap<T> = Record<keyof T, any[]>;
 
-export { ExportsManager }
+// @public (undocumented)
+export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
+    // (undocumented)
+    get availableExports(): AvailableExport[];
+    // (undocumented)
+    close(): Promise<void>;
+    // Warning: (ae-forgotten-export) The symbol "CreateJSONExportParams" needs to be exported by the entry point web.d.ts
+    //
+    // (undocumented)
+    createJSONExport(input: CreateJSONExportParams): Promise<AvailableExport>;
+    // (undocumented)
+    protected init(): void;
+    // (undocumented)
+    static init(input: {
+        options: Omit<ExportsManagerOptions, "exportsDirectoryPath">;
+        logger: LoggerBase;
+        sessionId?: string;
+    }): ExportsManager;
+    // (undocumented)
+    readExport(exportName: string): Promise<{
+        content: string;
+        docsTransformed: number;
+    }>;
+}
 
-export { ExportsManagerEvents }
+// @public (undocumented)
+export type ExportsManagerEvents = {
+    closed: [];
+    "export-expired": [string];
+    "export-available": [string];
+};
 
-export { ExportsManagerOptions }
+// @public
+export type ExportsManagerOptions = {
+    exportsPath: string;
+    exportsDirectoryPath: string;
+    exportTimeoutMs: number;
+    exportCleanupIntervalMs: number;
+};
 
 // @public
 export function getRandomUUID(): string;
 
-export { InProgressExport }
+// @public (undocumented)
+export interface InProgressExport extends CommonExportData {
+    // (undocumented)
+    exportStatus: "in-progress";
+}
 
-export { JSONExportFormat }
+// @public (undocumented)
+export type JSONExportFormat = z.infer<typeof jsonExportFormat>;
 
-export { jsonExportFormat }
+// @public (undocumented)
+export const jsonExportFormat: z.ZodEnum<{
+    relaxed: "relaxed";
+    canonical: "canonical";
+}>;
 
-export { Keychain }
+// @public
+export class Keychain implements IKeychain {
+    constructor();
+    // (undocumented)
+    get allSecrets(): Secret[];
+    // (undocumented)
+    clearAllSecrets(): void;
+    // (undocumented)
+    register(value: Secret["value"], kind: Secret["kind"]): void;
+    // (undocumented)
+    static get root(): Keychain;
+}
 
 export { LibraryLoader }
 
-export { LoggerBase }
+// @public (undocumented)
+export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extends EventEmitter<T> implements ILogger {
+    // Warning: (ae-forgotten-export) The symbol "LoggerConfig" needs to be exported by the entry point web.d.ts
+    constructor(options: LoggerConfig);
+    // (undocumented)
+    alert(payload: LogPayload): void;
+    // (undocumented)
+    critical(payload: LogPayload): void;
+    // (undocumented)
+    debug(payload: LogPayload): void;
+    // (undocumented)
+    emergency(payload: LogPayload): void;
+    // (undocumented)
+    error(payload: LogPayload): void;
+    // (undocumented)
+    flush(): Promise<PromiseSettledResult<void>[]>;
+    // (undocumented)
+    info(payload: LogPayload): void;
+    // (undocumented)
+    log(level: LogLevel, payload: LogPayload): void;
+    // (undocumented)
+    protected abstract logCore(level: LogLevel, payload: LogPayload): void;
+    // (undocumented)
+    notice(payload: LogPayload): void;
+    // (undocumented)
+    protected abstract readonly type?: LoggerType;
+    // (undocumented)
+    warning(payload: LogPayload): void;
+}
 
-export { LoggerType }
+// @public (undocumented)
+export type LoggerType = "console" | "disk" | "mcp";
 
-export { LogLevel }
+// @public (undocumented)
+export type LogLevel = LoggingMessageNotification["params"]["level"];
 
-export { LogPayload }
+// @public (undocumented)
+export type LogPayload = {
+    id: MongoLogId;
+    context: string;
+    message: string;
+    noRedaction?: boolean | LoggerType | LoggerType[];
+    attributes?: Record<string, string>;
+};
 
-export { MetricDefinitions }
+// @public
+export type MetricDefinitions = Record<string, unknown>;
 
-export { Metrics }
+// Warning: (ae-forgotten-export) The symbol "PrometheusMetricDefinitions" needs to be exported by the entry point web.d.ts
+// Warning: (ae-forgotten-export) The symbol "IMetrics" needs to be exported by the entry point web.d.ts
+//
+// @public (undocumented)
+export interface Metrics<TMetricsDefinitions extends PrometheusMetricDefinitions = PrometheusMetricDefinitions> extends IMetrics<TMetricsDefinitions> {
+    get<K extends keyof TMetricsDefinitions>(key: K): TMetricsDefinitions[K];
+    getMetrics(): Promise<string>;
+}
 
 // @public (undocumented)
 export class MongoDBError<ErrorCode extends ErrorCodes = ErrorCodes> extends Error {
@@ -297,20 +757,39 @@ export type MongoDBToolsRuntimeConfig = {
     aggregationCountMaxTimeMsCap: number;
 };
 
+// @public (undocumented)
+type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
 export { OIDCConnectionAuthType as ConnectionInfoOIDCConnectionAuthType }
 export { OIDCConnectionAuthType }
 
-export { OperationType }
+// @public
+export type OperationType = "metadata" | "read" | "create" | "delete" | "update" | "connect";
 
-export { PerfAdvisorToolMetadata }
+// @public (undocumented)
+export type PerfAdvisorToolMetadata = AtlasMetadata & ConnectionMetadata & {
+    operations: string[];
+};
 
-export { PreviewFeature }
+// @public (undocumented)
+export type PreviewFeature = (typeof previewFeatureValues)[number];
 
-export { previewFeatureValues }
+// @public (undocumented)
+export const previewFeatureValues: readonly ["mcpUI"];
 
-export { ReadyExport }
+// @public (undocumented)
+export interface ReadyExport extends CommonExportData {
+    // (undocumented)
+    docsTransformed: number;
+    // (undocumented)
+    exportCreatedAt: number;
+    // (undocumented)
+    exportStatus: "ready";
+}
 
-export { RequestContext }
+// @public (undocumented)
+export type RequestContext = {
+    headers?: Record<string, string | string[] | undefined>;
+};
 
 export { Secret }
 
@@ -388,7 +867,7 @@ export class Session extends EventEmitter<SessionEvents> {
     // (undocumented)
     close(): Promise<void>;
     // (undocumented)
-    get connectedAtlasCluster(): AtlasClusterConnectionInfo_2 | undefined;
+    get connectedAtlasCluster(): AtlasClusterConnectionInfo | undefined;
     // (undocumented)
     readonly connectionErrorHandler: ConnectionErrorHandler;
     // (undocumented)
@@ -453,46 +932,212 @@ export interface SessionOptions<TUserConfig extends UserConfig = UserConfig> {
     userConfig: TUserConfig;
 }
 
-export { StoredExport }
+// @public (undocumented)
+export type StoredExport = ReadyExport | InProgressExport;
 
-export { StreamsToolMetadata }
+// @public (undocumented)
+export type StreamsToolMetadata = AtlasMetadata & {
+    action?: string;
+    resource?: string;
+};
 
-export { Telemetry }
+// Warning: (ae-forgotten-export) The symbol "ITelemetry" needs to be exported by the entry point web.d.ts
+//
+// @public (undocumented)
+export class Telemetry implements ITelemetry {
+    // (undocumented)
+    close(): Promise<void>;
+    // (undocumented)
+    static create(config: TelemetryConfig): Telemetry;
+    emitEvents(events: BaseEvent[]): void;
+    // (undocumented)
+    readonly events: EventEmitter<TelemetryEvents>;
+    getCommonProperties(): CommonProperties;
+    isTelemetryEnabled(): boolean;
+    setupPromise: Promise<[string, boolean]> | undefined;
+}
 
-export { TelemetryBoolSet }
+// @public (undocumented)
+export type TelemetryBoolSet = "true" | "false";
 
-export { TelemetryConfig }
+// @public
+export type TelemetryConfig = {
+    logger: LoggerBase;
+    deviceId: IDeviceId;
+    apiClient: ApiClient;
+    keychain: IKeychain;
+    enabled: boolean;
+    getCommonProperties?: () => Partial<CommonProperties>;
+    eventCache?: EventCache;
+    machineMetadata: CommonStaticProperties;
+    detectContainerEnv?: () => Promise<boolean>;
+};
 
-export { TelemetryEvent }
+// @public
+export type TelemetryEvent<T> = {
+    timestamp: string;
+    source: "mdbmcp";
+    properties: T & {
+        component: string;
+        duration_ms: number;
+        result: TelemetryResult;
+        category: string;
+    } & Record<string, string | number | string[]>;
+};
 
-export { TelemetryEvents }
+// @public (undocumented)
+export type TelemetryEvents = {
+    "events-emitted": [];
+    "events-send-failed": [];
+    "events-skipped": [];
+};
 
-export { TelemetryResult }
+// @public
+export type TelemetryResult = "success" | "failure";
 
-export { TelemetryToolMetadata }
+// @public
+export type TelemetryToolMetadata = AtlasMetadata | ConnectionMetadata | PerfAdvisorToolMetadata | StreamsToolMetadata | UpgradeClusterMetadata;
 
-export { ToolArgs }
+// @public (undocumented)
+export type ToolArgs<T extends ZodRawShape> = {
+    [K in keyof T]: z.infer<T[K]>;
+};
 
-export { ToolBase }
+// Warning: (ae-forgotten-export) The symbol "IToolConfig" needs to be exported by the entry point web.d.ts
+//
+// @public
+export abstract class ToolBase<TUserConfig extends IToolConfig = IToolConfig, TContext = unknown, TMetricsDefinitions extends MetricDefinitions = MetricDefinitions> {
+    constructor(input: ToolConstructorParams<TUserConfig, TContext, TMetricsDefinitions>);
+    // (undocumented)
+    get annotations(): ToolAnnotations;
+    abstract argsShape: ZodRawShape;
+    readonly category: ToolCategory;
+    protected readonly config: TUserConfig;
+    protected readonly context?: TContext;
+    abstract description: string;
+    // (undocumented)
+    disable(): void;
+    // Warning: (ae-forgotten-export) The symbol "IElicitation" needs to be exported by the entry point web.d.ts
+    protected readonly elicitation: IElicitation;
+    // (undocumented)
+    enable(): void;
+    protected abstract execute(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
+    protected getConfirmationMessage(args: ToolArgs<typeof ToolBase.argsShape>): string;
+    // (undocumented)
+    protected getConnectionInfoMetadata(): ConnectionMetadata_2;
+    protected handleError(error: unknown, args: z.infer<z.ZodObject<typeof ToolBase.argsShape>>): Promise<CallToolResult> | CallToolResult;
+    invoke(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
+    // (undocumented)
+    isEnabled(): boolean;
+    // (undocumented)
+    protected isFeatureEnabled(feature: PreviewFeature_2): boolean;
+    protected readonly metrics: IMetrics<TMetricsDefinitions>;
+    readonly name: string;
+    readonly operationType: OperationType;
+    outputSchema?: ZodRawShape;
+    // (undocumented)
+    register(server: {
+        mcpServer: McpServer;
+    }): boolean;
+    requiresConfirmation(): boolean;
+    // Warning: (ae-forgotten-export) The symbol "TelemetryToolMetadata_2" needs to be exported by the entry point web.d.ts
+    protected abstract resolveTelemetryMetadata(args: ToolArgs<typeof ToolBase.argsShape>, input: {
+        result: CallToolResult;
+    }): TelemetryToolMetadata_2;
+    // Warning: (ae-forgotten-export) The symbol "IToolSession" needs to be exported by the entry point web.d.ts
+    protected readonly session: IToolSession;
+    protected readonly telemetry: ITelemetry;
+    protected get toolMeta(): Record<string, unknown>;
+    // (undocumented)
+    protected verifyAllowed(): boolean;
+    verifyConfirmed(args: ToolArgs<typeof ToolBase.argsShape>): Promise<boolean>;
+}
 
-export { ToolCategory }
+// @public
+export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant";
 
-export { ToolClass }
+// @public
+export type ToolClass<TUserConfig extends IToolConfig = IToolConfig, TContext = unknown, TMetricsDefinitions extends MetricDefinitions = MetricDefinitions> = {
+    new (params: ToolConstructorParams<TUserConfig, TContext, TMetricsDefinitions>): ToolBase<TUserConfig, TContext, TMetricsDefinitions>;
+    toolName: string;
+    category: ToolCategory;
+    operationType: OperationType;
+};
 
-export { ToolConstructorParams }
+// @public
+export type ToolConstructorParams<TUserConfig extends IToolConfig = IToolConfig, TContext = unknown, TMetricsDefinitions extends MetricDefinitions = MetricDefinitions> = {
+    name: string;
+    category: ToolCategory;
+    operationType: OperationType;
+    session: IToolSession;
+    config: TUserConfig;
+    telemetry: ITelemetry;
+    elicitation: IElicitation;
+    metrics: IMetrics<TMetricsDefinitions>;
+    uiRegistry?: IUIRegistry;
+    context?: TContext;
+};
 
-export { ToolExecutionContext }
+// @public (undocumented)
+export type ToolExecutionContext = {
+    signal: AbortSignal;
+    requestInfo?: {
+        headers?: Record<string, unknown>;
+    };
+};
 
+// @public (undocumented)
+type TransportRequestContext = {
+    headers?: Record<string, string | string[] | undefined>;
+    query?: Record<string, string | string[] | undefined>;
+};
 export { TransportRequestContext }
 export { TransportRequestContext as TransportRequestContextDeprecated }
 
-export { TransportRunnerBase }
+// @public
+export abstract class TransportRunnerBase<TServer = unknown, TContext = unknown, TMetrics extends MetricDefinitions = MetricDefinitions> {
+    protected constructor(input: {
+        loggers?: LoggerBase[];
+        metrics?: IMetrics<TMetrics>;
+    });
+    close(): Promise<void>;
+    protected abstract createServer(options: {
+        serverOptions?: CustomizableServerOptions<TContext>;
+        sessionOptions?: CustomizableSessionOptions;
+    }): Promise<TServer>;
+    // (undocumented)
+    logger: CompositeLogger;
+    // (undocumented)
+    metrics: IMetrics<TMetrics>;
+    abstract start(input: {
+        serverOptions?: CustomizableServerOptions<TContext>;
+        sessionOptions?: CustomizableSessionOptions;
+    }): Promise<void>;
+    abstract stop(): Promise<void>;
+}
 
-export { TransportRunnerConfig }
+// @public
+export type TransportRunnerConfig<TMetrics extends MetricDefinitions = MetricDefinitions> = {
+    metrics?: IMetrics<TMetrics>;
+    loggers?: LoggerBase[];
+};
 
-export { UIRegistry }
+// @public
+export class UIRegistry implements IUIRegistry {
+    // Warning: (ae-forgotten-export) The symbol "UIRegistryOptions" needs to be exported by the entry point web.d.ts
+    constructor(options?: UIRegistryOptions);
+    get(toolName: string): Promise<string | null>;
+}
 
-export { UpgradeClusterMetadata }
+// @public (undocumented)
+export type UpgradeClusterMetadata = AtlasMetadata & {
+    original_tier?: "free" | "flex";
+    target_tier?: "flex" | "m10";
+    original_cluster_id?: string;
+    target_cluster_id?: string;
+    provider?: string;
+    region?: string;
+};
 
 // @public (undocumented)
 export type UserConfig = z.infer<typeof UserConfigSchema>;
@@ -645,6 +1290,28 @@ export const UserConfigSchema: z.ZodObject<{
     }>]>>;
     browser: z.ZodOptional<z.ZodUnion<readonly [z.ZodLiteral<false>, z.ZodString]>>;
 }, z.core.$strip>;
+
+// Warnings were encountered during analysis:
+//
+// packages/atlas-api-client/openapi.d.ts:1981:9 - (ae-forgotten-export) The symbol "WithRequired" needs to be exported by the entry point web.d.ts
+// packages/core/src/logging/compositeLogger.ts:17:49 - (ae-forgotten-export) The symbol "IKeychain" needs to be exported by the entry point web.d.ts
+// packages/core/src/toolBase.ts:142:5 - (ae-forgotten-export) The symbol "IUIRegistry" needs to be exported by the entry point web.d.ts
+// packages/tools-mongodb/src/common/connectionManager.ts:252:9 - (ae-forgotten-export) The symbol "ConnectionInfo_2" needs to be exported by the entry point web.d.ts
+// packages/tools-mongodb/src/common/connectionManager.ts:540:5 - (ae-forgotten-export) The symbol "ConnectionManagerOptions" needs to be exported by the entry point web.d.ts
+// packages/tools-mongodb/src/common/errors.ts:12:1 - (ae-forgotten-export) The symbol "ErrorCodes_2" needs to be exported by the entry point web.d.ts
+// packages/tools-mongodb/src/common/errors.ts:16:1 - (ae-forgotten-export) The symbol "ErrorCode" needs to be exported by the entry point web.d.ts
+// packages/types/src/config.ts:6:5 - (ae-forgotten-export) The symbol "TransportType" needs to be exported by the entry point web.d.ts
+// packages/types/src/config.ts:11:5 - (ae-forgotten-export) The symbol "PreviewFeature_2" needs to be exported by the entry point web.d.ts
+// packages/types/src/elicitation.ts:8:5 - (ae-forgotten-export) The symbol "ElicitedInputResult_2" needs to be exported by the entry point web.d.ts
+// packages/types/src/logging.ts:34:5 - (ae-forgotten-export) The symbol "MongoLogId" needs to be exported by the entry point web.d.ts
+// packages/types/src/logging.ts:58:1 - (ae-forgotten-export) The symbol "ILogger" needs to be exported by the entry point web.d.ts
+// packages/types/src/session.ts:13:5 - (ae-forgotten-export) The symbol "ICompositeLogger" needs to be exported by the entry point web.d.ts
+// packages/types/src/session.ts:22:1 - (ae-forgotten-export) The symbol "ISession" needs to be exported by the entry point web.d.ts
+// packages/types/src/telemetry.ts:45:1 - (ae-forgotten-export) The symbol "AtlasMetadata_2" needs to be exported by the entry point web.d.ts
+// packages/types/src/telemetry.ts:45:1 - (ae-forgotten-export) The symbol "AtlasLocalToolMetadata_2" needs to be exported by the entry point web.d.ts
+// packages/types/src/telemetry.ts:51:1 - (ae-forgotten-export) The symbol "ConnectionMetadata_2" needs to be exported by the entry point web.d.ts
+// packages/types/src/telemetry.ts:61:1 - (ae-forgotten-export) The symbol "PerfAdvisorToolMetadata_2" needs to be exported by the entry point web.d.ts
+// packages/types/src/telemetry.ts:61:1 - (ae-forgotten-export) The symbol "StreamsToolMetadata_2" needs to be exported by the entry point web.d.ts
 
 // (No @packageDocumentation comment for this package)
 
