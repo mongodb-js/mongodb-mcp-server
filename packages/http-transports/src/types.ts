@@ -1,5 +1,5 @@
 import type { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import type { MetricDefinitions, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
+import type { MetricDefinitions } from "@mongodb-js/mcp-types";
 import type {
     TransportRunnerBaseOptions,
     CustomizableServerOptions,

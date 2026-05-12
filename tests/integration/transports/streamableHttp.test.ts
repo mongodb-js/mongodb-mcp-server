@@ -1,8 +1,5 @@
 import type express from "express";
-import {
-    StreamableHttpRunner,
-    MCPHttpServer,
-} from "@mongodb-js/mcp-http-transports";
+import { StreamableHttpRunner, MCPHttpServer } from "@mongodb-js/mcp-http-transports";
 import { SessionStore, type ISessionStore } from "@mongodb-js/mcp-core";
 import type { SessionCloseReason } from "@mongodb-js/mcp-types";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
