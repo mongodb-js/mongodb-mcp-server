@@ -36,26 +36,3 @@ export type TransportRunnerBaseOptions<TMetrics extends MetricDefinitions = Defa
     /** Metrics instance */
     metrics: IMetrics<TMetrics>;
 };
-
-/**
- * Options that can be customized when starting a runner.
- * Passed to the `start()` method and forwarded to `createServer()`.
- */
-export type CustomizableServerOptions = {
-    /** Telemetry properties */
-    telemetryProperties?: Record<string, string>;
-};
-
-/**
- * Options that can be customized for sessions when starting a runner.
- */
-export type CustomizableSessionOptions = {
-    /** API client instance */
-    apiClient?: unknown;
-    /** Atlas local client instance */
-    atlasLocalClient?: unknown;
-    /** Connection manager instance */
-    connectionManager?: unknown;
-    /** Connection error handler */
-    connectionErrorHandler?: unknown;
-};

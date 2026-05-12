@@ -1,11 +1,6 @@
 import type { CompositeLogger } from "./logging/compositeLogger.js";
 import type { IMetrics } from "@mongodb-js/mcp-types";
-import type {
-    CustomizableServerOptions,
-    CustomizableSessionOptions,
-    MetricDefinitions,
-    DefaultMetricDefinitions,
-} from "./transports.js";
+import type { MetricDefinitions, DefaultMetricDefinitions } from "./transports.js";
 
 /**
  * Base class for all transport runners.
@@ -23,13 +18,7 @@ export abstract class TransportRunnerBase<TMetrics extends MetricDefinitions = D
     /**
      * Starts the transport runner.
      */
-    abstract start({
-        serverOptions,
-        sessionOptions,
-    }: {
-        serverOptions?: CustomizableServerOptions;
-        sessionOptions?: CustomizableSessionOptions;
-    }): Promise<void>;
+    abstract start(): Promise<void>;
 
     /**
      * Stops the transport runner and releases any resources.

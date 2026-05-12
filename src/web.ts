@@ -1,7 +1,6 @@
 export {
     TransportRunnerBase,
     type TransportRunnerBaseOptions as TransportRunnerConfig,
-    type CustomizableSessionOptions as CreateSessionConfigFn,
     type TransportRequestContext as TransportRequestContextDeprecated,
 } from "@mongodb-js/mcp-core";
 export { UserConfigSchema, type UserConfig } from "./common/config/userConfig.js";
@@ -31,7 +30,6 @@ export type {
     UpgradeClusterMetadata,
 } from "@mongodb-js/mcp-atlas-telemetry";
 export { Session, type SessionOptions, type SessionEvents } from "./common/session.js";
-export type { CustomizableServerOptions, CustomizableSessionOptions } from "@mongodb-js/mcp-core";
 export type { LogLevel, LogPayload, LoggerType } from "@mongodb-js/mcp-core";
 export { Keychain } from "@mongodb-js/mcp-core";
 export type { Secret } from "mongodb-redact";

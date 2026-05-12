@@ -1,10 +1,6 @@
 import { Client } from "@modelcontextprotocol/sdk/client";
 import { TransportRunnerBase } from "@mongodb-js/mcp-core";
-import type {
-    CustomizableServerOptions,
-    CustomizableSessionOptions,
-    TransportRunnerBaseOptions,
-} from "@mongodb-js/mcp-core";
+import type { TransportRunnerBaseOptions } from "@mongodb-js/mcp-core";
 
 export class BrowserTestRunner extends TransportRunnerBase {
     private client: Client | null = null;
@@ -13,13 +9,7 @@ export class BrowserTestRunner extends TransportRunnerBase {
         super(options);
     }
 
-    start(
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        _options: {
-            serverOptions?: CustomizableServerOptions;
-            sessionOptions?: CustomizableSessionOptions;
-        } = {}
-    ): Promise<void> {
+    start(): Promise<void> {
         // Create MCP client
         this.client = new Client(
             {

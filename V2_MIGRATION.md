@@ -128,7 +128,7 @@ Web-friendly types:
 
 ```diff
 - import type { CustomizableServerOptions, CustomizableSessionOptions, TransportRequestContext } from "mongodb-mcp-server";
-+ import type { CustomizableServerOptions, CustomizableSessionOptions, TransportRequestContext } from "@mongodb-js/mcp-core";
++ import type { TransportRequestContext } from "@mongodb-js/mcp-core";
 ```
 
 Error codes:
@@ -169,7 +169,7 @@ import { StdioRunner } from "@mongodb-js/mcp-core";
 import { Server } from "mongodb-mcp-server";
 
 class MyStdioRunner extends StdioRunner {
-  protected override async createServer({ serverOptions, sessionOptions }) {
+  protected override async createServer() {
     // Create and configure your server
     return new Server({
       mcpServer,
@@ -243,8 +243,8 @@ Several types have been moved or renamed:
 | `StreamableHttpTransportRunnerConfig`             | `StreamableHttpRunnerOptions` (in `@mongodb-js/mcp-http-runners`)               |
 | `MonitoringServerConfig` (from streamableHttp.ts) | `MonitoringServerConfig` (in `@mongodb-js/mcp-http-runners`)                    |
 | `CreateSessionConfigFn`                           | Removed - extend `StreamableHttpRunner` and override `createServerForRequest()` |
-| `CustomizableServerOptions`                       | Same name, moved to `@mongodb-js/mcp-core`                                      |
-| `CustomizableSessionOptions`                      | Same name, moved to `@mongodb-js/mcp-core`                                      |
+| `CustomizableServerOptions`                       | Removed - no longer needed                                                      |
+| `CustomizableSessionOptions`                      | Removed - no longer needed                                                      |
 | `TransportRequestContext`                         | Same name, moved to `@mongodb-js/mcp-core`                                      |
 
 ### Removed from Transports
@@ -253,12 +253,14 @@ The following items have been removed from the transports package:
 
 - `TransportRunnerConfig.userConfig` - Pass specific options instead
 - `TransportRunnerConfig.createConnectionManager` - Use `ServerFactory` pattern
-- `TransportRunnerConfig.connectionErrorHandler` - Pass via `sessionOptions`
-- `TransportRunnerConfig.createAtlasLocalClient` - Use `sessionOptions`
+- `TransportRunnerConfig.connectionErrorHandler` - Extend `MCPHttpServer` and pass to Server constructor
+- `TransportRunnerConfig.createAtlasLocalClient` - Extend `MCPHttpServer` and pass to Server constructor
 - `TransportRunnerConfig.createSessionConfig` - Extend `StreamableHttpRunner` and override `createServerForRequest()`
-- `TransportRunnerConfig.createApiClient` - Use `sessionOptions`
-- `TransportRunnerConfig.tools` - Pass via `serverOptions`
-- `TransportRunnerConfig.telemetryProperties` - Pass via `serverOptions`
+- `TransportRunnerConfig.createApiClient` - Extend `MCPHttpServer` and pass to Server constructor
+- `TransportRunnerConfig.tools` - Pass via Server constructor
+- `TransportRunnerConfig.telemetryProperties` - Pass via Server constructor
+- `CustomizableServerOptions` - Removed, was unused
+- `CustomizableSessionOptions` - Removed, was unused
 
 ### HTTP Servers
 

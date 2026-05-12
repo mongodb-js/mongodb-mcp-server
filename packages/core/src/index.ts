@@ -57,8 +57,6 @@ export {
 export type {
     ServerOptions,
     TransportRunnerBaseOptions,
-    CustomizableServerOptions,
-    CustomizableSessionOptions,
     MetricDefinitions,
     DefaultMetricDefinitions,
 } from "./transports.js";

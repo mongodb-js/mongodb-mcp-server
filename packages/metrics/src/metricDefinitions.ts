@@ -30,7 +30,7 @@ export function createDefaultMetrics() {
             labelNames: ["reason"] as const,
             registers: [],
         }),
-    } satisfies DefaultMetricDefinitions & PrometheusMetricDefinitions;
+    } as const satisfies DefaultMetricDefinitions & PrometheusMetricDefinitions;
 }
 
 export type DefaultPrometheusMetricDefinitions = ReturnType<typeof createDefaultMetrics>;

@@ -55,8 +55,6 @@ export type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/se
 export {
     TransportRunnerBase,
     type TransportRunnerBaseOptions as TransportRunnerConfig,
-    type CustomizableServerOptions,
-    type CustomizableSessionOptions,
     type TransportRequestContext,
 } from "@mongodb-js/mcp-core";
 export {

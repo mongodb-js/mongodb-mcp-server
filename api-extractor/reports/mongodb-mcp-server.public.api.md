@@ -499,9 +499,9 @@ export { createAtlasLocalClient }
 
 // @public
 export function createDefaultMetrics(): {
-    toolExecutionDuration: Histogram<"tool_name" | "category" | "status" | "operation_type" | "error_type">;
-    sessionCreated: Counter<string>;
-    sessionClosed: Counter<"reason">;
+    readonly toolExecutionDuration: Histogram<"tool_name" | "category" | "status" | "operation_type" | "error_type">;
+    readonly sessionCreated: Counter<string>;
+    readonly sessionClosed: Counter<"reason">;
 };
 
 // @public (undocumented)
@@ -511,19 +511,6 @@ export interface Credentials {
     // (undocumented)
     clientSecret?: string;
 }
-
-// @public
-export type CustomizableServerOptions = {
-    telemetryProperties?: Record<string, string>;
-};
-
-// @public
-export type CustomizableSessionOptions = {
-    apiClient?: unknown;
-    atlasLocalClient?: unknown;
-    connectionManager?: unknown;
-    connectionErrorHandler?: unknown;
-};
 
 // @public (undocumented)
 export type DefaultEventMap = Record<string, never[]>;
@@ -1193,10 +1180,7 @@ export abstract class TransportRunnerBase<TMetrics extends MetricDefinitions = D
     logger: CompositeLogger;
     // (undocumented)
     metrics: IMetrics<TMetrics>;
-    abstract start(input: {
-        serverOptions?: CustomizableServerOptions;
-        sessionOptions?: CustomizableSessionOptions;
-    }): Promise<void>;
+    abstract start(): Promise<void>;
     abstract stop(): Promise<void>;
 }
 
