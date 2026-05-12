@@ -387,9 +387,9 @@ async function createServerForConfig({ config, logger, metrics }: CreateServerOp
     });
 
     let apiClient: ApiClient | undefined;
-    // Check if credentials are available (clientId/clientSecret for API auth)
-    const clientId = (config as UserConfig & { clientId?: string }).clientId;
-    const clientSecret = (config as UserConfig & { clientSecret?: string }).clientSecret;
+    // Check if credentials are available (apiClientId/apiClientSecret for API auth)
+    const clientId = config.apiClientId;
+    const clientSecret = config.apiClientSecret;
     if (clientId && clientSecret) {
         apiClient = new ApiClient({
             baseUrl: config.apiBaseUrl,
