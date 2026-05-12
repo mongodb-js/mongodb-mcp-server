@@ -228,49 +228,87 @@ const runner = new StreamableHttpRunner({
 
 ### Decoupled from UserConfig
 
-Transport runners no longer require the full `UserConfig` object. Instead, they accept typed configuration options:
+Transport runners no longer require the full `UserConfig` object. Instead, construct the required components (`MCPHttpServer`, `MonitoringServer`, `SessionStore`) with their respective options and pass the instances to the runner:
 
-| Old (UserConfig field)      | New (typed option)                            |
-| --------------------------- | --------------------------------------------- |
-| `transport`                 | Runner class selection                        |
-| `httpHost`                  | `httpServer.host`                             |
-| `httpPort`                  | `httpServer.port`                             |
-| `httpBodyLimit`             | `httpServer.bodyLimit`                        |
-| `httpHeaders`               | `httpServer.headers`                          |
-| `httpResponseType`          | `httpServer.responseType`                     |
-| `idleTimeoutMs`             | `sessionManagement.idleTimeoutMs`             |
-| `notificationTimeoutMs`     | `sessionManagement.notificationTimeoutMs`     |
-| `externallyManagedSessions` | `sessionManagement.externallyManagedSessions` |
-| `monitoringServerHost`      | `monitoringServer.host`                       |
-| `monitoringServerPort`      | `monitoringServer.port`                       |
-| `monitoringServerFeatures`  | `monitoringServer.features`                   |
+| Old (UserConfig field)      | New (pass to component)                                                                                |
+| --------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `transport`                 | Runner class selection                                                                                 |
+| `httpHost`                  | `MCPHttpServer.options.http.host`                                                                      |
+| `httpPort`                  | `MCPHttpServer.options.http.port`                                                                      |
+| `httpBodyLimit`             | `MCPHttpServer.options.http.bodyLimit`                                                                 |
+| `httpHeaders`               | `MCPHttpServer.options.http.headers`                                                                   |
+| `httpResponseType`          | `MCPHttpServer.options.http.responseType`                                                              |
+| `idleTimeoutMs`             | `SessionStore.options.idleTimeoutMS` and `MCPHttpServer.options.session.idleTimeoutMs`                 |
+| `notificationTimeoutMs`     | `SessionStore.options.notificationTimeoutMS` and `MCPHttpServer.options.session.notificationTimeoutMs` |
+| `externallyManagedSessions` | `MCPHttpServer.options.session.externallyManagedSessions`                                              |
+| `monitoringServerHost`      | `MonitoringServer.options.http.host`                                                                   |
+| `monitoringServerPort`      | `MonitoringServer.options.http.port`                                                                   |
+| `monitoringServerFeatures`  | `MonitoringServer.options.features`                                                                    |
 
 **StreamableHttpRunner Example:**
 
 ```typescript
-import { StreamableHttpRunner } from "@mongodb-js/mcp-http-runners";
+import {
+  StreamableHttpRunner,
+  MCPHttpServer,
+  MonitoringServer,
+} from "@mongodb-js/mcp-http-runners";
+import { SessionStore } from "@mongodb-js/mcp-core";
+import type { ISessionStore } from "@mongodb-js/mcp-types";
+import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 
-const runner = new StreamableHttpRunner({
-  serverFactory,
-  httpServer: {
-    host: "127.0.0.1",
-    port: 3000,
-    bodyLimit: 1024 * 1024,
-    headers: { "x-api-key": "secret" },
-    responseType: "sse", // or "json"
+// Create the session store
+const sessionStore: ISessionStore<StreamableHTTPServerTransport> =
+  new SessionStore({
+    options: {
+      idleTimeoutMS: 600_000,
+      notificationTimeoutMS: 540_000,
+    },
+    logger,
+    metrics,
+  });
+
+// Create MCPHttpServer (extend to implement createServerForRequest)
+const mcpHttpServer = new MyMCPHttpServer({
+  options: {
+    http: {
+      host: "127.0.0.1",
+      port: 3000,
+      bodyLimit: 1024 * 1024,
+      headers: { "x-api-key": "secret" },
+      responseType: "sse", // or "json"
+    },
+    session: {
+      idleTimeoutMs: 600_000,
+      notificationTimeoutMs: 540_000,
+      externallyManagedSessions: false,
+    },
   },
-  sessionManagement: {
-    idleTimeoutMs: 600_000,
-    notificationTimeoutMs: 540_000,
-    externallyManagedSessions: false,
-  },
-  monitoringServer: {
-    host: "127.0.0.1",
-    port: 8080,
+  logger,
+  metrics,
+  sessionStore,
+});
+
+// Create monitoring server (optional)
+const monitoringServer = new MonitoringServer({
+  options: {
+    http: {
+      host: "127.0.0.1",
+      port: 8080,
+    },
     features: ["health-check", "metrics"],
   },
-  loggers: [logger],
+  logger,
   metrics,
+});
+
+// Pass pre-constructed instances to StreamableHttpRunner
+const runner = new StreamableHttpRunner({
+  logger,
+  metrics,
+  mcpHttpServer,
+  monitoringServer,
+  sessionStore,
 });
 ```
 
