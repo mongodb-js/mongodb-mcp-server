@@ -61,6 +61,7 @@ export {
 } from "./transports/base.js";
 export {
     ConnectionManager,
+    MCPConnectionManager,
     ConnectionStateConnected,
     type AnyConnectionState,
     type ConnectionState,
@@ -122,3 +123,11 @@ export {
     Histogram,
     Counter,
 } from "@mongodb-js/mcp-metrics";
+export {
+    JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
+    JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED,
+    JSON_RPC_ERROR_CODE_SESSION_ID_INVALID,
+    JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND,
+    JSON_RPC_ERROR_CODE_INVALID_REQUEST,
+    JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION,
+} from "./transports/jsonRpcErrorCodes.js";
