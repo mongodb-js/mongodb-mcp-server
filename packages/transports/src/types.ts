@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import type { ICompositeLogger, IKeychain, MetricDefinitions, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
+import type { ICompositeLogger, MetricDefinitions, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
 import type { IMetrics } from "@mongodb-js/mcp-types";
 import type { LogLevel, LoggerBase } from "@mongodb-js/mcp-core";
 import type { InMemoryTransport } from "./inMemoryTransport.js";
@@ -27,27 +27,6 @@ export type ServerOptions<TContext = unknown, TMetrics extends MetricDefinitions
     name?: string;
     /** Server version */
     version?: string;
-};
-
-/**
- * Options for creating a session.
- * Decoupled from UserConfig to allow flexible configuration.
- */
-export type SessionOptions = {
-    /** Logger for the session */
-    logger: ICompositeLogger;
-    /** Session ID */
-    sessionId?: string;
-    /** API client for external services */
-    apiClient?: unknown;
-    /** Atlas local client */
-    atlasLocalClient?: unknown;
-    /** Connection manager for MongoDB */
-    connectionManager?: unknown;
-    /** Error handler for connection errors */
-    connectionErrorHandler?: unknown;
-    /** Keychain for secrets */
-    keychain?: IKeychain;
 };
 
 /**

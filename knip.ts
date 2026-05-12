@@ -1,7 +1,6 @@
 import type { KnipConfig } from "knip";
 
 const config: KnipConfig = {
-    ignoreIssues: {},
     workspaces: {
         ".": {
             entry: [
@@ -98,8 +97,6 @@ const config: KnipConfig = {
             ignoreDependencies: ["buffer", "evp_bytestokey", "util", "@vitest/browser"],
         },
     },
-    // For library packages, exports from entry points are public API
-    includeEntryExports: true,
     ignoreExportsUsedInFile: true,
 };
 

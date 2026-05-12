@@ -452,15 +452,3 @@ export class MCPHttpServer<
         };
     }
 }
-
-/**
- * Creates a default MCPHttpServer instance from the provided constructor arguments.
- * @deprecated Use `new MCPHttpServer()` directly instead. This factory function will be removed in a future version.
- */
-export const createDefaultMcpHttpServer = <
-    TServer = unknown,
-    TContext = unknown,
-    TMetrics extends MetricDefinitions = MetricDefinitions,
->(
-    args: MCPHttpServerOptions<TServer, TContext, TMetrics>
-): MCPHttpServer<TServer, TContext, TMetrics> => new MCPHttpServer<TServer, TContext, TMetrics>(args);
