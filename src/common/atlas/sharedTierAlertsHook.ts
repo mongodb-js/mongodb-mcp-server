@@ -26,10 +26,6 @@ export interface RunSharedTierAlertsHookParams {
     logger: LoggerBase;
 }
 
-function isSharedTierInstanceType(t: "FREE" | "FLEX" | "DEDICATED" | undefined): t is "FREE" | "FLEX" {
-    return t === "FREE" || t === "FLEX";
-}
-
 function buildRecommendationParagraph(
     clusterName: string,
     tier: SharedTierTier,
@@ -47,12 +43,16 @@ function buildRecommendationParagraph(
  * Post-connect: inspect tier; for Free/Flex only, fetch OPEN alerts and return upgrade guidance when filters match.
  * Returns tier, JSON-serialized alerts, and recommendation text for the caller to surface and attach to telemetry.
  */
-export async function runSharedTierAlertsHook(
-    params: RunSharedTierAlertsHookParams
-): Promise<{ recommendationText: string; tier: SharedTierTier; alerts: SharedTierMetricName[] } | undefined> {
-    const { projectId, clusterName, instanceType, apiClient, logger } = params;
-
-    if (!isSharedTierInstanceType(instanceType)) {
+export async function runSharedTierAlertsHook({
+    projectId,
+    clusterName,
+    instanceType,
+    apiClient,
+    logger,
+}: RunSharedTierAlertsHookParams): Promise<
+    { recommendationText: string; tier: SharedTierTier; alerts: SharedTierMetricName[] } | undefined
+> {
+    if (!["FREE", "FLEX"].includes(instanceType)) {
         return undefined;
     }
 
