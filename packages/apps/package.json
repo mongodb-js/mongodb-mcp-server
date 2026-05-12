@@ -16,13 +16,21 @@
     "dist"
   ],
   "scripts": {
-    "compile": "vite build --config vite.apps.config.ts && tsc --build tsconfig.json"
+    "compile": "vite build --config vite.apps.config.ts && tsc --build tsconfig.json",
+    "check:api": "api-extractor run --config api-extractor.json",
+    "update:api": "api-extractor run --local --config api-extractor.json",
+    "test": "vitest --run"
   },
   "dependencies": {
     "@mongodb-js/mcp-types": "workspace:*"
   },
   "devDependencies": {
     "@modelcontextprotocol/ext-apps": "^1.2.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "happy-dom": "^20.9.0",
+    "vitest": "^4.1.4",
     "@types/node": "^25.6.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.3",

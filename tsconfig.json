@@ -5,5 +5,5 @@
     "skipLibCheck": true
   },
   "include": ["**/*"],
-  "exclude": ["dist", "node_modules", "packages/*/src/apps/**", "packages/*/src/build/**"]
+  "exclude": ["dist", "node_modules",]
 }
