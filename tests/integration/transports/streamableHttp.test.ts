@@ -112,7 +112,11 @@ async function createTestServer(
         session,
         userConfig: config,
         mcpServer,
-        telemetry: {} as unknown as AtlasTelemetry,
+        telemetry: {
+            emitEvents: () => {},
+            close: () => Promise.resolve(),
+            isTelemetryEnabled: () => false,
+        } as unknown as AtlasTelemetry,
         connectionErrorHandler,
         elicitation,
         metrics,
