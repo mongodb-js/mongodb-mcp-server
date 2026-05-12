@@ -280,23 +280,23 @@ export class ConnectClusterTool extends AtlasToolBase {
             const state = this.queryConnection(projectId, clusterName);
             switch (state) {
                 case "connected": {
-                    const content: { type: "text"; text: string }[] = [
+                    const content: ToolResult<typeof ConnectClusterOutputSchema>["content"] = [
                         {
-                            type: "text",
+                            type: "text" as const,
                             text: `Connected to cluster "${clusterName}".`,
                         },
                     ];
 
                     if (ipAccessListUpdated) {
                         content.push({
-                            type: "text",
+                            type: "text" as const,
                             text: addedIpAccessListMessage,
                         });
                     }
 
                     if (createdUser) {
                         content.push({
-                            type: "text",
+                            type: "text" as const,
                             text: createdUserMessage,
                         });
                     }
@@ -347,27 +347,27 @@ export class ConnectClusterTool extends AtlasToolBase {
             await sleep(500); // wait 500ms before checking the connection state again
         }
 
-        const content: { type: "text"; text: string }[] = [
+        const content: ToolResult<typeof ConnectClusterOutputSchema>["content"] = [
             {
-                type: "text",
+                type: "text" as const,
                 text: `Attempting to connect to cluster "${clusterName}"...`,
             },
             {
-                type: "text",
+                type: "text" as const,
                 text: `Warning: Provisioning a user and connecting to the cluster may take more time, please check again in a few seconds.`,
             },
         ];
 
         if (ipAccessListUpdated) {
             content.push({
-                type: "text",
+                type: "text" as const,
                 text: addedIpAccessListMessage,
             });
         }
 
         if (createdUser) {
             content.push({
-                type: "text",
+                type: "text" as const,
                 text: createdUserMessage,
             });
         }
