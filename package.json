@@ -1,7 +1,7 @@
 {
   "name": "mongodb-mcp-server",
   "description": "MongoDB Model Context Protocol Server",
-  "version": "1.11.0-prerelease.2",
+  "version": "1.11.0-prerelease.3",
   "type": "module",
   "packageManager": "pnpm@10.33.2",
   "mcpName": "io.github.mongodb-js/mongodb-mcp-server",
@@ -126,7 +126,7 @@
     "globals": "^17.5.0",
     "happy-dom": "^20.9.0",
     "husky": "^9.1.7",
-    "jsdom": "^29.0.2",
+    "jsdom": "^29.1.1",
     "knip": "^6.4.1",
     "mongodb-runner": "^6.7.6",
     "oauth4webapi": "^3.8.5",

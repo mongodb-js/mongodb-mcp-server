@@ -240,8 +240,13 @@ export abstract class ConnectionManager {
     abstract close(): Promise<void>;
 }
 
+/**
+ * Configuration options for creating an {@link MCPConnectionManager}.
+ */
 export interface ConnectionManagerOptions {
+    /** Logger used for OIDC and disconnect diagnostics. */
     logger: LoggerBase;
+    /** Provider of the stable device identifier embedded in the connection's `appName`. */
     deviceId: DeviceId;
     options: {
         /** Transport / browser hints for OIDC auth inference. */
@@ -250,9 +255,26 @@ export interface ConnectionManagerOptions {
         displayName: string;
         version: string;
     };
+    /** Optional event emitter shared with the OIDC plugin to receive `mongodb-oidc-plugin:auth-*` notifications. */
     bus?: EventEmitter;
 }
 
+/**
+ * Default {@link ConnectionManager} implementation used by the MongoDB MCP
+ * server.
+ *
+ * Establishes and tears down MongoDB connections via mongosh's
+ * NodeDriverServiceProvider, applying MCP-specific defaults such as the
+ * `appName` (composed from package info, device id and client name) and driver
+ * options (read/write concerns, proxy and OIDC settings).
+ *
+ * Tracks connection lifecycle as an {@link AnyConnectionState} and emits
+ * `connection-request`, `connection-success`, `connection-error`,
+ * `connection-close` and `close` events on {@link ConnectionManager.events}.
+ * For OIDC connection strings it stays in the `connecting` state until the OIDC
+ * plugin reports auth success or failure (via the shared event bus), surfacing
+ * device-flow verification URL and user code when applicable.
+ */
 export class MCPConnectionManager extends ConnectionManager {
     private deviceId: DeviceId;
     private bus: EventEmitter;
@@ -260,6 +282,13 @@ export class MCPConnectionManager extends ConnectionManager {
     private readonly options: ConnectionManagerOptions["options"];
     private logger: LoggerBase;
 
+    /**
+     * @param options.logger - Logger used for OIDC and disconnect diagnostics.
+     * @param options.deviceId - Provider of the stable device identifier embedded in
+     * the connection's `appName`.
+     * @param options.options - Object containing connectionInfo, displayName, and version.
+     * @param options.bus - Optional event emitter shared with the OIDC plugin.
+     */
     constructor({ logger, deviceId, bus, options }: ConnectionManagerOptions) {
         super();
         this.options = options;
@@ -271,6 +300,17 @@ export class MCPConnectionManager extends ConnectionManager {
         this.deviceId = deviceId;
     }
 
+    /**
+     * Opens a new MongoDB connection from the supplied {@link ConnectionSettings},
+     * disconnecting any prior connection first.
+     *
+     * Resolves to a `connected` state for non-OIDC auth and to a `connecting`
+     * state for OIDC flows (which transition to `connected` once the OIDC
+     * plugin reports success on the shared event bus). On failure, transitions
+     * to an `errored` state and throws a {@link MongoDBError} with either
+     * {@link ErrorCodes.MisconfiguredConnectionString} or
+     * {@link ErrorCodes.NotConnectedToMongoDB}.
+     */
     override async connect(settings: ConnectionSettings): Promise<AnyConnectionState> {
         this._events.emit("connection-request", this.currentConnectionState);
 
@@ -370,6 +410,12 @@ export class MCPConnectionManager extends ConnectionManager {
         }
     }
 
+    /**
+     * Closes the underlying NodeDriverServiceProvider (awaiting it first when
+     * the manager is still in the `connecting` state) and emits
+     * `connection-close`. No-op when already `disconnected` or `errored`, in
+     * which case the current state is returned as-is.
+     */
     override async disconnect(): Promise<ConnectionStateDisconnected | ConnectionStateErrored> {
         if (this.currentConnectionState.tag === "disconnected" || this.currentConnectionState.tag === "errored") {
             return this.currentConnectionState;
@@ -394,6 +440,11 @@ export class MCPConnectionManager extends ConnectionManager {
         return { tag: "disconnected" };
     }
 
+    /**
+     * Permanently shuts the manager down: best-effort disconnect (errors are
+     * logged, not thrown) followed by emission of the `close` event with the
+     * final connection state.
+     */
     override async close(): Promise<void> {
         try {
             await this.disconnect();

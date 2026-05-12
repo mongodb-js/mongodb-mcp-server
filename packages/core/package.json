@@ -26,7 +26,7 @@
     "test": "vitest --run"
   },
   "dependencies": {
-    "@mcp-ui/server": "^5.13.1",
+    "@mcp-ui/server": "^6.1.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "bson": "^7.2.0",
     "@mongodb-js/mcp-types": "workspace:*",

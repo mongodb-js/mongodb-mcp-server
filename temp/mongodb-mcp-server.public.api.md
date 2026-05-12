@@ -10,12 +10,13 @@ import { AnyToolBase } from '@mongodb-js/mcp-core';
 import { ApiClient } from '@mongodb-js/mcp-atlas-api-client';
 import { ApiClientOptions } from '@mongodb-js/mcp-atlas-api-client';
 import type { AtlasClusterConnectionInfo } from '@mongodb-js/mcp-types';
+import type { AtlasLocalClientFactoryFn } from '@mongodb-js/mcp-tools-atlas-local';
 import { AtlasTelemetry } from '@mongodb-js/mcp-atlas-telemetry';
 import { AuthProvider } from '@mongodb-js/mcp-atlas-api-client';
 import { TelemetryBaseEvent as BaseEvent } from '@mongodb-js/mcp-atlas-telemetry';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { Client } from '@mongodb-js/atlas-local';
-import { CloseableTransport } from '@mongodb-js/mcp-types';
+import type { CloseableTransport } from '@mongodb-js/mcp-types';
 import { TelemetryCommonProperties as CommonProperties } from '@mongodb-js/mcp-atlas-telemetry';
 import { CompositeLogger } from '@mongodb-js/mcp-core';
 import { ConnectionManager } from '@mongodb-js/mcp-tools-mongodb';
@@ -35,8 +36,6 @@ import { Counter } from '@mongodb-js/mcp-metrics';
 import { createAtlasLocalClient } from '@mongodb-js/mcp-tools-atlas-local';
 import { createDefaultMetrics } from '@mongodb-js/mcp-metrics';
 import { Credentials } from '@mongodb-js/mcp-atlas-api-client';
-import { CustomizableServerOptions } from '@mongodb-js/mcp-transports';
-import { CustomizableSessionOptions } from '@mongodb-js/mcp-transports';
 import { DefaultEventMap } from '@mongodb-js/mcp-core';
 import { DefaultMetrics } from '@mongodb-js/mcp-metrics';
 import { defaultParserOptions as defaultParserOptions_2 } from '@mongosh/arg-parser/arg-parser';
@@ -47,28 +46,24 @@ import { EventCache } from '@mongodb-js/mcp-atlas-telemetry';
 import EventEmitter from 'events';
 import { EventMap } from '@mongodb-js/mcp-core';
 import { ExportsManager } from '@mongodb-js/mcp-tools-mongodb';
+import express from 'express';
 import { Gauge } from '@mongodb-js/mcp-metrics';
 import { Histogram } from '@mongodb-js/mcp-metrics';
+import type http from 'http';
 import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
-import { ISessionStore } from '@mongodb-js/mcp-transports';
 import { Keychain } from '@mongodb-js/mcp-core';
 import { LoggerBase } from '@mongodb-js/mcp-core';
 import { LoggerType } from '@mongodb-js/mcp-core';
 import { LogLevel } from '@mongodb-js/mcp-core';
 import { LogPayload } from '@mongodb-js/mcp-core';
 import { MCPConnectionManager } from '@mongodb-js/mcp-tools-mongodb';
-import { MCPHttpServer } from '@mongodb-js/mcp-transports';
-import { MCPHttpServerOptions } from '@mongodb-js/mcp-transports';
 import { McpLogger } from '@mongodb-js/mcp-logging';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { MetricDefinitions } from '@mongodb-js/mcp-metrics';
 import { Metrics } from '@mongodb-js/mcp-metrics';
 import { MisconfiguredConnectionStringErrorCode } from '@mongodb-js/mcp-tools-mongodb';
 import { MongoDBError } from '@mongodb-js/mcp-tools-mongodb';
-import { MonitoringServer } from '@mongodb-js/mcp-transports';
-import { MonitoringServerConfig } from '@mongodb-js/mcp-transports';
 import { MonitoringServerFeature } from '@mongodb-js/mcp-tools-mongodb';
-import { MonitoringServerOptions } from '@mongodb-js/mcp-transports';
 import type { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
 import { NoopLogger } from '@mongodb-js/mcp-core';
 import { NotConnectedToMongoDBErrorCode } from '@mongodb-js/mcp-tools-mongodb';
@@ -80,13 +75,8 @@ import { registerGlobalSecretToRedact } from '@mongodb-js/mcp-core';
 import { Registry } from '@mongodb-js/mcp-metrics';
 import { RequestContext } from '@mongodb-js/mcp-atlas-api-client';
 import { Secret } from 'mongodb-redact';
-import { SessionCloseReason } from '@mongodb-js/mcp-types';
-import { SessionStore } from '@mongodb-js/mcp-transports';
-import { SessionStoreConstructorArgs } from '@mongodb-js/mcp-transports';
-import { StdioRunner } from '@mongodb-js/mcp-transports';
-import { StreamableHttpRunner } from '@mongodb-js/mcp-transports';
+import type { SessionCloseReason } from '@mongodb-js/mcp-types';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { StreamableHttpRunnerOptions as StreamableHttpTransportRunnerConfig } from '@mongodb-js/mcp-transports';
 import { TelemetryConfig } from '@mongodb-js/mcp-atlas-telemetry';
 import { TelemetryEvent } from '@mongodb-js/mcp-atlas-telemetry';
 import { TelemetryEvents } from '@mongodb-js/mcp-atlas-telemetry';
@@ -94,9 +84,7 @@ import { ToolCategory } from '@mongodb-js/mcp-core';
 import { ToolClass } from '@mongodb-js/mcp-core';
 import { ToolExecutionContext } from '@mongodb-js/mcp-core';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
-import { TransportRequestContext } from '@mongodb-js/mcp-transports';
-import { TransportRunnerBase } from '@mongodb-js/mcp-transports';
-import { TransportRunnerBaseOptions as TransportRunnerConfig } from '@mongodb-js/mcp-transports';
+import type { TransportRequestContext } from '@mongodb-js/mcp-types';
 import { UIRegistry } from '@mongodb-js/mcp-ui';
 import { UIRegistryOptions } from '@mongodb-js/mcp-ui';
 import { z } from 'zod';
@@ -117,7 +105,7 @@ export { ApiClientOptions }
 // @public
 export function applyConfigOverrides<TUserConfig extends UserConfig = UserConfig>(input: {
     baseConfig: TUserConfig;
-    request?: TransportRequestContext;
+    request?: RequestContext_2;
 }): TUserConfig;
 
 export { AtlasTelemetry }
@@ -193,13 +181,41 @@ export { Counter }
 
 export { createAtlasLocalClient }
 
+// @public
+export const createDefaultMcpHttpServer: <TUserConfig extends UserConfig = UserConfig, TContext = unknown>(args: MCPHttpServerConstructorArgs<TUserConfig, TContext>) => MCPHttpServer<TUserConfig, TContext>;
+
 export { createDefaultMetrics }
+
+// @public
+export const createDefaultMonitoringServer: <TMetrics extends DefaultMetrics = DefaultMetrics>(args: MonitoringServerConstructorArgs<TMetrics>) => MonitoringServer<TMetrics>;
+
+// @public
+export function createDefaultSessionStore<TTransport extends CloseableTransport = CloseableTransport, TMetrics extends DefaultMetrics = DefaultMetrics>(params: SessionStoreConstructorArgs<TMetrics>): SessionStore<TTransport>;
+
+// @public
+export type CreateMcpHttpServerFn<TUserConfig extends UserConfig = UserConfig, TContext = unknown> = (args: MCPHttpServerConstructorArgs<TUserConfig, TContext>) => MCPHttpServer<TUserConfig, TContext>;
+
+// @public
+export type CreateMonitoringServerFn<TMetrics extends DefaultMetrics = DefaultMetrics> = (args: MonitoringServerConstructorArgs<TMetrics>) => MonitoringServer<TMetrics> | undefined;
+
+// @public
+export type CreateSessionConfigFn<TUserConfig extends UserConfig = UserConfig> = (context: {
+    userConfig: TUserConfig;
+    request?: TransportRequestContext;
+}) => Promise<TUserConfig> | TUserConfig;
+
+// @public
+export type CreateSessionStoreFn<TTransport extends CloseableTransport = CloseableTransport, TMetrics extends DefaultMetrics = DefaultMetrics> = (args: SessionStoreConstructorArgs<TMetrics>) => ISessionStore<TTransport>;
 
 export { Credentials }
 
-export { CustomizableServerOptions }
+// @public (undocumented)
+export type CustomizableServerOptions<TUserConfig extends UserConfig = UserConfig, TContext = unknown> = Partial<Pick<ServerOptions<TUserConfig, TContext>, "uiRegistry" | "tools" | "toolContext" | "elicitation">> & {
+    telemetryProperties?: Partial<CommonProperties>;
+};
 
-export { CustomizableSessionOptions }
+// @public (undocumented)
+export type CustomizableSessionOptions<TUserConfig extends UserConfig = UserConfig> = Partial<Pick<SessionOptions<TUserConfig>, "userConfig" | "apiClient" | "atlasLocalClient" | "connectionManager" | "connectionErrorHandler">>;
 
 export { DefaultEventMap }
 
@@ -269,7 +285,42 @@ export { Gauge }
 
 export { Histogram }
 
-export { ISessionStore }
+// @public
+export interface ISessionStore<T extends CloseableTransport = CloseableTransport> {
+    // (undocumented)
+    addSession(params: {
+        sessionId: string;
+        transport: T;
+        logger: LoggerBase;
+    }): Promise<void>;
+    // (undocumented)
+    closeAllSessions(): Promise<void>;
+    // (undocumented)
+    closeSession(params: {
+        sessionId: string;
+        reason?: SessionCloseReason;
+    }): Promise<void>;
+    // (undocumented)
+    getSession(sessionId: string): Promise<T | undefined>;
+}
+
+// @public
+export const JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION = -32005;
+
+// @public
+export const JSON_RPC_ERROR_CODE_INVALID_REQUEST = -32004;
+
+// @public
+export const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
+
+// @public
+export const JSON_RPC_ERROR_CODE_SESSION_ID_INVALID = -32002;
+
+// @public
+export const JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED = -32001;
+
+// @public
+export const JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND = -32003;
 
 export { Keychain }
 
@@ -283,9 +334,37 @@ export { LogPayload }
 
 export { MCPConnectionManager }
 
-export { MCPHttpServer }
+// Warning: (ae-forgotten-export) The symbol "ExpressBasedHttpServer" needs to be exported by the entry point lib.d.ts
+//
+// @public (undocumented)
+export class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unknown> extends ExpressBasedHttpServer {
+    constructor(input: MCPHttpServerConstructorArgs<TUserConfig, TContext>);
+    // (undocumented)
+    protected readonly sessionStore: ISessionStore<StreamableHTTPServerTransport>;
+    // (undocumented)
+    protected setupMiddlewares(): void;
+    // (undocumented)
+    protected setupRoutes(): Promise<void>;
+    // (undocumented)
+    stop(): Promise<void>;
+    // (undocumented)
+    protected readonly userConfig: TUserConfig;
+}
 
-export { MCPHttpServerOptions }
+// @public (undocumented)
+export type MCPHttpServerConstructorArgs<TUserConfig extends UserConfig = UserConfig, TContext = unknown> = {
+    userConfig: TUserConfig;
+    createServerForRequest: (createParams: {
+        request: TransportRequestContext;
+        serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
+        sessionOptions?: CustomizableSessionOptions<TUserConfig>;
+    }) => Promise<Server<TUserConfig, TContext>>;
+    logger: LoggerBase;
+    serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
+    sessionOptions?: CustomizableSessionOptions<TUserConfig>;
+    metrics: Metrics<DefaultMetrics>;
+    sessionStore: ISessionStore<StreamableHTTPServerTransport>;
+};
 
 export { McpLogger }
 
@@ -301,13 +380,44 @@ export type MongoDBToolsRuntimeConfig = {
     aggregationCountMaxTimeMsCap: number;
 };
 
-export { MonitoringServer }
+// @public (undocumented)
+export class MonitoringServer<TMetrics extends DefaultMetrics = DefaultMetrics> extends ExpressBasedHttpServer {
+    constructor(input: {
+        host: string;
+        port: number;
+        features: MonitoringServerFeature[];
+        logger: LoggerBase;
+        metrics: Metrics<TMetrics>;
+    });
+    // (undocumented)
+    static fromConfig<TMetrics extends DefaultMetrics = DefaultMetrics>(input: {
+        userConfig: UserConfig;
+        logger: LoggerBase;
+        metrics: Metrics<TMetrics>;
+    }): MonitoringServer<TMetrics> | undefined;
+    // (undocumented)
+    protected setupRoutes(): Promise<void>;
+}
 
-export { MonitoringServerConfig }
+// @public
+export type MonitoringServerConfig = {
+    monitoringServerHost?: string;
+    monitoringServerPort?: number;
+    healthCheckHost?: string;
+    healthCheckPort?: number;
+    monitoringServerFeatures: MonitoringServerFeature[];
+};
+
+// @public
+export type MonitoringServerConstructorArgs<TMetrics extends DefaultMetrics = DefaultMetrics> = {
+    host: string;
+    port: number;
+    features: MonitoringServerFeature[];
+    logger: LoggerBase;
+    metrics: Metrics<TMetrics>;
+};
 
 export { MonitoringServerFeature }
-
-export { MonitoringServerOptions }
 
 export { NoopLogger }
 
@@ -489,17 +599,79 @@ export interface SessionOptions<TUserConfig extends UserConfig = UserConfig> {
     userConfig: TUserConfig;
 }
 
-export { SessionStore }
+// @public (undocumented)
+export class SessionStore<T extends CloseableTransport = CloseableTransport> implements ISessionStore<T> {
+    constructor(params: {
+        options: {
+            idleTimeoutMS: number;
+            notificationTimeoutMS: number;
+        };
+        logger: LoggerBase;
+        metrics: Metrics<DefaultMetrics>;
+    });
+    // (undocumented)
+    addSession(params: {
+        sessionId: string;
+        transport: T;
+        logger: LoggerBase;
+    }): Promise<void>;
+    // (undocumented)
+    closeAllSessions(): Promise<void>;
+    // (undocumented)
+    closeSession(input: {
+        sessionId: string;
+        reason?: SessionCloseReason;
+    }): Promise<void>;
+    // (undocumented)
+    getSession(sessionId: string): Promise<T | undefined>;
+}
 
-export { SessionStoreConstructorArgs }
+// @public
+export type SessionStoreConstructorArgs<TMetrics extends DefaultMetrics = DefaultMetrics> = {
+    options: {
+        idleTimeoutMS: number;
+        notificationTimeoutMS: number;
+    };
+    logger: LoggerBase;
+    metrics: Metrics<TMetrics>;
+};
 
-export { StdioRunner }
+// @public (undocumented)
+export class StdioRunner<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> extends TransportRunnerBase<TUserConfig, TContext, TMetrics> {
+    constructor(config: TransportRunnerConfig<TUserConfig, TMetrics>);
+    // (undocumented)
+    closeTransport(): Promise<void>;
+    // (undocumented)
+    start(input?: {
+        serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
+        sessionOptions?: CustomizableSessionOptions<TUserConfig>;
+    }): Promise<void>;
+}
 
-export { StreamableHttpRunner }
+// @public (undocumented)
+export class StreamableHttpRunner<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> extends TransportRunnerBase<TUserConfig, TContext, TMetrics> {
+    constructor(config: StreamableHttpTransportRunnerConfig<TUserConfig, TMetrics, TContext>);
+    // (undocumented)
+    closeTransport(): Promise<void>;
+    protected createServerForRequest(input: {
+        request: RequestContext_2;
+        serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
+        sessionOptions?: CustomizableSessionOptions<TUserConfig>;
+    }): Promise<Server<TUserConfig, TContext>>;
+    start(input?: {
+        serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
+        sessionOptions?: CustomizableSessionOptions<TUserConfig>;
+    }): Promise<void>;
+}
 
 export { StreamableHTTPServerTransport }
 
-export { StreamableHttpTransportRunnerConfig }
+// @public
+export type StreamableHttpTransportRunnerConfig<TUserConfig extends UserConfig = UserConfig, TMetrics extends DefaultMetrics = DefaultMetrics, TContext = unknown> = TransportRunnerConfig<TUserConfig, TMetrics> & {
+    createMonitoringServer?: CreateMonitoringServerFn<TMetrics>;
+    createSessionStore?: CreateSessionStoreFn<StreamableHTTPServerTransport, TMetrics>;
+    createMcpHttpServer?: CreateMcpHttpServerFn<TUserConfig, TContext>;
+};
 
 export { TelemetryConfig }
 
@@ -513,9 +685,68 @@ export { ToolExecutionContext }
 
 export { TransportRequestContext }
 
-export { TransportRunnerBase }
+// @public (undocumented)
+export abstract class TransportRunnerBase<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> {
+    protected constructor(input: TransportRunnerConfig<TUserConfig, TMetrics>);
+    // (undocumented)
+    close(): Promise<void>;
+    // (undocumented)
+    abstract closeTransport(): Promise<void>;
+    // @deprecated (undocumented)
+    protected readonly connectionErrorHandler: ConnectionErrorHandler;
+    // Warning: (ae-forgotten-export) The symbol "ApiClientFactoryFn" needs to be exported by the entry point lib.d.ts
+    //
+    // @deprecated (undocumented)
+    protected readonly createApiClient: ApiClientFactoryFn;
+    // @deprecated (undocumented)
+    protected readonly createAtlasLocalClient: AtlasLocalClientFactoryFn;
+    // @deprecated (undocumented)
+    protected readonly createConnectionManager: ConnectionManagerFactoryFn;
+    protected createServer(input?: {
+        userConfig?: TUserConfig;
+        logger?: CompositeLogger;
+        serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
+        sessionOptions?: CustomizableSessionOptions<TUserConfig>;
+    }): Promise<Server<TUserConfig, TContext>>;
+    // @deprecated (undocumented)
+    protected readonly createSessionConfig?: CreateSessionConfigFn<TUserConfig>;
+    // (undocumented)
+    deviceId: DeviceId;
+    // (undocumented)
+    protected static getInstructions(config: UserConfig): string;
+    // (undocumented)
+    logger: CompositeLogger;
+    // (undocumented)
+    metrics: Metrics<TMetrics>;
+    // @deprecated (undocumented)
+    protected setupServer(request?: RequestContext_2, input?: {
+        serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
+    }): Promise<Server<TUserConfig, TContext>>;
+    // (undocumented)
+    abstract start(input: {
+        serverOptions?: ServerOptions<TUserConfig, TContext>;
+        sessionOptions?: SessionOptions<TUserConfig>;
+    }): Promise<void>;
+    // @deprecated (undocumented)
+    protected readonly telemetryProperties: Partial<CommonProperties>;
+    // @deprecated (undocumented)
+    protected readonly tools?: AnyToolClass[];
+    protected readonly userConfig: TUserConfig;
+}
 
-export { TransportRunnerConfig }
+// @public
+export type TransportRunnerConfig<TUserConfig extends UserConfig = UserConfig, TMetrics extends DefaultMetrics = DefaultMetrics> = {
+    userConfig: TUserConfig;
+    createConnectionManager?: ConnectionManagerFactoryFn;
+    connectionErrorHandler?: ConnectionErrorHandler;
+    createAtlasLocalClient?: AtlasLocalClientFactoryFn;
+    loggers?: LoggerBase[];
+    metrics?: Metrics<TMetrics>;
+    telemetryProperties?: Partial<CommonProperties>;
+    tools?: AnyToolClass[];
+    createSessionConfig?: CreateSessionConfigFn<TUserConfig>;
+    createApiClient?: ApiClientFactoryFn;
+};
 
 export { UIRegistry }
 
@@ -672,6 +903,10 @@ export const UserConfigSchema: z.ZodObject<{
     }>]>>;
     browser: z.ZodOptional<z.ZodUnion<readonly [z.ZodLiteral<false>, z.ZodString]>>;
 }, z.core.$strip>;
+
+// Warnings were encountered during analysis:
+//
+// src/common/config/configOverrides.ts:29:5 - (ae-forgotten-export) The symbol "RequestContext_2" needs to be exported by the entry point lib.d.ts
 
 // (No @packageDocumentation comment for this package)
 

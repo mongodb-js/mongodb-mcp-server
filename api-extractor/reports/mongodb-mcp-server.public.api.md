@@ -51,6 +51,12 @@ import { Gauge } from '@mongodb-js/mcp-metrics';
 import { Histogram } from '@mongodb-js/mcp-metrics';
 import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
 import { ISessionStore } from '@mongodb-js/mcp-transports';
+import { JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION } from '@mongodb-js/mcp-transports';
+import { JSON_RPC_ERROR_CODE_INVALID_REQUEST } from '@mongodb-js/mcp-transports';
+import { JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED } from '@mongodb-js/mcp-transports';
+import { JSON_RPC_ERROR_CODE_SESSION_ID_INVALID } from '@mongodb-js/mcp-transports';
+import { JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED } from '@mongodb-js/mcp-transports';
+import { JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND } from '@mongodb-js/mcp-transports';
 import { Keychain } from '@mongodb-js/mcp-core';
 import { LoggerBase } from '@mongodb-js/mcp-core';
 import { LoggerType } from '@mongodb-js/mcp-core';
@@ -270,6 +276,18 @@ export { Gauge }
 export { Histogram }
 
 export { ISessionStore }
+
+export { JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION }
+
+export { JSON_RPC_ERROR_CODE_INVALID_REQUEST }
+
+export { JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED }
+
+export { JSON_RPC_ERROR_CODE_SESSION_ID_INVALID }
+
+export { JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED }
+
+export { JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND }
 
 export { Keychain }
 
