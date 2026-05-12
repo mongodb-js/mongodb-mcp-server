@@ -93,7 +93,7 @@ export class AggregateTool extends MongoDBToolBase {
 }
 
 // @public (undocumented)
-export const AllTools: ToolClass<any, any, any>[];
+export const AllTools: ToolClass<any, any>[];
 
 // @public (undocumented)
 export type AnyConnectionState = ConnectionStateConnected | ConnectionStateConnecting | ConnectionStateDisconnected | ConnectionStateErrored;
@@ -1379,14 +1379,13 @@ export type ToolArgs<T extends ZodRawShape> = {
 // Warning: (ae-forgotten-export) The symbol "DefaultMetricDefinitions" needs to be exported by the entry point index.d.ts
 //
 // @public
-export abstract class ToolBase<TUserConfig extends IToolConfig = IToolConfig, TContext = unknown, TMetricsDefinitions extends MetricDefinitions = DefaultMetricDefinitions> {
-    constructor(input: ToolConstructorParams<TUserConfig, TContext, TMetricsDefinitions>);
+export abstract class ToolBase<TUserConfig extends IToolConfig = IToolConfig, TMetricsDefinitions extends MetricDefinitions = DefaultMetricDefinitions> {
+    constructor(input: ToolConstructorParams<TUserConfig, TMetricsDefinitions>);
     // (undocumented)
     get annotations(): ToolAnnotations;
     abstract argsShape: ZodRawShape;
     readonly category: ToolCategory;
     protected readonly config: TUserConfig;
-    protected readonly context?: TContext;
     abstract description: string;
     // (undocumented)
     disable(): void;
@@ -1433,15 +1432,15 @@ export abstract class ToolBase<TUserConfig extends IToolConfig = IToolConfig, TC
 export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant";
 
 // @public
-export type ToolClass<TUserConfig extends IToolConfig = IToolConfig, TContext = unknown, TMetricsDefinitions extends MetricDefinitions = DefaultMetricDefinitions> = {
-    new (params: ToolConstructorParams<TUserConfig, TContext, TMetricsDefinitions>): ToolBase<TUserConfig, TContext, TMetricsDefinitions>;
+export type ToolClass<TUserConfig extends IToolConfig = IToolConfig, TMetricsDefinitions extends MetricDefinitions = DefaultMetricDefinitions> = {
+    new (params: ToolConstructorParams<TUserConfig, TMetricsDefinitions>): ToolBase<TUserConfig, TMetricsDefinitions>;
     toolName: string;
     category: ToolCategory;
     operationType: OperationType;
 };
 
 // @public
-export type ToolConstructorParams<TUserConfig extends IToolConfig = IToolConfig, TContext = unknown, TMetricsDefinitions extends MetricDefinitions = DefaultMetricDefinitions> = {
+export type ToolConstructorParams<TUserConfig extends IToolConfig = IToolConfig, TMetricsDefinitions extends MetricDefinitions = DefaultMetricDefinitions> = {
     name: string;
     category: ToolCategory;
     operationType: OperationType;
@@ -1451,7 +1450,6 @@ export type ToolConstructorParams<TUserConfig extends IToolConfig = IToolConfig,
     elicitation: IElicitation;
     metrics: IMetrics<TMetricsDefinitions>;
     uiRegistry?: IUIRegistry;
-    context?: TContext;
 };
 
 // @public (undocumented)
@@ -1519,7 +1517,7 @@ export * from "@mongodb-js/mcp-tools-atlas-local";
 
 // Warnings were encountered during analysis:
 //
-// packages/core/src/toolBase.ts:142:5 - (ae-forgotten-export) The symbol "IUIRegistry" needs to be exported by the entry point index.d.ts
+// packages/core/src/toolBase.ts:141:5 - (ae-forgotten-export) The symbol "IUIRegistry" needs to be exported by the entry point index.d.ts
 // packages/tools-mongodb/src/common/connectionManager.ts:538:5 - (ae-forgotten-export) The symbol "LoggerBase" needs to be exported by the entry point index.d.ts
 // packages/tools-mongodb/src/common/connectionManager.ts:540:5 - (ae-forgotten-export) The symbol "ConnectionManagerOptions" needs to be exported by the entry point index.d.ts
 // packages/tools-mongodb/src/helpers/assertVectorSearchFilterFieldsAreIndexed.ts:43:5 - (ae-forgotten-export) The symbol "ICompositeLogger" needs to be exported by the entry point index.d.ts

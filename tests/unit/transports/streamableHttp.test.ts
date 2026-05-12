@@ -12,12 +12,12 @@ import { NoopLogger, CompositeLogger, type LoggerBase } from "@mongodb-js/mcp-co
 import { MockMetrics } from "../mocks/metrics.js";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { UserConfig } from "../../../src/common/config/userConfig.js";
-import type { IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
+import type { IMetrics, DefaultMetricDefinitions, ICompositeLogger } from "@mongodb-js/mcp-types";
 
 type TestServer = {
     connect(transport: StreamableHTTPServerTransport): Promise<void>;
     close(): Promise<void>;
-    session?: { logger: { setAttribute(key: string, value: string): void } };
+    session?: { logger: ICompositeLogger };
 };
 
 // Helper type for metrics casting
@@ -31,7 +31,7 @@ class TestMCPHttpServer extends MCPHttpServer<TestServer> {
         return Promise.resolve({
             connect: vi.fn(),
             close: vi.fn().mockResolvedValue(undefined),
-            session: { logger: { setAttribute: vi.fn() } },
+            session: { logger: { setAttribute: vi.fn() } as unknown as ICompositeLogger },
         });
     }
 }

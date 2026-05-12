@@ -2,10 +2,10 @@ import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/se
 import type { MetricDefinitions, DefaultMetricDefinitions, ISessionStore, IMetrics } from "@mongodb-js/mcp-types";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import { LogId, TransportRunnerBase } from "@mongodb-js/mcp-core";
-import { MCPHttpServer } from "./mcpHttpServer.js";
+import { MCPHttpServer, type SessionAwareServer } from "./mcpHttpServer.js";
 import { MonitoringServer } from "./monitoringServer.js";
 
-export { MonitoringServer, MCPHttpServer };
+export { MonitoringServer, MCPHttpServer, type SessionAwareServer };
 
 /**
  * Options for StreamableHttpRunner.
@@ -27,15 +27,7 @@ export type StreamableHttpRunnerOptions<TMetrics extends MetricDefinitions = Def
  * the `createServerForRequest()` method.
  */
 export class StreamableHttpRunner<
-    TServer extends {
-        connect(transport: StreamableHTTPServerTransport): Promise<void>;
-        close(): Promise<void>;
-        session?: { logger: { setAttribute(key: string, value: string): void } };
-    } = {
-        connect(transport: StreamableHTTPServerTransport): Promise<void>;
-        close(): Promise<void>;
-        session?: { logger: { setAttribute(key: string, value: string): void } };
-    },
+    TServer extends SessionAwareServer = SessionAwareServer,
     TMetrics extends MetricDefinitions = DefaultMetricDefinitions,
 > extends TransportRunnerBase<TMetrics> {
     protected mcpHttpServer: MCPHttpServer<TServer, TMetrics>;

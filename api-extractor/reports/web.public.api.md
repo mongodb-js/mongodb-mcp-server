@@ -30,10 +30,10 @@ import type { ZodRawShape } from 'zod';
 export type AnyConnectionState = ConnectionStateConnected | ConnectionStateConnecting | ConnectionStateDisconnected | ConnectionStateErrored;
 
 // @public (undocumented)
-export type AnyToolBase = ToolBase<any, any, any>;
+export type AnyToolBase = ToolBase<any, any>;
 
 // @public (undocumented)
-export type AnyToolClass = ToolClass<any, any, any>;
+export type AnyToolClass = ToolClass<any, any>;
 
 // Warning: (ae-forgotten-export) The symbol "IApiClient" needs to be exported by the entry point web.d.ts
 //
@@ -510,8 +510,7 @@ export interface Credentials {
 }
 
 // @public
-export type CustomizableServerOptions<TContext = unknown> = {
-    toolContext?: TContext;
+export type CustomizableServerOptions = {
     telemetryProperties?: Record<string, string>;
 };
 
@@ -785,9 +784,11 @@ export type RequestContext = {
 
 export { Secret }
 
+// Warning: (ae-forgotten-export) The symbol "DefaultMetricDefinitions" needs to be exported by the entry point web.d.ts
+//
 // @public (undocumented)
-export class Server<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultPrometheusMetricDefinitions = DefaultPrometheusMetricDefinitions> {
-    constructor(input: ServerOptions<TUserConfig, TContext, TMetrics>);
+export class Server<TUserConfig extends UserConfig = UserConfig, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
+    constructor(input: ServerOptions<TUserConfig, TMetrics>);
     // (undocumented)
     close(): Promise<void>;
     // (undocumented)
@@ -817,8 +818,6 @@ export class Server<TUserConfig extends UserConfig = UserConfig, TContext = unkn
     // (undocumented)
     readonly session: Session;
     // (undocumented)
-    readonly toolContext?: TContext;
-    // (undocumented)
     readonly tools: AnyToolBase[];
     // (undocumented)
     readonly uiRegistry?: UIRegistry;
@@ -827,7 +826,7 @@ export class Server<TUserConfig extends UserConfig = UserConfig, TContext = unkn
 }
 
 // @public (undocumented)
-export interface ServerOptions<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultPrometheusMetricDefinitions = DefaultPrometheusMetricDefinitions> {
+export interface ServerOptions<TUserConfig extends UserConfig = UserConfig, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
     // @deprecated (undocumented)
     connectionErrorHandler: ConnectionErrorHandler;
     // (undocumented)
@@ -841,7 +840,6 @@ export interface ServerOptions<TUserConfig extends UserConfig = UserConfig, TCon
     session: Session;
     // (undocumented)
     telemetry: Telemetry;
-    toolContext?: TContext;
     tools?: AnyToolClass[];
     // (undocumented)
     uiRegistry?: UIRegistry;
@@ -998,17 +996,15 @@ export type ToolArgs<T extends ZodRawShape> = {
 };
 
 // Warning: (ae-forgotten-export) The symbol "IToolConfig" needs to be exported by the entry point web.d.ts
-// Warning: (ae-forgotten-export) The symbol "DefaultMetricDefinitions" needs to be exported by the entry point web.d.ts
 //
 // @public
-export abstract class ToolBase<TUserConfig extends IToolConfig = IToolConfig, TContext = unknown, TMetricsDefinitions extends MetricDefinitions = DefaultMetricDefinitions> {
-    constructor(input: ToolConstructorParams<TUserConfig, TContext, TMetricsDefinitions>);
+export abstract class ToolBase<TUserConfig extends IToolConfig = IToolConfig, TMetricsDefinitions extends MetricDefinitions = DefaultMetricDefinitions> {
+    constructor(input: ToolConstructorParams<TUserConfig, TMetricsDefinitions>);
     // (undocumented)
     get annotations(): ToolAnnotations;
     abstract argsShape: ZodRawShape;
     readonly category: ToolCategory;
     protected readonly config: TUserConfig;
-    protected readonly context?: TContext;
     abstract description: string;
     // (undocumented)
     disable(): void;
@@ -1056,15 +1052,15 @@ export abstract class ToolBase<TUserConfig extends IToolConfig = IToolConfig, TC
 export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant";
 
 // @public
-export type ToolClass<TUserConfig extends IToolConfig = IToolConfig, TContext = unknown, TMetricsDefinitions extends MetricDefinitions = DefaultMetricDefinitions> = {
-    new (params: ToolConstructorParams<TUserConfig, TContext, TMetricsDefinitions>): ToolBase<TUserConfig, TContext, TMetricsDefinitions>;
+export type ToolClass<TUserConfig extends IToolConfig = IToolConfig, TMetricsDefinitions extends MetricDefinitions = DefaultMetricDefinitions> = {
+    new (params: ToolConstructorParams<TUserConfig, TMetricsDefinitions>): ToolBase<TUserConfig, TMetricsDefinitions>;
     toolName: string;
     category: ToolCategory;
     operationType: OperationType;
 };
 
 // @public
-export type ToolConstructorParams<TUserConfig extends IToolConfig = IToolConfig, TContext = unknown, TMetricsDefinitions extends MetricDefinitions = DefaultMetricDefinitions> = {
+export type ToolConstructorParams<TUserConfig extends IToolConfig = IToolConfig, TMetricsDefinitions extends MetricDefinitions = DefaultMetricDefinitions> = {
     name: string;
     category: ToolCategory;
     operationType: OperationType;
@@ -1074,7 +1070,6 @@ export type ToolConstructorParams<TUserConfig extends IToolConfig = IToolConfig,
     elicitation: IElicitation;
     metrics: IMetrics<TMetricsDefinitions>;
     uiRegistry?: IUIRegistry;
-    context?: TContext;
 };
 
 // @public (undocumented)
@@ -1094,9 +1089,9 @@ export { TransportRequestContext }
 export { TransportRequestContext as TransportRequestContextDeprecated }
 
 // @public
-export abstract class TransportRunnerBase<TContext = unknown, TMetrics extends MetricDefinitions = DefaultMetricDefinitions> {
+export abstract class TransportRunnerBase<TMetrics extends MetricDefinitions = DefaultMetricDefinitions> {
     protected constructor(input: {
-        loggers?: LoggerBase[];
+        logger: CompositeLogger;
         metrics: IMetrics<TMetrics>;
     });
     close(): Promise<void>;
@@ -1105,7 +1100,7 @@ export abstract class TransportRunnerBase<TContext = unknown, TMetrics extends M
     // (undocumented)
     metrics: IMetrics<TMetrics>;
     abstract start(input: {
-        serverOptions?: CustomizableServerOptions<TContext>;
+        serverOptions?: CustomizableServerOptions;
         sessionOptions?: CustomizableSessionOptions;
     }): Promise<void>;
     abstract stop(): Promise<void>;
@@ -1113,8 +1108,8 @@ export abstract class TransportRunnerBase<TContext = unknown, TMetrics extends M
 
 // @public
 export type TransportRunnerConfig<TMetrics extends MetricDefinitions = DefaultMetricDefinitions> = {
+    logger: CompositeLogger;
     metrics: IMetrics<TMetrics>;
-    loggers?: LoggerBase[];
 };
 
 // @public
@@ -1289,7 +1284,7 @@ export const UserConfigSchema: z.ZodObject<{
 // Warnings were encountered during analysis:
 //
 // packages/core/src/logging/compositeLogger.ts:17:49 - (ae-forgotten-export) The symbol "IKeychain" needs to be exported by the entry point web.d.ts
-// packages/core/src/toolBase.ts:142:5 - (ae-forgotten-export) The symbol "IUIRegistry" needs to be exported by the entry point web.d.ts
+// packages/core/src/toolBase.ts:141:5 - (ae-forgotten-export) The symbol "IUIRegistry" needs to be exported by the entry point web.d.ts
 // packages/tools-mongodb/src/common/connectionManager.ts:540:5 - (ae-forgotten-export) The symbol "ConnectionManagerOptions" needs to be exported by the entry point web.d.ts
 // packages/types/src/logging.ts:34:5 - (ae-forgotten-export) The symbol "MongoLogId" needs to be exported by the entry point web.d.ts
 

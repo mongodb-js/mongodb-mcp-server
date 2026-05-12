@@ -174,6 +174,7 @@ function createConfigModifyingRunner(
     });
 
     const runner = new StreamableHttpRunner<Server>({
+        logger,
         metrics: metrics,
         mcpHttpServer,
         sessionStore,

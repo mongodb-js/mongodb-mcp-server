@@ -2,7 +2,6 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import express from "express";
 import type {
-    ILogger,
     ICompositeLogger,
     IMetrics,
     MetricDefinitions,
@@ -24,6 +23,16 @@ import {
     getRandomUUID,
 } from "@mongodb-js/mcp-core";
 import { ExpressBasedHttpServer } from "./expressBasedHttpServer.js";
+
+/**
+ * Minimum server interface required by MCPHttpServer.
+ * Servers must have connect/close methods and a session with a logger for HTTP transport functionality.
+ */
+export type SessionAwareServer = {
+    connect(transport: StreamableHTTPServerTransport): Promise<void>;
+    close(): Promise<void>;
+    session?: { logger: ICompositeLogger };
+};
 
 /**
  * Options for creating an MCPHttpServer instance.
@@ -57,7 +66,7 @@ export type MCPHttpServerOptions<TMetrics extends MetricDefinitions = DefaultMet
  * ```
  */
 export abstract class MCPHttpServer<
-    TServer = unknown,
+    TServer extends SessionAwareServer = SessionAwareServer,
     TMetrics extends MetricDefinitions = DefaultMetricDefinitions,
 > extends ExpressBasedHttpServer {
     private readonly sessionStore: ISessionStore<StreamableHTTPServerTransport>;
@@ -122,10 +131,7 @@ export abstract class MCPHttpServer<
         });
     }
 
-    private startKeepAliveLoop(
-        transport: StreamableHTTPServerTransport,
-        server: TServer & { session?: { logger: ILogger } }
-    ): NodeJS.Timeout | undefined {
+    private startKeepAliveLoop(transport: StreamableHTTPServerTransport, server: TServer): NodeJS.Timeout | undefined {
         if (this.httpOptions.responseType === "json") {
             return undefined;
         }
@@ -258,18 +264,13 @@ export abstract class MCPHttpServer<
                 internalTransport.sessionId = sessionId;
             }
 
-            const serverWithLogger = server as { session?: { logger: ICompositeLogger } };
-            serverWithLogger.session?.logger.setAttribute("sessionId", sessionId);
+            server.session?.logger.setAttribute("sessionId", sessionId);
 
-            const keepAliveLoop = this.startKeepAliveLoop(
-                transport,
-                server as TServer & { session?: { logger: ILogger } }
-            );
+            const keepAliveLoop = this.startKeepAliveLoop(transport, server);
             transport.onclose = (): void => {
                 clearInterval(keepAliveLoop);
 
-                const serverWithClose = server as { close(): Promise<void> };
-                serverWithClose.close?.().catch((error: unknown) => {
+                server.close().catch((error: unknown) => {
                     this.logger.error({
                         id: LogId.streamableHttpTransportCloseFailure,
                         context: "streamableHttpTransport",
@@ -278,13 +279,12 @@ export abstract class MCPHttpServer<
                 });
             };
 
-            const serverWithConnect = server as { connect(transport: StreamableHTTPServerTransport): Promise<void> };
-            await serverWithConnect.connect(transport);
+            await server.connect(transport);
 
             await this.sessionStore.addSession({
                 sessionId,
                 transport,
-                logger: serverWithLogger.session?.logger ?? this.logger,
+                logger: server.session?.logger ?? this.logger,
             });
         })();
 
