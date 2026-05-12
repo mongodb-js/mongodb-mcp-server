@@ -9,8 +9,8 @@ import { EJSON } from "bson";
 import { collectCursorUntilMaxBytesLimit } from "../../helpers/collectCursorUntilMaxBytes.js";
 import { operationWithFallback } from "../../helpers/operationWithFallback.js";
 import { ONE_MB, CURSOR_LIMITS_TO_LLM_TEXT } from "../../helpers/constants.js";
+import { LogId } from "@mongodb-js/mcp-core";
 import { zEJSON } from "../../args.js";
-import { LogId } from "@mongodb-js/mcp-logging";
 import { SortDirectionSchema } from "../../mongodbSchemas.js";
 
 export const FindArgs = {

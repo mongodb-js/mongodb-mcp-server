@@ -1,13 +1,19 @@
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { MetricDefinitions } from "@mongodb-js/mcp-types";
-import { LogId, TransportRunnerBase } from "@mongodb-js/mcp-core";
-import type { StdioRunnerOptions, CustomizableServerOptions, CustomizableSessionOptions } from "./types.js";
+import {
+    LogId,
+    TransportRunnerBase,
+    type CustomizableServerOptions,
+    type CustomizableSessionOptions,
+    type TransportRunnerBaseOptions,
+} from "@mongodb-js/mcp-core";
 
 /**
  * Transport runner for stdio (standard input/output) transport.
  * This is the default transport for MCP servers.
  *
- * To customize server creation, extend this class and override the `createServer()` method:
+ * To customize server creation, either provide a createServer callback in options
+ * or extend this class and override the `createServer()` method:
  *
  * @example
  * ```typescript
@@ -32,11 +38,23 @@ export class StdioRunner<
     TMetrics extends MetricDefinitions = MetricDefinitions,
 > extends TransportRunnerBase<TServer, TContext, TMetrics> {
     private server: TServer | undefined;
-    private serverFactory?: StdioRunnerOptions<TMetrics>["createServer"];
+    private createServerCallback?: (options: {
+        serverOptions?: CustomizableServerOptions<TContext>;
+        sessionOptions?: CustomizableSessionOptions;
+    }) => Promise<TServer>;
 
-    constructor({ loggers, metrics, createServer }: StdioRunnerOptions<TMetrics>) {
+    constructor({
+        loggers,
+        metrics,
+        createServer,
+    }: TransportRunnerBaseOptions<TMetrics> & {
+        createServer?: (options: {
+            serverOptions?: CustomizableServerOptions<TContext>;
+            sessionOptions?: CustomizableSessionOptions;
+        }) => Promise<TServer>;
+    }) {
         super({ loggers, metrics });
-        this.serverFactory = createServer;
+        this.createServerCallback = createServer;
     }
 
     async start({
@@ -70,7 +88,7 @@ export class StdioRunner<
 
     /**
      * Creates the server instance.
-     * Uses the serverFactory if provided, otherwise must be overridden by subclasses.
+     * Uses the createServer callback if provided, otherwise must be overridden by subclasses.
      */
     protected async createServer({
         serverOptions,
@@ -79,8 +97,8 @@ export class StdioRunner<
         serverOptions?: CustomizableServerOptions<TContext>;
         sessionOptions?: CustomizableSessionOptions;
     }): Promise<TServer> {
-        if (this.serverFactory) {
-            return this.serverFactory({ serverOptions, sessionOptions }) as Promise<TServer>;
+        if (this.createServerCallback) {
+            return this.createServerCallback({ serverOptions, sessionOptions });
         }
         throw new Error("Either provide createServer option or extend StdioRunner and override createServer() method");
     }

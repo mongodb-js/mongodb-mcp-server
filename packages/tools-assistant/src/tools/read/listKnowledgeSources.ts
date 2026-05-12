@@ -1,8 +1,8 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolCategory } from "@mongodb-js/mcp-core";
+import { LogId } from "@mongodb-js/mcp-core";
 import { AssistantToolBase } from "../../assistantTool.js";
-import { LogId } from "@mongodb-js/mcp-logging";
 import { stringify as yamlStringify } from "yaml";
 
 export type KnowledgeSource = {

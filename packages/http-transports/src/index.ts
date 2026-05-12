@@ -1,5 +1,4 @@
-// Node.js-specific types
-export type { StdioRunnerOptions, DryRunModeRunnerOptions, ServerFactory, StdioServer, DryRunServer } from "./types.js";
+export type { TransportRunnerBaseOptions } from "@mongodb-js/mcp-core";
 
 export type { StreamableHttpRunnerOptions } from "./streamableHttp.js";
 

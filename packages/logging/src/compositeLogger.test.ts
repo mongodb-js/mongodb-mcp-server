@@ -1,9 +1,8 @@
 import type { MockInstance } from "vitest";
 import { describe, beforeEach, afterEach, vi, it, expect } from "vitest";
 import type { LogLevel, McpServer } from "@mongodb-js/mcp-types";
-import { CompositeLogger } from "@mongodb-js/mcp-core";
+import { CompositeLogger, LogId } from "@mongodb-js/mcp-core";
 import { ConsoleLogger } from "./consoleLogger.js";
-import { LogId } from "./logId.js";
 import { McpLogger } from "./mcpLogger.js";
 import { Keychain } from "@mongodb-js/mcp-core";
 

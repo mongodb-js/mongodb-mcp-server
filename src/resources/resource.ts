@@ -3,8 +3,8 @@ import type { Session } from "../common/session.js";
 import type { UserConfig } from "../common/config/userConfig.js";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { SessionEvents } from "../common/session.js";
+import { LogId } from "@mongodb-js/mcp-core";
 import type { ReadResourceCallback, ResourceMetadata } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { LogId } from "@mongodb-js/mcp-logging";
 
 type PayloadOf<K extends keyof SessionEvents> = SessionEvents[K][0];
 

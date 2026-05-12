@@ -22,7 +22,6 @@
   "dependencies": {
     "@mongodb-js/devtools-proxy-support": "^0.7.8",
     "@mongodb-js/mcp-core": "workspace:*",
-    "@mongodb-js/mcp-logging": "workspace:*",
     "@mongodb-js/mcp-types": "workspace:*",
     "yaml": "^2.8.1",
     "zod": "^4.0.0"

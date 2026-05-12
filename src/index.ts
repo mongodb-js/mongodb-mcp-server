@@ -37,8 +37,9 @@ function enableFipsIfRequested(): void {
 enableFipsIfRequested();
 
 import crypto from "crypto";
-import { Keychain, CompositeLogger } from "@mongodb-js/mcp-core";
-import { ConsoleLogger, DiskLogger, LogId } from "@mongodb-js/mcp-logging";
+import { Keychain, CompositeLogger, type LoggerBase } from "@mongodb-js/mcp-core";
+import { ConsoleLogger, DiskLogger } from "@mongodb-js/mcp-logging";
+import { LogId } from "@mongodb-js/mcp-core";
 import { MongoLogManager } from "mongodb-log-writer";
 import * as fs from "fs/promises";
 import { parseUserConfig } from "./common/config/parseUserConfig.js";
@@ -65,6 +66,40 @@ import { Keychain as CoreKeychain } from "@mongodb-js/mcp-core";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import type { HttpServerConfig, SessionManagementConfig } from "@mongodb-js/mcp-types";
+
+/**
+ * Concrete StdioRunner implementation that creates Server instances.
+ */
+class MongoDBStdioRunner extends StdioRunner<Server> {
+    private userConfig: UserConfig;
+    private baseLogger: CompositeLogger;
+    private serverMetrics: PrometheusMetrics<DefaultMetrics>;
+
+    constructor({
+        loggers,
+        metrics,
+        userConfig,
+        baseLogger,
+    }: {
+        loggers: LoggerBase[];
+        metrics: PrometheusMetrics<DefaultMetrics>;
+        userConfig: UserConfig;
+        baseLogger: CompositeLogger;
+    }) {
+        super({ loggers, metrics: metrics as IMetrics<MetricDefinitions> });
+        this.userConfig = userConfig;
+        this.baseLogger = baseLogger;
+        this.serverMetrics = metrics;
+    }
+
+    protected override async createServer(): Promise<Server> {
+        return createServerForConfig({
+            config: this.userConfig,
+            logger: this.baseLogger,
+            metrics: this.serverMetrics,
+        });
+    }
+}
 
 /**
  * Concrete MCPHttpServer implementation that creates Server instances for each session.
@@ -150,18 +185,17 @@ async function main(): Promise<void> {
     const loggers = await createDefaultLoggers(config);
     const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
 
-    let transportRunner: StdioRunner<Server> | StreamableHttpRunner<Server>;
+    let transportRunner: MongoDBStdioRunner | StreamableHttpRunner<Server>;
 
     // Ensure we have at least one logger (wrapped in CompositeLogger)
     const baseLogger = loggers[0] ?? new CompositeLogger({ loggers: [new ConsoleLogger({ keychain: Keychain.root })] });
 
     if (config.transport === "stdio") {
-        transportRunner = new StdioRunner({
+        transportRunner = new MongoDBStdioRunner({
             loggers,
-            metrics: metrics as IMetrics<MetricDefinitions>,
-            createServer: async (): Promise<Server> => {
-                return createServerForConfig({ config, logger: baseLogger, metrics });
-            },
+            metrics,
+            userConfig: config,
+            baseLogger,
         });
     } else {
         const sessionStore = new SessionStore<StreamableHTTPServerTransport>({
@@ -386,21 +420,15 @@ async function createServerForConfig({ config, logger, metrics }: CreateServerOp
         },
     });
 
-    let apiClient: ApiClient | undefined;
-    // Check if credentials are available (apiClientId/apiClientSecret for API auth)
-    const clientId = config.apiClientId;
-    const clientSecret = config.apiClientSecret;
-    if (clientId && clientSecret) {
-        apiClient = new ApiClient({
-            baseUrl: config.apiBaseUrl,
-            userAgent: `mongodb-mcp-server/${packageInfo.version}`,
-            logger,
-            credentials: {
-                clientId,
-                clientSecret,
-            },
-        });
-    }
+    const apiClient = new ApiClient({
+        baseUrl: config.apiBaseUrl,
+        userAgent: `mongodb-mcp-server/${packageInfo.version}`,
+        logger,
+        credentials: {
+            clientId: config.apiClientId,
+            clientSecret: config.apiClientSecret,
+        },
+    });
 
     const atlasLocalClient = await createAtlasLocalClient({
         logger,
@@ -419,10 +447,6 @@ async function createServerForConfig({ config, logger, metrics }: CreateServerOp
     });
 
     const elicitation = new Elicitation({ server: mcpServer.server });
-
-    if (!apiClient) {
-        throw new Error("API client is required but not available. Please provide clientId and clientSecret.");
-    }
 
     const session = new Session({
         userConfig: config,

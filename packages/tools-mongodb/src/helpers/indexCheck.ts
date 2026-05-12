@@ -1,7 +1,7 @@
 import type { Document } from "mongodb";
 import { ErrorCodes, MongoDBError } from "../common/errors.js";
+import { LogId } from "@mongodb-js/mcp-core";
 import type { ICompositeLogger } from "@mongodb-js/mcp-types";
-import { LogId } from "@mongodb-js/mcp-logging";
 
 /**
  * Check if the query plan uses an index

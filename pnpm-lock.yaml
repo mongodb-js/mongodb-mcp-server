@@ -288,9 +288,6 @@ importers:
       "@mongodb-js/mcp-core":
         specifier: workspace:*
         version: link:../core
-      "@mongodb-js/mcp-logging":
-        specifier: workspace:*
-        version: link:../logging
       "@mongodb-js/mcp-types":
         specifier: workspace:*
         version: link:../types
@@ -319,9 +316,6 @@ importers:
       "@mongodb-js/mcp-core":
         specifier: workspace:*
         version: link:../core
-      "@mongodb-js/mcp-logging":
-        specifier: workspace:*
-        version: link:../logging
       "@mongodb-js/mcp-types":
         specifier: workspace:*
         version: link:../types
@@ -484,9 +478,6 @@ importers:
       "@mongodb-js/mcp-core":
         specifier: workspace:*
         version: link:../core
-      "@mongodb-js/mcp-logging":
-        specifier: workspace:*
-        version: link:../logging
       "@mongodb-js/mcp-types":
         specifier: workspace:*
         version: link:../types
@@ -521,9 +512,6 @@ importers:
       "@mongodb-js/mcp-core":
         specifier: workspace:*
         version: link:../core
-      "@mongodb-js/mcp-logging":
-        specifier: workspace:*
-        version: link:../logging
       "@mongodb-js/mcp-types":
         specifier: workspace:*
         version: link:../types
@@ -552,9 +540,6 @@ importers:
       "@mongodb-js/mcp-core":
         specifier: workspace:*
         version: link:../core
-      "@mongodb-js/mcp-logging":
-        specifier: workspace:*
-        version: link:../logging
       "@mongodb-js/mcp-types":
         specifier: workspace:*
         version: link:../types

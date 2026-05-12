@@ -6,7 +6,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 import { type LoggerBase, CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
-import { LogId } from "@mongodb-js/mcp-logging";
+import { LogId } from "@mongodb-js/mcp-core";
 import { defaultTestConfig, InMemoryLogger, timeout } from "../helpers.js";
 import { type UserConfig } from "../../../src/common/config/userConfig.js";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
