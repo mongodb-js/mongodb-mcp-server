@@ -15,4 +15,4 @@ export {
 } from "./monitoringServer.js";
 
 // Express HTTP Server base
-export { ExpressBasedHttpServer, type ExpressConfig } from "./expressBasedHttpServer.js";
+export { ExpressBasedHttpServer, type ExpressBasedHttpServerOptions } from "./expressBasedHttpServer.js";

@@ -13,10 +13,13 @@ import { ExpressBasedHttpServer } from "./expressBasedHttpServer.js";
  * Options for configuring MonitoringServer (not including dependencies).
  */
 export type MonitoringServerOptions = {
-    /** Host to bind the monitoring server to */
-    host: string;
-    /** Port to bind the monitoring server to */
-    port: number;
+    /** HTTP configuration */
+    http: {
+        /** Host to bind the monitoring server to */
+        host: string;
+        /** Port to bind the monitoring server to */
+        port: number;
+    };
     /** Features to enable on the monitoring server */
     features: MonitoringServerFeature[];
 };
@@ -62,7 +65,13 @@ export class MonitoringServer<
     private readonly metrics: IMetrics<TMetrics>;
 
     constructor({ options, logger, metrics }: MonitoringServerConstructorParams<TMetrics>) {
-        super({ port: options.port, hostname: options.host, logger, logContext: "monitoringServer" });
+        super({
+            options: {
+                logContext: "monitoringServer",
+                http: { port: options.http.port, host: options.http.host },
+            },
+            logger,
+        });
         this.features = options.features;
         this.metrics = metrics;
     }

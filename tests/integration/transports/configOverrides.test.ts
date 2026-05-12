@@ -38,20 +38,21 @@ class ConfigOverrideMCPHttpServer extends MCPHttpServer<Server> {
 
     constructor({
         baseConfig,
-        httpOptions,
-        sessionOptions,
+        options,
         logger,
         metrics,
         sessionStore,
     }: {
         baseConfig: UserConfig;
-        httpOptions: HttpServerOptions;
-        sessionOptions: SessionManagementOptions;
+        options: {
+            http: HttpServerOptions;
+            session: SessionManagementOptions;
+        };
         logger: CompositeLogger;
         metrics: IMetrics<DefaultMetricDefinitions>;
         sessionStore: SessionStore<StreamableHTTPServerTransport>;
     }) {
-        super({ httpOptions, sessionOptions, logger, metrics, sessionStore });
+        super({ options, logger, metrics, sessionStore });
         this.baseConfig = baseConfig;
     }
 
@@ -158,15 +159,17 @@ function createConfigOverrideRunner(baseConfig: UserConfig): Promise<{
 
     const mcpHttpServer = new ConfigOverrideMCPHttpServer({
         baseConfig,
-        httpOptions: {
-            host: baseConfig.httpHost,
-            port: baseConfig.httpPort,
-            responseType: baseConfig.httpResponseType,
-        },
-        sessionOptions: {
-            idleTimeoutMs: baseConfig.idleTimeoutMs,
-            notificationTimeoutMs: baseConfig.notificationTimeoutMs,
-            externallyManagedSessions: baseConfig.externallyManagedSessions,
+        options: {
+            http: {
+                host: baseConfig.httpHost,
+                port: baseConfig.httpPort,
+                responseType: baseConfig.httpResponseType,
+            },
+            session: {
+                idleTimeoutMs: baseConfig.idleTimeoutMs,
+                notificationTimeoutMs: baseConfig.notificationTimeoutMs,
+                externallyManagedSessions: baseConfig.externallyManagedSessions,
+            },
         },
         logger,
         metrics: metrics,

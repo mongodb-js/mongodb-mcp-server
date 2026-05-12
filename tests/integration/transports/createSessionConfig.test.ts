@@ -107,21 +107,22 @@ class ConfigModifyingMCPHttpServer extends MCPHttpServer<Server> {
     constructor({
         baseConfig,
         configModifier,
-        httpOptions,
-        sessionOptions,
+        options,
         logger,
         metrics,
         sessionStore,
     }: {
         baseConfig: UserConfig;
         configModifier: (config: UserConfig) => Promise<UserConfig>;
-        httpOptions: HttpServerOptions;
-        sessionOptions: SessionManagementOptions;
+        options: {
+            http: HttpServerOptions;
+            session: SessionManagementOptions;
+        };
         logger: CompositeLogger;
         metrics: IMetrics<DefaultMetricDefinitions>;
         sessionStore: SessionStore<StreamableHTTPServerTransport>;
     }) {
-        super({ httpOptions, sessionOptions, logger, metrics, sessionStore });
+        super({ options, logger, metrics, sessionStore });
         this.baseConfig = baseConfig;
         this.configModifier = configModifier;
     }
@@ -155,15 +156,17 @@ function createConfigModifyingRunner(
     const mcpHttpServer = new ConfigModifyingMCPHttpServer({
         baseConfig,
         configModifier,
-        httpOptions: {
-            host: baseConfig.httpHost,
-            port: baseConfig.httpPort,
-            responseType: baseConfig.httpResponseType,
-        },
-        sessionOptions: {
-            idleTimeoutMs: baseConfig.idleTimeoutMs,
-            notificationTimeoutMs: baseConfig.notificationTimeoutMs,
-            externallyManagedSessions: baseConfig.externallyManagedSessions,
+        options: {
+            http: {
+                host: baseConfig.httpHost,
+                port: baseConfig.httpPort,
+                responseType: baseConfig.httpResponseType,
+            },
+            session: {
+                idleTimeoutMs: baseConfig.idleTimeoutMs,
+                notificationTimeoutMs: baseConfig.notificationTimeoutMs,
+                externallyManagedSessions: baseConfig.externallyManagedSessions,
+            },
         },
         logger,
         metrics: metrics,

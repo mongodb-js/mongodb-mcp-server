@@ -19,8 +19,10 @@ describe("MonitoringServer", () => {
         it("starts the server and makes it reachable", async () => {
             server = new MonitoringServer({
                 options: {
-                    host: "127.0.0.1",
-                    port: 0,
+                    http: {
+                        host: "127.0.0.1",
+                        port: 0,
+                    },
                     features: ["health-check"],
                 },
                 logger,
@@ -40,8 +42,10 @@ describe("MonitoringServer", () => {
         it("exposes health endpoint when health-check feature is enabled", async () => {
             server = new MonitoringServer({
                 options: {
-                    host: "127.0.0.1",
-                    port: 0,
+                    http: {
+                        host: "127.0.0.1",
+                        port: 0,
+                    },
                     features: ["health-check"],
                 },
                 logger,
@@ -60,8 +64,10 @@ describe("MonitoringServer", () => {
         it("does not expose health endpoint when health-check feature is disabled", async () => {
             server = new MonitoringServer({
                 options: {
-                    host: "127.0.0.1",
-                    port: 0,
+                    http: {
+                        host: "127.0.0.1",
+                        port: 0,
+                    },
                     features: ["metrics"], // Only metrics, no health-check
                 },
                 logger,
@@ -77,8 +83,10 @@ describe("MonitoringServer", () => {
         it("exposes metrics endpoint when metrics feature is enabled", async () => {
             server = new MonitoringServer({
                 options: {
-                    host: "127.0.0.1",
-                    port: 0,
+                    http: {
+                        host: "127.0.0.1",
+                        port: 0,
+                    },
                     features: ["metrics"],
                 },
                 logger,
@@ -99,8 +107,10 @@ describe("MonitoringServer", () => {
         it("does not expose metrics endpoint when metrics feature is disabled", async () => {
             server = new MonitoringServer({
                 options: {
-                    host: "127.0.0.1",
-                    port: 0,
+                    http: {
+                        host: "127.0.0.1",
+                        port: 0,
+                    },
                     features: ["health-check"], // Only health-check, no metrics
                 },
                 logger,
@@ -118,8 +128,10 @@ describe("MonitoringServer", () => {
         it("stops the server gracefully", async () => {
             const localServer = new MonitoringServer({
                 options: {
-                    host: "127.0.0.1",
-                    port: 0,
+                    http: {
+                        host: "127.0.0.1",
+                        port: 0,
+                    },
                     features: ["health-check"],
                 },
                 logger,
@@ -143,8 +155,10 @@ describe("MonitoringServer", () => {
         it("calling stop multiple times throws on second call", async () => {
             const localServer = new MonitoringServer({
                 options: {
-                    host: "127.0.0.1",
-                    port: 0,
+                    http: {
+                        host: "127.0.0.1",
+                        port: 0,
+                    },
                     features: ["health-check"],
                 },
                 logger,
@@ -161,8 +175,10 @@ describe("MonitoringServer", () => {
         it("is safe to call stop when server was never started", async () => {
             const localServer = new MonitoringServer({
                 options: {
-                    host: "127.0.0.1",
-                    port: 0,
+                    http: {
+                        host: "127.0.0.1",
+                        port: 0,
+                    },
                     features: ["health-check"],
                 },
                 logger,
@@ -178,8 +194,10 @@ describe("MonitoringServer", () => {
         it("throws when server is not started", () => {
             server = new MonitoringServer({
                 options: {
-                    host: "127.0.0.1",
-                    port: 0,
+                    http: {
+                        host: "127.0.0.1",
+                        port: 0,
+                    },
                     features: ["health-check"],
                 },
                 logger,

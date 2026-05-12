@@ -114,20 +114,21 @@ class MongoDBMCPHttpServer extends MCPHttpServer<Server> {
 
     constructor({
         userConfig,
-        httpOptions,
-        sessionOptions,
+        options,
         logger,
         metrics,
         sessionStore,
     }: {
         userConfig: UserConfig;
-        httpOptions: HttpServerOptions;
-        sessionOptions: SessionManagementOptions;
+        options: {
+            http: HttpServerOptions;
+            session: SessionManagementOptions;
+        };
         logger: CompositeLogger;
         metrics: IMetrics<DefaultMetricDefinitions>;
         sessionStore: SessionStore<StreamableHTTPServerTransport>;
     }) {
-        super({ httpOptions, sessionOptions, logger, metrics, sessionStore });
+        super({ options, logger, metrics, sessionStore });
         this.userConfig = userConfig;
         this.baseLogger = logger;
     }
@@ -215,16 +216,18 @@ async function main(): Promise<void> {
 
         const mcpHttpServer = new MongoDBMCPHttpServer({
             userConfig: config,
-            httpOptions: {
-                host: config.httpHost,
-                port: config.httpPort,
-                responseType: config.httpResponseType,
-                headers: config.httpHeaders as Record<string, string> | undefined,
-            },
-            sessionOptions: {
-                externallyManagedSessions: config.externallyManagedSessions,
-                idleTimeoutMs: 3600000,
-                notificationTimeoutMs: 3000000,
+            options: {
+                http: {
+                    host: config.httpHost,
+                    port: config.httpPort,
+                    responseType: config.httpResponseType,
+                    headers: config.httpHeaders as Record<string, string> | undefined,
+                },
+                session: {
+                    externallyManagedSessions: config.externallyManagedSessions,
+                    idleTimeoutMs: 3600000,
+                    notificationTimeoutMs: 3000000,
+                },
             },
             logger: compositeLogger,
             metrics: metrics,
@@ -235,8 +238,10 @@ async function main(): Promise<void> {
         if (config.monitoringServerHost && config.monitoringServerPort) {
             monitoringServer = new MonitoringServer<DefaultPrometheusMetricDefinitions>({
                 options: {
-                    host: config.monitoringServerHost,
-                    port: config.monitoringServerPort,
+                    http: {
+                        host: config.monitoringServerHost,
+                        port: config.monitoringServerPort,
+                    },
                     features: config.monitoringServerFeatures,
                 },
                 logger: loggers[0] ?? new ConsoleLogger({ keychain: Keychain.root }),

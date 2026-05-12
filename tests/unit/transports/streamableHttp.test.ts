@@ -71,8 +71,10 @@ function createStreamableHttpRunnerFromConfig(options: {
         if (monitoringHost !== undefined && monitoringPort !== undefined) {
             monitoringServer = new MonitoringServer({
                 options: {
-                    host: monitoringHost,
-                    port: monitoringPort,
+                    http: {
+                        host: monitoringHost,
+                        port: monitoringPort,
+                    },
                     features: userConfig.monitoringServerFeatures,
                 },
                 logger,
@@ -83,17 +85,19 @@ function createStreamableHttpRunnerFromConfig(options: {
 
     // Create MCP HTTP server
     const mcpHttpServer = new TestMCPHttpServer({
-        httpOptions: {
-            host: userConfig.httpHost,
-            port: userConfig.httpPort,
-            bodyLimit: userConfig.httpBodyLimit,
-            headers: userConfig.httpHeaders as Record<string, string> | undefined,
-            responseType: userConfig.httpResponseType,
-        },
-        sessionOptions: {
-            idleTimeoutMs: userConfig.idleTimeoutMs,
-            notificationTimeoutMs: userConfig.notificationTimeoutMs,
-            externallyManagedSessions: userConfig.externallyManagedSessions,
+        options: {
+            http: {
+                host: userConfig.httpHost,
+                port: userConfig.httpPort,
+                bodyLimit: userConfig.httpBodyLimit,
+                headers: userConfig.httpHeaders as Record<string, string> | undefined,
+                responseType: userConfig.httpResponseType,
+            },
+            session: {
+                idleTimeoutMs: userConfig.idleTimeoutMs,
+                notificationTimeoutMs: userConfig.notificationTimeoutMs,
+                externallyManagedSessions: userConfig.externallyManagedSessions,
+            },
         },
         logger,
         metrics: metrics as unknown as ConstructorParameters<typeof TestMCPHttpServer>[0]["metrics"],
@@ -124,8 +128,10 @@ describe("StreamableHttpRunner", () => {
             it("uses a custom monitoringServer passed directly", async () => {
                 customServer = new MonitoringServer({
                     options: {
-                        host: "127.0.0.1",
-                        port: 3002,
+                        http: {
+                            host: "127.0.0.1",
+                            port: 3002,
+                        },
                         features: ["health-check"],
                     },
                     logger: new NoopLogger(),
@@ -155,8 +161,10 @@ describe("StreamableHttpRunner", () => {
             it("supports extending MonitoringServer with custom routes", async () => {
                 const customMonitoringServer = new CustomMonitoringServer({
                     options: {
-                        host: "127.0.0.1",
-                        port: 3002,
+                        http: {
+                            host: "127.0.0.1",
+                            port: 3002,
+                        },
                         features: ["health-check", "metrics"],
                     },
                     logger: new NoopLogger(),

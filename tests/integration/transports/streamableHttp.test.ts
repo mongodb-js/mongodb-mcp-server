@@ -131,8 +131,7 @@ class TestMCPHttpServer extends MCPHttpServer<Server> {
 
     constructor({
         userConfig,
-        httpOptions,
-        sessionOptions,
+        options,
         logger,
         metrics,
         sessionStore,
@@ -140,8 +139,10 @@ class TestMCPHttpServer extends MCPHttpServer<Server> {
         toolContext,
     }: {
         userConfig: UserConfig;
-        httpOptions: HttpServerOptions;
-        sessionOptions: SessionManagementOptions;
+        options: {
+            http: HttpServerOptions;
+            session: SessionManagementOptions;
+        };
         logger: CompositeLogger;
         metrics: IMetrics<DefaultMetricDefinitions>;
         sessionStore: ISessionStore<StreamableHTTPServerTransport>;
@@ -149,8 +150,7 @@ class TestMCPHttpServer extends MCPHttpServer<Server> {
         toolContext?: unknown;
     }) {
         super({
-            httpOptions,
-            sessionOptions,
+            options,
             logger,
             metrics,
             sessionStore: sessionStore as SessionStore<StreamableHTTPServerTransport>,
@@ -191,17 +191,19 @@ function createStreamableHttpRunner(
 
     const mcpHttpServer = new TestMCPHttpServer({
         userConfig: config,
-        httpOptions: {
-            host: config.httpHost,
-            port: config.httpPort,
-            bodyLimit: config.httpBodyLimit,
-            headers: config.httpHeaders as Record<string, string> | undefined,
-            responseType: config.httpResponseType,
-        },
-        sessionOptions: {
-            idleTimeoutMs: config.idleTimeoutMs,
-            notificationTimeoutMs: config.notificationTimeoutMs,
-            externallyManagedSessions: config.externallyManagedSessions,
+        options: {
+            http: {
+                host: config.httpHost,
+                port: config.httpPort,
+                bodyLimit: config.httpBodyLimit,
+                headers: config.httpHeaders as Record<string, string> | undefined,
+                responseType: config.httpResponseType,
+            },
+            session: {
+                idleTimeoutMs: config.idleTimeoutMs,
+                notificationTimeoutMs: config.notificationTimeoutMs,
+                externallyManagedSessions: config.externallyManagedSessions,
+            },
         },
         logger,
         metrics: metrics,
@@ -823,15 +825,17 @@ describe("StreamableHttpRunner", () => {
 
                     const mcpHttpServer = new TestMCPHttpServer({
                         userConfig: config,
-                        httpOptions: {
-                            host: config.httpHost,
-                            port: config.httpPort,
-                            responseType: config.httpResponseType,
-                        },
-                        sessionOptions: {
-                            idleTimeoutMs: config.idleTimeoutMs,
-                            notificationTimeoutMs: config.notificationTimeoutMs,
-                            externallyManagedSessions: config.externallyManagedSessions,
+                        options: {
+                            http: {
+                                host: config.httpHost,
+                                port: config.httpPort,
+                                responseType: config.httpResponseType,
+                            },
+                            session: {
+                                idleTimeoutMs: config.idleTimeoutMs,
+                                notificationTimeoutMs: config.notificationTimeoutMs,
+                                externallyManagedSessions: config.externallyManagedSessions,
+                            },
                         },
                         logger,
                         metrics: metrics,
@@ -1030,15 +1034,17 @@ describe("StreamableHttpRunner", () => {
 
             const customMcpHttpServer = new CustomTestMCPHttpServer({
                 userConfig: config,
-                httpOptions: {
-                    host: config.httpHost,
-                    port: config.httpPort,
-                    responseType: config.httpResponseType,
-                },
-                sessionOptions: {
-                    idleTimeoutMs: config.idleTimeoutMs,
-                    notificationTimeoutMs: config.notificationTimeoutMs,
-                    externallyManagedSessions: config.externallyManagedSessions,
+                options: {
+                    http: {
+                        host: config.httpHost,
+                        port: config.httpPort,
+                        responseType: config.httpResponseType,
+                    },
+                    session: {
+                        idleTimeoutMs: config.idleTimeoutMs,
+                        notificationTimeoutMs: config.notificationTimeoutMs,
+                        externallyManagedSessions: config.externallyManagedSessions,
+                    },
                 },
                 logger,
                 metrics: metrics,
@@ -1085,15 +1091,17 @@ describe("StreamableHttpRunner", () => {
 
             const rejectingMcpHttpServer = new RejectingMCPHttpServer({
                 userConfig: config,
-                httpOptions: {
-                    host: config.httpHost,
-                    port: config.httpPort,
-                    responseType: config.httpResponseType,
-                },
-                sessionOptions: {
-                    idleTimeoutMs: config.idleTimeoutMs,
-                    notificationTimeoutMs: config.notificationTimeoutMs,
-                    externallyManagedSessions: config.externallyManagedSessions,
+                options: {
+                    http: {
+                        host: config.httpHost,
+                        port: config.httpPort,
+                        responseType: config.httpResponseType,
+                    },
+                    session: {
+                        idleTimeoutMs: config.idleTimeoutMs,
+                        notificationTimeoutMs: config.notificationTimeoutMs,
+                        externallyManagedSessions: config.externallyManagedSessions,
+                    },
                 },
                 logger,
                 metrics: metrics,
@@ -1244,15 +1252,17 @@ describe("StreamableHttpRunner", () => {
 
             const customMcpHttpServer = new CustomTestMCPHttpServer({
                 userConfig: config,
-                httpOptions: {
-                    host: config.httpHost,
-                    port: config.httpPort,
-                    responseType: config.httpResponseType,
-                },
-                sessionOptions: {
-                    idleTimeoutMs: config.idleTimeoutMs,
-                    notificationTimeoutMs: config.notificationTimeoutMs,
-                    externallyManagedSessions: config.externallyManagedSessions,
+                options: {
+                    http: {
+                        host: config.httpHost,
+                        port: config.httpPort,
+                        responseType: config.httpResponseType,
+                    },
+                    session: {
+                        idleTimeoutMs: config.idleTimeoutMs,
+                        notificationTimeoutMs: config.notificationTimeoutMs,
+                        externallyManagedSessions: config.externallyManagedSessions,
+                    },
                 },
                 logger,
                 metrics: metrics,
@@ -1361,15 +1371,17 @@ describe("StreamableHttpRunner", () => {
 
             const customMcpHttpServer = new CustomTestMCPHttpServer({
                 userConfig: config,
-                httpOptions: {
-                    host: config.httpHost,
-                    port: config.httpPort,
-                    responseType: config.httpResponseType,
-                },
-                sessionOptions: {
-                    idleTimeoutMs: config.idleTimeoutMs,
-                    notificationTimeoutMs: config.notificationTimeoutMs,
-                    externallyManagedSessions: config.externallyManagedSessions,
+                options: {
+                    http: {
+                        host: config.httpHost,
+                        port: config.httpPort,
+                        responseType: config.httpResponseType,
+                    },
+                    session: {
+                        idleTimeoutMs: config.idleTimeoutMs,
+                        notificationTimeoutMs: config.notificationTimeoutMs,
+                        externallyManagedSessions: config.externallyManagedSessions,
+                    },
                 },
                 logger,
                 metrics: metrics,

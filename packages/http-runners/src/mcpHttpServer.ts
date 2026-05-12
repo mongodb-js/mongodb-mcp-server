@@ -29,10 +29,12 @@ import { ExpressBasedHttpServer } from "./expressBasedHttpServer.js";
  * Options for creating an MCPHttpServer instance.
  */
 export type MCPHttpServerOptions<TMetrics extends MetricDefinitions = DefaultMetricDefinitions> = {
-    /** HTTP server options */
-    httpOptions: HttpServerOptions;
-    /** Session management options */
-    sessionOptions: SessionManagementOptions;
+    options: {
+        /** HTTP server options */
+        http: HttpServerOptions;
+        /** Session management options */
+        session: SessionManagementOptions;
+    };
     /** Logger for the server */
     logger: ICompositeLogger;
     /** Metrics instance */
@@ -59,20 +61,19 @@ export abstract class MCPHttpServer<
     TMetrics extends MetricDefinitions = DefaultMetricDefinitions,
 > extends ExpressBasedHttpServer {
     private readonly sessionStore: ISessionStore<StreamableHTTPServerTransport>;
-    public readonly httpOptions: HttpServerOptions;
     public readonly sessionOptions: SessionManagementOptions;
     protected readonly metrics: IMetrics<TMetrics>;
     private readonly pendingInitializations = new Map<string, Promise<void>>();
 
-    constructor({ httpOptions, sessionOptions, logger, metrics, sessionStore }: MCPHttpServerOptions<TMetrics>) {
+    constructor({ options, logger, metrics, sessionStore }: MCPHttpServerOptions<TMetrics>) {
         super({
-            port: httpOptions.port,
-            hostname: httpOptions.host,
+            options: {
+                logContext: "mcpHttpServer",
+                http: options.http,
+            },
             logger,
-            logContext: "mcpHttpServer",
         });
-        this.httpOptions = httpOptions;
-        this.sessionOptions = sessionOptions;
+        this.sessionOptions = options.session;
         this.metrics = metrics;
         this.sessionStore = sessionStore;
     }

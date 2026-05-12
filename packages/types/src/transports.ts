@@ -26,10 +26,8 @@ export type MonitoringServerFeature = "health-check" | "metrics";
  * Options for configuring the monitoring server.
  */
 export type MonitoringServerOptions = {
-    /** Host to bind the monitoring server to */
-    host: string;
-    /** Port to bind the monitoring server to */
-    port: number;
+    /** HTTP server options */
+    http: HttpServerOptions;
     /** Features to enable on the monitoring server */
     features: MonitoringServerFeature[];
 };
@@ -50,12 +48,8 @@ export type SessionManagementOptions = {
  * Constructor arguments for creating a monitoring server.
  */
 export type MonitoringServerConstructorArgs<TMetrics extends MetricDefinitions = DefaultMetricDefinitions> = {
-    /** Host to bind the monitoring server to */
-    host: string;
-    /** Port to bind the monitoring server to */
-    port: number;
-    /** Features to enable on the monitoring server */
-    features: MonitoringServerFeature[];
+    /** Options for configuring the monitoring server */
+    options: MonitoringServerOptions;
     /** Logger for the server */
     logger: ILogger;
     /** Metrics instance */

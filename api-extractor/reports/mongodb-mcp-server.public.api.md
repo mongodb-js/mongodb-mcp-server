@@ -766,10 +766,6 @@ export class MCPConnectionManager extends ConnectionManager {
 export abstract class MCPHttpServer<TServer = unknown, TMetrics extends MetricDefinitions = DefaultMetricDefinitions> extends ExpressBasedHttpServer {
     constructor(input: MCPHttpServerOptions<TMetrics>);
     protected abstract createServerForRequest(request: TransportRequestContext): Promise<TServer>;
-    // Warning: (ae-forgotten-export) The symbol "HttpServerOptions" needs to be exported by the entry point lib.d.ts
-    //
-    // (undocumented)
-    readonly httpOptions: HttpServerOptions;
     // Warning: (ae-forgotten-export) The symbol "IMetrics" needs to be exported by the entry point lib.d.ts
     //
     // (undocumented)
@@ -788,8 +784,10 @@ export abstract class MCPHttpServer<TServer = unknown, TMetrics extends MetricDe
 
 // @public
 export type MCPHttpServerOptions<TMetrics extends MetricDefinitions = DefaultMetricDefinitions> = {
-    httpOptions: HttpServerOptions;
-    sessionOptions: SessionManagementOptions;
+    options: {
+        http: HttpServerOptions;
+        session: SessionManagementOptions;
+    };
     logger: ICompositeLogger;
     metrics: IMetrics<TMetrics>;
     sessionStore: ISessionStore<StreamableHTTPServerTransport>;
@@ -848,8 +846,10 @@ export type MonitoringServerFeature = (typeof monitoringServerFeatureValues)[num
 
 // @public
 export type MonitoringServerOptions = {
-    host: string;
-    port: number;
+    http: {
+        host: string;
+        port: number;
+    };
     features: MonitoringServerFeature_2[];
 };
 
@@ -1409,8 +1409,9 @@ export const UserConfigSchema: z.ZodObject<{
 // packages/atlas-telemetry/src/types.ts:17:9 - (ae-forgotten-export) The symbol "TelemetryResult" needs to be exported by the entry point lib.d.ts
 // packages/atlas-telemetry/src/types.ts:186:5 - (ae-forgotten-export) The symbol "TelemetryBoolSet" needs to be exported by the entry point lib.d.ts
 // packages/core/src/logging/compositeLogger.ts:17:49 - (ae-forgotten-export) The symbol "IKeychain" needs to be exported by the entry point lib.d.ts
-// packages/http-runners/src/mcpHttpServer.ts:37:5 - (ae-forgotten-export) The symbol "ICompositeLogger" needs to be exported by the entry point lib.d.ts
-// packages/http-runners/src/monitoringServer.ts:21:5 - (ae-forgotten-export) The symbol "MonitoringServerFeature_2" needs to be exported by the entry point lib.d.ts
+// packages/http-runners/src/mcpHttpServer.ts:34:9 - (ae-forgotten-export) The symbol "HttpServerOptions" needs to be exported by the entry point lib.d.ts
+// packages/http-runners/src/mcpHttpServer.ts:39:5 - (ae-forgotten-export) The symbol "ICompositeLogger" needs to be exported by the entry point lib.d.ts
+// packages/http-runners/src/monitoringServer.ts:24:5 - (ae-forgotten-export) The symbol "MonitoringServerFeature_2" needs to be exported by the entry point lib.d.ts
 // packages/tools-mongodb/src/common/connectionManager.ts:540:5 - (ae-forgotten-export) The symbol "ConnectionManagerOptions" needs to be exported by the entry point lib.d.ts
 // packages/tools-mongodb/src/common/exportsManager.ts:374:9 - (ae-forgotten-export) The symbol "ExportsManagerOptions" needs to be exported by the entry point lib.d.ts
 // packages/types/src/logging.ts:34:5 - (ae-forgotten-export) The symbol "MongoLogId" needs to be exported by the entry point lib.d.ts

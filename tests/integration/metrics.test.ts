@@ -133,8 +133,7 @@ class TestMCPHttpServer extends MCPHttpServer<Server, DefaultMetricDefinitions> 
 
     constructor({
         userConfig,
-        httpOptions,
-        sessionOptions,
+        options,
         logger,
         metrics,
         sessionStore,
@@ -142,15 +141,17 @@ class TestMCPHttpServer extends MCPHttpServer<Server, DefaultMetricDefinitions> 
         customMetrics,
     }: {
         userConfig: UserConfig;
-        httpOptions: HttpServerOptions;
-        sessionOptions: SessionManagementOptions;
+        options: {
+            http: HttpServerOptions;
+            session: SessionManagementOptions;
+        };
         logger: CompositeLogger;
         metrics: IMetrics<DefaultMetricDefinitions>;
         sessionStore: SessionStore<StreamableHTTPServerTransport>;
         tools?: AnyToolClass[];
         customMetrics?: PrometheusMetrics<DefaultPrometheusMetricDefinitions>;
     }) {
-        super({ httpOptions, sessionOptions, logger, metrics, sessionStore });
+        super({ options, logger, metrics, sessionStore });
         this.userConfig = userConfig;
         this.tools = tools;
         this.customMetrics = customMetrics;
@@ -192,15 +193,17 @@ function createMetricsTestRunner(
 
     const mcpHttpServer = new TestMCPHttpServer({
         userConfig: config,
-        httpOptions: {
-            host: config.httpHost,
-            port: config.httpPort,
-            responseType: config.httpResponseType,
-        },
-        sessionOptions: {
-            idleTimeoutMs: config.idleTimeoutMs,
-            notificationTimeoutMs: config.notificationTimeoutMs,
-            externallyManagedSessions: config.externallyManagedSessions,
+        options: {
+            http: {
+                host: config.httpHost,
+                port: config.httpPort,
+                responseType: config.httpResponseType,
+            },
+            session: {
+                idleTimeoutMs: config.idleTimeoutMs,
+                notificationTimeoutMs: config.notificationTimeoutMs,
+                externallyManagedSessions: config.externallyManagedSessions,
+            },
         },
         logger,
         metrics: metrics,
@@ -211,8 +214,10 @@ function createMetricsTestRunner(
 
     const monitoringServer = new MonitoringServer({
         options: {
-            host: config.monitoringServerHost!,
-            port: config.monitoringServerPort!,
+            http: {
+                host: config.monitoringServerHost!,
+                port: config.monitoringServerPort!,
+            },
             features: config.monitoringServerFeatures,
         },
         logger,

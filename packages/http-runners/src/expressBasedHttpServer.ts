@@ -1,11 +1,11 @@
 import express from "express";
 import type http from "http";
-import type { ILogger } from "@mongodb-js/mcp-types";
+import type { ILogger, HttpServerOptions } from "@mongodb-js/mcp-types";
 import { LogId } from "@mongodb-js/mcp-core";
 
-export type ExpressConfig = {
-    port: number;
-    hostname: string;
+export type ExpressBasedHttpServerOptions = {
+    logContext: string;
+    http: HttpServerOptions;
 };
 
 /**
@@ -18,14 +18,14 @@ export abstract class ExpressBasedHttpServer {
 
     protected readonly logger: ILogger;
     protected readonly logContext: string;
-    protected readonly expressConfig: ExpressConfig;
+    public readonly httpOptions: HttpServerOptions;
 
-    constructor(config: { logger: ILogger; logContext: string } & ExpressConfig) {
+    constructor({ options, logger }: { options: ExpressBasedHttpServerOptions; logger: ILogger }) {
         this.app = express();
         this.app.enable("trust proxy"); // needed for reverse proxy support
-        this.expressConfig = { port: config.port, hostname: config.hostname };
-        this.logger = config.logger;
-        this.logContext = config.logContext;
+        this.httpOptions = options.http;
+        this.logger = logger;
+        this.logContext = options.logContext;
     }
 
     public get serverAddress(): string {
@@ -44,10 +44,10 @@ export abstract class ExpressBasedHttpServer {
     public async start(): Promise<void> {
         await this.setupRoutes();
 
-        const { port, hostname } = this.expressConfig;
+        const { port, host } = this.httpOptions;
 
         this.httpServer = await new Promise<http.Server>((resolve, reject) => {
-            const result = this.app.listen(port, hostname, (err?: Error) => {
+            const result = this.app.listen(port, host, (err?: Error) => {
                 if (err) {
                     reject(err);
                 } else {
