@@ -4,7 +4,7 @@ import {
     MonitoringServer,
     MCPHttpServer,
     type MonitoringServerOptions,
-} from "@mongodb-js/mcp-http-transports";
+} from "@mongodb-js/mcp-http-runners";
 import { SessionStore, type ISessionStore } from "@mongodb-js/mcp-core";
 import { defaultTestConfig } from "../../integration/helpers.js";
 import type { Request, Response } from "express";
@@ -22,6 +22,19 @@ type TestServer = {
 
 // Helper type for metrics casting
 type TestMetrics = IMetrics<DefaultMetricDefinitions>;
+
+/**
+ * Minimal concrete implementation of MCPHttpServer for testing.
+ */
+class TestMCPHttpServer extends MCPHttpServer<TestServer> {
+    protected override async createServerForRequest(): Promise<TestServer> {
+        return Promise.resolve({
+            connect: vi.fn(),
+            close: vi.fn().mockResolvedValue(undefined),
+            session: { logger: { setAttribute: vi.fn() } },
+        });
+    }
+}
 
 /**
  * Helper to create StreamableHttpRunner components from UserConfig.
@@ -57,9 +70,11 @@ function createStreamableHttpRunnerFromConfig(options: {
         const monitoringPort = userConfig.monitoringServerPort ?? userConfig.healthCheckPort;
         if (monitoringHost !== undefined && monitoringPort !== undefined) {
             monitoringServer = new MonitoringServer({
-                host: monitoringHost,
-                port: monitoringPort,
-                features: userConfig.monitoringServerFeatures,
+                options: {
+                    host: monitoringHost,
+                    port: monitoringPort,
+                    features: userConfig.monitoringServerFeatures,
+                },
                 logger,
                 metrics: metrics as IMetrics<DefaultMetricDefinitions>,
             });
@@ -67,7 +82,7 @@ function createStreamableHttpRunnerFromConfig(options: {
     }
 
     // Create MCP HTTP server
-    const mcpHttpServer = new MCPHttpServer<TestServer>({
+    const mcpHttpServer = new TestMCPHttpServer({
         httpOptions: {
             host: userConfig.httpHost,
             port: userConfig.httpPort,
@@ -81,7 +96,7 @@ function createStreamableHttpRunnerFromConfig(options: {
             externallyManagedSessions: userConfig.externallyManagedSessions,
         },
         logger,
-        metrics: metrics as unknown as ConstructorParameters<typeof MCPHttpServer<TestServer>>[0]["metrics"],
+        metrics: metrics as unknown as ConstructorParameters<typeof TestMCPHttpServer>[0]["metrics"],
         sessionStore,
     });
 
@@ -108,9 +123,11 @@ describe("StreamableHttpRunner", () => {
 
             it("uses a custom monitoringServer passed directly", async () => {
                 customServer = new MonitoringServer({
-                    host: "127.0.0.1",
-                    port: 3002,
-                    features: ["health-check"],
+                    options: {
+                        host: "127.0.0.1",
+                        port: 3002,
+                        features: ["health-check"],
+                    },
                     logger: new NoopLogger(),
                     metrics: new MockMetrics() as unknown as IMetrics<DefaultMetricDefinitions>,
                 });

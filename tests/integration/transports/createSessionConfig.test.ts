@@ -1,4 +1,4 @@
-import { StreamableHttpRunner, MCPHttpServer } from "@mongodb-js/mcp-http-transports";
+import { StreamableHttpRunner, MCPHttpServer } from "@mongodb-js/mcp-http-runners";
 import { SessionStore } from "@mongodb-js/mcp-core";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { UserConfig } from "../../../src/lib.js";
 import { defaultTestConfig, expectDefined, sleep } from "../helpers.js";
 import { Server } from "../../../src/server.js";
-import type { HttpServerConfig, SessionManagementConfig } from "@mongodb-js/mcp-types";
+import type { HttpServerOptions, SessionManagementOptions } from "@mongodb-js/mcp-types";
 import { CompositeLogger, Keychain, NoopTelemetry } from "@mongodb-js/mcp-core";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
@@ -115,8 +115,8 @@ class ConfigModifyingMCPHttpServer extends MCPHttpServer<Server> {
     }: {
         baseConfig: UserConfig;
         configModifier: (config: UserConfig) => Promise<UserConfig>;
-        httpOptions: HttpServerConfig;
-        sessionOptions: SessionManagementConfig;
+        httpOptions: HttpServerOptions;
+        sessionOptions: SessionManagementOptions;
         logger: CompositeLogger;
         metrics: IMetrics<DefaultMetricDefinitions>;
         sessionStore: SessionStore<StreamableHTTPServerTransport>;

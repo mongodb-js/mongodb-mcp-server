@@ -15,8 +15,8 @@ export type StreamableHttpRunnerOptions<TMetrics extends MetricDefinitions = Met
     /** Optional loggers to use */
     loggers?: LoggerBase[];
 
-    /** Optional metrics instance */
-    metrics?: IMetrics<TMetrics>;
+    /** Metrics instance */
+    metrics: IMetrics<TMetrics>;
 };
 
 /**
@@ -139,7 +139,7 @@ export class StreamableHttpRunner<
 
     private validateConfig(): void {
         // Get the HTTP config from the mcp server to validate
-        const httpConfig = this.mcpHttpServer.httpConfig;
+        const httpConfig = this.mcpHttpServer.httpOptions;
 
         // Check for potentially unsafe host binding
         if (this.shouldWarnAboutHttpHost(httpConfig.host)) {

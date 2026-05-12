@@ -1,5 +1,5 @@
 import type express from "express";
-import { StreamableHttpRunner, MCPHttpServer } from "@mongodb-js/mcp-http-transports";
+import { StreamableHttpRunner, MCPHttpServer } from "@mongodb-js/mcp-http-runners";
 import { SessionStore, type ISessionStore } from "@mongodb-js/mcp-core";
 import type { SessionCloseReason } from "@mongodb-js/mcp-types";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -16,9 +16,9 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { AtlasTelemetry, TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import type {
     DefaultMetricDefinitions,
-    HttpServerConfig,
+    HttpServerOptions,
     IMetrics,
-    SessionManagementConfig,
+    SessionManagementOptions,
     TransportRequestContext,
 } from "@mongodb-js/mcp-types";
 import type { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
@@ -140,8 +140,8 @@ class TestMCPHttpServer extends MCPHttpServer<Server> {
         toolContext,
     }: {
         userConfig: UserConfig;
-        httpOptions: HttpServerConfig;
-        sessionOptions: SessionManagementConfig;
+        httpOptions: HttpServerOptions;
+        sessionOptions: SessionManagementOptions;
         logger: CompositeLogger;
         metrics: IMetrics<DefaultMetricDefinitions>;
         sessionStore: ISessionStore<StreamableHTTPServerTransport>;
@@ -158,10 +158,6 @@ class TestMCPHttpServer extends MCPHttpServer<Server> {
         this.userConfig = userConfig;
         this.tools = tools;
         this.toolContext = toolContext;
-    }
-
-    protected override async createServer(): Promise<Server> {
-        return createTestServer(this.userConfig, { tools: this.tools, toolContext: this.toolContext });
     }
 
     protected override async createServerForRequest(request: TransportRequestContext): Promise<Server> {

@@ -37,17 +37,18 @@ export {
 } from "@mongodb-js/mcp-core";
 export { McpLogger } from "@mongodb-js/mcp-logging";
 export { ConsoleLogger } from "@mongodb-js/mcp-logging";
+export { StdioRunner } from "@mongodb-js/mcp-core";
+
 // HTTP-specific transports
 export {
     StreamableHttpRunner,
     MCPHttpServer,
     MonitoringServer,
     type StreamableHttpRunnerOptions as StreamableHttpTransportRunnerConfig,
-    type MonitoringServerConfig,
     type MCPHttpServerOptions,
     type MonitoringServerOptions,
-    StdioRunner,
-} from "@mongodb-js/mcp-http-transports";
+    type MonitoringServerConstructorParams,
+} from "@mongodb-js/mcp-http-runners";
 export type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 
 // Web-friendly transports (from core)

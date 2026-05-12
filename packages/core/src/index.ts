@@ -41,6 +41,11 @@ export { setManagedTimeout, type ManagedTimeout } from "./managedTimeout.js";
 export { InMemoryTransport } from "./inMemoryTransport.js";
 export { SessionStore, type ISessionStore, type SessionStoreConstructorArgs } from "./sessionStore.js";
 export { TransportRunnerBase } from "./transportRunnerBase.js";
+
+export { StdioRunner } from "./runners/stdioRunner.js";
+
+export { NoopMetrics } from "./metrics/noopMetrics.js";
+
 export {
     JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
     JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED,

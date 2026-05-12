@@ -762,10 +762,9 @@ export class MCPConnectionManager extends ConnectionManager {
 // Warning: (ae-forgotten-export) The symbol "ExpressBasedHttpServer" needs to be exported by the entry point lib.d.ts
 //
 // @public
-export class MCPHttpServer<TServer = unknown, TContext = unknown, TMetrics extends MetricDefinitions = MetricDefinitions> extends ExpressBasedHttpServer {
+export abstract class MCPHttpServer<TServer = unknown, TContext = unknown, TMetrics extends MetricDefinitions = MetricDefinitions> extends ExpressBasedHttpServer {
     constructor(input: MCPHttpServerOptions<TServer, TContext, TMetrics>);
-    protected createServer(): Promise<TServer>;
-    protected createServerForRequest(request: TransportRequestContext): Promise<TServer>;
+    protected abstract createServerForRequest(request: TransportRequestContext): Promise<TServer>;
     // Warning: (ae-forgotten-export) The symbol "HttpServerConfig" needs to be exported by the entry point lib.d.ts
     //
     // (undocumented)
@@ -1106,7 +1105,9 @@ export class StdioRunner<TServer extends {
     connect(transport: StdioServerTransport): Promise<void>;
     close(): Promise<void>;
 }, TContext = unknown, TMetrics extends MetricDefinitions = MetricDefinitions> extends TransportRunnerBase<TServer, TContext, TMetrics> {
-    constructor(input: TransportRunnerConfig<TMetrics> & {
+    constructor(input: {
+        loggers?: LoggerBase[];
+        metrics: IMetrics<TMetrics>;
         createServer?: (options: {
             serverOptions?: CustomizableServerOptions<TContext>;
             sessionOptions?: CustomizableSessionOptions;
@@ -1174,7 +1175,7 @@ export { StreamableHTTPServerTransport }
 // @public
 export type StreamableHttpTransportRunnerConfig<TMetrics extends MetricDefinitions = MetricDefinitions> = {
     loggers?: LoggerBase[];
-    metrics?: IMetrics<TMetrics>;
+    metrics: IMetrics<TMetrics>;
 };
 
 // @public
@@ -1230,7 +1231,7 @@ export type TransportRequestContext = {
 export abstract class TransportRunnerBase<TServer = unknown, TContext = unknown, TMetrics extends MetricDefinitions = MetricDefinitions> {
     protected constructor(input: {
         loggers?: LoggerBase[];
-        metrics?: IMetrics<TMetrics>;
+        metrics: IMetrics<TMetrics>;
     });
     close(): Promise<void>;
     protected abstract createServer(options: {
@@ -1250,7 +1251,7 @@ export abstract class TransportRunnerBase<TServer = unknown, TContext = unknown,
 
 // @public
 export type TransportRunnerConfig<TMetrics extends MetricDefinitions = MetricDefinitions> = {
-    metrics?: IMetrics<TMetrics>;
+    metrics: IMetrics<TMetrics>;
     loggers?: LoggerBase[];
 };
 
@@ -1425,8 +1426,8 @@ export const UserConfigSchema: z.ZodObject<{
 // packages/atlas-telemetry/src/types.ts:17:9 - (ae-forgotten-export) The symbol "TelemetryResult" needs to be exported by the entry point lib.d.ts
 // packages/atlas-telemetry/src/types.ts:186:5 - (ae-forgotten-export) The symbol "TelemetryBoolSet" needs to be exported by the entry point lib.d.ts
 // packages/core/src/logging/compositeLogger.ts:17:49 - (ae-forgotten-export) The symbol "IKeychain" needs to be exported by the entry point lib.d.ts
-// packages/http-transports/src/mcpHttpServer.ts:41:5 - (ae-forgotten-export) The symbol "ICompositeLogger" needs to be exported by the entry point lib.d.ts
-// packages/http-transports/src/monitoringServer.ts:15:5 - (ae-forgotten-export) The symbol "MonitoringServerFeature_2" needs to be exported by the entry point lib.d.ts
+// packages/http-runners/src/mcpHttpServer.ts:42:5 - (ae-forgotten-export) The symbol "ICompositeLogger" needs to be exported by the entry point lib.d.ts
+// packages/http-runners/src/monitoringServer.ts:15:5 - (ae-forgotten-export) The symbol "MonitoringServerFeature_2" needs to be exported by the entry point lib.d.ts
 // packages/tools-mongodb/src/common/connectionManager.ts:540:5 - (ae-forgotten-export) The symbol "ConnectionManagerOptions" needs to be exported by the entry point lib.d.ts
 // packages/tools-mongodb/src/common/exportsManager.ts:374:9 - (ae-forgotten-export) The symbol "ExportsManagerOptions" needs to be exported by the entry point lib.d.ts
 // packages/types/src/logging.ts:34:5 - (ae-forgotten-export) The symbol "MongoLogId" needs to be exported by the entry point lib.d.ts

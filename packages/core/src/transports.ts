@@ -31,8 +31,8 @@ export type ServerOptions<TContext = unknown, TMetrics extends MetricDefinitions
  * Base configuration options for all transport runners.
  */
 export type TransportRunnerBaseOptions<TMetrics extends MetricDefinitions = MetricDefinitions> = {
-    /** Optional metrics instance */
-    metrics?: IMetrics<TMetrics>;
+    /** Metrics instance */
+    metrics: IMetrics<TMetrics>;
 
     /** Optional loggers to use */
     loggers?: LoggerBase[];

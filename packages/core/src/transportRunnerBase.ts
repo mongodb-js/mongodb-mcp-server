@@ -16,23 +16,12 @@ export abstract class TransportRunnerBase<
     public logger: CompositeLogger;
     public metrics: IMetrics<TMetrics>;
 
-    protected constructor({ loggers, metrics }: { loggers?: LoggerBase[]; metrics?: IMetrics<TMetrics> }) {
-        this.metrics = metrics ?? this.createNoopMetrics();
+    protected constructor({ loggers, metrics }: { loggers?: LoggerBase[]; metrics: IMetrics<TMetrics> }) {
+        this.metrics = metrics;
 
         // Initialize logger
         const baseLoggers = loggers ?? [];
         this.logger = new CompositeLogger({ loggers: baseLoggers });
-    }
-
-    /**
-     * Creates a no-op metrics implementation for when no metrics are provided.
-     * Returns an empty string for getMetrics() and undefined for any metric get.
-     */
-    private createNoopMetrics(): IMetrics<TMetrics> {
-        return {
-            get: <K extends keyof TMetrics>() => undefined as TMetrics[K],
-            getMetrics: () => Promise.resolve(""),
-        } as IMetrics<TMetrics>;
     }
 
     /**

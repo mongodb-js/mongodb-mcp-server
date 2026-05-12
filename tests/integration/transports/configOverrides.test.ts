@@ -1,4 +1,4 @@
-import { StreamableHttpRunner, MCPHttpServer } from "@mongodb-js/mcp-http-transports";
+import { StreamableHttpRunner, MCPHttpServer } from "@mongodb-js/mcp-http-runners";
 import { SessionStore } from "@mongodb-js/mcp-core";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
@@ -7,9 +7,9 @@ import { defaultTestConfig } from "../helpers.js";
 import type { UserConfig } from "../../../src/lib.js";
 import type {
     DefaultMetricDefinitions,
-    HttpServerConfig,
+    HttpServerOptions,
     IMetrics,
-    SessionManagementConfig,
+    SessionManagementOptions,
     TransportRequestContext,
 } from "@mongodb-js/mcp-types";
 import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
@@ -45,8 +45,8 @@ class ConfigOverrideMCPHttpServer extends MCPHttpServer<Server> {
         sessionStore,
     }: {
         baseConfig: UserConfig;
-        httpOptions: HttpServerConfig;
-        sessionOptions: SessionManagementConfig;
+        httpOptions: HttpServerOptions;
+        sessionOptions: SessionManagementOptions;
         logger: CompositeLogger;
         metrics: IMetrics<DefaultMetricDefinitions>;
         sessionStore: SessionStore<StreamableHTTPServerTransport>;

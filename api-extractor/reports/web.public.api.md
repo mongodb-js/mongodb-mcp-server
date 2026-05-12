@@ -1104,7 +1104,7 @@ export { TransportRequestContext as TransportRequestContextDeprecated }
 export abstract class TransportRunnerBase<TServer = unknown, TContext = unknown, TMetrics extends MetricDefinitions = MetricDefinitions> {
     protected constructor(input: {
         loggers?: LoggerBase[];
-        metrics?: IMetrics<TMetrics>;
+        metrics: IMetrics<TMetrics>;
     });
     close(): Promise<void>;
     protected abstract createServer(options: {
@@ -1124,7 +1124,7 @@ export abstract class TransportRunnerBase<TServer = unknown, TContext = unknown,
 
 // @public
 export type TransportRunnerConfig<TMetrics extends MetricDefinitions = MetricDefinitions> = {
-    metrics?: IMetrics<TMetrics>;
+    metrics: IMetrics<TMetrics>;
     loggers?: LoggerBase[];
 };
 

@@ -45,8 +45,8 @@ import * as fs from "fs/promises";
 import { parseUserConfig } from "./common/config/parseUserConfig.js";
 import { type UserConfig } from "./common/config/userConfig.js";
 import { packageInfo } from "./common/packageInfo.js";
-import { StdioRunner, StreamableHttpRunner, MCPHttpServer, MonitoringServer } from "@mongodb-js/mcp-http-transports";
-import { SessionStore } from "@mongodb-js/mcp-core";
+import { StdioRunner, SessionStore } from "@mongodb-js/mcp-core";
+import { StreamableHttpRunner, MCPHttpServer, MonitoringServer } from "@mongodb-js/mcp-http-runners";
 import { DryRunModeRunner } from "./transports/dryModeRunner.js";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { systemCA } from "@mongodb-js/devtools-proxy-support";
@@ -65,7 +65,7 @@ import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { Keychain as CoreKeychain } from "@mongodb-js/mcp-core";
 import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
-import type { HttpServerConfig, SessionManagementConfig } from "@mongodb-js/mcp-types";
+import type { HttpServerOptions, SessionManagementOptions } from "@mongodb-js/mcp-types";
 
 /**
  * Concrete StdioRunner implementation that creates Server instances.
@@ -117,8 +117,8 @@ class MongoDBMCPHttpServer extends MCPHttpServer<Server> {
         sessionStore,
     }: {
         userConfig: UserConfig;
-        httpOptions: HttpServerConfig;
-        sessionOptions: SessionManagementConfig;
+        httpOptions: HttpServerOptions;
+        sessionOptions: SessionManagementOptions;
         logger: CompositeLogger;
         metrics: IMetrics<DefaultMetricDefinitions>;
         sessionStore: SessionStore<StreamableHTTPServerTransport>;
@@ -128,7 +128,7 @@ class MongoDBMCPHttpServer extends MCPHttpServer<Server> {
         this.baseLogger = logger;
     }
 
-    protected override async createServer(): Promise<Server> {
+    protected override async createServerForRequest(): Promise<Server> {
         return createServerForConfig({
             config: this.userConfig,
             logger: this.baseLogger,
@@ -230,9 +230,11 @@ async function main(): Promise<void> {
         let monitoringServer: MonitoringServer | undefined;
         if (config.monitoringServerHost && config.monitoringServerPort) {
             monitoringServer = new MonitoringServer({
-                host: config.monitoringServerHost,
-                port: config.monitoringServerPort,
-                features: config.monitoringServerFeatures,
+                options: {
+                    host: config.monitoringServerHost,
+                    port: config.monitoringServerPort,
+                    features: config.monitoringServerFeatures,
+                },
                 logger: loggers[0] ?? new ConsoleLogger({ keychain: Keychain.root }),
                 metrics: metrics as IMetrics<DefaultMetricDefinitions>,
             });

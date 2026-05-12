@@ -16,8 +16,8 @@ import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/se
 import type {
     IMetrics,
     DefaultMetricDefinitions,
-    HttpServerConfig,
-    SessionManagementConfig,
+    HttpServerOptions,
+    SessionManagementOptions,
 } from "@mongodb-js/mcp-types";
 import { Server, type AnyToolClass } from "../../src/server.js";
 import {
@@ -137,8 +137,8 @@ class TestMCPHttpServer extends MCPHttpServer<Server, unknown, DefaultMetricDefi
         customMetrics,
     }: {
         userConfig: UserConfig;
-        httpOptions: HttpServerConfig;
-        sessionOptions: SessionManagementConfig;
+        httpOptions: HttpServerOptions;
+        sessionOptions: SessionManagementOptions;
         logger: CompositeLogger;
         metrics: IMetrics<DefaultMetricDefinitions>;
         sessionStore: SessionStore<StreamableHTTPServerTransport>;
@@ -151,7 +151,7 @@ class TestMCPHttpServer extends MCPHttpServer<Server, unknown, DefaultMetricDefi
         this.customMetrics = customMetrics;
     }
 
-    protected override async createServer(): Promise<Server> {
+    protected override async createServerForRequest(): Promise<Server> {
         return createTestServer(this.userConfig, {
             tools: this.tools,
             metrics: this.customMetrics ?? (this.metrics as unknown as PrometheusMetrics<DefaultMetrics>),
@@ -203,9 +203,11 @@ function createMetricsTestRunner(
     });
 
     const monitoringServer = new MonitoringServer({
-        host: config.monitoringServerHost!,
-        port: config.monitoringServerPort!,
-        features: config.monitoringServerFeatures,
+        options: {
+            host: config.monitoringServerHost!,
+            port: config.monitoringServerPort!,
+            features: config.monitoringServerFeatures,
+        },
         logger,
         metrics: metrics as IMetrics<DefaultMetricDefinitions>,
     });

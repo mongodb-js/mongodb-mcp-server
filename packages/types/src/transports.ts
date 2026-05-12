@@ -2,13 +2,9 @@ import type { ILogger } from "./logging.js";
 import type { IMetrics, MetricDefinitions } from "./metrics.js";
 
 /**
- * Configuration for HTTP servers used by transport runners.
+ * Options for configuring the HTTP server (host, port, etc).
  */
-
-/**
- * Configuration for the HTTP server (host, port, etc).
- */
-export type HttpServerConfig = {
+export type HttpServerOptions = {
     /** Host to bind the HTTP server to */
     host: string;
     /** Port to bind the HTTP server to */
@@ -27,9 +23,9 @@ export type HttpServerConfig = {
 export type MonitoringServerFeature = "health-check" | "metrics";
 
 /**
- * Configuration for the monitoring server.
+ * Options for configuring the monitoring server.
  */
-export type MonitoringServerConfig = {
+export type MonitoringServerOptions = {
     /** Host to bind the monitoring server to */
     host: string;
     /** Port to bind the monitoring server to */
@@ -39,9 +35,9 @@ export type MonitoringServerConfig = {
 };
 
 /**
- * Configuration for session management.
+ * Options for session management.
  */
-export type SessionManagementConfig = {
+export type SessionManagementOptions = {
     /** Idle timeout in milliseconds */
     idleTimeoutMs: number;
     /** Notification timeout in milliseconds */
@@ -74,9 +70,9 @@ export type CreateMonitoringServerFn<TMetrics extends MetricDefinitions = Metric
 ) => object | undefined;
 
 /**
- * Configuration options for transport runners.
+ * Options for transport runners.
  */
-export type TransportRunnerConfig = {
+export type TransportRunnerOptions = {
     /** Server name */
     name: string;
     /** Server version */

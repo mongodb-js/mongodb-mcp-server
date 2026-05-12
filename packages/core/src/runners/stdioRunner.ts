@@ -1,12 +1,9 @@
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import type { MetricDefinitions } from "@mongodb-js/mcp-types";
+import type { MetricDefinitions, IMetrics } from "@mongodb-js/mcp-types";
+import type { LoggerBase } from "../logging/loggerBase.js";
 import { LogId } from "../logId.js";
 import { TransportRunnerBase } from "../transportRunnerBase.js";
-import type {
-    CustomizableServerOptions,
-    CustomizableSessionOptions,
-    TransportRunnerBaseOptions,
-} from "../transports.js";
+import type { CustomizableServerOptions, CustomizableSessionOptions } from "../transports.js";
 
 /**
  * Transport runner for stdio (standard input/output) transport.
@@ -47,7 +44,9 @@ export class StdioRunner<
         loggers,
         metrics,
         createServer,
-    }: TransportRunnerBaseOptions<TMetrics> & {
+    }: {
+        loggers?: LoggerBase[];
+        metrics: IMetrics<TMetrics>;
         createServer?: (options: {
             serverOptions?: CustomizableServerOptions<TContext>;
             sessionOptions?: CustomizableSessionOptions;

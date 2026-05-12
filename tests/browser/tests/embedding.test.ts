@@ -1,5 +1,6 @@
 import { describe, beforeAll, afterAll, it, expect } from "vitest";
 import { UserConfigSchema } from "mongodb-mcp-server/web";
+import { NoopMetrics } from "@mongodb-js/mcp-core";
 import { BrowserTestRunner } from "../utils/utils.js";
 
 describe("MongoDB MCP Server in Browser", () => {
@@ -13,7 +14,7 @@ describe("MongoDB MCP Server in Browser", () => {
             loggers: ["stderr"],
         });
 
-        runner = new BrowserTestRunner({});
+        runner = new BrowserTestRunner({ metrics: new NoopMetrics() });
         await runner.start();
     });
 

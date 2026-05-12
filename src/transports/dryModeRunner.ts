@@ -1,6 +1,5 @@
 import type { MetricDefinitions, IMetrics } from "@mongodb-js/mcp-types";
 import { TransportRunnerBase, InMemoryTransport } from "@mongodb-js/mcp-core";
-import type { CustomizableServerOptions, CustomizableSessionOptions } from "@mongodb-js/mcp-core";
 import type { UserConfig } from "../common/config/userConfig.js";
 
 /**
@@ -22,8 +21,8 @@ export type DryRunModeRunnerOptions<TMetrics extends MetricDefinitions = MetricD
     userConfig: UserConfig;
     /** Server instance that provides tools */
     server: DryRunServer;
-    /** Optional metrics instance */
-    metrics?: IMetrics<TMetrics>;
+    /** Metrics instance */
+    metrics: IMetrics<TMetrics>;
     /** Console logger for outputting configuration and tools */
     logger: DryRunLogger;
 };
@@ -31,8 +30,6 @@ export type DryRunModeRunnerOptions<TMetrics extends MetricDefinitions = MetricD
 /**
  * Transport runner for dry-run mode.
  * Dumps configuration and enabled tools, then exits without starting the server.
- *
- * This is defined in the binary because it depends on UserConfig.
  *
  * @example
  * ```typescript
@@ -64,15 +61,7 @@ export class DryRunModeRunner<
         return Promise.resolve(this.server);
     }
 
-    override async start({
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        serverOptions,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        sessionOptions,
-    }: {
-        serverOptions?: CustomizableServerOptions<TContext>;
-        sessionOptions?: CustomizableSessionOptions;
-    } = {}): Promise<void> {
+    override async start(): Promise<void> {
         // Dump userConfig
         this.consoleLogger.log("Configuration:");
         this.consoleLogger.log(JSON.stringify(this.userConfig, null, 2));
@@ -92,7 +81,7 @@ export class DryRunModeRunner<
      * Stops the dry run mode runner.
      */
     override async stop(): Promise<void> {
-        await this.server?.close();
+        await this.server.close();
     }
 
     private dumpTools(): void {

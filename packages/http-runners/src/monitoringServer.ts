@@ -4,9 +4,9 @@ import { LogId } from "@mongodb-js/mcp-core";
 import { ExpressBasedHttpServer } from "./expressBasedHttpServer.js";
 
 /**
- * Configuration options for MonitoringServer (not including dependencies).
+ * Options for configuring MonitoringServer (not including dependencies).
  */
-export type MonitoringServerConfig = {
+export type MonitoringServerOptions = {
     /** Host to bind the monitoring server to */
     host: string;
     /** Port to bind the monitoring server to */
@@ -26,10 +26,12 @@ export type MonitoringServerDependencies<TMetrics extends MetricDefinitions = Me
 };
 
 /**
- * Complete options for creating a MonitoringServer instance.
+ * Complete constructor params for creating a MonitoringServer instance.
  */
-export type MonitoringServerOptions<TMetrics extends MetricDefinitions = MetricDefinitions> = MonitoringServerConfig &
-    MonitoringServerDependencies<TMetrics>;
+export type MonitoringServerConstructorParams<TMetrics extends MetricDefinitions = MetricDefinitions> = {
+    /** Options for configuring the monitoring server */
+    options: MonitoringServerOptions;
+} & MonitoringServerDependencies<TMetrics>;
 
 /**
  * HTTP server that provides monitoring endpoints like health checks and metrics.
@@ -51,9 +53,9 @@ export class MonitoringServer<TMetrics extends MetricDefinitions = MetricDefinit
     private readonly features: MonitoringServerFeature[];
     private readonly metrics: IMetrics<TMetrics>;
 
-    constructor({ host, port, features, logger, metrics }: MonitoringServerOptions<TMetrics>) {
-        super({ port, hostname: host, logger, logContext: "monitoringServer" });
-        this.features = features;
+    constructor({ options, logger, metrics }: MonitoringServerConstructorParams<TMetrics>) {
+        super({ port: options.port, hostname: options.host, logger, logContext: "monitoringServer" });
+        this.features = options.features;
         this.metrics = metrics;
     }
 
