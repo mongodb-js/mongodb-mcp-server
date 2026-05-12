@@ -1361,8 +1361,8 @@ export const UserConfigSchema: z.ZodObject<{
 // packages/atlas-telemetry/src/types.ts:17:9 - (ae-forgotten-export) The symbol "TelemetryResult" needs to be exported by the entry point lib.d.ts
 // packages/atlas-telemetry/src/types.ts:186:5 - (ae-forgotten-export) The symbol "TelemetryBoolSet" needs to be exported by the entry point lib.d.ts
 // packages/core/src/logging/compositeLogger.ts:17:49 - (ae-forgotten-export) The symbol "IKeychain" needs to be exported by the entry point lib.d.ts
-// packages/http-runners/src/mcpHttpServer.ts:43:9 - (ae-forgotten-export) The symbol "HttpServerOptions" needs to be exported by the entry point lib.d.ts
-// packages/http-runners/src/mcpHttpServer.ts:48:5 - (ae-forgotten-export) The symbol "ICompositeLogger" needs to be exported by the entry point lib.d.ts
+// packages/http-runners/src/mcpHttpServer.ts:45:9 - (ae-forgotten-export) The symbol "HttpServerOptions" needs to be exported by the entry point lib.d.ts
+// packages/http-runners/src/mcpHttpServer.ts:50:5 - (ae-forgotten-export) The symbol "ICompositeLogger" needs to be exported by the entry point lib.d.ts
 // packages/http-runners/src/monitoringServer.ts:24:5 - (ae-forgotten-export) The symbol "MonitoringServerFeature_2" needs to be exported by the entry point lib.d.ts
 // packages/tools-mongodb/src/common/connectionManager.ts:540:5 - (ae-forgotten-export) The symbol "ConnectionManagerOptions" needs to be exported by the entry point lib.d.ts
 // packages/tools-mongodb/src/common/exportsManager.ts:374:9 - (ae-forgotten-export) The symbol "ExportsManagerOptions" needs to be exported by the entry point lib.d.ts

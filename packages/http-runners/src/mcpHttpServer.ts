@@ -3,6 +3,7 @@ import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import express from "express";
 import type {
     ICompositeLogger,
+    ILogger,
     IMetrics,
     MetricDefinitions,
     DefaultMetricDefinitions,
@@ -23,6 +24,7 @@ import {
     getRandomUUID,
 } from "@mongodb-js/mcp-core";
 import { ExpressBasedHttpServer } from "./expressBasedHttpServer.js";
+import { sleep } from "./utils.js";
 
 /**
  * Minimum server interface required by MCPHttpServer.
@@ -131,47 +133,54 @@ export abstract class MCPHttpServer<
         });
     }
 
-    private startKeepAliveLoop(transport: StreamableHTTPServerTransport, server: TServer): NodeJS.Timeout | undefined {
+    private async startKeepAliveLoop({
+        transport,
+        logger,
+        signal,
+    }: {
+        transport: StreamableHTTPServerTransport;
+        logger: ILogger;
+        signal: AbortSignal;
+    }): Promise<void> {
         if (this.httpOptions.responseType === "json") {
-            return undefined;
+            return;
         }
 
         let failedPings = 0;
-        const keepAliveLoop = setInterval((): void => {
-            void (async (): Promise<void> => {
+
+        while (!signal.aborted) {
+            try {
+                logger.debug({
+                    id: LogId.streamableHttpTransportKeepAlive,
+                    context: "streamableHttpTransport",
+                    message: "Sending ping",
+                });
+
+                await transport.send({
+                    jsonrpc: "2.0",
+                    method: "ping",
+                });
+                failedPings = 0;
+            } catch (err) {
                 try {
-                    server.session?.logger.debug({
-                        id: LogId.streamableHttpTransportKeepAlive,
+                    failedPings++;
+                    logger.warning({
+                        id: LogId.streamableHttpTransportKeepAliveFailure,
                         context: "streamableHttpTransport",
-                        message: "Sending ping",
+                        message: `Error sending ping (attempt #${failedPings}): ${err instanceof Error ? err.message : String(err)}`,
                     });
 
-                    await transport.send({
-                        jsonrpc: "2.0",
-                        method: "ping",
-                    });
-                    failedPings = 0;
-                } catch (err) {
-                    try {
-                        failedPings++;
-                        server.session?.logger.warning({
-                            id: LogId.streamableHttpTransportKeepAliveFailure,
-                            context: "streamableHttpTransport",
-                            message: `Error sending ping (attempt #${failedPings}): ${err instanceof Error ? err.message : String(err)}`,
-                        });
-
-                        if (failedPings > 3) {
-                            clearInterval(keepAliveLoop);
-                            await transport.close();
-                        }
-                    } catch {
-                        // Ignore the error of the transport close
+                    if (failedPings > 3) {
+                        await transport.close();
+                        return;
                     }
+                } catch {
+                    // Ignore the error of the transport close
                 }
-            })();
-        }, 30_000);
+            }
 
-        return keepAliveLoop;
+            await sleep(30_000, { signal });
+        }
     }
 
     /**
@@ -266,9 +275,14 @@ export abstract class MCPHttpServer<
 
             server.session?.logger.setAttribute("sessionId", sessionId);
 
-            const keepAliveLoop = this.startKeepAliveLoop(transport, server);
+            const keepAliveController = new AbortController();
+            void this.startKeepAliveLoop({
+                transport,
+                logger: server.session?.logger ?? this.logger,
+                signal: keepAliveController.signal,
+            });
             transport.onclose = (): void => {
-                clearInterval(keepAliveLoop);
+                keepAliveController.abort();
 
                 server.close().catch((error: unknown) => {
                     this.logger.error({
