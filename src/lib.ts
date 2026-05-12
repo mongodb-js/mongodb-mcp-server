@@ -113,7 +113,6 @@ export {
     PrometheusMetrics,
     createDefaultMetrics,
     type DefaultPrometheusMetricDefinitions,
-    type Metrics,
     type MetricDefinitions,
     type PrometheusMetricsOptions,
     Registry,

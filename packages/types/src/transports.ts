@@ -1,5 +1,5 @@
 import type { ILogger } from "./logging.js";
-import type { IMetrics, MetricDefinitions } from "./metrics.js";
+import type { IMetrics, MetricDefinitions, DefaultMetricDefinitions } from "./metrics.js";
 
 /**
  * Options for configuring the HTTP server (host, port, etc).
@@ -49,7 +49,7 @@ export type SessionManagementOptions = {
 /**
  * Constructor arguments for creating a monitoring server.
  */
-export type MonitoringServerConstructorArgs<TMetrics extends MetricDefinitions = MetricDefinitions> = {
+export type MonitoringServerConstructorArgs<TMetrics extends MetricDefinitions = DefaultMetricDefinitions> = {
     /** Host to bind the monitoring server to */
     host: string;
     /** Port to bind the monitoring server to */
@@ -65,7 +65,7 @@ export type MonitoringServerConstructorArgs<TMetrics extends MetricDefinitions =
 /**
  * Factory function type for creating a monitoring server.
  */
-export type CreateMonitoringServerFn<TMetrics extends MetricDefinitions = MetricDefinitions> = (
+export type CreateMonitoringServerFn<TMetrics extends MetricDefinitions = DefaultMetricDefinitions> = (
     args: MonitoringServerConstructorArgs<TMetrics>
 ) => object | undefined;
 

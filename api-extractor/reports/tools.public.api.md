@@ -534,8 +534,8 @@ export class CreateIndexTool extends MongoDBToolBase {
                         string: "string";
                         number: "number";
                         boolean: "boolean";
-                        date: "date";
                         uuid: "uuid";
+                        date: "date";
                         autocomplete: "autocomplete";
                         document: "document";
                         embeddedDocuments: "embeddedDocuments";
@@ -562,8 +562,8 @@ export class CreateIndexTool extends MongoDBToolBase {
         collection: z.ZodString;
         indexName: z.ZodString;
         indexType: z.ZodEnum<{
-            vectorSearch: "vectorSearch";
             search: "search";
+            vectorSearch: "vectorSearch";
             classic: "classic";
         }>;
     };
@@ -1376,9 +1376,10 @@ export type ToolArgs<T extends ZodRawShape> = {
 };
 
 // Warning: (ae-forgotten-export) The symbol "MetricDefinitions" needs to be exported by the entry point index.d.ts
+// Warning: (ae-forgotten-export) The symbol "DefaultMetricDefinitions" needs to be exported by the entry point index.d.ts
 //
 // @public
-export abstract class ToolBase<TUserConfig extends IToolConfig = IToolConfig, TContext = unknown, TMetricsDefinitions extends MetricDefinitions = MetricDefinitions> {
+export abstract class ToolBase<TUserConfig extends IToolConfig = IToolConfig, TContext = unknown, TMetricsDefinitions extends MetricDefinitions = DefaultMetricDefinitions> {
     constructor(input: ToolConstructorParams<TUserConfig, TContext, TMetricsDefinitions>);
     // (undocumented)
     get annotations(): ToolAnnotations;
@@ -1432,7 +1433,7 @@ export abstract class ToolBase<TUserConfig extends IToolConfig = IToolConfig, TC
 export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant";
 
 // @public
-export type ToolClass<TUserConfig extends IToolConfig = IToolConfig, TContext = unknown, TMetricsDefinitions extends MetricDefinitions = MetricDefinitions> = {
+export type ToolClass<TUserConfig extends IToolConfig = IToolConfig, TContext = unknown, TMetricsDefinitions extends MetricDefinitions = DefaultMetricDefinitions> = {
     new (params: ToolConstructorParams<TUserConfig, TContext, TMetricsDefinitions>): ToolBase<TUserConfig, TContext, TMetricsDefinitions>;
     toolName: string;
     category: ToolCategory;
@@ -1440,7 +1441,7 @@ export type ToolClass<TUserConfig extends IToolConfig = IToolConfig, TContext = 
 };
 
 // @public
-export type ToolConstructorParams<TUserConfig extends IToolConfig = IToolConfig, TContext = unknown, TMetricsDefinitions extends MetricDefinitions = MetricDefinitions> = {
+export type ToolConstructorParams<TUserConfig extends IToolConfig = IToolConfig, TContext = unknown, TMetricsDefinitions extends MetricDefinitions = DefaultMetricDefinitions> = {
     name: string;
     category: ToolCategory;
     operationType: OperationType;

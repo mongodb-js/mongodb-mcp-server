@@ -1,5 +1,11 @@
 import type express from "express";
-import type { ILogger, IMetrics, MetricDefinitions, MonitoringServerFeature } from "@mongodb-js/mcp-types";
+import type {
+    DefaultMetricDefinitions,
+    ILogger,
+    IMetrics,
+    MetricDefinitions,
+    MonitoringServerFeature,
+} from "@mongodb-js/mcp-types";
 import { LogId } from "@mongodb-js/mcp-core";
 import { ExpressBasedHttpServer } from "./expressBasedHttpServer.js";
 
@@ -18,7 +24,7 @@ export type MonitoringServerOptions = {
 /**
  * Dependencies required by MonitoringServer.
  */
-export type MonitoringServerDependencies<TMetrics extends MetricDefinitions = MetricDefinitions> = {
+export type MonitoringServerDependencies<TMetrics extends MetricDefinitions = DefaultMetricDefinitions> = {
     /** Logger for the server */
     logger: ILogger;
     /** Metrics instance */
@@ -28,7 +34,7 @@ export type MonitoringServerDependencies<TMetrics extends MetricDefinitions = Me
 /**
  * Complete constructor params for creating a MonitoringServer instance.
  */
-export type MonitoringServerConstructorParams<TMetrics extends MetricDefinitions = MetricDefinitions> = {
+export type MonitoringServerConstructorParams<TMetrics extends MetricDefinitions = DefaultMetricDefinitions> = {
     /** Options for configuring the monitoring server */
     options: MonitoringServerOptions;
 } & MonitoringServerDependencies<TMetrics>;
@@ -49,7 +55,9 @@ export type MonitoringServerConstructorParams<TMetrics extends MetricDefinitions
  * }
  * ```
  */
-export class MonitoringServer<TMetrics extends MetricDefinitions = MetricDefinitions> extends ExpressBasedHttpServer {
+export class MonitoringServer<
+    TMetrics extends MetricDefinitions = DefaultMetricDefinitions,
+> extends ExpressBasedHttpServer {
     private readonly features: MonitoringServerFeature[];
     private readonly metrics: IMetrics<TMetrics>;
 

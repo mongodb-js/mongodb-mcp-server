@@ -1,5 +1,5 @@
 import type { Counter, Histogram, Gauge, Registry } from "prom-client";
-import type { IMetrics, MetricDefinitions } from "@mongodb-js/mcp-types";
+import type { MetricDefinitions } from "@mongodb-js/mcp-types";
 
 export type PrometheusMetricDefinitions = {
     [key: string]: Histogram | Counter | Gauge;
@@ -17,18 +17,4 @@ export interface PrometheusMetricsOptions<TMetricsDefinitions extends Prometheus
     collectProcessMetrics?: boolean;
     /** Optional pre-existing registry; a fresh one is created when omitted. */
     registry?: Registry;
-}
-
-export interface Metrics<
-    TMetricsDefinitions extends PrometheusMetricDefinitions = PrometheusMetricDefinitions,
-> extends IMetrics<TMetricsDefinitions> {
-    /**
-     * Get a metric instance by key.
-     */
-    get<K extends keyof TMetricsDefinitions>(key: K): TMetricsDefinitions[K];
-
-    /**
-     * Get metrics in a format suitable for export (e.g., Prometheus text format).
-     */
-    getMetrics(): Promise<string>;
 }

@@ -9,7 +9,7 @@ import type { IToolSession } from "@mongodb-js/mcp-types";
 import type { IElicitation } from "@mongodb-js/mcp-types";
 import type { PreviewFeature } from "@mongodb-js/mcp-types";
 import type { IUIRegistry } from "@mongodb-js/mcp-types";
-import type { IMetrics, IObservable, MetricDefinitions } from "@mongodb-js/mcp-types";
+import type { IMetrics, IObservable, MetricDefinitions, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
 import { createUIResource, type UIResource } from "@mcp-ui/server";
 
 const LogId = {
@@ -83,7 +83,7 @@ export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant";
 export type ToolConstructorParams<
     TUserConfig extends IToolConfig = IToolConfig,
     TContext = unknown,
-    TMetricsDefinitions extends MetricDefinitions = MetricDefinitions,
+    TMetricsDefinitions extends MetricDefinitions = DefaultMetricDefinitions,
 > = {
     /**
      * The unique name of this tool (injected from the static
@@ -211,7 +211,7 @@ export type ToolConstructorParams<
 export type ToolClass<
     TUserConfig extends IToolConfig = IToolConfig,
     TContext = unknown,
-    TMetricsDefinitions extends MetricDefinitions = MetricDefinitions,
+    TMetricsDefinitions extends MetricDefinitions = DefaultMetricDefinitions,
 > = {
     /** Constructor signature for the tool class */
     new (
@@ -314,7 +314,7 @@ export type ToolClass<
 export abstract class ToolBase<
     TUserConfig extends IToolConfig = IToolConfig,
     TContext = unknown,
-    TMetricsDefinitions extends MetricDefinitions = MetricDefinitions,
+    TMetricsDefinitions extends MetricDefinitions = DefaultMetricDefinitions,
 > {
     /**
      * The unique name of this tool.

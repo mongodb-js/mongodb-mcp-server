@@ -15,7 +15,7 @@ export {
 } from "./server.js";
 export { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 export { LoggerBase, CompositeLogger, type EventMap, type DefaultEventMap } from "@mongodb-js/mcp-core";
-export type { Metrics, MetricDefinitions } from "@mongodb-js/mcp-metrics";
+export type { MetricDefinitions } from "@mongodb-js/mcp-metrics";
 export type { TransportRequestContext } from "@mongodb-js/mcp-core";
 export type {
     TelemetryCommonProperties as CommonProperties,

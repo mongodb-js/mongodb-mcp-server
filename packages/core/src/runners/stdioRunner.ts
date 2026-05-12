@@ -1,5 +1,5 @@
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import type { MetricDefinitions, IMetrics } from "@mongodb-js/mcp-types";
+import type { MetricDefinitions, DefaultMetricDefinitions, IMetrics } from "@mongodb-js/mcp-types";
 import type { LoggerBase } from "../logging/loggerBase.js";
 import { LogId } from "../logId.js";
 import { TransportRunnerBase } from "../transportRunnerBase.js";
@@ -32,7 +32,7 @@ export class StdioRunner<
         close(): Promise<void>;
     },
     TContext = unknown,
-    TMetrics extends MetricDefinitions = MetricDefinitions,
+    TMetrics extends MetricDefinitions = DefaultMetricDefinitions,
 > extends TransportRunnerBase<TContext, TMetrics> {
     private server: TServer | undefined;
     private createServerCallback?: (options: {

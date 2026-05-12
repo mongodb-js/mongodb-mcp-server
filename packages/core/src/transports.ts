@@ -10,7 +10,7 @@ export type { MetricDefinitions, DefaultMetricDefinitions };
  * Options for creating an MCP server instance.
  * Passed to the `createServer()` method in transport runners.
  */
-export type ServerOptions<TContext = unknown, TMetrics extends MetricDefinitions = MetricDefinitions> = {
+export type ServerOptions<TContext = unknown, TMetrics extends MetricDefinitions = DefaultMetricDefinitions> = {
     /** MCP Server instance */
     mcpServer: McpServer;
     /** Logger for the server */
@@ -30,7 +30,7 @@ export type ServerOptions<TContext = unknown, TMetrics extends MetricDefinitions
 /**
  * Base configuration options for all transport runners.
  */
-export type TransportRunnerBaseOptions<TMetrics extends MetricDefinitions = MetricDefinitions> = {
+export type TransportRunnerBaseOptions<TMetrics extends MetricDefinitions = DefaultMetricDefinitions> = {
     /** Metrics instance */
     metrics: IMetrics<TMetrics>;
 

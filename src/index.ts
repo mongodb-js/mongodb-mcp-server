@@ -56,7 +56,7 @@ import {
     createDefaultMetrics,
     type DefaultPrometheusMetricDefinitions,
 } from "@mongodb-js/mcp-metrics";
-import type { IMetrics, MetricDefinitions, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
+import type { IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
 import { Server } from "./server.js";
 import { Session } from "./common/session.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -90,7 +90,7 @@ class MongoDBStdioRunner extends StdioRunner<Server> {
         userConfig: UserConfig;
         baseLogger: CompositeLogger;
     }) {
-        super({ loggers, metrics: metrics as IMetrics<MetricDefinitions> });
+        super({ loggers, metrics });
         this.userConfig = userConfig;
         this.baseLogger = baseLogger;
         this.serverMetrics = metrics;
@@ -246,7 +246,7 @@ async function main(): Promise<void> {
 
         transportRunner = new StreamableHttpRunner({
             loggers,
-            metrics: metrics as IMetrics<MetricDefinitions>,
+            metrics,
             mcpHttpServer,
             monitoringServer,
             sessionStore,

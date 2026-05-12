@@ -1,4 +1,4 @@
-import type { IMetrics, MetricDefinitions } from "@mongodb-js/mcp-types";
+import type { IMetrics, MetricDefinitions, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
 
 /**
  * A no-op metrics implementation that returns empty values.
@@ -12,7 +12,7 @@ import type { IMetrics, MetricDefinitions } from "@mongodb-js/mcp-types";
  * });
  * ```
  */
-export class NoopMetrics<TMetrics extends MetricDefinitions = MetricDefinitions> implements IMetrics<TMetrics> {
+export class NoopMetrics<TMetrics extends MetricDefinitions = DefaultMetricDefinitions> implements IMetrics<TMetrics> {
     /** Returns undefined for any metric */
     get<K extends keyof TMetrics>(): TMetrics[K] {
         return undefined as TMetrics[K];

@@ -6,6 +6,7 @@ import type {
     ICompositeLogger,
     IMetrics,
     MetricDefinitions,
+    DefaultMetricDefinitions,
     TransportRequestContext,
     ISessionStore,
     HttpServerOptions,
@@ -27,7 +28,7 @@ import { ExpressBasedHttpServer } from "./expressBasedHttpServer.js";
 /**
  * Options for creating an MCPHttpServer instance.
  */
-export type MCPHttpServerOptions<TMetrics extends MetricDefinitions = MetricDefinitions> = {
+export type MCPHttpServerOptions<TMetrics extends MetricDefinitions = DefaultMetricDefinitions> = {
     /** HTTP server options */
     httpOptions: HttpServerOptions;
     /** Session management options */
@@ -55,7 +56,7 @@ export type MCPHttpServerOptions<TMetrics extends MetricDefinitions = MetricDefi
  */
 export abstract class MCPHttpServer<
     TServer = unknown,
-    TMetrics extends MetricDefinitions = MetricDefinitions,
+    TMetrics extends MetricDefinitions = DefaultMetricDefinitions,
 > extends ExpressBasedHttpServer {
     private readonly sessionStore: ISessionStore<StreamableHTTPServerTransport>;
     public readonly httpOptions: HttpServerOptions;

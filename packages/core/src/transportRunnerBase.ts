@@ -1,13 +1,21 @@
 import { CompositeLogger } from "./logging/compositeLogger.js";
 import type { LoggerBase } from "./logging/loggerBase.js";
 import type { IMetrics } from "@mongodb-js/mcp-types";
-import type { CustomizableServerOptions, CustomizableSessionOptions, MetricDefinitions } from "./transports.js";
+import type {
+    CustomizableServerOptions,
+    CustomizableSessionOptions,
+    MetricDefinitions,
+    DefaultMetricDefinitions,
+} from "./transports.js";
 
 /**
  * Base class for all transport runners.
  * Provides common lifecycle management (start/stop/close) and logging.
  */
-export abstract class TransportRunnerBase<TContext = unknown, TMetrics extends MetricDefinitions = MetricDefinitions> {
+export abstract class TransportRunnerBase<
+    TContext = unknown,
+    TMetrics extends MetricDefinitions = DefaultMetricDefinitions,
+> {
     public logger: CompositeLogger;
     public metrics: IMetrics<TMetrics>;
 

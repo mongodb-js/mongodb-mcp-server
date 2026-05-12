@@ -26,7 +26,7 @@ import { type ConnectionErrorHandler } from "./common/connectionErrorHandler.js"
 import type { Elicitation } from "./elicitation.js";
 import { AllTools } from "./tools/index.js";
 import type { UIRegistry } from "@mongodb-js/mcp-ui";
-import type { Metrics, DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
+import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
 import type { IMetrics } from "@mongodb-js/mcp-types";
 
 export type AnyToolClass = ToolClass<any, any, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -50,7 +50,7 @@ export interface ServerOptions<
     /** @deprecated Will be removed in a future version. Use `SessionOptions.connectionErrorHandler` instead. */
     connectionErrorHandler: ConnectionErrorHandler;
     uiRegistry?: UIRegistry;
-    metrics: Metrics<TMetrics>;
+    metrics: IMetrics<TMetrics>;
     /**
      * An optional list of tools constructors to be registered to the MongoDB
      * MCP Server.
@@ -133,7 +133,7 @@ export class Server<
     public readonly connectionErrorHandler: ConnectionErrorHandler;
     public readonly uiRegistry?: UIRegistry;
     public readonly toolContext?: TContext;
-    public readonly metrics: Metrics<TMetrics>;
+    public readonly metrics: IMetrics<TMetrics>;
 
     private readonly runtimeConfig: MongoDBToolsRuntimeConfig;
 
