@@ -22,7 +22,7 @@
     "dist"
   ],
   "scripts": {
-    "compile": "tsc --project tsconfig.json",
+    "compile": "tsc --build tsconfig.json",
     "test": "vitest --run"
   },
   "dependencies": {

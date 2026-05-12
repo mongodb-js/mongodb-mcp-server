@@ -1,10 +1,9 @@
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { MetricDefinitions, DefaultMetricDefinitions, ISessionStore, IMetrics } from "@mongodb-js/mcp-types";
-import type { LoggerBase } from "@mongodb-js/mcp-core";
+import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import { LogId, TransportRunnerBase } from "@mongodb-js/mcp-core";
 import { MCPHttpServer } from "./mcpHttpServer.js";
 import { MonitoringServer } from "./monitoringServer.js";
-import type { CustomizableServerOptions, CustomizableSessionOptions } from "./types.js";
 
 export { MonitoringServer, MCPHttpServer };
 
@@ -12,8 +11,8 @@ export { MonitoringServer, MCPHttpServer };
  * Options for StreamableHttpRunner.
  */
 export type StreamableHttpRunnerOptions<TMetrics extends MetricDefinitions = DefaultMetricDefinitions> = {
-    /** Optional loggers to use */
-    loggers?: LoggerBase[];
+    /** Logger instance */
+    logger: CompositeLogger;
 
     /** Metrics instance */
     metrics: IMetrics<TMetrics>;
@@ -37,15 +36,14 @@ export class StreamableHttpRunner<
         close(): Promise<void>;
         session?: { logger: { setAttribute(key: string, value: string): void } };
     },
-    TContext = unknown,
     TMetrics extends MetricDefinitions = DefaultMetricDefinitions,
-> extends TransportRunnerBase<TContext, TMetrics> {
+> extends TransportRunnerBase<TMetrics> {
     protected mcpHttpServer: MCPHttpServer<TServer, TMetrics>;
     protected monitoringServer: MonitoringServer<TMetrics> | undefined;
     protected sessionStore: ISessionStore<StreamableHTTPServerTransport>;
 
     constructor({
-        loggers,
+        logger,
         metrics,
         mcpHttpServer,
         monitoringServer,
@@ -55,20 +53,14 @@ export class StreamableHttpRunner<
         monitoringServer?: MonitoringServer<TMetrics>;
         sessionStore: ISessionStore<StreamableHTTPServerTransport>;
     }) {
-        super({ loggers, metrics });
+        super({ logger, metrics });
         this.mcpHttpServer = mcpHttpServer;
         this.monitoringServer = monitoringServer;
         this.sessionStore = sessionStore;
     }
 
     /** Starts the transport runner. */
-    async start(
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used by subclasses
-        _options: {
-            serverOptions?: CustomizableServerOptions<TContext>;
-            sessionOptions?: CustomizableSessionOptions;
-        } = {}
-    ): Promise<void> {
+    async start(): Promise<void> {
         this.validateConfig();
 
         await this.mcpHttpServer.start();

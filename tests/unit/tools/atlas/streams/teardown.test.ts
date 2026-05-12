@@ -58,7 +58,7 @@ describe("StreamsTeardownTool", () => {
             requestConfirmation: vi.fn().mockResolvedValue(true),
         } as unknown as Elicitation;
 
-        const params: ToolConstructorParams<IAtlasConfig, unknown, DefaultPrometheusMetricDefinitions> = {
+        const params: ToolConstructorParams<IAtlasConfig, DefaultPrometheusMetricDefinitions> = {
             name: StreamsTeardownTool.toolName,
             category: "atlas",
             operationType: StreamsTeardownTool.operationType,

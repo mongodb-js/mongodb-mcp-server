@@ -63,7 +63,7 @@ describe("ToolBase", () => {
 
         mockMetrics = new MockMetrics();
 
-        const constructorParams: ToolConstructorParams<UserConfig, unknown, DefaultPrometheusMetricDefinitions> = {
+        const constructorParams: ToolConstructorParams<UserConfig, DefaultPrometheusMetricDefinitions> = {
             name: TestTool.toolName,
             category: TestTool.category,
             operationType: TestTool.operationType,
@@ -334,7 +334,7 @@ describe("ToolBase", () => {
 
         function createToolWithUI(previewFeatures: PreviewFeature[] = []): TestToolWithOutputSchema {
             mockConfig.previewFeatures = previewFeatures;
-            const constructorParams: ToolConstructorParams<UserConfig, unknown, DefaultPrometheusMetricDefinitions> = {
+            const constructorParams: ToolConstructorParams<UserConfig, DefaultPrometheusMetricDefinitions> = {
                 name: TestToolWithOutputSchema.toolName,
                 category: TestToolWithOutputSchema.category,
                 operationType: TestToolWithOutputSchema.operationType,
@@ -564,7 +564,7 @@ function createToolWithoutStructuredContent(
     mockMetrics: MockMetrics
 ): TestToolWithoutStructuredContent {
     mockConfig.previewFeatures = previewFeatures;
-    const constructorParams: ToolConstructorParams<UserConfig, unknown, DefaultPrometheusMetricDefinitions> = {
+    const constructorParams: ToolConstructorParams<UserConfig, DefaultPrometheusMetricDefinitions> = {
         name: TestToolWithoutStructuredContent.toolName,
         category: TestToolWithoutStructuredContent.category,
         operationType: TestToolWithoutStructuredContent.operationType,

@@ -225,6 +225,7 @@ function createMetricsTestRunner(
     });
 
     const runner = new StreamableHttpRunner<Server>({
+        logger,
         metrics: metrics,
         mcpHttpServer,
         monitoringServer,
@@ -377,7 +378,7 @@ describe("/metrics endpoint", () => {
             } satisfies CustomMetrics,
         });
 
-        class CustomTool extends ToolBase<UserConfig, unknown, CustomMetrics> {
+        class CustomTool extends ToolBase<UserConfig, CustomMetrics> {
             static toolName = "custom-tool";
             static category: ToolCategory = "mongodb";
             static operationType: OperationType = "read";

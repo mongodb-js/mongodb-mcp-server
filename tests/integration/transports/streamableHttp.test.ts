@@ -19,7 +19,6 @@ import type {
     HttpServerOptions,
     IMetrics,
     SessionManagementOptions,
-    TransportRequestContext,
 } from "@mongodb-js/mcp-types";
 import type { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { Server, type AnyToolClass } from "../../../src/server.js";
@@ -43,7 +42,6 @@ async function createTestServer(
     config: UserConfig,
     options: {
         tools?: AnyToolClass[];
-        toolContext?: unknown;
     } = {}
 ): Promise<Server> {
     const logger = new CompositeLogger({ loggers: [] });
@@ -117,7 +115,6 @@ async function createTestServer(
         elicitation,
         metrics,
         tools: options.tools,
-        toolContext: options.toolContext,
     });
 
     return server;
@@ -127,7 +124,6 @@ async function createTestServer(
 class TestMCPHttpServer extends MCPHttpServer<Server> {
     protected userConfig: UserConfig;
     protected tools?: AnyToolClass[];
-    protected toolContext?: unknown;
 
     constructor({
         userConfig,
@@ -136,7 +132,6 @@ class TestMCPHttpServer extends MCPHttpServer<Server> {
         metrics,
         sessionStore,
         tools,
-        toolContext,
     }: {
         userConfig: UserConfig;
         options: {
@@ -147,7 +142,6 @@ class TestMCPHttpServer extends MCPHttpServer<Server> {
         metrics: IMetrics<DefaultMetricDefinitions>;
         sessionStore: ISessionStore<StreamableHTTPServerTransport>;
         tools?: AnyToolClass[];
-        toolContext?: unknown;
     }) {
         super({
             options,
@@ -157,14 +151,10 @@ class TestMCPHttpServer extends MCPHttpServer<Server> {
         });
         this.userConfig = userConfig;
         this.tools = tools;
-        this.toolContext = toolContext;
     }
 
-    protected override async createServerForRequest(request: TransportRequestContext): Promise<Server> {
-        const userRole = request.headers?.["x-user-role"];
-        const toolContext: unknown = userRole === "admin" ? { permissions: "full" } : { permissions: "none" };
-
-        return createTestServer(this.userConfig, { tools: this.tools, toolContext });
+    protected override async createServerForRequest(): Promise<Server> {
+        return createTestServer(this.userConfig, { tools: this.tools });
     }
 }
 
@@ -173,7 +163,6 @@ function createStreamableHttpRunner(
     config: UserConfig,
     options: {
         tools?: AnyToolClass[];
-        toolContext?: unknown;
         loggers?: LoggerBase[];
     } = {}
 ): Promise<StreamableHttpRunner<Server>> {
@@ -209,12 +198,11 @@ function createStreamableHttpRunner(
         metrics: metrics,
         sessionStore,
         tools: options.tools,
-        toolContext: options.toolContext,
     });
 
     return Promise.resolve(
         new StreamableHttpRunner<Server>({
-            loggers: options.loggers,
+            logger,
             metrics: metrics,
             mcpHttpServer,
             sessionStore,
@@ -846,6 +834,7 @@ describe("StreamableHttpRunner", () => {
                         metrics: metrics,
                         mcpHttpServer,
                         sessionStore: ownershipStore,
+                        logger,
                     });
 
                     await ownershipRunner.start();
@@ -1055,6 +1044,7 @@ describe("StreamableHttpRunner", () => {
                 metrics: metrics,
                 mcpHttpServer: customMcpHttpServer,
                 sessionStore,
+                logger,
             });
 
             await runner.start();
@@ -1112,6 +1102,7 @@ describe("StreamableHttpRunner", () => {
                 metrics: metrics,
                 mcpHttpServer: rejectingMcpHttpServer,
                 sessionStore,
+                logger,
             });
 
             await runner.start();
@@ -1195,226 +1186,6 @@ describe("StreamableHttpRunner", () => {
         expect(requestInfo).toBeDefined();
         const authorizationToken = requestInfo?.headers?.["authorization"] ?? requestInfo?.headers?.["Authorization"];
         expect(authorizationToken).toBe("Bearer 1234");
-    });
-
-    describe("with createServerForRequest override", () => {
-        type ToolContext = {
-            permissions: "none" | "full";
-        };
-
-        it("should customize server configuration based on request headers", async () => {
-            class ConfigCheckTool extends ToolBase<UserConfig, ToolContext> {
-                static toolName = "config-check";
-                public description = "Returns tool context as JSON";
-                public argsShape = {};
-                static category: ToolCategory = "mongodb";
-                static operationType: OperationType = "metadata";
-
-                protected execute(): Promise<CallToolResult> {
-                    return Promise.resolve({
-                        content: [{ type: "text", text: JSON.stringify(this.context ?? {}) }],
-                    });
-                }
-
-                protected resolveTelemetryMetadata(): TelemetryToolMetadata {
-                    return {};
-                }
-            }
-
-            // Create a custom MCPHttpServer that customizes server creation based on request
-            class CustomTestMCPHttpServer extends TestMCPHttpServer {
-                protected override async createServerForRequest(request: TransportRequestContext): Promise<Server> {
-                    const userRole = request.headers?.["x-user-role"];
-
-                    let toolContext: ToolContext = { permissions: "none" };
-                    if (userRole === "admin") {
-                        toolContext = { permissions: "full" };
-                    }
-
-                    return createTestServer(this.userConfig, {
-                        tools: [ConfigCheckTool as unknown as AnyToolClass],
-                        toolContext,
-                    });
-                }
-            }
-
-            const logger = new CompositeLogger({ loggers: [] });
-            const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
-
-            const sessionStore = new SessionStore<StreamableHTTPServerTransport>({
-                options: {
-                    idleTimeoutMS: config.idleTimeoutMs,
-                    notificationTimeoutMS: config.notificationTimeoutMs,
-                },
-                logger,
-                metrics: metrics,
-            });
-
-            const customMcpHttpServer = new CustomTestMCPHttpServer({
-                userConfig: config,
-                options: {
-                    http: {
-                        host: config.httpHost,
-                        port: config.httpPort,
-                        responseType: config.httpResponseType,
-                    },
-                    session: {
-                        idleTimeoutMs: config.idleTimeoutMs,
-                        notificationTimeoutMs: config.notificationTimeoutMs,
-                        externallyManagedSessions: config.externallyManagedSessions,
-                    },
-                },
-                logger,
-                metrics: metrics,
-                sessionStore,
-            });
-
-            runner = new StreamableHttpRunner<Server>({
-                metrics: metrics,
-                mcpHttpServer: customMcpHttpServer,
-                sessionStore,
-            });
-
-            await runner.start();
-
-            // Test: Admin role gets full permissions
-            const adminClient = await connectClient({
-                additionalHeaders: { "x-user-role": "admin" },
-            });
-
-            const adminResponse = (await adminClient.callTool({
-                name: "config-check",
-                arguments: {},
-            })) as { content: { text: string }[] };
-
-            const adminConfig = JSON.parse(adminResponse.content[0]?.text ?? "{}") as {
-                permissions: "none" | "full";
-            };
-            expect(adminConfig.permissions).toBe("full");
-
-            // Test: No role header uses default context
-            const defaultClient = await connectClient({ additionalHeaders: {} });
-
-            const defaultResponse = (await defaultClient.callTool({
-                name: "config-check",
-                arguments: {},
-            })) as { content: { text: string }[] };
-
-            const defaultConfig = JSON.parse(defaultResponse.content[0]?.text ?? "{}") as {
-                permissions: "none" | "full";
-            };
-            expect(defaultConfig.permissions).toBe("none");
-        });
-
-        it("should allow customizing tools based on request context", async () => {
-            class UserTool extends ToolBase<UserConfig, ToolContext> {
-                static toolName = "user-tool";
-                public description = "Available to users";
-                public argsShape = {};
-                static category: ToolCategory = "mongodb";
-                static operationType: OperationType = "metadata";
-
-                protected execute(): Promise<CallToolResult> {
-                    return Promise.resolve({
-                        content: [{ type: "text", text: "user tool executed" }],
-                    });
-                }
-
-                protected resolveTelemetryMetadata(): TelemetryToolMetadata {
-                    return {};
-                }
-            }
-
-            class AdminTool extends ToolBase<UserConfig, ToolContext> {
-                static toolName = "admin-tool";
-                public description = "Available to admins only";
-                public argsShape = {};
-                static category: ToolCategory = "mongodb";
-                static operationType: OperationType = "create";
-
-                protected execute(): Promise<CallToolResult> {
-                    return Promise.resolve({
-                        content: [{ type: "text", text: "admin tool executed" }],
-                    });
-                }
-
-                protected resolveTelemetryMetadata(): TelemetryToolMetadata {
-                    return {};
-                }
-            }
-
-            // Custom MCPHttpServer that customizes available tools
-            class CustomTestMCPHttpServer extends TestMCPHttpServer {
-                protected override async createServerForRequest(request: TransportRequestContext): Promise<Server> {
-                    const userRole = request.headers?.["x-user-role"];
-
-                    let tools: AnyToolClass[] = [UserTool];
-                    if (userRole === "admin") {
-                        tools = [UserTool, AdminTool];
-                    }
-
-                    return createTestServer(this.userConfig, { tools });
-                }
-            }
-
-            const logger = new CompositeLogger({ loggers: [] });
-            const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
-
-            const sessionStore = new SessionStore<StreamableHTTPServerTransport>({
-                options: {
-                    idleTimeoutMS: config.idleTimeoutMs,
-                    notificationTimeoutMS: config.notificationTimeoutMs,
-                },
-                logger,
-                metrics: metrics,
-            });
-
-            const customMcpHttpServer = new CustomTestMCPHttpServer({
-                userConfig: config,
-                options: {
-                    http: {
-                        host: config.httpHost,
-                        port: config.httpPort,
-                        responseType: config.httpResponseType,
-                    },
-                    session: {
-                        idleTimeoutMs: config.idleTimeoutMs,
-                        notificationTimeoutMs: config.notificationTimeoutMs,
-                        externallyManagedSessions: config.externallyManagedSessions,
-                    },
-                },
-                logger,
-                metrics: metrics,
-                sessionStore,
-            });
-
-            runner = new StreamableHttpRunner<Server>({
-                metrics: metrics,
-                mcpHttpServer: customMcpHttpServer,
-                sessionStore,
-            });
-
-            await runner.start();
-
-            // Test 1: Regular users only see user-tool
-            const userClient = await connectClient({
-                additionalHeaders: { "x-user-role": "user" },
-            });
-
-            const userTools = await userClient.listTools();
-            expect(userTools.tools).toHaveLength(1);
-            expect(userTools.tools[0]?.name).toBe("user-tool");
-
-            // Test 2: Admins see both tools
-            const adminClient = await connectClient({
-                additionalHeaders: { "x-user-role": "admin" },
-            });
-
-            const adminTools = await adminClient.listTools();
-            expect(adminTools.tools).toHaveLength(2);
-            const toolNames = adminTools.tools.map((t) => t.name).sort();
-            expect(toolNames).toEqual(["admin-tool", "user-tool"]);
-        });
     });
 });
 

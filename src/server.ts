@@ -26,10 +26,9 @@ import { type ConnectionErrorHandler } from "./common/connectionErrorHandler.js"
 import type { Elicitation } from "./elicitation.js";
 import { AllTools } from "./tools/index.js";
 import type { UIRegistry } from "@mongodb-js/mcp-ui";
-import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
-import type { IMetrics } from "@mongodb-js/mcp-types";
+import type { IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
 
-export type AnyToolClass = ToolClass<any, any, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+export type AnyToolClass = ToolClass<any, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 /** MongoDB read-tool count-phase maxTimeMS caps applied when registering MongoDB tools (binary-only). */
 export type MongoDBToolsRuntimeConfig = {
@@ -39,8 +38,7 @@ export type MongoDBToolsRuntimeConfig = {
 
 export interface ServerOptions<
     TUserConfig extends UserConfig = UserConfig,
-    TContext = unknown,
-    TMetrics extends DefaultPrometheusMetricDefinitions = DefaultPrometheusMetricDefinitions,
+    TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions,
 > {
     session: Session;
     userConfig: TUserConfig;
@@ -89,29 +87,6 @@ export interface ServerOptions<
      */
     tools?: AnyToolClass[];
     /**
-     * This context is available to tools via `this.toolContext` and can contain
-     * any data you want to pass to tools definitions.
-     *
-     * @example
-     * ```typescript
-     * interface MyContext {
-     *   tenantId: string;
-     *   userId: string;
-     *   features: { newUI: boolean };
-     * }
-     *
-     * const server = new Server<MyContext>({
-     *   // ... other options
-     *   toolContext: {
-     *     tenantId: "my-tenant",
-     *     userId: "user-123",
-     *     features: { newUI: true },
-     *   },
-     * });
-     * ```
-     */
-    toolContext?: TContext;
-    /**
      * MongoDB read-tool count-phase maxTimeMS caps. Omit to use built-in defaults
      * from `@mongodb-js/mcp-tools-mongodb` (`QUERY_COUNT_MAX_TIME_MS_CAP` and `AGG_COUNT_MAX_TIME_MS_CAP`).
      */
@@ -120,8 +95,7 @@ export interface ServerOptions<
 
 export class Server<
     TUserConfig extends UserConfig = UserConfig,
-    TContext = unknown,
-    TMetrics extends DefaultPrometheusMetricDefinitions = DefaultPrometheusMetricDefinitions,
+    TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions,
 > {
     public readonly session: Session;
     public readonly mcpServer: McpServer;
@@ -132,7 +106,6 @@ export class Server<
     public readonly tools: AnyToolBase[] = [];
     public readonly connectionErrorHandler: ConnectionErrorHandler;
     public readonly uiRegistry?: UIRegistry;
-    public readonly toolContext?: TContext;
     public readonly metrics: IMetrics<TMetrics>;
 
     private readonly runtimeConfig: MongoDBToolsRuntimeConfig;
@@ -157,13 +130,12 @@ export class Server<
         elicitation,
         tools,
         uiRegistry,
-        toolContext,
         metrics,
         runtimeConfig = {
             queryCountMaxTimeMsCap: QUERY_COUNT_MAX_TIME_MS_CAP,
             aggregationCountMaxTimeMsCap: AGG_COUNT_MAX_TIME_MS_CAP,
         },
-    }: ServerOptions<TUserConfig, TContext, TMetrics>) {
+    }: ServerOptions<TUserConfig, TMetrics>) {
         this.startTime = Date.now();
         this.session = session;
         this.telemetry = telemetry;
@@ -173,7 +145,6 @@ export class Server<
         this.connectionErrorHandler = connectionErrorHandler;
         this.toolConstructors = tools ?? AllTools;
         this.uiRegistry = uiRegistry;
-        this.toolContext = toolContext;
         this.metrics = metrics;
         this.runtimeConfig = runtimeConfig;
 
@@ -347,7 +318,6 @@ export class Server<
                 elicitation: this.elicitation,
                 metrics: this.metrics as IMetrics,
                 uiRegistry: this.uiRegistry,
-                context: this.toolContext,
             });
             if (tool.register(this)) {
                 this.tools.push(tool);

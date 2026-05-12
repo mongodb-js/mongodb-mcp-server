@@ -82,7 +82,6 @@ export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant";
  */
 export type ToolConstructorParams<
     TUserConfig extends IToolConfig = IToolConfig,
-    TContext = unknown,
     TMetricsDefinitions extends MetricDefinitions = DefaultMetricDefinitions,
 > = {
     /**
@@ -140,26 +139,6 @@ export type ToolConstructorParams<
     metrics: IMetrics<TMetricsDefinitions>;
 
     uiRegistry?: IUIRegistry;
-
-    /**
-     * Optional custom context object that will be available to tools.
-     *
-     * Library consumers can provide custom context data that will be
-     * available during tool execution. This is useful for passing shared
-     * services used by multiple tools.
-     *
-     * @example
-     * ```typescript
-     * const runner = new StreamableHttpRunner({
-     *   userConfig: { ... },
-     *   toolContext: {
-     *     tenantId: "my-tenant",
-     *     userId: "user-123",
-     *   },
-     * });
-     * ```
-     */
-    context?: TContext;
 };
 
 /**
@@ -210,13 +189,10 @@ export type ToolConstructorParams<
  */
 export type ToolClass<
     TUserConfig extends IToolConfig = IToolConfig,
-    TContext = unknown,
     TMetricsDefinitions extends MetricDefinitions = DefaultMetricDefinitions,
 > = {
     /** Constructor signature for the tool class */
-    new (
-        params: ToolConstructorParams<TUserConfig, TContext, TMetricsDefinitions>
-    ): ToolBase<TUserConfig, TContext, TMetricsDefinitions>;
+    new (params: ToolConstructorParams<TUserConfig, TMetricsDefinitions>): ToolBase<TUserConfig, TMetricsDefinitions>;
 
     /**
      * The unique name of this tool.
@@ -313,7 +289,6 @@ export type ToolClass<
  */
 export abstract class ToolBase<
     TUserConfig extends IToolConfig = IToolConfig,
-    TContext = unknown,
     TMetricsDefinitions extends MetricDefinitions = DefaultMetricDefinitions,
 > {
     /**
@@ -654,24 +629,6 @@ export abstract class ToolBase<
 
     private readonly uiRegistry?: IUIRegistry;
 
-    /**
-     * Optional custom context object provided during tool construction.
-     *
-     * Library consumers can use this for passing shared services used by multiple tools.
-     *
-     * @example
-     * ```typescript
-     * class MyTool extends ToolBase {
-     *   protected async execute(args, { authService }) {
-     *     // Access custom context
-     *     const user = await authService.getUser();
-     *     // ...
-     *   }
-     * }
-     * ```
-     */
-    protected readonly context?: TContext;
-
     constructor({
         name,
         category,
@@ -682,8 +639,7 @@ export abstract class ToolBase<
         elicitation,
         metrics,
         uiRegistry,
-        context,
-    }: ToolConstructorParams<TUserConfig, TContext, TMetricsDefinitions>) {
+    }: ToolConstructorParams<TUserConfig, TMetricsDefinitions>) {
         this.name = name;
         this.category = category;
         this.operationType = operationType;
@@ -693,7 +649,6 @@ export abstract class ToolBase<
         this.elicitation = elicitation;
         this.metrics = metrics;
         this.uiRegistry = uiRegistry;
-        this.context = context;
     }
 
     public register(server: { mcpServer: McpServer }): boolean {
@@ -961,7 +916,7 @@ export abstract class ToolBase<
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type AnyToolBase = ToolBase<any, any, any>;
+export type AnyToolBase = ToolBase<any, any>;
 
 /**
  * Formats potentially untrusted data to be included in tool responses. The data is wrapped in unique tags

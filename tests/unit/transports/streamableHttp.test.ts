@@ -100,15 +100,16 @@ function createStreamableHttpRunnerFromConfig(options: {
             },
         },
         logger,
-        metrics: metrics as unknown as ConstructorParameters<typeof TestMCPHttpServer>[0]["metrics"],
+        metrics,
         sessionStore,
     });
 
     return new StreamableHttpRunner<TestServer>({
-        metrics: metrics as unknown as ConstructorParameters<typeof StreamableHttpRunner<TestServer>>[0]["metrics"],
+        metrics,
         mcpHttpServer,
         monitoringServer,
         sessionStore,
+        logger,
     });
 }
 
@@ -135,9 +136,7 @@ describe("StreamableHttpRunner", () => {
                         features: ["health-check"],
                     },
                     logger: new NoopLogger(),
-                    metrics: new MockMetrics() as unknown as ConstructorParameters<
-                        typeof MonitoringServer
-                    >[0]["metrics"],
+                    metrics: new MockMetrics(),
                 });
 
                 runner = createStreamableHttpRunnerFromConfig({
@@ -168,9 +167,7 @@ describe("StreamableHttpRunner", () => {
                         features: ["health-check", "metrics"],
                     },
                     logger: new NoopLogger(),
-                    metrics: new MockMetrics() as unknown as ConstructorParameters<
-                        typeof CustomMonitoringServer
-                    >[0]["metrics"],
+                    metrics: new MockMetrics(),
                 });
 
                 runner = createStreamableHttpRunnerFromConfig({

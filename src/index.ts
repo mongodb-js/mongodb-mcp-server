@@ -37,7 +37,7 @@ function enableFipsIfRequested(): void {
 enableFipsIfRequested();
 
 import crypto from "crypto";
-import { Keychain, CompositeLogger, type LoggerBase } from "@mongodb-js/mcp-core";
+import { Keychain, CompositeLogger, StdioRunner } from "@mongodb-js/mcp-core";
 import { ConsoleLogger, DiskLogger } from "@mongodb-js/mcp-logging";
 import { LogId } from "@mongodb-js/mcp-core";
 import { MongoLogManager } from "mongodb-log-writer";
@@ -45,7 +45,7 @@ import * as fs from "fs/promises";
 import { parseUserConfig } from "./common/config/parseUserConfig.js";
 import { type UserConfig } from "./common/config/userConfig.js";
 import { packageInfo } from "./common/packageInfo.js";
-import { StdioRunner, SessionStore } from "@mongodb-js/mcp-core";
+import { SessionStore } from "@mongodb-js/mcp-core";
 import { StreamableHttpRunner, MCPHttpServer, MonitoringServer } from "@mongodb-js/mcp-http-runners";
 import { DryRunModeRunner } from "./transports/dryModeRunner.js";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
@@ -70,40 +70,6 @@ import { Keychain as CoreKeychain } from "@mongodb-js/mcp-core";
 import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import type { HttpServerOptions, SessionManagementOptions } from "@mongodb-js/mcp-types";
-
-/**
- * Concrete StdioRunner implementation that creates Server instances.
- */
-class MongoDBStdioRunner extends StdioRunner<Server> {
-    private userConfig: UserConfig;
-    private baseLogger: CompositeLogger;
-    private serverMetrics: PrometheusMetrics<DefaultPrometheusMetricDefinitions>;
-
-    constructor({
-        loggers,
-        metrics,
-        userConfig,
-        baseLogger,
-    }: {
-        loggers: LoggerBase[];
-        metrics: PrometheusMetrics<DefaultPrometheusMetricDefinitions>;
-        userConfig: UserConfig;
-        baseLogger: CompositeLogger;
-    }) {
-        super({ loggers, metrics });
-        this.userConfig = userConfig;
-        this.baseLogger = baseLogger;
-        this.serverMetrics = metrics;
-    }
-
-    protected override async createServer(): Promise<Server> {
-        return createServerForConfig({
-            config: this.userConfig,
-            logger: this.baseLogger,
-            metrics: this.serverMetrics,
-        });
-    }
-}
 
 /**
  * Concrete MCPHttpServer implementation that creates Server instances for each session.
@@ -137,7 +103,7 @@ class MongoDBMCPHttpServer extends MCPHttpServer<Server> {
         return createServerForConfig({
             config: this.userConfig,
             logger: this.baseLogger,
-            metrics: this.metrics as PrometheusMetrics<DefaultPrometheusMetricDefinitions>,
+            metrics: this.metrics,
         });
     }
 }
@@ -187,20 +153,21 @@ async function main(): Promise<void> {
         await handleDryRunRequest(config);
     }
 
-    const loggers = await createDefaultLoggers(config);
+    const logger = await createDefaultLoggers(config);
     const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
 
-    let transportRunner: MongoDBStdioRunner | StreamableHttpRunner<Server>;
-
-    // Ensure we have at least one logger (wrapped in CompositeLogger)
-    const baseLogger = loggers[0] ?? new CompositeLogger({ loggers: [new ConsoleLogger({ keychain: Keychain.root })] });
+    let transportRunner: StdioRunner<Server> | StreamableHttpRunner<Server>;
 
     if (config.transport === "stdio") {
-        transportRunner = new MongoDBStdioRunner({
-            loggers,
+        const server = await createServerForConfig({
+            config,
+            logger,
             metrics,
-            userConfig: config,
-            baseLogger,
+        });
+        transportRunner = new StdioRunner({
+            logger: logger,
+            metrics,
+            server,
         });
     } else {
         const sessionStore = new SessionStore<StreamableHTTPServerTransport>({
@@ -208,11 +175,9 @@ async function main(): Promise<void> {
                 idleTimeoutMS: 3600000,
                 notificationTimeoutMS: 3000000,
             },
-            logger: baseLogger,
+            logger,
             metrics: metrics,
         });
-
-        const compositeLogger = new CompositeLogger({ loggers });
 
         const mcpHttpServer = new MongoDBMCPHttpServer({
             userConfig: config,
@@ -229,7 +194,7 @@ async function main(): Promise<void> {
                     notificationTimeoutMs: 3000000,
                 },
             },
-            logger: compositeLogger,
+            logger,
             metrics: metrics,
             sessionStore,
         });
@@ -244,13 +209,13 @@ async function main(): Promise<void> {
                     },
                     features: config.monitoringServerFeatures,
                 },
-                logger: loggers[0] ?? new ConsoleLogger({ keychain: Keychain.root }),
+                logger,
                 metrics: metrics,
             });
         }
 
         transportRunner = new StreamableHttpRunner({
-            loggers,
+            logger,
             metrics,
             mcpHttpServer,
             monitoringServer,
@@ -368,7 +333,7 @@ export async function handleDryRunRequest(config: UserConfig): Promise<never> {
     }
 }
 
-async function createDefaultLoggers(config: UserConfig): Promise<CompositeLogger[]> {
+async function createDefaultLoggers(config: UserConfig): Promise<CompositeLogger> {
     const baseLoggers: (ConsoleLogger | DiskLogger)[] = [];
 
     if (config.loggers.includes("stderr")) {
@@ -399,13 +364,13 @@ async function createDefaultLoggers(config: UserConfig): Promise<CompositeLogger
     }
 
     // Wrap all base loggers in a single CompositeLogger array
-    return [new CompositeLogger({ loggers: baseLoggers })];
+    return new CompositeLogger({ loggers: baseLoggers });
 }
 
 type CreateServerOptions = {
     config: UserConfig;
     logger: CompositeLogger;
-    metrics: PrometheusMetrics<DefaultPrometheusMetricDefinitions>;
+    metrics: IMetrics<DefaultMetricDefinitions>;
 };
 
 async function createServerForConfig({ config, logger, metrics }: CreateServerOptions): Promise<Server> {

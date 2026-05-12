@@ -47,7 +47,7 @@ export default defineConfig([
         extends: [tseslint.configs.recommendedTypeChecked],
         languageOptions: {
             parserOptions: {
-                project: "./tsconfig.json",
+                projectService: true,
                 tsconfigRootDir: import.meta.dirname,
             },
         },
@@ -113,7 +113,7 @@ export default defineConfig([
         files: ["tests/browser/**/*.ts"],
         languageOptions: {
             parserOptions: {
-                project: "./tests/browser/tsconfig.json",
+                projectService: true,
                 tsconfigRootDir: import.meta.dirname,
             },
         },

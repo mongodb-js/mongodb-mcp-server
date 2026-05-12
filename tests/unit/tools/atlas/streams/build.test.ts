@@ -57,7 +57,7 @@ describe("StreamsBuildTool", () => {
             requestInput: vi.fn().mockResolvedValue({ accepted: false }),
         };
 
-        const params: ToolConstructorParams<IAtlasConfig, unknown, DefaultPrometheusMetricDefinitions> = {
+        const params: ToolConstructorParams<IAtlasConfig, DefaultPrometheusMetricDefinitions> = {
             name: StreamsBuildTool.toolName,
             category: "atlas",
             operationType: StreamsBuildTool.operationType,

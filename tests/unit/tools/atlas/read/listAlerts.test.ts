@@ -48,7 +48,7 @@ describe("ListAlertsTool", () => {
             requestConfirmation: vi.fn(),
         } as unknown as Elicitation;
 
-        const params: ToolConstructorParams<IAtlasConfig, unknown, DefaultPrometheusMetricDefinitions> = {
+        const params: ToolConstructorParams<IAtlasConfig, DefaultPrometheusMetricDefinitions> = {
             name: ListAlertsTool.toolName,
             category: "atlas",
             operationType: ListAlertsTool.operationType,

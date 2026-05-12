@@ -1,26 +1,21 @@
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { MetricDefinitions, DefaultMetricDefinitions, IMetrics } from "@mongodb-js/mcp-types";
-import type { LoggerBase } from "../logging/loggerBase.js";
+import type { CompositeLogger } from "../logging/compositeLogger.js";
 import { LogId } from "../logId.js";
 import { TransportRunnerBase } from "../transportRunnerBase.js";
-import type { CustomizableServerOptions, CustomizableSessionOptions } from "../transports.js";
 
 /**
  * Transport runner for stdio (standard input/output) transport.
  * This is the default transport for MCP servers.
  *
- * To customize server creation, either provide a createServer callback in options
- * or extend this class and override the `createServer()` method:
- *
  * @example
  * ```typescript
- * class MyStdioRunner extends StdioRunner {
- *   protected override async createServer({ serverOptions, sessionOptions }) {
- *     return new MyServer({ ... });
- *   }
- * }
- *
- * const runner = new MyStdioRunner({ loggers, metrics });
+ * const runner = new StdioRunner({
+ *   logger: compositeLogger,
+ *   metrics: new NoopMetrics(),
+ *   server: myServer,
+ * });
+ * await runner.start();
  * ```
  */
 export class StdioRunner<
@@ -31,40 +26,25 @@ export class StdioRunner<
         connect(transport: StdioServerTransport): Promise<void>;
         close(): Promise<void>;
     },
-    TContext = unknown,
     TMetrics extends MetricDefinitions = DefaultMetricDefinitions,
-> extends TransportRunnerBase<TContext, TMetrics> {
-    private server: TServer | undefined;
-    private createServerCallback?: (options: {
-        serverOptions?: CustomizableServerOptions<TContext>;
-        sessionOptions?: CustomizableSessionOptions;
-    }) => Promise<TServer>;
+> extends TransportRunnerBase<TMetrics> {
+    private server: TServer;
 
     constructor({
-        loggers,
+        logger,
         metrics,
-        createServer,
+        server,
     }: {
-        loggers?: LoggerBase[];
+        logger: CompositeLogger;
         metrics: IMetrics<TMetrics>;
-        createServer?: (options: {
-            serverOptions?: CustomizableServerOptions<TContext>;
-            sessionOptions?: CustomizableSessionOptions;
-        }) => Promise<TServer>;
+        server: TServer;
     }) {
-        super({ loggers, metrics });
-        this.createServerCallback = createServer;
+        super({ logger, metrics });
+        this.server = server;
     }
 
-    async start({
-        serverOptions,
-        sessionOptions,
-    }: {
-        serverOptions?: CustomizableServerOptions<TContext>;
-        sessionOptions?: CustomizableSessionOptions;
-    } = {}): Promise<void> {
+    async start(): Promise<void> {
         try {
-            this.server = await this.createServer({ serverOptions, sessionOptions });
             const transport = new StdioServerTransport();
             await this.server.connect(transport);
         } catch (error: unknown) {
@@ -82,23 +62,6 @@ export class StdioRunner<
      * This closes the server connection.
      */
     async stop(): Promise<void> {
-        await this.server?.close();
-    }
-
-    /**
-     * Creates the server instance.
-     * Uses the createServer callback if provided, otherwise must be overridden by subclasses.
-     */
-    protected async createServer({
-        serverOptions,
-        sessionOptions,
-    }: {
-        serverOptions?: CustomizableServerOptions<TContext>;
-        sessionOptions?: CustomizableSessionOptions;
-    }): Promise<TServer> {
-        if (this.createServerCallback) {
-            return this.createServerCallback({ serverOptions, sessionOptions });
-        }
-        throw new Error("Either provide createServer option or extend StdioRunner and override createServer() method");
+        await this.server.close();
     }
 }

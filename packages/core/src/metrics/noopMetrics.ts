@@ -7,9 +7,11 @@ import type { IMetrics, MetricDefinitions, DefaultMetricDefinitions } from "@mon
  * @example
  * ```typescript
  * const runner = new StdioRunner({
- *   loggers: [consoleLogger],
+ *   logger: compositeLogger,
  *   metrics: new NoopMetrics(),
+ *   server: myServer,
  * });
+ * await runner.start();
  * ```
  */
 export class NoopMetrics<TMetrics extends MetricDefinitions = DefaultMetricDefinitions> implements IMetrics<TMetrics> {

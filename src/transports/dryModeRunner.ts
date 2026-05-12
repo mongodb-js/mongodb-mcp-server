@@ -1,5 +1,5 @@
 import type { MetricDefinitions, IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
-import { TransportRunnerBase, InMemoryTransport } from "@mongodb-js/mcp-core";
+import { TransportRunnerBase, InMemoryTransport, CompositeLogger, NoopLogger } from "@mongodb-js/mcp-core";
 import type { UserConfig } from "../common/config/userConfig.js";
 
 /**
@@ -34,26 +34,26 @@ export type DryRunModeRunnerOptions<TMetrics extends MetricDefinitions = MetricD
  * @example
  * ```typescript
  * const runner = new DryRunModeRunner({
- *   loggers: [consoleLogger],
+ *   logger: consoleLogger,
  *   userConfig: defaultTestConfig,
  *   server: myServer,
  * });
  * await runner.start();
  * ```
  */
-export class DryRunModeRunner extends TransportRunnerBase<unknown, DefaultMetricDefinitions> {
+export class DryRunModeRunner extends TransportRunnerBase<DefaultMetricDefinitions> {
     private server: DryRunServer;
     private consoleLogger: DryRunLogger;
     private userConfig: UserConfig;
 
     constructor({ logger, metrics, userConfig, server }: DryRunModeRunnerOptions<DefaultMetricDefinitions>) {
-        super({ loggers: [], metrics });
+        super({ logger: new CompositeLogger({ loggers: [new NoopLogger()] }), metrics });
         this.userConfig = userConfig;
         this.consoleLogger = logger;
         this.server = server;
     }
 
-    override async start(): Promise<void> {
+    async start(): Promise<void> {
         // Dump userConfig
         this.consoleLogger.log("Configuration:");
         this.consoleLogger.log(JSON.stringify(this.userConfig, null, 2));
@@ -72,7 +72,7 @@ export class DryRunModeRunner extends TransportRunnerBase<unknown, DefaultMetric
     /**
      * Stops the dry run mode runner.
      */
-    override async stop(): Promise<void> {
+    async stop(): Promise<void> {
         await this.server.close();
     }
 

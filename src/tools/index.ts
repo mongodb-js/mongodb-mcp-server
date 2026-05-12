@@ -5,12 +5,7 @@ import { AssistantTools } from "@mongodb-js/mcp-tools-assistant";
 import type { ToolClass } from "./tool.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const AllTools: ToolClass<any, any, any>[] = [
-    ...MongoDBTools,
-    ...AtlasTools,
-    ...AtlasLocalTools,
-    ...AssistantTools,
-];
+export const AllTools: ToolClass<any, any>[] = [...MongoDBTools, ...AtlasTools, ...AtlasLocalTools, ...AssistantTools];
 
 export { MongoDBToolBase, type IMongoDBConfig, type IMongoDBSession } from "@mongodb-js/mcp-tools-mongodb";
 

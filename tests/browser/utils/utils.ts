@@ -16,7 +16,7 @@ export class BrowserTestRunner extends TransportRunnerBase {
     start(
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         _options: {
-            serverOptions?: CustomizableServerOptions<unknown>;
+            serverOptions?: CustomizableServerOptions;
             sessionOptions?: CustomizableSessionOptions;
         } = {}
     ): Promise<void> {

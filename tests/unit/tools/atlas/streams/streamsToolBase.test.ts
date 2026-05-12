@@ -98,7 +98,7 @@ describe("StreamsToolBase", () => {
             requestConfirmation: vi.fn(),
         } as unknown as Elicitation;
 
-        const params: ToolConstructorParams<IAtlasConfig, unknown, DefaultPrometheusMetricDefinitions> = {
+        const params: ToolConstructorParams<IAtlasConfig, DefaultPrometheusMetricDefinitions> = {
             name: TestStreamsTool.toolName,
             category: "atlas",
             operationType: TestStreamsTool.operationType,

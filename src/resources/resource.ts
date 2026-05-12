@@ -23,9 +23,8 @@ export abstract class ReactiveResource<
     Value,
     RelevantEvents extends readonly (keyof SessionEvents)[],
     TUserConfig extends UserConfig = UserConfig,
-    TContext = unknown,
 > {
-    protected server?: Server<TUserConfig, TContext>;
+    protected server?: Server<TUserConfig>;
     protected session: Session;
     protected config: UserConfig;
     protected telemetry: AtlasTelemetry;
@@ -73,7 +72,7 @@ export abstract class ReactiveResource<
         }
     }
 
-    public register(server: Server<TUserConfig, TContext>): void {
+    public register(server: Server<TUserConfig>): void {
         this.server = server;
         this.server.mcpServer.registerResource(this.name, this.uri, this.resourceConfig, this.resourceCallback);
     }
