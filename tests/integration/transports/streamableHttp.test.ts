@@ -502,8 +502,11 @@ describe("StreamableHttpRunner", () => {
 
         for (const responseType of ["json", "sse"] as const) {
             describe(`and httpResponseType set to ${responseType}`, () => {
-                beforeEach(() => {
+                beforeEach(async () => {
                     config.httpResponseType = responseType;
+                    await runner?.close();
+                    runner = await createStreamableHttpRunner(config);
+                    await runner.start();
                 });
 
                 it("should create a new session with external session ID on initialize", async () => {
@@ -942,8 +945,11 @@ describe("StreamableHttpRunner", () => {
 
         for (const responseType of ["json", "sse"] as const) {
             describe(`and httpResponseType set to ${responseType}`, () => {
-                beforeEach(() => {
+                beforeEach(async () => {
                     config.httpResponseType = responseType;
+                    await runner?.close();
+                    runner = await createStreamableHttpRunner(config);
+                    await runner.start();
                 });
 
                 it(`should return ${responseType} responses`, async () => {
@@ -1193,6 +1199,24 @@ describe("StreamableHttpRunner", () => {
         };
 
         it("should customize server configuration based on request headers", async () => {
+            class ConfigCheckTool extends ToolBase<UserConfig, ToolContext> {
+                static toolName = "config-check";
+                public description = "Returns tool context as JSON";
+                public argsShape = {};
+                static category: ToolCategory = "mongodb";
+                static operationType: OperationType = "metadata";
+
+                protected execute(): Promise<CallToolResult> {
+                    return Promise.resolve({
+                        content: [{ type: "text", text: JSON.stringify(this.context ?? {}) }],
+                    });
+                }
+
+                protected resolveTelemetryMetadata(): TelemetryToolMetadata {
+                    return {};
+                }
+            }
+
             // Create a custom MCPHttpServer that customizes server creation based on request
             class CustomTestMCPHttpServer extends TestMCPHttpServer {
                 protected override async createServerForRequest(request: TransportRequestContext): Promise<Server> {
@@ -1203,7 +1227,10 @@ describe("StreamableHttpRunner", () => {
                         toolContext = { permissions: "full" };
                     }
 
-                    return createTestServer(this.userConfig, { toolContext });
+                    return createTestServer(this.userConfig, {
+                        tools: [ConfigCheckTool as unknown as AnyToolClass],
+                        toolContext,
+                    });
                 }
             }
 

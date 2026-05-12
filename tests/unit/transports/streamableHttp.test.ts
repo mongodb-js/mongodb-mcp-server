@@ -52,7 +52,7 @@ function createStreamableHttpRunnerFromConfig(options: {
 
     // Use provided monitoring server or create if configured
     let monitoringServer: MonitoringServer | undefined = options.monitoringServer;
-    if (!monitoringServer) {
+    if (monitoringServer === undefined && !("monitoringServer" in options)) {
         const monitoringHost = userConfig.monitoringServerHost ?? userConfig.healthCheckHost;
         const monitoringPort = userConfig.monitoringServerPort ?? userConfig.healthCheckPort;
         if (monitoringHost !== undefined && monitoringPort !== undefined) {
