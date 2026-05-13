@@ -23,7 +23,6 @@
   },
 
   "docModel": {
-    "enabled": true,
-    "apiJsonFilePath": "<projectFolder>/api-extractor/reports/tools.public.api.json"
+    "enabled": false
   }
 }
