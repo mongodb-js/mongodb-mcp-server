@@ -44,18 +44,14 @@ export {
     StreamableHttpRunner,
     MCPHttpServer,
     MonitoringServer,
-    type StreamableHttpRunnerOptions as StreamableHttpTransportRunnerConfig,
+    type StreamableHttpRunnerOptions,
     type MCPHttpServerOptions,
     type MonitoringServerOptions,
 } from "@mongodb-js/mcp-http-runners";
 export type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 
 // Web-friendly transports (from core)
-export {
-    TransportRunnerBase,
-    type TransportRunnerBaseOptions as TransportRunnerConfig,
-    type TransportRequestContext,
-} from "@mongodb-js/mcp-core";
+export { type ITransportRunner, type TransportRequestContext } from "@mongodb-js/mcp-types";
 export {
     ConnectionManager,
     MCPConnectionManager,
@@ -88,8 +84,8 @@ export {
 export { AtlasTelemetry, EventCache } from "@mongodb-js/mcp-atlas-telemetry";
 export type {
     TelemetryEvent,
-    TelemetryCommonProperties as CommonProperties,
-    TelemetryBaseEvent as BaseEvent,
+    TelemetryCommonProperties,
+    TelemetryBaseEvent,
     TelemetryEvents,
     TelemetryConfig,
 } from "@mongodb-js/mcp-atlas-telemetry";

@@ -93,6 +93,8 @@ All telemetry types are now prefixed with `Telemetry` or `Atlas`:
 | `SetupEvent`              | `TelemetrySetupEvent`                |
 | `SetupEventProperties`    | `TelemetrySetupEventProperties`      |
 
+**Note:** The deprecated aliases (`BaseEvent`, `CommonProperties`, `CommonStaticProperties`, `ConnectionMetadata`, `PerfAdvisorToolMetadata`, `StreamsToolMetadata`) have been removed. Use the new type names directly.
+
 ### `EventCache` import
 
 ```diff
@@ -114,14 +116,14 @@ A `NoopTelemetry` class implementing `ITelemetry` is now available for use in te
 
 Transport implementations have been split into two packages:
 
-- **Core transports** (`@mongodb-js/mcp-core`): `TransportRunnerBase`, `StdioRunner`, `InMemoryTransport`, `SessionStore`, and related types
+- **Core transports** (`@mongodb-js/mcp-core`): `ITransportRunner`, `StdioRunner`, `InMemoryTransport`, `SessionStore`, and related types
 - **HTTP runners** (`@mongodb-js/mcp-http-runners`): Node.js-specific HTTP server implementations (`StreamableHttpRunner`, `MCPHttpServer`, `MonitoringServer`)
 
 ### Core exports (now in `@mongodb-js/mcp-core`)
 
 ```diff
 - import { InMemoryTransport, SessionStore, TransportRunnerBase } from "mongodb-mcp-server";
-+ import { InMemoryTransport, SessionStore, TransportRunnerBase, StdioRunner } from "@mongodb-js/mcp-core";
++ import { InMemoryTransport, SessionStore, ITransportRunner, StdioRunner } from "@mongodb-js/mcp-core";
 ```
 
 Web-friendly types:
@@ -318,13 +320,17 @@ Several types have been moved or renamed:
 
 | Old location                                      | New location                                                             |
 | ------------------------------------------------- | ------------------------------------------------------------------------ |
-| `TransportRunnerConfig`                           | `TransportRunnerBaseOptions` (in `@mongodb-js/mcp-core`)                 |
+| `TransportRunnerBase`                             | `ITransportRunner` (in `@mongodb-js/mcp-types`)                          |
+| `TransportRunnerConfig`                           | Removed - use direct options in runners                                  |
+| `TransportRunnerBaseOptions`                      | Removed - use direct options in runners                                  |
 | `StreamableHttpTransportRunnerConfig`             | `StreamableHttpRunnerOptions` (in `@mongodb-js/mcp-http-runners`)        |
 | `MonitoringServerConfig` (from streamableHttp.ts) | `MonitoringServerConfig` (in `@mongodb-js/mcp-http-runners`)             |
 | `CreateSessionConfigFn`                           | Removed - extend `MCPHttpServer` and override `createServerForRequest()` |
 | `CustomizableServerOptions`                       | Removed - no longer needed                                               |
 | `CustomizableSessionOptions`                      | Removed - no longer needed                                               |
 | `TransportRequestContext`                         | Same name, moved to `@mongodb-js/mcp-core`                               |
+
+**Note:** The deprecated aliases (`TransportRunnerConfig`, `StreamableHttpTransportRunnerConfig`) have been removed. Use the new type names directly.
 
 ### Removed from Transports
 

@@ -1,5 +1,3 @@
-export type { TransportRunnerBaseOptions } from "@mongodb-js/mcp-core";
-
 export type { StreamableHttpRunnerOptions } from "./streamableHttpRunner.js";
 
 // Node.js-specific transport runners

@@ -60,7 +60,6 @@ import {
   parseUserConfig,
   StreamableHttpRunner,
   StdioRunner,
-  TransportRunnerBase,
   LoggerBase,
   Telemetry,
   Keychain,
@@ -71,6 +70,7 @@ import {
   applyConfigOverrides,
   // ... and more
 } from "mongodb-mcp-server";
+import type { ITransportRunner } from "@mongodb-js/mcp-types";
 ```
 
 **Tools (`mongodb-mcp-server/tools`):**
@@ -754,13 +754,13 @@ This approach is useful when you want to:
 
 ## API Reference
 
-### TransportRunnerConfig
+### ITransportRunner
 
-Configuration options for initializing transport runners (`StdioRunner`, `StreamableHttpRunner`).
+Interface for transport runners (`StdioRunner`, `StreamableHttpRunner`).
 
-See the TypeScript definition in [`src/transports/base.ts`](./src/transports/base.ts) for detailed documentation of all available options.
+See the TypeScript definition in [`packages/types/src/transport.ts`](./packages/types/src/transport.ts) for detailed documentation.
 
-**Note:** Several properties in `TransportRunnerConfig` are deprecated. For customizing server creation, prefer extending `MCPHttpServer` and implementing the `createServerForRequest` method.
+**Note:** For customizing server creation, prefer extending `MCPHttpServer` and implementing the `createServerForRequest` method.
 
 ### ToolBase
 

@@ -1,15 +1,11 @@
 import { Client } from "@modelcontextprotocol/sdk/client";
-import { TransportRunnerBase } from "@mongodb-js/mcp-core";
+import type { ITransportRunner } from "@mongodb-js/mcp-types";
 
-export class BrowserTestRunner extends TransportRunnerBase {
+export class BrowserTestRunner implements ITransportRunner {
     private _client: Client | null = null;
 
     get client(): Client | null {
         return this._client;
-    }
-
-    constructor() {
-        super();
     }
 
     async start(): Promise<void> {

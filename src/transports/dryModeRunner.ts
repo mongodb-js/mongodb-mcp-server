@@ -1,4 +1,5 @@
-import { TransportRunnerBase, InMemoryTransport } from "@mongodb-js/mcp-core";
+import type { ITransportRunner } from "@mongodb-js/mcp-types";
+import { InMemoryTransport } from "@mongodb-js/mcp-core";
 import type { UserConfig } from "../common/config/userConfig.js";
 
 /**
@@ -38,13 +39,12 @@ export type DryRunModeRunnerOptions = {
  * await runner.start();
  * ```
  */
-export class DryRunModeRunner extends TransportRunnerBase {
+export class DryRunModeRunner implements ITransportRunner {
     private server: DryRunServer;
     private consoleLogger: DryRunLogger;
     private userConfig: UserConfig;
 
     constructor({ logger, userConfig, server }: DryRunModeRunnerOptions) {
-        super();
         this.userConfig = userConfig;
         this.consoleLogger = logger;
         this.server = server;

@@ -38,8 +38,6 @@ export { setManagedTimeout, type ManagedTimeout } from "./managedTimeout.js";
 // Web-friendly transports
 export { InMemoryTransport } from "./inMemoryTransport.js";
 export { SessionStore, type ISessionStore, type SessionStoreConstructorArgs } from "./sessionStore.js";
-export { TransportRunnerBase } from "./transportRunnerBase.js";
-
 export { StdioRunner } from "./runners/stdioRunner.js";
 
 export { NoopMetrics } from "./metrics/noopMetrics.js";
@@ -52,7 +50,7 @@ export {
     JSON_RPC_ERROR_CODE_INVALID_REQUEST,
     JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION,
 } from "./jsonRpcErrorCodes.js";
-export type { ServerOptions, TransportRunnerBaseOptions } from "./transports.js";
+export type { ServerOptions } from "./transports.js";
 
 export type { TransportRequestContext, CloseableTransport } from "@mongodb-js/mcp-types";
 

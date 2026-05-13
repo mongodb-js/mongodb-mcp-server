@@ -1,7 +1,7 @@
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import type { ITransportRunner } from "@mongodb-js/mcp-types";
 import type { CompositeLogger } from "../logging/compositeLogger.js";
 import { LogId } from "../logId.js";
-import { TransportRunnerBase } from "../transportRunnerBase.js";
 
 /**
  * Transport runner for stdio (standard input/output) transport.
@@ -24,12 +24,11 @@ export class StdioRunner<
         connect(transport: StdioServerTransport): Promise<void>;
         close(): Promise<void>;
     },
-> extends TransportRunnerBase {
+> implements ITransportRunner {
     private server: TServer;
     public readonly logger: CompositeLogger;
 
     constructor({ logger, server }: { logger: CompositeLogger; server: TServer }) {
-        super();
         this.logger = logger;
         this.server = server;
     }

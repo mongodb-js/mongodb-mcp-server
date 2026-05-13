@@ -262,10 +262,10 @@ export class AtlasTelemetry implements ITelemetry {
     close(): Promise<void>;
     // (undocumented)
     static create(config: TelemetryConfig): AtlasTelemetry;
-    emitEvents(events: BaseEvent[]): void;
+    emitEvents(events: TelemetryBaseEvent[]): void;
     // (undocumented)
     readonly events: EventEmitter<TelemetryEvents>;
-    getCommonProperties(): CommonProperties;
+    getCommonProperties(): TelemetryCommonProperties;
     isTelemetryEnabled(): boolean;
     setupPromise: Promise<[string, boolean]> | undefined;
 }
@@ -281,28 +281,9 @@ export interface AuthProvider {
 }
 
 // @public (undocumented)
-export type BaseEvent = TelemetryEvent<unknown>;
-
-// @public (undocumented)
 export type CloseableTransport = {
     close(): Promise<void>;
 };
-
-// Warning: (ae-forgotten-export) The symbol "TelemetryCommonStaticProperties" needs to be exported by the entry point lib.d.ts
-//
-// @public
-export type CommonProperties = {
-    device_id?: string;
-    is_container_env?: TelemetryBoolSet;
-    mcp_client_version?: string;
-    mcp_client_name?: string;
-    transport?: "stdio" | "http";
-    config_atlas_auth?: TelemetryBoolSet;
-    config_connection_string?: TelemetryBoolSet;
-    session_id?: string;
-    hosting_mode?: string;
-    has_docker?: TelemetryBoolSet;
-} & TelemetryCommonStaticProperties;
 
 // @public (undocumented)
 export class CompositeLogger extends LoggerBase {
@@ -593,13 +574,13 @@ export const ErrorCodes: {
 // @public
 export class EventCache {
     constructor();
-    appendEvents(events: BaseEvent[]): void;
+    appendEvents(events: TelemetryBaseEvent[]): void;
     getEvents(): {
         id: number;
-        event: BaseEvent;
+        event: TelemetryBaseEvent;
     }[];
     static getInstance(): EventCache;
-    processOldestBatch<T>(batchSize: number, processor: (events: BaseEvent[]) => Promise<{
+    processOldestBatch<T>(batchSize: number, processor: (events: TelemetryBaseEvent[]) => Promise<{
         removeProcessed: boolean;
         result: T;
     }>): Promise<T | undefined>;
@@ -660,6 +641,17 @@ export interface ISessionStore<T extends CloseableTransport = CloseableTransport
     }): Promise<void>;
     // (undocumented)
     getSession(sessionId: string): Promise<T | undefined>;
+}
+
+// @public (undocumented)
+export interface ITransportRunner {
+    // (undocumented)
+    close(): Promise<void>;
+    // (undocumented)
+    start(options: {
+        serverOptions?: unknown;
+        sessionOptions?: unknown;
+    }): Promise<void>;
 }
 
 // @public
@@ -1082,7 +1074,7 @@ export class StdioRunner<TServer extends {
 } = {
     connect(transport: StdioServerTransport): Promise<void>;
     close(): Promise<void>;
-}> extends TransportRunnerBase {
+}> implements ITransportRunner {
     constructor(input: {
         logger: CompositeLogger;
         server: TServer;
@@ -1095,8 +1087,8 @@ export class StdioRunner<TServer extends {
 }
 
 // @public
-export class StreamableHttpRunner<TServer extends SessionAwareServer = SessionAwareServer, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> extends TransportRunnerBase {
-    constructor(input: StreamableHttpTransportRunnerConfig<TMetrics> & {
+export class StreamableHttpRunner<TServer extends SessionAwareServer = SessionAwareServer, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> implements ITransportRunner {
+    constructor(input: StreamableHttpRunnerOptions<TMetrics> & {
         mcpHttpServer: MCPHttpServer<TServer, TMetrics>;
         monitoringServer?: MonitoringServer<TMetrics>;
         sessionStore: ISessionStore<StreamableHTTPServerTransport>;
@@ -1115,13 +1107,32 @@ export class StreamableHttpRunner<TServer extends SessionAwareServer = SessionAw
     start(): Promise<void>;
 }
 
-export { StreamableHTTPServerTransport }
-
 // @public
-export type StreamableHttpTransportRunnerConfig<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
+export type StreamableHttpRunnerOptions<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
     logger: CompositeLogger;
     metrics: IMetrics<TMetrics>;
 };
+
+export { StreamableHTTPServerTransport }
+
+// @public (undocumented)
+export type TelemetryBaseEvent = TelemetryEvent<unknown>;
+
+// Warning: (ae-forgotten-export) The symbol "TelemetryCommonStaticProperties" needs to be exported by the entry point lib.d.ts
+//
+// @public
+export type TelemetryCommonProperties = {
+    device_id?: string;
+    is_container_env?: TelemetryBoolSet;
+    mcp_client_version?: string;
+    mcp_client_name?: string;
+    transport?: "stdio" | "http";
+    config_atlas_auth?: TelemetryBoolSet;
+    config_connection_string?: TelemetryBoolSet;
+    session_id?: string;
+    hosting_mode?: string;
+    has_docker?: TelemetryBoolSet;
+} & TelemetryCommonStaticProperties;
 
 // @public
 export type TelemetryConfig = {
@@ -1130,7 +1141,7 @@ export type TelemetryConfig = {
     apiClient: ApiClient;
     keychain: IKeychain;
     enabled: boolean;
-    getCommonProperties?: () => Partial<CommonProperties>;
+    getCommonProperties?: () => Partial<TelemetryCommonProperties>;
     eventCache?: EventCache;
     machineMetadata: TelemetryCommonStaticProperties;
     detectContainerEnv?: () => Promise<boolean>;
@@ -1170,19 +1181,6 @@ export type ToolExecutionContext = {
 export type TransportRequestContext = {
     headers?: Record<string, string | string[] | undefined>;
     query?: Record<string, string | string[] | undefined>;
-};
-
-// @public
-export abstract class TransportRunnerBase {
-    protected constructor();
-    abstract close(): Promise<void>;
-    abstract start(): Promise<void>;
-}
-
-// @public
-export type TransportRunnerConfig<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
-    logger: CompositeLogger;
-    metrics: IMetrics<TMetrics>;
 };
 
 // Warning: (ae-forgotten-export) The symbol "IUIRegistry" needs to be exported by the entry point lib.d.ts

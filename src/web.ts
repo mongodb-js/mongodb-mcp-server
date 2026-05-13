@@ -1,8 +1,4 @@
-export {
-    TransportRunnerBase,
-    type TransportRunnerBaseOptions as TransportRunnerConfig,
-    type TransportRequestContext as TransportRequestContextDeprecated,
-} from "@mongodb-js/mcp-core";
+export { type ITransportRunner, type TransportRequestContext } from "@mongodb-js/mcp-types";
 export { UserConfigSchema, type UserConfig } from "./common/config/userConfig.js";
 export { createDefaultMetrics, type DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
 export {
@@ -15,18 +11,17 @@ export {
 export { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 export { LoggerBase, CompositeLogger, type EventMap, type DefaultEventMap } from "@mongodb-js/mcp-core";
 export type { DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
-export type { TransportRequestContext } from "@mongodb-js/mcp-core";
 export type {
-    TelemetryCommonProperties as CommonProperties,
+    TelemetryCommonProperties,
     TelemetryBoolSet,
-    TelemetryCommonStaticProperties as CommonStaticProperties,
+    TelemetryCommonStaticProperties,
     TelemetryResult,
     TelemetryToolMetadata,
-    AtlasConnectionMetadata as ConnectionMetadata,
+    AtlasConnectionMetadata,
     AtlasMetadata,
     AtlasLocalToolMetadata,
-    AtlasPerfAdvisorToolMetadata as PerfAdvisorToolMetadata,
-    AtlasStreamsToolMetadata as StreamsToolMetadata,
+    AtlasPerfAdvisorToolMetadata,
+    AtlasStreamsToolMetadata,
     UpgradeClusterMetadata,
 } from "@mongodb-js/mcp-atlas-telemetry";
 export { Session, type SessionOptions, type SessionEvents } from "./common/session.js";
@@ -85,14 +80,9 @@ export type {
     TelemetryEvents,
     TelemetryConfig,
     TelemetryEvent,
-    TelemetryBaseEvent as BaseEvent,
+    TelemetryBaseEvent,
 } from "@mongodb-js/mcp-atlas-telemetry";
 export { ErrorCodes, MongoDBError } from "./common/errors.js";
 export { getRandomUUID } from "./helpers/getRandomUUID.js";
 export type { AuthProvider, Credentials } from "@mongodb-js/mcp-atlas-api-client";
-export type {
-    ConnectionStringAuthType,
-    ConnectionStringHostType,
-    OIDCConnectionAuthType as ConnectionInfoOIDCConnectionAuthType,
-} from "@mongodb-js/mcp-tools-mongodb";
 export type { PreviewFeature, previewFeatureValues } from "@mongodb-js/mcp-tools-mongodb";

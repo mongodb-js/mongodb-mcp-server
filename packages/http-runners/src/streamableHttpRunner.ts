@@ -1,7 +1,7 @@
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import type { DefaultMetricDefinitions, ISessionStore, IMetrics } from "@mongodb-js/mcp-types";
+import type { DefaultMetricDefinitions, ISessionStore, IMetrics, ITransportRunner } from "@mongodb-js/mcp-types";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
-import { LogId, TransportRunnerBase } from "@mongodb-js/mcp-core";
+import { LogId } from "@mongodb-js/mcp-core";
 import { MCPHttpServer, type SessionAwareServer } from "./mcpHttpServer.js";
 import { MonitoringServer } from "./monitoringServer.js";
 
@@ -29,7 +29,7 @@ export type StreamableHttpRunnerOptions<TMetrics extends DefaultMetricDefinition
 export class StreamableHttpRunner<
     TServer extends SessionAwareServer = SessionAwareServer,
     TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions,
-> extends TransportRunnerBase {
+> implements ITransportRunner {
     protected readonly mcpHttpServer: MCPHttpServer<TServer, TMetrics>;
     protected readonly monitoringServer: MonitoringServer<TMetrics> | undefined;
     protected readonly sessionStore: ISessionStore<StreamableHTTPServerTransport>;
@@ -47,7 +47,6 @@ export class StreamableHttpRunner<
         monitoringServer?: MonitoringServer<TMetrics>;
         sessionStore: ISessionStore<StreamableHTTPServerTransport>;
     }) {
-        super();
         this.logger = logger;
         this.metrics = metrics;
         this.mcpHttpServer = mcpHttpServer;

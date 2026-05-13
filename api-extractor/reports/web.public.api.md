@@ -11,7 +11,7 @@ import type { Client } from '@mongodb-js/atlas-local';
 import { ConnectionInfo } from '@mongosh/arg-parser';
 import { Counter } from 'prom-client';
 import type { ElicitRequestFormParams } from '@modelcontextprotocol/sdk/types.js';
-import { EventEmitter } from 'events';
+import EventEmitter from 'events';
 import type { FetchOptions } from 'openapi-fetch';
 import type { FindCursor } from 'mongodb';
 import { Histogram } from 'prom-client';
@@ -246,6 +246,12 @@ export type AtlasClusterConnectionInfo = {
     expiryDate: Date;
 };
 
+// @public (undocumented)
+export type AtlasConnectionMetadata = AtlasMetadata & AtlasLocalToolMetadata & {
+    connection_auth_type?: string;
+    connection_host_type?: string;
+};
+
 export { AtlasLocalClientFactoryFn }
 
 // @public (undocumented)
@@ -257,6 +263,17 @@ export type AtlasLocalToolMetadata = {
 export type AtlasMetadata = {
     project_id?: string;
     org_id?: string;
+};
+
+// @public (undocumented)
+export type AtlasPerfAdvisorToolMetadata = AtlasMetadata & AtlasConnectionMetadata & {
+    operations: string[];
+};
+
+// @public (undocumented)
+export type AtlasStreamsToolMetadata = AtlasMetadata & {
+    action?: string;
+    resource?: string;
 };
 
 // @public
@@ -273,9 +290,6 @@ export interface AuthProvider {
 export type AvailableExport = Pick<StoredExport, "exportName" | "exportTitle" | "exportURI" | "exportPath">;
 
 // @public (undocumented)
-export type BaseEvent = TelemetryEvent<unknown>;
-
-// @public (undocumented)
 export interface CommonExportData {
     // (undocumented)
     exportName: string;
@@ -286,30 +300,6 @@ export interface CommonExportData {
     // (undocumented)
     exportURI: string;
 }
-
-// @public
-export type CommonProperties = {
-    device_id?: string;
-    is_container_env?: TelemetryBoolSet;
-    mcp_client_version?: string;
-    mcp_client_name?: string;
-    transport?: "stdio" | "http";
-    config_atlas_auth?: TelemetryBoolSet;
-    config_connection_string?: TelemetryBoolSet;
-    session_id?: string;
-    hosting_mode?: string;
-    has_docker?: TelemetryBoolSet;
-} & CommonStaticProperties;
-
-// @public
-export type CommonStaticProperties = {
-    mcp_server_version: string;
-    mcp_server_name: string;
-    platform: string;
-    arch: string;
-    os_type: string;
-    os_version?: string;
-};
 
 // @public (undocumented)
 export class CompositeLogger extends LoggerBase {
@@ -405,12 +395,6 @@ export type ConnectionManagerFactoryOptions = {
 };
 
 // @public (undocumented)
-export type ConnectionMetadata = AtlasMetadata & AtlasLocalToolMetadata & {
-    connection_auth_type?: string;
-    connection_host_type?: string;
-};
-
-// @public (undocumented)
 export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"> {
     // (undocumented)
     atlas?: AtlasClusterConnectionInfo;
@@ -475,18 +459,14 @@ export interface ConnectionStateErrored extends ConnectionState {
     tag: "errored";
 }
 
-// Warning: (ae-forgotten-export) The symbol "OIDCConnectionAuthType_2" needs to be exported by the entry point web.d.ts
-//
-// @public (undocumented)
-export type ConnectionStringAuthType = "scram" | "ldap" | "kerberos" | OIDCConnectionAuthType_2 | "x.509";
-
-// @public
-export type ConnectionStringHostType = "local" | "atlas" | "atlas_local" | "unknown";
-
 // @public
 export interface ConnectionStringInfo {
+    // Warning: (ae-forgotten-export) The symbol "ConnectionStringAuthType" needs to be exported by the entry point web.d.ts
+    //
     // (undocumented)
     authType: ConnectionStringAuthType;
+    // Warning: (ae-forgotten-export) The symbol "ConnectionStringHostType" needs to be exported by the entry point web.d.ts
+    //
     // (undocumented)
     hostType: ConnectionStringHostType;
 }
@@ -587,13 +567,13 @@ export enum ErrorCodes {
 // @public
 export class EventCache {
     constructor();
-    appendEvents(events: BaseEvent[]): void;
+    appendEvents(events: TelemetryBaseEvent[]): void;
     getEvents(): {
         id: number;
-        event: BaseEvent;
+        event: TelemetryBaseEvent;
     }[];
     static getInstance(): EventCache;
-    processOldestBatch<T>(batchSize: number, processor: (events: BaseEvent[]) => Promise<{
+    processOldestBatch<T>(batchSize: number, processor: (events: TelemetryBaseEvent[]) => Promise<{
         removeProcessed: boolean;
         result: T;
     }>): Promise<T | undefined>;
@@ -651,6 +631,17 @@ export function getRandomUUID(): string;
 export interface InProgressExport extends CommonExportData {
     // (undocumented)
     exportStatus: "in-progress";
+}
+
+// @public (undocumented)
+export interface ITransportRunner {
+    // (undocumented)
+    close(): Promise<void>;
+    // (undocumented)
+    start(options: {
+        serverOptions?: unknown;
+        sessionOptions?: unknown;
+    }): Promise<void>;
 }
 
 // @public (undocumented)
@@ -738,17 +729,10 @@ export type MongoDBToolsRuntimeConfig = {
 };
 
 // @public (undocumented)
-type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
-export { OIDCConnectionAuthType as ConnectionInfoOIDCConnectionAuthType }
-export { OIDCConnectionAuthType }
+export type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
 
 // @public
 export type OperationType = "metadata" | "read" | "create" | "delete" | "update" | "connect";
-
-// @public (undocumented)
-export type PerfAdvisorToolMetadata = AtlasMetadata & ConnectionMetadata & {
-    operations: string[];
-};
 
 // @public (undocumented)
 export type PreviewFeature = (typeof previewFeatureValues)[number];
@@ -914,12 +898,6 @@ export interface SessionOptions<TUserConfig extends UserConfig = UserConfig> {
 // @public (undocumented)
 export type StoredExport = ReadyExport | InProgressExport;
 
-// @public (undocumented)
-export type StreamsToolMetadata = AtlasMetadata & {
-    action?: string;
-    resource?: string;
-};
-
 // Warning: (ae-forgotten-export) The symbol "ITelemetry" needs to be exported by the entry point web.d.ts
 //
 // @public (undocumented)
@@ -928,16 +906,43 @@ export class Telemetry implements ITelemetry {
     close(): Promise<void>;
     // (undocumented)
     static create(config: TelemetryConfig): Telemetry;
-    emitEvents(events: BaseEvent[]): void;
+    emitEvents(events: TelemetryBaseEvent[]): void;
     // (undocumented)
     readonly events: EventEmitter<TelemetryEvents>;
-    getCommonProperties(): CommonProperties;
+    getCommonProperties(): TelemetryCommonProperties;
     isTelemetryEnabled(): boolean;
     setupPromise: Promise<[string, boolean]> | undefined;
 }
 
 // @public (undocumented)
+export type TelemetryBaseEvent = TelemetryEvent<unknown>;
+
+// @public (undocumented)
 export type TelemetryBoolSet = "true" | "false";
+
+// @public
+export type TelemetryCommonProperties = {
+    device_id?: string;
+    is_container_env?: TelemetryBoolSet;
+    mcp_client_version?: string;
+    mcp_client_name?: string;
+    transport?: "stdio" | "http";
+    config_atlas_auth?: TelemetryBoolSet;
+    config_connection_string?: TelemetryBoolSet;
+    session_id?: string;
+    hosting_mode?: string;
+    has_docker?: TelemetryBoolSet;
+} & TelemetryCommonStaticProperties;
+
+// @public
+export type TelemetryCommonStaticProperties = {
+    mcp_server_version: string;
+    mcp_server_name: string;
+    platform: string;
+    arch: string;
+    os_type: string;
+    os_version?: string;
+};
 
 // @public
 export type TelemetryConfig = {
@@ -946,9 +951,9 @@ export type TelemetryConfig = {
     apiClient: ApiClient;
     keychain: IKeychain;
     enabled: boolean;
-    getCommonProperties?: () => Partial<CommonProperties>;
+    getCommonProperties?: () => Partial<TelemetryCommonProperties>;
     eventCache?: EventCache;
-    machineMetadata: CommonStaticProperties;
+    machineMetadata: TelemetryCommonStaticProperties;
     detectContainerEnv?: () => Promise<boolean>;
 };
 
@@ -975,7 +980,7 @@ export type TelemetryEvents = {
 export type TelemetryResult = "success" | "failure";
 
 // @public
-export type TelemetryToolMetadata = AtlasMetadata | ConnectionMetadata | PerfAdvisorToolMetadata | StreamsToolMetadata | UpgradeClusterMetadata;
+export type TelemetryToolMetadata = AtlasMetadata | AtlasConnectionMetadata | AtlasPerfAdvisorToolMetadata | AtlasStreamsToolMetadata | UpgradeClusterMetadata;
 
 // @public (undocumented)
 export type ToolArgs<T extends ZodRawShape> = {
@@ -1001,10 +1006,10 @@ export abstract class ToolBase<TUserConfig extends IToolConfig = IToolConfig, TM
     enable(): void;
     protected abstract execute(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     protected getConfirmationMessage(args: ToolArgs<typeof ToolBase.argsShape>): string;
-    // Warning: (ae-forgotten-export) The symbol "ConnectionMetadata_2" needs to be exported by the entry point web.d.ts
+    // Warning: (ae-forgotten-export) The symbol "ConnectionMetadata" needs to be exported by the entry point web.d.ts
     //
     // (undocumented)
-    protected getConnectionInfoMetadata(): ConnectionMetadata_2;
+    protected getConnectionInfoMetadata(): ConnectionMetadata;
     protected handleError(error: unknown, args: z.infer<z.ZodObject<typeof ToolBase.argsShape>>): Promise<CallToolResult> | CallToolResult;
     invoke(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)
@@ -1068,24 +1073,9 @@ export type ToolExecutionContext = {
 };
 
 // @public (undocumented)
-type TransportRequestContext = {
+export type TransportRequestContext = {
     headers?: Record<string, string | string[] | undefined>;
     query?: Record<string, string | string[] | undefined>;
-};
-export { TransportRequestContext }
-export { TransportRequestContext as TransportRequestContextDeprecated }
-
-// @public
-export abstract class TransportRunnerBase {
-    protected constructor();
-    abstract close(): Promise<void>;
-    abstract start(): Promise<void>;
-}
-
-// @public
-export type TransportRunnerConfig<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
-    logger: CompositeLogger;
-    metrics: IMetrics<TMetrics>;
 };
 
 // @public

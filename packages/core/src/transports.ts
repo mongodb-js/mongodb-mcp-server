@@ -20,14 +20,3 @@ export type ServerOptions<TMetrics extends DefaultMetricDefinitions = DefaultMet
     /** Server version */
     version?: string;
 };
-
-/**
- * Base configuration options for all transport runners.
- */
-export type TransportRunnerBaseOptions<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
-    /** Logger instance */
-    logger: CompositeLogger;
-
-    /** Metrics instance */
-    metrics: IMetrics<TMetrics>;
-};
