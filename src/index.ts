@@ -166,7 +166,6 @@ async function main(): Promise<void> {
         });
         transportRunner = new StdioRunner({
             logger: logger,
-            metrics,
             server,
         });
     } else {
@@ -223,42 +222,42 @@ async function main(): Promise<void> {
         });
     }
 
-    const shutdown = (): void => {
-        transportRunner.logger.info({
+    const shutdown = async (): Promise<void> => {
+        logger.info({
             id: LogId.serverCloseRequested,
             context: "server",
             message: `Server close requested`,
         });
 
-        transportRunner
-            .close()
-            .then(() => {
-                transportRunner.logger.info({
-                    id: LogId.serverClosed,
-                    context: "server",
-                    message: `Server closed`,
-                });
-                process.exit(0);
-            })
-            .catch((error: unknown) => {
-                transportRunner.logger.error({
-                    id: LogId.serverCloseFailure,
-                    context: "server",
-                    message: `Error closing server: ${error as string}`,
-                });
-                process.exit(1);
+        try {
+            await transportRunner.close();
+        } catch (error: unknown) {
+            logger.error({
+                id: LogId.serverCloseFailure,
+                context: "server",
+                message: `Error closing server: ${error as string}`,
             });
+            process.exit(1);
+        } finally {
+            logger.info({
+                id: LogId.serverClosed,
+                context: "server",
+                message: `Server closed`,
+            });
+            await logger.flush();
+            process.exit(0);
+        }
     };
 
-    process.on("SIGINT", shutdown);
-    process.on("SIGABRT", shutdown);
-    process.on("SIGTERM", shutdown);
-    process.on("SIGQUIT", shutdown);
+    process.on("SIGINT", () => void shutdown());
+    process.on("SIGABRT", () => void shutdown());
+    process.on("SIGTERM", () => void shutdown());
+    process.on("SIGQUIT", () => void shutdown());
 
     try {
         await transportRunner.start();
     } catch (error: unknown) {
-        transportRunner.logger.info({
+        logger.info({
             id: LogId.serverCloseRequested,
             context: "server",
             message: `Closing server due to error: ${error as string}`,
@@ -266,13 +265,13 @@ async function main(): Promise<void> {
 
         try {
             await transportRunner.close();
-            transportRunner.logger.info({
+            logger.info({
                 id: LogId.serverClosed,
                 context: "server",
                 message: "Server closed",
             });
         } catch (error: unknown) {
-            transportRunner.logger.error({
+            logger.error({
                 id: LogId.serverCloseFailure,
                 context: "server",
                 message: `Error closing server: ${error as string}`,
@@ -322,7 +321,6 @@ export async function handleDryRunRequest(config: UserConfig): Promise<never> {
             },
             userConfig: config,
             server,
-            metrics: metrics,
         });
         await runner.start();
         await runner.stop();

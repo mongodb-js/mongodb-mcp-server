@@ -1,9 +1,4 @@
 /**
- * Base constraint for metric definitions.
- */
-export type MetricDefinitions = Record<string, unknown>;
-
-/**
  * Labels type for metrics.
  */
 export type MetricLabels = Partial<Record<string, string | number>>;
@@ -50,7 +45,7 @@ export type DefaultMetricDefinitions = {
  * Interface for accessing metrics.
  * @template TMetricsDefinitions - The type of metric definitions this metrics instance uses
  */
-export interface IMetrics<TMetricsDefinitions extends MetricDefinitions = MetricDefinitions> {
+export interface IMetrics<TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
     /** Get a specific metric by name */
     get<K extends keyof TMetricsDefinitions>(key: K): TMetricsDefinitions[K];
     /** Get all metrics as a formatted string (e.g., Prometheus format) */

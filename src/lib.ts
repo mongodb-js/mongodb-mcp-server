@@ -47,7 +47,6 @@ export {
     type StreamableHttpRunnerOptions as StreamableHttpTransportRunnerConfig,
     type MCPHttpServerOptions,
     type MonitoringServerOptions,
-    type MonitoringServerConstructorParams,
 } from "@mongodb-js/mcp-http-runners";
 export type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 
@@ -111,7 +110,6 @@ export {
     PrometheusMetrics,
     createDefaultMetrics,
     type DefaultPrometheusMetricDefinitions,
-    type MetricDefinitions,
     type PrometheusMetricsOptions,
     Registry,
     Gauge,

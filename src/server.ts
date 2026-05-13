@@ -316,7 +316,7 @@ export class Server<
                 config,
                 telemetry: this.telemetry,
                 elicitation: this.elicitation,
-                metrics: this.metrics as IMetrics,
+                metrics: this.metrics,
                 uiRegistry: this.uiRegistry,
             });
             if (tool.register(this)) {

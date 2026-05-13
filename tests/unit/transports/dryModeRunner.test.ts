@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { DryRunModeRunner, type DryRunServer } from "../../../src/transports/dryModeRunner.js";
 import { type UserConfig } from "../../../src/common/config/userConfig.js";
 import { defaultTestConfig } from "../../integration/helpers.js";
-import { Keychain, type LoggerBase, NoopMetrics } from "@mongodb-js/mcp-core";
+import { Keychain, type LoggerBase } from "@mongodb-js/mcp-core";
 import { ConsoleLogger } from "@mongodb-js/mcp-logging";
 
 describe("DryModeRunner", () => {
@@ -49,7 +49,6 @@ describe("DryModeRunner", () => {
             },
             userConfig,
             server: mockServer,
-            metrics: new NoopMetrics(),
         });
 
         await runner.start();

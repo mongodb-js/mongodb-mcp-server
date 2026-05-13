@@ -5,7 +5,6 @@ import type {
     ICompositeLogger,
     ILogger,
     IMetrics,
-    MetricDefinitions,
     DefaultMetricDefinitions,
     TransportRequestContext,
     ISessionStore,
@@ -33,13 +32,13 @@ import { sleep } from "./utils.js";
 export type SessionAwareServer = {
     connect(transport: StreamableHTTPServerTransport): Promise<void>;
     close(): Promise<void>;
-    session?: { logger: ICompositeLogger };
+    session: { logger: ICompositeLogger };
 };
 
 /**
  * Options for creating an MCPHttpServer instance.
  */
-export type MCPHttpServerOptions<TMetrics extends MetricDefinitions = DefaultMetricDefinitions> = {
+export type MCPHttpServerOptions<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
     options: {
         /** HTTP server options */
         http: HttpServerOptions;
@@ -69,7 +68,7 @@ export type MCPHttpServerOptions<TMetrics extends MetricDefinitions = DefaultMet
  */
 export abstract class MCPHttpServer<
     TServer extends SessionAwareServer = SessionAwareServer,
-    TMetrics extends MetricDefinitions = DefaultMetricDefinitions,
+    TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions,
 > extends ExpressBasedHttpServer {
     private readonly sessionStore: ISessionStore<StreamableHTTPServerTransport>;
     public readonly sessionOptions: SessionManagementOptions;
@@ -143,6 +142,7 @@ export abstract class MCPHttpServer<
         signal: AbortSignal;
     }): Promise<void> {
         if (this.httpOptions.responseType === "json") {
+            // Don't start the ping loop for JSON response type since the connection is short-lived and pings aren't needed
             return;
         }
 

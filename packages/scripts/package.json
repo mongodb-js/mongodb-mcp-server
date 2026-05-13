@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@mongodb-js/mcp-ui": "workspace:*",
+    "@mongodb-js/mcp-types": "workspace:*",
     "@mongodb-js/mcp-metrics": "workspace:*",
     "mongodb-mcp-server": "workspace:*"
   },

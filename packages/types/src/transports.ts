@@ -1,6 +1,3 @@
-import type { ILogger } from "./logging.js";
-import type { IMetrics, MetricDefinitions, DefaultMetricDefinitions } from "./metrics.js";
-
 /**
  * Options for configuring the HTTP server (host, port, etc).
  */
@@ -18,21 +15,6 @@ export type HttpServerOptions = {
 };
 
 /**
- * Features available on the monitoring server.
- */
-export type MonitoringServerFeature = "health-check" | "metrics";
-
-/**
- * Options for configuring the monitoring server.
- */
-export type MonitoringServerOptions = {
-    /** HTTP server options */
-    http: HttpServerOptions;
-    /** Features to enable on the monitoring server */
-    features: MonitoringServerFeature[];
-};
-
-/**
  * Options for session management.
  */
 export type SessionManagementOptions = {
@@ -43,25 +25,6 @@ export type SessionManagementOptions = {
     /** Whether to allow externally managed sessions */
     externallyManagedSessions: boolean;
 };
-
-/**
- * Constructor arguments for creating a monitoring server.
- */
-export type MonitoringServerConstructorArgs<TMetrics extends MetricDefinitions = DefaultMetricDefinitions> = {
-    /** Options for configuring the monitoring server */
-    options: MonitoringServerOptions;
-    /** Logger for the server */
-    logger: ILogger;
-    /** Metrics instance */
-    metrics: IMetrics<TMetrics>;
-};
-
-/**
- * Factory function type for creating a monitoring server.
- */
-export type CreateMonitoringServerFn<TMetrics extends MetricDefinitions = DefaultMetricDefinitions> = (
-    args: MonitoringServerConstructorArgs<TMetrics>
-) => object | undefined;
 
 /**
  * Options for transport runners.

@@ -450,6 +450,9 @@ importers:
       "@mongodb-js/mcp-metrics":
         specifier: workspace:*
         version: link:../metrics
+      "@mongodb-js/mcp-types":
+        specifier: workspace:*
+        version: link:../types
       "@mongodb-js/mcp-ui":
         specifier: workspace:*
         version: link:../ui

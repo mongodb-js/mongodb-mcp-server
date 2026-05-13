@@ -1,4 +1,13 @@
-import type { IMetrics, MetricDefinitions, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
+import type { IMetrics, DefaultMetricDefinitions, ICounter, IObservable } from "@mongodb-js/mcp-types";
+
+/**
+ * Combined no-op metric object that implements all metric interfaces.
+ * Has all possible methods so it works for any metric type.
+ */
+const noopMetric: ICounter & IObservable = {
+    inc: () => {},
+    observe: () => {},
+};
 
 /**
  * A no-op metrics implementation that returns empty values.
@@ -14,10 +23,11 @@ import type { IMetrics, MetricDefinitions, DefaultMetricDefinitions } from "@mon
  * await runner.start();
  * ```
  */
-export class NoopMetrics<TMetrics extends MetricDefinitions = DefaultMetricDefinitions> implements IMetrics<TMetrics> {
-    /** Returns undefined for any metric */
-    get<K extends keyof TMetrics>(): TMetrics[K] {
-        return undefined as TMetrics[K];
+export class NoopMetrics implements IMetrics<DefaultMetricDefinitions> {
+    /** Returns a no-op metric for any key */
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    get<K extends keyof DefaultMetricDefinitions>(_key: K): DefaultMetricDefinitions[K] {
+        return noopMetric;
     }
 
     /** Returns an empty string for metrics output */

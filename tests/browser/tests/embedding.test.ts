@@ -1,6 +1,5 @@
 import { describe, beforeAll, afterAll, it, expect } from "vitest";
 import { UserConfigSchema } from "mongodb-mcp-server/web";
-import { CompositeLogger, NoopMetrics } from "@mongodb-js/mcp-core";
 import { BrowserTestRunner } from "../utils/utils.js";
 
 describe("MongoDB MCP Server in Browser", () => {
@@ -14,7 +13,7 @@ describe("MongoDB MCP Server in Browser", () => {
             loggers: ["stderr"],
         });
 
-        runner = new BrowserTestRunner({ logger: new CompositeLogger({ loggers: [] }), metrics: new NoopMetrics() });
+        runner = new BrowserTestRunner();
         await runner.start();
     });
 
@@ -26,7 +25,7 @@ describe("MongoDB MCP Server in Browser", () => {
         // Verify runner is initialized
         expect(runner).toBeDefined();
 
-        const client = runner.getClient();
+        const client = runner.client;
         expect(client).toBeDefined();
     });
 

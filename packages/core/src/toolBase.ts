@@ -9,7 +9,8 @@ import type { IToolSession } from "@mongodb-js/mcp-types";
 import type { IElicitation } from "@mongodb-js/mcp-types";
 import type { PreviewFeature } from "@mongodb-js/mcp-types";
 import type { IUIRegistry } from "@mongodb-js/mcp-types";
-import type { IMetrics, IObservable, MetricDefinitions, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
+import type { IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
+import type { OperationType, ToolCategory, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { createUIResource, type UIResource } from "@mcp-ui/server";
 
 const LogId = {
@@ -26,17 +27,6 @@ export type ToolArgs<T extends ZodRawShape> = {
     [K in keyof T]: z.infer<T[K]>;
 };
 
-export type ToolExecutionContext = {
-    signal: AbortSignal;
-    /**
-     * Request context object available only when running atop
-     * StreamableHttpTransport.
-     */
-    requestInfo?: {
-        headers?: Record<string, unknown>;
-    };
-};
-
 export type ToolResult<OutputSchema extends ZodRawShape | undefined = undefined> = OutputSchema extends ZodRawShape
     ? StructuredToolResult<OutputSchema>
     : { content: { type: "text"; text: string }[]; isError?: boolean };
@@ -48,31 +38,6 @@ type StructuredToolResult<OutputSchema extends ZodRawShape> = {
 };
 
 /**
- * The type of operation the tool performs. This is used when evaluating if a tool is allowed to run based on
- * the config's `disabledTools` and `readOnly` settings.
- * - `metadata` is used for tools that read but do not access potentially user-generated
- *   data, such as listing databases, collections, or indexes, or inferring collection schema.
- * - `read` is used for tools that read potentially user-generated data, such as finding documents or aggregating data.
- *   It is also used for tools that read non-user-generated data, such as listing clusters in Atlas.
- * - `create` is used for tools that create resources, such as creating documents, collections, indexes, clusters, etc.
- * - `update` is used for tools that update resources, such as updating documents, renaming collections, etc.
- * - `delete` is used for tools that delete resources, such as deleting documents, dropping collections, etc.
- * - `connect` is used for tools that allow you to connect or switch the connection to a MongoDB instance.
- */
-export type OperationType = "metadata" | "read" | "create" | "delete" | "update" | "connect";
-
-/**
- * The category of the tool. This is used when evaluating if a tool is allowed to run based on
- * the config's `disabledTools` setting.
- * - `mongodb` is used for tools that interact with a MongoDB instance, such as finding documents,
- *   aggregating data, listing databases/collections/indexes, creating indexes, etc.
- * - `atlas` is used for tools that interact with MongoDB Atlas, such as listing clusters, creating clusters, etc.
- * - `atlas-local` is used for tools that interact with local Atlas deployments.
- * - `assistant` is used for tools that interact with the Assistant, such as searching the public knowledge base.
- */
-export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant";
-
-/**
  * Parameters passed to the constructor of all tools that extends `ToolBase`.
  *
  * The MongoDB MCP Server automatically injects these parameters when
@@ -82,7 +47,7 @@ export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant";
  */
 export type ToolConstructorParams<
     TUserConfig extends IToolConfig = IToolConfig,
-    TMetricsDefinitions extends MetricDefinitions = DefaultMetricDefinitions,
+    TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions,
 > = {
     /**
      * The unique name of this tool (injected from the static
@@ -189,7 +154,7 @@ export type ToolConstructorParams<
  */
 export type ToolClass<
     TUserConfig extends IToolConfig = IToolConfig,
-    TMetricsDefinitions extends MetricDefinitions = DefaultMetricDefinitions,
+    TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions,
 > = {
     /** Constructor signature for the tool class */
     new (params: ToolConstructorParams<TUserConfig, TMetricsDefinitions>): ToolBase<TUserConfig, TMetricsDefinitions>;
@@ -289,7 +254,7 @@ export type ToolClass<
  */
 export abstract class ToolBase<
     TUserConfig extends IToolConfig = IToolConfig,
-    TMetricsDefinitions extends MetricDefinitions = DefaultMetricDefinitions,
+    TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions,
 > {
     /**
      * The unique name of this tool.
@@ -507,7 +472,7 @@ export abstract class ToolBase<
 
             const durationSeconds = (Date.now() - startTime) / 1000;
 
-            (this.metrics.get("toolExecutionDuration") as IObservable).observe(
+            this.metrics.get("toolExecutionDuration").observe(
                 {
                     tool_name: this.name,
                     category: this.category,
@@ -534,7 +499,7 @@ export abstract class ToolBase<
             this.emitToolEvent(args, { startTime, result: toolResult });
 
             const durationSeconds = (Date.now() - startTime) / 1000;
-            (this.metrics.get("toolExecutionDuration") as IObservable).observe(
+            this.metrics.get("toolExecutionDuration").observe(
                 {
                     tool_name: this.name,
                     category: this.category,

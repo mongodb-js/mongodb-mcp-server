@@ -750,7 +750,7 @@ export class MCPConnectionManager extends ConnectionManager {
 // Warning: (ae-forgotten-export) The symbol "ExpressBasedHttpServer" needs to be exported by the entry point lib.d.ts
 //
 // @public
-export abstract class MCPHttpServer<TServer extends SessionAwareServer = SessionAwareServer, TMetrics extends MetricDefinitions = DefaultMetricDefinitions> extends ExpressBasedHttpServer {
+export abstract class MCPHttpServer<TServer extends SessionAwareServer = SessionAwareServer, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> extends ExpressBasedHttpServer {
     constructor(input: MCPHttpServerOptions<TMetrics>);
     protected abstract createServerForRequest(request: TransportRequestContext): Promise<TServer>;
     // Warning: (ae-forgotten-export) The symbol "IMetrics" needs to be exported by the entry point lib.d.ts
@@ -770,7 +770,7 @@ export abstract class MCPHttpServer<TServer extends SessionAwareServer = Session
 }
 
 // @public
-export type MCPHttpServerOptions<TMetrics extends MetricDefinitions = DefaultMetricDefinitions> = {
+export type MCPHttpServerOptions<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
     options: {
         http: HttpServerOptions;
         session: SessionManagementOptions;
@@ -794,9 +794,6 @@ export class McpLogger extends LoggerBase {
     protected readonly type: LoggerType;
 }
 
-// @public
-export type MetricDefinitions = Record<string, unknown>;
-
 // Warning: (ae-forgotten-export) The symbol "ErrorCode" needs to be exported by the entry point lib.d.ts
 //
 // @public (undocumented)
@@ -813,18 +810,17 @@ export type MongoDBToolsRuntimeConfig = {
 };
 
 // @public
-export class MonitoringServer<TMetrics extends MetricDefinitions = DefaultMetricDefinitions> extends ExpressBasedHttpServer {
-    constructor(input: MonitoringServerConstructorParams<TMetrics>);
+export class MonitoringServer<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> extends ExpressBasedHttpServer {
+    constructor(input: MonitoringServerOptions<TMetrics>);
+    // Warning: (ae-forgotten-export) The symbol "MonitoringServerFeature_2" needs to be exported by the entry point lib.d.ts
+    //
+    // (undocumented)
+    protected readonly features: MonitoringServerFeature_2[];
+    // (undocumented)
+    protected readonly metrics: IMetrics<TMetrics>;
     // (undocumented)
     protected setupRoutes(): Promise<void>;
 }
-
-// Warning: (ae-forgotten-export) The symbol "MonitoringServerDependencies" needs to be exported by the entry point lib.d.ts
-//
-// @public
-export type MonitoringServerConstructorParams<TMetrics extends MetricDefinitions = DefaultMetricDefinitions> = {
-    options: MonitoringServerOptions;
-} & MonitoringServerDependencies<TMetrics>;
 
 // Warning: (ae-forgotten-export) The symbol "monitoringServerFeatureValues" needs to be exported by the entry point lib.d.ts
 //
@@ -832,12 +828,16 @@ export type MonitoringServerConstructorParams<TMetrics extends MetricDefinitions
 export type MonitoringServerFeature = (typeof monitoringServerFeatureValues)[number];
 
 // @public
-export type MonitoringServerOptions = {
-    http: {
-        host: string;
-        port: number;
+export type MonitoringServerOptions<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
+    options: {
+        http: {
+            host: string;
+            port: number;
+        };
+        features: MonitoringServerFeature_2[];
     };
-    features: MonitoringServerFeature_2[];
+    logger: ILogger;
+    metrics: IMetrics<TMetrics>;
 };
 
 // @public (undocumented)
@@ -873,10 +873,8 @@ export function parseUserConfig(input: {
     error: string | undefined;
 };
 
-// Warning: (ae-forgotten-export) The symbol "PrometheusMetricDefinitions" needs to be exported by the entry point lib.d.ts
-//
 // @public (undocumented)
-export class PrometheusMetrics<TMetricsDefinitions extends PrometheusMetricDefinitions> implements IMetrics<TMetricsDefinitions> {
+export class PrometheusMetrics<TMetricsDefinitions extends DefaultMetricDefinitions> implements IMetrics<TMetricsDefinitions> {
     constructor(input: PrometheusMetricsOptions<TMetricsDefinitions>);
     // (undocumented)
     get<K extends keyof TMetricsDefinitions>(key: K): TMetricsDefinitions[K];
@@ -887,7 +885,7 @@ export class PrometheusMetrics<TMetricsDefinitions extends PrometheusMetricDefin
 }
 
 // @public
-export interface PrometheusMetricsOptions<TMetricsDefinitions extends PrometheusMetricDefinitions> {
+export interface PrometheusMetricsOptions<TMetricsDefinitions extends DefaultMetricDefinitions> {
     collectProcessMetrics?: boolean;
     definitions: TMetricsDefinitions;
     registry?: Registry;
@@ -1068,7 +1066,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
 }
 
 // @public (undocumented)
-export type SessionStoreConstructorArgs<TMetrics extends MetricDefinitions = DefaultMetricDefinitions> = {
+export type SessionStoreConstructorArgs<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
     options: {
         idleTimeoutMS: number;
         notificationTimeoutMS: number;
@@ -1084,38 +1082,43 @@ export class StdioRunner<TServer extends {
 } = {
     connect(transport: StdioServerTransport): Promise<void>;
     close(): Promise<void>;
-}, TMetrics extends MetricDefinitions = DefaultMetricDefinitions> extends TransportRunnerBase<TMetrics> {
+}> extends TransportRunnerBase {
     constructor(input: {
         logger: CompositeLogger;
-        metrics: IMetrics<TMetrics>;
         server: TServer;
     });
+    close(): Promise<void>;
+    // (undocumented)
+    readonly logger: CompositeLogger;
     // (undocumented)
     start(): Promise<void>;
-    stop(): Promise<void>;
 }
 
 // @public
-export class StreamableHttpRunner<TServer extends SessionAwareServer = SessionAwareServer, TMetrics extends MetricDefinitions = DefaultMetricDefinitions> extends TransportRunnerBase<TMetrics> {
+export class StreamableHttpRunner<TServer extends SessionAwareServer = SessionAwareServer, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> extends TransportRunnerBase {
     constructor(input: StreamableHttpTransportRunnerConfig<TMetrics> & {
         mcpHttpServer: MCPHttpServer<TServer, TMetrics>;
         monitoringServer?: MonitoringServer<TMetrics>;
         sessionStore: ISessionStore<StreamableHTTPServerTransport>;
     });
+    close(): Promise<void>;
     // (undocumented)
-    protected mcpHttpServer: MCPHttpServer<TServer, TMetrics>;
+    protected readonly logger: CompositeLogger;
     // (undocumented)
-    protected monitoringServer: MonitoringServer<TMetrics> | undefined;
+    protected readonly mcpHttpServer: MCPHttpServer<TServer, TMetrics>;
     // (undocumented)
-    protected sessionStore: ISessionStore<StreamableHTTPServerTransport>;
+    protected readonly metrics: IMetrics<TMetrics>;
+    // (undocumented)
+    protected readonly monitoringServer: MonitoringServer<TMetrics> | undefined;
+    // (undocumented)
+    protected readonly sessionStore: ISessionStore<StreamableHTTPServerTransport>;
     start(): Promise<void>;
-    stop(): Promise<void>;
 }
 
 export { StreamableHTTPServerTransport }
 
 // @public
-export type StreamableHttpTransportRunnerConfig<TMetrics extends MetricDefinitions = DefaultMetricDefinitions> = {
+export type StreamableHttpTransportRunnerConfig<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
     logger: CompositeLogger;
     metrics: IMetrics<TMetrics>;
 };
@@ -1153,9 +1156,9 @@ export type TelemetryEvents = {
 };
 
 // @public
-export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant";
+export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant" | "custom";
 
-// @public (undocumented)
+// @public
 export type ToolExecutionContext = {
     signal: AbortSignal;
     requestInfo?: {
@@ -1170,22 +1173,14 @@ export type TransportRequestContext = {
 };
 
 // @public
-export abstract class TransportRunnerBase<TMetrics extends MetricDefinitions = DefaultMetricDefinitions> {
-    protected constructor(input: {
-        logger: CompositeLogger;
-        metrics: IMetrics<TMetrics>;
-    });
-    close(): Promise<void>;
-    // (undocumented)
-    logger: CompositeLogger;
-    // (undocumented)
-    metrics: IMetrics<TMetrics>;
+export abstract class TransportRunnerBase {
+    protected constructor();
+    abstract close(): Promise<void>;
     abstract start(): Promise<void>;
-    abstract stop(): Promise<void>;
 }
 
 // @public
-export type TransportRunnerConfig<TMetrics extends MetricDefinitions = DefaultMetricDefinitions> = {
+export type TransportRunnerConfig<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
     logger: CompositeLogger;
     metrics: IMetrics<TMetrics>;
 };
@@ -1361,9 +1356,8 @@ export const UserConfigSchema: z.ZodObject<{
 // packages/atlas-telemetry/src/types.ts:17:9 - (ae-forgotten-export) The symbol "TelemetryResult" needs to be exported by the entry point lib.d.ts
 // packages/atlas-telemetry/src/types.ts:186:5 - (ae-forgotten-export) The symbol "TelemetryBoolSet" needs to be exported by the entry point lib.d.ts
 // packages/core/src/logging/compositeLogger.ts:17:49 - (ae-forgotten-export) The symbol "IKeychain" needs to be exported by the entry point lib.d.ts
-// packages/http-runners/src/mcpHttpServer.ts:45:9 - (ae-forgotten-export) The symbol "HttpServerOptions" needs to be exported by the entry point lib.d.ts
-// packages/http-runners/src/mcpHttpServer.ts:50:5 - (ae-forgotten-export) The symbol "ICompositeLogger" needs to be exported by the entry point lib.d.ts
-// packages/http-runners/src/monitoringServer.ts:24:5 - (ae-forgotten-export) The symbol "MonitoringServerFeature_2" needs to be exported by the entry point lib.d.ts
+// packages/http-runners/src/mcpHttpServer.ts:44:9 - (ae-forgotten-export) The symbol "HttpServerOptions" needs to be exported by the entry point lib.d.ts
+// packages/http-runners/src/mcpHttpServer.ts:49:5 - (ae-forgotten-export) The symbol "ICompositeLogger" needs to be exported by the entry point lib.d.ts
 // packages/tools-mongodb/src/common/connectionManager.ts:540:5 - (ae-forgotten-export) The symbol "ConnectionManagerOptions" needs to be exported by the entry point lib.d.ts
 // packages/tools-mongodb/src/common/exportsManager.ts:374:9 - (ae-forgotten-export) The symbol "ExportsManagerOptions" needs to be exported by the entry point lib.d.ts
 // packages/types/src/logging.ts:34:5 - (ae-forgotten-export) The symbol "MongoLogId" needs to be exported by the entry point lib.d.ts

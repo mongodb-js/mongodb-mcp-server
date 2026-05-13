@@ -1,9 +1,9 @@
 import { Registry, type Metric, collectDefaultMetrics } from "prom-client";
-import type { IMetrics } from "@mongodb-js/mcp-types";
-import type { PrometheusMetricDefinitions, PrometheusMetricsOptions } from "./types.js";
+import type { IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
+import type { PrometheusMetricsOptions } from "./types.js";
 
 export class PrometheusMetrics<
-    TMetricsDefinitions extends PrometheusMetricDefinitions,
+    TMetricsDefinitions extends DefaultMetricDefinitions,
 > implements IMetrics<TMetricsDefinitions> {
     public readonly registry: Registry;
     private readonly definitions: TMetricsDefinitions;

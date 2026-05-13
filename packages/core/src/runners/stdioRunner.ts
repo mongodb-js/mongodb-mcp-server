@@ -1,5 +1,4 @@
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import type { MetricDefinitions, DefaultMetricDefinitions, IMetrics } from "@mongodb-js/mcp-types";
 import type { CompositeLogger } from "../logging/compositeLogger.js";
 import { LogId } from "../logId.js";
 import { TransportRunnerBase } from "../transportRunnerBase.js";
@@ -12,7 +11,6 @@ import { TransportRunnerBase } from "../transportRunnerBase.js";
  * ```typescript
  * const runner = new StdioRunner({
  *   logger: compositeLogger,
- *   metrics: new NoopMetrics(),
  *   server: myServer,
  * });
  * await runner.start();
@@ -26,20 +24,13 @@ export class StdioRunner<
         connect(transport: StdioServerTransport): Promise<void>;
         close(): Promise<void>;
     },
-    TMetrics extends MetricDefinitions = DefaultMetricDefinitions,
-> extends TransportRunnerBase<TMetrics> {
+> extends TransportRunnerBase {
     private server: TServer;
+    public readonly logger: CompositeLogger;
 
-    constructor({
-        logger,
-        metrics,
-        server,
-    }: {
-        logger: CompositeLogger;
-        metrics: IMetrics<TMetrics>;
-        server: TServer;
-    }) {
-        super({ logger, metrics });
+    constructor({ logger, server }: { logger: CompositeLogger; server: TServer }) {
+        super();
+        this.logger = logger;
         this.server = server;
     }
 
@@ -61,7 +52,7 @@ export class StdioRunner<
      * Stops the stdio transport runner.
      * This closes the server connection.
      */
-    async stop(): Promise<void> {
+    async close(): Promise<void> {
         await this.server.close();
     }
 }

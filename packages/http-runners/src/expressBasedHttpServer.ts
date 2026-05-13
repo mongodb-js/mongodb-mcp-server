@@ -18,7 +18,7 @@ export abstract class ExpressBasedHttpServer {
 
     protected readonly logger: ILogger;
     protected readonly logContext: string;
-    public readonly httpOptions: HttpServerOptions;
+    protected readonly httpOptions: HttpServerOptions;
 
     constructor({ options, logger }: { options: ExpressBasedHttpServerOptions; logger: ILogger }) {
         this.app = express();
@@ -26,6 +26,21 @@ export abstract class ExpressBasedHttpServer {
         this.httpOptions = options.http;
         this.logger = logger;
         this.logContext = options.logContext;
+    }
+
+    private checkHttpHost(): void {
+        const host = this.httpOptions.host.trim();
+        const safeHosts = new Set(["127.0.0.1", "localhost", "::1"]);
+        const shouldWarn = !safeHosts.has(host) && host !== "";
+
+        if (shouldWarn) {
+            this.logger.warning({
+                id: LogId.streamableHttpTransportHttpHostWarning,
+                context: this.logContext,
+                message: `Binding to ${this.httpOptions.host} can expose the MCP Server to the entire local network, which allows other devices on the same network to potentially access the MCP Server. This is a security risk and could allow unauthorized access to your database context.`,
+                noRedaction: true,
+            });
+        }
     }
 
     public get serverAddress(): string {
@@ -42,6 +57,8 @@ export abstract class ExpressBasedHttpServer {
     protected abstract setupRoutes(): Promise<void>;
 
     public async start(): Promise<void> {
+        this.checkHttpHost();
+
         await this.setupRoutes();
 
         const { port, host } = this.httpOptions;

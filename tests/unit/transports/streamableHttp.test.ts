@@ -3,7 +3,7 @@ import {
     StreamableHttpRunner,
     MonitoringServer,
     MCPHttpServer,
-    type MonitoringServerConstructorParams,
+    type MonitoringServerOptions,
 } from "@mongodb-js/mcp-http-runners";
 import { SessionStore, type ISessionStore } from "@mongodb-js/mcp-core";
 import { defaultTestConfig } from "../../integration/helpers.js";
@@ -12,22 +12,14 @@ import { NoopLogger, CompositeLogger, type LoggerBase } from "@mongodb-js/mcp-co
 import { MockMetrics } from "../mocks/metrics.js";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { UserConfig } from "../../../src/common/config/userConfig.js";
-import type { IMetrics, DefaultMetricDefinitions, ICompositeLogger } from "@mongodb-js/mcp-types";
-
-type TestServer = {
-    connect(transport: StreamableHTTPServerTransport): Promise<void>;
-    close(): Promise<void>;
-    session?: { logger: ICompositeLogger };
-};
-
-// Helper type for metrics casting
-type TestMetrics = IMetrics<DefaultMetricDefinitions>;
+import type { DefaultMetricDefinitions, ICompositeLogger } from "@mongodb-js/mcp-types";
+import type { SessionAwareServer } from "../../../packages/http-runners/src/mcpHttpServer.js";
 
 /**
  * Minimal concrete implementation of MCPHttpServer for testing.
  */
-class TestMCPHttpServer extends MCPHttpServer<TestServer> {
-    protected override async createServerForRequest(): Promise<TestServer> {
+class TestMCPHttpServer extends MCPHttpServer<SessionAwareServer> {
+    protected override async createServerForRequest(): Promise<SessionAwareServer> {
         return Promise.resolve({
             connect: vi.fn(),
             close: vi.fn().mockResolvedValue(undefined),
@@ -46,10 +38,10 @@ function createStreamableHttpRunnerFromConfig(options: {
     sessionStore?: ISessionStore<StreamableHTTPServerTransport>;
     loggers?: LoggerBase[];
     metrics?: MockMetrics;
-}): StreamableHttpRunner<TestServer> {
+}): StreamableHttpRunner<SessionAwareServer> {
     const { userConfig } = options;
     const logger = new CompositeLogger({ loggers: options.loggers ?? [] });
-    const metrics = (options.metrics ?? new MockMetrics()) as TestMetrics;
+    const metrics = options.metrics ?? new MockMetrics();
 
     // Use provided session store or create default
     const sessionStore =
@@ -104,7 +96,7 @@ function createStreamableHttpRunnerFromConfig(options: {
         sessionStore,
     });
 
-    return new StreamableHttpRunner<TestServer>({
+    return new StreamableHttpRunner<SessionAwareServer>({
         metrics,
         mcpHttpServer,
         monitoringServer,
@@ -341,7 +333,7 @@ function getSessionStore(runner: StreamableHttpRunner<any>): ISessionStore<Strea
 }
 
 class CustomMonitoringServer extends MonitoringServer<DefaultMetricDefinitions> {
-    constructor(args: MonitoringServerConstructorParams<DefaultMetricDefinitions>) {
+    constructor(args: MonitoringServerOptions<DefaultMetricDefinitions>) {
         super(args);
     }
 

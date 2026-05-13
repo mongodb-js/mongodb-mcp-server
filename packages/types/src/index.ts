@@ -10,7 +10,7 @@ export type * from "./logging.js";
 export type * from "./tool.js";
 export type * from "./transport.js";
 export type * from "./apiClient.js";
-export type { MetricDefinitions, IObservable, ICounter, DefaultMetricDefinitions, IMetrics } from "./metrics.js";
+export type { IObservable, ICounter, DefaultMetricDefinitions, IMetrics } from "./metrics.js";
 export type * from "./ui.js";
 export type * from "./resources.js";
 export type * from "./telemetry.js";

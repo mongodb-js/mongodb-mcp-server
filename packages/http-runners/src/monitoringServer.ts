@@ -1,46 +1,7 @@
 import type express from "express";
-import type {
-    DefaultMetricDefinitions,
-    ILogger,
-    IMetrics,
-    MetricDefinitions,
-    MonitoringServerFeature,
-} from "@mongodb-js/mcp-types";
+import type { DefaultMetricDefinitions, ILogger, IMetrics } from "@mongodb-js/mcp-types";
 import { LogId } from "@mongodb-js/mcp-core";
 import { ExpressBasedHttpServer } from "./expressBasedHttpServer.js";
-
-/**
- * Options for configuring MonitoringServer (not including dependencies).
- */
-export type MonitoringServerOptions = {
-    /** HTTP configuration */
-    http: {
-        /** Host to bind the monitoring server to */
-        host: string;
-        /** Port to bind the monitoring server to */
-        port: number;
-    };
-    /** Features to enable on the monitoring server */
-    features: MonitoringServerFeature[];
-};
-
-/**
- * Dependencies required by MonitoringServer.
- */
-export type MonitoringServerDependencies<TMetrics extends MetricDefinitions = DefaultMetricDefinitions> = {
-    /** Logger for the server */
-    logger: ILogger;
-    /** Metrics instance */
-    metrics: IMetrics<TMetrics>;
-};
-
-/**
- * Complete constructor params for creating a MonitoringServer instance.
- */
-export type MonitoringServerConstructorParams<TMetrics extends MetricDefinitions = DefaultMetricDefinitions> = {
-    /** Options for configuring the monitoring server */
-    options: MonitoringServerOptions;
-} & MonitoringServerDependencies<TMetrics>;
 
 /**
  * HTTP server that provides monitoring endpoints like health checks and metrics.
@@ -59,12 +20,12 @@ export type MonitoringServerConstructorParams<TMetrics extends MetricDefinitions
  * ```
  */
 export class MonitoringServer<
-    TMetrics extends MetricDefinitions = DefaultMetricDefinitions,
+    TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions,
 > extends ExpressBasedHttpServer {
-    private readonly features: MonitoringServerFeature[];
-    private readonly metrics: IMetrics<TMetrics>;
+    protected readonly features: MonitoringServerFeature[];
+    protected readonly metrics: IMetrics<TMetrics>;
 
-    constructor({ options, logger, metrics }: MonitoringServerConstructorParams<TMetrics>) {
+    constructor({ options, logger, metrics }: MonitoringServerOptions<TMetrics>) {
         super({
             options: {
                 logContext: "monitoringServer",
@@ -103,3 +64,27 @@ export class MonitoringServer<
         return Promise.resolve();
     }
 }
+
+/**
+ * Complete constructor params for creating a MonitoringServer instance.
+ */
+export type MonitoringServerOptions<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
+    /** Options for configuring the monitoring server */
+    options: {
+        /** HTTP configuration */
+        http: {
+            /** Host to bind the monitoring server to */
+            host: string;
+            /** Port to bind the monitoring server to */
+            port: number;
+        };
+        /** Features to enable on the monitoring server */
+        features: MonitoringServerFeature[];
+    };
+    /** Logger for the server */
+    logger: ILogger;
+    /** Metrics instance */
+    metrics: IMetrics<TMetrics>;
+};
+
+export type MonitoringServerFeature = "health-check" | "metrics";

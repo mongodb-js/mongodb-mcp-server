@@ -25,12 +25,10 @@ export {
     type ToolConstructorParams,
     type AnyToolBase,
     type ToolArgs,
-    type ToolExecutionContext,
     type ToolResult,
-    type OperationType,
-    type ToolCategory,
     formatUntrustedData,
 } from "./toolBase.js";
+export type { ToolExecutionContext, OperationType, ToolCategory } from "@mongodb-js/mcp-types";
 export { getRandomUUID } from "./randomUUID.js";
 export { TRANSPORT_PAYLOAD_LIMITS } from "./transportConstants.js";
 export { CommonArgs, NO_UNICODE_ERROR } from "./args.js";
@@ -54,12 +52,7 @@ export {
     JSON_RPC_ERROR_CODE_INVALID_REQUEST,
     JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION,
 } from "./jsonRpcErrorCodes.js";
-export type {
-    ServerOptions,
-    TransportRunnerBaseOptions,
-    MetricDefinitions,
-    DefaultMetricDefinitions,
-} from "./transports.js";
+export type { ServerOptions, TransportRunnerBaseOptions } from "./transports.js";
 
 export type { TransportRequestContext, CloseableTransport } from "@mongodb-js/mcp-types";
 

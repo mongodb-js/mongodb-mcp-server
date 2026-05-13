@@ -1,5 +1,4 @@
-import type { MetricDefinitions, IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
-import { TransportRunnerBase, InMemoryTransport, CompositeLogger, NoopLogger } from "@mongodb-js/mcp-core";
+import { TransportRunnerBase, InMemoryTransport } from "@mongodb-js/mcp-core";
 import type { UserConfig } from "../common/config/userConfig.js";
 
 /**
@@ -16,13 +15,11 @@ export type DryRunLogger = { log(log: string): void; error(log: string): void };
 /**
  * Options for DryRunModeRunner.
  */
-export type DryRunModeRunnerOptions<TMetrics extends MetricDefinitions = MetricDefinitions> = {
+export type DryRunModeRunnerOptions = {
     /** User configuration to dump */
     userConfig: UserConfig;
     /** Server instance that provides tools */
     server: DryRunServer;
-    /** Metrics instance */
-    metrics: IMetrics<TMetrics>;
     /** Console logger for outputting configuration and tools */
     logger: DryRunLogger;
 };
@@ -41,13 +38,13 @@ export type DryRunModeRunnerOptions<TMetrics extends MetricDefinitions = MetricD
  * await runner.start();
  * ```
  */
-export class DryRunModeRunner extends TransportRunnerBase<DefaultMetricDefinitions> {
+export class DryRunModeRunner extends TransportRunnerBase {
     private server: DryRunServer;
     private consoleLogger: DryRunLogger;
     private userConfig: UserConfig;
 
-    constructor({ logger, metrics, userConfig, server }: DryRunModeRunnerOptions<DefaultMetricDefinitions>) {
-        super({ logger: new CompositeLogger({ loggers: [new NoopLogger()] }), metrics });
+    constructor({ logger, userConfig, server }: DryRunModeRunnerOptions) {
+        super();
         this.userConfig = userConfig;
         this.consoleLogger = logger;
         this.server = server;
@@ -86,5 +83,9 @@ export class DryRunModeRunner extends TransportRunnerBase<DefaultMetricDefinitio
                 })) ?? [];
         this.consoleLogger.log("Enabled tools:");
         this.consoleLogger.log(JSON.stringify(tools, null, 2));
+    }
+
+    async close(): Promise<void> {
+        await this.server.close();
     }
 }
