@@ -41,7 +41,7 @@ export class MCPHttpServer<
     TUserConfig extends UserConfig = UserConfig,
     TContext = unknown,
 > extends ExpressBasedHttpServer {
-    private readonly sessionStore: ISessionStore<StreamableHTTPServerTransport>;
+    protected readonly sessionStore: ISessionStore<StreamableHTTPServerTransport>;
     private readonly serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
     private readonly sessionOptions?: CustomizableSessionOptions<TUserConfig>;
     protected readonly userConfig: TUserConfig;
