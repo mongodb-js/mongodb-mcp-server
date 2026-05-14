@@ -710,13 +710,14 @@ describe("UpgradeClusterTool", () => {
             expect((result.structuredContent as Record<string, unknown>)["resolvedRegion"]).toBeUndefined();
         });
 
-        it("does not include cluster IDs in structuredContent", async () => {
+        it("includes clusterId from the upgrade response", async () => {
             mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
 
             const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
 
-            expect(result.structuredContent).not.toHaveProperty("originalClusterId");
-            expect(result.structuredContent).not.toHaveProperty("targetClusterId");
+            expect(result.structuredContent).toMatchObject({
+                clusterId: "upgraded-cluster-id",
+            });
         });
 
         it("successive calls return independent structuredContent", async () => {
@@ -732,7 +733,7 @@ describe("UpgradeClusterTool", () => {
     });
 
     describe("telemetry metadata", () => {
-        it("resolves originalTier and targetTier from structuredContent", async () => {
+        it("resolves originalTier, targetTier, and cluster_id from structuredContent", async () => {
             mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
             const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
 
@@ -742,6 +743,7 @@ describe("UpgradeClusterTool", () => {
             );
             expect(metadata.original_tier).toBe("free");
             expect(metadata.target_tier).toBe("flex");
+            expect(metadata.cluster_id).toBe("upgraded-cluster-id");
         });
 
         it("resolves provider and region from structuredContent", async () => {
@@ -759,18 +761,6 @@ describe("UpgradeClusterTool", () => {
             );
             expect(metadata.provider).toBe("GCP");
             expect(metadata.region).toBe("CENTRAL_US");
-        });
-
-        it("does not include cluster IDs in telemetry metadata", async () => {
-            mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
-            const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
-
-            const metadata = tool["resolveTelemetryMetadata"](
-                { projectId: "proj1", clusterName: "MyCluster" } as never,
-                { result: result as never }
-            );
-            expect(metadata).not.toHaveProperty("original_cluster_id");
-            expect(metadata).not.toHaveProperty("target_cluster_id");
         });
 
         it("returns empty metadata fields when result has no structuredContent (error path)", () => {
