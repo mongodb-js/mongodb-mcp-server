@@ -298,106 +298,79 @@ describe("ApiClient", () => {
         });
     });
 
-    describe("upgradeSharedTierCluster", () => {
+    describe("upgradeTenantUpgrade", () => {
+        // upgradeTenantUpgrade: upgrades Free (M0/shared) clusters to Flex or Dedicated (M10+)
         const upgradeOptions = {
-            groupId: "test-group-id",
-            body: {
-                name: "MyCluster",
-                providerSettings: {
-                    providerName: "FLEX",
-                    instanceSizeName: "FLEX" as const,
-                    backingProviderName: "AWS",
-                    regionName: "US_EAST_1",
-                },
-            },
-        };
+            params: { path: { groupId: "test-group-id" } },
+            body: { name: "MyCluster", providerSettings: { providerName: "FLEX", instanceSizeName: "FLEX" } },
+        } as unknown as Parameters<ApiClient["upgradeTenantUpgrade"]>[0];
 
-        it("should POST to the tenant upgrade endpoint with legacy API version headers", async () => {
-            const mockCustomFetch = vi
-                .spyOn(apiClient as unknown as { customFetch: typeof fetch }, "customFetch")
-                .mockResolvedValue(new Response(JSON.stringify({ id: "upgraded-cluster-id" }), { status: 200 }));
+        it("should POST to the tenant upgrade endpoint", async () => {
+            const mockResult = { id: "upgraded-cluster-id", name: "MyCluster" };
+            const mockPost = vi.fn().mockResolvedValue({ data: mockResult, error: null, response: new Response() });
+            // @ts-expect-error accessing private property for testing
+            apiClient.client.POST = mockPost;
 
-            const result = await apiClient.upgradeSharedTierCluster(upgradeOptions);
+            const result = await apiClient.upgradeTenantUpgrade(upgradeOptions);
 
-            expect(mockCustomFetch).toHaveBeenCalledWith(
-                "https://api.test.com/api/atlas/v2/groups/test-group-id/clusters/tenantUpgrade",
+            expect(mockPost).toHaveBeenCalledWith(
+                "/api/atlas/v2/groups/{groupId}/clusters/tenantUpgrade",
                 expect.objectContaining({
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/vnd.atlas.2023-01-01+json",
-                        Accept: "application/vnd.atlas.2023-01-01+json",
-                        Authorization: "Bearer mockToken",
-                        "User-Agent": "test-user-agent",
-                    },
-                    body: JSON.stringify(upgradeOptions.body),
+                    ...upgradeOptions,
+                    headers: expect.objectContaining({ Accept: "application/vnd.atlas.2023-01-01+json" }),
                 })
             );
-            expect(result).toEqual({ id: "upgraded-cluster-id" });
+            expect(result).toEqual(mockResult);
         });
 
-        it("should throw when the response is not ok", async () => {
-            vi.spyOn(apiClient as unknown as { customFetch: typeof fetch }, "customFetch").mockResolvedValue(
-                new Response(JSON.stringify({ error: "Bad Request" }), { status: 400 })
-            );
+        it("should throw when the API call fails", async () => {
+            const mockPost = vi.fn().mockResolvedValue({
+                data: null,
+                error: { reason: "Bad Request" },
+                response: new Response(),
+            });
+            // @ts-expect-error accessing private property for testing
+            apiClient.client.POST = mockPost;
 
-            await expect(apiClient.upgradeSharedTierCluster(upgradeOptions)).rejects.toThrow();
+            await expect(apiClient.upgradeTenantUpgrade(upgradeOptions)).rejects.toThrow();
         });
     });
 
-    describe("upgradeFlexToDedicated", () => {
+    describe("tenantUpgrade", () => {
+        // tenantUpgrade: upgrades Flex clusters to Dedicated (M10+)
         const upgradeOptions = {
-            groupId: "test-group-id",
-            body: {
-                name: "MyCluster",
-                clusterType: "REPLICASET" as const,
-                replicationSpecs: [
-                    {
-                        regionConfigs: [
-                            {
-                                providerName: "AWS",
-                                regionName: "US_EAST_1",
-                                priority: 7,
-                                electableSpecs: { instanceSize: "M10", nodeCount: 3 },
-                            },
-                        ],
-                    },
-                ],
-                autoScaling: {
-                    compute: { enabled: true, scaleDownEnabled: true, minInstanceSize: "M10", maxInstanceSize: "M30" },
-                    diskGBEnabled: true,
-                },
-            },
-        };
+            params: { path: { groupId: "test-group-id" } },
+            body: { name: "MyCluster", clusterType: "REPLICASET", replicationSpecs: [] },
+        } as unknown as Parameters<ApiClient["tenantUpgrade"]>[0];
 
-        it("should POST to the flex tenant upgrade endpoint with current API version headers", async () => {
-            const mockCustomFetch = vi
-                .spyOn(apiClient as unknown as { customFetch: typeof fetch }, "customFetch")
-                .mockResolvedValue(new Response(JSON.stringify({ id: "upgraded-cluster-id" }), { status: 200 }));
+        it("should POST to the flex tenant upgrade endpoint", async () => {
+            const mockResult = { id: "upgraded-cluster-id", name: "MyCluster" };
+            const mockPost = vi.fn().mockResolvedValue({ data: mockResult, error: null, response: new Response() });
+            // @ts-expect-error accessing private property for testing
+            apiClient.client.POST = mockPost;
 
-            const result = await apiClient.upgradeFlexToDedicated(upgradeOptions);
+            const result = await apiClient.tenantUpgrade(upgradeOptions);
 
-            expect(mockCustomFetch).toHaveBeenCalledWith(
-                "https://api.test.com/api/atlas/v2/groups/test-group-id/flexClusters:tenantUpgrade",
+            expect(mockPost).toHaveBeenCalledWith(
+                "/api/atlas/v2/groups/{groupId}/flexClusters:tenantUpgrade",
                 expect.objectContaining({
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/vnd.atlas.2025-03-12+json",
-                        Accept: "application/vnd.atlas.2025-03-12+json",
-                        Authorization: "Bearer mockToken",
-                        "User-Agent": "test-user-agent",
-                    },
-                    body: JSON.stringify(upgradeOptions.body),
+                    ...upgradeOptions,
+                    headers: expect.objectContaining({ Accept: "application/vnd.atlas.2024-11-13+json" }),
                 })
             );
-            expect(result).toEqual({ id: "upgraded-cluster-id" });
+            expect(result).toEqual(mockResult);
         });
 
-        it("should throw when the response is not ok", async () => {
-            vi.spyOn(apiClient as unknown as { customFetch: typeof fetch }, "customFetch").mockResolvedValue(
-                new Response(JSON.stringify({ error: "Bad Request" }), { status: 400 })
-            );
+        it("should throw when the API call fails", async () => {
+            const mockPost = vi.fn().mockResolvedValue({
+                data: null,
+                error: { reason: "Bad Request" },
+                response: new Response(),
+            });
+            // @ts-expect-error accessing private property for testing
+            apiClient.client.POST = mockPost;
 
-            await expect(apiClient.upgradeFlexToDedicated(upgradeOptions)).rejects.toThrow();
+            await expect(apiClient.tenantUpgrade(upgradeOptions)).rejects.toThrow();
         });
     });
 });
