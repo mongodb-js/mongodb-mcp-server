@@ -88,11 +88,10 @@ function filterOpenapi(openapi: OpenAPIV3_1.Document): OpenAPIV3_1.Document {
         "downloadOperationalLogs",
     ];
 
-    // Operations that require a specific API version different from the client default (2025-03-12).
-    // apply.ts reads x-accept-override to set the correct Accept header on the generated method.
+    // upgradeGroupClusterTenantUpgrade requires 2023-01-01 — the endpoint behaves differently
+    // under 2025-03-12 (rejects direct FREE→M10, requires FLEX first).
     const acceptOverrides: Record<string, string> = {
         upgradeGroupClusterTenantUpgrade: "application/vnd.atlas.2023-01-01+json",
-        tenantGroupFlexClusterUpgrade: "application/vnd.atlas.2024-11-13+json",
     };
 
     const filteredPaths = {};

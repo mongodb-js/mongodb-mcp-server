@@ -507,7 +507,7 @@ export class ApiClient {
     ): Promise<components["schemas"]["FlexClusterDescription20241113"]> {
         const { data, error, response } = await this.client.POST(
             "/api/atlas/v2/groups/{groupId}/flexClusters:tenantUpgrade",
-            { ...options, headers: { Accept: "application/vnd.atlas.2024-11-13+json", ...options?.headers } }
+            options
         );
         if (error) {
             throw ApiClientError.fromError(response, error);

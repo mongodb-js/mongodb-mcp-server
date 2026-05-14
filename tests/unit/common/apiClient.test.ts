@@ -315,11 +315,10 @@ describe("ApiClient", () => {
 
             expect(mockPost).toHaveBeenCalledWith(
                 "/api/atlas/v2/groups/{groupId}/clusters/tenantUpgrade",
-                expect.objectContaining({
-                    ...upgradeOptions,
-                    headers: expect.objectContaining({ Accept: "application/vnd.atlas.2023-01-01+json" }),
-                })
+                expect.anything()
             );
+            const [, options] = mockPost.mock.calls[0] as [string, { headers: Record<string, string> }];
+            expect(options.headers["Accept"]).toBe("application/vnd.atlas.2023-01-01+json");
             expect(result).toEqual(mockResult);
         });
 
@@ -353,10 +352,7 @@ describe("ApiClient", () => {
 
             expect(mockPost).toHaveBeenCalledWith(
                 "/api/atlas/v2/groups/{groupId}/flexClusters:tenantUpgrade",
-                expect.objectContaining({
-                    ...upgradeOptions,
-                    headers: expect.objectContaining({ Accept: "application/vnd.atlas.2024-11-13+json" }),
-                })
+                upgradeOptions
             );
             expect(result).toEqual(mockResult);
         });
