@@ -1697,9 +1697,25 @@ export class UpgradeClusterTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof UpgradeClusterTool.argsShape>): Promise<CallToolResult>;
+    protected execute(args: ToolArgs<typeof UpgradeClusterTool.argsShape>): Promise<ToolResult<typeof UpgradeClusterTool.outputSchema>>;
+    // (undocumented)
+    protected handleError(error: unknown, args: ToolArgs<typeof UpgradeClusterTool.argsShape>): CallToolResult;
     // (undocumented)
     static operationType: OperationType;
+    // (undocumented)
+    outputSchema: {
+        originalTier: z.ZodEnum<{
+            FLEX: "FLEX";
+            FREE: "FREE";
+        }>;
+        targetTier: z.ZodEnum<{
+            FLEX: "FLEX";
+            M10: "M10";
+        }>;
+        resolvedProvider: z.ZodOptional<z.ZodString>;
+        resolvedRegion: z.ZodOptional<z.ZodString>;
+        clusterId: z.ZodOptional<z.ZodString>;
+    };
     // Warning: (ae-forgotten-export) The symbol "UpgradeClusterMetadata" needs to be exported by the entry point index.d.ts
     //
     // (undocumented)

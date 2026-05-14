@@ -1123,8 +1123,7 @@ export class UIRegistry {
 export type UpgradeClusterMetadata = AtlasMetadata & {
     original_tier?: "free" | "flex";
     target_tier?: "flex" | "m10";
-    original_cluster_id?: string;
-    target_cluster_id?: string;
+    cluster_id?: string;
     provider?: string;
     region?: string;
 };
