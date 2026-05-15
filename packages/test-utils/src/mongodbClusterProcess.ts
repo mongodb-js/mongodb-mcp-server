@@ -173,10 +173,13 @@ export class MongoDBClusterProcess {
         }
     }
 
-    private constructor(
-        private readonly tearDownFunction: () => Promise<unknown>,
-        private readonly connectionStringFunction: () => string
-    ) {}
+    private readonly tearDownFunction: () => Promise<unknown>;
+    private readonly connectionStringFunction: () => string;
+
+    private constructor(tearDownFunction: () => Promise<unknown>, connectionStringFunction: () => string) {
+        this.tearDownFunction = tearDownFunction;
+        this.connectionStringFunction = connectionStringFunction;
+    }
 
     connectionString(): string {
         return this.connectionStringFunction();

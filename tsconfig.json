@@ -2,10 +2,7 @@
   "extends": "./tsconfig.build.json",
   "compilerOptions": {
     "rootDir": ".",
-    "skipLibCheck": true,
-    "paths": {
-      "@mongodb-js/mcp-test-utils": ["./packages/test-utils/src/index.ts"]
-    }
+    "skipLibCheck": true
   },
   "include": ["**/*"],
   "exclude": ["dist", "node_modules", "packages/*/dist"],

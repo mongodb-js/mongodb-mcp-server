@@ -24,6 +24,7 @@ export function parseArgsWithCliOptions(cliArguments: string[]): {
 }
 
 export { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
+export { packageInfo } from "./common/packageInfo.js";
 
 export {
     LoggerBase,

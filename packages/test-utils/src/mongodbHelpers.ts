@@ -59,7 +59,7 @@ const DEFAULT_MONGODB_PROCESS_OPTIONS: MongoClusterConfiguration = {
     serverArgs: [],
 };
 
-interface MongoDBIntegrationTest {
+export interface MongoDBIntegrationTest {
     mongoClient: () => MongoClient;
     connectionString: () => string;
     randomDbName: () => string;

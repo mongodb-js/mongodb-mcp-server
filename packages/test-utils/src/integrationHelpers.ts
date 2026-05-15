@@ -22,7 +22,7 @@ import type { OperationType } from "@mongodb-js/mcp-core";
 import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { MockMetrics } from "./mockMetrics.js";
 import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
-import { packageInfo } from "@mongodb-js/mcp-core";
+import { packageInfo } from "mongodb-mcp-server";
 
 interface Parameter {
     name: string;
