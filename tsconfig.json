@@ -19,6 +19,7 @@
     { "path": "./packages/tools-atlas-local" },
     { "path": "./packages/atlas-telemetry" },
     { "path": "./packages/tools-mongodb" },
-    { "path": "./packages/tools-atlas" }
+    { "path": "./packages/tools-atlas" },
+    { "path": "./packages/test-utils" }
   ]
 }
