@@ -16,13 +16,14 @@
     "dist"
   ],
   "scripts": {
-    "compile": "vite build --config vite.apps.config.ts && tsc --build tsconfig.json",
+    "compile": "tsx scripts/buildApps.ts && tsc --build tsconfig.json",
     "check:api": "api-extractor run --config api-extractor.json",
     "update:api": "api-extractor run --local --config api-extractor.json",
     "test": "vitest --run"
   },
   "dependencies": {
-    "@mongodb-js/mcp-types": "workspace:*"
+    "@mongodb-js/mcp-types": "workspace:*",
+    "zod": "^3.25.0"
   },
   "devDependencies": {
     "@modelcontextprotocol/ext-apps": "^1.2.0",

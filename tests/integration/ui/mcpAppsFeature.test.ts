@@ -71,7 +71,7 @@ describeWithMongoDB(
 
             const meta = appTool._meta as { ui?: { resourceUri?: string } } | undefined;
             expectDefined(meta?.ui?.resourceUri);
-            expect(meta!.ui!.resourceUri).toBe("ui://connect-form");
+            expect(meta?.ui?.resourceUri).toBe("ui://connect-form");
         });
     },
     {
@@ -92,10 +92,10 @@ describeWithMongoDB(
             const html = await server.appRegistry.get("connect-form");
             expectDefined(html);
             expect(html).not.toBeNull();
-            expect(html!.length).toBeGreaterThan(0);
+            expect(html.length).toBeGreaterThan(0);
         });
 
-        it("should list connect-form in appNames", async () => {
+        it("should list connect-form in appNames", () => {
             const server = integration.mcpServer();
             expectDefined(server.appRegistry);
             expect(server.appRegistry.appNames()).toContain("connect-form");
@@ -177,7 +177,7 @@ describe("mcpApps feature with custom AppRegistry", () => {
 
     it("should register custom app loaders as resources", async () => {
         const customLoaders = {
-            "my-app": async () => "<html><body>My Custom App</body></html>",
+            "my-app": (): Promise<string> => Promise.resolve("<html><body>My Custom App</body></html>"),
         };
 
         ({ server, transport } = await initServerWithCustomApps(customLoaders));

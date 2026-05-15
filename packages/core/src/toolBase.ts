@@ -8,7 +8,7 @@ import type { IToolConfig } from "@mongodb-js/mcp-types";
 import type { IToolSession } from "@mongodb-js/mcp-types";
 import type { IElicitation } from "@mongodb-js/mcp-types";
 import type { PreviewFeature } from "@mongodb-js/mcp-types";
-import type { IUIRegistry } from "@mongodb-js/mcp-types";
+import type { IUIRegistry, IAppRegistry } from "@mongodb-js/mcp-types";
 import type { IMetrics, IObservable, MetricDefinitions } from "@mongodb-js/mcp-types";
 import { createUIResource, type UIResource } from "@mcp-ui/server";
 
@@ -141,6 +141,8 @@ export type ToolConstructorParams<
     metrics: IMetrics<TMetricsDefinitions>;
 
     uiRegistry?: IUIRegistry;
+
+    appRegistry?: IAppRegistry;
 
     /**
      * Optional custom context object that will be available to tools.
@@ -655,6 +657,7 @@ export abstract class ToolBase<
     protected readonly metrics: IMetrics<TMetricsDefinitions>;
 
     private readonly uiRegistry?: IUIRegistry;
+    private readonly appRegistry?: IAppRegistry;
 
     /**
      * Optional custom context object provided during tool construction.
@@ -684,6 +687,7 @@ export abstract class ToolBase<
         elicitation,
         metrics,
         uiRegistry,
+        appRegistry,
         context,
     }: ToolConstructorParams<TUserConfig, TContext, TMetricsDefinitions>) {
         this.name = name;
@@ -695,6 +699,7 @@ export abstract class ToolBase<
         this.elicitation = elicitation;
         this.metrics = metrics;
         this.uiRegistry = uiRegistry;
+        this.appRegistry = appRegistry;
         this.context = context;
     }
 
@@ -920,6 +925,15 @@ export abstract class ToolBase<
         }
 
         return metadata;
+    }
+
+    /**
+     * Returns the app HTML for this tool from the UI registry, or null if none is registered.
+     * Use this to directly return a resource content item from execute() instead of relying
+     * on appendUIResource (which requires the mcpUI preview feature to be enabled).
+     */
+    protected async getAppHtml(): Promise<string | null> {
+        return (await this.appRegistry?.get(this.name)) ?? null;
     }
 
     /**

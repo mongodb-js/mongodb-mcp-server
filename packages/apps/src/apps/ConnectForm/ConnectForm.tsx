@@ -1,5 +1,6 @@
 import React, { useState, useEffect, type ReactElement } from "react";
 import { useApp, useHostStyles } from "@modelcontextprotocol/ext-apps/react";
+import { AppShell, Label, Input, Button, ErrorText, Success, Heading } from "../../components/elements.js";
 
 export const ConnectForm = (): ReactElement => {
     const {
@@ -47,7 +48,17 @@ export const ConnectForm = (): ReactElement => {
         setErrorMessage(null);
 
         try {
-            const result = await app.callServerTool({ name: "connect", arguments: { connectionString } });
+            let result;
+            try {
+                result = await app.callServerTool({ name: "connect", arguments: { connectionString } });
+            } catch (err) {
+                // connect is disabled when already connected — swap to switch-connection
+                if (err instanceof Error && err.message === "Tool connect disabled") {
+                    result = await app.callServerTool({ name: "switch-connection", arguments: { connectionString } });
+                } else {
+                    throw err;
+                }
+            }
             if (result.isError) {
                 const text = result.content.find((c) => c.type === "text");
                 setStatus("error");
@@ -63,30 +74,27 @@ export const ConnectForm = (): ReactElement => {
 
     if (hostError) {
         return (
-            <div className="p-4 text-sm text-[var(--color-text-danger)]">
-                Failed to connect to MCP host: {hostError.message}
-            </div>
+            <AppShell>
+                <ErrorText>Failed to connect to MCP host: {hostError.message}</ErrorText>
+            </AppShell>
         );
     }
 
     return (
-        <div className="p-4">
-            <h2 className="mb-3 text-sm font-medium text-[var(--color-text-primary)]">Connect to MongoDB</h2>
+        <AppShell>
+            <Heading>Connect to MongoDB</Heading>
             {status === "success" ? (
-                <p className="flex items-center gap-2 text-sm text-[var(--color-text-success)]">
-                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-text-success)]" />
-                    Connected successfully!
-                </p>
+                <Success>Connected successfully!</Success>
             ) : (
                 <>
-                    <form onSubmit={handleSubmit} className="flex w-full flex-col gap-2">
-                        <label
-                            htmlFor="connection-string"
-                            className="text-xs font-medium text-[var(--color-text-secondary)]"
-                        >
-                            Connection String
-                        </label>
-                        <input
+                    <form
+                        onSubmit={(e) => {
+                            void handleSubmit(e);
+                        }}
+                        className="flex w-full flex-col gap-2"
+                    >
+                        <Label htmlFor="connection-string">Connection String</Label>
+                        <Input
                             id="connection-string"
                             type="text"
                             value={connectionString}
@@ -94,21 +102,14 @@ export const ConnectForm = (): ReactElement => {
                             placeholder="mongodb://localhost:27017"
                             required
                             disabled={!isConnected || status === "connecting"}
-                            className="w-full rounded-[var(--border-radius-md)] border border-[var(--color-border-primary)] bg-[var(--color-background-secondary)] px-3 py-1.5 font-mono text-sm text-[var(--color-text-primary)] shadow-[var(--shadow-sm)] outline-none focus:ring-1 focus:ring-[var(--color-ring-primary)] disabled:opacity-50"
                         />
-                        <button
-                            type="submit"
-                            disabled={!isConnected || status === "connecting"}
-                            className="cursor-pointer self-start rounded-[var(--border-radius-md)] bg-[var(--color-background-inverse)] px-3 py-1.5 text-sm font-medium text-[var(--color-text-inverse)] shadow-[var(--shadow-sm)] outline-none hover:bg-[var(--color-background-inverse-hover)] active:opacity-80 focus:ring-1 focus:ring-[var(--color-ring-primary)] disabled:cursor-not-allowed disabled:opacity-50"
-                        >
+                        <Button type="submit" disabled={!isConnected || status === "connecting"}>
                             {status === "connecting" ? "Connecting…" : "Connect"}
-                        </button>
+                        </Button>
                     </form>
-                    {status === "error" && errorMessage && (
-                        <p className="mt-2 text-xs text-[var(--color-text-danger)]">{errorMessage}</p>
-                    )}
+                    {status === "error" && errorMessage && <ErrorText className="mt-2">{errorMessage}</ErrorText>}
                 </>
             )}
-        </div>
+        </AppShell>
     );
 };

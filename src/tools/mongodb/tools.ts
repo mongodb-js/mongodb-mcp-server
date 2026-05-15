@@ -22,3 +22,4 @@ export { LogsTool, type LogsOutput } from "./metadata/logs.js";
 export { ExportTool } from "./read/export.js";
 export { DropIndexTool, type DropIndexOutput } from "./delete/dropIndex.js";
 export { SwitchConnectionTool } from "./connect/switchConnection.js";
+export { DocumentBrowserTool } from "./read/documentBrowser.js";

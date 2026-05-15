@@ -144,6 +144,9 @@ ${loaderEntries}
     };
 }
 
+// NOTE: The actual build is driven by scripts/buildApps.ts (via `tsx scripts/buildApps.ts`),
+// which runs one Vite build per app to satisfy viteSingleFile's single-input requirement.
+// This config file is kept for reference / IDE tooling only and is not invoked by pnpm compile.
 export default defineConfig({
     root: entriesDir,
     plugins: [

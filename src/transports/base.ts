@@ -324,16 +324,16 @@ export abstract class TransportRunnerBase<
             }),
         });
 
-        let uiRegistry: UIRegistry | undefined = serverOptions?.uiRegistry;
-        if (!uiRegistry && userConfig.previewFeatures.includes("mcpUI")) {
-            const uiRegistryModule = await import("@mongodb-js/mcp-ui");
-            uiRegistry = new uiRegistryModule.UIRegistry();
-        }
-
         let appRegistry: AppRegistry | undefined = serverOptions?.appRegistry;
         if (!appRegistry && userConfig.previewFeatures.includes("mcpApps")) {
             const appRegistryModule = await import("@mongodb-js/mcp-apps");
             appRegistry = new appRegistryModule.AppRegistry();
+        }
+
+        let uiRegistry: UIRegistry | undefined = serverOptions?.uiRegistry;
+        if (!uiRegistry && userConfig.previewFeatures.includes("mcpUI")) {
+            const uiRegistryModule = await import("@mongodb-js/mcp-ui");
+            uiRegistry = new uiRegistryModule.UIRegistry();
         }
 
         const result = new Server<TUserConfig, TContext>({

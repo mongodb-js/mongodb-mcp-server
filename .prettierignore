@@ -1,8 +1,11 @@
 dist
 node_modules
 *.lock
+pnpm-lock.yaml
 resources/
 src/ui/lib/loaders.ts
+packages/apps/src/lib/loaders.ts
+packages/apps/src/lib/apps/
 temp
 **/reports/*.api.md
 .github/workflows/*.lock.yml

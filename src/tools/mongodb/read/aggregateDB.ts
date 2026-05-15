@@ -99,7 +99,7 @@ The maximum number of bytes to return in the response. This value is capped by t
             return {
                 content: formatUntrustedData(
                     successMessage,
-                    ...(documents.length > 0 ? [EJSON.stringify(documents)] : [])
+                    ...(documents.length > 0 ? [EJSON.stringify(documents, { relaxed: false })] : [])
                 ),
             };
         } finally {

@@ -59,6 +59,10 @@ The maximum number of bytes to return in the response. This value is capped by t
 Note to LLM: If the entire aggregation result is required, use the "export" tool instead of increasing this limit.\
 `),
     };
+    public outputSchema = {
+        documents: z.array(z.record(z.string(), z.unknown())),
+        totalCount: z.number().optional(),
+    };
     static operationType: OperationType = "read";
 
     protected async execute(
@@ -119,6 +123,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
 
             let successMessage: string;
             let documents: unknown[];
+            let totalCount: number | undefined;
             if (pipeline.some((stage) => this.isWriteStage(stage))) {
                 // This is a write pipeline, so special-case it and don't attempt to apply limits or caps
                 aggregationCursor = provider.aggregate(database, collection, pipeline, {
@@ -162,6 +167,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                     totalDocuments > this.config.maxDocumentsPerQuery;
 
                 documents = cursorResults.documents;
+                totalCount = totalDocuments;
                 successMessage = this.generateMessage({
                     aggResultsCount: totalDocuments,
                     documents: cursorResults.documents,
@@ -175,8 +181,12 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
             return {
                 content: formatUntrustedData(
                     successMessage,
-                    ...(documents.length > 0 ? [EJSON.stringify(documents)] : [])
+                    ...(documents.length > 0 ? [EJSON.stringify(documents, { relaxed: false })] : [])
                 ),
+                structuredContent: {
+                    documents: EJSON.serialize(documents, { relaxed: false }) as Record<string, unknown>[],
+                    totalCount,
+                },
             };
         } finally {
             if (aggregationCursor) {

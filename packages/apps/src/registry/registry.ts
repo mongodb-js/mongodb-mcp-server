@@ -33,7 +33,13 @@ export class AppRegistry implements IAppRegistry {
 
         try {
             const html = await loader();
-            this.cache.set(appName, html);
+            if (!process.env.MCPAPP_DEV) {
+                // If "dev mode" is not enabled, cache the loaded HTML to avoid
+                // unnecessary async loading on subsequent calls. In dev mode we
+                // don't cache so that we don't have to restart the MCP server
+                // every time we change an app's HTML.
+                this.cache.set(appName, html);
+            }
             return html;
         } catch {
             return null;

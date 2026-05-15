@@ -280,6 +280,9 @@ importers:
       '@mongodb-js/mcp-types':
         specifier: workspace:*
         version: link:../types
+      zod:
+        specifier: ^4.4.2
+        version: 4.4.2
     devDependencies:
       '@modelcontextprotocol/ext-apps':
         specifier: ^1.2.0

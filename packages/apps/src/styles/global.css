@@ -3,6 +3,10 @@
 /* Tailwind v4 auto-detection doesn't scan source files when Vite root is the cache dir */
 @source "../apps/**/*.{ts,tsx}";
 @source "../build/**/*.{ts,tsx}";
+@source "../components/**/*.{ts,tsx}";
+
+/* Force generation of color utilities that Tailwind's scanner misses */
+@source inline("text-[color:var(--color-text-secondary)] text-[color:var(--color-text-danger)] text-[color:var(--color-text-success)]");
 
 @layer base {
     :root {

@@ -42,6 +42,10 @@ The maximum number of bytes to return in the response. This value is capped by t
 Note to LLM: If the entire query result is required, use the "export" tool instead of increasing this limit.\
 `),
     };
+    public outputSchema = {
+        documents: z.array(z.record(z.string(), z.unknown())),
+        totalCount: z.number().optional(),
+    };
     static operationType: OperationType = "read";
 
     protected async execute(
@@ -113,8 +117,17 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
                         documents: cursorResults.documents,
                         appliedLimits: [limitOnFindCursor.cappedBy, cursorResults.cappedBy].filter((limit) => !!limit),
                     }),
-                    ...(cursorResults.documents.length > 0 ? [EJSON.stringify(cursorResults.documents)] : [])
+                    ...(cursorResults.documents.length > 0
+                        ? [EJSON.stringify(cursorResults.documents, { relaxed: false })]
+                        : [])
                 ),
+                structuredContent: {
+                    documents: EJSON.serialize(cursorResults.documents, { relaxed: false }) as Record<
+                        string,
+                        unknown
+                    >[],
+                    totalCount: queryResultsCount,
+                },
             };
         } finally {
             if (findCursor) {

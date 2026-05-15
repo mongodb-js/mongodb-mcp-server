@@ -8,6 +8,7 @@ import type { AggregationCursor } from 'mongodb';
 import { AnyToolBase } from '@mongodb-js/mcp-core';
 import { ApiClient } from '@mongodb-js/mcp-atlas-api-client';
 import { ApiClientOptions } from '@mongodb-js/mcp-atlas-api-client';
+import type { AppRegistry } from '@mongodb-js/mcp-apps';
 import { AtlasLocalClientFactoryFn } from '@mongodb-js/mcp-tools-atlas-local';
 import { AtlasLocalToolMetadata } from '@mongodb-js/mcp-atlas-telemetry';
 import { AtlasMetadata } from '@mongodb-js/mcp-atlas-telemetry';
@@ -286,7 +287,7 @@ export type CreateSessionConfigFn<TUserConfig extends UserConfig = UserConfig> =
 export { Credentials }
 
 // @public (undocumented)
-export type CustomizableServerOptions<TUserConfig extends UserConfig = UserConfig, TContext = unknown> = Partial<Pick<ServerOptions<TUserConfig, TContext>, "uiRegistry" | "tools" | "toolContext" | "elicitation">> & {
+export type CustomizableServerOptions<TUserConfig extends UserConfig = UserConfig, TContext = unknown> = Partial<Pick<ServerOptions<TUserConfig, TContext>, "uiRegistry" | "appRegistry" | "tools" | "toolContext" | "elicitation">> & {
     telemetryProperties?: Partial<CommonProperties>;
 };
 
@@ -447,7 +448,7 @@ export { PerfAdvisorToolMetadata }
 export type PreviewFeature = (typeof previewFeatureValues)[number];
 
 // @public (undocumented)
-export const previewFeatureValues: readonly ["mcpUI"];
+export const previewFeatureValues: readonly ["mcpUI", "mcpApps"];
 
 // @public (undocumented)
 export interface ReadyExport extends CommonExportData {
@@ -467,6 +468,8 @@ export { Secret }
 export class Server<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> {
     constructor(input: ServerOptions<TUserConfig, TContext, TMetrics>);
     // (undocumented)
+    readonly appRegistry?: AppRegistry;
+    // (undocumented)
     close(): Promise<void>;
     // (undocumented)
     connect(transport: Transport): Promise<void>;
@@ -482,6 +485,8 @@ export class Server<TUserConfig extends UserConfig = UserConfig, TContext = unkn
     readonly mcpServer: McpServer;
     // (undocumented)
     readonly metrics: Metrics<TMetrics>;
+    // (undocumented)
+    registerAppResources(): Promise<void>;
     // (undocumented)
     registerResources(): void;
     // (undocumented)
@@ -504,6 +509,8 @@ export class Server<TUserConfig extends UserConfig = UserConfig, TContext = unkn
 
 // @public (undocumented)
 export interface ServerOptions<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> {
+    // (undocumented)
+    appRegistry?: AppRegistry;
     // @deprecated (undocumented)
     connectionErrorHandler: ConnectionErrorHandler;
     // (undocumented)
@@ -758,6 +765,7 @@ export const UserConfigSchema: z.ZodObject<{
     voyageApiKey: z.ZodDefault<z.ZodString>;
     previewFeatures: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodEnum<{
         mcpUI: "mcpUI";
+        mcpApps: "mcpApps";
     }>>>>;
     allowRequestOverrides: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
     dryRun: z.ZodDefault<z.ZodBoolean>;

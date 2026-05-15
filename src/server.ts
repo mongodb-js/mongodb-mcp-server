@@ -329,6 +329,7 @@ export class Server<
                 elicitation: this.elicitation,
                 metrics: this.metrics as IMetrics,
                 uiRegistry: this.uiRegistry,
+                appRegistry: this.appRegistry,
                 context: this.toolContext,
             });
             if (tool.register(this)) {
@@ -347,6 +348,8 @@ export class Server<
     public async registerAppResources(): Promise<void> {
         if (!this.appRegistry) return;
 
+        const parameterizedToolNames = new Set(this.toolConstructors.map((t) => t.toolName));
+
         for (const appName of this.appRegistry.appNames()) {
             const html = await this.appRegistry.get(appName);
             if (!html) continue;
@@ -358,10 +361,14 @@ export class Server<
                 appName,
                 uri,
                 { description: `MCP App: ${appName}`, mimeType: "text/html;profile=mcp-app" },
-                async (resourceUri) => ({
+                (resourceUri) => ({
                     contents: [{ uri: resourceUri.href, mimeType: "text/html;profile=mcp-app", text: html }],
                 })
             );
+
+            // Skip the no-param launcher tool when a parameterized tool constructor
+            // already claims this name — that tool registers itself via registerTools().
+            if (parameterizedToolNames.has(appName)) continue;
 
             // Register a tool carrying the ui metadata — this is what makes the MCP Apps tab
             // pick up the app. The tool name matches the app name so clients can link them.
@@ -373,7 +380,7 @@ export class Server<
                     description: `Open the ${appName} app`,
                     _meta: { ui: { resourceUri: uri }, "ui/resourceUri": uri },
                 },
-                async () => ({
+                () => ({
                     content: [
                         {
                             type: "resource" as const,

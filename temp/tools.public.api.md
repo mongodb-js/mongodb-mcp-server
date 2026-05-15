@@ -7,6 +7,7 @@
 import type { AggregationCursor } from 'mongodb';
 import { AnyToolBase } from '@mongodb-js/mcp-core';
 import type { ApiClient } from '@mongodb-js/mcp-atlas-api-client';
+import type { AppRegistry } from '@mongodb-js/mcp-apps';
 import type { AtlasTelemetry } from '@mongodb-js/mcp-atlas-telemetry';
 import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { Client } from '@mongodb-js/atlas-local';
@@ -100,6 +101,11 @@ export class AggregateTool extends MongoDBToolBase {
     protected execute(input: ToolArgs<typeof AggregateTool.argsShape>, input2: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)
     static operationType: OperationType;
+    // (undocumented)
+    outputSchema: {
+        documents: z.ZodArray<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+        totalCount: z.ZodOptional<z.ZodNumber>;
+    };
     // (undocumented)
     static toolName: string;
 }
@@ -220,6 +226,8 @@ export class ConnectTool extends MongoDBToolBase {
     description: string;
     // (undocumented)
     protected execute(input: ToolArgs<typeof ConnectTool.argsShape>): Promise<CallToolResult>;
+    // (undocumented)
+    protected handleError(error: unknown, args: ToolArgs<typeof ConnectTool.argsShape>): Promise<CallToolResult>;
     // (undocumented)
     static operationType: OperationType;
     // Warning: (ae-forgotten-export) The symbol "Server" needs to be exported by the entry point index.d.ts
@@ -420,6 +428,65 @@ export class DeleteManyTool extends MongoDBToolBase {
         collection: z.ZodString;
         deletedCount: z.ZodNumber;
     };
+    // (undocumented)
+    static toolName: string;
+}
+
+// @public (undocumented)
+export class DocumentBrowserTool extends MongoDBToolBase {
+    // (undocumented)
+    argsShape: {
+        query: z.ZodUnion<readonly [z.ZodObject<{
+            find: z.ZodObject<{
+                filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+                projection: z.ZodOptional<z.ZodObject<{}, z.core.$loose>>;
+                limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
+                sort: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnion<readonly [z.ZodLiteral<1>, z.ZodLiteral<-1>, z.ZodLiteral<"asc">, z.ZodLiteral<"desc">, z.ZodLiteral<"ascending">, z.ZodLiteral<"descending">, z.ZodObject<{
+                    $meta: z.ZodString;
+                }, z.core.$strip>]>>>;
+            }, z.core.$strip>;
+        }, z.core.$strip>, z.ZodObject<{
+            aggregate: z.ZodObject<{
+                pipeline: z.ZodArray<z.ZodUnion<readonly [z.ZodObject<{
+                    $vectorSearch: z.ZodUnion<readonly [z.ZodObject<{
+                        exact: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+                        index: z.ZodString;
+                        path: z.ZodString;
+                        numCandidates: z.ZodOptional<z.ZodNumber>;
+                        limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
+                        filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+                        queryVector: z.ZodArray<z.ZodNumber>;
+                    }, z.core.$strip>, z.ZodObject<{
+                        exact: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+                        index: z.ZodString;
+                        path: z.ZodString;
+                        numCandidates: z.ZodOptional<z.ZodNumber>;
+                        limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
+                        filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+                        query: z.ZodObject<{
+                            text: z.ZodString;
+                        }, z.core.$strip>;
+                        model: z.ZodOptional<z.ZodEnum<{
+                            "voyage-4": "voyage-4";
+                            "voyage-4-large": "voyage-4-large";
+                            "voyage-4-lite": "voyage-4-lite";
+                            "voyage-code-3": "voyage-code-3";
+                        }>>;
+                    }, z.core.$strip>]>;
+                }, z.core.$strip>, z.ZodRecord<z.ZodString, z.ZodUnknown>]>>;
+            }, z.core.$strip>;
+        }, z.core.$strip>]>;
+        collection: z.ZodString;
+        database: z.ZodString;
+    };
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    protected execute(input: ToolArgs<typeof DocumentBrowserTool.argsShape>): Promise<CallToolResult>;
+    // (undocumented)
+    static operationType: OperationType;
+    // (undocumented)
+    protected get toolMeta(): Record<string, unknown>;
     // (undocumented)
     static toolName: string;
 }
@@ -683,6 +750,11 @@ export class FindTool extends MongoDBToolBase {
     protected execute(input: ToolArgs<typeof FindTool.argsShape>, input2: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)
     static operationType: OperationType;
+    // (undocumented)
+    outputSchema: {
+        documents: z.ZodArray<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+        totalCount: z.ZodOptional<z.ZodNumber>;
+    };
     // (undocumented)
     static toolName: string;
 }
