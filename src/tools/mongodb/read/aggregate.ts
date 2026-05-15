@@ -70,11 +70,22 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
             const provider = await this.ensureConnected();
             await this.assertOnlyUsesPermittedStages(pipeline);
             if (await this.session.isSearchSupported()) {
-                assertVectorSearchFilterFieldsAreIndexed({
-                    searchIndexes: (await provider.getSearchIndexes(database, collection)) as SearchIndex[],
-                    pipeline,
-                    logger: this.session.logger,
-                });
+                try {
+                    assertVectorSearchFilterFieldsAreIndexed({
+                        searchIndexes: (await provider.getSearchIndexes(database, collection)) as SearchIndex[],
+                        pipeline,
+                        logger: this.session.logger,
+                    });
+                } catch (error) {
+                    if (error instanceof MongoDBError) {
+                        throw error;
+                    }
+                    this.session.logger.debug({
+                        id: LogId.mongodbGetSearchIndexesFailure,
+                        context: "aggregate tool",
+                        message: `Failed to fetch search indexes for pre-filter validation, skipping check: ${error instanceof Error ? error.message : String(error)}`,
+                    });
+                }
             }
 
             // Check if aggregate operation uses an index if enabled
@@ -298,8 +309,17 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
         let indexExists = false;
         if (isSearchSupported) {
             const provider = await this.ensureConnected();
-            const indexes = await provider.getSearchIndexes(database, collection, indexName);
-            indexExists = indexes.length >= 1;
+            try {
+                const indexes = await provider.getSearchIndexes(database, collection, indexName);
+                indexExists = indexes.length >= 1;
+            } catch (error) {
+                this.session.logger.debug({
+                    id: LogId.mongodbGetSearchIndexesFailure,
+                    context: "aggregate tool",
+                    message: `Failed to fetch search indexes for vector search index check, skipping check: ${error instanceof Error ? error.message : String(error)}`,
+                });
+                return ["valid-index", indexName];
+            }
         }
 
         return [indexExists ? "valid-index" : "non-existent-index", indexName];
