@@ -1,6 +1,10 @@
 import type { KnipConfig } from "knip";
 
 const config: KnipConfig = {
+    // Shell built-ins used in package.json scripts
+    ignoreBinaries: ["printf"],
+    // Workspace-relative path in vitest.config.ts that knip can't resolve
+    ignoreUnresolved: ["./src/test-setup.ts"],
     workspaces: {
         ".": {
             entry: [
@@ -14,6 +18,7 @@ const config: KnipConfig = {
                 "scripts/**/*.ts",
                 "eslint-rules/*.js",
                 "vite.ui.config.ts",
+                "vitest.config.ts",
             ],
             ignore: [
                 "packages/atlas-api-client/openapi.d.ts",
@@ -30,12 +35,15 @@ const config: KnipConfig = {
                 "dist/**",
                 "packages/*/dist/**",
                 "packages/ui/src/test-setup.ts",
+                // Referenced in vitest.config.ts with workspace-relative path
+                "./src/test-setup.ts",
             ],
             ignoreDependencies: [
+                // Transitive deps needed for bundling/universal package
                 "@mongodb-js/atlas-local",
+                "@mongodb-js/device-id",
                 "@emotion/css",
                 "@leafygreen-ui/table",
-                "@mongodb-js/mcp-tools-mongodb",
                 "react",
                 "react-dom",
                 "@anthropic-ai/mcpb",
@@ -51,13 +59,6 @@ const config: KnipConfig = {
                 "semver",
                 "vite-plugin-node-polyfills",
                 "vite-plugin-singlefile",
-                // These are used by @mongodb-js/mcp-tools-mongodb package, keep for transitive dependency resolution
-                "@mongodb-js/device-id",
-                "mongodb",
-                "mongodb-build-info",
-                "mongodb-connection-string-url",
-                "mongodb-schema",
-                "node-machine-id",
             ],
         },
         "packages/accuracy-tests": {
@@ -67,37 +68,13 @@ const config: KnipConfig = {
                 "src/updateAccuracyRunStatus.ts",
                 "src/unit/**/*.ts",
             ],
-            ignoreDependencies: [
-                "mongodb-mcp-server",
-                "@mongodb-js/mcp-core",
-                "@mongodb-js/mcp-types",
-                "@mongodb-js/mcp-tools-atlas",
-                "@mongodb-js/mcp-tools-atlas-local",
-                "@mongodb-js/mcp-test-utils",
-            ],
         },
         "packages/scripts": {
             entry: ["src/*.ts"],
-            ignoreDependencies: [
-                "vite",
-                "@mongodb-js/mcp-ui",
-                "@mongodb-js/mcp-types",
-                "@mongodb-js/mcp-metrics",
-                "@mongodb-js/mcp-atlas-api-client",
-                "@mongodb-js/mcp-logging",
-                "mongodb-mcp-server",
-            ],
+            ignoreDependencies: ["vite"], // Used as CLI in execSync, not as import
         },
         "packages/test-utils": {
             entry: ["src/index.ts!"],
-            ignoreDependencies: [
-                "vitest",
-                "@modelcontextprotocol/sdk",
-                "@mongodb-js/mcp-atlas-api-client",
-                "@mongodb-js/mcp-atlas-telemetry",
-                "@mongodb-js/mcp-ui",
-                "@mongodb-js/mcp-metrics",
-            ],
         },
         "packages/ui": {
             entry: ["src/index.ts!"],
@@ -108,26 +85,16 @@ const config: KnipConfig = {
         "packages/types": {
             ignoreDependencies: ["@modelcontextprotocol/sdk", "mongodb-redact"],
         },
+        // Setup package is maintained in a separate worktree
         "packages/setup": {
-            entry: ["src/index.ts!"],
-            ignoreDependencies: [
-                "@inquirer/prompts",
-                "@inquirer/select",
-                "@mongodb-js/mcp-atlas-api-client",
-                "@mongodb-js/mcp-atlas-telemetry",
-                "@mongodb-js/mcp-core",
-                "@mongodb-js/mcp-tools-atlas-local",
-                "@mongosh/service-provider-node-driver",
-                "chalk",
-                "jsonc-parser",
-                "mongodb-redact",
-            ],
+            ignore: ["**/*"],
         },
         "packages/http-transports": {
             entry: ["src/index.ts!"],
         },
         "packages/tools-mongodb": {
             ignoreDependencies: [
+                // Dependencies used by this package but knip can't detect all patterns
                 "@mongodb-js/device-id",
                 "@mongodb-js/mcp-core",
                 "@mongodb-js/mcp-logging",
@@ -146,6 +113,7 @@ const config: KnipConfig = {
         "tests/browser": {
             entry: ["tests/**/*.ts", "polyfills/**/*.ts", "utils/**/*.ts", "vitest.config.ts", "setup.ts"],
             ignoreDependencies: ["buffer", "evp_bytestokey", "util", "@vitest/browser"],
+            ignore: ["polyfills/events/index.ts"], // Has both named and default export intentionally
         },
     },
     ignoreExportsUsedInFile: true,

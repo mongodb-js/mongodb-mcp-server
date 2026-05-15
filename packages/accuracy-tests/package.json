@@ -12,10 +12,7 @@
   "dependencies": {
     "mongodb-mcp-server": "workspace:*",
     "@mongodb-js/mcp-core": "workspace:*",
-    "@mongodb-js/mcp-types": "workspace:*",
-    "@mongodb-js/mcp-tools-mongodb": "workspace:*",
-    "@mongodb-js/mcp-tools-atlas": "workspace:*",
-    "@mongodb-js/mcp-tools-atlas-local": "workspace:*",
+    "@mongodb-js/mcp-tools-assistant": "workspace:*",
     "@mongodb-js/mcp-test-utils": "workspace:*"
   },
   "devDependencies": {
