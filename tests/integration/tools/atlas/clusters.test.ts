@@ -150,6 +150,17 @@ describeWithAtlas("clusters", (integration) => {
                 const content = getResponseContent(response.content);
                 expect(content).toBeDefined();
             });
+
+            it("returns a successful empty result when no clusters exist across all projects", async () => {
+                const session = integration.mcpServer().session;
+                assertApiClientIsAvailable(session);
+                vitest.spyOn(session.apiClient, "listClusterDetails").mockResolvedValue({ results: [], totalCount: 0 });
+
+                const response = await integration.mcpClient().callTool({ name: "atlas-list-clusters", arguments: {} });
+
+                expect(response.isError).toBeFalsy();
+                expect(getResponseContent(response.content)).toContain("No clusters found.");
+            });
         });
 
         describe("atlas-connect-cluster", () => {

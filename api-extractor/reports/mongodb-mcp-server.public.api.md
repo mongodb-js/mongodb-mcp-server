@@ -38,18 +38,12 @@ export const AGG_COUNT_MAX_TIME_MS_CAP: number;
 // @public (undocumented)
 export type AnyConnectionState = ConnectionStateConnected | ConnectionStateConnecting | ConnectionStateDisconnected | ConnectionStateErrored;
 
-// Warning: (ae-forgotten-export) The symbol "ToolBase" needs to be exported by the entry point lib.d.ts
-//
 // @public (undocumented)
 export type AnyToolBase = ToolBase<any, any>;
 
-// Warning: (ae-forgotten-export) The symbol "ToolClass" needs to be exported by the entry point lib.d.ts
-//
 // @public (undocumented)
 export type AnyToolClass = ToolClass<any, any>;
 
-// Warning: (ae-forgotten-export) The symbol "IApiClient" needs to be exported by the entry point lib.d.ts
-//
 // @public (undocumented)
 export class ApiClient implements IApiClient {
     constructor(options: ApiClientOptions);
@@ -131,9 +125,6 @@ export class ApiClient implements IApiClient {
     listAccessListEntries(options: FetchOptions<operations["listGroupAccessListEntries"]>): Promise<components["schemas"]["PaginatedNetworkAccessView"]>;
     // (undocumented)
     listAlerts(options: FetchOptions<operations["listGroupAlerts"]>): Promise<components["schemas"]["PaginatedAlertView"]>;
-    // Warning: (ae-forgotten-export) The symbol "operations" needs to be exported by the entry point lib.d.ts
-    // Warning: (ae-forgotten-export) The symbol "components" needs to be exported by the entry point lib.d.ts
-    //
     // (undocumented)
     listClusterDetails(options?: FetchOptions<operations["listClusterDetails"]>): Promise<components["schemas"]["PaginatedOrgGroupView"]>;
     // (undocumented)
@@ -254,8 +245,6 @@ export function applyConfigOverrides<TUserConfig extends UserConfig = UserConfig
     request?: TransportRequestContext;
 }): TUserConfig;
 
-// Warning: (ae-forgotten-export) The symbol "ITelemetry" needs to be exported by the entry point lib.d.ts
-//
 // @public (undocumented)
 export class AtlasTelemetry implements ITelemetry {
     // (undocumented)
@@ -305,15 +294,11 @@ export class CompositeLogger extends LoggerBase {
     protected readonly type?: LoggerType;
 }
 
-// Warning: (ae-forgotten-export) The symbol "UserFacingError" needs to be exported by the entry point lib.d.ts
-//
 // @public (undocumented)
 export class ConfigOverrideError extends UserFacingError {
     constructor(message: string);
 }
 
-// Warning: (ae-forgotten-export) The symbol "ConfigFieldMeta" needs to be exported by the entry point lib.d.ts
-//
 // @public (undocumented)
 export const configRegistry: z.core.$ZodRegistry<ConfigFieldMeta, z.core.$ZodType<unknown, unknown, z.core.$ZodTypeInternals<unknown, unknown>>>;
 
@@ -323,9 +308,6 @@ export type ConnectionErrorHandled = {
     result: CallToolResult;
 };
 
-// Warning: (ae-forgotten-export) The symbol "NotConnectedToMongoDBErrorCode" needs to be exported by the entry point lib.d.ts
-// Warning: (ae-forgotten-export) The symbol "MisconfiguredConnectionStringErrorCode" needs to be exported by the entry point lib.d.ts
-//
 // @public (undocumented)
 export type ConnectionErrorHandler = (error: MongoDBError<NotConnectedToMongoDBErrorCode | MisconfiguredConnectionStringErrorCode>, additionalContext: ConnectionErrorHandlerContext) => ConnectionErrorUnhandled | ConnectionErrorHandled | Promise<ConnectionErrorUnhandled | ConnectionErrorHandled>;
 
@@ -394,8 +376,6 @@ export type ConnectionManagerFactoryOptions = {
 
 // @public (undocumented)
 export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"> {
-    // Warning: (ae-forgotten-export) The symbol "AtlasClusterConnectionInfo" needs to be exported by the entry point lib.d.ts
-    //
     // (undocumented)
     atlas?: AtlasClusterConnectionInfo;
     // (undocumented)
@@ -406,8 +386,6 @@ export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"
 export interface ConnectionState {
     // (undocumented)
     connectedAtlasCluster?: AtlasClusterConnectionInfo;
-    // Warning: (ae-forgotten-export) The symbol "ConnectionStringInfo" needs to be exported by the entry point lib.d.ts
-    //
     // (undocumented)
     connectionStringInfo?: ConnectionStringInfo;
     // (undocumented)
@@ -466,7 +444,6 @@ export type ConnectionTag = "connected" | "connecting" | "disconnected" | "error
 
 // @public (undocumented)
 export class ConsoleLogger extends LoggerBase {
-    // Warning: (ae-forgotten-export) The symbol "LoggerConfig" needs to be exported by the entry point lib.d.ts
     constructor(options: LoggerConfig);
     // (undocumented)
     protected logCore(level: LogLevel, payload: LogPayload): void;
@@ -525,8 +502,6 @@ export const defaultParserOptions: {
 // @public (undocumented)
 export type DefaultPrometheusMetricDefinitions = ReturnType<typeof createDefaultMetrics>;
 
-// Warning: (ae-forgotten-export) The symbol "IDeviceId" needs to be exported by the entry point lib.d.ts
-//
 // @public (undocumented)
 export class DeviceId implements IDeviceId {
     close(): void;
@@ -554,7 +529,6 @@ export class Elicitation {
         required: string[];
     };
     requestConfirmation(message: string): Promise<boolean>;
-    // Warning: (ae-forgotten-export) The symbol "ElicitedInputResult_2" needs to be exported by the entry point lib.d.ts
     requestInput(message: string, schema: ElicitRequestFormParams["requestedSchema"]): Promise<ElicitedInputResult_2>;
     supportsElicitation(): boolean;
 }
@@ -591,18 +565,12 @@ export class EventCache {
 // @public (undocumented)
 export type EventMap<T> = Record<keyof T, any[]>;
 
-// Warning: (ae-forgotten-export) The symbol "ExportsManagerEvents" needs to be exported by the entry point lib.d.ts
-//
 // @public (undocumented)
 export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
-    // Warning: (ae-forgotten-export) The symbol "AvailableExport" needs to be exported by the entry point lib.d.ts
-    //
     // (undocumented)
     get availableExports(): AvailableExport[];
     // (undocumented)
     close(): Promise<void>;
-    // Warning: (ae-forgotten-export) The symbol "CreateJSONExportParams" needs to be exported by the entry point lib.d.ts
-    //
     // (undocumented)
     createJSONExport(input: CreateJSONExportParams): Promise<AvailableExport>;
     // (undocumented)
@@ -737,20 +705,12 @@ export class MCPConnectionManager extends ConnectionManager {
     disconnect(): Promise<ConnectionStateDisconnected | ConnectionStateErrored>;
 }
 
-// Warning: (ae-forgotten-export) The symbol "SessionAwareServer" needs to be exported by the entry point lib.d.ts
-// Warning: (ae-forgotten-export) The symbol "DefaultMetricDefinitions" needs to be exported by the entry point lib.d.ts
-// Warning: (ae-forgotten-export) The symbol "ExpressBasedHttpServer" needs to be exported by the entry point lib.d.ts
-//
 // @public
 export abstract class MCPHttpServer<TServer extends SessionAwareServer = SessionAwareServer, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> extends ExpressBasedHttpServer {
     constructor(input: MCPHttpServerOptions<TMetrics>);
     protected abstract createServerForRequest(request: TransportRequestContext): Promise<TServer>;
-    // Warning: (ae-forgotten-export) The symbol "IMetrics" needs to be exported by the entry point lib.d.ts
-    //
     // (undocumented)
     protected readonly metrics: IMetrics<TMetrics>;
-    // Warning: (ae-forgotten-export) The symbol "SessionManagementOptions" needs to be exported by the entry point lib.d.ts
-    //
     // (undocumented)
     readonly sessionOptions: SessionManagementOptions;
     // (undocumented)
@@ -786,8 +746,6 @@ export class McpLogger extends LoggerBase {
     protected readonly type: LoggerType;
 }
 
-// Warning: (ae-forgotten-export) The symbol "ErrorCode" needs to be exported by the entry point lib.d.ts
-//
 // @public (undocumented)
 export class MongoDBError<ErrorCodeType extends ErrorCode = ErrorCode> extends Error {
     constructor(code: ErrorCodeType, message: string);
@@ -804,8 +762,6 @@ export type MongoDBToolsRuntimeConfig = {
 // @public
 export class MonitoringServer<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> extends ExpressBasedHttpServer {
     constructor(input: MonitoringServerOptions<TMetrics>);
-    // Warning: (ae-forgotten-export) The symbol "MonitoringServerFeature_2" needs to be exported by the entry point lib.d.ts
-    //
     // (undocumented)
     protected readonly features: MonitoringServerFeature_2[];
     // (undocumented)
@@ -814,8 +770,6 @@ export class MonitoringServer<TMetrics extends DefaultMetricDefinitions = Defaul
     protected setupRoutes(): Promise<void>;
 }
 
-// Warning: (ae-forgotten-export) The symbol "monitoringServerFeatureValues" needs to be exported by the entry point lib.d.ts
-//
 // @public (undocumented)
 export type MonitoringServerFeature = (typeof monitoringServerFeatureValues)[number];
 
@@ -1118,8 +1072,6 @@ export { StreamableHTTPServerTransport }
 // @public (undocumented)
 export type TelemetryBaseEvent = TelemetryEvent<unknown>;
 
-// Warning: (ae-forgotten-export) The symbol "TelemetryCommonStaticProperties" needs to be exported by the entry point lib.d.ts
-//
 // @public
 export type TelemetryCommonProperties = {
     device_id?: string;
@@ -1183,8 +1135,6 @@ export type TransportRequestContext = {
     query?: Record<string, string | string[] | undefined>;
 };
 
-// Warning: (ae-forgotten-export) The symbol "IUIRegistry" needs to be exported by the entry point lib.d.ts
-//
 // @public
 export class UIRegistry implements IUIRegistry {
     constructor(options?: UIRegistryOptions);
@@ -1348,18 +1298,6 @@ export const UserConfigSchema: z.ZodObject<{
     }>]>>;
     browser: z.ZodOptional<z.ZodUnion<readonly [z.ZodLiteral<false>, z.ZodString]>>;
 }, z.core.$strip>;
-
-// Warnings were encountered during analysis:
-//
-// packages/atlas-telemetry/src/types.ts:17:9 - (ae-forgotten-export) The symbol "TelemetryResult" needs to be exported by the entry point lib.d.ts
-// packages/atlas-telemetry/src/types.ts:186:5 - (ae-forgotten-export) The symbol "TelemetryBoolSet" needs to be exported by the entry point lib.d.ts
-// packages/core/src/logging/compositeLogger.ts:17:49 - (ae-forgotten-export) The symbol "IKeychain" needs to be exported by the entry point lib.d.ts
-// packages/http-runners/src/mcpHttpServer.ts:44:9 - (ae-forgotten-export) The symbol "HttpServerOptions" needs to be exported by the entry point lib.d.ts
-// packages/http-runners/src/mcpHttpServer.ts:49:5 - (ae-forgotten-export) The symbol "ICompositeLogger" needs to be exported by the entry point lib.d.ts
-// packages/tools-mongodb/src/common/connectionManager.ts:540:5 - (ae-forgotten-export) The symbol "ConnectionManagerOptions" needs to be exported by the entry point lib.d.ts
-// packages/tools-mongodb/src/common/exportsManager.ts:374:9 - (ae-forgotten-export) The symbol "ExportsManagerOptions" needs to be exported by the entry point lib.d.ts
-// packages/types/src/logging.ts:34:5 - (ae-forgotten-export) The symbol "MongoLogId" needs to be exported by the entry point lib.d.ts
-// packages/types/src/sessionStore.ts:12:59 - (ae-forgotten-export) The symbol "ILogger" needs to be exported by the entry point lib.d.ts
 
 // (No @packageDocumentation comment for this package)
 
