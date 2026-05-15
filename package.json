@@ -95,6 +95,7 @@
   },
   "license": "Apache-2.0",
   "devDependencies": {
+    "@ai-sdk/anthropic": "^3.0.71",
     "@ai-sdk/azure": "^3.0.62",
     "@ai-sdk/google": "^3.0.67",
     "@ai-sdk/mcp": "^1.0.40",
