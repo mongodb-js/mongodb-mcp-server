@@ -705,7 +705,7 @@ describe("AtlasTelemetry credentials handling", () => {
                 properties: {
                     component: "test-component",
                     duration_ms: 0,
-                    result: "success" as TelemetryResult,
+                    result: "success" as const,
                     category: "test",
                     command: "test-command",
                 },
