@@ -5,8 +5,7 @@ import {
     type SearchIndex,
 } from "@mongodb-js/mcp-tools-mongodb";
 import { ErrorCodes, MongoDBError } from "@mongodb-js/mcp-tools-mongodb";
-import { type CompositeLogger } from "@mongodb-js/mcp-core";
-import { LogId } from "@mongodb-js/mcp-logging";
+import { type CompositeLogger, LogId } from "@mongodb-js/mcp-core";
 
 describe("#collectFieldsFromVectorSearchFilter", () => {
     it("should return empty list if filter is not an object or an empty object", () => {

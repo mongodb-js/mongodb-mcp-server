@@ -93,6 +93,8 @@ All telemetry types are now prefixed with `Telemetry` or `Atlas`:
 | `SetupEvent`              | `TelemetrySetupEvent`                |
 | `SetupEventProperties`    | `TelemetrySetupEventProperties`      |
 
+**Note:** The deprecated aliases (`BaseEvent`, `CommonProperties`, `CommonStaticProperties`, `ConnectionMetadata`, `PerfAdvisorToolMetadata`, `StreamsToolMetadata`) have been removed. Use the new type names directly.
+
 ### `EventCache` import
 
 ```diff
@@ -108,6 +110,348 @@ A `NoopTelemetry` class implementing `ITelemetry` is now available for use in te
 + import { NoopTelemetry } from "@mongodb-js/mcp-core";
 
 + const telemetry = new NoopTelemetry();
+```
+
+## Transports split between `@mongodb-js/mcp-core` and `@mongodb-js/mcp-http-runners`
+
+Transport implementations have been split into two packages:
+
+- **Core transports** (`@mongodb-js/mcp-core`): `ITransportRunner`, `StdioRunner`, `InMemoryTransport`, `SessionStore`, and related types
+- **HTTP runners** (`@mongodb-js/mcp-http-runners`): Node.js-specific HTTP server implementations (`StreamableHttpRunner`, `MCPHttpServer`, `MonitoringServer`)
+
+### Core exports (now in `@mongodb-js/mcp-core`)
+
+```diff
+- import { InMemoryTransport, SessionStore, TransportRunnerBase } from "mongodb-mcp-server";
++ import { InMemoryTransport, SessionStore, ITransportRunner, StdioRunner } from "@mongodb-js/mcp-core";
+```
+
+Web-friendly types:
+
+```diff
+- import type { CustomizableServerOptions, CustomizableSessionOptions, TransportRequestContext } from "mongodb-mcp-server";
++ import type { TransportRequestContext } from "@mongodb-js/mcp-core";
+```
+
+Error codes:
+
+```diff
+- import { JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND } from "mongodb-mcp-server";
++ import { JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND } from "@mongodb-js/mcp-core";
+```
+
+### HTTP runners (now in `@mongodb-js/mcp-http-runners`)
+
+Node.js-specific HTTP runners and servers:
+
+```diff
+- import { StreamableHttpRunner, MCPHttpServer, MonitoringServer } from "mongodb-mcp-server";
++ import { StreamableHttpRunner, MCPHttpServer, MonitoringServer } from "@mongodb-js/mcp-http-runners";
+```
+
+### Transport Runner Pattern Changes
+
+Transport runners are now decoupled from server creation. Instead of passing a full `UserConfig` and having the runner create the server internally, you create the server separately and pass it to the runner's constructor.
+
+**Before:**
+
+```typescript
+import { StdioRunner, UserConfig } from "mongodb-mcp-server";
+
+const runner = new StdioRunner({
+  userConfig, // Full UserConfig required
+  // ... other dependencies
+});
+```
+
+**After (StdioRunner):**
+
+```typescript
+import { StdioRunner } from "@mongodb-js/mcp-core";
+import { Server } from "mongodb-mcp-server";
+
+// Create your server instance
+const server = new Server({
+  mcpServer,
+  session,
+  // ... other options
+});
+
+// Pass the server to the runner
+const runner = new StdioRunner({
+  logger,
+  metrics,
+  server,
+});
+```
+
+**After (StreamableHttpRunner):**
+
+For HTTP transport, customize server creation by extending `MCPHttpServer` (not `StreamableHttpRunner`) and overriding `createServerForRequest()`:
+
+```typescript
+import {
+  StreamableHttpRunner,
+  MCPHttpServer,
+} from "@mongodb-js/mcp-http-runners";
+import { Server } from "mongodb-mcp-server";
+import type { TransportRequestContext } from "@mongodb-js/mcp-types";
+
+class MyMCPHttpServer extends MCPHttpServer {
+  protected override async createServerForRequest(
+    request: TransportRequestContext
+  ): Promise<Server> {
+    // Create server with per-request customization
+    return new Server({
+      mcpServer,
+      session,
+      // ... customize based on request headers, etc.
+    });
+  }
+}
+
+const httpServer = new MyMCPHttpServer({
+  options: {
+    http: { host: "127.0.0.1", port: 3000 },
+    session: { idleTimeoutMs: 600_000 },
+  },
+  logger,
+  metrics,
+  sessionStore,
+});
+
+const runner = new StreamableHttpRunner({
+  logger,
+  metrics,
+  mcpHttpServer: httpServer,
+  sessionStore,
+});
+```
+
+### Decoupled from UserConfig
+
+Transport runners no longer require the full `UserConfig` object. Instead, construct the required components (`MCPHttpServer`, `MonitoringServer`, `SessionStore`) with their respective options and pass the instances to the runner:
+
+| Old (UserConfig field)      | New (pass to component)                                                                                |
+| --------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `transport`                 | Runner class selection                                                                                 |
+| `httpHost`                  | `MCPHttpServer.options.http.host`                                                                      |
+| `httpPort`                  | `MCPHttpServer.options.http.port`                                                                      |
+| `httpBodyLimit`             | `MCPHttpServer.options.http.bodyLimit`                                                                 |
+| `httpHeaders`               | `MCPHttpServer.options.http.headers`                                                                   |
+| `httpResponseType`          | `MCPHttpServer.options.http.responseType`                                                              |
+| `idleTimeoutMs`             | `SessionStore.options.idleTimeoutMS` and `MCPHttpServer.options.session.idleTimeoutMs`                 |
+| `notificationTimeoutMs`     | `SessionStore.options.notificationTimeoutMS` and `MCPHttpServer.options.session.notificationTimeoutMs` |
+| `externallyManagedSessions` | `MCPHttpServer.options.session.externallyManagedSessions`                                              |
+| `monitoringServerHost`      | `MonitoringServer.options.http.host`                                                                   |
+| `monitoringServerPort`      | `MonitoringServer.options.http.port`                                                                   |
+| `monitoringServerFeatures`  | `MonitoringServer.options.features`                                                                    |
+
+**StreamableHttpRunner Example:**
+
+```typescript
+import {
+  StreamableHttpRunner,
+  MCPHttpServer,
+  MonitoringServer,
+} from "@mongodb-js/mcp-http-runners";
+import { SessionStore } from "@mongodb-js/mcp-core";
+import type { ISessionStore } from "@mongodb-js/mcp-types";
+import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+
+// Create the session store
+const sessionStore: ISessionStore<StreamableHTTPServerTransport> =
+  new SessionStore({
+    options: {
+      idleTimeoutMS: 600_000,
+      notificationTimeoutMS: 540_000,
+    },
+    logger,
+    metrics,
+  });
+
+// Create MCPHttpServer (extend to implement createServerForRequest)
+const mcpHttpServer = new MyMCPHttpServer({
+  options: {
+    http: {
+      host: "127.0.0.1",
+      port: 3000,
+      bodyLimit: 1024 * 1024,
+      headers: { "x-api-key": "secret" },
+      responseType: "sse", // or "json"
+    },
+    session: {
+      idleTimeoutMs: 600_000,
+      notificationTimeoutMs: 540_000,
+      externallyManagedSessions: false,
+    },
+  },
+  logger,
+  metrics,
+  sessionStore,
+});
+
+// Create monitoring server (optional)
+const monitoringServer = new MonitoringServer({
+  options: {
+    http: {
+      host: "127.0.0.1",
+      port: 8080,
+    },
+    features: ["health-check", "metrics"],
+  },
+  logger,
+  metrics,
+});
+
+// Pass pre-constructed instances to StreamableHttpRunner
+const runner = new StreamableHttpRunner({
+  logger,
+  metrics,
+  mcpHttpServer,
+  monitoringServer,
+  sessionStore,
+});
+```
+
+### Type Changes
+
+Several types have been moved or renamed:
+
+| Old location                                      | New location                                                             |
+| ------------------------------------------------- | ------------------------------------------------------------------------ |
+| `TransportRunnerBase`                             | `ITransportRunner` (in `@mongodb-js/mcp-types`)                          |
+| `TransportRunnerConfig`                           | Removed - use direct options in runners                                  |
+| `TransportRunnerBaseOptions`                      | Removed - use direct options in runners                                  |
+| `StreamableHttpTransportRunnerConfig`             | `StreamableHttpRunnerOptions` (in `@mongodb-js/mcp-http-runners`)        |
+| `MonitoringServerConfig` (from streamableHttp.ts) | `MonitoringServerConfig` (in `@mongodb-js/mcp-http-runners`)             |
+| `CreateSessionConfigFn`                           | Removed - extend `MCPHttpServer` and override `createServerForRequest()` |
+| `CustomizableServerOptions`                       | Removed - no longer needed                                               |
+| `CustomizableSessionOptions`                      | Removed - no longer needed                                               |
+| `TransportRequestContext`                         | Same name, moved to `@mongodb-js/mcp-core`                               |
+
+**Note:** The deprecated aliases (`TransportRunnerConfig`, `StreamableHttpTransportRunnerConfig`) have been removed. Use the new type names directly.
+
+### Removed from Transports
+
+The following items have been removed from the transports package:
+
+- `TransportRunnerConfig.userConfig` - Pass specific options instead
+- `TransportRunnerConfig.createConnectionManager` - Use `ServerFactory` pattern
+- `TransportRunnerConfig.connectionErrorHandler` - Extend `MCPHttpServer` and pass to Server constructor
+- `TransportRunnerConfig.createAtlasLocalClient` - Extend `MCPHttpServer` and pass to Server constructor
+- `TransportRunnerConfig.createSessionConfig` - Extend `MCPHttpServer` and override `createServerForRequest()`
+- `TransportRunnerConfig.createApiClient` - Extend `MCPHttpServer` and pass to Server constructor
+- `TransportRunnerConfig.tools` - Pass via Server constructor
+- `TransportRunnerConfig.telemetryProperties` - Pass via Server constructor
+- `CustomizableServerOptions` - Removed, was unused
+- `CustomizableSessionOptions` - Removed, was unused
+
+### HTTP Servers
+
+The HTTP server implementations are now available from the new package:
+
+```diff
+- import { MCPHttpServer, MonitoringServer } from "mongodb-mcp-server";
++ import { MCPHttpServer, MonitoringServer } from "@mongodb-js/mcp-http-runners";
+```
+
+#### MCPHttpServer - Abstract Class (Breaking Change)
+
+**BREAKING CHANGE:** `MCPHttpServer` is now an abstract class. You must extend it and implement the `createServerForRequest()` method. The `createServer()` method has been removed:
+
+```typescript
+import { MCPHttpServer } from "@mongodb-js/mcp-http-runners";
+import type { TransportRequestContext } from "@mongodb-js/mcp-types";
+
+class MyMCPHttpServer extends MCPHttpServer<MyServer> {
+  private userConfig: UserConfig;
+  private baseLogger: CompositeLogger;
+
+  constructor(options: {
+    userConfig: UserConfig;
+    httpOptions: HttpServerOptions;
+    sessionOptions: SessionManagementOptions;
+    logger: CompositeLogger;
+    metrics: IMetrics<DefaultMetricDefinitions>;
+    sessionStore: ISessionStore<StreamableHTTPServerTransport>;
+  }) {
+    super(options);
+    this.userConfig = options.userConfig;
+    this.baseLogger = options.logger;
+  }
+
+  protected override async createServerForRequest(
+    request: TransportRequestContext
+  ): Promise<MyServer> {
+    // Create and return your server instance
+    // The request parameter contains headers and query for per-request customization
+    return new MyServer({
+      userConfig: this.userConfig,
+      logger: this.baseLogger,
+      // ... other options
+    });
+  }
+}
+
+const httpServer = new MyMCPHttpServer({
+  userConfig,
+  httpOptions: { host, port, bodyLimit, headers, responseType },
+  sessionOptions: {
+    idleTimeoutMs,
+    notificationTimeoutMs,
+    externallyManagedSessions,
+  },
+  logger,
+  metrics,
+  sessionStore,
+});
+```
+
+#### Type Renames
+
+| Old name                          | New name                  |
+| --------------------------------- | ------------------------- |
+| `MCPHttpServerConstructorArgs`    | `MCPHttpServerOptions`    |
+| `MonitoringServerConstructorArgs` | `MonitoringServerOptions` |
+| `httpConfig`                      | `httpOptions`             |
+| `sessionConfig`                   | `sessionOptions`          |
+
+#### Removed Factory Functions
+
+The following factory functions have been removed. Use `new ClassName()` directly:
+
+- `createDefaultMcpHttpServer()` - Use `new MCPHttpServer()` (from `@mongodb-js/mcp-http-runners`)
+- `createDefaultMonitoringServer()` - Use `new MonitoringServer()` (from `@mongodb-js/mcp-http-runners`)
+- `createDefaultSessionStore()` - Use `new SessionStore()` (from `@mongodb-js/mcp-core`)
+
+### Session Store
+
+The session store interface and implementation have been moved to `@mongodb-js/mcp-core`:
+
+```diff
+- import { ISessionStore, SessionStore } from "mongodb-mcp-server";
++ import { ISessionStore, SessionStore } from "@mongodb-js/mcp-core";
+```
+
+Note: `createDefaultSessionStore` has been removed. Use `new SessionStore()` directly.
+
+### InMemoryTransport
+
+The in-memory transport is now in `@mongodb-js/mcp-core`:
+
+```diff
+- import { InMemoryTransport } from "mongodb-mcp-server";
++ import { InMemoryTransport } from "@mongodb-js/mcp-core";
+```
+
+### Error Codes
+
+JSON-RPC error codes are now exported from `@mongodb-js/mcp-core`:
+
+```diff
+- import { JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND } from "mongodb-mcp-server";
++ import { JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND } from "@mongodb-js/mcp-core";
 ```
 
 ## MongoDB tools moved to `@mongodb-js/mcp-tools-mongodb`

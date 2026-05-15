@@ -37,29 +37,21 @@ export {
 } from "@mongodb-js/mcp-core";
 export { McpLogger } from "@mongodb-js/mcp-logging";
 export { ConsoleLogger } from "@mongodb-js/mcp-logging";
+export { StdioRunner } from "@mongodb-js/mcp-core";
+
+// HTTP-specific transports
 export {
     StreamableHttpRunner,
     MCPHttpServer,
-    createDefaultMcpHttpServer,
-    type MCPHttpServerConstructorArgs,
-    type CreateMcpHttpServerFn,
     MonitoringServer,
-    createDefaultMonitoringServer,
-    type StreamableHttpTransportRunnerConfig,
-    type CreateMonitoringServerFn,
-    type MonitoringServerConstructorArgs,
-    type MonitoringServerConfig,
-} from "./transports/streamableHttp.js";
+    type StreamableHttpRunnerOptions,
+    type MCPHttpServerOptions,
+    type MonitoringServerOptions,
+} from "@mongodb-js/mcp-http-runners";
 export type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-export { StdioRunner } from "./transports/stdio.js";
-export {
-    TransportRunnerBase,
-    type TransportRunnerConfig,
-    type CustomizableServerOptions,
-    type CustomizableSessionOptions,
-    type CreateSessionConfigFn,
-    type TransportRequestContext,
-} from "./transports/base.js";
+
+// Web-friendly transports (from core)
+export { type ITransportRunner, type TransportRequestContext } from "@mongodb-js/mcp-types";
 export {
     ConnectionManager,
     MCPConnectionManager,
@@ -92,8 +84,8 @@ export {
 export { AtlasTelemetry, EventCache } from "@mongodb-js/mcp-atlas-telemetry";
 export type {
     TelemetryEvent,
-    TelemetryCommonProperties as CommonProperties,
-    TelemetryBaseEvent as BaseEvent,
+    TelemetryCommonProperties,
+    TelemetryBaseEvent,
     TelemetryEvents,
     TelemetryConfig,
 } from "@mongodb-js/mcp-atlas-telemetry";
@@ -101,15 +93,8 @@ export { Keychain, registerGlobalSecretToRedact } from "@mongodb-js/mcp-core";
 export type { Secret } from "mongodb-redact";
 export { Elicitation } from "./elicitation.js";
 export { applyConfigOverrides, ConfigOverrideError } from "./common/config/configOverrides.js";
-export {
-    SessionStore,
-    createDefaultSessionStore,
-    type ISessionStore,
-    type CloseableTransport,
-    type SessionCloseReason,
-    type CreateSessionStoreFn,
-    type SessionStoreConstructorArgs,
-} from "./common/sessionStore.js";
+export { SessionStore, type ISessionStore, type SessionStoreConstructorArgs } from "@mongodb-js/mcp-core";
+export type { CloseableTransport, SessionCloseReason } from "@mongodb-js/mcp-types";
 export { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 export { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 export type { MonitoringServerFeature } from "@mongodb-js/mcp-tools-mongodb";
@@ -120,9 +105,7 @@ export { type ToolExecutionContext, type AnyToolBase } from "./tools/tool.js";
 export {
     PrometheusMetrics,
     createDefaultMetrics,
-    type DefaultMetrics,
-    type Metrics,
-    type MetricDefinitions,
+    type DefaultPrometheusMetricDefinitions,
     type PrometheusMetricsOptions,
     Registry,
     Gauge,
@@ -136,4 +119,4 @@ export {
     JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND,
     JSON_RPC_ERROR_CODE_INVALID_REQUEST,
     JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION,
-} from "./transports/jsonRpcErrorCodes.js";
+} from "@mongodb-js/mcp-core";

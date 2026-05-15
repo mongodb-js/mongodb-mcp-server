@@ -3,8 +3,8 @@ import type { Session } from "../common/session.js";
 import type { UserConfig } from "../common/config/userConfig.js";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { SessionEvents } from "../common/session.js";
+import { LogId } from "@mongodb-js/mcp-core";
 import type { ReadResourceCallback, ResourceMetadata } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { LogId } from "@mongodb-js/mcp-logging";
 
 type PayloadOf<K extends keyof SessionEvents> = SessionEvents[K][0];
 
@@ -23,9 +23,8 @@ export abstract class ReactiveResource<
     Value,
     RelevantEvents extends readonly (keyof SessionEvents)[],
     TUserConfig extends UserConfig = UserConfig,
-    TContext = unknown,
 > {
-    protected server?: Server<TUserConfig, TContext>;
+    protected server?: Server<TUserConfig>;
     protected session: Session;
     protected config: UserConfig;
     protected telemetry: AtlasTelemetry;
@@ -73,7 +72,7 @@ export abstract class ReactiveResource<
         }
     }
 
-    public register(server: Server<TUserConfig, TContext>): void {
+    public register(server: Server<TUserConfig>): void {
         this.server = server;
         this.server.mcpServer.registerResource(this.name, this.uri, this.resourceConfig, this.resourceCallback);
     }

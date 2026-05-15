@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@mongodb-js/mcp-ui": "workspace:*",
+    "@mongodb-js/mcp-types": "workspace:*",
     "@mongodb-js/mcp-metrics": "workspace:*",
     "@mongodb-js/mcp-atlas-api-client": "workspace:*",
     "@mongodb-js/mcp-logging": "workspace:*",

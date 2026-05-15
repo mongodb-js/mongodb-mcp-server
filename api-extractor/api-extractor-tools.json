@@ -20,5 +20,9 @@
     "enabled": true,
     "reportFolder": "<projectFolder>/api-extractor/reports/",
     "reportFileName": "tools"
+  },
+
+  "docModel": {
+    "enabled": false
   }
 }

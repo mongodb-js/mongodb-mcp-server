@@ -1,6 +1,6 @@
 import type { TelemetryBaseEvent, TelemetryCommonProperties, TelemetryCommonStaticProperties } from "./types.js";
+import { LogId } from "@mongodb-js/mcp-core";
 import { detectContainerEnv } from "./containerEnv.js";
-import { LogId } from "@mongodb-js/mcp-logging";
 import type { LoggerBase } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";

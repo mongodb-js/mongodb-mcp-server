@@ -3,8 +3,8 @@ import type { McpServer, ToolArgs, ToolCategory, ToolConstructorParams } from "@
 import { ToolBase } from "@mongodb-js/mcp-core";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { LogId } from "@mongodb-js/mcp-core";
 import { ErrorCodes, MongoDBError } from "./common/errors.js";
-import { LogId } from "@mongodb-js/mcp-logging";
 import type { ConnectionMetadata, IToolConfig, IToolSession } from "@mongodb-js/mcp-types";
 import type { AvailableExport, CreateJSONExportParams } from "./common/exportsManager.js";
 

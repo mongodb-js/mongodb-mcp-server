@@ -93,7 +93,7 @@ export class AggregateTool extends MongoDBToolBase {
 }
 
 // @public (undocumented)
-export const AllTools: ToolClass<any, any, any>[];
+export const AllTools: ToolClass<any, any>[];
 
 // @public (undocumented)
 export type AnyConnectionState = ConnectionStateConnected | ConnectionStateConnecting | ConnectionStateDisconnected | ConnectionStateErrored;
@@ -494,9 +494,9 @@ export class CreateIndexTool extends MongoDBToolBase {
                     dotProduct: "dotProduct";
                 }>>;
                 quantization: z.ZodDefault<z.ZodEnum<{
+                    binary: "binary";
                     none: "none";
                     scalar: "scalar";
-                    binary: "binary";
                 }>>;
             }, z.core.$strict>, z.ZodObject<{
                 type: z.ZodLiteral<"autoEmbed">;
@@ -521,6 +521,7 @@ export class CreateIndexTool extends MongoDBToolBase {
                         string: "string";
                         number: "number";
                         boolean: "boolean";
+                        uuid: "uuid";
                         date: "date";
                         autocomplete: "autocomplete";
                         document: "document";
@@ -528,7 +529,6 @@ export class CreateIndexTool extends MongoDBToolBase {
                         geo: "geo";
                         objectId: "objectId";
                         token: "token";
-                        uuid: "uuid";
                     }>;
                 }, z.core.$loose>>>;
             }, z.core.$strip>;
@@ -549,9 +549,9 @@ export class CreateIndexTool extends MongoDBToolBase {
         collection: z.ZodString;
         indexName: z.ZodString;
         indexType: z.ZodEnum<{
-            classic: "classic";
             search: "search";
             vectorSearch: "vectorSearch";
+            classic: "classic";
         }>;
     };
     // (undocumented)
@@ -701,8 +701,8 @@ export class DropIndexTool extends MongoDBToolBase {
     argsShape: {
         indexName: z.ZodString;
         type: z.ZodEnum<{
-            classic: "classic";
             search: "search";
+            classic: "classic";
         }>;
         collection: z.ZodString;
         database: z.ZodString;
@@ -1327,14 +1327,13 @@ export type ToolArgs<T extends ZodRawShape> = {
 };
 
 // @public
-export abstract class ToolBase<TUserConfig extends IToolConfig = IToolConfig, TContext = unknown, TMetricsDefinitions extends MetricDefinitions = MetricDefinitions> {
-    constructor(input: ToolConstructorParams<TUserConfig, TContext, TMetricsDefinitions>);
+export abstract class ToolBase<TUserConfig extends IToolConfig = IToolConfig, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
+    constructor(input: ToolConstructorParams<TUserConfig, TMetricsDefinitions>);
     // (undocumented)
     get annotations(): ToolAnnotations;
     abstract argsShape: ZodRawShape;
     readonly category: ToolCategory;
     protected readonly config: TUserConfig;
-    protected readonly context?: TContext;
     abstract description: string;
     // (undocumented)
     disable(): void;
@@ -1372,18 +1371,18 @@ export abstract class ToolBase<TUserConfig extends IToolConfig = IToolConfig, TC
 }
 
 // @public
-export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant";
+export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant" | "custom";
 
 // @public
-export type ToolClass<TUserConfig extends IToolConfig = IToolConfig, TContext = unknown, TMetricsDefinitions extends MetricDefinitions = MetricDefinitions> = {
-    new (params: ToolConstructorParams<TUserConfig, TContext, TMetricsDefinitions>): ToolBase<TUserConfig, TContext, TMetricsDefinitions>;
+export type ToolClass<TUserConfig extends IToolConfig = IToolConfig, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
+    new (params: ToolConstructorParams<TUserConfig, TMetricsDefinitions>): ToolBase<TUserConfig, TMetricsDefinitions>;
     toolName: string;
     category: ToolCategory;
     operationType: OperationType;
 };
 
 // @public
-export type ToolConstructorParams<TUserConfig extends IToolConfig = IToolConfig, TContext = unknown, TMetricsDefinitions extends MetricDefinitions = MetricDefinitions> = {
+export type ToolConstructorParams<TUserConfig extends IToolConfig = IToolConfig, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
     name: string;
     category: ToolCategory;
     operationType: OperationType;
@@ -1393,10 +1392,9 @@ export type ToolConstructorParams<TUserConfig extends IToolConfig = IToolConfig,
     elicitation: IElicitation;
     metrics: IMetrics<TMetricsDefinitions>;
     uiRegistry?: IUIRegistry;
-    context?: TContext;
 };
 
-// @public (undocumented)
+// @public
 export type ToolExecutionContext = {
     signal: AbortSignal;
     requestInfo?: {

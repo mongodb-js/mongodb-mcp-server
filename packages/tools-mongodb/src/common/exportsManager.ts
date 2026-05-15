@@ -8,8 +8,7 @@ import type { EJSONOptions } from "bson";
 import { EJSON, ObjectId } from "bson";
 import { Transform } from "stream";
 import { pipeline } from "stream/promises";
-import { type LoggerBase } from "@mongodb-js/mcp-core";
-import { LogId } from "@mongodb-js/mcp-logging";
+import { LogId, type LoggerBase } from "@mongodb-js/mcp-core";
 import type { MongoLogId } from "@mongodb-js/mcp-types";
 
 /** Options for `ExportsManager`, including the resolved per-session export directory. */

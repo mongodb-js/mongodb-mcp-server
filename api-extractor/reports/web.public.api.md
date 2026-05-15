@@ -8,13 +8,12 @@ import type { AggregationCursor } from 'mongodb';
 import { AtlasLocalClientFactoryFn } from '@mongodb-js/mcp-tools-atlas-local';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { Client } from '@mongodb-js/atlas-local';
-import { ConnectionInfo as ConnectionInfo_2 } from '@mongosh/arg-parser';
+import { ConnectionInfo } from '@mongosh/arg-parser';
 import { Counter } from 'prom-client';
 import type { ElicitRequestFormParams } from '@modelcontextprotocol/sdk/types.js';
-import { EventEmitter } from 'events';
+import EventEmitter from 'events';
 import type { FetchOptions } from 'openapi-fetch';
 import type { FindCursor } from 'mongodb';
-import type { Gauge } from 'prom-client';
 import { Histogram } from 'prom-client';
 import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
 import { LibraryLoader } from '@mongodb-js/mcp-tools-atlas-local';
@@ -31,10 +30,10 @@ import type { ZodRawShape } from 'zod';
 export type AnyConnectionState = ConnectionStateConnected | ConnectionStateConnecting | ConnectionStateDisconnected | ConnectionStateErrored;
 
 // @public (undocumented)
-export type AnyToolBase = ToolBase<any, any, any>;
+export type AnyToolBase = ToolBase<any, any>;
 
 // @public (undocumented)
-export type AnyToolClass = ToolClass<any, any, any>;
+export type AnyToolClass = ToolClass<any, any>;
 
 // @public (undocumented)
 export class ApiClient implements IApiClient {
@@ -242,6 +241,12 @@ export type AtlasClusterConnectionInfo = {
     expiryDate: Date;
 };
 
+// @public (undocumented)
+export type AtlasConnectionMetadata = AtlasMetadata & AtlasLocalToolMetadata & {
+    connection_auth_type?: string;
+    connection_host_type?: string;
+};
+
 export { AtlasLocalClientFactoryFn }
 
 // @public (undocumented)
@@ -253,6 +258,17 @@ export type AtlasLocalToolMetadata = {
 export type AtlasMetadata = {
     project_id?: string;
     org_id?: string;
+};
+
+// @public (undocumented)
+export type AtlasPerfAdvisorToolMetadata = AtlasMetadata & AtlasConnectionMetadata & {
+    operations: string[];
+};
+
+// @public (undocumented)
+export type AtlasStreamsToolMetadata = AtlasMetadata & {
+    action?: string;
+    resource?: string;
 };
 
 // @public
@@ -269,9 +285,6 @@ export interface AuthProvider {
 export type AvailableExport = Pick<StoredExport, "exportName" | "exportTitle" | "exportURI" | "exportPath">;
 
 // @public (undocumented)
-export type BaseEvent = TelemetryEvent<unknown>;
-
-// @public (undocumented)
 export interface CommonExportData {
     // (undocumented)
     exportName: string;
@@ -282,30 +295,6 @@ export interface CommonExportData {
     // (undocumented)
     exportURI: string;
 }
-
-// @public
-export type CommonProperties = {
-    device_id?: string;
-    is_container_env?: TelemetryBoolSet;
-    mcp_client_version?: string;
-    mcp_client_name?: string;
-    transport?: "stdio" | "http";
-    config_atlas_auth?: TelemetryBoolSet;
-    config_connection_string?: TelemetryBoolSet;
-    session_id?: string;
-    hosting_mode?: string;
-    has_docker?: TelemetryBoolSet;
-} & CommonStaticProperties;
-
-// @public
-export type CommonStaticProperties = {
-    mcp_server_version: string;
-    mcp_server_name: string;
-    platform: string;
-    arch: string;
-    os_type: string;
-    os_version?: string;
-};
 
 // @public (undocumented)
 export class CompositeLogger extends LoggerBase {
@@ -397,17 +386,11 @@ export type ConnectionManagerFactoryOptions = {
 };
 
 // @public (undocumented)
-export type ConnectionMetadata = AtlasMetadata & AtlasLocalToolMetadata & {
-    connection_auth_type?: string;
-    connection_host_type?: string;
-};
-
-// @public (undocumented)
-export interface ConnectionSettings extends Omit<ConnectionInfo_2, "driverOptions"> {
+export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"> {
     // (undocumented)
     atlas?: AtlasClusterConnectionInfo;
     // (undocumented)
-    driverOptions?: ConnectionInfo_2["driverOptions"];
+    driverOptions?: ConnectionInfo["driverOptions"];
 }
 
 // @public (undocumented)
@@ -467,12 +450,6 @@ export interface ConnectionStateErrored extends ConnectionState {
     tag: "errored";
 }
 
-// @public (undocumented)
-export type ConnectionStringAuthType = "scram" | "ldap" | "kerberos" | OIDCConnectionAuthType_2 | "x.509";
-
-// @public
-export type ConnectionStringHostType = "local" | "atlas" | "atlas_local" | "unknown";
-
 // @public
 export interface ConnectionStringInfo {
     // (undocumented)
@@ -491,12 +468,6 @@ export function createDefaultMetrics(): {
     readonly sessionClosed: Counter<"reason">;
 };
 
-// @public
-export type CreateSessionConfigFn<TUserConfig extends UserConfig = UserConfig> = (context: {
-    userConfig: TUserConfig;
-    request?: TransportRequestContext;
-}) => Promise<TUserConfig> | TUserConfig;
-
 // @public (undocumented)
 export interface Credentials {
     // (undocumented)
@@ -506,18 +477,17 @@ export interface Credentials {
 }
 
 // @public (undocumented)
-export type CustomizableServerOptions<TUserConfig extends UserConfig = UserConfig, TContext = unknown> = Partial<Pick<ServerOptions<TUserConfig, TContext>, "uiRegistry" | "tools" | "toolContext" | "elicitation">> & {
-    telemetryProperties?: Partial<CommonProperties>;
+export type DefaultEventMap = Record<string, never[]>;
+
+// @public
+export type DefaultMetricDefinitions = {
+    sessionCreated: ICounter;
+    sessionClosed: ICounter;
+    toolExecutionDuration: IObservable;
 };
 
 // @public (undocumented)
-export type CustomizableSessionOptions<TUserConfig extends UserConfig = UserConfig> = Partial<Pick<SessionOptions<TUserConfig>, "userConfig" | "apiClient" | "atlasLocalClient" | "connectionManager" | "connectionErrorHandler">>;
-
-// @public (undocumented)
-export type DefaultEventMap = Record<string, never[]>;
-
-// @public (undocumented)
-export type DefaultMetrics = ReturnType<typeof createDefaultMetrics>;
+export type DefaultPrometheusMetricDefinitions = ReturnType<typeof createDefaultMetrics>;
 
 // @public (undocumented)
 export class DeviceId implements IDeviceId {
@@ -582,13 +552,13 @@ export enum ErrorCodes {
 // @public
 export class EventCache {
     constructor();
-    appendEvents(events: BaseEvent[]): void;
+    appendEvents(events: TelemetryBaseEvent[]): void;
     getEvents(): {
         id: number;
-        event: BaseEvent;
+        event: TelemetryBaseEvent;
     }[];
     static getInstance(): EventCache;
-    processOldestBatch<T>(batchSize: number, processor: (events: BaseEvent[]) => Promise<{
+    processOldestBatch<T>(batchSize: number, processor: (events: TelemetryBaseEvent[]) => Promise<{
         removeProcessed: boolean;
         result: T;
     }>): Promise<T | undefined>;
@@ -644,6 +614,17 @@ export function getRandomUUID(): string;
 export interface InProgressExport extends CommonExportData {
     // (undocumented)
     exportStatus: "in-progress";
+}
+
+// @public (undocumented)
+export interface ITransportRunner {
+    // (undocumented)
+    close(): Promise<void>;
+    // (undocumented)
+    start(options: {
+        serverOptions?: unknown;
+        sessionOptions?: unknown;
+    }): Promise<void>;
 }
 
 // @public (undocumented)
@@ -715,15 +696,6 @@ export type LogPayload = {
 };
 
 // @public (undocumented)
-export type MetricDefinitions = Record<string, unknown>;
-
-// @public (undocumented)
-export interface Metrics<TMetricsDefinitions extends PrometheusMetricDefinitions = PrometheusMetricDefinitions> extends IMetrics<TMetricsDefinitions> {
-    get<K extends keyof TMetricsDefinitions>(key: K): TMetricsDefinitions[K];
-    getMetrics(): Promise<string>;
-}
-
-// @public (undocumented)
 export class MongoDBError<ErrorCode extends ErrorCodes = ErrorCodes> extends Error {
     constructor(code: ErrorCode, message: string);
     // (undocumented)
@@ -737,17 +709,10 @@ export type MongoDBToolsRuntimeConfig = {
 };
 
 // @public (undocumented)
-type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
-export { OIDCConnectionAuthType as ConnectionInfoOIDCConnectionAuthType }
-export { OIDCConnectionAuthType }
+export type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
 
 // @public
 export type OperationType = "metadata" | "read" | "create" | "delete" | "update" | "connect";
-
-// @public (undocumented)
-export type PerfAdvisorToolMetadata = AtlasMetadata & ConnectionMetadata & {
-    operations: string[];
-};
 
 // @public (undocumented)
 export type PreviewFeature = (typeof previewFeatureValues)[number];
@@ -773,8 +738,8 @@ export type RequestContext = {
 export { Secret }
 
 // @public (undocumented)
-export class Server<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> {
-    constructor(input: ServerOptions<TUserConfig, TContext, TMetrics>);
+export class Server<TUserConfig extends UserConfig = UserConfig, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
+    constructor(input: ServerOptions<TUserConfig, TMetrics>);
     // (undocumented)
     close(): Promise<void>;
     // (undocumented)
@@ -790,7 +755,7 @@ export class Server<TUserConfig extends UserConfig = UserConfig, TContext = unkn
     // (undocumented)
     readonly mcpServer: McpServer;
     // (undocumented)
-    readonly metrics: Metrics<TMetrics>;
+    readonly metrics: IMetrics<TMetrics>;
     // (undocumented)
     registerResources(): void;
     // (undocumented)
@@ -802,8 +767,6 @@ export class Server<TUserConfig extends UserConfig = UserConfig, TContext = unkn
     // (undocumented)
     readonly session: Session;
     // (undocumented)
-    readonly toolContext?: TContext;
-    // (undocumented)
     readonly tools: AnyToolBase[];
     // (undocumented)
     readonly uiRegistry?: UIRegistry;
@@ -812,7 +775,7 @@ export class Server<TUserConfig extends UserConfig = UserConfig, TContext = unkn
 }
 
 // @public (undocumented)
-export interface ServerOptions<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> {
+export interface ServerOptions<TUserConfig extends UserConfig = UserConfig, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
     // @deprecated (undocumented)
     connectionErrorHandler: ConnectionErrorHandler;
     // (undocumented)
@@ -820,13 +783,12 @@ export interface ServerOptions<TUserConfig extends UserConfig = UserConfig, TCon
     // (undocumented)
     mcpServer: McpServer;
     // (undocumented)
-    metrics: Metrics<TMetrics>;
+    metrics: IMetrics<TMetrics>;
     runtimeConfig?: MongoDBToolsRuntimeConfig;
     // (undocumented)
     session: Session;
     // (undocumented)
     telemetry: Telemetry;
-    toolContext?: TContext;
     tools?: AnyToolClass[];
     // (undocumented)
     uiRegistry?: UIRegistry;
@@ -915,27 +877,48 @@ export interface SessionOptions<TUserConfig extends UserConfig = UserConfig> {
 export type StoredExport = ReadyExport | InProgressExport;
 
 // @public (undocumented)
-export type StreamsToolMetadata = AtlasMetadata & {
-    action?: string;
-    resource?: string;
-};
-
-// @public (undocumented)
 export class Telemetry implements ITelemetry {
     // (undocumented)
     close(): Promise<void>;
     // (undocumented)
     static create(config: TelemetryConfig): Telemetry;
-    emitEvents(events: BaseEvent[]): void;
+    emitEvents(events: TelemetryBaseEvent[]): void;
     // (undocumented)
     readonly events: EventEmitter<TelemetryEvents>;
-    getCommonProperties(): CommonProperties;
+    getCommonProperties(): TelemetryCommonProperties;
     isTelemetryEnabled(): boolean;
     setupPromise: Promise<[string, boolean]> | undefined;
 }
 
 // @public (undocumented)
+export type TelemetryBaseEvent = TelemetryEvent<unknown>;
+
+// @public (undocumented)
 export type TelemetryBoolSet = "true" | "false";
+
+// @public
+export type TelemetryCommonProperties = {
+    device_id?: string;
+    is_container_env?: TelemetryBoolSet;
+    mcp_client_version?: string;
+    mcp_client_name?: string;
+    transport?: "stdio" | "http";
+    config_atlas_auth?: TelemetryBoolSet;
+    config_connection_string?: TelemetryBoolSet;
+    session_id?: string;
+    hosting_mode?: string;
+    has_docker?: TelemetryBoolSet;
+} & TelemetryCommonStaticProperties;
+
+// @public
+export type TelemetryCommonStaticProperties = {
+    mcp_server_version: string;
+    mcp_server_name: string;
+    platform: string;
+    arch: string;
+    os_type: string;
+    os_version?: string;
+};
 
 // @public
 export type TelemetryConfig = {
@@ -944,9 +927,9 @@ export type TelemetryConfig = {
     apiClient: ApiClient;
     keychain: IKeychain;
     enabled: boolean;
-    getCommonProperties?: () => Partial<CommonProperties>;
+    getCommonProperties?: () => Partial<TelemetryCommonProperties>;
     eventCache?: EventCache;
-    machineMetadata: CommonStaticProperties;
+    machineMetadata: TelemetryCommonStaticProperties;
     detectContainerEnv?: () => Promise<boolean>;
 };
 
@@ -973,7 +956,7 @@ export type TelemetryEvents = {
 export type TelemetryResult = "success" | "failure";
 
 // @public
-export type TelemetryToolMetadata = AtlasMetadata | ConnectionMetadata | PerfAdvisorToolMetadata | StreamsToolMetadata | UpgradeClusterMetadata;
+export type TelemetryToolMetadata = AtlasMetadata | AtlasConnectionMetadata | AtlasPerfAdvisorToolMetadata | AtlasStreamsToolMetadata | UpgradeClusterMetadata;
 
 // @public (undocumented)
 export type ToolArgs<T extends ZodRawShape> = {
@@ -981,14 +964,13 @@ export type ToolArgs<T extends ZodRawShape> = {
 };
 
 // @public
-export abstract class ToolBase<TUserConfig extends IToolConfig = IToolConfig, TContext = unknown, TMetricsDefinitions extends MetricDefinitions = MetricDefinitions> {
-    constructor(input: ToolConstructorParams<TUserConfig, TContext, TMetricsDefinitions>);
+export abstract class ToolBase<TUserConfig extends IToolConfig = IToolConfig, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
+    constructor(input: ToolConstructorParams<TUserConfig, TMetricsDefinitions>);
     // (undocumented)
     get annotations(): ToolAnnotations;
     abstract argsShape: ZodRawShape;
     readonly category: ToolCategory;
     protected readonly config: TUserConfig;
-    protected readonly context?: TContext;
     abstract description: string;
     // (undocumented)
     disable(): void;
@@ -998,7 +980,7 @@ export abstract class ToolBase<TUserConfig extends IToolConfig = IToolConfig, TC
     protected abstract execute(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     protected getConfirmationMessage(args: ToolArgs<typeof ToolBase.argsShape>): string;
     // (undocumented)
-    protected getConnectionInfoMetadata(): ConnectionMetadata_2;
+    protected getConnectionInfoMetadata(): ConnectionMetadata;
     protected handleError(error: unknown, args: z.infer<z.ZodObject<typeof ToolBase.argsShape>>): Promise<CallToolResult> | CallToolResult;
     invoke(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)
@@ -1026,18 +1008,18 @@ export abstract class ToolBase<TUserConfig extends IToolConfig = IToolConfig, TC
 }
 
 // @public
-export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant";
+export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant" | "custom";
 
 // @public
-export type ToolClass<TUserConfig extends IToolConfig = IToolConfig, TContext = unknown, TMetricsDefinitions extends MetricDefinitions = MetricDefinitions> = {
-    new (params: ToolConstructorParams<TUserConfig, TContext, TMetricsDefinitions>): ToolBase<TUserConfig, TContext, TMetricsDefinitions>;
+export type ToolClass<TUserConfig extends IToolConfig = IToolConfig, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
+    new (params: ToolConstructorParams<TUserConfig, TMetricsDefinitions>): ToolBase<TUserConfig, TMetricsDefinitions>;
     toolName: string;
     category: ToolCategory;
     operationType: OperationType;
 };
 
 // @public
-export type ToolConstructorParams<TUserConfig extends IToolConfig = IToolConfig, TContext = unknown, TMetricsDefinitions extends MetricDefinitions = MetricDefinitions> = {
+export type ToolConstructorParams<TUserConfig extends IToolConfig = IToolConfig, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
     name: string;
     category: ToolCategory;
     operationType: OperationType;
@@ -1047,10 +1029,9 @@ export type ToolConstructorParams<TUserConfig extends IToolConfig = IToolConfig,
     elicitation: IElicitation;
     metrics: IMetrics<TMetricsDefinitions>;
     uiRegistry?: IUIRegistry;
-    context?: TContext;
 };
 
-// @public (undocumented)
+// @public
 export type ToolExecutionContext = {
     signal: AbortSignal;
     requestInfo?: {
@@ -1062,70 +1043,6 @@ export type ToolExecutionContext = {
 export type TransportRequestContext = {
     headers?: Record<string, string | string[] | undefined>;
     query?: Record<string, string | string[] | undefined>;
-};
-
-// @public @deprecated (undocumented)
-export type TransportRequestContextDeprecated = TransportRequestContext;
-
-// @public (undocumented)
-export abstract class TransportRunnerBase<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> {
-    protected constructor(input: TransportRunnerConfig<TUserConfig, TMetrics>);
-    // (undocumented)
-    close(): Promise<void>;
-    // (undocumented)
-    abstract closeTransport(): Promise<void>;
-    // @deprecated (undocumented)
-    protected readonly connectionErrorHandler: ConnectionErrorHandler;
-    // @deprecated (undocumented)
-    protected readonly createApiClient: ApiClientFactoryFn;
-    // @deprecated (undocumented)
-    protected readonly createAtlasLocalClient: AtlasLocalClientFactoryFn;
-    // @deprecated (undocumented)
-    protected readonly createConnectionManager: ConnectionManagerFactoryFn;
-    protected createServer(input?: {
-        userConfig?: TUserConfig;
-        logger?: CompositeLogger;
-        serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
-        sessionOptions?: CustomizableSessionOptions<TUserConfig>;
-    }): Promise<Server<TUserConfig, TContext>>;
-    // @deprecated (undocumented)
-    protected readonly createSessionConfig?: CreateSessionConfigFn<TUserConfig>;
-    // (undocumented)
-    deviceId: DeviceId;
-    // (undocumented)
-    protected static getInstructions(config: UserConfig): string;
-    // (undocumented)
-    logger: CompositeLogger;
-    // (undocumented)
-    metrics: Metrics<TMetrics>;
-    // @deprecated (undocumented)
-    protected setupServer(request?: TransportRequestContextDeprecated, input?: {
-        serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
-    }): Promise<Server<TUserConfig, TContext>>;
-    // (undocumented)
-    abstract start(input: {
-        serverOptions?: ServerOptions<TUserConfig, TContext>;
-        sessionOptions?: SessionOptions<TUserConfig>;
-    }): Promise<void>;
-    // @deprecated (undocumented)
-    protected readonly telemetryProperties: Partial<CommonProperties>;
-    // @deprecated (undocumented)
-    protected readonly tools?: AnyToolClass[];
-    protected readonly userConfig: TUserConfig;
-}
-
-// @public
-export type TransportRunnerConfig<TUserConfig extends UserConfig = UserConfig, TMetrics extends DefaultMetrics = DefaultMetrics> = {
-    userConfig: TUserConfig;
-    createConnectionManager?: ConnectionManagerFactoryFn;
-    connectionErrorHandler?: ConnectionErrorHandler;
-    createAtlasLocalClient?: AtlasLocalClientFactoryFn;
-    loggers?: LoggerBase[];
-    metrics?: Metrics<TMetrics>;
-    telemetryProperties?: Partial<CommonProperties>;
-    tools?: AnyToolClass[];
-    createSessionConfig?: CreateSessionConfigFn<TUserConfig>;
-    createApiClient?: ApiClientFactoryFn;
 };
 
 // @public
@@ -1184,7 +1101,7 @@ export const UserConfigSchema: z.ZodObject<{
     }>>;
     httpPort: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     httpHost: z.ZodDefault<z.ZodString>;
-    httpHeaders: z.ZodDefault<z.ZodObject<{}, z.core.$loose>>;
+    httpHeaders: z.ZodDefault<z.ZodObject<{}, z.core.$catchall<z.ZodString>>>;
     httpBodyLimit: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     idleTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     notificationTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;

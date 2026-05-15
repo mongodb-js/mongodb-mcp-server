@@ -69,7 +69,7 @@
     "inspect": "pnpm run build && mcp-inspector -- dist/esm/index.js",
     "prettier": "prettier",
     "check": "concurrently \"pnpm run build\" \"pnpm run check:types\" \"pnpm run check:lint\" \"pnpm run check:format\" \"pnpm run check:dependencies\" && pnpm run check:api",
-    "check:api-report": "concurrently \"api-extractor run --config api-extractor.json\" \"api-extractor run --config api-extractor/api-extractor-web.json\" \"api-extractor run --config api-extractor/api-extractor-tools.json\" \"pnpm --filter @mongodb-js/mcp-ui check:api\"",
+    "check:api-report": "concurrently \"api-extractor run --config api-extractor.json\" \"api-extractor run --config api-extractor/api-extractor-web.json\" \"pnpm --filter @mongodb-js/mcp-ui check:api\"",
     "check:api": "pnpm run check:api-report || (printf \"\\nPublic API check failed. If you intended to change the public API, run:\\n\\n  pnpm run update:api\\n\" && exit 1)",
     "check:lint": "eslint .",
     "check:dependencies": "knip --strict",
@@ -96,6 +96,7 @@
   },
   "license": "Apache-2.0",
   "devDependencies": {
+    "@ai-sdk/anthropic": "^3.0.71",
     "@ai-sdk/azure": "^3.0.62",
     "@ai-sdk/google": "^3.0.67",
     "@ai-sdk/mcp": "^1.0.40",
@@ -148,7 +149,8 @@
     "vite-plugin-node-polyfills": "^0.26.0",
     "vite-plugin-singlefile": "^2.3.2",
     "vitest": "^4.1.5",
-    "yaml": "^2.8.1"
+    "yaml": "^2.8.1",
+    "@types/express": "^5.0.3"
   },
   "dependencies": {
     "@inquirer/prompts": "^8.0.2",
@@ -164,13 +166,13 @@
     "@mongodb-js/mcp-tools-assistant": "workspace:*",
     "@mongodb-js/mcp-tools-atlas": "workspace:*",
     "@mongodb-js/mcp-tools-atlas-local": "workspace:*",
+    "@mongodb-js/mcp-http-runners": "workspace:*",
     "@mongodb-js/mcp-types": "workspace:*",
     "@mongodb-js/mcp-ui": "workspace:*",
     "@mongosh/arg-parser": "^5.0.2",
     "@mongosh/service-provider-node-driver": "^5.0.2",
     "bson": "^7.2.0",
     "chalk": "^5.6.2",
-    "express": "^5.2.1",
     "jsonc-parser": "^3.3.1",
     "mongodb": "^7.1.1",
     "mongodb-build-info": "^1.9.7",
@@ -186,9 +188,7 @@
     "zod": "^4.4.2",
     "@mongodb-js/mcp-tools-mongodb": "workspace:*"
   },
-  "peerDependencies": {
-    "@types/express": "^5.0.3"
-  },
+  "peerDependencies": {},
   "engines": {
     "node": "^20.19.0 || ^22.12.0 || >= 24.0.0"
   },

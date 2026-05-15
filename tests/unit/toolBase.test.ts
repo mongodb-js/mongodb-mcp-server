@@ -18,7 +18,7 @@ import { expectDefined } from "../integration/helpers.js";
 import { TestTool, TestToolWithOutputSchema, TestToolWithoutStructuredContent, ErrorTool } from "./mocks/tools.js";
 import { MockMetrics } from "./mocks/metrics.js";
 import { Keychain } from "@mongodb-js/mcp-core";
-import type { DefaultMetrics } from "@mongodb-js/mcp-metrics";
+import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
 
 describe("ToolBase", () => {
     let mockSession: Session;
@@ -63,7 +63,7 @@ describe("ToolBase", () => {
 
         mockMetrics = new MockMetrics();
 
-        const constructorParams: ToolConstructorParams<UserConfig, unknown, DefaultMetrics> = {
+        const constructorParams: ToolConstructorParams<UserConfig, DefaultPrometheusMetricDefinitions> = {
             name: TestTool.toolName,
             category: TestTool.category,
             operationType: TestTool.operationType,
@@ -334,7 +334,7 @@ describe("ToolBase", () => {
 
         function createToolWithUI(previewFeatures: PreviewFeature[] = []): TestToolWithOutputSchema {
             mockConfig.previewFeatures = previewFeatures;
-            const constructorParams: ToolConstructorParams<UserConfig, unknown, DefaultMetrics> = {
+            const constructorParams: ToolConstructorParams<UserConfig, DefaultPrometheusMetricDefinitions> = {
                 name: TestToolWithOutputSchema.toolName,
                 category: TestToolWithOutputSchema.category,
                 operationType: TestToolWithOutputSchema.operationType,
@@ -564,7 +564,7 @@ function createToolWithoutStructuredContent(
     mockMetrics: MockMetrics
 ): TestToolWithoutStructuredContent {
     mockConfig.previewFeatures = previewFeatures;
-    const constructorParams: ToolConstructorParams<UserConfig, unknown, DefaultMetrics> = {
+    const constructorParams: ToolConstructorParams<UserConfig, DefaultPrometheusMetricDefinitions> = {
         name: TestToolWithoutStructuredContent.toolName,
         category: TestToolWithoutStructuredContent.category,
         operationType: TestToolWithoutStructuredContent.operationType,

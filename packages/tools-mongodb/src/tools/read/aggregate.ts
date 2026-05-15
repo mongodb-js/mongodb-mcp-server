@@ -10,8 +10,8 @@ import { type Document, EJSON } from "bson";
 import { ErrorCodes, MongoDBError } from "../../common/errors.js";
 import { collectCursorUntilMaxBytesLimit } from "../../helpers/collectCursorUntilMaxBytes.js";
 import { operationWithFallback } from "../../helpers/operationWithFallback.js";
+import { LogId } from "@mongodb-js/mcp-core";
 import { ONE_MB, CURSOR_LIMITS_TO_LLM_TEXT } from "../../helpers/constants.js";
-import { LogId } from "@mongodb-js/mcp-logging";
 import { AnyAggregateStage, VectorSearchStage } from "../../mongodbSchemas.js";
 import {
     assertVectorSearchFilterFieldsAreIndexed,

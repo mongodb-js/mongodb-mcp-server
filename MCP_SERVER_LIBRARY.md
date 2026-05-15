@@ -43,7 +43,7 @@ There are two main approaches to customize how the MongoDB MCP Server is created
 
 1. **Override `createServerForRequest`**: When using HTTP transport, extend `StreamableHttpRunner` and override the `createServerForRequest` method. This allows you to customize the server creation for each incoming request, enabling per-session configuration based on request headers, query parameters, or authentication context.
 
-2. **Use `start({ serverOptions, sessionOptions })` with options**: Call the `start` method with `serverOptions` (for tools, error handlers, UI registry, etc.) and `sessionOptions` (for connection manager, API client, Atlas local client). This is useful for static customization that applies to all sessions.
+2. **Extend `MCPHttpServer`**: Create a subclass of `MCPHttpServer` and implement `createServerForRequest` to customize server creation with your own dependencies and configuration.
 
 ### Exported Modules
 
@@ -60,7 +60,6 @@ import {
   parseUserConfig,
   StreamableHttpRunner,
   StdioRunner,
-  TransportRunnerBase,
   LoggerBase,
   Telemetry,
   Keychain,
@@ -71,6 +70,7 @@ import {
   applyConfigOverrides,
   // ... and more
 } from "mongodb-mcp-server";
+import type { ITransportRunner } from "@mongodb-js/mcp-types";
 ```
 
 **Tools (`mongodb-mcp-server/tools`):**
@@ -93,7 +93,7 @@ For detailed documentation of these exports and their usage, see the [API Refere
 The MongoDB MCP Server library follows a modular architecture:
 
 - **Transport Runners**: `StdioRunner` and `StreamableHttpRunner` manage the MCP transport layer
-  - For HTTP transport, extend `StreamableHttpRunner` and override `createServerForRequest` to customize server creation per request or use `start({ serverOptions, sessionOptions })` with options to customize server behavior
+  - For HTTP transport, extend `StreamableHttpRunner` and override `createServerForRequest` to customize server creation per request
 - **Server**: Core server that wraps the MCP Server and registers tools and resources
 - **Session**: Per-client (MCP Client) connection and configuration state
 - **Tools**: Individual capabilities exposed to the MCP client
@@ -754,13 +754,13 @@ This approach is useful when you want to:
 
 ## API Reference
 
-### TransportRunnerConfig
+### ITransportRunner
 
-Configuration options for initializing transport runners (`StdioRunner`, `StreamableHttpRunner`).
+Interface for transport runners (`StdioRunner`, `StreamableHttpRunner`).
 
-See the TypeScript definition in [`src/transports/base.ts`](./src/transports/base.ts) for detailed documentation of all available options.
+See the TypeScript definition in [`packages/types/src/transport.ts`](./packages/types/src/transport.ts) for detailed documentation.
 
-**Note:** Several properties in `TransportRunnerConfig` are deprecated. For customizing server creation, prefer extending `StreamableHttpRunner` and overriding the `createServerForRequest` method, or using `createServer` with appropriate `serverOptions` and `sessionOptions`.
+**Note:** For customizing server creation, prefer extending `MCPHttpServer` and implementing the `createServerForRequest` method.
 
 ### ToolBase
 
@@ -927,12 +927,12 @@ class CustomStreamableHttpRunner extends StreamableHttpRunner {
       },
     });
 
-    // Create the server with the custom connection manager
-    return this.createServer({
+    // Create and return the server with the custom connection manager
+    return new Server({
       userConfig: this.userConfig,
-      sessionOptions: {
-        connectionManager: customConnectionManager,
-      },
+      logger: this.baseLogger,
+      connectionManager: customConnectionManager,
+      // ... other options
     });
   }
 }
@@ -1019,12 +1019,12 @@ class CustomStreamableHttpRunner extends StreamableHttpRunner {
   }: {
     request: RequestContext;
   }): Promise<Server> {
-    // Create the server with the custom error handler
-    return this.createServer({
+    // Create and return the server with the custom error handler
+    return new Server({
       userConfig: this.userConfig,
-      serverOptions: {
-        connectionErrorHandler: customErrorHandler,
-      },
+      logger: this.baseLogger,
+      connectionErrorHandler: customErrorHandler,
+      // ... other options
     });
   }
 }

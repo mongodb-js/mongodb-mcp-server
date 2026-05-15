@@ -6,13 +6,14 @@ describe("MongoDB MCP Server in Browser", () => {
     let runner: BrowserTestRunner;
 
     beforeAll(async () => {
-        const userConfig = UserConfigSchema.parse({
+        // Parse userConfig just to validate it works
+        UserConfigSchema.parse({
             telemetry: "disabled",
             readOnly: true,
             loggers: ["stderr"],
         });
 
-        runner = new BrowserTestRunner({ userConfig });
+        runner = new BrowserTestRunner();
         await runner.start();
     });
 
@@ -24,7 +25,7 @@ describe("MongoDB MCP Server in Browser", () => {
         // Verify runner is initialized
         expect(runner).toBeDefined();
 
-        const client = runner.getClient();
+        const client = runner.client;
         expect(client).toBeDefined();
     });
 
