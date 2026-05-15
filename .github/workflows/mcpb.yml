@@ -1,0 +1,46 @@
+---
+name: MCPB
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  validate:
+    name: Validate manifest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Validate manifest
+        run: pnpm run validate:mcpb
+      - name: Build .mcpb
+        if: |
+          github.event_name == 'push' ||
+          github.event_name == 'workflow_dispatch' ||
+          (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'build-mcpb'))
+        run: pnpm run build:mcpb
+      - name: Upload .mcpb artifact
+        if: |
+          github.event_name == 'workflow_dispatch' ||
+          (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'build-mcpb'))
+        uses: actions/upload-artifact@v7
+        with:
+          name: mongodb-mcp-server-mcpb
+          path: dist-mcpb/*.mcpb
+          if-no-files-found: error
