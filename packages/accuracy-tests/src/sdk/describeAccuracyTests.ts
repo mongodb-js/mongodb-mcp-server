@@ -3,10 +3,7 @@ import { getAvailableModels } from "./models.js";
 import { calculateToolCallingAccuracy } from "./accuracyScorer.js";
 import type { PromptDefinition, VercelAgent } from "./agent.js";
 import { getVercelToolCallingAgent } from "./agent.js";
-import {
-    prepareTestData,
-    setupMongoDBIntegrationTest,
-} from "@mongodb-js/mcp-test-utils";
+import { prepareTestData, setupMongoDBIntegrationTest } from "@mongodb-js/mcp-test-utils";
 import type { MockedTools } from "./accuracyTestingClient.js";
 import { AccuracyTestingClient } from "./accuracyTestingClient.js";
 import type { AccuracyResultStorage, ExpectedToolCall, LLMToolCall } from "./accuracyResultStorage/resultStorage.js";
@@ -14,10 +11,7 @@ import { getAccuracyResultStorage } from "./accuracyResultStorage/getAccuracyRes
 import { getCommitSHA } from "./gitInfo.js";
 import type { MongoClient } from "mongodb";
 import type { UserConfig } from "mongodb-mcp-server";
-import {
-    MongoDBClusterProcess,
-    type MongoClusterConfiguration,
-} from "@mongodb-js/mcp-test-utils";
+import { MongoDBClusterProcess, type MongoClusterConfiguration } from "@mongodb-js/mcp-test-utils";
 
 export interface AccuracyTestConfig {
     /** The prompt to be provided to LLM for evaluation. */

@@ -284,6 +284,46 @@ importers:
         specifier: ^7.0.0
         version: 7.0.0
 
+  packages/accuracy-tests:
+    dependencies:
+      '@mongodb-js/mcp-core':
+        specifier: workspace:*
+        version: link:../core
+      '@mongodb-js/mcp-test-utils':
+        specifier: workspace:*
+        version: link:../test-utils
+      '@mongodb-js/mcp-tools-atlas':
+        specifier: workspace:*
+        version: link:../tools-atlas
+      '@mongodb-js/mcp-tools-atlas-local':
+        specifier: workspace:*
+        version: link:../tools-atlas-local
+      '@mongodb-js/mcp-tools-mongodb':
+        specifier: workspace:*
+        version: link:../tools-mongodb
+      '@mongodb-js/mcp-types':
+        specifier: workspace:*
+        version: link:../types
+      mongodb-mcp-server:
+        specifier: workspace:*
+        version: link:../..
+    devDependencies:
+      '@types/node':
+        specifier: ^25.6.0
+        version: 25.6.0
+      tsx:
+        specifier: ^4.20.5
+        version: 4.21.0
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.3
+      uuid:
+        specifier: ^14.0.0
+        version: 14.0.0
+      vitest:
+        specifier: ^4.1.5
+        version: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/browser-playwright@4.1.5)(@vitest/coverage-v8@4.1.5)(happy-dom@20.9.0)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
+
   packages/atlas-api-client:
     dependencies:
       '@mongodb-js/devtools-proxy-support':
@@ -451,6 +491,12 @@ importers:
 
   packages/scripts:
     dependencies:
+      '@mongodb-js/mcp-atlas-api-client':
+        specifier: workspace:*
+        version: link:../atlas-api-client
+      '@mongodb-js/mcp-logging':
+        specifier: workspace:*
+        version: link:../logging
       '@mongodb-js/mcp-metrics':
         specifier: workspace:*
         version: link:../metrics
@@ -464,18 +510,76 @@ importers:
         specifier: workspace:*
         version: link:../..
     devDependencies:
+      '@mongosh/arg-parser':
+        specifier: ^5.0.2
+        version: 5.0.2(zod@4.4.2)
+      '@redocly/cli':
+        specifier: ^2.29.0
+        version: 2.29.0(@opentelemetry/api@1.9.1)(core-js@3.47.0)
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
+      openapi-types:
+        specifier: ^12.1.3
+        version: 12.1.3
+      openapi-typescript:
+        specifier: ^7.13.0
+        version: 7.13.0(typescript@5.9.3)
       tsx:
         specifier: ^4.20.5
         version: 4.21.0
+      type-fest:
+        specifier: ^5.6.0
+        version: 5.6.0
       typescript:
         specifier: ^5.9.2
         version: 5.9.3
       vite:
         specifier: ^8.0.8
         version: 8.0.10(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3)
+      zod:
+        specifier: ^4.4.2
+        version: 4.4.2
+
+  packages/test-utils:
+    dependencies:
+      '@mongodb-js/mcp-core':
+        specifier: workspace:*
+        version: link:../core
+      '@mongodb-js/mcp-logging':
+        specifier: workspace:*
+        version: link:../logging
+      '@mongodb-js/mcp-types':
+        specifier: workspace:*
+        version: link:../types
+      bson:
+        specifier: ^7.2.0
+        version: 7.2.0
+      mongodb:
+        specifier: ^7.1.1
+        version: 7.1.1(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
+      mongodb-connection-string-url:
+        specifier: ^7.0.1
+        version: 7.0.1
+      mongodb-mcp-server:
+        specifier: workspace:*
+        version: link:../..
+      mongodb-runner:
+        specifier: ^6.7.6
+        version: 6.7.6(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
+      testcontainers:
+        specifier: ^11.14.0
+        version: 11.14.0
+    devDependencies:
+      '@types/node':
+        specifier: ^25.6.0
+        version: 25.6.0
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.5
+        version: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/browser-playwright@4.1.5)(@vitest/coverage-v8@4.1.5)(happy-dom@20.9.0)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
 
   packages/tools-assistant:
     dependencies:
