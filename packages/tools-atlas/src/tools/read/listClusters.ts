@@ -67,7 +67,9 @@ export class ListClustersTool extends AtlasToolBase {
 
     private formatAllClustersTable(clusters?: PaginatedOrgGroupView): CallToolResult {
         if (!clusters?.results?.length) {
-            throw new Error("No clusters found.");
+            return {
+                content: [{ type: "text", text: "No clusters found." }],
+            };
         }
         const formattedClusters = clusters.results
             .map((result) => {
@@ -79,7 +81,9 @@ export class ListClustersTool extends AtlasToolBase {
             })
             .flat();
         if (!formattedClusters.length) {
-            throw new Error("No clusters found.");
+            return {
+                content: [{ type: "text", text: "No clusters found." }],
+            };
         }
 
         return {

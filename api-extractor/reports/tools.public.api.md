@@ -5,29 +5,35 @@
 ```ts
 
 import type { AggregationCursor } from 'mongodb';
-import { AtlasToolBase } from '@mongodb-js/mcp-tools-atlas';
-import { AtlasTools } from '@mongodb-js/mcp-tools-atlas';
 import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import { ConnectionInfo as ConnectionInfo_2 } from '@mongosh/arg-parser';
-import type { Document as Document_2 } from 'mongodb';
-import { EventEmitter } from 'events';
+import type { Client } from '@mongodb-js/atlas-local';
+import type { components } from './openapi.js';
+import { ConnectionInfo } from '@mongosh/arg-parser';
+import type { DefaultMetrics } from '@mongodb-js/mcp-metrics';
+import type { ElicitRequestFormParams } from '@modelcontextprotocol/sdk/types.js';
+import EventEmitter from 'events';
+import type { FetchOptions } from 'openapi-fetch';
 import type { FindCursor } from 'mongodb';
-import { IAtlasConfig } from '@mongodb-js/mcp-tools-atlas';
-import { IAtlasSession } from '@mongodb-js/mcp-tools-atlas';
+import type { IDeviceId } from '@mongodb-js/mcp-types';
+import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
 import type { LoggingMessageNotification } from '@modelcontextprotocol/sdk/types.js';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { Metrics } from '@mongodb-js/mcp-metrics';
+import type { MongoLogId } from 'mongodb-log-writer';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
+import type { operations } from './openapi.js';
 import type { Secret } from 'mongodb-redact';
+import type { TelemetryEvents } from '@mongodb-js/mcp-types';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
+import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import { z } from 'zod';
+import { ZodDefault } from 'zod';
+import { ZodEnum } from 'zod';
 import { ZodOptional } from 'zod';
 import type { ZodRawShape } from 'zod';
 import { ZodRecord } from 'zod';
 import { ZodString } from 'zod';
 import { ZodUnknown } from 'zod';
-
-// @public
-export const AGG_COUNT_MAX_TIME_MS_CAP: number;
 
 // @public (undocumented)
 export class AggregateDBTool extends MongoDBToolBase {
@@ -93,68 +99,8 @@ export class AggregateTool extends MongoDBToolBase {
 }
 
 // @public (undocumented)
-export const AllTools: ToolClass<any, any, any>[];
+export const AllTools: ToolClass[];
 
-// @public (undocumented)
-export type AnyConnectionState = ConnectionStateConnected | ConnectionStateConnecting | ConnectionStateDisconnected | ConnectionStateErrored;
-
-// @public (undocumented)
-export type AppNameComponents = {
-    appName: string;
-    deviceId?: Promise<string>;
-    clientName?: string;
-};
-
-// @public (undocumented)
-export function assertVectorSearchFilterFieldsAreIndexed(input: {
-    searchIndexes: SearchIndex[];
-    pipeline: Record<string, unknown>[];
-    logger: ICompositeLogger;
-}): void;
-
-// @public
-export type AtlasClusterConnectionInfo = {
-    username: string;
-    projectId: string;
-    clusterName: string;
-    instanceType: "FREE" | "FLEX" | "DEDICATED";
-    provider?: string;
-    region?: string;
-    expiryDate: Date;
-};
-
-export { AtlasToolBase }
-
-export { AtlasTools }
-
-// @public
-export type AvailableExport = Pick<StoredExport, "exportName" | "exportTitle" | "exportURI" | "exportPath">;
-
-// @public
-export function checkIndexUsage(input: {
-    database: string;
-    collection: string;
-    operation: string;
-    explainCallback: () => Promise<Document_2>;
-    logger: ICompositeLogger;
-}): Promise<void>;
-
-// @public
-export function collectCursorUntilMaxBytesLimit<T = unknown>(input: {
-    cursor: FindCursor<T> | AggregationCursor<T>;
-    toolResponseBytesLimit: number | undefined | null;
-    configuredMaxBytesPerQuery: unknown;
-    abortSignal?: AbortSignal;
-}): Promise<{
-    cappedBy: "config.maxBytesPerQuery" | "tool.responseBytesLimit" | undefined;
-    documents: T[];
-}>;
-
-// @public (undocumented)
-export function collectFieldsFromVectorSearchFilter(filter: unknown): string[];
-
-// Warning: (ae-forgotten-export) The symbol "CollectionIndexesOutputSchema" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export type CollectionIndexesOutput = z.infer<z.ZodObject<typeof CollectionIndexesOutputSchema>>;
 
@@ -169,7 +115,6 @@ export class CollectionIndexesTool extends MongoDBToolBase {
     description: string;
     // (undocumented)
     protected execute(input: ToolArgs<typeof CollOperationArgs>): Promise<ToolResult<typeof CollectionIndexesTool.outputSchema>>;
-    // Warning: (ae-forgotten-export) The symbol "SearchIndexStatus" needs to be exported by the entry point index.d.ts
     protected extractSearchIndexDetails(indexes: Record<string, unknown>[]): SearchIndexStatus[];
     // (undocumented)
     protected handleError(error: unknown, args: ToolArgs<typeof CollectionIndexesTool.argsShape>): Promise<CallToolResult>;
@@ -195,8 +140,6 @@ export class CollectionIndexesTool extends MongoDBToolBase {
     static toolName: string;
 }
 
-// Warning: (ae-forgotten-export) The symbol "CollectionSchemaOutputSchema" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export type CollectionSchemaOutput = z.infer<z.ZodObject<typeof CollectionSchemaOutputSchema>>;
 
@@ -224,8 +167,6 @@ export class CollectionSchemaTool extends MongoDBToolBase {
     static toolName: string;
 }
 
-// Warning: (ae-forgotten-export) The symbol "CollectionStorageSizeOutputSchema" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export type CollectionStorageSizeOutput = z.infer<z.ZodObject<typeof CollectionStorageSizeOutputSchema>>;
 
@@ -254,169 +195,56 @@ export class CollectionStorageSizeTool extends MongoDBToolBase {
 }
 
 // @public (undocumented)
-export const CollOperationArgs: {
-    collection: z.ZodString;
-    database: z.ZodString;
-};
-
-// @public (undocumented)
-export interface CommonExportData {
+export class ConnectClusterTool extends AtlasToolBase {
     // (undocumented)
-    exportName: string;
+    argsShape: {
+        projectId: ZodString;
+        clusterName: ZodString;
+        connectionType: ZodDefault<ZodEnum<    {
+        standard: "standard";
+        private: "private";
+        privateEndpoint: "privateEndpoint";
+        }>>;
+    };
     // (undocumented)
-    exportPath: string;
+    description: string;
     // (undocumented)
-    exportTitle: string;
+    protected execute(input: ToolArgs<typeof ConnectClusterTool.argsShape>): Promise<CallToolResult>;
     // (undocumented)
-    exportURI: string;
-}
-
-// @public
-export interface ConnectionInfo {
+    static operationType: OperationType;
     // (undocumented)
-    browser?: string | false;
+    protected resolveTelemetryMetadata(args: ToolArgs<typeof ConnectClusterTool.argsShape>, input: {
+        result: CallToolResult;
+    }): ConnectionMetadata;
     // (undocumented)
-    httpHost: string;
-    // (undocumented)
-    transport: "stdio" | "http";
-}
-
-// @public (undocumented)
-export abstract class ConnectionManager {
-    constructor();
-    // (undocumented)
-    protected changeState<Event extends keyof ConnectionManagerEvents, State extends ConnectionManagerEvents[Event][0]>(event: Event, newState: State): State;
-    // (undocumented)
-    clientName: string;
-    // (undocumented)
-    abstract close(): Promise<void>;
-    // (undocumented)
-    abstract connect(settings: ConnectionSettings): Promise<AnyConnectionState>;
-    // (undocumented)
-    get currentConnectionState(): AnyConnectionState;
-    // (undocumented)
-    abstract disconnect(): Promise<ConnectionStateDisconnected | ConnectionStateErrored>;
-    // (undocumented)
-    readonly events: Pick<EventEmitter<ConnectionManagerEvents>, "on" | "off" | "once">;
-    // (undocumented)
-    protected readonly _events: EventEmitter<ConnectionManagerEvents>;
-    // (undocumented)
-    setClientName(clientName: string): void;
+    static toolName: string;
 }
 
 // @public (undocumented)
-export interface ConnectionManagerEvents {
+export class ConnectDeploymentTool extends AtlasLocalToolBase {
     // (undocumented)
-    "connection-close": [ConnectionStateDisconnected];
+    argsShape: {
+        deploymentName: ZodString;
+    };
     // (undocumented)
-    "connection-error": [ConnectionStateErrored];
+    description: string;
     // (undocumented)
-    "connection-request": [AnyConnectionState];
+    protected executeWithAtlasLocalClient(input: ToolArgs<typeof ConnectDeploymentTool.argsShape>, input2: {
+        client: Client;
+    }): Promise<CallToolResult>;
     // (undocumented)
-    "connection-success": [ConnectionStateConnected];
+    static operationType: OperationType;
     // (undocumented)
-    "connection-time-out": [ConnectionStateErrored];
+    protected resolveTelemetryMetadata(args: ToolArgs<typeof ConnectDeploymentTool.argsShape>, input: {
+        result: CallToolResult;
+    }): ConnectionMetadata;
     // (undocumented)
-    close: [AnyConnectionState];
+    static toolName: string;
 }
-
-// @public (undocumented)
-export type ConnectionManagerFactoryFn = (params: ConnectionManagerFactoryOptions) => Promise<ConnectionManager>;
-
-// @public
-export type ConnectionManagerFactoryOptions = {
-    logger: LoggerBase;
-    deviceId: DeviceId;
-    options: ConnectionManagerOptions["options"];
-};
-
-// @public (undocumented)
-export interface ConnectionSettings extends Omit<ConnectionInfo_2, "driverOptions"> {
-    // (undocumented)
-    atlas?: AtlasClusterConnectionInfo;
-    // (undocumented)
-    driverOptions?: ConnectionInfo_2["driverOptions"];
-}
-
-// @public (undocumented)
-export interface ConnectionState {
-    // (undocumented)
-    connectedAtlasCluster?: AtlasClusterConnectionInfo;
-    // (undocumented)
-    connectionStringInfo?: ConnectionStringInfo;
-    // (undocumented)
-    tag: ConnectionTag;
-}
-
-// @public (undocumented)
-export class ConnectionStateConnected implements ConnectionState {
-    constructor(input: {
-        serviceProvider: NodeDriverServiceProvider;
-        connectionStringInfo?: ConnectionStringInfo;
-        connectedAtlasCluster?: AtlasClusterConnectionInfo;
-    });
-    // (undocumented)
-    connectedAtlasCluster?: AtlasClusterConnectionInfo;
-    // (undocumented)
-    connectionStringInfo?: ConnectionStringInfo;
-    // (undocumented)
-    isSearchSupported(logger: LoggerBase): Promise<boolean>;
-    // (undocumented)
-    serviceProvider: NodeDriverServiceProvider;
-    // (undocumented)
-    tag: "connected";
-}
-
-// @public (undocumented)
-export interface ConnectionStateConnecting extends ConnectionState {
-    // (undocumented)
-    oidcConnectionType: OIDCConnectionAuthType;
-    // (undocumented)
-    oidcLoginUrl?: string;
-    // (undocumented)
-    oidcUserCode?: string;
-    // (undocumented)
-    serviceProvider: Promise<NodeDriverServiceProvider>;
-    // (undocumented)
-    tag: "connecting";
-}
-
-// @public (undocumented)
-export interface ConnectionStateDisconnected extends ConnectionState {
-    // (undocumented)
-    tag: "disconnected";
-}
-
-// @public (undocumented)
-export interface ConnectionStateErrored extends ConnectionState {
-    // (undocumented)
-    errorReason: string;
-    // (undocumented)
-    tag: "errored";
-}
-
-// Warning: (ae-forgotten-export) The symbol "OIDCConnectionAuthType_2" needs to be exported by the entry point index.d.ts
-//
-// @public (undocumented)
-export type ConnectionStringAuthType = "scram" | "ldap" | "kerberos" | OIDCConnectionAuthType_2 | "x.509";
-
-// @public
-export type ConnectionStringHostType = "local" | "atlas" | "atlas_local" | "unknown";
-
-// @public
-export interface ConnectionStringInfo {
-    // (undocumented)
-    authType: ConnectionStringAuthType;
-    // (undocumented)
-    hostType: ConnectionStringHostType;
-}
-
-// @public (undocumented)
-export type ConnectionTag = "connected" | "connecting" | "disconnected" | "errored";
 
 // @public (undocumented)
 export class ConnectTool extends MongoDBToolBase {
-    constructor(params: ToolConstructorParams<IMongoDBConfig>);
+    constructor(params: ToolConstructorParams);
     // (undocumented)
     argsShape: {
         connectionString: z.ZodString;
@@ -428,7 +256,7 @@ export class ConnectTool extends MongoDBToolBase {
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
-    register(server: MongoDBToolRegistrationServer): boolean;
+    register(server: Server): boolean;
     // (undocumented)
     static toolName: string;
 }
@@ -451,8 +279,28 @@ export class CountTool extends MongoDBToolBase {
     static toolName: string;
 }
 
-// Warning: (ae-forgotten-export) The symbol "CreateCollectionOutputSchema" needs to be exported by the entry point index.d.ts
-//
+// @public (undocumented)
+export class CreateAccessListTool extends AtlasToolBase {
+    // (undocumented)
+    argsShape: {
+        projectId: z.ZodString;
+        ipAddresses: z.ZodOptional<z.ZodArray<z.ZodString>>;
+        cidrBlocks: z.ZodOptional<z.ZodArray<z.ZodString>>;
+        currentIpAddress: z.ZodDefault<z.ZodBoolean>;
+        comment: z.ZodOptional<z.ZodDefault<z.ZodString>>;
+    };
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    protected execute(input: ToolArgs<typeof CreateAccessListTool.argsShape>): Promise<CallToolResult>;
+    // (undocumented)
+    protected getConfirmationMessage(input: ToolArgs<typeof CreateAccessListTool.argsShape>): string;
+    // (undocumented)
+    static operationType: OperationType;
+    // (undocumented)
+    static toolName: string;
+}
+
 // @public (undocumented)
 export type CreateCollectionOutput = z.infer<z.ZodObject<typeof CreateCollectionOutputSchema>>;
 
@@ -479,8 +327,70 @@ export class CreateCollectionTool extends MongoDBToolBase {
     static toolName: string;
 }
 
-// Warning: (ae-forgotten-export) The symbol "CreateIndexOutputSchema" needs to be exported by the entry point index.d.ts
-//
+// @public (undocumented)
+export class CreateDBUserTool extends AtlasToolBase {
+    // (undocumented)
+    argsShape: {
+        projectId: z.ZodString;
+        username: z.ZodString;
+        password: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+        roles: z.ZodArray<z.ZodObject<{
+            roleName: z.ZodString;
+            databaseName: z.ZodDefault<z.ZodString>;
+            collectionName: z.ZodOptional<z.ZodString>;
+        }, z.core.$strip>>;
+        clusters: z.ZodOptional<z.ZodArray<z.ZodString>>;
+    };
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    protected execute(input: ToolArgs<typeof CreateDBUserTool.argsShape>): Promise<CallToolResult>;
+    // (undocumented)
+    protected getConfirmationMessage(input: ToolArgs<typeof CreateDBUserTool.argsShape>): string;
+    // (undocumented)
+    static operationType: OperationType;
+    // (undocumented)
+    static toolName: string;
+}
+
+// @public (undocumented)
+export class CreateDeploymentTool extends AtlasLocalToolBase {
+    // (undocumented)
+    argsShape: {
+        deploymentName: z.ZodOptional<z.ZodString>;
+        loadSampleData: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+        imageTag: z.ZodDefault<z.ZodOptional<z.ZodString>>;
+    };
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    protected executeWithAtlasLocalClient(input: ToolArgs<typeof CreateDeploymentTool.argsShape>, input2: {
+        client: Client;
+    }): Promise<CallToolResult>;
+    // (undocumented)
+    static operationType: OperationType;
+    // (undocumented)
+    static toolName: string;
+}
+
+// @public (undocumented)
+export class CreateFreeClusterTool extends AtlasToolBase {
+    // (undocumented)
+    argsShape: {
+        projectId: ZodString;
+        name: ZodString;
+        region: ZodDefault<ZodString>;
+    };
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    protected execute(input: ToolArgs<typeof CreateFreeClusterTool.argsShape>): Promise<CallToolResult>;
+    // (undocumented)
+    static operationType: OperationType;
+    // (undocumented)
+    static toolName: string;
+}
+
 // @public (undocumented)
 export type CreateIndexOutput = z.infer<z.ZodObject<typeof CreateIndexOutputSchema>>;
 
@@ -507,9 +417,9 @@ export class CreateIndexTool extends MongoDBToolBase {
                     dotProduct: "dotProduct";
                 }>>;
                 quantization: z.ZodDefault<z.ZodEnum<{
+                    binary: "binary";
                     none: "none";
                     scalar: "scalar";
-                    binary: "binary";
                 }>>;
             }, z.core.$strict>, z.ZodObject<{
                 type: z.ZodLiteral<"autoEmbed">;
@@ -535,13 +445,13 @@ export class CreateIndexTool extends MongoDBToolBase {
                         number: "number";
                         boolean: "boolean";
                         date: "date";
+                        uuid: "uuid";
                         autocomplete: "autocomplete";
                         document: "document";
                         embeddedDocuments: "embeddedDocuments";
                         geo: "geo";
                         objectId: "objectId";
                         token: "token";
-                        uuid: "uuid";
                     }>;
                 }, z.core.$loose>>>;
             }, z.core.$strip>;
@@ -562,9 +472,9 @@ export class CreateIndexTool extends MongoDBToolBase {
         collection: z.ZodString;
         indexName: z.ZodString;
         indexType: z.ZodEnum<{
-            classic: "classic";
             search: "search";
             vectorSearch: "vectorSearch";
+            classic: "classic";
         }>;
     };
     // (undocumented)
@@ -572,27 +482,22 @@ export class CreateIndexTool extends MongoDBToolBase {
 }
 
 // @public (undocumented)
-export type CreateJSONExportParams = {
-    input: FindCursor | AggregationCursor;
-    exportName: string;
-    exportTitle: string;
-    jsonExportFormat: JSONExportFormat;
-};
+export class CreateProjectTool extends AtlasToolBase {
+    // (undocumented)
+    argsShape: {
+        projectName: ZodOptional<ZodString>;
+        organizationId: ZodOptional<ZodString>;
+    };
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    protected execute(input: ToolArgs<typeof CreateProjectTool.argsShape>): Promise<CallToolResult>;
+    // (undocumented)
+    static operationType: OperationType;
+    // (undocumented)
+    static toolName: string;
+}
 
-// @public
-export const CURSOR_LIMITS_TO_LLM_TEXT: {
-    readonly "config.maxDocumentsPerQuery": "server's configured - maxDocumentsPerQuery";
-    readonly "config.maxBytesPerQuery": "server's configured - maxBytesPerQuery";
-    readonly "tool.responseBytesLimit": "tool's parameter - responseBytesLimit";
-};
-
-// @public (undocumented)
-export const DBOperationArgs: {
-    database: z.ZodString;
-};
-
-// Warning: (ae-forgotten-export) The symbol "DbStatsOutputSchema" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export type DbStatsOutput = z.infer<z.ZodObject<typeof DbStatsOutputSchema>>;
 
@@ -616,8 +521,24 @@ export class DbStatsTool extends MongoDBToolBase {
     static toolName: string;
 }
 
-// Warning: (ae-forgotten-export) The symbol "DeleteManyOutputSchema" needs to be exported by the entry point index.d.ts
-//
+// @public (undocumented)
+export class DeleteDeploymentTool extends AtlasLocalToolBase {
+    // (undocumented)
+    argsShape: {
+        deploymentName: ZodString;
+    };
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    protected executeWithAtlasLocalClient(input: ToolArgs<typeof DeleteDeploymentTool.argsShape>, input2: {
+        client: Client;
+    }): Promise<CallToolResult>;
+    // (undocumented)
+    static operationType: OperationType;
+    // (undocumented)
+    static toolName: string;
+}
+
 // @public (undocumented)
 export type DeleteManyOutput = z.infer<z.ZodObject<typeof DeleteManyOutputSchema>>;
 
@@ -647,18 +568,6 @@ export class DeleteManyTool extends MongoDBToolBase {
     static toolName: string;
 }
 
-// Warning: (ae-forgotten-export) The symbol "IDeviceId" needs to be exported by the entry point index.d.ts
-//
-// @public (undocumented)
-export class DeviceId implements IDeviceId {
-    close(): void;
-    // (undocumented)
-    static create(logger: LoggerBase, timeout?: number): DeviceId;
-    get(): Promise<string>;
-}
-
-// Warning: (ae-forgotten-export) The symbol "DropCollectionOutputSchema" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export type DropCollectionOutput = z.infer<z.ZodObject<typeof DropCollectionOutputSchema>>;
 
@@ -687,8 +596,6 @@ export class DropCollectionTool extends MongoDBToolBase {
     static toolName: string;
 }
 
-// Warning: (ae-forgotten-export) The symbol "DropDatabaseOutputSchema" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export type DropDatabaseOutput = z.infer<z.ZodObject<typeof DropDatabaseOutputSchema>>;
 
@@ -715,8 +622,6 @@ export class DropDatabaseTool extends MongoDBToolBase {
     static toolName: string;
 }
 
-// Warning: (ae-forgotten-export) The symbol "DropIndexOutputSchema" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export type DropIndexOutput = z.infer<z.ZodObject<typeof DropIndexOutputSchema>>;
 
@@ -726,8 +631,8 @@ export class DropIndexTool extends MongoDBToolBase {
     argsShape: {
         indexName: z.ZodString;
         type: z.ZodEnum<{
-            classic: "classic";
             search: "search";
+            classic: "classic";
         }>;
         collection: z.ZodString;
         database: z.ZodString;
@@ -751,26 +656,6 @@ export class DropIndexTool extends MongoDBToolBase {
     static toolName: string;
 }
 
-// @public
-export function ensureExtension(pathOrName: string, extension: string): string;
-
-// @public (undocumented)
-export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];
-
-// @public (undocumented)
-export const ErrorCodes: {
-    readonly NotConnectedToMongoDB: 1000000;
-    readonly MisconfiguredConnectionString: 1000001;
-    readonly ForbiddenCollscan: 1000002;
-    readonly ForbiddenWriteOperation: 1000003;
-    readonly AtlasSearchNotSupported: 1000004;
-    readonly AtlasVectorSearchIndexNotFound: 1000006;
-    readonly AtlasVectorSearchInvalidQuery: 1000007;
-    readonly InvalidPipeline: 1000008;
-};
-
-// Warning: (ae-forgotten-export) The symbol "ExplainOutputSchema" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export type ExplainOutput = z.infer<z.ZodObject<typeof ExplainOutputSchema>>;
 
@@ -851,44 +736,6 @@ export class ExplainTool extends MongoDBToolBase {
 }
 
 // @public (undocumented)
-export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
-    // (undocumented)
-    get availableExports(): AvailableExport[];
-    // (undocumented)
-    close(): Promise<void>;
-    // (undocumented)
-    createJSONExport(input: CreateJSONExportParams): Promise<AvailableExport>;
-    // (undocumented)
-    protected init(): void;
-    // (undocumented)
-    static init(input: {
-        options: Omit<ExportsManagerOptions, "exportsDirectoryPath">;
-        logger: LoggerBase;
-        sessionId?: string;
-    }): ExportsManager;
-    // (undocumented)
-    readExport(exportName: string): Promise<{
-        content: string;
-        docsTransformed: number;
-    }>;
-}
-
-// @public (undocumented)
-export type ExportsManagerEvents = {
-    closed: [];
-    "export-expired": [string];
-    "export-available": [string];
-};
-
-// @public
-export type ExportsManagerOptions = {
-    exportsPath: string;
-    exportsDirectoryPath: string;
-    exportTimeoutMs: number;
-    exportCleanupIntervalMs: number;
-};
-
-// @public (undocumented)
 export class ExportTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
@@ -898,12 +745,12 @@ export class ExportTool extends MongoDBToolBase {
             arguments: z.ZodObject<{
                 limit: z.ZodOptional<z.ZodNumber>;
                 filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
-                projection: z.ZodOptional<z.ZodObject<{}, z.z.core.$loose>>;
+                projection: z.ZodOptional<z.ZodObject<{}, z.core.$loose>>;
                 sort: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnion<readonly [z.ZodLiteral<1>, z.ZodLiteral<-1>, z.ZodLiteral<"asc">, z.ZodLiteral<"desc">, z.ZodLiteral<"ascending">, z.ZodLiteral<"descending">, z.ZodObject<{
                     $meta: z.ZodString;
-                }, z.z.core.$strip>]>>>;
-            }, z.z.core.$strip>;
-        }, z.z.core.$strip>, z.ZodObject<{
+                }, z.core.$strip>]>>>;
+            }, z.core.$strip>;
+        }, z.core.$strip>, z.ZodObject<{
             name: z.ZodLiteral<"aggregate">;
             arguments: z.ZodObject<{
                 pipeline: z.ZodArray<z.ZodUnion<readonly [z.ZodObject<{
@@ -915,7 +762,7 @@ export class ExportTool extends MongoDBToolBase {
                         limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
                         filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
                         queryVector: z.ZodArray<z.ZodNumber>;
-                    }, z.z.core.$strip>, z.ZodObject<{
+                    }, z.core.$strip>, z.ZodObject<{
                         exact: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
                         index: z.ZodString;
                         path: z.ZodString;
@@ -924,17 +771,17 @@ export class ExportTool extends MongoDBToolBase {
                         filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
                         query: z.ZodObject<{
                             text: z.ZodString;
-                        }, z.z.core.$strip>;
+                        }, z.core.$strip>;
                         model: z.ZodOptional<z.ZodEnum<{
                             "voyage-4": "voyage-4";
                             "voyage-4-large": "voyage-4-large";
                             "voyage-4-lite": "voyage-4-lite";
                             "voyage-code-3": "voyage-code-3";
                         }>>;
-                    }, z.z.core.$strip>]>;
-                }, z.z.core.$strip>, z.ZodRecord<z.ZodString, z.ZodUnknown>]>>;
-            }, z.z.core.$strip>;
-        }, z.z.core.$strip>], "name">>;
+                    }, z.core.$strip>]>;
+                }, z.core.$strip>, z.ZodRecord<z.ZodString, z.ZodUnknown>]>>;
+            }, z.core.$strip>;
+        }, z.core.$strip>], "name">>;
         jsonExportFormat: z.ZodDefault<z.ZodEnum<{
             relaxed: "relaxed";
             canonical: "canonical";
@@ -976,96 +823,35 @@ export class FindTool extends MongoDBToolBase {
     static toolName: string;
 }
 
-// @public
-export function getAuthType(connectionInfo: ConnectionInfo, connectionString: string): ConnectionStringAuthType;
-
-// @public
-export function getConnectionStringInfo(connectionString: string, connectionInfo: ConnectionInfo, atlasInfo?: AtlasClusterConnectionInfo): ConnectionStringInfo;
-
-// @public
-export function getHostType(connectionString: string): ConnectionStringHostType;
-
-// @public
-export function getIndexCheckErrorMessage(database: string, collection: string, operation: string): string;
-
 // @public (undocumented)
-export function getResponseBytesLimit(toolResponseBytesLimit: number | undefined | null, configuredMaxBytesPerQuery: unknown): {
-    cappedBy: "config.maxBytesPerQuery" | "tool.responseBytesLimit" | undefined;
-    limit: number;
-};
-
-export { IAtlasConfig }
-
-export { IAtlasSession }
-
-// Warning: (ae-forgotten-export) The symbol "IToolConfig" needs to be exported by the entry point index.d.ts
-//
-// @public
-export type IMongoDBConfig = IToolConfig & {
-    connectionString: string | undefined;
-    indexCheck: boolean;
-    maxTimeMS: number | undefined;
-    maxDocumentsPerQuery: number;
-    maxBytesPerQuery: number;
-    httpHost: string;
-    queryCountMaxTimeMsCap: number;
-    aggregationCountMaxTimeMsCap: number;
-};
-
-// Warning: (ae-forgotten-export) The symbol "IToolSession" needs to be exported by the entry point index.d.ts
-//
-// @public (undocumented)
-export interface IMongoDBSession extends IToolSession {
+export class GetPerformanceAdvisorTool extends AtlasToolBase {
     // (undocumented)
-    assertSearchSupported(): Promise<void>;
-    // (undocumented)
-    connectedAtlasCluster?: {
-        clusterName: string;
-        projectId: string;
+    argsShape: {
+        projectId: z.ZodString;
+        clusterName: z.ZodString;
+        operations: z.ZodDefault<z.ZodArray<z.ZodEnum<{
+            suggestedIndexes: "suggestedIndexes";
+            slowQueryLogs: "slowQueryLogs";
+            dropIndexSuggestions: "dropIndexSuggestions";
+            schemaSuggestions: "schemaSuggestions";
+        }>>>;
+        since: z.ZodOptional<z.ZodString>;
+        namespaces: z.ZodOptional<z.ZodArray<z.ZodString>>;
     };
     // (undocumented)
-    connectionErrorHandler(error: MongoDBError, context: {
-        availableTools: unknown[];
-        connectionState: unknown;
-    }): Promise<{
-        errorHandled: boolean;
+    description: string;
+    // (undocumented)
+    protected execute(input: ToolArgs<typeof GetPerformanceAdvisorTool.argsShape>): Promise<CallToolResult>;
+    // (undocumented)
+    static operationType: OperationType;
+    // (undocumented)
+    protected resolveTelemetryMetadata(args: ToolArgs<typeof GetPerformanceAdvisorTool.argsShape>, input: {
         result: CallToolResult;
-    }>;
+    }): PerfAdvisorToolMetadata;
     // (undocumented)
-    connectionManager: {
-        currentConnectionState: unknown;
-    };
-    // (undocumented)
-    connectToConfiguredConnection(): Promise<void>;
-    // (undocumented)
-    connectToMongoDB(settings: {
-        connectionString: string;
-    }): Promise<void>;
-    // (undocumented)
-    exportsManager: {
-        createJSONExport: (params: CreateJSONExportParams) => Promise<AvailableExport>;
-    };
-    // (undocumented)
-    isConnectedToMongoDB: boolean;
-    // (undocumented)
-    isSearchSupported(): Promise<boolean>;
-    // (undocumented)
-    on(event: "connect" | "disconnect", listener: () => void): void;
-    // (undocumented)
-    serviceProvider: NodeDriverServiceProvider;
+    static toolName: string;
 }
 
-// @public (undocumented)
-export const IndexDirectionSchema: z.ZodUnion<readonly [z.ZodLiteral<1>, z.ZodLiteral<-1>, z.ZodLiteral<"2d">, z.ZodLiteral<"2dsphere">, z.ZodLiteral<"text">, z.ZodLiteral<"geoHaystack">, z.ZodLiteral<"hashed">]>;
-
-// @public (undocumented)
-export interface InProgressExport extends CommonExportData {
-    // (undocumented)
-    exportStatus: "in-progress";
-}
-
-// Warning: (ae-forgotten-export) The symbol "InsertManyOutputSchema" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export type InsertManyOutput = z.infer<z.ZodObject<typeof InsertManyOutputSchema>>;
 
@@ -1095,24 +881,77 @@ export class InsertManyTool extends MongoDBToolBase {
 }
 
 // @public (undocumented)
-export function isExportExpired(createdAt: number, exportTimeoutMs: number): boolean;
+export class InspectAccessListTool extends AtlasToolBase {
+    // (undocumented)
+    argsShape: {
+        projectId: ZodString;
+    };
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    protected execute(input: ToolArgs<typeof InspectAccessListTool.argsShape>): Promise<CallToolResult>;
+    // (undocumented)
+    static operationType: OperationType;
+    // (undocumented)
+    static toolName: string;
+}
 
-// Warning: (ae-forgotten-export) The symbol "EmptyObject" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
-export function isObjectEmpty(value: object | null | undefined): value is EmptyObject;
+export class InspectClusterTool extends AtlasToolBase {
+    // (undocumented)
+    argsShape: {
+        projectId: ZodString;
+        clusterName: ZodString;
+    };
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    protected execute(input: ToolArgs<typeof InspectClusterTool.argsShape>): Promise<CallToolResult>;
+    // (undocumented)
+    static operationType: OperationType;
+    // (undocumented)
+    static toolName: string;
+}
 
 // @public (undocumented)
-export type JSONExportFormat = z.infer<typeof jsonExportFormat>;
+export class ListAlertsTool extends AtlasToolBase {
+    // (undocumented)
+    argsShape: {
+        projectId: z.ZodString;
+        status: z.ZodDefault<z.ZodEnum<{
+            CLOSED: "CLOSED";
+            OPEN: "OPEN";
+            TRACKING: "TRACKING";
+        }>>;
+        limit: z.ZodDefault<z.ZodNumber>;
+        pageNum: z.ZodDefault<z.ZodNumber>;
+    };
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    protected execute(input: ToolArgs<typeof ListAlertsTool.argsShape>): Promise<CallToolResult>;
+    // (undocumented)
+    static operationType: OperationType;
+    // (undocumented)
+    static toolName: string;
+}
 
 // @public (undocumented)
-export const jsonExportFormat: z.ZodEnum<{
-    relaxed: "relaxed";
-    canonical: "canonical";
-}>;
+export class ListClustersTool extends AtlasToolBase {
+    // (undocumented)
+    argsShape: {
+        projectId: ZodOptional<ZodString>;
+    };
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    protected execute(input: ToolArgs<typeof ListClustersTool.argsShape>): Promise<CallToolResult>;
+    // (undocumented)
+    static operationType: OperationType;
+    // (undocumented)
+    static toolName: string;
+}
 
-// Warning: (ae-forgotten-export) The symbol "ListCollectionsOutputSchema" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export type ListCollectionsOutput = z.infer<z.ZodObject<typeof ListCollectionsOutputSchema>>;
 
@@ -1139,8 +978,6 @@ export class ListCollectionsTool extends MongoDBToolBase {
     static toolName: string;
 }
 
-// Warning: (ae-forgotten-export) The symbol "ListDatabasesOutputSchema" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export type ListDatabasesOutput = z.infer<z.ZodObject<typeof ListDatabasesOutputSchema>>;
 
@@ -1166,8 +1003,84 @@ export class ListDatabasesTool extends MongoDBToolBase {
     static toolName: string;
 }
 
-// Warning: (ae-forgotten-export) The symbol "LogsOutputSchema" needs to be exported by the entry point index.d.ts
-//
+// @public (undocumented)
+export class ListDBUsersTool extends AtlasToolBase {
+    // (undocumented)
+    argsShape: {
+        projectId: ZodString;
+    };
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    protected execute(input: ToolArgs<typeof ListDBUsersTool.argsShape>): Promise<CallToolResult>;
+    // (undocumented)
+    static operationType: OperationType;
+    // (undocumented)
+    static toolName: string;
+}
+
+// @public (undocumented)
+export class ListDeploymentsTool extends AtlasLocalToolBase {
+    // (undocumented)
+    argsShape: {};
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    protected executeWithAtlasLocalClient(_args: ToolArgs<typeof ListDeploymentsTool.argsShape>, input: {
+        client: Client;
+    }): Promise<CallToolResult>;
+    // (undocumented)
+    static operationType: OperationType;
+    // (undocumented)
+    static toolName: string;
+}
+
+// @public (undocumented)
+export class ListKnowledgeSourcesTool extends AssistantToolBase {
+    // (undocumented)
+    argsShape: {};
+    // (undocumented)
+    static category: ToolCategory;
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    protected execute(): Promise<CallToolResult>;
+    // (undocumented)
+    static operationType: OperationType;
+    // (undocumented)
+    static toolName: string;
+}
+
+// @public (undocumented)
+export class ListOrganizationsTool extends AtlasToolBase {
+    // (undocumented)
+    argsShape: {};
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    protected execute(): Promise<CallToolResult>;
+    // (undocumented)
+    static operationType: OperationType;
+    // (undocumented)
+    static toolName: string;
+}
+
+// @public (undocumented)
+export class ListProjectsTool extends AtlasToolBase {
+    // (undocumented)
+    argsShape: {
+        orgId: ZodOptional<ZodString>;
+    };
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    protected execute(input: ToolArgs<typeof ListProjectsTool.argsShape>): Promise<CallToolResult>;
+    // (undocumented)
+    static operationType: OperationType;
+    // (undocumented)
+    static toolName: string;
+}
+
 // @public (undocumented)
 export type LogsOutput = z.infer<z.ZodObject<typeof LogsOutputSchema>>;
 
@@ -1197,35 +1110,12 @@ export class LogsTool extends MongoDBToolBase {
     static toolName: string;
 }
 
-// @public
-export class MCPConnectionManager extends ConnectionManager {
-    constructor(input: ConnectionManagerOptions);
-    close(): Promise<void>;
-    connect(settings: ConnectionSettings): Promise<AnyConnectionState>;
-    disconnect(): Promise<ConnectionStateDisconnected | ConnectionStateErrored>;
-}
-
 // @public (undocumented)
-export type MisconfiguredConnectionStringErrorCode = typeof ErrorCodes.MisconfiguredConnectionString;
-
-// @public (undocumented)
-export class MongoDBError<ErrorCodeType extends ErrorCode = ErrorCode> extends Error {
-    constructor(code: ErrorCodeType, message: string);
-    // (undocumented)
-    code: ErrorCodeType;
-}
-
-// @public (undocumented)
-export abstract class MongoDBToolBase extends ToolBase<IMongoDBConfig> {
-    constructor(params: ToolConstructorParams<IMongoDBConfig>);
+export abstract class MongoDBToolBase extends ToolBase {
     // (undocumented)
     static category: ToolCategory;
     // (undocumented)
-    protected readonly config: IMongoDBConfig;
-    // (undocumented)
     protected ensureConnected(): Promise<NodeDriverServiceProvider>;
-    protected getAggregationCountDocumentsMaxTimeMS(): number;
-    protected getFindCountDocumentsMaxTimeMS(): number;
     protected getOperationOptions(signal?: AbortSignal): {
         signal?: AbortSignal;
         maxTimeMS?: number;
@@ -1233,73 +1123,17 @@ export abstract class MongoDBToolBase extends ToolBase<IMongoDBConfig> {
     // (undocumented)
     protected handleError(error: unknown, args: ToolArgs<typeof MongoDBToolBase.argsShape>): Promise<CallToolResult>;
     // (undocumented)
-    register(server: MongoDBToolRegistrationServer): boolean;
-    // Warning: (ae-forgotten-export) The symbol "ConnectionMetadata" needs to be exported by the entry point index.d.ts
+    register(server: Server): boolean;
     protected resolveTelemetryMetadata(_args: ToolArgs<typeof MongoDBToolBase.argsShape>, input: {
         result: CallToolResult;
     }): ConnectionMetadata;
-    protected server?: MongoDBToolRegistrationServer;
     // (undocumented)
-    protected readonly session: IMongoDBSession;
+    protected server?: Server;
 }
-
-// @public
-export type MongoDBToolRegistrationServer = {
-    mcpServer: McpServer;
-    readonly tools?: readonly unknown[];
-    isToolCategoryAvailable(name: ToolCategory): boolean;
-};
-
-// @public (undocumented)
-export const MongoDBTools: ToolClass<IMongoDBConfig>[];
-
-// @public (undocumented)
-export type MonitoringServerFeature = (typeof monitoringServerFeatureValues)[number];
-
-// @public (undocumented)
-export const monitoringServerFeatureValues: readonly ["health-check", "metrics"];
-
-// @public (undocumented)
-export type NotConnectedToMongoDBErrorCode = typeof ErrorCodes.NotConnectedToMongoDB;
-
-// @public (undocumented)
-export type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
-
-// @public (undocumented)
-export const ONE_MB: number;
 
 // @public
 export type OperationType = "metadata" | "read" | "create" | "delete" | "update" | "connect";
 
-// Warning: (ae-forgotten-export) The symbol "OperationCallback" needs to be exported by the entry point index.d.ts
-//
-// @public (undocumented)
-export function operationWithFallback<OperationResult, FallbackValue>(performOperation: OperationCallback<OperationResult>, fallback: FallbackValue): Promise<OperationResult | FallbackValue>;
-
-// @public (undocumented)
-export const pipelineDescriptionWithVectorSearch = "An array of aggregation stages to execute.\nIf the user has asked for a vector search, `$vectorSearch` **MUST** be the first stage of the pipeline, or the first stage of a `$unionWith` subpipeline.\nIf the user has asked for lexical/Atlas search, use `$search` instead of `$text`.\n### Usage Rules for `$vectorSearch`\n- **Index Type Detection:**\n  Use the collection-indexes tool to determine if the target field has a classic vector index (type: 'vector') or an auto-embed index (type: 'autoEmbed').\n- **Classic Vector Search (type: 'vector'):**\n  Use 'queryVector' with embeddings as an array of numbers.\n- **Auto-Embed Vector Search (type: 'autoEmbed'):**\n  Use 'query' - MongoDB automatically generates embeddings at query time. Do NOT use 'queryVector' or 'embeddingParameters' for auto-embed indexes.\n- **Unset embeddings:**\n  Unless the user explicitly requests the embeddings, add an `$unset` stage **at the end of the pipeline** to remove the embedding field and avoid context limits. **The $unset stage in this situation is mandatory**.\n- **Pre-filtering:**\n  If the user requests additional filtering, include filters in `$vectorSearch.filter` only for pre-filter fields in the vector index.\n  NEVER include fields in $vectorSearch.filter that are not part of the vector index.\n- **Post-filtering:**\n  For all remaining filters, add a $match stage after $vectorSearch.\n- If unsure which fields are filterable, use the collection-indexes tool to determine valid prefilter fields.\n- If no requested filters are valid prefilters, omit the filter key from $vectorSearch.\n\n### Usage Rules for `$search`\n- Include the index name, unless you know for a fact there's a default index. If unsure, use the collection-indexes tool to determine the index name.\n- The `$search` stage supports multiple operators, such as 'autocomplete', 'text', 'geoWithin', and others. Choose the approprate operator based on the user's query. If unsure of the exact syntax, consult the MongoDB Atlas Search documentation, which can be found here: https://www.mongodb.com/docs/atlas/atlas-search/operators-and-collectors/\n";
-
-// @public (undocumented)
-export type PreviewFeature = (typeof previewFeatureValues)[number];
-
-// @public (undocumented)
-export const previewFeatureValues: readonly ["mcpUI"];
-
-// @public
-export const QUERY_COUNT_MAX_TIME_MS_CAP: number;
-
-// @public (undocumented)
-export interface ReadyExport extends CommonExportData {
-    // (undocumented)
-    docsTransformed: number;
-    // (undocumented)
-    exportCreatedAt: number;
-    // (undocumented)
-    exportStatus: "ready";
-}
-
-// Warning: (ae-forgotten-export) The symbol "RenameCollectionOutputSchema" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export type RenameCollectionOutput = z.infer<z.ZodObject<typeof RenameCollectionOutputSchema>>;
 
@@ -1331,29 +1165,322 @@ export class RenameCollectionTool extends MongoDBToolBase {
     static toolName: string;
 }
 
-// Warning: (ae-forgotten-export) The symbol "VectorSearchIndex" needs to be exported by the entry point index.d.ts
-// Warning: (ae-forgotten-export) The symbol "AtlasSearchIndex" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
-export type SearchIndex = VectorSearchIndex | AtlasSearchIndex;
-
-// @public
-export function setAppNameParamIfMissing(input: {
-    connectionString: string;
-    components: AppNameComponents;
-}): Promise<string>;
+export class SearchKnowledgeTool extends AssistantToolBase {
+    // (undocumented)
+    argsShape: {
+        query: z.ZodString;
+        limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
+        dataSources: z.ZodOptional<z.ZodArray<z.ZodObject<{
+            name: z.ZodString;
+            versionLabel: z.ZodOptional<z.ZodString>;
+        }, z.core.$strip>>>;
+    };
+    // (undocumented)
+    static category: ToolCategory;
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    protected execute(args: ToolArgs<typeof SearchKnowledgeTool.argsShape>): Promise<CallToolResult>;
+    // (undocumented)
+    static operationType: OperationType;
+    // (undocumented)
+    static toolName: string;
+}
 
 // @public (undocumented)
-export const SortDirectionSchema: z.ZodUnion<readonly [z.ZodLiteral<1>, z.ZodLiteral<-1>, z.ZodLiteral<"asc">, z.ZodLiteral<"desc">, z.ZodLiteral<"ascending">, z.ZodLiteral<"descending">, z.ZodObject<{
-    $meta: z.ZodString;
-}, z.z.core.$strip>]>;
+export class StreamsBuildTool extends StreamsToolBase {
+    // (undocumented)
+    argsShape: {
+        projectId: z.ZodString;
+        resource: z.ZodEnum<{
+            processor: "processor";
+            connection: "connection";
+            workspace: "workspace";
+            privatelink: "privatelink";
+        }>;
+        workspaceName: z.ZodOptional<z.ZodString>;
+        cloudProvider: z.ZodOptional<z.ZodEnum<{
+            AWS: "AWS";
+            AZURE: "AZURE";
+            GCP: "GCP";
+        }>>;
+        region: z.ZodOptional<z.ZodString>;
+        tier: z.ZodOptional<z.ZodEnum<{
+            SP50: "SP50";
+            SP30: "SP30";
+            SP10: "SP10";
+            SP5: "SP5";
+            SP2: "SP2";
+        }>>;
+        includeSampleData: z.ZodOptional<z.ZodBoolean>;
+        connectionName: z.ZodOptional<z.ZodString>;
+        connectionType: z.ZodOptional<z.ZodEnum<{
+            Cluster: "Cluster";
+            Kafka: "Kafka";
+            S3: "S3";
+            Https: "Https";
+            AWSKinesisDataStreams: "AWSKinesisDataStreams";
+            AWSLambda: "AWSLambda";
+            SchemaRegistry: "SchemaRegistry";
+            Sample: "Sample";
+        }>>;
+        connectionConfig: z.ZodOptional<z.ZodObject<{
+            bootstrapServers: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodArray<z.ZodString>]>, z.ZodTransform<string, string | string[]>>>;
+            authentication: z.ZodOptional<z.ZodObject<{
+                mechanism: z.ZodOptional<z.ZodEnum<{
+                    PLAIN: "PLAIN";
+                    "SCRAM-256": "SCRAM-256";
+                    "SCRAM-512": "SCRAM-512";
+                    OAUTHBEARER: "OAUTHBEARER";
+                }>>;
+                username: z.ZodOptional<z.ZodString>;
+                password: z.ZodOptional<z.ZodString>;
+            }, z.core.$loose>>;
+            security: z.ZodOptional<z.ZodObject<{
+                protocol: z.ZodOptional<z.ZodEnum<{
+                    SASL_SSL: "SASL_SSL";
+                    SASL_PLAINTEXT: "SASL_PLAINTEXT";
+                    SSL: "SSL";
+                }>>;
+            }, z.core.$loose>>;
+            clusterName: z.ZodOptional<z.ZodString>;
+            dbRoleToExecute: z.ZodOptional<z.ZodObject<{
+                role: z.ZodOptional<z.ZodString>;
+                type: z.ZodOptional<z.ZodEnum<{
+                    CUSTOM: "CUSTOM";
+                    BUILT_IN: "BUILT_IN";
+                }>>;
+            }, z.core.$strip>>;
+            aws: z.ZodOptional<z.ZodObject<{
+                roleArn: z.ZodOptional<z.ZodString>;
+                testBucket: z.ZodOptional<z.ZodString>;
+            }, z.core.$loose>>;
+            url: z.ZodOptional<z.ZodString>;
+            headers: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
+            provider: z.ZodOptional<z.ZodString>;
+            schemaRegistryUrls: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodArray<z.ZodString>, z.ZodString]>, z.ZodTransform<string[], string | string[]>>>;
+            schemaRegistryAuthentication: z.ZodOptional<z.ZodObject<{
+                type: z.ZodOptional<z.ZodEnum<{
+                    USER_INFO: "USER_INFO";
+                    SASL_INHERIT: "SASL_INHERIT";
+                }>>;
+                username: z.ZodOptional<z.ZodString>;
+                password: z.ZodOptional<z.ZodString>;
+            }, z.core.$loose>>;
+            networking: z.ZodOptional<z.ZodObject<{
+                access: z.ZodOptional<z.ZodObject<{
+                    type: z.ZodOptional<z.ZodString>;
+                    connectionId: z.ZodOptional<z.ZodString>;
+                }, z.core.$loose>>;
+            }, z.core.$loose>>;
+        }, z.core.$loose>>;
+        processorName: z.ZodOptional<z.ZodString>;
+        pipeline: z.ZodOptional<z.ZodArray<z.ZodRecord<z.ZodString, z.ZodUnknown>>>;
+        dlq: z.ZodOptional<z.ZodObject<{
+            connectionName: z.ZodString;
+            db: z.ZodString;
+            coll: z.ZodString;
+        }, z.core.$strip>>;
+        autoStart: z.ZodOptional<z.ZodBoolean>;
+        privateLinkConfig: z.ZodOptional<z.ZodObject<{
+            provider: z.ZodEnum<{
+                AWS: "AWS";
+                AZURE: "AZURE";
+                GCP: "GCP";
+            }>;
+            region: z.ZodOptional<z.ZodString>;
+            vendor: z.ZodOptional<z.ZodString>;
+            arn: z.ZodOptional<z.ZodString>;
+            dnsDomain: z.ZodOptional<z.ZodString>;
+            dnsSubDomain: z.ZodOptional<z.ZodArray<z.ZodString>>;
+            serviceEndpointId: z.ZodOptional<z.ZodString>;
+            azureResourceIds: z.ZodOptional<z.ZodArray<z.ZodString>>;
+            gcpServiceAttachmentUris: z.ZodOptional<z.ZodArray<z.ZodString>>;
+        }, z.core.$loose>>;
+    };
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    protected execute(args: ToolArgs<typeof StreamsBuildTool.argsShape>): Promise<CallToolResult>;
+    // (undocumented)
+    static operationType: OperationType;
+    // (undocumented)
+    static toolName: string;
+}
 
 // @public (undocumented)
-export type StoredExport = ReadyExport | InProgressExport;
+export class StreamsDiscoverTool extends StreamsToolBase {
+    // (undocumented)
+    argsShape: {
+        projectId: z.ZodString;
+        action: z.ZodEnum<{
+            "list-workspaces": "list-workspaces";
+            "inspect-workspace": "inspect-workspace";
+            "list-connections": "list-connections";
+            "inspect-connection": "inspect-connection";
+            "list-processors": "list-processors";
+            "inspect-processor": "inspect-processor";
+            "diagnose-processor": "diagnose-processor";
+            "get-networking": "get-networking";
+        }>;
+        workspaceName: z.ZodOptional<z.ZodString>;
+        resourceName: z.ZodOptional<z.ZodString>;
+        responseFormat: z.ZodOptional<z.ZodEnum<{
+            concise: "concise";
+            detailed: "detailed";
+        }>>;
+        cloudProvider: z.ZodOptional<z.ZodString>;
+        region: z.ZodOptional<z.ZodString>;
+        limit: z.ZodOptional<z.ZodNumber>;
+        pageNum: z.ZodOptional<z.ZodNumber>;
+    };
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    protected execute(input: ToolArgs<typeof StreamsDiscoverTool.argsShape>): Promise<CallToolResult>;
+    // (undocumented)
+    static operationType: OperationType;
+    // (undocumented)
+    static toolName: string;
+}
+
+// @public (undocumented)
+export class StreamsManageTool extends StreamsToolBase {
+    // (undocumented)
+    argsShape: {
+        projectId: z.ZodString;
+        workspaceName: z.ZodString;
+        action: z.ZodEnum<{
+            "start-processor": "start-processor";
+            "stop-processor": "stop-processor";
+            "modify-processor": "modify-processor";
+            "update-workspace": "update-workspace";
+            "update-connection": "update-connection";
+            "accept-peering": "accept-peering";
+            "reject-peering": "reject-peering";
+        }>;
+        resourceName: z.ZodOptional<z.ZodString>;
+        tier: z.ZodOptional<z.ZodEnum<{
+            SP50: "SP50";
+            SP30: "SP30";
+            SP10: "SP10";
+            SP5: "SP5";
+            SP2: "SP2";
+        }>>;
+        resumeFromCheckpoint: z.ZodOptional<z.ZodBoolean>;
+        startAtOperationTime: z.ZodOptional<z.ZodString>;
+        pipeline: z.ZodOptional<z.ZodArray<z.ZodRecord<z.ZodString, z.ZodUnknown>>>;
+        dlq: z.ZodOptional<z.ZodObject<{
+            connectionName: z.ZodString;
+            db: z.ZodString;
+            coll: z.ZodString;
+        }, z.core.$strip>>;
+        newName: z.ZodOptional<z.ZodString>;
+        newRegion: z.ZodOptional<z.ZodString>;
+        newTier: z.ZodOptional<z.ZodEnum<{
+            SP50: "SP50";
+            SP30: "SP30";
+            SP10: "SP10";
+            SP5: "SP5";
+            SP2: "SP2";
+        }>>;
+        connectionConfig: z.ZodOptional<z.ZodObject<{
+            bootstrapServers: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodArray<z.ZodString>]>, z.ZodTransform<string, string | string[]>>>;
+            authentication: z.ZodOptional<z.ZodObject<{
+                mechanism: z.ZodOptional<z.ZodEnum<{
+                    PLAIN: "PLAIN";
+                    "SCRAM-256": "SCRAM-256";
+                    "SCRAM-512": "SCRAM-512";
+                    OAUTHBEARER: "OAUTHBEARER";
+                }>>;
+                username: z.ZodOptional<z.ZodString>;
+                password: z.ZodOptional<z.ZodString>;
+            }, z.core.$loose>>;
+            security: z.ZodOptional<z.ZodObject<{
+                protocol: z.ZodOptional<z.ZodEnum<{
+                    SASL_SSL: "SASL_SSL";
+                    SASL_PLAINTEXT: "SASL_PLAINTEXT";
+                    SSL: "SSL";
+                }>>;
+            }, z.core.$loose>>;
+            clusterName: z.ZodOptional<z.ZodString>;
+            dbRoleToExecute: z.ZodOptional<z.ZodObject<{
+                role: z.ZodOptional<z.ZodString>;
+                type: z.ZodOptional<z.ZodEnum<{
+                    CUSTOM: "CUSTOM";
+                    BUILT_IN: "BUILT_IN";
+                }>>;
+            }, z.core.$strip>>;
+            aws: z.ZodOptional<z.ZodObject<{
+                roleArn: z.ZodOptional<z.ZodString>;
+                testBucket: z.ZodOptional<z.ZodString>;
+            }, z.core.$loose>>;
+            url: z.ZodOptional<z.ZodString>;
+            headers: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
+            provider: z.ZodOptional<z.ZodString>;
+            schemaRegistryUrls: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodArray<z.ZodString>, z.ZodString]>, z.ZodTransform<string[], string | string[]>>>;
+            schemaRegistryAuthentication: z.ZodOptional<z.ZodObject<{
+                type: z.ZodOptional<z.ZodEnum<{
+                    USER_INFO: "USER_INFO";
+                    SASL_INHERIT: "SASL_INHERIT";
+                }>>;
+                username: z.ZodOptional<z.ZodString>;
+                password: z.ZodOptional<z.ZodString>;
+            }, z.core.$loose>>;
+            networking: z.ZodOptional<z.ZodObject<{
+                access: z.ZodOptional<z.ZodObject<{
+                    type: z.ZodOptional<z.ZodString>;
+                    connectionId: z.ZodOptional<z.ZodString>;
+                }, z.core.$loose>>;
+            }, z.core.$loose>>;
+        }, z.core.$loose>>;
+        peeringId: z.ZodOptional<z.ZodString>;
+        requesterAccountId: z.ZodOptional<z.ZodString>;
+        requesterVpcId: z.ZodOptional<z.ZodString>;
+    };
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    protected execute(args: ToolArgs<typeof StreamsManageTool.argsShape>): Promise<CallToolResult>;
+    // (undocumented)
+    protected getConfirmationMessage(args: ToolArgs<typeof StreamsManageTool.argsShape>): string;
+    // (undocumented)
+    static operationType: OperationType;
+    // (undocumented)
+    static toolName: string;
+}
+
+// @public (undocumented)
+export class StreamsTeardownTool extends StreamsToolBase {
+    // (undocumented)
+    argsShape: {
+        projectId: z.ZodString;
+        resource: z.ZodEnum<{
+            processor: "processor";
+            connection: "connection";
+            workspace: "workspace";
+            privatelink: "privatelink";
+            peering: "peering";
+        }>;
+        workspaceName: z.ZodOptional<z.ZodString>;
+        resourceName: z.ZodOptional<z.ZodString>;
+    };
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    protected execute(args: ToolArgs<typeof StreamsTeardownTool.argsShape>): Promise<CallToolResult>;
+    // (undocumented)
+    protected getConfirmationMessage(args: ToolArgs<typeof StreamsTeardownTool.argsShape>): string;
+    // (undocumented)
+    static operationType: OperationType;
+    // (undocumented)
+    static toolName: string;
+}
 
 // @public (undocumented)
 export class SwitchConnectionTool extends MongoDBToolBase {
-    constructor(params: ToolConstructorParams<IMongoDBConfig>);
+    constructor(params: ToolConstructorParams);
     // (undocumented)
     argsShape: {
         connectionString: z.ZodOptional<z.ZodString>;
@@ -1365,7 +1492,7 @@ export class SwitchConnectionTool extends MongoDBToolBase {
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
-    register(server: MongoDBToolRegistrationServer): boolean;
+    register(server: Server): boolean;
     // (undocumented)
     static toolName: string;
 }
@@ -1375,11 +1502,9 @@ export type ToolArgs<T extends ZodRawShape> = {
     [K in keyof T]: z.infer<T[K]>;
 };
 
-// Warning: (ae-forgotten-export) The symbol "MetricDefinitions" needs to be exported by the entry point index.d.ts
-//
 // @public
-export abstract class ToolBase<TUserConfig extends IToolConfig = IToolConfig, TContext = unknown, TMetricsDefinitions extends MetricDefinitions = MetricDefinitions> {
-    constructor(input: ToolConstructorParams<TUserConfig, TContext, TMetricsDefinitions>);
+export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> {
+    constructor(input: ToolConstructorParams<TUserConfig, TContext, TMetrics>);
     // (undocumented)
     get annotations(): ToolAnnotations;
     abstract argsShape: ZodRawShape;
@@ -1389,8 +1514,7 @@ export abstract class ToolBase<TUserConfig extends IToolConfig = IToolConfig, TC
     abstract description: string;
     // (undocumented)
     disable(): void;
-    // Warning: (ae-forgotten-export) The symbol "IElicitation" needs to be exported by the entry point index.d.ts
-    protected readonly elicitation: IElicitation;
+    protected readonly elicitation: Elicitation;
     // (undocumented)
     enable(): void;
     protected abstract execute(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
@@ -1401,27 +1525,20 @@ export abstract class ToolBase<TUserConfig extends IToolConfig = IToolConfig, TC
     invoke(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)
     isEnabled(): boolean;
-    // Warning: (ae-forgotten-export) The symbol "PreviewFeature_2" needs to be exported by the entry point index.d.ts
-    //
     // (undocumented)
-    protected isFeatureEnabled(feature: PreviewFeature_2): boolean;
-    // Warning: (ae-forgotten-export) The symbol "IMetrics" needs to be exported by the entry point index.d.ts
-    protected readonly metrics: IMetrics<TMetricsDefinitions>;
+    protected isFeatureEnabled(feature: PreviewFeature): boolean;
+    protected readonly metrics: Metrics<TMetrics>;
     readonly name: string;
     readonly operationType: OperationType;
     outputSchema?: ZodRawShape;
     // (undocumented)
-    register(server: {
-        mcpServer: McpServer;
-    }): boolean;
+    register(server: Server<TUserConfig, TContext, TMetrics>): boolean;
     requiresConfirmation(): boolean;
-    // Warning: (ae-forgotten-export) The symbol "TelemetryToolMetadata" needs to be exported by the entry point index.d.ts
     protected abstract resolveTelemetryMetadata(args: ToolArgs<typeof ToolBase.argsShape>, input: {
         result: CallToolResult;
     }): TelemetryToolMetadata;
-    protected readonly session: IToolSession;
-    // Warning: (ae-forgotten-export) The symbol "ITelemetry" needs to be exported by the entry point index.d.ts
-    protected readonly telemetry: ITelemetry;
+    protected readonly session: Session;
+    protected readonly telemetry: Telemetry;
     protected get toolMeta(): Record<string, unknown>;
     // (undocumented)
     protected verifyAllowed(): boolean;
@@ -1432,37 +1549,36 @@ export abstract class ToolBase<TUserConfig extends IToolConfig = IToolConfig, TC
 export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant";
 
 // @public
-export type ToolClass<TUserConfig extends IToolConfig = IToolConfig, TContext = unknown, TMetricsDefinitions extends MetricDefinitions = MetricDefinitions> = {
-    new (params: ToolConstructorParams<TUserConfig, TContext, TMetricsDefinitions>): ToolBase<TUserConfig, TContext, TMetricsDefinitions>;
+export type ToolClass<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> = {
+    new (params: ToolConstructorParams<TUserConfig, TContext, TMetrics>): ToolBase<TUserConfig, TContext, TMetrics>;
     toolName: string;
     category: ToolCategory;
     operationType: OperationType;
 };
 
 // @public
-export type ToolConstructorParams<TUserConfig extends IToolConfig = IToolConfig, TContext = unknown, TMetricsDefinitions extends MetricDefinitions = MetricDefinitions> = {
+export type ToolConstructorParams<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> = {
     name: string;
     category: ToolCategory;
     operationType: OperationType;
-    session: IToolSession;
+    session: Session;
     config: TUserConfig;
-    telemetry: ITelemetry;
-    elicitation: IElicitation;
-    metrics: IMetrics<TMetricsDefinitions>;
-    uiRegistry?: IUIRegistry;
+    telemetry: Telemetry;
+    elicitation: Elicitation;
+    metrics: Metrics<TMetrics>;
+    uiRegistry?: UIRegistry;
     context?: TContext;
 };
 
 // @public (undocumented)
-export type ToolExecutionContext = {
-    signal: AbortSignal;
+export interface ToolExecutionContext {
     requestInfo?: {
         headers?: Record<string, unknown>;
     };
-};
+    // (undocumented)
+    signal: AbortSignal;
+}
 
-// Warning: (ae-forgotten-export) The symbol "StructuredToolResult" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export type ToolResult<OutputSchema extends ZodRawShape | undefined = undefined> = OutputSchema extends ZodRawShape ? StructuredToolResult<OutputSchema> : {
     content: {
@@ -1472,8 +1588,6 @@ export type ToolResult<OutputSchema extends ZodRawShape | undefined = undefined>
     isError?: boolean;
 };
 
-// Warning: (ae-forgotten-export) The symbol "UpdateManyOutputSchema" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export type UpdateManyOutput = z.infer<z.ZodObject<typeof UpdateManyOutputSchema>>;
 
@@ -1506,22 +1620,32 @@ export class UpdateManyTool extends MongoDBToolBase {
     static toolName: string;
 }
 
-// @public
-export function usesIndex(explainResult: Document_2): boolean;
-
-// @public
-export function validateConnectionString(connectionString: string, looseValidation: boolean): void;
-
-
-export * from "@mongodb-js/mcp-tools-assistant";
-export * from "@mongodb-js/mcp-tools-atlas-local";
-
-// Warnings were encountered during analysis:
-//
-// packages/core/src/toolBase.ts:142:5 - (ae-forgotten-export) The symbol "IUIRegistry" needs to be exported by the entry point index.d.ts
-// packages/tools-mongodb/src/common/connectionManager.ts:539:5 - (ae-forgotten-export) The symbol "LoggerBase" needs to be exported by the entry point index.d.ts
-// packages/tools-mongodb/src/common/connectionManager.ts:541:5 - (ae-forgotten-export) The symbol "ConnectionManagerOptions" needs to be exported by the entry point index.d.ts
-// packages/tools-mongodb/src/helpers/assertVectorSearchFilterFieldsAreIndexed.ts:43:5 - (ae-forgotten-export) The symbol "ICompositeLogger" needs to be exported by the entry point index.d.ts
+// @public (undocumented)
+export class UpgradeClusterTool extends AtlasToolBase {
+    // (undocumented)
+    argsShape: {
+        projectId: z.ZodOptional<z.ZodString>;
+        clusterName: z.ZodOptional<z.ZodString>;
+        targetTier: z.ZodOptional<z.ZodEnum<{
+            FLEX: "FLEX";
+            M10: "M10";
+        }>>;
+        provider: z.ZodOptional<z.ZodString>;
+        region: z.ZodOptional<z.ZodString>;
+    };
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    protected execute(args: ToolArgs<typeof UpgradeClusterTool.argsShape>): Promise<CallToolResult>;
+    // (undocumented)
+    static operationType: OperationType;
+    // (undocumented)
+    protected resolveTelemetryMetadata(args: ToolArgs<typeof UpgradeClusterTool.argsShape>, context: {
+        result: CallToolResult;
+    }): UpgradeClusterMetadata;
+    // (undocumented)
+    static toolName: string;
+}
 
 // (No @packageDocumentation comment for this package)
 
