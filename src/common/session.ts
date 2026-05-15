@@ -40,13 +40,13 @@ export type SessionEvents = {
 
 export class Session extends EventEmitter<SessionEvents> {
     private readonly userConfig: UserConfig;
-    readonly sessionId: string = new ObjectId().toString();
-    readonly exportsManager: ExportsManager;
-    readonly connectionManager: ConnectionManager;
-    readonly apiClient: ApiClient;
-    readonly atlasLocalClient?: Client;
-    readonly keychain: Keychain;
-    readonly connectionErrorHandler: ConnectionErrorHandler;
+    public readonly sessionId: string = new ObjectId().toString();
+    public readonly exportsManager: ExportsManager;
+    public readonly connectionManager: ConnectionManager;
+    public readonly apiClient: ApiClient;
+    public readonly atlasLocalClient?: Client;
+    public readonly connectionErrorHandler: ConnectionErrorHandler;
+    public readonly keychain: Keychain;
 
     mcpClient?: {
         name?: string;

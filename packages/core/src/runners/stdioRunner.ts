@@ -25,8 +25,8 @@ export class StdioRunner<
         close(): Promise<void>;
     },
 > implements ITransportRunner {
-    private server: TServer;
-    public readonly logger: CompositeLogger;
+    protected readonly server: TServer;
+    protected readonly logger: CompositeLogger;
 
     constructor({ logger, server }: { logger: CompositeLogger; server: TServer }) {
         this.logger = logger;

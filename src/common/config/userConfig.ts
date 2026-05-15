@@ -135,7 +135,7 @@ const ServerConfigSchema = z.object({
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
     httpHeaders: z
         .object({})
-        .loose()
+        .catchall(z.string())
         .default({})
         .describe(
             "Header that the HTTP server will validate when making requests (only used when transport is 'http')."

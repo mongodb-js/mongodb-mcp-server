@@ -185,7 +185,7 @@ async function main(): Promise<void> {
                     host: config.httpHost,
                     port: config.httpPort,
                     responseType: config.httpResponseType,
-                    headers: config.httpHeaders as Record<string, string> | undefined,
+                    headers: config.httpHeaders,
                 },
                 session: {
                     externallyManagedSessions: config.externallyManagedSessions,
