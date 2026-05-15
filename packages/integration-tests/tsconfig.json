@@ -4,7 +4,7 @@
         "outDir": "./dist",
         "rootDir": "."
     },
-    "include": ["src/**/*.ts"],
+    "include": ["src/**/*.ts", "src/**/*.d.ts", "../test-utils/src/vitest.d.ts"],
     "exclude": ["node_modules", "dist"],
     "references": [{ "path": "../test-utils" }]
 }

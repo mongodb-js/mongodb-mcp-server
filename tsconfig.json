@@ -4,7 +4,7 @@
     "rootDir": ".",
     "skipLibCheck": true
   },
-  "include": ["**/*"],
+  "include": ["**/*", "packages/test-utils/src/vitest.d.ts"],
   "exclude": ["dist", "node_modules", "packages/*/dist"],
   "references": [
     { "path": "./packages/node-utils" },
