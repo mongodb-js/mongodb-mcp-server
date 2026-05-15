@@ -1,5 +1,5 @@
 import { expect, it, beforeAll, afterAll } from "vitest";
-import { expectDefined, getResponseElements, validateToolMetadata } from "@mongodb-js/mcp-test-utils";
+import { expectDefined, getResponseElements, validateToolMetadata } from "../../integrationHelpers.js";
 import {
     createAtlasLocalDeployment,
     describeWithAtlasLocal,

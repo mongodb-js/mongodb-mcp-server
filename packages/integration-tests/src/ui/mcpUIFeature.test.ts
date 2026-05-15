@@ -1,11 +1,11 @@
 import { describe, expect, it, afterAll } from "vitest";
-import { describeWithMongoDB } from "@mongodb-js/mcp-test-utils";
+import { describeWithMongoDB } from "../mongodbHelpers.js";
 import {
     defaultTestConfig,
     expectDefined,
     getResponseElements,
     testConnectionManagerDriverLabels,
-} from "@mongodb-js/mcp-test-utils";
+} from "../integrationHelpers.js";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
 import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { Session } from "mongodb-mcp-server";

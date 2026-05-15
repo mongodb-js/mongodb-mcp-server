@@ -3,9 +3,8 @@ import {
     getParameters,
     expectDefined,
     getDataFromUntrustedContent,
-    describeWithMongoDB,
-    validateAutoConnectBehavior,
-} from "@mongodb-js/mcp-test-utils";
+} from "../../../integrationHelpers.js";
+import { describeWithMongoDB, validateAutoConnectBehavior } from "../../../mongodbHelpers.js";
 import { describe, expect, it } from "vitest";
 import type { ListDatabasesOutput } from "@mongodb-js/mcp-tools-mongodb";
 

@@ -3,7 +3,7 @@ import type { KnipConfig } from "knip";
 const config: KnipConfig = {
     // Shell built-ins used in package.json scripts
     ignoreBinaries: ["printf"],
-    // Workspace-relative path in vitest.config.ts that knip can't resolve
+    // This path is referenced in vitest.config.ts but resolved at runtime
     ignoreUnresolved: ["./src/test-setup.ts"],
     workspaces: {
         ".": {
@@ -12,9 +12,11 @@ const config: KnipConfig = {
                 "src/lib.ts!",
                 "src/web.ts!",
                 "src/tools/index.ts!",
+                "src/setup/index.ts!",
+                "src/test-helpers/index.ts!",
                 "tests/**/*.ts",
                 "!tests/browser/**",
-                "!packages/integration-tests/**",
+                "!packages/**", // Each package has its own knip workspace config
                 "eslint-rules/*.js",
             ],
             ignore: ["packaging/mcpb/server/index.js"],
@@ -34,39 +36,39 @@ const config: KnipConfig = {
                 "semver",
                 "vite-plugin-node-polyfills",
                 "vite-plugin-singlefile",
-                // Transitive deps used by workspace packages
+                // Peer deps required by mongosh packages but not directly imported
                 "@mongodb-js/device-id",
                 "mongodb",
                 "mongodb-schema",
                 "node-machine-id",
-                // Dev tooling
+                // Dev tooling - not imported but used via CLI
                 "vitest",
-            ],
-        },
-        "packages/accuracy-tests": {
-            entry: ["src/**/*.ts"],
-            ignoreDependencies: [
-                "mongodb-mcp-server",
-                "@mongodb-js/mcp-core",
-                "@mongodb-js/mcp-tools-assistant",
-                "@mongodb-js/mcp-test-utils",
+                // Test assertion library - extended via vitest setup, not imported
+                "@testing-library/jest-dom",
+                // Express types - needed for middleware but not directly imported
+                "@types/express",
             ],
         },
         "packages/scripts": {
             entry: ["src/*.ts"],
             ignoreDependencies: [
                 "vite", // Used as CLI in execSync, not as import
+                // Used in generateToolDocumentation.ts for UI and metrics
                 "@mongodb-js/mcp-ui",
                 "@mongodb-js/mcp-types",
                 "@mongodb-js/mcp-metrics",
+                // Used for UserConfigSchema and tools imports
                 "mongodb-mcp-server",
             ],
         },
         "packages/test-utils": {
-            ignoreDependencies: ["@modelcontextprotocol/sdk", "@mongodb-js/mcp-ui", "vitest"],
+            entry: ["src/index.ts", "src/setup.ts"],
+        },
+        "packages/accuracy-tests": {
+            entry: ["src/**/*.ts"],
         },
         "packages/integration-tests": {
-            entry: ["src/**/*.ts"],
+            entry: ["src/index.ts", "src/**/*.ts"],
             ignore: ["src/fixtures/curl.mjs"],
         },
         "packages/ui": {
@@ -85,8 +87,9 @@ const config: KnipConfig = {
             entry: ["src/index.ts!"],
         },
         "packages/tools-mongodb": {
+            // These are used via mongosh and driver peer dependencies
+            // but knip can't trace through the complex import chains
             ignoreDependencies: [
-                // Dependencies used by this package but knip can't detect all patterns
                 "@mongodb-js/device-id",
                 "@mongosh/arg-parser",
                 "@mongosh/service-provider-node-driver",

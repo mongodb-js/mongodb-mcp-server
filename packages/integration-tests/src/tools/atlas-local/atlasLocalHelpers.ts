@@ -1,4 +1,4 @@
-import { defaultTestConfig, setupIntegrationTest, type IntegrationTest } from "@mongodb-js/mcp-test-utils";
+import { defaultTestConfig, setupIntegrationTest, type IntegrationTest } from "../../integrationHelpers.js";
 import type { UserConfig } from "mongodb-mcp-server";
 import { describe } from "vitest";
 import type { Client } from "@modelcontextprotocol/sdk/client";

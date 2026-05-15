@@ -7,10 +7,12 @@ import {
     validateThrowsForInvalidArguments,
     expectDefined,
     defaultTestConfig,
+} from "../../../integrationHelpers.js";
+import {
     describeWithMongoDB,
     getDocsFromUntrustedContent,
     validateAutoConnectBehavior,
-} from "@mongodb-js/mcp-test-utils";
+} from "../../../mongodbHelpers.js";
 import { AGG_COUNT_MAX_TIME_MS_CAP } from "@mongodb-js/mcp-tools-mongodb";
 import type { Client } from "@modelcontextprotocol/sdk/client";
 

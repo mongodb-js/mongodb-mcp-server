@@ -14,9 +14,9 @@ import type { UserConfig } from "mongodb-mcp-server";
 import type { Server, ServerOptions } from "mongodb-mcp-server";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { EJSON } from "bson";
-import { MongoDBClusterProcess } from "./mongodbClusterProcess.js";
-import type { MongoClusterConfiguration } from "./mongodbClusterProcess.js";
-import type { createMockElicitInput, MockClientCapabilities } from "./elicitationMocks.js";
+import { MongoDBClusterProcess } from "@mongodb-js/mcp-test-utils";
+import type { MongoClusterConfiguration } from "@mongodb-js/mcp-test-utils";
+import type { createMockElicitInput, MockClientCapabilities } from "@mongodb-js/mcp-test-utils";
 
 export const DEFAULT_WAIT_TIMEOUT = 1000;
 export const DEFAULT_RETRY_INTERVAL = 100;

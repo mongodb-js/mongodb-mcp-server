@@ -1,5 +1,5 @@
-import { defaultTestConfig, getResponseContent } from "@mongodb-js/mcp-test-utils";
-import { describeWithMongoDB } from "@mongodb-js/mcp-test-utils";
+import { defaultTestConfig, getResponseContent } from "./integrationHelpers.js";
+import { describeWithMongoDB } from "./mongodbHelpers.js";
 import { beforeEach, describe, expect, it } from "vitest";
 
 describe("IndexCheck integration tests", () => {

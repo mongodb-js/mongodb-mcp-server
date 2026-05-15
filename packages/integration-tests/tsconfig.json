@@ -1,10 +1,11 @@
 {
-    "extends": "../../tsconfig.json",
-    "compilerOptions": {
-        "outDir": "./dist",
-        "rootDir": "."
-    },
-    "include": ["src/**/*.ts", "src/**/*.d.ts", "../test-utils/src/vitest.d.ts"],
-    "exclude": ["node_modules", "dist"],
-    "references": [{ "path": "../test-utils" }]
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": ".",
+    "composite": true
+  },
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "../test-utils/src/vitest.d.ts"],
+  "exclude": ["node_modules", "dist"],
+  "references": [{ "path": "../test-utils" }]
 }

@@ -4,8 +4,8 @@ import {
     validateThrowsForInvalidArguments,
     validateToolMetadata,
     defaultTestConfig,
-    describeWithMongoDB,
-} from "@mongodb-js/mcp-test-utils";
+} from "../../../integrationHelpers.js";
+import { describeWithMongoDB } from "../../../mongodbHelpers.js";
 import { beforeEach, describe, expect, it, type MockInstance, vi } from "vitest";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 

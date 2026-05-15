@@ -3,7 +3,7 @@ import { getAvailableModels } from "./models.js";
 import { calculateToolCallingAccuracy } from "./accuracyScorer.js";
 import type { PromptDefinition, VercelAgent } from "./agent.js";
 import { getVercelToolCallingAgent } from "./agent.js";
-import { prepareTestData, setupMongoDBIntegrationTest } from "@mongodb-js/mcp-test-utils";
+import { prepareTestData, setupMongoDBIntegrationTest } from "@mongodb-js/mcp-integration-tests";
 import type { MockedTools } from "./accuracyTestingClient.js";
 import { AccuracyTestingClient } from "./accuracyTestingClient.js";
 import type { AccuracyResultStorage, ExpectedToolCall, LLMToolCall } from "./accuracyResultStorage/resultStorage.js";

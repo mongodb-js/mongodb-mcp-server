@@ -1,7 +1,7 @@
 import type { LoggerType, LogLevel, LogPayload } from "@mongodb-js/mcp-core";
 import { CompositeLogger, LoggerBase } from "@mongodb-js/mcp-core";
 import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
-import { Session } from "mongodb-mcp-server";
+import { Session, UserConfigSchema, packageInfo } from "mongodb-mcp-server";
 import { Server, type ServerOptions } from "mongodb-mcp-server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -15,14 +15,24 @@ import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { connectionErrorHandler } from "mongodb-mcp-server";
 import { Keychain } from "@mongodb-js/mcp-core";
 import { Elicitation } from "mongodb-mcp-server";
-import type { MockClientCapabilities, createMockElicitInput } from "./elicitationMocks.js";
+import type { MockClientCapabilities, createMockElicitInput } from "@mongodb-js/mcp-test-utils";
 import { createAtlasLocalClient } from "mongodb-mcp-server";
-import { UserConfigSchema } from "mongodb-mcp-server";
 import type { OperationType } from "@mongodb-js/mcp-core";
 import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
-import { MockMetrics } from "./mockMetrics.js";
+import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
-import { packageInfo } from "mongodb-mcp-server";
+
+export const defaultTestConfig: UserConfig = {
+    ...UserConfigSchema.parse({}),
+    telemetry: "disabled",
+    loggers: ["stderr"],
+};
+
+/** Driver product labels for tests; mirrors root `packageInfo`. */
+export const testConnectionManagerDriverLabels = {
+    displayName: packageInfo.mcpServerName,
+    version: packageInfo.version,
+} as const;
 
 interface Parameter {
     name: string;
@@ -48,19 +58,8 @@ export interface IntegrationTest {
         getApiClient: () => ApiClient;
     };
 }
-export const defaultTestConfig: UserConfig = {
-    ...UserConfigSchema.parse({}),
-    telemetry: "disabled",
-    loggers: ["stderr"],
-};
 
 export const DEFAULT_LONG_RUNNING_TEST_WAIT_TIMEOUT_MS = 1_200_000;
-
-/** Driver product labels for tests; mirrors root `packageInfo`. */
-export const testConnectionManagerDriverLabels = {
-    displayName: packageInfo.mcpServerName,
-    version: packageInfo.version,
-} as const;
 
 export function setupIntegrationTest(
     getUserConfig: () => UserConfig,

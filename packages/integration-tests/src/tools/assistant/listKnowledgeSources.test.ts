@@ -5,8 +5,8 @@ import {
     validateToolMetadata,
     getResponseElements,
     getDataFromUntrustedContent,
-} from "@mongodb-js/mcp-test-utils";
-import { describeWithAssistant, makeMockAssistantAPI } from "../../test-helpers/assistantHelpers.js";
+} from "../../integrationHelpers.js";
+import { describeWithAssistant, makeMockAssistantAPI } from "./assistantHelpers.js";
 import { parse as yamlParse } from "yaml";
 
 // Mock the devtools-proxy-support module

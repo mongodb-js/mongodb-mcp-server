@@ -1,7 +1,7 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
-import { defaultTestConfig } from "@mongodb-js/mcp-test-utils";
+import { defaultTestConfig } from "./integrationHelpers.js";
 import { parsePrometheusValue } from "./metricsHelpers.js";
 import type { UserConfig } from "mongodb-mcp-server";
 import type { OperationType, ToolCategory } from "@mongodb-js/mcp-core";

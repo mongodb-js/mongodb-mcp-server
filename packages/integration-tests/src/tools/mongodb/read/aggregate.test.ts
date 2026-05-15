@@ -5,14 +5,16 @@ import {
     getResponseContent,
     defaultTestConfig,
     expectDefined,
-    createVectorSearchIndexAndWait,
+} from "../../../integrationHelpers.js";
+import {
     describeWithMongoDB,
     getDocsFromUntrustedContent,
-    syncMongoToolsConfigFromUserConfig,
     validateAutoConnectBehavior,
+    createVectorSearchIndexAndWait,
+    syncMongoToolsConfigFromUserConfig,
     waitUntilSearchIndexIsQueryable,
     waitUntilSearchIsReady,
-} from "@mongodb-js/mcp-test-utils";
+} from "../../../mongodbHelpers.js";
 import { beforeEach, describe, expect, it, vi, afterEach } from "vitest";
 import { freshInsertDocuments } from "./find.test.js";
 import { BSON } from "bson";

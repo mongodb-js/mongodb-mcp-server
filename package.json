@@ -45,6 +45,16 @@
         "types": "./dist/cjs/setup/index.d.ts",
         "default": "./dist/cjs/setup/index.js"
       }
+    },
+    "./test-helpers": {
+      "import": {
+        "types": "./dist/esm/test-helpers/index.d.ts",
+        "default": "./dist/esm/test-helpers/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/test-helpers/index.d.ts",
+        "default": "./dist/cjs/test-helpers/index.js"
+      }
     }
   },
   "main": "./dist/cjs/lib.js",

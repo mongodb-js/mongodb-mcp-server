@@ -4,9 +4,8 @@ import {
     validateThrowsForInvalidArguments,
     getResponseElements,
     getDataFromUntrustedContent,
-    describeWithMongoDB,
-    validateAutoConnectBehavior,
-} from "@mongodb-js/mcp-test-utils";
+} from "../../../integrationHelpers.js";
+import { describeWithMongoDB, validateAutoConnectBehavior } from "../../../mongodbHelpers.js";
 import type { LogsOutput } from "@mongodb-js/mcp-tools-mongodb";
 
 describeWithMongoDB("logs tool", (integration) => {

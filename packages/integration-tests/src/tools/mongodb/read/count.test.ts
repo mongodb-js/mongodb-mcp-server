@@ -4,9 +4,8 @@ import {
     validateToolMetadata,
     validateThrowsForInvalidArguments,
     expectDefined,
-    describeWithMongoDB,
-    validateAutoConnectBehavior,
-} from "@mongodb-js/mcp-test-utils";
+} from "../../../integrationHelpers.js";
+import { describeWithMongoDB, validateAutoConnectBehavior } from "../../../mongodbHelpers.js";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { Client } from "@modelcontextprotocol/sdk/client";
 import { freshInsertDocuments } from "./find.test.js";

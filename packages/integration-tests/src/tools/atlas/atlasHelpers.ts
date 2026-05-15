@@ -1,7 +1,7 @@
 import { ObjectId } from "mongodb";
 import type { ApiClient, ClusterDescription20240805, Group } from "@mongodb-js/mcp-atlas-api-client";
-import type { IntegrationTest } from "@mongodb-js/mcp-test-utils";
-import { setupIntegrationTest, defaultTestConfig } from "@mongodb-js/mcp-test-utils";
+import type { IntegrationTest } from "../../integrationHelpers.js";
+import { setupIntegrationTest, defaultTestConfig } from "../../integrationHelpers.js";
 import type { SuiteCollector } from "vitest";
 import { afterAll, beforeAll, describe } from "vitest";
 import type { Session } from "mongodb-mcp-server";

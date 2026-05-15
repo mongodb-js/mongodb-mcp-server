@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { defaultTestConfig } from "@mongodb-js/mcp-test-utils";
+import { defaultTestConfig } from "../integrationHelpers.js";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { DeviceId } from "@mongodb-js/mcp-tools-mongodb";

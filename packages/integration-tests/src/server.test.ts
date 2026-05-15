@@ -8,8 +8,8 @@ import {
     expectDefined,
     InMemoryLogger,
     testConnectionManagerDriverLabels,
-} from "@mongodb-js/mcp-test-utils";
-import { describeWithMongoDB } from "@mongodb-js/mcp-test-utils";
+} from "./integrationHelpers.js";
+import { describeWithMongoDB } from "./mongodbHelpers.js";
 import { afterEach, describe, expect, it } from "vitest";
 import type { LoggerBase } from "@mongodb-js/mcp-core";
 import type { UserConfig } from "mongodb-mcp-server";

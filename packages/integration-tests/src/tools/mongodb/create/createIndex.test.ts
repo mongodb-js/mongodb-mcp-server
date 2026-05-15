@@ -5,10 +5,8 @@ import {
     validateThrowsForInvalidArguments,
     expectDefined,
     getResponseElements,
-    describeWithMongoDB,
-    validateAutoConnectBehavior,
-    waitUntilSearchIsReady,
-} from "@mongodb-js/mcp-test-utils";
+} from "../../../integrationHelpers.js";
+import { describeWithMongoDB, validateAutoConnectBehavior, waitUntilSearchIsReady } from "../../../mongodbHelpers.js";
 import type { CreateIndexOutput } from "@mongodb-js/mcp-tools-mongodb";
 import { ObjectId, type Collection, type Document, type IndexDirection } from "mongodb";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";

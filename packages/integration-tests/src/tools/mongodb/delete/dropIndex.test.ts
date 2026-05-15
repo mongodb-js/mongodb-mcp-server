@@ -8,11 +8,13 @@ import {
     getResponseContent,
     validateThrowsForInvalidArguments,
     validateToolMetadata,
+} from "../../../integrationHelpers.js";
+import {
     describeWithMongoDB,
     waitUntilSearchIndexIsListed,
     waitUntilSearchIsReady,
     type MongoDBIntegrationTestCase,
-} from "@mongodb-js/mcp-test-utils";
+} from "../../../mongodbHelpers.js";
 import { createMockElicitInput } from "@mongodb-js/mcp-test-utils";
 import { Elicitation } from "mongodb-mcp-server";
 import type { DropIndexOutput } from "@mongodb-js/mcp-tools-mongodb";

@@ -1,5 +1,5 @@
 import type { Session } from "mongodb-mcp-server";
-import { expectDefined, getResponseContent, sleep } from "@mongodb-js/mcp-test-utils";
+import { expectDefined, getResponseContent, sleep } from "../../integrationHelpers.js";
 import {
     describeWithAtlas,
     withProject,

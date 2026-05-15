@@ -26,7 +26,7 @@ export default defineConfig({
         pool: "threads",
         testTimeout: 3600000,
         hookTimeout: 3600000,
-        setupFiles: ["./packages/integration-tests/src/setup.ts"],
+        setupFiles: ["./packages/test-utils/src/setup.ts"],
         coverage: {
             exclude: [
                 // Required: import.meta.glob() in src/ui creates Vite virtual modules (\0 prefixed paths)

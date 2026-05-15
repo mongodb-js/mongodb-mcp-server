@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { describeWithMongoDB } from "@mongodb-js/mcp-test-utils";
+import { describeWithMongoDB } from "../mongodbHelpers.js";
 
 describeWithMongoDB("StdioRunner", (integration) => {
     describe("client connects successfully", () => {

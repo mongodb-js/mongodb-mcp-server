@@ -1,14 +1,16 @@
 import {
-    describeWithMongoDB,
-    validateAutoConnectBehavior,
-    createVectorSearchIndexAndWait,
-    waitUntilSearchIsReady,
     getResponseContent,
     databaseCollectionParameters,
     validateToolMetadata,
     validateThrowsForInvalidArguments,
     expectDefined,
-} from "@mongodb-js/mcp-test-utils";
+} from "../../../integrationHelpers.js";
+import {
+    describeWithMongoDB,
+    validateAutoConnectBehavior,
+    createVectorSearchIndexAndWait,
+    waitUntilSearchIsReady,
+} from "../../../mongodbHelpers.js";
 import type { InsertManyOutput } from "@mongodb-js/mcp-tools-mongodb";
 import { beforeEach, afterEach, expect, it, vi } from "vitest";
 import { ObjectId } from "bson";

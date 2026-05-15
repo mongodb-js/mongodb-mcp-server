@@ -22,13 +22,9 @@ import {
     ApiClient,
 } from "mongodb-mcp-server";
 import { CompositeLogger, InMemoryTransport, Keychain } from "@mongodb-js/mcp-core";
-import {
-    defaultTestConfig,
-    expectDefined,
-    testConnectionManagerDriverLabels,
-    MockMetrics,
-} from "@mongodb-js/mcp-test-utils";
-import { setupMongoDBIntegrationTest } from "@mongodb-js/mcp-test-utils";
+import { defaultTestConfig, expectDefined, testConnectionManagerDriverLabels } from "../../integrationHelpers.js";
+import { MockMetrics } from "@mongodb-js/mcp-test-utils";
+import { setupMongoDBIntegrationTest } from "../../mongodbHelpers.js";
 import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 
 const injectedErrorHandler: ConnectionErrorHandler = (error) => {

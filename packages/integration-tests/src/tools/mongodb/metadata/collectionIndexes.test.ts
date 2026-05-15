@@ -9,11 +9,13 @@ import {
     getDataFromUntrustedContent,
     getResponseContent,
     expectDefined,
+} from "../../../integrationHelpers.js";
+import {
     describeWithMongoDB,
     validateAutoConnectBehavior,
     waitUntilSearchIndexIsQueryable,
     waitUntilSearchIsReady,
-} from "@mongodb-js/mcp-test-utils";
+} from "../../../mongodbHelpers.js";
 import { beforeEach, describe, expect, it } from "vitest";
 
 const getIndexesFromContent = (content?: string): Array<unknown> => {

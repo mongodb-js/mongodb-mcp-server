@@ -1,5 +1,5 @@
-import { setupIntegrationTest, defaultTestConfig } from "@mongodb-js/mcp-test-utils";
-import type { IntegrationTest } from "@mongodb-js/mcp-test-utils";
+import { setupIntegrationTest, defaultTestConfig } from "../../integrationHelpers.js";
+import type { IntegrationTest } from "../../integrationHelpers.js";
 import { describe } from "vitest";
 import type { SuiteCollector } from "vitest";
 import { vi, beforeAll, afterAll, beforeEach } from "vitest";
@@ -18,7 +18,6 @@ export function describeWithAssistant(name: string, fn: MockIntegrationTestFunct
         });
     };
 
-    // eslint-disable-next-line vitest/valid-describe-callback
     return describe("assistant (mocked)", testDefinition);
 }
 
