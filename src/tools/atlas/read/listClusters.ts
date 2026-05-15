@@ -41,21 +41,35 @@ export class ListClustersTool extends AtlasToolBase {
                 throw new Error(`Project with ID "${projectId}" not found.`);
             }
 
-            const data = await this.apiClient.listClusters({
-                params: {
-                    path: {
-                        groupId: project.id || "",
+            const [clustersResult, flexClustersResult] = await Promise.allSettled([
+                this.apiClient.listClusters({
+                    params: {
+                        path: {
+                            groupId: project.id || "",
+                        },
                     },
-                },
-            });
+                }),
+                this.apiClient.listFlexClusters({
+                    params: {
+                        path: {
+                            groupId: project.id || "",
+                        },
+                    },
+                }),
+            ]);
 
-            return this.formatClustersTable(project, data);
+            const clusters = clustersResult.status === "fulfilled" ? clustersResult.value : undefined;
+            const flexClusters = flexClustersResult.status === "fulfilled" ? flexClustersResult.value : undefined;
+
+            return this.formatClustersTable(project, clusters, flexClusters);
         }
     }
 
     private formatAllClustersTable(clusters?: PaginatedOrgGroupView): CallToolResult {
         if (!clusters?.results?.length) {
-            throw new Error("No clusters found.");
+            return {
+                content: [{ type: "text", text: "No clusters found." }],
+            };
         }
         const formattedClusters = clusters.results
             .map((result) => {
@@ -67,7 +81,9 @@ export class ListClustersTool extends AtlasToolBase {
             })
             .flat();
         if (!formattedClusters.length) {
-            throw new Error("No clusters found.");
+            return {
+                content: [{ type: "text", text: "No clusters found." }],
+            };
         }
 
         return {
@@ -80,8 +96,8 @@ export class ListClustersTool extends AtlasToolBase {
 
     private formatClustersTable(
         project: Group,
-        clusters?: PaginatedClusterDescription20240805,
-        flexClusters?: PaginatedFlexClusters20241113
+        clusters: PaginatedClusterDescription20240805 | undefined,
+        flexClusters: PaginatedFlexClusters20241113 | undefined
     ): CallToolResult {
         // Check if both traditional clusters and flex clusters are absent
         if (!clusters?.results?.length && !flexClusters?.results?.length) {

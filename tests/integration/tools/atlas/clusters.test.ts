@@ -102,8 +102,12 @@ describeWithAtlas("clusters", (integration) => {
             });
 
             it("returns clusters by project", async () => {
-                const projectId = getProjectId();
+                const session = integration.mcpServer().session;
+                assertApiClientIsAvailable(session);
+                const listClustersSpy = vitest.spyOn(session.apiClient, "listClusters");
+                const listFlexClustersSpy = vitest.spyOn(session.apiClient, "listFlexClusters");
 
+                const projectId = getProjectId();
                 const response = await integration
                     .mcpClient()
                     .callTool({ name: "atlas-list-clusters", arguments: { projectId } });
@@ -112,6 +116,50 @@ describeWithAtlas("clusters", (integration) => {
                 expect(content).toContain("<untrusted-user-data-");
                 expect(content).toMatch(/Found \d+ clusters in project/);
                 expect(content).toContain(projectId);
+                expect(listClustersSpy).toHaveBeenCalledTimes(1);
+                expect(listFlexClustersSpy).toHaveBeenCalledTimes(1);
+            });
+
+            it("returns clusters when listFlexClusters fails", async () => {
+                const session = integration.mcpServer().session;
+                assertApiClientIsAvailable(session);
+                vitest
+                    .spyOn(session.apiClient, "listFlexClusters")
+                    .mockRejectedValue(new Error("Flex clusters not available"));
+
+                const projectId = getProjectId();
+                const response = await integration
+                    .mcpClient()
+                    .callTool({ name: "atlas-list-clusters", arguments: { projectId } });
+
+                const content = getResponseContent(response.content);
+                expect(content).toMatch(/Found \d+ clusters in project/);
+                expect(content).toContain(projectId);
+            });
+
+            it("returns clusters when listClusters fails", async () => {
+                const session = integration.mcpServer().session;
+                assertApiClientIsAvailable(session);
+                vitest.spyOn(session.apiClient, "listClusters").mockRejectedValue(new Error("Clusters not available"));
+
+                const projectId = getProjectId();
+                const response = await integration
+                    .mcpClient()
+                    .callTool({ name: "atlas-list-clusters", arguments: { projectId } });
+
+                const content = getResponseContent(response.content);
+                expect(content).toBeDefined();
+            });
+
+            it("returns a successful empty result when no clusters exist across all projects", async () => {
+                const session = integration.mcpServer().session;
+                assertApiClientIsAvailable(session);
+                vitest.spyOn(session.apiClient, "listClusterDetails").mockResolvedValue({ results: [], totalCount: 0 });
+
+                const response = await integration.mcpClient().callTool({ name: "atlas-list-clusters", arguments: {} });
+
+                expect(response.isError).toBeFalsy();
+                expect(getResponseContent(response.content)).toContain("No clusters found.");
             });
         });
 

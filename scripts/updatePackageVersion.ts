@@ -36,3 +36,14 @@ const manifestPath = join(import.meta.dirname, "..", "packaging", "mcpb", "manif
 const manifest = JSON.parse(readFileSync(manifestPath, "utf-8")) as { version: string };
 manifest.version = packageJson.version;
 writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
+
+// Keep the Azure Bicep template's default container image version in lockstep with package.json.
+const bicepPath = join(import.meta.dirname, "..", "deploy", "azure", "bicep", "main.bicep");
+const bicepContent = readFileSync(bicepPath, "utf-8");
+if (!packageJson.version.includes("-prerelease.")) {
+    const updatedBicepContent = bicepContent.replace(
+        /^(param containerImage string = 'mongodb\/mongodb-mcp-server:)[^']+(')/m,
+        `$1${packageJson.version}$2`
+    );
+    writeFileSync(bicepPath, updatedBicepContent);
+}
