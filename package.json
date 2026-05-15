@@ -121,6 +121,7 @@
     "@mongodb-js/oidc-mock-provider": "^0.13.7",
     "@redocly/cli": "^2.29.0",
     "@testing-library/jest-dom": "^6.9.1",
+    "@types/express": "^5.0.0",
     "@types/node": "^25.6.0",
     "@types/proper-lockfile": "^4.1.4",
     "@types/semver": "^7.7.0",
