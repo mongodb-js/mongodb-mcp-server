@@ -10,7 +10,7 @@ import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics } from "../../../mocks/metrics.js";
 import { Keychain } from "@mongodb-js/mcp-core";
-import type { DefaultMetrics } from "@mongodb-js/mcp-metrics";
+import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
 import type { IAtlasConfig, IAtlasSession } from "@mongodb-js/mcp-tools-atlas";
 
 class TestStreamsTool extends StreamsToolBase {
@@ -98,7 +98,7 @@ describe("StreamsToolBase", () => {
             requestConfirmation: vi.fn(),
         } as unknown as Elicitation;
 
-        const params: ToolConstructorParams<IAtlasConfig, unknown, DefaultMetrics> = {
+        const params: ToolConstructorParams<IAtlasConfig, DefaultPrometheusMetricDefinitions> = {
             name: TestStreamsTool.toolName,
             category: "atlas",
             operationType: TestStreamsTool.operationType,

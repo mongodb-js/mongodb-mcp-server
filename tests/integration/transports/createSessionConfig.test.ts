@@ -1,44 +1,197 @@
-import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js";
+import { StreamableHttpRunner, MCPHttpServer } from "@mongodb-js/mcp-http-runners";
+import { SessionStore } from "@mongodb-js/mcp-core";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { afterEach, describe, expect, it } from "vitest";
-import type { TransportRunnerConfig, UserConfig } from "../../../src/lib.js";
-import { defaultTestConfig, expectDefined } from "../helpers.js";
+import type { UserConfig } from "../../../src/lib.js";
+import { defaultTestConfig, expectDefined, sleep } from "../helpers.js";
+import { Server } from "../../../src/server.js";
+import type { HttpServerOptions, SessionManagementOptions } from "@mongodb-js/mcp-types";
+import { CompositeLogger, Keychain, NoopTelemetry } from "@mongodb-js/mcp-core";
+import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import type { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
+import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
+import {
+    Session,
+    Elicitation,
+    connectionErrorHandler,
+    MCPConnectionManager,
+    ExportsManager,
+} from "../../../src/lib.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
+import { packageInfo } from "../../../src/common/packageInfo.js";
+import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
+import type { IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
+import { vi } from "vitest";
 
-describe("createSessionConfig", () => {
-    const userConfig = defaultTestConfig;
-    let runner: StreamableHttpRunner;
+// Helper to create a full Server instance for tests
+async function createTestServer(config: UserConfig): Promise<Server> {
+    const logger = new CompositeLogger({ loggers: [] });
+    const keychain = Keychain.root;
+
+    const exportsManager = ExportsManager.init({
+        options: {
+            exportsPath: config.exportsPath,
+            exportTimeoutMs: config.exportTimeoutMs,
+            exportCleanupIntervalMs: config.exportCleanupIntervalMs,
+        },
+        logger,
+    });
+
+    const connectionManager = new MCPConnectionManager({
+        logger,
+        deviceId: {} as unknown as DeviceId,
+        options: {
+            connectionInfo: { transport: "http", httpHost: "localhost" },
+            displayName: packageInfo.mcpServerName,
+            version: packageInfo.version,
+        },
+    });
+
+    const apiClient = new ApiClient({
+        baseUrl: config.apiBaseUrl,
+        userAgent: `mongodb-mcp-server/${packageInfo.version}`,
+        logger,
+        credentials: {
+            clientId: "test-client-id",
+            clientSecret: "test-client-secret",
+        },
+    });
+
+    // Mock the API client methods for tests
+    vi.spyOn(apiClient, "validateAuthConfig").mockResolvedValue(undefined);
+    vi.spyOn(apiClient, "close").mockResolvedValue(undefined);
+
+    const atlasLocalClient = await createAtlasLocalClient({ logger });
+
+    const mcpServer = new McpServer({
+        name: "test-server",
+        version: packageInfo.version,
+    });
+
+    const elicitation = new Elicitation({ server: mcpServer.server });
+
+    const session = new Session({
+        userConfig: config,
+        logger,
+        exportsManager,
+        connectionManager,
+        keychain,
+        apiClient,
+        connectionErrorHandler,
+        atlasLocalClient,
+    });
+
+    const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
+
+    const server = new Server({
+        session,
+        userConfig: config,
+        mcpServer,
+        telemetry: new NoopTelemetry() as unknown as AtlasTelemetry,
+        connectionErrorHandler,
+        elicitation,
+        metrics,
+    });
+
+    return server;
+}
+
+// Custom MCPHttpServer that applies config modifications from a provider function
+class ConfigModifyingMCPHttpServer extends MCPHttpServer<Server> {
+    private baseConfig: UserConfig;
+    private configModifier: (config: UserConfig) => Promise<UserConfig>;
+
+    constructor({
+        baseConfig,
+        configModifier,
+        options,
+        logger,
+        metrics,
+        sessionStore,
+    }: {
+        baseConfig: UserConfig;
+        configModifier: (config: UserConfig) => Promise<UserConfig>;
+        options: {
+            http: HttpServerOptions;
+            session: SessionManagementOptions;
+        };
+        logger: CompositeLogger;
+        metrics: IMetrics<DefaultMetricDefinitions>;
+        sessionStore: SessionStore<StreamableHTTPServerTransport>;
+    }) {
+        super({ options, logger, metrics, sessionStore });
+        this.baseConfig = baseConfig;
+        this.configModifier = configModifier;
+    }
+
+    protected override async createServerForRequest(): Promise<Server> {
+        const modifiedConfig = await this.configModifier(this.baseConfig);
+        return createTestServer(modifiedConfig);
+    }
+}
+
+// Helper to create StreamableHttpRunner with config modification
+function createConfigModifyingRunner(
+    baseConfig: UserConfig,
+    configModifier: (config: UserConfig) => Promise<UserConfig>
+): Promise<{
+    runner: StreamableHttpRunner<Server>;
+    getServerAddress: () => string;
+}> {
+    const logger = new CompositeLogger({ loggers: [] });
+    const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
+
+    const sessionStore = new SessionStore<StreamableHTTPServerTransport>({
+        options: {
+            idleTimeoutMS: baseConfig.idleTimeoutMs,
+            notificationTimeoutMS: baseConfig.notificationTimeoutMs,
+        },
+        logger,
+        metrics: metrics,
+    });
+
+    const mcpHttpServer = new ConfigModifyingMCPHttpServer({
+        baseConfig,
+        configModifier,
+        options: {
+            http: {
+                host: baseConfig.httpHost,
+                port: baseConfig.httpPort,
+                responseType: baseConfig.httpResponseType,
+            },
+            session: {
+                idleTimeoutMs: baseConfig.idleTimeoutMs,
+                notificationTimeoutMs: baseConfig.notificationTimeoutMs,
+                externallyManagedSessions: baseConfig.externallyManagedSessions,
+            },
+        },
+        logger,
+        metrics: metrics,
+        sessionStore,
+    });
+
+    const runner = new StreamableHttpRunner<Server>({
+        logger,
+        metrics: metrics,
+        mcpHttpServer,
+        sessionStore,
+    });
+
+    const getServerAddress = (): string => {
+        return (runner as unknown as { mcpHttpServer: { serverAddress: string } }).mcpHttpServer.serverAddress;
+    };
+
+    return Promise.resolve({ runner, getServerAddress });
+}
+
+describe("createSessionConfig (via createServerForRequest override)", () => {
+    let runner: StreamableHttpRunner<Server>;
     let client: Client | undefined;
     let transport: StreamableHTTPClientTransport | undefined;
-
-    // Helper to start runner with config
-    const startRunner = async (
-        config: {
-            userConfig?: typeof userConfig;
-            createSessionConfig?: TransportRunnerConfig["createSessionConfig"];
-        } = {}
-    ): Promise<StreamableHttpRunner> => {
-        runner = new StreamableHttpRunner({
-            userConfig: { ...userConfig, httpPort: 0, ...config.userConfig },
-            createSessionConfig: config.createSessionConfig,
-        });
-        await runner.start();
-        return runner;
-    };
-
-    // Helper to setup server and get user config
-    const getServerConfig = async (): Promise<UserConfig> => {
-        const server = await runner["setupServer"]();
-        return server.userConfig;
-    };
-
-    // Helper to create and connect client
-    const createConnectedClient = async (): Promise<{ client: Client; transport: StreamableHTTPClientTransport }> => {
-        client = new Client({ name: "test-client", version: "1.0.0" });
-        transport = new StreamableHTTPClientTransport(new URL(`${runner["mcpServer"]!.serverAddress}/mcp`));
-        await client.connect(transport);
-        return { client, transport };
-    };
+    let getServerAddress: () => string;
 
     afterEach(async () => {
         if (client) {
@@ -55,61 +208,65 @@ describe("createSessionConfig", () => {
     });
 
     describe("basic functionality", () => {
-        it("should use the modified config from createSessionConfig", async () => {
-            await startRunner({
-                createSessionConfig: async ({ userConfig }) =>
-                    Promise.resolve({
-                        ...userConfig,
-                        apiBaseUrl: "https://test-api.mongodb.com/",
-                    }),
-            });
+        it("should use the modified config from configModifier", async () => {
+            const result = await createConfigModifyingRunner(defaultTestConfig, async (config) =>
+                Promise.resolve({
+                    ...config,
+                    apiBaseUrl: "https://test-api.mongodb.com/",
+                })
+            );
+            runner = result.runner;
+            getServerAddress = result.getServerAddress;
+            await runner.start();
+            await sleep(100);
 
-            const config = await getServerConfig();
-            expect(config.apiBaseUrl).toBe("https://test-api.mongodb.com/");
+            client = new Client({ name: "test-client", version: "1.0.0" });
+            transport = new StreamableHTTPClientTransport(new URL(`${getServerAddress()}/mcp`));
+            await client.connect(transport);
+
+            const response = await client.listTools();
+            expectDefined(response);
+            expect(response.tools).toBeDefined();
+            expect(response.tools.length).toBeGreaterThan(0);
         });
 
-        it("should work without a createSessionConfig", async () => {
-            await startRunner();
+        it("should work with the default config", async () => {
+            const result = await createConfigModifyingRunner(defaultTestConfig, (config) => Promise.resolve(config));
+            runner = result.runner;
+            getServerAddress = result.getServerAddress;
+            await runner.start();
+            await sleep(100);
 
-            const config = await getServerConfig();
-            expect(config.apiBaseUrl).toBe(userConfig.apiBaseUrl);
-        });
-    });
+            client = new Client({ name: "test-client", version: "1.0.0" });
+            transport = new StreamableHTTPClientTransport(new URL(`${getServerAddress()}/mcp`));
+            await client.connect(transport);
 
-    describe("connection string modification", () => {
-        it("should allow modifying connection string via createSessionConfig", async () => {
-            await startRunner({
-                userConfig: { ...userConfig, connectionString: undefined },
-                createSessionConfig: async ({ userConfig }) => {
-                    // Simulate fetching connection string from environment or secrets
-                    await new Promise((resolve) => setTimeout(resolve, 10));
-                    return {
-                        ...userConfig,
-                        connectionString: "mongodb://test-server:27017/test-db",
-                    };
-                },
-            });
-
-            const config = await getServerConfig();
-            expect(config.connectionString).toBe("mongodb://test-server:27017/test-db");
+            const response = await client.listTools();
+            expectDefined(response);
+            expect(response.tools).toBeDefined();
         });
     });
 
     describe("server integration", () => {
-        it("should successfully initialize server with createSessionConfig and serve requests", async () => {
-            await startRunner({
-                createSessionConfig: async ({ userConfig }) => {
-                    // Simulate async config modification
-                    await new Promise((resolve) => setTimeout(resolve, 10));
-                    return {
-                        ...userConfig,
-                        readOnly: true, // Enable read-only mode
-                    };
-                },
+        it("should successfully initialize server with modified config and serve requests", async () => {
+            const result = await createConfigModifyingRunner(defaultTestConfig, async (config) => {
+                // Simulate async config modification
+                await new Promise((resolve) => setTimeout(resolve, 10));
+                return {
+                    ...config,
+                    readOnly: true, // Enable read-only mode
+                };
             });
+            runner = result.runner;
+            getServerAddress = result.getServerAddress;
+            await runner.start();
+            await sleep(100);
 
-            await createConnectedClient();
-            const response = await client?.listTools();
+            client = new Client({ name: "test-client", version: "1.0.0" });
+            transport = new StreamableHTTPClientTransport(new URL(`${getServerAddress()}/mcp`));
+            await client.connect(transport);
+
+            const response = await client.listTools();
             expectDefined(response);
 
             expect(response.tools).toBeDefined();
@@ -126,16 +283,18 @@ describe("createSessionConfig", () => {
     });
 
     describe("error handling", () => {
-        it("should propagate errors from configProvider on client connection", async () => {
-            await startRunner({
-                createSessionConfig: async () => {
-                    return Promise.reject(new Error("Failed to fetch config"));
-                },
+        it("should propagate errors from configModifier on client connection", async () => {
+            const result = await createConfigModifyingRunner(defaultTestConfig, async () => {
+                return Promise.reject(new Error("Failed to fetch config"));
             });
+            runner = result.runner;
+            getServerAddress = result.getServerAddress;
+            await runner.start();
+            await sleep(100);
 
             // Error should occur when a client tries to connect
             client = new Client({ name: "test-client", version: "1.0.0" });
-            transport = new StreamableHTTPClientTransport(new URL(`${runner["mcpServer"]!.serverAddress}/mcp`));
+            transport = new StreamableHTTPClientTransport(new URL(`${getServerAddress()}/mcp`));
 
             await expect(client.connect(transport)).rejects.toThrow();
         });

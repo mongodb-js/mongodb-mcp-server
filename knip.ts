@@ -16,6 +16,7 @@ const config: KnipConfig = {
                 "vite.ui.config.ts",
             ],
             ignore: [
+                "packages/atlas-api-client/openapi.d.ts",
                 "tests/integration/fixtures/curl.mjs",
                 "tests/vitest.d.ts",
                 "src/ui/build/mount.tsx",
@@ -67,6 +68,9 @@ const config: KnipConfig = {
         // Type-only package — deps are used via `import type` so knip can't detect runtime usage
         "packages/types": {
             ignoreDependencies: ["@modelcontextprotocol/sdk", "mongodb-redact"],
+        },
+        "packages/http-transports": {
+            entry: ["src/index.ts!"],
         },
         "packages/tools-mongodb": {
             ignoreDependencies: [

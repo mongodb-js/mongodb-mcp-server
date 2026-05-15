@@ -4,8 +4,7 @@ import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver
 import { generateConnectionInfoFromCliArgs, type ConnectionInfo as MongoshConnectionInfo } from "@mongosh/arg-parser";
 import type { DeviceId } from "../helpers/deviceId.js";
 import { MongoDBError, ErrorCodes } from "./errors.js";
-import { type LoggerBase } from "@mongodb-js/mcp-core";
-import { LogId } from "@mongodb-js/mcp-logging";
+import { type LoggerBase, LogId } from "@mongodb-js/mcp-core";
 import { type AppNameComponents, setAppNameParamIfMissing } from "../helpers/connectionOptions.js";
 import {
     getConnectionStringInfo,

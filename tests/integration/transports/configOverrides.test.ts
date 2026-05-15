@@ -1,28 +1,212 @@
-import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js";
+import { StreamableHttpRunner, MCPHttpServer } from "@mongodb-js/mcp-http-runners";
+import { SessionStore } from "@mongodb-js/mcp-core";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { describe, expect, it, afterEach, beforeEach } from "vitest";
-import { defaultTestConfig, expectDefined } from "../helpers.js";
-import type { TransportRunnerConfig, UserConfig } from "../../../src/lib.js";
-import type { RequestContext } from "../../../src/transports/base.js";
+import { describe, expect, it, afterEach, beforeEach, vi } from "vitest";
+import { defaultTestConfig } from "../helpers.js";
+import type { UserConfig } from "../../../src/lib.js";
+import type {
+    DefaultMetricDefinitions,
+    HttpServerOptions,
+    IMetrics,
+    SessionManagementOptions,
+    TransportRequestContext,
+} from "@mongodb-js/mcp-types";
+import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
+import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { Server } from "../../../src/server.js";
+import {
+    Session,
+    Elicitation,
+    connectionErrorHandler,
+    MCPConnectionManager,
+    ExportsManager,
+    applyConfigOverrides,
+} from "../../../src/lib.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
+import { packageInfo } from "../../../src/common/packageInfo.js";
+import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
+import type { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
+import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
+import { NoopTelemetry } from "@mongodb-js/mcp-core";
+
+// Custom MCPHttpServer that applies config overrides from request headers
+class ConfigOverrideMCPHttpServer extends MCPHttpServer<Server> {
+    private baseConfig: UserConfig;
+
+    constructor({
+        baseConfig,
+        options,
+        logger,
+        metrics,
+        sessionStore,
+    }: {
+        baseConfig: UserConfig;
+        options: {
+            http: HttpServerOptions;
+            session: SessionManagementOptions;
+        };
+        logger: CompositeLogger;
+        metrics: IMetrics<DefaultMetricDefinitions>;
+        sessionStore: SessionStore<StreamableHTTPServerTransport>;
+    }) {
+        super({ options, logger, metrics, sessionStore });
+        this.baseConfig = baseConfig;
+    }
+
+    protected override async createServerForRequest(request: TransportRequestContext): Promise<Server> {
+        // Apply config overrides from request headers
+        const config = applyConfigOverrides({
+            baseConfig: this.baseConfig,
+            request,
+        });
+
+        return createTestServer(config);
+    }
+}
+
+// Helper to create a full Server instance for tests
+async function createTestServer(config: UserConfig): Promise<Server> {
+    const logger = new CompositeLogger({ loggers: [] });
+    const keychain = Keychain.root;
+
+    const exportsManager = ExportsManager.init({
+        options: {
+            exportsPath: config.exportsPath,
+            exportTimeoutMs: config.exportTimeoutMs,
+            exportCleanupIntervalMs: config.exportCleanupIntervalMs,
+        },
+        logger,
+    });
+
+    const connectionManager = new MCPConnectionManager({
+        logger,
+        deviceId: {} as unknown as DeviceId,
+        options: {
+            connectionInfo: { transport: "http", httpHost: "localhost" },
+            displayName: packageInfo.mcpServerName,
+            version: packageInfo.version,
+        },
+    });
+
+    const apiClient = new ApiClient({
+        baseUrl: config.apiBaseUrl,
+        userAgent: `mongodb-mcp-server/${packageInfo.version}`,
+        logger,
+        credentials: {
+            clientId: "test-client-id",
+            clientSecret: "test-client-secret",
+        },
+    });
+
+    // Mock the API client methods for tests
+    vi.spyOn(apiClient, "validateAuthConfig").mockResolvedValue(undefined);
+    vi.spyOn(apiClient, "close").mockResolvedValue(undefined);
+
+    const atlasLocalClient = await createAtlasLocalClient({ logger });
+
+    const mcpServer = new McpServer({
+        name: "test-server",
+        version: packageInfo.version,
+    });
+
+    const elicitation = new Elicitation({ server: mcpServer.server });
+
+    const session = new Session({
+        userConfig: config,
+        logger,
+        exportsManager,
+        connectionManager,
+        keychain,
+        apiClient,
+        connectionErrorHandler,
+        atlasLocalClient,
+    });
+
+    const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
+
+    const server = new Server({
+        session,
+        userConfig: config,
+        mcpServer,
+        telemetry: new NoopTelemetry() as unknown as AtlasTelemetry,
+        connectionErrorHandler,
+        elicitation,
+        metrics,
+    });
+
+    return server;
+}
+
+// Helper to create StreamableHttpRunner with config override support
+function createConfigOverrideRunner(baseConfig: UserConfig): Promise<{
+    runner: StreamableHttpRunner<Server>;
+    getServerAddress: () => string;
+}> {
+    const logger = new CompositeLogger({ loggers: [] });
+    const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
+
+    const sessionStore = new SessionStore<StreamableHTTPServerTransport>({
+        options: {
+            idleTimeoutMS: baseConfig.idleTimeoutMs,
+            notificationTimeoutMS: baseConfig.notificationTimeoutMs,
+        },
+        logger,
+        metrics: metrics,
+    });
+
+    const mcpHttpServer = new ConfigOverrideMCPHttpServer({
+        baseConfig,
+        options: {
+            http: {
+                host: baseConfig.httpHost,
+                port: baseConfig.httpPort,
+                responseType: baseConfig.httpResponseType,
+            },
+            session: {
+                idleTimeoutMs: baseConfig.idleTimeoutMs,
+                notificationTimeoutMs: baseConfig.notificationTimeoutMs,
+                externallyManagedSessions: baseConfig.externallyManagedSessions,
+            },
+        },
+        logger,
+        metrics: metrics,
+        sessionStore,
+    });
+
+    const runner = new StreamableHttpRunner<Server>({
+        logger,
+        metrics: metrics,
+        mcpHttpServer,
+        sessionStore,
+    });
+
+    const getServerAddress = (): string => {
+        return (runner as unknown as { mcpHttpServer: { serverAddress: string } }).mcpHttpServer.serverAddress;
+    };
+
+    return Promise.resolve({ runner, getServerAddress });
+}
 
 describe("Config Overrides via HTTP", () => {
-    let runner: StreamableHttpRunner;
+    let runner: StreamableHttpRunner<Server>;
     let client: Client;
     let transport: StreamableHTTPClientTransport;
+    let getServerAddress: () => string;
 
     // Helper function to setup and start runner with config
-    async function startRunner(
-        config: UserConfig,
-        createSessionConfig?: TransportRunnerConfig["createSessionConfig"]
-    ): Promise<void> {
-        runner = new StreamableHttpRunner({ userConfig: config, createSessionConfig });
+    async function startRunner(baseConfig: UserConfig): Promise<void> {
+        const result = await createConfigOverrideRunner(baseConfig);
+        runner = result.runner;
+        getServerAddress = result.getServerAddress;
         await runner.start();
     }
 
     // Helper function to connect client with headers
     async function connectClient(headers: Record<string, string> = {}): Promise<void> {
-        transport = new StreamableHTTPClientTransport(new URL(`${runner["mcpServer"]!.serverAddress}/mcp`), {
+        transport = new StreamableHTTPClientTransport(new URL(`${getServerAddress()}/mcp`), {
             requestInit: { headers },
         });
         await client.connect(transport);
@@ -95,7 +279,7 @@ describe("Config Overrides via HTTP", () => {
             expect(readTools.length).toBe(1);
         });
 
-        it("should not be able tooverride connectionString with header", async () => {
+        it("should not be able to override connectionString with header", async () => {
             await startRunner({
                 ...defaultTestConfig,
                 httpPort: 0,
@@ -113,7 +297,7 @@ describe("Config Overrides via HTTP", () => {
                     throw new Error("Expected an error to be thrown", { cause: error });
                 }
                 expect(error.message).toContain("Error POSTing to endpoint");
-                expect(error.message).toContain(`Config key connectionString is not allowed to be overridden`);
+                expect(error.message).toContain("Config key connectionString is not allowed to be overridden");
             }
         });
     });
@@ -256,86 +440,6 @@ describe("Config Overrides via HTTP", () => {
         });
     });
 
-    describe("integration with createSessionConfig", () => {
-        it("should allow createSessionConfig to override header values", async () => {
-            const userConfig = {
-                ...defaultTestConfig,
-                httpPort: 0,
-                readOnly: false,
-                allowRequestOverrides: true,
-            };
-
-            // createSessionConfig receives the config after header overrides are applied
-            // It can further modify it, but headers have already been applied
-            const createSessionConfig: TransportRunnerConfig["createSessionConfig"] = ({
-                userConfig: config,
-                request,
-            }: {
-                userConfig: typeof userConfig;
-                request?: RequestContext;
-            }): typeof userConfig => {
-                expectDefined(request);
-                expectDefined(request.headers);
-                expect(request.headers).toBeDefined();
-                config.readOnly = request.headers["x-mongodb-mcp-read-only"] === "true";
-                config.disabledTools = ["count"];
-                return config;
-            };
-
-            await startRunner(userConfig, createSessionConfig);
-
-            await connectClient({
-                ["x-mongodb-mcp-read-only"]: "true",
-            });
-
-            const response = await client.listTools();
-
-            expect(response).toBeDefined();
-
-            // Verify read-only mode was applied, as specified in request and
-            const writeTools = response.tools.filter((tool) => tool.name === "insert-many");
-            expect(writeTools.length).toBe(0);
-
-            // Verify create session config overrides were applied
-            const countTool = response.tools.find((tool) => tool.name === "count");
-            expect(countTool).toBeUndefined();
-
-            expect(response.tools).not.toHaveLength(0);
-        });
-
-        it("should pass request context to createSessionConfig", async () => {
-            const userConfig = {
-                ...defaultTestConfig,
-                httpPort: 0,
-                allowRequestOverrides: true,
-            };
-
-            let capturedRequest: RequestContext | undefined;
-            const createSessionConfig: TransportRunnerConfig["createSessionConfig"] = ({
-                request,
-            }: {
-                userConfig: typeof userConfig;
-                request?: RequestContext;
-            }): Promise<typeof userConfig> => {
-                expectDefined(request);
-                expectDefined(request.headers);
-                capturedRequest = request;
-                return Promise.resolve(userConfig);
-            };
-
-            await startRunner(userConfig, createSessionConfig);
-
-            await connectClient({
-                "x-custom-header": "test-value",
-            });
-
-            // Verify that request context was passed
-            expectDefined(capturedRequest);
-            expectDefined(capturedRequest.headers);
-            expect(capturedRequest.headers["x-custom-header"]).toBe("test-value");
-        });
-    });
-
     describe("conditional overrides", () => {
         it("should allow readOnly from false to true", async () => {
             await startRunner({
@@ -380,7 +484,7 @@ describe("Config Overrides via HTTP", () => {
                     throw new Error("Expected an error to be thrown", { cause: error });
                 }
                 expect(error.message).toContain("Error POSTing to endpoint");
-                expect(error.message).toContain(`Cannot apply override for readOnly: Can only set to true`);
+                expect(error.message).toContain("Cannot apply override for readOnly: Can only set to true");
             }
         });
     });

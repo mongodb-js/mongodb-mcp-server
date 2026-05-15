@@ -1,8 +1,8 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { type OperationType, type ToolArgs } from "@mongodb-js/mcp-core";
 import { AtlasToolBase } from "../../atlasTool.js";
+import { LogId } from "@mongodb-js/mcp-core";
 import { generateSecurePassword } from "../../helpers/generatePassword.js";
-import { LogId } from "@mongodb-js/mcp-logging";
 import { getConnectionString, inspectCluster } from "../../helpers/cluster.js";
 import { ensureCurrentIpInAccessList } from "../../helpers/accessListUtils.js";
 import { getDefaultRoleFromConfig } from "../../helpers/roles.js";

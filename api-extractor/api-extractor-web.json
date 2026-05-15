@@ -20,5 +20,9 @@
     "enabled": true,
     "reportFolder": "<projectFolder>/api-extractor/reports/",
     "reportFileName": "web"
+  },
+
+  "docModel": {
+    "enabled": false
   }
 }

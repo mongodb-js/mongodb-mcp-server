@@ -1,11 +1,6 @@
-export {
-    TransportRunnerBase,
-    type TransportRunnerConfig,
-    type CreateSessionConfigFn,
-    type RequestContext as TransportRequestContextDeprecated,
-} from "./transports/base.js";
+export { type ITransportRunner, type TransportRequestContext } from "@mongodb-js/mcp-types";
 export { UserConfigSchema, type UserConfig } from "./common/config/userConfig.js";
-export { createDefaultMetrics, type DefaultMetrics } from "@mongodb-js/mcp-metrics";
+export { createDefaultMetrics, type DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
 export {
     Server,
     type ServerOptions,
@@ -15,23 +10,21 @@ export {
 } from "./server.js";
 export { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 export { LoggerBase, CompositeLogger, type EventMap, type DefaultEventMap } from "@mongodb-js/mcp-core";
-export type { Metrics, MetricDefinitions } from "@mongodb-js/mcp-metrics";
-export type { TransportRequestContext } from "./transports/base.js";
+export type { DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
 export type {
-    TelemetryCommonProperties as CommonProperties,
+    TelemetryCommonProperties,
     TelemetryBoolSet,
-    TelemetryCommonStaticProperties as CommonStaticProperties,
+    TelemetryCommonStaticProperties,
     TelemetryResult,
     TelemetryToolMetadata,
-    AtlasConnectionMetadata as ConnectionMetadata,
+    AtlasConnectionMetadata,
     AtlasMetadata,
     AtlasLocalToolMetadata,
-    AtlasPerfAdvisorToolMetadata as PerfAdvisorToolMetadata,
-    AtlasStreamsToolMetadata as StreamsToolMetadata,
+    AtlasPerfAdvisorToolMetadata,
+    AtlasStreamsToolMetadata,
     UpgradeClusterMetadata,
 } from "@mongodb-js/mcp-atlas-telemetry";
 export { Session, type SessionOptions, type SessionEvents } from "./common/session.js";
-export type { CustomizableServerOptions, CustomizableSessionOptions } from "./transports/base.js";
 export type { LogLevel, LogPayload, LoggerType } from "@mongodb-js/mcp-core";
 export { Keychain } from "@mongodb-js/mcp-core";
 export type { Secret } from "mongodb-redact";
@@ -87,14 +80,9 @@ export type {
     TelemetryEvents,
     TelemetryConfig,
     TelemetryEvent,
-    TelemetryBaseEvent as BaseEvent,
+    TelemetryBaseEvent,
 } from "@mongodb-js/mcp-atlas-telemetry";
 export { ErrorCodes, MongoDBError } from "./common/errors.js";
 export { getRandomUUID } from "./helpers/getRandomUUID.js";
 export type { AuthProvider, Credentials } from "@mongodb-js/mcp-atlas-api-client";
-export type {
-    ConnectionStringAuthType,
-    ConnectionStringHostType,
-    OIDCConnectionAuthType as ConnectionInfoOIDCConnectionAuthType,
-} from "@mongodb-js/mcp-tools-mongodb";
 export type { PreviewFeature, previewFeatureValues } from "@mongodb-js/mcp-tools-mongodb";

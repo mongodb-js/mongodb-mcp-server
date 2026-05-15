@@ -5,7 +5,7 @@
 
   "bundledPackages": [
     "@mongodb-js/mcp-core",
-    "@mongodb-js/mcp-http-transports",
+    "@mongodb-js/mcp-http-runners",
     "@mongodb-js/mcp-tools-mongodb",
     "@mongodb-js/mcp-atlas-api-client",
     "@mongodb-js/mcp-atlas-telemetry",

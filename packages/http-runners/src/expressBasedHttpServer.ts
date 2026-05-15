@@ -1,30 +1,46 @@
 import express from "express";
 import type http from "http";
-import { LogId } from "@mongodb-js/mcp-logging";
-import type { LoggerBase } from "../lib.js";
+import type { ILogger, HttpServerOptions } from "@mongodb-js/mcp-types";
+import { LogId } from "@mongodb-js/mcp-core";
 
-export type ExpressConfig = {
-    port: number;
-    hostname: string;
+export type ExpressBasedHttpServerOptions = {
+    logContext: string;
+    http: HttpServerOptions;
 };
 
-/** @internal */
+/**
+ * Base class for Express-based HTTP servers.
+ * Provides common functionality for starting and stopping HTTP servers.
+ */
 export abstract class ExpressBasedHttpServer {
     protected httpServer: http.Server | undefined;
     protected app: express.Express;
 
-    protected readonly logger: LoggerBase;
+    protected readonly logger: ILogger;
     protected readonly logContext: string;
+    protected readonly httpOptions: HttpServerOptions;
 
-    protected readonly expressConfig: ExpressConfig;
-
-    constructor(config: { logger: LoggerBase; logContext: string } & ExpressConfig) {
+    constructor({ options, logger }: { options: ExpressBasedHttpServerOptions; logger: ILogger }) {
         this.app = express();
         this.app.enable("trust proxy"); // needed for reverse proxy support
-        this.expressConfig = { port: config.port, hostname: config.hostname };
+        this.httpOptions = options.http;
+        this.logger = logger;
+        this.logContext = options.logContext;
+    }
 
-        this.logger = config.logger;
-        this.logContext = config.logContext;
+    private checkHttpHost(): void {
+        const host = this.httpOptions.host.trim();
+        const safeHosts = new Set(["127.0.0.1", "localhost", "::1"]);
+        const shouldWarn = !safeHosts.has(host) && host !== "";
+
+        if (shouldWarn) {
+            this.logger.warning({
+                id: LogId.streamableHttpTransportHttpHostWarning,
+                context: this.logContext,
+                message: `Binding to ${this.httpOptions.host} can expose the MCP Server to the entire local network, which allows other devices on the same network to potentially access the MCP Server. This is a security risk and could allow unauthorized access to your database context.`,
+                noRedaction: true,
+            });
+        }
     }
 
     public get serverAddress(): string {
@@ -35,19 +51,20 @@ export abstract class ExpressBasedHttpServer {
         if (typeof result === "object" && result) {
             return `http://${result.address}:${result.port}`;
         }
-
         throw new Error("Server is not started yet");
     }
 
     protected abstract setupRoutes(): Promise<void>;
 
     public async start(): Promise<void> {
+        this.checkHttpHost();
+
         await this.setupRoutes();
 
-        const { port, hostname } = this.expressConfig;
+        const { port, host } = this.httpOptions;
 
         this.httpServer = await new Promise<http.Server>((resolve, reject) => {
-            const result = this.app.listen(port, hostname, (err?: Error) => {
+            const result = this.app.listen(port, host, (err?: Error) => {
                 if (err) {
                     reject(err);
                 } else {

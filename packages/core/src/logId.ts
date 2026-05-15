@@ -4,6 +4,10 @@ function mongoLogId(id: number): MongoLogId {
     return { __value: id };
 }
 
+/**
+ * Log IDs for use across all MCP packages.
+ * These are defined in @mongodb-js/mcp-core to avoid circular dependencies.
+ */
 export const LogId = {
     serverStartFailure: mongoLogId(1_000_001),
     serverInitialized: mongoLogId(1_000_002),
@@ -52,9 +56,9 @@ export const LogId = {
     toolValidationError: mongoLogId(1_005_004),
 
     streamableHttpTransportStarted: mongoLogId(1_006_001),
-    streamableHttpTransportSessionCloseFailure: mongoLogId(1_006_002),
-    streamableHttpTransportSessionCloseNotification: mongoLogId(1_006_003),
-    streamableHttpTransportSessionCloseNotificationFailure: mongoLogId(1_006_004),
+    sessionCloseFailure: mongoLogId(1_006_002),
+    sessionCloseNotification: mongoLogId(1_006_003),
+    sessionCloseNotificationFailure: mongoLogId(1_006_004),
     streamableHttpTransportRequestFailure: mongoLogId(1_006_005),
     streamableHttpTransportCloseFailure: mongoLogId(1_006_006),
     streamableHttpTransportKeepAliveFailure: mongoLogId(1_006_007),
