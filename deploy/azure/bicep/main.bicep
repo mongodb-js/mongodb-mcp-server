@@ -1,14 +1,14 @@
-@description('Name of the Container Apps Environment. Leave blank to create a new one.')
-param containerAppEnvName string = ''
-
 @description('Location of resources')
 param location string = resourceGroup().location
+
+@description('Existing Azure Container Apps environment name to reuse. Leave empty to create a new environment.')
+param containerAppEnvironmentName string = ''
 
 @description('Name of the Container App')
 param containerAppName string = 'mongo-mcp-server-app'
 
 @description('Docker image to deploy')
-param containerImage string = 'mongodb/mongodb-mcp-server:1.2.0'
+param containerImage string = 'mongodb/mongodb-mcp-server:1.10.0'
 
 @description('Container CPU (vCPU) as string. Allowed: 0.25 - 2.0 in 0.25 increments')
 @allowed([
@@ -68,23 +68,42 @@ param authAllowedClientApps array = []
 @description('MongoDB Connection String')
 param mdbConnectionString string
 
-// Create Container App Environment if not provided
-resource containerAppEnv 'Microsoft.App/managedEnvironments@2024-02-02-preview' = if (empty(containerAppEnvName)) {
-  name: 'mcp-env-${uniqueString(resourceGroup().id)}'
+
+var useExistingContainerAppEnvironment = !empty(containerAppEnvironmentName)
+
+// Reuse an existing ACA environment when one is supplied.
+resource existingContainerAppEnv 'Microsoft.App/managedEnvironments@2024-02-02-preview' existing = if (useExistingContainerAppEnvironment) {
+  name: containerAppEnvironmentName
+}
+
+// Otherwise create a new ACA environment with a name that is stable per app.
+resource containerAppEnv 'Microsoft.App/managedEnvironments@2024-02-02-preview' = if (!useExistingContainerAppEnvironment) {
+  name: 'mcp-env-${uniqueString(resourceGroup().id, containerAppName)}'
   location: location
   properties: {}
 }
 
-// Get the Container App Environment resource ID (either existing or newly created)
-var envResourceId = empty(containerAppEnvName) 
-  ? containerAppEnv.id 
-  : resourceId('Microsoft.App/managedEnvironments', containerAppEnvName)
+var envResourceId = useExistingContainerAppEnvironment ? existingContainerAppEnv.id : containerAppEnv.id
 
 // Build environment variables array
 var envVarsArray = [
   for item in items(appEnvironmentVars): {
     name: item.key
     value: string(item.value)
+  }
+]
+
+var containerAppSecrets = [
+  {
+    name: 'mdb-mcp-connection-string'
+    value: mdbConnectionString
+  }
+]
+
+var connectionSecretEnvVars = [
+  {
+    name: 'MDB_MCP_CONNECTION_STRING'
+    secretRef: 'mdb-mcp-connection-string'
   }
 ]
 
@@ -135,12 +154,7 @@ resource containerApp 'Microsoft.App/containerApps@2024-02-02-preview' = {
         targetPort: int(appEnvironmentVars.MDB_MCP_HTTP_PORT)
         transport: 'auto'
       }
-      secrets: [
-        {
-          name: 'mdb-mcp-connection-string'
-          value: mdbConnectionString
-        }
-      ]
+      secrets: containerAppSecrets
     }
     template: {
       containers: [
@@ -154,12 +168,7 @@ resource containerApp 'Microsoft.App/containerApps@2024-02-02-preview' = {
           env: concat(
             envVarsArray,
             authEnvVars,
-            [
-              {
-                name: 'MDB_MCP_CONNECTION_STRING'
-                secretRef: 'mdb-mcp-connection-string'
-              }
-            ]
+            connectionSecretEnvVars
           )
         }
       ]
@@ -209,4 +218,5 @@ resource containerAppAuth 'Microsoft.App/containerApps/authConfigs@2024-10-02-pr
   }
 }
 
-output containerAppUrl string = containerApp.properties.configuration.ingress.fqdn
+output containerAppUrl string = 'https://${containerApp.properties.configuration.ingress.fqdn}/mcp'
+output managedEnvironmentName string = useExistingContainerAppEnvironment ? existingContainerAppEnv.name : containerAppEnv.name
