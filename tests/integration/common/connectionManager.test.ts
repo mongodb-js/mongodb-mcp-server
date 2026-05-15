@@ -139,6 +139,7 @@ describeWithMongoDB("Connection Manager", (integration) => {
 
         describe("when fails to connect to a new atlas cluster", () => {
             const atlas = {
+                authType: "temp-user" as const,
                 username: "",
                 projectId: "",
                 clusterName: "My Atlas Cluster",

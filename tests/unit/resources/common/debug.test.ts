@@ -111,6 +111,7 @@ describe("debug resource", () => {
             },
             errorReason: "Error message from the server",
             connectedAtlasCluster: {
+                authType: "temp-user" as const,
                 clusterName: "My Test Cluster",
                 projectId: "COFFEEFABADA",
                 username: "",

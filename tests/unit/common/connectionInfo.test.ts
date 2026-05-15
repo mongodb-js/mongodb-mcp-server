@@ -215,6 +215,7 @@ describe("connectionInfo", () => {
 
     describe("getConnectionStringInfo", () => {
         const atlasClusterInfo: AtlasClusterConnectionInfo = {
+            authType: "temp-user",
             username: "testuser",
             projectId: "project123",
             clusterName: "TestCluster",

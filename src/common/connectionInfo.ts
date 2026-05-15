@@ -21,19 +21,29 @@ export interface ConnectionStringInfo {
     hostType: ConnectionStringHostType;
 }
 
-/**
- * Atlas cluster connection info containing details about the connected Atlas cluster.
- * When provided, indicates the connection is to an Atlas cluster.
- */
-export interface AtlasClusterConnectionInfo {
-    username: string;
+interface AtlasClusterConnectionInfoBase {
     projectId: string;
     clusterName: string;
     instanceType: "FREE" | "FLEX" | "DEDICATED";
     provider?: string;
     region?: string;
+}
+
+export interface AtlasTempUserConnectionInfo extends AtlasClusterConnectionInfoBase {
+    authType: "temp-user";
+    username: string;
     expiryDate: Date;
 }
+
+export interface AtlasOIDCConnectionInfo extends AtlasClusterConnectionInfoBase {
+    authType: "oidc";
+}
+
+/**
+ * Atlas cluster connection info containing details about the connected Atlas cluster.
+ * When provided, indicates the connection is to an Atlas cluster.
+ */
+export type AtlasClusterConnectionInfo = AtlasTempUserConnectionInfo | AtlasOIDCConnectionInfo;
 
 /**
  * Get metadata about the connection string including authentication type and host type.

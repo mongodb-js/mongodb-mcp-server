@@ -208,6 +208,27 @@ const ServerConfigSchema = z.object({
             "Time in milliseconds that temporary database users created when connecting to MongoDB Atlas clusters will remain active before being automatically deleted."
         )
         .register(configRegistry, { overrideBehavior: onlyLowerThanBaseValueOverride() }),
+    atlasAuthMechanism: z
+        .enum(["username-password", "mongodb-oidc"])
+        .default("username-password")
+        .describe(
+            "Authentication mechanism used when connecting to Atlas clusters via the atlas-connect-cluster tool. " +
+                "'username-password' (default) creates a temporary database user. " +
+                "'mongodb-oidc' uses OIDC authentication and avoids creating temporary users — requires the Atlas project to have OIDC configured as a database user auth method (MongoDB 7.0+). " +
+                "Clusters running MongoDB older than 7.0 automatically fall back to 'username-password'. " +
+                "When using 'mongodb-oidc', ensure the OIDC database user in Atlas has appropriate cluster scopes (or no scope to allow all clusters) and database roles for the operations needed."
+        )
+        .register(configRegistry, {}),
+    atlasOidcMechanismProperties: z
+        .string()
+        .default("")
+        .describe(
+            "Additional OIDC mechanism properties appended to the connection string when atlasAuthMechanism is 'mongodb-oidc'. " +
+                "Required for workload identity federation. " +
+                "Examples: 'ENVIRONMENT:azure' (Azure Managed Identity), 'ENVIRONMENT:gcp,TOKEN_RESOURCE:<audience>' (GCP), 'ENVIRONMENT:k8s,TOKEN_RESOURCE:<audience>' (Kubernetes). " +
+                "Leave empty for workforce identity federation (human interactive browser/device-code flows)."
+        )
+        .register(configRegistry, {}),
     voyageApiKey: z
         .string()
         .default("")

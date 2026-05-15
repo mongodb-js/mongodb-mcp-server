@@ -108,7 +108,7 @@ export class Session extends EventEmitter<SessionEvents> {
 
         await this.connectionManager.close();
 
-        if (atlasCluster?.username && atlasCluster?.projectId && this.apiClient) {
+        if (atlasCluster?.authType === "temp-user" && this.apiClient) {
             void this.apiClient
                 .deleteDatabaseUser({
                     params: {
