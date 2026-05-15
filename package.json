@@ -74,7 +74,7 @@
     "check:lint": "eslint .",
     "check:dependencies": "knip --strict",
     "check:format": "prettier -c .",
-    "update:api": "pnpm run build && concurrently \"api-extractor run --local --config api-extractor.json\" \"api-extractor run --local --config api-extractor/api-extractor-web.json\" \"pnpm --filter @mongodb-js/mcp-ui update:api\"",
+    "update:api": "pnpm run build && concurrently \"api-extractor run --local --config api-extractor.json\" \"api-extractor run --local --config api-extractor/api-extractor-web.json\" \"api-extractor run --local --config api-extractor/api-extractor-tools.json\" \"pnpm --filter @mongodb-js/mcp-ui update:api\"",
     "check:types": "tsc --noEmit --project tsconfig.json",
     "fix": "pnpm run fix:lint && pnpm run reformat",
     "fix:lint": "eslint . --fix",
