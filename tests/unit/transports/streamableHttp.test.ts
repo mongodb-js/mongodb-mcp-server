@@ -6,14 +6,14 @@ import {
     type MonitoringServerOptions,
 } from "@mongodb-js/mcp-http-runners";
 import { SessionStore, type ISessionStore } from "@mongodb-js/mcp-core";
-import { defaultTestConfig } from "../../integration/helpers.js";
+import { defaultTestConfig } from "@mongodb-js/mcp-test-utils";
 import type { Request, Response } from "express";
 import { NoopLogger, CompositeLogger, type LoggerBase } from "@mongodb-js/mcp-core";
-import { MockMetrics } from "../mocks/metrics.js";
+import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import type { UserConfig } from "../../../src/common/config/userConfig.js";
+import type { UserConfig } from "mongodb-mcp-server";
 import type { DefaultMetricDefinitions, ICompositeLogger } from "@mongodb-js/mcp-types";
-import type { SessionAwareServer } from "../../../packages/http-runners/src/mcpHttpServer.js";
+import type { SessionAwareServer } from "@mongodb-js/mcp-http-runners";
 
 /**
  * Minimal concrete implementation of MCPHttpServer for testing.

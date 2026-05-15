@@ -3,9 +3,10 @@ import {
     validateToolMetadata,
     validateThrowsForInvalidArguments,
     getResponseContent,
+    describeWithMongoDB,
+    validateAutoConnectBehavior,
 } from "@mongodb-js/mcp-test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
-import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 import type { UpdateManyOutput } from "@mongodb-js/mcp-tools-mongodb";
 
 describeWithMongoDB("updateMany tool", (integration) => {

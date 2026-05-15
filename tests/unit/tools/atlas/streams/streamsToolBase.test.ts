@@ -5,10 +5,10 @@ import type { ToolConstructorParams, OperationType, ToolArgs } from "@mongodb-js
 import { StreamsToolBase } from "@mongodb-js/mcp-tools-atlas";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import type { AtlasTelemetry, TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
-import type { Elicitation } from "../../../../../src/elicitation.js";
+import type { Elicitation } from "mongodb-mcp-server";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
-import { MockMetrics } from "../../../mocks/metrics.js";
+import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 import { Keychain } from "@mongodb-js/mcp-core";
 import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
 import type { IAtlasConfig, IAtlasSession } from "@mongodb-js/mcp-tools-atlas";

@@ -9,9 +9,9 @@ import {
     resourceChangedNotification,
     validateThrowsForInvalidArguments,
     validateToolMetadata,
+    describeWithMongoDB,
 } from "@mongodb-js/mcp-test-utils";
-import { describeWithMongoDB } from "../mongodbHelpers.js";
-import type { UserConfig } from "../../../../../src/lib.js";
+import type { UserConfig } from "mongodb-mcp-server";
 
 const userConfig: UserConfig = {
     ...defaultTestConfig,

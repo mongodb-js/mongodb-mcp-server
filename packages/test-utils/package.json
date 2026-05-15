@@ -12,7 +12,9 @@
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "compile": "tsc --build tsconfig.json"
   },
@@ -20,7 +22,6 @@
     "mongodb-mcp-server": "workspace:*",
     "@mongodb-js/mcp-core": "workspace:*",
     "@mongodb-js/mcp-types": "workspace:*",
-    "@mongodb-js/mcp-logging": "workspace:*",
     "mongodb": "^7.1.1",
     "mongodb-runner": "^6.7.6",
     "testcontainers": "^11.14.0",

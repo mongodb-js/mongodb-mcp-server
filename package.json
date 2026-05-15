@@ -150,7 +150,8 @@
     "vite-plugin-singlefile": "^2.3.2",
     "vitest": "^4.1.5",
     "yaml": "^2.8.1",
-    "@types/express": "^5.0.3"
+    "@types/express": "^5.0.3",
+    "@mongodb-js/mcp-test-utils": "workspace:*"
   },
   "dependencies": {
     "@inquirer/prompts": "^8.0.2",

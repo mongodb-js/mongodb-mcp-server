@@ -8,15 +8,13 @@ import {
     getResponseContent,
     validateThrowsForInvalidArguments,
     validateToolMetadata,
-} from "@mongodb-js/mcp-test-utils";
-import {
     describeWithMongoDB,
     waitUntilSearchIndexIsListed,
     waitUntilSearchIsReady,
     type MongoDBIntegrationTestCase,
-} from "../mongodbHelpers.js";
-import { createMockElicitInput } from "../../../../utils/elicitationMocks.js";
-import { Elicitation } from "../../../../../src/elicitation.js";
+} from "@mongodb-js/mcp-test-utils";
+import { createMockElicitInput } from "@mongodb-js/mcp-test-utils";
+import { Elicitation } from "mongodb-mcp-server";
 import type { DropIndexOutput } from "@mongodb-js/mcp-tools-mongodb";
 
 function setupForClassicIndexes(integration: MongoDBIntegrationTestCase): {

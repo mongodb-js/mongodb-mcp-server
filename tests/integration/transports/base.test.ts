@@ -1,12 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { defaultTestConfig } from "../helpers.js";
+import { defaultTestConfig } from "@mongodb-js/mcp-test-utils";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
-import { Server } from "../../../src/server.js";
-import { Session } from "../../../src/common/session.js";
-import { Elicitation } from "../../../src/elicitation.js";
-import { connectionErrorHandler } from "../../../src/common/connectionErrorHandler.js";
+import { Server, Session, Elicitation, connectionErrorHandler } from "mongodb-mcp-server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CompositeLogger, Keychain, NoopTelemetry } from "@mongodb-js/mcp-core";
 import { MCPConnectionManager, ExportsManager } from "@mongodb-js/mcp-tools-mongodb";

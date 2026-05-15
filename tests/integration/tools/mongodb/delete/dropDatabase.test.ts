@@ -1,4 +1,3 @@
-import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 import { expect, it } from "vitest";
 
 import {
@@ -8,6 +7,8 @@ import {
     databaseParameters,
     databaseInvalidArgs,
     expectDefined,
+    describeWithMongoDB,
+    validateAutoConnectBehavior,
 } from "@mongodb-js/mcp-test-utils";
 import type { DropDatabaseOutput } from "@mongodb-js/mcp-tools-mongodb";
 

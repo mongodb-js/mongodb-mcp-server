@@ -60,6 +60,40 @@ const config: KnipConfig = {
                 "node-machine-id",
             ],
         },
+        "packages/accuracy-tests": {
+            entry: ["src/sdk/**/*.ts", "src/generateTestSummary.ts", "src/updateAccuracyRunStatus.ts", "src/unit/**/*.ts"],
+            ignoreDependencies: [
+                "mongodb-mcp-server",
+                "@mongodb-js/mcp-core",
+                "@mongodb-js/mcp-types",
+                "@mongodb-js/mcp-tools-atlas",
+                "@mongodb-js/mcp-tools-atlas-local",
+                "@mongodb-js/mcp-test-utils",
+            ],
+        },
+        "packages/scripts": {
+            entry: ["src/*.ts"],
+            ignoreDependencies: [
+                "vite",
+                "@mongodb-js/mcp-ui",
+                "@mongodb-js/mcp-types",
+                "@mongodb-js/mcp-metrics",
+                "@mongodb-js/mcp-atlas-api-client",
+                "@mongodb-js/mcp-logging",
+                "mongodb-mcp-server",
+            ],
+        },
+        "packages/test-utils": {
+            entry: ["src/index.ts!"],
+            ignoreDependencies: [
+                "vitest",
+                "@modelcontextprotocol/sdk",
+                "@mongodb-js/mcp-atlas-api-client",
+                "@mongodb-js/mcp-atlas-telemetry",
+                "@mongodb-js/mcp-ui",
+                "@mongodb-js/mcp-metrics",
+            ],
+        },
         "packages/ui": {
             entry: ["src/index.ts!"],
             ignore: ["src/build/mount.tsx", "src/test-setup.ts", "src/components/**", "vite.ui.config.ts", "dist/**"],
@@ -68,6 +102,21 @@ const config: KnipConfig = {
         // Type-only package — deps are used via `import type` so knip can't detect runtime usage
         "packages/types": {
             ignoreDependencies: ["@modelcontextprotocol/sdk", "mongodb-redact"],
+        },
+        "packages/setup": {
+            entry: ["src/index.ts!"],
+            ignoreDependencies: [
+                "@inquirer/prompts",
+                "@inquirer/select",
+                "@mongodb-js/mcp-atlas-api-client",
+                "@mongodb-js/mcp-atlas-telemetry",
+                "@mongodb-js/mcp-core",
+                "@mongodb-js/mcp-tools-atlas-local",
+                "@mongosh/service-provider-node-driver",
+                "chalk",
+                "jsonc-parser",
+                "mongodb-redact",
+            ],
         },
         "packages/http-transports": {
             entry: ["src/index.ts!"],
@@ -88,9 +137,6 @@ const config: KnipConfig = {
                 "node-machine-id",
                 "zod",
             ],
-        },
-        "packages/scripts": {
-            ignoreDependencies: ["vite"],
         },
         "tests/browser": {
             entry: ["tests/**/*.ts", "polyfills/**/*.ts", "utils/**/*.ts", "vitest.config.ts", "setup.ts"],

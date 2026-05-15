@@ -1,15 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DebugResource } from "../../../../src/resources/common/debug.js";
 import { Session } from "../../../../src/common/session.js";
+import { connectionErrorHandler, ApiClient } from "mongodb-mcp-server";
 import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
-import { CompositeLogger } from "@mongodb-js/mcp-core";
-import { MCPConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
-import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
-import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
-import { Keychain } from "@mongodb-js/mcp-core";
-import { defaultTestConfig, testConnectionManagerDriverLabels } from "../../../integration/helpers.js";
-import { connectionErrorHandler } from "../../../../src/common/connectionErrorHandler.js";
-import { ApiClient } from "../../../../src/lib.js";
+import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
+import { MCPConnectionManager, ExportsManager, DeviceId } from "@mongodb-js/mcp-tools-mongodb";
+import { defaultTestConfig, testConnectionManagerDriverLabels } from "@mongodb-js/mcp-test-utils";
 
 describe("debug resource", () => {
     const logger = new CompositeLogger();
@@ -52,10 +48,10 @@ describe("debug resource", () => {
         machineMetadata: buildMachineMetadata("test-server", "0.0.0"),
     });
 
-    let debugResource: DebugResource = new DebugResource(session, defaultTestConfig, telemetry);
+    let debugResource: DebugResource;
 
     beforeEach(() => {
-        debugResource = new DebugResource(session, defaultTestConfig, telemetry);
+        debugResource = new DebugResource(session as unknown as Session, defaultTestConfig, telemetry);
     });
 
     it("should be connected when a connected event happens", async () => {

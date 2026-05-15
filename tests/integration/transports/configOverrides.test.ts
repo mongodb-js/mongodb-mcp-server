@@ -3,8 +3,8 @@ import { SessionStore } from "@mongodb-js/mcp-core";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, afterEach, beforeEach, vi } from "vitest";
-import { defaultTestConfig } from "../helpers.js";
-import type { UserConfig } from "../../../src/lib.js";
+import { defaultTestConfig } from "@mongodb-js/mcp-test-utils";
+import type { UserConfig } from "mongodb-mcp-server";
 import type {
     DefaultMetricDefinitions,
     HttpServerOptions,

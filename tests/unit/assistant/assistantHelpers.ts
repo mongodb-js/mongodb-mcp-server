@@ -1,5 +1,5 @@
-import { setupIntegrationTest, defaultTestConfig } from "../../integration/helpers.js";
-import type { IntegrationTest } from "../../integration/helpers.js";
+import { setupIntegrationTest, defaultTestConfig } from "@mongodb-js/mcp-test-utils";
+import type { IntegrationTest } from "@mongodb-js/mcp-test-utils";
 import { describe } from "vitest";
 import type { SuiteCollector } from "vitest";
 import { vi, beforeAll, afterAll, beforeEach } from "vitest";

@@ -798,6 +798,15 @@ export class NoopLogger extends LoggerBase {
 // @public (undocumented)
 export type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
 
+// @public (undocumented)
+export const packageInfo: {
+    version: string;
+    mcpServerName: string;
+    engines: {
+        node: string;
+    };
+};
+
 // @public @deprecated (undocumented)
 export function parseArgsWithCliOptions(cliArguments: string[]): {
     warnings: string[];

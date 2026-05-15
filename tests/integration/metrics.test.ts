@@ -1,10 +1,10 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
-import { defaultTestConfig } from "./helpers.js";
+import { defaultTestConfig } from "@mongodb-js/mcp-test-utils";
 import { parsePrometheusValue } from "./metricsHelpers.js";
-import type { UserConfig } from "../../src/common/config/userConfig.js";
-import { ToolBase } from "../../src/tools/tool.js";
+import type { UserConfig, OperationType, ToolCategory } from "mongodb-mcp-server";
+import { ToolBase } from "mongodb-mcp-server";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { TelemetryToolMetadata, AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import {
@@ -15,7 +15,6 @@ import {
 } from "@mongodb-js/mcp-metrics";
 import type { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { EchoTool, ErrorTool, NoopTool } from "../unit/mocks/tools.js";
-import type { OperationType, ToolCategory } from "../../src/tools/tool.js";
 import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type {

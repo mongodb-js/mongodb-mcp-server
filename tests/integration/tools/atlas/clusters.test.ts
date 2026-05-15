@@ -1,5 +1,5 @@
-import type { Session } from "../../../../src/common/session.js";
-import { expectDefined, getResponseContent } from "@mongodb-js/mcp-test-utils";
+import type { Session } from "mongodb-mcp-server";
+import { expectDefined, getResponseContent, sleep } from "@mongodb-js/mcp-test-utils";
 import {
     describeWithAtlas,
     withProject,
@@ -7,7 +7,6 @@ import {
     randomId,
     deleteCluster,
     waitCluster,
-    sleep,
     assertApiClientIsAvailable,
 } from "./atlasHelpers.js";
 import { afterAll, beforeAll, describe, expect, it, vitest } from "vitest";

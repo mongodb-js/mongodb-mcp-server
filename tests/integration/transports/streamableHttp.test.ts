@@ -1,17 +1,35 @@
 import type express from "express";
 import { StreamableHttpRunner, MCPHttpServer } from "@mongodb-js/mcp-http-runners";
-import { SessionStore, type ISessionStore } from "@mongodb-js/mcp-core";
+import {
+    SessionStore,
+    type ISessionStore,
+    type LoggerBase,
+    CompositeLogger,
+    Keychain,
+    LogId,
+} from "@mongodb-js/mcp-core";
 import type { SessionCloseReason } from "@mongodb-js/mcp-types";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
-import { type LoggerBase, CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
-import { LogId } from "@mongodb-js/mcp-core";
-import { defaultTestConfig, InMemoryLogger, timeout } from "../helpers.js";
-import { type UserConfig } from "../../../src/common/config/userConfig.js";
+import { defaultTestConfig, InMemoryLogger, timeout } from "@mongodb-js/mcp-test-utils";
+import {
+    type UserConfig,
+    type OperationType,
+    type ToolArgs,
+    type ToolCategory,
+    type ToolExecutionContext,
+    ToolBase,
+    Server,
+    type AnyToolClass,
+    Session,
+    Elicitation,
+    connectionErrorHandler,
+    MCPConnectionManager,
+    ExportsManager,
+    packageInfo,
+} from "mongodb-mcp-server";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import type { OperationType, ToolArgs, ToolCategory, ToolExecutionContext } from "../../../src/tools/tool.js";
-import { ToolBase } from "../../../src/tools/tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { AtlasTelemetry, TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import type {
@@ -21,21 +39,12 @@ import type {
     SessionManagementOptions,
 } from "@mongodb-js/mcp-types";
 import type { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
-import { Server, type AnyToolClass } from "../../../src/server.js";
 import type { IncomingMessage } from "node:http";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
-import {
-    Session,
-    Elicitation,
-    connectionErrorHandler,
-    MCPConnectionManager,
-    ExportsManager,
-} from "../../../src/lib.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
-import { packageInfo } from "../../../src/common/packageInfo.js";
 
 // Helper to create a full Server instance for tests
 async function createTestServer(

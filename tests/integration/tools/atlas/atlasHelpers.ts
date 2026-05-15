@@ -4,7 +4,7 @@ import type { IntegrationTest } from "@mongodb-js/mcp-test-utils";
 import { setupIntegrationTest, defaultTestConfig } from "@mongodb-js/mcp-test-utils";
 import type { SuiteCollector } from "vitest";
 import { afterAll, beforeAll, describe } from "vitest";
-import type { Session } from "../../../../src/common/session.js";
+import type { Session } from "mongodb-mcp-server";
 
 export type IntegrationTestFunction = (integration: IntegrationTest) => void;
 

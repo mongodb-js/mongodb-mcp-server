@@ -81,8 +81,6 @@ export interface MongoDBIntegrationTest {
 export type MongoDBIntegrationTestCase = IntegrationTest &
     MongoDBIntegrationTest & { connectMcpClient: () => Promise<void> };
 
-export type MongoSearchConfiguration = { search: true; image?: string };
-
 export type TestSuiteConfig = {
     getUserConfig: (mdbIntegration: MongoDBIntegrationTest) => UserConfig;
     downloadOptions: MongoClusterConfiguration;

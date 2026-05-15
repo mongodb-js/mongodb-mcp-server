@@ -5,9 +5,6 @@ import {
     getResponseContent,
     defaultTestConfig,
     expectDefined,
-} from "@mongodb-js/mcp-test-utils";
-import { beforeEach, describe, expect, it, vi, afterEach } from "vitest";
-import {
     createVectorSearchIndexAndWait,
     describeWithMongoDB,
     getDocsFromUntrustedContent,
@@ -15,7 +12,8 @@ import {
     validateAutoConnectBehavior,
     waitUntilSearchIndexIsQueryable,
     waitUntilSearchIsReady,
-} from "../mongodbHelpers.js";
+} from "@mongodb-js/mcp-test-utils";
+import { beforeEach, describe, expect, it, vi, afterEach } from "vitest";
 import { freshInsertDocuments } from "./find.test.js";
 import { BSON } from "bson";
 import { DOCUMENT_EMBEDDINGS } from "./vyai/embeddings.js";
@@ -263,7 +261,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
         });
 
         expect(mockEmitEvents).toHaveBeenCalled();
-        const emittedEvent = mockEmitEvents.mock.lastCall?.[0][0] as ToolEvent;
+        const emittedEvent = (mockEmitEvents.mock.lastCall?.[0] as ToolEvent[] | undefined)?.[0];
         expectDefined(emittedEvent);
         expect(emittedEvent.properties.embeddingsGeneratedBy).toBeUndefined();
     });

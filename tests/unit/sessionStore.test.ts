@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { SessionStore } from "@mongodb-js/mcp-core";
 import type { LoggerBase, CloseableTransport } from "@mongodb-js/mcp-core";
-import { MockMetrics } from "./mocks/metrics.js";
+import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 
 function createMockTransport(): CloseableTransport {
     return { close: vi.fn().mockResolvedValue(undefined) };

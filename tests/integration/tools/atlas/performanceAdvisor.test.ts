@@ -2,7 +2,7 @@
 // The timeouts for the beforeAll/afterAll hooks have been modified to account for longer running tests.
 
 import { ObjectId } from "bson";
-import type { Session } from "../../../../src/common/session.js";
+import type { Session } from "mongodb-mcp-server";
 import {
     DEFAULT_LONG_RUNNING_TEST_WAIT_TIMEOUT_MS,
     defaultTestConfig,

@@ -1,10 +1,10 @@
-import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
-
 import {
     getResponseContent,
     databaseCollectionParameters,
     validateToolMetadata,
     validateThrowsForInvalidArguments,
+    describeWithMongoDB,
+    validateAutoConnectBehavior,
 } from "@mongodb-js/mcp-test-utils";
 import { describe, expect, it } from "vitest";
 import type { DeleteManyOutput } from "@mongodb-js/mcp-tools-mongodb";

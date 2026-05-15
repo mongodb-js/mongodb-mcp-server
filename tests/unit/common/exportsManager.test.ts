@@ -7,14 +7,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ExportsManagerOptions } from "@mongodb-js/mcp-tools-mongodb";
 import { ensureExtension, isExportExpired, ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import type { AvailableExport } from "@mongodb-js/mcp-tools-mongodb";
-import { ROOT_DIR } from "../../accuracy/sdk/constants.js";
-import { defaultTestConfig, timeout } from "../../integration/helpers.js";
+import { defaultTestConfig, timeout } from "@mongodb-js/mcp-test-utils";
 import type { EJSONOptions } from "bson";
 import { EJSON, ObjectId } from "bson";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
 
 const logger = new CompositeLogger();
-const exportsPath = path.join(ROOT_DIR, "tests", "tmp", `exports-${Date.now()}`);
+const exportsPath = path.join(process.cwd(), "tests", "tmp", `exports-${Date.now()}`);
 const exportsManagerConfig: Omit<ExportsManagerOptions, "exportsDirectoryPath"> = {
     exportsPath,
     exportTimeoutMs: defaultTestConfig.exportTimeoutMs,

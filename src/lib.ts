@@ -1,10 +1,4 @@
-export {
-    Server,
-    type ServerOptions,
-    type MongoDBToolsRuntimeConfig,
-    type AnyToolClass,
-    type ToolCategory,
-} from "./server.js";
+export { Server, type ServerOptions, type MongoDBToolsRuntimeConfig, type AnyToolClass } from "./server.js";
 export { Session, type SessionOptions, type SessionEvents } from "./common/session.js";
 export { type UserConfig, UserConfigSchema, configRegistry } from "./common/config/userConfig.js";
 export { parseUserConfig, defaultParserOptions, type ParserOptions } from "./common/config/parseUserConfig.js";
@@ -93,7 +87,13 @@ export type {
 export { Keychain, registerGlobalSecretToRedact } from "@mongodb-js/mcp-core";
 export type { Secret } from "mongodb-redact";
 export { Elicitation } from "./elicitation.js";
-export { applyConfigOverrides, ConfigOverrideError } from "./common/config/configOverrides.js";
+export {
+    applyConfigOverrides,
+    ConfigOverrideError,
+    getConfigMeta,
+    nameToConfigKey,
+} from "./common/config/configOverrides.js";
+export { onlyStricterLogLevelOverride } from "./common/config/configUtils.js";
 export { SessionStore, type ISessionStore, type SessionStoreConstructorArgs } from "@mongodb-js/mcp-core";
 export type { CloseableTransport, SessionCloseReason } from "@mongodb-js/mcp-types";
 export { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
@@ -102,7 +102,16 @@ export type { MonitoringServerFeature } from "@mongodb-js/mcp-tools-mongodb";
 export { ApiClient, type ApiClientOptions, type RequestContext } from "@mongodb-js/mcp-atlas-api-client";
 export type { AuthProvider, Credentials } from "@mongodb-js/mcp-atlas-api-client";
 export { type UIRegistryOptions, UIRegistry } from "@mongodb-js/mcp-ui";
-export { type ToolExecutionContext, type AnyToolBase } from "./tools/tool.js";
+export {
+    type ToolExecutionContext,
+    type AnyToolBase,
+    type OperationType,
+    ToolBase,
+    type ToolCategory,
+    type ToolClass,
+    type ToolArgs,
+} from "./tools/tool.js";
+export { TRANSPORT_PAYLOAD_LIMITS, type TransportType } from "./transports/constants.js";
 export {
     PrometheusMetrics,
     createDefaultMetrics,

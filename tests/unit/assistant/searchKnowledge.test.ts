@@ -6,7 +6,7 @@ import {
     validateThrowsForInvalidArguments,
     getResponseElements,
     getDataFromUntrustedContent,
-} from "../../integration/helpers.js";
+} from "@mongodb-js/mcp-test-utils";
 import { describeWithAssistant, makeMockAssistantAPI } from "./assistantHelpers.js";
 import { parse as yamlParse } from "yaml";
 

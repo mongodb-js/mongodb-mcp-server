@@ -5,14 +5,12 @@ import {
     getResponseContent,
     defaultTestConfig,
     expectDefined,
-} from "@mongodb-js/mcp-test-utils";
-import { expect, it, afterEach } from "vitest";
-import {
     describeWithMongoDB,
     getDocsFromUntrustedContent,
     syncMongoToolsConfigFromUserConfig,
     validateAutoConnectBehavior,
-} from "../mongodbHelpers.js";
+} from "@mongodb-js/mcp-test-utils";
+import { expect, it, afterEach } from "vitest";
 import type { Client } from "@modelcontextprotocol/sdk/client";
 
 describeWithMongoDB("aggregate-db tool", (integration) => {

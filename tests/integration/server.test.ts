@@ -3,7 +3,12 @@ import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
 import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { Session } from "../../src/common/session.js";
-import { defaultTestConfig, expectDefined, InMemoryLogger, testConnectionManagerDriverLabels } from "@mongodb-js/mcp-test-utils";
+import {
+    defaultTestConfig,
+    expectDefined,
+    InMemoryLogger,
+    testConnectionManagerDriverLabels,
+} from "@mongodb-js/mcp-test-utils";
 import { describeWithMongoDB } from "@mongodb-js/mcp-test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import type { LoggerBase, UserConfig } from "../../src/lib.js";

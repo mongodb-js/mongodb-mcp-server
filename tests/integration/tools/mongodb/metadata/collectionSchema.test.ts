@@ -1,5 +1,3 @@
-import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
-
 import {
     getResponseElements,
     getResponseContent,
@@ -8,6 +6,8 @@ import {
     validateThrowsForInvalidArguments,
     databaseCollectionInvalidArgs,
     getDataFromUntrustedContent,
+    describeWithMongoDB,
+    validateAutoConnectBehavior,
 } from "@mongodb-js/mcp-test-utils";
 import type { Document } from "bson";
 import type { OptionalId } from "mongodb";

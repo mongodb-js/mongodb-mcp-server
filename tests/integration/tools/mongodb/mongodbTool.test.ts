@@ -2,26 +2,34 @@ import { vi, it, describe, beforeEach, afterEach, afterAll, expect } from "vites
 import { type CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { MongoDBToolBase } from "@mongodb-js/mcp-tools-mongodb";
-import { type OperationType } from "../../../../src/tools/tool.js";
-import { type UserConfig } from "../../../../src/common/config/userConfig.js";
-import { MCPConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
-import { Session } from "../../../../src/common/session.js";
-import { CompositeLogger } from "@mongodb-js/mcp-core";
-import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
-import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
-import { InMemoryTransport } from "@mongodb-js/mcp-core";
-import { Server, type AnyToolClass } from "../../../../src/server.js";
-import { type ConnectionErrorHandler, connectionErrorHandler } from "../../../../src/common/connectionErrorHandler.js";
-import { defaultTestConfig, expectDefined, testConnectionManagerDriverLabels } from "@mongodb-js/mcp-test-utils";
-import { setupMongoDBIntegrationTest } from "./mongodbHelpers.js";
-import { ErrorCodes } from "@mongodb-js/mcp-tools-mongodb";
-import { Keychain } from "@mongodb-js/mcp-core";
-import { Elicitation } from "../../../../src/elicitation.js";
-import { MongoDBTools } from "@mongodb-js/mcp-tools-mongodb";
-import { ApiClient } from "../../../../src/lib.js";
+import {
+    MongoDBToolBase,
+    MCPConnectionManager,
+    DeviceId,
+    ExportsManager,
+    ErrorCodes,
+    MongoDBTools,
+} from "@mongodb-js/mcp-tools-mongodb";
+import {
+    type OperationType,
+    type UserConfig,
+    Session,
+    Server,
+    type AnyToolClass,
+    connectionErrorHandler,
+    type ConnectionErrorHandler,
+    Elicitation,
+    ApiClient,
+} from "mongodb-mcp-server";
+import { CompositeLogger, InMemoryTransport, Keychain } from "@mongodb-js/mcp-core";
+import {
+    defaultTestConfig,
+    expectDefined,
+    testConnectionManagerDriverLabels,
+    MockMetrics,
+} from "@mongodb-js/mcp-test-utils";
+import { setupMongoDBIntegrationTest } from "@mongodb-js/mcp-test-utils";
 import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
-import { MockMetrics } from "../../../unit/mocks/metrics.js";
 
 const injectedErrorHandler: ConnectionErrorHandler = (error) => {
     switch (error.code) {

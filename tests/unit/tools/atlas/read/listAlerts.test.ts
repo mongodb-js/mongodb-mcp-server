@@ -2,11 +2,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ToolConstructorParams, IAtlasConfig, IAtlasSession } from "@mongodb-js/mcp-tools-atlas";
 import { ListAlertsTool } from "@mongodb-js/mcp-tools-atlas";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
-import type { Elicitation } from "../../../../../src/elicitation.js";
+import type { Elicitation } from "mongodb-mcp-server";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
-import { MockMetrics } from "../../../mocks/metrics.js";
+import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
 
 describe("ListAlertsTool", () => {

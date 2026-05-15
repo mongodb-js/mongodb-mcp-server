@@ -4,9 +4,10 @@ import {
     validateThrowsForInvalidArguments,
     getResponseElements,
     getDataFromUntrustedContent,
+    describeWithMongoDB,
+    validateAutoConnectBehavior,
 } from "@mongodb-js/mcp-test-utils";
 import type { LogsOutput } from "@mongodb-js/mcp-tools-mongodb";
-import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 
 describeWithMongoDB("logs tool", (integration) => {
     validateToolMetadata(integration, "mongodb-logs", "Returns the most recent logged mongod events", "metadata", [

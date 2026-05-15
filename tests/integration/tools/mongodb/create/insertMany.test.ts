@@ -3,9 +3,6 @@ import {
     validateAutoConnectBehavior,
     createVectorSearchIndexAndWait,
     waitUntilSearchIsReady,
-} from "../mongodbHelpers.js";
-
-import {
     getResponseContent,
     databaseCollectionParameters,
     validateToolMetadata,
@@ -126,7 +123,7 @@ describeWithMongoDB("insertMany tool when search is disabled", (integration) => 
         expect(content).toContain("Documents were inserted successfully.");
 
         expect(mockEmitEvents).toHaveBeenCalled();
-        const emittedEvent = mockEmitEvents.mock.lastCall?.[0][0] as ToolEvent;
+        const emittedEvent = (mockEmitEvents.mock.lastCall?.[0] as ToolEvent[] | undefined)?.[0];
         expectDefined(emittedEvent);
         expect(emittedEvent.properties.embeddingsGeneratedBy).toBeUndefined();
     });

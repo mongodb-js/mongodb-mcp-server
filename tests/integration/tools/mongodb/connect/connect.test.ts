@@ -1,11 +1,11 @@
-import { describeWithMongoDB } from "../mongodbHelpers.js";
 import {
     getResponseContent,
     getResponseElements,
     validateThrowsForInvalidArguments,
     validateToolMetadata,
+    defaultTestConfig,
+    describeWithMongoDB,
 } from "@mongodb-js/mcp-test-utils";
-import { defaultTestConfig } from "@mongodb-js/mcp-test-utils";
 import { beforeEach, describe, expect, it, type MockInstance, vi } from "vitest";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 

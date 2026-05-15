@@ -6,10 +6,11 @@ import {
     databaseInvalidArgs,
     getResponseElements,
     getDataFromUntrustedContent,
+    describeWithMongoDB,
+    validateAutoConnectBehavior,
 } from "@mongodb-js/mcp-test-utils";
 import type { DbStatsOutput } from "@mongodb-js/mcp-tools-mongodb";
 import * as crypto from "crypto";
-import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 import { describe, expect, it } from "vitest";
 
 describeWithMongoDB("dbStats tool", (integration) => {

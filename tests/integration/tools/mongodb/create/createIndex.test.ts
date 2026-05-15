@@ -1,5 +1,3 @@
-import { describeWithMongoDB, validateAutoConnectBehavior, waitUntilSearchIsReady } from "../mongodbHelpers.js";
-
 import {
     getResponseContent,
     databaseCollectionParameters,
@@ -7,6 +5,9 @@ import {
     validateThrowsForInvalidArguments,
     expectDefined,
     getResponseElements,
+    describeWithMongoDB,
+    validateAutoConnectBehavior,
+    waitUntilSearchIsReady,
 } from "@mongodb-js/mcp-test-utils";
 import type { CreateIndexOutput } from "@mongodb-js/mcp-tools-mongodb";
 import { ObjectId, type Collection, type Document, type IndexDirection } from "mongodb";

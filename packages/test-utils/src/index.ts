@@ -4,6 +4,24 @@ export {
     setupIntegrationTest,
     defaultTestConfig,
     getDataFromUntrustedContent,
+    DEFAULT_LONG_RUNNING_TEST_WAIT_TIMEOUT_MS,
+    testConnectionManagerDriverLabels,
+    getResponseElements,
+    getParameters,
+    databaseParameters,
+    databaseCollectionParameters,
+    databaseCollectionInvalidArgs,
+    databaseInvalidArgs,
+    validateToolMetadata,
+    validateThrowsForInvalidArguments,
+    expectDefined,
+    timeout,
+    resourceChangedNotification,
+    responseAsText,
+    waitUntil,
+    sleep,
+    connect,
+    InMemoryLogger,
 } from "./integrationHelpers.js";
 
 export {
@@ -15,6 +33,17 @@ export {
     type MongoDBIntegrationTest,
     type MongoDBIntegrationTestCase,
     describeWithMongoDB,
+    syncMongoToolsConfigFromUserConfig,
+    validateAutoConnectBehavior,
+    getSingleDocFromUntrustedContent,
+    getDocsFromUntrustedContent,
+    isCommunityServer,
+    getServerVersion,
+    SEARCH_WAIT_TIMEOUT,
+    waitUntilSearchIsReady,
+    waitUntilSearchIndexIsListed,
+    waitUntilSearchIndexIsQueryable,
+    createVectorSearchIndexAndWait,
 } from "./mongodbHelpers.js";
 
 export {
@@ -25,5 +54,10 @@ export {
     type MongoAutoEmbedSearchConfiguration,
 } from "./mongodbClusterProcess.js";
 
-export type { createMockElicitInput, MockClientCapabilities, MockElicitResult } from "./elicitationMocks.js";
+export {
+    createMockElicitInput,
+    createMockGetClientCapabilities,
+    type MockClientCapabilities,
+    type MockElicitResult,
+} from "./elicitationMocks.js";
 export { MockMetrics } from "./mockMetrics.js";

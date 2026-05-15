@@ -1,27 +1,26 @@
 import { StreamableHttpRunner, MCPHttpServer } from "@mongodb-js/mcp-http-runners";
-import { SessionStore } from "@mongodb-js/mcp-core";
+import { SessionStore, CompositeLogger, Keychain, NoopTelemetry } from "@mongodb-js/mcp-core";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { afterEach, describe, expect, it } from "vitest";
-import type { UserConfig } from "../../../src/lib.js";
-import { defaultTestConfig, expectDefined, sleep } from "../helpers.js";
-import { Server } from "../../../src/server.js";
-import type { HttpServerOptions, SessionManagementOptions } from "@mongodb-js/mcp-types";
-import { CompositeLogger, Keychain, NoopTelemetry } from "@mongodb-js/mcp-core";
-import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import type { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
-import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
+import type { UserConfig } from "mongodb-mcp-server";
 import {
+    Server,
     Session,
     Elicitation,
     connectionErrorHandler,
     MCPConnectionManager,
     ExportsManager,
-} from "../../../src/lib.js";
+    packageInfo,
+} from "mongodb-mcp-server";
+import { defaultTestConfig, expectDefined, sleep } from "@mongodb-js/mcp-test-utils";
+import type { HttpServerOptions, SessionManagementOptions } from "@mongodb-js/mcp-types";
+import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import type { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
+import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
-import { packageInfo } from "../../../src/common/packageInfo.js";
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
 import type { IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
 import { vi } from "vitest";

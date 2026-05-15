@@ -147,7 +147,6 @@ async function main(): Promise<void> {
             clientSecret: process.env.MDB_MCP_API_CLIENT_SECRET || "",
         },
         userAgent: "mongodb-mcp-test-cleanup",
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         logger: new ConsoleLogger({ keychain: Keychain.root }),
     });
 
