@@ -61,7 +61,12 @@ const config: KnipConfig = {
             ],
         },
         "packages/accuracy-tests": {
-            entry: ["src/sdk/**/*.ts", "src/generateTestSummary.ts", "src/updateAccuracyRunStatus.ts", "src/unit/**/*.ts"],
+            entry: [
+                "src/sdk/**/*.ts",
+                "src/generateTestSummary.ts",
+                "src/updateAccuracyRunStatus.ts",
+                "src/unit/**/*.ts",
+            ],
             ignoreDependencies: [
                 "mongodb-mcp-server",
                 "@mongodb-js/mcp-core",
