@@ -1,0 +1,29 @@
+{
+  "name": "@mongodb-js/mcp-test-utils",
+  "version": "1.11.0-prerelease.1",
+  "private": true,
+  "type": "module",
+  "description": "Test utilities for the MongoDB MCP server",
+  "exports": {
+    ".": {
+      "import": "./src/integration.js"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "mongodb-mcp-server": "workspace:*",
+    "@mongodb-js/mcp-core": "workspace:*",
+    "@mongodb-js/mcp-types": "workspace:*",
+    "@mongodb-js/mcp-logging": "workspace:*",
+    "mongodb": "^7.1.1",
+    "mongodb-runner": "^6.7.6",
+    "testcontainers": "^11.14.0",
+    "mongodb-connection-string-url": "^7.0.1",
+    "bson": "^7.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "typescript": "^5.9.2",
+    "vitest": "^4.1.5"
+  }
+}

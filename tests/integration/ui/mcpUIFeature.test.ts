@@ -1,11 +1,11 @@
 import { describe, expect, it, afterAll } from "vitest";
-import { describeWithMongoDB } from "../tools/mongodb/mongodbHelpers.js";
+import { describeWithMongoDB } from "@mongodb-js/mcp-test-utils";
 import {
     defaultTestConfig,
     expectDefined,
     getResponseElements,
     testConnectionManagerDriverLabels,
-} from "../helpers.js";
+} from "@mongodb-js/mcp-test-utils";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
 import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { Session } from "../../../src/common/session.js";
@@ -22,7 +22,7 @@ import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { ApiClient } from "../../../src/lib.js";
 import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
-import { MockMetrics } from "../../unit/mocks/metrics.js";
+import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 
 describeWithMongoDB(
     "mcpUI feature with feature disabled (default)",

@@ -6,7 +6,7 @@ import {
     validateToolMetadata,
     validateThrowsForInvalidArguments,
     expectDefined,
-} from "../../../helpers.js";
+} from "@mongodb-js/mcp-test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { Client } from "@modelcontextprotocol/sdk/client";
 import { freshInsertDocuments } from "./find.test.js";

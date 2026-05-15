@@ -1,4 +1,4 @@
-import { defaultTestConfig, expectDefined, getResponseElements } from "../../helpers.js";
+import { defaultTestConfig, expectDefined, getResponseElements } from "@mongodb-js/mcp-test-utils";
 import { afterEach, expect, it } from "vitest";
 import {
     createAtlasLocalDeployment,

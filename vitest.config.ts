@@ -35,7 +35,7 @@ export default defineConfig({
                 "tests",
                 "dist",
                 "vitest.config.ts",
-                "scripts",
+                "packages/scripts/src",
             ],
             reporter: ["lcov"],
         },
@@ -47,8 +47,8 @@ export default defineConfig({
                     include: ["**/*.test.ts"],
                     exclude: [
                         ...vitestDefaultExcludes,
-                        "scripts/**",
-                        "tests/accuracy/**",
+                        "packages/scripts/**",
+                        "packages/accuracy-tests/**",
                         "tests/browser/**",
                         ...longRunningTests,
                     ],
@@ -58,7 +58,8 @@ export default defineConfig({
                 extends: true,
                 test: {
                     name: "accuracy",
-                    include: ["**/accuracy/*.test.ts"],
+                    root: "./packages/accuracy-tests",
+                    include: ["src/**/*.test.ts"],
                 },
             },
             {
@@ -72,14 +73,14 @@ export default defineConfig({
                 extends: true,
                 test: {
                     name: "atlas-cleanup",
-                    include: ["scripts/cleanupAtlasTestLeftovers.test.ts"],
+                    include: ["packages/scripts/src/cleanupAtlasTestLeftovers.test.ts"],
                 },
             },
             {
                 extends: true,
                 test: {
                     name: "mcpb-build-script",
-                    include: ["scripts/createMcpb.test.ts"],
+                    include: ["packages/scripts/src/createMcpb.test.ts"],
                 },
             },
             {

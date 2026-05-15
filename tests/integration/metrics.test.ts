@@ -2,7 +2,7 @@ import { StreamableHttpRunner } from "../../src/transports/streamableHttp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
-import { defaultTestConfig } from "./helpers.js";
+import { defaultTestConfig } from "@mongodb-js/mcp-test-utils";
 import { parsePrometheusValue } from "./metricsHelpers.js";
 import type { UserConfig } from "../../src/common/config/userConfig.js";
 import { ToolBase } from "../../src/tools/tool.js";

@@ -8,7 +8,7 @@ import {
     databaseInvalidArgs,
     databaseParameters,
     getDataFromUntrustedContent,
-} from "../../../helpers.js";
+} from "@mongodb-js/mcp-test-utils";
 import { describe, expect, it } from "vitest";
 import type { ListCollectionsOutput } from "@mongodb-js/mcp-tools-mongodb";
 

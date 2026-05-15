@@ -3,7 +3,7 @@ import { ToolBase, type ToolArgs } from "../../src/tools/index.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import type { TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
-import { defaultTestConfig, setupIntegrationTest } from "./helpers.js";
+import { defaultTestConfig, setupIntegrationTest } from "@mongodb-js/mcp-test-utils";
 
 describe("Custom Tools", () => {
     const { mcpClient, mcpServer } = setupIntegrationTest(() => ({ ...defaultTestConfig }), {

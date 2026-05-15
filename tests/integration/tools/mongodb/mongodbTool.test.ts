@@ -13,7 +13,7 @@ import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { InMemoryTransport } from "../../../../src/transports/inMemoryTransport.js";
 import { Server, type AnyToolClass } from "../../../../src/server.js";
 import { type ConnectionErrorHandler, connectionErrorHandler } from "../../../../src/common/connectionErrorHandler.js";
-import { defaultTestConfig, expectDefined, testConnectionManagerDriverLabels } from "../../helpers.js";
+import { defaultTestConfig, expectDefined, testConnectionManagerDriverLabels } from "@mongodb-js/mcp-test-utils";
 import { setupMongoDBIntegrationTest } from "./mongodbHelpers.js";
 import { ErrorCodes } from "@mongodb-js/mcp-tools-mongodb";
 import { Keychain } from "@mongodb-js/mcp-core";

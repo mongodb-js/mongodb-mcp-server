@@ -9,7 +9,7 @@ import { defaultTestConfig } from "../../integration/helpers.js";
 import type express from "express";
 import type { DefaultMetrics } from "../../../src/lib.js";
 import { NoopLogger } from "@mongodb-js/mcp-core";
-import { MockMetrics } from "../mocks/metrics.js";
+import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 import type { CreateSessionStoreFn, ISessionStore } from "../../../src/common/sessionStore.js";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 

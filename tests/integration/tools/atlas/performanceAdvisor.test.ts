@@ -9,7 +9,7 @@ import {
     expectDefined,
     getResponseElements,
     setupIntegrationTest,
-} from "../../helpers.js";
+} from "@mongodb-js/mcp-test-utils";
 import {
     describeWithAtlas,
     withProject,

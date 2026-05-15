@@ -7,7 +7,7 @@ import {
     validateThrowsForInvalidArguments,
     expectDefined,
     getResponseElements,
-} from "../../../helpers.js";
+} from "@mongodb-js/mcp-test-utils";
 import type { CreateIndexOutput } from "@mongodb-js/mcp-tools-mongodb";
 import { ObjectId, type Collection, type Document, type IndexDirection } from "mongodb";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";

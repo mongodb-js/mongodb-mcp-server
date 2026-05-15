@@ -1,4 +1,4 @@
-import { expectDefined, getResponseContent } from "../../helpers.js";
+import { expectDefined, getResponseContent } from "@mongodb-js/mcp-test-utils";
 import { describeWithAtlas, withProject } from "./atlasHelpers.js";
 import { expect, it } from "vitest";
 

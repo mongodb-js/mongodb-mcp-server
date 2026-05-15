@@ -8,7 +8,7 @@ import {
     getResponseContent,
     validateThrowsForInvalidArguments,
     validateToolMetadata,
-} from "../../../helpers.js";
+} from "@mongodb-js/mcp-test-utils";
 import {
     describeWithMongoDB,
     waitUntilSearchIndexIsListed,

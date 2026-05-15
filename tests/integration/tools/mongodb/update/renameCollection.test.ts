@@ -3,7 +3,7 @@ import {
     databaseCollectionParameters,
     validateToolMetadata,
     validateThrowsForInvalidArguments,
-} from "../../../helpers.js";
+} from "@mongodb-js/mcp-test-utils";
 import { describe, expect, it } from "vitest";
 import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 import type { RenameCollectionOutput } from "@mongodb-js/mcp-tools-mongodb";

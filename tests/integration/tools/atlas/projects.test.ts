@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb";
 import { assertApiClientIsAvailable, describeWithAtlas } from "./atlasHelpers.js";
-import { expectDefined, getDataFromUntrustedContent, getResponseElements } from "../../helpers.js";
+import { expectDefined, getDataFromUntrustedContent, getResponseElements } from "@mongodb-js/mcp-test-utils";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 describeWithAtlas("projects", (integration) => {

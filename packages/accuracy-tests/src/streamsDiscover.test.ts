@@ -1,4 +1,4 @@
-import { formatUntrustedData } from "../../src/tools/tool.js";
+import { formatUntrustedData } from "@mongodb-js/mcp-core";
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 const projectId = "68f600519f16226591d054c0";

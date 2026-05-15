@@ -12,7 +12,7 @@ import { type LoggerBase } from "@mongodb-js/mcp-core";
 import { LogId } from "@mongodb-js/mcp-logging";
 import { MCPConnectionManager, type ConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
 import { Keychain } from "@mongodb-js/mcp-core";
-import { defaultTestConfig, InMemoryLogger, timeout } from "../helpers.js";
+import { defaultTestConfig, InMemoryLogger, timeout } from "@mongodb-js/mcp-test-utils";
 import { type UserConfig } from "../../../src/common/config/userConfig.js";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { OperationType, ToolArgs, ToolCategory, ToolExecutionContext } from "../../../src/tools/tool.js";

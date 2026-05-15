@@ -1,5 +1,5 @@
 import { describeWithAtlas, withProject, randomId, assertApiClientIsAvailable } from "./atlasHelpers.js";
-import { expectDefined, getResponseElements } from "../../helpers.js";
+import { expectDefined, getResponseElements } from "@mongodb-js/mcp-test-utils";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { Keychain } from "@mongodb-js/mcp-core";

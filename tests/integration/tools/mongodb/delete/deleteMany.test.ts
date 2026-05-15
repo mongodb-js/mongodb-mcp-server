@@ -5,7 +5,7 @@ import {
     databaseCollectionParameters,
     validateToolMetadata,
     validateThrowsForInvalidArguments,
-} from "../../../helpers.js";
+} from "@mongodb-js/mcp-test-utils";
 import { describe, expect, it } from "vitest";
 import type { DeleteManyOutput } from "@mongodb-js/mcp-tools-mongodb";
 

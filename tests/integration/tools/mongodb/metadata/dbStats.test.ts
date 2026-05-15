@@ -6,7 +6,7 @@ import {
     databaseInvalidArgs,
     getResponseElements,
     getDataFromUntrustedContent,
-} from "../../../helpers.js";
+} from "@mongodb-js/mcp-test-utils";
 import type { DbStatsOutput } from "@mongodb-js/mcp-tools-mongodb";
 import * as crypto from "crypto";
 import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";

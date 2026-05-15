@@ -3,18 +3,21 @@ import { getAvailableModels } from "./models.js";
 import { calculateToolCallingAccuracy } from "./accuracyScorer.js";
 import type { PromptDefinition, VercelAgent } from "./agent.js";
 import { getVercelToolCallingAgent } from "./agent.js";
-import { prepareTestData, setupMongoDBIntegrationTest } from "../../integration/tools/mongodb/mongodbHelpers.js";
+import {
+    prepareTestData,
+    setupMongoDBIntegrationTest,
+} from "@mongodb-js/mcp-test-utils";
 import type { MockedTools } from "./accuracyTestingClient.js";
 import { AccuracyTestingClient } from "./accuracyTestingClient.js";
 import type { AccuracyResultStorage, ExpectedToolCall, LLMToolCall } from "./accuracyResultStorage/resultStorage.js";
 import { getAccuracyResultStorage } from "./accuracyResultStorage/getAccuracyResultStorage.js";
 import { getCommitSHA } from "./gitInfo.js";
 import type { MongoClient } from "mongodb";
-import type { UserConfig } from "../../../src/lib.js";
+import type { UserConfig } from "mongodb-mcp-server";
 import {
     MongoDBClusterProcess,
     type MongoClusterConfiguration,
-} from "../../integration/tools/mongodb/mongodbClusterProcess.js";
+} from "@mongodb-js/mcp-test-utils";
 
 export interface AccuracyTestConfig {
     /** The prompt to be provided to LLM for evaluation. */
@@ -69,6 +72,7 @@ export function describeAccuracyTests(
         throw new Error("No models available to test. Ensure that the API keys are properly setup!");
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     const shouldSkip = clusterConfig && !MongoDBClusterProcess.isConfigurationSupportedInCurrentEnv(clusterConfig);
 
     const eachModel = describe.skipIf(shouldSkip).each(models);
@@ -97,19 +101,26 @@ export function describeAccuracyTests(
             }
             commitSHA = retrievedCommitSHA;
 
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
             accuracyResultStorage = getAccuracyResultStorage();
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
             testMCPClient = await AccuracyTestingClient.initializeClient(mdbIntegration.connectionString(), userConfig);
             agent = getVercelToolCallingAgent();
         });
 
         beforeEach(async () => {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
             await cleanupTestDatabases();
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
             await populateTestData();
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
             testMCPClient.resetForTests();
         });
 
         afterAll(async () => {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
             await accuracyResultStorage?.close();
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
             await testMCPClient?.close();
         });
 

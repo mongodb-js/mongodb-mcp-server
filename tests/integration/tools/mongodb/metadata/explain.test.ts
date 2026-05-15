@@ -3,7 +3,7 @@ import {
     validateToolMetadata,
     validateThrowsForInvalidArguments,
     getResponseElements,
-} from "../../../helpers.js";
+} from "@mongodb-js/mcp-test-utils";
 import type { ExplainOutput } from "@mongodb-js/mcp-tools-mongodb";
 import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 import { beforeEach, describe, expect, it } from "vitest";

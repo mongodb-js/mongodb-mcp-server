@@ -1,5 +1,5 @@
 import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
-import { getResponseElements, getParameters, expectDefined, getDataFromUntrustedContent } from "../../../helpers.js";
+import { getResponseElements, getParameters, expectDefined, getDataFromUntrustedContent } from "@mongodb-js/mcp-test-utils";
 import { describe, expect, it } from "vitest";
 import type { ListDatabasesOutput } from "@mongodb-js/mcp-tools-mongodb";
 

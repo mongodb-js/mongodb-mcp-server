@@ -8,7 +8,7 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { MCP_SERVER_CLI_SCRIPT } from "./constants.js";
 import type { LLMToolCall } from "./accuracyResultStorage/resultStorage.js";
 import type { VercelMCPClient, VercelMCPClientTools } from "./agent.js";
-import type { UserConfig } from "../../../src/lib.js";
+import type { UserConfig } from "mongodb-mcp-server";
 
 type ToolResultGeneratorFn = (parameters: Record<string, unknown>) => CallToolResult | Promise<CallToolResult>;
 export type MockedTools = Record<string, ToolResultGeneratorFn>;

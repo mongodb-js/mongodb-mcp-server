@@ -9,7 +9,7 @@ import {
     resourceChangedNotification,
     validateThrowsForInvalidArguments,
     validateToolMetadata,
-} from "../../../helpers.js";
+} from "@mongodb-js/mcp-test-utils";
 import { describeWithMongoDB } from "../mongodbHelpers.js";
 import type { UserConfig } from "../../../../../src/lib.js";
 

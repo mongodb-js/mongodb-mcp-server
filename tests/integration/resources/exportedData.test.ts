@@ -3,8 +3,8 @@ import fs from "fs/promises";
 import { EJSON, Long, ObjectId } from "bson";
 import { describe, expect, it, beforeEach, afterAll } from "vitest";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { defaultTestConfig, getDataFromUntrustedContent, resourceChangedNotification, timeout } from "../helpers.js";
-import { describeWithMongoDB } from "../tools/mongodb/mongodbHelpers.js";
+import { defaultTestConfig, getDataFromUntrustedContent, resourceChangedNotification, timeout } from "@mongodb-js/mcp-test-utils";
+import { describeWithMongoDB } from "@mongodb-js/mcp-test-utils";
 import { contentWithResourceURILink } from "../tools/mongodb/read/export.test.js";
 import type { UserConfig } from "../../../src/lib.js";
 

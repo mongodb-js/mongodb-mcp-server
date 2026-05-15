@@ -9,7 +9,7 @@ import {
     getDataFromUntrustedContent,
     getResponseContent,
     expectDefined,
-} from "../../../helpers.js";
+} from "@mongodb-js/mcp-test-utils";
 import {
     describeWithMongoDB,
     validateAutoConnectBehavior,

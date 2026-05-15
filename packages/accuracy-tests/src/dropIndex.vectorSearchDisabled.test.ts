@@ -6,7 +6,7 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
 import { Matcher } from "./sdk/matcher.js";
-import { formatUntrustedData } from "../../src/tools/tool.js";
+import { formatUntrustedData } from "@mongodb-js/mcp-core";
 
 // We don't want to delete actual indexes
 const mockedTools = {

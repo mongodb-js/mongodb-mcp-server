@@ -5,7 +5,7 @@ import {
     getResponseContent,
     defaultTestConfig,
     expectDefined,
-} from "../../../helpers.js";
+} from "@mongodb-js/mcp-test-utils";
 import { expect, it, afterEach } from "vitest";
 import {
     describeWithMongoDB,

@@ -1,4 +1,4 @@
-import { getResponseContent } from "../../../helpers.js";
+import { getResponseContent } from "@mongodb-js/mcp-test-utils";
 import { describeWithStreams, withWorkspace, randomId, assertApiClientIsAvailable } from "../atlasHelpers.js";
 import { afterAll, describe, expect, it } from "vitest";
 

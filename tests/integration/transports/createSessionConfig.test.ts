@@ -3,7 +3,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { afterEach, describe, expect, it } from "vitest";
 import type { TransportRunnerConfig, UserConfig } from "../../../src/lib.js";
-import { defaultTestConfig, expectDefined } from "../helpers.js";
+import { defaultTestConfig, expectDefined } from "@mongodb-js/mcp-test-utils";
 
 describe("createSessionConfig", () => {
     const userConfig = defaultTestConfig;

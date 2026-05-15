@@ -3,27 +3,27 @@ import { fileURLToPath } from "url";
 import fs from "fs/promises";
 import type { Collection, Document } from "mongodb";
 import { MongoClient, ObjectId } from "mongodb";
-import type { IntegrationTest } from "../../helpers.js";
+import type { IntegrationTest } from "./integrationHelpers.js";
 import {
     getResponseContent,
     setupIntegrationTest,
     defaultTestConfig,
     getDataFromUntrustedContent,
-} from "../../helpers.js";
-import type { UserConfig } from "../../../../src/common/config/userConfig.js";
-import type { Server, ServerOptions } from "../../../../src/server.js";
+} from "./integrationHelpers.js";
+import type { UserConfig } from "mongodb-mcp-server";
+import type { Server, ServerOptions } from "mongodb-mcp-server";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { EJSON } from "bson";
 import { MongoDBClusterProcess } from "./mongodbClusterProcess.js";
 import type { MongoClusterConfiguration } from "./mongodbClusterProcess.js";
-import type { createMockElicitInput, MockClientCapabilities } from "../../../utils/elicitationMocks.js";
+import type { createMockElicitInput, MockClientCapabilities } from "./elicitationMocks.js";
 
 export const DEFAULT_WAIT_TIMEOUT = 1000;
 export const DEFAULT_RETRY_INTERVAL = 100;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const testDataDumpPath = path.join(__dirname, "..", "..", "..", "accuracy", "test-data-dumps");
+const testDataDumpPath = path.join(__dirname, "..", "..", "..", "accuracy-tests", "src", "test-data-dumps");
 
 const testDataPaths = [
     {

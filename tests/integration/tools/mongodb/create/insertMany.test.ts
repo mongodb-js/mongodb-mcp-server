@@ -11,7 +11,7 @@ import {
     validateToolMetadata,
     validateThrowsForInvalidArguments,
     expectDefined,
-} from "../../../helpers.js";
+} from "@mongodb-js/mcp-test-utils";
 import type { InsertManyOutput } from "@mongodb-js/mcp-tools-mongodb";
 import { beforeEach, afterEach, expect, it, vi } from "vitest";
 import { ObjectId } from "bson";

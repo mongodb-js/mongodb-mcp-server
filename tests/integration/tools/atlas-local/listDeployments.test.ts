@@ -1,4 +1,4 @@
-import { expectDefined, getResponseElements } from "../../helpers.js";
+import { expectDefined, getResponseElements } from "@mongodb-js/mcp-test-utils";
 import { expect, it } from "vitest";
 import { describeWithAtlasLocal, describeWithAtlasLocalDisabled } from "./atlasLocalHelpers.js";
 

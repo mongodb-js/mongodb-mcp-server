@@ -2,7 +2,7 @@ import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js"
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, afterEach, beforeEach } from "vitest";
-import { defaultTestConfig, expectDefined } from "../helpers.js";
+import { defaultTestConfig, expectDefined } from "@mongodb-js/mcp-test-utils";
 import type { TransportRunnerConfig, UserConfig } from "../../../src/lib.js";
 import type { RequestContext } from "../../../src/transports/base.js";
 

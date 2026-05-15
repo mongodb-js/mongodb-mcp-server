@@ -3,8 +3,8 @@ import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
 import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { Session } from "../../src/common/session.js";
-import { defaultTestConfig, expectDefined, InMemoryLogger, testConnectionManagerDriverLabels } from "./helpers.js";
-import { describeWithMongoDB } from "./tools/mongodb/mongodbHelpers.js";
+import { defaultTestConfig, expectDefined, InMemoryLogger, testConnectionManagerDriverLabels } from "@mongodb-js/mcp-test-utils";
+import { describeWithMongoDB } from "@mongodb-js/mcp-test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import type { LoggerBase, UserConfig } from "../../src/lib.js";
 import { ApiClient, Elicitation, Keychain } from "../../src/lib.js";
@@ -19,7 +19,7 @@ import type { TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import { InMemoryTransport } from "../../src/transports/inMemoryTransport.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { TRANSPORT_PAYLOAD_LIMITS } from "../../src/transports/constants.js";
-import { MockMetrics } from "../unit/mocks/metrics.js";
+import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 
 class TestToolOne extends ToolBase {
     static toolName = "test-tool-one";

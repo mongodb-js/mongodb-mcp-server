@@ -4,8 +4,8 @@ import {
     getResponseElements,
     validateThrowsForInvalidArguments,
     validateToolMetadata,
-} from "../../../helpers.js";
-import { defaultTestConfig } from "../../../helpers.js";
+} from "@mongodb-js/mcp-test-utils";
+import { defaultTestConfig } from "@mongodb-js/mcp-test-utils";
 import { beforeEach, describe, expect, it, type MockInstance, vi } from "vitest";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 

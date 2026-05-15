@@ -6,7 +6,7 @@ import {
     validateToolMetadata,
     validateThrowsForInvalidArguments,
     databaseCollectionInvalidArgs,
-} from "../../../helpers.js";
+} from "@mongodb-js/mcp-test-utils";
 import type { CreateCollectionOutput } from "@mongodb-js/mcp-tools-mongodb";
 import { describe, expect, it } from "vitest";
 

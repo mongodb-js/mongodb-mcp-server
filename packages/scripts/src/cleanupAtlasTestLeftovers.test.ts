@@ -1,6 +1,6 @@
 import { ApiClient, type Group, type AtlasOrganization } from "@mongodb-js/mcp-atlas-api-client";
 import { ConsoleLogger } from "@mongodb-js/mcp-logging";
-import { Keychain } from "../src/lib.js";
+import { Keychain } from "@mongodb-js/mcp-core";
 import { describe, it } from "vitest";
 
 function sleep(ms: number): Promise<void> {
@@ -147,6 +147,7 @@ async function main(): Promise<void> {
             clientSecret: process.env.MDB_MCP_API_CLIENT_SECRET || "",
         },
         userAgent: "mongodb-mcp-test-cleanup",
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         logger: new ConsoleLogger({ keychain: Keychain.root }),
     });
 
@@ -216,6 +217,7 @@ async function main(): Promise<void> {
 }
 
 describe("Cleanup Atlas Test Leftovers", () => {
+    // eslint-disable-next-line vitest/expect-expect
     it("should clean up stale test projects", async () => {
         await main();
     });

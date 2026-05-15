@@ -6,7 +6,7 @@ import {
     validateToolMetadata,
     validateThrowsForInvalidArguments,
     databaseCollectionInvalidArgs,
-} from "../../../helpers.js";
+} from "@mongodb-js/mcp-test-utils";
 import type { DropCollectionOutput } from "@mongodb-js/mcp-tools-mongodb";
 
 describeWithMongoDB("dropCollection tool", (integration) => {

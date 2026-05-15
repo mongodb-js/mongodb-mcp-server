@@ -8,7 +8,7 @@ import {
     validateThrowsForInvalidArguments,
     databaseCollectionInvalidArgs,
     getDataFromUntrustedContent,
-} from "../../../helpers.js";
+} from "@mongodb-js/mcp-test-utils";
 import type { Document } from "bson";
 import type { OptionalId } from "mongodb";
 import type { SimplifiedSchema } from "mongodb-schema";

@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
 import { describe, expect, it } from "vitest";
-import { calculateToolCallingAccuracy } from "../accuracy/sdk/accuracyScorer.js";
-import type { ExpectedToolCall, LLMToolCall } from "../accuracy/sdk/accuracyResultStorage/resultStorage.js";
-import { Matcher } from "../accuracy/sdk/matcher.js";
+import { calculateToolCallingAccuracy } from "../packages/accuracy-tests/src/sdk/accuracyScorer.js";
+import type { ExpectedToolCall, LLMToolCall } from "../packages/accuracy-tests/src/sdk/accuracyResultStorage/resultStorage.js";
+import { Matcher } from "../packages/accuracy-tests/src/sdk/matcher.js";
 
 describe("calculateToolCallingAccuracy", () => {
     describe("edge cases", () => {
