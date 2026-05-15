@@ -35,6 +35,16 @@
         "types": "./dist/cjs/tools/index.d.ts",
         "default": "./dist/cjs/tools/index.js"
       }
+    },
+    "./setup": {
+      "import": {
+        "types": "./dist/esm/setup/index.d.ts",
+        "default": "./dist/esm/setup/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/setup/index.d.ts",
+        "default": "./dist/cjs/setup/index.js"
+      }
     }
   },
   "main": "./dist/cjs/lib.js",

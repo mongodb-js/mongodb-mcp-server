@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { ToolBase } from "../../../src/tools/tool.js";
-import type { OperationType, ToolArgs, ToolCategory } from "../../../src/tools/tool.js";
+import { ToolBase } from "@mongodb-js/mcp-core";
+import type { OperationType, ToolArgs, ToolCategory } from "@mongodb-js/mcp-core";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";

@@ -8,19 +8,19 @@ import {
 } from "@mongodb-js/mcp-test-utils";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
 import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
-import { Session } from "../../../src/common/session.js";
+import { Session } from "mongodb-mcp-server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { Server } from "../../../src/server.js";
+import { Server } from "mongodb-mcp-server";
 import { MCPConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
 import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
-import { connectionErrorHandler } from "../../../src/common/connectionErrorHandler.js";
+import { connectionErrorHandler } from "mongodb-mcp-server";
 import { Keychain } from "@mongodb-js/mcp-core";
-import { Elicitation } from "../../../src/elicitation.js";
-import { createAtlasLocalClient } from "../../../src/lib.js";
+import { Elicitation } from "mongodb-mcp-server";
+import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 import { InMemoryTransport } from "@mongodb-js/mcp-core";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
-import { ApiClient } from "../../../src/lib.js";
+import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 

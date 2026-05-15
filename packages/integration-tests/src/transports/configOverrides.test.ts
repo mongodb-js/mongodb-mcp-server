@@ -14,7 +14,7 @@ import type {
 } from "@mongodb-js/mcp-types";
 import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { Server } from "../../../src/server.js";
+import { Server } from "mongodb-mcp-server";
 import {
     Session,
     Elicitation,
@@ -22,11 +22,12 @@ import {
     MCPConnectionManager,
     ExportsManager,
     applyConfigOverrides,
-} from "../../../src/lib.js";
+} from "mongodb-mcp-server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
-import { packageInfo } from "../../../src/common/packageInfo.js";
+import { packageInfo } from "mongodb-mcp-server";
+// Note: packageInfo is only exported from mongodb-mcp-server main entry
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
 import type { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";

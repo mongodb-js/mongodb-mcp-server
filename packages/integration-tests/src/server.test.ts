@@ -2,7 +2,7 @@ import { MCPConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
 import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
 import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
-import { Session } from "../../src/common/session.js";
+import { Session } from "mongodb-mcp-server";
 import {
     defaultTestConfig,
     expectDefined,
@@ -11,19 +11,22 @@ import {
 } from "@mongodb-js/mcp-test-utils";
 import { describeWithMongoDB } from "@mongodb-js/mcp-test-utils";
 import { afterEach, describe, expect, it } from "vitest";
-import type { LoggerBase, UserConfig } from "../../src/lib.js";
-import { ApiClient, Elicitation, Keychain } from "../../src/lib.js";
+import type { LoggerBase } from "@mongodb-js/mcp-core";
+import type { UserConfig } from "mongodb-mcp-server";
+import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { Elicitation } from "mongodb-mcp-server";
+import { Keychain } from "@mongodb-js/mcp-core";
 import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
-import { createAtlasLocalClient } from "../../src/lib.js";
+import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { Server } from "../../src/server.js";
-import { connectionErrorHandler } from "../../src/common/connectionErrorHandler.js";
-import { type OperationType, ToolBase, type ToolCategory, type ToolClass } from "../../src/tools/tool.js";
+import { Server } from "mongodb-mcp-server";
+import { connectionErrorHandler } from "mongodb-mcp-server";
+import { type OperationType, ToolBase, type ToolCategory, type ToolClass } from "@mongodb-js/mcp-core";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import { InMemoryTransport } from "@mongodb-js/mcp-core";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
-import { TRANSPORT_PAYLOAD_LIMITS } from "../../src/transports/constants.js";
+import { TRANSPORT_PAYLOAD_LIMITS } from "@mongodb-js/mcp-core";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 
 class TestToolOne extends ToolBase {

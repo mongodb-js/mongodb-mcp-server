@@ -9,9 +9,9 @@ import { CompositeLogger, Keychain, NoopTelemetry } from "@mongodb-js/mcp-core";
 import { MCPConnectionManager, ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
-import { packageInfo } from "../../../src/common/packageInfo.js";
+import { packageInfo } from "mongodb-mcp-server";
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
-import type { UserConfig } from "../../../src/common/config/userConfig.js";
+import type { UserConfig } from "mongodb-mcp-server";
 
 // Helper to create a Server instance for testing UIRegistry
 type CreateServerOptions = {

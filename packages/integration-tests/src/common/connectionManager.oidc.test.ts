@@ -7,11 +7,11 @@ import type { MongoDBIntegrationTestCase } from "@mongodb-js/mcp-test-utils";
 import { describeWithMongoDB, isCommunityServer, getServerVersion } from "@mongodb-js/mcp-test-utils";
 import { defaultTestConfig, responseAsText, timeout, waitUntil } from "@mongodb-js/mcp-test-utils";
 import type { ConnectionStateConnected, ConnectionStateConnecting } from "@mongodb-js/mcp-tools-mongodb";
-import type { UserConfig } from "../../../src/common/config/userConfig.js";
+import type { UserConfig } from "mongodb-mcp-server";
 import path from "path";
 import type { OIDCMockProviderConfig } from "@mongodb-js/oidc-mock-provider";
 import { OIDCMockProvider } from "@mongodb-js/oidc-mock-provider";
-import { type TestConnectionManager } from "../../utils/index.js";
+import { type TestConnectionManager } from "../utils/index.js";
 
 const DEFAULT_TIMEOUT = 60_000;
 const DEFAULT_RETRIES = 5;

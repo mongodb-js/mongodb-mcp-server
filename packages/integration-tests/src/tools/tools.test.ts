@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { AllTools, ToolBase } from "../../../src/tools/index.js";
+import { AllTools } from "mongodb-mcp-server/tools";
+import { ToolBase } from "@mongodb-js/mcp-core";
 
 describe("all exported tools", () => {
     it("'AllTools' should be a list of ToolBase implementations", () => {

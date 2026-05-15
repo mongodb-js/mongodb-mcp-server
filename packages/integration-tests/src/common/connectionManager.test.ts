@@ -1,11 +1,11 @@
 import type { ConnectionManagerEvents, ConnectionStateConnected } from "@mongodb-js/mcp-tools-mongodb";
 import { getAuthType, type ConnectionStringAuthType } from "@mongodb-js/mcp-tools-mongodb";
-import type { UserConfig } from "../../../src/common/config/userConfig.js";
+import type { UserConfig } from "mongodb-mcp-server";
 import { describeWithMongoDB, waitUntilSearchIsReady } from "@mongodb-js/mcp-test-utils";
 import { MongoServerError } from "mongodb";
 import { describe, beforeEach, expect, it, vi, afterEach } from "vitest";
 import type { MockInstance } from "vitest";
-import { type TestConnectionManager } from "../../utils/index.js";
+import { type TestConnectionManager } from "../utils/index.js";
 
 describeWithMongoDB("Connection Manager", (integration) => {
     function connectionManager(): TestConnectionManager {

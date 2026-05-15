@@ -1,6 +1,6 @@
 import { beforeEach, afterEach } from "vitest";
 import { type ConnectionManagerEvents } from "@mongodb-js/mcp-tools-mongodb";
-import { type ConnectionManager } from "../../src/lib.js";
+import { type ConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
 
 export function createEnvironment(): {
     setVariable: (this: void, variable: string, value: unknown) => void;

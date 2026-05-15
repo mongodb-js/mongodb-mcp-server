@@ -3,8 +3,9 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 import { defaultTestConfig } from "@mongodb-js/mcp-test-utils";
 import { parsePrometheusValue } from "./metricsHelpers.js";
-import type { UserConfig, OperationType, ToolCategory } from "mongodb-mcp-server";
-import { ToolBase } from "mongodb-mcp-server";
+import type { UserConfig } from "mongodb-mcp-server";
+import type { OperationType, ToolCategory } from "@mongodb-js/mcp-core";
+import { ToolBase } from "@mongodb-js/mcp-core";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { TelemetryToolMetadata, AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import {
@@ -14,7 +15,7 @@ import {
     Counter,
 } from "@mongodb-js/mcp-metrics";
 import type { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
-import { EchoTool, ErrorTool, NoopTool } from "../unit/mocks/tools.js";
+import { EchoTool, ErrorTool, NoopTool } from "./mocks/tools.js";
 import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type {
@@ -23,22 +24,14 @@ import type {
     HttpServerOptions,
     SessionManagementOptions,
 } from "@mongodb-js/mcp-types";
-import { Server, type AnyToolClass } from "../../src/server.js";
-import {
-    Session,
-    Elicitation,
-    connectionErrorHandler,
-    MCPConnectionManager,
-    ExportsManager,
-    StreamableHttpRunner,
-    MonitoringServer,
-    SessionStore,
-    MCPHttpServer,
-} from "../../src/lib.js";
+import { Server, type AnyToolClass, Session, Elicitation, connectionErrorHandler } from "mongodb-mcp-server";
+import { MCPConnectionManager, ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
+import { StreamableHttpRunner, MonitoringServer, MCPHttpServer } from "@mongodb-js/mcp-http-runners";
+import { SessionStore } from "@mongodb-js/mcp-core";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
-import { packageInfo } from "../../src/common/packageInfo.js";
+import { packageInfo } from "mongodb-mcp-server";
 
 // Helper to create a full Server instance for tests
 async function createTestServer(

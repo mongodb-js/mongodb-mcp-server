@@ -14,9 +14,10 @@ const config: KnipConfig = {
                 "src/tools/index.ts!",
                 "tests/**/*.ts",
                 "!tests/browser/**",
+                "!packages/integration-tests/**",
                 "eslint-rules/*.js",
             ],
-            ignore: ["tests/integration/fixtures/curl.mjs", "packaging/mcpb/server/index.js"],
+            ignore: ["packaging/mcpb/server/index.js"],
             ignoreDependencies: [
                 // Transitive deps needed for bundling/universal package
                 "@emotion/css",
@@ -63,6 +64,10 @@ const config: KnipConfig = {
         },
         "packages/test-utils": {
             ignoreDependencies: ["@modelcontextprotocol/sdk", "@mongodb-js/mcp-ui", "vitest"],
+        },
+        "packages/integration-tests": {
+            entry: ["src/**/*.ts"],
+            ignore: ["src/fixtures/curl.mjs"],
         },
         "packages/ui": {
             ignore: ["src/build/mount.tsx", "src/components/**", "vite.ui.config.ts", "src/test-setup.ts"],
