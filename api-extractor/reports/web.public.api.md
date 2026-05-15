@@ -36,8 +36,6 @@ export type AnyToolBase = ToolBase<any, any, any>;
 // @public (undocumented)
 export type AnyToolClass = ToolClass<any, any, any>;
 
-// Warning: (ae-forgotten-export) The symbol "IApiClient" needs to be exported by the entry point web.d.ts
-//
 // @public (undocumented)
 export class ApiClient implements IApiClient {
     constructor(options: ApiClientOptions);
@@ -119,9 +117,6 @@ export class ApiClient implements IApiClient {
     listAccessListEntries(options: FetchOptions<operations["listGroupAccessListEntries"]>): Promise<components["schemas"]["PaginatedNetworkAccessView"]>;
     // (undocumented)
     listAlerts(options: FetchOptions<operations["listGroupAlerts"]>): Promise<components["schemas"]["PaginatedAlertView"]>;
-    // Warning: (ae-forgotten-export) The symbol "operations" needs to be exported by the entry point web.d.ts
-    // Warning: (ae-forgotten-export) The symbol "components" needs to be exported by the entry point web.d.ts
-    //
     // (undocumented)
     listClusterDetails(options?: FetchOptions<operations["listClusterDetails"]>): Promise<components["schemas"]["PaginatedOrgGroupView"]>;
     // (undocumented)
@@ -338,10 +333,6 @@ export type ConnectionErrorHandled = {
     result: CallToolResult;
 };
 
-// Warning: (ae-forgotten-export) The symbol "MongoDBError_2" needs to be exported by the entry point web.d.ts
-// Warning: (ae-forgotten-export) The symbol "NotConnectedToMongoDBErrorCode" needs to be exported by the entry point web.d.ts
-// Warning: (ae-forgotten-export) The symbol "MisconfiguredConnectionStringErrorCode" needs to be exported by the entry point web.d.ts
-//
 // @public (undocumented)
 export type ConnectionErrorHandler = (error: MongoDBError_2<NotConnectedToMongoDBErrorCode | MisconfiguredConnectionStringErrorCode>, additionalContext: ConnectionErrorHandlerContext) => ConnectionErrorUnhandled | ConnectionErrorHandled | Promise<ConnectionErrorUnhandled | ConnectionErrorHandled>;
 
@@ -476,8 +467,6 @@ export interface ConnectionStateErrored extends ConnectionState {
     tag: "errored";
 }
 
-// Warning: (ae-forgotten-export) The symbol "OIDCConnectionAuthType_2" needs to be exported by the entry point web.d.ts
-//
 // @public (undocumented)
 export type ConnectionStringAuthType = "scram" | "ldap" | "kerberos" | OIDCConnectionAuthType_2 | "x.509";
 
@@ -530,8 +519,6 @@ export type DefaultEventMap = Record<string, never[]>;
 // @public (undocumented)
 export type DefaultMetrics = ReturnType<typeof createDefaultMetrics>;
 
-// Warning: (ae-forgotten-export) The symbol "IDeviceId" needs to be exported by the entry point web.d.ts
-//
 // @public (undocumented)
 export class DeviceId implements IDeviceId {
     close(): void;
@@ -618,8 +605,6 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
     get availableExports(): AvailableExport[];
     // (undocumented)
     close(): Promise<void>;
-    // Warning: (ae-forgotten-export) The symbol "CreateJSONExportParams" needs to be exported by the entry point web.d.ts
-    //
     // (undocumented)
     createJSONExport(input: CreateJSONExportParams): Promise<AvailableExport>;
     // (undocumented)
@@ -685,11 +670,8 @@ export class Keychain implements IKeychain {
 
 export { LibraryLoader }
 
-// Warning: (ae-forgotten-export) The symbol "ILogger" needs to be exported by the entry point web.d.ts
-//
 // @public (undocumented)
 export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extends EventEmitter<T> implements ILogger {
-    // Warning: (ae-forgotten-export) The symbol "LoggerConfig" needs to be exported by the entry point web.d.ts
     constructor(options: LoggerConfig);
     // (undocumented)
     alert(payload: LogPayload): void;
@@ -735,9 +717,6 @@ export type LogPayload = {
 // @public (undocumented)
 export type MetricDefinitions = Record<string, unknown>;
 
-// Warning: (ae-forgotten-export) The symbol "PrometheusMetricDefinitions" needs to be exported by the entry point web.d.ts
-// Warning: (ae-forgotten-export) The symbol "IMetrics" needs to be exported by the entry point web.d.ts
-//
 // @public (undocumented)
 export interface Metrics<TMetricsDefinitions extends PrometheusMetricDefinitions = PrometheusMetricDefinitions> extends IMetrics<TMetricsDefinitions> {
     get<K extends keyof TMetricsDefinitions>(key: K): TMetricsDefinitions[K];
@@ -941,8 +920,6 @@ export type StreamsToolMetadata = AtlasMetadata & {
     resource?: string;
 };
 
-// Warning: (ae-forgotten-export) The symbol "ITelemetry" needs to be exported by the entry point web.d.ts
-//
 // @public (undocumented)
 export class Telemetry implements ITelemetry {
     // (undocumented)
@@ -1003,8 +980,6 @@ export type ToolArgs<T extends ZodRawShape> = {
     [K in keyof T]: z.infer<T[K]>;
 };
 
-// Warning: (ae-forgotten-export) The symbol "IToolConfig" needs to be exported by the entry point web.d.ts
-//
 // @public
 export abstract class ToolBase<TUserConfig extends IToolConfig = IToolConfig, TContext = unknown, TMetricsDefinitions extends MetricDefinitions = MetricDefinitions> {
     constructor(input: ToolConstructorParams<TUserConfig, TContext, TMetricsDefinitions>);
@@ -1017,22 +992,17 @@ export abstract class ToolBase<TUserConfig extends IToolConfig = IToolConfig, TC
     abstract description: string;
     // (undocumented)
     disable(): void;
-    // Warning: (ae-forgotten-export) The symbol "IElicitation" needs to be exported by the entry point web.d.ts
     protected readonly elicitation: IElicitation;
     // (undocumented)
     enable(): void;
     protected abstract execute(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     protected getConfirmationMessage(args: ToolArgs<typeof ToolBase.argsShape>): string;
-    // Warning: (ae-forgotten-export) The symbol "ConnectionMetadata_2" needs to be exported by the entry point web.d.ts
-    //
     // (undocumented)
     protected getConnectionInfoMetadata(): ConnectionMetadata_2;
     protected handleError(error: unknown, args: z.infer<z.ZodObject<typeof ToolBase.argsShape>>): Promise<CallToolResult> | CallToolResult;
     invoke(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)
     isEnabled(): boolean;
-    // Warning: (ae-forgotten-export) The symbol "PreviewFeature_2" needs to be exported by the entry point web.d.ts
-    //
     // (undocumented)
     protected isFeatureEnabled(feature: PreviewFeature_2): boolean;
     protected readonly metrics: IMetrics<TMetricsDefinitions>;
@@ -1044,11 +1014,9 @@ export abstract class ToolBase<TUserConfig extends IToolConfig = IToolConfig, TC
         mcpServer: McpServer;
     }): boolean;
     requiresConfirmation(): boolean;
-    // Warning: (ae-forgotten-export) The symbol "TelemetryToolMetadata_2" needs to be exported by the entry point web.d.ts
     protected abstract resolveTelemetryMetadata(args: ToolArgs<typeof ToolBase.argsShape>, input: {
         result: CallToolResult;
     }): TelemetryToolMetadata_2;
-    // Warning: (ae-forgotten-export) The symbol "IToolSession" needs to be exported by the entry point web.d.ts
     protected readonly session: IToolSession;
     protected readonly telemetry: ITelemetry;
     protected get toolMeta(): Record<string, unknown>;
@@ -1108,8 +1076,6 @@ export abstract class TransportRunnerBase<TUserConfig extends UserConfig = UserC
     abstract closeTransport(): Promise<void>;
     // @deprecated (undocumented)
     protected readonly connectionErrorHandler: ConnectionErrorHandler;
-    // Warning: (ae-forgotten-export) The symbol "ApiClientFactoryFn" needs to be exported by the entry point web.d.ts
-    //
     // @deprecated (undocumented)
     protected readonly createApiClient: ApiClientFactoryFn;
     // @deprecated (undocumented)
@@ -1164,7 +1130,6 @@ export type TransportRunnerConfig<TUserConfig extends UserConfig = UserConfig, T
 
 // @public
 export class UIRegistry implements IUIRegistry {
-    // Warning: (ae-forgotten-export) The symbol "UIRegistryOptions" needs to be exported by the entry point web.d.ts
     constructor(options?: UIRegistryOptions);
     get(toolName: string): Promise<string | null>;
 }
@@ -1330,13 +1295,6 @@ export const UserConfigSchema: z.ZodObject<{
     }>]>>;
     browser: z.ZodOptional<z.ZodUnion<readonly [z.ZodLiteral<false>, z.ZodString]>>;
 }, z.core.$strip>;
-
-// Warnings were encountered during analysis:
-//
-// packages/core/src/logging/compositeLogger.ts:17:49 - (ae-forgotten-export) The symbol "IKeychain" needs to be exported by the entry point web.d.ts
-// packages/core/src/toolBase.ts:142:5 - (ae-forgotten-export) The symbol "IUIRegistry" needs to be exported by the entry point web.d.ts
-// packages/tools-mongodb/src/common/connectionManager.ts:541:5 - (ae-forgotten-export) The symbol "ConnectionManagerOptions" needs to be exported by the entry point web.d.ts
-// packages/types/src/logging.ts:34:5 - (ae-forgotten-export) The symbol "MongoLogId" needs to be exported by the entry point web.d.ts
 
 // (No @packageDocumentation comment for this package)
 

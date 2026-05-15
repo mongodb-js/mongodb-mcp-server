@@ -5,44 +5,35 @@
 ```ts
 
 import type { AggregationCursor } from 'mongodb';
+import type { AtlasLocalClientFactoryFn } from '@mongodb-js/mcp-tools-atlas-local';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { Client } from '@mongodb-js/atlas-local';
-import type { CloseableTransport } from '@mongodb-js/mcp-types';
-import type { components } from './openapi.js';
 import { ConnectionInfo } from '@mongosh/arg-parser';
-import { Counter } from '@mongodb-js/mcp-metrics';
-import { createDefaultMetrics } from '@mongodb-js/mcp-metrics';
-import { DefaultMetrics } from '@mongodb-js/mcp-metrics';
+import { Counter } from 'prom-client';
+import { createAtlasLocalClient } from '@mongodb-js/mcp-tools-atlas-local';
 import { defaultParserOptions as defaultParserOptions_2 } from '@mongosh/arg-parser/arg-parser';
 import type { ElicitRequestFormParams } from '@modelcontextprotocol/sdk/types.js';
 import EventEmitter from 'events';
 import express from 'express';
 import type { FetchOptions } from 'openapi-fetch';
 import type { FindCursor } from 'mongodb';
-import { Gauge } from '@mongodb-js/mcp-metrics';
-import { Histogram } from '@mongodb-js/mcp-metrics';
+import { Gauge } from 'prom-client';
+import { Histogram } from 'prom-client';
 import type http from 'http';
-import type { IDeviceId } from '@mongodb-js/mcp-types';
 import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
 import type { LoggingMessageNotification } from '@modelcontextprotocol/sdk/types.js';
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { MetricDefinitions } from '@mongodb-js/mcp-metrics';
-import { Metrics } from '@mongodb-js/mcp-metrics';
-import type { MongoLogId } from 'mongodb-log-writer';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
-import type { operations } from './openapi.js';
-import { PrometheusMetrics } from '@mongodb-js/mcp-metrics';
-import { PrometheusMetricsOptions } from '@mongodb-js/mcp-metrics';
-import { Registry } from '@mongodb-js/mcp-metrics';
+import { Registry } from 'prom-client';
 import { Secret } from 'mongodb-redact';
-import type { SessionCloseReason } from '@mongodb-js/mcp-types';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import type { TelemetryEvents } from '@mongodb-js/mcp-types';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
-import type { TransportRequestContext } from '@mongodb-js/mcp-types';
 import { z } from 'zod';
 import type { ZodRawShape } from 'zod';
+
+// @public
+export const AGG_COUNT_MAX_TIME_MS_CAP: number;
 
 // @public (undocumented)
 export type AnyConnectionState = ConnectionStateConnected | ConnectionStateConnecting | ConnectionStateDisconnected | ConnectionStateErrored;
@@ -54,12 +45,12 @@ export type AnyToolBase = ToolBase<any, any, any>;
 export type AnyToolClass = ToolClass<any, any, any>;
 
 // @public (undocumented)
-export class ApiClient {
-    constructor(options: ApiClientOptions, logger: LoggerBase, authProvider?: AuthProvider | undefined);
+export class ApiClient implements IApiClient {
+    constructor(options: ApiClientOptions);
     // (undocumented)
     acceptVpcPeeringConnection(options: FetchOptions<operations["acceptGroupStreamVpcPeeringConnection"]>): Promise<void>;
     // (undocumented)
-    readonly authProvider?: AuthProvider | undefined;
+    readonly authProvider?: AuthProvider;
     // (undocumented)
     close(): Promise<void>;
     // (undocumented)
@@ -165,7 +156,8 @@ export class ApiClient {
     // (undocumented)
     rejectVpcPeeringConnection(options: FetchOptions<operations["rejectGroupStreamVpcPeeringConnection"]>): Promise<void>;
     // (undocumented)
-    sendEvents(events: TelemetryEvent<CommonProperties>[], input?: {
+    sendEvents(options?: {
+        events: unknown[];
         signal?: AbortSignal;
     }): Promise<void>;
     // (undocumented)
@@ -232,18 +224,19 @@ export class ApiClient {
 }
 
 // @public (undocumented)
-export type ApiClientFactoryFn = (options: ApiClientOptions, logger: LoggerBase) => ApiClient;
-
-// @public (undocumented)
 export interface ApiClientOptions {
+    // (undocumented)
+    authProvider?: AuthProvider;
     // (undocumented)
     baseUrl: string;
     // (undocumented)
     credentials?: Credentials;
     // (undocumented)
+    logger: LoggerBase;
+    // (undocumented)
     requestContext?: RequestContext;
     // (undocumented)
-    userAgent?: string;
+    userAgent: string;
 }
 
 // @public
@@ -251,6 +244,20 @@ export function applyConfigOverrides<TUserConfig extends UserConfig = UserConfig
     baseConfig: TUserConfig;
     request?: RequestContext_2;
 }): TUserConfig;
+
+// @public (undocumented)
+export class AtlasTelemetry implements ITelemetry {
+    // (undocumented)
+    close(): Promise<void>;
+    // (undocumented)
+    static create(config: TelemetryConfig): AtlasTelemetry;
+    emitEvents(events: BaseEvent[]): void;
+    // (undocumented)
+    readonly events: EventEmitter<TelemetryEvents>;
+    getCommonProperties(): CommonProperties;
+    isTelemetryEnabled(): boolean;
+    setupPromise: Promise<[string, boolean]> | undefined;
+}
 
 // @public
 export interface AuthProvider {
@@ -265,7 +272,10 @@ export interface AuthProvider {
 // @public (undocumented)
 export type BaseEvent = TelemetryEvent<unknown>;
 
-export { CloseableTransport }
+// @public (undocumented)
+export type CloseableTransport = {
+    close(): Promise<void>;
+};
 
 // @public
 export type CommonProperties = {
@@ -279,13 +289,18 @@ export type CommonProperties = {
     session_id?: string;
     hosting_mode?: string;
     has_docker?: TelemetryBoolSet;
-} & CommonStaticProperties;
+} & TelemetryCommonStaticProperties;
 
 // @public (undocumented)
 export class CompositeLogger extends LoggerBase {
-    constructor(...loggers: LoggerBase[]);
+    constructor(input?: {
+        keychain?: IKeychain;
+        loggers: LoggerBase[];
+    });
     // (undocumented)
     addLogger(logger: LoggerBase): void;
+    // (undocumented)
+    flush(): Promise<PromiseSettledResult<void>[]>;
     // (undocumented)
     log(level: LogLevel, payload: LogPayload): void;
     // (undocumented)
@@ -302,13 +317,16 @@ export class ConfigOverrideError extends Error {
 }
 
 // @public (undocumented)
+export const configRegistry: z.core.$ZodRegistry<ConfigFieldMeta, z.core.$ZodType<unknown, unknown, z.core.$ZodTypeInternals<unknown, unknown>>>;
+
+// @public (undocumented)
 export type ConnectionErrorHandled = {
     errorHandled: true;
     result: CallToolResult;
 };
 
 // @public (undocumented)
-export type ConnectionErrorHandler = (error: MongoDBError<ErrorCodes.NotConnectedToMongoDB | ErrorCodes.MisconfiguredConnectionString>, additionalContext: ConnectionErrorHandlerContext) => ConnectionErrorUnhandled | ConnectionErrorHandled | Promise<ConnectionErrorUnhandled | ConnectionErrorHandled>;
+export type ConnectionErrorHandler = (error: MongoDBError<NotConnectedToMongoDBErrorCode | MisconfiguredConnectionStringErrorCode>, additionalContext: ConnectionErrorHandlerContext) => ConnectionErrorUnhandled | ConnectionErrorHandled | Promise<ConnectionErrorUnhandled | ConnectionErrorHandled>;
 
 // @public (undocumented)
 export const connectionErrorHandler: ConnectionErrorHandler;
@@ -363,12 +381,15 @@ export interface ConnectionManagerEvents {
     close: [AnyConnectionState];
 }
 
+// @public (undocumented)
+export type ConnectionManagerFactoryFn = (params: ConnectionManagerFactoryOptions) => Promise<ConnectionManager>;
+
 // @public
-export type ConnectionManagerFactoryFn = (createParams: {
+export type ConnectionManagerFactoryOptions = {
     logger: LoggerBase;
     deviceId: DeviceId;
-    userConfig: UserConfig;
-}) => Promise<ConnectionManager>;
+    options: ConnectionManagerOptions["options"];
+};
 
 // @public (undocumented)
 export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"> {
@@ -390,11 +411,15 @@ export interface ConnectionState {
 
 // @public (undocumented)
 export class ConnectionStateConnected implements ConnectionState {
-    constructor(serviceProvider: NodeDriverServiceProvider, connectionStringInfo?: ConnectionStringInfo | undefined, connectedAtlasCluster?: AtlasClusterConnectionInfo | undefined);
+    constructor(input: {
+        serviceProvider: NodeDriverServiceProvider;
+        connectionStringInfo?: ConnectionStringInfo;
+        connectedAtlasCluster?: AtlasClusterConnectionInfo;
+    });
     // (undocumented)
-    connectedAtlasCluster?: AtlasClusterConnectionInfo | undefined;
+    connectedAtlasCluster?: AtlasClusterConnectionInfo;
     // (undocumented)
-    connectionStringInfo?: ConnectionStringInfo | undefined;
+    connectionStringInfo?: ConnectionStringInfo;
     // (undocumented)
     isSearchSupported(logger: LoggerBase): Promise<boolean>;
     // (undocumented)
@@ -436,7 +461,7 @@ export type ConnectionTag = "connected" | "connecting" | "disconnected" | "error
 
 // @public (undocumented)
 export class ConsoleLogger extends LoggerBase {
-    constructor(keychain: Keychain);
+    constructor(options: LoggerConfig);
     // (undocumented)
     protected logCore(level: LogLevel, payload: LogPayload): void;
     // (undocumented)
@@ -445,19 +470,23 @@ export class ConsoleLogger extends LoggerBase {
 
 export { Counter }
 
+export { createAtlasLocalClient }
+
 // @public
 export const createDefaultMcpHttpServer: <TUserConfig extends UserConfig = UserConfig, TContext = unknown>(args: MCPHttpServerConstructorArgs<TUserConfig, TContext>) => MCPHttpServer<TUserConfig, TContext>;
 
-export { createDefaultMetrics }
+// @public
+export function createDefaultMetrics(): {
+    readonly toolExecutionDuration: Histogram<"tool_name" | "category" | "status" | "operation_type" | "error_type">;
+    readonly sessionCreated: Counter<string>;
+    readonly sessionClosed: Counter<"reason">;
+};
 
 // @public
 export const createDefaultMonitoringServer: <TMetrics extends DefaultMetrics = DefaultMetrics>(args: MonitoringServerConstructorArgs<TMetrics>) => MonitoringServer<TMetrics>;
 
 // @public
 export function createDefaultSessionStore<TTransport extends CloseableTransport = CloseableTransport, TMetrics extends DefaultMetrics = DefaultMetrics>(params: SessionStoreConstructorArgs<TMetrics>): SessionStore<TTransport>;
-
-// @public @deprecated (undocumented)
-export const createMCPConnectionManager: ConnectionManagerFactoryFn;
 
 // @public
 export type CreateMcpHttpServerFn<TUserConfig extends UserConfig = UserConfig, TContext = unknown> = (args: MCPHttpServerConstructorArgs<TUserConfig, TContext>) => MCPHttpServer<TUserConfig, TContext>;
@@ -491,18 +520,10 @@ export type CustomizableServerOptions<TUserConfig extends UserConfig = UserConfi
 export type CustomizableSessionOptions<TUserConfig extends UserConfig = UserConfig> = Partial<Pick<SessionOptions<TUserConfig>, "userConfig" | "apiClient" | "atlasLocalClient" | "connectionManager" | "connectionErrorHandler">>;
 
 // @public (undocumented)
-export const defaultCreateApiClient: ApiClientFactoryFn;
-
-// @public (undocumented)
-export const defaultCreateAtlasLocalClient: AtlasLocalClientFactoryFn;
-
-// @public (undocumented)
-export const defaultCreateConnectionManager: ConnectionManagerFactoryFn;
-
-// @public (undocumented)
 export type DefaultEventMap = Record<string, never[]>;
 
-export { DefaultMetrics }
+// @public (undocumented)
+export type DefaultMetrics = ReturnType<typeof createDefaultMetrics>;
 
 // @public (undocumented)
 export const defaultParserOptions: {
@@ -557,29 +578,21 @@ export class Elicitation {
         required: string[];
     };
     requestConfirmation(message: string): Promise<boolean>;
-    requestInput(message: string, schema: ElicitRequestFormParams["requestedSchema"]): Promise<ElicitedInputResult>;
+    requestInput(message: string, schema: ElicitRequestFormParams["requestedSchema"]): Promise<ElicitedInputResult_2>;
     supportsElicitation(): boolean;
 }
 
 // @public (undocumented)
-export enum ErrorCodes {
-    // (undocumented)
-    AtlasSearchNotSupported = 1000004,
-    // (undocumented)
-    AtlasVectorSearchIndexNotFound = 1000006,
-    // (undocumented)
-    AtlasVectorSearchInvalidQuery = 1000007,
-    // (undocumented)
-    ForbiddenCollscan = 1000002,
-    // (undocumented)
-    ForbiddenWriteOperation = 1000003,
-    // (undocumented)
-    InvalidPipeline = 1000008,
-    // (undocumented)
-    MisconfiguredConnectionString = 1000001,
-    // (undocumented)
-    NotConnectedToMongoDB = 1000000
-}
+export const ErrorCodes: {
+    readonly NotConnectedToMongoDB: 1000000;
+    readonly MisconfiguredConnectionString: 1000001;
+    readonly ForbiddenCollscan: 1000002;
+    readonly ForbiddenWriteOperation: 1000003;
+    readonly AtlasSearchNotSupported: 1000004;
+    readonly AtlasVectorSearchIndexNotFound: 1000006;
+    readonly AtlasVectorSearchInvalidQuery: 1000007;
+    readonly InvalidPipeline: 1000008;
+};
 
 // @public
 export class EventCache {
@@ -608,16 +621,15 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
     // (undocumented)
     close(): Promise<void>;
     // (undocumented)
-    createJSONExport(input: {
-        input: FindCursor | AggregationCursor;
-        exportName: string;
-        exportTitle: string;
-        jsonExportFormat: JSONExportFormat;
-    }): Promise<AvailableExport>;
+    createJSONExport(input: CreateJSONExportParams): Promise<AvailableExport>;
     // (undocumented)
     protected init(): void;
     // (undocumented)
-    static init(config: ExportsManagerConfig, logger: LoggerBase, sessionId?: string): ExportsManager;
+    static init(input: {
+        options: Omit<ExportsManagerOptions, "exportsDirectoryPath">;
+        logger: LoggerBase;
+        sessionId?: string;
+    }): ExportsManager;
     // (undocumented)
     readExport(exportName: string): Promise<{
         content: string;
@@ -667,7 +679,7 @@ export const JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED = -32001;
 export const JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND = -32003;
 
 // @public
-export class Keychain {
+export class Keychain implements IKeychain {
     constructor();
     // (undocumented)
     get allSecrets(): Secret[];
@@ -680,8 +692,8 @@ export class Keychain {
 }
 
 // @public (undocumented)
-export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extends EventEmitter<T> {
-    constructor(keychain: Keychain | undefined);
+export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extends EventEmitter<T> implements ILogger {
+    constructor(options: LoggerConfig);
     // (undocumented)
     alert(payload: LogPayload): void;
     // (undocumented)
@@ -693,13 +705,13 @@ export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extend
     // (undocumented)
     error(payload: LogPayload): void;
     // (undocumented)
+    flush(): Promise<PromiseSettledResult<void>[]>;
+    // (undocumented)
     info(payload: LogPayload): void;
     // (undocumented)
     log(level: LogLevel, payload: LogPayload): void;
     // (undocumented)
     protected abstract logCore(level: LogLevel, payload: LogPayload): void;
-    // (undocumented)
-    protected mapToMongoDBLogLevel(level: LogLevel): "info" | "warn" | "error" | "debug" | "fatal";
     // (undocumented)
     notice(payload: LogPayload): void;
     // (undocumented)
@@ -715,22 +727,17 @@ export type LoggerType = "console" | "disk" | "mcp";
 export type LogLevel = LoggingMessageNotification["params"]["level"];
 
 // @public (undocumented)
-export interface LogPayload {
-    // (undocumented)
-    attributes?: Record<string, string>;
-    // (undocumented)
-    context: string;
-    // (undocumented)
+export type LogPayload = {
     id: MongoLogId;
-    // (undocumented)
+    context: string;
     message: string;
-    // (undocumented)
     noRedaction?: boolean | LoggerType | LoggerType[];
-}
+    attributes?: Record<string, string>;
+};
 
 // @public
 export class MCPConnectionManager extends ConnectionManager {
-    constructor(userConfig: UserConfig, logger: LoggerBase, deviceId: DeviceId, bus?: EventEmitter);
+    constructor(input: ConnectionManagerOptions);
     close(): Promise<void>;
     connect(settings: ConnectionSettings): Promise<AnyConnectionState>;
     disconnect(): Promise<ConnectionStateDisconnected | ConnectionStateErrored>;
@@ -766,16 +773,41 @@ export type MCPHttpServerConstructorArgs<TUserConfig extends UserConfig = UserCo
     sessionStore: ISessionStore<StreamableHTTPServerTransport>;
 };
 
-export { MetricDefinitions }
-
-export { Metrics }
+// @public (undocumented)
+export class McpLogger extends LoggerBase {
+    constructor(options: {
+        server: McpServer;
+        mcpLogLevel: LogLevel | (() => LogLevel);
+    } & LoggerConfig);
+    // (undocumented)
+    flush(): Promise<PromiseSettledResult<void>[]>;
+    // (undocumented)
+    protected logCore(level: LogLevel, payload: LogPayload): void;
+    // (undocumented)
+    protected readonly type: LoggerType;
+}
 
 // @public (undocumented)
-export class MongoDBError<ErrorCode extends ErrorCodes = ErrorCodes> extends Error {
-    constructor(code: ErrorCode, message: string);
-    // (undocumented)
-    code: ErrorCode;
+export type MetricDefinitions = Record<string, unknown>;
+
+// @public (undocumented)
+export interface Metrics<TMetricsDefinitions extends PrometheusMetricDefinitions = PrometheusMetricDefinitions> extends IMetrics<TMetricsDefinitions> {
+    get<K extends keyof TMetricsDefinitions>(key: K): TMetricsDefinitions[K];
+    getMetrics(): Promise<string>;
 }
+
+// @public (undocumented)
+export class MongoDBError<ErrorCodeType extends ErrorCode = ErrorCode> extends Error {
+    constructor(code: ErrorCodeType, message: string);
+    // (undocumented)
+    code: ErrorCodeType;
+}
+
+// @public
+export type MongoDBToolsRuntimeConfig = {
+    queryCountMaxTimeMsCap: number;
+    aggregationCountMaxTimeMsCap: number;
+};
 
 // @public (undocumented)
 export class MonitoringServer<TMetrics extends DefaultMetrics = DefaultMetrics> extends ExpressBasedHttpServer {
@@ -818,12 +850,12 @@ export type MonitoringServerConstructorArgs<TMetrics extends DefaultMetrics = De
 export type MonitoringServerFeature = (typeof monitoringServerFeatureValues)[number];
 
 // @public (undocumented)
-export class NullLogger extends LoggerBase {
+export class NoopLogger extends LoggerBase {
     constructor();
     // (undocumented)
     protected logCore(): void;
     // (undocumented)
-    protected type?: LoggerType;
+    protected readonly type?: LoggerType;
 }
 
 // @public (undocumented)
@@ -850,9 +882,26 @@ export function parseUserConfig(input: {
     error: string | undefined;
 };
 
-export { PrometheusMetrics }
+// @public (undocumented)
+export class PrometheusMetrics<TMetricsDefinitions extends PrometheusMetricDefinitions> implements Metrics<TMetricsDefinitions> {
+    constructor(input: PrometheusMetricsOptions<TMetricsDefinitions>);
+    // (undocumented)
+    get<K extends keyof TMetricsDefinitions>(key: K): TMetricsDefinitions[K];
+    // (undocumented)
+    getMetrics(): Promise<string>;
+    // (undocumented)
+    readonly registry: Registry;
+}
 
-export { PrometheusMetricsOptions }
+// @public
+export interface PrometheusMetricsOptions<TMetricsDefinitions extends PrometheusMetricDefinitions> {
+    collectProcessMetrics?: boolean;
+    definitions: TMetricsDefinitions;
+    registry?: Registry;
+}
+
+// @public
+export const QUERY_COUNT_MAX_TIME_MS_CAP: number;
 
 // @public (undocumented)
 export function registerGlobalSecretToRedact(value: Secret["value"], kind: Secret["kind"]): void;
@@ -915,10 +964,11 @@ export interface ServerOptions<TUserConfig extends UserConfig = UserConfig, TCon
     mcpServer: McpServer;
     // (undocumented)
     metrics: Metrics<TMetrics>;
+    runtimeConfig?: MongoDBToolsRuntimeConfig;
     // (undocumented)
     session: Session;
     // (undocumented)
-    telemetry: Telemetry;
+    telemetry: AtlasTelemetry;
     toolContext?: TContext;
     tools?: AnyToolClass[];
     // (undocumented)
@@ -976,7 +1026,8 @@ export class Session extends EventEmitter<SessionEvents> {
     setMcpClient(mcpClient: Implementation | undefined): void;
 }
 
-export { SessionCloseReason }
+// @public (undocumented)
+export type SessionCloseReason = "idle_timeout" | "transport_closed" | "server_stop" | "unknown";
 
 // @public (undocumented)
 export type SessionEvents = {
@@ -1080,35 +1131,18 @@ export type StreamableHttpTransportRunnerConfig<TUserConfig extends UserConfig =
     createMcpHttpServer?: CreateMcpHttpServerFn<TUserConfig, TContext>;
 };
 
-// @public (undocumented)
-export class Telemetry {
-    // (undocumented)
-    close(): Promise<void>;
-    // @deprecated (undocumented)
-    static create(session: Session, userConfig: UserConfig, deviceId: DeviceId, options?: {
-        commonProperties?: Partial<CommonProperties>;
-        eventCache?: EventCache;
-    }): Telemetry;
-    // (undocumented)
-    static create(config: TelemetryConfig): Telemetry;
-    emitEvents(events: BaseEvent[]): void;
-    // (undocumented)
-    readonly events: EventEmitter<TelemetryEvents>;
-    getCommonProperties(): CommonProperties;
-    isTelemetryEnabled(): boolean;
-    setupPromise: Promise<[string, boolean]> | undefined;
-}
-
 // @public
-export interface TelemetryConfig {
-    apiClient: ApiClient;
-    deviceId: DeviceId;
-    enabled: boolean;
-    eventCache?: EventCache;
-    getCommonProperties?: () => Partial<CommonProperties>;
-    keychain?: Keychain;
+export type TelemetryConfig = {
     logger: LoggerBase;
-}
+    deviceId: IDeviceId;
+    apiClient: ApiClient;
+    keychain: IKeychain;
+    enabled: boolean;
+    getCommonProperties?: () => Partial<CommonProperties>;
+    eventCache?: EventCache;
+    machineMetadata: TelemetryCommonStaticProperties;
+    detectContainerEnv?: () => Promise<boolean>;
+};
 
 // @public
 export type TelemetryEvent<T> = {
@@ -1122,21 +1156,29 @@ export type TelemetryEvent<T> = {
     } & Record<string, string | number | string[]>;
 };
 
-export { TelemetryEvents }
+// @public (undocumented)
+export type TelemetryEvents = {
+    "events-emitted": [];
+    "events-send-failed": [];
+    "events-skipped": [];
+};
 
 // @public
 export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant";
 
 // @public (undocumented)
-export interface ToolExecutionContext {
+export type ToolExecutionContext = {
+    signal: AbortSignal;
     requestInfo?: {
         headers?: Record<string, unknown>;
     };
-    // (undocumented)
-    signal: AbortSignal;
-}
+};
 
-export { TransportRequestContext }
+// @public (undocumented)
+export type TransportRequestContext = {
+    headers?: Record<string, string | string[] | undefined>;
+    query?: Record<string, string | string[] | undefined>;
+};
 
 // @public (undocumented)
 export abstract class TransportRunnerBase<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> {
@@ -1166,7 +1208,7 @@ export abstract class TransportRunnerBase<TUserConfig extends UserConfig = UserC
     // (undocumented)
     protected static getInstructions(config: UserConfig): string;
     // (undocumented)
-    logger: LoggerBase;
+    logger: CompositeLogger;
     // (undocumented)
     metrics: Metrics<TMetrics>;
     // @deprecated (undocumented)
@@ -1191,7 +1233,7 @@ export type TransportRunnerConfig<TUserConfig extends UserConfig = UserConfig, T
     createConnectionManager?: ConnectionManagerFactoryFn;
     connectionErrorHandler?: ConnectionErrorHandler;
     createAtlasLocalClient?: AtlasLocalClientFactoryFn;
-    additionalLoggers?: LoggerBase[];
+    loggers?: LoggerBase[];
     metrics?: Metrics<TMetrics>;
     telemetryProperties?: Partial<CommonProperties>;
     tools?: AnyToolClass[];
@@ -1200,17 +1242,16 @@ export type TransportRunnerConfig<TUserConfig extends UserConfig = UserConfig, T
 };
 
 // @public
-export class UIRegistry {
-    constructor(options?: {
-        customUIs?: (toolName: string) => string | null | Promise<string | null>;
-    });
+export class UIRegistry implements IUIRegistry {
+    constructor(options?: UIRegistryOptions);
     get(toolName: string): Promise<string | null>;
 }
 
 // @public (undocumented)
-export type UIRegistryOptions = {
+export interface UIRegistryOptions {
     customUIs?: (toolName: string) => string | null | Promise<string | null>;
-};
+    loaders?: Record<string, (() => Promise<string>) | undefined>;
+}
 
 // @public (undocumented)
 export type UserConfig = z.infer<typeof UserConfigSchema>;
@@ -1223,9 +1264,9 @@ export const UserConfigSchema: z.ZodObject<{
     apiClientSecret: z.ZodOptional<z.ZodString>;
     connectionString: z.ZodOptional<z.ZodString>;
     loggers: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodEnum<{
+        stderr: "stderr";
         disk: "disk";
         mcp: "mcp";
-        stderr: "stderr";
     }>>>>;
     logPath: z.ZodDefault<z.ZodString>;
     mcpClientLogLevel: z.ZodDefault<z.ZodEnum<{
@@ -1271,16 +1312,16 @@ export const UserConfigSchema: z.ZodObject<{
     dryRun: z.ZodDefault<z.ZodBoolean>;
     externallyManagedSessions: z.ZodDefault<z.ZodBoolean>;
     httpResponseType: z.ZodDefault<z.ZodEnum<{
-        json: "json";
         sse: "sse";
+        json: "json";
     }>>;
     healthCheckPort: z.ZodOptional<z.ZodNumber>;
     healthCheckHost: z.ZodOptional<z.ZodString>;
     monitoringServerPort: z.ZodOptional<z.ZodNumber>;
     monitoringServerHost: z.ZodOptional<z.ZodString>;
     monitoringServerFeatures: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodEnum<{
-        metrics: "metrics";
         "health-check": "health-check";
+        metrics: "metrics";
     }>>>>;
     gssapiHostName: z.ZodOptional<z.ZodString>;
     sslFIPSMode: z.ZodOptional<z.ZodBoolean>;
