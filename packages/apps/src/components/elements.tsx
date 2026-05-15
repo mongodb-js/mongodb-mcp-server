@@ -1,19 +1,19 @@
 import React, { Children, JSX } from "react";
 
 export const AppShell = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-    <div className={`p-4 min-w-[320px]${className ? ` ${className}` : ""}`} {...props} />
+    <div className={`p-4 min-w-[320px] ${className ? `${className}` : ""}`} {...props} />
 );
 
 export const Heading = ({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
     <h2
-        className={`mb-3 text-sm font-medium text-[color:var(--color-text-primary)]${className ? ` ${className}` : ""}`}
+        className={`mb-3 text-sm font-medium text-[color:var(--color-text-primary)] ${className ? `${className}` : ""}`}
         {...props}
     />
 );
 
 export const Label = ({ className, ...props }: React.LabelHTMLAttributes<HTMLLabelElement>) => (
     <label
-        className={`text-xs font-medium text-[color:var(--color-text-secondary)]${className ? ` ${className}` : ""}`}
+        className={`text-xs font-medium text-[color:var(--color-text-secondary)] ${className ? `${className}` : ""}`}
         {...props}
     />
 );
@@ -33,24 +33,24 @@ export const Button = ({ className, ...props }: React.ButtonHTMLAttributes<HTMLB
 );
 
 export const Text = ({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => (
-    <p className={`text-sm text-[color:var(--color-text-primary)]${className ? ` ${className}` : ""}`} {...props} />
+    <p className={`text-sm text-[color:var(--color-text-primary)] ${className ? `${className}` : ""}`} {...props} />
 );
 
 export const Loading = ({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => (
-    <p className={`text-xs text-[color:var(--color-text-secondary)]${className ? ` ${className}` : ""}`} {...props} />
+    <p className={`text-xs text-[color:var(--color-text-secondary)] ${className ? `${className}` : ""}`} {...props} />
 );
 
 export const ErrorText = ({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => (
-    <p className={`text-xs text-[color:var(--color-text-danger)]${className ? ` ${className}` : ""}`} {...props} />
+    <p className={`text-xs text-[color:var(--color-text-danger)] ${className ? `${className}` : ""}`} {...props} />
 );
 
 export const Success = ({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => (
-    <p className={`text-xs text-[color:var(--color-text-success)]${className ? ` ${className}` : ""}`} {...props} />
+    <p className={`text-xs text-[color:var(--color-text-success)] ${className ? ` ${className}` : ""}`} {...props} />
 );
 
 export const Code = ({ className, ...props }: React.HTMLAttributes<HTMLPreElement>) => (
     <pre
-        className={`font-mono text-sm text-[color:var(--color-text-primary)]${className ? ` ${className}` : ""}`}
+        className={`font-mono text-sm text-[color:var(--color-text-primary)] ${className ? `${className}` : ""}`}
         {...props}
     />
 );
@@ -88,7 +88,10 @@ function indentText(indent: number, noIndent: boolean = false): string {
 }
 
 export const PropertyKey = ({ children, className, ...props }: React.HTMLAttributes<HTMLSpanElement>) => (
-    <span className={`text-[color:var(--color-text-secondary)]${className ? ` ${className}` : ""}`} {...props}>
+    <span
+        className={`text-[color:var(--color-text-primary)] font-medium ${className ? ` ${className}` : ""}`}
+        {...props}
+    >
         {children}
     </span>
 );
@@ -98,8 +101,18 @@ export const StringValue = ({
     className,
     ...props
 }: { value: string } & React.HTMLAttributes<HTMLSpanElement>) => (
-    <span className={`text-[color:var(--color-text-success)]${className ? ` ${className}` : ""}`} {...props}>
+    <span className={`text-[color:var(--color-text-success)] ${className ? ` ${className}` : ""}`} {...props}>
         {JSON.stringify(value)}
+    </span>
+);
+
+export const NumberValue = ({
+    value,
+    className,
+    ...props
+}: { value: number } & React.HTMLAttributes<HTMLSpanElement>) => (
+    <span className={`text-[color:var(--color-text-info)] ${className ? ` ${className}` : ""}`} {...props}>
+        {value}
     </span>
 );
 
@@ -108,10 +121,11 @@ export const BSONValue = ({
     className,
     ...props
 }: { value: { _bsontype: string; inspect: () => string } } & React.HTMLAttributes<HTMLSpanElement>) => (
-    <span className={`text-[color:var(--color-text-primary)]${className ? ` ${className}` : ""}`} {...props}>
+    <span className={`text-[color:var(--color-text-primary)] ${className ? ` ${className}` : ""}`} {...props}>
         {value.inspect().replace(/^new /, "")}
     </span>
 );
+
 
 export const TreeValue = ({
     value,
@@ -166,6 +180,10 @@ export const TreeValue = ({
 
     if (typeof value === "string") {
         return <StringValue value={value} />;
+    }
+
+    if (typeof value === "number") {
+        return <NumberValue value={value} />;
     }
 
     return <span>{JSON.stringify(value)}</span>;

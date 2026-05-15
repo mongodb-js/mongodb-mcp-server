@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@mongodb-js/mcp-types": "workspace:*",
+    "bson": "^7.2.0",
     "zod": "^3.25.0"
   },
   "devDependencies": {

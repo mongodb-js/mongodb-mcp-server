@@ -280,6 +280,9 @@ importers:
       '@mongodb-js/mcp-types':
         specifier: workspace:*
         version: link:../types
+      bson:
+        specifier: ^7.2.0
+        version: 7.2.0
       zod:
         specifier: ^4.4.2
         version: 4.4.2
