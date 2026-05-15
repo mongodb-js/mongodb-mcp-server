@@ -36,6 +36,8 @@ jobs:
           cache: "pnpm"
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm run build
       # TODO: Re-enable on Windows once the silent worker fork crash / mongod cleanup
       # leak is resolved. See MCP-495.
       - name: Run tests
@@ -69,6 +71,8 @@ jobs:
           cache: "pnpm"
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm run build
       - name: Run tests
         env:
           MDB_MCP_API_CLIENT_ID: ${{ secrets.TEST_ATLAS_CLIENT_ID }}
@@ -128,6 +132,8 @@ jobs:
           cache: "pnpm"
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm run build
       - name: Install Playwright Chromium
         run: pnpm --filter browser run install:browser
       - name: Run browser tests
