@@ -36,10 +36,11 @@ const config: KnipConfig = {
                 "semver",
                 "vite-plugin-node-polyfills",
                 "vite-plugin-singlefile",
-                // Peer deps required by mongosh packages but not directly imported
+                // Used by workspace packages (tools-mongodb) and tests, not directly in root src/
                 "@mongodb-js/device-id",
                 "mongodb",
                 "mongodb-schema",
+                // Used by tools-mongodb package
                 "node-machine-id",
                 // Dev tooling - not imported but used via CLI
                 "vitest",
