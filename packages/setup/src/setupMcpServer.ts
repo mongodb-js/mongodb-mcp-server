@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import select from "@inquirer/select";
 import { input, confirm, password } from "@inquirer/prompts";
 import path from "path";

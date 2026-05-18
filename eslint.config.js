@@ -130,6 +130,9 @@ export default defineConfig([
         "**/vitest.config.js",
         "**/vitest.config.js.map",
         "**/vitest.config.d.ts.map",
+        // Test files in packages are handled by vitest - exclude from eslint project service
+        "packages/**/*.test.ts",
+        "packages/**/*.test.tsx",
     ]),
     eslintPluginPrettierRecommended,
 ]);
