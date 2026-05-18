@@ -128,11 +128,6 @@ const config: KnipConfig = {
             entry: ["src/index.ts!"],
             ignore: ["openapi.d.ts"], // Generated file with many exported types
         },
-        "packages/cli": {
-            entry: ["src/index.ts"],
-            ignore: ["src/**/*.test.ts"],
-            ignoreDependencies: ["@mongodb-js/mcp-types"], // Types-only dependency
-        },
         "packages/ui": {
             ignore: ["src/build/mount.tsx", "src/components/**", "vite.ui.config.ts", "src/test-setup.ts"],
             ignoreDependencies: ["@lg-mcp/embeddable-uis", "@lg-mcp/hooks", "@testing-library/jest-dom/vitest"],

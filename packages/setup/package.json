@@ -1,5 +1,5 @@
 {
-  "name": "@mongodb-js/mcp-server-setup",
+  "name": "@mongodb-js/mcp-setup",
   "version": "1.11.0-prerelease.3",
   "type": "module",
   "description": "Setup wizard and configuration for MongoDB MCP server",

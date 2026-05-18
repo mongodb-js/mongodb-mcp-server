@@ -479,7 +479,7 @@ importers:
       '@mongodb-js/mcp-metrics':
         specifier: workspace:*
         version: link:../metrics
-      '@mongodb-js/mcp-server-setup':
+      '@mongodb-js/mcp-setup':
         specifier: workspace:*
         version: link:../setup
       '@mongodb-js/mcp-tools-assistant':

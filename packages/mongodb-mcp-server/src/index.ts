@@ -50,7 +50,7 @@ import { StreamableHttpRunner, MCPHttpServer, MonitoringServer } from "@mongodb-
 import { DryRunModeRunner } from "./transports/dryModeRunner.js";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { systemCA } from "@mongodb-js/devtools-proxy-support";
-import { runSetup } from "@mongodb-js/mcp-server-setup";
+import { runSetup } from "@mongodb-js/mcp-setup";
 import {
     PrometheusMetrics,
     createDefaultMetrics,
