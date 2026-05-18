@@ -81,7 +81,7 @@ export default defineConfig({
                 extends: true,
                 test: {
                     name: "mcpb-build-script",
-                    include: ["packages/scripts/src/createMcpb.test.ts"],
+                    include: ["packages/mongodb-mcp-server/tests/createMcpb.test.ts"],
                 },
             },
             {

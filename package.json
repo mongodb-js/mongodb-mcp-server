@@ -10,7 +10,7 @@
     "prepare": "husky",
     "build:update-package-version": "pnpm --filter @mongodb-js/mcp-scripts update:package-version",
     "prebuild:mcpb": "pnpm run build",
-    "build:mcpb": "pnpm --filter @mongodb-js/mcp-scripts build:mcpb",
+    "build:mcpb": "pnpm --filter mongodb-mcp-server build:mcpb",
     "build": "pnpm run -r compile",
     "inspect": "pnpm --filter mongodb-mcp-server inspect",
     "prettier": "prettier",
@@ -36,7 +36,7 @@
     "test:long-running-tests": "vitest --project long-running-tests --coverage",
     "test:local": "SKIP_ATLAS_INTEGRATION_TESTS=true SKIP_ATLAS_LOCAL_TESTS=true pnpm run test",
     "prevalidate:mcpb": "pnpm run build",
-    "validate:mcpb": "pnpm --filter @mongodb-js/mcp-scripts validate:mcpb",
+    "validate:mcpb": "pnpm --filter mongodb-mcp-server validate:mcpb",
     "atlas:cleanup": "vitest --project atlas-cleanup"
   },
   "license": "Apache-2.0",
