@@ -2,22 +2,26 @@
 export {
     setupMcpCli,
     type CLIOptions,
+    // Handlers
+    HelpHandler,
+    VersionHandler,
+    DryRunHandler,
+    SetupHandler,
+    type CliHandler,
     type ServerFactory,
-    type RequestHandler,
+    type SetupFunction,
     handleHelpRequest,
     handleVersionRequest,
-    createDefaultLoggers,
     handleDryRun,
+    // Server
+    MCPHttpServerWrapper,
+    // Utilities
+    createDefaultLoggers,
 } from "./cli.js";
 
 // Config parsing and types
 export { parseUserConfig, type ParserOptions, defaultParserOptions } from "./config/parseUserConfig.js";
-export {
-    UserConfigSchema,
-    configRegistry,
-    ALL_CONFIG_KEYS,
-    type UserConfig,
-} from "./config/userConfig.js";
+export { UserConfigSchema, configRegistry, ALL_CONFIG_KEYS, type UserConfig } from "./config/userConfig.js";
 
 // Config utilities
 export {
@@ -27,6 +31,9 @@ export {
     onlyLowerThanBaseValueOverride,
     onlyStricterLogLevelOverride,
     onlySubsetOfBaseValueOverride,
+    getLocalDataPath,
+    getLogPath,
+    getExportsPath,
     type CustomOverrideLogic,
     type OverrideBehavior,
     type ConfigFieldMeta,

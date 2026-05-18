@@ -35,20 +35,10 @@ function enableFipsIfRequested(): void {
 }
 
 import crypto from "crypto";
-import { CompositeLogger } from "@mongodb-js/mcp-core";
 import { ConsoleLogger } from "@mongodb-js/mcp-logging";
 import { LogId } from "@mongodb-js/mcp-core";
 import { Keychain } from "@mongodb-js/mcp-core";
-import {
-    setupMcpCli,
-    type UserConfig,
-    type ServerFactory,
-    type RequestHandler,
-    handleDryRun,
-} from "@mongodb-js/mcp-cli";
-import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
-import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
-import type { IMetrics } from "@mongodb-js/mcp-types";
+import { setupMcpCli, type ServerFactory } from "@mongodb-js/mcp-cli";
 import { Server } from "./server.js";
 import { Session } from "./common/session.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -63,18 +53,9 @@ import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { runSetup } from "./setup/setupMcpServer.js";
 import { packageInfo } from "./common/packageInfo.js";
 
-const serverFactory: ServerFactory<Server> = async ({
-    config,
-    logger,
-    metrics,
-}: {
-    config: UserConfig;
-    logger: CompositeLogger;
-    metrics: IMetrics<DefaultPrometheusMetricDefinitions>;
-}): Promise<Server> => {
+const serverFactory: ServerFactory<Server> = async ({ config, logger, metrics }) => {
     const keychain = CoreKeychain.root;
 
-    // Create exports manager using the static init method
     const exportsManager = ExportsManager.init({
         options: {
             exportsPath: config.exportsPath,
@@ -149,27 +130,15 @@ const serverFactory: ServerFactory<Server> = async ({
     return server;
 };
 
-const requestHandler: RequestHandler = {
-    async handleSetup(config: UserConfig): Promise<void> {
-        await runSetup(config);
-    },
-    async handleDryRun(config: UserConfig): Promise<void> {
-        await handleDryRun(config, serverFactory);
-    },
-};
-
 setupMcpCli<Server>({
     packageInfo: {
         version: packageInfo.version,
         mcpServerName: packageInfo.mcpServerName,
     },
     serverFactory,
-    requestHandler,
+    setupFunction: runSetup,
     enableFipsIfRequested,
 }).catch((error: unknown) => {
-    // At this point, we may be in a very broken state, so we can't rely on the logger
-    // being functional. Instead, create a brand new ConsoleLogger and log the error
-    // to the console.
     const logger = new ConsoleLogger({ keychain: Keychain.root });
     logger.emergency({
         id: LogId.serverStartFailure,

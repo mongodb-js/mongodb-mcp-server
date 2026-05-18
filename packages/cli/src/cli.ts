@@ -1,16 +1,10 @@
 #!/usr/bin/env node
 /* eslint-disable no-console */
 
-import { Keychain, CompositeLogger, StdioRunner } from "@mongodb-js/mcp-core";
-import { ConsoleLogger, DiskLogger } from "@mongodb-js/mcp-logging";
+import { StdioRunner } from "@mongodb-js/mcp-core";
 import { LogId } from "@mongodb-js/mcp-core";
-import { MongoLogManager } from "mongodb-log-writer";
-import * as fs from "fs/promises";
-import { parseUserConfig } from "./config/parseUserConfig.js";
-import { type UserConfig } from "./config/userConfig.js";
 import { SessionStore } from "@mongodb-js/mcp-core";
-import { StreamableHttpRunner, MCPHttpServer, MonitoringServer } from "@mongodb-js/mcp-http-runners";
-import { DryRunModeRunner } from "./transports/dryModeRunner.js";
+import { StreamableHttpRunner, MonitoringServer } from "@mongodb-js/mcp-http-runners";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { systemCA } from "@mongodb-js/devtools-proxy-support";
 import {
@@ -19,34 +13,40 @@ import {
     type DefaultPrometheusMetricDefinitions,
 } from "@mongodb-js/mcp-metrics";
 import type { IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
-import type { HttpServerOptions, SessionManagementOptions } from "@mongodb-js/mcp-types";
+import type { CompositeLogger } from "@mongodb-js/mcp-core";
 
-export type RequestHandler = {
-    handleSetup?(config: UserConfig): Promise<void>;
-    handleDryRun?(config: UserConfig): Promise<void>;
-};
+import { parseUserConfig } from "./config/parseUserConfig.js";
+import type { UserConfig } from "./config/userConfig.js";
 
-export type ServerFactory<ServerType> = (options: {
-    config: UserConfig;
-    logger: CompositeLogger;
-    metrics: IMetrics<DefaultMetricDefinitions>;
-}) => Promise<ServerType>;
+import {
+    type CliHandler,
+    HelpHandler,
+    VersionHandler,
+    DryRunHandler,
+    SetupHandler,
+    type ServerFactory,
+    type SetupFunction,
+} from "./handlers/index.js";
 
-export type CLIOptions<ServerType> = {
+import { MCPHttpServerWrapper } from "./server/index.js";
+import { createDefaultLoggers } from "./utils/index.js";
+
+export type CLIOptions = {
     packageInfo: { version: string; mcpServerName: string };
-    serverFactory: ServerFactory<ServerType>;
-    requestHandler?: RequestHandler;
+    serverFactory: ServerFactory<any>;
+    setupFunction?: SetupFunction;
     enableFipsIfRequested?(): void;
+    handlers?: CliHandler[];
 };
 
-export async function setupMcpCli<ServerType>(options: CLIOptions<ServerType>): Promise<void> {
-    const { packageInfo, serverFactory, requestHandler, enableFipsIfRequested } = options;
+export async function setupMcpCli(options: CLIOptions): Promise<void> {
+    const { packageInfo, serverFactory, setupFunction, enableFipsIfRequested } = options;
 
     if (enableFipsIfRequested) {
         enableFipsIfRequested();
     }
 
-    systemCA().catch(() => undefined); // load system CA asynchronously as in mongosh
+    systemCA().catch(() => undefined);
 
     const args = process.argv.slice(2);
     const isSetupRequested = args[0] === "setup";
@@ -73,28 +73,34 @@ export async function setupMcpCli<ServerType>(options: CLIOptions<ServerType>): 
 - Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server.`);
     }
 
-    if (config.help) {
-        handleHelpRequest();
+    // Create default handlers
+    const handlers: CliHandler[] = options.handlers || [
+        new HelpHandler(),
+        new VersionHandler(packageInfo.version),
+        ...(setupFunction ? [new SetupHandler(setupFunction)] : []),
+        new DryRunHandler(serverFactory),
+    ];
+
+    // Check if any handler should handle this request
+    for (const handler of handlers) {
+        if (handler.shouldHandle(config, args)) {
+            await handler.handle(config);
+            return;
+        }
     }
 
-    if (config.version) {
-        handleVersionRequest(packageInfo.version);
-    }
+    // Start the server normally
+    await startServer(config, serverFactory);
+}
 
-    if (isSetupRequested && requestHandler?.handleSetup) {
-        await requestHandler.handleSetup(config);
-        process.exit(0);
-    }
-
-    if (config.dryRun && requestHandler?.handleDryRun) {
-        await requestHandler.handleDryRun(config);
-        process.exit(0);
-    }
-
+async function startServer<ServerType>(
+    config: UserConfig,
+    serverFactory: ServerFactory<ServerType>
+): Promise<void> {
     const logger = await createDefaultLoggers(config);
     const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
 
-    let transportRunner: StdioRunner<ServerType> | StreamableHttpRunner<ServerType>;
+    let transportRunner: any;
 
     if (config.transport === "stdio") {
         const server = await serverFactory({
@@ -220,120 +226,31 @@ export async function setupMcpCli<ServerType>(options: CLIOptions<ServerType>): 
     }
 }
 
-class MCPHttpServerWrapper extends MCPHttpServer {
-    private userConfig: UserConfig;
-    private baseLogger: CompositeLogger;
-    private serverFactory: ServerFactory;
+// Re-export handler types and classes
+export {
+    type CliHandler,
+    HelpHandler,
+    VersionHandler,
+    DryRunHandler,
+    SetupHandler,
+    type ServerFactory,
+    type SetupFunction,
+    handleHelpRequest,
+    handleVersionRequest,
+    handleDryRun,
+} from "./handlers/index.js";
 
-    constructor({
-        userConfig,
-        serverFactory,
-        options,
-        logger,
-        metrics,
-        sessionStore,
-    }: {
-        userConfig: UserConfig;
-        serverFactory: ServerFactory<ServerType>;
-        options: {
-            http: HttpServerOptions;
-            session: SessionManagementOptions;
-        };
-        logger: CompositeLogger;
-        metrics: IMetrics<DefaultMetricDefinitions>;
-        sessionStore: SessionStore<StreamableHTTPServerTransport>;
-    }) {
-        super({ options, logger, metrics, sessionStore });
-        this.userConfig = userConfig;
-        this.baseLogger = logger;
-        this.serverFactory = serverFactory;
-    }
+// Re-export server wrapper
+export { MCPHttpServerWrapper } from "./server/index.js";
 
-    protected override async createServerForRequest(): Promise<ServerType> {
-        return this.serverFactory({
-            config: this.userConfig,
-            logger: this.baseLogger,
-            metrics: this.metrics,
-        });
-    }
-}
+// Re-export utilities
+export { createDefaultLoggers } from "./utils/index.js";
 
-export function handleHelpRequest(): never {
-    console.log("For usage information refer to the README.md:");
-    console.log("https://github.com/mongodb-js/mongodb-mcp-server?tab=readme-ov-file#quick-start");
-    process.exit(0);
-}
+// Re-export config
+export { parseUserConfig, type UserConfig } from "./config/parseUserConfig.js";
+export { UserConfigSchema, configRegistry, ALL_CONFIG_KEYS } from "./config/userConfig.js";
 
-export function handleVersionRequest(version: string): never {
-    console.log(version);
-    process.exit(0);
-}
-
-export async function createDefaultLoggers(config: UserConfig): Promise<CompositeLogger> {
-    const baseLoggers: (ConsoleLogger | DiskLogger)[] = [];
-
-    if (config.loggers.includes("stderr")) {
-        baseLoggers.push(new ConsoleLogger({ keychain: Keychain.root }));
-    }
-
-    if (config.loggers.includes("disk")) {
-        await fs.mkdir(config.logPath, { recursive: true });
-
-        const manager = new MongoLogManager({
-            directory: config.logPath,
-            retentionDays: 30,
-            onwarn: console.warn,
-            onerror: console.error,
-            gzip: false,
-            retentionGB: 1,
-        });
-
-        await manager.cleanupOldLogFiles();
-        const logWriter = await manager.createLogWriter();
-
-        baseLoggers.push(
-            new DiskLogger({
-                logWriter,
-                keychain: Keychain.root,
-            })
-        );
-    }
-
-    // Wrap all base loggers in a single CompositeLogger array
-    return new CompositeLogger({ loggers: baseLoggers });
-}
-
-export async function handleDryRun<ServerType>(
-    config: UserConfig,
-    serverFactory: ServerFactory<ServerType>
-): Promise<never> {
-    try {
-        const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
-        const consoleLogger = new ConsoleLogger({ keychain: Keychain.root });
-        const compositeLogger = new CompositeLogger({ loggers: [consoleLogger] });
-
-        // Create the server instance
-        const server = await serverFactory({ config, logger: compositeLogger, metrics });
-
-        const runner = new DryRunModeRunner({
-            logger: {
-                log: console.log,
-                error: console.error,
-            },
-            userConfig: config,
-            server,
-        });
-        await runner.start();
-        await runner.stop();
-        process.exit(0);
-    } catch (error) {
-        console.error(`Fatal error running server in dry run mode: ${error as string}`);
-        process.exit(1);
-    }
-}
-
-export { parseUserConfig, type UserConfig };
-export { TRANSPORT_PAYLOAD_LIMITS, type TransportType } from "./transports/constants.js";
+// Re-export other utilities
 export {
     commaSeparatedToArray,
     parseBoolean,
@@ -341,7 +258,18 @@ export {
     onlyLowerThanBaseValueOverride,
     onlyStricterLogLevelOverride,
     onlySubsetOfBaseValueOverride,
+    getLocalDataPath,
+    getLogPath,
+    getExportsPath,
     type CustomOverrideLogic,
     type OverrideBehavior,
     type ConfigFieldMeta,
 } from "./config/configUtils.js";
+
+export { TRANSPORT_PAYLOAD_LIMITS, type TransportType } from "./transports/constants.js";
+export {
+    DryRunModeRunner,
+    type DryRunServer,
+    type DryRunLogger,
+    type DryRunModeRunnerOptions,
+} from "./transports/dryModeRunner.js";
