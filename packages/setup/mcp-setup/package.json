@@ -1,8 +1,8 @@
 {
-  "name": "@mongodb-js/mcp-server-setup",
+  "name": "@mongodb-js/mcp-setup",
   "version": "1.11.0-prerelease.3",
   "type": "module",
-  "description": "Setup wizard and configuration for MongoDB MCP server",
+  "description": "Interactive setup wizard for MongoDB MCP server",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -11,9 +11,7 @@
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "scripts": {
     "compile": "tsc --build tsconfig.json",
     "test": "vitest --run"
@@ -31,11 +29,11 @@
     "chalk": "^5.6.2",
     "jsonc-parser": "^3.3.1",
     "mongodb-redact": "^1.4.6",
-    "semver": "^7.7.4"
+    "semver": "^7.7.4",
+    "zod": "^4.4.2"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
-    "@types/semver": "^7.7.0",
     "typescript": "^5.9.2",
     "vitest": "^4.1.5"
   }

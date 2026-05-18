@@ -2,7 +2,6 @@ import { randomUUID } from "crypto";
 import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import type { Keychain } from "@mongodb-js/mcp-core";
 import { NoopLogger } from "@mongodb-js/mcp-core";
-import { packageInfo } from "../common/packageInfo.js";
 import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import type { ITelemetry } from "@mongodb-js/mcp-types";
@@ -14,6 +13,7 @@ import type {
     TelemetryBoolSet,
     TelemetryResult,
 } from "@mongodb-js/mcp-atlas-telemetry";
+import type { SetupPackageInfo } from "./types.js";
 
 /**
  * Context accumulated as the user progresses through the setup wizard. Each
