@@ -16,7 +16,7 @@
     "dist"
   ],
   "scripts": {
-    "compile": "tsc --build tsconfig.json"
+    "compile": "tsc --build tsconfig.build.json"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",

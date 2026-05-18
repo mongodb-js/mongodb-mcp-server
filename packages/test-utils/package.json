@@ -16,7 +16,7 @@
     "dist"
   ],
   "scripts": {
-    "compile": "tsc --build tsconfig.json && pnpm run copy-assets",
+    "compile": "tsc --build tsconfig.build.json && pnpm run copy-assets",
     "copy-assets": "node scripts/copy-assets.js"
   },
   "dependencies": {

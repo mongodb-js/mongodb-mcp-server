@@ -494,9 +494,9 @@ export class CreateIndexTool extends MongoDBToolBase {
                     dotProduct: "dotProduct";
                 }>>;
                 quantization: z.ZodDefault<z.ZodEnum<{
+                    binary: "binary";
                     none: "none";
                     scalar: "scalar";
-                    binary: "binary";
                 }>>;
             }, z.core.$strict>, z.ZodObject<{
                 type: z.ZodLiteral<"autoEmbed">;
@@ -522,13 +522,13 @@ export class CreateIndexTool extends MongoDBToolBase {
                         number: "number";
                         boolean: "boolean";
                         date: "date";
+                        uuid: "uuid";
                         autocomplete: "autocomplete";
                         document: "document";
                         embeddedDocuments: "embeddedDocuments";
                         geo: "geo";
                         objectId: "objectId";
                         token: "token";
-                        uuid: "uuid";
                     }>;
                 }, z.core.$loose>>>;
             }, z.core.$strip>;
@@ -549,9 +549,9 @@ export class CreateIndexTool extends MongoDBToolBase {
         collection: z.ZodString;
         indexName: z.ZodString;
         indexType: z.ZodEnum<{
-            classic: "classic";
             search: "search";
             vectorSearch: "vectorSearch";
+            classic: "classic";
         }>;
     };
     // (undocumented)
@@ -701,8 +701,8 @@ export class DropIndexTool extends MongoDBToolBase {
     argsShape: {
         indexName: z.ZodString;
         type: z.ZodEnum<{
-            classic: "classic";
             search: "search";
+            classic: "classic";
         }>;
         collection: z.ZodString;
         database: z.ZodString;

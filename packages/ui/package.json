@@ -15,7 +15,7 @@
     "dist"
   ],
   "scripts": {
-    "compile": "tsc --build tsconfig.json",
+    "compile": "tsc --build tsconfig.build.json",
     "check:api": "api-extractor run --config api-extractor.json",
     "update:api": "api-extractor run --local --config api-extractor.json",
     "test": "vitest --run"

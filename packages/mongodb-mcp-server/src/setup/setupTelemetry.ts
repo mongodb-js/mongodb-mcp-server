@@ -74,17 +74,20 @@ export class SetupTelemetry {
             enabled: config.telemetry === "enabled",
             machineMetadata: buildMachineMetadata(packageInfo.mcpServerName, packageInfo.version),
         });
-        return new SetupTelemetry(telemetry, deviceId);
+        return new SetupTelemetry({ telemetry, deviceId });
     }
+
+    private readonly telemetry: ITelemetry;
+    private readonly deviceId: DeviceId;
 
     /**
      * Direct construction is primarily for tests that want to inject a mock
      * telemetry pipeline. Production code should use {@link SetupTelemetry.create}.
      */
-    public constructor(
-        private readonly telemetry: ITelemetry,
-        private readonly deviceId: DeviceId
-    ) {}
+    public constructor({ telemetry, deviceId }: { telemetry: ITelemetry; deviceId: DeviceId }) {
+        this.telemetry = telemetry;
+        this.deviceId = deviceId;
+    }
 
     /**
      * Merges new context values into the accumulated context. Subsequent

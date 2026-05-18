@@ -26,7 +26,6 @@ export class ListProjectsTool extends AtlasToolBase {
 
         const orgs: Record<string, string> = orgData.results
             .filter((org) => org.id)
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             .reduce((acc, org) => ({ ...acc, [org.id!]: org.name }), {});
 
         const data = orgId

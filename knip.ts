@@ -62,6 +62,7 @@ const config: KnipConfig = {
                 "src/setup/index.ts!",
                 "src/test-helpers/index.ts!",
                 "tests/**/*.ts",
+                "scripts/**/*.ts",
             ],
             ignore: ["packaging/mcpb/server/index.js"],
             ignoreDependencies: [
@@ -134,10 +135,6 @@ const config: KnipConfig = {
         // Type-only package — deps are used via `import type` so knip can't detect runtime usage
         "packages/types": {
             ignoreDependencies: ["@modelcontextprotocol/sdk", "mongodb-redact"],
-        },
-        // Setup package is maintained in a separate worktree
-        "packages/setup": {
-            ignore: ["**/*"],
         },
         "packages/http-transports": {
             entry: ["src/index.ts!"],

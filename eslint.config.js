@@ -126,6 +126,10 @@ export default defineConfig([
         "tests/browser/polyfills/**",
         "eslint-rules",
         ".yalc",
+        "**/vitest.config.d.ts",
+        "**/vitest.config.js",
+        "**/vitest.config.js.map",
+        "**/vitest.config.d.ts.map",
     ]),
     eslintPluginPrettierRecommended,
 ]);
