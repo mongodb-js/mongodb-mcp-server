@@ -20,6 +20,7 @@ import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver
 import type { Secret } from 'mongodb-redact';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
+import * as z_2 from 'zod';
 import { ZodOptional } from 'zod';
 import type { ZodRawShape } from 'zod';
 import { ZodRecord } from 'zod';
@@ -193,16 +194,16 @@ export class CollectionIndexesTool extends MongoDBToolBase {
 }
 
 // @public (undocumented)
-export type CollectionSchemaOutput = z.infer<z.ZodObject<typeof CollectionSchemaOutputSchema>>;
+export type CollectionSchemaOutput = z_2.infer<z_2.ZodObject<typeof CollectionSchemaOutputSchema>>;
 
 // @public (undocumented)
 export class CollectionSchemaTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
-        sampleSize: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
-        responseBytesLimit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
-        collection: z.ZodString;
-        database: z.ZodString;
+        sampleSize: z_2.ZodDefault<z_2.ZodOptional<z_2.ZodNumber>>;
+        responseBytesLimit: z_2.ZodDefault<z_2.ZodOptional<z_2.ZodNumber>>;
+        collection: z_2.ZodString;
+        database: z_2.ZodString;
     };
     // (undocumented)
     description: string;
@@ -212,8 +213,8 @@ export class CollectionSchemaTool extends MongoDBToolBase {
     static operationType: OperationType;
     // (undocumented)
     outputSchema: {
-        schema: z.ZodRecord<z.ZodString, z.ZodUnknown>;
-        fieldsCount: z.ZodNumber;
+        schema: z_2.ZodRecord<z_2.ZodString, z_2.ZodUnknown>;
+        fieldsCount: z_2.ZodNumber;
     };
     // (undocumented)
     static toolName: string;
@@ -494,9 +495,9 @@ export class CreateIndexTool extends MongoDBToolBase {
                     dotProduct: "dotProduct";
                 }>>;
                 quantization: z.ZodDefault<z.ZodEnum<{
+                    binary: "binary";
                     none: "none";
                     scalar: "scalar";
-                    binary: "binary";
                 }>>;
             }, z.core.$strict>, z.ZodObject<{
                 type: z.ZodLiteral<"autoEmbed">;
@@ -521,15 +522,14 @@ export class CreateIndexTool extends MongoDBToolBase {
                         string: "string";
                         number: "number";
                         boolean: "boolean";
-                        date: "date";
                         uuid: "uuid";
+                        date: "date";
                         autocomplete: "autocomplete";
                         document: "document";
                         embeddedDocuments: "embeddedDocuments";
                         geo: "geo";
                         objectId: "objectId";
                         token: "token";
-                        uuid: "uuid";
                     }>;
                 }, z.core.$loose>>>;
             }, z.core.$strip>;
@@ -550,8 +550,8 @@ export class CreateIndexTool extends MongoDBToolBase {
         collection: z.ZodString;
         indexName: z.ZodString;
         indexType: z.ZodEnum<{
-            classic: "classic";
             search: "search";
+            classic: "classic";
             vectorSearch: "vectorSearch";
         }>;
     };
@@ -694,19 +694,19 @@ export class DropDatabaseTool extends MongoDBToolBase {
 }
 
 // @public (undocumented)
-export type DropIndexOutput = z.infer<z.ZodObject<typeof DropIndexOutputSchema>>;
+export type DropIndexOutput = z_2.infer<z_2.ZodObject<typeof DropIndexOutputSchema>>;
 
 // @public (undocumented)
 export class DropIndexTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
-        indexName: z.ZodString;
-        type: z.ZodEnum<{
-            classic: "classic";
+        indexName: z_2.ZodString;
+        type: z_2.ZodEnum<{
             search: "search";
+            classic: "classic";
         }>;
-        collection: z.ZodString;
-        database: z.ZodString;
+        collection: z_2.ZodString;
+        database: z_2.ZodString;
     };
     // (undocumented)
     description: string;
@@ -718,10 +718,10 @@ export class DropIndexTool extends MongoDBToolBase {
     static operationType: OperationType;
     // (undocumented)
     outputSchema: {
-        database: z.ZodString;
-        collection: z.ZodString;
-        indexName: z.ZodString;
-        dropped: z.ZodBoolean;
+        database: z_2.ZodString;
+        collection: z_2.ZodString;
+        indexName: z_2.ZodString;
+        dropped: z_2.ZodBoolean;
     };
     // (undocumented)
     static toolName: string;
@@ -866,55 +866,55 @@ export type ExportsManagerOptions = {
 export class ExportTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
-        exportTitle: z.ZodString;
-        exportTarget: z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodObject<{
-            name: z.ZodLiteral<"find">;
-            arguments: z.ZodObject<{
-                limit: z.ZodOptional<z.ZodNumber>;
-                filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
-                projection: z.ZodOptional<z.ZodObject<{}, z.z.core.$loose>>;
-                sort: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnion<readonly [z.ZodLiteral<1>, z.ZodLiteral<-1>, z.ZodLiteral<"asc">, z.ZodLiteral<"desc">, z.ZodLiteral<"ascending">, z.ZodLiteral<"descending">, z.ZodObject<{
-                    $meta: z.ZodString;
-                }, z.z.core.$strip>]>>>;
-            }, z.z.core.$strip>;
-        }, z.z.core.$strip>, z.ZodObject<{
-            name: z.ZodLiteral<"aggregate">;
-            arguments: z.ZodObject<{
-                pipeline: z.ZodArray<z.ZodUnion<readonly [z.ZodObject<{
-                    $vectorSearch: z.ZodUnion<readonly [z.ZodObject<{
-                        exact: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
-                        index: z.ZodString;
-                        path: z.ZodString;
-                        numCandidates: z.ZodOptional<z.ZodNumber>;
-                        limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
-                        filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
-                        queryVector: z.ZodArray<z.ZodNumber>;
-                    }, z.z.core.$strip>, z.ZodObject<{
-                        exact: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
-                        index: z.ZodString;
-                        path: z.ZodString;
-                        numCandidates: z.ZodOptional<z.ZodNumber>;
-                        limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
-                        filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
-                        query: z.ZodObject<{
-                            text: z.ZodString;
-                        }, z.z.core.$strip>;
-                        model: z.ZodOptional<z.ZodEnum<{
+        exportTitle: z_2.ZodString;
+        exportTarget: z_2.ZodArray<z_2.ZodDiscriminatedUnion<[z_2.ZodObject<{
+            name: z_2.ZodLiteral<"find">;
+            arguments: z_2.ZodObject<{
+                limit: z_2.ZodOptional<z_2.ZodNumber>;
+                filter: z_2.ZodOptional<z_2.ZodRecord<z_2.ZodString, z_2.ZodUnknown>>;
+                projection: z_2.ZodOptional<z_2.ZodObject<{}, z_2.core.$loose>>;
+                sort: z_2.ZodOptional<z_2.ZodRecord<z_2.ZodString, z_2.ZodUnion<readonly [z_2.ZodLiteral<1>, z_2.ZodLiteral<-1>, z_2.ZodLiteral<"asc">, z_2.ZodLiteral<"desc">, z_2.ZodLiteral<"ascending">, z_2.ZodLiteral<"descending">, z_2.ZodObject<{
+                    $meta: z_2.ZodString;
+                }, z_2.core.$strip>]>>>;
+            }, z_2.core.$strip>;
+        }, z_2.core.$strip>, z_2.ZodObject<{
+            name: z_2.ZodLiteral<"aggregate">;
+            arguments: z_2.ZodObject<{
+                pipeline: z_2.ZodArray<z_2.ZodUnion<readonly [z_2.ZodObject<{
+                    $vectorSearch: z_2.ZodUnion<readonly [z_2.ZodObject<{
+                        exact: z_2.ZodDefault<z_2.ZodOptional<z_2.ZodBoolean>>;
+                        index: z_2.ZodString;
+                        path: z_2.ZodString;
+                        numCandidates: z_2.ZodOptional<z_2.ZodNumber>;
+                        limit: z_2.ZodDefault<z_2.ZodOptional<z_2.ZodNumber>>;
+                        filter: z_2.ZodOptional<z_2.ZodRecord<z_2.ZodString, z_2.ZodUnknown>>;
+                        queryVector: z_2.ZodArray<z_2.ZodNumber>;
+                    }, z_2.core.$strip>, z_2.ZodObject<{
+                        exact: z_2.ZodDefault<z_2.ZodOptional<z_2.ZodBoolean>>;
+                        index: z_2.ZodString;
+                        path: z_2.ZodString;
+                        numCandidates: z_2.ZodOptional<z_2.ZodNumber>;
+                        limit: z_2.ZodDefault<z_2.ZodOptional<z_2.ZodNumber>>;
+                        filter: z_2.ZodOptional<z_2.ZodRecord<z_2.ZodString, z_2.ZodUnknown>>;
+                        query: z_2.ZodObject<{
+                            text: z_2.ZodString;
+                        }, z_2.core.$strip>;
+                        model: z_2.ZodOptional<z_2.ZodEnum<{
                             "voyage-4": "voyage-4";
                             "voyage-4-large": "voyage-4-large";
                             "voyage-4-lite": "voyage-4-lite";
                             "voyage-code-3": "voyage-code-3";
                         }>>;
-                    }, z.z.core.$strip>]>;
-                }, z.z.core.$strip>, z.ZodRecord<z.ZodString, z.ZodUnknown>]>>;
-            }, z.z.core.$strip>;
-        }, z.z.core.$strip>], "name">>;
-        jsonExportFormat: z.ZodDefault<z.ZodEnum<{
+                    }, z_2.core.$strip>]>;
+                }, z_2.core.$strip>, z_2.ZodRecord<z_2.ZodString, z_2.ZodUnknown>]>>;
+            }, z_2.core.$strip>;
+        }, z_2.core.$strip>], "name">>;
+        jsonExportFormat: z_2.ZodDefault<z_2.ZodEnum<{
             relaxed: "relaxed";
             canonical: "canonical";
         }>>;
-        collection: z.ZodString;
-        database: z.ZodString;
+        collection: z_2.ZodString;
+        database: z_2.ZodString;
     };
     // (undocumented)
     description: string;
@@ -1026,7 +1026,7 @@ export interface IMongoDBSession extends IToolSession {
 }
 
 // @public (undocumented)
-export const IndexDirectionSchema: z.ZodUnion<readonly [z.ZodLiteral<1>, z.ZodLiteral<-1>, z.ZodLiteral<"2d">, z.ZodLiteral<"2dsphere">, z.ZodLiteral<"text">, z.ZodLiteral<"geoHaystack">, z.ZodLiteral<"hashed">]>;
+export const IndexDirectionSchema: z_2.ZodUnion<readonly [z_2.ZodLiteral<1>, z_2.ZodLiteral<-1>, z_2.ZodLiteral<"2d">, z_2.ZodLiteral<"2dsphere">, z_2.ZodLiteral<"text">, z_2.ZodLiteral<"geoHaystack">, z_2.ZodLiteral<"hashed">]>;
 
 // @public (undocumented)
 export interface InProgressExport extends CommonExportData {
@@ -1069,10 +1069,10 @@ export function isExportExpired(createdAt: number, exportTimeoutMs: number): boo
 export function isObjectEmpty(value: object | null | undefined): value is EmptyObject;
 
 // @public (undocumented)
-export type JSONExportFormat = z.infer<typeof jsonExportFormat>;
+export type JSONExportFormat = z_2.infer<typeof jsonExportFormat>;
 
 // @public (undocumented)
-export const jsonExportFormat: z.ZodEnum<{
+export const jsonExportFormat: z_2.ZodEnum<{
     relaxed: "relaxed";
     canonical: "canonical";
 }>;
@@ -1296,9 +1296,9 @@ export function setAppNameParamIfMissing(input: {
 }): Promise<string>;
 
 // @public (undocumented)
-export const SortDirectionSchema: z.ZodUnion<readonly [z.ZodLiteral<1>, z.ZodLiteral<-1>, z.ZodLiteral<"asc">, z.ZodLiteral<"desc">, z.ZodLiteral<"ascending">, z.ZodLiteral<"descending">, z.ZodObject<{
-    $meta: z.ZodString;
-}, z.z.core.$strip>]>;
+export const SortDirectionSchema: z_2.ZodUnion<readonly [z_2.ZodLiteral<1>, z_2.ZodLiteral<-1>, z_2.ZodLiteral<"asc">, z_2.ZodLiteral<"desc">, z_2.ZodLiteral<"ascending">, z_2.ZodLiteral<"descending">, z_2.ZodObject<{
+    $meta: z_2.ZodString;
+}, z_2.core.$strip>]>;
 
 // @public (undocumented)
 export type StoredExport = ReadyExport | InProgressExport;
@@ -1308,7 +1308,7 @@ export class SwitchConnectionTool extends MongoDBToolBase {
     constructor(params: ToolConstructorParams<IMongoDBConfig>);
     // (undocumented)
     argsShape: {
-        connectionString: z.ZodOptional<z.ZodString>;
+        connectionString: z_2.ZodOptional<z_2.ZodString>;
     };
     // (undocumented)
     description: string;

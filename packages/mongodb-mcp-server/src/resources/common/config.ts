@@ -4,8 +4,14 @@ import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { Session } from "../../lib.js";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 
+export type ConfigResourceOptions = {
+    session: Session;
+    config: UserConfig;
+    telemetry: AtlasTelemetry;
+};
+
 export class ConfigResource extends ReactiveResource<UserConfig, readonly []> {
-    constructor(session: Session, config: UserConfig, telemetry: AtlasTelemetry) {
+    constructor(options: ConfigResourceOptions) {
         super({
             resourceConfiguration: {
                 name: "config",
@@ -16,12 +22,12 @@ export class ConfigResource extends ReactiveResource<UserConfig, readonly []> {
                 },
             },
             options: {
-                initial: { ...config },
+                initial: { ...options.config },
                 events: [],
             },
-            session,
-            config,
-            telemetry,
+            session: options.session,
+            config: options.config,
+            telemetry: options.telemetry,
         });
     }
     reduce(eventName: undefined, event: undefined): UserConfig {

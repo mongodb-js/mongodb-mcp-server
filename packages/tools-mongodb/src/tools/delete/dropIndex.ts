@@ -1,4 +1,4 @@
-import z from "zod";
+import * as z from "zod";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
 import { type ToolArgs, type OperationType, formatUntrustedData, type ToolResult } from "@mongodb-js/mcp-core";

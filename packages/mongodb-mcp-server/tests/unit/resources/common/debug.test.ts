@@ -51,7 +51,7 @@ describe("debug resource", () => {
     let debugResource: DebugResource;
 
     beforeEach(() => {
-        debugResource = new DebugResource(session, defaultTestConfig, telemetry);
+        debugResource = new DebugResource({ session, config: defaultTestConfig, telemetry });
     });
 
     it("should be connected when a connected event happens", async () => {

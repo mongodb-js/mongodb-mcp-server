@@ -18,6 +18,7 @@
     { "path": "../types" },
     { "path": "../core" },
     { "path": "../logging" },
+    { "path": "../setup" },
     { "path": "../metrics" },
     { "path": "../atlas-api-client" },
     { "path": "../atlas-telemetry" },

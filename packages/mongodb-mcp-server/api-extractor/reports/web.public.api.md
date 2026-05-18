@@ -24,6 +24,7 @@ import { Secret } from 'mongodb-redact';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import { z } from 'zod';
+import * as z_2 from 'zod';
 import type { ZodRawShape } from 'zod';
 
 // @public (undocumented)
@@ -323,7 +324,7 @@ export type ConnectionErrorHandled = {
 };
 
 // @public (undocumented)
-export type ConnectionErrorHandler = (error: MongoDBError_2<NotConnectedToMongoDBErrorCode | MisconfiguredConnectionStringErrorCode>, additionalContext: ConnectionErrorHandlerContext) => ConnectionErrorUnhandled | ConnectionErrorHandled | Promise<ConnectionErrorUnhandled | ConnectionErrorHandled>;
+export type ConnectionErrorHandler = (error: MongoDBError<NotConnectedToMongoDBErrorCode | MisconfiguredConnectionStringErrorCode>, additionalContext: ConnectionErrorHandlerContext) => ConnectionErrorUnhandled | ConnectionErrorHandled | Promise<ConnectionErrorUnhandled | ConnectionErrorHandled>;
 
 // @public (undocumented)
 export type ConnectionErrorHandlerContext = {
@@ -529,26 +530,6 @@ export type ElicitedInputResult = {
     fields?: undefined;
 };
 
-// @public (undocumented)
-export enum ErrorCodes {
-    // (undocumented)
-    AtlasSearchNotSupported = 1000004,
-    // (undocumented)
-    AtlasVectorSearchIndexNotFound = 1000006,
-    // (undocumented)
-    AtlasVectorSearchInvalidQuery = 1000007,
-    // (undocumented)
-    ForbiddenCollscan = 1000002,
-    // (undocumented)
-    ForbiddenWriteOperation = 1000003,
-    // (undocumented)
-    InvalidPipeline = 1000008,
-    // (undocumented)
-    MisconfiguredConnectionString = 1000001,
-    // (undocumented)
-    NotConnectedToMongoDB = 1000000
-}
-
 // @public
 export class EventCache {
     constructor();
@@ -628,10 +609,10 @@ export interface ITransportRunner {
 }
 
 // @public (undocumented)
-export type JSONExportFormat = z.infer<typeof jsonExportFormat>;
+export type JSONExportFormat = z_2.infer<typeof jsonExportFormat>;
 
 // @public (undocumented)
-export const jsonExportFormat: z.ZodEnum<{
+export const jsonExportFormat: z_2.ZodEnum<{
     relaxed: "relaxed";
     canonical: "canonical";
 }>;
@@ -694,13 +675,6 @@ export type LogPayload = {
     noRedaction?: boolean | LoggerType | LoggerType[];
     attributes?: Record<string, string>;
 };
-
-// @public (undocumented)
-export class MongoDBError<ErrorCode extends ErrorCodes = ErrorCodes> extends Error {
-    constructor(code: ErrorCode, message: string);
-    // (undocumented)
-    code: ErrorCode;
-}
 
 // @public
 export type MongoDBToolsRuntimeConfig = {

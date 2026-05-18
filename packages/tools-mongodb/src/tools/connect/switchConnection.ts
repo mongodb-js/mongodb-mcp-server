@@ -1,4 +1,4 @@
-import z from "zod";
+import * as z from "zod";
 import type { CallToolResult } from "@mongodb-js/mcp-types";
 
 import { MongoDBToolBase, type IMongoDBConfig, type MongoDBToolRegistrationServer } from "../../mongodbTool.js";

@@ -348,6 +348,9 @@ importers:
       '@mongodb-js/mcp-metrics':
         specifier: workspace:*
         version: link:../metrics
+      '@mongodb-js/mcp-setup':
+        specifier: workspace:*
+        version: link:../setup
       '@mongodb-js/mcp-test-utils':
         specifier: workspace:*
         version: link:../test-utils
@@ -503,6 +506,9 @@ importers:
       '@mongosh/arg-parser':
         specifier: ^5.0.2
         version: 5.0.2(zod@4.4.2)
+      '@mongosh/service-provider-node-driver':
+        specifier: ^5.0.2
+        version: 5.0.2(mongodb-log-writer@2.5.7(bson@7.2.0))
       bson:
         specifier: ^7.2.0
         version: 7.2.0
@@ -512,6 +518,9 @@ importers:
       mongodb-log-writer:
         specifier: ^2.5.7
         version: 2.5.7(bson@7.2.0)
+      mongodb-redact:
+        specifier: ^1.4.6
+        version: 1.4.7
       mongodb-schema:
         specifier: ^12.7.0
         version: 12.7.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)

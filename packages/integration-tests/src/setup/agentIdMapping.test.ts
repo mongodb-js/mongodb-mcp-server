@@ -3,8 +3,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, it, expect } from "vitest";
-import { AI_TOOL_REGISTRY, type AIToolType } from "mongodb-mcp-server/setup";
-import { buildSkillsAddArgs } from "mongodb-mcp-server/setup";
+import { AI_TOOL_REGISTRY, type AIToolType } from "@mongodb-js/mcp-setup";
+import { buildSkillsAddArgs } from "@mongodb-js/mcp-setup";
 
 /**
  * Verifies every `AIToolType`'s `skillsAgentId` returns a value the pinned

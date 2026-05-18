@@ -12,11 +12,17 @@ type ConnectionStateDebuggingInformation = {
     readonly connectedAtlasCluster?: AtlasClusterConnectionInfo;
 };
 
+export type DebugResourceOptions = {
+    session: Session;
+    config: UserConfig;
+    telemetry: AtlasTelemetry;
+};
+
 export class DebugResource extends ReactiveResource<
     ConnectionStateDebuggingInformation,
     readonly ["connect", "disconnect", "close", "connection-error"]
 > {
-    constructor(session: Session, config: UserConfig, telemetry: AtlasTelemetry) {
+    constructor(options: DebugResourceOptions) {
         super({
             resourceConfiguration: {
                 name: "debug-mongodb",
@@ -30,9 +36,9 @@ export class DebugResource extends ReactiveResource<
                 initial: { tag: "disconnected" },
                 events: ["connect", "disconnect", "close", "connection-error"],
             },
-            session,
-            config,
-            telemetry,
+            session: options.session,
+            config: options.config,
+            telemetry: options.telemetry,
         });
     }
     reduce(
