@@ -111,7 +111,7 @@ export {
     type ToolClass,
     type ToolArgs,
 } from "./tools/tool.js";
-export { TRANSPORT_PAYLOAD_LIMITS, type TransportType } from "./transports/constants.js";
+export { TRANSPORT_PAYLOAD_LIMITS, type TransportType } from "@mongodb-js/mcp-cli";
 export {
     PrometheusMetrics,
     createDefaultMetrics,

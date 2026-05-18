@@ -17,6 +17,7 @@
   "references": [
     { "path": "../types" },
     { "path": "../core" },
+    { "path": "../cli" },
     { "path": "../logging" },
     { "path": "../metrics" },
     { "path": "../atlas-api-client" },

@@ -13,7 +13,7 @@ import type { Server } from "../../src/server.js";
 import type { TelemetryToolEvent as ToolEvent } from "@mongodb-js/mcp-atlas-telemetry";
 import type { PreviewFeature } from "@mongodb-js/mcp-tools-mongodb";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
-import { TRANSPORT_PAYLOAD_LIMITS } from "../../src/transports/constants.js";
+import { TRANSPORT_PAYLOAD_LIMITS } from "@mongodb-js/mcp-cli";
 import { expectDefined } from "@mongodb-js/mcp-test-utils";
 import { TestTool, TestToolWithOutputSchema, TestToolWithoutStructuredContent, ErrorTool } from "./mocks/tools.js";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
