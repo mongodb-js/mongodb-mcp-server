@@ -1,4 +1,3 @@
-<<<<<<<< HEAD:packages/test-utils/src/testUtils.ts
 import { beforeEach, afterEach } from "vitest";
 import { type ConnectionManagerEvents, type ConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
 
@@ -54,6 +53,3 @@ export type TestConnectionManager = ConnectionManager & {
         newState: State
     ): State;
 };
-========
-export { createEnvironment, useClearEnvironment, type TestConnectionManager } from "@mongodb-js/mcp-test-utils";
->>>>>>>> aedeedd3e84c85a9830c1aa1cd6b653fdc0ec8c4:tests/utils/index.ts
