@@ -734,9 +734,6 @@ importers:
       "@types/node":
         specifier: ^25.6.0
         version: 25.6.0
-      mongodb-mcp-server:
-        specifier: workspace:*
-        version: link:../..
       typescript:
         specifier: ^5.9.2
         version: 5.9.3

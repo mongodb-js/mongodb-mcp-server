@@ -23,7 +23,7 @@ import {
 } from "@mongodb-js/mcp-tools-mongodb";
 import { packageInfo } from "./common/packageInfo.js";
 import { type ConnectionErrorHandler } from "./common/connectionErrorHandler.js";
-import type { Elicitation } from "./elicitation.js";
+import type { Elicitation } from "@mongodb-js/mcp-core";
 import { AllTools } from "./tools/index.js";
 import type { UIRegistry } from "@mongodb-js/mcp-ui";
 import type { IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
