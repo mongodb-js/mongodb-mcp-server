@@ -220,10 +220,10 @@ export async function setupMcpCli<ServerType>(options: CLIOptions<ServerType>): 
     }
 }
 
-class MCPHttpServerWrapper<ServerType> extends MCPHttpServer<ServerType> {
+class MCPHttpServerWrapper extends MCPHttpServer {
     private userConfig: UserConfig;
     private baseLogger: CompositeLogger;
-    private serverFactory: ServerFactory<ServerType>;
+    private serverFactory: ServerFactory;
 
     constructor({
         userConfig,
