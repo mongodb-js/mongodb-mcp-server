@@ -8,17 +8,17 @@ import { DryRunModeRunner } from "../transports/dryModeRunner.js";
 import type { IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
 import type { CompositeLogger as CompositeLoggerType } from "@mongodb-js/mcp-core";
 
-export type ServerFactory<ServerType> = (options: {
+export type ServerCreator = (options: {
     config: UserConfig;
     logger: CompositeLoggerType;
     metrics: IMetrics<DefaultMetricDefinitions>;
-}) => Promise<ServerType>;
+}) => Promise<{ connect(transport: any): Promise<void>; close(): Promise<void> }>;
 
-export class DryRunHandler<ServerType> implements CliHandler {
-    private serverFactory: ServerFactory<ServerType>;
+export class DryRunHandler implements CliHandler {
+    private createServer: ServerCreator;
 
-    constructor(serverFactory: ServerFactory<ServerType>) {
-        this.serverFactory = serverFactory;
+    constructor(createServer: ServerCreator) {
+        this.createServer = createServer;
     }
 
     shouldHandle(config: UserConfig): boolean {
@@ -35,7 +35,7 @@ export class DryRunHandler<ServerType> implements CliHandler {
             const consoleLogger = new ConsoleLogger({ keychain: {} as any });
             const compositeLogger = new CompositeLogger({ loggers: [consoleLogger] });
 
-            const server = await this.serverFactory({ config, logger: compositeLogger, metrics });
+            const server = await this.createServer({ config, logger: compositeLogger, metrics });
 
             const runner = new DryRunModeRunner({
                 logger: {
@@ -43,7 +43,7 @@ export class DryRunHandler<ServerType> implements CliHandler {
                     error: console.error,
                 },
                 userConfig: config,
-                server: server as any,
+                server,
             });
             await runner.start();
             await runner.stop();
@@ -55,11 +55,11 @@ export class DryRunHandler<ServerType> implements CliHandler {
     }
 }
 
-export async function handleDryRun<ServerType>(
+export async function handleDryRun(
     config: UserConfig,
-    serverFactory: ServerFactory<ServerType>
+    createServer: ServerCreator
 ): Promise<never> {
-    const handler = new DryRunHandler(serverFactory);
+    const handler = new DryRunHandler(createServer);
     await handler.handle(config);
     process.exit(0);
 }

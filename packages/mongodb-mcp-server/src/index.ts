@@ -38,7 +38,7 @@ import crypto from "crypto";
 import { ConsoleLogger } from "@mongodb-js/mcp-logging";
 import { LogId } from "@mongodb-js/mcp-core";
 import { Keychain } from "@mongodb-js/mcp-core";
-import { setupMcpCli, type ServerFactory } from "@mongodb-js/mcp-cli";
+import { setupMcpCli } from "@mongodb-js/mcp-cli";
 import { Server } from "./server.js";
 import { Session } from "./common/session.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -53,7 +53,7 @@ import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { runSetup } from "./setup/setupMcpServer.js";
 import { packageInfo } from "./common/packageInfo.js";
 
-const serverFactory: ServerFactory<Server> = async ({ config, logger, metrics }) => {
+const createServer = async ({ config, logger, metrics }: { config: any; logger: any; metrics: any }) => {
     const keychain = CoreKeychain.root;
 
     const exportsManager = ExportsManager.init({
@@ -130,12 +130,12 @@ const serverFactory: ServerFactory<Server> = async ({ config, logger, metrics })
     return server;
 };
 
-setupMcpCli<Server>({
+setupMcpCli({
     packageInfo: {
         version: packageInfo.version,
         mcpServerName: packageInfo.mcpServerName,
     },
-    serverFactory,
+    createServer,
     setupFunction: runSetup,
     enableFipsIfRequested,
 }).catch((error: unknown) => {

@@ -26,12 +26,14 @@
     "test": "vitest --run"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@mongodb-js/mcp-core": "workspace:*",
     "@mongodb-js/mcp-http-runners": "workspace:*",
     "@mongodb-js/mcp-logging": "workspace:*",
     "@mongodb-js/mcp-metrics": "workspace:*",
     "@mongodb-js/mcp-tools-mongodb": "workspace:*",
     "@mongodb-js/mcp-types": "workspace:*",
+    "@mongodb-js/devtools-proxy-support": "^0.7.8",
     "@mongosh/arg-parser": "^5.0.2",
     "mongodb-log-writer": "^2.5.7",
     "ts-levenshtein": "^1.0.7",

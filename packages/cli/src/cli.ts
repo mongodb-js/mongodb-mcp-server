@@ -24,7 +24,7 @@ import {
     VersionHandler,
     DryRunHandler,
     SetupHandler,
-    type ServerFactory,
+    type ServerCreator,
     type SetupFunction,
 } from "./handlers/index.js";
 
@@ -33,14 +33,14 @@ import { createDefaultLoggers } from "./utils/index.js";
 
 export type CLIOptions = {
     packageInfo: { version: string; mcpServerName: string };
-    serverFactory: ServerFactory<any>;
+    createServer: ServerCreator;
     setupFunction?: SetupFunction;
     enableFipsIfRequested?(): void;
     handlers?: CliHandler[];
 };
 
 export async function setupMcpCli(options: CLIOptions): Promise<void> {
-    const { packageInfo, serverFactory, setupFunction, enableFipsIfRequested } = options;
+    const { packageInfo, createServer, setupFunction, enableFipsIfRequested } = options;
 
     if (enableFipsIfRequested) {
         enableFipsIfRequested();
@@ -78,7 +78,7 @@ export async function setupMcpCli(options: CLIOptions): Promise<void> {
         new HelpHandler(),
         new VersionHandler(packageInfo.version),
         ...(setupFunction ? [new SetupHandler(setupFunction)] : []),
-        new DryRunHandler(serverFactory),
+        new DryRunHandler(createServer),
     ];
 
     // Check if any handler should handle this request
@@ -90,12 +90,12 @@ export async function setupMcpCli(options: CLIOptions): Promise<void> {
     }
 
     // Start the server normally
-    await startServer(config, serverFactory);
+    await startServer(config, createServer);
 }
 
-async function startServer<ServerType>(
+async function startServer(
     config: UserConfig,
-    serverFactory: ServerFactory<ServerType>
+    createServer: ServerCreator
 ): Promise<void> {
     const logger = await createDefaultLoggers(config);
     const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
@@ -124,7 +124,7 @@ async function startServer<ServerType>(
 
         const mcpHttpServer = new MCPHttpServerWrapper({
             userConfig: config,
-            serverFactory,
+            createServer,
             options: {
                 http: {
                     host: config.httpHost,
@@ -233,7 +233,7 @@ export {
     VersionHandler,
     DryRunHandler,
     SetupHandler,
-    type ServerFactory,
+    type ServerCreator,
     type SetupFunction,
     handleHelpRequest,
     handleVersionRequest,
