@@ -17,20 +17,11 @@
   },
   "documentation": "https://www.mongodb.com/docs/mcp-server/",
   "license": "Apache-2.0",
-  "keywords": [
-    "mongodb",
-    "database",
-    "mcp",
-    "vector-search"
-  ],
+  "keywords": ["mongodb", "database", "mcp", "vector-search"],
   "icon": "icon.png",
   "compatibility": {
     "claude_desktop": ">=0.10.0",
-    "platforms": [
-      "darwin",
-      "win32",
-      "linux"
-    ],
+    "platforms": ["darwin", "win32", "linux"],
     "runtimes": {
       "node": ">=20.19.0"
     }
@@ -40,11 +31,7 @@
     "entry_point": "server/index.js",
     "mcp_config": {
       "command": "node",
-      "args": [
-        "${__dirname}/server/index.js",
-        "--transport",
-        "stdio"
-      ],
+      "args": ["${__dirname}/server/index.js", "--transport", "stdio"],
       "env": {
         "MDB_MCP_CONNECTION_STRING": "${user_config.connection_string}",
         "MDB_MCP_API_CLIENT_ID": "${user_config.atlas_client_id}",

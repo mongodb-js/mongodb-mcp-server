@@ -1,4 +1,4 @@
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
 import { AtlasLocalToolBase } from "../../atlasLocalTool.js";
 import type { OperationType, ToolArgs } from "@mongodb-js/mcp-core";
 import type { Client } from "@mongodb-js/atlas-local";

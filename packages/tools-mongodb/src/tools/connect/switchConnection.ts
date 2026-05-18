@@ -1,5 +1,5 @@
 import z from "zod";
-import { type CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
 
 import { MongoDBToolBase, type IMongoDBConfig, type MongoDBToolRegistrationServer } from "../../mongodbTool.js";
 import { type ToolArgs, type OperationType, type ToolConstructorParams } from "@mongodb-js/mcp-core";

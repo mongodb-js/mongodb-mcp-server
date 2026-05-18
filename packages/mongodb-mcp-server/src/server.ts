@@ -6,7 +6,7 @@ import type { LogLevel } from "@mongodb-js/mcp-core";
 import { MCP_LOG_LEVELS, LogId } from "@mongodb-js/mcp-core";
 import type { AtlasTelemetry, TelemetryServerEvent, TelemetryServerCommand } from "@mongodb-js/mcp-atlas-telemetry";
 import type { UserConfig } from "./common/config/userConfig.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
 import {
     CallToolRequestSchema,
     SetLevelRequestSchema,

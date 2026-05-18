@@ -1,3 +1,6 @@
+import { type CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+export type { CallToolResult };
+
 /**
  * The type of operation the tool performs. This is used when evaluating if a tool is allowed to run based on
  * the config's `disabledTools` and `readOnly` settings.

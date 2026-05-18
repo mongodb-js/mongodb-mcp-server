@@ -48,6 +48,9 @@ const config: KnipConfig = {
                 "@testing-library/jest-dom",
                 // Express types - needed for middleware but not directly imported
                 "@types/express",
+                // Used by mongodb-mcp-server package (false positive)
+                "@microsoft/api-extractor",
+                "ts-levenshtein",
             ],
         },
         "packages/mongodb-mcp-server": {
@@ -89,6 +92,9 @@ const config: KnipConfig = {
                 "@testing-library/jest-dom",
                 // Express types - needed for middleware but not directly imported
                 "@types/express",
+                // Used by mongodb-mcp-server package
+                "@microsoft/api-extractor",
+                "ts-levenshtein",
             ],
         },
         "packages/scripts": {
@@ -99,6 +105,9 @@ const config: KnipConfig = {
                 "@mongodb-js/mcp-ui",
                 "@mongodb-js/mcp-types",
                 "@mongodb-js/mcp-metrics",
+                "@mongodb-js/mcp-logging",
+                "@mongodb-js/mcp-atlas-api-client",
+                "@mongodb-js/mcp-core",
                 // Used for UserConfigSchema and tools imports
                 "mongodb-mcp-server",
             ],
@@ -113,6 +122,10 @@ const config: KnipConfig = {
         "packages/integration-tests": {
             entry: ["src/index.ts", "src/**/*.ts"],
             ignore: ["src/fixtures/curl.mjs"],
+        },
+        "packages/atlas-api-client": {
+            entry: ["src/index.ts!"],
+            ignore: ["openapi.d.ts"], // Generated file with many exported types
         },
         "packages/ui": {
             ignore: ["src/build/mount.tsx", "src/components/**", "vite.ui.config.ts", "src/test-setup.ts"],
@@ -143,6 +156,7 @@ const config: KnipConfig = {
                 "mongodb-schema",
                 "node-machine-id",
                 "zod",
+                "@modelcontextprotocol/sdk",
             ],
         },
         "tests/browser": {

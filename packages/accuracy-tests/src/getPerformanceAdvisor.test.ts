@@ -1,6 +1,6 @@
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
 import { Matcher } from "./sdk/matcher.js";
 
 const projectId = "68f600519f16226591d054c0";

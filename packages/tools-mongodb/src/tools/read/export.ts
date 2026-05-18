@@ -1,7 +1,7 @@
 import z from "zod";
 import { ObjectId } from "bson";
 import type { AggregationCursor, FindCursor } from "mongodb";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
 import type { OperationType, ToolArgs, ToolExecutionContext } from "@mongodb-js/mcp-core";
 import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
 import { FindArgs } from "./find.js";

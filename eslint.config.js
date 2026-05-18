@@ -7,14 +7,14 @@ import vitestPlugin from "@vitest/eslint-plugin";
 import enforceZodV4 from "./eslint-rules/enforce-zod-v4.js";
 
 const testFiles = [
-    "packages/mongodb-mcp-server/tests/**/*.test.ts",
-    "packages/mongodb-mcp-server/tests/**/*.test.tsx",
-    "packages/mongodb-mcp-server/tests/**/*.ts",
-    "packages/mongodb-mcp-server/tests/**/*.tsx",
     "packages/**/*.test.ts",
+    "packages/**/*.test.tsx",
+    "packages/**/*.ts",
+    "packages/**/*.tsx",
+    "tests/browser/**/*.ts",
 ];
 
-const files = [...testFiles, "packages/mongodb-mcp-server/src/**/*.ts", "packages/mongodb-mcp-server/src/**/*.tsx", "scripts/**/*.ts", "packages/**/*.ts"];
+const files = [...testFiles, "packages/**/*.ts"];
 
 export default defineConfig([
     { files, plugins: { js }, extends: ["js/recommended"] },
@@ -107,15 +107,6 @@ export default defineConfig([
         rules: {
             /** Allow null assertions in test files */
             "@typescript-eslint/no-non-null-assertion": "off",
-        },
-    },
-    {
-        files: ["tests/browser/**/*.ts", "packages/mongodb-mcp-server/tests/**/*.ts"],
-        languageOptions: {
-            parserOptions: {
-                projectService: true,
-                tsconfigRootDir: import.meta.dirname,
-            },
         },
     },
     globalIgnores([

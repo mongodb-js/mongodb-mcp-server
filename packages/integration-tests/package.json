@@ -39,7 +39,11 @@
     "@mongodb-js/devtools-proxy-support": "^0.7.8",
     "@mongodb-js/mcp-ui": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "@mongosh/arg-parser": "^5.0.2",
+    "@mongosh/service-provider-node-driver": "^5.0.2",
     "mongodb": "^7.1.1",
+    "mongodb-schema": "^12.7.0",
+    "node-machine-id": "1.1.12",
     "bson": "^7.2.0",
     "zod": "^4.4.2"
   }

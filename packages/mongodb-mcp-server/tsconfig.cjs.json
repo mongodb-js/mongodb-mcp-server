@@ -4,6 +4,7 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "outDir": "./dist/cjs",
+    "rootDir": "./src",
     "paths": {
       "mongodb-connection-string-url": [
         "./node_modules/mongodb-connection-string-url/lib/index.d.ts"
@@ -16,5 +17,6 @@
         "./node_modules/openapi-typescript-helpers/index.d.ts"
       ]
     }
-  }
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
 }

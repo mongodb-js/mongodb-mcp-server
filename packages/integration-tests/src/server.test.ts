@@ -21,8 +21,13 @@ import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Server } from "mongodb-mcp-server";
 import { connectionErrorHandler } from "mongodb-mcp-server";
-import { type OperationType, ToolBase, type ToolCategory, type ToolClass } from "@mongodb-js/mcp-core";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import {
+    type OperationType,
+    ToolBase,
+    type ToolCategory,
+    type ToolClass,
+    type CallToolResult,
+} from "@mongodb-js/mcp-core";
 import type { TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import { InMemoryTransport } from "@mongodb-js/mcp-core";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";

@@ -4,24 +4,13 @@
     "rootDir": ".",
     "skipLibCheck": true
   },
-  "include": ["**/*", "packages/test-utils/src/vitest.d.ts"],
-  "exclude": ["dist", "node_modules", "packages/*/dist"],
-  "references": [
-    { "path": "./packages/node-utils" },
-    { "path": "./packages/types" },
-    { "path": "./packages/metrics" },
-    { "path": "./packages/core" },
-    { "path": "./packages/ui" },
-    { "path": "./packages/atlas-api-client" },
-    { "path": "./packages/http-runners" },
-    { "path": "./packages/logging" },
-    { "path": "./packages/tools-assistant" },
-    { "path": "./packages/tools-atlas-local" },
-    { "path": "./packages/atlas-telemetry" },
-    { "path": "./packages/tools-mongodb" },
-    { "path": "./packages/tools-atlas" },
-    { "path": "./packages/test-utils" },
-    { "path": "./packages/setup" },
-    { "path": "./packages/integration-tests" }
+  "include": ["*.ts", "*.js", "eslint-rules/*.js"],
+  "exclude": [
+    "dist",
+    "node_modules",
+    "**/dist",
+    "packaging",
+    "packages",
+    "tests"
   ]
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { type CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
 import {
     expectDefined,
     validateToolMetadata,

@@ -6,7 +6,7 @@ import { parsePrometheusValue } from "./metricsHelpers.js";
 import type { UserConfig } from "mongodb-mcp-server";
 import type { OperationType, ToolCategory } from "@mongodb-js/mcp-core";
 import { ToolBase } from "@mongodb-js/mcp-core";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
 import type { TelemetryToolMetadata, AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import {
     PrometheusMetrics,

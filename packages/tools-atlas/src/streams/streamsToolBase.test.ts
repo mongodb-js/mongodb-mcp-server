@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { z } from "zod";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { ToolConstructorParams, OperationType, ToolArgs } from "@mongodb-js/mcp-core";
+import type { ToolConstructorParams, OperationType, ToolArgs, CallToolResult } from "@mongodb-js/mcp-core";
 import { StreamsToolBase } from "@mongodb-js/mcp-tools-atlas";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import type { AtlasTelemetry, TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
