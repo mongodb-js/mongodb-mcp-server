@@ -8,6 +8,41 @@ const config: KnipConfig = {
     workspaces: {
         ".": {
             entry: [
+                "eslint-rules/*.js",
+            ],
+            ignore: [],
+            ignoreDependencies: [
+                // Transitive deps needed for bundling/universal package
+                "@emotion/css",
+                "@anthropic-ai/mcpb",
+                "@lg-mcp/embeddable-uis",
+                "@lg-mcp/hooks",
+                "@redocly/cli",
+                "@types/yargs-parser",
+                "@vitejs/plugin-react",
+                "oauth4webapi",
+                "openapi-fetch",
+                "openapi-typescript",
+                "openapi-typescript-helpers",
+                "semver",
+                "vite-plugin-node-polyfills",
+                "vite-plugin-singlefile",
+                // Used by workspace packages (tools-mongodb) and tests, not directly in root src/
+                "@mongodb-js/device-id",
+                "mongodb",
+                "mongodb-schema",
+                // Used by tools-mongodb package
+                "node-machine-id",
+                // Dev tooling - not imported but used via CLI
+                "vitest",
+                // Test assertion library - extended via vitest setup, not imported
+                "@testing-library/jest-dom",
+                // Express types - needed for middleware but not directly imported
+                "@types/express",
+            ],
+        },
+        "packages/mongodb-mcp-server": {
+            entry: [
                 "src/index.ts!",
                 "src/lib.ts!",
                 "src/web.ts!",
@@ -15,9 +50,6 @@ const config: KnipConfig = {
                 "src/setup/index.ts!",
                 "src/test-helpers/index.ts!",
                 "tests/**/*.ts",
-                "!tests/browser/**",
-                "!packages/**", // Each package has its own knip workspace config
-                "eslint-rules/*.js",
             ],
             ignore: ["packaging/mcpb/server/index.js"],
             ignoreDependencies: [

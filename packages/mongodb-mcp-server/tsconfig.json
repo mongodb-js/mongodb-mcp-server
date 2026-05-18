@@ -1,0 +1,26 @@
+{
+  "extends": "../../tsconfig.build.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "baseUrl": ".",
+    "erasableSyntaxOnly": true,
+    "composite": true
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["dist", "node_modules", "src/**/*.test.ts"],
+  "references": [
+    { "path": "../types" },
+    { "path": "../core" },
+    { "path": "../logging" },
+    { "path": "../metrics" },
+    { "path": "../atlas-api-client" },
+    { "path": "../atlas-telemetry" },
+    { "path": "../http-runners" },
+    { "path": "../tools-assistant" },
+    { "path": "../tools-atlas" },
+    { "path": "../tools-atlas-local" },
+    { "path": "../tools-mongodb" },
+    { "path": "../ui" }
+  ]
+}

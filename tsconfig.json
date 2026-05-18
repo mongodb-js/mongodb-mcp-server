@@ -22,6 +22,7 @@
     { "path": "./packages/tools-atlas" },
     { "path": "./packages/test-utils" },
     { "path": "./packages/setup" },
-    { "path": "./packages/integration-tests" }
+    { "path": "./packages/integration-tests" },
+    { "path": "./packages/mongodb-mcp-server" }
   ]
 }

@@ -7,14 +7,14 @@ import vitestPlugin from "@vitest/eslint-plugin";
 import enforceZodV4 from "./eslint-rules/enforce-zod-v4.js";
 
 const testFiles = [
-    "tests/**/*.test.ts",
-    "tests/**/*.test.tsx",
-    "tests/**/*.ts",
-    "tests/**/*.tsx",
+    "packages/mongodb-mcp-server/tests/**/*.test.ts",
+    "packages/mongodb-mcp-server/tests/**/*.test.tsx",
+    "packages/mongodb-mcp-server/tests/**/*.ts",
+    "packages/mongodb-mcp-server/tests/**/*.tsx",
     "packages/**/*.test.ts",
 ];
 
-const files = [...testFiles, "src/**/*.ts", "src/**/*.tsx", "scripts/**/*.ts", "packages/**/*.ts"];
+const files = [...testFiles, "packages/mongodb-mcp-server/src/**/*.ts", "packages/mongodb-mcp-server/src/**/*.tsx", "scripts/**/*.ts", "packages/**/*.ts"];
 
 export default defineConfig([
     { files, plugins: { js }, extends: ["js/recommended"] },
@@ -72,7 +72,7 @@ export default defineConfig([
         },
     },
     {
-        files: ["src/**/*.ts"],
+        files: ["packages/mongodb-mcp-server/src/**/*.ts"],
         plugins: {
             "enforce-zod-v4": {
                 rules: {
@@ -110,7 +110,7 @@ export default defineConfig([
         },
     },
     {
-        files: ["tests/browser/**/*.ts"],
+        files: ["tests/browser/**/*.ts", "packages/mongodb-mcp-server/tests/**/*.ts"],
         languageOptions: {
             parserOptions: {
                 projectService: true,
@@ -124,7 +124,7 @@ export default defineConfig([
         "packages/*/dist/**",
         "packages/atlas-api-client/openapi.d.ts",
         ".claude/**",
-        "src/ui/lib",
+        "packages/mongodb-mcp-server/src/ui/lib",
         "coverage",
         "global.d.ts",
         "eslint.config.js",

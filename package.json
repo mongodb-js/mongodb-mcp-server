@@ -1,101 +1,27 @@
 {
-  "name": "mongodb-mcp-server",
-  "description": "MongoDB Model Context Protocol Server",
-  "version": "1.11.0-prerelease.3",
+  "name": "mongodb-mcp-server-monorepo",
+  "private": true,
   "type": "module",
   "packageManager": "pnpm@10.33.2",
-  "mcpName": "io.github.mongodb-js/mongodb-mcp-server",
-  "exports": {
-    ".": {
-      "import": {
-        "types": "./dist/esm/lib.d.ts",
-        "default": "./dist/esm/lib.js"
-      },
-      "require": {
-        "types": "./dist/cjs/lib.d.ts",
-        "default": "./dist/cjs/lib.js"
-      }
-    },
-    "./web": {
-      "import": {
-        "types": "./dist/esm/web.d.ts",
-        "default": "./dist/esm/web.js"
-      },
-      "require": {
-        "types": "./dist/cjs/web.d.ts",
-        "default": "./dist/cjs/web.js"
-      }
-    },
-    "./tools": {
-      "import": {
-        "types": "./dist/esm/tools/index.d.ts",
-        "default": "./dist/esm/tools/index.js"
-      },
-      "require": {
-        "types": "./dist/cjs/tools/index.d.ts",
-        "default": "./dist/cjs/tools/index.js"
-      }
-    },
-    "./setup": {
-      "import": {
-        "types": "./dist/esm/setup/index.d.ts",
-        "default": "./dist/esm/setup/index.js"
-      },
-      "require": {
-        "types": "./dist/cjs/setup/index.d.ts",
-        "default": "./dist/cjs/setup/index.js"
-      }
-    },
-    "./test-helpers": {
-      "import": {
-        "types": "./dist/esm/test-helpers/index.d.ts",
-        "default": "./dist/esm/test-helpers/index.js"
-      },
-      "require": {
-        "types": "./dist/cjs/test-helpers/index.d.ts",
-        "default": "./dist/cjs/test-helpers/index.js"
-      }
-    }
-  },
-  "main": "./dist/cjs/lib.js",
-  "types": "./dist/cjs/lib.d.ts",
-  "author": "MongoDB <info@mongodb.com>",
-  "homepage": "https://github.com/mongodb-js/mongodb-mcp-server",
-  "repository": {
-    "url": "https://github.com/mongodb-js/mongodb-mcp-server.git"
-  },
-  "bin": {
-    "mongodb-mcp-server": "dist/esm/index.js"
-  },
-  "publishConfig": {
-    "access": "public"
-  },
-  "files": [
-    "dist"
-  ],
   "scripts": {
-    "start": "node dist/index.js --transport http --loggers 'stderr, mcp'",
-    "start:stdio": "node dist/index.js --transport stdio --loggers 'stderr, mcp'",
-    "start:setup": "pnpm run build && node dist/index.js setup",
+    "start": "pnpm --filter mongodb-mcp-server start",
+    "start:stdio": "pnpm --filter mongodb-mcp-server start:stdio",
+    "start:setup": "pnpm --filter mongodb-mcp-server start:setup",
     "prepare": "husky",
     "build:update-package-version": "pnpm --filter @mongodb-js/mcp-scripts update:package-version",
-    "build:esm": "tsc --project tsconfig.esm.json",
-    "build:cjs": "tsc --project tsconfig.cjs.json",
     "prebuild:mcpb": "pnpm run build",
     "build:mcpb": "pnpm --filter @mongodb-js/mcp-scripts build:mcpb",
     "build:universal-package": "pnpm --filter @mongodb-js/mcp-scripts build:universal-package",
-    "compile": "concurrently \"pnpm run build:esm\" \"pnpm run build:cjs\" && pnpm run build:universal-package",
-    "build": "pnpm run -r compile && pnpm run compile",
-    "inspect": "pnpm run build && mcp-inspector -- dist/esm/index.js",
+    "build": "pnpm run -r compile && pnpm --filter mongodb-mcp-server run build:universal-package",
+    "inspect": "pnpm --filter mongodb-mcp-server inspect",
     "prettier": "prettier",
     "check": "concurrently \"pnpm run build\" \"pnpm run check:types\" \"pnpm run check:lint\" \"pnpm run check:format\" \"pnpm run check:dependencies\" && pnpm run check:api",
-    "check:api-report": "concurrently \"api-extractor run --config api-extractor.json\" \"api-extractor run --config api-extractor/api-extractor-web.json\" \"pnpm --filter @mongodb-js/mcp-ui check:api\"",
-    "check:api": "pnpm run check:api-report || (printf \"\\nPublic API check failed. If you intended to change the public API, run:\\n\\n  pnpm run update:api\\n\" && exit 1)",
+    "check:api": "pnpm --filter mongodb-mcp-server check:api && pnpm --filter @mongodb-js/mcp-ui check:api",
     "check:lint": "eslint .",
     "check:dependencies": "knip && knip --strict",
     "check:format": "prettier -c .",
-    "update:api": "pnpm run build && concurrently \"api-extractor run --local --config api-extractor.json\" \"api-extractor run --local --config api-extractor/api-extractor-web.json\" \"api-extractor run --local --config api-extractor/api-extractor-tools.json\" \"pnpm --filter @mongodb-js/mcp-ui update:api\"",
     "check:types": "tsc --noEmit --project tsconfig.json",
+    "update:api": "pnpm run build && pnpm --filter mongodb-mcp-server update:api && pnpm --filter @mongodb-js/mcp-ui update:api",
     "fix": "pnpm run fix:lint && pnpm run reformat",
     "fix:lint": "eslint . --fix",
     "reformat": "prettier --write .",
@@ -165,50 +91,7 @@
     "vite-plugin-node-polyfills": "^0.26.0",
     "vite-plugin-singlefile": "^2.3.2",
     "vitest": "^4.1.5",
-    "yaml": "^2.8.1",
-    "@mongodb-js/mcp-test-utils": "workspace:*"
-  },
-  "dependencies": {
-    "@inquirer/prompts": "^8.0.2",
-    "@inquirer/select": "^5.1.3",
-    "@modelcontextprotocol/sdk": "^1.29.0",
-    "@mongodb-js/device-id": "^0.4.11",
-    "@mongodb-js/devtools-proxy-support": "^0.7.8",
-    "@mongodb-js/mcp-atlas-api-client": "workspace:*",
-    "@mongodb-js/mcp-atlas-telemetry": "workspace:*",
-    "@mongodb-js/mcp-core": "workspace:*",
-    "@mongodb-js/mcp-logging": "workspace:*",
-    "@mongodb-js/mcp-metrics": "workspace:*",
-    "@mongodb-js/mcp-tools-assistant": "workspace:*",
-    "@mongodb-js/mcp-tools-atlas": "workspace:*",
-    "@mongodb-js/mcp-tools-atlas-local": "workspace:*",
-    "@mongodb-js/mcp-http-runners": "workspace:*",
-    "@mongodb-js/mcp-types": "workspace:*",
-    "@mongodb-js/mcp-ui": "workspace:*",
-    "@mongosh/arg-parser": "^5.0.2",
-    "@mongosh/service-provider-node-driver": "^5.0.2",
-    "bson": "^7.2.0",
-    "chalk": "^5.6.2",
-    "jsonc-parser": "^3.3.1",
-    "mongodb": "^7.1.1",
-    "mongodb-log-writer": "^2.5.7",
-    "mongodb-redact": "^1.4.6",
-    "mongodb-schema": "^12.7.0",
-    "node-machine-id": "1.1.12",
-    "oauth4webapi": "^3.8.6",
-    "openapi-fetch": "^0.17.0",
-    "semver": "^7.7.4",
-    "ts-levenshtein": "^1.0.7",
-    "zod": "^4.4.2",
-    "@mongodb-js/mcp-tools-mongodb": "workspace:*"
-  },
-  "peerDependencies": {},
-  "engines": {
-    "node": "^20.19.0 || ^22.12.0 || >= 24.0.0"
-  },
-  "optionalDependencies": {
-    "@mongodb-js/atlas-local": "^1.3.0",
-    "kerberos": "^7.0.0"
+    "yaml": "^2.8.1"
   },
   "pnpm": {
     "overrides": {
@@ -223,5 +106,8 @@
     "kerberos": "^7.0.0",
     "bson": "^7.2.0",
     "zod": "^4.4.2"
+  },
+  "engines": {
+    "node": "^20.19.0 || ^22.12.0 || >= 24.0.0"
   }
 }
