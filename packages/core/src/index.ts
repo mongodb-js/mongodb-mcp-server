@@ -41,6 +41,7 @@ export { SessionStore, type ISessionStore, type SessionStoreConstructorArgs } fr
 export { StdioRunner } from "./runners/stdioRunner.js";
 
 export { NoopMetrics } from "./metrics/noopMetrics.js";
+export { Elicitation, type ElicitedInputResult } from "./elicitation.js";
 
 export {
     JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,

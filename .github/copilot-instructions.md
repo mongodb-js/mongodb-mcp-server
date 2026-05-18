@@ -12,7 +12,7 @@ and MongoDB Atlas accounts. It is built using TypeScript, Node.js and the offici
 - `/src/tools/mongodb/`: Contains the implementation of MCP tools that are specific to MongoDB clusters.
 - `/src/resources`: Contains the implementation of MCP Resources.
 - `/tests`: Contains the test code for the MCP Server.
-- `/tests/accuracy`: Contains the test code for the accuracy tests, that use different models to ensure that tools have reliable descriptions.
+- `/packages/accuracy-tests`: Contains the test code for the accuracy tests, that use different models to ensure that tools have reliable descriptions.
 - `/tests/integration`: Contains tests that start the MCP Server and interact with it to ensure that functionality is correct.
 - `/tests/unit`: Contains simple unit tests to cover specific functionality of the MCP Server.
 

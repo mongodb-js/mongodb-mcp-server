@@ -1,7 +1,6 @@
 {
   "name": "@mongodb-js/mcp-tools-mongodb",
   "version": "1.11.0-prerelease.1",
-  "private": true,
   "type": "module",
   "description": "MongoDB tools for MongoDB MCP server",
   "exports": {
@@ -21,7 +20,6 @@
   "dependencies": {
     "@mongodb-js/device-id": "^0.4.6",
     "@mongodb-js/mcp-core": "workspace:*",
-    "@mongodb-js/mcp-logging": "workspace:*",
     "@mongodb-js/mcp-types": "workspace:*",
     "@mongosh/arg-parser": "^5.0.2",
     "@mongosh/service-provider-node-driver": "^5.0.2",

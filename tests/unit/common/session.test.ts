@@ -9,7 +9,7 @@ import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { Keychain } from "@mongodb-js/mcp-core";
 import { ErrorCodes, MongoDBError } from "@mongodb-js/mcp-tools-mongodb";
-import { defaultTestConfig, testConnectionManagerDriverLabels } from "../../integration/helpers.js";
+import { defaultTestConfig, testConnectionManagerDriverLabels } from "mongodb-mcp-server/test-helpers";
 import { connectionErrorHandler as defaultConnectionErrorHandler } from "../../../src/common/connectionErrorHandler.js";
 import { ApiClient } from "../../../src/lib.js";
 

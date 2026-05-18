@@ -10,7 +10,7 @@ node_modules
 # Sensitive
 state.json
 
-tests/tmp
+**/tmp
 coverage
 # Generated assets by accuracy runs
 .accuracy

@@ -35,6 +35,26 @@
         "types": "./dist/cjs/tools/index.d.ts",
         "default": "./dist/cjs/tools/index.js"
       }
+    },
+    "./setup": {
+      "import": {
+        "types": "./dist/esm/setup/index.d.ts",
+        "default": "./dist/esm/setup/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/setup/index.d.ts",
+        "default": "./dist/cjs/setup/index.js"
+      }
+    },
+    "./test-helpers": {
+      "import": {
+        "types": "./dist/esm/test-helpers/index.d.ts",
+        "default": "./dist/esm/test-helpers/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/test-helpers/index.d.ts",
+        "default": "./dist/cjs/test-helpers/index.js"
+      }
     }
   },
   "main": "./dist/cjs/lib.js",
@@ -57,13 +77,13 @@
     "start": "node dist/index.js --transport http --loggers 'stderr, mcp'",
     "start:stdio": "node dist/index.js --transport stdio --loggers 'stderr, mcp'",
     "start:setup": "pnpm run build && node dist/index.js setup",
-    "prepare": "husky && pnpm run build",
-    "build:update-package-version": "tsx scripts/updatePackageVersion.ts",
+    "prepare": "husky",
+    "build:update-package-version": "pnpm --filter @mongodb-js/mcp-scripts update:package-version",
     "build:esm": "tsc --project tsconfig.esm.json",
     "build:cjs": "tsc --project tsconfig.cjs.json",
     "prebuild:mcpb": "pnpm run build",
-    "build:mcpb": "node scripts/createMcpb.ts",
-    "build:universal-package": "tsx scripts/createUniversalPackage.ts",
+    "build:mcpb": "pnpm --filter @mongodb-js/mcp-scripts build:mcpb",
+    "build:universal-package": "pnpm --filter @mongodb-js/mcp-scripts build:universal-package",
     "compile": "concurrently \"pnpm run build:esm\" \"pnpm run build:cjs\" && pnpm run build:universal-package",
     "build": "pnpm run -r --include-workspace-root compile",
     "inspect": "pnpm run build && mcp-inspector -- dist/esm/index.js",
@@ -72,7 +92,7 @@
     "check:api-report": "concurrently \"api-extractor run --config api-extractor.json\" \"api-extractor run --config api-extractor/api-extractor-web.json\" \"pnpm --filter @mongodb-js/mcp-ui check:api\"",
     "check:api": "pnpm run check:api-report || (printf \"\\nPublic API check failed. If you intended to change the public API, run:\\n\\n  pnpm run update:api\\n\" && exit 1)",
     "check:lint": "eslint .",
-    "check:dependencies": "knip --strict",
+    "check:dependencies": "knip && knip --strict",
     "check:format": "prettier -c .",
     "update:api": "pnpm run build && concurrently \"api-extractor run --local --config api-extractor.json\" \"api-extractor run --local --config api-extractor/api-extractor-web.json\" \"api-extractor run --local --config api-extractor/api-extractor-tools.json\" \"pnpm --filter @mongodb-js/mcp-ui update:api\"",
     "check:types": "tsc --noEmit --project tsconfig.json",
@@ -81,16 +101,17 @@
     "reformat": "prettier --write .",
     "generate": "pnpm run generate:api && pnpm run generate:arguments && pnpm run generate:ui",
     "generate:ui": "pnpm --filter @mongodb-js/mcp-scripts generate:ui",
-    "generate:api": "./scripts/generate.sh",
+    "generate:api": "pnpm --filter @mongodb-js/mcp-scripts generate:api",
     "generate:arguments": "pnpm --filter @mongodb-js/mcp-scripts generate",
+    "generate:release-notes": "pnpm --filter @mongodb-js/mcp-scripts generate:release-notes",
     "pretest": "pnpm run build",
     "test": "vitest --project eslint-rules --project unit-and-integration --project mcpb-build-script --coverage --run",
-    "test:accuracy": "sh ./scripts/accuracy/runAccuracyTests.sh",
+    "test:accuracy": "pnpm --filter @mongodb-js/mcp-accuracy-tests test",
     "test:browser": "pnpm --filter browser test",
     "test:long-running-tests": "vitest --project long-running-tests --coverage",
     "test:local": "SKIP_ATLAS_INTEGRATION_TESTS=true SKIP_ATLAS_LOCAL_TESTS=true pnpm run test",
     "prevalidate:mcpb": "pnpm run build",
-    "validate:mcpb": "node scripts/createMcpb.ts --validate-only",
+    "validate:mcpb": "pnpm --filter @mongodb-js/mcp-scripts validate:mcpb",
     "atlas:cleanup": "vitest --project atlas-cleanup"
   },
   "license": "Apache-2.0",
@@ -110,6 +131,7 @@
     "@mongodb-js/oidc-mock-provider": "^0.13.7",
     "@redocly/cli": "^2.29.0",
     "@testing-library/jest-dom": "^6.9.1",
+    "@types/express": "^5.0.0",
     "@types/node": "^25.6.0",
     "@types/proper-lockfile": "^4.1.4",
     "@types/semver": "^7.7.0",
@@ -129,27 +151,22 @@
     "husky": "^9.1.7",
     "jsdom": "^29.1.1",
     "knip": "^6.4.1",
-    "mongodb-runner": "^6.7.6",
     "oauth4webapi": "^3.8.5",
-    "openapi-types": "^12.1.3",
     "openapi-typescript": "^7.13.0",
     "openapi-typescript-helpers": "^0.1.0",
     "prettier": "^3.8.1",
     "proper-lockfile": "^4.1.2",
     "semver": "^7.7.4",
     "simple-git": "^3.36.0",
-    "testcontainers": "^11.14.0",
     "tsx": "^4.20.5",
-    "type-fest": "^5.6.0",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.58.2",
-    "uuid": "^14.0.0",
     "vite": "^8.0.8",
     "vite-plugin-node-polyfills": "^0.26.0",
     "vite-plugin-singlefile": "^2.3.2",
     "vitest": "^4.1.5",
     "yaml": "^2.8.1",
-    "@types/express": "^5.0.3"
+    "@mongodb-js/mcp-test-utils": "workspace:*"
   },
   "dependencies": {
     "@inquirer/prompts": "^8.0.2",
@@ -174,8 +191,6 @@
     "chalk": "^5.6.2",
     "jsonc-parser": "^3.3.1",
     "mongodb": "^7.1.1",
-    "mongodb-build-info": "^1.9.7",
-    "mongodb-connection-string-url": "^7.0.1",
     "mongodb-log-writer": "^2.5.7",
     "mongodb-redact": "^1.4.6",
     "mongodb-schema": "^12.7.0",

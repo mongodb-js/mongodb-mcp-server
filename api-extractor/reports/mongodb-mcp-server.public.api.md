@@ -590,6 +590,9 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
 
 export { Gauge }
 
+// @public
+export function getConfigMeta(key: keyof typeof UserConfigSchema.shape): ConfigFieldMeta | undefined;
+
 export { Histogram }
 
 // @public (undocumented)
@@ -786,6 +789,9 @@ export type MonitoringServerOptions<TMetrics extends DefaultMetricDefinitions = 
     metrics: IMetrics<TMetrics>;
 };
 
+// @public
+export function nameToConfigKey(mode: "header" | "query", name: string): string | undefined;
+
 // @public (undocumented)
 export class NoopLogger extends LoggerBase {
     constructor();
@@ -797,6 +803,21 @@ export class NoopLogger extends LoggerBase {
 
 // @public (undocumented)
 export type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
+
+// @public
+export function onlyStricterLogLevelOverride(orderedLevels: readonly string[]): CustomOverrideLogic;
+
+// @public
+export type OperationType = "metadata" | "read" | "create" | "delete" | "update" | "connect";
+
+// @public (undocumented)
+export const packageInfo: {
+    version: string;
+    mcpServerName: string;
+    engines: {
+        node: string;
+    };
+};
 
 // @public @deprecated (undocumented)
 export function parseArgsWithCliOptions(cliArguments: string[]): {
@@ -1120,8 +1141,65 @@ export type TelemetryEvents = {
     "events-skipped": [];
 };
 
+// @public (undocumented)
+export type ToolArgs<T extends ZodRawShape> = {
+    [K in keyof T]: z.infer<T[K]>;
+};
+
+// @public
+export abstract class ToolBase<TUserConfig extends IToolConfig = IToolConfig, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
+    constructor(input: ToolConstructorParams<TUserConfig, TMetricsDefinitions>);
+    // (undocumented)
+    get annotations(): ToolAnnotations;
+    abstract argsShape: ZodRawShape;
+    readonly category: ToolCategory;
+    protected readonly config: TUserConfig;
+    abstract description: string;
+    // (undocumented)
+    disable(): void;
+    protected readonly elicitation: IElicitation;
+    // (undocumented)
+    enable(): void;
+    protected abstract execute(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
+    protected getConfirmationMessage(args: ToolArgs<typeof ToolBase.argsShape>): string;
+    // (undocumented)
+    protected getConnectionInfoMetadata(): ConnectionMetadata;
+    protected handleError(error: unknown, args: z.infer<z.ZodObject<typeof ToolBase.argsShape>>): Promise<CallToolResult> | CallToolResult;
+    invoke(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
+    // (undocumented)
+    isEnabled(): boolean;
+    // (undocumented)
+    protected isFeatureEnabled(feature: PreviewFeature): boolean;
+    protected readonly metrics: IMetrics<TMetricsDefinitions>;
+    readonly name: string;
+    readonly operationType: OperationType;
+    outputSchema?: ZodRawShape;
+    // (undocumented)
+    register(server: {
+        mcpServer: McpServer;
+    }): boolean;
+    requiresConfirmation(): boolean;
+    protected abstract resolveTelemetryMetadata(args: ToolArgs<typeof ToolBase.argsShape>, input: {
+        result: CallToolResult;
+    }): TelemetryToolMetadata;
+    protected readonly session: IToolSession;
+    protected readonly telemetry: ITelemetry;
+    protected get toolMeta(): Record<string, unknown>;
+    // (undocumented)
+    protected verifyAllowed(): boolean;
+    verifyConfirmed(args: ToolArgs<typeof ToolBase.argsShape>): Promise<boolean>;
+}
+
 // @public
 export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant" | "custom";
+
+// @public
+export type ToolClass<TUserConfig extends IToolConfig = IToolConfig, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
+    new (params: ToolConstructorParams<TUserConfig, TMetricsDefinitions>): ToolBase<TUserConfig, TMetricsDefinitions>;
+    toolName: string;
+    category: ToolCategory;
+    operationType: OperationType;
+};
 
 // @public
 export type ToolExecutionContext = {
@@ -1131,11 +1209,17 @@ export type ToolExecutionContext = {
     };
 };
 
+// @public
+export const TRANSPORT_PAYLOAD_LIMITS: Record<TransportType, number>;
+
 // @public (undocumented)
 export type TransportRequestContext = {
     headers?: Record<string, string | string[] | undefined>;
     query?: Record<string, string | string[] | undefined>;
 };
+
+// @public
+export type TransportType = "stdio" | "http";
 
 // @public
 export class UIRegistry implements IUIRegistry {

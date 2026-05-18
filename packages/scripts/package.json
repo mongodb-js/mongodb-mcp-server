@@ -3,11 +3,19 @@
   "version": "1.11.0-prerelease.1",
   "private": true,
   "type": "module",
-  "description": "Code generation scripts for the MongoDB MCP server",
+  "description": "Build and code generation scripts for the MongoDB MCP server",
   "scripts": {
     "generate": "tsx src/index.ts",
     "generate:arguments": "tsx src/generateArguments.ts",
-    "generate:ui": "tsx src/generateUI.ts"
+    "generate:ui": "tsx src/generateUI.ts",
+    "build:mcpb": "tsx src/createMcpb.ts",
+    "validate:mcpb": "tsx src/createMcpb.ts --validate-only",
+    "update:package-version": "tsx src/updatePackageVersion.ts",
+    "build:universal-package": "tsx src/createUniversalPackage.ts",
+    "generate:api": "./generate.sh",
+    "generate:release-notes": "./generate-release-notes.sh",
+    "filter:openapi": "tsx src/filter.ts",
+    "apply:openapi": "tsx src/apply.ts"
   },
   "dependencies": {
     "@mongodb-js/mcp-ui": "workspace:*",
@@ -19,6 +27,12 @@
     "@types/node": "^25.6.0",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2",
-    "vite": "^8.0.8"
+    "vite": "^8.0.8",
+    "type-fest": "^5.6.0",
+    "openapi-types": "^12.1.3",
+    "@redocly/cli": "^2.29.0",
+    "openapi-typescript": "^7.13.0",
+    "zod": "^4.4.2",
+    "@mongosh/arg-parser": "^5.0.2"
   }
 }

@@ -10,7 +10,7 @@ const vitestDefaultExcludes = [
     "**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build,eslint,prettier}.config.*",
 ];
 
-const longRunningTests = ["tests/integration/tools/atlas/performanceAdvisor.test.ts"];
+const longRunningTests = ["packages/integration-tests/src/tools/atlas/performanceAdvisor.test.ts"];
 
 if (process.env.SKIP_ATLAS_INTEGRATION_TESTS === "true") {
     vitestDefaultExcludes.push("**/integration/**/atlas/**");
@@ -26,7 +26,7 @@ export default defineConfig({
         pool: "threads",
         testTimeout: 3600000,
         hookTimeout: 3600000,
-        setupFiles: ["./tests/setup.ts"],
+        setupFiles: ["./packages/test-utils/src/setup.ts"],
         coverage: {
             exclude: [
                 // Required: import.meta.glob() in src/ui creates Vite virtual modules (\0 prefixed paths)
@@ -36,7 +36,7 @@ export default defineConfig({
                 "tests",
                 "dist",
                 "vitest.config.ts",
-                "scripts",
+                "packages/scripts/src",
             ],
             reporter: ["lcov"],
         },
@@ -48,8 +48,8 @@ export default defineConfig({
                     include: ["**/*.test.ts"],
                     exclude: [
                         ...vitestDefaultExcludes,
-                        "scripts/**",
-                        "tests/accuracy/**",
+                        "packages/scripts/**",
+                        "packages/accuracy-tests/**",
                         "tests/browser/**",
                         ...longRunningTests,
                     ],
@@ -59,7 +59,8 @@ export default defineConfig({
                 extends: true,
                 test: {
                     name: "accuracy",
-                    include: ["**/accuracy/*.test.ts"],
+                    root: "./packages/accuracy-tests",
+                    include: ["src/**/*.test.ts"],
                 },
             },
             {
@@ -73,14 +74,14 @@ export default defineConfig({
                 extends: true,
                 test: {
                     name: "atlas-cleanup",
-                    include: ["scripts/cleanupAtlasTestLeftovers.test.ts"],
+                    include: ["packages/scripts/src/cleanupAtlasTestLeftovers.test.ts"],
                 },
             },
             {
                 extends: true,
                 test: {
                     name: "mcpb-build-script",
-                    include: ["scripts/createMcpb.test.ts"],
+                    include: ["packages/scripts/src/createMcpb.test.ts"],
                 },
             },
             {

@@ -6,7 +6,7 @@ import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { Session } from "../../src/common/session.js";
 import type { UserConfig } from "../../src/common/config/userConfig.js";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
-import type { Elicitation } from "../../src/elicitation.js";
+import type { Elicitation } from "@mongodb-js/mcp-core";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Server } from "../../src/server.js";
@@ -14,9 +14,9 @@ import type { TelemetryToolEvent as ToolEvent } from "@mongodb-js/mcp-atlas-tele
 import type { PreviewFeature } from "@mongodb-js/mcp-tools-mongodb";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { TRANSPORT_PAYLOAD_LIMITS } from "../../src/transports/constants.js";
-import { expectDefined } from "../integration/helpers.js";
+import { expectDefined } from "@mongodb-js/mcp-test-utils";
 import { TestTool, TestToolWithOutputSchema, TestToolWithoutStructuredContent, ErrorTool } from "./mocks/tools.js";
-import { MockMetrics } from "./mocks/metrics.js";
+import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 import { Keychain } from "@mongodb-js/mcp-core";
 import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
 
