@@ -5,8 +5,8 @@ import { describe, it, expect } from "vitest";
 // Current directory where the test file is located
 const currentDir = import.meta.dirname;
 
-// Get project root (go up from tests/integration to project root)
-const projectRoot = path.resolve(currentDir, "../..");
+// Get project root (go up from packages/integration-tests/src to project root)
+const projectRoot = path.resolve(currentDir, "../../..");
 
 const esmPath = path.resolve(projectRoot, "dist/esm/lib.js");
 const cjsPath = path.resolve(projectRoot, "dist/cjs/lib.js");
