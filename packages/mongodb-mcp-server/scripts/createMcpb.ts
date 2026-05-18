@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Run with: pnpm --filter @mongodb-js/mcp-scripts build:mcpb [--validate-only]
+// Run with: pnpm --filter mongodb-mcp-server build:mcpb [--validate-only]
 // Erasable TS only: no enum/namespace/parameter-properties/decorators.
 
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -31,15 +31,16 @@ function spawnAsync(cmd: string, args: string[], cwd: string): Promise<void> {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const packageDir = resolve(__dirname, "..");
 const repoRoot = resolve(__dirname, "../../..");
 
 type Mode = "build" | "validate-only";
 
 const paths = {
     repoRoot,
-    distEsm: resolve(repoRoot, "packages", "mongodb-mcp-server", "dist", "esm"),
+    distEsm: resolve(packageDir, "dist", "esm"),
     rootPackageJson: resolve(repoRoot, "package.json"),
-    packagingDir: resolve(repoRoot, "packages", "mongodb-mcp-server", "packaging", "mcpb"),
+    packagingDir: resolve(packageDir, "packaging", "mcpb"),
     stagingDir: resolve(repoRoot, "mcpb-build"),
     outputDir: resolve(repoRoot, "dist-mcpb"),
 } as const;
