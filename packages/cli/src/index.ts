@@ -6,9 +6,6 @@ export {
 
 // Config utilities
 export {
-    getLocalDataPath,
-    getLogPath,
-    getExportsPath,
     commaSeparatedToArray,
     parseBoolean,
     oneWayOverride,
