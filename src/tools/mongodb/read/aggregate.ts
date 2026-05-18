@@ -70,20 +70,21 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
             const provider = await this.ensureConnected();
             await this.assertOnlyUsesPermittedStages(pipeline);
             if (await this.session.isSearchSupported()) {
+                let searchIndexes: SearchIndex[] | undefined;
                 try {
-                    assertVectorSearchFilterFieldsAreIndexed({
-                        searchIndexes: (await provider.getSearchIndexes(database, collection)) as SearchIndex[],
-                        pipeline,
-                        logger: this.session.logger,
-                    });
+                    searchIndexes = (await provider.getSearchIndexes(database, collection)) as SearchIndex[];
                 } catch (error) {
-                    if (error instanceof MongoDBError) {
-                        throw error;
-                    }
                     this.session.logger.debug({
                         id: LogId.mongodbGetSearchIndexesFailure,
                         context: "aggregate tool",
                         message: `Failed to fetch search indexes for pre-filter validation, skipping check: ${error instanceof Error ? error.message : String(error)}`,
+                    });
+                }
+                if (searchIndexes !== undefined) {
+                    assertVectorSearchFilterFieldsAreIndexed({
+                        searchIndexes,
+                        pipeline,
+                        logger: this.session.logger,
                     });
                 }
             }
