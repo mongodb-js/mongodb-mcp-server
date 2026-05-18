@@ -84,7 +84,8 @@ export class MongoDBClusterProcess {
                     `mongodb://${runningContainer.getHost()}:${runningContainer.getMappedPort(27017)}/?directConnection=true`
             );
         } else if (MongoDBClusterProcess.isAutoEmbedSearchOption(config)) {
-            const composeFilePath = path.join(__dirname, "mongot-community-setup");
+            // __dirname is dist/ at runtime, mongot-community-setup is in src/
+            const composeFilePath = path.join(__dirname, "..", "src", "mongot-community-setup");
 
             const environment = await new DockerComposeEnvironment(composeFilePath, "docker-compose.yml")
                 .withEnvironment({
