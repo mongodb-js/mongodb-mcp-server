@@ -24,7 +24,6 @@ import { Secret } from 'mongodb-redact';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import { z } from 'zod';
-import * as z_2 from 'zod';
 import type { ZodRawShape } from 'zod';
 
 // @public (undocumented)
@@ -609,10 +608,10 @@ export interface ITransportRunner {
 }
 
 // @public (undocumented)
-export type JSONExportFormat = z_2.infer<typeof jsonExportFormat>;
+export type JSONExportFormat = z.infer<typeof jsonExportFormat>;
 
 // @public (undocumented)
-export const jsonExportFormat: z_2.ZodEnum<{
+export const jsonExportFormat: z.ZodEnum<{
     relaxed: "relaxed";
     canonical: "canonical";
 }>;

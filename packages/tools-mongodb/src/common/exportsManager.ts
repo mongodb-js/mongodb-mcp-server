@@ -1,4 +1,4 @@
-import * as z from "zod";
+import { z } from "zod";
 import path from "path";
 import fs from "fs/promises";
 import EventEmitter from "events";
