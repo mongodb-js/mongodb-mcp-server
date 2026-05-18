@@ -11,11 +11,12 @@ export {
 } from "./cli.js";
 
 // Config parsing and types
-export { parseUserConfig, type UserConfig } from "./config/parseUserConfig.js";
+export { parseUserConfig, type ParserOptions, defaultParserOptions } from "./config/parseUserConfig.js";
 export {
     UserConfigSchema,
     configRegistry,
     ALL_CONFIG_KEYS,
+    type UserConfig,
 } from "./config/userConfig.js";
 
 // Config utilities

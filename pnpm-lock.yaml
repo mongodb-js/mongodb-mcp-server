@@ -280,6 +280,9 @@ importers:
       '@mongodb-js/mcp-metrics':
         specifier: workspace:*
         version: link:../metrics
+      '@mongodb-js/mcp-tools-mongodb':
+        specifier: workspace:*
+        version: link:../tools-mongodb
       '@mongodb-js/mcp-types':
         specifier: workspace:*
         version: link:../types
