@@ -37,7 +37,7 @@ type Mode = "build" | "validate-only";
 
 const paths = {
     repoRoot,
-    distEsm: resolve(repoRoot, "dist", "esm"),
+    distEsm: resolve(repoRoot, "packages", "mongodb-mcp-server", "dist", "esm"),
     rootPackageJson: resolve(repoRoot, "package.json"),
     packagingDir: resolve(repoRoot, "packaging", "mcpb"),
     stagingDir: resolve(repoRoot, "mcpb-build"),
