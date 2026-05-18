@@ -327,7 +327,11 @@ export class Server<
 
     public registerResources(): void {
         for (const resourceConstructor of Resources) {
-            const resource = new resourceConstructor(this.session, this.userConfig, this.telemetry);
+            const resource = new resourceConstructor({
+                session: this.session,
+                config: this.userConfig,
+                telemetry: this.telemetry,
+            });
             resource.register(this);
         }
     }

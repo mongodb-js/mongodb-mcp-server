@@ -96,6 +96,8 @@ const config: KnipConfig = {
                 // Used by mongodb-mcp-server package
                 "@microsoft/api-extractor",
                 "ts-levenshtein",
+                "@mongosh/service-provider-node-driver",
+                "mongodb-redact",
             ],
         },
         "packages/scripts": {

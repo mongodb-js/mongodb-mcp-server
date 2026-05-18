@@ -348,6 +348,9 @@ importers:
       '@mongodb-js/mcp-metrics':
         specifier: workspace:*
         version: link:../metrics
+      '@mongodb-js/mcp-setup':
+        specifier: workspace:*
+        version: link:../setup
       '@mongodb-js/mcp-test-utils':
         specifier: workspace:*
         version: link:../test-utils
@@ -452,12 +455,6 @@ importers:
 
   packages/mongodb-mcp-server:
     dependencies:
-      '@inquirer/prompts':
-        specifier: ^8.0.2
-        version: 8.3.2(@types/node@25.6.0)
-      '@inquirer/select':
-        specifier: ^5.1.3
-        version: 5.1.3(@types/node@25.6.0)
       '@modelcontextprotocol/sdk':
         specifier: ^1.29.0
         version: 1.29.0(zod@4.4.2)
@@ -485,6 +482,9 @@ importers:
       '@mongodb-js/mcp-metrics':
         specifier: workspace:*
         version: link:../metrics
+      '@mongodb-js/mcp-setup':
+        specifier: workspace:*
+        version: link:../setup
       '@mongodb-js/mcp-tools-assistant':
         specifier: workspace:*
         version: link:../tools-assistant
@@ -512,12 +512,6 @@ importers:
       bson:
         specifier: ^7.2.0
         version: 7.2.0
-      chalk:
-        specifier: ^5.6.2
-        version: 5.6.2
-      jsonc-parser:
-        specifier: ^3.3.1
-        version: 3.3.1
       mongodb:
         specifier: ^7.1.1
         version: 7.1.1(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
@@ -656,6 +650,9 @@ importers:
       '@mongodb-js/mcp-tools-mongodb':
         specifier: workspace:*
         version: link:../tools-mongodb
+      '@mongodb-js/mcp-types':
+        specifier: workspace:*
+        version: link:../types
       '@mongosh/service-provider-node-driver':
         specifier: ^5.0.2
         version: 5.0.2(mongodb-log-writer@2.5.7(bson@7.2.0))

@@ -494,9 +494,9 @@ export class CreateIndexTool extends MongoDBToolBase {
                     dotProduct: "dotProduct";
                 }>>;
                 quantization: z.ZodDefault<z.ZodEnum<{
+                    binary: "binary";
                     none: "none";
                     scalar: "scalar";
-                    binary: "binary";
                 }>>;
             }, z.core.$strict>, z.ZodObject<{
                 type: z.ZodLiteral<"autoEmbed">;
@@ -529,7 +529,6 @@ export class CreateIndexTool extends MongoDBToolBase {
                         geo: "geo";
                         objectId: "objectId";
                         token: "token";
-                        uuid: "uuid";
                     }>;
                 }, z.core.$loose>>>;
             }, z.core.$strip>;
@@ -550,8 +549,8 @@ export class CreateIndexTool extends MongoDBToolBase {
         collection: z.ZodString;
         indexName: z.ZodString;
         indexType: z.ZodEnum<{
-            classic: "classic";
             search: "search";
+            classic: "classic";
             vectorSearch: "vectorSearch";
         }>;
     };
@@ -702,8 +701,8 @@ export class DropIndexTool extends MongoDBToolBase {
     argsShape: {
         indexName: z.ZodString;
         type: z.ZodEnum<{
-            classic: "classic";
             search: "search";
+            classic: "classic";
         }>;
         collection: z.ZodString;
         database: z.ZodString;
@@ -872,12 +871,12 @@ export class ExportTool extends MongoDBToolBase {
             arguments: z.ZodObject<{
                 limit: z.ZodOptional<z.ZodNumber>;
                 filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
-                projection: z.ZodOptional<z.ZodObject<{}, z.z.core.$loose>>;
+                projection: z.ZodOptional<z.ZodObject<{}, z.core.$loose>>;
                 sort: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnion<readonly [z.ZodLiteral<1>, z.ZodLiteral<-1>, z.ZodLiteral<"asc">, z.ZodLiteral<"desc">, z.ZodLiteral<"ascending">, z.ZodLiteral<"descending">, z.ZodObject<{
                     $meta: z.ZodString;
-                }, z.z.core.$strip>]>>>;
-            }, z.z.core.$strip>;
-        }, z.z.core.$strip>, z.ZodObject<{
+                }, z.core.$strip>]>>>;
+            }, z.core.$strip>;
+        }, z.core.$strip>, z.ZodObject<{
             name: z.ZodLiteral<"aggregate">;
             arguments: z.ZodObject<{
                 pipeline: z.ZodArray<z.ZodUnion<readonly [z.ZodObject<{
@@ -889,7 +888,7 @@ export class ExportTool extends MongoDBToolBase {
                         limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
                         filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
                         queryVector: z.ZodArray<z.ZodNumber>;
-                    }, z.z.core.$strip>, z.ZodObject<{
+                    }, z.core.$strip>, z.ZodObject<{
                         exact: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
                         index: z.ZodString;
                         path: z.ZodString;
@@ -898,17 +897,17 @@ export class ExportTool extends MongoDBToolBase {
                         filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
                         query: z.ZodObject<{
                             text: z.ZodString;
-                        }, z.z.core.$strip>;
+                        }, z.core.$strip>;
                         model: z.ZodOptional<z.ZodEnum<{
                             "voyage-4": "voyage-4";
                             "voyage-4-large": "voyage-4-large";
                             "voyage-4-lite": "voyage-4-lite";
                             "voyage-code-3": "voyage-code-3";
                         }>>;
-                    }, z.z.core.$strip>]>;
-                }, z.z.core.$strip>, z.ZodRecord<z.ZodString, z.ZodUnknown>]>>;
-            }, z.z.core.$strip>;
-        }, z.z.core.$strip>], "name">>;
+                    }, z.core.$strip>]>;
+                }, z.core.$strip>, z.ZodRecord<z.ZodString, z.ZodUnknown>]>>;
+            }, z.core.$strip>;
+        }, z.core.$strip>], "name">>;
         jsonExportFormat: z.ZodDefault<z.ZodEnum<{
             relaxed: "relaxed";
             canonical: "canonical";
@@ -1298,7 +1297,7 @@ export function setAppNameParamIfMissing(input: {
 // @public (undocumented)
 export const SortDirectionSchema: z.ZodUnion<readonly [z.ZodLiteral<1>, z.ZodLiteral<-1>, z.ZodLiteral<"asc">, z.ZodLiteral<"desc">, z.ZodLiteral<"ascending">, z.ZodLiteral<"descending">, z.ZodObject<{
     $meta: z.ZodString;
-}, z.z.core.$strip>]>;
+}, z.core.$strip>]>;
 
 // @public (undocumented)
 export type StoredExport = ReadyExport | InProgressExport;

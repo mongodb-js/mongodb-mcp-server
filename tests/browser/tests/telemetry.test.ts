@@ -97,6 +97,6 @@ describe("Telemetry in browser environment", () => {
         });
 
         expect(telemetryCall, "expected a POST to the unauth telemetry endpoint").toBeDefined();
-        expect(telemetryCall![1]?.method).toBe("POST");
+        expect(telemetryCall[1]?.method).toBe("POST");
     });
 });

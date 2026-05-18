@@ -1,4 +1,4 @@
-import z from "zod";
+import { z } from "zod";
 import { ObjectId } from "bson";
 import type { AggregationCursor, FindCursor } from "mongodb";
 import type { CallToolResult } from "@mongodb-js/mcp-types";

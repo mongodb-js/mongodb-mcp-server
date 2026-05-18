@@ -35,16 +35,6 @@
         "default": "./dist/cjs/tools/index.js"
       }
     },
-    "./setup": {
-      "import": {
-        "types": "./dist/esm/setup/index.d.ts",
-        "default": "./dist/esm/setup/index.js"
-      },
-      "require": {
-        "types": "./dist/cjs/setup/index.d.ts",
-        "default": "./dist/cjs/setup/index.js"
-      }
-    },
     "./test-helpers": {
       "import": {
         "types": "./dist/esm/test-helpers/index.d.ts",
@@ -100,30 +90,27 @@
     "vitest": "^4.1.5"
   },
   "dependencies": {
-    "@inquirer/prompts": "^8.0.2",
-    "@inquirer/select": "^5.1.3",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@mongodb-js/device-id": "^0.4.11",
     "@mongodb-js/devtools-proxy-support": "^0.7.8",
     "@mongodb-js/mcp-atlas-api-client": "workspace:*",
     "@mongodb-js/mcp-atlas-telemetry": "workspace:*",
     "@mongodb-js/mcp-core": "workspace:*",
+    "@mongodb-js/mcp-http-runners": "workspace:*",
     "@mongodb-js/mcp-logging": "workspace:*",
     "@mongodb-js/mcp-metrics": "workspace:*",
+    "@mongodb-js/mcp-setup": "workspace:*",
     "@mongodb-js/mcp-tools-assistant": "workspace:*",
     "@mongodb-js/mcp-tools-atlas": "workspace:*",
     "@mongodb-js/mcp-tools-atlas-local": "workspace:*",
-    "@mongodb-js/mcp-http-runners": "workspace:*",
+    "@mongodb-js/mcp-tools-mongodb": "workspace:*",
     "@mongodb-js/mcp-types": "workspace:*",
     "@mongodb-js/mcp-ui": "workspace:*",
-    "@mongodb-js/mcp-tools-mongodb": "workspace:*",
     "@mongosh/arg-parser": "^5.0.2",
-    "@mongosh/service-provider-node-driver": "^5.0.2",
     "bson": "^7.2.0",
-    "chalk": "^5.6.2",
-    "jsonc-parser": "^3.3.1",
     "mongodb": "^7.1.1",
     "mongodb-log-writer": "^2.5.7",
+    "@mongosh/service-provider-node-driver": "^5.0.2",
     "mongodb-redact": "^1.4.6",
     "mongodb-schema": "^12.7.0",
     "node-machine-id": "1.1.12",
