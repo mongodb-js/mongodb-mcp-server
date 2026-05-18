@@ -6,7 +6,7 @@ import {
     type MonitoringServerOptions,
 } from "@mongodb-js/mcp-http-runners";
 import { SessionStore, type ISessionStore } from "@mongodb-js/mcp-core";
-import { defaultTestConfig } from "@mongodb-js/mcp-test-utils";
+import { defaultTestConfig } from "mongodb-mcp-server/test-helpers";
 import type { Request, Response } from "express";
 import { NoopLogger, CompositeLogger, type LoggerBase } from "@mongodb-js/mcp-core";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";

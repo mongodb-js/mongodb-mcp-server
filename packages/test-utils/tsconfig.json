@@ -7,7 +7,7 @@
     "erasableSyntaxOnly": true,
     "composite": true
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "src/**/*.d.ts"],
   "exclude": ["dist", "node_modules", "src/**/*.test.ts"],
   "references": [{ "path": "../types" }]
 }

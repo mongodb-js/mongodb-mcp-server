@@ -35,6 +35,26 @@
         "types": "./dist/cjs/tools/index.d.ts",
         "default": "./dist/cjs/tools/index.js"
       }
+    },
+    "./setup": {
+      "import": {
+        "types": "./dist/esm/setup/index.d.ts",
+        "default": "./dist/esm/setup/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/setup/index.d.ts",
+        "default": "./dist/cjs/setup/index.js"
+      }
+    },
+    "./test-helpers": {
+      "import": {
+        "types": "./dist/esm/test-helpers/index.d.ts",
+        "default": "./dist/esm/test-helpers/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/test-helpers/index.d.ts",
+        "default": "./dist/cjs/test-helpers/index.js"
+      }
     }
   },
   "main": "./dist/cjs/lib.js",
@@ -57,7 +77,7 @@
     "start": "node dist/index.js --transport http --loggers 'stderr, mcp'",
     "start:stdio": "node dist/index.js --transport stdio --loggers 'stderr, mcp'",
     "start:setup": "pnpm run build && node dist/index.js setup",
-    "prepare": "husky && pnpm run build",
+    "prepare": "husky",
     "build:update-package-version": "pnpm --filter @mongodb-js/mcp-scripts update:package-version",
     "build:esm": "tsc --project tsconfig.esm.json",
     "build:cjs": "tsc --project tsconfig.cjs.json",
@@ -111,6 +131,7 @@
     "@mongodb-js/oidc-mock-provider": "^0.13.7",
     "@redocly/cli": "^2.29.0",
     "@testing-library/jest-dom": "^6.9.1",
+    "@types/express": "^5.0.0",
     "@types/node": "^25.6.0",
     "@types/proper-lockfile": "^4.1.4",
     "@types/semver": "^7.7.0",

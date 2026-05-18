@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { DryRunModeRunner, type DryRunServer } from "../../../src/transports/dryModeRunner.js";
 import { type UserConfig } from "../../../src/common/config/userConfig.js";
-import { defaultTestConfig } from "@mongodb-js/mcp-test-utils";
+import { defaultTestConfig } from "mongodb-mcp-server/test-helpers";
 import { Keychain, type LoggerBase } from "@mongodb-js/mcp-core";
 import { ConsoleLogger } from "@mongodb-js/mcp-logging";
 

@@ -1,50 +1,21 @@
 export {
-    type IntegrationTest,
-    getResponseContent,
-    setupIntegrationTest,
-    defaultTestConfig,
-    getDataFromUntrustedContent,
-    DEFAULT_LONG_RUNNING_TEST_WAIT_TIMEOUT_MS,
-    testConnectionManagerDriverLabels,
-    getResponseElements,
-    getParameters,
-    databaseParameters,
-    databaseCollectionParameters,
-    databaseCollectionInvalidArgs,
-    databaseInvalidArgs,
-    validateToolMetadata,
-    validateThrowsForInvalidArguments,
-    expectDefined,
-    timeout,
-    resourceChangedNotification,
-    responseAsText,
-    waitUntil,
-    sleep,
-    connect,
-    InMemoryLogger,
-} from "./integrationHelpers.js";
+    createMockElicitInput,
+    createMockGetClientCapabilities,
+    type MockClientCapabilities,
+    type MockElicitResult,
+} from "./elicitationMocks.js";
+export { MockMetrics } from "./mockMetrics.js";
+
+export { createEnvironment, useClearEnvironment, type TestConnectionManager } from "./testUtils.js";
 
 export {
-    prepareTestData,
-    setupMongoDBIntegrationTest,
-    DEFAULT_WAIT_TIMEOUT,
-    DEFAULT_RETRY_INTERVAL,
-    type TestSuiteConfig,
-    type MongoDBIntegrationTest,
-    type MongoDBIntegrationTestCase,
-    describeWithMongoDB,
-    syncMongoToolsConfigFromUserConfig,
-    validateAutoConnectBehavior,
-    getSingleDocFromUntrustedContent,
-    getDocsFromUntrustedContent,
-    isCommunityServer,
-    getServerVersion,
-    SEARCH_WAIT_TIMEOUT,
-    waitUntilSearchIsReady,
-    waitUntilSearchIndexIsListed,
-    waitUntilSearchIndexIsQueryable,
-    createVectorSearchIndexAndWait,
-} from "./mongodbHelpers.js";
+    TestTool,
+    TestToolWithOutputSchema,
+    TestToolWithoutStructuredContent,
+    ErrorTool,
+    EchoTool,
+    NoopTool,
+} from "./mockTools.js";
 
 export {
     MongoDBClusterProcess,
@@ -54,10 +25,19 @@ export {
     type MongoAutoEmbedSearchConfiguration,
 } from "./mongodbClusterProcess.js";
 
-export {
-    createMockElicitInput,
-    createMockGetClientCapabilities,
-    type MockClientCapabilities,
-    type MockElicitResult,
-} from "./elicitationMocks.js";
-export { MockMetrics } from "./mockMetrics.js";
+export { toIncludeSameMembers } from "./matchers/toIncludeSameMembers.js";
+
+/** Expects the argument being defined and asserts it */
+export function expectDefined<T>(arg: T): asserts arg is Exclude<T, undefined | null> {
+    if (arg === undefined || arg === null) {
+        throw new Error(`Expected value to be defined, but got ${String(arg)}`);
+    }
+}
+
+export function timeout(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export function sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
