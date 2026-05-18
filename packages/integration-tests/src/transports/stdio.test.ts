@@ -6,7 +6,7 @@ import { describeWithMongoDB } from "../mongodbHelpers.js";
 
 // Get absolute path to the built server entry point
 const currentDir = import.meta.dirname;
-const projectRoot = path.resolve(currentDir, "../../..");
+const projectRoot = path.resolve(currentDir, "../../../..");
 const serverPath = path.resolve(projectRoot, "dist/esm/index.js");
 
 describeWithMongoDB("StdioRunner", (integration) => {

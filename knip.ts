@@ -64,6 +64,7 @@ const config: KnipConfig = {
         },
         "packages/test-utils": {
             entry: ["src/index.ts", "src/setup.ts"],
+            ignore: ["scripts/**"],
         },
         "packages/accuracy-tests": {
             entry: ["src/**/*.ts"],
