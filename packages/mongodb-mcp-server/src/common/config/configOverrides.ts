@@ -1,7 +1,7 @@
 import type { UserConfig } from "./userConfig.js";
 import { UserConfigSchema, configRegistry } from "./userConfig.js";
 import type { TransportRequestContext } from "@mongodb-js/mcp-core";
-import type { ConfigFieldMeta, OverrideBehavior } from "./configUtils.js";
+import type { ConfigFieldMeta, OverrideBehavior } from "@mongodb-js/mcp-cli";
 import { UserFacingError } from "@mongodb-js/mcp-core";
 
 export class ConfigOverrideError extends UserFacingError {

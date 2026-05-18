@@ -25,7 +25,17 @@
     "compile": "tsc --build tsconfig.json",
     "test": "vitest --run"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@mongodb-js/mcp-core": "workspace:*",
+    "@mongodb-js/mcp-http-runners": "workspace:*",
+    "@mongodb-js/mcp-logging": "workspace:*",
+    "@mongodb-js/mcp-metrics": "workspace:*",
+    "@mongodb-js/mcp-types": "workspace:*",
+    "@mongosh/arg-parser": "^5.0.2",
+    "mongodb-log-writer": "^2.5.7",
+    "ts-levenshtein": "^1.0.7",
+    "zod": "^4.4.2"
+  },
   "devDependencies": {
     "@types/node": "^25.6.0",
     "typescript": "^5.9.2",

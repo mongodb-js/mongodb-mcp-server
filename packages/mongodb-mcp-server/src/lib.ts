@@ -1,10 +1,10 @@
 export { Server, type ServerOptions, type MongoDBToolsRuntimeConfig, type AnyToolClass } from "./server.js";
 export { Session, type SessionOptions, type SessionEvents } from "./common/session.js";
-export { type UserConfig, UserConfigSchema, configRegistry } from "./common/config/userConfig.js";
-export { parseUserConfig, defaultParserOptions, type ParserOptions } from "./common/config/parseUserConfig.js";
+export { type UserConfig, UserConfigSchema, configRegistry } from "@mongodb-js/mcp-cli";
+export { parseUserConfig, defaultParserOptions, type ParserOptions } from "@mongodb-js/mcp-cli";
 
-import { parseUserConfig } from "./common/config/parseUserConfig.js";
-import type { UserConfig } from "./common/config/userConfig.js";
+import { parseUserConfig } from "@mongodb-js/mcp-cli";
+import type { UserConfig } from "@mongodb-js/mcp-cli";
 
 /** @deprecated Use `parseUserConfig` instead. */
 export function parseArgsWithCliOptions(cliArguments: string[]): {
@@ -93,7 +93,7 @@ export {
     getConfigMeta,
     nameToConfigKey,
 } from "./common/config/configOverrides.js";
-export { onlyStricterLogLevelOverride } from "./common/config/configUtils.js";
+export { onlyStricterLogLevelOverride } from "@mongodb-js/mcp-cli";
 export { SessionStore, type ISessionStore, type SessionStoreConstructorArgs } from "@mongodb-js/mcp-core";
 export type { CloseableTransport, SessionCloseReason } from "@mongodb-js/mcp-types";
 export { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";

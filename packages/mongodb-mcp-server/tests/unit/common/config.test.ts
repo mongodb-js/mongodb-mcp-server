@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { type UserConfig, UserConfigSchema } from "../../../src/common/config/userConfig.js";
-import { parseUserConfig, defaultParserOptions } from "../../../src/common/config/parseUserConfig.js";
+import { type UserConfig, UserConfigSchema } from "@mongodb-js/mcp-cli";
+import { parseUserConfig, defaultParserOptions } from "@mongodb-js/mcp-cli";
 import {
     getLogPath,
     getExportsPath,
     onlyLowerThanBaseValueOverride,
     onlySubsetOfBaseValueOverride,
-} from "../../../src/common/config/configUtils.js";
+} from "@mongodb-js/mcp-cli";
 import { Keychain } from "@mongodb-js/mcp-core";
 import type { Secret } from "@mongodb-js/mcp-core";
 import { createEnvironment, useClearEnvironment } from "../../utils/index.js";

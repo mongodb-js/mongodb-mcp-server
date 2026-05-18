@@ -1,9 +1,26 @@
+import path from "path";
+import os from "os";
+
 /**
  * Custom logic function to apply the override value.
  * Returns the value to use (which may be transformed from newValue).
  * Should throw an error if the override cannot be applied.
  */
 export type CustomOverrideLogic = (oldValue: unknown, newValue: unknown) => unknown;
+
+export function getLocalDataPath(appName: string = "mcp-server"): string {
+    return process.platform === "win32"
+        ? path.join(process.env.LOCALAPPDATA || process.env.APPDATA || os.homedir(), appName)
+        : path.join(os.homedir(), `.${appName}`);
+}
+
+export function getLogPath(appName: string = "mcp-server"): string {
+    return path.join(getLocalDataPath(appName), ".app-logs");
+}
+
+export function getExportsPath(appName: string = "mcp-server"): string {
+    return path.join(getLocalDataPath(appName), "exports");
+}
 
 /**
  * Defines how a config field can be overridden via HTTP headers or query parameters.

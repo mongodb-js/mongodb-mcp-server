@@ -1,6 +1,6 @@
 import type { ITransportRunner } from "@mongodb-js/mcp-types";
 import { InMemoryTransport } from "@mongodb-js/mcp-core";
-import type { UserConfig } from "../common/config/userConfig.js";
+import type { UserConfig } from "../config/userConfig.js";
 
 /**
  * Server interface for dry run mode.

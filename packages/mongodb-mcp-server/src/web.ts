@@ -1,5 +1,5 @@
 export { type ITransportRunner, type TransportRequestContext } from "@mongodb-js/mcp-types";
-export { UserConfigSchema, type UserConfig } from "./common/config/userConfig.js";
+export { UserConfigSchema, type UserConfig } from "@mongodb-js/mcp-cli";
 export { createDefaultMetrics, type DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
 export {
     Server,
