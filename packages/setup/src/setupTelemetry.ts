@@ -57,7 +57,8 @@ export class SetupTelemetry {
      */
     public static create(
         config: { apiBaseUrl: string; telemetry: "enabled" | "disabled" },
-        keychain: Keychain
+        keychain: Keychain,
+        packageInfo: SetupPackageInfo
     ): SetupTelemetry {
         const logger = new NoopLogger();
         const deviceId = DeviceId.create(logger);
