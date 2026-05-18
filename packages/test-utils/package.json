@@ -16,7 +16,8 @@
     "dist"
   ],
   "scripts": {
-    "compile": "tsc --build tsconfig.json"
+    "compile": "tsc --build tsconfig.json && pnpm run copy-assets",
+    "copy-assets": "node scripts/copy-assets.js"
   },
   "dependencies": {
     "@mongodb-js/mcp-core": "workspace:*",

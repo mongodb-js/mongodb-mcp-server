@@ -1,11 +1,15 @@
 import fs from "fs/promises";
 import path from "path";
+import { fileURLToPath } from "url";
 import type { MongoClusterOptions, MongoDBUserDoc } from "mongodb-runner";
 import { DockerComposeEnvironment, GenericContainer, Wait } from "testcontainers";
 import { MongoCluster } from "mongodb-runner";
 import { MongoClient } from "mongodb";
 import { ConnectionString } from "mongodb-connection-string-url";
 import { ShellWaitStrategy } from "testcontainers/build/wait-strategies/shell-wait-strategy.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export type MongoRunnerConfiguration = {
     runner: true;

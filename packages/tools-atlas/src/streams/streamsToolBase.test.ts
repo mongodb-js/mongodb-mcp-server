@@ -5,7 +5,7 @@ import type { ToolConstructorParams, OperationType, ToolArgs } from "@mongodb-js
 import { StreamsToolBase } from "@mongodb-js/mcp-tools-atlas";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import type { AtlasTelemetry, TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
-import type { Elicitation } from "mongodb-mcp-server";
+import type { Elicitation } from "@mongodb-js/mcp-core";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";

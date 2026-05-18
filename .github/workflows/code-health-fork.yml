@@ -67,4 +67,4 @@ jobs:
           docker pull mongodb/mongodb-atlas-local:latest &
           wait
       - name: Run tests
-        run: pnpm test -- tests/integration/tools/atlas-local/
+        run: pnpm test -- packages/integration-tests/src/tools/atlas-local/

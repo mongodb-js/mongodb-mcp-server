@@ -6,7 +6,7 @@ import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { Session } from "../../src/common/session.js";
 import type { UserConfig } from "../../src/common/config/userConfig.js";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
-import type { Elicitation } from "../../src/elicitation.js";
+import type { Elicitation } from "@mongodb-js/mcp-core";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Server } from "../../src/server.js";

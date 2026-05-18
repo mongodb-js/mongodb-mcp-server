@@ -61,7 +61,7 @@ import { Server } from "./server.js";
 import { Session } from "./common/session.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
-import { Elicitation } from "./elicitation.js";
+import { Elicitation } from "@mongodb-js/mcp-core";
 import { connectionErrorHandler } from "./common/connectionErrorHandler.js";
 import { MCPConnectionManager, ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";

@@ -31,7 +31,7 @@ function spawnAsync(cmd: string, args: string[], cwd: string): Promise<void> {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const repoRoot = resolve(__dirname, "../..");
+const repoRoot = resolve(__dirname, "../../..");
 
 type Mode = "build" | "validate-only";
 
@@ -346,7 +346,11 @@ async function main(): Promise<void> {
     console.log("mcpb: build complete.");
 }
 
-main().catch((err) => {
-    console.error(err);
-    process.exit(1);
-});
+// Only run main when this file is executed directly (not when imported as a module)
+const isMainModule = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isMainModule) {
+    main().catch((err) => {
+        console.error(err);
+        process.exit(1);
+    });
+}

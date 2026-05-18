@@ -8,9 +8,18 @@ const config: KnipConfig = {
     workspaces: {
         ".": {
             entry: [
+                "src/index.ts!",
+                "src/lib.ts!",
+                "src/web.ts!",
+                "src/tools/index.ts!",
+                "src/setup/index.ts!",
+                "src/test-helpers/index.ts!",
+                "tests/**/*.ts",
+                "!tests/browser/**",
+                "!packages/**", // Each package has its own knip workspace config
                 "eslint-rules/*.js",
             ],
-            ignore: [],
+            ignore: ["packaging/mcpb/server/index.js"],
             ignoreDependencies: [
                 // Transitive deps needed for bundling/universal package
                 "@emotion/css",
@@ -96,6 +105,7 @@ const config: KnipConfig = {
         },
         "packages/test-utils": {
             entry: ["src/index.ts", "src/setup.ts"],
+            ignore: ["scripts/**"],
         },
         "packages/accuracy-tests": {
             entry: ["src/**/*.ts"],
@@ -138,7 +148,7 @@ const config: KnipConfig = {
         "tests/browser": {
             entry: ["tests/**/*.ts", "polyfills/**/*.ts", "utils/**/*.ts", "setup.ts"],
             ignoreDependencies: ["buffer", "evp_bytestokey", "util", "@vitest/browser"],
-            ignore: ["polyfills/events/index.ts"], // Has both named and default export intentionally
+            ignore: ["polyfills/events/index.ts", "vitest.config.ts"], // Has both named and default export intentionally
         },
     },
     ignoreExportsUsedInFile: true,

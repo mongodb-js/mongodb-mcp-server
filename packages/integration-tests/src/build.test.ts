@@ -5,8 +5,8 @@ import { describe, it, expect } from "vitest";
 // Current directory where the test file is located
 const currentDir = import.meta.dirname;
 
-// Get project root (go up from tests/integration to project root)
-const projectRoot = path.resolve(currentDir, "../..");
+// Get project root (go up from packages/integration-tests/src to project root)
+const projectRoot = path.resolve(currentDir, "../../..");
 
 const esmPath = path.resolve(projectRoot, "dist/esm/lib.js");
 const cjsPath = path.resolve(projectRoot, "dist/cjs/lib.js");
@@ -16,7 +16,8 @@ const cjsToolsPath = path.resolve(projectRoot, "dist/cjs/tools/index.js");
 
 describe("Build Test", () => {
     it("should successfully require CommonJS module", () => {
-        const require = createRequire(__filename);
+        // Use the CJS directory path for createRequire to ensure proper module context
+        const require = createRequire(cjsPath);
 
         const cjsModule = require(cjsPath) as Record<string, unknown>;
 
@@ -33,7 +34,8 @@ describe("Build Test", () => {
 
     it("should have matching exports between CommonJS and ESM modules", async () => {
         // Import CommonJS module
-        const require = createRequire(__filename);
+        // Use the CJS directory path for createRequire to ensure proper module context
+        const require = createRequire(cjsPath);
         const cjsModule = require(cjsPath) as Record<string, unknown>;
 
         // Import ESM module
@@ -59,7 +61,8 @@ describe("Build Test", () => {
 
     it("should have matching exports between CommonJS and ESM tools modules", async () => {
         // Import CommonJS module
-        const require = createRequire(__filename);
+        // Use the CJS directory path for createRequire to ensure proper module context
+        const require = createRequire(cjsToolsPath);
         const cjsModule = require(cjsToolsPath) as Record<string, unknown>;
 
         // Import ESM module
