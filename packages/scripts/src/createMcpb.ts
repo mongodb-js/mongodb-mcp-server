@@ -39,7 +39,7 @@ const paths = {
     repoRoot,
     distEsm: resolve(repoRoot, "packages", "mongodb-mcp-server", "dist", "esm"),
     rootPackageJson: resolve(repoRoot, "package.json"),
-    packagingDir: resolve(repoRoot, "packaging", "mcpb"),
+    packagingDir: resolve(repoRoot, "packages", "mongodb-mcp-server", "packaging", "mcpb"),
     stagingDir: resolve(repoRoot, "mcpb-build"),
     outputDir: resolve(repoRoot, "dist-mcpb"),
 } as const;
