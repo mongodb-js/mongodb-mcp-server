@@ -43,7 +43,7 @@ export class TestToolWithOutputSchema extends ToolBase<IToolConfig, DefaultProme
     public argsShape = {
         input: z.string().describe("Test input"),
     };
-    public override outputSchema = {
+    public outputSchema = {
         value: z.string(),
         count: z.number(),
     };
@@ -69,7 +69,7 @@ export class TestToolWithoutStructuredContent extends ToolBase<IToolConfig, Defa
     public argsShape = {
         input: z.string().describe("Test input"),
     };
-    public override outputSchema = {
+    public outputSchema = {
         value: z.string(),
     };
 

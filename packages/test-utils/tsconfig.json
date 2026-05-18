@@ -9,5 +9,11 @@
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts"],
   "exclude": ["dist", "node_modules"],
-  "references": [{ "path": "../types" }]
+  "references": [
+    { "path": "../types" },
+    { "path": "../core" },
+    { "path": "../metrics" },
+    { "path": "../atlas-telemetry" },
+    { "path": "../tools-mongodb" }
+  ]
 }
