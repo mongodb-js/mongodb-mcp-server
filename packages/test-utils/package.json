@@ -17,7 +17,7 @@
   ],
   "scripts": {
     "compile": "tsc --build tsconfig.json && pnpm run copy-assets",
-    "copy-assets": "node -e \"const fs=require('fs'),path=require('path'); fs.cpSync(path.join('src','mongot-community-setup'), path.join('dist','mongot-community-setup'), {recursive:true, dereference:true}); console.log('Copied mongot-community-setup to dist/');\""
+    "copy-assets": "node scripts/copy-assets.js"
   },
   "dependencies": {
     "@mongodb-js/mcp-core": "workspace:*",
