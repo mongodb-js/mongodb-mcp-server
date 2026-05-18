@@ -31,7 +31,7 @@ function spawnAsync(cmd: string, args: string[], cwd: string): Promise<void> {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const repoRoot = resolve(__dirname, "../..");
+const repoRoot = resolve(__dirname, "../../..");
 
 type Mode = "build" | "validate-only";
 

@@ -16,7 +16,8 @@ const cjsToolsPath = path.resolve(projectRoot, "dist/cjs/tools/index.js");
 
 describe("Build Test", () => {
     it("should successfully require CommonJS module", () => {
-        const require = createRequire(__filename);
+        // Use the CJS directory path for createRequire to ensure proper module context
+        const require = createRequire(cjsPath);
 
         const cjsModule = require(cjsPath) as Record<string, unknown>;
 
@@ -33,7 +34,8 @@ describe("Build Test", () => {
 
     it("should have matching exports between CommonJS and ESM modules", async () => {
         // Import CommonJS module
-        const require = createRequire(__filename);
+        // Use the CJS directory path for createRequire to ensure proper module context
+        const require = createRequire(cjsPath);
         const cjsModule = require(cjsPath) as Record<string, unknown>;
 
         // Import ESM module
@@ -59,7 +61,8 @@ describe("Build Test", () => {
 
     it("should have matching exports between CommonJS and ESM tools modules", async () => {
         // Import CommonJS module
-        const require = createRequire(__filename);
+        // Use the CJS directory path for createRequire to ensure proper module context
+        const require = createRequire(cjsToolsPath);
         const cjsModule = require(cjsToolsPath) as Record<string, unknown>;
 
         // Import ESM module
