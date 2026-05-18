@@ -136,6 +136,10 @@ const config: KnipConfig = {
         "packages/types": {
             ignoreDependencies: ["@modelcontextprotocol/sdk", "mongodb-redact"],
         },
+        // Setup package is maintained in a separate worktree
+        "packages/setup": {
+            ignore: ["**/*"],
+        },
         "packages/http-transports": {
             entry: ["src/index.ts!"],
         },
