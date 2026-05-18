@@ -27,10 +27,13 @@ describe("SetupTelemetry", () => {
 
     beforeEach(() => {
         mock = createMockTelemetry();
-        setupTelemetry = new SetupTelemetry(mock.telemetry, {
-            get: vi.fn().mockResolvedValue("test-device-id"),
-            close: vi.fn().mockResolvedValue(undefined),
-        } as unknown as DeviceId);
+        setupTelemetry = new SetupTelemetry({
+            telemetry: mock.telemetry,
+            deviceId: {
+                get: vi.fn().mockResolvedValue("test-device-id"),
+                close: vi.fn().mockResolvedValue(undefined),
+            } as unknown as DeviceId,
+        });
     });
 
     it("should emit events with component=setup and category=setup", () => {
