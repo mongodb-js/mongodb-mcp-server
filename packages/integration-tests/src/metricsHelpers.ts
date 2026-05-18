@@ -24,7 +24,6 @@ export function parsePrometheusValue(
 
         if (braceOpen === -1) {
             if (line.startsWith(metricName + " ") && Object.keys(labels).length === 0) {
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 return parseFloat(line.split(" ")[1]!);
             }
             continue;
@@ -36,7 +35,6 @@ export function parsePrometheusValue(
 
         const parsedLabels: Record<string, string> = {};
         for (const match of line.slice(braceOpen + 1, braceClose).matchAll(/(\w+)="([^"]*)"/g)) {
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             parsedLabels[match[1]!] = match[2]!;
         }
 

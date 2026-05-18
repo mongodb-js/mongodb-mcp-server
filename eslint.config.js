@@ -7,14 +7,14 @@ import vitestPlugin from "@vitest/eslint-plugin";
 import enforceZodV4 from "./eslint-rules/enforce-zod-v4.js";
 
 const testFiles = [
-    "tests/**/*.test.ts",
-    "tests/**/*.test.tsx",
-    "tests/**/*.ts",
-    "tests/**/*.tsx",
     "packages/**/*.test.ts",
+    "packages/**/*.test.tsx",
+    "packages/**/*.ts",
+    "packages/**/*.tsx",
+    "tests/browser/**/*.ts",
 ];
 
-const files = [...testFiles, "src/**/*.ts", "src/**/*.tsx", "scripts/**/*.ts", "packages/**/*.ts"];
+const files = [...testFiles, "packages/**/*.ts"];
 
 export default defineConfig([
     { files, plugins: { js }, extends: ["js/recommended"] },
@@ -72,7 +72,7 @@ export default defineConfig([
         },
     },
     {
-        files: ["src/**/*.ts"],
+        files: ["packages/mongodb-mcp-server/src/**/*.ts"],
         plugins: {
             "enforce-zod-v4": {
                 rules: {
@@ -109,22 +109,13 @@ export default defineConfig([
             "@typescript-eslint/no-non-null-assertion": "off",
         },
     },
-    {
-        files: ["tests/browser/**/*.ts"],
-        languageOptions: {
-            parserOptions: {
-                projectService: true,
-                tsconfigRootDir: import.meta.dirname,
-            },
-        },
-    },
     globalIgnores([
         "node_modules",
         "**/dist/**",
         "packages/*/dist/**",
         "packages/atlas-api-client/openapi.d.ts",
         ".claude/**",
-        "src/ui/lib",
+        "packages/mongodb-mcp-server/src/ui/lib",
         "coverage",
         "global.d.ts",
         "eslint.config.js",
@@ -135,6 +126,10 @@ export default defineConfig([
         "tests/browser/polyfills/**",
         "eslint-rules",
         ".yalc",
+        "**/vitest.config.d.ts",
+        "**/vitest.config.js",
+        "**/vitest.config.js.map",
+        "**/vitest.config.d.ts.map",
     ]),
     eslintPluginPrettierRecommended,
 ]);

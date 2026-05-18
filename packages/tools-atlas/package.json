@@ -15,7 +15,7 @@
     "dist"
   ],
   "scripts": {
-    "compile": "tsc --build tsconfig.json",
+    "compile": "tsc --build tsconfig.build.json",
     "test": "vitest --run"
   },
   "dependencies": {
@@ -29,6 +29,10 @@
   "devDependencies": {
     "@types/node": "^25.6.0",
     "typescript": "^5.9.2",
-    "vitest": "^4.1.4"
+    "vitest": "^4.1.4",
+    "@mongodb-js/mcp-test-utils": "workspace:*",
+    "@mongodb-js/mcp-ui": "workspace:*",
+    "@mongodb-js/mcp-metrics": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.29.0"
   }
 }

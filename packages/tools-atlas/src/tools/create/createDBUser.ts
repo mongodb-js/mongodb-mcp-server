@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { ToolArgs, OperationType } from "@mongodb-js/mcp-core";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
 import { AtlasToolBase } from "../../atlasTool.js";
 import type { CloudDatabaseUser, DatabaseUserRole } from "@mongodb-js/mcp-atlas-api-client";
 import { generateSecurePassword } from "../../helpers/generatePassword.js";

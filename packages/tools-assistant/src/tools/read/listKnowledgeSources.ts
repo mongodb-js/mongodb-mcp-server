@@ -1,4 +1,4 @@
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolCategory } from "@mongodb-js/mcp-core";
 import { LogId } from "@mongodb-js/mcp-core";

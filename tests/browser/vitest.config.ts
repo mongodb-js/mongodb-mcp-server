@@ -69,7 +69,7 @@ export default defineConfig({
             kerberos: throwErrorPolyfill(),
             "mongodb-client-encryption/package.json": throwErrorPolyfill(),
             "mongodb-client-encryption": throwErrorPolyfill(),
-            "mongodb-mcp-server/web": require.resolve("../../src/web.ts"),
+            "mongodb-mcp-server/web": require.resolve("../../packages/mongodb-mcp-server/src/web.ts"),
             express: emptyPolyfill(),
             http: emptyPolyfill(),
             "node:http": emptyPolyfill(),

@@ -33,10 +33,10 @@ export default defineConfig({
                 // that crash Istanbul reporters. See: https://github.com/vitest-dev/vitest/issues/5101
                 ...coverageConfigDefaults.exclude,
                 "node_modules",
-                "tests",
                 "dist",
                 "vitest.config.ts",
                 "packages/scripts/src",
+                "packages/mongodb-mcp-server/dist",
             ],
             reporter: ["lcov"],
         },
@@ -45,7 +45,7 @@ export default defineConfig({
                 extends: true,
                 test: {
                     name: "unit-and-integration",
-                    include: ["**/*.test.ts"],
+                    include: ["packages/**/*.test.ts", "packages/mongodb-mcp-server/tests/**/*.test.ts"],
                     exclude: [
                         ...vitestDefaultExcludes,
                         "packages/scripts/**",
@@ -81,7 +81,7 @@ export default defineConfig({
                 extends: true,
                 test: {
                     name: "mcpb-build-script",
-                    include: ["packages/scripts/src/createMcpb.test.ts"],
+                    include: ["packages/mongodb-mcp-server/tests/createMcpb.test.ts"],
                 },
             },
             {

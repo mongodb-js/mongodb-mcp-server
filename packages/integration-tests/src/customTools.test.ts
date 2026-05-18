@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { ToolBase, type ToolArgs } from "@mongodb-js/mcp-core";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { ToolBase, type ToolArgs, type CallToolResult } from "@mongodb-js/mcp-core";
 import { z } from "zod";
 import type { TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import { defaultTestConfig, setupIntegrationTest } from "./integrationHelpers.js";

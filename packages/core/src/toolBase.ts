@@ -1,16 +1,24 @@
 import type { z, ZodRawShape } from "zod";
 import type { RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
+import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { ITelemetry } from "@mongodb-js/mcp-types";
-import type { ConnectionMetadata, TelemetryToolMetadata, ToolEvent } from "@mongodb-js/mcp-types";
-import type { IToolConfig } from "@mongodb-js/mcp-types";
-import type { IToolSession } from "@mongodb-js/mcp-types";
-import type { IElicitation } from "@mongodb-js/mcp-types";
-import type { PreviewFeature } from "@mongodb-js/mcp-types";
-import type { IUIRegistry } from "@mongodb-js/mcp-types";
-import type { IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
-import type { OperationType, ToolCategory, ToolExecutionContext } from "@mongodb-js/mcp-types";
+import type {
+    ITelemetry,
+    ConnectionMetadata,
+    TelemetryToolMetadata,
+    ToolEvent,
+    IToolConfig,
+    IToolSession,
+    IElicitation,
+    PreviewFeature,
+    IUIRegistry,
+    IMetrics,
+    DefaultMetricDefinitions,
+    OperationType,
+    ToolCategory,
+    ToolExecutionContext,
+    CallToolResult,
+} from "@mongodb-js/mcp-types";
 import { createUIResource, type UIResource } from "@mcp-ui/server";
 
 const LogId = {

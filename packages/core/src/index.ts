@@ -28,7 +28,7 @@ export {
     type ToolResult,
     formatUntrustedData,
 } from "./toolBase.js";
-export type { ToolExecutionContext, OperationType, ToolCategory } from "@mongodb-js/mcp-types";
+export type { ToolExecutionContext, OperationType, ToolCategory, CallToolResult } from "@mongodb-js/mcp-types";
 export { getRandomUUID } from "./randomUUID.js";
 export { TRANSPORT_PAYLOAD_LIMITS } from "./transportConstants.js";
 export { CommonArgs, NO_UNICODE_ERROR } from "./args.js";

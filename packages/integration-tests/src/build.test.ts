@@ -8,11 +8,11 @@ const currentDir = import.meta.dirname;
 // Get project root (go up from packages/integration-tests/src to project root)
 const projectRoot = path.resolve(currentDir, "../../..");
 
-const esmPath = path.resolve(projectRoot, "dist/esm/lib.js");
-const cjsPath = path.resolve(projectRoot, "dist/cjs/lib.js");
+const esmPath = path.resolve(projectRoot, "packages/mongodb-mcp-server/dist/esm/lib.js");
+const cjsPath = path.resolve(projectRoot, "packages/mongodb-mcp-server/dist/cjs/lib.js");
 
-const esmToolsPath = path.resolve(projectRoot, "dist/esm/tools/index.js");
-const cjsToolsPath = path.resolve(projectRoot, "dist/cjs/tools/index.js");
+const esmToolsPath = path.resolve(projectRoot, "packages/mongodb-mcp-server/dist/esm/tools/index.js");
+const cjsToolsPath = path.resolve(projectRoot, "packages/mongodb-mcp-server/dist/cjs/tools/index.js");
 
 describe("Build Test", () => {
     it("should successfully require CommonJS module", () => {

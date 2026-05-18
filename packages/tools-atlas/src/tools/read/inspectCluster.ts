@@ -1,4 +1,4 @@
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
 import { type OperationType, type ToolArgs, formatUntrustedData } from "@mongodb-js/mcp-core";
 import { AtlasToolBase } from "../../atlasTool.js";
 import type { Cluster } from "../../helpers/cluster.js";

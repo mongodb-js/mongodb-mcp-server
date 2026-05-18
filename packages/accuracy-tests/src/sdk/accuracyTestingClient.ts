@@ -2,7 +2,7 @@ import { v4 as uuid } from "uuid";
 import { tool as createVercelTool } from "ai";
 import { experimental_createMCPClient as createMCPClient } from "@ai-sdk/mcp";
 import type { Tool } from "ai";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
 import { MCP_SERVER_CLI_SCRIPT } from "./constants.js";

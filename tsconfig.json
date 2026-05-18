@@ -1,27 +1,28 @@
 {
-  "extends": "./tsconfig.build.json",
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "rootDir": ".",
     "skipLibCheck": true
   },
-  "include": ["**/*"],
-  "exclude": ["dist", "node_modules", "packages/*/dist"],
+  "include": ["*.ts", "*.js", "eslint-rules/*.js"],
+  "exclude": ["dist", "node_modules", "**/dist", "packaging", "tests"],
   "references": [
-    { "path": "./packages/node-utils" },
     { "path": "./packages/types" },
-    { "path": "./packages/metrics" },
     { "path": "./packages/core" },
-    { "path": "./packages/ui" },
-    { "path": "./packages/atlas-api-client" },
-    { "path": "./packages/http-runners" },
     { "path": "./packages/logging" },
-    { "path": "./packages/tools-assistant" },
-    { "path": "./packages/tools-atlas-local" },
+    { "path": "./packages/metrics" },
+    { "path": "./packages/atlas-api-client" },
     { "path": "./packages/atlas-telemetry" },
-    { "path": "./packages/tools-mongodb" },
-    { "path": "./packages/tools-atlas" },
+    { "path": "./packages/http-runners" },
     { "path": "./packages/test-utils" },
-    { "path": "./packages/setup" },
-    { "path": "./packages/integration-tests" }
+    { "path": "./packages/tools-assistant" },
+    { "path": "./packages/tools-atlas" },
+    { "path": "./packages/tools-atlas-local" },
+    { "path": "./packages/tools-mongodb" },
+    { "path": "./packages/ui" },
+    { "path": "./packages/scripts" },
+    { "path": "./packages/mongodb-mcp-server" },
+    { "path": "./packages/integration-tests" },
+    { "path": "./packages/accuracy-tests" }
   ]
 }

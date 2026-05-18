@@ -1,4 +1,4 @@
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
 import { AtlasToolBase } from "../../atlasTool.js";
 import type { OperationType } from "@mongodb-js/mcp-core";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
@@ -26,7 +26,6 @@ export class ListProjectsTool extends AtlasToolBase {
 
         const orgs: Record<string, string> = orgData.results
             .filter((org) => org.id)
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             .reduce((acc, org) => ({ ...acc, [org.id!]: org.name }), {});
 
         const data = orgId

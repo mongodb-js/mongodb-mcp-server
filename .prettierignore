@@ -8,3 +8,4 @@ temp
 **/reports/*.api.json
 .github/workflows/*.lock.yml
 packaging/mcpb/manifest.json
+pnpm-lock.yaml

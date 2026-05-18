@@ -11,6 +11,8 @@
   "devDependencies": {
     "mongodb-mcp-server": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "@mongodb-js/mcp-atlas-telemetry": "workspace:*",
+    "@mongodb-js/mcp-types": "workspace:*",
     "@types/node": "^25.6.0",
     "@vitest/browser": "^4.1.5",
     "@vitest/browser-playwright": "^4.1.5",

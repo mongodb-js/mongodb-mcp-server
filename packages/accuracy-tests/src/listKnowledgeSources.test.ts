@@ -1,4 +1,4 @@
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
 import { type MockedTools } from "./sdk/accuracyTestingClient.js";
 import { ListKnowledgeSourcesToolName } from "@mongodb-js/mcp-tools-assistant";
