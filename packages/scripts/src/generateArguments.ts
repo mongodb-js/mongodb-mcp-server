@@ -203,8 +203,8 @@ function generatePackageArguments(envVars: ArgumentInfo[]): unknown[] {
 }
 
 function updateServerJsonEnvVars(envVars: ArgumentInfo[]): void {
-    const serverJsonPath = join(__dirname, "..", "..", "..", "server.json");
-    const packageJsonPath = join(__dirname, "..", "..", "..", "package.json");
+    const serverJsonPath = join(__dirname, "..", "..", "..", "mongodb-mcp-server", "server.json");
+    const packageJsonPath = join(__dirname, "..", "..", "..", "mongodb-mcp-server", "package.json");
 
     const content = readFileSync(serverJsonPath, "utf-8");
     const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8")) as { version: string };
