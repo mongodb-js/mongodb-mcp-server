@@ -13,9 +13,8 @@ import {
 } from "./integrationHelpers.js";
 import type { UserConfig } from "mongodb-mcp-server";
 import type { ServerOptions } from "mongodb-mcp-server";
-import { MongoDBTools } from "mongodb-mcp-server/tools";
+import { AllTools } from "mongodb-mcp-server/tools";
 import type { AnyToolClass } from "@mongodb-js/mcp-core";
-import type { AnyResourceClass } from "@mongodb-js/mcp-types";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { EJSON } from "bson";
 import { MongoDBClusterProcess } from "@mongodb-js/mcp-test-utils";
@@ -130,7 +129,7 @@ export function describeWithMongoDB(
                 elicitInput: mockElicitInput,
                 getClientCapabilities,
                 serverOptions,
-                tools: tools ?? (MongoDBTools as unknown as NonNullable<ServerOptions["tools"]>),
+                tools: tools ?? (AllTools as unknown as NonNullable<ServerOptions["tools"]>),
                 resources,
             }
         );
