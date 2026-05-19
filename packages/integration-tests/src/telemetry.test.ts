@@ -23,7 +23,10 @@ describe("AtlasTelemetry", () => {
             }),
             keychain: new Keychain(),
             enabled: true,
-            machineMetadata: buildMachineMetadata("test-server", "1.0.0"),
+            machineMetadata: buildMachineMetadata({
+                mcpServerName: "test-server",
+                version: "1.0.0",
+            }),
         });
 
         expect(telemetry.getCommonProperties().device_id).toBe(undefined);

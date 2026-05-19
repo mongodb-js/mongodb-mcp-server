@@ -10,3 +10,10 @@ export interface IToolConfig {
     confirmationRequiredTools: string[];
     previewFeatures: PreviewFeature[];
 }
+
+/** Server metadata for the server. */
+export type ServerMetadata = {
+    version: string;
+    mcpServerName: string;
+    engines?: { node: string };
+};

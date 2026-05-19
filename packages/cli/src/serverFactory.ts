@@ -70,14 +70,14 @@ export async function createServicesFromUserConfig({
         deviceId,
         options: {
             connectionInfo: { transport: "http", httpHost: "localhost" },
-            displayName: serverMetadata.mcpServerName,
+            displayName: "mongodb-mcp-server",
             version: serverMetadata.version,
         },
     });
 
     const apiClient = new ApiClient({
         baseUrl: config.apiBaseUrl,
-        userAgent: `${serverMetadata.mcpServerName}/${serverMetadata.version}`,
+        userAgent: `mongodb-mcp-server/${serverMetadata.version}`,
         logger,
         credentials: {
             clientId: config.apiClientId,
@@ -97,7 +97,7 @@ export async function createServicesFromUserConfig({
     });
 
     const mcpServer = new McpServer({
-        name: serverMetadata.mcpServerName,
+        name: "mongodb-mcp-server",
         version: serverMetadata.version,
     });
 
@@ -122,9 +122,9 @@ export async function createServicesFromUserConfig({
         connectionErrorHandler,
         elicitation,
         metrics,
+        serverMetadata,
         tools,
         resources,
-        serverMetadata,
     });
 
     return { server, config, logger, metrics };

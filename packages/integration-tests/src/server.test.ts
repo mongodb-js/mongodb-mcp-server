@@ -225,7 +225,10 @@ describe("Server integration test", () => {
             apiClient: session.apiClient,
             keychain: session.keychain,
             enabled: false,
-            machineMetadata: buildMachineMetadata("test-server", "0.0.0"),
+            machineMetadata: buildMachineMetadata({
+                mcpServerName: "test-server",
+                version: "1.0",
+            }),
         });
 
         const mcpServerInstance = new McpServer({ name: "test", version: "1.0" });
@@ -240,7 +243,7 @@ describe("Server integration test", () => {
             connectionErrorHandler,
             tools: [...tools],
             metrics: new MockMetrics(),
-            packageInfo: {
+            serverMetadata: {
                 mcpServerName: "test-server",
                 version: "1.0",
                 engines: {

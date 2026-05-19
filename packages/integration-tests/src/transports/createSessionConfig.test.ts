@@ -93,7 +93,7 @@ async function createTestServer(config: UserConfig): Promise<Server> {
         connectionErrorHandler,
         elicitation,
         metrics,
-        packageInfo: {
+        serverMetadata: {
             mcpServerName: "test-server",
             version: "1.0",
             engines: {

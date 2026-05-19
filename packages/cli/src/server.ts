@@ -22,13 +22,7 @@ import type {
     ResourceConstructorParams,
 } from "@mongodb-js/mcp-core";
 import { validateConnectionString } from "@mongodb-js/mcp-tools-mongodb";
-
-/** Package information for the server. */
-export type PackageInfo = {
-    version: string;
-    mcpServerName: string;
-    engines: { node: string };
-};
+import { type ServerMetadata } from "@mongodb-js/mcp-types";
 
 /** Generic logger interface. */
 export type ServerLogger = {
@@ -122,8 +116,7 @@ export interface ServerOptions<
     tools?: ToolRegistry;
     /** Array of resource constructors to register. */
     readonly resources?: ResourceRegistry;
-    /** Package information for the server. */
-    readonly packageInfo: PackageInfo;
+    readonly serverMetadata: ServerMetadata;
 }
 
 export type ServerSession = ISession<UserConfig> & {
@@ -145,7 +138,7 @@ export class Server<
     public readonly connectionErrorHandler: ConnectionErrorHandler;
     public readonly uiRegistry?: IUIRegistry;
     public readonly metrics: IMetrics<TMetrics>;
-    public readonly packageInfo: PackageInfo;
+    public readonly serverMetadata: ServerMetadata;
 
     private _mcpLogLevel: LogLevel;
     /** Lowest log level allowed to be sent to the MCP client. */
@@ -169,7 +162,7 @@ export class Server<
         resources,
         uiRegistry,
         metrics,
-        packageInfo,
+        serverMetadata,
     }: ServerOptions<TUserConfig, TMetrics> & { session: ServerSession }) {
         this.startTime = Date.now();
         this.session = session;
@@ -181,7 +174,7 @@ export class Server<
         this.resourceConstructors = resources ?? [];
         this.uiRegistry = uiRegistry;
         this.metrics = metrics;
-        this.packageInfo = packageInfo;
+        this.serverMetadata = serverMetadata;
 
         this._mcpLogLevel = userConfig.mcpClientLogLevel;
         this.mcpLogLevelFloor = this._mcpLogLevel;
@@ -263,7 +256,7 @@ export class Server<
             this.session.logger.info({
                 id: LogId.serverInitialized,
                 context: "server",
-                message: `Server with version ${this.packageInfo.version} started with transport ${transport.constructor.name} and agent runner ${JSON.stringify(this.session)}`,
+                message: `Server with version ${this.serverMetadata.version} started with transport ${transport.constructor.name} and agent runner ${JSON.stringify(this.session)}`,
             });
 
             this.emitServerTelemetryEvent("start", Date.now() - this.startTime);

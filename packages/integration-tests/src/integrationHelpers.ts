@@ -28,7 +28,7 @@ export const defaultTestConfig: UserConfig = {
     loggers: ["stderr"],
 };
 
-/** Driver product labels for tests; mirrors root `packageInfo`. */
+/** Driver product labels for tests; mirrors root `serverMetadata`. */
 export const testConnectionManagerDriverLabels = {
     displayName: packageInfo.mcpServerName,
     version: packageInfo.version,
@@ -153,7 +153,7 @@ export function setupIntegrationTest(
             apiClient: session.apiClient,
             keychain: session.keychain,
             enabled: false,
-            machineMetadata: buildMachineMetadata("test-server", "0.0.0"),
+            machineMetadata: buildMachineMetadata(packageInfo),
         });
 
         const mcpServerInstance = new McpServer({
@@ -183,7 +183,7 @@ export function setupIntegrationTest(
             connectionErrorHandler,
             uiRegistry,
             metrics: new MockMetrics(),
-            packageInfo: {
+            serverMetadata: {
                 mcpServerName: "test-server",
                 version: "1.0",
                 engines: {

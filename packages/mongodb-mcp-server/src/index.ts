@@ -37,9 +37,10 @@ function enableFipsIfRequested(): void {
 enableFipsIfRequested();
 
 import crypto from "crypto";
+import type { ServerMetadata } from "@mongodb-js/mcp-types";
 import {
     runMcpCli,
-    createServerFromUserConfig,
+    createServicesFromUserConfig,
     DryRunHandler,
     type Handler,
     type UserConfig,
@@ -48,6 +49,8 @@ import { runSetup } from "./setup/setupMcpServer.js";
 import { packageInfo } from "./common/packageInfo.js";
 import { Resources } from "./resources/resources.js";
 import { AllTools } from "./tools/index.js";
+
+const serverMetadata: ServerMetadata = packageInfo;
 
 const setupHandler: Handler = {
     shouldHandle(_config: UserConfig, args: string[]): boolean {
@@ -67,10 +70,10 @@ async function main(): Promise<void> {
     const args = process.argv.slice(2);
 
     // Get server from CLI factory
-    const { server, config, logger, metrics } = await createServerFromUserConfig({
+    const { server, config, logger, metrics } = await createServicesFromUserConfig({
         args,
         consoleLogger: console,
-        packageInfo,
+        serverMetadata,
         tools: AllTools,
         resources: Resources,
     });
@@ -79,10 +82,7 @@ async function main(): Promise<void> {
         args,
         consoleLogger: console,
         onExit: (code: number) => process.exit(code),
-        clientInfo: {
-            name: packageInfo.mcpServerName,
-            version: packageInfo.version,
-        },
+        serverMetadata,
         handlers: [setupHandler, new DryRunHandler({ server })],
         server,
         config,

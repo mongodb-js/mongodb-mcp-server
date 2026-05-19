@@ -213,7 +213,10 @@ describe("mcpUI feature with custom UIs", () => {
             apiClient: session.apiClient,
             keychain: session.keychain,
             enabled: false,
-            machineMetadata: buildMachineMetadata("test-server", "0.0.0"),
+            machineMetadata: buildMachineMetadata({
+                mcpServerName: "test-server",
+                version: "1.0",
+            }),
         });
         const mcpServerInstance = new McpServer({ name: "test", version: "1.0" });
         const elicitation = new Elicitation({ server: mcpServerInstance.server });
@@ -227,7 +230,7 @@ describe("mcpUI feature with custom UIs", () => {
             connectionErrorHandler,
             uiRegistry: new UIRegistry({ customUIs: customUIsFunction }),
             metrics: new MockMetrics(),
-            packageInfo: {
+            serverMetadata: {
                 mcpServerName: "test-server",
                 version: "1.0",
                 engines: {

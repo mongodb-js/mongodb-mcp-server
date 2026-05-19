@@ -9,7 +9,6 @@ import type { AIToolType } from "./aiTool.js";
 import { AI_TOOL_REGISTRY, openConfigSettings, TOOLS_WITHOUT_EDITORS } from "./aiTool.js";
 import type { Platform } from "./setupAiToolsUtils.js";
 import { formatError, getPlatform } from "./setupAiToolsUtils.js";
-import { packageInfo } from "../common/packageInfo.js";
 import { getAuthType } from "@mongodb-js/mcp-tools-mongodb";
 import type { UserConfig } from "@mongodb-js/mcp-cli";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
@@ -18,6 +17,7 @@ import type { TelemetryResult } from "@mongodb-js/mcp-atlas-telemetry";
 import { SetupTelemetry } from "./setupTelemetry.js";
 import { Keychain, registerGlobalSecretToRedact } from "@mongodb-js/mcp-core";
 import { promptAndInstallSkills, type SkillsInstallOutcome } from "./installSkills.js";
+import { packageInfo } from "../lib.js";
 
 const buildEnvObject = (
     connectionString: string,

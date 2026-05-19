@@ -134,7 +134,10 @@ describe("MongoDBTool implementations", () => {
             apiClient: session.apiClient,
             keychain: session.keychain,
             enabled: false,
-            machineMetadata: buildMachineMetadata("test-server", "0.0.0"),
+            machineMetadata: buildMachineMetadata({
+                mcpServerName: "test-server",
+                version: "1.0",
+            }),
         });
 
         const clientTransport = new InMemoryTransport();
@@ -171,7 +174,7 @@ describe("MongoDBTool implementations", () => {
             elicitation,
             tools: toolConstructors,
             metrics: new MockMetrics(),
-            packageInfo: {
+            serverMetadata: {
                 mcpServerName: "test-server",
                 version: "1.0",
                 engines: {

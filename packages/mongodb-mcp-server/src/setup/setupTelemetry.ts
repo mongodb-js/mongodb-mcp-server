@@ -72,7 +72,7 @@ export class SetupTelemetry {
             apiClient,
             keychain,
             enabled: config.telemetry === "enabled",
-            machineMetadata: buildMachineMetadata(packageInfo.mcpServerName, packageInfo.version),
+            machineMetadata: buildMachineMetadata(packageInfo),
         });
         return new SetupTelemetry({ telemetry, deviceId });
     }

@@ -1,18 +1,14 @@
 // Server class and types
 export { Server } from "./server.js";
-export type { ServerOptions, PackageInfo, ServerTelemetry, ServerLogger, ToolRegistry } from "./server.js";
+export type { ServerOptions, ServerTelemetry, ServerLogger, ToolRegistry } from "./server.js";
+export type { ServerMetadata } from "@mongodb-js/mcp-types";
+// Main CLI exports
+export { runMcpCli } from "./runMcpCli.js";
+export { startServer } from "./startServer.js";
+export { createServicesFromUserConfig } from "./createServices.js";
 
-// Main CLI run function and types
-export {
-    runMcpCli,
-    createServerFromUserConfig,
-    startServer,
-    type Handler,
-    type ClientInfo,
-    type ConsoleLogger,
-    type OnExit,
-    type StartableServer,
-} from "./cli.js";
+// Type exports
+export type { ConsoleLogger, OnExit, Handler, StartableServer } from "./types.js";
 
 export { Session } from "./session.js";
 

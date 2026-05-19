@@ -1,58 +1,66 @@
-import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import { startServer } from "./startServer.js";
-import type { ClientInfo, ConsoleLogger, OnExit, Handler, StartableServer } from "./types.js";
+import type { CompositeLogger } from "@mongodb-js/mcp-core";
+import type { ConsoleLogger, OnExit, Handler, StartableServer } from "./types.js";
 import type { UserConfig } from "./config/userConfig.js";
-import type { IMetrics } from "@mongodb-js/mcp-types";
+import type { ServerMetadata, IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
 
 /**
  * Run the MCP CLI with the given configuration.
  * Handles full CLI flow: checking handlers, flags, and server lifecycle.
  *
  * This function assumes you've already created the infrastructure using
- * `createServerFromUserConfig` and created your server. It handles:
+ * `createServicesFromUserConfig` and created your server. It handles:
  * - Checking custom handlers
  * - Handling --help, --version, --dryRun flags
  * - Starting the server with proper signal handling
  *
  * Example usage:
  * ```typescript
- * import { createServerFromUserConfig, runMcpCli } from "@mongodb-js/mcp-cli";
+ * import { createServicesFromUserConfig, runMcpCli } from "@mongodb-js/mcp-cli";
  *
  * // Create infrastructure (config, logger, metrics)
- * const { config, logger, metrics } = await createServerFromUserConfig({
+ * const { server, config, logger, metrics } = await createServicesFromUserConfig({
  *   args: process.argv.slice(2),
  *   consoleLogger: console,
+ *   serverMetadata,
+ *   tools: AllTools,
+ *   resources: Resources,
  * });
- *
- * // Create your server
- * const server = new MyServer({ config, logger, metrics });
  *
  * // Run the CLI
  * await runMcpCli({
  *   args: process.argv.slice(2),
- *   consoleLogger: console,
- *   onExit: (code) => process.exit(code),
- *   clientInfo: { name: "my-mcp-server", version: "1.0.0" },
+ *   serverMetadata,
  *   server,
  *   config,
  *   logger,
  *   metrics,
+ *   consoleLogger: console,
+ *   onExit: (code) => process.exit(code),
  * });
  * ```
  */
-export async function runMcpCli(options: {
+export async function runMcpCli({
+    args,
+    serverMetadata,
+    handlers,
+    server,
+    config,
+    logger,
+    metrics,
+    consoleLogger,
+    onExit,
+}: {
     args: string[];
-    consoleLogger: ConsoleLogger;
-    onExit: OnExit;
-    clientInfo: ClientInfo;
+    serverMetadata: ServerMetadata;
     handlers?: Handler[];
     server: StartableServer;
     config: UserConfig;
     logger: CompositeLogger;
-    metrics: IMetrics;
+    metrics: IMetrics<DefaultMetricDefinitions>;
+    consoleLogger: ConsoleLogger;
+    onExit: OnExit;
 }): Promise<void> {
-    const { args, consoleLogger, onExit, clientInfo, handlers, server, config, logger, metrics } = options;
-
     // Check custom handlers first
     if (handlers) {
         for (const handler of handlers) {
@@ -73,7 +81,7 @@ export async function runMcpCli(options: {
 
     // Handle --version
     if (config.version) {
-        consoleLogger.log(clientInfo.version);
+        consoleLogger.log(serverMetadata.version);
         onExit(0);
         return;
     }

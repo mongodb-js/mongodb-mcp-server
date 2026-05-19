@@ -8,7 +8,7 @@ import { DryRunModeRunner, type DryRunServer } from "../transports/dryModeRunner
  *
  * @example
  * ```typescript
- * const { server, config, logger, metrics } = await createServerFromUserConfig({ ... });
+ * const { server, config, logger, metrics } = await createServicesFromUserConfig({ ... });
  *
  * await runMcpCli({
  *   handlers: [new DryRunHandler({ server })],

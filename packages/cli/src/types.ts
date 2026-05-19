@@ -2,11 +2,6 @@ import type { ICompositeLogger } from "@mongodb-js/mcp-core";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import type { UserConfig } from "./config/userConfig.js";
 
-export type ClientInfo = {
-    name: string;
-    version: string;
-};
-
 export type ConsoleLogger = {
     log(message: string): void;
     error(message: string): void;

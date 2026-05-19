@@ -790,7 +790,7 @@ export { onlyStricterLogLevelOverride }
 export type OperationType = "metadata" | "read" | "create" | "delete" | "update" | "connect";
 
 // @public (undocumented)
-export const packageInfo: {
+export const serverMetadata: {
     version: string;
     mcpServerName: string;
     engines: {

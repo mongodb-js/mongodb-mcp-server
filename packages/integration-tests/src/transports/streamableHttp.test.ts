@@ -124,7 +124,7 @@ async function createTestServer(
         elicitation,
         metrics,
         tools: options.tools,
-        packageInfo: {
+        serverMetadata: {
             mcpServerName: "test-server",
             version: "1.0",
             engines: {
