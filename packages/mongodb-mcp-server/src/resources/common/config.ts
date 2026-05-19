@@ -1,7 +1,7 @@
 import { ReactiveResource, type ResourceConstructorParams } from "@mongodb-js/mcp-core";
 import type { UserConfig } from "@mongodb-js/mcp-cli";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
-import type { Session } from "../../common/session.js";
+import type { Session } from "@mongodb-js/mcp-cli";
 
 export class ConfigResource extends ReactiveResource<
     UserConfig,

@@ -14,8 +14,7 @@ export {
     type StartableServer,
 } from "./cli.js";
 
-// Server infrastructure type
-export type { ServerInfrastructure } from "./serverFactory.js";
+export { Session } from "./session.js";
 
 // Config parsing and types
 export { parseUserConfig, type ParserOptions, defaultParserOptions } from "./config/parseUserConfig.js";
@@ -50,5 +49,5 @@ export {
     type DryRunModeRunnerOptions,
 } from "./transports/dryModeRunner.js";
 
-// Server wrapper
-export { MCPHttpServerWrapper } from "./server/mcpHttpServerWrapper.js";
+// Dry run handler
+export { DryRunHandler } from "./handlers/dryRunHandler.js";

@@ -1,9 +1,9 @@
 import type { Server } from "@mongodb-js/mcp-cli";
-import type { Session } from "../common/session.js";
+import type { Session } from "@mongodb-js/mcp-cli";
 import type { UserConfig } from "@mongodb-js/mcp-cli";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
-import type { SessionEvents } from "../common/session.js";
 import { LogId } from "@mongodb-js/mcp-core";
+import type { SessionEvents } from "@mongodb-js/mcp-types";
 import type { ReadResourceCallback, ResourceMetadata } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 type PayloadOf<K extends keyof SessionEvents> = SessionEvents[K][0];
@@ -66,7 +66,7 @@ export abstract class ReactiveResource<
     private setupEventListeners(): void {
         for (const event of this.events) {
             this.session.on(event, (...args: SessionEvents[typeof event]) => {
-                this.reduceApply(event, (args as unknown[])[0] as PayloadOf<typeof event>);
+                this.reduceApply(event, args[0]);
                 void this.triggerUpdate();
             });
         }

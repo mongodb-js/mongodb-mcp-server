@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DebugResource } from "../../../../src/resources/common/debug.js";
-import { Session } from "../../../../src/common/session.js";
+import { Session } from "@mongodb-js/mcp-cli";
 import { connectionErrorHandler, ApiClient } from "mongodb-mcp-server";
 import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";

@@ -9,5 +9,11 @@
   },
   "include": ["src/**/*.ts"],
   "exclude": ["dist", "node_modules", "src/**/*.test.ts"],
-  "references": []
+  "references": [
+    { "path": "../atlas-telemetry" },
+    { "path": "../atlas-api-client" },
+    { "path": "../tools-atlas" },
+    { "path": "../tools-atlas-local" },
+    { "path": "../tools-mongodb" }
+  ]
 }

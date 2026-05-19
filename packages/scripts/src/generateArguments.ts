@@ -130,7 +130,6 @@ function extractZodDescriptions(): Record<string, ConfigMetadata> {
             defaultValue = schema.def.defaultValue;
         }
         // Get metadata from custom registry
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const registryMeta = configRegistry.get(schema);
         if (registryMeta) {
             defaultValueDescription = registryMeta.defaultValueDescription;

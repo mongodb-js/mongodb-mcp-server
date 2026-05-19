@@ -5,8 +5,7 @@ import type {
 } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { LogId, type ResourceConstructorParams } from "@mongodb-js/mcp-core";
-import type { Server } from "@mongodb-js/mcp-cli";
-import type { Session } from "../../common/session.js";
+import type { Server, Session } from "@mongodb-js/mcp-cli";
 import { formatUntrustedData } from "../../tools/tool.js";
 
 export class ExportedData {

@@ -4,7 +4,6 @@ import type { HttpServerOptions, SessionManagementOptions } from "@mongodb-js/mc
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import type { StartableServer } from "../types.js";
 
 export class MCPHttpServerWrapper extends MCPHttpServer<SessionAwareServer> {
     private server: SessionAwareServer;
@@ -16,7 +15,7 @@ export class MCPHttpServerWrapper extends MCPHttpServer<SessionAwareServer> {
         metrics,
         sessionStore,
     }: {
-        server: StartableServer;
+        server: SessionAwareServer;
         options: {
             http: HttpServerOptions;
             session: SessionManagementOptions;
@@ -26,8 +25,7 @@ export class MCPHttpServerWrapper extends MCPHttpServer<SessionAwareServer> {
         sessionStore: SessionStore<StreamableHTTPServerTransport>;
     }) {
         super({ options, logger, metrics, sessionStore });
-        // Cast to SessionAwareServer since we know the server satisfies the interface at runtime
-        this.server = server as SessionAwareServer;
+        this.server = server;
     }
 
     protected override async createServerForRequest(): Promise<SessionAwareServer> {

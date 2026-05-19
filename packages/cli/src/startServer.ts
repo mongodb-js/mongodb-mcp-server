@@ -3,9 +3,9 @@ import { StreamableHttpRunner, MonitoringServer } from "@mongodb-js/mcp-http-run
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
-import { MCPHttpServerWrapper } from "./server/mcpHttpServerWrapper.js";
 import type { UserConfig } from "./config/userConfig.js";
 import type { OnExit, StartableServer } from "./types.js";
+import { MCPHttpServerWrapper } from "./server/mcpHttpServerWrapper.js";
 
 export async function startServer(
     server: StartableServer,

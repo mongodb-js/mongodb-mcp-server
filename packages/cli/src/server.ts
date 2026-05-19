@@ -13,6 +13,7 @@ import {
 import { type ConnectionErrorHandler } from "@mongodb-js/mcp-tools-mongodb";
 import type { Elicitation } from "@mongodb-js/mcp-core";
 import type { IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
+import type { TelemetryServerCommand, TelemetryServerEvent } from "@mongodb-js/mcp-atlas-telemetry";
 import type {
     AnyToolBase,
     ToolCategory,
@@ -20,6 +21,7 @@ import type {
     IResourceServer,
     ResourceConstructorParams,
 } from "@mongodb-js/mcp-core";
+import { validateConnectionString } from "@mongodb-js/mcp-tools-mongodb";
 
 /** Package information for the server. */
 export type PackageInfo = {
@@ -122,8 +124,6 @@ export interface ServerOptions<
     readonly resources?: ResourceRegistry;
     /** Package information for the server. */
     readonly packageInfo: PackageInfo;
-    /** Connection string validator function. */
-    validateConnectionString?: (connectionString: string, allowEmpty: boolean) => void;
 }
 
 export type ServerSession = ISession<UserConfig> & {
@@ -308,8 +308,8 @@ export class Server<
         }
     }
 
-    private emitServerTelemetryEvent(command: string, commandDuration: number, error?: Error): void {
-        const event: { timestamp: string; source: string; properties: Record<string, unknown> } = {
+    private emitServerTelemetryEvent(command: TelemetryServerCommand, commandDuration: number, error?: Error): void {
+        const event: TelemetryServerEvent = {
             timestamp: new Date().toISOString(),
             source: "mdbmcp",
             properties: {
@@ -352,7 +352,7 @@ export class Server<
                 uiRegistry: this.uiRegistry,
             });
             if (tool.register(this)) {
-                this.tools.push(tool as AnyToolBase);
+                this.tools.push(tool);
             }
         }
     }
@@ -373,7 +373,7 @@ export class Server<
         // Validate connection string
         if (this.session.config.connectionString) {
             try {
-                // Connection string validation is done via injected function if needed
+                validateConnectionString(this.session.config.connectionString, false);
             } catch (error) {
                 throw new Error(
                     "Connection string validation failed with error: " +

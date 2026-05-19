@@ -60,7 +60,6 @@ function createApiClientError(status: number, message: string): ApiClientError {
 
 describe("StreamsToolBase", () => {
     let mockSession: IAtlasSession;
-    let mockConfig: IAtlasConfig;
     let mockTelemetry: AtlasTelemetry;
     let mockElicitation: Elicitation;
     let tool: TestStreamsTool;
@@ -77,16 +76,15 @@ describe("StreamsToolBase", () => {
             logger: mockLogger,
             apiClient: {},
             keychain: new Keychain(),
+            config: {
+                confirmationRequiredTools: [],
+                previewFeatures: [],
+                disabledTools: [],
+                apiClientId: "test-id",
+                apiClientSecret: "test-secret",
+                atlasTemporaryDatabaseUserLifetimeMs: 3600000,
+            } as unknown as IAtlasConfig,
         } as unknown as IAtlasSession;
-
-        mockConfig = {
-            confirmationRequiredTools: [],
-            previewFeatures: [],
-            disabledTools: [],
-            apiClientId: "test-id",
-            apiClientSecret: "test-secret",
-            atlasTemporaryDatabaseUserLifetimeMs: 3600000,
-        } as unknown as IAtlasConfig;
 
         mockTelemetry = {
             isTelemetryEnabled: () => true,
@@ -97,12 +95,11 @@ describe("StreamsToolBase", () => {
             requestConfirmation: vi.fn(),
         } as unknown as Elicitation;
 
-        const params: ToolConstructorParams<IAtlasConfig, DefaultPrometheusMetricDefinitions> = {
+        const params: ToolConstructorParams<IAtlasSession, DefaultPrometheusMetricDefinitions> = {
             name: TestStreamsTool.toolName,
             category: "atlas",
             operationType: TestStreamsTool.operationType,
             session: mockSession,
-            config: mockConfig,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
             metrics: new MockMetrics(),

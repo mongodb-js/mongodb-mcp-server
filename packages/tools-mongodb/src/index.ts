@@ -35,6 +35,7 @@ export type {
     NotConnectedToMongoDBErrorCode,
     MisconfiguredConnectionStringErrorCode,
 } from "./common/errors.js";
+export { validateConnectionString } from "./helpers/connectionOptions.js";
 export type { MonitoringServerFeature, PreviewFeature } from "./common/schemas.js";
 export { previewFeatureValues, monitoringServerFeatureValues } from "./common/schemas.js";
 export {
@@ -61,11 +62,7 @@ export {
 } from "./connectionErrorHandler.js";
 export { DeviceId } from "./helpers/deviceId.js";
 export { isObjectEmpty } from "./helpers/isObjectEmpty.js";
-export {
-    validateConnectionString,
-    setAppNameParamIfMissing,
-    type AppNameComponents,
-} from "./helpers/connectionOptions.js";
+export { setAppNameParamIfMissing, type AppNameComponents } from "./helpers/connectionOptions.js";
 export { usesIndex, getIndexCheckErrorMessage, checkIndexUsage } from "./helpers/indexCheck.js";
 export { collectCursorUntilMaxBytesLimit, getResponseBytesLimit } from "./helpers/collectCursorUntilMaxBytes.js";
 export { operationWithFallback } from "./helpers/operationWithFallback.js";

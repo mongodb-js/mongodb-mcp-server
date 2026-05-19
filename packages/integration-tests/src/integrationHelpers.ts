@@ -20,6 +20,7 @@ import { createAtlasLocalClient } from "mongodb-mcp-server";
 import type { OperationType } from "@mongodb-js/mcp-core";
 import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
+export { Session } from "@mongodb-js/mcp-cli";
 import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 export const defaultTestConfig: UserConfig = {
     ...UserConfigSchema.parse({}),

@@ -2,7 +2,7 @@ import type { Mocked, MockedFunction } from "vitest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MongoServerError } from "mongodb";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { Session } from "../../../src/common/session.js";
+import { Session } from "@mongodb-js/mcp-cli";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
 import { MCPConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
 import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";

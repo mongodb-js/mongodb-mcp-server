@@ -1,16 +1,17 @@
-import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
-import { Keychain } from "@mongodb-js/mcp-core";
+import { type IMetrics, PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
+import type { CompositeLogger } from "@mongodb-js/mcp-core";
+import { Elicitation, Keychain, McpServer } from "@mongodb-js/mcp-core";
 import { createDefaultLoggers } from "./utils/loggers.js";
 import { parseUserConfig } from "./config/parseUserConfig.js";
 import type { ConsoleLogger } from "./types.js";
+import type { ResourceRegistry, ToolRegistry } from "./server.js";
+import { Server } from "./server.js";
+import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { connectionErrorHandler, DeviceId, ExportsManager, MCPConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
+import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
+import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
+import { Session } from "./session.js";
 import type { UserConfig } from "./config/userConfig.js";
-
-export type ServerInfrastructure = {
-    config: UserConfig;
-    logger: Awaited<ReturnType<typeof createDefaultLoggers>>;
-    metrics: PrometheusMetrics<ReturnType<typeof createDefaultMetrics>>;
-    keychain: Keychain;
-};
 
 /** Package information required for server creation. */
 export type PackageInfo = {
@@ -24,13 +25,19 @@ export type PackageInfo = {
  * needed to run an MCP server. Use this as the starting point when building a server,
  * then create your server with the returned values and pass everything to `runMcpCli`.
  */
-export async function createServerFromUserConfig(options: {
+export async function createServerFromUserConfig({
+    args,
+    consoleLogger,
+    packageInfo,
+    tools,
+    resources,
+}: {
     args: string[];
     consoleLogger: ConsoleLogger;
     packageInfo: PackageInfo;
-}): Promise<ServerInfrastructure> {
-    const { args, consoleLogger } = options;
-
+    tools: ToolRegistry;
+    resources: ResourceRegistry;
+}): Promise<{ server: Server; config: UserConfig; logger: CompositeLogger; metrics: IMetrics }> {
     // Parse CLI arguments
     const { error, warnings, parsed: config } = parseUserConfig({ args });
 
@@ -52,5 +59,79 @@ export async function createServerFromUserConfig(options: {
     const logger = await createDefaultLoggers({ config, keychain });
     const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
 
-    return { config, logger, metrics, keychain };
+    // Create MongoDB-specific infrastructure
+    const exportsManager = ExportsManager.init({
+        options: {
+            exportsPath: config.exportsPath,
+            exportTimeoutMs: config.exportTimeoutMs,
+            exportCleanupIntervalMs: config.exportCleanupIntervalMs,
+        },
+        logger,
+    });
+
+    const deviceId = DeviceId.create(logger);
+
+    const connectionManager = new MCPConnectionManager({
+        logger,
+        deviceId,
+        options: {
+            connectionInfo: { transport: "http", httpHost: "localhost" },
+            displayName: "mongodb-mcp-server",
+            version: packageInfo.version,
+        },
+    });
+
+    const apiClient = new ApiClient({
+        baseUrl: config.apiBaseUrl,
+        userAgent: `mongodb-mcp-server/${packageInfo.version}`,
+        logger,
+        credentials: {
+            clientId: config.apiClientId,
+            clientSecret: config.apiClientSecret,
+        },
+    });
+
+    const atlasLocalClient = await createAtlasLocalClient({ logger });
+
+    const telemetry = AtlasTelemetry.create({
+        logger,
+        deviceId,
+        apiClient,
+        keychain,
+        enabled: config.telemetry === "enabled",
+        machineMetadata: buildMachineMetadata(packageInfo.mcpServerName, packageInfo.version),
+    });
+
+    const mcpServer = new McpServer({
+        name: "mongodb-mcp-server",
+        version: packageInfo.version,
+    });
+
+    const elicitation = new Elicitation({ server: mcpServer.server });
+
+    const session = new Session({
+        userConfig: config,
+        logger,
+        exportsManager,
+        connectionManager,
+        keychain,
+        apiClient,
+        connectionErrorHandler,
+        atlasLocalClient,
+    });
+
+    const server = new Server({
+        session,
+        userConfig: config,
+        mcpServer,
+        telemetry,
+        connectionErrorHandler,
+        elicitation,
+        metrics,
+        packageInfo,
+        tools,
+        resources,
+    });
+
+    return { server, config, logger, metrics };
 }

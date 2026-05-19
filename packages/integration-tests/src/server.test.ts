@@ -2,7 +2,7 @@ import { MCPConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
 import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
 import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
-import { Session } from "mongodb-mcp-server";
+import { Session } from "@mongodb-js/mcp-cli";
 import {
     defaultTestConfig,
     expectDefined,

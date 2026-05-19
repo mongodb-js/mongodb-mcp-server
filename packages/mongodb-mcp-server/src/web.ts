@@ -19,7 +19,8 @@ export type {
     AtlasStreamsToolMetadata,
     UpgradeClusterMetadata,
 } from "@mongodb-js/mcp-atlas-telemetry";
-export { Session, type SessionOptions, type SessionEvents } from "./common/session.js";
+export { Session } from "@mongodb-js/mcp-cli";
+export type { SessionEvents } from "@mongodb-js/mcp-types";
 export type { LogLevel, LogPayload, LoggerType } from "@mongodb-js/mcp-core";
 export { Keychain } from "@mongodb-js/mcp-core";
 export type { Secret } from "mongodb-redact";

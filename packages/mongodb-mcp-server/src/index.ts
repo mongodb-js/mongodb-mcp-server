@@ -37,16 +37,13 @@ function enableFipsIfRequested(): void {
 enableFipsIfRequested();
 
 import crypto from "crypto";
-import { Elicitation } from "@mongodb-js/mcp-core";
-import { runMcpCli, createServerFromUserConfig, type Handler, type UserConfig, Server } from "@mongodb-js/mcp-cli";
-import { Session } from "./common/session.js";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { connectionErrorHandler } from "@mongodb-js/mcp-tools-mongodb";
-import { MCPConnectionManager, ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
-import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
-import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
-import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
-import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
+import {
+    runMcpCli,
+    createServerFromUserConfig,
+    DryRunHandler,
+    type Handler,
+    type UserConfig,
+} from "@mongodb-js/mcp-cli";
 import { runSetup } from "./setup/setupMcpServer.js";
 import { packageInfo } from "./common/packageInfo.js";
 import { Resources } from "./resources/resources.js";
@@ -69,82 +66,10 @@ const setupHandler: Handler = {
 async function main(): Promise<void> {
     const args = process.argv.slice(2);
 
-    // Get infrastructure from CLI factory
-    const { config, logger, metrics, keychain } = await createServerFromUserConfig({
+    // Get server from CLI factory
+    const { server, config, logger, metrics } = await createServerFromUserConfig({
         args,
         consoleLogger: console,
-        packageInfo,
-    });
-
-    // Create MongoDB-specific infrastructure
-    const exportsManager = ExportsManager.init({
-        options: {
-            exportsPath: config.exportsPath,
-            exportTimeoutMs: config.exportTimeoutMs,
-            exportCleanupIntervalMs: config.exportCleanupIntervalMs,
-        },
-        logger,
-    });
-
-    const deviceId = DeviceId.create(logger);
-
-    const connectionManager = new MCPConnectionManager({
-        logger,
-        deviceId,
-        options: {
-            connectionInfo: { transport: "http", httpHost: "localhost" },
-            displayName: "mongodb-mcp-server",
-            version: packageInfo.version,
-        },
-    });
-
-    const apiClient = new ApiClient({
-        baseUrl: config.apiBaseUrl,
-        userAgent: `mongodb-mcp-server/${packageInfo.version}`,
-        logger,
-        credentials: {
-            clientId: config.apiClientId,
-            clientSecret: config.apiClientSecret,
-        },
-    });
-
-    const atlasLocalClient = await createAtlasLocalClient({ logger });
-
-    const telemetry = AtlasTelemetry.create({
-        logger,
-        deviceId,
-        apiClient,
-        keychain,
-        enabled: config.telemetry === "enabled",
-        machineMetadata: buildMachineMetadata(packageInfo.mcpServerName, packageInfo.version),
-    });
-
-    const mcpServer = new McpServer({
-        name: "mongodb-mcp-server",
-        version: packageInfo.version,
-    });
-
-    const elicitation = new Elicitation({ server: mcpServer.server });
-
-    const session = new Session({
-        userConfig: config,
-        logger,
-        exportsManager,
-        connectionManager,
-        keychain,
-        apiClient,
-        connectionErrorHandler,
-        atlasLocalClient,
-    });
-
-    const server = new Server({
-        session,
-        userConfig: config,
-        mcpServer,
-        telemetry,
-        connectionErrorHandler,
-        elicitation,
-        metrics,
         packageInfo,
         tools: AllTools,
         resources: Resources,
@@ -158,7 +83,7 @@ async function main(): Promise<void> {
             name: packageInfo.mcpServerName,
             version: packageInfo.version,
         },
-        handlers: [setupHandler],
+        handlers: [setupHandler, new DryRunHandler({ server })],
         server,
         config,
         logger,

@@ -1,7 +1,7 @@
 import { ReactiveResource, type ResourceConstructorParams } from "@mongodb-js/mcp-core";
-import type { ISession } from "@mongodb-js/mcp-types";
 import type { ConnectionStateErrored } from "@mongodb-js/mcp-tools-mongodb";
 import type { ConnectionStringInfo, AtlasClusterConnectionInfo } from "@mongodb-js/mcp-tools-mongodb";
+import type { Session } from "@mongodb-js/mcp-cli";
 
 type ConnectionStateDebuggingInformation = {
     readonly tag: "connected" | "connecting" | "disconnected" | "errored";
@@ -12,9 +12,10 @@ type ConnectionStateDebuggingInformation = {
 
 export class DebugResource extends ReactiveResource<
     ConnectionStateDebuggingInformation,
-    readonly ["connect", "disconnect", "close", "connection-error"]
+    readonly ["connect", "disconnect", "close", "connection-error"],
+    Session
 > {
-    constructor(params: ResourceConstructorParams) {
+    constructor(params: ResourceConstructorParams<Session>) {
         super({
             resourceConfiguration: {
                 name: "debug-mongodb",
@@ -60,7 +61,7 @@ export class DebugResource extends ReactiveResource<
 
         switch (this.current.tag) {
             case "connected": {
-                const searchIndexesSupported = await (this.session as ISession & { isSearchSupported(): Promise<boolean> }).isSearchSupported();
+                const searchIndexesSupported = await this.session.isSearchSupported();
                 result += `The user is connected to the MongoDB cluster${searchIndexesSupported ? " with support for search indexes" : " without any support for search indexes"}.`;
                 break;
             }

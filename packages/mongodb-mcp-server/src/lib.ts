@@ -1,21 +1,8 @@
 export { Server, type ServerOptions } from "@mongodb-js/mcp-cli";
-export { Session, type SessionOptions, type SessionEvents } from "./common/session.js";
+export { Session } from "@mongodb-js/mcp-cli";
+export type { SessionEvents } from "@mongodb-js/mcp-types";
 export { type UserConfig, UserConfigSchema, configRegistry } from "@mongodb-js/mcp-cli";
 export { parseUserConfig, defaultParserOptions, type ParserOptions } from "@mongodb-js/mcp-cli";
-
-import { parseUserConfig } from "@mongodb-js/mcp-cli";
-import type { UserConfig } from "@mongodb-js/mcp-cli";
-
-/** @deprecated Use `parseUserConfig` instead. */
-export function parseArgsWithCliOptions(cliArguments: string[]): {
-    warnings: string[];
-    parsed: UserConfig | undefined;
-    error: string | undefined;
-} {
-    return parseUserConfig({
-        args: cliArguments,
-    });
-}
 
 export { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 export { packageInfo } from "./common/packageInfo.js";

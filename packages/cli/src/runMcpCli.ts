@@ -2,7 +2,7 @@ import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import { startServer } from "./startServer.js";
 import type { ClientInfo, ConsoleLogger, OnExit, Handler, StartableServer } from "./types.js";
 import type { UserConfig } from "./config/userConfig.js";
-import type { DefaultMetricDefinitions, IMetrics } from "@mongodb-js/mcp-types";
+import type { IMetrics } from "@mongodb-js/mcp-types";
 
 /**
  * Run the MCP CLI with the given configuration.
@@ -49,7 +49,7 @@ export async function runMcpCli(options: {
     server: StartableServer;
     config: UserConfig;
     logger: CompositeLogger;
-    metrics: IMetrics<DefaultMetricDefinitions>;
+    metrics: IMetrics;
 }): Promise<void> {
     const { args, consoleLogger, onExit, clientInfo, handlers, server, config, logger, metrics } = options;
 

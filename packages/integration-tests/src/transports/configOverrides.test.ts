@@ -4,7 +4,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, afterEach, beforeEach, vi } from "vitest";
 import { defaultTestConfig } from "../integrationHelpers.js";
-import type { UserConfig } from "mongodb-mcp-server";
+import type { UserConfig } from "@mongodb-js/mcp-cli";
 import type {
     DefaultMetricDefinitions,
     HttpServerOptions,
