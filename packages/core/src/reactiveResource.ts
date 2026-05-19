@@ -1,12 +1,6 @@
-import type { Server } from "@mongodb-js/mcp-cli";
-import type { Session } from "../common/session.js";
-import type { UserConfig } from "@mongodb-js/mcp-cli";
-import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
-import type { SessionEvents } from "../common/session.js";
-import { LogId } from "@mongodb-js/mcp-core";
+import type { ISession, SessionEvents } from "@mongodb-js/mcp-types";
 import type { ReadResourceCallback, ResourceMetadata } from "@modelcontextprotocol/sdk/server/mcp.js";
-
-type PayloadOf<K extends keyof SessionEvents> = SessionEvents[K][0];
+import { LogId } from "./logId.js";
 
 export type ResourceConfiguration = {
     name: string;
@@ -19,15 +13,77 @@ export type ReactiveResourceOptions<Value, RelevantEvents extends readonly (keyo
     events: RelevantEvents;
 };
 
+export type ReactiveResourceConstructorParams<
+    Value,
+    RelevantEvents extends readonly (keyof SessionEvents)[],
+> = {
+    resourceConfiguration: ResourceConfiguration;
+    options: ReactiveResourceOptions<Value, RelevantEvents>;
+    session: ISession;
+    current?: Value;
+};
+
+type PayloadOf<K extends keyof SessionEvents> = SessionEvents[K][0];
+
+export interface IResourceServer {
+    mcpServer: {
+        registerResource: (
+            name: string,
+            uri: string,
+            config: ResourceMetadata,
+            callback: ReadResourceCallback
+        ) => void;
+    };
+    sendResourceListChanged(): void;
+    sendResourceUpdated(uri: string): void;
+}
+
+/**
+ * Abstract base class for implementing reactive MCP resources.
+ *
+ * Reactive resources automatically update when session events occur. They listen
+ * to specified session events and can update their internal state in response.
+ *
+ * ## Creating a Custom Resource
+ *
+ * To create a custom reactive resource, extend this class and implement:
+ * - `reduce()` - Update state based on session events
+ * - `toOutput()` - Convert current state to resource output
+ *
+ * @example Basic Custom Resource
+ * ```typescript
+ * class MyResource extends ReactiveResource<string, readonly ["connect", "disconnect"]> {
+ *   constructor(session: ISession) {
+ *     super({
+ *       resourceConfiguration: {
+ *         name: "my-resource",
+ *         uri: "resource://my-resource",
+ *         config: { description: "My reactive resource" },
+ *       },
+ *       options: {
+ *         initial: "disconnected",
+ *         events: ["connect", "disconnect"],
+ *       },
+ *       session,
+ *     });
+ *   }
+ *
+ *   reduce(eventName: "connect" | "disconnect"): string {
+ *     return eventName === "connect" ? "connected" : "disconnected";
+ *   }
+ *
+ *   toOutput(): string {
+ *     return this.current;
+ *   }
+ * }
+ * ```
+ */
 export abstract class ReactiveResource<
     Value,
     RelevantEvents extends readonly (keyof SessionEvents)[],
-    TUserConfig extends UserConfig = UserConfig,
 > {
-    protected server?: Server<TUserConfig>;
-    protected session: Session;
-    protected config: UserConfig;
-    protected telemetry: AtlasTelemetry;
+    protected server?: IResourceServer;
+    protected session: ISession;
 
     protected current: Value;
     protected readonly name: string;
@@ -39,20 +95,9 @@ export abstract class ReactiveResource<
         resourceConfiguration,
         options,
         session,
-        config,
-        telemetry,
         current,
-    }: {
-        resourceConfiguration: ResourceConfiguration;
-        options: ReactiveResourceOptions<Value, RelevantEvents>;
-        session: Session;
-        config: UserConfig;
-        telemetry: AtlasTelemetry;
-        current?: Value;
-    }) {
+    }: ReactiveResourceConstructorParams<Value, RelevantEvents>) {
         this.session = session;
-        this.config = config;
-        this.telemetry = telemetry;
 
         this.name = resourceConfiguration.name;
         this.uri = resourceConfiguration.uri;
@@ -72,7 +117,7 @@ export abstract class ReactiveResource<
         }
     }
 
-    public register(server: Server<TUserConfig>): void {
+    public register(server: IResourceServer): void {
         this.server = server;
         this.server.mcpServer.registerResource(this.name, this.uri, this.resourceConfig, this.resourceCallback);
     }

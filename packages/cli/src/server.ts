@@ -11,9 +11,9 @@ import {
     UnsubscribeRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { type ConnectionErrorHandler } from "@mongodb-js/mcp-tools-mongodb";
-import type { Elicitation } from "@mongodb-js/mcp-core";
+import type { Elicitation, ReactiveResource } from "@mongodb-js/mcp-core";
 import type { IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
-import type { AnyToolBase, ToolCategory } from "@mongodb-js/mcp-core";
+import type { AnyToolBase, ToolCategory, ToolClass, IResourceServer } from "@mongodb-js/mcp-core";
 
 /** MongoDB read-tool count-phase maxTimeMS caps applied when registering MongoDB tools (binary-only). */
 export type MongoDBToolsRuntimeConfig = {
@@ -50,36 +50,25 @@ export type ServerTelemetry = {
 /** Generic session interface that Server requires. */
 export type ServerSession = {
     logger: ServerLogger;
-    setMcpClient: (client: { name?: string; version?: string; title?: string } | undefined) => void;
+    setMcpClient: (client: { name: string; version: string; title?: string } | undefined) => void;
     apiClient?: { validateAuthConfig: () => Promise<void> } | undefined;
     connectToConfiguredConnection: () => Promise<void>;
     close?: () => Promise<void>;
 };
 
-/** Generic tool constructor interface that Server expects. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export interface ToolConstructor {
-    // Constructor signature
-    new (params: any): {
-        register: (server: any) => boolean;
-        isEnabled: () => boolean;
-    };
-    // Static properties that must exist on the class
-    toolName: string;
-    category: string;
-    operationType: string;
-}
-
 /** Tool constructor registry - array of tool classes that can be instantiated. */
-export type ToolRegistry = ToolConstructor[];
+export type ToolRegistry = ToolClass[];
+
+/**
+ * Constructor interface for resources that can be registered with the server.
+ */
+export type ResourceConstructor =
+    | { new (params: { session: ServerSession; config: UserConfig }): { register(server: IResourceServer): void } }
+    | { new (params: { session: ServerSession }): { register(server: IResourceServer): void } }
+    | { new (session: ServerSession): { register(server: IResourceServer): void } };
 
 /** Resource constructor registry. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type ResourceRegistry = readonly (new (
-    session: ServerSession,
-    userConfig: UserConfig,
-    telemetry: ServerTelemetry
-) => { register: (server: any) => boolean })[];
+export type ResourceRegistry = ResourceConstructor[];
 
 export interface ServerOptions<
     TUserConfig extends UserConfig = UserConfig,
@@ -316,7 +305,7 @@ export class Server<
     }
 
     public isToolCategoryAvailable(name: ToolCategory): boolean {
-        return !!this.tools.filter((t) => t.category === name).length;
+        return !!this.tools.filter((t: AnyToolBase) => t.category === name).length;
     }
 
     public sendResourceUpdated(uri: string): void {
@@ -367,17 +356,17 @@ export class Server<
             const config = { ...this.userConfig, ...this.runtimeConfig };
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const tool = new (toolConstructor as any)({
+            const tool = new toolConstructor({
                 name: toolConstructor.toolName,
                 category: toolConstructor.category,
                 operationType: toolConstructor.operationType,
-                session: this.session as any,
+                session: this.session,
                 config,
-                telemetry: this.telemetry as any,
-                elicitation: this.elicitation as any,
-                metrics: this.metrics as any,
-                uiRegistry: this.uiRegistry as any,
-            });
+                telemetry: this.telemetry,
+                elicitation: this.elicitation,
+                metrics: this.metrics,
+                uiRegistry: this.uiRegistry,
+            } as any);
             if (tool.register(this)) {
                 this.tools.push(tool as AnyToolBase);
             }
@@ -386,7 +375,25 @@ export class Server<
 
     public registerResources(): void {
         for (const resourceConstructor of this.resourceConstructors) {
-            const resource = new resourceConstructor(this.session, this.userConfig, this.telemetry);
+            const ResourceClass = resourceConstructor as unknown as { name: string };
+
+            let resource: { register(server: IResourceServer): void };
+
+            // Try different constructor signatures based on resource type
+            if (ResourceClass.name === "ConfigResource") {
+                resource = new (resourceConstructor as { new (params: { session: ServerSession; config: UserConfig }): { register(server: IResourceServer): void } })({
+                    session: this.session,
+                    config: this.userConfig,
+                });
+            } else if (ResourceClass.name === "DebugResource") {
+                resource = new (resourceConstructor as { new (params: { session: ServerSession }): { register(server: IResourceServer): void } })({
+                    session: this.session,
+                });
+            } else {
+                // Default to session-only constructor (e.g., ExportedData)
+                resource = new (resourceConstructor as { new (session: ServerSession): { register(server: IResourceServer): void } })(this.session);
+            }
+
             resource.register(this);
         }
     }

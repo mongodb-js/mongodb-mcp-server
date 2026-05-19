@@ -137,18 +137,17 @@ async function main(): Promise<void> {
         atlasLocalClient,
     });
 
-    // Create the Server with all dependencies
     const server = new Server({
-        session: session as any,
+        session,
         userConfig: config,
         mcpServer,
-        telemetry: telemetry as any,
+        telemetry,
         connectionErrorHandler,
         elicitation,
         metrics,
         packageInfo,
-        tools: AllTools as any,
-        resources: Resources as any,
+        tools: AllTools,
+        resources: Resources,
     });
 
     await runMcpCli({

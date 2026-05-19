@@ -1,11 +1,15 @@
-import { AtlasTools } from "@mongodb-js/mcp-tools-atlas";
-import { AtlasLocalTools } from "@mongodb-js/mcp-tools-atlas-local";
-import { MongoDBTools } from "@mongodb-js/mcp-tools-mongodb";
-import { AssistantTools } from "@mongodb-js/mcp-tools-assistant";
+import { AtlasTools, type IAtlasConfig } from "@mongodb-js/mcp-tools-atlas";
+import { AtlasLocalTools, type IAtlasLocalConfig } from "@mongodb-js/mcp-tools-atlas-local";
+import { type IMongoDBConfig, MongoDBTools } from "@mongodb-js/mcp-tools-mongodb";
+import { AssistantTools, type IAssistantConfig } from "@mongodb-js/mcp-tools-assistant";
 import type { ToolClass } from "./tool.js";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const AllTools: ToolClass<any, any>[] = [...MongoDBTools, ...AtlasTools, ...AtlasLocalTools, ...AssistantTools];
+export const AllTools: ToolClass<IMongoDBConfig | IAtlasConfig | IAtlasLocalConfig | IAssistantConfig>[] = [
+    ...MongoDBTools,
+    ...AtlasTools,
+    ...AtlasLocalTools,
+    ...AssistantTools,
+] as const;
 
 export { MongoDBToolBase, type IMongoDBConfig, type IMongoDBSession } from "@mongodb-js/mcp-tools-mongodb";
 

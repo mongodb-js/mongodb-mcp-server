@@ -1,9 +1,7 @@
-import { ReactiveResource } from "../resource.js";
-import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
-import type { Session, UserConfig } from "../../lib.js";
-import type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-types";
+import { ReactiveResource } from "@mongodb-js/mcp-core";
+import type { ISession, SessionEvents } from "@mongodb-js/mcp-types";
 import type { ConnectionStateErrored } from "@mongodb-js/mcp-tools-mongodb";
-import type { ConnectionStringInfo } from "@mongodb-js/mcp-tools-mongodb";
+import type { ConnectionStringInfo, AtlasClusterConnectionInfo } from "@mongodb-js/mcp-tools-mongodb";
 
 type ConnectionStateDebuggingInformation = {
     readonly tag: "connected" | "connecting" | "disconnected" | "errored";
@@ -12,11 +10,15 @@ type ConnectionStateDebuggingInformation = {
     readonly connectedAtlasCluster?: AtlasClusterConnectionInfo;
 };
 
+export type DebugResourceConstructorParams = {
+    session: ISession;
+};
+
 export class DebugResource extends ReactiveResource<
     ConnectionStateDebuggingInformation,
     readonly ["connect", "disconnect", "close", "connection-error"]
 > {
-    constructor(session: Session, config: UserConfig, telemetry: AtlasTelemetry) {
+    constructor({ session }: DebugResourceConstructorParams) {
         super({
             resourceConfiguration: {
                 name: "debug-mongodb",
@@ -31,10 +33,9 @@ export class DebugResource extends ReactiveResource<
                 events: ["connect", "disconnect", "close", "connection-error"],
             },
             session,
-            config,
-            telemetry,
         });
     }
+
     reduce(
         eventName: "connect" | "disconnect" | "close" | "connection-error",
         event: ConnectionStateErrored | undefined
@@ -63,7 +64,7 @@ export class DebugResource extends ReactiveResource<
 
         switch (this.current.tag) {
             case "connected": {
-                const searchIndexesSupported = await this.session.isSearchSupported();
+                const searchIndexesSupported = await (this.session as ISession & { isSearchSupported(): Promise<boolean> }).isSearchSupported();
                 result += `The user is connected to the MongoDB cluster${searchIndexesSupported ? " with support for search indexes" : " without any support for search indexes"}.`;
                 break;
             }
