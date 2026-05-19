@@ -7,7 +7,7 @@ import { defaultTestConfig, getDataFromUntrustedContent, resourceChangedNotifica
 import { describeWithMongoDB } from "../mongodbHelpers.js";
 import { contentWithResourceURILink } from "../tools/mongodb/read/export.test.js";
 import type { UserConfig } from "mongodb-mcp-server";
-import { ExportedData } from "../../../mongodb-mcp-server/src/resources/common/exportedData.js";
+import { ExportedData } from "mongodb-mcp-server";
 
 const userConfig: UserConfig = {
     ...defaultTestConfig,

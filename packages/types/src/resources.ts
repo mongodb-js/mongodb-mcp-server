@@ -77,4 +77,5 @@ export type ResourceClass<
 };
 
 /** Resource constructor type for registries that may include session-specific resource implementations. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnyResourceClass = ResourceClass<any, any>;

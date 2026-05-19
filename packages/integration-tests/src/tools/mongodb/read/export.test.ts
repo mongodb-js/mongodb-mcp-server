@@ -12,7 +12,7 @@ import {
 } from "../../../integrationHelpers.js";
 import { describeWithMongoDB } from "../../../mongodbHelpers.js";
 import type { UserConfig } from "mongodb-mcp-server";
-import { ExportedData } from "../../../../../mongodb-mcp-server/src/resources/common/exportedData.js";
+import { ExportedData } from "mongodb-mcp-server";
 
 const userConfig: UserConfig = {
     ...defaultTestConfig,

@@ -14,7 +14,8 @@ import {
 import type { UserConfig } from "mongodb-mcp-server";
 import type { ServerOptions } from "mongodb-mcp-server";
 import { MongoDBTools } from "mongodb-mcp-server/tools";
-import type { AnyResourceClass, AnyToolClass } from "@mongodb-js/mcp-core";
+import type { AnyToolClass } from "@mongodb-js/mcp-core";
+import type { AnyResourceClass } from "@mongodb-js/mcp-types";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { EJSON } from "bson";
 import { MongoDBClusterProcess } from "@mongodb-js/mcp-test-utils";
