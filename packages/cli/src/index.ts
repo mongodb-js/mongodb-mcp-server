@@ -12,7 +12,7 @@ export {
 } from "./cli.js";
 
 // Server infrastructure type
-export type { ServerInfrastructure } from "./serverFactory.js";
+export type { ServerInfrastructure, PackageInfo } from "./serverFactory.js";
 
 // Config parsing and types
 export { parseUserConfig, type ParserOptions, defaultParserOptions } from "./config/parseUserConfig.js";

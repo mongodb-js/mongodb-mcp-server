@@ -21,7 +21,6 @@ import {
     QUERY_COUNT_MAX_TIME_MS_CAP,
     AGG_COUNT_MAX_TIME_MS_CAP,
 } from "@mongodb-js/mcp-tools-mongodb";
-import { packageInfo } from "./common/packageInfo.js";
 import { type ConnectionErrorHandler } from "@mongodb-js/mcp-tools-mongodb";
 import type { Elicitation } from "@mongodb-js/mcp-core";
 import { AllTools } from "./tools/index.js";
@@ -34,6 +33,13 @@ export type AnyToolClass = ToolClass<any, any>; // eslint-disable-line @typescri
 export type MongoDBToolsRuntimeConfig = {
     queryCountMaxTimeMsCap: number;
     aggregationCountMaxTimeMsCap: number;
+};
+
+/** Package information for the server. */
+export type PackageInfo = {
+    version: string;
+    mcpServerName: string;
+    engines: { node: string };
 };
 
 export interface ServerOptions<
@@ -91,6 +97,8 @@ export interface ServerOptions<
      * from `@mongodb-js/mcp-tools-mongodb` (`QUERY_COUNT_MAX_TIME_MS_CAP` and `AGG_COUNT_MAX_TIME_MS_CAP`).
      */
     runtimeConfig?: MongoDBToolsRuntimeConfig;
+    /** Package information for the server. */
+    packageInfo: PackageInfo;
 }
 
 export class Server<
@@ -107,6 +115,7 @@ export class Server<
     public readonly connectionErrorHandler: ConnectionErrorHandler;
     public readonly uiRegistry?: UIRegistry;
     public readonly metrics: IMetrics<TMetrics>;
+    public readonly packageInfo: PackageInfo;
 
     private readonly runtimeConfig: MongoDBToolsRuntimeConfig;
 
@@ -135,6 +144,7 @@ export class Server<
             queryCountMaxTimeMsCap: QUERY_COUNT_MAX_TIME_MS_CAP,
             aggregationCountMaxTimeMsCap: AGG_COUNT_MAX_TIME_MS_CAP,
         },
+        packageInfo,
     }: ServerOptions<TUserConfig, TMetrics>) {
         this.startTime = Date.now();
         this.session = session;
@@ -147,6 +157,7 @@ export class Server<
         this.uiRegistry = uiRegistry;
         this.metrics = metrics;
         this.runtimeConfig = runtimeConfig;
+        this.packageInfo = packageInfo;
 
         this._mcpLogLevel = userConfig.mcpClientLogLevel;
         this.mcpLogLevelFloor = this._mcpLogLevel;
@@ -228,7 +239,7 @@ export class Server<
             this.session.logger.info({
                 id: LogId.serverInitialized,
                 context: "server",
-                message: `Server with version ${packageInfo.version} started with transport ${transport.constructor.name} and agent runner ${JSON.stringify(this.session.mcpClient)}`,
+                message: `Server with version ${this.packageInfo.version} started with transport ${transport.constructor.name} and agent runner ${JSON.stringify(this.session.mcpClient)}`,
             });
 
             this.emitServerTelemetryEvent("start", Date.now() - this.startTime);

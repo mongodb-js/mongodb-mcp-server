@@ -38,7 +38,7 @@ enableFipsIfRequested();
 
 import crypto from "crypto";
 import { ConsoleLogger } from "@mongodb-js/mcp-logging";
-import { LogId, Keychain, Elicitation } from "@mongodb-js/mcp-core";
+import { LogId, Elicitation } from "@mongodb-js/mcp-core";
 import { runMcpCli, createServerFromUserConfig, type Handler, type UserConfig } from "@mongodb-js/mcp-cli";
 import { Server } from "./server.js";
 import { Session } from "./common/session.js";
@@ -47,7 +47,6 @@ import { connectionErrorHandler } from "@mongodb-js/mcp-tools-mongodb";
 import { MCPConnectionManager, ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
-import { Keychain as CoreKeychain } from "@mongodb-js/mcp-core";
 import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { runSetup } from "./setup/setupMcpServer.js";
@@ -57,7 +56,7 @@ const setupHandler: Handler = {
     shouldHandle(_config: UserConfig, args: string[]): boolean {
         return args[0] === "setup";
     },
-    async handle(config: UserConfig, consoleLogger, onExit): Promise<void> {
+    async handle(config: UserConfig, consoleLogger: { error: (msg: string) => void }, onExit: (code: number) => void): Promise<void> {
         await runSetup(config);
         onExit(0);
     },
@@ -66,13 +65,90 @@ const setupHandler: Handler = {
 async function main(): Promise<void> {
     const args = process.argv.slice(2);
 
-    const { config, logger, metrics } = await createServerFromUserConfig({ args, consoleLogger: console });
+    // Get infrastructure from CLI factory
+    const { config, logger, metrics, keychain } = await createServerFromUserConfig({
+        args,
+        consoleLogger: console,
+        packageInfo,
+    });
 
-    new Server
+    // Create MongoDB-specific infrastructure
+    const exportsManager = ExportsManager.init({
+        options: {
+            exportsPath: config.exportsPath,
+            exportTimeoutMs: config.exportTimeoutMs,
+            exportCleanupIntervalMs: config.exportCleanupIntervalMs,
+        },
+        logger,
+    });
+
+    const deviceId = DeviceId.create(logger);
+
+    const connectionManager = new MCPConnectionManager({
+        logger,
+        deviceId,
+        options: {
+            connectionInfo: { transport: "http", httpHost: "localhost" },
+            displayName: "mongodb-mcp-server",
+            version: packageInfo.version,
+        },
+    });
+
+    const apiClient = new ApiClient({
+        baseUrl: config.apiBaseUrl,
+        userAgent: `mongodb-mcp-server/${packageInfo.version}`,
+        logger,
+        credentials: {
+            clientId: config.apiClientId,
+            clientSecret: config.apiClientSecret,
+        },
+    });
+
+    const atlasLocalClient = await createAtlasLocalClient({ logger });
+
+    const telemetry = AtlasTelemetry.create({
+        logger,
+        deviceId,
+        apiClient,
+        keychain,
+        enabled: config.telemetry === "enabled",
+        machineMetadata: buildMachineMetadata(packageInfo.mcpServerName, packageInfo.version),
+    });
+
+    const mcpServer = new McpServer({
+        name: "mongodb-mcp-server",
+        version: packageInfo.version,
+    });
+
+    const elicitation = new Elicitation({ server: mcpServer.server });
+
+    const session = new Session({
+        userConfig: config,
+        logger,
+        exportsManager,
+        connectionManager,
+        keychain,
+        apiClient,
+        connectionErrorHandler,
+        atlasLocalClient,
+    });
+
+    // Create the Server with all dependencies
+    const server = new Server({
+        session,
+        userConfig: config,
+        mcpServer,
+        telemetry,
+        connectionErrorHandler,
+        elicitation,
+        metrics,
+        packageInfo,
+    });
+
     await runMcpCli({
         args,
         consoleLogger: console,
-        onExit: (code) => process.exit(code),
+        onExit: (code: number) => process.exit(code),
         clientInfo: {
             name: packageInfo.mcpServerName,
             version: packageInfo.version,
@@ -86,11 +162,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: unknown) => {
-    const logger = new ConsoleLogger({ keychain: Keychain.root });
-    logger.emergency({
-        id: LogId.serverStartFailure,
-        context: "server",
-        message: `Fatal error running server: ${error as string}`,
-    });
+    console.error(`Fatal error running server: ${error as string}`);
     process.exit(1);
 });
