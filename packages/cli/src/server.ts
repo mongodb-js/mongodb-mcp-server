@@ -216,7 +216,7 @@ export class Server<
             this.session.logger.info({
                 id: LogId.serverInitialized,
                 context: "server",
-                message: `Server with version ${this.serverMetadata.version} started with transport ${transport.constructor.name} and agent runner ${JSON.stringify(this.session)}`,
+                message: `Server with version ${this.serverMetadata.version} started with transport ${transport.constructor.name} and agent runner ${JSON.stringify(this.session.mcpClient)}`,
             });
 
             this.emitServerTelemetryEvent("start", Date.now() - this.startTime);
