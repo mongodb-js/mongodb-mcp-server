@@ -39,6 +39,12 @@ describe("debug resource", () => {
         })
     );
 
+    // Mock EventEmitter methods that ReactiveResource uses
+    // @ts-expect-error - Session is not a MockedObject
+    session.on = vi.fn();
+    // Mock isSearchSupported that DebugResource.toOutput() uses
+    session.isSearchSupported = vi.fn(() => Promise.resolve(false));
+
     const telemetry = AtlasTelemetry.create({
         logger,
         deviceId,
@@ -50,8 +56,13 @@ describe("debug resource", () => {
 
     let debugResource: DebugResource;
 
-    beforeEach(() => // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
-    debugResource = new DebugResource({ session: { ...session, config: defaultTestConfig }, telemetry } as any));
+    beforeEach(() => {
+        // Reset isSearchSupported mock before each test
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        vi.mocked(session.isSearchSupported).mockResolvedValue(false);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
+        debugResource = new DebugResource({ session: { ...session, config: defaultTestConfig }, telemetry } as any);
+    });
 
     it("should be connected when a connected event happens", async () => {
         debugResource.reduceApply("connect", undefined);
@@ -133,7 +144,8 @@ describe("debug resource", () => {
     });
 
     it("should notify if a cluster supports search indexes", async () => {
-        vi.spyOn(session, "isSearchSupported").mockImplementation(() => Promise.resolve(true));
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        vi.mocked(session.isSearchSupported).mockResolvedValue(true);
         debugResource.reduceApply("connect", undefined);
         const output = await debugResource.toOutput();
 

@@ -56,6 +56,8 @@ const expectedDefaults = {
     externallyManagedSessions: false,
     httpResponseType: "sse",
     monitoringServerFeatures: ["health-check"],
+    queryCountMaxTimeMsCap: 10000,
+    aggregationCountMaxTimeMsCap: 60000,
 };
 
 const CONFIG_FIXTURES = {
