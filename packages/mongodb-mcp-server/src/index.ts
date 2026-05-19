@@ -68,6 +68,7 @@ async function main(): Promise<void> {
 
     const { config, logger, metrics } = await createServerFromUserConfig({ args, consoleLogger: console });
 
+    new Server
     await runMcpCli({
         args,
         consoleLogger: console,

@@ -3,6 +3,7 @@ import { createDefaultLoggers } from "./utils/loggers.js";
 import { parseUserConfig } from "./config/parseUserConfig.js";
 import type { ConsoleLogger } from "./types.js";
 import type { UserConfig } from "./config/userConfig.js";
+import { connectionErrorHandler } from "@mongodb-js/mcp-tools-mongodb";
 
 export type ServerInfrastructure = {
     config: UserConfig;
@@ -112,5 +113,6 @@ export async function createServerFromUserConfig(options: {
         elicitation,
         metrics,
     });
+
     return { config, logger, metrics };
 }
