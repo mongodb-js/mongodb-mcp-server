@@ -108,8 +108,8 @@ function extractZodDescriptions(): Record<string, ConfigMetadata> {
     // Get the shape of the Zod schema
     const shape = UserConfigSchema.shape;
 
-    for (const key of Object.keys(shape) as (keyof typeof shape)[]) {
-        const schema = shape[key];
+    for (const [key, fieldSchema] of Object.entries(shape)) {
+        const schema = fieldSchema;
         // Extract description from Zod schema
         let description = schema.description || `Configuration option: ${key}`;
 
