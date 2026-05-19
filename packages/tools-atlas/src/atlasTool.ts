@@ -1,11 +1,11 @@
-import type { CallToolResult } from "@mongodb-js/mcp-types";
+import type { CallToolResult, ISession, IToolConfig, AtlasMetadata } from "@mongodb-js/mcp-types";
 import { ToolBase } from "@mongodb-js/mcp-core";
 import type { ToolArgs, ToolCategory } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { LogId } from "@mongodb-js/mcp-core";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import { z } from "zod";
-import type { AtlasClusterConnectionInfo, IToolConfig, IToolSession, AtlasMetadata } from "@mongodb-js/mcp-types";
+import type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-types";
 
 export interface IAtlasConfig extends IToolConfig {
     apiClientId?: string;
@@ -13,7 +13,8 @@ export interface IAtlasConfig extends IToolConfig {
     atlasTemporaryDatabaseUserLifetimeMs?: number;
 }
 
-export interface IAtlasSession extends IToolSession {
+export interface IAtlasSession extends ISession {
+    config: IAtlasConfig;
     readonly apiClient?: ApiClient;
     readonly connectedAtlasCluster?: AtlasClusterConnectionInfo;
     readonly connectionManager?: {
@@ -25,10 +26,15 @@ export interface IAtlasSession extends IToolSession {
     connectToMongoDB(settings: { connectionString: string; atlas?: AtlasClusterConnectionInfo }): Promise<void>;
 }
 
-export abstract class AtlasToolBase extends ToolBase<IAtlasConfig> {
+export abstract class AtlasToolBase extends ToolBase<IAtlasSession> {
     static category: ToolCategory = "atlas";
 
     declare protected readonly session: IAtlasSession;
+
+    /** Access to the Atlas-specific configuration. */
+    protected get config(): IAtlasConfig {
+        return this.session.config;
+    }
 
     protected verifyAllowed(): boolean {
         if (!this.config.apiClientId || !this.config.apiClientSecret) {

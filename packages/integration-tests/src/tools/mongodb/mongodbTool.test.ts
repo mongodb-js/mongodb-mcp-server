@@ -171,6 +171,13 @@ describe("MongoDBTool implementations", () => {
             elicitation,
             tools: toolConstructors,
             metrics: new MockMetrics(),
+            packageInfo: {
+                mcpServerName: "test-server",
+                version: "1.0",
+                engines: {
+                    node: "12.0.0",
+                },
+            },
         });
 
         await mcpServer.connect(serverTransport);

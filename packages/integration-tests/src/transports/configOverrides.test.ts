@@ -136,6 +136,13 @@ async function createTestServer(config: UserConfig): Promise<Server> {
         connectionErrorHandler,
         elicitation,
         metrics,
+        packageInfo: {
+            mcpServerName: "test-server",
+            version: "1.0",
+            engines: {
+                node: "12.0.0",
+            },
+        },
     });
 
     return server;

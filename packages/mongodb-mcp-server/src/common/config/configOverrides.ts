@@ -1,5 +1,5 @@
-import type { UserConfig } from "./userConfig.js";
-import { UserConfigSchema, configRegistry } from "./userConfig.js";
+import type { UserConfig } from "@mongodb-js/mcp-cli";
+import { UserConfigSchema, configRegistry } from "@mongodb-js/mcp-cli";
 import type { TransportRequestContext } from "@mongodb-js/mcp-core";
 import type { ConfigFieldMeta, OverrideBehavior } from "@mongodb-js/mcp-cli";
 import { UserFacingError } from "@mongodb-js/mcp-core";

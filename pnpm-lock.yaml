@@ -388,6 +388,9 @@ importers:
       '@mongodb-js/mcp-atlas-telemetry':
         specifier: workspace:*
         version: link:../atlas-telemetry
+      '@mongodb-js/mcp-cli':
+        specifier: workspace:*
+        version: link:../cli
       '@mongodb-js/mcp-core':
         specifier: workspace:*
         version: link:../core

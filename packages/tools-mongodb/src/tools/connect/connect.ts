@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { CallToolResult } from "@mongodb-js/mcp-types";
-import { MongoDBToolBase, type IMongoDBConfig, type MongoDBToolRegistrationServer } from "../../mongodbTool.js";
+import { MongoDBToolBase, type IMongoDBSession, type MongoDBToolRegistrationServer } from "../../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolConstructorParams } from "@mongodb-js/mcp-core";
 export class ConnectTool extends MongoDBToolBase {
     static toolName = "connect";
@@ -15,7 +15,7 @@ export class ConnectTool extends MongoDBToolBase {
 
     static operationType: OperationType = "connect";
 
-    constructor(params: ToolConstructorParams<IMongoDBConfig>) {
+    constructor(params: ToolConstructorParams<IMongoDBSession>) {
         super(params);
         this.session.on("connect", () => {
             this.disable();

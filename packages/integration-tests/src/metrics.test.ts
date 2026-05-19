@@ -112,6 +112,13 @@ async function createTestServer(
         elicitation,
         metrics,
         tools: options.tools,
+        packageInfo: {
+            mcpServerName: "test-server",
+            version: "1.0",
+            engines: {
+                node: "12.0.0",
+            },
+        },
     });
 
     return server;
@@ -370,7 +377,7 @@ describe("/metrics endpoint", () => {
             } satisfies CustomMetrics,
         });
 
-        class CustomTool extends ToolBase<UserConfig, CustomMetrics> {
+        class CustomTool extends ToolBase<Session, CustomMetrics> {
             static toolName = "custom-tool";
             static category: ToolCategory = "mongodb";
             static operationType: OperationType = "read";

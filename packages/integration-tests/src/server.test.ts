@@ -240,6 +240,13 @@ describe("Server integration test", () => {
             connectionErrorHandler,
             tools: [...tools],
             metrics: new MockMetrics(),
+            packageInfo: {
+                mcpServerName: "test-server",
+                version: "1.0",
+                engines: {
+                    node: "12.0.0",
+                },
+            },
         });
 
         const transport = new InMemoryTransport();

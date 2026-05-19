@@ -22,6 +22,7 @@ import type { LogLevel } from "@mongodb-js/mcp-types";
 export {
     ToolBase,
     type ToolClass,
+    type AnyToolClass,
     type ToolConstructorParams,
     type AnyToolBase,
     type ToolArgs,
@@ -35,6 +36,7 @@ export {
     type ReactiveResourceOptions,
     type ResourceConstructorParams,
     type IResourceServer,
+    type ResourceClass,
 } from "./reactiveResource.js";
 export { getRandomUUID } from "./randomUUID.js";
 export { TRANSPORT_PAYLOAD_LIMITS } from "./transportConstants.js";

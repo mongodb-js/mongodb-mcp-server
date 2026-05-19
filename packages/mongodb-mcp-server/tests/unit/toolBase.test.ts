@@ -1,15 +1,13 @@
 import type { Mock } from "vitest";
 import { describe, it, expect, vi, beforeEach, type MockedFunction } from "vitest";
 import type { ZodRawShape } from "zod";
-import type { ToolConstructorParams } from "../../src/tools/tool.js";
 import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { Session } from "../../src/common/session.js";
-import type { UserConfig } from "@mongodb-js/mcp-cli";
+import type { Server, UserConfig } from "@mongodb-js/mcp-cli";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { Elicitation } from "@mongodb-js/mcp-core";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { Server } from "../../src/server.js";
 import type { TelemetryToolEvent as ToolEvent } from "@mongodb-js/mcp-atlas-telemetry";
 import type { PreviewFeature } from "@mongodb-js/mcp-tools-mongodb";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
@@ -18,7 +16,6 @@ import { expectDefined } from "@mongodb-js/mcp-test-utils";
 import { TestTool, TestToolWithOutputSchema, TestToolWithoutStructuredContent, ErrorTool } from "./mocks/tools.js";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 import { Keychain } from "@mongodb-js/mcp-core";
-import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
 
 describe("ToolBase", () => {
     let mockSession: Session;
@@ -40,16 +37,17 @@ describe("ToolBase", () => {
             error: vi.fn(),
         } as unknown as CompositeLogger;
 
-        mockSession = {
-            logger: mockLogger,
-            keychain: new Keychain(),
-        } as unknown as Session;
-
         mockConfig = {
             confirmationRequiredTools: [],
             previewFeatures: [],
             disabledTools: [],
         } as unknown as UserConfig;
+
+        mockSession = {
+            logger: mockLogger,
+            keychain: new Keychain(),
+            config: mockConfig,
+        } as unknown as Session;
 
         mockAtlasTelemetry = {
             isTelemetryEnabled: () => true,
@@ -63,12 +61,11 @@ describe("ToolBase", () => {
 
         mockMetrics = new MockMetrics();
 
-        const constructorParams: ToolConstructorParams<UserConfig, DefaultPrometheusMetricDefinitions> = {
+        const constructorParams = {
             name: TestTool.toolName,
             category: TestTool.category,
             operationType: TestTool.operationType,
             session: mockSession,
-            config: mockConfig,
             telemetry: mockAtlasTelemetry,
             elicitation: mockElicitation,
             uiRegistry: new UIRegistry(),
@@ -334,12 +331,11 @@ describe("ToolBase", () => {
 
         function createToolWithUI(previewFeatures: PreviewFeature[] = []): TestToolWithOutputSchema {
             mockConfig.previewFeatures = previewFeatures;
-            const constructorParams: ToolConstructorParams<UserConfig, DefaultPrometheusMetricDefinitions> = {
+            const constructorParams = {
                 name: TestToolWithOutputSchema.toolName,
                 category: TestToolWithOutputSchema.category,
                 operationType: TestToolWithOutputSchema.operationType,
                 session: mockSession,
-                config: mockConfig,
                 telemetry: mockAtlasTelemetry,
                 elicitation: mockElicitation,
                 uiRegistry: mockUIRegistry,
@@ -502,7 +498,6 @@ describe("ToolBase", () => {
                 category: ErrorTool.category,
                 operationType: ErrorTool.operationType,
                 session: mockSession,
-                config: mockConfig,
                 telemetry: mockAtlasTelemetry,
                 elicitation: mockElicitation,
                 metrics: mockMetrics,
@@ -564,12 +559,11 @@ function createToolWithoutStructuredContent(
     mockMetrics: MockMetrics
 ): TestToolWithoutStructuredContent {
     mockConfig.previewFeatures = previewFeatures;
-    const constructorParams: ToolConstructorParams<UserConfig, DefaultPrometheusMetricDefinitions> = {
+    const constructorParams = {
         name: TestToolWithoutStructuredContent.toolName,
         category: TestToolWithoutStructuredContent.category,
         operationType: TestToolWithoutStructuredContent.operationType,
         session: mockSession,
-        config: mockConfig,
         telemetry: mockAtlasTelemetry,
         elicitation: mockElicitation,
         uiRegistry: mockUIRegistry,

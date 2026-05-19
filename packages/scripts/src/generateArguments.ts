@@ -108,8 +108,8 @@ function extractZodDescriptions(): Record<string, ConfigMetadata> {
     // Get the shape of the Zod schema
     const shape = UserConfigSchema.shape;
 
-    for (const [key, fieldSchema] of Object.entries(shape)) {
-        const schema = fieldSchema;
+    for (const key of Object.keys(shape) as (keyof typeof shape)[]) {
+        const schema = shape[key];
         // Extract description from Zod schema
         let description = schema.description || `Configuration option: ${key}`;
 
@@ -130,6 +130,7 @@ function extractZodDescriptions(): Record<string, ConfigMetadata> {
             defaultValue = schema.def.defaultValue;
         }
         // Get metadata from custom registry
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const registryMeta = configRegistry.get(schema);
         if (registryMeta) {
             defaultValueDescription = registryMeta.defaultValueDescription;

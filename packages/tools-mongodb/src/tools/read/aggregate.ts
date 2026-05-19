@@ -205,7 +205,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
 
         if (this.config.readOnly) {
             writeStageForbiddenError = "In readOnly mode you can not run pipelines with $out or $merge stages.";
-        } else if (this.config.disabledTools.some((t) => writeOperations.includes(t as OperationType))) {
+        } else if (this.config.disabledTools.some((t: string) => writeOperations.includes(t as OperationType))) {
             writeStageForbiddenError =
                 "When 'create', 'update', or 'delete' operations are disabled, you can not run pipelines with $out or $merge stages.";
         }

@@ -1,23 +1,12 @@
 // Server class and types
 export { Server } from "./server.js";
-export type {
-    ServerOptions,
-    PackageInfo,
-    ServerSession,
-    ServerTelemetry,
-    ServerLogger,
-    ResourceRegistry,
-    ToolRegistry,
-    ToolConstructor,
-    MongoDBToolsRuntimeConfig,
-} from "./server.js";
+export type { ServerOptions, PackageInfo, ServerTelemetry, ServerLogger, ToolRegistry } from "./server.js";
 
 // Main CLI run function and types
 export {
     runMcpCli,
     createServerFromUserConfig,
     startServer,
-    type CLIOptions,
     type Handler,
     type ClientInfo,
     type ConsoleLogger,
@@ -47,6 +36,8 @@ export {
     type OverrideBehavior,
     type ConfigFieldMeta,
 } from "./config/configUtils.js";
+
+export type { ServerSession } from "./server.js";
 
 // Transport constants
 export { TRANSPORT_PAYLOAD_LIMITS, type TransportType } from "./transports/constants.js";

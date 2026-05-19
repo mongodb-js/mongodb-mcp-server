@@ -53,6 +53,9 @@ export type ToolClass<TParams extends unknown[] = unknown[]> = {
     operationType: OperationType;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AnyToolClass = ToolClass<any>;
+
 export interface IToolRegistrar {
     register(tool: ToolClass): boolean;
 }

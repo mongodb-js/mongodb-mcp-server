@@ -21,7 +21,6 @@ import type { OperationType } from "@mongodb-js/mcp-core";
 import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
-
 export const defaultTestConfig: UserConfig = {
     ...UserConfigSchema.parse({}),
     telemetry: "disabled",
@@ -55,6 +54,7 @@ type ToolInfo = Awaited<ReturnType<Client["listTools"]>>["tools"][number];
 export interface IntegrationTest {
     mcpClient: () => Client;
     mcpServer: () => Server & {
+        session: Session;
         getApiClient: () => ApiClient;
     };
 }
@@ -182,6 +182,13 @@ export function setupIntegrationTest(
             connectionErrorHandler,
             uiRegistry,
             metrics: new MockMetrics(),
+            packageInfo: {
+                mcpServerName: "test-server",
+                version: "1.0",
+                engines: {
+                    node: "12.0.0",
+                },
+            },
             ...serverOptions,
         });
 
@@ -216,20 +223,19 @@ export function setupIntegrationTest(
         return mcpClient;
     };
 
-    const getMcpServer = (): Server & { getApiClient: () => ApiClient } => {
+    const getMcpServer = (): Server & { session: Session; getApiClient: () => ApiClient } => {
         if (!mcpServer) {
             throw new Error("beforeEach() hook not ran yet");
         }
 
-        return {
-            ...mcpServer,
+        return Object.assign(mcpServer as Server & { session: Session; getApiClient: () => ApiClient }, {
             getApiClient: (): ApiClient => {
-                if (!mcpServer || !mcpServer.session.apiClient) {
+                if (!mcpServer?.session.apiClient) {
                     throw new Error("apiClient not available");
                 }
-                return mcpServer.session.apiClient;
+                return (mcpServer.session as Session).apiClient;
             },
-        } as Server & { getApiClient: () => ApiClient };
+        });
     };
 
     return {

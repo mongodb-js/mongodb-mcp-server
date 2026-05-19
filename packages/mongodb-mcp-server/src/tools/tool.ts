@@ -1,6 +1,7 @@
 export {
     ToolBase,
     type ToolClass,
+    type AnyToolClass,
     type ToolConstructorParams,
     type AnyToolBase,
     type ToolArgs,

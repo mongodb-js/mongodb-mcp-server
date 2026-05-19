@@ -84,7 +84,47 @@ export { pipelineDescriptionWithVectorSearch } from "./tools/read/aggregate.js";
 export { IndexDirectionSchema, SortDirectionSchema } from "./mongodbSchemas.js";
 export * from "./tools/tools.js";
 
-import * as tools from "./tools/tools.js";
+import type { IMongoDBSession } from "./mongodbTool.js";
+import {
+    AggregateTool,
+    CountTool,
+    FindTool,
+    InsertManyTool,
+    UpdateManyTool,
+    DeleteManyTool,
+    ExplainTool,
+    ExportTool,
+    DropIndexTool,
+    SwitchConnectionTool,
+} from "./tools/tools.js";
+import {
+    CreateIndexTool,
+    CreateCollectionTool,
+    DropCollectionTool,
+    DropDatabaseTool,
+    RenameCollectionTool,
+} from "./tools/tools.js";
+import { ListCollectionsTool, ListDatabasesTool, CollectionIndexesTool, CollectionSchemaTool } from "./tools/tools.js";
 import type { ToolClass } from "@mongodb-js/mcp-core";
 
-export const MongoDBTools: ToolClass[] = Object.values(tools);
+export const MongoDBTools: ToolClass<IMongoDBSession>[] = [
+    AggregateTool,
+    CountTool,
+    FindTool,
+    InsertManyTool,
+    UpdateManyTool,
+    DeleteManyTool,
+    ExplainTool,
+    CreateIndexTool,
+    CreateCollectionTool,
+    DropCollectionTool,
+    DropDatabaseTool,
+    RenameCollectionTool,
+    ListCollectionsTool,
+    ListDatabasesTool,
+    CollectionIndexesTool,
+    CollectionSchemaTool,
+    ExportTool,
+    DropIndexTool,
+    SwitchConnectionTool,
+] as const;

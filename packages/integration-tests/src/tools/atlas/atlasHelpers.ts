@@ -4,6 +4,7 @@ import type { IntegrationTest } from "../../integrationHelpers.js";
 import { setupIntegrationTest, defaultTestConfig } from "../../integrationHelpers.js";
 import type { SuiteCollector } from "vitest";
 import { afterAll, beforeAll, describe } from "vitest";
+import type { ServerSession } from "@mongodb-js/mcp-cli";
 import type { Session } from "mongodb-mcp-server";
 
 export type IntegrationTestFunction = (integration: IntegrationTest) => void;
@@ -201,7 +202,9 @@ export async function assertClusterIsAvailable(
     }
 }
 
-export function assertApiClientIsAvailable(session: Session): asserts session is Session & { apiClient: ApiClient } {
+export function assertApiClientIsAvailable(
+    session: ServerSession
+): asserts session is ServerSession & { apiClient: ApiClient } {
     if (!session.apiClient) {
         throw new Error("apiClient not available");
     }

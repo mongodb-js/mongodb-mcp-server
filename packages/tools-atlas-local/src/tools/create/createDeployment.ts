@@ -32,7 +32,7 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
             },
             loadSampleData,
             imageTag,
-            ...(this.config.voyageApiKey ? { voyageApiKey: this.config.voyageApiKey } : {}),
+            ...(this.session.config.voyageApiKey ? { voyageApiKey: this.session.config.voyageApiKey } : {}),
             doNotTrack: !this.telemetry.isTelemetryEnabled(),
         };
         // Create the deployment

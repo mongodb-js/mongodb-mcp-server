@@ -1,5 +1,4 @@
-import type { IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
-import type { CompositeLogger } from "@mongodb-js/mcp-core";
+import type { ICompositeLogger } from "@mongodb-js/mcp-core";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import type { UserConfig } from "./config/userConfig.js";
 
@@ -23,22 +22,10 @@ export type OnExit = (exitCode: number) => void;
 export type StartableServer = {
     connect(transport: Transport): Promise<void>;
     close(): Promise<void>;
-    session: { logger: CompositeLogger };
+    session: { logger: ICompositeLogger };
 };
 
 export type Handler = {
     shouldHandle(config: UserConfig, args: string[]): boolean;
     handle(config: UserConfig, consoleLogger: ConsoleLogger, onExit: OnExit): Promise<void>;
-};
-
-export type CLIOptions = {
-    args: string[];
-    consoleLogger: ConsoleLogger;
-    onExit: OnExit;
-    clientInfo: ClientInfo;
-    handlers?: Handler[];
-    server: StartableServer;
-    config: UserConfig;
-    logger: CompositeLogger;
-    metrics: IMetrics<DefaultMetricDefinitions>;
 };

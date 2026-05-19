@@ -227,6 +227,13 @@ describe("mcpUI feature with custom UIs", () => {
             connectionErrorHandler,
             uiRegistry: new UIRegistry({ customUIs: customUIsFunction }),
             metrics: new MockMetrics(),
+            packageInfo: {
+                mcpServerName: "test-server",
+                version: "1.0",
+                engines: {
+                    node: "12.0.0",
+                },
+            },
         });
 
         const transport = new InMemoryTransport();

@@ -1,23 +1,23 @@
-import type { CallToolResult } from "@mongodb-js/mcp-types";
+import type { CallToolResult, ISession, IToolConfig, ConnectionMetadata } from "@mongodb-js/mcp-types";
 import type { ToolArgs, ToolExecutionContext } from "@mongodb-js/mcp-core";
 import { ToolBase } from "@mongodb-js/mcp-core";
 import { LogId } from "@mongodb-js/mcp-core";
 import type { Client } from "@mongodb-js/atlas-local";
-import type { ConnectionMetadata, IToolConfig, IToolSession } from "@mongodb-js/mcp-types";
 import type { ToolCategory } from "@mongodb-js/mcp-types";
 
 export interface IAtlasLocalConfig extends IToolConfig {
     voyageApiKey?: string;
 }
 
-export interface IAtlasLocalSession extends IToolSession {
+export interface IAtlasLocalSession extends ISession {
+    config: IAtlasLocalConfig;
     readonly atlasLocalClient?: Client;
     connectToMongoDB(settings: { connectionString: string }): Promise<void>;
 }
 
 export const AtlasLocalToolMetadataDeploymentIdKey = "deploymentId";
 
-export abstract class AtlasLocalToolBase extends ToolBase<IAtlasLocalConfig> {
+export abstract class AtlasLocalToolBase extends ToolBase<IAtlasLocalSession> {
     static category: ToolCategory = "atlas-local";
 
     declare protected readonly session: IAtlasLocalSession;

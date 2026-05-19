@@ -31,6 +31,6 @@ export class MCPHttpServerWrapper extends MCPHttpServer<SessionAwareServer> {
     }
 
     protected override async createServerForRequest(): Promise<SessionAwareServer> {
-        return this.server;
+        return Promise.resolve(this.server);
     }
 }

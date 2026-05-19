@@ -9,7 +9,7 @@ export type SessionEvents = {
     "connection-error": [unknown];
 };
 
-export interface ISession {
+export interface ISession<TConfig extends IToolConfig = IToolConfig> {
     readonly sessionId: string;
     logger: ICompositeLogger;
     mcpClient?: { name?: string; version?: string; title?: string };
@@ -20,15 +20,12 @@ export interface ISession {
     readonly isConnectedToMongoDB: boolean;
     /** Event emitter method for reactive resources */
     on(event: "connect" | "disconnect" | "close" | "connection-error", listener: (...args: unknown[]) => void): void;
-}
-
-export interface IToolSession<TConfig extends IToolConfig = IToolConfig> extends ISession {
+    /** Keychain for secret management */
     readonly keychain: IKeychain;
+    /** Configuration for the session */
+    readonly config: TConfig;
+    /** Optional connection string info */
     readonly connectionStringInfo?: { authType?: string; hostType?: string };
+    /** Optional connected Atlas cluster info */
     readonly connectedAtlasCluster?: { projectId?: string; clusterName?: string };
-    /** Session configuration - provides access to user config */
-    readonly userConfig: TConfig;
 }
-
-/** Alias for IResourceSession - resources use the same session interface as tools */
-export type IResourceSession<TConfig extends IToolConfig = IToolConfig> = IToolSession<TConfig>;

@@ -6,4 +6,4 @@ export { createServerFromUserConfig } from "./serverFactory.js";
 export { startServer } from "./startServer.js";
 
 // Type exports
-export type { ClientInfo, ConsoleLogger, OnExit, Handler, CLIOptions, StartableServer } from "./types.js";
+export type { ClientInfo, ConsoleLogger, OnExit, Handler, StartableServer } from "./types.js";

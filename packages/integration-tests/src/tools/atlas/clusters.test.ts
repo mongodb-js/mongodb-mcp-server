@@ -1,4 +1,3 @@
-import type { Session } from "mongodb-mcp-server";
 import { expectDefined, getResponseContent, sleep } from "../../integrationHelpers.js";
 import {
     describeWithAtlas,
@@ -18,7 +17,7 @@ describeWithAtlas("clusters", (integration) => {
         afterAll(async () => {
             const projectId = getProjectId();
             if (projectId) {
-                const session: Session = integration.mcpServer().session;
+                const session = integration.mcpServer().session;
                 await deleteCluster(session, projectId, clusterName);
             }
         });
@@ -351,7 +350,7 @@ describeWithAtlas("clusters", (integration) => {
             // then makes a real upgrade API call against that outer cluster.
             describe("when connected to the cluster being upgraded", () => {
                 beforeAll(() => {
-                    const session: Session = integration.mcpServer().session;
+                    const session = integration.mcpServer().session;
                     (session.connectionManager as unknown as { state: unknown }).state = {
                         tag: "disconnected",
                         connectedAtlasCluster: {
@@ -367,7 +366,7 @@ describeWithAtlas("clusters", (integration) => {
                 });
 
                 afterAll(() => {
-                    const session: Session = integration.mcpServer().session;
+                    const session = integration.mcpServer().session;
                     (session.connectionManager as unknown as { state: unknown }).state = { tag: "disconnected" };
                 });
 

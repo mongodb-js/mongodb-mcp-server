@@ -301,12 +301,12 @@ describeWithMongoDB(
         });
     },
     {
-        serverOptions: {
-            runtimeConfig: {
-                queryCountMaxTimeMsCap: 0.1,
-                aggregationCountMaxTimeMsCap: AGG_COUNT_MAX_TIME_MS_CAP,
-            },
-        },
+        getUserConfig: (mdbIntegration) => ({
+            ...structuredClone(defaultTestConfig),
+            connectionString: mdbIntegration.connectionString(),
+            queryCountMaxTimeMsCap: 0.1,
+            aggregationCountMaxTimeMsCap: AGG_COUNT_MAX_TIME_MS_CAP,
+        }),
     }
 );
 

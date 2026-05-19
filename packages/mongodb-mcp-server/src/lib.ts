@@ -1,4 +1,4 @@
-export { Server, type ServerOptions, type MongoDBToolsRuntimeConfig, type ToolConstructor } from "@mongodb-js/mcp-cli";
+export { Server, type ServerOptions } from "@mongodb-js/mcp-cli";
 export { Session, type SessionOptions, type SessionEvents } from "./common/session.js";
 export { type UserConfig, UserConfigSchema, configRegistry } from "@mongodb-js/mcp-cli";
 export { parseUserConfig, defaultParserOptions, type ParserOptions } from "@mongodb-js/mcp-cli";
@@ -105,6 +105,7 @@ export { type UIRegistryOptions, UIRegistry } from "@mongodb-js/mcp-ui";
 export {
     type ToolExecutionContext,
     type AnyToolBase,
+    type AnyToolClass,
     type OperationType,
     ToolBase,
     type ToolCategory,

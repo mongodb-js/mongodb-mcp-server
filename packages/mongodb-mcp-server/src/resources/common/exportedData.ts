@@ -4,7 +4,7 @@ import type {
     ReadResourceTemplateCallback,
 } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { LogId } from "@mongodb-js/mcp-core";
+import { LogId, type ResourceConstructorParams } from "@mongodb-js/mcp-core";
 import type { Server } from "@mongodb-js/mcp-cli";
 import type { Session } from "../../common/session.js";
 import { formatUntrustedData } from "../../tools/tool.js";
@@ -16,8 +16,7 @@ export class ExportedData {
     private server?: Server;
     private readonly session: Session;
 
-    
-    constructor({ session }: { session: Session }) {
+    constructor({ session }: ResourceConstructorParams<Session>) {
         this.session = session;
     }
 

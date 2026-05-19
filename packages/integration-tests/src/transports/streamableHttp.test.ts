@@ -7,6 +7,7 @@ import {
     CompositeLogger,
     Keychain,
     LogId,
+    type ToolClass,
 } from "@mongodb-js/mcp-core";
 import type { SessionCloseReason } from "@mongodb-js/mcp-types";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -21,7 +22,6 @@ import {
     type ToolExecutionContext,
     ToolBase,
     Server,
-    type AnyToolClass,
     Session,
     Elicitation,
     connectionErrorHandler,
@@ -50,7 +50,7 @@ import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 async function createTestServer(
     config: UserConfig,
     options: {
-        tools?: AnyToolClass[];
+        tools?: ToolClass[];
     } = {}
 ): Promise<Server> {
     const logger = new CompositeLogger({ loggers: [] });
@@ -124,6 +124,13 @@ async function createTestServer(
         elicitation,
         metrics,
         tools: options.tools,
+        packageInfo: {
+            mcpServerName: "test-server",
+            version: "1.0",
+            engines: {
+                node: "12.0.0",
+            },
+        },
     });
 
     return server;
@@ -132,7 +139,7 @@ async function createTestServer(
 // Custom MCPHttpServer that creates test servers
 class TestMCPHttpServer extends MCPHttpServer<Server> {
     protected userConfig: UserConfig;
-    protected tools?: AnyToolClass[];
+    protected tools?: ToolClass[];
 
     constructor({
         userConfig,
@@ -150,7 +157,7 @@ class TestMCPHttpServer extends MCPHttpServer<Server> {
         logger: CompositeLogger;
         metrics: IMetrics<DefaultMetricDefinitions>;
         sessionStore: ISessionStore<StreamableHTTPServerTransport>;
-        tools?: AnyToolClass[];
+        tools?: ToolClass[];
     }) {
         super({
             options,
@@ -171,7 +178,7 @@ class TestMCPHttpServer extends MCPHttpServer<Server> {
 function createStreamableHttpRunner(
     config: UserConfig,
     options: {
-        tools?: AnyToolClass[];
+        tools?: ToolClass[];
         loggers?: LoggerBase[];
     } = {}
 ): Promise<StreamableHttpRunner<Server>> {

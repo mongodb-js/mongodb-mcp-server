@@ -48,9 +48,9 @@ export async function createServerFromUserConfig(options: {
     }
 
     // Create logger and metrics
-    const logger = await createDefaultLoggers(config);
-    const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
     const keychain = Keychain.root;
+    const logger = await createDefaultLoggers({ config, keychain });
+    const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
 
     return { config, logger, metrics, keychain };
 }

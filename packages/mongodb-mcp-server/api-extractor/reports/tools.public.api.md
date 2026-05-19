@@ -93,7 +93,7 @@ export class AggregateTool extends MongoDBToolBase {
 }
 
 // @public (undocumented)
-export const AllTools: ToolClass<any, any>[];
+export const AllTools: ToolClass<any>[];
 
 // @public (undocumented)
 export type AnyConnectionState = ConnectionStateConnected | ConnectionStateConnecting | ConnectionStateDisconnected | ConnectionStateErrored;
@@ -264,6 +264,29 @@ export interface CommonExportData {
     exportURI: string;
 }
 
+// @public (undocumented)
+export type ConnectionErrorHandled = {
+    errorHandled: true;
+    result: CallToolResult;
+};
+
+// @public (undocumented)
+export type ConnectionErrorHandler = (error: MongoDBError<NotConnectedToMongoDBErrorCode | MisconfiguredConnectionStringErrorCode>, additionalContext: ConnectionErrorHandlerContext) => ConnectionErrorUnhandled | ConnectionErrorHandled | Promise<ConnectionErrorUnhandled | ConnectionErrorHandled>;
+
+// @public (undocumented)
+export const connectionErrorHandler: ConnectionErrorHandler;
+
+// @public (undocumented)
+export type ConnectionErrorHandlerContext = {
+    availableTools: AnyToolBase[];
+    connectionState: AnyConnectionState;
+};
+
+// @public (undocumented)
+export type ConnectionErrorUnhandled = {
+    errorHandled: false;
+};
+
 // @public
 export interface ConnectionInfo {
     // (undocumented)
@@ -407,7 +430,7 @@ export type ConnectionTag = "connected" | "connecting" | "disconnected" | "error
 
 // @public (undocumented)
 export class ConnectTool extends MongoDBToolBase {
-    constructor(params: ToolConstructorParams<IMongoDBConfig>);
+    constructor(params: ToolConstructorParams<IMongoDBSession>);
     // (undocumented)
     argsShape: {
         connectionString: z.ZodString;
@@ -522,7 +545,6 @@ export class CreateIndexTool extends MongoDBToolBase {
                         number: "number";
                         boolean: "boolean";
                         date: "date";
-                        uuid: "uuid";
                         autocomplete: "autocomplete";
                         document: "document";
                         embeddedDocuments: "embeddedDocuments";
@@ -985,9 +1007,11 @@ export type IMongoDBConfig = IToolConfig & {
 };
 
 // @public (undocumented)
-export interface IMongoDBSession extends IToolSession {
+export interface IMongoDBSession extends ISession {
     // (undocumented)
     assertSearchSupported(): Promise<void>;
+    // (undocumented)
+    config: IMongoDBConfig;
     // (undocumented)
     connectedAtlasCluster?: {
         clusterName: string;
@@ -1176,12 +1200,11 @@ export class MongoDBError<ErrorCodeType extends ErrorCode = ErrorCode> extends E
 }
 
 // @public (undocumented)
-export abstract class MongoDBToolBase extends ToolBase<IMongoDBConfig> {
-    constructor(params: ToolConstructorParams<IMongoDBConfig>);
+export abstract class MongoDBToolBase extends ToolBase<IMongoDBSession> {
+    constructor(params: ToolConstructorParams<IMongoDBSession>);
     // (undocumented)
     static category: ToolCategory;
-    // (undocumented)
-    protected readonly config: IMongoDBConfig;
+    protected get config(): IMongoDBConfig;
     // (undocumented)
     protected ensureConnected(): Promise<NodeDriverServiceProvider>;
     protected getAggregationCountDocumentsMaxTimeMS(): number;
@@ -1210,7 +1233,7 @@ export type MongoDBToolRegistrationServer = {
 };
 
 // @public (undocumented)
-export const MongoDBTools: ToolClass<IMongoDBConfig>[];
+export const MongoDBTools: ToolClass<IMongoDBSession>[];
 
 // @public (undocumented)
 export type MonitoringServerFeature = (typeof monitoringServerFeatureValues)[number];
@@ -1305,7 +1328,7 @@ export type StoredExport = ReadyExport | InProgressExport;
 
 // @public (undocumented)
 export class SwitchConnectionTool extends MongoDBToolBase {
-    constructor(params: ToolConstructorParams<IMongoDBConfig>);
+    constructor(params: ToolConstructorParams<IMongoDBSession>);
     // (undocumented)
     argsShape: {
         connectionString: z.ZodOptional<z.ZodString>;
@@ -1328,13 +1351,12 @@ export type ToolArgs<T extends ZodRawShape> = {
 };
 
 // @public
-export abstract class ToolBase<TUserConfig extends IToolConfig = IToolConfig, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
-    constructor(input: ToolConstructorParams<TUserConfig, TMetricsDefinitions>);
+export abstract class ToolBase<TSession extends ISession = ISession, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
+    constructor(input: ToolConstructorParams<TSession, TMetricsDefinitions>);
     // (undocumented)
     get annotations(): ToolAnnotations;
     abstract argsShape: ZodRawShape;
     readonly category: ToolCategory;
-    protected readonly config: TUserConfig;
     abstract description: string;
     // (undocumented)
     disable(): void;
@@ -1363,7 +1385,7 @@ export abstract class ToolBase<TUserConfig extends IToolConfig = IToolConfig, TM
     protected abstract resolveTelemetryMetadata(args: ToolArgs<typeof ToolBase.argsShape>, input: {
         result: CallToolResult;
     }): TelemetryToolMetadata;
-    protected readonly session: IToolSession;
+    protected readonly session: TSession;
     protected readonly telemetry: ITelemetry;
     protected get toolMeta(): Record<string, unknown>;
     // (undocumented)
@@ -1375,20 +1397,19 @@ export abstract class ToolBase<TUserConfig extends IToolConfig = IToolConfig, TM
 export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant" | "custom";
 
 // @public
-export type ToolClass<TUserConfig extends IToolConfig = IToolConfig, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
-    new (params: ToolConstructorParams<TUserConfig, TMetricsDefinitions>): ToolBase<TUserConfig, TMetricsDefinitions>;
+export type ToolClass<TSession extends ISession = ISession, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
+    new (args: ToolConstructorParams<TSession, TMetricsDefinitions>): ToolBase<TSession, TMetricsDefinitions>;
     toolName: string;
     category: ToolCategory;
     operationType: OperationType;
 };
 
 // @public
-export type ToolConstructorParams<TUserConfig extends IToolConfig = IToolConfig, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
+export type ToolConstructorParams<TSession extends ISession<IToolConfig> = ISession<IToolConfig>, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
     name: string;
     category: ToolCategory;
     operationType: OperationType;
-    session: IToolSession;
-    config: TUserConfig;
+    session: TSession;
     telemetry: ITelemetry;
     elicitation: IElicitation;
     metrics: IMetrics<TMetricsDefinitions>;

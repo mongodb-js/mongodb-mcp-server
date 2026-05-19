@@ -1,9 +1,7 @@
 import type {
     ISession,
-    IResourceSession,
     SessionEvents,
     ITelemetry,
-    IToolConfig,
     IElicitation,
     DefaultMetricDefinitions,
     IMetrics,
@@ -67,6 +65,20 @@ export interface IResourceServer {
 }
 
 /**
+ * The type that all resource classes must conform to when implementing custom resources
+ * for the MongoDB MCP Server.
+ *
+ * This type enforces that resource classes have a constructor that accepts `ResourceConstructorParams`.
+ */
+export type ResourceClass<
+    TSession extends ISession = ISession,
+    TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions,
+> = {
+    /** Constructor signature for the resource class */
+    new (params: ResourceConstructorParams<TSession, TMetrics>): { register(server: IResourceServer): void };
+};
+
+/**
  * Abstract base class for implementing reactive MCP resources.
  *
  * Reactive resources automatically update when session events occur. They listen
@@ -111,8 +123,12 @@ export interface IResourceServer {
  *
  * @example Resource with Config Access
  * ```typescript
- * class ConfigResource extends ReactiveResource<MyConfig, readonly [], IResourceSession<MyConfig>> {
- *   constructor(params: ResourceConstructorParams<IResourceSession<MyConfig>>) {
+ * interface ICustomSession extends ISession {
+ *   userConfig: MyConfig;
+ * }
+ *
+ * class ConfigResource extends ReactiveResource<MyConfig, readonly [], ICustomSession> {
+ *   constructor(params: ResourceConstructorParams<ICustomSession>) {
  *     super({
  *       resourceConfiguration: { name: "config", uri: "config://config", config: { description: "Config" } },
  *       options: { initial: params.session.userConfig, events: [] },
@@ -128,6 +144,7 @@ export interface IResourceServer {
  * ```
  */
 export abstract class ReactiveResource<
+    /** Value stored in the resource */
     Value,
     RelevantEvents extends readonly (keyof SessionEvents)[],
     TSession extends ISession = ISession,
@@ -179,7 +196,7 @@ export abstract class ReactiveResource<
     private setupEventListeners(): void {
         for (const event of this.events) {
             this.session.on(event, (...args: unknown[]) => {
-                this.reduceApply(event, args[0] as PayloadOf<typeof event>);
+                this.reduceApply(event, ...args);
                 void this.triggerUpdate();
             });
         }

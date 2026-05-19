@@ -1,14 +1,14 @@
 import { ReactiveResource, type ResourceConstructorParams } from "@mongodb-js/mcp-core";
 import type { UserConfig } from "@mongodb-js/mcp-cli";
-import type { IResourceSession } from "@mongodb-js/mcp-types";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
+import type { Session } from "../../common/session.js";
 
 export class ConfigResource extends ReactiveResource<
     UserConfig,
     readonly [],
-    IResourceSession<UserConfig>
+    Session
 > {
-    constructor(params: ResourceConstructorParams<IResourceSession<UserConfig>>) {
+    constructor({session, ...rest}: ResourceConstructorParams<Session>) {
         super({
             resourceConfiguration: {
                 name: "config",
@@ -19,10 +19,11 @@ export class ConfigResource extends ReactiveResource<
                 },
             },
             options: {
-                initial: { ...params.session.userConfig },
+                initial: { ...session.config },
                 events: [],
             },
-            ...params,
+            session,
+            ...rest,
         });
     }
 
@@ -31,16 +32,17 @@ export class ConfigResource extends ReactiveResource<
     }
 
     toOutput(): string {
-        const connectionInfo = generateConnectionInfoFromCliArgs(this.session.userConfig);
+        const { config } = this.session;
+        const connectionInfo = generateConnectionInfoFromCliArgs(config);
         const result = {
-            telemetry: this.session.userConfig.telemetry,
-            logPath: this.session.userConfig.logPath,
+            telemetry: config.telemetry,
+            logPath: config.logPath,
             connectionString: connectionInfo.connectionString
                 ? "set; access to MongoDB tools are currently available to use"
                 : "not set; before using any MongoDB tool, you need to configure a connection string, alternatively you can setup MongoDB Atlas access, more info at 'https://github.com/mongodb-js/mongodb-mcp-server'.",
             connectOptions: connectionInfo.driverOptions,
             atlas:
-                this.session.userConfig.apiClientId && this.session.userConfig.apiClientSecret
+                config.apiClientId && config.apiClientSecret
                     ? "set; MongoDB Atlas tools are currently available to use"
                     : "not set; MongoDB Atlas tools are currently unavailable, to have access to MongoDB Atlas tools like creating clusters or connecting to clusters make sure to setup credentials, more info at 'https://github.com/mongodb-js/mongodb-mcp-server'.",
         };
