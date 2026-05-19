@@ -14,12 +14,12 @@ import { type ConnectionErrorHandler } from "@mongodb-js/mcp-tools-mongodb";
 import type { Elicitation } from "@mongodb-js/mcp-core";
 import type { IMetrics, DefaultMetricDefinitions, ResourceClass } from "@mongodb-js/mcp-types";
 import type { AtlasTelemetry, TelemetryServerCommand, TelemetryServerEvent } from "@mongodb-js/mcp-atlas-telemetry";
-import type { AnyToolBase, ToolCategory, ToolClass } from "@mongodb-js/mcp-core";
+import type { AnyToolBase, AnyToolClass, ToolCategory } from "@mongodb-js/mcp-core";
 import { validateConnectionString } from "@mongodb-js/mcp-tools-mongodb";
 import { type ServerMetadata } from "@mongodb-js/mcp-types";
 
 /** A list of tool classes that can be instantiated. */
-export type ToolRegistry = ToolClass[];
+export type ToolRegistry = AnyToolClass[];
 
 /** Resource constructor registry. */
 export type ResourceRegistry = readonly ResourceClass[];

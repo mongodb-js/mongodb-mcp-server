@@ -2,7 +2,6 @@ import type { LoggerType, LogLevel, LogPayload } from "@mongodb-js/mcp-core";
 import { CompositeLogger, LoggerBase } from "@mongodb-js/mcp-core";
 import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { Session, UserConfigSchema, packageInfo } from "mongodb-mcp-server";
-import { AllTools } from "mongodb-mcp-server/tools";
 import { Server, type ServerOptions } from "mongodb-mcp-server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -18,7 +17,7 @@ import { Keychain } from "@mongodb-js/mcp-core";
 import { Elicitation } from "mongodb-mcp-server";
 import type { MockClientCapabilities, createMockElicitInput } from "@mongodb-js/mcp-test-utils";
 import { createAtlasLocalClient } from "mongodb-mcp-server";
-import type { OperationType } from "@mongodb-js/mcp-core";
+import type { AnyToolClass, OperationType } from "@mongodb-js/mcp-core";
 import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 export { Session } from "@mongodb-js/mcp-cli";
@@ -69,10 +68,13 @@ export function setupIntegrationTest(
         elicitInput,
         getClientCapabilities,
         serverOptions,
+        tools,
     }: {
         elicitInput?: ReturnType<typeof createMockElicitInput>;
         getClientCapabilities?: () => MockClientCapabilities;
         serverOptions?: Partial<ServerOptions>;
+        /** Tool constructors to register. When omitted, no tools are registered unless set via `serverOptions.tools`. */
+        tools?: AnyToolClass[];
     } = {}
 ): IntegrationTest {
     let mcpClient: Client | undefined;
@@ -175,6 +177,8 @@ export function setupIntegrationTest(
             uiRegistry = new UIRegistry();
         }
 
+        const { tools: toolsFromServerOptions, ...restServerOptions } = serverOptions ?? {};
+
         mcpServer = new Server({
             session,
             userConfig,
@@ -191,8 +195,8 @@ export function setupIntegrationTest(
                     node: "20.0.0",
                 },
             },
-            tools: AllTools,
-            ...serverOptions,
+            ...restServerOptions,
+            tools: tools ?? toolsFromServerOptions,
         });
 
         await mcpServer.connect(serverTransport);

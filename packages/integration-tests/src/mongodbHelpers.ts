@@ -12,6 +12,8 @@ import {
 } from "./integrationHelpers.js";
 import type { Session, UserConfig } from "mongodb-mcp-server";
 import type { Server, ServerOptions } from "mongodb-mcp-server";
+import { MongoDBTools } from "mongodb-mcp-server/tools";
+import type { AnyToolClass } from "@mongodb-js/mcp-core";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { EJSON } from "bson";
 import { MongoDBClusterProcess } from "@mongodb-js/mcp-test-utils";
@@ -87,6 +89,7 @@ export type TestSuiteConfig = {
     getMockElicitationInput?: () => ReturnType<typeof createMockElicitInput>;
     getClientCapabilities?: () => MockClientCapabilities;
     serverOptions?: Partial<ServerOptions>;
+    tools?: AnyToolClass[];
 };
 
 export const defaultTestSuiteConfig: TestSuiteConfig = {
@@ -104,7 +107,8 @@ export function describeWithMongoDB(
         ...defaultTestSuiteConfig,
         ...partialTestSuiteConfig,
     };
-    const { getUserConfig, downloadOptions, getMockElicitationInput, getClientCapabilities, serverOptions } = merged;
+    const { getUserConfig, downloadOptions, getMockElicitationInput, getClientCapabilities, serverOptions, tools } =
+        merged;
     describe.skipIf(!MongoDBClusterProcess.isConfigurationSupportedInCurrentEnv(downloadOptions))(name, () => {
         const mdbIntegration = setupMongoDBIntegrationTest(downloadOptions);
         const mockElicitInput = getMockElicitationInput?.();
@@ -112,7 +116,12 @@ export function describeWithMongoDB(
             () => ({
                 ...getUserConfig(mdbIntegration),
             }),
-            { elicitInput: mockElicitInput, getClientCapabilities, serverOptions }
+            {
+                elicitInput: mockElicitInput,
+                getClientCapabilities,
+                serverOptions,
+                tools: tools ?? MongoDBTools,
+            }
         );
 
         fn({

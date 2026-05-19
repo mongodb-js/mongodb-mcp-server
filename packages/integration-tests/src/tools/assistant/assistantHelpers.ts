@@ -1,4 +1,5 @@
 import { setupIntegrationTest, defaultTestConfig } from "../../integrationHelpers.js";
+import { AssistantTools } from "mongodb-mcp-server/tools";
 import type { IntegrationTest } from "../../integrationHelpers.js";
 import { describe } from "vitest";
 import type { SuiteCollector } from "vitest";
@@ -8,10 +9,13 @@ export type MockIntegrationTestFunction = (integration: IntegrationTest) => void
 
 export function describeWithAssistant(name: string, fn: MockIntegrationTestFunction): SuiteCollector<object> {
     const testDefinition = (): void => {
-        const integration = setupIntegrationTest(() => ({
-            ...defaultTestConfig,
-            assistantBaseUrl: "https://knowledge-mock.mongodb.com/api/v1", // Not a real URL
-        }));
+        const integration = setupIntegrationTest(
+            () => ({
+                ...defaultTestConfig,
+                assistantBaseUrl: "https://knowledge-mock.mongodb.com/api/v1", // Not a real URL
+            }),
+            { tools: AssistantTools }
+        );
 
         describe(name, () => {
             fn(integration);
