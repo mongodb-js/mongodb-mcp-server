@@ -1,3 +1,4 @@
+import { packageInfo } from "./packageInfo.js";
 import { runSetup } from "./setupMcpServer.js";
 import type { CliHandler, CliHandlerContext } from "@mongodb-js/mcp-cli";
 
@@ -10,7 +11,7 @@ export class SetupCliHandler implements CliHandler {
             return false;
         }
 
-        await runSetup(config);
+        await runSetup(config, packageInfo);
         onExit(0);
         return true;
     }

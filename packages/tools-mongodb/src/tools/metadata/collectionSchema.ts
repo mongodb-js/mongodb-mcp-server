@@ -2,7 +2,7 @@ import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "@mongodb-js/mcp-core";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
 import { getSimplifiedSchema } from "mongodb-schema";
-import z from "zod";
+import { z } from "zod";
 import { ONE_MB } from "../../helpers/constants.js";
 import { collectCursorUntilMaxBytesLimit } from "../../helpers/collectCursorUntilMaxBytes.js";
 import { isObjectEmpty } from "../../helpers/isObjectEmpty.js";

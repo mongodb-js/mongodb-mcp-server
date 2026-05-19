@@ -10,4 +10,3 @@ export { SetupTelemetry, type SetupTelemetryContext, toBoolSet } from "./setupTe
 export { formatError, getPlatform, type Platform } from "./setupAiToolsUtils.js";
 export { openConfigSettings, TOOLS_WITHOUT_EDITORS } from "./aiTool.js";
 export { SetupCliHandler } from "./setupCliHandler.js";
-export type { SetupConfig, SetupPackageInfo } from "./types.js";

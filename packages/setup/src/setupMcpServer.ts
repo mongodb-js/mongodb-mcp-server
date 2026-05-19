@@ -16,7 +16,7 @@ import type { TelemetryResult } from "@mongodb-js/mcp-atlas-telemetry";
 import { SetupTelemetry } from "./setupTelemetry.js";
 import { Keychain, registerGlobalSecretToRedact } from "@mongodb-js/mcp-core";
 import { promptAndInstallSkills, type SkillsInstallOutcome } from "./installSkills.js";
-import { packageInfo } from "./packageInfo.js";
+import type { SetupConfig, SetupPackageInfo } from "./types.js";
 
 const buildEnvObject = (
     connectionString: string,
@@ -147,7 +147,7 @@ const printLogo = (): void => {
     printNewLine();
 };
 
-const validateNodeVersion = (): boolean => {
+const validateNodeVersion = (packageInfo: SetupPackageInfo): boolean => {
     const nodeVersion = process.versions.node;
     const requiredNodeRange = packageInfo.engines.node;
     if (!nodeVersion || !semver.satisfies(nodeVersion, requiredNodeRange)) {
@@ -206,7 +206,7 @@ const promptForReadonly = async (): Promise<boolean> => {
 };
 
 const promptForConnectionString = async (
-    config: UserConfig
+    config: SetupConfig
 ): Promise<{
     connectionString: string;
     provided: boolean;
@@ -406,8 +406,8 @@ class UnsupportedPlatformError extends Error {
  * logical step emits a telemetry event so we can track both overall completion
  * rates and per-step drop-off.
  */
-export const runSetup = async (config: UserConfig): Promise<never> => {
-    const setupTelemetry = SetupTelemetry.create(config, Keychain.root);
+export const runSetup = async (config: SetupConfig, packageInfo: SetupPackageInfo): Promise<never> => {
+    const setupTelemetry = SetupTelemetry.create(config, Keychain.root, packageInfo);
 
     // Ensure hard cancellations (SIGINT/SIGTERM outside of an Inquirer prompt)
     // are still captured. Inquirer itself converts Ctrl+C during prompts into
@@ -434,7 +434,7 @@ export const runSetup = async (config: UserConfig): Promise<never> => {
         printLogo();
         setupTelemetry.emitStarted();
 
-        const nodeVersionOk = validateNodeVersion();
+        const nodeVersionOk = validateNodeVersion(packageInfo);
         const platform = getPlatform();
         const platformSupported = platform !== null;
         if (!platformSupported) {

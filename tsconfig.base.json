@@ -17,6 +17,8 @@
     "noImplicitReturns": true,
     "declaration": true,
     "declarationMap": true,
+    "erasableSyntaxOnly": true,
+    "composite": true,
     "jsx": "react-jsx",
     "paths": {
       "ts-levenshtein": ["./node_modules/ts-levenshtein/dist/index.d.mts"],

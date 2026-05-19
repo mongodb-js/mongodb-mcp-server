@@ -5,7 +5,7 @@ import { connectionErrorHandler, ApiClient } from "mongodb-mcp-server";
 import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
 import { MCPConnectionManager, ExportsManager, DeviceId } from "@mongodb-js/mcp-tools-mongodb";
-import { defaultTestConfig, testConnectionManagerDriverLabels } from "mongodb-mcp-server/test-helpers";
+import { defaultTestConfig, testConnectionManagerDriverLabels } from "../../../../src/test-helpers/index.js";
 
 describe("debug resource", () => {
     const logger = new CompositeLogger();

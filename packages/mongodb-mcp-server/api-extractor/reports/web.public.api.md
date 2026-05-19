@@ -324,7 +324,7 @@ export type ConnectionErrorHandled = {
 };
 
 // @public (undocumented)
-export type ConnectionErrorHandler = (error: MongoDBError_2<NotConnectedToMongoDBErrorCode | MisconfiguredConnectionStringErrorCode>, additionalContext: ConnectionErrorHandlerContext) => ConnectionErrorUnhandled | ConnectionErrorHandled | Promise<ConnectionErrorUnhandled | ConnectionErrorHandled>;
+export type ConnectionErrorHandler = (error: MongoDBError<NotConnectedToMongoDBErrorCode | MisconfiguredConnectionStringErrorCode>, additionalContext: ConnectionErrorHandlerContext) => ConnectionErrorUnhandled | ConnectionErrorHandled | Promise<ConnectionErrorUnhandled | ConnectionErrorHandled>;
 
 // @public (undocumented)
 export type ConnectionErrorHandlerContext = {
@@ -530,26 +530,6 @@ export type ElicitedInputResult = {
     fields?: undefined;
 };
 
-// @public (undocumented)
-export enum ErrorCodes {
-    // (undocumented)
-    AtlasSearchNotSupported = 1000004,
-    // (undocumented)
-    AtlasVectorSearchIndexNotFound = 1000006,
-    // (undocumented)
-    AtlasVectorSearchInvalidQuery = 1000007,
-    // (undocumented)
-    ForbiddenCollscan = 1000002,
-    // (undocumented)
-    ForbiddenWriteOperation = 1000003,
-    // (undocumented)
-    InvalidPipeline = 1000008,
-    // (undocumented)
-    MisconfiguredConnectionString = 1000001,
-    // (undocumented)
-    NotConnectedToMongoDB = 1000000
-}
-
 // @public
 export class EventCache {
     constructor();
@@ -702,6 +682,12 @@ export class MongoDBError<ErrorCode extends ErrorCodes = ErrorCodes> extends Err
     // (undocumented)
     code: ErrorCode;
 }
+
+// @public
+export type MongoDBToolsRuntimeConfig = {
+    queryCountMaxTimeMsCap: number;
+    aggregationCountMaxTimeMsCap: number;
+};
 
 // @public (undocumented)
 export type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
