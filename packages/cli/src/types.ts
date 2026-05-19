@@ -1,6 +1,5 @@
 import type { ICompositeLogger } from "@mongodb-js/mcp-core";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
-import type { UserConfig } from "./config/userConfig.js";
 
 export type ConsoleLogger = {
     log(message: string): void;
@@ -18,9 +17,4 @@ export type StartableServer = {
     connect(transport: Transport): Promise<void>;
     close(): Promise<void>;
     session: { logger: ICompositeLogger };
-};
-
-export type Handler = {
-    shouldHandle(config: UserConfig, args: string[]): boolean;
-    handle(config: UserConfig, consoleLogger: ConsoleLogger, onExit: OnExit): Promise<void>;
 };

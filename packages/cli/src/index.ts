@@ -1,14 +1,18 @@
 // Server class and types
 export { Server } from "./server.js";
-export type { ServerOptions, ServerTelemetry, ServerLogger, ToolRegistry } from "./server.js";
+export type { ServerOptions, ServerTelemetry, ServerLogger, ToolRegistry, ResourceRegistry } from "./server.js";
 export type { ServerMetadata } from "@mongodb-js/mcp-types";
+
 // Main CLI exports
-export { runMcpCli } from "./runMcpCli.js";
+export { runMcpCli, type RunMcpCliOptions } from "./runMcpCli.js";
 export { startServer } from "./startServer.js";
-export { createServicesFromUserConfig } from "./createServices.js";
+
+// Server creation helper
+export { createServicesFromUserConfig, type CreateServicesOptions } from "./createServices.js";
 
 // Type exports
-export type { ConsoleLogger, OnExit, Handler, StartableServer } from "./types.js";
+export type { ConsoleLogger, OnExit, StartableServer } from "./types.js";
+export type { CliHandler, CliHandlerContext } from "./cliHandler.js";
 
 export { Session } from "./session.js";
 
@@ -45,5 +49,7 @@ export {
     type DryRunModeRunnerOptions,
 } from "./transports/dryModeRunner.js";
 
-// Dry run handler
-export { DryRunHandler } from "./handlers/dryRunHandler.js";
+// CLI Handlers
+export { DryRunHandler, type DryRunHandlerOptions } from "./handlers/dryRunHandler.js";
+export { HelpHandler } from "./handlers/helpHandler.js";
+export { VersionHandler } from "./handlers/versionHandler.js";

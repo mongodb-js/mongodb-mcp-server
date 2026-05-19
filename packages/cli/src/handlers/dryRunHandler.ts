@@ -1,46 +1,62 @@
-import type { Handler, ConsoleLogger, OnExit } from "../types.js";
-import type { UserConfig } from "../config/userConfig.js";
-import { DryRunModeRunner, type DryRunServer } from "../transports/dryModeRunner.js";
+import type { CliHandler, CliHandlerContext } from "../cliHandler.js";
+import { DryRunModeRunner } from "../transports/dryModeRunner.js";
+import { createServicesFromUserConfig } from "../createServices.js";
+import type { ToolRegistry, ResourceRegistry } from "../server.js";
+
+export type DryRunHandlerOptions = {
+    tools: ToolRegistry;
+    resources: ResourceRegistry;
+};
 
 /**
  * Handler for --dryRun mode. Dumps the effective configuration and enabled
  * tools to stdout, then exits without starting the server.
  *
+ * Creates its own minimal server to list the tools that would be available.
+ *
  * @example
  * ```typescript
- * const { server, config, logger, metrics } = await createServicesFromUserConfig({ ... });
- *
  * await runMcpCli({
- *   handlers: [new DryRunHandler({ server })],
- *   server,
- *   config,
+ *   handlers: [new DryRunHandler({ tools: AllTools, resources: Resources })],
  *   ...
  * });
  * ```
  */
-export class DryRunHandler implements Handler {
-    private server: DryRunServer;
+export class DryRunHandler implements CliHandler {
+    private tools: ToolRegistry;
+    private resources: ResourceRegistry;
 
-    constructor({ server }: { server: DryRunServer }) {
-        this.server = server;
+    constructor({ tools, resources }: DryRunHandlerOptions) {
+        this.tools = tools;
+        this.resources = resources;
     }
 
-    shouldHandle(config: UserConfig): boolean {
-        return config.dryRun === true;
-    }
+    async handle({ config, consoleLogger, onExit, serverMetadata }: CliHandlerContext): Promise<boolean> {
+        if (!config.dryRun) {
+            return false;
+        }
 
-    async handle(config: UserConfig, consoleLogger: ConsoleLogger, onExit: OnExit): Promise<void> {
         try {
+            // Create a minimal server just for listing tools
+            const { server } = await createServicesFromUserConfig({
+                config,
+                serverMetadata,
+                tools: this.tools,
+                resources: this.resources,
+            });
+
             const runner = new DryRunModeRunner({
                 logger: consoleLogger,
                 userConfig: config,
-                server: this.server,
+                server,
             });
             await runner.start();
             onExit(0);
+            return true;
         } catch (error) {
             consoleLogger.error(`Fatal error running server in dry run mode: ${error as string}`);
             onExit(1);
+            return true;
         }
     }
 }

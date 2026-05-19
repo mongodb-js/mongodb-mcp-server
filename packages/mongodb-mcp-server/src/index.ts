@@ -37,57 +37,29 @@ function enableFipsIfRequested(): void {
 enableFipsIfRequested();
 
 import crypto from "crypto";
-import type { ServerMetadata } from "@mongodb-js/mcp-types";
-import {
-    runMcpCli,
-    createServicesFromUserConfig,
-    DryRunHandler,
-    type Handler,
-    type UserConfig,
-} from "@mongodb-js/mcp-cli";
-import { runSetup } from "./setup/setupMcpServer.js";
+import { runMcpCli } from "@mongodb-js/mcp-cli";
+import { DryRunHandler, HelpHandler, VersionHandler } from "@mongodb-js/mcp-cli";
+import { SetupCliHandler } from "@mongodb-js/mcp-setup";
 import { packageInfo } from "./common/packageInfo.js";
 import { Resources } from "./resources/resources.js";
 import { AllTools } from "./tools/index.js";
 
-const serverMetadata: ServerMetadata = packageInfo;
-
-const setupHandler: Handler = {
-    shouldHandle(_config: UserConfig, args: string[]): boolean {
-        return args[0] === "setup";
-    },
-    async handle(
-        config: UserConfig,
-        _consoleLogger: { error: (msg: string) => void },
-        onExit: (code: number) => void
-    ): Promise<void> {
-        await runSetup(config);
-        onExit(0);
-    },
-};
-
 async function main(): Promise<void> {
     const args = process.argv.slice(2);
 
-    // Get server from CLI factory
-    const { server, config, logger, metrics } = await createServicesFromUserConfig({
-        args,
-        consoleLogger: console,
-        serverMetadata,
-        tools: AllTools,
-        resources: Resources,
-    });
-
     await runMcpCli({
         args,
+        serverMetadata: packageInfo,
         consoleLogger: console,
         onExit: (code: number) => process.exit(code),
-        serverMetadata,
-        handlers: [setupHandler, new DryRunHandler({ server })],
-        server,
-        config,
-        logger,
-        metrics,
+        tools: AllTools,
+        resources: Resources,
+        handlers: [
+            new HelpHandler(),
+            new VersionHandler(),
+            new SetupCliHandler(),
+            new DryRunHandler({ tools: AllTools, resources: Resources }),
+        ],
     });
 }
 

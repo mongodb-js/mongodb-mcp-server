@@ -2,8 +2,6 @@ import { type IMetrics, PrometheusMetrics, createDefaultMetrics } from "@mongodb
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import { Elicitation, Keychain, McpServer } from "@mongodb-js/mcp-core";
 import { createDefaultLoggers } from "./utils/loggers.js";
-import { parseUserConfig } from "./config/parseUserConfig.js";
-import type { ConsoleLogger } from "./types.js";
 import type { ResourceRegistry, ToolRegistry } from "./server.js";
 import { Server } from "./server.js";
 import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
@@ -14,40 +12,22 @@ import { Session } from "./session.js";
 import type { UserConfig } from "./config/userConfig.js";
 import type { ServerMetadata } from "@mongodb-js/mcp-types";
 
-/**
- * Parses CLI arguments and creates the shared infrastructure (config, logger, metrics, keychain)
- * needed to run an MCP server. Use this as the starting point when building a server,
- * then create your server with the returned values and pass everything to `runMcpCli`.
- */
-export async function createServicesFromUserConfig({
-    args,
-    consoleLogger,
-    serverMetadata,
-    tools,
-    resources,
-}: {
-    args: string[];
-    consoleLogger: ConsoleLogger;
+export type CreateServicesOptions = {
+    config: UserConfig;
     serverMetadata: ServerMetadata;
     tools: ToolRegistry;
     resources: ResourceRegistry;
-}): Promise<{ server: Server; config: UserConfig; logger: CompositeLogger; metrics: IMetrics }> {
-    // Parse CLI arguments
-    const { error, warnings, parsed: config } = parseUserConfig({ args });
+};
 
-    // Handle parse errors
-    if (!config || (error && error.length)) {
-        consoleLogger.error(`${error}
-- Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server.`);
-        throw new Error(`Failed to parse config: ${error}`);
-    }
-
-    // Print warnings
-    if (warnings && warnings.length > 0) {
-        consoleLogger.warn(`${warnings.join("\n")}
-- Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server.`);
-    }
-
+/**
+ * Creates the shared infrastructure with common defaults.
+ */
+export async function createServicesFromUserConfig({
+    config,
+    serverMetadata,
+    tools,
+    resources,
+}: CreateServicesOptions): Promise<{ server: Server; config: UserConfig; logger: CompositeLogger; metrics: IMetrics }> {
     // Create logger and metrics
     const keychain = Keychain.root;
     const logger = await createDefaultLoggers({ config, keychain });

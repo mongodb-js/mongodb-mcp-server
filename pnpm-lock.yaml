@@ -564,6 +564,9 @@ importers:
       '@mongodb-js/mcp-metrics':
         specifier: workspace:*
         version: link:../metrics
+      '@mongodb-js/mcp-setup':
+        specifier: workspace:*
+        version: link:../setup
       '@mongodb-js/mcp-tools-assistant':
         specifier: workspace:*
         version: link:../tools-assistant
@@ -726,6 +729,9 @@ importers:
       '@mongodb-js/mcp-atlas-telemetry':
         specifier: workspace:*
         version: link:../atlas-telemetry
+      '@mongodb-js/mcp-cli':
+        specifier: workspace:*
+        version: link:../cli
       '@mongodb-js/mcp-core':
         specifier: workspace:*
         version: link:../core
@@ -735,6 +741,9 @@ importers:
       '@mongodb-js/mcp-tools-mongodb':
         specifier: workspace:*
         version: link:../tools-mongodb
+      '@mongodb-js/mcp-types':
+        specifier: workspace:*
+        version: link:../types
       '@mongosh/service-provider-node-driver':
         specifier: ^5.0.2
         version: 5.0.2(mongodb-log-writer@2.5.7(bson@7.2.0))

@@ -109,6 +109,7 @@
     "@mongodb-js/mcp-atlas-telemetry": "workspace:*",
     "@mongodb-js/mcp-cli": "workspace:*",
     "@mongodb-js/mcp-core": "workspace:*",
+    "@mongodb-js/mcp-setup": "workspace:*",
     "@mongodb-js/mcp-logging": "workspace:*",
     "@mongodb-js/mcp-metrics": "workspace:*",
     "@mongodb-js/mcp-tools-assistant": "workspace:*",

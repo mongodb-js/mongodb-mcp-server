@@ -45,14 +45,13 @@ describe("debug resource", () => {
         apiClient: session.apiClient,
         keychain: session.keychain,
         enabled: false,
-        machineMetadata: buildMachineMetadata("test-server", "0.0.0"),
+        machineMetadata: buildMachineMetadata({ mcpServerName: "test-server", version: "0.0.0" }),
     });
 
     let debugResource: DebugResource;
 
-    beforeEach(() => {
-        debugResource = new DebugResource(session, defaultTestConfig, telemetry);
-    });
+    beforeEach(() => // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
+    debugResource = new DebugResource({ session: { ...session, config: defaultTestConfig }, telemetry } as any));
 
     it("should be connected when a connected event happens", async () => {
         debugResource.reduceApply("connect", undefined);
