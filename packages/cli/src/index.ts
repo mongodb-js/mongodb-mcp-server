@@ -1,3 +1,7 @@
+// Server class and types
+export { Server } from "./server.js";
+export type { ServerOptions, PackageInfo, ServerSession, ResourceRegistry, MongoDBToolsRuntimeConfig, AnyToolClass } from "./server.js";
+
 // Main CLI run function and types
 export {
     runMcpCli,
@@ -12,7 +16,7 @@ export {
 } from "./cli.js";
 
 // Server infrastructure type
-export type { ServerInfrastructure, PackageInfo } from "./serverFactory.js";
+export type { ServerInfrastructure } from "./serverFactory.js";
 
 // Config parsing and types
 export { parseUserConfig, type ParserOptions, defaultParserOptions } from "./config/parseUserConfig.js";

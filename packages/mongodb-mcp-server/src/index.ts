@@ -37,10 +37,8 @@ function enableFipsIfRequested(): void {
 enableFipsIfRequested();
 
 import crypto from "crypto";
-import { ConsoleLogger } from "@mongodb-js/mcp-logging";
-import { LogId, Elicitation } from "@mongodb-js/mcp-core";
-import { runMcpCli, createServerFromUserConfig, type Handler, type UserConfig } from "@mongodb-js/mcp-cli";
-import { Server } from "./server.js";
+import { Elicitation } from "@mongodb-js/mcp-core";
+import { runMcpCli, createServerFromUserConfig, type Handler, type UserConfig, Server } from "@mongodb-js/mcp-cli";
 import { Session } from "./common/session.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { connectionErrorHandler } from "@mongodb-js/mcp-tools-mongodb";
@@ -51,12 +49,18 @@ import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-tele
 import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { runSetup } from "./setup/setupMcpServer.js";
 import { packageInfo } from "./common/packageInfo.js";
+import { Resources } from "./resources/resources.js";
+import { AllTools } from "./tools/index.js";
 
 const setupHandler: Handler = {
     shouldHandle(_config: UserConfig, args: string[]): boolean {
         return args[0] === "setup";
     },
-    async handle(config: UserConfig, consoleLogger: { error: (msg: string) => void }, onExit: (code: number) => void): Promise<void> {
+    async handle(
+        config: UserConfig,
+        _consoleLogger: { error: (msg: string) => void },
+        onExit: (code: number) => void
+    ): Promise<void> {
         await runSetup(config);
         onExit(0);
     },
@@ -135,14 +139,16 @@ async function main(): Promise<void> {
 
     // Create the Server with all dependencies
     const server = new Server({
-        session,
+        session: session as any,
         userConfig: config,
         mcpServer,
-        telemetry,
+        telemetry: telemetry as any,
         connectionErrorHandler,
         elicitation,
         metrics,
         packageInfo,
+        tools: AllTools as any,
+        resources: Resources as any,
     });
 
     await runMcpCli({

@@ -1,4 +1,4 @@
-import type { Server } from "../server.js";
+import type { Server } from "@mongodb-js/mcp-cli";
 import type { Session } from "../common/session.js";
 import type { UserConfig } from "@mongodb-js/mcp-cli";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";

@@ -1,4 +1,4 @@
-export { Server, type ServerOptions, type MongoDBToolsRuntimeConfig, type AnyToolClass } from "./server.js";
+export { Server, type ServerOptions, type MongoDBToolsRuntimeConfig, type AnyToolClass } from "@mongodb-js/mcp-cli";
 export { Session, type SessionOptions, type SessionEvents } from "./common/session.js";
 export { type UserConfig, UserConfigSchema, configRegistry } from "@mongodb-js/mcp-cli";
 export { parseUserConfig, defaultParserOptions, type ParserOptions } from "@mongodb-js/mcp-cli";

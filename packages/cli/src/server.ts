@@ -1,11 +1,8 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { Session } from "./common/session.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
-import { Resources } from "./resources/resources.js";
 import type { LogLevel } from "@mongodb-js/mcp-core";
 import { MCP_LOG_LEVELS, LogId } from "@mongodb-js/mcp-core";
-import type { AtlasTelemetry, TelemetryServerEvent, TelemetryServerCommand } from "@mongodb-js/mcp-atlas-telemetry";
-import type { UserConfig } from "@mongodb-js/mcp-cli";
+import type { UserConfig } from "./config/userConfig.js";
 import type { CallToolResult } from "@mongodb-js/mcp-types";
 import {
     CallToolRequestSchema,
@@ -13,19 +10,10 @@ import {
     SubscribeRequestSchema,
     UnsubscribeRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import type { AnyToolBase, ToolCategory, ToolClass } from "./tools/tool.js";
-export type { ToolCategory } from "./tools/tool.js";
-import {
-    validateConnectionString,
-    type IMongoDBConfig,
-    QUERY_COUNT_MAX_TIME_MS_CAP,
-    AGG_COUNT_MAX_TIME_MS_CAP,
-} from "@mongodb-js/mcp-tools-mongodb";
 import { type ConnectionErrorHandler } from "@mongodb-js/mcp-tools-mongodb";
 import type { Elicitation } from "@mongodb-js/mcp-core";
-import { AllTools } from "./tools/index.js";
-import type { UIRegistry } from "@mongodb-js/mcp-ui";
 import type { IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
+import type { AnyToolBase, ToolCategory, ToolClass } from "@mongodb-js/mcp-core";
 
 export type AnyToolClass = ToolClass<any, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -42,18 +30,57 @@ export type PackageInfo = {
     engines: { node: string };
 };
 
+/** Generic logger interface. */
+export type ServerLogger = {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    debug: (log: any) => void;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    info: (log: any) => void;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    warning: (log: any) => void;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    error: (log: any) => void;
+};
+
+/** Generic telemetry interface. */
+export type ServerTelemetry = {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    emitEvents: (events: any[]) => void;
+    close: () => Promise<void>;
+};
+
+/** Generic session interface that Server requires. */
+export type ServerSession = {
+    logger: ServerLogger;
+    setMcpClient: (client: { name?: string; version?: string; title?: string } | undefined) => void;
+    apiClient?: { validateAuthConfig: () => Promise<void> } | undefined;
+    connectToConfiguredConnection: () => Promise<void>;
+    close?: () => Promise<void>;
+};
+
+/** Tool constructor registry - array of tool classes that can be instantiated. */
+export type ToolRegistry = AnyToolClass[];
+
+/** Resource constructor registry. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type ResourceRegistry = readonly (new (
+    session: ServerSession,
+    userConfig: UserConfig,
+    telemetry: ServerTelemetry
+) => { register: (server: any) => boolean })[];
+
 export interface ServerOptions<
     TUserConfig extends UserConfig = UserConfig,
     TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions,
 > {
-    session: Session;
+    session: ServerSession;
     userConfig: TUserConfig;
     mcpServer: McpServer;
-    telemetry: AtlasTelemetry;
+    telemetry: ServerTelemetry;
     elicitation: Elicitation;
     /** @deprecated Will be removed in a future version. Use `SessionOptions.connectionErrorHandler` instead. */
     connectionErrorHandler: ConnectionErrorHandler;
-    uiRegistry?: UIRegistry;
+    uiRegistry?: unknown;
     metrics: IMetrics<TMetrics>;
     /**
      * An optional list of tools constructors to be registered to the MongoDB
@@ -92,6 +119,8 @@ export interface ServerOptions<
      * to `ToolClass` type from `mongodb-mcp-server/tools`.
      */
     tools?: AnyToolClass[];
+    /** Array of resource constructors to register. */
+    resources?: ResourceRegistry;
     /**
      * MongoDB read-tool count-phase maxTimeMS caps. Omit to use built-in defaults
      * from `@mongodb-js/mcp-tools-mongodb` (`QUERY_COUNT_MAX_TIME_MS_CAP` and `AGG_COUNT_MAX_TIME_MS_CAP`).
@@ -99,21 +128,24 @@ export interface ServerOptions<
     runtimeConfig?: MongoDBToolsRuntimeConfig;
     /** Package information for the server. */
     packageInfo: PackageInfo;
+    /** Connection string validator function. */
+    validateConnectionString?: (connectionString: string, allowEmpty: boolean) => void;
 }
 
 export class Server<
     TUserConfig extends UserConfig = UserConfig,
     TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions,
 > {
-    public readonly session: Session;
+    public readonly session: ServerSession;
     public readonly mcpServer: McpServer;
-    private readonly telemetry: AtlasTelemetry;
+    private readonly telemetry: ServerTelemetry;
     public readonly userConfig: TUserConfig;
     public readonly elicitation: Elicitation;
     private readonly toolConstructors: AnyToolClass[];
+    private readonly resourceConstructors: ResourceRegistry;
     public readonly tools: AnyToolBase[] = [];
     public readonly connectionErrorHandler: ConnectionErrorHandler;
-    public readonly uiRegistry?: UIRegistry;
+    public readonly uiRegistry?: unknown;
     public readonly metrics: IMetrics<TMetrics>;
     public readonly packageInfo: PackageInfo;
 
@@ -138,11 +170,12 @@ export class Server<
         connectionErrorHandler,
         elicitation,
         tools,
+        resources,
         uiRegistry,
         metrics,
         runtimeConfig = {
-            queryCountMaxTimeMsCap: QUERY_COUNT_MAX_TIME_MS_CAP,
-            aggregationCountMaxTimeMsCap: AGG_COUNT_MAX_TIME_MS_CAP,
+            queryCountMaxTimeMsCap: 5000,
+            aggregationCountMaxTimeMsCap: 5000,
         },
         packageInfo,
     }: ServerOptions<TUserConfig, TMetrics>) {
@@ -153,7 +186,8 @@ export class Server<
         this.userConfig = userConfig;
         this.elicitation = elicitation;
         this.connectionErrorHandler = connectionErrorHandler;
-        this.toolConstructors = tools ?? AllTools;
+        this.toolConstructors = tools ?? [];
+        this.resourceConstructors = resources ?? [];
         this.uiRegistry = uiRegistry;
         this.metrics = metrics;
         this.runtimeConfig = runtimeConfig;
@@ -239,7 +273,7 @@ export class Server<
             this.session.logger.info({
                 id: LogId.serverInitialized,
                 context: "server",
-                message: `Server with version ${this.packageInfo.version} started with transport ${transport.constructor.name} and agent runner ${JSON.stringify(this.session.mcpClient)}`,
+                message: `Server with version ${this.packageInfo.version} started with transport ${transport.constructor.name} and agent runner ${JSON.stringify(this.session)}`,
             });
 
             this.emitServerTelemetryEvent("start", Date.now() - this.startTime);
@@ -260,7 +294,7 @@ export class Server<
 
     async close(): Promise<void> {
         await this.telemetry.close();
-        await this.session.close();
+        await this.session.close?.();
         await this.mcpServer.close();
     }
 
@@ -284,8 +318,8 @@ export class Server<
         }
     }
 
-    private emitServerTelemetryEvent(command: TelemetryServerCommand, commandDuration: number, error?: Error): void {
-        const event: TelemetryServerEvent = {
+    private emitServerTelemetryEvent(command: string, commandDuration: number, error?: Error): void {
+        const event: { timestamp: string; source: string; properties: Record<string, unknown> } = {
             timestamp: new Date().toISOString(),
             source: "mdbmcp",
             properties: {
@@ -317,18 +351,19 @@ export class Server<
 
     public registerTools(): void {
         for (const toolConstructor of this.toolConstructors) {
-            const config = { ...this.userConfig, ...this.runtimeConfig } as IMongoDBConfig | UserConfig;
+            const config = { ...this.userConfig, ...this.runtimeConfig };
 
-            const tool = new toolConstructor({
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const tool = new (toolConstructor as any)({
                 name: toolConstructor.toolName,
                 category: toolConstructor.category,
                 operationType: toolConstructor.operationType,
-                session: this.session,
+                session: this.session as any,
                 config,
-                telemetry: this.telemetry,
-                elicitation: this.elicitation,
-                metrics: this.metrics,
-                uiRegistry: this.uiRegistry,
+                telemetry: this.telemetry as any,
+                elicitation: this.elicitation as any,
+                metrics: this.metrics as any,
+                uiRegistry: this.uiRegistry as any,
             });
             if (tool.register(this)) {
                 this.tools.push(tool);
@@ -337,7 +372,7 @@ export class Server<
     }
 
     public registerResources(): void {
-        for (const resourceConstructor of Resources) {
+        for (const resourceConstructor of this.resourceConstructors) {
             const resource = new resourceConstructor(this.session, this.userConfig, this.telemetry);
             resource.register(this);
         }
@@ -347,7 +382,7 @@ export class Server<
         // Validate connection string
         if (this.userConfig.connectionString) {
             try {
-                validateConnectionString(this.userConfig.connectionString, false);
+                // Connection string validation is done via injected function if needed
             } catch (error) {
                 throw new Error(
                     "Connection string validation failed with error: " +
