@@ -69,7 +69,7 @@ export {
     type ConnectionErrorHandled,
     type ConnectionErrorUnhandled,
     type ConnectionErrorHandlerContext,
-} from "./common/connectionErrorHandler.js";
+} from "@mongodb-js/mcp-tools-mongodb";
 export {
     ErrorCodes,
     MongoDBError,

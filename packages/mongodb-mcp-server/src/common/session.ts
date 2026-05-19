@@ -18,7 +18,7 @@ import type { Client } from "@mongodb-js/atlas-local";
 import type { Keychain } from "@mongodb-js/mcp-core";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import type { UserConfig } from "@mongodb-js/mcp-cli";
-import { type ConnectionErrorHandler } from "./connectionErrorHandler.js";
+import { type ConnectionErrorHandler } from "@mongodb-js/mcp-tools-mongodb";
 
 export interface SessionOptions<TUserConfig extends UserConfig = UserConfig> {
     userConfig: TUserConfig;

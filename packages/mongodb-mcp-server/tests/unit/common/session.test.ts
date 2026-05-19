@@ -10,7 +10,7 @@ import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { Keychain } from "@mongodb-js/mcp-core";
 import { ErrorCodes, MongoDBError } from "@mongodb-js/mcp-tools-mongodb";
 import { defaultTestConfig, testConnectionManagerDriverLabels } from "mongodb-mcp-server/test-helpers";
-import { connectionErrorHandler as defaultConnectionErrorHandler } from "../../../src/common/connectionErrorHandler.js";
+import { connectionErrorHandler as defaultConnectionErrorHandler } from "@mongodb-js/mcp-tools-mongodb";
 import { ApiClient } from "../../../src/lib.js";
 
 vi.mock("@mongosh/service-provider-node-driver");

@@ -22,7 +22,7 @@ import {
     AGG_COUNT_MAX_TIME_MS_CAP,
 } from "@mongodb-js/mcp-tools-mongodb";
 import { packageInfo } from "./common/packageInfo.js";
-import { type ConnectionErrorHandler } from "./common/connectionErrorHandler.js";
+import { type ConnectionErrorHandler } from "@mongodb-js/mcp-tools-mongodb";
 import type { Elicitation } from "@mongodb-js/mcp-core";
 import { AllTools } from "./tools/index.js";
 import type { UIRegistry } from "@mongodb-js/mcp-ui";

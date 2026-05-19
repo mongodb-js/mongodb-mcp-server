@@ -33,7 +33,7 @@ export type {
     ConnectionErrorHandled,
     ConnectionErrorUnhandled,
     ConnectionErrorHandlerContext,
-} from "./common/connectionErrorHandler.js";
+} from "@mongodb-js/mcp-tools-mongodb";
 export { Elicitation, type ElicitedInputResult } from "@mongodb-js/mcp-core";
 export type {
     ConnectionStateConnecting,

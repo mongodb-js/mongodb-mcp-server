@@ -1,23 +1,18 @@
-// Main CLI setup function
+// Main CLI run function and types
 export {
-    setupMcpCli,
+    runMcpCli,
+    createServerFromUserConfig,
+    startServer,
     type CLIOptions,
-    // Handlers
-    HelpHandler,
-    VersionHandler,
-    DryRunHandler,
-    SetupHandler,
-    type CliHandler,
-    type ServerFactory,
-    type SetupFunction,
-    handleHelpRequest,
-    handleVersionRequest,
-    handleDryRun,
-    // Server
-    MCPHttpServerWrapper,
-    // Utilities
-    createDefaultLoggers,
+    type Handler,
+    type ClientInfo,
+    type ConsoleLogger,
+    type OnExit,
+    type StartableServer,
 } from "./cli.js";
+
+// Server infrastructure type
+export type { ServerInfrastructure } from "./serverFactory.js";
 
 // Config parsing and types
 export { parseUserConfig, type ParserOptions, defaultParserOptions } from "./config/parseUserConfig.js";
@@ -49,3 +44,6 @@ export {
     type DryRunLogger,
     type DryRunModeRunnerOptions,
 } from "./transports/dryModeRunner.js";
+
+// Server wrapper
+export { MCPHttpServerWrapper } from "./server/mcpHttpServerWrapper.js";

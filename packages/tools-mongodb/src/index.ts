@@ -52,6 +52,13 @@ export {
     ensureExtension,
     isExportExpired,
 } from "./common/exportsManager.js";
+export {
+    connectionErrorHandler,
+    type ConnectionErrorHandler,
+    type ConnectionErrorHandlerContext,
+    type ConnectionErrorHandled,
+    type ConnectionErrorUnhandled,
+} from "./connectionErrorHandler.js";
 export { DeviceId } from "./helpers/deviceId.js";
 export { isObjectEmpty } from "./helpers/isObjectEmpty.js";
 export {
