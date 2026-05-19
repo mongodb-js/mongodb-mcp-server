@@ -9,14 +9,14 @@ import { AI_TOOL_REGISTRY, openConfigSettings, TOOLS_WITHOUT_EDITORS } from "./a
 import type { Platform } from "./setupAiToolsUtils.js";
 import { formatError, getPlatform } from "./setupAiToolsUtils.js";
 import { getAuthType } from "@mongodb-js/mcp-tools-mongodb";
-import type { UserConfig } from "@mongodb-js/mcp-cli";
+import type { ServerMetadata } from "@mongodb-js/mcp-cli";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 import { NoopLogger } from "@mongodb-js/mcp-core";
 import type { TelemetryResult } from "@mongodb-js/mcp-atlas-telemetry";
 import { SetupTelemetry } from "./setupTelemetry.js";
 import { Keychain, registerGlobalSecretToRedact } from "@mongodb-js/mcp-core";
 import { promptAndInstallSkills, type SkillsInstallOutcome } from "./installSkills.js";
-import type { SetupConfig, SetupPackageInfo } from "./types.js";
+import type { SetupConfig } from "./types.js";
 
 const buildEnvObject = (
     connectionString: string,
@@ -147,9 +147,12 @@ const printLogo = (): void => {
     printNewLine();
 };
 
-const validateNodeVersion = (packageInfo: SetupPackageInfo): boolean => {
+const validateNodeVersion = (serverMetadata: ServerMetadata): boolean => {
     const nodeVersion = process.versions.node;
-    const requiredNodeRange = packageInfo.engines.node;
+    const requiredNodeRange = serverMetadata.engines?.node;
+    if (!requiredNodeRange) {
+        return true;
+    }
     if (!nodeVersion || !semver.satisfies(nodeVersion, requiredNodeRange)) {
         console.log(
             chalk.red(
@@ -406,8 +409,14 @@ class UnsupportedPlatformError extends Error {
  * logical step emits a telemetry event so we can track both overall completion
  * rates and per-step drop-off.
  */
-export const runSetup = async (config: SetupConfig, packageInfo: SetupPackageInfo): Promise<never> => {
-    const setupTelemetry = SetupTelemetry.create(config, Keychain.root, packageInfo);
+export const runSetup = async ({
+    config,
+    serverMetadata,
+}: {
+    config: SetupConfig;
+    serverMetadata: ServerMetadata;
+}): Promise<never> => {
+    const setupTelemetry = SetupTelemetry.create({ config, keychain: Keychain.root, serverMetadata });
 
     // Ensure hard cancellations (SIGINT/SIGTERM outside of an Inquirer prompt)
     // are still captured. Inquirer itself converts Ctrl+C during prompts into
@@ -434,7 +443,7 @@ export const runSetup = async (config: SetupConfig, packageInfo: SetupPackageInf
         printLogo();
         setupTelemetry.emitStarted();
 
-        const nodeVersionOk = validateNodeVersion(packageInfo);
+        const nodeVersionOk = validateNodeVersion(serverMetadata);
         const platform = getPlatform();
         const platformSupported = platform !== null;
         if (!platformSupported) {
