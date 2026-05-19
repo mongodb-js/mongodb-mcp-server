@@ -188,7 +188,7 @@ export function setupIntegrationTest(
                 mcpServerName: "test-server",
                 version: "1.0",
                 engines: {
-                    node: "12.0.0",
+                    node: "20.0.0",
                 },
             },
             tools: AllTools,

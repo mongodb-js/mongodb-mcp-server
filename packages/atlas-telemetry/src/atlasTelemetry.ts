@@ -69,7 +69,7 @@ export type TelemetryConfig = {
     /**
      * Static machine metadata (server name/version, platform, arch, etc.)
      * merged into every event. Callers supply this so the package stays
-     * independent of any auto-generated serverMetadata file.
+     * independent of any auto-generated packageInfo file.
      */
     machineMetadata: TelemetryCommonStaticProperties;
 

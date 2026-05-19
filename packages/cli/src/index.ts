@@ -1,6 +1,6 @@
 // Server class and types
 export { Server } from "./server.js";
-export type { ServerOptions, ServerTelemetry, ServerLogger, ToolRegistry, ResourceRegistry } from "./server.js";
+export type { ServerOptions, ToolRegistry, ResourceRegistry } from "./server.js";
 export type { ServerMetadata } from "@mongodb-js/mcp-types";
 
 // Main CLI exports

@@ -28,7 +28,6 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 import { packageInfo } from "mongodb-mcp-server";
-// Note: serverMetadata is only exported from mongodb-mcp-server main entry
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
 import type { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
@@ -141,7 +140,7 @@ async function createTestServer(config: UserConfig): Promise<Server> {
             mcpServerName: "test-server",
             version: "1.0",
             engines: {
-                node: "12.0.0",
+                node: "20.0.0",
             },
         },
         tools: AllTools,

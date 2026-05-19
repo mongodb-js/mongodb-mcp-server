@@ -5,78 +5,13 @@ import type {
     IElicitation,
     DefaultMetricDefinitions,
     IMetrics,
+    ReactiveResourceOptions,
+    IResourceServer,
 } from "@mongodb-js/mcp-types";
 import type { ReadResourceCallback, ResourceMetadata } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { LogId } from "./logId.js";
 
-export type ResourceConfiguration = {
-    name: string;
-    uri: string;
-    config: ResourceMetadata;
-};
-
-export type ReactiveResourceOptions<Value, RelevantEvents extends readonly (keyof SessionEvents)[]> = {
-    initial: Value;
-    events: RelevantEvents;
-};
-
-/**
- * Parameters passed to the constructor of all resources that extends `ReactiveResource`.
- *
- * The MongoDB MCP Server automatically injects these parameters when
- * constructing resources and registering to the MCP Server.
- *
- * See `Server.registerResources` method in `src/server.ts` for further reference.
- */
-export type ResourceConstructorParams<
-    TSession extends ISession = ISession,
-    TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions,
-> = {
-    /**
-     * An instance of Session class providing access to MongoDB connections,
-     * loggers, config, etc.
-     */
-    session: TSession;
-
-    /**
-     * The telemetry service for tracking resource usage.
-     */
-    telemetry: ITelemetry;
-
-    /**
-     * The elicitation service for requesting user confirmation.
-     */
-    elicitation: IElicitation;
-
-    /**
-     * The metrics service for tracking resource usage.
-     */
-    metrics: IMetrics<TMetricsDefinitions>;
-};
-
 type PayloadOf<K extends keyof SessionEvents> = SessionEvents[K][0];
-
-export interface IResourceServer {
-    mcpServer: {
-        registerResource: (name: string, uri: string, config: ResourceMetadata, callback: ReadResourceCallback) => void;
-    };
-    sendResourceListChanged(): void;
-    sendResourceUpdated(uri: string): void;
-}
-
-/**
- * The type that all resource classes must conform to when implementing custom resources
- * for the MongoDB MCP Server.
- *
- * This type enforces that resource classes have a constructor that accepts `ResourceConstructorParams`.
- */
-export type ResourceClass<
-    TSession extends ISession = ISession,
-    TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions,
-> = {
-    /** Constructor signature for the resource class */
-    new (params: ResourceConstructorParams<TSession, TMetrics>): { register(server: IResourceServer): void };
-};
 
 /**
  * Abstract base class for implementing reactive MCP resources.
@@ -98,12 +33,12 @@ export type ResourceClass<
  * class MyResource extends ReactiveResource<string, readonly ["connect", "disconnect"]> {
  *   constructor(params: ResourceConstructorParams) {
  *     super({
- *       resourceConfiguration: {
- *         name: "my-resource",
- *         uri: "resource://my-resource",
- *         config: { description: "My reactive resource" },
- *       },
  *       options: {
+ *         resource: {
+ *           name: "my-resource",
+ *           uri: "resource://my-resource",
+ *           config: { description: "My reactive resource" },
+ *         },
  *         initial: "disconnected",
  *         events: ["connect", "disconnect"],
  *       },
@@ -130,8 +65,11 @@ export type ResourceClass<
  * class ConfigResource extends ReactiveResource<MyConfig, readonly [], ICustomSession> {
  *   constructor(params: ResourceConstructorParams<ICustomSession>) {
  *     super({
- *       resourceConfiguration: { name: "config", uri: "config://config", config: { description: "Config" } },
- *       options: { initial: params.session.userConfig, events: [] },
+ *       options: {
+ *         resource: { name: "config", uri: "config://config", config: { description: "Config" } },
+ *         initial: params.session.userConfig,
+ *         events: [],
+ *       },
  *       ...params,
  *     });
  *   }
@@ -163,7 +101,6 @@ export abstract class ReactiveResource<
     protected readonly events: RelevantEvents;
 
     constructor({
-        resourceConfiguration,
         options,
         session,
         telemetry,
@@ -171,7 +108,6 @@ export abstract class ReactiveResource<
         metrics,
         current,
     }: {
-        resourceConfiguration: ResourceConfiguration;
         options: ReactiveResourceOptions<Value, RelevantEvents>;
         session: TSession;
         telemetry: ITelemetry;
@@ -184,9 +120,9 @@ export abstract class ReactiveResource<
         this.elicitation = elicitation;
         this.metrics = metrics;
 
-        this.name = resourceConfiguration.name;
-        this.uri = resourceConfiguration.uri;
-        this.resourceConfig = resourceConfiguration.config;
+        this.name = options.resource.name;
+        this.uri = options.resource.uri;
+        this.resourceConfig = options.resource.config;
         this.events = options.events;
         this.current = current ?? options.initial;
 

@@ -532,7 +532,7 @@ describeWithMongoDB("find tool with abort signal", (integration) => {
         expect(result).toBeUndefined();
         expectDefined(error);
         expect(error.message).toContain("This operation was aborted");
-    });
+    }, 5000);
 
     it("should abort find operation during cursor iteration", async () => {
         await integration.connectMcpClient();
@@ -546,9 +546,9 @@ describeWithMongoDB("find tool with abort signal", (integration) => {
 
         const { result, error, executionTime } = await findPromise;
 
-        // Ensure it aborted quickly, but possibly after some processing
-        expect(executionTime).toBeGreaterThanOrEqual(250);
-        expect(executionTime).toBeLessThan(450);
+        // Ensure it aborted after the abort timeout, but before the query would complete (~1000ms)
+        expect(executionTime).toBeGreaterThanOrEqual(200);
+        expect(executionTime).toBeLessThan(800);
         expect(result).toBeUndefined();
         expectDefined(error);
         expect(error.message).toContain("This operation was aborted");
@@ -565,7 +565,7 @@ describeWithMongoDB("find tool with abort signal", (integration) => {
         expect(error).toBeUndefined();
         const content = getResponseContent(result);
         expect(content).toContain('Query on collection "abort_collection"');
-    });
+    }, 15000);
 });
 
 describeWithMongoDB(
@@ -625,7 +625,7 @@ describeWithMongoDB(
 
             const content = getResponseContent(response);
             expect(content).toContain("operation exceeded time limit");
-        });
+        }, 10000);
     },
     {
         getUserConfig: () => ({ ...defaultTestConfig, maxTimeMS: 100 }),

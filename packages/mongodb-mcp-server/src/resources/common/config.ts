@@ -1,4 +1,5 @@
-import { ReactiveResource, type ResourceConstructorParams } from "@mongodb-js/mcp-core";
+import { ReactiveResource } from "@mongodb-js/mcp-core";
+import type { ResourceConstructorParams } from "@mongodb-js/mcp-types";
 import type { UserConfig } from "@mongodb-js/mcp-cli";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import type { Session } from "@mongodb-js/mcp-cli";
@@ -10,15 +11,15 @@ export class ConfigResource extends ReactiveResource<
 > {
     constructor({session, ...rest}: ResourceConstructorParams<Session>) {
         super({
-            resourceConfiguration: {
-                name: "config",
-                uri: "config://config",
-                config: {
-                    description:
-                        "Server configuration, supplied by the user either as environment variables or as startup arguments",
-                },
-            },
             options: {
+                resource: {
+                    name: "config",
+                    uri: "config://config",
+                    config: {
+                        description:
+                            "Server configuration, supplied by the user either as environment variables or as startup arguments",
+                    },
+                },
                 initial: { ...session.config },
                 events: [],
             },

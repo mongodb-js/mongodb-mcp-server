@@ -12,54 +12,14 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { type ConnectionErrorHandler } from "@mongodb-js/mcp-tools-mongodb";
 import type { Elicitation } from "@mongodb-js/mcp-core";
-import type { IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
-import type { TelemetryServerCommand, TelemetryServerEvent } from "@mongodb-js/mcp-atlas-telemetry";
-import type {
-    AnyToolBase,
-    ToolCategory,
-    ToolClass,
-    IResourceServer,
-    ResourceConstructorParams,
-} from "@mongodb-js/mcp-core";
+import type { IMetrics, DefaultMetricDefinitions, ResourceClass } from "@mongodb-js/mcp-types";
+import type { AtlasTelemetry, TelemetryServerCommand, TelemetryServerEvent } from "@mongodb-js/mcp-atlas-telemetry";
+import type { AnyToolBase, ToolCategory, ToolClass } from "@mongodb-js/mcp-core";
 import { validateConnectionString } from "@mongodb-js/mcp-tools-mongodb";
 import { type ServerMetadata } from "@mongodb-js/mcp-types";
 
-/** Generic logger interface. */
-export type ServerLogger = {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    debug: (log: any) => void;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    info: (log: any) => void;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    warning: (log: any) => void;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    error: (log: any) => void;
-};
-
-/** Generic telemetry interface. */
-export type ServerTelemetry = {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    emitEvents: (events: any[]) => void;
-    close: () => Promise<void>;
-    isTelemetryEnabled: () => boolean;
-};
-
-/** Tool constructor registry - array of tool classes that can be instantiated. */
+/** A list of tool classes that can be instantiated. */
 export type ToolRegistry = ToolClass[];
-
-/**
- * The type that all resource classes must conform to when implementing custom resources
- * for the MongoDB MCP Server.
- *
- * This type enforces that resource classes have a constructor that accepts `ResourceConstructorParams`.
- */
-export type ResourceClass<
-    TSession extends ISession = ISession,
-    TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions,
-> = {
-    /** Constructor signature for the resource class */
-    new (params: ResourceConstructorParams<TSession, TMetrics>): { register(server: IResourceServer): void };
-};
 
 /** Resource constructor registry. */
 export type ResourceRegistry = readonly ResourceClass[];
@@ -71,7 +31,7 @@ export interface ServerOptions<
     session: ServerSession;
     userConfig: TUserConfig;
     mcpServer: McpServer;
-    telemetry: ServerTelemetry;
+    telemetry: AtlasTelemetry;
     elicitation: Elicitation;
     /** @deprecated Will be removed in a future version. Use `SessionOptions.connectionErrorHandler` instead. */
     connectionErrorHandler: ConnectionErrorHandler;
@@ -130,7 +90,7 @@ export class Server<
 > {
     public readonly session: ServerSession;
     public readonly mcpServer: McpServer;
-    private readonly telemetry: ServerTelemetry;
+    private readonly telemetry: AtlasTelemetry;
     public readonly elicitation: Elicitation;
     private readonly toolConstructors: ToolRegistry;
     private readonly resourceConstructors: ResourceRegistry;
