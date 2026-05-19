@@ -1,5 +1,5 @@
 import { ReactiveResource } from "@mongodb-js/mcp-core";
-import type { ISession, SessionEvents } from "@mongodb-js/mcp-types";
+import type { ISession } from "@mongodb-js/mcp-types";
 import type { ConnectionStateErrored } from "@mongodb-js/mcp-tools-mongodb";
 import type { ConnectionStringInfo, AtlasClusterConnectionInfo } from "@mongodb-js/mcp-tools-mongodb";
 

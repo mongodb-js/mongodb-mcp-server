@@ -17,6 +17,8 @@ export interface ISession {
     disconnect(): Promise<void>;
     close(): Promise<void>;
     readonly isConnectedToMongoDB: boolean;
+    /** Event emitter method for reactive resources */
+    on(event: "connect" | "disconnect" | "close" | "connection-error", listener: (...args: unknown[]) => void): void;
 }
 
 export interface IToolSession extends ISession {
