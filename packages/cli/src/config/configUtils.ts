@@ -1,26 +1,10 @@
 import path from "path";
 import os from "os";
 
-/**
- * Custom logic function to apply the override value.
- * Returns the value to use (which may be transformed from newValue).
- * Should throw an error if the override cannot be applied.
- */
+/// Custom logic function to apply the override value.
+/// Returns the value to use (which may be transformed from newValue).
+/// Should throw an error if the override cannot be applied.
 export type CustomOverrideLogic = (oldValue: unknown, newValue: unknown) => unknown;
-
-export function getLocalDataPath(appName: string = "mcp-server"): string {
-    return process.platform === "win32"
-        ? path.join(process.env.LOCALAPPDATA || process.env.APPDATA || os.homedir(), appName)
-        : path.join(os.homedir(), `.${appName}`);
-}
-
-export function getLogPath(appName: string = "mcp-server"): string {
-    return path.join(getLocalDataPath(appName), ".app-logs");
-}
-
-export function getExportsPath(appName: string = "mcp-server"): string {
-    return path.join(getLocalDataPath(appName), "exports");
-}
 
 /**
  * Defines how a config field can be overridden via HTTP headers or query parameters.
@@ -54,6 +38,21 @@ export type ConfigFieldMeta = {
     overrideBehavior?: OverrideBehavior;
     [key: string]: unknown;
 };
+
+export function getLocalDataPath(): string {
+    return process.platform === "win32"
+        ? path.join(process.env.LOCALAPPDATA || process.env.APPDATA || os.homedir(), "mongodb")
+        : path.join(os.homedir(), ".mongodb");
+}
+
+export function getLogPath(): string {
+    const logPath = path.join(getLocalDataPath(), "mongodb-mcp", ".app-logs");
+    return logPath;
+}
+
+export function getExportsPath(): string {
+    return path.join(getLocalDataPath(), "mongodb-mcp", "exports");
+}
 
 export function commaSeparatedToArray<T extends string[]>(str: string | string[] | undefined): T | undefined {
     if (str === undefined) {
