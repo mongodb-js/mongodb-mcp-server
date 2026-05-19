@@ -84,6 +84,8 @@ export * from "./tools/tools.js";
 import type { IMongoDBSession } from "./mongodbTool.js";
 import {
     AggregateTool,
+    AggregateDBTool,
+    ConnectTool,
     CountTool,
     FindTool,
     InsertManyTool,
@@ -101,27 +103,40 @@ import {
     DropDatabaseTool,
     RenameCollectionTool,
 } from "./tools/tools.js";
-import { ListCollectionsTool, ListDatabasesTool, CollectionIndexesTool, CollectionSchemaTool } from "./tools/tools.js";
-import type { ToolClass } from "@mongodb-js/mcp-core";
-
-export const MongoDBTools: ToolClass<IMongoDBSession>[] = [
-    AggregateTool,
-    CountTool,
-    FindTool,
-    InsertManyTool,
-    UpdateManyTool,
-    DeleteManyTool,
-    ExplainTool,
-    CreateIndexTool,
-    CreateCollectionTool,
-    DropCollectionTool,
-    DropDatabaseTool,
-    RenameCollectionTool,
+import {
     ListCollectionsTool,
     ListDatabasesTool,
     CollectionIndexesTool,
     CollectionSchemaTool,
-    ExportTool,
+    CollectionStorageSizeTool,
+    DbStatsTool,
+    LogsTool,
+} from "./tools/tools.js";
+import type { ToolClass } from "@mongodb-js/mcp-core";
+
+export const MongoDBTools: ToolClass<IMongoDBSession>[] = [
+    AggregateDBTool,
+    AggregateTool,
+    CollectionIndexesTool,
+    CollectionSchemaTool,
+    CollectionStorageSizeTool,
+    ConnectTool,
+    CountTool,
+    CreateCollectionTool,
+    CreateIndexTool,
+    DbStatsTool,
+    DeleteManyTool,
+    DropCollectionTool,
+    DropDatabaseTool,
     DropIndexTool,
+    ExplainTool,
+    ExportTool,
+    FindTool,
+    InsertManyTool,
+    ListCollectionsTool,
+    ListDatabasesTool,
+    LogsTool,
+    RenameCollectionTool,
     SwitchConnectionTool,
+    UpdateManyTool,
 ] as const;
