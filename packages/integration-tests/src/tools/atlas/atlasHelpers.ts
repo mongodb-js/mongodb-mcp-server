@@ -6,7 +6,7 @@ import type { SuiteCollector } from "vitest";
 import { afterAll, beforeAll, describe } from "vitest";
 import type { ServerSession } from "@mongodb-js/mcp-cli";
 import type { Session } from "mongodb-mcp-server";
-import { AtlasTools } from "mongodb-mcp-server/tools";
+import { AllTools } from "mongodb-mcp-server/tools";
 
 export type IntegrationTestFunction = (integration: IntegrationTest) => void;
 
@@ -23,7 +23,7 @@ export function describeWithAtlas(name: string, fn: IntegrationTestFunction): vo
                 apiClientSecret: process.env.MDB_MCP_API_CLIENT_SECRET || "test-secret",
                 apiBaseUrl: process.env.MDB_MCP_API_BASE_URL ?? "https://cloud-dev.mongodb.com",
             }),
-            { tools: AtlasTools }
+            { tools: AllTools }
         );
         fn(integration);
     });
@@ -43,7 +43,7 @@ export function describeWithStreams(name: string, fn: IntegrationTestFunction): 
                 apiBaseUrl: process.env.MDB_MCP_API_BASE_URL ?? "https://cloud-dev.mongodb.com",
                 previewFeatures: [],
             }),
-            { tools: AtlasTools }
+            { tools: AllTools }
         );
         fn(integration);
     });
