@@ -145,6 +145,9 @@ const config: KnipConfig = {
         "packages/http-transports": {
             entry: ["src/index.ts!"],
         },
+        "packages/cli": {
+            entry: ["src/index.ts!"],
+        },
         "packages/tools-mongodb": {
             // These are used via mongosh and driver peer dependencies
             // but knip can't trace through the complex import chains

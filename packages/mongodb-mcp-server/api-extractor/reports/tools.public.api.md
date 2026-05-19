@@ -545,6 +545,7 @@ export class CreateIndexTool extends MongoDBToolBase {
                         number: "number";
                         boolean: "boolean";
                         date: "date";
+                        uuid: "uuid";
                         autocomplete: "autocomplete";
                         document: "document";
                         embeddedDocuments: "embeddedDocuments";

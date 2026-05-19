@@ -35,21 +35,18 @@
     "@mongodb-js/mcp-metrics": "workspace:*",
     "@mongodb-js/mcp-atlas-telemetry": "workspace:*",
     "@mongodb-js/mcp-atlas-api-client": "workspace:*",
-    "@mongodb-js/mcp-ui": "workspace:*",
-    "@mongodb-js/mcp-tools-atlas": "workspace:*",
     "@mongodb-js/mcp-tools-atlas-local": "workspace:*",
     "@mongodb-js/mcp-tools-mongodb": "workspace:*",
-    "@mongosh/service-provider-node-driver": "^5.0.2",
-    "@mongodb-js/atlas-local": "^1.3.0",
     "bson": "^7.2.0",
     "@mongodb-js/mcp-types": "workspace:*",
-    "@mongodb-js/devtools-proxy-support": "^0.7.8",
     "@mongosh/arg-parser": "^5.0.2",
     "mongodb-log-writer": "^2.5.7",
     "ts-levenshtein": "^1.0.7",
     "zod": "^4.4.2"
   },
   "devDependencies": {
+    "@mongodb-js/atlas-local": "^1.3.0",
+    "@mongosh/service-provider-node-driver": "^5.0.2",
     "@types/node": "^25.6.0",
     "typescript": "^5.9.2",
     "vitest": "^4.1.4"

@@ -6,7 +6,6 @@
 
 import type { AggregationCursor } from 'mongodb';
 import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import type { Client } from '@mongodb-js/atlas-local';
 import type { ConfigFieldMeta } from '@mongodb-js/mcp-cli';
 import { configRegistry } from '@mongodb-js/mcp-cli';
 import { ConnectionInfo } from '@mongosh/arg-parser';
@@ -14,14 +13,13 @@ import { Counter } from 'prom-client';
 import { createAtlasLocalClient } from '@mongodb-js/mcp-tools-atlas-local';
 import { defaultParserOptions } from '@mongodb-js/mcp-cli';
 import type { ElicitRequestFormParams } from '@modelcontextprotocol/sdk/types.js';
-import EventEmitter from 'events';
+import { EventEmitter } from 'events';
 import express from 'express';
 import type { FetchOptions } from 'openapi-fetch';
 import type { FindCursor } from 'mongodb';
 import { Gauge } from 'prom-client';
 import { Histogram } from 'prom-client';
 import type http from 'http';
-import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
 import type { LoggingMessageNotification } from '@modelcontextprotocol/sdk/types.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
@@ -32,7 +30,7 @@ import { Registry } from 'prom-client';
 import { Secret } from 'mongodb-redact';
 import { Server } from '@mongodb-js/mcp-cli';
 import { ServerOptions } from '@mongodb-js/mcp-cli';
-import type { ServerSession } from '@mongodb-js/mcp-cli';
+import { Session } from '@mongodb-js/mcp-cli';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
@@ -40,7 +38,7 @@ import { TRANSPORT_PAYLOAD_LIMITS } from '@mongodb-js/mcp-cli';
 import { TransportType } from '@mongodb-js/mcp-cli';
 import { UserConfig } from '@mongodb-js/mcp-cli';
 import { UserConfigSchema } from '@mongodb-js/mcp-cli';
-import z from 'zod';
+import { z } from 'zod';
 import type { ZodRawShape } from 'zod';
 
 // @public
@@ -790,19 +788,12 @@ export { onlyStricterLogLevelOverride }
 export type OperationType = "metadata" | "read" | "create" | "delete" | "update" | "connect";
 
 // @public (undocumented)
-export const serverMetadata: {
+export const packageInfo: {
     version: string;
     mcpServerName: string;
     engines: {
         node: string;
     };
-};
-
-// @public @deprecated (undocumented)
-export function parseArgsWithCliOptions(cliArguments: string[]): {
-    warnings: string[];
-    parsed: UserConfig | undefined;
-    error: string | undefined;
 };
 
 export { ParserOptions }
@@ -846,56 +837,7 @@ export { Server }
 
 export { ServerOptions }
 
-// @public (undocumented)
-export class Session extends EventEmitter<SessionEvents> implements ServerSession {
-    constructor(input: SessionOptions<UserConfig>);
-    // (undocumented)
-    readonly apiClient: ApiClient;
-    // (undocumented)
-    assertSearchSupported(): Promise<void>;
-    // (undocumented)
-    readonly atlasLocalClient?: Client;
-    // (undocumented)
-    close(): Promise<void>;
-    // (undocumented)
-    readonly config: UserConfig;
-    // (undocumented)
-    get connectedAtlasCluster(): AtlasClusterConnectionInfo | undefined;
-    // (undocumented)
-    readonly connectionErrorHandler: ConnectionErrorHandler;
-    // (undocumented)
-    readonly connectionManager: ConnectionManager;
-    // (undocumented)
-    get connectionStringInfo(): ConnectionStringInfo | undefined;
-    // (undocumented)
-    connectToConfiguredConnection(): Promise<void>;
-    // (undocumented)
-    connectToMongoDB(settings: ConnectionSettings): Promise<void>;
-    // (undocumented)
-    disconnect(): Promise<void>;
-    // (undocumented)
-    readonly exportsManager: ExportsManager;
-    // (undocumented)
-    get isConnectedToMongoDB(): boolean;
-    // (undocumented)
-    isSearchSupported(): Promise<boolean>;
-    // (undocumented)
-    readonly keychain: Keychain;
-    // (undocumented)
-    readonly logger: CompositeLogger;
-    // (undocumented)
-    mcpClient?: {
-        name?: string;
-        version?: string;
-        title?: string;
-    };
-    // (undocumented)
-    get serviceProvider(): NodeDriverServiceProvider;
-    // (undocumented)
-    readonly sessionId: string;
-    // (undocumented)
-    setMcpClient(mcpClient: Implementation | undefined): void;
-}
+export { Session }
 
 // @public (undocumented)
 export type SessionCloseReason = "idle_timeout" | "transport_closed" | "server_stop" | "unknown";
@@ -905,28 +847,8 @@ export type SessionEvents = {
     connect: [];
     close: [];
     disconnect: [];
-    "connection-error": [ConnectionStateErrored];
+    "connection-error": [unknown];
 };
-
-// @public (undocumented)
-export interface SessionOptions<TUserConfig extends UserConfig = UserConfig> {
-    // (undocumented)
-    apiClient: ApiClient;
-    // (undocumented)
-    atlasLocalClient?: Client;
-    // (undocumented)
-    connectionErrorHandler: ConnectionErrorHandler;
-    // (undocumented)
-    connectionManager: ConnectionManager;
-    // (undocumented)
-    exportsManager: ExportsManager;
-    // (undocumented)
-    keychain: Keychain;
-    // (undocumented)
-    logger: CompositeLogger;
-    // (undocumented)
-    userConfig: TUserConfig;
-}
 
 // @public
 export class SessionStore<T extends CloseableTransport = CloseableTransport> implements ISessionStore<T> {

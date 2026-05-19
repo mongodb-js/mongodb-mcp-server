@@ -7,7 +7,6 @@
 import type { AggregationCursor } from 'mongodb';
 import { AtlasLocalClientFactoryFn } from '@mongodb-js/mcp-tools-atlas-local';
 import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import type { Client } from '@mongodb-js/atlas-local';
 import { ConnectionInfo } from '@mongosh/arg-parser';
 import { Counter } from 'prom-client';
 import type { ElicitRequestFormParams } from '@modelcontextprotocol/sdk/types.js';
@@ -15,7 +14,6 @@ import { EventEmitter } from 'events';
 import type { FetchOptions } from 'openapi-fetch';
 import type { FindCursor } from 'mongodb';
 import { Histogram } from 'prom-client';
-import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
 import { LibraryLoader } from '@mongodb-js/mcp-tools-atlas-local';
 import type { LoggingMessageNotification } from '@modelcontextprotocol/sdk/types.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -23,11 +21,11 @@ import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver
 import { Secret } from 'mongodb-redact';
 import { Server } from '@mongodb-js/mcp-cli';
 import { ServerOptions } from '@mongodb-js/mcp-cli';
-import type { ServerSession } from '@mongodb-js/mcp-cli';
+import { Session } from '@mongodb-js/mcp-cli';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import { UserConfig } from '@mongodb-js/mcp-cli';
 import { UserConfigSchema } from '@mongodb-js/mcp-cli';
-import z from 'zod';
+import { z } from 'zod';
 import type { ZodRawShape } from 'zod';
 
 // @public (undocumented)
@@ -677,19 +675,6 @@ export type LogPayload = {
 };
 
 // @public (undocumented)
-export class MongoDBError<ErrorCode extends ErrorCodes = ErrorCodes> extends Error {
-    constructor(code: ErrorCode, message: string);
-    // (undocumented)
-    code: ErrorCode;
-}
-
-// @public
-export type MongoDBToolsRuntimeConfig = {
-    queryCountMaxTimeMsCap: number;
-    aggregationCountMaxTimeMsCap: number;
-};
-
-// @public (undocumented)
 export type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
 
 // @public
@@ -722,84 +707,15 @@ export { Server }
 
 export { ServerOptions }
 
-// @public (undocumented)
-export class Session extends EventEmitter<SessionEvents> implements ServerSession {
-    constructor(input: SessionOptions<UserConfig>);
-    // (undocumented)
-    readonly apiClient: ApiClient;
-    // (undocumented)
-    assertSearchSupported(): Promise<void>;
-    // (undocumented)
-    readonly atlasLocalClient?: Client;
-    // (undocumented)
-    close(): Promise<void>;
-    // (undocumented)
-    readonly config: UserConfig;
-    // (undocumented)
-    get connectedAtlasCluster(): AtlasClusterConnectionInfo | undefined;
-    // (undocumented)
-    readonly connectionErrorHandler: ConnectionErrorHandler;
-    // (undocumented)
-    readonly connectionManager: ConnectionManager;
-    // (undocumented)
-    get connectionStringInfo(): ConnectionStringInfo | undefined;
-    // (undocumented)
-    connectToConfiguredConnection(): Promise<void>;
-    // (undocumented)
-    connectToMongoDB(settings: ConnectionSettings): Promise<void>;
-    // (undocumented)
-    disconnect(): Promise<void>;
-    // (undocumented)
-    readonly exportsManager: ExportsManager;
-    // (undocumented)
-    get isConnectedToMongoDB(): boolean;
-    // (undocumented)
-    isSearchSupported(): Promise<boolean>;
-    // (undocumented)
-    readonly keychain: Keychain;
-    // (undocumented)
-    readonly logger: CompositeLogger;
-    // (undocumented)
-    mcpClient?: {
-        name?: string;
-        version?: string;
-        title?: string;
-    };
-    // (undocumented)
-    get serviceProvider(): NodeDriverServiceProvider;
-    // (undocumented)
-    readonly sessionId: string;
-    // (undocumented)
-    setMcpClient(mcpClient: Implementation | undefined): void;
-}
+export { Session }
 
 // @public (undocumented)
 export type SessionEvents = {
     connect: [];
     close: [];
     disconnect: [];
-    "connection-error": [ConnectionStateErrored];
+    "connection-error": [unknown];
 };
-
-// @public (undocumented)
-export interface SessionOptions<TUserConfig extends UserConfig = UserConfig> {
-    // (undocumented)
-    apiClient: ApiClient;
-    // (undocumented)
-    atlasLocalClient?: Client;
-    // (undocumented)
-    connectionErrorHandler: ConnectionErrorHandler;
-    // (undocumented)
-    connectionManager: ConnectionManager;
-    // (undocumented)
-    exportsManager: ExportsManager;
-    // (undocumented)
-    keychain: Keychain;
-    // (undocumented)
-    logger: CompositeLogger;
-    // (undocumented)
-    userConfig: TUserConfig;
-}
 
 // @public (undocumented)
 export type StoredExport = ReadyExport | InProgressExport;
