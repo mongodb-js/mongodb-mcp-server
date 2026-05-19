@@ -75,3 +75,6 @@ export type ResourceClass<
     /** Constructor signature for the resource class */
     new (params: ResourceConstructorParams<TSession, TMetrics>): { register(server: IResourceServer): void };
 };
+
+/** Resource constructor type for registries that may include session-specific resource implementations. */
+export type AnyResourceClass = ResourceClass<any, any>;

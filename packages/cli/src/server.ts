@@ -12,7 +12,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { type ConnectionErrorHandler, type ConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
 import type { Elicitation } from "@mongodb-js/mcp-core";
-import type { IMetrics, DefaultMetricDefinitions, ResourceClass } from "@mongodb-js/mcp-types";
+import type { AnyResourceClass, IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
 import type { AtlasTelemetry, TelemetryServerCommand, TelemetryServerEvent } from "@mongodb-js/mcp-atlas-telemetry";
 import type { AnyToolBase, AnyToolClass, ToolCategory } from "@mongodb-js/mcp-core";
 import { validateConnectionString } from "@mongodb-js/mcp-tools-mongodb";
@@ -22,7 +22,7 @@ import { type ServerMetadata } from "@mongodb-js/mcp-types";
 export type ToolRegistry = AnyToolClass[];
 
 /** Resource constructor registry. */
-export type ResourceRegistry = readonly ResourceClass[];
+export type ResourceRegistry = readonly AnyResourceClass[];
 
 export interface ServerOptions<
     TUserConfig extends UserConfig = UserConfig,

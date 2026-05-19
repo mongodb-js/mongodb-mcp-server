@@ -6,7 +6,8 @@ import type { CallToolResult } from "@mongodb-js/mcp-types";
 import { defaultTestConfig, getDataFromUntrustedContent, resourceChangedNotification, timeout } from "../integrationHelpers.js";
 import { describeWithMongoDB } from "../mongodbHelpers.js";
 import { contentWithResourceURILink } from "../tools/mongodb/read/export.test.js";
-import { ExportedData, type UserConfig } from "mongodb-mcp-server";
+import type { UserConfig } from "mongodb-mcp-server";
+import { ExportedData } from "../../../mongodb-mcp-server/src/resources/common/exportedData.js";
 
 const userConfig: UserConfig = {
     ...defaultTestConfig,
@@ -178,6 +179,6 @@ describeWithMongoDB(
     },
     {
         getUserConfig: () => userConfig,
-        resources: [ExportedData],
+        serverOptions: { resources: [ExportedData] },
     }
 );

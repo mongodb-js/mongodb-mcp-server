@@ -17,7 +17,7 @@ import { Keychain } from "@mongodb-js/mcp-core";
 import { Elicitation } from "mongodb-mcp-server";
 import type { MockClientCapabilities, createMockElicitInput } from "@mongodb-js/mcp-test-utils";
 import { createAtlasLocalClient } from "mongodb-mcp-server";
-import type { AnyToolClass, OperationType, ResourceClass } from "@mongodb-js/mcp-core";
+import type { AnyResourceClass, AnyToolClass, OperationType } from "@mongodb-js/mcp-core";
 import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 export { Session } from "@mongodb-js/mcp-cli";
@@ -115,7 +115,7 @@ export function setupIntegrationTest(
         /** Tool constructors to register. When omitted, no tools are registered unless set via `serverOptions.tools`. */
         tools?: AnyToolClass[];
         /** Resource constructors to register. When omitted, no resources are registered unless set via `serverOptions.resources`. */
-        resources?: ResourceClass[];
+        resources?: AnyResourceClass[];
     } = {}
 ): IntegrationTest {
     let mcpClient: Client | undefined;

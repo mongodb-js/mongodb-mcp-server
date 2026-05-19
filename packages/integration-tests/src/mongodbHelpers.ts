@@ -14,7 +14,7 @@ import {
 import type { UserConfig } from "mongodb-mcp-server";
 import type { ServerOptions } from "mongodb-mcp-server";
 import { MongoDBTools } from "mongodb-mcp-server/tools";
-import type { AnyToolClass, ResourceClass } from "@mongodb-js/mcp-core";
+import type { AnyResourceClass, AnyToolClass } from "@mongodb-js/mcp-core";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { EJSON } from "bson";
 import { MongoDBClusterProcess } from "@mongodb-js/mcp-test-utils";
@@ -91,7 +91,7 @@ export type TestSuiteConfig = {
     getClientCapabilities?: () => MockClientCapabilities;
     serverOptions?: Partial<ServerOptions>;
     tools?: AnyToolClass[];
-    resources?: ResourceClass[];
+    resources?: AnyResourceClass[];
 };
 
 export const defaultTestSuiteConfig: TestSuiteConfig = {

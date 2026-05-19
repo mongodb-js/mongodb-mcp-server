@@ -11,7 +11,8 @@ import {
     validateToolMetadata,
 } from "../../../integrationHelpers.js";
 import { describeWithMongoDB } from "../../../mongodbHelpers.js";
-import { ExportedData, type UserConfig } from "mongodb-mcp-server";
+import type { UserConfig } from "mongodb-mcp-server";
+import { ExportedData } from "../../../../../mongodb-mcp-server/src/resources/common/exportedData.js";
 
 const userConfig: UserConfig = {
     ...defaultTestConfig,
@@ -456,6 +457,6 @@ describeWithMongoDB(
     },
     {
         getUserConfig: () => userConfig,
-        resources: [ExportedData],
+        serverOptions: { resources: [ExportedData] },
     }
 );
