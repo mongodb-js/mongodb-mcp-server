@@ -17,7 +17,7 @@ import { Keychain } from "@mongodb-js/mcp-core";
 import { Elicitation } from "mongodb-mcp-server";
 import type { MockClientCapabilities, createMockElicitInput } from "@mongodb-js/mcp-test-utils";
 import { createAtlasLocalClient } from "mongodb-mcp-server";
-import type { AnyToolClass, OperationType } from "@mongodb-js/mcp-core";
+import type { AnyToolClass, OperationType, ResourceClass } from "@mongodb-js/mcp-core";
 import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 export { Session } from "@mongodb-js/mcp-cli";
@@ -65,6 +65,9 @@ export const DEFAULT_LONG_RUNNING_TEST_WAIT_TIMEOUT_MS = 1_200_000;
 /** Max time to wait for MongoDB disconnect during per-test integration teardown. */
 const INTEGRATION_TEST_DISCONNECT_TIMEOUT_MS = 30_000;
 
+/** Max time to wait for a resource-updated notification in tests. */
+const RESOURCE_CHANGED_NOTIFICATION_TIMEOUT_MS = 30_000;
+
 /** MongoDB tools hold a shallow config snapshot from registration; merge live session config into each tool. */
 export function syncMongoToolsConfigFromUserConfig(mcpServer: Server): void {
     const { session } = mcpServer;
@@ -104,12 +107,15 @@ export function setupIntegrationTest(
         getClientCapabilities,
         serverOptions,
         tools,
+        resources,
     }: {
         elicitInput?: ReturnType<typeof createMockElicitInput>;
         getClientCapabilities?: () => MockClientCapabilities;
         serverOptions?: Partial<ServerOptions>;
         /** Tool constructors to register. When omitted, no tools are registered unless set via `serverOptions.tools`. */
         tools?: AnyToolClass[];
+        /** Resource constructors to register. When omitted, no resources are registered unless set via `serverOptions.resources`. */
+        resources?: ResourceClass[];
     } = {}
 ): IntegrationTest {
     let mcpClient: Client | undefined;
@@ -212,7 +218,11 @@ export function setupIntegrationTest(
             uiRegistry = new UIRegistry();
         }
 
-        const { tools: toolsFromServerOptions, ...restServerOptions } = serverOptions ?? {};
+        const {
+            tools: toolsFromServerOptions,
+            resources: resourcesFromServerOptions,
+            ...restServerOptions
+        } = serverOptions ?? {};
 
         mcpServer = new Server({
             session,
@@ -232,6 +242,7 @@ export function setupIntegrationTest(
             },
             ...restServerOptions,
             tools: tools ?? toolsFromServerOptions,
+            resources: resources ?? resourcesFromServerOptions,
         });
 
         await mcpServer.connect(serverTransport);
@@ -461,14 +472,21 @@ export function timeout(ms: number): Promise<void> {
  * Subscribes to the resources changed notification for the provided URI
  */
 export function resourceChangedNotification(client: Client, uri: string): Promise<void> {
-    return new Promise<void>((resolve) => {
-        void client.subscribeResource({ uri });
-        client.setNotificationHandler(ResourceUpdatedNotificationSchema, (notification) => {
-            if (notification.params.uri === uri) {
-                resolve();
-            }
-        });
-    });
+    return Promise.race([
+        new Promise<void>((resolve) => {
+            void client.subscribeResource({ uri });
+            client.setNotificationHandler(ResourceUpdatedNotificationSchema, (notification) => {
+                if (notification.params.uri === uri) {
+                    resolve();
+                }
+            });
+        }),
+        timeout(RESOURCE_CHANGED_NOTIFICATION_TIMEOUT_MS).then(() => {
+            throw new Error(
+                `Timed out after ${RESOURCE_CHANGED_NOTIFICATION_TIMEOUT_MS}ms waiting for resource update notification for ${uri}`
+            );
+        }),
+    ]);
 }
 
 export function responseAsText(response: Awaited<ReturnType<Client["callTool"]>>): string {
