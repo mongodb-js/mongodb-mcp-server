@@ -9,9 +9,10 @@ import {
     setupIntegrationTest,
     defaultTestConfig,
     getDataFromUntrustedContent,
+    syncMongoToolsConfigFromUserConfig,
 } from "./integrationHelpers.js";
-import type { Session, UserConfig } from "mongodb-mcp-server";
-import type { Server, ServerOptions } from "mongodb-mcp-server";
+import type { UserConfig } from "mongodb-mcp-server";
+import type { ServerOptions } from "mongodb-mcp-server";
 import { MongoDBTools } from "mongodb-mcp-server/tools";
 import type { AnyToolClass } from "@mongodb-js/mcp-core";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -191,15 +192,7 @@ export function setupMongoDBIntegrationTest(
     };
 }
 
-/** MongoDB tools hold a shallow config snapshot from registration; merge live {@link Server.userConfig} into each tool's config. */
-export function syncMongoToolsConfigFromUserConfig(mcpServer: Server): void {
-    const { session } = mcpServer;
-    for (const tool of mcpServer.tools) {
-        if (tool.category === "mongodb") {
-            Object.assign((tool as unknown as { session: Session }).session.config, session.config);
-        }
-    }
-}
+export { syncMongoToolsConfigFromUserConfig };
 
 export function validateAutoConnectBehavior(
     integration: IntegrationTest & MongoDBIntegrationTest,

@@ -10,7 +10,7 @@ import {
     SubscribeRequestSchema,
     UnsubscribeRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import { type ConnectionErrorHandler } from "@mongodb-js/mcp-tools-mongodb";
+import { type ConnectionErrorHandler, type ConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
 import type { Elicitation } from "@mongodb-js/mcp-core";
 import type { IMetrics, DefaultMetricDefinitions, ResourceClass } from "@mongodb-js/mcp-types";
 import type { AtlasTelemetry, TelemetryServerCommand, TelemetryServerEvent } from "@mongodb-js/mcp-atlas-telemetry";
@@ -81,6 +81,7 @@ export interface ServerOptions<
 
 export type ServerSession = ISession<UserConfig> & {
     apiClient: IApiClient;
+    connectionManager: ConnectionManager;
     connectToConfiguredConnection: () => Promise<void>;
 };
 
@@ -305,7 +306,7 @@ export class Server<
                 uiRegistry: this.uiRegistry,
             });
             if (tool.register(this)) {
-                this.tools.push(tool);
+                this.tools.push(tool as AnyToolBase);
             }
         }
     }

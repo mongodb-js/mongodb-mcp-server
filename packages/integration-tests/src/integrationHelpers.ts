@@ -62,6 +62,41 @@ export interface IntegrationTest {
 
 export const DEFAULT_LONG_RUNNING_TEST_WAIT_TIMEOUT_MS = 1_200_000;
 
+/** Max time to wait for MongoDB disconnect during per-test integration teardown. */
+const INTEGRATION_TEST_DISCONNECT_TIMEOUT_MS = 30_000;
+
+/** MongoDB tools hold a shallow config snapshot from registration; merge live session config into each tool. */
+export function syncMongoToolsConfigFromUserConfig(mcpServer: Server): void {
+    const { session } = mcpServer;
+    for (const tool of mcpServer.tools) {
+        if (tool.category === "mongodb") {
+            Object.assign((tool as unknown as { session: Session }).session.config, session.config);
+        }
+    }
+}
+
+/** Drop any active MongoDB connection and clear connection config so the next test starts clean. */
+export async function resetSessionAfterIntegrationTest(mcpServer: Server): Promise<void> {
+    const { session } = mcpServer;
+
+    session.config.connectionString = undefined;
+    syncMongoToolsConfigFromUserConfig(mcpServer);
+
+    const { tag } = session.connectionManager.currentConnectionState;
+    if (tag === "disconnected" || tag === "errored") {
+        return;
+    }
+
+    await Promise.race([
+        session.connectionManager.disconnect(),
+        timeout(INTEGRATION_TEST_DISCONNECT_TIMEOUT_MS).then(() => {
+            throw new Error(
+                `Timed out after ${INTEGRATION_TEST_DISCONNECT_TIMEOUT_MS}ms while disconnecting MongoDB in test teardown (connection state: ${tag})`
+            );
+        }),
+    ]);
+}
+
 export function setupIntegrationTest(
     getUserConfig: () => UserConfig,
     {
@@ -205,7 +240,7 @@ export function setupIntegrationTest(
 
     afterEach(async () => {
         if (mcpServer) {
-            await mcpServer.session.disconnect();
+            await resetSessionAfterIntegrationTest(mcpServer);
         }
 
         vi.clearAllMocks();
