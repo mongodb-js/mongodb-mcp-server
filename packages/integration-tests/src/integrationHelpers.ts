@@ -79,11 +79,14 @@ export function syncMongoToolsConfigFromUserConfig(mcpServer: Server): void {
     }
 }
 
-/** Drop any active MongoDB connection and clear connection config so the next test starts clean. */
-export async function resetSessionAfterIntegrationTest(mcpServer: Server): Promise<void> {
+/** Drop any active MongoDB connection and reset connection config for the next test. */
+export async function resetSessionAfterIntegrationTest(
+    mcpServer: Server,
+    options?: { baselineConnectionString?: string | undefined }
+): Promise<void> {
     const { session } = mcpServer;
 
-    session.config.connectionString = undefined;
+    session.config.connectionString = options?.baselineConnectionString;
     syncMongoToolsConfigFromUserConfig(mcpServer);
 
     const { tag } = session.connectionManager.currentConnectionState;
@@ -122,9 +125,11 @@ export function setupIntegrationTest(
     let mcpClient: Client | undefined;
     let mcpServer: Server | undefined;
     let deviceId: DeviceId | undefined;
+    let baselineConnectionString: string | undefined;
 
     beforeAll(async () => {
         const userConfig = getUserConfig();
+        baselineConnectionString = userConfig.connectionString;
         const clientCapabilities = getClientCapabilities?.() ?? (elicitInput ? { elicitation: {} } : {});
 
         const clientTransport = new InMemoryTransport();
@@ -252,7 +257,7 @@ export function setupIntegrationTest(
 
     afterEach(async () => {
         if (mcpServer) {
-            await resetSessionAfterIntegrationTest(mcpServer);
+            await resetSessionAfterIntegrationTest(mcpServer, { baselineConnectionString });
         }
 
         vi.clearAllMocks();
