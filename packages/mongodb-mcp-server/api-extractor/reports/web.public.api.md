@@ -19,8 +19,6 @@ import type { LoggingMessageNotification } from '@modelcontextprotocol/sdk/types
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
 import { Secret } from 'mongodb-redact';
-import { Server } from '@mongodb-js/mcp-cli';
-import { ServerOptions } from '@mongodb-js/mcp-cli';
 import { Session } from '@mongodb-js/mcp-cli';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import { UserConfig } from '@mongodb-js/mcp-cli';
@@ -702,10 +700,6 @@ export type RequestContext = {
 };
 
 export { Secret }
-
-export { Server }
-
-export { ServerOptions }
 
 export { Session }
 
