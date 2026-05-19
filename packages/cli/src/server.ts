@@ -50,6 +50,7 @@ export type ServerTelemetry = {
 /** Generic session interface that Server requires. */
 export type ServerSession = {
     logger: ServerLogger;
+    userConfig: UserConfig;
     setMcpClient: (client: { name: string; version: string; title?: string } | undefined) => void;
     apiClient?: { validateAuthConfig: () => Promise<void> } | undefined;
     connectToConfiguredConnection: () => Promise<void>;
@@ -383,7 +384,6 @@ export class Server<
         for (const resourceConstructor of this.resourceConstructors) {
             const resource = new resourceConstructor({
                 session: this.session,
-                config: this.userConfig,
                 telemetry: this.telemetry,
                 elicitation: this.elicitation,
                 metrics: this.metrics,

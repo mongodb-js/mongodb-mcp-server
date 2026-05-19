@@ -1,5 +1,6 @@
 import type {
     ISession,
+    IResourceSession,
     SessionEvents,
     ITelemetry,
     IToolConfig,
@@ -30,19 +31,14 @@ export type ReactiveResourceOptions<Value, RelevantEvents extends readonly (keyo
  * See `Server.registerResources` method in `src/server.ts` for further reference.
  */
 export type ResourceConstructorParams<
-    TUserConfig extends IToolConfig = IToolConfig,
+    TSession extends ISession = ISession,
     TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions,
 > = {
     /**
      * An instance of Session class providing access to MongoDB connections,
-     * loggers, etc.
+     * loggers, config, etc.
      */
-    session: ISession;
-
-    /**
-     * The configuration object that MCP session was started with.
-     */
-    config: TUserConfig;
+    session: TSession;
 
     /**
      * The telemetry service for tracking resource usage.
@@ -82,6 +78,9 @@ export interface IResourceServer {
  * - `reduce()` - Update state based on session events
  * - `toOutput()` - Convert current state to resource output
  *
+ * The session type parameter allows resources to access config and other session-specific
+ * data through the session object.
+ *
  * @example Basic Custom Resource
  * ```typescript
  * class MyResource extends ReactiveResource<string, readonly ["connect", "disconnect"]> {
@@ -109,16 +108,33 @@ export interface IResourceServer {
  *   }
  * }
  * ```
+ *
+ * @example Resource with Config Access
+ * ```typescript
+ * class ConfigResource extends ReactiveResource<MyConfig, readonly [], IResourceSession<MyConfig>> {
+ *   constructor(params: ResourceConstructorParams<IResourceSession<MyConfig>>) {
+ *     super({
+ *       resourceConfiguration: { name: "config", uri: "config://config", config: { description: "Config" } },
+ *       options: { initial: params.session.userConfig, events: [] },
+ *       ...params,
+ *     });
+ *   }
+ *
+ *   toOutput(): string {
+ *     // Access config through session
+ *     return JSON.stringify(this.session.userConfig);
+ *   }
+ * }
+ * ```
  */
 export abstract class ReactiveResource<
     Value,
     RelevantEvents extends readonly (keyof SessionEvents)[],
-    TUserConfig extends IToolConfig = IToolConfig,
+    TSession extends ISession = ISession,
     TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions,
 > {
     protected server?: IResourceServer;
-    protected session: ISession;
-    protected config: TUserConfig;
+    protected session: TSession;
     protected telemetry: ITelemetry;
     protected elicitation: IElicitation;
     protected metrics: IMetrics<TMetricsDefinitions>;
@@ -133,7 +149,6 @@ export abstract class ReactiveResource<
         resourceConfiguration,
         options,
         session,
-        config,
         telemetry,
         elicitation,
         metrics,
@@ -141,15 +156,13 @@ export abstract class ReactiveResource<
     }: {
         resourceConfiguration: ResourceConfiguration;
         options: ReactiveResourceOptions<Value, RelevantEvents>;
-        session: ISession;
-        config: TUserConfig;
+        session: TSession;
         telemetry: ITelemetry;
         elicitation: IElicitation;
         metrics: IMetrics<TMetricsDefinitions>;
         current?: Value;
     }) {
         this.session = session;
-        this.config = config;
         this.telemetry = telemetry;
         this.elicitation = elicitation;
         this.metrics = metrics;
