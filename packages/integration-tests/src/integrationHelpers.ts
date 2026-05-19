@@ -2,6 +2,7 @@ import type { LoggerType, LogLevel, LogPayload } from "@mongodb-js/mcp-core";
 import { CompositeLogger, LoggerBase } from "@mongodb-js/mcp-core";
 import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { Session, UserConfigSchema, packageInfo } from "mongodb-mcp-server";
+import { AllTools } from "mongodb-mcp-server/tools";
 import { Server, type ServerOptions } from "mongodb-mcp-server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -190,6 +191,7 @@ export function setupIntegrationTest(
                     node: "12.0.0",
                 },
             },
+            tools: AllTools,
             ...serverOptions,
         });
 

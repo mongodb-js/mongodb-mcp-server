@@ -15,6 +15,7 @@ import type {
 import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { Server } from "mongodb-mcp-server";
+import { AllTools } from "mongodb-mcp-server/tools";
 import {
     Session,
     Elicitation,
@@ -143,6 +144,7 @@ async function createTestServer(config: UserConfig): Promise<Server> {
                 node: "12.0.0",
             },
         },
+        tools: AllTools,
     });
 
     return server;

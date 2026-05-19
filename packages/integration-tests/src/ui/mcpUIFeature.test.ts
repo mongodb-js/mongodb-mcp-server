@@ -9,6 +9,7 @@ import {
 import { CompositeLogger } from "@mongodb-js/mcp-core";
 import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { Session } from "mongodb-mcp-server";
+import { AllTools } from "mongodb-mcp-server/tools";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Server } from "mongodb-mcp-server";
 import { MCPConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
@@ -237,6 +238,7 @@ describe("mcpUI feature with custom UIs", () => {
                     node: "12.0.0",
                 },
             },
+            tools: AllTools,
         });
 
         const transport = new InMemoryTransport();

@@ -826,7 +826,7 @@ export abstract class ToolBase<
             metadata.connection_host_type = this.session.connectionStringInfo.hostType;
         }
 
-        if (this.session.connectedAtlasCluster?.projectId !== undefined) {
+        if (this.session.connectedAtlasCluster?.projectId) {
             metadata.project_id = this.session.connectedAtlasCluster.projectId;
         }
 

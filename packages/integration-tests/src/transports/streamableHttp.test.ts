@@ -29,6 +29,7 @@ import {
     ExportsManager,
     packageInfo,
 } from "mongodb-mcp-server";
+import { AllTools } from "mongodb-mcp-server/tools";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { CallToolResult } from "@mongodb-js/mcp-types";
 import type { AtlasTelemetry, TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
@@ -213,7 +214,7 @@ function createStreamableHttpRunner(
         logger,
         metrics: metrics,
         sessionStore,
-        tools: options.tools,
+        tools: options.tools ?? AllTools,
     });
 
     return Promise.resolve(
