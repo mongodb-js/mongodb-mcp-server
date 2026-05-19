@@ -550,6 +550,13 @@ export class EventCache {
 export type EventMap<T> = Record<keyof T, any[]>;
 
 // @public (undocumented)
+export class ExportedData {
+    constructor(input: ResourceConstructorParams<Session>);
+    // (undocumented)
+    register(server: Server): void;
+}
+
+// @public (undocumented)
 export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
     // (undocumented)
     get availableExports(): AvailableExport[];

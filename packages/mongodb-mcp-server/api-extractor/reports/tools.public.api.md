@@ -545,13 +545,13 @@ export class CreateIndexTool extends MongoDBToolBase {
                         number: "number";
                         boolean: "boolean";
                         date: "date";
+                        uuid: "uuid";
                         autocomplete: "autocomplete";
                         document: "document";
                         embeddedDocuments: "embeddedDocuments";
                         geo: "geo";
                         objectId: "objectId";
                         token: "token";
-                        uuid: "uuid";
                     }>;
                 }, z.core.$loose>>>;
             }, z.core.$strip>;
@@ -573,8 +573,8 @@ export class CreateIndexTool extends MongoDBToolBase {
         indexName: z.ZodString;
         indexType: z.ZodEnum<{
             classic: "classic";
-            search: "search";
             vectorSearch: "vectorSearch";
+            search: "search";
         }>;
     };
     // (undocumented)
