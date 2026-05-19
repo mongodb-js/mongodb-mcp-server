@@ -13,9 +13,7 @@ import {
 import { type ConnectionErrorHandler } from "@mongodb-js/mcp-tools-mongodb";
 import type { Elicitation } from "@mongodb-js/mcp-core";
 import type { IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
-import type { AnyToolBase, ToolCategory, ToolClass } from "@mongodb-js/mcp-core";
-
-export type AnyToolClass = ToolClass<any, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+import type { AnyToolBase, ToolCategory } from "@mongodb-js/mcp-core";
 
 /** MongoDB read-tool count-phase maxTimeMS caps applied when registering MongoDB tools (binary-only). */
 export type MongoDBToolsRuntimeConfig = {
@@ -58,8 +56,22 @@ export type ServerSession = {
     close?: () => Promise<void>;
 };
 
+/** Generic tool constructor interface that Server expects. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export interface ToolConstructor {
+    // Constructor signature
+    new (params: any): {
+        register: (server: any) => boolean;
+        isEnabled: () => boolean;
+    };
+    // Static properties that must exist on the class
+    toolName: string;
+    category: string;
+    operationType: string;
+}
+
 /** Tool constructor registry - array of tool classes that can be instantiated. */
-export type ToolRegistry = AnyToolClass[];
+export type ToolRegistry = ToolConstructor[];
 
 /** Resource constructor registry. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -118,7 +130,7 @@ export interface ServerOptions<
      * tool implementation using `ToolBase` class and ensure that they conform
      * to `ToolClass` type from `mongodb-mcp-server/tools`.
      */
-    tools?: AnyToolClass[];
+    tools?: ToolRegistry;
     /** Array of resource constructors to register. */
     resources?: ResourceRegistry;
     /**
@@ -141,9 +153,10 @@ export class Server<
     private readonly telemetry: ServerTelemetry;
     public readonly userConfig: TUserConfig;
     public readonly elicitation: Elicitation;
-    private readonly toolConstructors: AnyToolClass[];
+    private readonly toolConstructors: ToolRegistry;
     private readonly resourceConstructors: ResourceRegistry;
-    public readonly tools: AnyToolBase[] = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    public readonly tools: any[] = [];
     public readonly connectionErrorHandler: ConnectionErrorHandler;
     public readonly uiRegistry?: unknown;
     public readonly metrics: IMetrics<TMetrics>;
@@ -366,7 +379,7 @@ export class Server<
                 uiRegistry: this.uiRegistry as any,
             });
             if (tool.register(this)) {
-                this.tools.push(tool);
+                this.tools.push(tool as AnyToolBase);
             }
         }
     }

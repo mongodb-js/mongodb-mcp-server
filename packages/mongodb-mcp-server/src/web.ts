@@ -1,7 +1,7 @@
 export { type ITransportRunner, type TransportRequestContext } from "@mongodb-js/mcp-types";
 export { UserConfigSchema, type UserConfig } from "@mongodb-js/mcp-cli";
 export { createDefaultMetrics, type DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
-export { Server, type ServerOptions, type MongoDBToolsRuntimeConfig, type AnyToolClass } from "@mongodb-js/mcp-cli";
+export { Server, type ServerOptions, type MongoDBToolsRuntimeConfig, type ToolConstructor } from "@mongodb-js/mcp-cli";
 export type { ToolCategory } from "@mongodb-js/mcp-types";
 export { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 export { LoggerBase, CompositeLogger, type EventMap, type DefaultEventMap } from "@mongodb-js/mcp-core";

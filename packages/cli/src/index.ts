@@ -1,6 +1,16 @@
 // Server class and types
 export { Server } from "./server.js";
-export type { ServerOptions, PackageInfo, ServerSession, ResourceRegistry, MongoDBToolsRuntimeConfig, AnyToolClass } from "./server.js";
+export type {
+    ServerOptions,
+    PackageInfo,
+    ServerSession,
+    ServerTelemetry,
+    ServerLogger,
+    ResourceRegistry,
+    ToolRegistry,
+    ToolConstructor,
+    MongoDBToolsRuntimeConfig,
+} from "./server.js";
 
 // Main CLI run function and types
 export {
