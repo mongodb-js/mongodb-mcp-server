@@ -1,7 +1,15 @@
 import type { MockInstance } from "vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiClient, CompositeLogger, Keychain, Telemetry, type DeviceId, type Session } from "mongodb-mcp-server/web";
+import { ApiClient, CompositeLogger, Keychain, Telemetry, type DeviceId } from "mongodb-mcp-server/web";
 import { buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
+
+type MockTelemetrySession = {
+    apiClient: ApiClient;
+    sessionId: string;
+    mcpClient: { name: string; version: string };
+    logger: CompositeLogger;
+    keychain: Keychain;
+};
 
 /**
  * Browser regression test: the MCP server ships a `mongodb-mcp-server/web`
@@ -26,14 +34,14 @@ describe("Telemetry in browser environment", () => {
         get: vi.fn().mockResolvedValue("test-device-id"),
     } as unknown as DeviceId;
 
-    function createMockSession(apiClient: ApiClient): Session {
+    function createMockSession(apiClient: ApiClient): MockTelemetrySession {
         return {
             apiClient,
             sessionId: "browser-session-id",
             mcpClient: { name: "browser-test-client", version: "1.0.0" },
             logger: new CompositeLogger(),
             keychain: new Keychain(),
-        } as unknown as Session;
+        };
     }
 
     beforeEach(() => {
@@ -66,7 +74,7 @@ describe("Telemetry in browser environment", () => {
             apiClient,
             keychain: session.keychain,
             enabled: true,
-            machineMetadata: buildMachineMetadata("browser-test-server", "1.0.0"),
+            machineMetadata: buildMachineMetadata({ mcpServerName: "browser-test-server", version: "1.0.0" }),
         });
 
         await expect(telemetry.setupPromise).resolves.toBeDefined();
@@ -97,6 +105,6 @@ describe("Telemetry in browser environment", () => {
         });
 
         expect(telemetryCall, "expected a POST to the unauth telemetry endpoint").toBeDefined();
-        expect(telemetryCall[1]?.method).toBe("POST");
+        expect(telemetryCall?.[1]?.method).toBe("POST");
     });
 });

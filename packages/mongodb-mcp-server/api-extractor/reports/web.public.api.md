@@ -19,10 +19,7 @@ import type { LoggingMessageNotification } from '@modelcontextprotocol/sdk/types
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
 import { Secret } from 'mongodb-redact';
-import { Session } from '@mongodb-js/mcp-cli';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
-import { UserConfig } from '@mongodb-js/mcp-cli';
-import { UserConfigSchema } from '@mongodb-js/mcp-cli';
 import { z } from 'zod';
 import type { ZodRawShape } from 'zod';
 
@@ -701,8 +698,6 @@ export type RequestContext = {
 
 export { Secret }
 
-export { Session }
-
 // @public (undocumented)
 export type SessionEvents = {
     connect: [];
@@ -896,10 +891,6 @@ export type UpgradeClusterMetadata = AtlasMetadata & {
     provider?: string;
     region?: string;
 };
-
-export { UserConfig }
-
-export { UserConfigSchema }
 
 // (No @packageDocumentation comment for this package)
 

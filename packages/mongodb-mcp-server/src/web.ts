@@ -1,5 +1,4 @@
 export { type ITransportRunner, type TransportRequestContext } from "@mongodb-js/mcp-types";
-export { UserConfigSchema, type UserConfig } from "@mongodb-js/mcp-cli";
 export { createDefaultMetrics, type DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
 export type { ToolCategory } from "@mongodb-js/mcp-types";
 export { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
@@ -18,7 +17,6 @@ export type {
     AtlasStreamsToolMetadata,
     UpgradeClusterMetadata,
 } from "@mongodb-js/mcp-atlas-telemetry";
-export { Session } from "@mongodb-js/mcp-cli";
 export type { SessionEvents } from "@mongodb-js/mcp-types";
 export type { LogLevel, LogPayload, LoggerType } from "@mongodb-js/mcp-core";
 export { Keychain } from "@mongodb-js/mcp-core";
