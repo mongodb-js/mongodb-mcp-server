@@ -135,9 +135,9 @@ describe("Server integration test", () => {
                     const capabilities = integration.mcpClient().getServerCapabilities();
                     expectDefined(capabilities);
                     expectDefined(capabilities?.logging);
-                    expectDefined(capabilities?.completions);
                     expectDefined(capabilities?.tools);
                     expectDefined(capabilities?.resources);
+                    expect(capabilities.completions).toBeUndefined();
                     expect(capabilities.experimental).toBeUndefined();
                     expect(capabilities.prompts).toBeUndefined();
                 });

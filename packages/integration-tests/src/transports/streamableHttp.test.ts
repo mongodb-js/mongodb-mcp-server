@@ -834,6 +834,7 @@ describe("StreamableHttpRunner", () => {
                             http: {
                                 host: config.httpHost,
                                 port: config.httpPort,
+                                bodyLimit: config.httpBodyLimit,
                                 responseType: config.httpResponseType,
                             },
                             session: {
@@ -845,6 +846,7 @@ describe("StreamableHttpRunner", () => {
                         logger,
                         metrics: metrics,
                         sessionStore: ownershipStore,
+                        tools: AllTools,
                     });
 
                     const ownershipRunner = new StreamableHttpRunner<Server>({
@@ -1044,6 +1046,7 @@ describe("StreamableHttpRunner", () => {
                     http: {
                         host: config.httpHost,
                         port: config.httpPort,
+                        bodyLimit: config.httpBodyLimit,
                         responseType: config.httpResponseType,
                     },
                     session: {
@@ -1055,6 +1058,7 @@ describe("StreamableHttpRunner", () => {
                 logger,
                 metrics: metrics,
                 sessionStore,
+                tools: AllTools,
             });
 
             runner = new StreamableHttpRunner<Server>({
