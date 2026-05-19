@@ -33,7 +33,7 @@ export {
     ReactiveResource,
     type ResourceConfiguration,
     type ReactiveResourceOptions,
-    type ReactiveResourceConstructorParams,
+    type ResourceConstructorParams,
     type IResourceServer,
 } from "./reactiveResource.js";
 export { getRandomUUID } from "./randomUUID.js";

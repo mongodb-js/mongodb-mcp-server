@@ -1,4 +1,4 @@
-import { ReactiveResource } from "@mongodb-js/mcp-core";
+import { ReactiveResource, type ResourceConstructorParams } from "@mongodb-js/mcp-core";
 import type { ISession } from "@mongodb-js/mcp-types";
 import type { ConnectionStateErrored } from "@mongodb-js/mcp-tools-mongodb";
 import type { ConnectionStringInfo, AtlasClusterConnectionInfo } from "@mongodb-js/mcp-tools-mongodb";
@@ -10,15 +10,11 @@ type ConnectionStateDebuggingInformation = {
     readonly connectedAtlasCluster?: AtlasClusterConnectionInfo;
 };
 
-export type DebugResourceConstructorParams = {
-    session: ISession;
-};
-
 export class DebugResource extends ReactiveResource<
     ConnectionStateDebuggingInformation,
     readonly ["connect", "disconnect", "close", "connection-error"]
 > {
-    constructor({ session }: DebugResourceConstructorParams) {
+    constructor(params: ResourceConstructorParams) {
         super({
             resourceConfiguration: {
                 name: "debug-mongodb",
@@ -32,7 +28,7 @@ export class DebugResource extends ReactiveResource<
                 initial: { tag: "disconnected" },
                 events: ["connect", "disconnect", "close", "connection-error"],
             },
-            session,
+            ...params,
         });
     }
 

@@ -14,8 +14,12 @@ export class ExportedData {
     private readonly description = "Data files exported in the current session.";
     private readonly uri = "exported-data://{exportName}";
     private server?: Server;
+    private readonly session: Session;
 
-    constructor(private readonly session: Session) {}
+    
+    constructor({ session }: { session: Session }) {
+        this.session = session;
+    }
 
     public register(server: Server): void {
         this.server = server;

@@ -1,4 +1,12 @@
-import type { ISession, SessionEvents } from "@mongodb-js/mcp-types";
+import type {
+    ISession,
+    SessionEvents,
+    ITelemetry,
+    IToolConfig,
+    IElicitation,
+    DefaultMetricDefinitions,
+    IMetrics,
+} from "@mongodb-js/mcp-types";
 import type { ReadResourceCallback, ResourceMetadata } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { LogId } from "./logId.js";
 
@@ -13,26 +21,50 @@ export type ReactiveResourceOptions<Value, RelevantEvents extends readonly (keyo
     events: RelevantEvents;
 };
 
-export type ReactiveResourceConstructorParams<
-    Value,
-    RelevantEvents extends readonly (keyof SessionEvents)[],
+/**
+ * Parameters passed to the constructor of all resources that extends `ReactiveResource`.
+ *
+ * The MongoDB MCP Server automatically injects these parameters when
+ * constructing resources and registering to the MCP Server.
+ *
+ * See `Server.registerResources` method in `src/server.ts` for further reference.
+ */
+export type ResourceConstructorParams<
+    TUserConfig extends IToolConfig = IToolConfig,
+    TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions,
 > = {
-    resourceConfiguration: ResourceConfiguration;
-    options: ReactiveResourceOptions<Value, RelevantEvents>;
+    /**
+     * An instance of Session class providing access to MongoDB connections,
+     * loggers, etc.
+     */
     session: ISession;
-    current?: Value;
+
+    /**
+     * The configuration object that MCP session was started with.
+     */
+    config: TUserConfig;
+
+    /**
+     * The telemetry service for tracking resource usage.
+     */
+    telemetry: ITelemetry;
+
+    /**
+     * The elicitation service for requesting user confirmation.
+     */
+    elicitation: IElicitation;
+
+    /**
+     * The metrics service for tracking resource usage.
+     */
+    metrics: IMetrics<TMetricsDefinitions>;
 };
 
 type PayloadOf<K extends keyof SessionEvents> = SessionEvents[K][0];
 
 export interface IResourceServer {
     mcpServer: {
-        registerResource: (
-            name: string,
-            uri: string,
-            config: ResourceMetadata,
-            callback: ReadResourceCallback
-        ) => void;
+        registerResource: (name: string, uri: string, config: ResourceMetadata, callback: ReadResourceCallback) => void;
     };
     sendResourceListChanged(): void;
     sendResourceUpdated(uri: string): void;
@@ -53,7 +85,7 @@ export interface IResourceServer {
  * @example Basic Custom Resource
  * ```typescript
  * class MyResource extends ReactiveResource<string, readonly ["connect", "disconnect"]> {
- *   constructor(session: ISession) {
+ *   constructor(params: ResourceConstructorParams) {
  *     super({
  *       resourceConfiguration: {
  *         name: "my-resource",
@@ -64,7 +96,7 @@ export interface IResourceServer {
  *         initial: "disconnected",
  *         events: ["connect", "disconnect"],
  *       },
- *       session,
+ *       ...params,
  *     });
  *   }
  *
@@ -81,9 +113,15 @@ export interface IResourceServer {
 export abstract class ReactiveResource<
     Value,
     RelevantEvents extends readonly (keyof SessionEvents)[],
+    TUserConfig extends IToolConfig = IToolConfig,
+    TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions,
 > {
     protected server?: IResourceServer;
     protected session: ISession;
+    protected config: TUserConfig;
+    protected telemetry: ITelemetry;
+    protected elicitation: IElicitation;
+    protected metrics: IMetrics<TMetricsDefinitions>;
 
     protected current: Value;
     protected readonly name: string;
@@ -95,9 +133,26 @@ export abstract class ReactiveResource<
         resourceConfiguration,
         options,
         session,
+        config,
+        telemetry,
+        elicitation,
+        metrics,
         current,
-    }: ReactiveResourceConstructorParams<Value, RelevantEvents>) {
+    }: {
+        resourceConfiguration: ResourceConfiguration;
+        options: ReactiveResourceOptions<Value, RelevantEvents>;
+        session: ISession;
+        config: TUserConfig;
+        telemetry: ITelemetry;
+        elicitation: IElicitation;
+        metrics: IMetrics<TMetricsDefinitions>;
+        current?: Value;
+    }) {
         this.session = session;
+        this.config = config;
+        this.telemetry = telemetry;
+        this.elicitation = elicitation;
+        this.metrics = metrics;
 
         this.name = resourceConfiguration.name;
         this.uri = resourceConfiguration.uri;
@@ -110,8 +165,8 @@ export abstract class ReactiveResource<
 
     private setupEventListeners(): void {
         for (const event of this.events) {
-            this.session.on(event, (...args: SessionEvents[typeof event]) => {
-                this.reduceApply(event, (args as unknown[])[0] as PayloadOf<typeof event>);
+            this.session.on(event, (...args: unknown[]) => {
+                this.reduceApply(event, args[0] as PayloadOf<typeof event>);
                 void this.triggerUpdate();
             });
         }

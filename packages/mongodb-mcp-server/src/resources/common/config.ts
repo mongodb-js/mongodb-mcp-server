@@ -1,17 +1,9 @@
-import { ReactiveResource } from "@mongodb-js/mcp-core";
+import { ReactiveResource, type ResourceConstructorParams } from "@mongodb-js/mcp-core";
 import type { UserConfig } from "@mongodb-js/mcp-cli";
-import type { ISession } from "@mongodb-js/mcp-types";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 
-export type ConfigResourceConstructorParams = {
-    session: ISession;
-    config: UserConfig;
-};
-
-export class ConfigResource extends ReactiveResource<UserConfig, readonly []> {
-    private readonly config: UserConfig;
-
-    constructor({ session, config }: ConfigResourceConstructorParams) {
+export class ConfigResource extends ReactiveResource<UserConfig, readonly [], UserConfig> {
+    constructor(params: ResourceConstructorParams<UserConfig>) {
         super({
             resourceConfiguration: {
                 name: "config",
@@ -22,12 +14,11 @@ export class ConfigResource extends ReactiveResource<UserConfig, readonly []> {
                 },
             },
             options: {
-                initial: { ...config },
+                initial: { ...params.config },
                 events: [],
             },
-            session,
+            ...params,
         });
-        this.config = config;
     }
 
     reduce(): UserConfig {

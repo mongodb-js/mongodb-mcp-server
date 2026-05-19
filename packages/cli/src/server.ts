@@ -13,7 +13,7 @@ import {
 import { type ConnectionErrorHandler } from "@mongodb-js/mcp-tools-mongodb";
 import type { Elicitation, ReactiveResource } from "@mongodb-js/mcp-core";
 import type { IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
-import type { AnyToolBase, ToolCategory, ToolClass, IResourceServer } from "@mongodb-js/mcp-core";
+import type { AnyToolBase, ToolCategory, ToolClass, IResourceServer, ResourceConstructorParams } from "@mongodb-js/mcp-core";
 
 /** MongoDB read-tool count-phase maxTimeMS caps applied when registering MongoDB tools (binary-only). */
 export type MongoDBToolsRuntimeConfig = {
@@ -60,15 +60,21 @@ export type ServerSession = {
 export type ToolRegistry = ToolClass[];
 
 /**
- * Constructor interface for resources that can be registered with the server.
+ * The type that all resource classes must conform to when implementing custom resources
+ * for the MongoDB MCP Server.
+ *
+ * This type enforces that resource classes have a constructor that accepts `ResourceConstructorParams`.
  */
-export type ResourceConstructor =
-    | { new (params: { session: ServerSession; config: UserConfig }): { register(server: IResourceServer): void } }
-    | { new (params: { session: ServerSession }): { register(server: IResourceServer): void } }
-    | { new (session: ServerSession): { register(server: IResourceServer): void } };
+export type ResourceClass<
+    TUserConfig extends UserConfig = UserConfig,
+    TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions,
+> = {
+    /** Constructor signature for the resource class */
+    new (params: ResourceConstructorParams<TUserConfig, TMetrics>): { register(server: IResourceServer): void };
+};
 
 /** Resource constructor registry. */
-export type ResourceRegistry = ResourceConstructor[];
+export type ResourceRegistry = ResourceClass[];
 
 export interface ServerOptions<
     TUserConfig extends UserConfig = UserConfig,
@@ -375,25 +381,13 @@ export class Server<
 
     public registerResources(): void {
         for (const resourceConstructor of this.resourceConstructors) {
-            const ResourceClass = resourceConstructor as unknown as { name: string };
-
-            let resource: { register(server: IResourceServer): void };
-
-            // Try different constructor signatures based on resource type
-            if (ResourceClass.name === "ConfigResource") {
-                resource = new (resourceConstructor as { new (params: { session: ServerSession; config: UserConfig }): { register(server: IResourceServer): void } })({
-                    session: this.session,
-                    config: this.userConfig,
-                });
-            } else if (ResourceClass.name === "DebugResource") {
-                resource = new (resourceConstructor as { new (params: { session: ServerSession }): { register(server: IResourceServer): void } })({
-                    session: this.session,
-                });
-            } else {
-                // Default to session-only constructor (e.g., ExportedData)
-                resource = new (resourceConstructor as { new (session: ServerSession): { register(server: IResourceServer): void } })(this.session);
-            }
-
+            const resource = new resourceConstructor({
+                session: this.session,
+                config: this.userConfig,
+                telemetry: this.telemetry,
+                elicitation: this.elicitation,
+                metrics: this.metrics,
+            });
             resource.register(this);
         }
     }
