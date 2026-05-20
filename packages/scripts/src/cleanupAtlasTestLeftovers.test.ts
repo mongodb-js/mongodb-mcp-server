@@ -1,4 +1,9 @@
-import { ApiClient, type Group, type AtlasOrganization } from "@mongodb-js/mcp-atlas-api-client";
+import {
+    ApiClient,
+    ClientCredentialsAuthProvider,
+    type Group,
+    type AtlasOrganization,
+} from "@mongodb-js/mcp-atlas-api-client";
 import { ConsoleLogger } from "@mongodb-js/mcp-logging";
 import { Keychain } from "@mongodb-js/mcp-core";
 import { describe, it } from "vitest";
@@ -140,14 +145,23 @@ async function deleteAllClustersOnStaleProject(client: ApiClient, projectId: str
 }
 
 async function main(): Promise<void> {
+    const baseUrl = process.env.MDB_MCP_API_BASE_URL || "https://cloud-dev.mongodb.com";
+    const userAgent = "mongodb-mcp-test-cleanup";
+    const logger = new ConsoleLogger({ keychain: Keychain.root });
+    const clientId = process.env.MDB_MCP_API_CLIENT_ID || "";
+    const clientSecret = process.env.MDB_MCP_API_CLIENT_SECRET || "";
+    const authProvider =
+        clientId && clientSecret
+            ? new ClientCredentialsAuthProvider({
+                  options: { baseUrl, userAgent, clientId, clientSecret },
+                  logger,
+              })
+            : undefined;
     const apiClient = new ApiClient({
-        baseUrl: process.env.MDB_MCP_API_BASE_URL || "https://cloud-dev.mongodb.com",
-        credentials: {
-            clientId: process.env.MDB_MCP_API_CLIENT_ID || "",
-            clientSecret: process.env.MDB_MCP_API_CLIENT_SECRET || "",
-        },
-        userAgent: "mongodb-mcp-test-cleanup",
-        logger: new ConsoleLogger({ keychain: Keychain.root }),
+        baseUrl,
+        userAgent,
+        logger,
+        authProvider,
     });
 
     const testOrg = await findTestOrganization(apiClient);

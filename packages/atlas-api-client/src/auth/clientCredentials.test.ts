@@ -21,7 +21,7 @@ describe("ClientCredentialsAuthProvider", () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        authProvider = new ClientCredentialsAuthProvider(mockOptions, new NoopLogger());
+        authProvider = new ClientCredentialsAuthProvider({ options: mockOptions, logger: new NoopLogger() });
     });
 
     afterEach(() => {

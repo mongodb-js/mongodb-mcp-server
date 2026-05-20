@@ -4,7 +4,7 @@ import { Elicitation, Keychain, McpServer } from "@mongodb-js/mcp-core";
 import { createDefaultLoggers } from "./utils/loggers.js";
 import type { ResourceRegistry, ToolRegistry } from "./server.js";
 import { Server } from "./server.js";
-import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { ApiClient, ClientCredentialsAuthProvider } from "@mongodb-js/mcp-atlas-api-client";
 import { connectionErrorHandler, DeviceId, ExportsManager, MCPConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
 import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
@@ -55,14 +55,23 @@ export async function createServicesFromUserConfig({
         },
     });
 
+    const userAgent = `${serverMetadata.mcpServerName}/${serverMetadata.version}`;
     const apiClient = new ApiClient({
         baseUrl: config.apiBaseUrl,
-        userAgent: `${serverMetadata.mcpServerName}/${serverMetadata.version}`,
+        userAgent,
         logger,
-        credentials: {
-            clientId: config.apiClientId,
-            clientSecret: config.apiClientSecret,
-        },
+        authProvider:
+            config.apiClientId && config.apiClientSecret
+                ? new ClientCredentialsAuthProvider({
+                      options: {
+                          baseUrl: config.apiBaseUrl,
+                          userAgent,
+                          clientId: config.apiClientId,
+                          clientSecret: config.apiClientSecret,
+                      },
+                      logger,
+                  })
+                : undefined,
     });
 
     const atlasLocalClient = await createAtlasLocalClient({ logger });

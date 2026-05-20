@@ -1,4 +1,4 @@
-import { ApiClient, ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
+import { ApiClient, ApiClientError, ClientCredentialsAuthProvider } from "@mongodb-js/mcp-atlas-api-client";
 import {
     AtlasTelemetry,
     nextBackoffMs,
@@ -654,28 +654,43 @@ describe("AtlasTelemetry credentials handling", () => {
     it.each([
         {
             label: "with atlas credentials",
-            credentials: { clientId: "cid", clientSecret: "csec" },
+            clientId: "cid",
+            clientSecret: "csec",
             expectedPath: "/api/private/v1.0/telemetry/events",
             expectAuthHeader: true,
         },
         {
             label: "without atlas credentials",
-            credentials: {},
+            clientId: undefined,
+            clientSecret: undefined,
             expectedPath: "/api/private/unauth/telemetry/events",
             expectAuthHeader: false,
         },
-    ])("sends telemetry events $label", async ({ credentials, expectedPath, expectAuthHeader }) => {
+    ])("sends telemetry events $label", async ({ clientId, clientSecret, expectedPath, expectAuthHeader }) => {
+        const logger = new NoopLogger();
+        const authProvider =
+            clientId && clientSecret
+                ? new ClientCredentialsAuthProvider({
+                      options: {
+                          baseUrl: API_BASE,
+                          userAgent: USER_AGENT,
+                          clientId,
+                          clientSecret,
+                      },
+                      logger,
+                  })
+                : undefined;
         const apiClient = new ApiClient({
             baseUrl: API_BASE,
-            credentials,
             userAgent: USER_AGENT,
-            logger: new NoopLogger(),
+            logger,
+            authProvider,
         });
 
         // When credentials are present, short-circuit the OAuth token fetch
         // so the test stays focused on the telemetry dispatch rather than the
         // auth flow (which is covered elsewhere).
-        if (credentials.clientId) {
+        if (clientId) {
             expect(apiClient.isAuthConfigured()).toBe(true);
             apiClient.authProvider!.getAuthHeaders = vi.fn().mockResolvedValue({ Authorization: "Bearer mockToken" });
         } else {

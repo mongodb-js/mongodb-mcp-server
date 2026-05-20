@@ -10,6 +10,11 @@ export interface ClientCredentialsAuthOptions {
     userAgent: string;
 }
 
+export type ClientCredentialsAuthProviderParams = {
+    options: ClientCredentialsAuthOptions;
+    logger: LoggerBase;
+};
+
 export class ClientCredentialsAuthProvider implements AuthProvider {
     private oauth2Issuer?: oauth.AuthorizationServer;
     private accessToken?: AccessToken;
@@ -17,7 +22,7 @@ export class ClientCredentialsAuthProvider implements AuthProvider {
     private readonly logger: LoggerBase;
     private customFetch: typeof fetch;
 
-    constructor(options: ClientCredentialsAuthOptions, logger: LoggerBase) {
+    constructor({ options, logger }: ClientCredentialsAuthProviderParams) {
         this.options = options;
         this.logger = logger;
 

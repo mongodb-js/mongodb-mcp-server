@@ -41,12 +41,9 @@ describe("debug resource", () => {
             connectionErrorHandler,
             apiClient: new ApiClient({
                 baseUrl: defaultTestConfig.apiBaseUrl,
-                credentials: {
-                    clientId: defaultTestConfig.apiClientId,
-                    clientSecret: defaultTestConfig.apiClientSecret,
-                },
                 userAgent: "test",
                 logger,
+                authProvider: undefined,
             }),
         })
     );

@@ -44,7 +44,7 @@ import type { IncomingMessage } from "node:http";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { createTestApiClient } from "../integrationHelpers.js";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 
 // Helper to create a full Server instance for tests
@@ -76,14 +76,12 @@ async function createTestServer(
         },
     });
 
-    const apiClient = new ApiClient({
+    const apiClient = createTestApiClient({
         baseUrl: config.apiBaseUrl,
         userAgent: `mongodb-mcp-server/${packageInfo.version}`,
         logger,
-        credentials: {
-            clientId: "test-client-id",
-            clientSecret: "test-client-secret",
-        },
+        clientId: "test-client-id",
+        clientSecret: "test-client-secret",
     });
 
     // Mock the API client methods for tests

@@ -247,8 +247,6 @@ export interface ApiClientOptions {
     // (undocumented)
     baseUrl: string;
     // (undocumented)
-    credentials?: Credentials;
-    // (undocumented)
     logger: LoggerBase;
     // (undocumented)
     requestContext?: RequestContext;
@@ -274,6 +272,17 @@ export class AtlasTelemetry implements ITelemetry {
 
 // @public
 export interface AuthProvider {
+    // (undocumented)
+    getAuthHeaders(): Promise<Record<string, string> | undefined>;
+    // (undocumented)
+    revoke(): Promise<void>;
+    // (undocumented)
+    validate(): Promise<boolean>;
+}
+
+// @public (undocumented)
+export class ClientCredentialsAuthProvider implements AuthProvider {
+    constructor(input: ClientCredentialsAuthProviderParams);
     // (undocumented)
     getAuthHeaders(): Promise<Record<string, string> | undefined>;
     // (undocumented)
@@ -470,14 +479,6 @@ export function createDefaultMetrics(): {
     readonly sessionCreated: Counter<string>;
     readonly sessionClosed: Counter<"reason">;
 };
-
-// @public (undocumented)
-export interface Credentials {
-    // (undocumented)
-    clientId?: string;
-    // (undocumented)
-    clientSecret?: string;
-}
 
 // @public (undocumented)
 export type DefaultEventMap = Record<string, never[]>;

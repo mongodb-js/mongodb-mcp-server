@@ -6,8 +6,7 @@ import type { LoggerBase } from "@mongodb-js/mcp-core";
 import type { IApiClient } from "@mongodb-js/mcp-types";
 import { createFetch } from "@mongodb-js/devtools-proxy-support";
 import { Request as NodeFetchRequest } from "node-fetch";
-import type { Credentials, AuthProvider } from "./auth/authProvider.js";
-import { AuthProviderFactory } from "./auth/authProvider.js";
+import type { AuthProvider } from "./auth/authProvider.js";
 
 const ATLAS_API_VERSION = "2025-03-12";
 const LEGACY_ATLAS_API_VERSION = "2023-01-01";
@@ -26,7 +25,6 @@ function isNodeRuntime(): boolean {
 export interface ApiClientOptions {
     baseUrl: string;
     userAgent: string;
-    credentials?: Credentials;
     requestContext?: RequestContext;
     logger: LoggerBase;
     authProvider?: AuthProvider;
@@ -78,16 +76,7 @@ export class ApiClient implements IApiClient {
             userAgent: options.userAgent,
         };
 
-        this.authProvider =
-            options.authProvider ??
-            AuthProviderFactory.create(
-                {
-                    apiBaseUrl: this.options.baseUrl,
-                    userAgent: this.options.userAgent,
-                    credentials: options.credentials ?? {},
-                },
-                this.logger
-            );
+        this.authProvider = options.authProvider;
 
         this.client = createClient<paths>({
             baseUrl: this.options.baseUrl,

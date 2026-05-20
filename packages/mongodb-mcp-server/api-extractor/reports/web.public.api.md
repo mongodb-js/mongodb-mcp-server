@@ -215,8 +215,6 @@ export interface ApiClientOptions {
     // (undocumented)
     baseUrl: string;
     // (undocumented)
-    credentials?: Credentials;
-    // (undocumented)
     logger: LoggerBase;
     // (undocumented)
     requestContext?: RequestContext;
@@ -277,6 +275,17 @@ export interface AuthProvider {
 
 // @public
 export type AvailableExport = Pick<StoredExport, "exportName" | "exportTitle" | "exportURI" | "exportPath">;
+
+// @public (undocumented)
+export class ClientCredentialsAuthProvider implements AuthProvider {
+    constructor(input: ClientCredentialsAuthProviderParams);
+    // (undocumented)
+    getAuthHeaders(): Promise<Record<string, string> | undefined>;
+    // (undocumented)
+    revoke(): Promise<void>;
+    // (undocumented)
+    validate(): Promise<boolean>;
+}
 
 // @public (undocumented)
 export interface CommonExportData {
@@ -461,14 +470,6 @@ export function createDefaultMetrics(): {
     readonly sessionCreated: Counter<string>;
     readonly sessionClosed: Counter<"reason">;
 };
-
-// @public (undocumented)
-export interface Credentials {
-    // (undocumented)
-    clientId?: string;
-    // (undocumented)
-    clientSecret?: string;
-}
 
 // @public (undocumented)
 export type DefaultEventMap = Record<string, never[]>;

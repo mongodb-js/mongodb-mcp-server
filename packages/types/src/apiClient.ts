@@ -8,10 +8,6 @@ export interface IApiClient<TEvent extends unknown[] = unknown[]> {
 export type ApiClientOptions = {
     baseUrl: string;
     userAgent?: string;
-    credentials?: {
-        clientId: string;
-        clientSecret: string;
-    };
     requestContext?: {
         headers?: Record<string, string | string[] | undefined>;
     };

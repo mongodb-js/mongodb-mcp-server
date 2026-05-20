@@ -19,10 +19,10 @@ import {
     connectionErrorHandler,
     type ConnectionErrorHandler,
     Elicitation,
-    ApiClient,
 } from "mongodb-mcp-server";
 import { CompositeLogger, InMemoryTransport, Keychain } from "@mongodb-js/mcp-core";
 import {
+    createTestApiClient,
     defaultTestConfig,
     expectDefined,
     resetSessionAfterIntegrationTest,
@@ -122,14 +122,12 @@ describe("MongoDBTool implementations", () => {
             connectionManager,
             keychain: new Keychain(),
             connectionErrorHandler: errorHandler,
-            apiClient: new ApiClient({
+            apiClient: createTestApiClient({
                 baseUrl: userConfig.apiBaseUrl,
-                credentials: {
-                    clientId: userConfig.apiClientId,
-                    clientSecret: userConfig.apiClientSecret,
-                },
                 userAgent: "test",
                 logger,
+                clientId: userConfig.apiClientId,
+                clientSecret: userConfig.apiClientSecret,
             }),
         });
 

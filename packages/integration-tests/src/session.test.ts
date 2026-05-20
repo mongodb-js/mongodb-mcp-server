@@ -9,9 +9,8 @@ import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { Keychain } from "@mongodb-js/mcp-core";
 import { ErrorCodes, MongoDBError } from "@mongodb-js/mcp-tools-mongodb";
-import { defaultTestConfig, testConnectionManagerDriverLabels } from "./integrationHelpers.js";
+import { createTestApiClient, defaultTestConfig, testConnectionManagerDriverLabels } from "./integrationHelpers.js";
 import { connectionErrorHandler as defaultConnectionErrorHandler } from "@mongodb-js/mcp-tools-mongodb";
-import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 
 vi.mock("@mongosh/service-provider-node-driver");
 
@@ -45,14 +44,12 @@ describe("Session", () => {
             exportsManager: ExportsManager.init({ options: defaultTestConfig, logger: logger }),
             connectionManager: connectionManager,
             keychain: new Keychain(),
-            apiClient: new ApiClient({
+            apiClient: createTestApiClient({
                 baseUrl: defaultTestConfig.apiBaseUrl,
-                credentials: {
-                    clientId: defaultTestConfig.apiClientId,
-                    clientSecret: defaultTestConfig.apiClientSecret,
-                },
                 userAgent: "test",
                 logger,
+                clientId: defaultTestConfig.apiClientId,
+                clientSecret: defaultTestConfig.apiClientSecret,
             }),
             connectionErrorHandler: defaultConnectionErrorHandler,
         });

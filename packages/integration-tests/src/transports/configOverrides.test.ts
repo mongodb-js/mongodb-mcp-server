@@ -19,7 +19,7 @@ import { AllTools } from "mongodb-mcp-server";
 import { applyConfigOverrides } from "@mongodb-js/mcp-cli";
 import { Session, Elicitation, connectionErrorHandler, MCPConnectionManager, ExportsManager } from "mongodb-mcp-server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { createTestApiClient } from "../integrationHelpers.js";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 import { packageInfo } from "mongodb-mcp-server";
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
@@ -86,14 +86,12 @@ async function createTestServer(config: UserConfig): Promise<Server> {
         },
     });
 
-    const apiClient = new ApiClient({
+    const apiClient = createTestApiClient({
         baseUrl: config.apiBaseUrl,
         userAgent: `mongodb-mcp-server/${packageInfo.version}`,
         logger,
-        credentials: {
-            clientId: "test-client-id",
-            clientSecret: "test-client-secret",
-        },
+        clientId: "test-client-id",
+        clientSecret: "test-client-secret",
     });
 
     // Mock the API client methods for tests

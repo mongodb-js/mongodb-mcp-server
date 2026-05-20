@@ -2,7 +2,7 @@ import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { describe, expect, it } from "vitest";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
 import { Keychain } from "@mongodb-js/mcp-core";
-import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { createTestApiClient } from "./integrationHelpers.js";
 import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 
 describe("AtlasTelemetry", () => {
@@ -15,9 +15,8 @@ describe("AtlasTelemetry", () => {
         const telemetry = AtlasTelemetry.create({
             logger,
             deviceId,
-            apiClient: new ApiClient({
+            apiClient: createTestApiClient({
                 baseUrl: "https://fake.address.com/",
-                credentials: {},
                 userAgent: "",
                 logger,
             }),

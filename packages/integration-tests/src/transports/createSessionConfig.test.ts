@@ -20,7 +20,7 @@ import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/se
 import type { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { createTestApiClient } from "../integrationHelpers.js";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
 import type { IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
@@ -50,14 +50,12 @@ async function createTestServer(config: UserConfig): Promise<Server> {
         },
     });
 
-    const apiClient = new ApiClient({
+    const apiClient = createTestApiClient({
         baseUrl: config.apiBaseUrl,
         userAgent: `mongodb-mcp-server/${packageInfo.version}`,
         logger,
-        credentials: {
-            clientId: "test-client-id",
-            clientSecret: "test-client-secret",
-        },
+        clientId: "test-client-id",
+        clientSecret: "test-client-secret",
     });
 
     // Mock the API client methods for tests

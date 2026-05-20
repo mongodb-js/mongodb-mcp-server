@@ -1,8 +1,7 @@
 export { ApiClient, type ApiClientOptions, type RequestContext } from "./apiClient.js";
 export { ApiClientError } from "./apiClientError.js";
-export type { AuthProvider, Credentials, AccessToken, AuthProviderOptions } from "./auth/authProvider.js";
-export { AuthProviderFactory } from "./auth/authProvider.js";
-export type { ClientCredentialsAuthOptions } from "./auth/clientCredentials.js";
+export type { AuthProvider, AccessToken } from "./auth/authProvider.js";
+export type { ClientCredentialsAuthOptions, ClientCredentialsAuthProviderParams } from "./auth/clientCredentials.js";
 export { ClientCredentialsAuthProvider } from "./auth/clientCredentials.js";
 export type { paths, operations, ApiError } from "./openapi.js";
 

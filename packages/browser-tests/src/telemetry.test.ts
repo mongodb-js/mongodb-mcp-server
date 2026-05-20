@@ -57,7 +57,13 @@ describe("Telemetry in browser environment", () => {
 
     it("can construct an ApiClient without throwing due to node-fetch / createFetch", () => {
         expect(
-            () => new ApiClient({ baseUrl: API_BASE, userAgent: "browser-test-agent", logger: new CompositeLogger() })
+            () =>
+                new ApiClient({
+                    baseUrl: API_BASE,
+                    userAgent: "browser-test-agent",
+                    logger: new CompositeLogger(),
+                    authProvider: undefined,
+                })
         ).not.toThrow();
     });
 
@@ -66,6 +72,7 @@ describe("Telemetry in browser environment", () => {
             baseUrl: API_BASE,
             userAgent: "browser-test-agent",
             logger: new CompositeLogger(),
+            authProvider: undefined,
         });
         expect(apiClient.isAuthConfigured()).toBe(false);
 

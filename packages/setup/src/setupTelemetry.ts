@@ -69,6 +69,7 @@ export class SetupTelemetry {
             baseUrl: config.apiBaseUrl,
             userAgent: `AtlasMCP/${serverMetadata.version} (${process.platform}; ${process.arch})`,
             logger,
+            authProvider: undefined,
         });
         const telemetry = AtlasTelemetry.create({
             logger,

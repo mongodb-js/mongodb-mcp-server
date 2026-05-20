@@ -19,7 +19,7 @@ import type { MockClientCapabilities, createMockElicitInput } from "@mongodb-js/
 import { createAtlasLocalClient } from "mongodb-mcp-server";
 import type { AnyToolClass, OperationType } from "@mongodb-js/mcp-core";
 import type { AnyResourceClass } from "@mongodb-js/mcp-types";
-import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { ApiClient, ClientCredentialsAuthProvider } from "@mongodb-js/mcp-atlas-api-client";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 export { Session } from "@mongodb-js/mcp-cli";
 import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
@@ -28,6 +28,32 @@ export const defaultTestConfig: UserConfig = {
     telemetry: "disabled",
     loggers: ["stderr"],
 };
+
+export type CreateTestApiClientOptions = {
+    baseUrl: string;
+    userAgent: string;
+    logger: LoggerBase;
+    clientId?: string;
+    clientSecret?: string;
+};
+
+export function createTestApiClient(options: CreateTestApiClientOptions): ApiClient {
+    const { baseUrl, userAgent, logger, clientId, clientSecret } = options;
+    const authProvider =
+        clientId && clientSecret
+            ? new ClientCredentialsAuthProvider({
+                  options: { baseUrl, userAgent, clientId, clientSecret },
+                  logger,
+              })
+            : undefined;
+
+    return new ApiClient({
+        baseUrl,
+        userAgent,
+        logger,
+        authProvider,
+    });
+}
 
 /** Driver product labels for tests; mirrors root `serverMetadata`. */
 export const testConnectionManagerDriverLabels = {
@@ -172,14 +198,12 @@ export function setupIntegrationTest(
             keychain: new Keychain(),
             connectionErrorHandler,
             atlasLocalClient: await createAtlasLocalClient({ logger }),
-            apiClient: new ApiClient({
+            apiClient: createTestApiClient({
                 baseUrl: userConfig.apiBaseUrl,
-                credentials: {
-                    clientId: userConfig.apiClientId,
-                    clientSecret: userConfig.apiClientSecret,
-                },
                 userAgent: "mongodb-mcp-test",
                 logger,
+                clientId: userConfig.apiClientId,
+                clientSecret: userConfig.apiClientSecret,
             }),
         });
 

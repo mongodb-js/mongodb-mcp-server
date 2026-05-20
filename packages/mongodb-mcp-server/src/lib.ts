@@ -85,7 +85,8 @@ export { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 export { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 export type { MonitoringServerFeature } from "@mongodb-js/mcp-tools-mongodb";
 export { ApiClient, type ApiClientOptions, type RequestContext } from "@mongodb-js/mcp-atlas-api-client";
-export type { AuthProvider, Credentials } from "@mongodb-js/mcp-atlas-api-client";
+export type { AuthProvider } from "@mongodb-js/mcp-atlas-api-client";
+export { ClientCredentialsAuthProvider } from "@mongodb-js/mcp-atlas-api-client";
 export { type UIRegistryOptions, UIRegistry } from "@mongodb-js/mcp-ui";
 export {
     type ToolExecutionContext,

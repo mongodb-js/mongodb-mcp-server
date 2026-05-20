@@ -1,6 +1,7 @@
 import { describe, expect, it, afterAll } from "vitest";
 import { describeWithMongoDB } from "../mongodbHelpers.js";
 import {
+    createTestApiClient,
     defaultTestConfig,
     expectDefined,
     getResponseElements,
@@ -21,7 +22,6 @@ import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 import { InMemoryTransport } from "@mongodb-js/mcp-core";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
-import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 
@@ -197,14 +197,12 @@ describe("mcpUI feature with custom UIs", () => {
             keychain: Keychain.root,
             connectionErrorHandler,
             atlasLocalClient: await createAtlasLocalClient({ logger }),
-            apiClient: new ApiClient({
+            apiClient: createTestApiClient({
                 baseUrl: userConfig.apiBaseUrl,
-                credentials: {
-                    clientId: userConfig.apiClientId,
-                    clientSecret: userConfig.apiClientSecret,
-                },
                 userAgent: "test",
                 logger,
+                clientId: userConfig.apiClientId,
+                clientSecret: userConfig.apiClientSecret,
             }),
         });
 

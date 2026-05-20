@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { ApiClient, ClientCredentialsAuthProvider } from "@mongodb-js/mcp-atlas-api-client";
 import type { TelemetryEvent } from "@mongodb-js/mcp-types";
 
 /** Subset of atlas telemetry common properties used in ApiClient tests */
@@ -40,12 +40,17 @@ describe("ApiClient", () => {
     beforeEach(() => {
         apiClient = new ApiClient({
             baseUrl: "https://api.test.com",
-            credentials: {
-                clientId: "test-client-id",
-                clientSecret: "test-client-secret",
-            },
             userAgent: "test-user-agent",
             logger: new NoopLogger(),
+            authProvider: new ClientCredentialsAuthProvider({
+                options: {
+                    baseUrl: "https://api.test.com",
+                    userAgent: "test-user-agent",
+                    clientId: "test-client-id",
+                    clientSecret: "test-client-secret",
+                },
+                logger: new NoopLogger(),
+            }),
         });
 
         // @ts-expect-error accessing private property for testing
@@ -90,12 +95,17 @@ describe("ApiClient", () => {
             const expectedUserAgent = `AtlasMCP/${testVersion} (${process.platform}; ${process.arch})`;
             const clientWithUserAgent = new ApiClient({
                 baseUrl: "https://api.test.com",
-                credentials: {
-                    clientId: "test-client-id",
-                    clientSecret: "test-client-secret",
-                },
                 userAgent: expectedUserAgent,
                 logger: new NoopLogger(),
+                authProvider: new ClientCredentialsAuthProvider({
+                    options: {
+                        baseUrl: "https://api.test.com",
+                        userAgent: expectedUserAgent,
+                        clientId: "test-client-id",
+                        clientSecret: "test-client-secret",
+                    },
+                    logger: new NoopLogger(),
+                }),
             });
             // @ts-expect-error accessing private property for testing
             clientWithUserAgent.authProvider.getAuthHeaders = vi.fn().mockRejectedValue(new Error("No token"));

@@ -4,6 +4,7 @@ import { CompositeLogger } from "@mongodb-js/mcp-core";
 import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { Session } from "@mongodb-js/mcp-cli";
 import {
+    createTestApiClient,
     defaultTestConfig,
     expectDefined,
     InMemoryLogger,
@@ -13,7 +14,6 @@ import { describeWithMongoDB } from "./mongodbHelpers.js";
 import { afterEach, describe, expect, it } from "vitest";
 import type { LoggerBase } from "@mongodb-js/mcp-core";
 import type { UserConfig } from "mongodb-mcp-server";
-import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { Elicitation } from "mongodb-mcp-server";
 import { Keychain } from "@mongodb-js/mcp-core";
 import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
@@ -208,14 +208,12 @@ describe("Server integration test", () => {
             keychain: Keychain.root,
             connectionErrorHandler,
             atlasLocalClient: await createAtlasLocalClient({ logger }),
-            apiClient: new ApiClient({
+            apiClient: createTestApiClient({
                 baseUrl: config.apiBaseUrl,
-                credentials: {
-                    clientId: config.apiClientId,
-                    clientSecret: config.apiClientSecret,
-                },
                 userAgent: "test",
                 logger,
+                clientId: config.apiClientId,
+                clientSecret: config.apiClientSecret,
             }),
         });
 
