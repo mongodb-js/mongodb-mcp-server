@@ -9,9 +9,5 @@
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts"],
   "exclude": ["dist", "node_modules"],
-  "references": [
-    { "path": "../types" },
-    { "path": "../metrics" },
-    { "path": "../tools-mongodb" }
-  ]
+  "references": [{ "path": "../types" }, { "path": "../metrics" }]
 }

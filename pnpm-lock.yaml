@@ -14,87 +14,24 @@ importers:
 
   .:
     devDependencies:
-      '@ai-sdk/anthropic':
-        specifier: ^3.0.71
-        version: 3.0.77(zod@4.4.2)
-      '@ai-sdk/azure':
-        specifier: ^3.0.62
-        version: 3.0.64(zod@4.4.2)
-      '@ai-sdk/google':
-        specifier: ^3.0.67
-        version: 3.0.73(zod@4.4.2)
-      '@ai-sdk/mcp':
-        specifier: ^1.0.40
-        version: 1.0.42(zod@4.4.2)
-      '@ai-sdk/openai':
-        specifier: ^3.0.61
-        version: 3.0.63(zod@4.4.2)
-      '@anthropic-ai/mcpb':
-        specifier: 2.1.2
-        version: 2.1.2
-      '@emotion/css':
-        specifier: ^11.13.5
-        version: 11.13.5
       '@eslint/js':
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.2.0(jiti@2.6.1))
-      '@lg-mcp/embeddable-uis':
-        specifier: ^0.1.0
-        version: 0.1.0(@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@19.2.14)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@19.2.14)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@lg-mcp/hooks':
-        specifier: ^0.2.0
-        version: 0.2.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@4.4.2)
-      '@microsoft/api-extractor':
-        specifier: ^7.58.7
-        version: 7.58.7(@types/node@25.6.0)
-      '@modelcontextprotocol/inspector':
-        specifier: ^0.21.2
-        version: 0.21.2(@preact/signals-core@1.13.0)(@types/node@25.6.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(typescript@5.9.3)
-      '@mongodb-js/oidc-mock-provider':
-        specifier: ^0.13.7
-        version: 0.13.9
-      '@redocly/cli':
-        specifier: ^2.29.0
-        version: 2.29.0(@opentelemetry/api@1.9.1)(core-js@3.47.0)
-      '@testing-library/jest-dom':
-        specifier: ^6.9.1
-        version: 6.9.1
-      '@types/express':
-        specifier: ^5.0.0
-        version: 5.0.6
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
-      '@types/proper-lockfile':
-        specifier: ^4.1.4
-        version: 4.1.4
-      '@types/semver':
-        specifier: ^7.7.0
-        version: 7.7.1
-      '@types/yargs-parser':
-        specifier: ^21.0.3
-        version: 21.0.3
       '@typescript-eslint/parser':
         specifier: ^8.58.2
         version: 8.58.2(eslint@10.2.0(jiti@2.6.1))(typescript@5.9.3)
-      '@vitejs/plugin-react':
-        specifier: ^6.0.1
-        version: 6.0.1(vite@8.0.8(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
       '@vitest/coverage-v8':
         specifier: ^4.1.5
         version: 4.1.5(@vitest/browser@4.1.5)(vitest@4.1.5)
       '@vitest/eslint-plugin':
         specifier: ^1.6.16
         version: 1.6.16(@typescript-eslint/eslint-plugin@8.58.2(@typescript-eslint/parser@8.58.2(eslint@10.2.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.2.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.2.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.5)
-      ai:
-        specifier: ^6.0.175
-        version: 6.0.182(zod@4.4.2)
       concurrently:
         specifier: ^9.2.1
         version: 9.2.1
-      duplexpair:
-        specifier: ^1.0.2
-        version: 1.0.2
       eslint:
         specifier: ^10.2.0
         version: 10.2.0(jiti@2.6.1)
@@ -107,69 +44,39 @@ importers:
       globals:
         specifier: ^17.5.0
         version: 17.5.0
-      happy-dom:
-        specifier: ^20.9.0
-        version: 20.9.0
       husky:
         specifier: ^9.1.7
         version: 9.1.7
-      jsdom:
-        specifier: ^29.1.1
-        version: 29.1.1(@noble/hashes@1.8.0)
       knip:
         specifier: ^6.4.1
         version: 6.4.1(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)
-      oauth4webapi:
-        specifier: ^3.8.5
-        version: 3.8.6
-      openapi-typescript:
-        specifier: ^7.13.0
-        version: 7.13.0(typescript@5.9.3)
-      openapi-typescript-helpers:
-        specifier: ^0.1.0
-        version: 0.1.0
       prettier:
         specifier: ^3.8.1
         version: 3.8.1
-      proper-lockfile:
-        specifier: ^4.1.2
-        version: 4.1.2
-      semver:
-        specifier: ^7.7.4
-        version: 7.7.4
-      simple-git:
-        specifier: ^3.36.0
-        version: 3.36.0
-      ts-levenshtein:
-        specifier: ^1.0.7
-        version: 1.0.7
-      tsx:
-        specifier: ^4.20.5
-        version: 4.21.0
       typescript:
         specifier: ^5.9.2
         version: 5.9.3
       typescript-eslint:
         specifier: ^8.58.2
         version: 8.58.2(eslint@10.2.0(jiti@2.6.1))(typescript@5.9.3)
-      vite:
-        specifier: ^8.0.8
-        version: 8.0.8(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3)
-      vite-plugin-node-polyfills:
-        specifier: ^0.26.0
-        version: 0.26.0(rollup@4.60.1)(vite@8.0.8(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
-      vite-plugin-singlefile:
-        specifier: ^2.3.2
-        version: 2.3.2(rollup@4.60.1)(vite@8.0.8(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/browser-playwright@4.1.5)(@vitest/coverage-v8@4.1.5)(happy-dom@20.9.0)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.0.8(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
-      yaml:
-        specifier: ^2.8.1
-        version: 2.8.3
+        version: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/browser-playwright@4.1.5)(@vitest/coverage-v8@4.1.5)(happy-dom@20.9.0)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
 
   packages/accuracy-tests:
     devDependencies:
+      '@ai-sdk/azure':
+        specifier: ^3.0.62
+        version: 3.0.64(zod@4.4.2)
+      '@ai-sdk/google':
+        specifier: ^3.0.67
+        version: 3.0.73(zod@4.4.2)
+      '@ai-sdk/mcp':
+        specifier: ^1.0.40
+        version: 1.0.42(zod@4.4.2)
+      '@ai-sdk/openai':
+        specifier: ^3.0.61
+        version: 3.0.63(zod@4.4.2)
       '@modelcontextprotocol/sdk':
         specifier: ^1.29.0
         version: 1.29.0(zod@4.4.2)
@@ -191,12 +98,24 @@ importers:
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
+      '@types/proper-lockfile':
+        specifier: ^4.1.4
+        version: 4.1.4
+      ai:
+        specifier: ^6.0.175
+        version: 6.0.182(zod@4.4.2)
       mongodb:
         specifier: ^7.1.1
         version: 7.1.1(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
       mongodb-mcp-server:
         specifier: workspace:*
         version: link:../mongodb-mcp-server
+      proper-lockfile:
+        specifier: ^4.1.2
+        version: 4.1.2
+      simple-git:
+        specifier: ^3.36.0
+        version: 3.36.0
       tsx:
         specifier: ^4.20.5
         version: 4.21.0
@@ -231,9 +150,6 @@ importers:
         specifier: ^0.17.0
         version: 0.17.0
     devDependencies:
-      '@mongodb-js/mcp-atlas-telemetry':
-        specifier: workspace:*
-        version: link:../atlas-telemetry
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
@@ -329,12 +245,18 @@ importers:
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
+      '@types/yargs-parser':
+        specifier: ^21.0.3
+        version: 21.0.3
       typescript:
         specifier: ^5.9.2
         version: 5.9.3
       vitest:
         specifier: ^4.1.4
         version: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/browser-playwright@4.1.5)(@vitest/coverage-v8@4.1.5)(happy-dom@20.9.0)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
+      yargs-parser:
+        specifier: ^20.2.4
+        version: 20.2.9
 
   packages/core:
     dependencies:
@@ -454,27 +376,36 @@ importers:
       '@mongodb-js/mcp-ui':
         specifier: workspace:*
         version: link:../ui
+      '@mongodb-js/oidc-mock-provider':
+        specifier: ^0.13.7
+        version: 0.13.9
       '@mongosh/arg-parser':
         specifier: ^5.0.2
         version: 5.0.2(zod@4.4.2)
       '@mongosh/service-provider-node-driver':
         specifier: ^5.0.2
         version: 5.0.2(mongodb-log-writer@2.5.7(bson@7.2.0))
-      '@testing-library/jest-dom':
-        specifier: ^6.9.1
-        version: 6.9.1
       '@types/express':
         specifier: ^5.0.0
         version: 5.0.6
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
+      '@types/semver':
+        specifier: ^7.7.0
+        version: 7.7.1
       '@vitest/coverage-v8':
         specifier: ^4.1.5
         version: 4.1.5(@vitest/browser@4.1.5)(vitest@4.1.5)
       bson:
         specifier: ^7.2.0
         version: 7.2.0
+      duplexpair:
+        specifier: ^1.0.2
+        version: 1.0.2
+      express:
+        specifier: ^5.2.1
+        version: 5.2.1
       mongodb:
         specifier: ^7.1.1
         version: 7.1.1(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
@@ -487,12 +418,18 @@ importers:
       node-machine-id:
         specifier: 1.1.12
         version: 1.1.12
+      semver:
+        specifier: ^7.7.4
+        version: 7.7.4
       typescript:
         specifier: ^5.9.2
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
         version: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/browser-playwright@4.1.5)(@vitest/coverage-v8@4.1.5)(happy-dom@20.9.0)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
+      yaml:
+        specifier: ^2.8.1
+        version: 2.8.3
       zod:
         specifier: ^4.4.2
         version: 4.4.2
@@ -540,9 +477,6 @@ importers:
 
   packages/mongodb-mcp-server:
     dependencies:
-      '@mongodb-js/device-id':
-        specifier: ^0.4.11
-        version: 0.4.11
       '@mongodb-js/mcp-atlas-api-client':
         specifier: workspace:*
         version: link:../atlas-api-client
@@ -588,34 +522,19 @@ importers:
       '@mongosh/service-provider-node-driver':
         specifier: ^5.0.2
         version: 5.0.2(mongodb-log-writer@2.5.7(bson@7.2.0))
-      mongodb:
-        specifier: ^7.1.1
-        version: 7.1.1(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
       mongodb-redact:
         specifier: ^1.4.6
         version: 1.4.7
-      mongodb-schema:
-        specifier: ^12.7.0
-        version: 12.7.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
-      node-machine-id:
-        specifier: 1.1.12
-        version: 1.1.12
-      oauth4webapi:
-        specifier: ^3.8.6
-        version: 3.8.6
-      openapi-fetch:
-        specifier: ^0.17.0
-        version: 0.17.0
-      semver:
-        specifier: ^7.7.4
-        version: 7.7.4
-      ts-levenshtein:
-        specifier: ^1.0.7
-        version: 1.0.7
     devDependencies:
+      '@anthropic-ai/mcpb':
+        specifier: 2.1.2
+        version: 2.1.2
       '@microsoft/api-extractor':
         specifier: ^7.58.7
         version: 7.58.7(@types/node@25.6.0)
+      '@modelcontextprotocol/inspector':
+        specifier: ^0.21.2
+        version: 0.21.2(@preact/signals-core@1.13.0)(@types/node@25.6.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(typescript@5.9.3)
       '@modelcontextprotocol/sdk':
         specifier: ^1.29.0
         version: 1.29.0(zod@4.4.2)
@@ -625,6 +544,12 @@ importers:
       concurrently:
         specifier: ^9.2.1
         version: 9.2.1
+      openapi-typescript-helpers:
+        specifier: ^0.1.0
+        version: 0.1.0
+      ts-levenshtein:
+        specifier: ^1.0.7
+        version: 1.0.7
       tsx:
         specifier: ^4.20.5
         version: 4.21.0
@@ -649,7 +574,10 @@ importers:
         version: 7.0.0
 
   packages/scripts:
-    dependencies:
+    devDependencies:
+      '@ai-sdk/anthropic':
+        specifier: ^3.0.71
+        version: 3.0.77(zod@4.4.2)
       '@mongodb-js/mcp-atlas-api-client':
         specifier: workspace:*
         version: link:../atlas-api-client
@@ -668,10 +596,6 @@ importers:
       '@mongodb-js/mcp-ui':
         specifier: workspace:*
         version: link:../ui
-      mongodb-mcp-server:
-        specifier: workspace:*
-        version: link:../mongodb-mcp-server
-    devDependencies:
       '@mongosh/arg-parser':
         specifier: ^5.0.2
         version: 5.0.2(zod@4.4.2)
@@ -681,12 +605,27 @@ importers:
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
+      '@types/semver':
+        specifier: ^7.7.0
+        version: 7.7.1
+      ai:
+        specifier: ^6.0.175
+        version: 6.0.182(zod@4.4.2)
+      mongodb-mcp-server:
+        specifier: workspace:*
+        version: link:../mongodb-mcp-server
       openapi-types:
         specifier: ^12.1.3
         version: 12.1.3
       openapi-typescript:
         specifier: ^7.13.0
         version: 7.13.0(typescript@5.9.3)
+      semver:
+        specifier: ^7.7.4
+        version: 7.7.4
+      simple-git:
+        specifier: ^3.36.0
+        version: 3.36.0
       tsx:
         specifier: ^4.20.5
         version: 4.21.0
@@ -763,9 +702,6 @@ importers:
       '@mongodb-js/mcp-metrics':
         specifier: workspace:*
         version: link:../metrics
-      '@mongodb-js/mcp-tools-mongodb':
-        specifier: workspace:*
-        version: link:../tools-mongodb
       '@mongodb-js/mcp-types':
         specifier: workspace:*
         version: link:../types
@@ -781,6 +717,9 @@ importers:
       testcontainers:
         specifier: ^11.14.0
         version: 11.14.0
+      vitest:
+        specifier: ^4.1.5
+        version: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/browser-playwright@4.1.5)(@vitest/coverage-v8@4.1.5)(happy-dom@20.9.0)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
     devDependencies:
       '@testing-library/jest-dom':
         specifier: ^6.9.1
@@ -791,9 +730,6 @@ importers:
       typescript:
         specifier: ^5.9.2
         version: 5.9.3
-      vitest:
-        specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/browser-playwright@4.1.5)(@vitest/coverage-v8@4.1.5)(happy-dom@20.9.0)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
 
   packages/tools-assistant:
     dependencies:
@@ -893,9 +829,6 @@ importers:
 
   packages/tools-mongodb:
     dependencies:
-      '@modelcontextprotocol/sdk':
-        specifier: ^1.29.0
-        version: 1.29.0(zod@4.4.2)
       '@mongodb-js/device-id':
         specifier: ^0.4.6
         version: 0.4.11
@@ -8007,6 +7940,7 @@ snapshots:
       '@csstools/css-color-parser': 4.1.0(@csstools/css-parser-algorithms@4.0.0(@csstools/css-tokenizer@4.0.0))(@csstools/css-tokenizer@4.0.0)
       '@csstools/css-parser-algorithms': 4.0.0(@csstools/css-tokenizer@4.0.0)
       '@csstools/css-tokenizer': 4.0.0
+    optional: true
 
   '@asamuzakjp/dom-selector@7.1.1':
     dependencies:
@@ -8015,10 +7949,13 @@ snapshots:
       bidi-js: 1.0.3
       css-tree: 3.2.1
       is-potential-custom-element-name: 1.0.1
+    optional: true
 
-  '@asamuzakjp/generational-cache@1.0.1': {}
+  '@asamuzakjp/generational-cache@1.0.1':
+    optional: true
 
-  '@asamuzakjp/nwsapi@2.3.9': {}
+  '@asamuzakjp/nwsapi@2.3.9':
+    optional: true
 
   '@aws-crypto/sha256-browser@5.2.0':
     dependencies:
@@ -8454,17 +8391,20 @@ snapshots:
   '@bramus/specificity@2.4.2':
     dependencies:
       css-tree: 3.2.1
+    optional: true
 
   '@cspotcode/source-map-support@0.8.1':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.9
 
-  '@csstools/color-helpers@6.0.2': {}
+  '@csstools/color-helpers@6.0.2':
+    optional: true
 
   '@csstools/css-calc@3.2.0(@csstools/css-parser-algorithms@4.0.0(@csstools/css-tokenizer@4.0.0))(@csstools/css-tokenizer@4.0.0)':
     dependencies:
       '@csstools/css-parser-algorithms': 4.0.0(@csstools/css-tokenizer@4.0.0)
       '@csstools/css-tokenizer': 4.0.0
+    optional: true
 
   '@csstools/css-color-parser@4.1.0(@csstools/css-parser-algorithms@4.0.0(@csstools/css-tokenizer@4.0.0))(@csstools/css-tokenizer@4.0.0)':
     dependencies:
@@ -8472,16 +8412,20 @@ snapshots:
       '@csstools/css-calc': 3.2.0(@csstools/css-parser-algorithms@4.0.0(@csstools/css-tokenizer@4.0.0))(@csstools/css-tokenizer@4.0.0)
       '@csstools/css-parser-algorithms': 4.0.0(@csstools/css-tokenizer@4.0.0)
       '@csstools/css-tokenizer': 4.0.0
+    optional: true
 
   '@csstools/css-parser-algorithms@4.0.0(@csstools/css-tokenizer@4.0.0)':
     dependencies:
       '@csstools/css-tokenizer': 4.0.0
+    optional: true
 
   '@csstools/css-syntax-patches-for-csstree@1.1.3(css-tree@3.2.1)':
     optionalDependencies:
       css-tree: 3.2.1
+    optional: true
 
-  '@csstools/css-tokenizer@4.0.0': {}
+  '@csstools/css-tokenizer@4.0.0':
+    optional: true
 
   '@emnapi/core@1.10.0':
     dependencies:
@@ -8728,6 +8672,7 @@ snapshots:
   '@exodus/bytes@1.15.0(@noble/hashes@1.8.0)':
     optionalDependencies:
       '@noble/hashes': 1.8.0
+    optional: true
 
   '@exodus/schemasafe@1.3.0': {}
 
@@ -11500,11 +11445,6 @@ snapshots:
       '@rolldown/pluginutils': 1.0.0-rc.7
       vite: 8.0.10(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3)
 
-  '@vitejs/plugin-react@6.0.1(vite@8.0.8(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))':
-    dependencies:
-      '@rolldown/pluginutils': 1.0.0-rc.7
-      vite: 8.0.8(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3)
-
   '@vitest/browser-playwright@4.1.5(playwright@1.58.2)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))(vitest@4.1.5)':
     dependencies:
       '@vitest/browser': 4.1.5(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))(vitest@4.1.5)
@@ -11591,7 +11531,7 @@ snapshots:
     optionalDependencies:
       '@typescript-eslint/eslint-plugin': 8.58.2(@typescript-eslint/parser@8.58.2(eslint@10.2.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.2.0(jiti@2.6.1))(typescript@5.9.3)
       typescript: 5.9.3
-      vitest: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/browser-playwright@4.1.5)(@vitest/coverage-v8@4.1.5)(happy-dom@20.9.0)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.0.8(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
+      vitest: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/browser-playwright@4.1.5)(@vitest/coverage-v8@4.1.5)(happy-dom@20.9.0)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
     transitivePeerDependencies:
       - supports-color
 
@@ -11887,6 +11827,7 @@ snapshots:
   bidi-js@1.0.3:
     dependencies:
       require-from-string: 2.0.2
+    optional: true
 
   bignumber.js@9.3.1: {}
 
@@ -12273,6 +12214,7 @@ snapshots:
     dependencies:
       mdn-data: 2.27.1
       source-map-js: 1.2.1
+    optional: true
 
   css.escape@1.5.1: {}
 
@@ -12288,6 +12230,7 @@ snapshots:
       whatwg-url: 16.0.1(@noble/hashes@1.8.0)
     transitivePeerDependencies:
       - '@noble/hashes'
+    optional: true
 
   data-view-buffer@1.0.2:
     dependencies:
@@ -12313,7 +12256,8 @@ snapshots:
     optionalDependencies:
       supports-color: 10.2.2
 
-  decimal.js@10.6.0: {}
+  decimal.js@10.6.0:
+    optional: true
 
   decko@1.2.0: {}
 
@@ -12520,7 +12464,8 @@ snapshots:
 
   entities@7.0.1: {}
 
-  entities@8.0.0: {}
+  entities@8.0.0:
+    optional: true
 
   error-ex@1.3.4:
     dependencies:
@@ -13216,6 +13161,7 @@ snapshots:
       '@exodus/bytes': 1.15.0(@noble/hashes@1.8.0)
     transitivePeerDependencies:
       - '@noble/hashes'
+    optional: true
 
   html-escaper@2.0.2: {}
 
@@ -13403,7 +13349,8 @@ snapshots:
 
   is-number@7.0.0: {}
 
-  is-potential-custom-element-name@1.0.1: {}
+  is-potential-custom-element-name@1.0.1:
+    optional: true
 
   is-promise@4.0.0: {}
 
@@ -13529,6 +13476,7 @@ snapshots:
       xml-name-validator: 5.0.0
     transitivePeerDependencies:
       - '@noble/hashes'
+    optional: true
 
   jsesc@3.1.0: {}
 
@@ -13735,7 +13683,8 @@ snapshots:
       inherits: 2.0.4
       safe-buffer: 5.2.1
 
-  mdn-data@2.27.1: {}
+  mdn-data@2.27.1:
+    optional: true
 
   media-typer@1.1.0: {}
 
@@ -14265,6 +14214,7 @@ snapshots:
   parse5@8.0.1:
     dependencies:
       entities: 8.0.0
+    optional: true
 
   parseurl@1.3.3: {}
 
@@ -14849,6 +14799,7 @@ snapshots:
   saxes@6.0.0:
     dependencies:
       xmlchars: 2.2.0
+    optional: true
 
   scheduler@0.23.2:
     dependencies:
@@ -15267,7 +15218,8 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  symbol-tree@3.2.4: {}
+  symbol-tree@3.2.4:
+    optional: true
 
   synckit@0.11.12:
     dependencies:
@@ -15405,11 +15357,13 @@ snapshots:
 
   tinyrainbow@3.1.0: {}
 
-  tldts-core@7.0.30: {}
+  tldts-core@7.0.30:
+    optional: true
 
   tldts@7.0.30:
     dependencies:
       tldts-core: 7.0.30
+    optional: true
 
   tmp@0.0.33:
     dependencies:
@@ -15434,6 +15388,7 @@ snapshots:
   tough-cookie@6.0.1:
     dependencies:
       tldts: 7.0.30
+    optional: true
 
   tr46@0.0.3: {}
 
@@ -15444,6 +15399,7 @@ snapshots:
   tr46@6.0.0:
     dependencies:
       punycode: 2.3.1
+    optional: true
 
   tree-kill@1.2.2: {}
 
@@ -15654,25 +15610,11 @@ snapshots:
     transitivePeerDependencies:
       - rollup
 
-  vite-plugin-node-polyfills@0.26.0(rollup@4.60.1)(vite@8.0.8(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3)):
-    dependencies:
-      '@rollup/plugin-inject': 5.0.5(rollup@4.60.1)
-      node-stdlib-browser: 1.3.1
-      vite: 8.0.8(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3)
-    transitivePeerDependencies:
-      - rollup
-
   vite-plugin-singlefile@2.3.2(rollup@4.60.1)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3)):
     dependencies:
       micromatch: 4.0.8
       rollup: 4.60.1
       vite: 8.0.10(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3)
-
-  vite-plugin-singlefile@2.3.2(rollup@4.60.1)(vite@8.0.8(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3)):
-    dependencies:
-      micromatch: 4.0.8
-      rollup: 4.60.1
-      vite: 8.0.8(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3)
 
   vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3):
     dependencies:
@@ -15773,6 +15715,7 @@ snapshots:
   w3c-xmlserializer@5.0.0:
     dependencies:
       xml-name-validator: 5.0.0
+    optional: true
 
   walk-up-path@4.0.0: {}
 
@@ -15782,11 +15725,13 @@ snapshots:
 
   webidl-conversions@7.0.0: {}
 
-  webidl-conversions@8.0.1: {}
+  webidl-conversions@8.0.1:
+    optional: true
 
   whatwg-mimetype@3.0.0: {}
 
-  whatwg-mimetype@5.0.0: {}
+  whatwg-mimetype@5.0.0:
+    optional: true
 
   whatwg-url@14.2.0:
     dependencies:
@@ -15800,6 +15745,7 @@ snapshots:
       webidl-conversions: 8.0.1
     transitivePeerDependencies:
       - '@noble/hashes'
+    optional: true
 
   whatwg-url@5.0.0:
     dependencies:
@@ -15910,9 +15856,11 @@ snapshots:
     dependencies:
       is-wsl: 3.1.1
 
-  xml-name-validator@5.0.0: {}
+  xml-name-validator@5.0.0:
+    optional: true
 
-  xmlchars@2.2.0: {}
+  xmlchars@2.2.0:
+    optional: true
 
   xtend@2.1.2:
     dependencies:

@@ -23,6 +23,14 @@
     "@mongodb-js/mcp-core": "workspace:*",
     "@mongodb-js/mcp-types": "workspace:*",
     "@mongodb-js/mcp-tools-assistant": "workspace:*",
-    "@mongodb-js/mcp-test-utils": "workspace:*"
+    "@mongodb-js/mcp-test-utils": "workspace:*",
+    "@ai-sdk/google": "^3.0.67",
+    "@ai-sdk/azure": "^3.0.62",
+    "@ai-sdk/openai": "^3.0.61",
+    "@ai-sdk/mcp": "^1.0.40",
+    "ai": "^6.0.175",
+    "proper-lockfile": "^4.1.2",
+    "@types/proper-lockfile": "^4.1.4",
+    "simple-git": "^3.36.0"
   }
 }

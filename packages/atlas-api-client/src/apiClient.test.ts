@@ -1,12 +1,23 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
-import type { TelemetryCommonProperties as CommonProperties, TelemetryEvent } from "@mongodb-js/mcp-atlas-telemetry";
+import type { TelemetryEvent } from "@mongodb-js/mcp-types";
+
+/** Subset of atlas telemetry common properties used in ApiClient tests */
+type MockTelemetryCommonProperties = {
+    mcp_client_version: string;
+    mcp_client_name: string;
+    mcp_server_version: string;
+    mcp_server_name: string;
+    platform: string;
+    arch: string;
+    os_type: string;
+};
 import { NoopLogger } from "@mongodb-js/mcp-core";
 
 describe("ApiClient", () => {
     let apiClient: ApiClient;
 
-    const mockEvents: TelemetryEvent<CommonProperties>[] = [
+    const mockEvents: TelemetryEvent<MockTelemetryCommonProperties>[] = [
         {
             timestamp: new Date().toISOString(),
             source: "mdbmcp",

@@ -1,56 +1,20 @@
 import type { KnipConfig } from "knip";
 
 const config: KnipConfig = {
-    // Shell built-ins used in package.json scripts
-    ignoreBinaries: ["printf"],
-    // This path is referenced in vitest.config.ts but resolved at runtime
+    ignoreBinaries: [
+        "printf", // Used in mongodb-mcp-server check:api failure message script
+        "semver", // Used in .github/workflows/prepare-release.yml, not imported in TS
+    ],
+    // Root vitest.config.ts ui project sets setupFiles: ["./src/test-setup.ts"] relative to packages/ui
     ignoreUnresolved: ["./src/test-setup.ts"],
     workspaces: {
         ".": {
             entry: [
-                "src/index.ts!",
-                "src/lib.ts!",
-                "src/web.ts!",
-                "src/tools/index.ts!",
-                "src/setup/index.ts!",
-                "src/test-helpers/index.ts!",
-                "tests/**/*.ts",
-                "!tests/browser/**",
-                "!packages/**", // Each package has its own knip workspace config
-                "eslint-rules/*.js",
+                "eslint-rules/*.js", // Root-local ESLint custom rules
             ],
-            ignore: ["packaging/mcpb/server/index.js"],
             ignoreDependencies: [
-                // Transitive deps needed for bundling/universal package
-                "@emotion/css",
-                "@anthropic-ai/mcpb",
-                "@lg-mcp/embeddable-uis",
-                "@lg-mcp/hooks",
-                "@redocly/cli",
-                "@types/yargs-parser",
-                "@vitejs/plugin-react",
-                "oauth4webapi",
-                "openapi-fetch",
-                "openapi-typescript",
-                "openapi-typescript-helpers",
-                "semver",
-                "vite-plugin-node-polyfills",
-                "vite-plugin-singlefile",
-                // Used by workspace packages (tools-mongodb) and tests, not directly in root src/
-                "@mongodb-js/device-id",
-                "mongodb",
-                "mongodb-schema",
-                // Used by tools-mongodb package
-                "node-machine-id",
-                // Dev tooling - not imported but used via CLI
-                "vitest",
-                // Test assertion library - extended via vitest setup, not imported
-                "@testing-library/jest-dom",
-                // Express types - needed for middleware but not directly imported
-                "@types/express",
-                // Used by mongodb-mcp-server package (false positive)
-                "@microsoft/api-extractor",
-                "ts-levenshtein",
+                // Listed in root vitest.config ui project environment; package lives in packages/ui
+                "happy-dom",
             ],
         },
         "packages/mongodb-mcp-server": {
@@ -60,127 +24,103 @@ const config: KnipConfig = {
                 "src/allTools.ts!",
                 "src/web.ts!",
                 "src/tools/index.ts!",
-                "src/setup/index.ts!",
                 "src/test-helpers/index.ts!",
                 "e2e-tests/**/*.ts",
                 "scripts/**/*.ts",
+                "packaging/mcpb/server/index.js", // MCP bundle entry shim (dynamic import of dist)
             ],
-            ignore: ["packaging/mcpb/server/index.js"],
             ignoreDependencies: [
-                // Transitive deps needed for bundling/universal package
-                "@emotion/css",
-                "@anthropic-ai/mcpb",
-                "@lg-mcp/embeddable-uis",
-                "@lg-mcp/hooks",
-                "@redocly/cli",
-                "@types/yargs-parser",
-                "@vitejs/plugin-react",
-                "oauth4webapi",
-                "openapi-fetch",
-                "openapi-typescript",
-                "openapi-typescript-helpers",
-                "semver",
-                "vite-plugin-node-polyfills",
-                "vite-plugin-singlefile",
-                // Used by workspace packages (tools-mongodb) and tests, not directly in root src/
-                "@mongodb-js/device-id",
-                "mongodb",
-                "mongodb-schema",
-                // Used by tools-mongodb package
-                "node-machine-id",
-                // Dev tooling - not imported but used via CLI
-                "vitest",
-                // Test assertion library - extended via vitest setup, not imported
-                "@testing-library/jest-dom",
-                // Express types - needed for middleware but not directly imported
-                "@types/express",
-                // Used by mongodb-mcp-server package
-                "@microsoft/api-extractor",
-                "ts-levenshtein",
+                // Public API surface re-exports NodeDriverServiceProvider from tools; knip cannot trace the chain
                 "@mongosh/service-provider-node-driver",
+                // Re-exported as `export type { Secret }`; knip --strict ignores type-only usage (knip hints to remove)
                 "mongodb-redact",
+                // Referenced only in tsconfig.cjs.json paths, not imported in source
+                "openapi-typescript-helpers",
+                // Referenced only in tsconfig.cjs.json paths; runtime usage is in @mongodb-js/mcp-cli
+                "ts-levenshtein",
+                // Provides the mcpb CLI binary; not imported as a module
+                "@anthropic-ai/mcpb",
             ],
+        },
+        "packages/test-utils": {
+            // Required for knip --strict; normal knip reports these entry patterns as redundant (vitest plugin overlap)
+            entry: ["src/setup.ts", "scripts/copy-assets.js"],
         },
         "packages/scripts": {
             entry: ["src/*.ts"],
             ignoreDependencies: [
-                "vite", // Used as CLI in execSync, not as import
-                // Used in generateToolDocumentation.ts for UI and metrics
-                "@mongodb-js/mcp-ui",
-                "@mongodb-js/mcp-types",
-                "@mongodb-js/mcp-metrics",
-                "@mongodb-js/mcp-logging",
-                "@mongodb-js/mcp-atlas-api-client",
-                "@mongodb-js/mcp-core",
-                // Used for UserConfigSchema and tools imports
-                "mongodb-mcp-server",
+                "vite", // Invoked via execSync in generateUI.ts, not imported
+                "@redocly/cli", // Used as CLI in generate.sh
+                "openapi-typescript", // Used as CLI in generate.sh
             ],
-        },
-        "packages/test-utils": {
-            entry: ["src/index.ts", "src/setup.ts"],
-            ignore: ["scripts/**"],
         },
         "packages/accuracy-tests": {
             entry: ["src/**/*.ts"],
         },
         "packages/integration-tests": {
             entry: ["src/index.ts", "src/**/*.ts"],
-            ignore: ["src/fixtures/curl.mjs"],
+            ignore: [
+                "src/fixtures/curl.mjs", // Fixture script run externally, not part of the TS graph
+            ],
         },
         "packages/atlas-api-client": {
-            entry: ["src/index.ts!", "src/**/*.test.ts"],
-            ignore: ["openapi.d.ts"], // Generated file with many exported types
+            entry: ["src/**/*.test.ts"],
+            ignore: [
+                "openapi.d.ts", // Generated by packages/scripts; too many exports for knip to analyze usefully
+            ],
         },
         "packages/core": {
             entry: ["src/index.ts!", "src/**/*.test.ts"],
         },
         "packages/http-runners": {
-            entry: ["src/index.ts!", "src/**/*.test.ts"],
+            entry: ["src/**/*.test.ts"],
         },
         "packages/tools-atlas-local": {
-            entry: ["src/index.ts!", "src/**/*.test.ts"],
+            entry: ["src/**/*.test.ts"],
         },
         "packages/ui": {
-            ignore: ["src/build/mount.tsx", "src/components/**", "vite.ui.config.ts", "src/test-setup.ts"],
-            ignoreDependencies: ["@lg-mcp/embeddable-uis", "@lg-mcp/hooks", "@testing-library/jest-dom/vitest"],
+            // Required for knip --strict; normal knip reports as redundant (vitest plugin overlap)
+            entry: ["src/test-setup.ts"],
+            ignore: [
+                "src/build/mount.tsx", // Build-only UI mount script, not part of the published package graph
+                "src/components/**", // React components built via vite.ui.config.ts, excluded from tsc build
+                "vite.ui.config.ts", // Vite config for bundling UI assets; imports are not traced when ignored
+            ],
+            ignoreDependencies: [
+                "@vitejs/plugin-react", // Used in vite.ui.config.ts (see ignore)
+                "vite-plugin-node-polyfills", // Used in vite.ui.config.ts (see ignore)
+                "vite-plugin-singlefile", // Used in vite.ui.config.ts (see ignore)
+            ],
         },
-        // Type-only package — deps are used via `import type` so knip can't detect runtime usage
         "packages/types": {
-            ignoreDependencies: ["@modelcontextprotocol/sdk", "mongodb-redact"],
-        },
-        // Setup package is maintained in a separate worktree
-        "packages/setup": {
-            ignore: ["**/*"],
-        },
-        "packages/http-transports": {
-            entry: ["src/index.ts!"],
+            ignoreDependencies: [
+                // `import type` and re-exports; knip --strict ignores type-only usage (knip hints to remove)
+                "@modelcontextprotocol/sdk",
+                "mongodb-redact",
+            ],
         },
         "packages/cli": {
-            entry: ["src/index.ts!"],
+            entry: ["src/**/*.test.ts"],
+            ignoreDependencies: [
+                // Not imported directly; required so ESLint/tsc resolve YargsOptions in @mongosh/arg-parser .d.ts
+                "yargs-parser",
+                "@types/yargs-parser",
+            ],
         },
         "packages/tools-mongodb": {
-            entry: ["src/index.ts!", "src/**/*.test.ts"],
-            // These are used via mongosh and driver peer dependencies
-            // but knip can't trace through the complex import chains
-            ignoreDependencies: [
-                "@mongodb-js/mcp-test-utils",
-                "@mongodb-js/device-id",
-                "@mongosh/arg-parser",
-                "@mongosh/service-provider-node-driver",
-                "bson",
-                "mongodb",
-                "mongodb-build-info",
-                "mongodb-connection-string-url",
-                "mongodb-schema",
-                "node-machine-id",
-                "zod",
-                "@modelcontextprotocol/sdk",
-            ],
+            entry: ["src/**/*.test.ts"],
         },
         "tests/browser": {
             entry: ["tests/**/*.ts", "polyfills/**/*.ts", "utils/**/*.ts", "setup.ts"],
-            ignoreDependencies: ["buffer", "evp_bytestokey", "util", "@vitest/browser"],
-            ignore: ["polyfills/events/index.ts", "vitest.config.ts"], // Has both named and default export intentionally
+            ignoreDependencies: [
+                "buffer", // Vite resolve.alias in browser vitest.config, not a direct import
+                "evp_bytestokey", // Vite resolve.alias for crypto polyfill chain
+                "util", // Vite resolve.alias for Node util polyfill
+                "@vitest/browser", // Browser test runner peer; resolved via @vitest/browser-playwright
+            ],
+            ignore: [
+                "polyfills/events/index.ts", // Intentionally exports both named and default EventEmitter shims
+            ],
         },
     },
     ignoreExportsUsedInFile: true,
