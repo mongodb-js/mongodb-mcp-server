@@ -81,7 +81,6 @@
     "@modelcontextprotocol/sdk": "^1.29.0"
   },
   "dependencies": {
-    "@mongodb-js/device-id": "^0.4.11",
     "@mongodb-js/mcp-atlas-api-client": "workspace:*",
     "@mongodb-js/mcp-atlas-telemetry": "workspace:*",
     "@mongodb-js/mcp-cli": "workspace:*",
@@ -96,15 +95,9 @@
     "@mongodb-js/mcp-tools-mongodb": "workspace:*",
     "@mongodb-js/mcp-types": "workspace:*",
     "@mongodb-js/mcp-ui": "workspace:*",
-    "mongodb": "^7.1.1",
     "@mongosh/service-provider-node-driver": "^5.0.2",
     "mongodb-redact": "^1.4.6",
-    "mongodb-schema": "^12.7.0",
-    "node-machine-id": "1.1.12",
-    "oauth4webapi": "^3.8.6",
-    "openapi-fetch": "^0.17.0",
-    "semver": "^7.7.4",
-    "ts-levenshtein": "^1.0.7"
+    "oauth4webapi": "^3.8.6"
   },
   "engines": {
     "node": "^20.19.0 || ^22.12.0 || >= 24.0.0"

@@ -3,25 +3,13 @@ import type { KnipConfig } from "knip";
 const config: KnipConfig = {
     // Shell built-ins used in package.json scripts
     ignoreBinaries: ["printf"],
-    // This path is referenced in vitest.config.ts but resolved at runtime
+    // Resolved at runtime relative to the ui vitest project root
     ignoreUnresolved: ["./src/test-setup.ts"],
     workspaces: {
         ".": {
-            entry: [
-                "src/index.ts!",
-                "src/lib.ts!",
-                "src/web.ts!",
-                "src/tools/index.ts!",
-                "src/setup/index.ts!",
-                "src/test-helpers/index.ts!",
-                "tests/**/*.ts",
-                "!tests/browser/**",
-                "!packages/**", // Each package has its own knip workspace config
-                "eslint-rules/*.js",
-            ],
-            ignore: ["packaging/mcpb/server/index.js"],
+            entry: ["eslint-rules/*.js"],
             ignoreDependencies: [
-                // Transitive deps needed for bundling/universal package
+                // Used by workspace packages via generation scripts, listed at root for hoisting
                 "@emotion/css",
                 "@anthropic-ai/mcpb",
                 "@lg-mcp/embeddable-uis",
@@ -30,27 +18,13 @@ const config: KnipConfig = {
                 "@types/yargs-parser",
                 "@vitejs/plugin-react",
                 "oauth4webapi",
-                "openapi-fetch",
                 "openapi-typescript",
                 "openapi-typescript-helpers",
-                "semver",
                 "vite-plugin-node-polyfills",
                 "vite-plugin-singlefile",
-                // Used by workspace packages (tools-mongodb) and tests, not directly in root src/
-                "@mongodb-js/device-id",
-                "mongodb",
-                "mongodb-schema",
-                // Used by tools-mongodb package
-                "node-machine-id",
-                // Dev tooling - not imported but used via CLI
-                "vitest",
-                // Test assertion library - extended via vitest setup, not imported
                 "@testing-library/jest-dom",
-                // Express types - needed for middleware but not directly imported
                 "@types/express",
-                // Used by mongodb-mcp-server package (false positive)
                 "@microsoft/api-extractor",
-                "ts-levenshtein",
             ],
         },
         "packages/mongodb-mcp-server": {
@@ -60,44 +34,15 @@ const config: KnipConfig = {
                 "src/allTools.ts!",
                 "src/web.ts!",
                 "src/tools/index.ts!",
-                "src/setup/index.ts!",
                 "src/test-helpers/index.ts!",
                 "e2e-tests/**/*.ts",
                 "scripts/**/*.ts",
+                "packaging/mcpb/server/index.js",
             ],
-            ignore: ["packaging/mcpb/server/index.js"],
             ignoreDependencies: [
-                // Transitive deps needed for bundling/universal package
-                "@emotion/css",
-                "@anthropic-ai/mcpb",
-                "@lg-mcp/embeddable-uis",
-                "@lg-mcp/hooks",
-                "@redocly/cli",
-                "@types/yargs-parser",
-                "@vitejs/plugin-react",
-                "oauth4webapi",
-                "openapi-fetch",
-                "openapi-typescript",
-                "openapi-typescript-helpers",
-                "semver",
-                "vite-plugin-node-polyfills",
-                "vite-plugin-singlefile",
-                // Used by workspace packages (tools-mongodb) and tests, not directly in root src/
-                "@mongodb-js/device-id",
-                "mongodb",
-                "mongodb-schema",
-                // Used by tools-mongodb package
-                "node-machine-id",
-                // Dev tooling - not imported but used via CLI
-                "vitest",
-                // Test assertion library - extended via vitest setup, not imported
-                "@testing-library/jest-dom",
-                // Express types - needed for middleware but not directly imported
-                "@types/express",
-                // Used by mongodb-mcp-server package
-                "@microsoft/api-extractor",
-                "ts-levenshtein",
+                // Re-exported through tools; knip does not trace the full chain
                 "@mongosh/service-provider-node-driver",
+                // Re-exported as `export type { Secret }`; knip --strict ignores type-only usage
                 "mongodb-redact",
             ],
         },
@@ -105,20 +50,10 @@ const config: KnipConfig = {
             entry: ["src/*.ts"],
             ignoreDependencies: [
                 "vite", // Used as CLI in execSync, not as import
-                // Used in generateToolDocumentation.ts for UI and metrics
-                "@mongodb-js/mcp-ui",
-                "@mongodb-js/mcp-types",
-                "@mongodb-js/mcp-metrics",
-                "@mongodb-js/mcp-logging",
-                "@mongodb-js/mcp-atlas-api-client",
-                "@mongodb-js/mcp-core",
-                // Used for UserConfigSchema and tools imports
-                "mongodb-mcp-server",
             ],
         },
         "packages/test-utils": {
-            entry: ["src/index.ts", "src/setup.ts"],
-            ignore: ["scripts/**"],
+            entry: ["src/setup.ts", "scripts/copy-assets.js"],
         },
         "packages/accuracy-tests": {
             entry: ["src/**/*.ts"],
@@ -128,23 +63,23 @@ const config: KnipConfig = {
             ignore: ["src/fixtures/curl.mjs"],
         },
         "packages/atlas-api-client": {
-            entry: ["src/index.ts!", "src/**/*.test.ts"],
+            entry: ["src/**/*.test.ts"],
             ignore: ["openapi.d.ts"], // Generated file with many exported types
         },
         "packages/core": {
             entry: ["src/index.ts!", "src/**/*.test.ts"],
         },
         "packages/http-runners": {
-            entry: ["src/index.ts!", "src/**/*.test.ts"],
+            entry: ["src/**/*.test.ts"],
         },
         "packages/tools-atlas-local": {
-            entry: ["src/index.ts!", "src/**/*.test.ts"],
+            entry: ["src/**/*.test.ts"],
         },
         "packages/ui": {
-            ignore: ["src/build/mount.tsx", "src/components/**", "vite.ui.config.ts", "src/test-setup.ts"],
-            ignoreDependencies: ["@lg-mcp/embeddable-uis", "@lg-mcp/hooks", "@testing-library/jest-dom/vitest"],
+            entry: ["src/test-setup.ts"],
+            ignore: ["src/build/mount.tsx", "src/components/**", "vite.ui.config.ts"],
         },
-        // Type-only package — deps are used via `import type` so knip can't detect runtime usage
+        // Published type re-exports; knip --strict does not count `import type` as usage
         "packages/types": {
             ignoreDependencies: ["@modelcontextprotocol/sdk", "mongodb-redact"],
         },
@@ -152,35 +87,16 @@ const config: KnipConfig = {
         "packages/setup": {
             ignore: ["**/*"],
         },
-        "packages/http-transports": {
-            entry: ["src/index.ts!"],
-        },
         "packages/cli": {
-            entry: ["src/index.ts!"],
+            entry: ["src/**/*.test.ts"],
         },
         "packages/tools-mongodb": {
-            entry: ["src/index.ts!", "src/**/*.test.ts"],
-            // These are used via mongosh and driver peer dependencies
-            // but knip can't trace through the complex import chains
-            ignoreDependencies: [
-                "@mongodb-js/mcp-test-utils",
-                "@mongodb-js/device-id",
-                "@mongosh/arg-parser",
-                "@mongosh/service-provider-node-driver",
-                "bson",
-                "mongodb",
-                "mongodb-build-info",
-                "mongodb-connection-string-url",
-                "mongodb-schema",
-                "node-machine-id",
-                "zod",
-                "@modelcontextprotocol/sdk",
-            ],
+            entry: ["src/**/*.test.ts"],
         },
         "tests/browser": {
             entry: ["tests/**/*.ts", "polyfills/**/*.ts", "utils/**/*.ts", "setup.ts"],
             ignoreDependencies: ["buffer", "evp_bytestokey", "util", "@vitest/browser"],
-            ignore: ["polyfills/events/index.ts", "vitest.config.ts"], // Has both named and default export intentionally
+            ignore: ["polyfills/events/index.ts"], // Has both named and default export intentionally
         },
     },
     ignoreExportsUsedInFile: true,
