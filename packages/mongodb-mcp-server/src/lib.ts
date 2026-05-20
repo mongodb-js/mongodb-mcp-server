@@ -5,6 +5,7 @@ export { type UserConfig, UserConfigSchema, configRegistry } from "@mongodb-js/m
 export { parseUserConfig, defaultParserOptions, type ParserOptions } from "@mongodb-js/mcp-cli";
 
 export { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
+export { AllTools } from "./allTools.js";
 export { packageInfo } from "./common/packageInfo.js";
 export { ExportedData } from "@mongodb-js/mcp-cli";
 
@@ -75,12 +76,7 @@ export type {
 export { Keychain, registerGlobalSecretToRedact } from "@mongodb-js/mcp-core";
 export type { Secret } from "mongodb-redact";
 export { Elicitation } from "@mongodb-js/mcp-core";
-export {
-    applyConfigOverrides,
-    ConfigOverrideError,
-    getConfigMeta,
-    nameToConfigKey,
-} from "./common/config/configOverrides.js";
+export { applyConfigOverrides, ConfigOverrideError, getConfigMeta, nameToConfigKey } from "@mongodb-js/mcp-cli";
 export { onlyStricterLogLevelOverride } from "@mongodb-js/mcp-cli";
 export { SessionStore, type ISessionStore, type SessionStoreConstructorArgs } from "@mongodb-js/mcp-core";
 export type { CloseableTransport, SessionCloseReason } from "@mongodb-js/mcp-types";
@@ -99,7 +95,7 @@ export {
     type ToolCategory,
     type ToolClass,
     type ToolArgs,
-} from "./tools/tool.js";
+} from "@mongodb-js/mcp-core";
 export { TRANSPORT_PAYLOAD_LIMITS, type TransportType } from "@mongodb-js/mcp-cli";
 export {
     PrometheusMetrics,

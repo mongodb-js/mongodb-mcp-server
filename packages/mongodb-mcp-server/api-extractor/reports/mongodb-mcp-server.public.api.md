@@ -5,8 +5,9 @@
 ```ts
 
 import type { AggregationCursor } from 'mongodb';
+import { applyConfigOverrides } from '@mongodb-js/mcp-cli';
 import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import type { ConfigFieldMeta } from '@mongodb-js/mcp-cli';
+import { ConfigOverrideError } from '@mongodb-js/mcp-cli';
 import { configRegistry } from '@mongodb-js/mcp-cli';
 import { ConnectionInfo } from '@mongosh/arg-parser';
 import { Counter } from 'prom-client';
@@ -14,14 +15,17 @@ import { createAtlasLocalClient } from '@mongodb-js/mcp-tools-atlas-local';
 import { defaultParserOptions } from '@mongodb-js/mcp-cli';
 import type { ElicitRequestFormParams } from '@modelcontextprotocol/sdk/types.js';
 import { EventEmitter } from 'events';
+import { ExportedData } from '@mongodb-js/mcp-cli';
 import express from 'express';
 import type { FetchOptions } from 'openapi-fetch';
 import type { FindCursor } from 'mongodb';
 import { Gauge } from 'prom-client';
+import { getConfigMeta } from '@mongodb-js/mcp-cli';
 import { Histogram } from 'prom-client';
 import type http from 'http';
 import type { LoggingMessageNotification } from '@modelcontextprotocol/sdk/types.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { nameToConfigKey } from '@mongodb-js/mcp-cli';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
 import { onlyStricterLogLevelOverride } from '@mongodb-js/mcp-cli';
 import { ParserOptions } from '@mongodb-js/mcp-cli';
@@ -44,6 +48,9 @@ import type { ZodRawShape } from 'zod';
 
 // @public
 export const AGG_COUNT_MAX_TIME_MS_CAP: number;
+
+// @public (undocumented)
+export const AllTools: ToolClass<any>[];
 
 // @public (undocumented)
 export type AnyConnectionState = ConnectionStateConnected | ConnectionStateConnecting | ConnectionStateDisconnected | ConnectionStateErrored;
@@ -249,11 +256,7 @@ export interface ApiClientOptions {
     userAgent: string;
 }
 
-// @public
-export function applyConfigOverrides<TUserConfig extends UserConfig = UserConfig>(input: {
-    baseConfig: TUserConfig;
-    request?: TransportRequestContext;
-}): TUserConfig;
+export { applyConfigOverrides }
 
 // @public (undocumented)
 export class AtlasTelemetry implements ITelemetry {
@@ -304,10 +307,7 @@ export class CompositeLogger extends LoggerBase {
     protected readonly type?: LoggerType;
 }
 
-// @public (undocumented)
-export class ConfigOverrideError extends UserFacingError {
-    constructor(message: string);
-}
+export { ConfigOverrideError }
 
 export { configRegistry }
 
@@ -550,12 +550,7 @@ export class EventCache {
 // @public (undocumented)
 export type EventMap<T> = Record<keyof T, any[]>;
 
-// @public (undocumented)
-export class ExportedData {
-    constructor(input: ResourceConstructorParams<Session>);
-    // (undocumented)
-    register(server: Server): void;
-}
+export { ExportedData }
 
 // @public (undocumented)
 export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
@@ -582,8 +577,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
 
 export { Gauge }
 
-// @public
-export function getConfigMeta(key: keyof typeof UserConfigSchema.shape): ConfigFieldMeta | undefined;
+export { getConfigMeta }
 
 export { Histogram }
 
@@ -775,8 +769,7 @@ export type MonitoringServerOptions<TMetrics extends DefaultMetricDefinitions = 
     metrics: IMetrics<TMetrics>;
 };
 
-// @public
-export function nameToConfigKey(mode: "header" | "query", name: string): string | undefined;
+export { nameToConfigKey }
 
 // @public (undocumented)
 export class NoopLogger extends LoggerBase {

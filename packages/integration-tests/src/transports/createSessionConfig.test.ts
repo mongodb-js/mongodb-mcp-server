@@ -13,7 +13,7 @@ import {
     ExportsManager,
     packageInfo,
 } from "mongodb-mcp-server";
-import { AllTools } from "mongodb-mcp-server/tools";
+import { AllTools } from "mongodb-mcp-server";
 import { defaultTestConfig, expectDefined, sleep } from "../integrationHelpers.js";
 import type { HttpServerOptions, SessionManagementOptions } from "@mongodb-js/mcp-types";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";

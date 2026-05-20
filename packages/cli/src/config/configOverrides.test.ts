@@ -1,12 +1,7 @@
 import { describe, it, expect } from "vitest";
-import {
-    applyConfigOverrides,
-    type UserConfig,
-    UserConfigSchema,
-    nameToConfigKey,
-    getConfigMeta,
-    onlyStricterLogLevelOverride,
-} from "mongodb-mcp-server";
+import { applyConfigOverrides, nameToConfigKey, getConfigMeta } from "./configOverrides.js";
+import { type UserConfig, UserConfigSchema } from "./userConfig.js";
+import { onlyStricterLogLevelOverride } from "./configUtils.js";
 import type { TransportRequestContext } from "@mongodb-js/mcp-types";
 
 describe("configOverrides", () => {

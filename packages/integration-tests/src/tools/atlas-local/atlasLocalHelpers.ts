@@ -1,6 +1,7 @@
 import { defaultTestConfig, setupIntegrationTest, type IntegrationTest } from "../../integrationHelpers.js";
 import type { UserConfig } from "mongodb-mcp-server";
-import { AtlasLocalTools, MongoDBTools } from "mongodb-mcp-server/tools";
+import { AtlasLocalTools } from "@mongodb-js/mcp-tools-atlas-local";
+import { MongoDBTools } from "@mongodb-js/mcp-tools-mongodb";
 import { describe } from "vitest";
 import type { Client } from "@modelcontextprotocol/sdk/client";
 

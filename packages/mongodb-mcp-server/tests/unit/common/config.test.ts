@@ -12,7 +12,7 @@ import type { Secret } from "@mongodb-js/mcp-core";
 import { createEnvironment, useClearEnvironment } from "../../utils/index.js";
 import path from "path";
 import { TRANSPORT_PAYLOAD_LIMITS } from "@mongodb-js/mcp-cli";
-import { getConfigMeta } from "../../../src/common/config/configOverrides.js";
+import { getConfigMeta } from "@mongodb-js/mcp-cli";
 
 // Expected hardcoded values (what we had before)
 const expectedDefaults = {

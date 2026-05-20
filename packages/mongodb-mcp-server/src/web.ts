@@ -75,6 +75,6 @@ export type {
     TelemetryEvent,
     TelemetryBaseEvent,
 } from "@mongodb-js/mcp-atlas-telemetry";
-export { getRandomUUID } from "./helpers/getRandomUUID.js";
+export { getRandomUUID } from "@mongodb-js/mcp-core";
 export type { AuthProvider, Credentials } from "@mongodb-js/mcp-atlas-api-client";
 export type { PreviewFeature, previewFeatureValues } from "@mongodb-js/mcp-tools-mongodb";

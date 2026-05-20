@@ -25,16 +25,6 @@
         "default": "./dist/cjs/web.js"
       }
     },
-    "./tools": {
-      "import": {
-        "types": "./dist/esm/tools/index.d.ts",
-        "default": "./dist/esm/tools/index.js"
-      },
-      "require": {
-        "types": "./dist/cjs/tools/index.d.ts",
-        "default": "./dist/cjs/tools/index.js"
-      }
-    },
     "./test-helpers": {
       "import": {
         "types": "./dist/esm/test-helpers/index.d.ts",
@@ -87,10 +77,12 @@
     "tsx": "^4.20.5",
     "type-fest": "^5.6.0",
     "typescript": "^5.9.2",
-    "vitest": "^4.1.5"
+    "vitest": "^4.1.5",
+    "zod": "^4.4.2",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "bson": "^7.2.0"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
     "@mongodb-js/device-id": "^0.4.11",
     "@mongodb-js/mcp-atlas-api-client": "workspace:*",
     "@mongodb-js/mcp-atlas-telemetry": "workspace:*",
@@ -106,7 +98,6 @@
     "@mongodb-js/mcp-tools-mongodb": "workspace:*",
     "@mongodb-js/mcp-types": "workspace:*",
     "@mongodb-js/mcp-ui": "workspace:*",
-    "bson": "^7.2.0",
     "mongodb": "^7.1.1",
     "@mongosh/service-provider-node-driver": "^5.0.2",
     "mongodb-redact": "^1.4.6",
@@ -115,8 +106,7 @@
     "oauth4webapi": "^3.8.6",
     "openapi-fetch": "^0.17.0",
     "semver": "^7.7.4",
-    "ts-levenshtein": "^1.0.7",
-    "zod": "^4.4.2"
+    "ts-levenshtein": "^1.0.7"
   },
   "engines": {
     "node": "^20.19.0 || ^22.12.0 || >= 24.0.0"

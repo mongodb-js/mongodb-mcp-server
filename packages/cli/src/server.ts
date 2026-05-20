@@ -49,10 +49,12 @@ export interface ServerOptions<
      * - Register a subset of internal tools alongside custom tools
      * - Register all internal tools plus custom tools
      *
-     * To include internal tools, import them from `mongodb-mcp-server/tools`:
+     * To include internal tools, import `AllTools` from `mongodb-mcp-server`
+     * and individual tool classes from the `@mongodb-js/mcp-tools-*` packages:
      *
      * ```typescript
-     * import { AllTools, AggregateTool, FindTool } from "mongodb-mcp-server/tools";
+     * import { AllTools } from "mongodb-mcp-server";
+     * import { AggregateTool, FindTool } from "@mongodb-js/mcp-tools-mongodb";
      *
      * // Register all internal tools plus custom tools
      * tools: [...AllTools, MyCustomTool]
@@ -71,7 +73,7 @@ export interface ServerOptions<
      *
      * To ensure that you provide compliant tool implementations extend your
      * tool implementation using `ToolBase` class and ensure that they conform
-     * to `ToolClass` type from `mongodb-mcp-server/tools`.
+     * to `ToolClass` type from `@mongodb-js/mcp-core` or `mongodb-mcp-server`.
      */
     tools?: ToolRegistry;
     /** Array of resource constructors to register. */

@@ -10,7 +10,7 @@ import {
     getResponseElements,
     setupIntegrationTest,
 } from "../../integrationHelpers.js";
-import { AtlasTools } from "mongodb-mcp-server/tools";
+import { AtlasTools } from "@mongodb-js/mcp-tools-atlas";
 import {
     describeWithAtlas,
     withProject,

@@ -57,6 +57,7 @@ const config: KnipConfig = {
             entry: [
                 "src/index.ts!",
                 "src/lib.ts!",
+                "src/allTools.ts!",
                 "src/web.ts!",
                 "src/tools/index.ts!",
                 "src/setup/index.ts!",

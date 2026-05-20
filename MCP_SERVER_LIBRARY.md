@@ -73,17 +73,14 @@ import {
 import type { ITransportRunner } from "@mongodb-js/mcp-types";
 ```
 
-**Tools (`mongodb-mcp-server/tools`):**
+**Tools:**
 
 ```typescript
-import {
-  ToolBase,
-  AllTools,
-  MongoDbTools,
-  AtlasTools,
-  AtlasLocalTools,
-  type ToolClass,
-} from "mongodb-mcp-server/tools";
+import { AllTools } from "mongodb-mcp-server";
+import { MongoDBTools } from "@mongodb-js/mcp-tools-mongodb";
+import { AtlasTools } from "@mongodb-js/mcp-tools-atlas";
+import { AtlasLocalTools } from "@mongodb-js/mcp-tools-atlas-local";
+import { ToolBase, type ToolClass } from "@mongodb-js/mcp-core";
 ```
 
 For detailed documentation of these exports and their usage, see the [API Reference](#api-reference) section.
@@ -167,7 +164,7 @@ Customize configuration for each MCP client session, enabling user-specific perm
 
 ```typescript
 import { UserConfigSchema, StreamableHttpRunner } from "mongodb-mcp-server";
-import type { OperationType } from "mongodb-mcp-server/tools";
+import type { OperationType } from "@mongodb-js/mcp-core";
 import type { Server, UserConfig } from "mongodb-mcp-server";
 import type { RequestContext } from "mongodb-mcp-server";
 
@@ -462,7 +459,7 @@ import {
   ToolBase,
   type ToolCategory,
   type OperationType,
-} from "mongodb-mcp-server/tools";
+} from "@mongodb-js/mcp-core";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
 // Define available connections
@@ -639,12 +636,12 @@ This example shows how to selectively enable only specific MongoDB tools (`aggre
 ```typescript
 import { z } from "zod";
 import { StreamableHttpRunner, UserConfigSchema } from "mongodb-mcp-server";
+import { AllTools } from "mongodb-mcp-server";
 import {
+  ToolBase,
   type ToolCategory,
   type OperationType,
-  AllTools,
-  ToolBase,
-} from "mongodb-mcp-server/tools";
+} from "@mongodb-js/mcp-core";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
 // Custom tool to fetch ticket details from your application
@@ -766,7 +763,7 @@ See the TypeScript definition in [`packages/types/src/transport.ts`](./packages/
 
 Base class for implementing custom MCP tools.
 
-See the TypeScript documentation in [`src/tools/tool.ts`](./src/tools/tool.ts) for:
+See the TypeScript documentation in [`packages/core/src/toolBase.ts`](./packages/core/src/toolBase.ts) for:
 
 - Detailed explanation of `ToolBase` abstract class
 - Documentation of all available protected members
@@ -788,14 +785,15 @@ This type enforces that tool classes have:
 
 The static properties are automatically injected as instance properties during tool construction by the server.
 
-See the TypeScript documentation in [`src/tools/tool.ts`](./src/tools/tool.ts) for complete details and examples.
+See the TypeScript documentation in [`packages/core/src/toolBase.ts`](./packages/core/src/toolBase.ts) for complete details and examples.
 
 ### Tool Collections
 
 The library exports collections of internal tool classes that can be used for selective tool registration or extension.
 
 ```typescript
-import { AllTools, AggregateTool, FindTool } from "mongodb-mcp-server/tools";
+import { AllTools } from "mongodb-mcp-server";
+import { AggregateTool, FindTool } from "@mongodb-js/mcp-tools-mongodb";
 
 // Use all internal tools
 // An array containing all internal tool constructors (MongoDB, Atlas, and Atlas Local tools combined).

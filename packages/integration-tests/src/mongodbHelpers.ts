@@ -13,7 +13,7 @@ import {
 } from "./integrationHelpers.js";
 import type { UserConfig } from "mongodb-mcp-server";
 import type { ServerOptions } from "mongodb-mcp-server";
-import { AllTools } from "mongodb-mcp-server/tools";
+import { AllTools } from "mongodb-mcp-server";
 import type { AnyToolClass } from "@mongodb-js/mcp-core";
 import type { AnyResourceClass } from "@mongodb-js/mcp-types";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";

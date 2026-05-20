@@ -6,14 +6,10 @@
 
   "bundledPackages": [
     "@mongodb-js/mcp-core",
-    "@mongodb-js/mcp-http-runners",
     "@mongodb-js/mcp-tools-mongodb",
-    "@mongodb-js/mcp-atlas-api-client",
-    "@mongodb-js/mcp-atlas-telemetry",
-    "@mongodb-js/mcp-logging",
-    "@mongodb-js/mcp-metrics",
-    "@mongodb-js/mcp-types",
-    "@mongodb-js/mcp-ui"
+    "@mongodb-js/mcp-tools-atlas",
+    "@mongodb-js/mcp-tools-atlas-local",
+    "@mongodb-js/mcp-tools-assistant"
   ],
 
   "apiReport": {

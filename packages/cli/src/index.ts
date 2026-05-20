@@ -34,6 +34,15 @@ export {
     type ConfigFieldMeta,
 } from "./config/configUtils.js";
 
+export {
+    applyConfigOverrides,
+    ConfigOverrideError,
+    getConfigMeta,
+    nameToConfigKey,
+    CONFIG_HEADER_PREFIX,
+    CONFIG_QUERY_PREFIX,
+} from "./config/configOverrides.js";
+
 export type { ServerSession } from "./server.js";
 
 // Transport constants

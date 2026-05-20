@@ -6,7 +6,7 @@ import type { SuiteCollector } from "vitest";
 import { afterAll, beforeAll, describe } from "vitest";
 import type { ServerSession } from "@mongodb-js/mcp-cli";
 import type { Session } from "mongodb-mcp-server";
-import { AllTools } from "mongodb-mcp-server/tools";
+import { AllTools } from "mongodb-mcp-server";
 
 export type IntegrationTestFunction = (integration: IntegrationTest) => void;
 

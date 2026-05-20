@@ -42,7 +42,7 @@ import { DryRunHandler, HelpHandler, VersionHandler } from "@mongodb-js/mcp-cli"
 import { SetupCliHandler } from "@mongodb-js/mcp-setup";
 import { packageInfo } from "./common/packageInfo.js";
 import { Resources } from "@mongodb-js/mcp-cli";
-import { AllTools } from "./tools/index.js";
+import { AllTools } from "./allTools.js";
 
 async function main(): Promise<void> {
     const args = process.argv.slice(2);

@@ -8,7 +8,8 @@
 import { readFileSync, writeFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { AllTools, type ToolConstructorParams } from "mongodb-mcp-server/tools";
+import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
+import { AllTools } from "mongodb-mcp-server";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { UserConfigSchema } from "mongodb-mcp-server";
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";

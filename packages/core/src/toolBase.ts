@@ -28,7 +28,7 @@ const LogId = {
     toolMetadataChange: { __value: 1_003_004 },
 } as const;
 import { TRANSPORT_PAYLOAD_LIMITS } from "./transportConstants.js";
-import { getRandomUUID } from "./randomUUID.js";
+import { getRandomUUID } from "@mongodb-js/mcp-core";
 import { redact } from "mongodb-redact";
 
 export type ToolArgs<T extends ZodRawShape> = {
@@ -117,7 +117,7 @@ export type ToolConstructorParams<
  * @example
  * ```typescript
  * import { StreamableHttpRunner, UserConfigSchema } from "mongodb-mcp-server"
- * import { ToolBase, type ToolClass, type ToolCategory, type OperationType } from "mongodb-mcp-server/tools";
+ * import { ToolBase, type ToolClass, type ToolCategory, type OperationType } from "@mongodb-js/mcp-core";
  * import { z } from "zod";
  *
  * class MyCustomTool extends ToolBase {
@@ -194,7 +194,7 @@ export type AnyToolClass = ToolClass<any, any>;
  * @example Basic Custom Tool
  * ```typescript
  * import { StreamableHttpRunner, UserConfigSchema } from "mongodb-mcp-server"
- * import { ToolBase, type ToolClass, type ToolCategory, type OperationType } from "mongodb-mcp-server/tools";
+ * import { ToolBase, type ToolClass, type ToolCategory, type OperationType } from "@mongodb-js/mcp-core";
  * import { z } from "zod";
  *
  * class MyCustomTool extends ToolBase {

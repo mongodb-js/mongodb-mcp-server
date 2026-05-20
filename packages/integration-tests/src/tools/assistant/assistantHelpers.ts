@@ -1,5 +1,5 @@
 import { setupIntegrationTest, defaultTestConfig } from "../../integrationHelpers.js";
-import { AssistantTools } from "mongodb-mcp-server/tools";
+import { AssistantTools } from "@mongodb-js/mcp-tools-assistant";
 import type { IntegrationTest } from "../../integrationHelpers.js";
 import { describe } from "vitest";
 import type { SuiteCollector } from "vitest";
