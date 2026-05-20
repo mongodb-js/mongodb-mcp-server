@@ -22,7 +22,7 @@ import { DOCUMENT_EMBEDDINGS } from "./vyai/embeddings.js";
 import type { TelemetryToolEvent as ToolEvent } from "@mongodb-js/mcp-atlas-telemetry";
 import type { Client } from "@modelcontextprotocol/sdk/client";
 import { QUERY_COUNT_MAX_TIME_MS_CAP, pipelineDescriptionWithVectorSearch } from "@mongodb-js/mcp-tools-mongodb";
-import type { Collection } from "mongodb";
+import type { MongoServerError, Collection } from "mongodb";
 
 describeWithMongoDB("aggregate tool", (integration) => {
     afterEach(() => {
@@ -305,6 +305,73 @@ describeWithMongoDB("aggregate tool", (integration) => {
             );
         });
     }
+
+    describe("when getSearchIndexes throws after a successful search capability probe", () => {
+        afterEach(() => {
+            vi.restoreAllMocks();
+        });
+
+        it("should succeed for non-search aggregations", async () => {
+            await integration
+                .mongoClient()
+                .db(integration.randomDbName())
+                .collection("people")
+                .insertMany([{ name: "Alice" }, { name: "Bob" }]);
+
+            await integration.connectMcpClient();
+
+            vi.spyOn(integration.mcpServer().session, "isSearchSupported").mockResolvedValue(true);
+            vi.spyOn(integration.mcpServer().session.serviceProvider, "getSearchIndexes").mockRejectedValue(
+                new MongoServerError({ message: "Error connecting to Search Index Management service" })
+            );
+
+            const response = await integration.mcpClient().callTool({
+                name: "aggregate",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "people",
+                    pipeline: [{ $match: { name: "Alice" } }],
+                },
+            });
+
+            const content = getResponseContent(response);
+            expect(content).toContain("The aggregation resulted in 1 documents");
+            const docs = getDocsFromUntrustedContent<{ name: string }>(content);
+            expect(docs[0]?.name).toBe("Alice");
+        });
+
+        it("should skip pre-filter validation and let the server decide for $vectorSearch aggregations", async () => {
+            await integration.connectMcpClient();
+
+            vi.spyOn(integration.mcpServer().session, "isSearchSupported").mockResolvedValue(true);
+            vi.spyOn(integration.mcpServer().session.serviceProvider, "getSearchIndexes").mockRejectedValue(
+                new MongoServerError({ message: "Error connecting to Search Index Management service" })
+            );
+
+            const response = await integration.mcpClient().callTool({
+                name: "aggregate",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "people",
+                    pipeline: [
+                        {
+                            $vectorSearch: {
+                                index: "myIndex",
+                                path: "embedding",
+                                queryVector: [1, 2, 3],
+                                numCandidates: 10,
+                                limit: 5,
+                                filter: { category: "electronics" },
+                            },
+                        },
+                    ],
+                },
+            });
+
+            const content = getResponseContent(response);
+            expect(content).not.toContain("Vector search stage contains filter on fields that are not indexed");
+        });
+    });
 
     validateAutoConnectBehavior(integration, "aggregate", () => {
         return {
