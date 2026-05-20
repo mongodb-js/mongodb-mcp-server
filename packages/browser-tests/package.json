@@ -1,5 +1,5 @@
 {
-  "name": "browser",
+  "name": "@mongodb-js/mcp-browser-tests",
   "version": "0.0.0-dev.0",
   "private": true,
   "type": "module",
@@ -9,8 +9,9 @@
     "install:browser": "pnpm exec playwright install chromium"
   },
   "devDependencies": {
-    "mongodb-mcp-server": "workspace:*",
+    "@mongodb-js/mcp-atlas-api-client": "workspace:*",
     "@mongodb-js/mcp-core": "workspace:*",
+    "@mongodb-js/mcp-tools-mongodb": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@mongodb-js/mcp-atlas-telemetry": "workspace:*",
     "@mongodb-js/mcp-types": "workspace:*",

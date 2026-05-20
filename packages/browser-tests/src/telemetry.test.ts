@@ -1,7 +1,9 @@
 import type { MockInstance } from "vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiClient, CompositeLogger, Keychain, Telemetry, type DeviceId } from "mongodb-mcp-server/web";
-import { buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
+import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
+import { AtlasTelemetry as Telemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
+import type { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 
 type MockTelemetrySession = {
     apiClient: ApiClient;
@@ -12,8 +14,8 @@ type MockTelemetrySession = {
 };
 
 /**
- * Browser regression test: the MCP server ships a `mongodb-mcp-server/web`
- * entrypoint that must be usable from a browser bundle. Historically the
+ * Browser regression test: web-compatible Atlas telemetry and API client code
+ * must be usable from a browser bundle. Historically the
  * `ApiClient` constructor and the telemetry auth provider both called
  * `createFetch` from `@mongodb-js/devtools-proxy-support` — a node-fetch /
  * Node-only helper that throws in the browser polyfill. This test verifies

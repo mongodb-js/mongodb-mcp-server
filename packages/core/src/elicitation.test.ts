@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { Elicitation } from "mongodb-mcp-server";
+import { Elicitation } from "./elicitation.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createMockElicitInput, createMockGetClientCapabilities } from "@mongodb-js/mcp-test-utils";
 

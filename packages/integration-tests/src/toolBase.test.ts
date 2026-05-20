@@ -12,9 +12,8 @@ import type { TelemetryToolEvent as ToolEvent } from "@mongodb-js/mcp-atlas-tele
 import type { PreviewFeature } from "@mongodb-js/mcp-tools-mongodb";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { TRANSPORT_PAYLOAD_LIMITS } from "@mongodb-js/mcp-cli";
-import { expectDefined } from "@mongodb-js/mcp-test-utils";
+import { expectDefined, MockMetrics } from "@mongodb-js/mcp-test-utils";
 import { TestTool, TestToolWithOutputSchema, TestToolWithoutStructuredContent, ErrorTool } from "./mocks/tools.js";
-import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 import { Keychain } from "@mongodb-js/mcp-core";
 
 describe("ToolBase", () => {

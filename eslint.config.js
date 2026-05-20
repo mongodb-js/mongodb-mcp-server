@@ -6,13 +6,7 @@ import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended"
 import vitestPlugin from "@vitest/eslint-plugin";
 import enforceZodV4 from "./eslint-rules/enforce-zod-v4.js";
 
-const testFiles = [
-    "packages/**/*.test.ts",
-    "packages/**/*.test.tsx",
-    "packages/**/*.ts",
-    "packages/**/*.tsx",
-    "tests/browser/**/*.ts",
-];
+const testFiles = ["packages/**/*.test.ts", "packages/**/*.test.tsx", "packages/**/*.ts", "packages/**/*.tsx"];
 
 const files = [...testFiles, "packages/**/*.ts"];
 
@@ -123,7 +117,7 @@ export default defineConfig([
         "vite.ui.config.ts",
         "src/types/*.d.ts",
         "tests/integration/fixtures/",
-        "tests/browser/polyfills/**",
+        "packages/browser-tests/polyfills/**",
         "eslint-rules",
         ".yalc",
         "**/vitest.config.d.ts",

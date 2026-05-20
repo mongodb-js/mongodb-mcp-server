@@ -8,12 +8,7 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "skipLibCheck": true,
-    "rootDir": ".",
-    "paths": {
-      "mongodb-mcp-server": ["../../packages/mongodb-mcp-server/src/lib"],
-      "mongodb-mcp-server/web": ["../../packages/mongodb-mcp-server/src/web"],
-      "ts-levenshtein": ["../../node_modules/ts-levenshtein/dist/index.d.mts"]
-    }
+    "rootDir": "."
   },
   "include": ["**/*.ts"],
   "exclude": ["node_modules"]

@@ -15,16 +15,14 @@
     "filter:openapi": "tsx src/filter.ts",
     "apply:openapi": "tsx src/apply.ts"
   },
-  "dependencies": {
+  "devDependencies": {
     "@mongodb-js/mcp-ui": "workspace:*",
     "@mongodb-js/mcp-types": "workspace:*",
     "@mongodb-js/mcp-logging": "workspace:*",
     "@mongodb-js/mcp-core": "workspace:*",
     "@mongodb-js/mcp-metrics": "workspace:*",
     "@mongodb-js/mcp-atlas-api-client": "workspace:*",
-    "mongodb-mcp-server": "workspace:*"
-  },
-  "devDependencies": {
+    "mongodb-mcp-server": "workspace:*",
     "@types/node": "^25.6.0",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2",
@@ -33,6 +31,11 @@
     "@redocly/cli": "^2.29.0",
     "openapi-typescript": "^7.13.0",
     "zod": "^4.4.2",
-    "@mongosh/arg-parser": "^5.0.2"
+    "@mongosh/arg-parser": "^5.0.2",
+    "@ai-sdk/anthropic": "^3.0.71",
+    "ai": "^6.0.175",
+    "semver": "^7.7.4",
+    "@types/semver": "^7.7.0",
+    "simple-git": "^3.36.0"
   }
 }

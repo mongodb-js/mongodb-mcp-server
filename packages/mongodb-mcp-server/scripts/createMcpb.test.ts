@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { buildStagingPackageJson, ATLAS_LOCAL_PLATFORM_PACKAGES } from "../scripts/createMcpb.js";
-import type { PackageJson } from "../scripts/createMcpb.js";
+import { buildStagingPackageJson, ATLAS_LOCAL_PLATFORM_PACKAGES } from "./createMcpb.js";
+import type { PackageJson } from "./createMcpb.js";
 
 describe("buildStagingPackageJson", () => {
     const rootPkg: PackageJson = {

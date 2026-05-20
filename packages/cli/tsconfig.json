@@ -5,15 +5,14 @@
     "outDir": "./dist",
     "baseUrl": ".",
     "erasableSyntaxOnly": true,
-    "composite": true
+    "composite": true,
+    "paths": {
+      "ts-levenshtein": ["./node_modules/ts-levenshtein/dist/index.d.mts"],
+      "@mongosh/arg-parser/arg-parser": [
+        "./node_modules/@mongosh/arg-parser/lib/arg-parser"
+      ]
+    }
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["dist", "node_modules"],
-  "references": [
-    { "path": "../atlas-telemetry" },
-    { "path": "../atlas-api-client" },
-    { "path": "../tools-atlas" },
-    { "path": "../tools-atlas-local" },
-    { "path": "../tools-mongodb" }
-  ]
+  "exclude": ["dist", "node_modules"]
 }

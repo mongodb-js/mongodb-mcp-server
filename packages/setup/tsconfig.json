@@ -3,17 +3,10 @@
   "compilerOptions": {
     "rootDir": "./src",
     "outDir": "./dist",
-    "baseUrl": "."
+    "baseUrl": ".",
+    "erasableSyntaxOnly": true,
+    "composite": true
   },
-  "include": ["**/*.ts"],
-  "exclude": ["dist", "node_modules"],
-  "references": [
-    { "path": "../types" },
-    { "path": "../core" },
-    { "path": "../cli" },
-    { "path": "../atlas-api-client" },
-    { "path": "../atlas-telemetry" },
-    { "path": "../tools-atlas-local" },
-    { "path": "../tools-mongodb" }
-  ]
+  "include": ["src/**/*.ts"],
+  "exclude": ["dist", "node_modules"]
 }

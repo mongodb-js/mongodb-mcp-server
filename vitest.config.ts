@@ -45,12 +45,12 @@ export default defineConfig({
                 extends: true,
                 test: {
                     name: "unit-and-integration",
-                    include: ["packages/**/*.test.ts", "packages/mongodb-mcp-server/tests/**/*.test.ts"],
+                    include: ["packages/**/*.test.ts"],
                     exclude: [
                         ...vitestDefaultExcludes,
                         "packages/scripts/**",
                         "packages/accuracy-tests/**",
-                        "tests/browser/**",
+                        "packages/browser-tests/**",
                         ...longRunningTests,
                     ],
                 },
@@ -75,13 +75,6 @@ export default defineConfig({
                 test: {
                     name: "atlas-cleanup",
                     include: ["packages/scripts/src/cleanupAtlasTestLeftovers.test.ts"],
-                },
-            },
-            {
-                extends: true,
-                test: {
-                    name: "mcpb-build-script",
-                    include: ["packages/mongodb-mcp-server/tests/createMcpb.test.ts"],
                 },
             },
             {
