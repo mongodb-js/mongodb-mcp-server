@@ -10,6 +10,7 @@
   "references": [
     { "path": "../types" },
     { "path": "../core" },
+    { "path": "../cli" },
     { "path": "../atlas-api-client" },
     { "path": "../atlas-telemetry" },
     { "path": "../tools-atlas-local" },

@@ -1,16 +1,16 @@
 /**
- * Minimal package info interface needed by the setup wizard.
- * This is injected by the caller to avoid a dependency on the main package.
+ * Package info interface used by the setup wizard.
  */
 export interface SetupPackageInfo {
     version: string;
     mcpServerName: string;
-    engines: { node: string };
+    engines: {
+        node: string;
+    };
 }
 
 /**
- * Minimal config interface needed by the setup wizard.
- * This is a subset of UserConfig from the main package.
+ * Config interface used by the setup wizard.
  */
 export interface SetupConfig {
     apiBaseUrl: string;

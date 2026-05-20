@@ -4,7 +4,7 @@ import type { Keychain } from "@mongodb-js/mcp-core";
 import { NoopLogger } from "@mongodb-js/mcp-core";
 import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
-import type { ITelemetry } from "@mongodb-js/mcp-types";
+import type { ITelemetry, ServerMetadata } from "@mongodb-js/mcp-types";
 import type { SkillsInstallOutcome } from "./installSkills.js";
 import type {
     TelemetrySetupStage,
@@ -13,7 +13,6 @@ import type {
     TelemetryBoolSet,
     TelemetryResult,
 } from "@mongodb-js/mcp-atlas-telemetry";
-import type { SetupPackageInfo } from "./types.js";
 
 /**
  * Context accumulated as the user progresses through the setup wizard. Each
@@ -55,16 +54,20 @@ export class SetupTelemetry {
      * interactive wizard), a fresh {@link DeviceId}, an unauthenticated
      * {@link ApiClient}, and an {@link AtlasTelemetry} instance.
      */
-    public static create(
-        config: { apiBaseUrl: string; telemetry: "enabled" | "disabled" },
-        keychain: Keychain,
-        packageInfo: SetupPackageInfo
-    ): SetupTelemetry {
+    public static create({
+        config,
+        keychain,
+        serverMetadata,
+    }: {
+        config: { apiBaseUrl: string; telemetry: "enabled" | "disabled" };
+        keychain: Keychain;
+        serverMetadata: ServerMetadata;
+    }): SetupTelemetry {
         const logger = new NoopLogger();
         const deviceId = DeviceId.create(logger);
         const apiClient = new ApiClient({
             baseUrl: config.apiBaseUrl,
-            userAgent: `AtlasMCP/${packageInfo.version} (${process.platform}; ${process.arch})`,
+            userAgent: `AtlasMCP/${serverMetadata.version} (${process.platform}; ${process.arch})`,
             logger,
         });
         const telemetry = AtlasTelemetry.create({
@@ -73,7 +76,7 @@ export class SetupTelemetry {
             apiClient,
             keychain,
             enabled: config.telemetry === "enabled",
-            machineMetadata: buildMachineMetadata(packageInfo.mcpServerName, packageInfo.version),
+            machineMetadata: buildMachineMetadata(serverMetadata),
         });
         return new SetupTelemetry({ telemetry, deviceId });
     }

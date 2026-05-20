@@ -43,6 +43,7 @@ export {
     UpgradeClusterTool,
 } from "./tools/tools.js";
 
+import type { IAtlasSession } from "./atlasTool.js";
 import {
     ListClustersTool,
     ListProjectsTool,
@@ -64,7 +65,8 @@ import {
     UpgradeClusterTool,
 } from "./tools/tools.js";
 import type { ToolClass } from "@mongodb-js/mcp-core";
-export const AtlasTools: ToolClass[] = [
+
+export const AtlasTools: ToolClass<IAtlasSession>[] = [
     ListClustersTool,
     ListProjectsTool,
     InspectClusterTool,
@@ -83,4 +85,4 @@ export const AtlasTools: ToolClass[] = [
     StreamsManageTool,
     StreamsTeardownTool,
     UpgradeClusterTool,
-];
+] as const;

@@ -10,6 +10,7 @@ import {
     getResponseElements,
     setupIntegrationTest,
 } from "../../integrationHelpers.js";
+import { AtlasTools } from "@mongodb-js/mcp-tools-atlas";
 import {
     describeWithAtlas,
     withProject,
@@ -139,12 +140,15 @@ describeWithAtlas("performanceAdvisor", (integration) => {
 });
 
 describe("mocked atlas-get-performance-advisor", () => {
-    const integration = setupIntegrationTest(() => ({
-        ...defaultTestConfig,
-        apiClientId: process.env.MDB_MCP_API_CLIENT_ID || "test-client",
-        apiClientSecret: process.env.MDB_MCP_API_CLIENT_SECRET || "test-secret",
-        apiBaseUrl: process.env.MDB_MCP_API_BASE_URL ?? "https://cloud-dev.mongodb.com",
-    }));
+    const integration = setupIntegrationTest(
+        () => ({
+            ...defaultTestConfig,
+            apiClientId: process.env.MDB_MCP_API_CLIENT_ID || "test-client",
+            apiClientSecret: process.env.MDB_MCP_API_CLIENT_SECRET || "test-secret",
+            apiBaseUrl: process.env.MDB_MCP_API_BASE_URL ?? "https://cloud-dev.mongodb.com",
+        }),
+        { tools: AtlasTools }
+    );
 
     let mockEmitEvents: MockInstance<(events: BaseEvent[]) => void>;
     let projectId: string;

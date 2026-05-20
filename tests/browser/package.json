@@ -10,6 +10,7 @@
   },
   "devDependencies": {
     "mongodb-mcp-server": "workspace:*",
+    "@mongodb-js/mcp-core": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@mongodb-js/mcp-atlas-telemetry": "workspace:*",
     "@mongodb-js/mcp-types": "workspace:*",

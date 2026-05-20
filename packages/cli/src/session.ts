@@ -17,8 +17,9 @@ import type { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import type { Client } from "@mongodb-js/atlas-local";
 import type { Keychain } from "@mongodb-js/mcp-core";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
-import { type UserConfig } from "../common/config/userConfig.js";
-import { type ConnectionErrorHandler } from "./connectionErrorHandler.js";
+import type { UserConfig } from "./config/userConfig.js";
+import type { ServerSession } from "./server.js";
+import { type ConnectionErrorHandler } from "@mongodb-js/mcp-tools-mongodb";
 
 export interface SessionOptions<TUserConfig extends UserConfig = UserConfig> {
     userConfig: TUserConfig;
@@ -38,8 +39,8 @@ export type SessionEvents = {
     "connection-error": [ConnectionStateErrored];
 };
 
-export class Session extends EventEmitter<SessionEvents> {
-    private readonly userConfig: UserConfig;
+export class Session extends EventEmitter<SessionEvents> implements ServerSession {
+    public readonly config: UserConfig;
     public readonly sessionId: string = new ObjectId().toString();
     public readonly exportsManager: ExportsManager;
     public readonly connectionManager: ConnectionManager;
@@ -68,7 +69,7 @@ export class Session extends EventEmitter<SessionEvents> {
     }: SessionOptions<UserConfig>) {
         super();
 
-        this.userConfig = userConfig;
+        this.config = userConfig;
         this.keychain = keychain;
         this.logger = logger;
         this.apiClient = apiClient;
@@ -138,8 +139,8 @@ export class Session extends EventEmitter<SessionEvents> {
 
     async connectToConfiguredConnection(): Promise<void> {
         const connectionInfo = generateConnectionInfoFromCliArgs({
-            ...this.userConfig,
-            connectionSpecifier: this.userConfig.connectionString,
+            ...this.config,
+            connectionSpecifier: this.config.connectionString,
         });
         await this.connectToMongoDB(connectionInfo);
     }

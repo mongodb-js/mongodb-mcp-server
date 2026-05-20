@@ -35,6 +35,7 @@ export type {
     NotConnectedToMongoDBErrorCode,
     MisconfiguredConnectionStringErrorCode,
 } from "./common/errors.js";
+export { validateConnectionString } from "./helpers/connectionOptions.js";
 export type { MonitoringServerFeature, PreviewFeature } from "./common/schemas.js";
 export { previewFeatureValues, monitoringServerFeatureValues } from "./common/schemas.js";
 export {
@@ -52,13 +53,16 @@ export {
     ensureExtension,
     isExportExpired,
 } from "./common/exportsManager.js";
+export {
+    connectionErrorHandler,
+    type ConnectionErrorHandler,
+    type ConnectionErrorHandlerContext,
+    type ConnectionErrorHandled,
+    type ConnectionErrorUnhandled,
+} from "./connectionErrorHandler.js";
 export { DeviceId } from "./helpers/deviceId.js";
 export { isObjectEmpty } from "./helpers/isObjectEmpty.js";
-export {
-    validateConnectionString,
-    setAppNameParamIfMissing,
-    type AppNameComponents,
-} from "./helpers/connectionOptions.js";
+export { setAppNameParamIfMissing, type AppNameComponents } from "./helpers/connectionOptions.js";
 export { usesIndex, getIndexCheckErrorMessage, checkIndexUsage } from "./helpers/indexCheck.js";
 export { collectCursorUntilMaxBytesLimit, getResponseBytesLimit } from "./helpers/collectCursorUntilMaxBytes.js";
 export { operationWithFallback } from "./helpers/operationWithFallback.js";
@@ -77,8 +81,62 @@ export { pipelineDescriptionWithVectorSearch } from "./tools/read/aggregate.js";
 export { IndexDirectionSchema, SortDirectionSchema } from "./mongodbSchemas.js";
 export * from "./tools/tools.js";
 
-import * as tools from "./tools/tools.js";
+import type { IMongoDBSession } from "./mongodbTool.js";
+import {
+    AggregateTool,
+    AggregateDBTool,
+    ConnectTool,
+    CountTool,
+    FindTool,
+    InsertManyTool,
+    UpdateManyTool,
+    DeleteManyTool,
+    ExplainTool,
+    ExportTool,
+    DropIndexTool,
+    SwitchConnectionTool,
+} from "./tools/tools.js";
+import {
+    CreateIndexTool,
+    CreateCollectionTool,
+    DropCollectionTool,
+    DropDatabaseTool,
+    RenameCollectionTool,
+} from "./tools/tools.js";
+import {
+    ListCollectionsTool,
+    ListDatabasesTool,
+    CollectionIndexesTool,
+    CollectionSchemaTool,
+    CollectionStorageSizeTool,
+    DbStatsTool,
+    LogsTool,
+} from "./tools/tools.js";
 import type { ToolClass } from "@mongodb-js/mcp-core";
-import type { IMongoDBConfig } from "./mongodbTool.js";
 
-export const MongoDBTools: ToolClass<IMongoDBConfig>[] = Object.values(tools);
+export const MongoDBTools: ToolClass<IMongoDBSession>[] = [
+    AggregateDBTool,
+    AggregateTool,
+    CollectionIndexesTool,
+    CollectionSchemaTool,
+    CollectionStorageSizeTool,
+    ConnectTool,
+    CountTool,
+    CreateCollectionTool,
+    CreateIndexTool,
+    DbStatsTool,
+    DeleteManyTool,
+    DropCollectionTool,
+    DropDatabaseTool,
+    DropIndexTool,
+    ExplainTool,
+    ExportTool,
+    FindTool,
+    InsertManyTool,
+    ListCollectionsTool,
+    ListDatabasesTool,
+    LogsTool,
+    RenameCollectionTool,
+    SwitchConnectionTool,
+    UpdateManyTool,
+] as const;

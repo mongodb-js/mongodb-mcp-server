@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "baseUrl": ".",
+    "erasableSyntaxOnly": true,
+    "composite": true
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["dist", "node_modules"],
+  "references": [
+    { "path": "../atlas-telemetry" },
+    { "path": "../atlas-api-client" },
+    { "path": "../tools-atlas" },
+    { "path": "../tools-atlas-local" },
+    { "path": "../tools-mongodb" }
+  ]
+}

@@ -1,9 +1,8 @@
-import { ReactiveResource } from "../resource.js";
-import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
-import type { Session, UserConfig } from "../../lib.js";
-import type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-types";
+import { ReactiveResource } from "@mongodb-js/mcp-core";
+import type { ResourceConstructorParams } from "@mongodb-js/mcp-types";
 import type { ConnectionStateErrored } from "@mongodb-js/mcp-tools-mongodb";
-import type { ConnectionStringInfo } from "@mongodb-js/mcp-tools-mongodb";
+import type { ConnectionStringInfo, AtlasClusterConnectionInfo } from "@mongodb-js/mcp-tools-mongodb";
+import type { Session } from "@mongodb-js/mcp-cli";
 
 type ConnectionStateDebuggingInformation = {
     readonly tag: "connected" | "connecting" | "disconnected" | "errored";
@@ -12,35 +11,29 @@ type ConnectionStateDebuggingInformation = {
     readonly connectedAtlasCluster?: AtlasClusterConnectionInfo;
 };
 
-export type DebugResourceOptions = {
-    session: Session;
-    config: UserConfig;
-    telemetry: AtlasTelemetry;
-};
-
 export class DebugResource extends ReactiveResource<
     ConnectionStateDebuggingInformation,
-    readonly ["connect", "disconnect", "close", "connection-error"]
+    readonly ["connect", "disconnect", "close", "connection-error"],
+    Session
 > {
-    constructor(options: DebugResourceOptions) {
+    constructor(params: ResourceConstructorParams<Session>) {
         super({
-            resourceConfiguration: {
-                name: "debug-mongodb",
-                uri: "debug://mongodb",
-                config: {
-                    description:
-                        "Debugging information for MongoDB connectivity issues. Tracks the last connectivity attempt and error information.",
-                },
-            },
             options: {
+                resource: {
+                    name: "debug-mongodb",
+                    uri: "debug://mongodb",
+                    config: {
+                        description:
+                            "Debugging information for MongoDB connectivity issues. Tracks the last connectivity attempt and error information.",
+                    },
+                },
                 initial: { tag: "disconnected" },
                 events: ["connect", "disconnect", "close", "connection-error"],
             },
-            session: options.session,
-            config: options.config,
-            telemetry: options.telemetry,
+            ...params,
         });
     }
+
     reduce(
         eventName: "connect" | "disconnect" | "close" | "connection-error",
         event: ConnectionStateErrored | undefined

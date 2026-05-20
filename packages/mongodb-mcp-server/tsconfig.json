@@ -11,12 +11,14 @@
     "src/**/*.ts",
     "src/**/*.tsx",
     "tests/**/*.ts",
-    "scripts/**/*.ts"
+    "scripts/**/*.ts",
+    "package.json"
   ],
   "exclude": ["dist", "node_modules"],
   "references": [
     { "path": "../types" },
     { "path": "../core" },
+    { "path": "../cli" },
     { "path": "../logging" },
     { "path": "../setup" },
     { "path": "../metrics" },

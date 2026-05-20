@@ -1,6 +1,7 @@
 export interface IApiClient<TEvent extends unknown[] = unknown[]> {
     isAuthConfigured(): boolean;
     close(): Promise<void>;
+    validateAuthConfig(): Promise<void>;
     sendEvents(options?: { signal?: AbortSignal; events: TEvent }): Promise<void>;
 }
 

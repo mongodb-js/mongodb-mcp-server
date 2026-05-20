@@ -57,6 +57,7 @@ const config: KnipConfig = {
             entry: [
                 "src/index.ts!",
                 "src/lib.ts!",
+                "src/allTools.ts!",
                 "src/web.ts!",
                 "src/tools/index.ts!",
                 "src/setup/index.ts!",
@@ -143,6 +144,9 @@ const config: KnipConfig = {
             ignore: ["**/*"],
         },
         "packages/http-transports": {
+            entry: ["src/index.ts!"],
+        },
+        "packages/cli": {
             entry: ["src/index.ts!"],
         },
         "packages/tools-mongodb": {

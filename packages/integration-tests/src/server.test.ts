@@ -2,7 +2,7 @@ import { MCPConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
 import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
 import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
-import { Session } from "mongodb-mcp-server";
+import { Session } from "@mongodb-js/mcp-cli";
 import {
     defaultTestConfig,
     expectDefined,
@@ -135,9 +135,9 @@ describe("Server integration test", () => {
                     const capabilities = integration.mcpClient().getServerCapabilities();
                     expectDefined(capabilities);
                     expectDefined(capabilities?.logging);
-                    expectDefined(capabilities?.completions);
                     expectDefined(capabilities?.tools);
                     expectDefined(capabilities?.resources);
+                    expect(capabilities.completions).toBeUndefined();
                     expect(capabilities.experimental).toBeUndefined();
                     expect(capabilities.prompts).toBeUndefined();
                 });
@@ -225,7 +225,10 @@ describe("Server integration test", () => {
             apiClient: session.apiClient,
             keychain: session.keychain,
             enabled: false,
-            machineMetadata: buildMachineMetadata("test-server", "0.0.0"),
+            machineMetadata: buildMachineMetadata({
+                mcpServerName: "test-server",
+                version: "1.0",
+            }),
         });
 
         const mcpServerInstance = new McpServer({ name: "test", version: "1.0" });
@@ -240,6 +243,13 @@ describe("Server integration test", () => {
             connectionErrorHandler,
             tools: [...tools],
             metrics: new MockMetrics(),
+            serverMetadata: {
+                mcpServerName: "test-server",
+                version: "1.0",
+                engines: {
+                    node: "20.0.0",
+                },
+            },
         });
 
         const transport = new InMemoryTransport();

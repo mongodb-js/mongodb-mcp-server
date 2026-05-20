@@ -8,11 +8,12 @@
 import { readFileSync, writeFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { AllTools, type ToolConstructorParams } from "mongodb-mcp-server/tools";
+import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
+import { AllTools } from "mongodb-mcp-server";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
-import { type UserConfig, UserConfigSchema } from "mongodb-mcp-server";
+import { UserConfigSchema } from "mongodb-mcp-server";
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
-import type { DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
+import type { DefaultMetricDefinitions, ISession, IToolConfig } from "@mongodb-js/mcp-types";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -36,7 +37,7 @@ function extractToolInformation(): ToolInfo[] {
     for (const ToolClass of AllTools) {
         // Create a minimal instance to access instance properties
         // We need to provide dummy params since we only need name and description
-        const dummyParams: ToolConstructorParams<UserConfig, DefaultMetricDefinitions> = {
+        const dummyParams: ToolConstructorParams<ISession<IToolConfig>, DefaultMetricDefinitions> = {
             name: ToolClass.toolName,
             category: ToolClass.category,
             operationType: ToolClass.operationType,
@@ -45,8 +46,8 @@ function extractToolInformation(): ToolInfo[] {
                 off: () => {},
                 emit: () => false,
                 connectionManager: null,
+                config: UserConfigSchema.parse({}),
             } as never,
-            config: UserConfigSchema.parse({}),
             telemetry: {
                 emitEvents: () => {},
             } as never,

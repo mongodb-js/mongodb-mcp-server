@@ -7,22 +7,19 @@
 import type { AggregationCursor } from 'mongodb';
 import { AtlasLocalClientFactoryFn } from '@mongodb-js/mcp-tools-atlas-local';
 import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import type { Client } from '@mongodb-js/atlas-local';
 import { ConnectionInfo } from '@mongosh/arg-parser';
 import { Counter } from 'prom-client';
 import type { ElicitRequestFormParams } from '@modelcontextprotocol/sdk/types.js';
-import EventEmitter from 'events';
+import { EventEmitter } from 'events';
 import type { FetchOptions } from 'openapi-fetch';
 import type { FindCursor } from 'mongodb';
 import { Histogram } from 'prom-client';
-import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
 import { LibraryLoader } from '@mongodb-js/mcp-tools-atlas-local';
 import type { LoggingMessageNotification } from '@modelcontextprotocol/sdk/types.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
 import { Secret } from 'mongodb-redact';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
-import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import { z } from 'zod';
 import type { ZodRawShape } from 'zod';
 
@@ -30,10 +27,7 @@ import type { ZodRawShape } from 'zod';
 export type AnyConnectionState = ConnectionStateConnected | ConnectionStateConnecting | ConnectionStateDisconnected | ConnectionStateErrored;
 
 // @public (undocumented)
-export type AnyToolBase = ToolBase<any, any>;
-
-// @public (undocumented)
-export type AnyToolClass = ToolClass<any, any>;
+export type AnyToolBase = ToolBase<any>;
 
 // @public (undocumented)
 export class ApiClient implements IApiClient {
@@ -675,12 +669,6 @@ export type LogPayload = {
     attributes?: Record<string, string>;
 };
 
-// @public
-export type MongoDBToolsRuntimeConfig = {
-    queryCountMaxTimeMsCap: number;
-    aggregationCountMaxTimeMsCap: number;
-};
-
 // @public (undocumented)
 export type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
 
@@ -711,140 +699,12 @@ export type RequestContext = {
 export { Secret }
 
 // @public (undocumented)
-export class Server<TUserConfig extends UserConfig = UserConfig, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
-    constructor(input: ServerOptions<TUserConfig, TMetrics>);
-    // (undocumented)
-    close(): Promise<void>;
-    // (undocumented)
-    connect(transport: Transport): Promise<void>;
-    // (undocumented)
-    readonly connectionErrorHandler: ConnectionErrorHandler;
-    // (undocumented)
-    readonly elicitation: Elicitation;
-    // (undocumented)
-    isToolCategoryAvailable(name: ToolCategory): boolean;
-    // (undocumented)
-    get mcpLogLevel(): LogLevel;
-    // (undocumented)
-    readonly mcpServer: McpServer;
-    // (undocumented)
-    readonly metrics: IMetrics<TMetrics>;
-    // (undocumented)
-    registerResources(): void;
-    // (undocumented)
-    registerTools(): void;
-    // (undocumented)
-    sendResourceListChanged(): void;
-    // (undocumented)
-    sendResourceUpdated(uri: string): void;
-    // (undocumented)
-    readonly session: Session;
-    // (undocumented)
-    readonly tools: AnyToolBase[];
-    // (undocumented)
-    readonly uiRegistry?: UIRegistry;
-    // (undocumented)
-    readonly userConfig: TUserConfig;
-}
-
-// @public (undocumented)
-export interface ServerOptions<TUserConfig extends UserConfig = UserConfig, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
-    // @deprecated (undocumented)
-    connectionErrorHandler: ConnectionErrorHandler;
-    // (undocumented)
-    elicitation: Elicitation;
-    // (undocumented)
-    mcpServer: McpServer;
-    // (undocumented)
-    metrics: IMetrics<TMetrics>;
-    runtimeConfig?: MongoDBToolsRuntimeConfig;
-    // (undocumented)
-    session: Session;
-    // (undocumented)
-    telemetry: Telemetry;
-    tools?: AnyToolClass[];
-    // (undocumented)
-    uiRegistry?: UIRegistry;
-    // (undocumented)
-    userConfig: TUserConfig;
-}
-
-// @public (undocumented)
-export class Session extends EventEmitter<SessionEvents> {
-    constructor(input: SessionOptions<UserConfig>);
-    // (undocumented)
-    readonly apiClient: ApiClient;
-    // (undocumented)
-    assertSearchSupported(): Promise<void>;
-    // (undocumented)
-    readonly atlasLocalClient?: Client;
-    // (undocumented)
-    close(): Promise<void>;
-    // (undocumented)
-    get connectedAtlasCluster(): AtlasClusterConnectionInfo | undefined;
-    // (undocumented)
-    readonly connectionErrorHandler: ConnectionErrorHandler;
-    // (undocumented)
-    readonly connectionManager: ConnectionManager;
-    // (undocumented)
-    get connectionStringInfo(): ConnectionStringInfo | undefined;
-    // (undocumented)
-    connectToConfiguredConnection(): Promise<void>;
-    // (undocumented)
-    connectToMongoDB(settings: ConnectionSettings): Promise<void>;
-    // (undocumented)
-    disconnect(): Promise<void>;
-    // (undocumented)
-    readonly exportsManager: ExportsManager;
-    // (undocumented)
-    get isConnectedToMongoDB(): boolean;
-    // (undocumented)
-    isSearchSupported(): Promise<boolean>;
-    // (undocumented)
-    readonly keychain: Keychain;
-    // (undocumented)
-    readonly logger: CompositeLogger;
-    // (undocumented)
-    mcpClient?: {
-        name?: string;
-        version?: string;
-        title?: string;
-    };
-    // (undocumented)
-    get serviceProvider(): NodeDriverServiceProvider;
-    // (undocumented)
-    readonly sessionId: string;
-    // (undocumented)
-    setMcpClient(mcpClient: Implementation | undefined): void;
-}
-
-// @public (undocumented)
 export type SessionEvents = {
     connect: [];
     close: [];
     disconnect: [];
-    "connection-error": [ConnectionStateErrored];
+    "connection-error": [unknown];
 };
-
-// @public (undocumented)
-export interface SessionOptions<TUserConfig extends UserConfig = UserConfig> {
-    // (undocumented)
-    apiClient: ApiClient;
-    // (undocumented)
-    atlasLocalClient?: Client;
-    // (undocumented)
-    connectionErrorHandler: ConnectionErrorHandler;
-    // (undocumented)
-    connectionManager: ConnectionManager;
-    // (undocumented)
-    exportsManager: ExportsManager;
-    // (undocumented)
-    keychain: Keychain;
-    // (undocumented)
-    logger: CompositeLogger;
-    // (undocumented)
-    userConfig: TUserConfig;
-}
 
 // @public (undocumented)
 export type StoredExport = ReadyExport | InProgressExport;
@@ -937,13 +797,12 @@ export type ToolArgs<T extends ZodRawShape> = {
 };
 
 // @public
-export abstract class ToolBase<TUserConfig extends IToolConfig = IToolConfig, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
-    constructor(input: ToolConstructorParams<TUserConfig, TMetricsDefinitions>);
+export abstract class ToolBase<TSession extends ISession = ISession, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
+    constructor(input: ToolConstructorParams<TSession, TMetricsDefinitions>);
     // (undocumented)
     get annotations(): ToolAnnotations;
     abstract argsShape: ZodRawShape;
     readonly category: ToolCategory;
-    protected readonly config: TUserConfig;
     abstract description: string;
     // (undocumented)
     disable(): void;
@@ -972,7 +831,7 @@ export abstract class ToolBase<TUserConfig extends IToolConfig = IToolConfig, TM
     protected abstract resolveTelemetryMetadata(args: ToolArgs<typeof ToolBase.argsShape>, input: {
         result: CallToolResult;
     }): TelemetryToolMetadata_2;
-    protected readonly session: IToolSession;
+    protected readonly session: TSession;
     protected readonly telemetry: ITelemetry;
     protected get toolMeta(): Record<string, unknown>;
     // (undocumented)
@@ -984,20 +843,19 @@ export abstract class ToolBase<TUserConfig extends IToolConfig = IToolConfig, TM
 export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant" | "custom";
 
 // @public
-export type ToolClass<TUserConfig extends IToolConfig = IToolConfig, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
-    new (params: ToolConstructorParams<TUserConfig, TMetricsDefinitions>): ToolBase<TUserConfig, TMetricsDefinitions>;
+export type ToolClass<TSession extends ISession = ISession, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
+    new (args: ToolConstructorParams<TSession, TMetricsDefinitions>): ToolBase<TSession, TMetricsDefinitions>;
     toolName: string;
     category: ToolCategory;
     operationType: OperationType;
 };
 
 // @public
-export type ToolConstructorParams<TUserConfig extends IToolConfig = IToolConfig, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
+export type ToolConstructorParams<TSession extends ISession<IToolConfig> = ISession<IToolConfig>, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
     name: string;
     category: ToolCategory;
     operationType: OperationType;
-    session: IToolSession;
-    config: TUserConfig;
+    session: TSession;
     telemetry: ITelemetry;
     elicitation: IElicitation;
     metrics: IMetrics<TMetricsDefinitions>;
@@ -1033,158 +891,6 @@ export type UpgradeClusterMetadata = AtlasMetadata & {
     provider?: string;
     region?: string;
 };
-
-// @public (undocumented)
-export type UserConfig = z.infer<typeof UserConfigSchema>;
-
-// @public (undocumented)
-export const UserConfigSchema: z.ZodObject<{
-    apiBaseUrl: z.ZodDefault<z.ZodString>;
-    assistantBaseUrl: z.ZodDefault<z.ZodString>;
-    apiClientId: z.ZodOptional<z.ZodString>;
-    apiClientSecret: z.ZodOptional<z.ZodString>;
-    connectionString: z.ZodOptional<z.ZodString>;
-    loggers: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodEnum<{
-        stderr: "stderr";
-        disk: "disk";
-        mcp: "mcp";
-    }>>>>;
-    logPath: z.ZodDefault<z.ZodString>;
-    mcpClientLogLevel: z.ZodDefault<z.ZodEnum<{
-        error: "error";
-        debug: "debug";
-        info: "info";
-        notice: "notice";
-        warning: "warning";
-        critical: "critical";
-        alert: "alert";
-        emergency: "emergency";
-    }>>;
-    disabledTools: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodString>>>;
-    confirmationRequiredTools: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodString>>>;
-    readOnly: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
-    indexCheck: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
-    telemetry: z.ZodDefault<z.ZodEnum<{
-        enabled: "enabled";
-        disabled: "disabled";
-    }>>;
-    transport: z.ZodDefault<z.ZodEnum<{
-        stdio: "stdio";
-        http: "http";
-    }>>;
-    httpPort: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
-    httpHost: z.ZodDefault<z.ZodString>;
-    httpHeaders: z.ZodDefault<z.ZodObject<{}, z.core.$catchall<z.ZodString>>>;
-    httpBodyLimit: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
-    idleTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
-    notificationTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
-    maxBytesPerQuery: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
-    maxDocumentsPerQuery: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
-    maxTimeMS: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
-    exportsPath: z.ZodDefault<z.ZodString>;
-    exportTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
-    exportCleanupIntervalMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
-    atlasTemporaryDatabaseUserLifetimeMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
-    voyageApiKey: z.ZodDefault<z.ZodString>;
-    previewFeatures: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodEnum<{
-        mcpUI: "mcpUI";
-    }>>>>;
-    allowRequestOverrides: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
-    dryRun: z.ZodDefault<z.ZodBoolean>;
-    externallyManagedSessions: z.ZodDefault<z.ZodBoolean>;
-    httpResponseType: z.ZodDefault<z.ZodEnum<{
-        sse: "sse";
-        json: "json";
-    }>>;
-    healthCheckPort: z.ZodOptional<z.ZodNumber>;
-    healthCheckHost: z.ZodOptional<z.ZodString>;
-    monitoringServerPort: z.ZodOptional<z.ZodNumber>;
-    monitoringServerHost: z.ZodOptional<z.ZodString>;
-    monitoringServerFeatures: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodEnum<{
-        "health-check": "health-check";
-        metrics: "metrics";
-    }>>>>;
-    gssapiHostName: z.ZodOptional<z.ZodString>;
-    sslFIPSMode: z.ZodOptional<z.ZodBoolean>;
-    ssl: z.ZodOptional<z.ZodBoolean>;
-    sslAllowInvalidCertificates: z.ZodOptional<z.ZodBoolean>;
-    sslAllowInvalidHostnames: z.ZodOptional<z.ZodBoolean>;
-    sslPEMKeyFile: z.ZodOptional<z.ZodString>;
-    sslPEMKeyPassword: z.ZodOptional<z.ZodString>;
-    sslCAFile: z.ZodOptional<z.ZodString>;
-    sslCertificateSelector: z.ZodOptional<z.ZodString>;
-    sslCRLFile: z.ZodOptional<z.ZodString>;
-    sslDisabledProtocols: z.ZodOptional<z.ZodString>;
-    apiVersion: z.ZodOptional<z.ZodString>;
-    authenticationDatabase: z.ZodOptional<z.ZodString>;
-    authenticationMechanism: z.ZodOptional<z.ZodString>;
-    awsAccessKeyId: z.ZodOptional<z.ZodString>;
-    awsIamSessionToken: z.ZodOptional<z.ZodString>;
-    awsSecretAccessKey: z.ZodOptional<z.ZodString>;
-    awsSessionToken: z.ZodOptional<z.ZodString>;
-    csfleLibraryPath: z.ZodOptional<z.ZodString>;
-    cryptSharedLibPath: z.ZodOptional<z.ZodString>;
-    deepInspect: z.ZodOptional<z.ZodDefault<z.ZodBoolean>>;
-    db: z.ZodOptional<z.ZodString>;
-    gssapiServiceName: z.ZodOptional<z.ZodString>;
-    sspiHostnameCanonicalization: z.ZodOptional<z.ZodString>;
-    sspiRealmOverride: z.ZodOptional<z.ZodString>;
-    jsContext: z.ZodOptional<z.ZodEnum<{
-        repl: "repl";
-        "plain-vm": "plain-vm";
-        auto: "auto";
-    }>>;
-    host: z.ZodOptional<z.ZodString>;
-    keyVaultNamespace: z.ZodOptional<z.ZodString>;
-    kmsURL: z.ZodOptional<z.ZodString>;
-    locale: z.ZodOptional<z.ZodString>;
-    oidcFlows: z.ZodOptional<z.ZodString>;
-    oidcRedirectUri: z.ZodOptional<z.ZodString>;
-    password: z.ZodOptional<z.ZodString>;
-    port: z.ZodOptional<z.ZodString>;
-    username: z.ZodOptional<z.ZodString>;
-    tlsCAFile: z.ZodOptional<z.ZodString>;
-    tlsCertificateKeyFile: z.ZodOptional<z.ZodString>;
-    tlsCertificateKeyFilePassword: z.ZodOptional<z.ZodString>;
-    tlsCertificateSelector: z.ZodOptional<z.ZodString>;
-    tlsCRLFile: z.ZodOptional<z.ZodString>;
-    tlsDisabledProtocols: z.ZodOptional<z.ZodString>;
-    apiDeprecationErrors: z.ZodOptional<z.ZodBoolean>;
-    apiStrict: z.ZodOptional<z.ZodBoolean>;
-    buildInfo: z.ZodOptional<z.ZodBoolean>;
-    exposeAsyncRewriter: z.ZodOptional<z.ZodBoolean>;
-    help: z.ZodOptional<z.ZodBoolean>;
-    ipv6: z.ZodOptional<z.ZodBoolean>;
-    nodb: z.ZodOptional<z.ZodBoolean>;
-    norc: z.ZodOptional<z.ZodBoolean>;
-    oidcTrustedEndpoint: z.ZodOptional<z.ZodBoolean>;
-    oidcIdTokenAsAccessToken: z.ZodOptional<z.ZodBoolean>;
-    oidcNoNonce: z.ZodOptional<z.ZodBoolean>;
-    quiet: z.ZodOptional<z.ZodBoolean>;
-    retryWrites: z.ZodOptional<z.ZodBoolean>;
-    shell: z.ZodOptional<z.ZodBoolean>;
-    skipStartupWarnings: z.ZodOptional<z.ZodBoolean>;
-    verbose: z.ZodOptional<z.ZodBoolean>;
-    version: z.ZodOptional<z.ZodBoolean>;
-    smokeTests: z.ZodOptional<z.ZodBoolean>;
-    perfTests: z.ZodOptional<z.ZodBoolean>;
-    tls: z.ZodOptional<z.ZodBoolean>;
-    tlsAllowInvalidCertificates: z.ZodOptional<z.ZodBoolean>;
-    tlsAllowInvalidHostnames: z.ZodOptional<z.ZodBoolean>;
-    tlsFIPSMode: z.ZodOptional<z.ZodBoolean>;
-    tlsUseSystemCA: z.ZodOptional<z.ZodBoolean>;
-    eval: z.ZodOptional<z.ZodArray<z.ZodString>>;
-    file: z.ZodOptional<z.ZodArray<z.ZodString>>;
-    json: z.ZodOptional<z.ZodUnion<readonly [z.ZodBoolean, z.ZodEnum<{
-        relaxed: "relaxed";
-        canonical: "canonical";
-    }>]>>;
-    oidcDumpTokens: z.ZodOptional<z.ZodUnion<readonly [z.ZodBoolean, z.ZodEnum<{
-        redacted: "redacted";
-        "include-secrets": "include-secrets";
-    }>]>>;
-    browser: z.ZodOptional<z.ZodUnion<readonly [z.ZodLiteral<false>, z.ZodString]>>;
-}, z.core.$strip>;
 
 // (No @packageDocumentation comment for this package)
 

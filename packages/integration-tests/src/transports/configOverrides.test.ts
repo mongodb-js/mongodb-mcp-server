@@ -4,7 +4,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, afterEach, beforeEach, vi } from "vitest";
 import { defaultTestConfig } from "../integrationHelpers.js";
-import type { UserConfig } from "mongodb-mcp-server";
+import type { UserConfig } from "@mongodb-js/mcp-cli";
 import type {
     DefaultMetricDefinitions,
     HttpServerOptions,
@@ -15,19 +15,13 @@ import type {
 import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { Server } from "mongodb-mcp-server";
-import {
-    Session,
-    Elicitation,
-    connectionErrorHandler,
-    MCPConnectionManager,
-    ExportsManager,
-    applyConfigOverrides,
-} from "mongodb-mcp-server";
+import { AllTools } from "mongodb-mcp-server";
+import { applyConfigOverrides } from "@mongodb-js/mcp-cli";
+import { Session, Elicitation, connectionErrorHandler, MCPConnectionManager, ExportsManager } from "mongodb-mcp-server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 import { packageInfo } from "mongodb-mcp-server";
-// Note: packageInfo is only exported from mongodb-mcp-server main entry
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
 import type { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
@@ -136,6 +130,14 @@ async function createTestServer(config: UserConfig): Promise<Server> {
         connectionErrorHandler,
         elicitation,
         metrics,
+        serverMetadata: {
+            mcpServerName: "test-server",
+            version: "1.0",
+            engines: {
+                node: "20.0.0",
+            },
+        },
+        tools: AllTools,
     });
 
     return server;

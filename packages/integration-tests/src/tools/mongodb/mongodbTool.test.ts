@@ -22,7 +22,12 @@ import {
     ApiClient,
 } from "mongodb-mcp-server";
 import { CompositeLogger, InMemoryTransport, Keychain } from "@mongodb-js/mcp-core";
-import { defaultTestConfig, expectDefined, testConnectionManagerDriverLabels } from "../../integrationHelpers.js";
+import {
+    defaultTestConfig,
+    expectDefined,
+    resetSessionAfterIntegrationTest,
+    testConnectionManagerDriverLabels,
+} from "../../integrationHelpers.js";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 import { setupMongoDBIntegrationTest } from "../../mongodbHelpers.js";
 import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
@@ -134,7 +139,10 @@ describe("MongoDBTool implementations", () => {
             apiClient: session.apiClient,
             keychain: session.keychain,
             enabled: false,
-            machineMetadata: buildMachineMetadata("test-server", "0.0.0"),
+            machineMetadata: buildMachineMetadata({
+                mcpServerName: "test-server",
+                version: "1.0",
+            }),
         });
 
         const clientTransport = new InMemoryTransport();
@@ -171,6 +179,13 @@ describe("MongoDBTool implementations", () => {
             elicitation,
             tools: toolConstructors,
             metrics: new MockMetrics(),
+            serverMetadata: {
+                mcpServerName: "test-server",
+                version: "1.0",
+                engines: {
+                    node: "20.0.0",
+                },
+            },
         });
 
         await mcpServer.connect(serverTransport);
@@ -178,7 +193,9 @@ describe("MongoDBTool implementations", () => {
     }
 
     async function cleanup(): Promise<void> {
-        await mcpServer?.session.disconnect();
+        if (mcpServer) {
+            await resetSessionAfterIntegrationTest(mcpServer);
+        }
         await mcpClient?.close();
         mcpClient = undefined;
 
@@ -196,7 +213,7 @@ describe("MongoDBTool implementations", () => {
     afterEach(async () => {
         vi.clearAllMocks();
         if (mcpServer) {
-            await mcpServer.session.disconnect();
+            await resetSessionAfterIntegrationTest(mcpServer);
         }
     });
 

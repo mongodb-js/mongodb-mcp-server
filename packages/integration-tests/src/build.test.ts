@@ -11,9 +11,6 @@ const projectRoot = path.resolve(currentDir, "../../..");
 const esmPath = path.resolve(projectRoot, "packages/mongodb-mcp-server/dist/esm/lib.js");
 const cjsPath = path.resolve(projectRoot, "packages/mongodb-mcp-server/dist/cjs/lib.js");
 
-const esmToolsPath = path.resolve(projectRoot, "packages/mongodb-mcp-server/dist/esm/tools/index.js");
-const cjsToolsPath = path.resolve(projectRoot, "packages/mongodb-mcp-server/dist/cjs/tools/index.js");
-
 describe("Build Test", () => {
     it("should successfully require CommonJS module", () => {
         // Use the CJS directory path for createRequire to ensure proper module context
@@ -57,23 +54,5 @@ describe("Build Test", () => {
                 "Elicitation",
             ])
         );
-    });
-
-    it("should have matching exports between CommonJS and ESM tools modules", async () => {
-        // Import CommonJS module
-        // Use the CJS directory path for createRequire to ensure proper module context
-        const require = createRequire(cjsToolsPath);
-        const cjsModule = require(cjsToolsPath) as Record<string, unknown>;
-
-        // Import ESM module
-        const esmModule = (await import(esmToolsPath)) as Record<string, unknown>;
-
-        // Compare exports
-        const cjsKeys = Object.keys(cjsModule).sort();
-        const esmKeys = Object.keys(esmModule).sort();
-
-        expect(cjsKeys).toEqual(esmKeys);
-        // There are more tools but we will only check for a few.
-        expect(cjsKeys).toEqual(expect.arrayContaining(["AllTools", "AggregateTool", "FindTool"]));
     });
 });

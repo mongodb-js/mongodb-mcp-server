@@ -13,6 +13,7 @@ import {
     ExportsManager,
     packageInfo,
 } from "mongodb-mcp-server";
+import { AllTools } from "mongodb-mcp-server";
 import { defaultTestConfig, expectDefined, sleep } from "../integrationHelpers.js";
 import type { HttpServerOptions, SessionManagementOptions } from "@mongodb-js/mcp-types";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
@@ -93,6 +94,14 @@ async function createTestServer(config: UserConfig): Promise<Server> {
         connectionErrorHandler,
         elicitation,
         metrics,
+        serverMetadata: {
+            mcpServerName: "test-server",
+            version: "1.0",
+            engines: {
+                node: "20.0.0",
+            },
+        },
+        tools: AllTools,
     });
 
     return server;

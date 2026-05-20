@@ -17,18 +17,19 @@ import { Keychain } from "@mongodb-js/mcp-core";
 import { Elicitation } from "mongodb-mcp-server";
 import type { MockClientCapabilities, createMockElicitInput } from "@mongodb-js/mcp-test-utils";
 import { createAtlasLocalClient } from "mongodb-mcp-server";
-import type { OperationType } from "@mongodb-js/mcp-core";
+import type { AnyToolClass, OperationType } from "@mongodb-js/mcp-core";
+import type { AnyResourceClass } from "@mongodb-js/mcp-types";
 import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
+export { Session } from "@mongodb-js/mcp-cli";
 import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
-
 export const defaultTestConfig: UserConfig = {
     ...UserConfigSchema.parse({}),
     telemetry: "disabled",
     loggers: ["stderr"],
 };
 
-/** Driver product labels for tests; mirrors root `packageInfo`. */
+/** Driver product labels for tests; mirrors root `serverMetadata`. */
 export const testConnectionManagerDriverLabels = {
     displayName: packageInfo.mcpServerName,
     version: packageInfo.version,
@@ -55,11 +56,53 @@ type ToolInfo = Awaited<ReturnType<Client["listTools"]>>["tools"][number];
 export interface IntegrationTest {
     mcpClient: () => Client;
     mcpServer: () => Server & {
+        session: Session;
         getApiClient: () => ApiClient;
     };
 }
 
 export const DEFAULT_LONG_RUNNING_TEST_WAIT_TIMEOUT_MS = 1_200_000;
+
+/** Max time to wait for MongoDB disconnect during per-test integration teardown. */
+const INTEGRATION_TEST_DISCONNECT_TIMEOUT_MS = 30_000;
+
+/** Max time to wait for a resource-updated notification in tests. */
+const RESOURCE_CHANGED_NOTIFICATION_TIMEOUT_MS = 30_000;
+
+/** MongoDB tools hold a shallow config snapshot from registration; merge live session config into each tool. */
+export function syncMongoToolsConfigFromUserConfig(mcpServer: Server): void {
+    const { session } = mcpServer;
+    for (const tool of mcpServer.tools) {
+        if (tool.category === "mongodb") {
+            Object.assign((tool as unknown as { session: Session }).session.config, session.config);
+        }
+    }
+}
+
+/** Drop any active MongoDB connection and reset connection config for the next test. */
+export async function resetSessionAfterIntegrationTest(
+    mcpServer: Server,
+    options?: { baselineConnectionString?: string | undefined }
+): Promise<void> {
+    const { session } = mcpServer;
+
+    session.config.connectionString = options?.baselineConnectionString;
+    syncMongoToolsConfigFromUserConfig(mcpServer);
+
+    const { tag } = session.connectionManager.currentConnectionState;
+    if (tag === "disconnected" || tag === "errored") {
+        return;
+    }
+
+    await Promise.race([
+        session.connectionManager.disconnect(),
+        timeout(INTEGRATION_TEST_DISCONNECT_TIMEOUT_MS).then(() => {
+            throw new Error(
+                `Timed out after ${INTEGRATION_TEST_DISCONNECT_TIMEOUT_MS}ms while disconnecting MongoDB in test teardown (connection state: ${tag})`
+            );
+        }),
+    ]);
+}
 
 export function setupIntegrationTest(
     getUserConfig: () => UserConfig,
@@ -67,18 +110,26 @@ export function setupIntegrationTest(
         elicitInput,
         getClientCapabilities,
         serverOptions,
+        tools,
+        resources,
     }: {
         elicitInput?: ReturnType<typeof createMockElicitInput>;
         getClientCapabilities?: () => MockClientCapabilities;
         serverOptions?: Partial<ServerOptions>;
+        /** Tool constructors to register. When omitted, no tools are registered unless set via `serverOptions.tools`. */
+        tools?: AnyToolClass[];
+        /** Resource constructors to register. When omitted, no resources are registered unless set via `serverOptions.resources`. */
+        resources?: AnyResourceClass[];
     } = {}
 ): IntegrationTest {
     let mcpClient: Client | undefined;
     let mcpServer: Server | undefined;
     let deviceId: DeviceId | undefined;
+    let baselineConnectionString: string | undefined;
 
     beforeAll(async () => {
         const userConfig = getUserConfig();
+        baselineConnectionString = userConfig.connectionString;
         const clientCapabilities = getClientCapabilities?.() ?? (elicitInput ? { elicitation: {} } : {});
 
         const clientTransport = new InMemoryTransport();
@@ -152,7 +203,7 @@ export function setupIntegrationTest(
             apiClient: session.apiClient,
             keychain: session.keychain,
             enabled: false,
-            machineMetadata: buildMachineMetadata("test-server", "0.0.0"),
+            machineMetadata: buildMachineMetadata(packageInfo),
         });
 
         const mcpServerInstance = new McpServer({
@@ -173,6 +224,12 @@ export function setupIntegrationTest(
             uiRegistry = new UIRegistry();
         }
 
+        const {
+            tools: toolsFromServerOptions,
+            resources: resourcesFromServerOptions,
+            ...restServerOptions
+        } = serverOptions ?? {};
+
         mcpServer = new Server({
             session,
             userConfig,
@@ -182,7 +239,16 @@ export function setupIntegrationTest(
             connectionErrorHandler,
             uiRegistry,
             metrics: new MockMetrics(),
-            ...serverOptions,
+            serverMetadata: {
+                mcpServerName: "test-server",
+                version: "1.0",
+                engines: {
+                    node: "20.0.0",
+                },
+            },
+            ...restServerOptions,
+            tools: tools ?? toolsFromServerOptions,
+            resources: resources ?? resourcesFromServerOptions,
         });
 
         await mcpServer.connect(serverTransport);
@@ -191,7 +257,7 @@ export function setupIntegrationTest(
 
     afterEach(async () => {
         if (mcpServer) {
-            await mcpServer.session.disconnect();
+            await resetSessionAfterIntegrationTest(mcpServer, { baselineConnectionString });
         }
 
         vi.clearAllMocks();
@@ -216,20 +282,19 @@ export function setupIntegrationTest(
         return mcpClient;
     };
 
-    const getMcpServer = (): Server & { getApiClient: () => ApiClient } => {
+    const getMcpServer = (): Server & { session: Session; getApiClient: () => ApiClient } => {
         if (!mcpServer) {
             throw new Error("beforeEach() hook not ran yet");
         }
 
-        return {
-            ...mcpServer,
+        return Object.assign(mcpServer as Server & { session: Session; getApiClient: () => ApiClient }, {
             getApiClient: (): ApiClient => {
-                if (!mcpServer || !mcpServer.session.apiClient) {
+                if (!mcpServer?.session.apiClient) {
                     throw new Error("apiClient not available");
                 }
-                return mcpServer.session.apiClient;
+                return (mcpServer.session as Session).apiClient;
             },
-        } as Server & { getApiClient: () => ApiClient };
+        });
     };
 
     return {
@@ -413,14 +478,21 @@ export function timeout(ms: number): Promise<void> {
  * Subscribes to the resources changed notification for the provided URI
  */
 export function resourceChangedNotification(client: Client, uri: string): Promise<void> {
-    return new Promise<void>((resolve) => {
-        void client.subscribeResource({ uri });
-        client.setNotificationHandler(ResourceUpdatedNotificationSchema, (notification) => {
-            if (notification.params.uri === uri) {
-                resolve();
-            }
-        });
-    });
+    return Promise.race([
+        new Promise<void>((resolve) => {
+            void client.subscribeResource({ uri });
+            client.setNotificationHandler(ResourceUpdatedNotificationSchema, (notification) => {
+                if (notification.params.uri === uri) {
+                    resolve();
+                }
+            });
+        }),
+        timeout(RESOURCE_CHANGED_NOTIFICATION_TIMEOUT_MS).then(() => {
+            throw new Error(
+                `Timed out after ${RESOURCE_CHANGED_NOTIFICATION_TIMEOUT_MS}ms waiting for resource update notification for ${uri}`
+            );
+        }),
+    ]);
 }
 
 export function responseAsText(response: Awaited<ReturnType<Client["callTool"]>>): string {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AllTools } from "mongodb-mcp-server/tools";
+import { AllTools } from "mongodb-mcp-server";
 import { ToolBase } from "@mongodb-js/mcp-core";
 
 describe("all exported tools", () => {

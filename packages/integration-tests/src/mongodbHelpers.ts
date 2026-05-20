@@ -9,9 +9,13 @@ import {
     setupIntegrationTest,
     defaultTestConfig,
     getDataFromUntrustedContent,
+    syncMongoToolsConfigFromUserConfig,
 } from "./integrationHelpers.js";
 import type { UserConfig } from "mongodb-mcp-server";
-import type { Server, ServerOptions } from "mongodb-mcp-server";
+import type { ServerOptions } from "mongodb-mcp-server";
+import { AllTools } from "mongodb-mcp-server";
+import type { AnyToolClass } from "@mongodb-js/mcp-core";
+import type { AnyResourceClass } from "@mongodb-js/mcp-types";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { EJSON } from "bson";
 import { MongoDBClusterProcess } from "@mongodb-js/mcp-test-utils";
@@ -87,6 +91,8 @@ export type TestSuiteConfig = {
     getMockElicitationInput?: () => ReturnType<typeof createMockElicitInput>;
     getClientCapabilities?: () => MockClientCapabilities;
     serverOptions?: Partial<ServerOptions>;
+    tools?: AnyToolClass[];
+    resources?: AnyResourceClass[];
 };
 
 export const defaultTestSuiteConfig: TestSuiteConfig = {
@@ -104,7 +110,15 @@ export function describeWithMongoDB(
         ...defaultTestSuiteConfig,
         ...partialTestSuiteConfig,
     };
-    const { getUserConfig, downloadOptions, getMockElicitationInput, getClientCapabilities, serverOptions } = merged;
+    const {
+        getUserConfig,
+        downloadOptions,
+        getMockElicitationInput,
+        getClientCapabilities,
+        serverOptions,
+        tools,
+        resources,
+    } = merged;
     describe.skipIf(!MongoDBClusterProcess.isConfigurationSupportedInCurrentEnv(downloadOptions))(name, () => {
         const mdbIntegration = setupMongoDBIntegrationTest(downloadOptions);
         const mockElicitInput = getMockElicitationInput?.();
@@ -112,7 +126,13 @@ export function describeWithMongoDB(
             () => ({
                 ...getUserConfig(mdbIntegration),
             }),
-            { elicitInput: mockElicitInput, getClientCapabilities, serverOptions }
+            {
+                elicitInput: mockElicitInput,
+                getClientCapabilities,
+                serverOptions,
+                tools: tools ?? (AllTools as unknown as NonNullable<ServerOptions["tools"]>),
+                resources,
+            }
         );
 
         fn({
@@ -182,15 +202,7 @@ export function setupMongoDBIntegrationTest(
     };
 }
 
-/** MongoDB tools hold a shallow config snapshot from registration; merge live {@link Server.userConfig} into each tool's config. */
-export function syncMongoToolsConfigFromUserConfig(mcpServer: Server): void {
-    const { userConfig } = mcpServer;
-    for (const tool of mcpServer.tools) {
-        if (tool.category === "mongodb") {
-            Object.assign((tool as unknown as { config: object }).config, userConfig);
-        }
-    }
-}
+export { syncMongoToolsConfigFromUserConfig };
 
 export function validateAutoConnectBehavior(
     integration: IntegrationTest & MongoDBIntegrationTest,
@@ -208,12 +220,12 @@ export function validateAutoConnectBehavior(
         }
 
         afterEach(() => {
-            integration.mcpServer().userConfig.connectionString = undefined;
+            integration.mcpServer().session.config.connectionString = undefined;
             syncMongoToolsConfigFromUserConfig(integration.mcpServer());
         });
 
         it("connects automatically if connection string is configured", async () => {
-            integration.mcpServer().userConfig.connectionString = integration.connectionString();
+            integration.mcpServer().session.config.connectionString = integration.connectionString();
             syncMongoToolsConfigFromUserConfig(integration.mcpServer());
 
             const validationInfo = validation();

@@ -4,7 +4,9 @@ import type { IntegrationTest } from "../../integrationHelpers.js";
 import { setupIntegrationTest, defaultTestConfig } from "../../integrationHelpers.js";
 import type { SuiteCollector } from "vitest";
 import { afterAll, beforeAll, describe } from "vitest";
+import type { ServerSession } from "@mongodb-js/mcp-cli";
 import type { Session } from "mongodb-mcp-server";
+import { AllTools } from "mongodb-mcp-server";
 
 export type IntegrationTestFunction = (integration: IntegrationTest) => void;
 
@@ -14,12 +16,15 @@ export function describeWithAtlas(name: string, fn: IntegrationTestFunction): vo
             ? describe.skip
             : describe;
     describeFn(name, () => {
-        const integration = setupIntegrationTest(() => ({
-            ...defaultTestConfig,
-            apiClientId: process.env.MDB_MCP_API_CLIENT_ID || "test-client",
-            apiClientSecret: process.env.MDB_MCP_API_CLIENT_SECRET || "test-secret",
-            apiBaseUrl: process.env.MDB_MCP_API_BASE_URL ?? "https://cloud-dev.mongodb.com",
-        }));
+        const integration = setupIntegrationTest(
+            () => ({
+                ...defaultTestConfig,
+                apiClientId: process.env.MDB_MCP_API_CLIENT_ID || "test-client",
+                apiClientSecret: process.env.MDB_MCP_API_CLIENT_SECRET || "test-secret",
+                apiBaseUrl: process.env.MDB_MCP_API_BASE_URL ?? "https://cloud-dev.mongodb.com",
+            }),
+            { tools: AllTools }
+        );
         fn(integration);
     });
 }
@@ -30,13 +35,16 @@ export function describeWithStreams(name: string, fn: IntegrationTestFunction): 
             ? describe.skip
             : describe;
     describeFn(name, () => {
-        const integration = setupIntegrationTest(() => ({
-            ...defaultTestConfig,
-            apiClientId: process.env.MDB_MCP_API_CLIENT_ID || "test-client",
-            apiClientSecret: process.env.MDB_MCP_API_CLIENT_SECRET || "test-secret",
-            apiBaseUrl: process.env.MDB_MCP_API_BASE_URL ?? "https://cloud-dev.mongodb.com",
-            previewFeatures: [],
-        }));
+        const integration = setupIntegrationTest(
+            () => ({
+                ...defaultTestConfig,
+                apiClientId: process.env.MDB_MCP_API_CLIENT_ID || "test-client",
+                apiClientSecret: process.env.MDB_MCP_API_CLIENT_SECRET || "test-secret",
+                apiBaseUrl: process.env.MDB_MCP_API_BASE_URL ?? "https://cloud-dev.mongodb.com",
+                previewFeatures: [],
+            }),
+            { tools: AllTools }
+        );
         fn(integration);
     });
 }
@@ -201,7 +209,9 @@ export async function assertClusterIsAvailable(
     }
 }
 
-export function assertApiClientIsAvailable(session: Session): asserts session is Session & { apiClient: ApiClient } {
+export function assertApiClientIsAvailable(
+    session: ServerSession
+): asserts session is ServerSession & { apiClient: ApiClient } {
     if (!session.apiClient) {
         throw new Error("apiClient not available");
     }

@@ -17,8 +17,8 @@ import type { Client } from "@modelcontextprotocol/sdk/client";
 
 describeWithMongoDB("aggregate-db tool", (integration) => {
     afterEach(() => {
-        integration.mcpServer().userConfig.readOnly = false;
-        integration.mcpServer().userConfig.disabledTools = [];
+        integration.mcpServer().session.config.readOnly = false;
+        integration.mcpServer().session.config.disabledTools = [];
         syncMongoToolsConfigFromUserConfig(integration.mcpServer());
     });
 
@@ -97,7 +97,7 @@ describeWithMongoDB("aggregate-db tool", (integration) => {
 
     it("can not run $out stages in readOnly mode", async () => {
         await integration.connectMcpClient();
-        integration.mcpServer().userConfig.readOnly = true;
+        integration.mcpServer().session.config.readOnly = true;
         syncMongoToolsConfigFromUserConfig(integration.mcpServer());
         const response = await integration.mcpClient().callTool({
             name: "aggregate-db",
@@ -114,7 +114,7 @@ describeWithMongoDB("aggregate-db tool", (integration) => {
 
     it("can not run $merge stages in readOnly mode", async () => {
         await integration.connectMcpClient();
-        integration.mcpServer().userConfig.readOnly = true;
+        integration.mcpServer().session.config.readOnly = true;
         syncMongoToolsConfigFromUserConfig(integration.mcpServer());
         const response = await integration.mcpClient().callTool({
             name: "aggregate-db",
@@ -169,7 +169,7 @@ describeWithMongoDB("aggregate-db tool", (integration) => {
     for (const disabledOpType of ["create", "update", "delete"] as const) {
         it(`can not run $out stages when ${disabledOpType} operation is disabled`, async () => {
             await integration.connectMcpClient();
-            integration.mcpServer().userConfig.disabledTools = [disabledOpType];
+            integration.mcpServer().session.config.disabledTools = [disabledOpType];
             syncMongoToolsConfigFromUserConfig(integration.mcpServer());
             const response = await integration.mcpClient().callTool({
                 name: "aggregate-db",
@@ -186,7 +186,7 @@ describeWithMongoDB("aggregate-db tool", (integration) => {
 
         it(`can not run $merge stages when ${disabledOpType} operation is disabled`, async () => {
             await integration.connectMcpClient();
-            integration.mcpServer().userConfig.disabledTools = [disabledOpType];
+            integration.mcpServer().session.config.disabledTools = [disabledOpType];
             syncMongoToolsConfigFromUserConfig(integration.mcpServer());
             const response = await integration.mcpClient().callTool({
                 name: "aggregate-db",

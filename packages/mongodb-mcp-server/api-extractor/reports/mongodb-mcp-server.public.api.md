@@ -5,30 +5,44 @@
 ```ts
 
 import type { AggregationCursor } from 'mongodb';
+import { applyConfigOverrides } from '@mongodb-js/mcp-cli';
 import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import type { Client } from '@mongodb-js/atlas-local';
+import { ConfigOverrideError } from '@mongodb-js/mcp-cli';
+import { configRegistry } from '@mongodb-js/mcp-cli';
 import { ConnectionInfo } from '@mongosh/arg-parser';
 import { Counter } from 'prom-client';
 import { createAtlasLocalClient } from '@mongodb-js/mcp-tools-atlas-local';
-import { defaultParserOptions as defaultParserOptions_2 } from '@mongosh/arg-parser/arg-parser';
+import { defaultParserOptions } from '@mongodb-js/mcp-cli';
 import type { ElicitRequestFormParams } from '@modelcontextprotocol/sdk/types.js';
-import EventEmitter from 'events';
+import { EventEmitter } from 'events';
+import { ExportedData } from '@mongodb-js/mcp-cli';
 import express from 'express';
 import type { FetchOptions } from 'openapi-fetch';
 import type { FindCursor } from 'mongodb';
 import { Gauge } from 'prom-client';
+import { getConfigMeta } from '@mongodb-js/mcp-cli';
 import { Histogram } from 'prom-client';
 import type http from 'http';
-import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
 import type { LoggingMessageNotification } from '@modelcontextprotocol/sdk/types.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { nameToConfigKey } from '@mongodb-js/mcp-cli';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
+import { onlyStricterLogLevelOverride } from '@mongodb-js/mcp-cli';
+import { ParserOptions } from '@mongodb-js/mcp-cli';
+import { parseUserConfig } from '@mongodb-js/mcp-cli';
 import { Registry } from 'prom-client';
 import { Secret } from 'mongodb-redact';
+import { Server } from '@mongodb-js/mcp-cli';
+import { ServerOptions } from '@mongodb-js/mcp-cli';
+import { Session } from '@mongodb-js/mcp-cli';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
-import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
+import type { Transport } from '@modelcontextprotocol/sdk/shared/transport';
+import { TRANSPORT_PAYLOAD_LIMITS } from '@mongodb-js/mcp-cli';
+import { TransportType } from '@mongodb-js/mcp-cli';
+import { UserConfig } from '@mongodb-js/mcp-cli';
+import { UserConfigSchema } from '@mongodb-js/mcp-cli';
 import { z } from 'zod';
 import type { ZodRawShape } from 'zod';
 
@@ -36,10 +50,13 @@ import type { ZodRawShape } from 'zod';
 export const AGG_COUNT_MAX_TIME_MS_CAP: number;
 
 // @public (undocumented)
+export const AllTools: ToolClass<any>[];
+
+// @public (undocumented)
 export type AnyConnectionState = ConnectionStateConnected | ConnectionStateConnecting | ConnectionStateDisconnected | ConnectionStateErrored;
 
 // @public (undocumented)
-export type AnyToolBase = ToolBase<any, any>;
+export type AnyToolBase = ToolBase<any>;
 
 // @public (undocumented)
 export type AnyToolClass = ToolClass<any, any>;
@@ -239,11 +256,7 @@ export interface ApiClientOptions {
     userAgent: string;
 }
 
-// @public
-export function applyConfigOverrides<TUserConfig extends UserConfig = UserConfig>(input: {
-    baseConfig: TUserConfig;
-    request?: TransportRequestContext;
-}): TUserConfig;
+export { applyConfigOverrides }
 
 // @public (undocumented)
 export class AtlasTelemetry implements ITelemetry {
@@ -294,13 +307,9 @@ export class CompositeLogger extends LoggerBase {
     protected readonly type?: LoggerType;
 }
 
-// @public (undocumented)
-export class ConfigOverrideError extends UserFacingError {
-    constructor(message: string);
-}
+export { ConfigOverrideError }
 
-// @public (undocumented)
-export const configRegistry: z.core.$ZodRegistry<ConfigFieldMeta, z.core.$ZodType<unknown, unknown, z.core.$ZodTypeInternals<unknown, unknown>>>;
+export { configRegistry }
 
 // @public (undocumented)
 export type ConnectionErrorHandled = {
@@ -473,31 +482,7 @@ export interface Credentials {
 // @public (undocumented)
 export type DefaultEventMap = Record<string, never[]>;
 
-// @public (undocumented)
-export const defaultParserOptions: {
-    config: string;
-    envPrefix: string;
-    configuration: {
-        "populate--": true;
-        "boolean-negation"?: boolean | undefined;
-        "camel-case-expansion"?: boolean | undefined;
-        "combine-arrays"?: boolean | undefined;
-        "dot-notation"?: boolean | undefined;
-        "duplicate-arguments-array"?: boolean | undefined;
-        "flatten-duplicate-arrays"?: boolean | undefined;
-        "greedy-arrays"?: boolean | undefined;
-        "nargs-eats-options"?: boolean | undefined;
-        "halt-at-non-option"?: boolean | undefined;
-        "negation-prefix"?: string | undefined;
-        "parse-numbers"?: boolean | undefined;
-        "parse-positional-numbers"?: boolean | undefined;
-        "set-placeholder-key"?: boolean | undefined;
-        "short-option-groups"?: boolean | undefined;
-        "strip-aliased"?: boolean | undefined;
-        "strip-dashed"?: boolean | undefined;
-        "unknown-options-as-args"?: boolean | undefined;
-    };
-};
+export { defaultParserOptions }
 
 // @public (undocumented)
 export type DefaultPrometheusMetricDefinitions = ReturnType<typeof createDefaultMetrics>;
@@ -565,6 +550,8 @@ export class EventCache {
 // @public (undocumented)
 export type EventMap<T> = Record<keyof T, any[]>;
 
+export { ExportedData }
+
 // @public (undocumented)
 export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
     // (undocumented)
@@ -590,8 +577,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
 
 export { Gauge }
 
-// @public
-export function getConfigMeta(key: keyof typeof UserConfigSchema.shape): ConfigFieldMeta | undefined;
+export { getConfigMeta }
 
 export { Histogram }
 
@@ -709,7 +695,7 @@ export class MCPConnectionManager extends ConnectionManager {
 }
 
 // @public
-export abstract class MCPHttpServer<TServer extends SessionAwareServer = SessionAwareServer, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> extends ExpressBasedHttpServer {
+export abstract class MCPHttpServer<TServer extends SessionServer = SessionServer, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> extends ExpressBasedHttpServer {
     constructor(input: MCPHttpServerOptions<TMetrics>);
     protected abstract createServerForRequest(request: TransportRequestContext): Promise<TServer>;
     // (undocumented)
@@ -757,12 +743,6 @@ export class MongoDBError<ErrorCodeType extends ErrorCode = ErrorCode> extends E
 }
 
 // @public
-export type MongoDBToolsRuntimeConfig = {
-    queryCountMaxTimeMsCap: number;
-    aggregationCountMaxTimeMsCap: number;
-};
-
-// @public
 export class MonitoringServer<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> extends ExpressBasedHttpServer {
     constructor(input: MonitoringServerOptions<TMetrics>);
     // (undocumented)
@@ -789,8 +769,7 @@ export type MonitoringServerOptions<TMetrics extends DefaultMetricDefinitions = 
     metrics: IMetrics<TMetrics>;
 };
 
-// @public
-export function nameToConfigKey(mode: "header" | "query", name: string): string | undefined;
+export { nameToConfigKey }
 
 // @public (undocumented)
 export class NoopLogger extends LoggerBase {
@@ -804,8 +783,7 @@ export class NoopLogger extends LoggerBase {
 // @public (undocumented)
 export type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
 
-// @public
-export function onlyStricterLogLevelOverride(orderedLevels: readonly string[]): CustomOverrideLogic;
+export { onlyStricterLogLevelOverride }
 
 // @public
 export type OperationType = "metadata" | "read" | "create" | "delete" | "update" | "connect";
@@ -819,26 +797,9 @@ export const packageInfo: {
     };
 };
 
-// @public @deprecated (undocumented)
-export function parseArgsWithCliOptions(cliArguments: string[]): {
-    warnings: string[];
-    parsed: UserConfig | undefined;
-    error: string | undefined;
-};
+export { ParserOptions }
 
-// @public (undocumented)
-export type ParserOptions = typeof defaultParserOptions_2;
-
-// @public (undocumented)
-export function parseUserConfig(input: {
-    args: string[];
-    overrides?: z.ZodRawShape;
-    parserOptions?: ParserOptions;
-}): {
-    warnings: string[];
-    parsed: UserConfig | undefined;
-    error: string | undefined;
-};
+export { parseUserConfig }
 
 // @public (undocumented)
 export class PrometheusMetrics<TMetricsDefinitions extends DefaultMetricDefinitions> implements IMetrics<TMetricsDefinitions> {
@@ -873,113 +834,11 @@ export type RequestContext = {
 
 export { Secret }
 
-// @public (undocumented)
-export class Server<TUserConfig extends UserConfig = UserConfig, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
-    constructor(input: ServerOptions<TUserConfig, TMetrics>);
-    // (undocumented)
-    close(): Promise<void>;
-    // (undocumented)
-    connect(transport: Transport): Promise<void>;
-    // (undocumented)
-    readonly connectionErrorHandler: ConnectionErrorHandler;
-    // (undocumented)
-    readonly elicitation: Elicitation;
-    // (undocumented)
-    isToolCategoryAvailable(name: ToolCategory): boolean;
-    // (undocumented)
-    get mcpLogLevel(): LogLevel;
-    // (undocumented)
-    readonly mcpServer: McpServer;
-    // (undocumented)
-    readonly metrics: IMetrics<TMetrics>;
-    // (undocumented)
-    registerResources(): void;
-    // (undocumented)
-    registerTools(): void;
-    // (undocumented)
-    sendResourceListChanged(): void;
-    // (undocumented)
-    sendResourceUpdated(uri: string): void;
-    // (undocumented)
-    readonly session: Session;
-    // (undocumented)
-    readonly tools: AnyToolBase[];
-    // (undocumented)
-    readonly uiRegistry?: UIRegistry;
-    // (undocumented)
-    readonly userConfig: TUserConfig;
-}
+export { Server }
 
-// @public (undocumented)
-export interface ServerOptions<TUserConfig extends UserConfig = UserConfig, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
-    // @deprecated (undocumented)
-    connectionErrorHandler: ConnectionErrorHandler;
-    // (undocumented)
-    elicitation: Elicitation;
-    // (undocumented)
-    mcpServer: McpServer;
-    // (undocumented)
-    metrics: IMetrics<TMetrics>;
-    runtimeConfig?: MongoDBToolsRuntimeConfig;
-    // (undocumented)
-    session: Session;
-    // (undocumented)
-    telemetry: AtlasTelemetry;
-    tools?: AnyToolClass[];
-    // (undocumented)
-    uiRegistry?: UIRegistry;
-    // (undocumented)
-    userConfig: TUserConfig;
-}
+export { ServerOptions }
 
-// @public (undocumented)
-export class Session extends EventEmitter<SessionEvents> {
-    constructor(input: SessionOptions<UserConfig>);
-    // (undocumented)
-    readonly apiClient: ApiClient;
-    // (undocumented)
-    assertSearchSupported(): Promise<void>;
-    // (undocumented)
-    readonly atlasLocalClient?: Client;
-    // (undocumented)
-    close(): Promise<void>;
-    // (undocumented)
-    get connectedAtlasCluster(): AtlasClusterConnectionInfo | undefined;
-    // (undocumented)
-    readonly connectionErrorHandler: ConnectionErrorHandler;
-    // (undocumented)
-    readonly connectionManager: ConnectionManager;
-    // (undocumented)
-    get connectionStringInfo(): ConnectionStringInfo | undefined;
-    // (undocumented)
-    connectToConfiguredConnection(): Promise<void>;
-    // (undocumented)
-    connectToMongoDB(settings: ConnectionSettings): Promise<void>;
-    // (undocumented)
-    disconnect(): Promise<void>;
-    // (undocumented)
-    readonly exportsManager: ExportsManager;
-    // (undocumented)
-    get isConnectedToMongoDB(): boolean;
-    // (undocumented)
-    isSearchSupported(): Promise<boolean>;
-    // (undocumented)
-    readonly keychain: Keychain;
-    // (undocumented)
-    readonly logger: CompositeLogger;
-    // (undocumented)
-    mcpClient?: {
-        name?: string;
-        version?: string;
-        title?: string;
-    };
-    // (undocumented)
-    get serviceProvider(): NodeDriverServiceProvider;
-    // (undocumented)
-    readonly sessionId: string;
-    // (undocumented)
-    setMcpClient(mcpClient: Implementation | undefined): void;
-}
+export { Session }
 
 // @public (undocumented)
 export type SessionCloseReason = "idle_timeout" | "transport_closed" | "server_stop" | "unknown";
@@ -989,28 +848,8 @@ export type SessionEvents = {
     connect: [];
     close: [];
     disconnect: [];
-    "connection-error": [ConnectionStateErrored];
+    "connection-error": [unknown];
 };
-
-// @public (undocumented)
-export interface SessionOptions<TUserConfig extends UserConfig = UserConfig> {
-    // (undocumented)
-    apiClient: ApiClient;
-    // (undocumented)
-    atlasLocalClient?: Client;
-    // (undocumented)
-    connectionErrorHandler: ConnectionErrorHandler;
-    // (undocumented)
-    connectionManager: ConnectionManager;
-    // (undocumented)
-    exportsManager: ExportsManager;
-    // (undocumented)
-    keychain: Keychain;
-    // (undocumented)
-    logger: CompositeLogger;
-    // (undocumented)
-    userConfig: TUserConfig;
-}
 
 // @public
 export class SessionStore<T extends CloseableTransport = CloseableTransport> implements ISessionStore<T> {
@@ -1064,7 +903,7 @@ export class StdioRunner<TServer extends {
 }
 
 // @public
-export class StreamableHttpRunner<TServer extends SessionAwareServer = SessionAwareServer, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> implements ITransportRunner {
+export class StreamableHttpRunner<TServer extends SessionServer = SessionServer, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> implements ITransportRunner {
     constructor(input: StreamableHttpRunnerOptions<TMetrics> & {
         mcpHttpServer: MCPHttpServer<TServer, TMetrics>;
         monitoringServer?: MonitoringServer<TMetrics>;
@@ -1147,13 +986,12 @@ export type ToolArgs<T extends ZodRawShape> = {
 };
 
 // @public
-export abstract class ToolBase<TUserConfig extends IToolConfig = IToolConfig, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
-    constructor(input: ToolConstructorParams<TUserConfig, TMetricsDefinitions>);
+export abstract class ToolBase<TSession extends ISession = ISession, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
+    constructor(input: ToolConstructorParams<TSession, TMetricsDefinitions>);
     // (undocumented)
     get annotations(): ToolAnnotations;
     abstract argsShape: ZodRawShape;
     readonly category: ToolCategory;
-    protected readonly config: TUserConfig;
     abstract description: string;
     // (undocumented)
     disable(): void;
@@ -1182,7 +1020,7 @@ export abstract class ToolBase<TUserConfig extends IToolConfig = IToolConfig, TM
     protected abstract resolveTelemetryMetadata(args: ToolArgs<typeof ToolBase.argsShape>, input: {
         result: CallToolResult;
     }): TelemetryToolMetadata;
-    protected readonly session: IToolSession;
+    protected readonly session: TSession;
     protected readonly telemetry: ITelemetry;
     protected get toolMeta(): Record<string, unknown>;
     // (undocumented)
@@ -1194,8 +1032,8 @@ export abstract class ToolBase<TUserConfig extends IToolConfig = IToolConfig, TM
 export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant" | "custom";
 
 // @public
-export type ToolClass<TUserConfig extends IToolConfig = IToolConfig, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
-    new (params: ToolConstructorParams<TUserConfig, TMetricsDefinitions>): ToolBase<TUserConfig, TMetricsDefinitions>;
+export type ToolClass<TSession extends ISession = ISession, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
+    new (args: ToolConstructorParams<TSession, TMetricsDefinitions>): ToolBase<TSession, TMetricsDefinitions>;
     toolName: string;
     category: ToolCategory;
     operationType: OperationType;
@@ -1209,8 +1047,7 @@ export type ToolExecutionContext = {
     };
 };
 
-// @public
-export const TRANSPORT_PAYLOAD_LIMITS: Record<TransportType, number>;
+export { TRANSPORT_PAYLOAD_LIMITS }
 
 // @public (undocumented)
 export type TransportRequestContext = {
@@ -1218,8 +1055,7 @@ export type TransportRequestContext = {
     query?: Record<string, string | string[] | undefined>;
 };
 
-// @public
-export type TransportType = "stdio" | "http";
+export { TransportType }
 
 // @public
 export class UIRegistry implements IUIRegistry {
@@ -1233,157 +1069,9 @@ export interface UIRegistryOptions {
     loaders?: Record<string, (() => Promise<string>) | undefined>;
 }
 
-// @public (undocumented)
-export type UserConfig = z.infer<typeof UserConfigSchema>;
+export { UserConfig }
 
-// @public (undocumented)
-export const UserConfigSchema: z.ZodObject<{
-    apiBaseUrl: z.ZodDefault<z.ZodString>;
-    assistantBaseUrl: z.ZodDefault<z.ZodString>;
-    apiClientId: z.ZodOptional<z.ZodString>;
-    apiClientSecret: z.ZodOptional<z.ZodString>;
-    connectionString: z.ZodOptional<z.ZodString>;
-    loggers: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodEnum<{
-        stderr: "stderr";
-        disk: "disk";
-        mcp: "mcp";
-    }>>>>;
-    logPath: z.ZodDefault<z.ZodString>;
-    mcpClientLogLevel: z.ZodDefault<z.ZodEnum<{
-        error: "error";
-        debug: "debug";
-        info: "info";
-        notice: "notice";
-        warning: "warning";
-        critical: "critical";
-        alert: "alert";
-        emergency: "emergency";
-    }>>;
-    disabledTools: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodString>>>;
-    confirmationRequiredTools: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodString>>>;
-    readOnly: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
-    indexCheck: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
-    telemetry: z.ZodDefault<z.ZodEnum<{
-        enabled: "enabled";
-        disabled: "disabled";
-    }>>;
-    transport: z.ZodDefault<z.ZodEnum<{
-        stdio: "stdio";
-        http: "http";
-    }>>;
-    httpPort: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
-    httpHost: z.ZodDefault<z.ZodString>;
-    httpHeaders: z.ZodDefault<z.ZodObject<{}, z.core.$catchall<z.ZodString>>>;
-    httpBodyLimit: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
-    idleTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
-    notificationTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
-    maxBytesPerQuery: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
-    maxDocumentsPerQuery: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
-    maxTimeMS: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
-    exportsPath: z.ZodDefault<z.ZodString>;
-    exportTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
-    exportCleanupIntervalMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
-    atlasTemporaryDatabaseUserLifetimeMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
-    voyageApiKey: z.ZodDefault<z.ZodString>;
-    previewFeatures: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodEnum<{
-        mcpUI: "mcpUI";
-    }>>>>;
-    allowRequestOverrides: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
-    dryRun: z.ZodDefault<z.ZodBoolean>;
-    externallyManagedSessions: z.ZodDefault<z.ZodBoolean>;
-    httpResponseType: z.ZodDefault<z.ZodEnum<{
-        sse: "sse";
-        json: "json";
-    }>>;
-    healthCheckPort: z.ZodOptional<z.ZodNumber>;
-    healthCheckHost: z.ZodOptional<z.ZodString>;
-    monitoringServerPort: z.ZodOptional<z.ZodNumber>;
-    monitoringServerHost: z.ZodOptional<z.ZodString>;
-    monitoringServerFeatures: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodEnum<{
-        "health-check": "health-check";
-        metrics: "metrics";
-    }>>>>;
-    gssapiHostName: z.ZodOptional<z.ZodString>;
-    sslFIPSMode: z.ZodOptional<z.ZodBoolean>;
-    ssl: z.ZodOptional<z.ZodBoolean>;
-    sslAllowInvalidCertificates: z.ZodOptional<z.ZodBoolean>;
-    sslAllowInvalidHostnames: z.ZodOptional<z.ZodBoolean>;
-    sslPEMKeyFile: z.ZodOptional<z.ZodString>;
-    sslPEMKeyPassword: z.ZodOptional<z.ZodString>;
-    sslCAFile: z.ZodOptional<z.ZodString>;
-    sslCertificateSelector: z.ZodOptional<z.ZodString>;
-    sslCRLFile: z.ZodOptional<z.ZodString>;
-    sslDisabledProtocols: z.ZodOptional<z.ZodString>;
-    apiVersion: z.ZodOptional<z.ZodString>;
-    authenticationDatabase: z.ZodOptional<z.ZodString>;
-    authenticationMechanism: z.ZodOptional<z.ZodString>;
-    awsAccessKeyId: z.ZodOptional<z.ZodString>;
-    awsIamSessionToken: z.ZodOptional<z.ZodString>;
-    awsSecretAccessKey: z.ZodOptional<z.ZodString>;
-    awsSessionToken: z.ZodOptional<z.ZodString>;
-    csfleLibraryPath: z.ZodOptional<z.ZodString>;
-    cryptSharedLibPath: z.ZodOptional<z.ZodString>;
-    deepInspect: z.ZodOptional<z.ZodDefault<z.ZodBoolean>>;
-    db: z.ZodOptional<z.ZodString>;
-    gssapiServiceName: z.ZodOptional<z.ZodString>;
-    sspiHostnameCanonicalization: z.ZodOptional<z.ZodString>;
-    sspiRealmOverride: z.ZodOptional<z.ZodString>;
-    jsContext: z.ZodOptional<z.ZodEnum<{
-        repl: "repl";
-        "plain-vm": "plain-vm";
-        auto: "auto";
-    }>>;
-    host: z.ZodOptional<z.ZodString>;
-    keyVaultNamespace: z.ZodOptional<z.ZodString>;
-    kmsURL: z.ZodOptional<z.ZodString>;
-    locale: z.ZodOptional<z.ZodString>;
-    oidcFlows: z.ZodOptional<z.ZodString>;
-    oidcRedirectUri: z.ZodOptional<z.ZodString>;
-    password: z.ZodOptional<z.ZodString>;
-    port: z.ZodOptional<z.ZodString>;
-    username: z.ZodOptional<z.ZodString>;
-    tlsCAFile: z.ZodOptional<z.ZodString>;
-    tlsCertificateKeyFile: z.ZodOptional<z.ZodString>;
-    tlsCertificateKeyFilePassword: z.ZodOptional<z.ZodString>;
-    tlsCertificateSelector: z.ZodOptional<z.ZodString>;
-    tlsCRLFile: z.ZodOptional<z.ZodString>;
-    tlsDisabledProtocols: z.ZodOptional<z.ZodString>;
-    apiDeprecationErrors: z.ZodOptional<z.ZodBoolean>;
-    apiStrict: z.ZodOptional<z.ZodBoolean>;
-    buildInfo: z.ZodOptional<z.ZodBoolean>;
-    exposeAsyncRewriter: z.ZodOptional<z.ZodBoolean>;
-    help: z.ZodOptional<z.ZodBoolean>;
-    ipv6: z.ZodOptional<z.ZodBoolean>;
-    nodb: z.ZodOptional<z.ZodBoolean>;
-    norc: z.ZodOptional<z.ZodBoolean>;
-    oidcTrustedEndpoint: z.ZodOptional<z.ZodBoolean>;
-    oidcIdTokenAsAccessToken: z.ZodOptional<z.ZodBoolean>;
-    oidcNoNonce: z.ZodOptional<z.ZodBoolean>;
-    quiet: z.ZodOptional<z.ZodBoolean>;
-    retryWrites: z.ZodOptional<z.ZodBoolean>;
-    shell: z.ZodOptional<z.ZodBoolean>;
-    skipStartupWarnings: z.ZodOptional<z.ZodBoolean>;
-    verbose: z.ZodOptional<z.ZodBoolean>;
-    version: z.ZodOptional<z.ZodBoolean>;
-    smokeTests: z.ZodOptional<z.ZodBoolean>;
-    perfTests: z.ZodOptional<z.ZodBoolean>;
-    tls: z.ZodOptional<z.ZodBoolean>;
-    tlsAllowInvalidCertificates: z.ZodOptional<z.ZodBoolean>;
-    tlsAllowInvalidHostnames: z.ZodOptional<z.ZodBoolean>;
-    tlsFIPSMode: z.ZodOptional<z.ZodBoolean>;
-    tlsUseSystemCA: z.ZodOptional<z.ZodBoolean>;
-    eval: z.ZodOptional<z.ZodArray<z.ZodString>>;
-    file: z.ZodOptional<z.ZodArray<z.ZodString>>;
-    json: z.ZodOptional<z.ZodUnion<readonly [z.ZodBoolean, z.ZodEnum<{
-        relaxed: "relaxed";
-        canonical: "canonical";
-    }>]>>;
-    oidcDumpTokens: z.ZodOptional<z.ZodUnion<readonly [z.ZodBoolean, z.ZodEnum<{
-        redacted: "redacted";
-        "include-secrets": "include-secrets";
-    }>]>>;
-    browser: z.ZodOptional<z.ZodUnion<readonly [z.ZodLiteral<false>, z.ZodString]>>;
-}, z.core.$strip>;
+export { UserConfigSchema }
 
 // (No @packageDocumentation comment for this package)
 

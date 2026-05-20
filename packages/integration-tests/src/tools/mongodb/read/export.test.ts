@@ -12,6 +12,7 @@ import {
 } from "../../../integrationHelpers.js";
 import { describeWithMongoDB } from "../../../mongodbHelpers.js";
 import type { UserConfig } from "mongodb-mcp-server";
+import { ExportedData } from "@mongodb-js/mcp-cli";
 
 const userConfig: UserConfig = {
     ...defaultTestConfig,
@@ -456,5 +457,6 @@ describeWithMongoDB(
     },
     {
         getUserConfig: () => userConfig,
+        serverOptions: { resources: [ExportedData] },
     }
 );

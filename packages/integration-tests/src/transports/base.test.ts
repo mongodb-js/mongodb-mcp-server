@@ -91,6 +91,13 @@ async function createTestServer({ config, uiRegistry }: CreateServerOptions): Pr
         elicitation,
         metrics,
         uiRegistry,
+        serverMetadata: {
+            mcpServerName: "test-server",
+            version: "1.0",
+            engines: {
+                node: "20.0.0",
+            },
+        },
     });
 
     return server;

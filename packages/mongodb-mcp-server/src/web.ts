@@ -1,13 +1,7 @@
+/** This file is temporarily used for generating API reports against the v1 API for comparison purposes. */
 export { type ITransportRunner, type TransportRequestContext } from "@mongodb-js/mcp-types";
-export { UserConfigSchema, type UserConfig } from "./common/config/userConfig.js";
 export { createDefaultMetrics, type DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
-export {
-    Server,
-    type ServerOptions,
-    type MongoDBToolsRuntimeConfig,
-    type AnyToolClass,
-    type ToolCategory,
-} from "./server.js";
+export type { ToolCategory } from "@mongodb-js/mcp-types";
 export { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 export { LoggerBase, CompositeLogger, type EventMap, type DefaultEventMap } from "@mongodb-js/mcp-core";
 export type { DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
@@ -24,7 +18,7 @@ export type {
     AtlasStreamsToolMetadata,
     UpgradeClusterMetadata,
 } from "@mongodb-js/mcp-atlas-telemetry";
-export { Session, type SessionOptions, type SessionEvents } from "./common/session.js";
+export type { SessionEvents } from "@mongodb-js/mcp-types";
 export type { LogLevel, LogPayload, LoggerType } from "@mongodb-js/mcp-core";
 export { Keychain } from "@mongodb-js/mcp-core";
 export type { Secret } from "mongodb-redact";
@@ -33,7 +27,7 @@ export type {
     ConnectionErrorHandled,
     ConnectionErrorUnhandled,
     ConnectionErrorHandlerContext,
-} from "./common/connectionErrorHandler.js";
+} from "@mongodb-js/mcp-tools-mongodb";
 export { Elicitation, type ElicitedInputResult } from "@mongodb-js/mcp-core";
 export type {
     ConnectionStateConnecting,
@@ -82,6 +76,6 @@ export type {
     TelemetryEvent,
     TelemetryBaseEvent,
 } from "@mongodb-js/mcp-atlas-telemetry";
-export { getRandomUUID } from "./helpers/getRandomUUID.js";
+export { getRandomUUID } from "@mongodb-js/mcp-core";
 export type { AuthProvider, Credentials } from "@mongodb-js/mcp-atlas-api-client";
 export type { PreviewFeature, previewFeatureValues } from "@mongodb-js/mcp-tools-mongodb";

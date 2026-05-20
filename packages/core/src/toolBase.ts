@@ -7,8 +7,7 @@ import type {
     ConnectionMetadata,
     TelemetryToolMetadata,
     ToolEvent,
-    IToolConfig,
-    IToolSession,
+    ISession,
     IElicitation,
     PreviewFeature,
     IUIRegistry,
@@ -18,6 +17,7 @@ import type {
     ToolCategory,
     ToolExecutionContext,
     CallToolResult,
+    IToolConfig,
 } from "@mongodb-js/mcp-types";
 import { createUIResource, type UIResource } from "@mcp-ui/server";
 
@@ -28,7 +28,7 @@ const LogId = {
     toolMetadataChange: { __value: 1_003_004 },
 } as const;
 import { TRANSPORT_PAYLOAD_LIMITS } from "./transportConstants.js";
-import { getRandomUUID } from "./randomUUID.js";
+import { getRandomUUID } from "@mongodb-js/mcp-core";
 import { redact } from "mongodb-redact";
 
 export type ToolArgs<T extends ZodRawShape> = {
@@ -54,7 +54,7 @@ type StructuredToolResult<OutputSchema extends ZodRawShape> = {
  * See `Server.registerTools` method in `src/server.ts` for further reference.
  */
 export type ToolConstructorParams<
-    TUserConfig extends IToolConfig = IToolConfig,
+    TSession extends ISession<IToolConfig> = ISession<IToolConfig>,
     TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions,
 > = {
     /**
@@ -77,18 +77,11 @@ export type ToolConstructorParams<
 
     /**
      * An instance of Session class providing access to MongoDB connections,
-     * loggers, etc.
+     * loggers, config, etc.
      *
      * See `src/common/session.ts` for further reference.
      */
-    session: IToolSession;
-
-    /**
-     * The configuration object that MCP session was started with.
-     *
-     * See `src/common/config/userConfig.ts` for further reference.
-     */
-    config: TUserConfig;
+    session: TSession;
 
     /**
      * The telemetry service for tracking tool usage.
@@ -124,7 +117,7 @@ export type ToolConstructorParams<
  * @example
  * ```typescript
  * import { StreamableHttpRunner, UserConfigSchema } from "mongodb-mcp-server"
- * import { ToolBase, type ToolClass, type ToolCategory, type OperationType } from "mongodb-mcp-server/tools";
+ * import { ToolBase, type ToolClass, type ToolCategory, type OperationType } from "@mongodb-js/mcp-core";
  * import { z } from "zod";
  *
  * class MyCustomTool extends ToolBase {
@@ -161,11 +154,11 @@ export type ToolConstructorParams<
  * ```
  */
 export type ToolClass<
-    TUserConfig extends IToolConfig = IToolConfig,
+    TSession extends ISession = ISession,
     TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions,
 > = {
     /** Constructor signature for the tool class */
-    new (params: ToolConstructorParams<TUserConfig, TMetricsDefinitions>): ToolBase<TUserConfig, TMetricsDefinitions>;
+    new (args: ToolConstructorParams<TSession, TMetricsDefinitions>): ToolBase<TSession, TMetricsDefinitions>;
 
     /**
      * The unique name of this tool.
@@ -180,6 +173,9 @@ export type ToolClass<
     /** The type of operation the tool performs */
     operationType: OperationType;
 };
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AnyToolClass = ToolClass<any, any>;
 
 /**
  * Abstract base class for implementing MCP tools in the MongoDB MCP Server.
@@ -198,7 +194,7 @@ export type ToolClass<
  * @example Basic Custom Tool
  * ```typescript
  * import { StreamableHttpRunner, UserConfigSchema } from "mongodb-mcp-server"
- * import { ToolBase, type ToolClass, type ToolCategory, type OperationType } from "mongodb-mcp-server/tools";
+ * import { ToolBase, type ToolClass, type ToolCategory, type OperationType } from "@mongodb-js/mcp-core";
  * import { z } from "zod";
  *
  * class MyCustomTool extends ToolBase {
@@ -261,7 +257,7 @@ export type ToolClass<
  * constructor
  */
 export abstract class ToolBase<
-    TUserConfig extends IToolConfig = IToolConfig,
+    TSession extends ISession = ISession,
     TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions,
 > {
     /**
@@ -389,12 +385,12 @@ export abstract class ToolBase<
      * ```
      */
     protected get toolMeta(): Record<string, unknown> {
-        const transport = this.config.transport;
+        const transport = this.session.config.transport;
         let maxRequestPayloadBytes = TRANSPORT_PAYLOAD_LIMITS[transport] ?? TRANSPORT_PAYLOAD_LIMITS.stdio;
 
         // If the transport is http and the httpBodyLimit is set, use the httpBodyLimit
-        if (transport === "http" && this.config.httpBodyLimit) {
-            maxRequestPayloadBytes = this.config.httpBodyLimit;
+        if (transport === "http" && this.session.config.httpBodyLimit) {
+            maxRequestPayloadBytes = this.session.config.httpBodyLimit;
         }
 
         return {
@@ -546,7 +542,7 @@ export abstract class ToolBase<
 
     /** Checks if the tool requires elicitation */
     public requiresConfirmation(): boolean {
-        return this.config.confirmationRequiredTools.includes(this.name);
+        return this.session.config.confirmationRequiredTools.includes(this.name);
     }
 
     /**
@@ -571,16 +567,9 @@ export abstract class ToolBase<
 
     /**
      * Access to the session instance. Provides access to MongoDB connections,
-     * loggers, connection manager, and other session-level resources.
+     * loggers, connection manager, config, and other session-level resources.
      */
-    protected readonly session: IToolSession;
-
-    /**
-     * Access to the server configuration. Contains all user configuration
-     * settings including connection strings, feature flags, and operational
-     * limits.
-     */
-    protected readonly config: TUserConfig;
+    protected readonly session: TSession;
 
     /**
      * Access to the telemetry service. Use this to emit custom telemetry events
@@ -607,17 +596,15 @@ export abstract class ToolBase<
         category,
         operationType,
         session,
-        config,
         telemetry,
         elicitation,
         metrics,
         uiRegistry,
-    }: ToolConstructorParams<TUserConfig, TMetricsDefinitions>) {
+    }: ToolConstructorParams<TSession, TMetricsDefinitions>) {
         this.name = name;
         this.category = category;
         this.operationType = operationType;
         this.session = session;
-        this.config = config;
         this.telemetry = telemetry;
         this.elicitation = elicitation;
         this.metrics = metrics;
@@ -693,13 +680,13 @@ export abstract class ToolBase<
         let errorClarification: string | undefined;
 
         // Check read-only mode first
-        if (this.config.readOnly && !["read", "metadata", "connect"].includes(this.operationType)) {
+        if (this.session.config.readOnly && !["read", "metadata", "connect"].includes(this.operationType)) {
             errorClarification = `read-only mode is enabled, its operation type, \`${this.operationType}\`,`;
-        } else if (this.config.disabledTools.includes(this.category)) {
+        } else if (this.session.config.disabledTools.includes(this.category)) {
             errorClarification = `its category, \`${this.category}\`,`;
-        } else if (this.config.disabledTools.includes(this.operationType)) {
+        } else if (this.session.config.disabledTools.includes(this.operationType)) {
             errorClarification = `its operation type, \`${this.operationType}\`,`;
-        } else if (this.config.disabledTools.includes(this.name)) {
+        } else if (this.session.config.disabledTools.includes(this.name)) {
             errorClarification = `it`;
         }
 
@@ -824,7 +811,7 @@ export abstract class ToolBase<
     }
 
     protected isFeatureEnabled(feature: PreviewFeature): boolean {
-        return this.config.previewFeatures.includes(feature);
+        return this.session.config.previewFeatures.includes(feature);
     }
 
     protected getConnectionInfoMetadata(): ConnectionMetadata {
@@ -839,10 +826,8 @@ export abstract class ToolBase<
             metadata.connection_host_type = this.session.connectionStringInfo.hostType;
         }
 
-        if (this.session.connectedAtlasCluster !== undefined) {
-            if (this.session.connectedAtlasCluster.projectId) {
-                metadata.project_id = this.session.connectedAtlasCluster.projectId;
-            }
+        if (this.session.connectedAtlasCluster?.projectId) {
+            metadata.project_id = this.session.connectedAtlasCluster.projectId;
         }
 
         return metadata;
@@ -889,7 +874,7 @@ export abstract class ToolBase<
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type AnyToolBase = ToolBase<any, any>;
+export type AnyToolBase = ToolBase<any>;
 
 /**
  * Formats potentially untrusted data to be included in tool responses. The data is wrapped in unique tags

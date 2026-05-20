@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { getRandomUUID } from "mongodb-mcp-server/web";
+import { getRandomUUID } from "@mongodb-js/mcp-core";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

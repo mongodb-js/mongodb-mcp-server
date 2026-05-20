@@ -494,7 +494,7 @@ The following are now exported from `@mongodb-js/mcp-tools-mongodb`:
 - `ConnectionStateErrored`, `ConnectionManagerFactoryFn`, `ConnectionManagerFactoryOptions`
 - `IDeviceId`, `IPackageInfo`, `IUserConfig`
 
-`MCPConnectionManager` (and `ConnectionManagerFactoryOptions` passed to `createConnectionManager`) require **`options`**: **`connectionInfo`** (the transport / browser hints type now exported as `ConnectionInfo`), **`displayName`**, and **`version`** (combined into the driver `appName` segment). The MongoDB MCP Server sets `connectionInfo` from `userConfig` and `displayName` / `version` from `packageInfo` when using the built-in transport runners. The tools package does not ship its own generated `packageInfo` file.
+`MCPConnectionManager` (and `ConnectionManagerFactoryOptions` passed to `createConnectionManager`) require **`options`**: **`connectionInfo`** (the transport / browser hints type now exported as `ConnectionInfo`), **`displayName`**, and **`version`** (combined into the driver `appName` segment). The MongoDB MCP Server sets `connectionInfo` from `userConfig` and `displayName` / `version` from `serverMetadata` when using the built-in transport runners. The tools package does not ship its own generated `serverMetadata` file.
 
 #### Connection utilities
 

@@ -44,16 +44,15 @@ describe("StreamsManageTool", () => {
         const mockSession = {
             logger: typedLogger,
             apiClient: mockApiClient as unknown as ApiClient,
+            config: {
+                confirmationRequiredTools: [],
+                previewFeatures: [],
+                disabledTools: [],
+                apiClientId: "test-id",
+                apiClientSecret: "test-secret",
+                atlasTemporaryDatabaseUserLifetimeMs: 3600000,
+            } as unknown as IAtlasConfig,
         } as unknown as IAtlasSession;
-
-        const mockConfig = {
-            confirmationRequiredTools: [],
-            previewFeatures: [],
-            disabledTools: [],
-            apiClientId: "test-id",
-            apiClientSecret: "test-secret",
-            atlasTemporaryDatabaseUserLifetimeMs: 3600000,
-        } as unknown as IAtlasConfig;
 
         const mockTelemetry = {
             isTelemetryEnabled: () => true,
@@ -64,12 +63,11 @@ describe("StreamsManageTool", () => {
             requestConfirmation: vi.fn().mockResolvedValue(true),
         } as unknown as Elicitation;
 
-        const params: ToolConstructorParams<IAtlasConfig, DefaultPrometheusMetricDefinitions> = {
+        const params: ToolConstructorParams<IAtlasSession, DefaultPrometheusMetricDefinitions> = {
             name: StreamsManageTool.toolName,
             category: "atlas",
             operationType: StreamsManageTool.operationType,
             session: mockSession,
-            config: mockConfig,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
             metrics: new MockMetrics(),

@@ -7,6 +7,7 @@ import {
     CompositeLogger,
     Keychain,
     LogId,
+    type ToolClass,
 } from "@mongodb-js/mcp-core";
 import type { SessionCloseReason } from "@mongodb-js/mcp-types";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -21,7 +22,6 @@ import {
     type ToolExecutionContext,
     ToolBase,
     Server,
-    type AnyToolClass,
     Session,
     Elicitation,
     connectionErrorHandler,
@@ -29,6 +29,7 @@ import {
     ExportsManager,
     packageInfo,
 } from "mongodb-mcp-server";
+import { AllTools } from "mongodb-mcp-server";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { CallToolResult } from "@mongodb-js/mcp-types";
 import type { AtlasTelemetry, TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
@@ -50,7 +51,7 @@ import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 async function createTestServer(
     config: UserConfig,
     options: {
-        tools?: AnyToolClass[];
+        tools?: ToolClass[];
     } = {}
 ): Promise<Server> {
     const logger = new CompositeLogger({ loggers: [] });
@@ -124,6 +125,13 @@ async function createTestServer(
         elicitation,
         metrics,
         tools: options.tools,
+        serverMetadata: {
+            mcpServerName: "test-server",
+            version: "1.0",
+            engines: {
+                node: "20.0.0",
+            },
+        },
     });
 
     return server;
@@ -132,7 +140,7 @@ async function createTestServer(
 // Custom MCPHttpServer that creates test servers
 class TestMCPHttpServer extends MCPHttpServer<Server> {
     protected userConfig: UserConfig;
-    protected tools?: AnyToolClass[];
+    protected tools?: ToolClass[];
 
     constructor({
         userConfig,
@@ -150,7 +158,7 @@ class TestMCPHttpServer extends MCPHttpServer<Server> {
         logger: CompositeLogger;
         metrics: IMetrics<DefaultMetricDefinitions>;
         sessionStore: ISessionStore<StreamableHTTPServerTransport>;
-        tools?: AnyToolClass[];
+        tools?: ToolClass[];
     }) {
         super({
             options,
@@ -171,7 +179,7 @@ class TestMCPHttpServer extends MCPHttpServer<Server> {
 function createStreamableHttpRunner(
     config: UserConfig,
     options: {
-        tools?: AnyToolClass[];
+        tools?: ToolClass[];
         loggers?: LoggerBase[];
     } = {}
 ): Promise<StreamableHttpRunner<Server>> {
@@ -206,7 +214,7 @@ function createStreamableHttpRunner(
         logger,
         metrics: metrics,
         sessionStore,
-        tools: options.tools,
+        tools: options.tools ?? AllTools,
     });
 
     return Promise.resolve(
@@ -826,6 +834,7 @@ describe("StreamableHttpRunner", () => {
                             http: {
                                 host: config.httpHost,
                                 port: config.httpPort,
+                                bodyLimit: config.httpBodyLimit,
                                 responseType: config.httpResponseType,
                             },
                             session: {
@@ -837,6 +846,7 @@ describe("StreamableHttpRunner", () => {
                         logger,
                         metrics: metrics,
                         sessionStore: ownershipStore,
+                        tools: AllTools,
                     });
 
                     const ownershipRunner = new StreamableHttpRunner<Server>({
@@ -1036,6 +1046,7 @@ describe("StreamableHttpRunner", () => {
                     http: {
                         host: config.httpHost,
                         port: config.httpPort,
+                        bodyLimit: config.httpBodyLimit,
                         responseType: config.httpResponseType,
                     },
                     session: {
@@ -1047,6 +1058,7 @@ describe("StreamableHttpRunner", () => {
                 logger,
                 metrics: metrics,
                 sessionStore,
+                tools: AllTools,
             });
 
             runner = new StreamableHttpRunner<Server>({

@@ -13,13 +13,13 @@ import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { UserConfig } from "mongodb-mcp-server";
 import type { DefaultMetricDefinitions, ICompositeLogger } from "@mongodb-js/mcp-types";
-import type { SessionAwareServer } from "@mongodb-js/mcp-http-runners";
+import type { SessionServer } from "@mongodb-js/mcp-http-runners";
 
 /**
  * Minimal concrete implementation of MCPHttpServer for testing.
  */
-class TestMCPHttpServer extends MCPHttpServer<SessionAwareServer> {
-    protected override async createServerForRequest(): Promise<SessionAwareServer> {
+class TestMCPHttpServer extends MCPHttpServer<SessionServer> {
+    protected override async createServerForRequest(): Promise<SessionServer> {
         return Promise.resolve({
             connect: vi.fn(),
             close: vi.fn().mockResolvedValue(undefined),
@@ -38,7 +38,7 @@ function createStreamableHttpRunnerFromConfig(options: {
     sessionStore?: ISessionStore<StreamableHTTPServerTransport>;
     loggers?: LoggerBase[];
     metrics?: MockMetrics;
-}): StreamableHttpRunner<SessionAwareServer> {
+}): StreamableHttpRunner<SessionServer> {
     const { userConfig } = options;
     const logger = new CompositeLogger({ loggers: options.loggers ?? [] });
     const metrics = options.metrics ?? new MockMetrics();
@@ -96,7 +96,7 @@ function createStreamableHttpRunnerFromConfig(options: {
         sessionStore,
     });
 
-    return new StreamableHttpRunner<SessionAwareServer>({
+    return new StreamableHttpRunner<SessionServer>({
         metrics,
         mcpHttpServer,
         monitoringServer,

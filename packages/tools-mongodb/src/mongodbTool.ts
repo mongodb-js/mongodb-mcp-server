@@ -2,10 +2,10 @@ import { z } from "zod";
 import type { McpServer, ToolArgs, ToolCategory, ToolConstructorParams } from "@mongodb-js/mcp-core";
 import { ToolBase } from "@mongodb-js/mcp-core";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import type { CallToolResult } from "@mongodb-js/mcp-types";
+import type { CallToolResult, ISession, IToolConfig } from "@mongodb-js/mcp-types";
 import { LogId } from "@mongodb-js/mcp-core";
 import { ErrorCodes, MongoDBError } from "./common/errors.js";
-import type { ConnectionMetadata, IToolConfig, IToolSession } from "@mongodb-js/mcp-types";
+import type { ConnectionMetadata } from "@mongodb-js/mcp-types";
 import type { AvailableExport, CreateJSONExportParams } from "./common/exportsManager.js";
 
 /** MongoDB tool subset of server config. */
@@ -20,7 +20,8 @@ export type IMongoDBConfig = IToolConfig & {
     aggregationCountMaxTimeMsCap: number;
 };
 
-export interface IMongoDBSession extends IToolSession {
+export interface IMongoDBSession extends ISession {
+    config: IMongoDBConfig;
     isConnectedToMongoDB: boolean;
     connectedAtlasCluster?: { clusterName: string; projectId: string };
     serviceProvider: NodeDriverServiceProvider;
@@ -56,15 +57,19 @@ export type MongoDBToolRegistrationServer = {
     isToolCategoryAvailable(name: ToolCategory): boolean;
 };
 
-export abstract class MongoDBToolBase extends ToolBase<IMongoDBConfig> {
-    declare protected readonly config: IMongoDBConfig;
+export abstract class MongoDBToolBase extends ToolBase<IMongoDBSession> {
     declare protected readonly session: IMongoDBSession;
     static category: ToolCategory = "mongodb";
 
     /** Host MCP server instance set in {@link MongoDBToolBase.register} (same object passed from {@link Server.registerTools}). */
     protected server?: MongoDBToolRegistrationServer;
 
-    constructor(params: ToolConstructorParams<IMongoDBConfig>) {
+    /** Access to the MongoDB-specific configuration. */
+    protected get config(): IMongoDBConfig {
+        return this.session.config;
+    }
+
+    constructor(params: ToolConstructorParams<IMongoDBSession>) {
         super(params);
     }
 

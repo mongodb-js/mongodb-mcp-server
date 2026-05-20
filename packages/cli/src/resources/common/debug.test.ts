@@ -1,11 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DebugResource } from "../../../../src/resources/common/debug.js";
-import { Session } from "../../../../src/common/session.js";
-import { connectionErrorHandler, ApiClient } from "mongodb-mcp-server";
+import { DebugResource } from "./debug.js";
+import { Session } from "../../session.js";
+import { UserConfigSchema, type UserConfig } from "../../config/userConfig.js";
+import { connectionErrorHandler } from "@mongodb-js/mcp-tools-mongodb";
+import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
 import { MCPConnectionManager, ExportsManager, DeviceId } from "@mongodb-js/mcp-tools-mongodb";
-import { defaultTestConfig, testConnectionManagerDriverLabels } from "mongodb-mcp-server/test-helpers";
+
+const defaultTestConfig: UserConfig = {
+    ...UserConfigSchema.parse({}),
+    telemetry: "disabled",
+    loggers: ["stderr"],
+};
+
+const testConnectionManagerDriverLabels = {
+    displayName: "test-server",
+    version: "0.0.0",
+} as const;
 
 describe("debug resource", () => {
     const logger = new CompositeLogger();
@@ -39,19 +51,29 @@ describe("debug resource", () => {
         })
     );
 
+    // Mock EventEmitter methods that ReactiveResource uses
+    // @ts-expect-error - Session is not a MockedObject
+    session.on = vi.fn();
+    // Mock isSearchSupported that DebugResource.toOutput() uses
+    session.isSearchSupported = vi.fn(() => Promise.resolve(false));
+
     const telemetry = AtlasTelemetry.create({
         logger,
         deviceId,
         apiClient: session.apiClient,
         keychain: session.keychain,
         enabled: false,
-        machineMetadata: buildMachineMetadata("test-server", "0.0.0"),
+        machineMetadata: buildMachineMetadata({ mcpServerName: "test-server", version: "0.0.0" }),
     });
 
     let debugResource: DebugResource;
 
     beforeEach(() => {
-        debugResource = new DebugResource({ session, config: defaultTestConfig, telemetry });
+        // Reset isSearchSupported mock before each test
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        vi.mocked(session.isSearchSupported).mockResolvedValue(false);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
+        debugResource = new DebugResource({ session: { ...session, config: defaultTestConfig }, telemetry } as any);
     });
 
     it("should be connected when a connected event happens", async () => {
@@ -134,7 +156,8 @@ describe("debug resource", () => {
     });
 
     it("should notify if a cluster supports search indexes", async () => {
-        vi.spyOn(session, "isSearchSupported").mockImplementation(() => Promise.resolve(true));
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        vi.mocked(session.isSearchSupported).mockResolvedValue(true);
         debugResource.reduceApply("connect", undefined);
         const output = await debugResource.toOutput();
 

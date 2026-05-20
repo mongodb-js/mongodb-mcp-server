@@ -1,18 +1,18 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { type UserConfig, UserConfigSchema } from "../../../src/common/config/userConfig.js";
-import { parseUserConfig, defaultParserOptions } from "../../../src/common/config/parseUserConfig.js";
+import { type UserConfig, UserConfigSchema } from "@mongodb-js/mcp-cli";
+import { parseUserConfig, defaultParserOptions } from "@mongodb-js/mcp-cli";
 import {
     getLogPath,
     getExportsPath,
     onlyLowerThanBaseValueOverride,
     onlySubsetOfBaseValueOverride,
-} from "../../../src/common/config/configUtils.js";
+} from "@mongodb-js/mcp-cli";
 import { Keychain } from "@mongodb-js/mcp-core";
 import type { Secret } from "@mongodb-js/mcp-core";
 import { createEnvironment, useClearEnvironment } from "../../utils/index.js";
 import path from "path";
-import { TRANSPORT_PAYLOAD_LIMITS } from "../../../src/transports/constants.js";
-import { getConfigMeta } from "../../../src/common/config/configOverrides.js";
+import { TRANSPORT_PAYLOAD_LIMITS } from "@mongodb-js/mcp-cli";
+import { getConfigMeta } from "@mongodb-js/mcp-cli";
 
 // Expected hardcoded values (what we had before)
 const expectedDefaults = {
@@ -56,6 +56,8 @@ const expectedDefaults = {
     externallyManagedSessions: false,
     httpResponseType: "sse",
     monitoringServerFeatures: ["health-check"],
+    queryCountMaxTimeMsCap: 10000,
+    aggregationCountMaxTimeMsCap: 60000,
 };
 
 const CONFIG_FIXTURES = {

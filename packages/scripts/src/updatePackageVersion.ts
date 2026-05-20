@@ -3,13 +3,12 @@
 import { readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 
-// Read package.json (from repo root, two levels up from packages/scripts/src/)
-const packageJsonPath = join(import.meta.dirname, "../..", "package.json");
+// Read package.json from mongodb-mcp-server package
+const packageJsonPath = join(import.meta.dirname, "../../..", "packages", "mongodb-mcp-server", "package.json");
 const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8")) as {
     version: string;
     engines?: { node?: string };
 };
-
 const nodeEngine = packageJson.engines?.node ?? ">=20.0.0";
 
 // Define the packageInfo.ts content
@@ -27,18 +26,43 @@ export const packageInfo: {
 };
 `;
 
-// Write to packageInfo.ts (in the main src/ at repo root)
-const packageInfoPath = join(import.meta.dirname, "../..", "src", "common", "packageInfo.ts");
+// Write to packageInfo.ts (in packages/mongodb-mcp-server/src/common/)
+const packageInfoPath = join(
+    import.meta.dirname,
+    "../../..",
+    "packages",
+    "mongodb-mcp-server",
+    "src",
+    "common",
+    "packageInfo.ts"
+);
 writeFileSync(packageInfoPath, packageInfoContent);
 
 // Keep the .mcpb manifest's version in lockstep with package.json.
-const manifestPath = join(import.meta.dirname, "../..", "packaging", "mcpb", "manifest.json");
+const manifestPath = join(
+    import.meta.dirname,
+    "../../..",
+    "packages",
+    "mongodb-mcp-server",
+    "packaging",
+    "mcpb",
+    "manifest.json"
+);
 const manifest = JSON.parse(readFileSync(manifestPath, "utf-8")) as { version: string };
 manifest.version = packageJson.version;
 writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
 
 // Keep the Azure Bicep template's default container image version in lockstep with package.json.
-const bicepPath = join(import.meta.dirname, "../..", "deploy", "azure", "bicep", "main.bicep");
+const bicepPath = join(
+    import.meta.dirname,
+    "../../..",
+    "packages",
+    "mongodb-mcp-server",
+    "deploy",
+    "azure",
+    "bicep",
+    "main.bicep"
+);
 const bicepContent = readFileSync(bicepPath, "utf-8");
 if (!packageJson.version.includes("-prerelease.")) {
     const updatedBicepContent = bicepContent.replace(

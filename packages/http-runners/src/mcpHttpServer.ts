@@ -24,16 +24,7 @@ import {
 } from "@mongodb-js/mcp-core";
 import { ExpressBasedHttpServer } from "./expressBasedHttpServer.js";
 import { sleep } from "./utils.js";
-
-/**
- * Minimum server interface required by MCPHttpServer.
- * Servers must have connect/close methods and a session with a logger for HTTP transport functionality.
- */
-export type SessionAwareServer = {
-    connect(transport: StreamableHTTPServerTransport): Promise<void>;
-    close(): Promise<void>;
-    session: { logger: ICompositeLogger };
-};
+import type { SessionServer } from "@mongodb-js/mcp-types";
 
 /**
  * Options for creating an MCPHttpServer instance.
@@ -67,7 +58,7 @@ export type MCPHttpServerOptions<TMetrics extends DefaultMetricDefinitions = Def
  * ```
  */
 export abstract class MCPHttpServer<
-    TServer extends SessionAwareServer = SessionAwareServer,
+    TServer extends SessionServer = SessionServer,
     TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions,
 > extends ExpressBasedHttpServer {
     private readonly sessionStore: ISessionStore<StreamableHTTPServerTransport>;

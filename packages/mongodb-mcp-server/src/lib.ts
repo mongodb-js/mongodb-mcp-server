@@ -1,24 +1,14 @@
-export { Server, type ServerOptions, type MongoDBToolsRuntimeConfig, type AnyToolClass } from "./server.js";
-export { Session, type SessionOptions, type SessionEvents } from "./common/session.js";
-export { type UserConfig, UserConfigSchema, configRegistry } from "./common/config/userConfig.js";
-export { parseUserConfig, defaultParserOptions, type ParserOptions } from "./common/config/parseUserConfig.js";
-
-import { parseUserConfig } from "./common/config/parseUserConfig.js";
-import type { UserConfig } from "./common/config/userConfig.js";
-
-/** @deprecated Use `parseUserConfig` instead. */
-export function parseArgsWithCliOptions(cliArguments: string[]): {
-    warnings: string[];
-    parsed: UserConfig | undefined;
-    error: string | undefined;
-} {
-    return parseUserConfig({
-        args: cliArguments,
-    });
-}
+/** This file is temporarily used for generating API reports against the v1 API for comparison purposes. */
+export { Server, type ServerOptions } from "@mongodb-js/mcp-cli";
+export { Session } from "@mongodb-js/mcp-cli";
+export type { SessionEvents } from "@mongodb-js/mcp-types";
+export { type UserConfig, UserConfigSchema, configRegistry } from "@mongodb-js/mcp-cli";
+export { parseUserConfig, defaultParserOptions, type ParserOptions } from "@mongodb-js/mcp-cli";
 
 export { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
+export { AllTools } from "./allTools.js";
 export { packageInfo } from "./common/packageInfo.js";
+export { ExportedData } from "@mongodb-js/mcp-cli";
 
 export {
     LoggerBase,
@@ -69,7 +59,7 @@ export {
     type ConnectionErrorHandled,
     type ConnectionErrorUnhandled,
     type ConnectionErrorHandlerContext,
-} from "./common/connectionErrorHandler.js";
+} from "@mongodb-js/mcp-tools-mongodb";
 export {
     ErrorCodes,
     MongoDBError,
@@ -87,13 +77,8 @@ export type {
 export { Keychain, registerGlobalSecretToRedact } from "@mongodb-js/mcp-core";
 export type { Secret } from "mongodb-redact";
 export { Elicitation } from "@mongodb-js/mcp-core";
-export {
-    applyConfigOverrides,
-    ConfigOverrideError,
-    getConfigMeta,
-    nameToConfigKey,
-} from "./common/config/configOverrides.js";
-export { onlyStricterLogLevelOverride } from "./common/config/configUtils.js";
+export { applyConfigOverrides, ConfigOverrideError, getConfigMeta, nameToConfigKey } from "@mongodb-js/mcp-cli";
+export { onlyStricterLogLevelOverride } from "@mongodb-js/mcp-cli";
 export { SessionStore, type ISessionStore, type SessionStoreConstructorArgs } from "@mongodb-js/mcp-core";
 export type { CloseableTransport, SessionCloseReason } from "@mongodb-js/mcp-types";
 export { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
@@ -105,13 +90,14 @@ export { type UIRegistryOptions, UIRegistry } from "@mongodb-js/mcp-ui";
 export {
     type ToolExecutionContext,
     type AnyToolBase,
+    type AnyToolClass,
     type OperationType,
     ToolBase,
     type ToolCategory,
     type ToolClass,
     type ToolArgs,
-} from "./tools/tool.js";
-export { TRANSPORT_PAYLOAD_LIMITS, type TransportType } from "./transports/constants.js";
+} from "@mongodb-js/mcp-core";
+export { TRANSPORT_PAYLOAD_LIMITS, type TransportType } from "@mongodb-js/mcp-cli";
 export {
     PrometheusMetrics,
     createDefaultMetrics,
