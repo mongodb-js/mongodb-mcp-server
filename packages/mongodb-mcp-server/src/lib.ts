@@ -6,7 +6,7 @@ export { parseUserConfig, defaultParserOptions, type ParserOptions } from "@mong
 
 export { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 export { packageInfo } from "./common/packageInfo.js";
-export { ExportedData } from "./resources/resources.js";
+export { ExportedData } from "@mongodb-js/mcp-cli";
 
 export {
     LoggerBase,

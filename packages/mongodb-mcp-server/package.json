@@ -106,7 +106,6 @@
     "@mongodb-js/mcp-tools-mongodb": "workspace:*",
     "@mongodb-js/mcp-types": "workspace:*",
     "@mongodb-js/mcp-ui": "workspace:*",
-    "@mongosh/arg-parser": "^5.0.2",
     "bson": "^7.2.0",
     "mongodb": "^7.1.1",
     "@mongosh/service-provider-node-driver": "^5.0.2",

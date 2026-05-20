@@ -41,29 +41,31 @@ import { runMcpCli } from "@mongodb-js/mcp-cli";
 import { DryRunHandler, HelpHandler, VersionHandler } from "@mongodb-js/mcp-cli";
 import { SetupCliHandler } from "@mongodb-js/mcp-setup";
 import { packageInfo } from "./common/packageInfo.js";
-import { Resources } from "./resources/resources.js";
+import { Resources } from "@mongodb-js/mcp-cli";
 import { AllTools } from "./tools/index.js";
 
 async function main(): Promise<void> {
     const args = process.argv.slice(2);
 
-    await runMcpCli({
-        args,
-        serverMetadata: packageInfo,
-        consoleLogger: console,
-        onExit: (code: number) => process.exit(code),
-        tools: AllTools,
-        resources: Resources,
-        handlers: [
-            new HelpHandler(),
-            new VersionHandler(),
-            new SetupCliHandler(),
-            new DryRunHandler({ tools: AllTools, resources: Resources }),
-        ],
-    });
+    try {
+        await runMcpCli({
+            args,
+            serverMetadata: packageInfo,
+            consoleLogger: console,
+            onExit: (code: number) => process.exit(code),
+            tools: AllTools,
+            resources: Resources,
+            handlers: [
+                new HelpHandler(),
+                new VersionHandler(),
+                new SetupCliHandler(),
+                new DryRunHandler({ tools: AllTools, resources: Resources }),
+            ],
+        });
+    } catch (error) {
+        console.error(`Fatal error running server: ${error as string}`);
+        process.exit(1);
+    }
 }
 
-main().catch((error: unknown) => {
-    console.error(`Fatal error running server: ${error as string}`);
-    process.exit(1);
-});
+void main();

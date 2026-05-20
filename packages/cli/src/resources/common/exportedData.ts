@@ -7,7 +7,7 @@ import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { LogId } from "@mongodb-js/mcp-core";
 import type { ResourceConstructorParams } from "@mongodb-js/mcp-types";
 import type { Server, Session } from "@mongodb-js/mcp-cli";
-import { formatUntrustedData } from "../../tools/tool.js";
+import { formatUntrustedData } from "@mongodb-js/mcp-core";
 
 export class ExportedData {
     private readonly name = "exported-data";

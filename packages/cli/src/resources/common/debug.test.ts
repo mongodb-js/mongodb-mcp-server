@@ -1,11 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DebugResource } from "../../../../src/resources/common/debug.js";
-import { Session } from "@mongodb-js/mcp-cli";
-import { connectionErrorHandler, ApiClient } from "mongodb-mcp-server";
+import { DebugResource } from "./debug.js";
+import { Session } from "../../session.js";
+import { UserConfigSchema, type UserConfig } from "../../config/userConfig.js";
+import { connectionErrorHandler } from "@mongodb-js/mcp-tools-mongodb";
+import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
 import { MCPConnectionManager, ExportsManager, DeviceId } from "@mongodb-js/mcp-tools-mongodb";
-import { defaultTestConfig, testConnectionManagerDriverLabels } from "../../../../src/test-helpers/index.js";
+
+const defaultTestConfig: UserConfig = {
+    ...UserConfigSchema.parse({}),
+    telemetry: "disabled",
+    loggers: ["stderr"],
+};
+
+const testConnectionManagerDriverLabels = {
+    displayName: "test-server",
+    version: "0.0.0",
+} as const;
 
 describe("debug resource", () => {
     const logger = new CompositeLogger();

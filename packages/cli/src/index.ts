@@ -51,3 +51,6 @@ export {
 export { DryRunHandler, type DryRunHandlerOptions } from "./handlers/dryRunHandler.js";
 export { HelpHandler } from "./handlers/helpHandler.js";
 export { VersionHandler } from "./handlers/versionHandler.js";
+
+// MCP resources
+export { Resources, ConfigResource, DebugResource, ExportedData } from "./resources/resources.js";
