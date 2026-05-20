@@ -739,9 +739,11 @@ export type MCPHttpServerOptions<TMetrics extends DefaultMetricDefinitions = Def
 
 // @public (undocumented)
 export class McpLogger extends LoggerBase {
-    constructor(options: {
+    constructor(input: {
         server: McpServer;
-        mcpLogLevel: LogLevel;
+        options: {
+            logLevel: LogLevel;
+        };
     } & LoggerConfig);
     // (undocumented)
     flush(): Promise<PromiseSettledResult<void>[]>;
