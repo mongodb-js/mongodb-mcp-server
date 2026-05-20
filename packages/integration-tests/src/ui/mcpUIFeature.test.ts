@@ -22,7 +22,7 @@ import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 import { InMemoryTransport } from "@mongodb-js/mcp-core";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
-import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
+import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 
 describeWithMongoDB(
@@ -212,10 +212,10 @@ describe("mcpUI feature with custom UIs", () => {
             apiClient: session.apiClient,
             keychain: session.keychain,
             enabled: false,
-            machineMetadata: buildMachineMetadata({
+            serverMetadata: {
                 mcpServerName: "test-server",
                 version: "1.0",
-            }),
+            },
         });
         const mcpServerInstance = new McpServer({ name: "test", version: "1.0" });
         const elicitation = new Elicitation({ server: mcpServerInstance.server });

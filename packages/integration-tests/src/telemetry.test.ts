@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
 import { Keychain } from "@mongodb-js/mcp-core";
 import { createTestApiClient } from "./integrationHelpers.js";
-import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
+import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 
 describe("AtlasTelemetry", () => {
     it("should resolve the actual device ID", async () => {
@@ -22,10 +22,10 @@ describe("AtlasTelemetry", () => {
             }),
             keychain: new Keychain(),
             enabled: true,
-            machineMetadata: buildMachineMetadata({
+            serverMetadata: {
                 mcpServerName: "test-server",
                 version: "1.0.0",
-            }),
+            },
         });
 
         expect(telemetry.getCommonProperties().device_id).toBe(undefined);

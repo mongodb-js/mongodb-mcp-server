@@ -6,7 +6,7 @@ import type { ResourceRegistry, ToolRegistry } from "./server.js";
 import { Server } from "./server.js";
 import { ApiClient, ClientCredentialsAuthProvider } from "@mongodb-js/mcp-atlas-api-client";
 import { connectionErrorHandler, DeviceId, ExportsManager, MCPConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
-import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
+import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 import { Session } from "./session.js";
 import type { UserConfig } from "./config/userConfig.js";
@@ -82,7 +82,7 @@ export async function createServicesFromUserConfig({
         apiClient,
         keychain,
         enabled: config.telemetry === "enabled",
-        machineMetadata: buildMachineMetadata(serverMetadata),
+        serverMetadata,
     });
 
     const mcpServer = new McpServer({

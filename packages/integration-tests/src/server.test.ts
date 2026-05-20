@@ -16,7 +16,7 @@ import type { LoggerBase } from "@mongodb-js/mcp-core";
 import type { UserConfig } from "mongodb-mcp-server";
 import { Elicitation } from "mongodb-mcp-server";
 import { Keychain } from "@mongodb-js/mcp-core";
-import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
+import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Server } from "mongodb-mcp-server";
@@ -223,10 +223,10 @@ describe("Server integration test", () => {
             apiClient: session.apiClient,
             keychain: session.keychain,
             enabled: false,
-            machineMetadata: buildMachineMetadata({
+            serverMetadata: {
                 mcpServerName: "test-server",
                 version: "1.0",
-            }),
+            },
         });
 
         const mcpServerInstance = new McpServer({ name: "test", version: "1.0" });

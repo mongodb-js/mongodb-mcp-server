@@ -4,7 +4,7 @@ import { Session } from "../../session.js";
 import { UserConfigSchema, type UserConfig } from "../../config/userConfig.js";
 import { connectionErrorHandler } from "@mongodb-js/mcp-tools-mongodb";
 import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
-import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
+import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
 import { MCPConnectionManager, ExportsManager, DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 
@@ -60,7 +60,7 @@ describe("debug resource", () => {
         apiClient: session.apiClient,
         keychain: session.keychain,
         enabled: false,
-        machineMetadata: buildMachineMetadata({ mcpServerName: "test-server", version: "0.0.0" }),
+        serverMetadata: { mcpServerName: "test-server", version: "0.0.0" },
     });
 
     let debugResource: DebugResource;

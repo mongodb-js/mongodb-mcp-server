@@ -1,11 +1,11 @@
-import type { TelemetryBaseEvent, TelemetryCommonProperties, TelemetryCommonStaticProperties } from "./types.js";
+import type { TelemetryBaseEvent, TelemetryCommonProperties } from "./types.js";
 import { LogId } from "@mongodb-js/mcp-core";
-import { detectContainerEnv } from "./containerEnv.js";
+import { detectContainerEnv as detectContainerEnvImpl } from "./containerEnv.js";
 import type { LoggerBase } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import { EventCache } from "./eventCache.js";
-import type { IDeviceId, IKeychain, ITelemetry } from "@mongodb-js/mcp-types";
+import type { IDeviceId, IKeychain, ITelemetry, ServerMetadata } from "@mongodb-js/mcp-types";
 import { EventEmitter } from "events";
 import { redact } from "mongodb-redact";
 import { Timer } from "./timer.js";
@@ -48,16 +48,12 @@ export type TelemetryConfig = {
     enabled: boolean;
 
     /**
-     * Returns the host-supplied common properties merged onto every event
-     * (e.g. hosting mode, MCP client identity, transport). Invoked on every
-     * send so values resolved after construction — like the client name/
-     * version exchanged during handshake — are captured. Static properties
-     * can simply be returned as constants from this callback.
-     *
-     * Machine metadata, device id, and container environment are provided by
-     * the pipeline itself and don't need to be returned here.
+     * Server name/version and related metadata. The default
+     * {@link AtlasTelemetry.getCommonProperties} implementation maps this to
+     * telemetry fields; extend the class and override that method (calling
+     * `super`) to add host-specific properties.
      */
-    getCommonProperties?: () => Partial<TelemetryCommonProperties>;
+    serverMetadata: ServerMetadata;
 
     /**
      * Optional override for the underlying event cache. Defaults to the
@@ -65,20 +61,6 @@ export type TelemetryConfig = {
      * Mostly useful for tests or callers that need to isolate caching.
      */
     eventCache?: EventCache;
-
-    /**
-     * Static machine metadata (server name/version, platform, arch, etc.)
-     * merged into every event. Callers supply this so the package stays
-     * independent of any auto-generated packageInfo file.
-     */
-    machineMetadata: TelemetryCommonStaticProperties;
-
-    /**
-     * Optional override for container-environment detection. Defaults to a
-     * built-in implementation that inspects `/proc` and env vars. Useful for
-     * tests or non-Node runtimes that cannot perform file-system access.
-     */
-    detectContainerEnv?: () => Promise<boolean>;
 };
 
 /** The timeout for individual send requests in milliseconds. */
@@ -115,40 +97,44 @@ export class AtlasTelemetry implements ITelemetry {
     private readonly apiClient: ApiClient;
     private readonly keychain: IKeychain;
     private readonly enabled: boolean;
-    private readonly getHostCommonProperties: () => Partial<TelemetryCommonProperties>;
+    protected readonly serverMetadata: ServerMetadata;
     /**
-     * Machine metadata plus device_id / is_container_env, which the pipeline
-     * resolves itself during setup. Host-supplied properties are merged on
-     * top of this at send time.
+     * device_id and is_container_env, resolved during setup. Subclass overrides
+     * of {@link getCommonProperties} should call `super` to include these.
      */
-    private readonly pipelineCommonProperties: TelemetryCommonProperties;
+    private readonly pipelineCommonProperties: Partial<TelemetryCommonProperties>;
     private readonly eventCache: EventCache;
     private readonly deviceId: IDeviceId;
-    private readonly detectContainerEnvFn: () => Promise<boolean>;
     private backoffMs: number = INITIAL_BACKOFF_MS;
     private readonly timer = new Timer();
 
-    private constructor(config: TelemetryConfig) {
+    protected constructor(config: TelemetryConfig) {
         this.logger = config.logger;
         this.apiClient = config.apiClient;
         this.keychain = config.keychain;
         this.enabled = config.enabled;
-        this.getHostCommonProperties = config.getCommonProperties ?? ((): Partial<TelemetryCommonProperties> => ({}));
+        this.serverMetadata = config.serverMetadata;
         this.eventCache = config.eventCache ?? EventCache.getInstance();
         this.deviceId = config.deviceId;
-        this.detectContainerEnvFn = config.detectContainerEnv ?? detectContainerEnv;
-        this.pipelineCommonProperties = {
-            ...config.machineMetadata,
-        };
+        this.pipelineCommonProperties = {};
     }
 
-    static create(config: TelemetryConfig): AtlasTelemetry {
-        const instance = new AtlasTelemetry(config);
+    static create(this: typeof AtlasTelemetry, config: TelemetryConfig): AtlasTelemetry {
+        const instance = new this(config);
         void instance.setup();
         return instance;
     }
 
-    private async setup(): Promise<void> {
+    /**
+     * Detects whether the process is running inside a container. Override in a
+     * subclass for non-Node runtimes or custom detection. Defaults to
+     * inspecting `/proc` and environment variables on Linux.
+     */
+    protected detectContainerEnv(): Promise<boolean> {
+        return detectContainerEnvImpl();
+    }
+
+    protected async setup(): Promise<void> {
         if (!this.isTelemetryEnabled()) {
             this.logger.info({
                 id: LogId.telemetryEmitFailure,
@@ -159,7 +145,7 @@ export class AtlasTelemetry implements ITelemetry {
             return;
         }
 
-        this.setupPromise = Promise.all([this.deviceId.get(), this.detectContainerEnvFn()]);
+        this.setupPromise = Promise.all([this.deviceId.get(), this.detectContainerEnv()]);
         const [deviceIdValue, containerEnv] = await this.setupPromise;
 
         this.pipelineCommonProperties.device_id = deviceIdValue;
@@ -193,12 +179,21 @@ export class AtlasTelemetry implements ITelemetry {
     }
 
     /**
-     * Gets the common properties for events
+     * Returns common properties merged onto every event. Invoked on every send
+     * so values resolved after construction — like MCP client identity — are
+     * captured. Defaults to server/platform metadata plus pipeline-resolved
+     * `device_id` and `is_container_env`. Extend {@link AtlasTelemetry} and
+     * override this method (calling `super`) to add host-specific properties.
      */
     public getCommonProperties(): TelemetryCommonProperties {
         return {
             ...this.pipelineCommonProperties,
-            ...this.getHostCommonProperties(),
+            mcp_server_version: this.serverMetadata.version,
+            mcp_server_name: this.serverMetadata.mcpServerName,
+            platform: (typeof process !== "undefined" && process.platform) || "browser",
+            arch: (typeof process !== "undefined" && process.arch) || "unknown",
+            os_type: (typeof process !== "undefined" && process.platform) || "unknown",
+            os_version: (typeof process !== "undefined" && process.version) || "unknown",
         };
     }
 

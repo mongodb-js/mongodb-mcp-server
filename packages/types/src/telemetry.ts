@@ -12,6 +12,30 @@ export interface ITelemetry {
 
 export type TelemetryResult = "success" | "failure";
 
+export type TelemetryBoolSet = "true" | "false";
+
+export type TelemetryCommonStaticProperties = {
+    mcp_server_version: string;
+    mcp_server_name: string;
+    platform: string;
+    arch: string;
+    os_type: string;
+    os_version?: string;
+};
+
+export type TelemetryCommonProperties = {
+    device_id?: string;
+    is_container_env?: TelemetryBoolSet;
+    mcp_client_version?: string;
+    mcp_client_name?: string;
+    transport?: "stdio" | "http";
+    config_atlas_auth?: TelemetryBoolSet;
+    config_connection_string?: TelemetryBoolSet;
+    session_id?: string;
+    hosting_mode?: string;
+    has_docker?: TelemetryBoolSet;
+} & TelemetryCommonStaticProperties;
+
 export type TelemetryEvent<T> = {
     timestamp: string;
     source: "mdbmcp";

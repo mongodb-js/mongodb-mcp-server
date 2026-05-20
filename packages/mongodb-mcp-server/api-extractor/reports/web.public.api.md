@@ -30,7 +30,7 @@ export type AnyConnectionState = ConnectionStateConnected | ConnectionStateConne
 export type AnyToolBase = ToolBase<any>;
 
 // @public (undocumented)
-export class ApiClient implements IApiClient {
+export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonProperties>[]> {
     constructor(options: ApiClientOptions);
     // (undocumented)
     acceptVpcPeeringConnection(options: FetchOptions<operations["acceptGroupStreamVpcPeeringConnection"]>): Promise<void>;
@@ -142,7 +142,7 @@ export class ApiClient implements IApiClient {
     rejectVpcPeeringConnection(options: FetchOptions<operations["rejectGroupStreamVpcPeeringConnection"]>): Promise<void>;
     // (undocumented)
     sendEvents(options?: {
-        events: unknown[];
+        events: TelemetryEvent<TelemetryCommonProperties>[];
         signal?: AbortSignal;
     }): Promise<void>;
     // (undocumented)
@@ -712,15 +712,21 @@ export type StoredExport = ReadyExport | InProgressExport;
 
 // @public (undocumented)
 export class Telemetry implements ITelemetry {
+    protected constructor(config: TelemetryConfig);
     // (undocumented)
     close(): Promise<void>;
     // (undocumented)
-    static create(config: TelemetryConfig): Telemetry;
+    static create(this: typeof Telemetry, config: TelemetryConfig): Telemetry;
+    protected detectContainerEnv(): Promise<boolean>;
     emitEvents(events: TelemetryBaseEvent[]): void;
     // (undocumented)
     readonly events: EventEmitter<TelemetryEvents>;
     getCommonProperties(): TelemetryCommonProperties;
     isTelemetryEnabled(): boolean;
+    // (undocumented)
+    protected readonly serverMetadata: ServerMetadata;
+    // (undocumented)
+    protected setup(): Promise<void>;
     setupPromise: Promise<[string, boolean]> | undefined;
 }
 
@@ -730,7 +736,7 @@ export type TelemetryBaseEvent = TelemetryEvent<unknown>;
 // @public (undocumented)
 export type TelemetryBoolSet = "true" | "false";
 
-// @public
+// @public (undocumented)
 export type TelemetryCommonProperties = {
     device_id?: string;
     is_container_env?: TelemetryBoolSet;
@@ -744,7 +750,7 @@ export type TelemetryCommonProperties = {
     has_docker?: TelemetryBoolSet;
 } & TelemetryCommonStaticProperties;
 
-// @public
+// @public (undocumented)
 export type TelemetryCommonStaticProperties = {
     mcp_server_version: string;
     mcp_server_name: string;
@@ -761,13 +767,11 @@ export type TelemetryConfig = {
     apiClient: ApiClient;
     keychain: IKeychain;
     enabled: boolean;
-    getCommonProperties?: () => Partial<TelemetryCommonProperties>;
+    serverMetadata: ServerMetadata;
     eventCache?: EventCache;
-    machineMetadata: TelemetryCommonStaticProperties;
-    detectContainerEnv?: () => Promise<boolean>;
 };
 
-// @public
+// @public (undocumented)
 export type TelemetryEvent<T> = {
     timestamp: string;
     source: "mdbmcp";
@@ -786,7 +790,7 @@ export type TelemetryEvents = {
     "events-skipped": [];
 };
 
-// @public
+// @public (undocumented)
 export type TelemetryResult = "success" | "failure";
 
 // @public

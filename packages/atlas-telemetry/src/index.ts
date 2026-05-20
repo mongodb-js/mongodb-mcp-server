@@ -9,7 +9,7 @@ export {
 export type { TelemetryConfig, TelemetryEvents } from "./atlasTelemetry.js";
 export { EventCache } from "./eventCache.js";
 export { Timer } from "./timer.js";
-export { buildMachineMetadata } from "./constants.js";
+export { detectContainerEnv } from "./containerEnv.js";
 export type {
     TelemetryBaseEvent,
     TelemetryCommonProperties,

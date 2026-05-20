@@ -8,13 +8,7 @@ import {
     MAX_BACKOFF_MS,
     type TelemetryConfig,
 } from "./atlasTelemetry.js";
-import type {
-    TelemetryBaseEvent,
-    TelemetryCommonProperties,
-    TelemetryCommonStaticProperties,
-    TelemetryEvent,
-    TelemetryResult,
-} from "./types.js";
+import type { TelemetryBaseEvent, TelemetryCommonProperties, TelemetryEvent, TelemetryResult } from "./types.js";
 import { EventCache } from "./eventCache.js";
 import { afterAll, afterEach, beforeEach, describe, it, vi, expect } from "vitest";
 import { NoopLogger, Keychain } from "@mongodb-js/mcp-core";
@@ -26,14 +20,7 @@ function expectDefined<T>(arg: T): asserts arg is Exclude<T, undefined | null> {
     expect(arg).not.toBeNull();
 }
 
-const TEST_MACHINE_METADATA: TelemetryCommonStaticProperties = {
-    mcp_server_version: "1.0.0",
-    mcp_server_name: "test-server",
-    platform: "linux",
-    arch: "x64",
-    os_type: "linux",
-    os_version: "5.0.0",
-};
+const TEST_SERVER_METADATA = { mcpServerName: "test-server", version: "1.0.0" };
 
 // Restore any spies installed by individual describe blocks so tests in
 // different blocks don't interfere with each other.
@@ -77,25 +64,58 @@ describe("AtlasTelemetry", () => {
     const sessionId = "test-session-id";
     const mcpClient = { name: "test-agent", version: "1.0.0" };
 
-    function createAtlasTelemetry(overrides: Partial<TelemetryConfig> = {}): AtlasTelemetry {
-        return AtlasTelemetry.create({
-            logger: new NoopLogger(),
-            deviceId: mockDeviceId,
-            apiClient: mockApiClient as unknown as ApiClient,
-            keychain,
-            enabled: true,
-            machineMetadata: TEST_MACHINE_METADATA,
-            detectContainerEnv: vi.fn().mockResolvedValue(false),
-            getCommonProperties: () => ({
+    type TestAtlasTelemetryOptions = {
+        commonPropertiesOverride?: () => Partial<TelemetryCommonProperties>;
+    };
+
+    class TestAtlasTelemetry extends AtlasTelemetry {
+        private readonly commonPropertiesOverride?: () => Partial<TelemetryCommonProperties>;
+
+        constructor(config: TelemetryConfig, options: TestAtlasTelemetryOptions = {}) {
+            super(config);
+            this.commonPropertiesOverride = options.commonPropertiesOverride;
+        }
+
+        public override getCommonProperties(): TelemetryCommonProperties {
+            return {
+                ...super.getCommonProperties(),
                 transport: "stdio",
                 mcp_client_version: mcpClient.version,
                 mcp_client_name: mcpClient.name,
                 session_id: sessionId,
                 config_atlas_auth: mockApiClient.isAuthConfigured() ? "true" : "false",
                 config_connection_string: "false",
-            }),
-            ...overrides,
-        });
+                ...this.commonPropertiesOverride?.(),
+            };
+        }
+
+        static createForTest(config: TelemetryConfig, options: TestAtlasTelemetryOptions = {}): TestAtlasTelemetry {
+            const instance = new TestAtlasTelemetry(config, options);
+            void instance.setup();
+            return instance;
+        }
+    }
+
+    function createAtlasTelemetry(
+        overrides: Partial<TelemetryConfig> & TestAtlasTelemetryOptions = {}
+    ): AtlasTelemetry {
+        const { commonPropertiesOverride, ...configOverrides } = overrides;
+        const serverMetadata = configOverrides.serverMetadata ?? TEST_SERVER_METADATA;
+
+        vi.spyOn(AtlasTelemetry.prototype, "detectContainerEnv").mockResolvedValue(false);
+
+        return TestAtlasTelemetry.createForTest(
+            {
+                logger: new NoopLogger(),
+                deviceId: mockDeviceId,
+                apiClient: mockApiClient as unknown as ApiClient,
+                keychain,
+                enabled: true,
+                serverMetadata,
+                ...configOverrides,
+            },
+            { commonPropertiesOverride }
+        );
     }
 
     // In-memory store backing the stateful mock EventCache
@@ -299,7 +319,7 @@ describe("AtlasTelemetry", () => {
         it("should add hostingMode to events if set", async () => {
             vi.clearAllTimers();
             telemetry = createAtlasTelemetry({
-                getCommonProperties: () => ({ hosting_mode: "vscode-extension" }),
+                commonPropertiesOverride: () => ({ hosting_mode: "vscode-extension" }),
             });
             await telemetry.setupPromise;
 
@@ -502,7 +522,7 @@ describe("AtlasTelemetry", () => {
                 };
 
                 vi.clearAllTimers();
-                telemetry = createAtlasTelemetry({ getCommonProperties: () => sensitiveStaticProps });
+                telemetry = createAtlasTelemetry({ commonPropertiesOverride: () => sensitiveStaticProps });
                 await telemetry.setupPromise;
 
                 await emitEventsForTest([createTestEvent()]);
@@ -697,14 +717,15 @@ describe("AtlasTelemetry credentials handling", () => {
             expect(apiClient.isAuthConfigured()).toBe(false);
         }
 
+        vi.spyOn(AtlasTelemetry.prototype, "detectContainerEnv").mockResolvedValue(false);
+
         const telemetry = AtlasTelemetry.create({
             logger: new NoopLogger(),
             deviceId: mockDeviceId,
             apiClient,
             keychain: new Keychain(),
             enabled: true,
-            machineMetadata: TEST_MACHINE_METADATA,
-            detectContainerEnv: vi.fn().mockResolvedValue(false),
+            serverMetadata: TEST_SERVER_METADATA,
         });
         await telemetry.setupPromise;
 

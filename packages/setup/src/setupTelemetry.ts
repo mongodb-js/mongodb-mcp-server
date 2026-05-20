@@ -3,7 +3,7 @@ import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import type { Keychain } from "@mongodb-js/mcp-core";
 import { NoopLogger } from "@mongodb-js/mcp-core";
 import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
-import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
+import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { ITelemetry, ServerMetadata } from "@mongodb-js/mcp-types";
 import type { SkillsInstallOutcome } from "./installSkills.js";
 import type {
@@ -77,7 +77,7 @@ export class SetupTelemetry {
             apiClient,
             keychain,
             enabled: config.telemetry === "enabled",
-            machineMetadata: buildMachineMetadata(serverMetadata),
+            serverMetadata,
         });
         return new SetupTelemetry({ telemetry, deviceId });
     }

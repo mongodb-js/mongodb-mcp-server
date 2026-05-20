@@ -30,7 +30,7 @@ import {
 } from "../../integrationHelpers.js";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 import { setupMongoDBIntegrationTest } from "../../mongodbHelpers.js";
-import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
+import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 
 const injectedErrorHandler: ConnectionErrorHandler = (error) => {
     switch (error.code) {
@@ -137,10 +137,10 @@ describe("MongoDBTool implementations", () => {
             apiClient: session.apiClient,
             keychain: session.keychain,
             enabled: false,
-            machineMetadata: buildMachineMetadata({
+            serverMetadata: {
                 mcpServerName: "test-server",
                 version: "1.0",
-            }),
+            },
         });
 
         const clientTransport = new InMemoryTransport();

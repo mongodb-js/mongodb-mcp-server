@@ -1,23 +1,20 @@
-/**
- * Result type constants for telemetry events
- */
-export type TelemetryResult = "success" | "failure";
-export type TelemetryServerCommand = "start" | "stop";
-export type TelemetryBoolSet = "true" | "false";
+import type {
+    TelemetryBoolSet,
+    TelemetryCommonProperties,
+    TelemetryCommonStaticProperties,
+    TelemetryEvent,
+    TelemetryResult,
+} from "@mongodb-js/mcp-types";
 
-/**
- * Base interface for all events
- */
-export type TelemetryEvent<T> = {
-    timestamp: string;
-    source: "mdbmcp";
-    properties: T & {
-        component: string;
-        duration_ms: number;
-        result: TelemetryResult;
-        category: string;
-    } & Record<string, string | number | string[]>;
+export type {
+    TelemetryBoolSet,
+    TelemetryCommonProperties,
+    TelemetryCommonStaticProperties,
+    TelemetryEvent,
+    TelemetryResult,
 };
+
+export type TelemetryServerCommand = "start" | "stop";
 
 export type TelemetryBaseEvent = TelemetryEvent<unknown>;
 
@@ -135,98 +132,6 @@ export type TelemetrySetupEventProperties = {
 } & Pick<TelemetryCommonProperties, "has_docker">;
 
 export type TelemetrySetupEvent = TelemetryEvent<TelemetrySetupEventProperties>;
-
-/**
- * Interface for static properties, they can be fetched once and reused.
- */
-export type TelemetryCommonStaticProperties = {
-    /**
-     * The version of the MCP server (as read from package.json).
-     */
-    mcp_server_version: string;
-
-    /**
-     * The name of the MCP server (as read from package.json).
-     */
-    mcp_server_name: string;
-
-    /**
-     * The platform/OS the MCP server is running on.
-     */
-    platform: string;
-
-    /**
-     * The architecture of the OS the server is running on.
-     */
-    arch: string;
-
-    /**
-     * Same as platform.
-     */
-    os_type: string;
-
-    /**
-     * The version of the OS the server is running on.
-     */
-    os_version?: string;
-};
-
-/**
- * Common properties for all events that might change.
- */
-export type TelemetryCommonProperties = {
-    /**
-     * The device id - will be populated with the machine id when it resolves.
-     */
-    device_id?: string;
-
-    /**
-     * A boolean indicating whether the server is running in a container environment.
-     */
-    is_container_env?: TelemetryBoolSet;
-
-    /**
-     * The version of the MCP client as reported by the client on session establishment.
-     */
-    mcp_client_version?: string;
-
-    /**
-     * The name of the MCP client as reported by the client on session establishment.
-     */
-    mcp_client_name?: string;
-
-    /**
-     * The transport protocol used by the MCP server.
-     */
-    transport?: "stdio" | "http";
-
-    /**
-     * A boolean indicating whether Atlas credentials are configured.
-     */
-    config_atlas_auth?: TelemetryBoolSet;
-
-    /**
-     * A boolean indicating whether a connection string is configured.
-     */
-    config_connection_string?: TelemetryBoolSet;
-
-    /**
-     * The randomly generated session id.
-     */
-    session_id?: string;
-
-    /**
-     * The way the MCP server is hosted - e.g. standalone for a server running independently or
-     * "vscode" if embedded in the VSCode extension. This field should be populated by the hosting
-     * application to differentiate events coming from an MCP server it's hosting.
-     */
-    hosting_mode?: string;
-
-    /**
-     * A boolean indicating whether a Docker daemon is available on the machine.
-     */
-    has_docker?: TelemetryBoolSet;
-} & TelemetryCommonStaticProperties;
 
 /**
  * Telemetry metadata that can be provided by tools when emitting telemetry events.

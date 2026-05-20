@@ -3,7 +3,7 @@ import type { ClientOptions, FetchOptions, Client, Middleware } from "openapi-fe
 import { ApiClientError } from "./apiClientError.js";
 import type { components, paths, operations } from "./openapi.js";
 import type { LoggerBase } from "@mongodb-js/mcp-core";
-import type { IApiClient } from "@mongodb-js/mcp-types";
+import type { IApiClient, TelemetryCommonProperties, TelemetryEvent } from "@mongodb-js/mcp-types";
 import { createFetch } from "@mongodb-js/devtools-proxy-support";
 import { Request as NodeFetchRequest } from "node-fetch";
 import type { AuthProvider } from "./auth/authProvider.js";
@@ -34,7 +34,7 @@ export type RequestContext = {
     headers?: Record<string, string | string[] | undefined>;
 };
 
-export class ApiClient implements IApiClient {
+export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonProperties>[]> {
     private readonly options: {
         baseUrl: string;
         userAgent: string;
@@ -150,7 +150,9 @@ export class ApiClient implements IApiClient {
         }>;
     }
 
-    public async sendEvents(options: { events: unknown[]; signal?: AbortSignal } = { events: [] }): Promise<void> {
+    public async sendEvents(
+        options: { events: TelemetryEvent<TelemetryCommonProperties>[]; signal?: AbortSignal } = { events: [] }
+    ): Promise<void> {
         const { events, signal = AbortSignal.timeout(DEFAULT_SEND_TIMEOUT_MS) } = options;
         if (!this.authProvider) {
             await this.sendUnauthEvents(events, signal);
@@ -170,7 +172,10 @@ export class ApiClient implements IApiClient {
         }
     }
 
-    private async sendAuthEvents(events: unknown[], signal?: AbortSignal): Promise<void> {
+    private async sendAuthEvents(
+        events: TelemetryEvent<TelemetryCommonProperties>[],
+        signal?: AbortSignal
+    ): Promise<void> {
         const authHeaders = await this.authProvider?.getAuthHeaders();
         if (!authHeaders) {
             throw new Error("No access token available");
@@ -193,7 +198,10 @@ export class ApiClient implements IApiClient {
         }
     }
 
-    private async sendUnauthEvents(events: unknown[], signal?: AbortSignal): Promise<void> {
+    private async sendUnauthEvents(
+        events: TelemetryEvent<TelemetryCommonProperties>[],
+        signal?: AbortSignal
+    ): Promise<void> {
         const headers: Record<string, string> = {
             Accept: "application/json",
             "Content-Type": "application/json",

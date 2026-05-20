@@ -64,11 +64,91 @@ The telemetry implementation has been extracted into a standalone package. All t
 +     apiClient,
 +     keychain,              // now mandatory
 +     enabled: true,
-+     machineMetadata: buildMachineMetadata(packageName, packageVersion),
++     serverMetadata: packageInfo,
 + });
 ```
 
-`machineMetadata` is now a required field. Use the `buildMachineMetadata(name, version)` helper exported from `@mongodb-js/mcp-atlas-telemetry` to construct it.
+`serverMetadata` is now a required field (replacing the removed `machineMetadata` config option).
+
+### `machineMetadata` removed; use `serverMetadata`
+
+```diff
+- machineMetadata: buildMachineMetadata(packageName, packageVersion),
++ serverMetadata: packageInfo,
+```
+
+The `buildMachineMetadata` helper is gone. The base `getCommonProperties()` maps `serverMetadata` to `mcp_server_version`, `mcp_server_name`, `platform`, `arch`, `os_type`, and `os_version` inline.
+
+### Override `getCommonProperties` by extending `AtlasTelemetry`
+
+Host-specific common properties (transport, MCP client identity, session id, etc.) are no longer passed through `TelemetryConfig`. Subclass `AtlasTelemetry`, override `getCommonProperties()`, and spread `super.getCommonProperties()` so pipeline fields (`device_id`, `is_container_env`) and server metadata stay included:
+
+```typescript
+import {
+  AtlasTelemetry,
+  type TelemetryConfig,
+} from "@mongodb-js/mcp-atlas-telemetry";
+
+class McpServerTelemetry extends AtlasTelemetry {
+  constructor(
+    config: TelemetryConfig,
+    private readonly hostContext: {
+      transport: "stdio" | "http";
+      clientName?: string;
+    }
+  ) {
+    super(config);
+  }
+
+  static createWithHostContext(
+    config: TelemetryConfig,
+    hostContext: { transport: "stdio" | "http"; clientName?: string }
+  ): McpServerTelemetry {
+    const instance = new McpServerTelemetry(config, hostContext);
+    void instance.setup();
+    return instance;
+  }
+
+  public override getCommonProperties() {
+    return {
+      ...super.getCommonProperties(),
+      transport: this.hostContext.transport,
+      mcp_client_name: this.hostContext.clientName,
+    };
+  }
+}
+
+const telemetry = McpServerTelemetry.createWithHostContext(
+  {
+    logger,
+    deviceId,
+    apiClient,
+    keychain,
+    enabled: true,
+    serverMetadata: packageInfo,
+  },
+  { transport: "stdio", clientName: "cursor" }
+);
+```
+
+`AtlasTelemetry.create(config)` still works for the base class. Subclasses that need extra constructor arguments should expose their own factory that calls `setup()` after `new`.
+
+### Override `detectContainerEnv` by extending `AtlasTelemetry`
+
+Container detection is no longer a `TelemetryConfig` callback. Override the protected `detectContainerEnv()` method for non-Node runtimes or tests. The default implementation is also exported as `detectContainerEnv` if you want to delegate to it:
+
+```typescript
+import {
+  AtlasTelemetry,
+  detectContainerEnv,
+} from "@mongodb-js/mcp-atlas-telemetry";
+
+class BrowserTelemetry extends AtlasTelemetry {
+  protected override async detectContainerEnv(): Promise<boolean> {
+    return false;
+  }
+}
+```
 
 ### Type renames
 

@@ -22,7 +22,7 @@ import type { AnyResourceClass } from "@mongodb-js/mcp-types";
 import { ApiClient, ClientCredentialsAuthProvider } from "@mongodb-js/mcp-atlas-api-client";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 export { Session } from "@mongodb-js/mcp-cli";
-import { AtlasTelemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
+import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 export const defaultTestConfig: UserConfig = {
     ...UserConfigSchema.parse({}),
     telemetry: "disabled",
@@ -227,7 +227,7 @@ export function setupIntegrationTest(
             apiClient: session.apiClient,
             keychain: session.keychain,
             enabled: false,
-            machineMetadata: buildMachineMetadata(packageInfo),
+            serverMetadata: packageInfo,
         });
 
         const mcpServerInstance = new McpServer({

@@ -62,7 +62,7 @@ export type AnyToolBase = ToolBase<any>;
 export type AnyToolClass = ToolClass<any, any>;
 
 // @public (undocumented)
-export class ApiClient implements IApiClient {
+export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonProperties>[]> {
     constructor(options: ApiClientOptions);
     // (undocumented)
     acceptVpcPeeringConnection(options: FetchOptions<operations["acceptGroupStreamVpcPeeringConnection"]>): Promise<void>;
@@ -174,7 +174,7 @@ export class ApiClient implements IApiClient {
     rejectVpcPeeringConnection(options: FetchOptions<operations["rejectGroupStreamVpcPeeringConnection"]>): Promise<void>;
     // (undocumented)
     sendEvents(options?: {
-        events: unknown[];
+        events: TelemetryEvent<TelemetryCommonProperties>[];
         signal?: AbortSignal;
     }): Promise<void>;
     // (undocumented)
@@ -258,15 +258,21 @@ export { applyConfigOverrides }
 
 // @public (undocumented)
 export class AtlasTelemetry implements ITelemetry {
+    protected constructor(config: TelemetryConfig);
     // (undocumented)
     close(): Promise<void>;
     // (undocumented)
-    static create(config: TelemetryConfig): AtlasTelemetry;
+    static create(this: typeof AtlasTelemetry, config: TelemetryConfig): AtlasTelemetry;
+    protected detectContainerEnv(): Promise<boolean>;
     emitEvents(events: TelemetryBaseEvent[]): void;
     // (undocumented)
     readonly events: EventEmitter<TelemetryEvents>;
     getCommonProperties(): TelemetryCommonProperties;
     isTelemetryEnabled(): boolean;
+    // (undocumented)
+    protected readonly serverMetadata: ServerMetadata;
+    // (undocumented)
+    protected setup(): Promise<void>;
     setupPromise: Promise<[string, boolean]> | undefined;
 }
 
@@ -935,7 +941,7 @@ export { StreamableHTTPServerTransport }
 // @public (undocumented)
 export type TelemetryBaseEvent = TelemetryEvent<unknown>;
 
-// @public
+// @public (undocumented)
 export type TelemetryCommonProperties = {
     device_id?: string;
     is_container_env?: TelemetryBoolSet;
@@ -956,13 +962,11 @@ export type TelemetryConfig = {
     apiClient: ApiClient;
     keychain: IKeychain;
     enabled: boolean;
-    getCommonProperties?: () => Partial<TelemetryCommonProperties>;
+    serverMetadata: ServerMetadata;
     eventCache?: EventCache;
-    machineMetadata: TelemetryCommonStaticProperties;
-    detectContainerEnv?: () => Promise<boolean>;
 };
 
-// @public
+// @public (undocumented)
 export type TelemetryEvent<T> = {
     timestamp: string;
     source: "mdbmcp";

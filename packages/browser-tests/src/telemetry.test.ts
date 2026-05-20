@@ -2,7 +2,7 @@ import type { MockInstance } from "vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
-import { AtlasTelemetry as Telemetry, buildMachineMetadata } from "@mongodb-js/mcp-atlas-telemetry";
+import { AtlasTelemetry as Telemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 
 type MockTelemetrySession = {
@@ -83,7 +83,7 @@ describe("Telemetry in browser environment", () => {
             apiClient,
             keychain: session.keychain,
             enabled: true,
-            machineMetadata: buildMachineMetadata({ mcpServerName: "browser-test-server", version: "1.0.0" }),
+            serverMetadata: { mcpServerName: "browser-test-server", version: "1.0.0" },
         });
 
         await expect(telemetry.setupPromise).resolves.toBeDefined();
