@@ -5,4 +5,4 @@ export {
     ErrorTool,
     EchoTool,
     NoopTool,
-} from "@mongodb-js/mcp-test-utils";
+} from "./mockTools.js";

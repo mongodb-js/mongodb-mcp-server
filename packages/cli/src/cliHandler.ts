@@ -1,6 +1,6 @@
 import type { ServerMetadata } from "@mongodb-js/mcp-types";
-import type { UserConfig } from "src/config/userConfig.js";
-import type { OnExit, Console } from "src/types.js";
+import type { UserConfig } from "./config/userConfig.js";
+import type { OnExit, Console } from "./types.js";
 
 export type CliHandlerContext = {
     config: UserConfig;

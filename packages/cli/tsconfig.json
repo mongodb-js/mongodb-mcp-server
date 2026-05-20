@@ -8,12 +8,5 @@
     "composite": true
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["dist", "node_modules"],
-  "references": [
-    { "path": "../atlas-telemetry" },
-    { "path": "../atlas-api-client" },
-    { "path": "../tools-atlas" },
-    { "path": "../tools-atlas-local" },
-    { "path": "../tools-mongodb" }
-  ]
+  "exclude": ["dist", "node_modules"]
 }

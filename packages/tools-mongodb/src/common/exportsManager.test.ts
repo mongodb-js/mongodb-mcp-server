@@ -8,17 +8,19 @@ import type { ExportsManagerOptions } from "@mongodb-js/mcp-tools-mongodb";
 import { ensureExtension, isExportExpired, ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import type { AvailableExport } from "@mongodb-js/mcp-tools-mongodb";
 import { timeout } from "@mongodb-js/mcp-test-utils";
-import { defaultTestConfig } from "mongodb-mcp-server/test-helpers";
+
+const DEFAULT_EXPORT_TIMEOUT_MS = 5 * 60 * 1000;
+const DEFAULT_EXPORT_CLEANUP_INTERVAL_MS = 2 * 60 * 1000;
 import type { EJSONOptions } from "bson";
 import { EJSON, ObjectId } from "bson";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
 
 const logger = new CompositeLogger();
-const exportsPath = path.join(process.cwd(), "tests", "tmp", `exports-${Date.now()}`);
+const exportsPath = path.join(process.cwd(), "tmp", "exports-manager-tests", `exports-${Date.now()}`);
 const exportsManagerConfig: Omit<ExportsManagerOptions, "exportsDirectoryPath"> = {
     exportsPath,
-    exportTimeoutMs: defaultTestConfig.exportTimeoutMs,
-    exportCleanupIntervalMs: defaultTestConfig.exportCleanupIntervalMs,
+    exportTimeoutMs: DEFAULT_EXPORT_TIMEOUT_MS,
+    exportCleanupIntervalMs: DEFAULT_EXPORT_CLEANUP_INTERVAL_MS,
 } as const;
 
 function getExportNameAndPath({

@@ -9,7 +9,7 @@ import {
 } from "@mongodb-js/mcp-cli";
 import { Keychain } from "@mongodb-js/mcp-core";
 import type { Secret } from "@mongodb-js/mcp-core";
-import { createEnvironment, useClearEnvironment } from "../../utils/index.js";
+import { createEnvironment, useClearEnvironment } from "@mongodb-js/mcp-test-utils";
 import path from "path";
 import { TRANSPORT_PAYLOAD_LIMITS } from "@mongodb-js/mcp-cli";
 import { getConfigMeta } from "@mongodb-js/mcp-cli";
@@ -61,8 +61,8 @@ const expectedDefaults = {
 };
 
 const CONFIG_FIXTURES = {
-    VALID: path.resolve(import.meta.dirname, "..", "..", "fixtures", "valid-config.json"),
-    WITH_INVALID_VALUE: path.resolve(import.meta.dirname, "..", "..", "fixtures", "config-with-invalid-value.json"),
+    VALID: path.resolve(import.meta.dirname, "fixtures", "valid-config.json"),
+    WITH_INVALID_VALUE: path.resolve(import.meta.dirname, "fixtures", "config-with-invalid-value.json"),
 };
 
 describe("config", () => {

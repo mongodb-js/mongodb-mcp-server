@@ -38,6 +38,7 @@
     "@mongodb-js/mcp-tools-atlas-local": "workspace:*",
     "@mongodb-js/mcp-tools-assistant": "workspace:*",
     "@mongodb-js/mcp-http-runners": "workspace:*",
+    "@mongodb-js/mcp-logging": "workspace:*",
     "@mongodb-js/devtools-proxy-support": "^0.7.8",
     "@mongodb-js/mcp-cli": "workspace:*",
     "@mongodb-js/mcp-ui": "workspace:*",

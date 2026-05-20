@@ -128,8 +128,17 @@ const config: KnipConfig = {
             ignore: ["src/fixtures/curl.mjs"],
         },
         "packages/atlas-api-client": {
-            entry: ["src/index.ts!"],
+            entry: ["src/index.ts!", "src/**/*.test.ts"],
             ignore: ["openapi.d.ts"], // Generated file with many exported types
+        },
+        "packages/core": {
+            entry: ["src/index.ts!", "src/**/*.test.ts"],
+        },
+        "packages/http-runners": {
+            entry: ["src/index.ts!", "src/**/*.test.ts"],
+        },
+        "packages/tools-atlas-local": {
+            entry: ["src/index.ts!", "src/**/*.test.ts"],
         },
         "packages/ui": {
             ignore: ["src/build/mount.tsx", "src/components/**", "vite.ui.config.ts", "src/test-setup.ts"],
@@ -150,9 +159,11 @@ const config: KnipConfig = {
             entry: ["src/index.ts!"],
         },
         "packages/tools-mongodb": {
+            entry: ["src/index.ts!", "src/**/*.test.ts"],
             // These are used via mongosh and driver peer dependencies
             // but knip can't trace through the complex import chains
             ignoreDependencies: [
+                "@mongodb-js/mcp-test-utils",
                 "@mongodb-js/device-id",
                 "@mongosh/arg-parser",
                 "@mongosh/service-provider-node-driver",

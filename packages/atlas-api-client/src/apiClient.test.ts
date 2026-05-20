@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
-import { packageInfo } from "../../../src/common/packageInfo.js";
 import type { TelemetryCommonProperties as CommonProperties, TelemetryEvent } from "@mongodb-js/mcp-atlas-telemetry";
 import { NoopLogger } from "@mongodb-js/mcp-core";
 
@@ -76,7 +75,8 @@ describe("ApiClient", () => {
         });
 
         it("should use the provided userAgent in unauth requests", async () => {
-            const expectedUserAgent = `AtlasMCP/${packageInfo.version} (${process.platform}; ${process.arch})`;
+            const testVersion = "1.0.0-test";
+            const expectedUserAgent = `AtlasMCP/${testVersion} (${process.platform}; ${process.arch})`;
             const clientWithUserAgent = new ApiClient({
                 baseUrl: "https://api.test.com",
                 credentials: {

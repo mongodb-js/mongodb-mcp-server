@@ -1,7 +1,7 @@
 import { describe, it, expect, expectTypeOf } from "vitest";
 import type { IndexDirection, SortDirection } from "mongodb";
 import type { z } from "zod";
-import { IndexDirectionSchema, SortDirectionSchema } from "@mongodb-js/mcp-tools-mongodb";
+import { IndexDirectionSchema, SortDirectionSchema } from "../mongodbSchemas.js";
 
 describe("IndexDirectionSchema", () => {
     type Ours = z.infer<typeof IndexDirectionSchema>;

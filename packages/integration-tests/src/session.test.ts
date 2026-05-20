@@ -9,9 +9,9 @@ import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { Keychain } from "@mongodb-js/mcp-core";
 import { ErrorCodes, MongoDBError } from "@mongodb-js/mcp-tools-mongodb";
-import { defaultTestConfig, testConnectionManagerDriverLabels } from "mongodb-mcp-server/test-helpers";
+import { defaultTestConfig, testConnectionManagerDriverLabels } from "./integrationHelpers.js";
 import { connectionErrorHandler as defaultConnectionErrorHandler } from "@mongodb-js/mcp-tools-mongodb";
-import { ApiClient } from "../../../src/lib.js";
+import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 
 vi.mock("@mongosh/service-provider-node-driver");
 

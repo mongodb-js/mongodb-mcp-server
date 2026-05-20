@@ -71,7 +71,6 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "@microsoft/api-extractor": "^7.58.7",
-    "@mongodb-js/mcp-test-utils": "workspace:*",
     "@types/node": "^25.6.0",
     "concurrently": "^9.2.1",
     "tsx": "^4.20.5",
@@ -79,8 +78,7 @@
     "typescript": "^5.9.2",
     "vitest": "^4.1.5",
     "zod": "^4.4.2",
-    "@modelcontextprotocol/sdk": "^1.29.0",
-    "bson": "^7.2.0"
+    "@modelcontextprotocol/sdk": "^1.29.0"
   },
   "dependencies": {
     "@mongodb-js/device-id": "^0.4.11",

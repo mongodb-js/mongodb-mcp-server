@@ -9,15 +9,6 @@ export { MockMetrics } from "./mockMetrics.js";
 export { createEnvironment, useClearEnvironment, type TestConnectionManager } from "./testUtils.js";
 
 export {
-    TestTool,
-    TestToolWithOutputSchema,
-    TestToolWithoutStructuredContent,
-    ErrorTool,
-    EchoTool,
-    NoopTool,
-} from "./mockTools.js";
-
-export {
     MongoDBClusterProcess,
     type MongoClusterConfiguration,
     type MongoRunnerConfiguration,
