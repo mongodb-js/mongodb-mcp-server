@@ -51,7 +51,6 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     constructor({ logger, authProvider, options }: ApiClientOptions) {
         this.logger = logger;
         this.authProvider = authProvider;
-        this.authProvider = authProvider;
         // In Node we use `createFetch` from devtools-proxy-support to pick up
         // environment-variable proxy configuration and system CA trust, and we
         // use node-fetch's Request since its interface is a superset of the

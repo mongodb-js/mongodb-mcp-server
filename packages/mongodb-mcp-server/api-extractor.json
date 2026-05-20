@@ -21,7 +21,7 @@
 
   "apiReport": {
     "enabled": true,
-    "reportFolder": "<projectFolder>/api-extractor/reports/",
+    "reportFolder": "<projectFolder>/../../api-extractor/reports/",
     "reportFileName": "mongodb-mcp-server",
     "reportVariants": ["public"]
   },

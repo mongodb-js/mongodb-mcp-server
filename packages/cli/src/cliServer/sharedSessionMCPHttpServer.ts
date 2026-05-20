@@ -6,7 +6,8 @@ import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 
-export class MCPHttpServerWrapper extends MCPHttpServer<SessionServer> {
+/** MCP HTTP Server that shares a single server instance. */
+export class SharedSessionMCPHttpServer extends MCPHttpServer<SessionServer> {
     private server: SessionServer;
 
     constructor({

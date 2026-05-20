@@ -9,8 +9,9 @@
 
   "apiReport": {
     "enabled": true,
-    "reportFolder": "<projectFolder>/api-extractor/reports/",
-    "reportFileName": "ui"
+    "reportFolder": "<projectFolder>/../../api-extractor/reports/",
+    "reportFileName": "ui",
+    "reportVariants": ["public"]
   },
 
   "docModel": {
