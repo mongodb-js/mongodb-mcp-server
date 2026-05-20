@@ -17,14 +17,14 @@ These tests verify that:
 # Install workspace dependencies
 pnpm install
 # Install the Playwright Chromium browser
-pnpm --filter browser run install:browser
+pnpm --filter @mongodb-js/mcp-browser-tests run install:browser
 # Run the browser tests
-pnpm --filter browser run test
+pnpm --filter @mongodb-js/mcp-browser-tests run test
 ```
 
 You might find it useful to run tests with headed mode (browser visible) to debug tests:
 
 ```bash
 # Run with headed mode (browser visible)
-HEADED=1 pnpm --filter browser run test
+HEADED=1 pnpm --filter @mongodb-js/mcp-browser-tests run test
 ```

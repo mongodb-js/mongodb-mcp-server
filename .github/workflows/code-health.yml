@@ -135,7 +135,7 @@ jobs:
       - name: Build
         run: pnpm run build
       - name: Install Playwright Chromium
-        run: pnpm --filter browser run install:browser
+        run: pnpm --filter @mongodb-js/mcp-browser-tests run install:browser
       - name: Run browser tests
         run: pnpm run test:browser
       - name: Upload test results
@@ -143,7 +143,7 @@ jobs:
         uses: actions/upload-artifact@v7.0.1
         with:
           name: browser-test-results
-          path: coverage/tests/browser/lcov.info
+          path: coverage/packages/browser-tests/lcov.info
 
   coverage:
     name: Report Coverage

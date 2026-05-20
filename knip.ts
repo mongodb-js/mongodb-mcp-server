@@ -110,8 +110,8 @@ const config: KnipConfig = {
         "packages/tools-mongodb": {
             entry: ["src/**/*.test.ts"],
         },
-        "tests/browser": {
-            entry: ["tests/**/*.ts", "polyfills/**/*.ts", "utils/**/*.ts", "setup.ts"],
+        "packages/browser-tests": {
+            entry: ["src/**/*.test.ts", "polyfills/**/*.ts", "utils/**/*.ts", "setup.ts"],
             ignoreDependencies: [
                 "buffer", // Vite resolve.alias in browser vitest.config, not a direct import
                 "evp_bytestokey", // Vite resolve.alias for crypto polyfill chain

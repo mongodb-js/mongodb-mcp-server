@@ -32,7 +32,7 @@
     "pretest": "pnpm run build",
     "test": "vitest --project eslint-rules --project unit-and-integration --coverage --run",
     "test:accuracy": "pnpm --filter @mongodb-js/mcp-accuracy-tests test",
-    "test:browser": "pnpm --filter browser test",
+    "test:browser": "pnpm --filter @mongodb-js/mcp-browser-tests test",
     "test:long-running-tests": "vitest --project long-running-tests --coverage",
     "test:local": "SKIP_ATLAS_INTEGRATION_TESTS=true SKIP_ATLAS_LOCAL_TESTS=true pnpm run test",
     "prevalidate:mcpb": "pnpm run build",

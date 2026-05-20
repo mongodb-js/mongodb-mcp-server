@@ -50,7 +50,7 @@ export default defineConfig({
                         ...vitestDefaultExcludes,
                         "packages/scripts/**",
                         "packages/accuracy-tests/**",
-                        "tests/browser/**",
+                        "packages/browser-tests/**",
                         ...longRunningTests,
                     ],
                 },
