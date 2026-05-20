@@ -140,6 +140,8 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     // (undocumented)
     rejectVpcPeeringConnection(options: FetchOptions<operations["rejectGroupStreamVpcPeeringConnection"]>): Promise<void>;
     // (undocumented)
+    requestSampleDatasetLoad(options: FetchOptions<operations["requestGroupSampleDatasetLoad"]>): Promise<components["schemas"]["SampleDatasetStatus"]>;
+    // (undocumented)
     sendEvents(input?: {
         events: TelemetryEvent<TelemetryCommonProperties>[];
         signal?: AbortSignal;

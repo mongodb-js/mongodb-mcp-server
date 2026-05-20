@@ -489,6 +489,32 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
         return data;
     }
 
+    async requestSampleDatasetLoad(
+        options: FetchOptions<operations["requestGroupSampleDatasetLoad"]>
+    ): Promise<components["schemas"]["SampleDatasetStatus"]> {
+        const { data, error, response } = await this.client.POST(
+            "/api/atlas/v2/groups/{groupId}/sampleDatasetLoad/{name}",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError({ response, error });
+        }
+        return data;
+    }
+
+    async getSampleDatasetLoad(
+        options: FetchOptions<operations["getGroupSampleDatasetLoad"]>
+    ): Promise<components["schemas"]["SampleDatasetStatus"]> {
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/sampleDatasetLoad/{sampleDatasetId}",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError({ response, error });
+        }
+        return data;
+    }
+
     async listStreamWorkspaces(
         options: FetchOptions<operations["listGroupStreamWorkspaces"]>
     ): Promise<components["schemas"]["PaginatedApiStreamsTenantView"]> {

@@ -26,3 +26,4 @@ export type DropIndexSuggestionsResponse = Schemas["DropIndexSuggestionsResponse
 export type SchemaAdvisorResponse = Schemas["SchemaAdvisorResponse"];
 export type SchemaAdvisorItemRecommendation = Schemas["SchemaAdvisorItemRecommendation"];
 export type PerformanceAdvisorSlowQuery = Schemas["PerformanceAdvisorSlowQuery"];
+export type SampleDatasetStatus = Schemas["SampleDatasetStatus"];

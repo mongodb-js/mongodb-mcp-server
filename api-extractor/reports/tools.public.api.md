@@ -1801,6 +1801,47 @@ export class ListProjectsTool extends AtlasToolBase {
 }
 
 // @public (undocumented)
+export const LoadSampleDatasetArgs: {
+    projectId: z.ZodString;
+    clusterName: z.ZodOptional<z.ZodString>;
+    jobId: z.ZodOptional<z.ZodString>;
+};
+
+// @public (undocumented)
+export type LoadSampleDatasetOutput = z.infer<z.ZodObject<typeof LoadSampleDatasetOutputSchema>>;
+
+// @public (undocumented)
+export class LoadSampleDatasetTool extends AtlasToolBase {
+    // (undocumented)
+    argsShape: {
+        projectId: z.ZodString;
+        clusterName: z.ZodOptional<z.ZodString>;
+        jobId: z.ZodOptional<z.ZodString>;
+    };
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    protected execute(input: ToolArgs<typeof LoadSampleDatasetTool.argsShape>): Promise<ToolResult<typeof LoadSampleDatasetTool.outputSchema>>;
+    // (undocumented)
+    static operationType: OperationType;
+    // (undocumented)
+    outputSchema: {
+        jobId: z.ZodString;
+        clusterName: z.ZodString;
+        state: z.ZodEnum<{
+            WORKING: "WORKING";
+            FAILED: "FAILED";
+            COMPLETED: "COMPLETED";
+        }>;
+        createDate: z.ZodString;
+        completeDate: z.ZodOptional<z.ZodString>;
+        errorMessage: z.ZodOptional<z.ZodString>;
+    };
+    // (undocumented)
+    static toolName: string;
+}
+
+// @public (undocumented)
 export type LogsOutput = z.infer<z.ZodObject<typeof LogsOutputSchema>>;
 
 // @public (undocumented)
