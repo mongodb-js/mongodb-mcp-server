@@ -1,7 +1,4 @@
-/**
- * Temporary file for comparing the API Extractor report only (`api-extractor/api-extractor-tools.json`).
- * Not published as a package export — import from `@mongodb-js/mcp-tools-*` or `mongodb-mcp-server`.
- */
+/** This file is temporarily used for generating API reports against the v1 API for comparison purposes. */
 export { MongoDBToolBase, type IMongoDBConfig, type IMongoDBSession } from "@mongodb-js/mcp-tools-mongodb";
 
 export * from "@mongodb-js/mcp-tools-atlas-local";

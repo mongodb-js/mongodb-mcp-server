@@ -1,3 +1,4 @@
+/** This file is temporarily used for generating API reports against the v1 API for comparison purposes. */
 export { type ITransportRunner, type TransportRequestContext } from "@mongodb-js/mcp-types";
 export { createDefaultMetrics, type DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
 export type { ToolCategory } from "@mongodb-js/mcp-types";

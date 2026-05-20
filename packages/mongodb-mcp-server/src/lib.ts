@@ -1,3 +1,4 @@
+/** This file is temporarily used for generating API reports against the v1 API for comparison purposes. */
 export { Server, type ServerOptions } from "@mongodb-js/mcp-cli";
 export { Session } from "@mongodb-js/mcp-cli";
 export type { SessionEvents } from "@mongodb-js/mcp-types";
