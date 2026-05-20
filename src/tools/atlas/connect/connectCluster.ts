@@ -12,6 +12,7 @@ import { AtlasArgs } from "../../args.js";
 import type { ConnectionMetadata } from "../../../telemetry/types.js";
 import { ConnectionString } from "mongodb-connection-string-url";
 import semver from "semver";
+import { oidcDeviceFlowContent } from "../../../common/connectionErrorHandler.js";
 
 const addedIpAccessListMessage =
     "Note: Your current IP address has been added to the Atlas project's IP access list to enable secure connection.";
@@ -350,20 +351,7 @@ export class ConnectClusterTool extends AtlasToolBase {
                 connState.oidcLoginUrl
             ) {
                 return {
-                    content: [
-                        {
-                            type: "text",
-                            text: `To authenticate via OIDC, visit: ${connState.oidcLoginUrl}`,
-                        },
-                        {
-                            type: "text",
-                            text: `Enter code: ${connState.oidcUserCode}`,
-                        },
-                        {
-                            type: "text",
-                            text: `Call this tool again after authenticating to confirm the connection.`,
-                        },
-                    ],
+                    content: [oidcDeviceFlowContent(connState.oidcLoginUrl, connState.oidcUserCode)],
                 };
             }
 

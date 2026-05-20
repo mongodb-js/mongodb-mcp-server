@@ -12,6 +12,16 @@ export type ConnectionErrorHandlerContext = { availableTools: AnyToolBase[]; con
 export type ConnectionErrorUnhandled = { errorHandled: false };
 export type ConnectionErrorHandled = { errorHandled: true; result: CallToolResult };
 
+export function oidcDeviceFlowContent(
+    oidcLoginUrl: string,
+    oidcUserCode: string | undefined
+): { type: "text"; text: string } {
+    return {
+        type: "text",
+        text: `The user needs to finish their OIDC connection by opening '${oidcLoginUrl}' in the browser and use the following user code: '${oidcUserCode}'`,
+    };
+}
+
 export const connectionErrorHandler: ConnectionErrorHandler = (error, { availableTools, connectionState }) => {
     const connectTools = availableTools
         .filter((t) => t.operationType === "connect" && t.isEnabled())
@@ -45,10 +55,9 @@ export const connectionErrorHandler: ConnectionErrorHandler = (error, { availabl
     const additionalPromptForConnectivity: { type: "text"; text: string }[] = [];
 
     if (connectionState.tag === "connecting" && connectionState.oidcConnectionType) {
-        additionalPromptForConnectivity.push({
-            type: "text",
-            text: `The user needs to finish their OIDC connection by opening '${connectionState.oidcLoginUrl}' in the browser and use the following user code: '${connectionState.oidcUserCode}'`,
-        });
+        additionalPromptForConnectivity.push(
+            oidcDeviceFlowContent(connectionState.oidcLoginUrl!, connectionState.oidcUserCode)
+        );
     } else {
         additionalPromptForConnectivity.push({
             type: "text",
