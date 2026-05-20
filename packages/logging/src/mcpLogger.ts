@@ -3,16 +3,26 @@ import { MCP_LOG_LEVELS, LoggerBase } from "@mongodb-js/mcp-core";
 
 export class McpLogger extends LoggerBase {
     private readonly server: McpServer;
-    private readonly getMcpLogLevel: () => LogLevel;
+    private readonly logLevel: LogLevel;
     private readonly pendingSends = new Set<Promise<void>>();
 
-    public constructor(options: { server: McpServer; mcpLogLevel: LogLevel | (() => LogLevel) } & LoggerConfig) {
-        super(options);
-        this.server = options.server;
-        this.getMcpLogLevel =
-            typeof options.mcpLogLevel === "function"
-                ? options.mcpLogLevel
-                : (): LogLevel => options.mcpLogLevel as LogLevel;
+    public constructor({
+        server,
+        options,
+        ...loggerConfig
+    }: {
+        server: McpServer;
+        options: {
+            logLevel: LogLevel;
+        };
+    } & LoggerConfig) {
+        super(loggerConfig);
+        this.server = server;
+        this.logLevel = options.logLevel;
+    }
+
+    protected getMcpLogLevel(): LogLevel {
+        return this.logLevel;
     }
 
     protected readonly type: LoggerType = "mcp";

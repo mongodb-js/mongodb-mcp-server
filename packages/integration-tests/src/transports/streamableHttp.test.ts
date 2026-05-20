@@ -38,6 +38,7 @@ import type {
     HttpServerOptions,
     IMetrics,
     SessionManagementOptions,
+    TransportRequestContext,
 } from "@mongodb-js/mcp-types";
 import type { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import type { IncomingMessage } from "node:http";
@@ -167,7 +168,8 @@ class TestMCPHttpServer extends MCPHttpServer<CliServer> {
         this.tools = tools;
     }
 
-    protected override async createServerForRequest(): Promise<CliServer> {
+    protected override async createServerForRequest(request: TransportRequestContext): Promise<CliServer> {
+        void request;
         return createTestServer(this.userConfig, { tools: this.tools });
     }
 }

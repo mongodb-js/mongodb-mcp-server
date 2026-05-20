@@ -54,8 +54,6 @@ export {
     JSON_RPC_ERROR_CODE_INVALID_REQUEST,
     JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION,
 } from "./jsonRpcErrorCodes.js";
-export type { ServerOptions } from "./transports.js";
-
 export type { TransportRequestContext, CloseableTransport } from "@mongodb-js/mcp-types";
 
 export const MCP_LOG_LEVELS: readonly LogLevel[] = [

@@ -6,24 +6,30 @@ import { McpLogger } from "./mcpLogger.js";
 import { LoggingMessageNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
 import { Keychain } from "@mongodb-js/mcp-core";
 
+class DynamicMcpLogger extends McpLogger {
+    public minimumLevel: LogLevel = "debug";
+
+    protected override getMcpLogLevel(): LogLevel {
+        return this.minimumLevel;
+    }
+}
+
 describe("McpLogger", () => {
     let keychain: Keychain;
     let mcpLoggerSpy: MockInstance;
-    let mcpLogger: McpLogger;
-    let minimumMcpLogLevel: LogLevel;
+    let mcpLogger: DynamicMcpLogger;
 
     beforeEach(() => {
         vi.spyOn(console, "error").mockImplementation(() => {});
         keychain = Keychain.root;
 
         mcpLoggerSpy = vi.fn();
-        minimumMcpLogLevel = "debug";
-        mcpLogger = new McpLogger({
+        mcpLogger = new DynamicMcpLogger({
             server: {
                 sendLoggingMessage: mcpLoggerSpy,
                 isConnected: () => true,
             } as unknown as McpServer,
-            mcpLogLevel: (): LogLevel => minimumMcpLogLevel,
+            options: { logLevel: "debug" },
             keychain,
         });
     });
@@ -38,13 +44,13 @@ describe("McpLogger", () => {
     };
 
     it("filters out messages below the minimum log level", () => {
-        minimumMcpLogLevel = "debug";
+        mcpLogger.minimumLevel = "debug";
         mcpLogger.log("debug", { id: LogId.serverInitialized, context: "test", message: "Debug message" });
 
         expect(mcpLoggerSpy).toHaveBeenCalledOnce();
         expect(getLastMcpLogMessage()).toContain("Debug message");
 
-        minimumMcpLogLevel = "info";
+        mcpLogger.minimumLevel = "info";
         mcpLogger.log("debug", { id: LogId.serverInitialized, context: "test", message: "Debug message 2" });
 
         expect(mcpLoggerSpy).toHaveBeenCalledTimes(1);

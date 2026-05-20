@@ -1,6 +1,6 @@
 import type { MockInstance } from "vitest";
 import { describe, beforeEach, afterEach, vi, it, expect } from "vitest";
-import type { LogLevel, McpServer } from "@mongodb-js/mcp-types";
+import type { McpServer } from "@mongodb-js/mcp-types";
 import { CompositeLogger, LogId } from "@mongodb-js/mcp-core";
 import { ConsoleLogger } from "./consoleLogger.js";
 import { McpLogger } from "./mcpLogger.js";
@@ -26,7 +26,7 @@ describe("CompositeLogger", () => {
                 sendLoggingMessage: mcpLoggerSpy,
                 isConnected: () => true,
             } as unknown as McpServer,
-            mcpLogLevel: (): LogLevel => "debug",
+            options: { logLevel: "debug" },
             keychain,
         });
     });
