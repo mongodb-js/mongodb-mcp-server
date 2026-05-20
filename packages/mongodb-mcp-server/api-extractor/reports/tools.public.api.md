@@ -642,8 +642,8 @@ export class CreateIndexTool extends MongoDBToolBase {
                     dotProduct: "dotProduct";
                 }>>;
                 quantization: z.ZodDefault<z.ZodEnum<{
-                    none: "none";
                     binary: "binary";
+                    none: "none";
                     scalar: "scalar";
                 }>>;
             }, z.core.$strict>, z.ZodObject<{
@@ -669,8 +669,8 @@ export class CreateIndexTool extends MongoDBToolBase {
                         string: "string";
                         number: "number";
                         boolean: "boolean";
-                        uuid: "uuid";
                         date: "date";
+                        uuid: "uuid";
                         autocomplete: "autocomplete";
                         document: "document";
                         embeddedDocuments: "embeddedDocuments";

@@ -22,7 +22,8 @@ import { DOCUMENT_EMBEDDINGS } from "./vyai/embeddings.js";
 import type { TelemetryToolEvent as ToolEvent } from "@mongodb-js/mcp-atlas-telemetry";
 import type { Client } from "@modelcontextprotocol/sdk/client";
 import { QUERY_COUNT_MAX_TIME_MS_CAP, pipelineDescriptionWithVectorSearch } from "@mongodb-js/mcp-tools-mongodb";
-import type { MongoServerError, Collection } from "mongodb";
+import { MongoServerError } from "mongodb";
+import type { Collection } from "mongodb";
 
 describeWithMongoDB("aggregate tool", (integration) => {
     afterEach(() => {
