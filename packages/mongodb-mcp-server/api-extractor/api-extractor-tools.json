@@ -4,14 +4,6 @@
 
   "mainEntryPointFilePath": "<projectFolder>/dist/esm/tools/index.d.ts",
 
-  "bundledPackages": [
-    "@mongodb-js/mcp-core",
-    "@mongodb-js/mcp-tools-mongodb",
-    "@mongodb-js/mcp-tools-atlas",
-    "@mongodb-js/mcp-tools-atlas-local",
-    "@mongodb-js/mcp-tools-assistant"
-  ],
-
   "apiReport": {
     "enabled": true,
     "reportFolder": "<projectFolder>/../../api-extractor/reports/",

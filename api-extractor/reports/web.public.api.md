@@ -5,8 +5,8 @@
 ```ts
 
 import type { AggregationCursor } from 'mongodb';
-import { AtlasLocalClientFactoryFn } from '@mongodb-js/mcp-tools-atlas-local';
 import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import type { Client } from '@mongodb-js/atlas-local';
 import { ConnectionInfo } from '@mongosh/arg-parser';
 import { Counter } from 'prom-client';
 import type { ElicitRequestFormParams } from '@modelcontextprotocol/sdk/types.js';
@@ -14,7 +14,6 @@ import { EventEmitter } from 'events';
 import type { FetchOptions } from 'openapi-fetch';
 import type { FindCursor } from 'mongodb';
 import { Histogram } from 'prom-client';
-import { LibraryLoader } from '@mongodb-js/mcp-tools-atlas-local';
 import type { LoggingMessageNotification } from '@modelcontextprotocol/sdk/types.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
@@ -238,7 +237,11 @@ export type AtlasConnectionMetadata = AtlasMetadata & AtlasLocalToolMetadata & {
     connection_host_type?: string;
 };
 
-export { AtlasLocalClientFactoryFn }
+// @public (undocumented)
+export type AtlasLocalClientFactoryFn = (input: {
+    logger: LoggerBase;
+    loader?: LibraryLoader;
+}) => Promise<Client | undefined>;
 
 // @public (undocumented)
 export type AtlasLocalToolMetadata = {
@@ -623,7 +626,11 @@ export class Keychain implements IKeychain {
     static get root(): Keychain;
 }
 
-export { LibraryLoader }
+// @public (undocumented)
+export interface LibraryLoader {
+    // (undocumented)
+    loadAtlasLocalClient: (logger: LoggerBase) => Promise<typeof Client | undefined>;
+}
 
 // @public (undocumented)
 export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extends EventEmitter<T> implements ILogger {
