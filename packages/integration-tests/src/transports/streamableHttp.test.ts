@@ -21,8 +21,8 @@ import {
     type ToolCategory,
     type ToolExecutionContext,
     ToolBase,
-    Server,
-    Session,
+    CliServer,
+    CliSession,
     Elicitation,
     connectionErrorHandler,
     MCPConnectionManager,
@@ -53,7 +53,7 @@ async function createTestServer(
     options: {
         tools?: ToolClass[];
     } = {}
-): Promise<Server> {
+): Promise<CliServer> {
     const logger = new CompositeLogger({ loggers: [] });
     const keychain = Keychain.root;
 
@@ -97,7 +97,7 @@ async function createTestServer(
 
     const elicitation = new Elicitation({ server: mcpServer.server });
 
-    const session = new Session({
+    const session = new CliSession({
         userConfig: config,
         logger,
         exportsManager,
@@ -110,7 +110,7 @@ async function createTestServer(
 
     const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
 
-    const server = new Server({
+    const server = new CliServer({
         session,
         mcpServer,
         telemetry: {
@@ -135,7 +135,7 @@ async function createTestServer(
 }
 
 // Custom MCPHttpServer that creates test servers
-class TestMCPHttpServer extends MCPHttpServer<Server> {
+class TestMCPHttpServer extends MCPHttpServer<CliServer> {
     protected userConfig: UserConfig;
     protected tools?: ToolClass[];
 
@@ -167,7 +167,7 @@ class TestMCPHttpServer extends MCPHttpServer<Server> {
         this.tools = tools;
     }
 
-    protected override async createServerForRequest(): Promise<Server> {
+    protected override async createServerForRequest(): Promise<CliServer> {
         return createTestServer(this.userConfig, { tools: this.tools });
     }
 }
@@ -179,7 +179,7 @@ function createStreamableHttpRunner(
         tools?: ToolClass[];
         loggers?: LoggerBase[];
     } = {}
-): Promise<StreamableHttpRunner<Server>> {
+): Promise<StreamableHttpRunner<CliServer>> {
     const logger = new CompositeLogger({ loggers: options.loggers ?? [] });
     const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
 
@@ -215,7 +215,7 @@ function createStreamableHttpRunner(
     });
 
     return Promise.resolve(
-        new StreamableHttpRunner<Server>({
+        new StreamableHttpRunner<CliServer>({
             logger,
             metrics: metrics,
             mcpHttpServer,
@@ -225,7 +225,7 @@ function createStreamableHttpRunner(
 }
 
 describe("StreamableHttpRunner", () => {
-    let runner: StreamableHttpRunner<Server>;
+    let runner: StreamableHttpRunner<CliServer>;
     let config: UserConfig;
 
     let clients: Client[] = [];
@@ -282,7 +282,7 @@ describe("StreamableHttpRunner", () => {
 
         await runner?.close();
         // Make sure runner is reset
-        runner = undefined as unknown as StreamableHttpRunner<Server>;
+        runner = undefined as unknown as StreamableHttpRunner<CliServer>;
     });
 
     const headerTestCases: { headers: Record<string, string>; description: string }[] = [
@@ -409,7 +409,7 @@ describe("StreamableHttpRunner", () => {
     });
 
     it("can create multiple runners", async () => {
-        const runners: StreamableHttpRunner<Server>[] = [];
+        const runners: StreamableHttpRunner<CliServer>[] = [];
         try {
             for (let i = 0; i < 3; i++) {
                 const runner = await createStreamableHttpRunner(config);
@@ -794,7 +794,7 @@ describe("StreamableHttpRunner", () => {
                     }
                 }
 
-                function wrapAppHandle(ownershipRunner: StreamableHttpRunner<Server>): void {
+                function wrapAppHandle(ownershipRunner: StreamableHttpRunner<CliServer>): void {
                     type HandleFn = (req: IncomingMessage, ...rest: unknown[]) => void;
                     const mcpHttpServer = (
                         ownershipRunner as unknown as { mcpHttpServer: { app: { handle: HandleFn } } }
@@ -846,7 +846,7 @@ describe("StreamableHttpRunner", () => {
                         tools: AllTools,
                     });
 
-                    const ownershipRunner = new StreamableHttpRunner<Server>({
+                    const ownershipRunner = new StreamableHttpRunner<CliServer>({
                         metrics: metrics,
                         mcpHttpServer,
                         sessionStore: ownershipStore,
@@ -1058,7 +1058,7 @@ describe("StreamableHttpRunner", () => {
                 tools: AllTools,
             });
 
-            runner = new StreamableHttpRunner<Server>({
+            runner = new StreamableHttpRunner<CliServer>({
                 metrics: metrics,
                 mcpHttpServer: customMcpHttpServer,
                 sessionStore,
@@ -1116,7 +1116,7 @@ describe("StreamableHttpRunner", () => {
                 sessionStore,
             });
 
-            runner = new StreamableHttpRunner<Server>({
+            runner = new StreamableHttpRunner<CliServer>({
                 metrics: metrics,
                 mcpHttpServer: rejectingMcpHttpServer,
                 sessionStore,
@@ -1208,13 +1208,13 @@ describe("StreamableHttpRunner", () => {
 });
 
 // Helper to get the server address from the runner
-function getServerAddress(runner: StreamableHttpRunner<Server>): string {
+function getServerAddress(runner: StreamableHttpRunner<CliServer>): string {
     // Access the mcpHttpServer and get its address
     const mcpHttpServer = (runner as unknown as { mcpHttpServer: { serverAddress: string } }).mcpHttpServer;
     return mcpHttpServer.serverAddress;
 }
 
 // Helper to get session store from runner
-function getSessionStore(runner: StreamableHttpRunner<Server>): ISessionStore<StreamableHTTPServerTransport> {
+function getSessionStore(runner: StreamableHttpRunner<CliServer>): ISessionStore<StreamableHTTPServerTransport> {
     return (runner as unknown as { sessionStore: ISessionStore<StreamableHTTPServerTransport> }).sessionStore;
 }

@@ -24,12 +24,12 @@ export type ToolRegistry = AnyToolClass[];
 /** Resource constructor registry. */
 export type ResourceRegistry = readonly AnyResourceClass[];
 
-export interface ServerOptions<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
-    session: ServerSession;
+export interface CliServerOptions<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
+    session: McpSession;
     mcpServer: McpServer;
     telemetry: AtlasTelemetry;
     elicitation: Elicitation;
-    /** @deprecated Will be removed in a future version. Use `SessionOptions.connectionErrorHandler` instead. */
+    /** @deprecated Will be removed in a future version. Use `CliSessionOptions.connectionErrorHandler` instead. */
     connectionErrorHandler: ConnectionErrorHandler;
     uiRegistry?: IUIRegistry;
     metrics: IMetrics<TMetrics>;
@@ -77,14 +77,14 @@ export interface ServerOptions<TMetrics extends DefaultMetricDefinitions = Defau
     readonly serverMetadata: ServerMetadata;
 }
 
-export type ServerSession = ISession<UserConfig> & {
+export type McpSession = ISession<UserConfig> & {
     apiClient: IApiClient;
     connectionManager: ConnectionManager;
     connectToConfiguredConnection: () => Promise<void>;
 };
 
-export class Server<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
-    public readonly session: ServerSession;
+export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
+    public readonly session: McpSession;
     public readonly mcpServer: McpServer;
     private readonly telemetry: AtlasTelemetry;
     public readonly elicitation: Elicitation;
@@ -118,7 +118,7 @@ export class Server<TMetrics extends DefaultMetricDefinitions = DefaultMetricDef
         uiRegistry,
         metrics,
         serverMetadata,
-    }: ServerOptions<TMetrics> & { session: ServerSession }) {
+    }: CliServerOptions<TMetrics> & { session: McpSession }) {
         this.startTime = Date.now();
         this.session = session;
         this.telemetry = telemetry;

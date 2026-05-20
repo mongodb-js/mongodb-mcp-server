@@ -24,7 +24,7 @@ import type {
     HttpServerOptions,
     SessionManagementOptions,
 } from "@mongodb-js/mcp-types";
-import { Server, type AnyToolClass, Session, Elicitation, connectionErrorHandler } from "mongodb-mcp-server";
+import { CliServer, type AnyToolClass, CliSession, Elicitation, connectionErrorHandler } from "mongodb-mcp-server";
 import { MCPConnectionManager, ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { StreamableHttpRunner, MonitoringServer, MCPHttpServer } from "@mongodb-js/mcp-http-runners";
 import { SessionStore } from "@mongodb-js/mcp-core";
@@ -40,7 +40,7 @@ async function createTestServer(
         tools?: AnyToolClass[];
         metrics?: PrometheusMetrics<DefaultPrometheusMetricDefinitions>;
     } = {}
-): Promise<Server> {
+): Promise<CliServer> {
     const logger = new CompositeLogger({ loggers: [] });
     const keychain = Keychain.root;
 
@@ -84,7 +84,7 @@ async function createTestServer(
 
     const elicitation = new Elicitation({ server: mcpServer.server });
 
-    const session = new Session({
+    const session = new CliSession({
         userConfig: config,
         logger,
         exportsManager,
@@ -97,7 +97,7 @@ async function createTestServer(
 
     const metrics = options.metrics ?? new PrometheusMetrics({ definitions: createDefaultMetrics() });
 
-    const server = new Server({
+    const server = new CliServer({
         session,
         mcpServer,
         telemetry: {
@@ -122,7 +122,7 @@ async function createTestServer(
 }
 
 // Custom MCPHttpServer that creates test servers with custom tools/metrics
-class TestMCPHttpServer extends MCPHttpServer<Server, DefaultMetricDefinitions> {
+class TestMCPHttpServer extends MCPHttpServer<CliServer, DefaultMetricDefinitions> {
     private userConfig: UserConfig;
     private tools?: AnyToolClass[];
     private customMetrics?: PrometheusMetrics<DefaultPrometheusMetricDefinitions>;
@@ -153,7 +153,7 @@ class TestMCPHttpServer extends MCPHttpServer<Server, DefaultMetricDefinitions> 
         this.customMetrics = customMetrics;
     }
 
-    protected override async createServerForRequest(): Promise<Server> {
+    protected override async createServerForRequest(): Promise<CliServer> {
         return createTestServer(this.userConfig, {
             tools: this.tools,
             metrics:
@@ -171,7 +171,7 @@ function createMetricsTestRunner(
         customMetrics?: PrometheusMetrics<DefaultPrometheusMetricDefinitions>;
     } = {}
 ): {
-    runner: StreamableHttpRunner<Server>;
+    runner: StreamableHttpRunner<CliServer>;
     monitoringServer: MonitoringServer;
     getServerAddress: () => string;
 } {
@@ -220,7 +220,7 @@ function createMetricsTestRunner(
         metrics: metrics,
     });
 
-    const runner = new StreamableHttpRunner<Server>({
+    const runner = new StreamableHttpRunner<CliServer>({
         logger,
         metrics: metrics,
         mcpHttpServer,
@@ -236,7 +236,7 @@ function createMetricsTestRunner(
 }
 
 describe("/metrics endpoint", () => {
-    let runner: StreamableHttpRunner<Server>;
+    let runner: StreamableHttpRunner<CliServer>;
     let monitoringServer: MonitoringServer;
     let getServerAddress: () => string;
     let config: UserConfig;
@@ -267,7 +267,7 @@ describe("/metrics endpoint", () => {
         }
         clients = [];
         await runner?.close();
-        runner = undefined as unknown as StreamableHttpRunner<Server>;
+        runner = undefined as unknown as StreamableHttpRunner<CliServer>;
     });
 
     const monitoringUrl = (path: string): string => `${monitoringServer.serverAddress}${path}`;
@@ -374,7 +374,7 @@ describe("/metrics endpoint", () => {
             } satisfies CustomMetrics,
         });
 
-        class CustomTool extends ToolBase<Session, CustomMetrics> {
+        class CustomTool extends ToolBase<CliSession, CustomMetrics> {
             static toolName = "custom-tool";
             static category: ToolCategory = "mongodb";
             static operationType: OperationType = "read";

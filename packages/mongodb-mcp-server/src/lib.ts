@@ -1,6 +1,11 @@
 /** This file is temporarily used for generating API reports against the v1 API for comparison purposes. */
-export { Server, type ServerOptions } from "@mongodb-js/mcp-cli";
-export { Session } from "@mongodb-js/mcp-cli";
+export {
+    CliServer,
+    type CliServerOptions,
+    CliSession,
+    type McpSession,
+    type CliSessionOptions,
+} from "@mongodb-js/mcp-cli";
 export type { SessionEvents } from "@mongodb-js/mcp-types";
 export { type UserConfig, UserConfigSchema, configRegistry } from "@mongodb-js/mcp-cli";
 export { parseUserConfig, defaultParserOptions, type ParserOptions } from "@mongodb-js/mcp-cli";

@@ -9,10 +9,10 @@ import {
 } from "../integrationHelpers.js";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
 import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
-import { Session } from "mongodb-mcp-server";
+import { CliSession } from "mongodb-mcp-server";
 import { AllTools } from "mongodb-mcp-server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { Server } from "mongodb-mcp-server";
+import { CliServer } from "mongodb-mcp-server";
 import { MCPConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
 import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { connectionErrorHandler } from "mongodb-mcp-server";
@@ -171,7 +171,7 @@ describeWithMongoDB(
 describe("mcpUI feature with custom UIs", () => {
     const initServerWithCustomUIs = async (
         customUIs: Record<string, string>
-    ): Promise<{ server: Server; transport: Transport }> => {
+    ): Promise<{ server: CliServer; transport: Transport }> => {
         const customUIsFunction = (toolName: string): string | null => customUIs[toolName] ?? null;
         const userConfig = {
             ...defaultTestConfig,
@@ -189,7 +189,7 @@ describe("mcpUI feature with custom UIs", () => {
         });
         const exportsManager = ExportsManager.init({ options: userConfig, logger });
 
-        const session = new Session({
+        const session = new CliSession({
             userConfig,
             logger,
             exportsManager,
@@ -220,7 +220,7 @@ describe("mcpUI feature with custom UIs", () => {
         const mcpServerInstance = new McpServer({ name: "test", version: "1.0" });
         const elicitation = new Elicitation({ server: mcpServerInstance.server });
 
-        const server = new Server({
+        const server = new CliServer({
             session,
             telemetry,
             mcpServer: mcpServerInstance,
@@ -243,7 +243,7 @@ describe("mcpUI feature with custom UIs", () => {
         return { transport, server };
     };
 
-    let server: Server | undefined;
+    let server: CliServer | undefined;
     let transport: Transport | undefined;
 
     afterAll(async () => {

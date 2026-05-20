@@ -47,8 +47,8 @@ describe("Build Test", () => {
             expect.arrayContaining([
                 "ConnectionManager",
                 "LoggerBase",
-                "Server",
-                "Session",
+                "CliServer",
+                "CliSession",
                 "StreamableHttpRunner",
                 "AtlasTelemetry",
                 "Elicitation",

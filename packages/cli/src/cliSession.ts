@@ -18,10 +18,10 @@ import type { Client } from "@mongodb-js/atlas-local";
 import type { Keychain } from "@mongodb-js/mcp-core";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import type { UserConfig } from "./config/userConfig.js";
-import type { ServerSession } from "./server.js";
+import type { McpSession } from "./cliServer.js";
 import { type ConnectionErrorHandler } from "@mongodb-js/mcp-tools-mongodb";
 
-export interface SessionOptions<TUserConfig extends UserConfig = UserConfig> {
+export interface CliSessionOptions<TUserConfig extends UserConfig = UserConfig> {
     userConfig: TUserConfig;
     logger: CompositeLogger;
     exportsManager: ExportsManager;
@@ -39,7 +39,7 @@ export type SessionEvents = {
     "connection-error": [ConnectionStateErrored];
 };
 
-export class Session extends EventEmitter<SessionEvents> implements ServerSession {
+export class CliSession extends EventEmitter<SessionEvents> implements McpSession {
     public readonly config: UserConfig;
     public readonly sessionId: string = new ObjectId().toString();
     public readonly exportsManager: ExportsManager;
@@ -66,7 +66,7 @@ export class Session extends EventEmitter<SessionEvents> implements ServerSessio
         atlasLocalClient,
         connectionErrorHandler,
         apiClient,
-    }: SessionOptions<UserConfig>) {
+    }: CliSessionOptions<UserConfig>) {
         super();
 
         this.config = userConfig;

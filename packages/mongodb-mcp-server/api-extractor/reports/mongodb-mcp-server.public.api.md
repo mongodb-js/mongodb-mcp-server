@@ -7,6 +7,10 @@
 import type { AggregationCursor } from 'mongodb';
 import { applyConfigOverrides } from '@mongodb-js/mcp-cli';
 import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import { CliServer } from '@mongodb-js/mcp-cli';
+import { CliServerOptions } from '@mongodb-js/mcp-cli';
+import { CliSession } from '@mongodb-js/mcp-cli';
+import { CliSessionOptions } from '@mongodb-js/mcp-cli';
 import { ConfigOverrideError } from '@mongodb-js/mcp-cli';
 import { configRegistry } from '@mongodb-js/mcp-cli';
 import { ConnectionInfo } from '@mongosh/arg-parser';
@@ -25,6 +29,7 @@ import { Histogram } from 'prom-client';
 import type http from 'http';
 import type { LoggingMessageNotification } from '@modelcontextprotocol/sdk/types.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpSession } from '@mongodb-js/mcp-cli';
 import { nameToConfigKey } from '@mongodb-js/mcp-cli';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
 import { onlyStricterLogLevelOverride } from '@mongodb-js/mcp-cli';
@@ -32,9 +37,6 @@ import { ParserOptions } from '@mongodb-js/mcp-cli';
 import { parseUserConfig } from '@mongodb-js/mcp-cli';
 import { Registry } from 'prom-client';
 import { Secret } from 'mongodb-redact';
-import { Server } from '@mongodb-js/mcp-cli';
-import { ServerOptions } from '@mongodb-js/mcp-cli';
-import { Session } from '@mongodb-js/mcp-cli';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
@@ -295,6 +297,14 @@ export class ClientCredentialsAuthProvider implements AuthProvider {
     // (undocumented)
     validate(): Promise<boolean>;
 }
+
+export { CliServer }
+
+export { CliServerOptions }
+
+export { CliSession }
+
+export { CliSessionOptions }
 
 // @public (undocumented)
 export type CloseableTransport = {
@@ -741,6 +751,8 @@ export class McpLogger extends LoggerBase {
     protected readonly type: LoggerType;
 }
 
+export { McpSession }
+
 // @public (undocumented)
 export class MongoDBError<ErrorCodeType extends ErrorCode = ErrorCode> extends Error {
     constructor(code: ErrorCodeType, message: string);
@@ -834,12 +846,6 @@ export function registerGlobalSecretToRedact(value: Secret["value"], kind: Secre
 export { Registry }
 
 export { Secret }
-
-export { Server }
-
-export { ServerOptions }
-
-export { Session }
 
 // @public (undocumented)
 export type SessionCloseReason = "idle_timeout" | "transport_closed" | "server_stop" | "unknown";

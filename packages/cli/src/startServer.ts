@@ -5,7 +5,7 @@ import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/se
 import type { IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { UserConfig } from "./config/userConfig.js";
-import { MCPHttpServerWrapper } from "./server/mcpHttpServerWrapper.js";
+import { MCPHttpServerWrapper } from "./cliServer/mcpHttpServerWrapper.js";
 
 export async function startServer(
     server: SessionServer,

@@ -2,7 +2,7 @@ import type { Mocked, MockedFunction } from "vitest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MongoServerError } from "mongodb";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { Session } from "@mongodb-js/mcp-cli";
+import { CliSession } from "@mongodb-js/mcp-cli";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
 import { MCPConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
 import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
@@ -17,8 +17,8 @@ vi.mock("@mongosh/service-provider-node-driver");
 const MockNodeDriverServiceProvider = vi.mocked(NodeDriverServiceProvider);
 const MockDeviceId = vi.mocked(DeviceId.create(new CompositeLogger()));
 
-describe("Session", () => {
-    let session: Session;
+describe("CliSession", () => {
+    let session: CliSession;
     let mockDeviceId: Mocked<DeviceId>;
 
     beforeEach(() => {
@@ -34,7 +34,7 @@ describe("Session", () => {
             },
         });
 
-        session = new Session({
+        session = new CliSession({
             userConfig: {
                 ...defaultTestConfig,
                 apiClientId: "test-client-id",

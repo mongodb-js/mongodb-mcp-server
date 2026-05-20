@@ -13,8 +13,8 @@ import {
 import {
     type OperationType,
     type UserConfig,
-    Session,
-    Server,
+    CliSession,
+    CliServer,
     type AnyToolClass,
     connectionErrorHandler,
     type ConnectionErrorHandler,
@@ -94,7 +94,7 @@ describe("MongoDBTool implementations", () => {
     const mdbIntegration = setupMongoDBIntegrationTest();
 
     let mcpClient: Client | undefined;
-    let mcpServer: Server | undefined;
+    let mcpServer: CliServer | undefined;
     let deviceId: DeviceId | undefined;
 
     async function cleanupAndStartServer(
@@ -115,7 +115,7 @@ describe("MongoDBTool implementations", () => {
                 ...testConnectionManagerDriverLabels,
             },
         });
-        const session = new Session({
+        const session = new CliSession({
             userConfig,
             logger,
             exportsManager,
@@ -168,7 +168,7 @@ describe("MongoDBTool implementations", () => {
         });
         const elicitation = new Elicitation({ server: internalMcpServer.server });
 
-        mcpServer = new Server({
+        mcpServer = new CliServer({
             session,
             telemetry,
             mcpServer: internalMcpServer,

@@ -248,10 +248,10 @@ const runner = new StdioRunner({
 
 ```typescript
 import { StdioRunner } from "@mongodb-js/mcp-core";
-import { Server } from "mongodb-mcp-server";
+import { CliServer } from "mongodb-mcp-server";
 
 // Create your server instance
-const server = new Server({
+const server = new CliServer({
   mcpServer,
   session,
   // ... other options
@@ -265,10 +265,10 @@ const runner = new StdioRunner({
 });
 ```
 
-`ServerOptions` no longer includes `userConfig`. Pass config when creating `Session`; read it from `session.config` (including `mcpClientLogLevel`, which `Server` uses at startup).
+`CliServerOptions` no longer includes `userConfig`. Pass config when creating `Session`; read it from `session.config` (including `mcpClientLogLevel`, which `Server` uses at startup).
 
 ```diff
- const server = new Server({
+ const server = new CliServer({
    session,
 -  userConfig: config,
    mcpServer,
@@ -285,15 +285,15 @@ import {
   StreamableHttpRunner,
   MCPHttpServer,
 } from "@mongodb-js/mcp-http-runners";
-import { Server } from "mongodb-mcp-server";
+import { CliServer } from "mongodb-mcp-server";
 import type { TransportRequestContext } from "@mongodb-js/mcp-types";
 
 class MyMCPHttpServer extends MCPHttpServer {
   protected override async createServerForRequest(
     request: TransportRequestContext
-  ): Promise<Server> {
+  ): Promise<CliServer> {
     // Create server with per-request customization
-    return new Server({
+    return new CliServer({
       mcpServer,
       session,
       // ... customize based on request headers, etc.

@@ -1,7 +1,7 @@
 import type { CliHandler, CliHandlerContext } from "../cliHandler.js";
 import { DryRunModeRunner } from "../transports/dryModeRunner.js";
 import { createServicesFromUserConfig } from "../createServicesFromUserConfig.js";
-import type { ToolRegistry, ResourceRegistry } from "../server.js";
+import type { ToolRegistry, ResourceRegistry } from "../cliServer.js";
 
 export type DryRunHandlerOptions = {
     tools: ToolRegistry;

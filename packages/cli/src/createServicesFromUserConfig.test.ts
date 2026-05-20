@@ -68,12 +68,12 @@ vi.mock("@mongodb-js/mcp-core", async (importOriginal) => {
     };
 });
 
-vi.mock("./session.js", () => ({
-    Session: class MockSession {},
+vi.mock("./cliSession.js", () => ({
+    CliSession: class MockCliSession {},
 }));
 
-vi.mock("./server.js", () => ({
-    Server: class MockServer {},
+vi.mock("./cliServer.js", () => ({
+    CliServer: class MockCliServer {},
 }));
 
 import { createServicesFromUserConfig } from "./createServicesFromUserConfig.js";

@@ -1,6 +1,6 @@
-// Server class and types
-export { Server } from "./server.js";
-export type { ServerOptions, ToolRegistry, ResourceRegistry } from "./server.js";
+// CLI server class and types
+export { CliServer } from "./cliServer.js";
+export type { CliServerOptions, ToolRegistry, ResourceRegistry, McpSession } from "./cliServer.js";
 export type { ServerMetadata } from "@mongodb-js/mcp-types";
 
 // Main CLI exports
@@ -12,7 +12,8 @@ export { createServicesFromUserConfig, type CreateServicesOptions } from "./crea
 
 export type { CliHandler, CliHandlerContext } from "./cliHandler.js";
 
-export { Session } from "./session.js";
+export { CliSession } from "./cliSession.js";
+export type { CliSessionOptions } from "./cliSession.js";
 
 // Config parsing and types
 export { parseUserConfig, type ParserOptions, defaultParserOptions } from "./config/parseUserConfig.js";
@@ -42,8 +43,6 @@ export {
     CONFIG_HEADER_PREFIX,
     CONFIG_QUERY_PREFIX,
 } from "./config/configOverrides.js";
-
-export type { ServerSession } from "./server.js";
 
 // Transport constants
 export { TRANSPORT_PAYLOAD_LIMITS, type TransportType } from "./transports/constants.js";

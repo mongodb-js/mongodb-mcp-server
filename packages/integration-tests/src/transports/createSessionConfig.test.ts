@@ -5,8 +5,8 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import { afterEach, describe, expect, it } from "vitest";
 import type { UserConfig } from "mongodb-mcp-server";
 import {
-    Server,
-    Session,
+    CliServer,
+    CliSession,
     Elicitation,
     connectionErrorHandler,
     MCPConnectionManager,
@@ -27,7 +27,7 @@ import type { IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
 import { vi } from "vitest";
 
 // Helper to create a full Server instance for tests
-async function createTestServer(config: UserConfig): Promise<Server> {
+async function createTestServer(config: UserConfig): Promise<CliServer> {
     const logger = new CompositeLogger({ loggers: [] });
     const keychain = Keychain.root;
 
@@ -71,7 +71,7 @@ async function createTestServer(config: UserConfig): Promise<Server> {
 
     const elicitation = new Elicitation({ server: mcpServer.server });
 
-    const session = new Session({
+    const session = new CliSession({
         userConfig: config,
         logger,
         exportsManager,
@@ -84,7 +84,7 @@ async function createTestServer(config: UserConfig): Promise<Server> {
 
     const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
 
-    const server = new Server({
+    const server = new CliServer({
         session,
         mcpServer,
         telemetry: new NoopTelemetry() as unknown as AtlasTelemetry,
@@ -105,7 +105,7 @@ async function createTestServer(config: UserConfig): Promise<Server> {
 }
 
 // Custom MCPHttpServer that applies config modifications from a provider function
-class ConfigModifyingMCPHttpServer extends MCPHttpServer<Server> {
+class ConfigModifyingMCPHttpServer extends MCPHttpServer<CliServer> {
     private baseConfig: UserConfig;
     private configModifier: (config: UserConfig) => Promise<UserConfig>;
 
@@ -132,7 +132,7 @@ class ConfigModifyingMCPHttpServer extends MCPHttpServer<Server> {
         this.configModifier = configModifier;
     }
 
-    protected override async createServerForRequest(): Promise<Server> {
+    protected override async createServerForRequest(): Promise<CliServer> {
         const modifiedConfig = await this.configModifier(this.baseConfig);
         return createTestServer(modifiedConfig);
     }
@@ -143,7 +143,7 @@ function createConfigModifyingRunner(
     baseConfig: UserConfig,
     configModifier: (config: UserConfig) => Promise<UserConfig>
 ): Promise<{
-    runner: StreamableHttpRunner<Server>;
+    runner: StreamableHttpRunner<CliServer>;
     getServerAddress: () => string;
 }> {
     const logger = new CompositeLogger({ loggers: [] });
@@ -178,7 +178,7 @@ function createConfigModifyingRunner(
         sessionStore,
     });
 
-    const runner = new StreamableHttpRunner<Server>({
+    const runner = new StreamableHttpRunner<CliServer>({
         logger,
         metrics: metrics,
         mcpHttpServer,
@@ -193,7 +193,7 @@ function createConfigModifyingRunner(
 }
 
 describe("createSessionConfig (via createServerForRequest override)", () => {
-    let runner: StreamableHttpRunner<Server>;
+    let runner: StreamableHttpRunner<CliServer>;
     let client: Client | undefined;
     let transport: StreamableHTTPClientTransport | undefined;
     let getServerAddress: () => string;

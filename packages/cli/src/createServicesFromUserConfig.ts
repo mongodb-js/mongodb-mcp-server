@@ -2,13 +2,13 @@ import { type IMetrics, PrometheusMetrics, createDefaultMetrics } from "@mongodb
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import { Elicitation, Keychain, McpServer } from "@mongodb-js/mcp-core";
 import { createDefaultLoggers } from "./utils/loggers.js";
-import type { ResourceRegistry, ToolRegistry } from "./server.js";
-import { Server } from "./server.js";
+import type { ResourceRegistry, ToolRegistry } from "./cliServer.js";
+import { CliServer } from "./cliServer.js";
 import { ApiClient, ClientCredentialsAuthProvider } from "@mongodb-js/mcp-atlas-api-client";
 import { connectionErrorHandler, DeviceId, ExportsManager, MCPConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
 import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
-import { Session } from "./session.js";
+import { CliSession } from "./cliSession.js";
 import type { UserConfig } from "./config/userConfig.js";
 import type { ServerMetadata } from "@mongodb-js/mcp-types";
 
@@ -27,7 +27,12 @@ export async function createServicesFromUserConfig({
     serverMetadata,
     tools,
     resources,
-}: CreateServicesOptions): Promise<{ server: Server; config: UserConfig; logger: CompositeLogger; metrics: IMetrics }> {
+}: CreateServicesOptions): Promise<{
+    server: CliServer;
+    config: UserConfig;
+    logger: CompositeLogger;
+    metrics: IMetrics;
+}> {
     // Create logger and metrics
     const keychain = Keychain.root;
     const logger = await createDefaultLoggers({ config, keychain });
@@ -94,7 +99,7 @@ export async function createServicesFromUserConfig({
 
     const elicitation = new Elicitation({ server: mcpServer.server });
 
-    const session = new Session({
+    const session = new CliSession({
         userConfig: config,
         logger,
         exportsManager,
@@ -105,7 +110,7 @@ export async function createServicesFromUserConfig({
         atlasLocalClient,
     });
 
-    const server = new Server({
+    const server = new CliServer({
         session,
         mcpServer,
         telemetry,

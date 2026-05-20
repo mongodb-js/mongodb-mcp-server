@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DebugResource } from "./debug.js";
-import { Session } from "../../session.js";
+import { CliSession } from "../../cliSession.js";
 import { UserConfigSchema, type UserConfig } from "../../config/userConfig.js";
 import { connectionErrorHandler } from "@mongodb-js/mcp-tools-mongodb";
 import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
@@ -32,7 +32,7 @@ describe("debug resource", () => {
     });
 
     const session = vi.mocked(
-        new Session({
+        new CliSession({
             userConfig: defaultTestConfig,
             logger,
             exportsManager: ExportsManager.init({ options: defaultTestConfig, logger: logger }),
@@ -51,7 +51,7 @@ describe("debug resource", () => {
     );
 
     // Mock EventEmitter methods that ReactiveResource uses
-    // @ts-expect-error - Session is not a MockedObject
+    // @ts-expect-error - CliSession is not a MockedObject
     session.on = vi.fn();
     // Mock isSearchSupported that DebugResource.toOutput() uses
     session.isSearchSupported = vi.fn(() => Promise.resolve(false));

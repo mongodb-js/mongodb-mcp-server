@@ -2,7 +2,7 @@ import { MCPConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
 import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
 import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
-import { Session } from "@mongodb-js/mcp-cli";
+import { CliSession } from "@mongodb-js/mcp-cli";
 import {
     createTestApiClient,
     defaultTestConfig,
@@ -19,7 +19,7 @@ import { Keychain } from "@mongodb-js/mcp-core";
 import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { Server } from "mongodb-mcp-server";
+import { CliServer } from "mongodb-mcp-server";
 import { connectionErrorHandler } from "mongodb-mcp-server";
 import {
     type OperationType,
@@ -76,7 +76,7 @@ class TestToolTwo extends ToolBase {
     }
 }
 
-describe("Server integration test", () => {
+describe("CliServer integration test", () => {
     describeWithMongoDB(
         "without atlas",
         (integration) => {
@@ -188,7 +188,7 @@ describe("Server integration test", () => {
         tools: ToolClass[],
         config: UserConfig = defaultTestConfig,
         loggers: LoggerBase[] = []
-    ): Promise<{ server: Server; transport: Transport }> => {
+    ): Promise<{ server: CliServer; transport: Transport }> => {
         const logger = new CompositeLogger({ loggers });
         const deviceId = DeviceId.create(logger);
         const connectionManager = new MCPConnectionManager({
@@ -200,7 +200,7 @@ describe("Server integration test", () => {
             },
         });
         const exportsManager = ExportsManager.init({ options: config, logger });
-        const session = new Session({
+        const session = new CliSession({
             userConfig: config,
             logger,
             exportsManager,
@@ -232,7 +232,7 @@ describe("Server integration test", () => {
         const mcpServerInstance = new McpServer({ name: "test", version: "1.0" });
         const elicitation = new Elicitation({ server: mcpServerInstance.server });
 
-        const server = new Server({
+        const server = new CliServer({
             session,
             telemetry,
             mcpServer: mcpServerInstance,
@@ -255,7 +255,7 @@ describe("Server integration test", () => {
     };
 
     describe("with additional tools", () => {
-        let server: Server | undefined;
+        let server: CliServer | undefined;
         let transport: Transport | undefined;
 
         afterEach(async () => {
@@ -281,7 +281,7 @@ describe("Server integration test", () => {
     });
 
     describe("config validation", () => {
-        let server: Server | undefined;
+        let server: CliServer | undefined;
         let transport: Transport | undefined;
 
         afterEach(async () => {
@@ -313,7 +313,7 @@ describe("Server integration test", () => {
     });
 
     describe("log level clamping", () => {
-        let server: Server | undefined;
+        let server: CliServer | undefined;
         let inMemoryTransport: InMemoryTransport | undefined;
 
         afterEach(async () => {

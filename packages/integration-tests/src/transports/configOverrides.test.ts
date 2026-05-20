@@ -14,10 +14,16 @@ import type {
 } from "@mongodb-js/mcp-types";
 import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { Server } from "mongodb-mcp-server";
+import { CliServer } from "mongodb-mcp-server";
 import { AllTools } from "mongodb-mcp-server";
 import { applyConfigOverrides } from "@mongodb-js/mcp-cli";
-import { Session, Elicitation, connectionErrorHandler, MCPConnectionManager, ExportsManager } from "mongodb-mcp-server";
+import {
+    CliSession,
+    Elicitation,
+    connectionErrorHandler,
+    MCPConnectionManager,
+    ExportsManager,
+} from "mongodb-mcp-server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createTestApiClient } from "../integrationHelpers.js";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
@@ -28,7 +34,7 @@ import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import { NoopTelemetry } from "@mongodb-js/mcp-core";
 
 // Custom MCPHttpServer that applies config overrides from request headers
-class ConfigOverrideMCPHttpServer extends MCPHttpServer<Server> {
+class ConfigOverrideMCPHttpServer extends MCPHttpServer<CliServer> {
     private baseConfig: UserConfig;
 
     constructor({
@@ -51,7 +57,7 @@ class ConfigOverrideMCPHttpServer extends MCPHttpServer<Server> {
         this.baseConfig = baseConfig;
     }
 
-    protected override async createServerForRequest(request: TransportRequestContext): Promise<Server> {
+    protected override async createServerForRequest(request: TransportRequestContext): Promise<CliServer> {
         // Apply config overrides from request headers
         const config = applyConfigOverrides({
             baseConfig: this.baseConfig,
@@ -63,7 +69,7 @@ class ConfigOverrideMCPHttpServer extends MCPHttpServer<Server> {
 }
 
 // Helper to create a full Server instance for tests
-async function createTestServer(config: UserConfig): Promise<Server> {
+async function createTestServer(config: UserConfig): Promise<CliServer> {
     const logger = new CompositeLogger({ loggers: [] });
     const keychain = Keychain.root;
 
@@ -107,7 +113,7 @@ async function createTestServer(config: UserConfig): Promise<Server> {
 
     const elicitation = new Elicitation({ server: mcpServer.server });
 
-    const session = new Session({
+    const session = new CliSession({
         userConfig: config,
         logger,
         exportsManager,
@@ -120,7 +126,7 @@ async function createTestServer(config: UserConfig): Promise<Server> {
 
     const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
 
-    const server = new Server({
+    const server = new CliServer({
         session,
         mcpServer,
         telemetry: new NoopTelemetry() as unknown as AtlasTelemetry,
@@ -142,7 +148,7 @@ async function createTestServer(config: UserConfig): Promise<Server> {
 
 // Helper to create StreamableHttpRunner with config override support
 function createConfigOverrideRunner(baseConfig: UserConfig): Promise<{
-    runner: StreamableHttpRunner<Server>;
+    runner: StreamableHttpRunner<CliServer>;
     getServerAddress: () => string;
 }> {
     const logger = new CompositeLogger({ loggers: [] });
@@ -176,7 +182,7 @@ function createConfigOverrideRunner(baseConfig: UserConfig): Promise<{
         sessionStore,
     });
 
-    const runner = new StreamableHttpRunner<Server>({
+    const runner = new StreamableHttpRunner<CliServer>({
         logger,
         metrics: metrics,
         mcpHttpServer,
@@ -191,7 +197,7 @@ function createConfigOverrideRunner(baseConfig: UserConfig): Promise<{
 }
 
 describe("Config Overrides via HTTP", () => {
-    let runner: StreamableHttpRunner<Server>;
+    let runner: StreamableHttpRunner<CliServer>;
     let client: Client;
     let transport: StreamableHTTPClientTransport;
     let getServerAddress: () => string;

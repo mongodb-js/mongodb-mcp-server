@@ -2,8 +2,8 @@ import type { Mock } from "vitest";
 import { describe, it, expect, vi, beforeEach, type MockedFunction } from "vitest";
 import type { ZodRawShape } from "zod";
 import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
-import type { Session } from "@mongodb-js/mcp-cli";
-import type { Server, UserConfig } from "@mongodb-js/mcp-cli";
+import type { CliSession } from "@mongodb-js/mcp-cli";
+import type { CliServer, UserConfig } from "@mongodb-js/mcp-cli";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { Elicitation } from "@mongodb-js/mcp-core";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
@@ -17,7 +17,7 @@ import { TestTool, TestToolWithOutputSchema, TestToolWithoutStructuredContent, E
 import { Keychain } from "@mongodb-js/mcp-core";
 
 describe("ToolBase", () => {
-    let mockSession: Session;
+    let mockSession: CliSession;
     let mockLogger: CompositeLogger;
     let mockLoggerWarning: ReturnType<typeof vi.fn>;
     let mockConfig: UserConfig;
@@ -46,7 +46,7 @@ describe("ToolBase", () => {
             logger: mockLogger,
             keychain: new Keychain(),
             config: mockConfig,
-        } as unknown as Session;
+        } as unknown as CliSession;
 
         mockAtlasTelemetry = {
             isTelemetryEnabled: () => true,
@@ -154,7 +154,7 @@ describe("ToolBase", () => {
                     },
                 },
             };
-            testTool.register(mockServer as unknown as Server);
+            testTool.register(mockServer as unknown as CliServer);
         });
 
         it("should return empty metadata by default", async () => {
@@ -361,7 +361,7 @@ describe("ToolBase", () => {
                     },
                 },
             };
-            tool.register(mockServer as unknown as Server);
+            tool.register(mockServer as unknown as CliServer);
         }
 
         it("should not append UIResource when mcpUI feature is disabled", async () => {
@@ -412,7 +412,7 @@ describe("ToolBase", () => {
                     },
                 },
             };
-            toolWithoutStructured.register(mockServer as unknown as Server);
+            toolWithoutStructured.register(mockServer as unknown as CliServer);
 
             expectDefined(noStructuredCallback);
             const result = await noStructuredCallback({ input: "test" }, {} as never);
@@ -474,7 +474,7 @@ describe("ToolBase", () => {
         let successCallback: ToolCallback<(typeof testTool)["argsShape"]>;
         let errorCallback: ToolCallback<ZodRawShape>;
 
-        function makeMockServer(capture: (cb: ToolCallback<ZodRawShape>) => void): Server {
+        function makeMockServer(capture: (cb: ToolCallback<ZodRawShape>) => void): CliServer {
             return {
                 mcpServer: {
                     registerTool: (
@@ -486,7 +486,7 @@ describe("ToolBase", () => {
                         return { enabled: true, disable: vi.fn(), enable: vi.fn() };
                     },
                 },
-            } as unknown as Server;
+            } as unknown as CliServer;
         }
 
         beforeEach(() => {
@@ -550,7 +550,7 @@ describe("ToolBase", () => {
 
 function createToolWithoutStructuredContent(
     previewFeatures: PreviewFeature[],
-    mockSession: Session,
+    mockSession: CliSession,
     mockConfig: UserConfig,
     mockAtlasTelemetry: AtlasTelemetry,
     mockElicitation: Elicitation,

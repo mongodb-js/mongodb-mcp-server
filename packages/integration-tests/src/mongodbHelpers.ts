@@ -12,7 +12,7 @@ import {
     syncMongoToolsConfigFromUserConfig,
 } from "./integrationHelpers.js";
 import type { UserConfig } from "mongodb-mcp-server";
-import type { ServerOptions } from "mongodb-mcp-server";
+import type { CliServerOptions } from "mongodb-mcp-server";
 import { AllTools } from "mongodb-mcp-server";
 import type { AnyToolClass } from "@mongodb-js/mcp-core";
 import type { AnyResourceClass } from "@mongodb-js/mcp-types";
@@ -90,7 +90,7 @@ export type TestSuiteConfig = {
     downloadOptions: MongoClusterConfiguration;
     getMockElicitationInput?: () => ReturnType<typeof createMockElicitInput>;
     getClientCapabilities?: () => MockClientCapabilities;
-    serverOptions?: Partial<ServerOptions>;
+    serverOptions?: Partial<CliServerOptions>;
     tools?: AnyToolClass[];
     resources?: AnyResourceClass[];
 };
@@ -130,7 +130,7 @@ export function describeWithMongoDB(
                 elicitInput: mockElicitInput,
                 getClientCapabilities,
                 serverOptions,
-                tools: tools ?? (AllTools as unknown as NonNullable<ServerOptions["tools"]>),
+                tools: tools ?? (AllTools as unknown as NonNullable<CliServerOptions["tools"]>),
                 resources,
             }
         );

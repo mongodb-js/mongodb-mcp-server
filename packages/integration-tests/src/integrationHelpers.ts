@@ -1,8 +1,8 @@
 import type { LoggerType, LogLevel, LogPayload } from "@mongodb-js/mcp-core";
 import { CompositeLogger, LoggerBase } from "@mongodb-js/mcp-core";
 import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
-import { Session, UserConfigSchema, packageInfo } from "mongodb-mcp-server";
-import { Server, type ServerOptions } from "mongodb-mcp-server";
+import { CliSession, UserConfigSchema, packageInfo } from "mongodb-mcp-server";
+import { CliServer, type CliServerOptions } from "mongodb-mcp-server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@mongodb-js/mcp-core";
@@ -21,7 +21,7 @@ import type { AnyToolClass, OperationType } from "@mongodb-js/mcp-core";
 import type { AnyResourceClass } from "@mongodb-js/mcp-types";
 import { ApiClient, ClientCredentialsAuthProvider } from "@mongodb-js/mcp-atlas-api-client";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
-export { Session } from "@mongodb-js/mcp-cli";
+export { CliSession } from "@mongodb-js/mcp-cli";
 import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 export const defaultTestConfig: UserConfig = {
     ...UserConfigSchema.parse({}),
@@ -80,8 +80,8 @@ type ToolInfo = Awaited<ReturnType<Client["listTools"]>>["tools"][number];
 
 export interface IntegrationTest {
     mcpClient: () => Client;
-    mcpServer: () => Server & {
-        session: Session;
+    mcpServer: () => CliServer & {
+        session: CliSession;
         getApiClient: () => ApiClient;
     };
 }
@@ -95,18 +95,18 @@ const INTEGRATION_TEST_DISCONNECT_TIMEOUT_MS = 30_000;
 const RESOURCE_CHANGED_NOTIFICATION_TIMEOUT_MS = 30_000;
 
 /** MongoDB tools hold a shallow config snapshot from registration; merge live session config into each tool. */
-export function syncMongoToolsConfigFromUserConfig(mcpServer: Server): void {
+export function syncMongoToolsConfigFromUserConfig(mcpServer: CliServer): void {
     const { session } = mcpServer;
     for (const tool of mcpServer.tools) {
         if (tool.category === "mongodb") {
-            Object.assign((tool as unknown as { session: Session }).session.config, session.config);
+            Object.assign((tool as unknown as { session: CliSession }).session.config, session.config);
         }
     }
 }
 
 /** Drop any active MongoDB connection and reset connection config for the next test. */
 export async function resetSessionAfterIntegrationTest(
-    mcpServer: Server,
+    mcpServer: CliServer,
     options?: { baselineConnectionString?: string | undefined }
 ): Promise<void> {
     const { session } = mcpServer;
@@ -140,7 +140,7 @@ export function setupIntegrationTest(
     }: {
         elicitInput?: ReturnType<typeof createMockElicitInput>;
         getClientCapabilities?: () => MockClientCapabilities;
-        serverOptions?: Partial<ServerOptions>;
+        serverOptions?: Partial<CliServerOptions>;
         /** Tool constructors to register. When omitted, no tools are registered unless set via `serverOptions.tools`. */
         tools?: AnyToolClass[];
         /** Resource constructors to register. When omitted, no resources are registered unless set via `serverOptions.resources`. */
@@ -148,7 +148,7 @@ export function setupIntegrationTest(
     } = {}
 ): IntegrationTest {
     let mcpClient: Client | undefined;
-    let mcpServer: Server | undefined;
+    let mcpServer: CliServer | undefined;
     let deviceId: DeviceId | undefined;
     let baselineConnectionString: string | undefined;
 
@@ -189,7 +189,7 @@ export function setupIntegrationTest(
             },
         });
 
-        const session = new Session({
+        const session = new CliSession({
             userConfig,
             logger,
             exportsManager,
@@ -253,7 +253,7 @@ export function setupIntegrationTest(
             ...restServerOptions
         } = serverOptions ?? {};
 
-        mcpServer = new Server({
+        mcpServer = new CliServer({
             session,
             telemetry,
             mcpServer: mcpServerInstance,
@@ -304,17 +304,17 @@ export function setupIntegrationTest(
         return mcpClient;
     };
 
-    const getMcpServer = (): Server & { session: Session; getApiClient: () => ApiClient } => {
+    const getMcpServer = (): CliServer & { session: CliSession; getApiClient: () => ApiClient } => {
         if (!mcpServer) {
             throw new Error("beforeEach() hook not ran yet");
         }
 
-        return Object.assign(mcpServer as Server & { session: Session; getApiClient: () => ApiClient }, {
+        return Object.assign(mcpServer as CliServer & { session: CliSession; getApiClient: () => ApiClient }, {
             getApiClient: (): ApiClient => {
                 if (!mcpServer?.session.apiClient) {
                     throw new Error("apiClient not available");
                 }
-                return (mcpServer.session as Session).apiClient;
+                return (mcpServer.session as CliSession).apiClient;
             },
         });
     };

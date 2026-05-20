@@ -3,7 +3,7 @@ import { createServicesFromUserConfig } from "./createServicesFromUserConfig.js"
 import { startServer } from "./startServer.js";
 import type { CliHandler } from "./cliHandler.js";
 import type { ServerMetadata } from "@mongodb-js/mcp-types";
-import type { ResourceRegistry, ToolRegistry } from "./server.js";
+import type { ResourceRegistry, ToolRegistry } from "./cliServer.js";
 import type { OnExit, Console } from "./types.js";
 
 export type RunMcpCliOptions = {

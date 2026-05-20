@@ -4,8 +4,8 @@ import type { IntegrationTest } from "../../integrationHelpers.js";
 import { setupIntegrationTest, defaultTestConfig } from "../../integrationHelpers.js";
 import type { SuiteCollector } from "vitest";
 import { afterAll, beforeAll, describe } from "vitest";
-import type { ServerSession } from "@mongodb-js/mcp-cli";
-import type { Session } from "mongodb-mcp-server";
+import type { McpSession } from "@mongodb-js/mcp-cli";
+import type { CliSession } from "mongodb-mcp-server";
 import { AllTools } from "mongodb-mcp-server";
 
 export type IntegrationTestFunction = (integration: IntegrationTest) => void;
@@ -189,7 +189,7 @@ export function sleep(ms: number): Promise<void> {
 }
 
 export async function assertClusterIsAvailable(
-    session: Session,
+    session: CliSession,
     projectId: string,
     clusterName: string
 ): Promise<boolean> {
@@ -210,15 +210,15 @@ export async function assertClusterIsAvailable(
 }
 
 export function assertApiClientIsAvailable(
-    session: ServerSession
-): asserts session is ServerSession & { apiClient: ApiClient } {
+    session: McpSession
+): asserts session is McpSession & { apiClient: ApiClient } {
     if (!session.apiClient) {
         throw new Error("apiClient not available");
     }
 }
 
 export async function deleteCluster(
-    session: Session,
+    session: CliSession,
     projectId: string,
     clusterName: string,
     shouldWaitTillClusterIsDeleted: boolean = false
@@ -255,7 +255,7 @@ export async function deleteCluster(
 }
 
 export async function waitCluster(
-    session: Session,
+    session: CliSession,
     projectId: string,
     clusterName: string,
     check: (cluster: ClusterDescription20240805) => boolean | Promise<boolean>,

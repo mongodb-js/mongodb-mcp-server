@@ -3,7 +3,7 @@ import { defaultTestConfig } from "../integrationHelpers.js";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
-import { Server, Session, Elicitation, connectionErrorHandler } from "mongodb-mcp-server";
+import { CliServer, CliSession, Elicitation, connectionErrorHandler } from "mongodb-mcp-server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CompositeLogger, Keychain, NoopTelemetry } from "@mongodb-js/mcp-core";
 import { MCPConnectionManager, ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
@@ -19,7 +19,7 @@ type CreateServerOptions = {
     uiRegistry?: UIRegistry;
 };
 
-async function createTestServer({ config, uiRegistry }: CreateServerOptions): Promise<Server> {
+async function createTestServer({ config, uiRegistry }: CreateServerOptions): Promise<CliServer> {
     const logger = new CompositeLogger({ loggers: [] });
     const keychain = Keychain.root;
 
@@ -63,7 +63,7 @@ async function createTestServer({ config, uiRegistry }: CreateServerOptions): Pr
 
     const elicitation = new Elicitation({ server: mcpServer.server });
 
-    const session = new Session({
+    const session = new CliSession({
         userConfig: config,
         logger,
         exportsManager,
@@ -80,7 +80,7 @@ async function createTestServer({ config, uiRegistry }: CreateServerOptions): Pr
         uiRegistry = new UIRegistry();
     }
 
-    const server = new Server({
+    const server = new CliServer({
         session,
         mcpServer,
         telemetry: new NoopTelemetry() as unknown as AtlasTelemetry,
@@ -100,8 +100,8 @@ async function createTestServer({ config, uiRegistry }: CreateServerOptions): Pr
     return server;
 }
 
-describe("Server UIRegistry", () => {
-    let server: Server | undefined;
+describe("CliServer UIRegistry", () => {
+    let server: CliServer | undefined;
 
     afterEach(async () => {
         if (server) {
