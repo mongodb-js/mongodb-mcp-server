@@ -31,7 +31,7 @@ export type AnyToolBase = ToolBase<any>;
 
 // @public (undocumented)
 export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonProperties>[]> {
-    constructor(options: ApiClientOptions);
+    constructor(input: ApiClientOptions);
     // (undocumented)
     acceptVpcPeeringConnection(options: FetchOptions<operations["acceptGroupStreamVpcPeeringConnection"]>): Promise<void>;
     // (undocumented)
@@ -141,7 +141,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     // (undocumented)
     rejectVpcPeeringConnection(options: FetchOptions<operations["rejectGroupStreamVpcPeeringConnection"]>): Promise<void>;
     // (undocumented)
-    sendEvents(options?: {
+    sendEvents(input?: {
         events: TelemetryEvent<TelemetryCommonProperties>[];
         signal?: AbortSignal;
     }): Promise<void>;
@@ -211,15 +211,14 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
 // @public (undocumented)
 export interface ApiClientOptions {
     // (undocumented)
-    authProvider?: AuthProvider;
-    // (undocumented)
-    baseUrl: string;
+    authProvider: AuthProvider | undefined;
     // (undocumented)
     logger: LoggerBase;
     // (undocumented)
-    requestContext?: RequestContext;
-    // (undocumented)
-    userAgent: string;
+    options: {
+        baseUrl: string;
+        userAgent: string;
+    };
 }
 
 // @public
@@ -691,11 +690,6 @@ export interface ReadyExport extends CommonExportData {
     // (undocumented)
     exportStatus: "ready";
 }
-
-// @public (undocumented)
-export type RequestContext = {
-    headers?: Record<string, string | string[] | undefined>;
-};
 
 export { Secret }
 

@@ -66,8 +66,10 @@ export class SetupTelemetry {
         const logger = new NoopLogger();
         const deviceId = DeviceId.create(logger);
         const apiClient = new ApiClient({
-            baseUrl: config.apiBaseUrl,
-            userAgent: `AtlasMCP/${serverMetadata.version} (${process.platform}; ${process.arch})`,
+            options: {
+                baseUrl: config.apiBaseUrl,
+                userAgent: `AtlasMCP/${serverMetadata.version} (${process.platform}; ${process.arch})`,
+            },
             logger,
             authProvider: undefined,
         });

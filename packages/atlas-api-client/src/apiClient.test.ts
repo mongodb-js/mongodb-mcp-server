@@ -39,8 +39,10 @@ describe("ApiClient", () => {
 
     beforeEach(() => {
         apiClient = new ApiClient({
-            baseUrl: "https://api.test.com",
-            userAgent: "test-user-agent",
+            options: {
+                baseUrl: "https://api.test.com",
+                userAgent: "test-user-agent",
+            },
             logger: new NoopLogger(),
             authProvider: new ClientCredentialsAuthProvider({
                 options: {
@@ -94,8 +96,10 @@ describe("ApiClient", () => {
             const testVersion = "1.0.0-test";
             const expectedUserAgent = `AtlasMCP/${testVersion} (${process.platform}; ${process.arch})`;
             const clientWithUserAgent = new ApiClient({
-                baseUrl: "https://api.test.com",
-                userAgent: expectedUserAgent,
+                options: {
+                    baseUrl: "https://api.test.com",
+                    userAgent: expectedUserAgent,
+                },
                 logger: new NoopLogger(),
                 authProvider: new ClientCredentialsAuthProvider({
                     options: {

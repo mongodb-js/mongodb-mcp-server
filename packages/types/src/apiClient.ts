@@ -6,11 +6,3 @@ export interface IApiClient<TEvent extends unknown[] = TelemetryEvent<TelemetryC
     validateAuthConfig(): Promise<void>;
     sendEvents(options?: { signal?: AbortSignal; events: TEvent }): Promise<void>;
 }
-
-export type ApiClientOptions = {
-    baseUrl: string;
-    userAgent?: string;
-    requestContext?: {
-        headers?: Record<string, string | string[] | undefined>;
-    };
-};

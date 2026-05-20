@@ -1,4 +1,4 @@
-export { ApiClient, type ApiClientOptions, type RequestContext } from "./apiClient.js";
+export { ApiClient, type ApiClientOptions } from "./apiClient.js";
 export { ApiClientError } from "./apiClientError.js";
 export type { AuthProvider, AccessToken } from "./auth/authProvider.js";
 export type { ClientCredentialsAuthOptions, ClientCredentialsAuthProviderParams } from "./auth/clientCredentials.js";

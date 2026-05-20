@@ -6,7 +6,7 @@ import type * as McpToolsMongodb from "@mongodb-js/mcp-tools-mongodb";
 import { UserConfigSchema } from "./config/userConfig.js";
 
 const { capturedApiClientOptions, capturedAuthProviderOptions } = vi.hoisted(() => ({
-    capturedApiClientOptions: [] as Array<{ userAgent: string }>,
+    capturedApiClientOptions: [] as Array<{ options: { userAgent: string } }>,
     capturedAuthProviderOptions: [] as Array<{ userAgent: string }>,
 }));
 
@@ -46,7 +46,7 @@ vi.mock("@mongodb-js/mcp-atlas-telemetry", async (importOriginal) => {
 
 vi.mock("@mongodb-js/mcp-atlas-api-client", () => ({
     ApiClient: class MockApiClient {
-        constructor(options: { userAgent: string }) {
+        constructor(options: { options: { userAgent: string } }) {
             capturedApiClientOptions.push(options);
         }
     },
@@ -103,7 +103,7 @@ describe("createServicesFromUserConfig", () => {
         });
 
         expect(capturedApiClientOptions).toHaveLength(1);
-        const userAgent = capturedApiClientOptions[0]!.userAgent;
+        const userAgent = capturedApiClientOptions[0]!.options.userAgent;
         expect(userAgent).toBe("MongoDB MCP Server/1.2.3-test");
         expect(userAgent).not.toContain("; unknown");
         expect(userAgent).not.toMatch(/\bhostname\b/i);
@@ -128,7 +128,7 @@ describe("createServicesFromUserConfig", () => {
         expect(capturedApiClientOptions).toHaveLength(1);
         expect(capturedAuthProviderOptions).toHaveLength(1);
         const expectedUserAgent = "MongoDB MCP Server/1.2.3-test";
-        expect(capturedApiClientOptions[0]!.userAgent).toBe(expectedUserAgent);
+        expect(capturedApiClientOptions[0]!.options.userAgent).toBe(expectedUserAgent);
         expect(capturedAuthProviderOptions[0]!.userAgent).toBe(expectedUserAgent);
         expect(capturedAuthProviderOptions[0]!.userAgent).not.toMatch(/\bhostname\b/i);
     });

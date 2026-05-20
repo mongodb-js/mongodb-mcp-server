@@ -23,16 +23,13 @@ function isNodeRuntime(): boolean {
 }
 
 export interface ApiClientOptions {
-    baseUrl: string;
-    userAgent: string;
-    requestContext?: RequestContext;
+    options: {
+        baseUrl: string;
+        userAgent: string;
+    };
     logger: LoggerBase;
-    authProvider?: AuthProvider;
+    authProvider: AuthProvider | undefined;
 }
-
-export type RequestContext = {
-    headers?: Record<string, string | string[] | undefined>;
-};
 
 export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonProperties>[]> {
     private readonly options: {
@@ -51,8 +48,10 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     readonly logger: LoggerBase;
     readonly authProvider?: AuthProvider;
 
-    constructor(options: ApiClientOptions) {
-        this.logger = options.logger;
+    constructor({ logger, authProvider, options }: ApiClientOptions) {
+        this.logger = logger;
+        this.authProvider = authProvider;
+        this.authProvider = authProvider;
         // In Node we use `createFetch` from devtools-proxy-support to pick up
         // environment-variable proxy configuration and system CA trust, and we
         // use node-fetch's Request since its interface is a superset of the
@@ -75,8 +74,6 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             baseUrl: options.baseUrl,
             userAgent: options.userAgent,
         };
-
-        this.authProvider = options.authProvider;
 
         this.client = createClient<paths>({
             baseUrl: this.options.baseUrl,
@@ -151,9 +148,11 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     public async sendEvents(
-        options: { events: TelemetryEvent<TelemetryCommonProperties>[]; signal?: AbortSignal } = { events: [] }
+        {
+            events,
+            signal = AbortSignal.timeout(DEFAULT_SEND_TIMEOUT_MS),
+        }: { events: TelemetryEvent<TelemetryCommonProperties>[]; signal?: AbortSignal } = { events: [] }
     ): Promise<void> {
-        const { events, signal = AbortSignal.timeout(DEFAULT_SEND_TIMEOUT_MS) } = options;
         if (!this.authProvider) {
             await this.sendUnauthEvents(events, signal);
             return;
@@ -168,6 +167,9 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
                 }
             }
 
+            // send unauth events if any of the following are true:
+            // 1: the token is not valid (not ApiClientError)
+            // 2: if the api responded with 401 (ApiClientError with status 401)
             await this.sendUnauthEvents(events, signal);
         }
     }

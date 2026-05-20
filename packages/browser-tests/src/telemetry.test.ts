@@ -59,8 +59,10 @@ describe("Telemetry in browser environment", () => {
         expect(
             () =>
                 new ApiClient({
-                    baseUrl: API_BASE,
-                    userAgent: "browser-test-agent",
+                    options: {
+                        baseUrl: API_BASE,
+                        userAgent: "browser-test-agent",
+                    },
                     logger: new CompositeLogger(),
                     authProvider: undefined,
                 })
@@ -69,8 +71,10 @@ describe("Telemetry in browser environment", () => {
 
     it("initializes Telemetry and sends events via the browser fetch without throwing", async () => {
         const apiClient = new ApiClient({
-            baseUrl: API_BASE,
-            userAgent: "browser-test-agent",
+            options: {
+                baseUrl: API_BASE,
+                userAgent: "browser-test-agent",
+            },
             logger: new CompositeLogger(),
             authProvider: undefined,
         });

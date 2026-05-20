@@ -63,7 +63,7 @@ export type AnyToolClass = ToolClass<any, any>;
 
 // @public (undocumented)
 export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonProperties>[]> {
-    constructor(options: ApiClientOptions);
+    constructor(input: ApiClientOptions);
     // (undocumented)
     acceptVpcPeeringConnection(options: FetchOptions<operations["acceptGroupStreamVpcPeeringConnection"]>): Promise<void>;
     // (undocumented)
@@ -173,7 +173,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     // (undocumented)
     rejectVpcPeeringConnection(options: FetchOptions<operations["rejectGroupStreamVpcPeeringConnection"]>): Promise<void>;
     // (undocumented)
-    sendEvents(options?: {
+    sendEvents(input?: {
         events: TelemetryEvent<TelemetryCommonProperties>[];
         signal?: AbortSignal;
     }): Promise<void>;
@@ -243,15 +243,14 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
 // @public (undocumented)
 export interface ApiClientOptions {
     // (undocumented)
-    authProvider?: AuthProvider;
-    // (undocumented)
-    baseUrl: string;
+    authProvider: AuthProvider | undefined;
     // (undocumented)
     logger: LoggerBase;
     // (undocumented)
-    requestContext?: RequestContext;
-    // (undocumented)
-    userAgent: string;
+    options: {
+        baseUrl: string;
+        userAgent: string;
+    };
 }
 
 export { applyConfigOverrides }
@@ -833,11 +832,6 @@ export const QUERY_COUNT_MAX_TIME_MS_CAP: number;
 export function registerGlobalSecretToRedact(value: Secret["value"], kind: Secret["kind"]): void;
 
 export { Registry }
-
-// @public (undocumented)
-export type RequestContext = {
-    headers?: Record<string, string | string[] | undefined>;
-};
 
 export { Secret }
 

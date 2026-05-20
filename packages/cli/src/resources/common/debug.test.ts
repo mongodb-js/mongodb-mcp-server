@@ -40,8 +40,10 @@ describe("debug resource", () => {
             keychain: new Keychain(),
             connectionErrorHandler,
             apiClient: new ApiClient({
-                baseUrl: defaultTestConfig.apiBaseUrl,
-                userAgent: "test",
+                options: {
+                    baseUrl: defaultTestConfig.apiBaseUrl,
+                    userAgent: "test",
+                },
                 logger,
                 authProvider: undefined,
             }),

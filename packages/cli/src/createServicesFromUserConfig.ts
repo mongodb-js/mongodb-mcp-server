@@ -57,8 +57,10 @@ export async function createServicesFromUserConfig({
 
     const userAgent = `${serverMetadata.mcpServerName}/${serverMetadata.version}`;
     const apiClient = new ApiClient({
-        baseUrl: config.apiBaseUrl,
-        userAgent,
+        options: {
+            baseUrl: config.apiBaseUrl,
+            userAgent,
+        },
         logger,
         authProvider:
             config.apiClientId && config.apiClientSecret

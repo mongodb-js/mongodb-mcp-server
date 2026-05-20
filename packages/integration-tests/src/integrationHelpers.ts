@@ -48,8 +48,7 @@ export function createTestApiClient(options: CreateTestApiClientOptions): ApiCli
             : undefined;
 
     return new ApiClient({
-        baseUrl,
-        userAgent,
+        options: { baseUrl, userAgent },
         logger,
         authProvider,
     });

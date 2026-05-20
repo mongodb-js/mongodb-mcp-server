@@ -158,8 +158,7 @@ async function main(): Promise<void> {
               })
             : undefined;
     const apiClient = new ApiClient({
-        baseUrl,
-        userAgent,
+        options: { baseUrl, userAgent },
         logger,
         authProvider,
     });

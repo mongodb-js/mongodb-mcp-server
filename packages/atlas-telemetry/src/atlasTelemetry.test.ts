@@ -701,8 +701,10 @@ describe("AtlasTelemetry credentials handling", () => {
                   })
                 : undefined;
         const apiClient = new ApiClient({
-            baseUrl: API_BASE,
-            userAgent: USER_AGENT,
+            options: {
+                baseUrl: API_BASE,
+                userAgent: USER_AGENT,
+            },
             logger,
             authProvider,
         });
