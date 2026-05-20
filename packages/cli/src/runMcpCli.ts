@@ -1,5 +1,5 @@
 import { parseUserConfig } from "./config/parseUserConfig.js";
-import { createServicesFromUserConfig } from "./createServices.js";
+import { createServicesFromUserConfig } from "./createServicesFromUserConfig.js";
 import { startServer } from "./startServer.js";
 import type { CliHandler } from "./cliHandler.js";
 import type { ServerMetadata } from "@mongodb-js/mcp-types";

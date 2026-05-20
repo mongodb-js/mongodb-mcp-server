@@ -8,7 +8,7 @@ export { runMcpCli, type RunMcpCliOptions } from "./runMcpCli.js";
 export { startServer } from "./startServer.js";
 
 // Server creation helper
-export { createServicesFromUserConfig, type CreateServicesOptions } from "./createServices.js";
+export { createServicesFromUserConfig, type CreateServicesOptions } from "./createServicesFromUserConfig.js";
 
 export type { CliHandler, CliHandlerContext } from "./cliHandler.js";
 
