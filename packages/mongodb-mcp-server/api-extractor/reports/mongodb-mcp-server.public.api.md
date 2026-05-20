@@ -34,6 +34,7 @@ import { Session } from '@mongodb-js/mcp-cli';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
+import type { Transport } from '@modelcontextprotocol/sdk/shared/transport';
 import { TRANSPORT_PAYLOAD_LIMITS } from '@mongodb-js/mcp-cli';
 import { TransportType } from '@mongodb-js/mcp-cli';
 import { UserConfig } from '@mongodb-js/mcp-cli';
@@ -700,7 +701,7 @@ export class MCPConnectionManager extends ConnectionManager {
 }
 
 // @public
-export abstract class MCPHttpServer<TServer extends SessionAwareServer = SessionAwareServer, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> extends ExpressBasedHttpServer {
+export abstract class MCPHttpServer<TServer extends SessionServer = SessionServer, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> extends ExpressBasedHttpServer {
     constructor(input: MCPHttpServerOptions<TMetrics>);
     protected abstract createServerForRequest(request: TransportRequestContext): Promise<TServer>;
     // (undocumented)
@@ -909,7 +910,7 @@ export class StdioRunner<TServer extends {
 }
 
 // @public
-export class StreamableHttpRunner<TServer extends SessionAwareServer = SessionAwareServer, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> implements ITransportRunner {
+export class StreamableHttpRunner<TServer extends SessionServer = SessionServer, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> implements ITransportRunner {
     constructor(input: StreamableHttpRunnerOptions<TMetrics> & {
         mcpHttpServer: MCPHttpServer<TServer, TMetrics>;
         monitoringServer?: MonitoringServer<TMetrics>;

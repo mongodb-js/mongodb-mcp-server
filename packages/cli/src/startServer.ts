@@ -1,18 +1,18 @@
 import { StdioRunner, SessionStore, LogId } from "@mongodb-js/mcp-core";
 import { StreamableHttpRunner, MonitoringServer } from "@mongodb-js/mcp-http-runners";
+import type { SessionServer } from "@mongodb-js/mcp-types";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { UserConfig } from "./config/userConfig.js";
-import type { OnExit, StartableServer } from "./types.js";
 import { MCPHttpServerWrapper } from "./server/mcpHttpServerWrapper.js";
 
 export async function startServer(
-    server: StartableServer,
+    server: SessionServer,
     config: UserConfig,
     logger: CompositeLogger,
     metrics: IMetrics<DefaultMetricDefinitions>,
-    onExit: OnExit
+    onExit: (errorCode: number) => void
 ): Promise<void> {
     let transportRunner: StdioRunner | StreamableHttpRunner;
 

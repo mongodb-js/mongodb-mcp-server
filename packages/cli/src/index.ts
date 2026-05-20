@@ -10,8 +10,6 @@ export { startServer } from "./startServer.js";
 // Server creation helper
 export { createServicesFromUserConfig, type CreateServicesOptions } from "./createServices.js";
 
-// Type exports
-export type { ConsoleLogger, OnExit, StartableServer } from "./types.js";
 export type { CliHandler, CliHandlerContext } from "./cliHandler.js";
 
 export { Session } from "./session.js";
