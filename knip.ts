@@ -101,6 +101,11 @@ const config: KnipConfig = {
         },
         "packages/cli": {
             entry: ["src/**/*.test.ts"],
+            ignoreDependencies: [
+                // Not imported directly; required so ESLint/tsc resolve YargsOptions in @mongosh/arg-parser .d.ts
+                "yargs-parser",
+                "@types/yargs-parser",
+            ],
         },
         "packages/tools-mongodb": {
             entry: ["src/**/*.test.ts"],
