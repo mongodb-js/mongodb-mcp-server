@@ -255,7 +255,6 @@ export function setupIntegrationTest(
 
         mcpServer = new Server({
             session,
-            userConfig,
             telemetry,
             mcpServer: mcpServerInstance,
             elicitation,

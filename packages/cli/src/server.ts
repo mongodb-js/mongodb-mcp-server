@@ -24,12 +24,8 @@ export type ToolRegistry = AnyToolClass[];
 /** Resource constructor registry. */
 export type ResourceRegistry = readonly AnyResourceClass[];
 
-export interface ServerOptions<
-    TUserConfig extends UserConfig = UserConfig,
-    TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions,
-> {
+export interface ServerOptions<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
     session: ServerSession;
-    userConfig: TUserConfig;
     mcpServer: McpServer;
     telemetry: AtlasTelemetry;
     elicitation: Elicitation;
@@ -87,10 +83,7 @@ export type ServerSession = ISession<UserConfig> & {
     connectToConfiguredConnection: () => Promise<void>;
 };
 
-export class Server<
-    TUserConfig extends UserConfig = UserConfig,
-    TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions,
-> {
+export class Server<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
     public readonly session: ServerSession;
     public readonly mcpServer: McpServer;
     private readonly telemetry: AtlasTelemetry;
@@ -117,7 +110,6 @@ export class Server<
     constructor({
         session,
         mcpServer,
-        userConfig,
         telemetry,
         connectionErrorHandler,
         elicitation,
@@ -126,7 +118,7 @@ export class Server<
         uiRegistry,
         metrics,
         serverMetadata,
-    }: ServerOptions<TUserConfig, TMetrics> & { session: ServerSession }) {
+    }: ServerOptions<TMetrics> & { session: ServerSession }) {
         this.startTime = Date.now();
         this.session = session;
         this.telemetry = telemetry;
@@ -139,7 +131,7 @@ export class Server<
         this.metrics = metrics;
         this.serverMetadata = serverMetadata;
 
-        this._mcpLogLevel = userConfig.mcpClientLogLevel;
+        this._mcpLogLevel = session.config.mcpClientLogLevel;
         this.mcpLogLevelFloor = this._mcpLogLevel;
     }
 
@@ -240,7 +232,7 @@ export class Server<
 
     async close(): Promise<void> {
         await this.telemetry.close();
-        await this.session.close?.();
+        await this.session.close();
         await this.mcpServer.close();
     }
 

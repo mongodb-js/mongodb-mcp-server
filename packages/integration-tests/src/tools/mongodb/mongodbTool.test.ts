@@ -170,7 +170,6 @@ describe("MongoDBTool implementations", () => {
 
         mcpServer = new Server({
             session,
-            userConfig,
             telemetry,
             mcpServer: internalMcpServer,
             connectionErrorHandler: errorHandler,

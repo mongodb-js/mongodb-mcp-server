@@ -234,7 +234,6 @@ describe("Server integration test", () => {
 
         const server = new Server({
             session,
-            userConfig: config,
             telemetry,
             mcpServer: mcpServerInstance,
             elicitation,

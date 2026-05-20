@@ -99,7 +99,6 @@ async function createTestServer(
 
     const server = new Server({
         session,
-        userConfig: config,
         mcpServer,
         telemetry: {
             emitEvents: () => Promise.resolve(),

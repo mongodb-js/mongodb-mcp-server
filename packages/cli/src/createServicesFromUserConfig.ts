@@ -107,7 +107,6 @@ export async function createServicesFromUserConfig({
 
     const server = new Server({
         session,
-        userConfig: config,
         mcpServer,
         telemetry,
         connectionErrorHandler,

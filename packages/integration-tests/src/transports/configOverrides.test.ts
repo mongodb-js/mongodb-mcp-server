@@ -122,7 +122,6 @@ async function createTestServer(config: UserConfig): Promise<Server> {
 
     const server = new Server({
         session,
-        userConfig: config,
         mcpServer,
         telemetry: new NoopTelemetry() as unknown as AtlasTelemetry,
         connectionErrorHandler,

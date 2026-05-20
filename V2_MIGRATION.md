@@ -265,6 +265,17 @@ const runner = new StdioRunner({
 });
 ```
 
+`ServerOptions` no longer includes `userConfig`. Pass config when creating `Session`; read it from `session.config` (including `mcpClientLogLevel`, which `Server` uses at startup).
+
+```diff
+ const server = new Server({
+   session,
+-  userConfig: config,
+   mcpServer,
+   // ...
+ });
+```
+
 **After (StreamableHttpRunner):**
 
 For HTTP transport, customize server creation by extending `MCPHttpServer` (not `StreamableHttpRunner`) and overriding `createServerForRequest()`:
