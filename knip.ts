@@ -62,7 +62,7 @@ const config: KnipConfig = {
                 "src/tools/index.ts!",
                 "src/setup/index.ts!",
                 "src/test-helpers/index.ts!",
-                "tests/**/*.ts",
+                "e2e-tests/**/*.ts",
                 "scripts/**/*.ts",
             ],
             ignore: ["packaging/mcpb/server/index.js"],

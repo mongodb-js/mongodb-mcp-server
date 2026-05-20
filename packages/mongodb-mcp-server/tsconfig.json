@@ -10,7 +10,7 @@
   "include": [
     "src/**/*.ts",
     "src/**/*.tsx",
-    "tests/**/*.ts",
+    "e2e-tests/**/*.ts",
     "scripts/**/*.ts",
     "package.json"
   ],
