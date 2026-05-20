@@ -78,7 +78,11 @@
     "typescript": "^5.9.2",
     "vitest": "^4.1.5",
     "zod": "^4.4.2",
-    "@modelcontextprotocol/sdk": "^1.29.0"
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@anthropic-ai/mcpb": "2.1.2",
+    "@modelcontextprotocol/inspector": "^0.21.2",
+    "openapi-typescript-helpers": "^0.1.0",
+    "ts-levenshtein": "^1.0.7"
   },
   "dependencies": {
     "@mongodb-js/mcp-atlas-api-client": "workspace:*",
@@ -96,8 +100,7 @@
     "@mongodb-js/mcp-types": "workspace:*",
     "@mongodb-js/mcp-ui": "workspace:*",
     "@mongosh/service-provider-node-driver": "^5.0.2",
-    "mongodb-redact": "^1.4.6",
-    "oauth4webapi": "^3.8.6"
+    "mongodb-redact": "^1.4.6"
   },
   "engines": {
     "node": "^20.19.0 || ^22.12.0 || >= 24.0.0"
