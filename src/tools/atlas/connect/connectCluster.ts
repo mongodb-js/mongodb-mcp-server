@@ -10,6 +10,8 @@ import type { AtlasClusterConnectionInfo } from "../../../common/connectionManag
 import { getDefaultRoleFromConfig } from "../../../common/atlas/roles.js";
 import { AtlasArgs } from "../../args.js";
 import type { ConnectionMetadata } from "../../../telemetry/types.js";
+import { ConnectionString } from "mongodb-connection-string-url";
+import semver from "semver";
 
 const addedIpAccessListMessage =
     "Note: Your current IP address has been added to the Atlas project's IP access list to enable secure connection.";
@@ -167,13 +169,13 @@ export class ConnectClusterTool extends AtlasToolBase {
         }
 
         if (cluster.mongoDBVersion) {
-            const major = parseInt(cluster.mongoDBVersion.split(".").at(0) ?? "", 10);
-            if (!isNaN(major) && major < 7) {
+            const coerced = semver.coerce(cluster.mongoDBVersion);
+            if (coerced && semver.lt(coerced, "7.0.0")) {
                 return null;
             }
         }
 
-        const cn = new URL(connectionString);
+        const cn = new ConnectionString(connectionString);
         cn.searchParams.set("authMechanism", "MONGODB-OIDC");
         if (this.config.atlasOidcMechanismProperties) {
             cn.searchParams.set("authMechanismProperties", this.config.atlasOidcMechanismProperties);
