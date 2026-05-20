@@ -162,7 +162,7 @@ Returning ${documents.length} documents${appliedLimitsText ? ` ${appliedLimitsTe
     } {
         const configuredLimit = this.config.maxDocumentsPerQuery;
 
-        if (!Number.isFinite(configuredLimit) || configuredLimit <= 0) {
+        if (Number.isNaN(configuredLimit) || !Number.isFinite(configuredLimit) || configuredLimit <= 0) {
             return { cappedBy: undefined, limit: providedLimit ?? undefined };
         }
 
