@@ -6,7 +6,7 @@ export {
 } from "./elicitationMocks.js";
 export { MockMetrics } from "./mockMetrics.js";
 
-export { createEnvironment, useClearEnvironment, type TestConnectionManager } from "./testUtils.js";
+export { createEnvironment, useClearEnvironment } from "./testUtils.js";
 
 export {
     MongoDBClusterProcess,

@@ -11,7 +11,7 @@ import type { UserConfig } from "mongodb-mcp-server";
 import path from "path";
 import type { OIDCMockProviderConfig } from "@mongodb-js/oidc-mock-provider";
 import { OIDCMockProvider } from "@mongodb-js/oidc-mock-provider";
-import { type TestConnectionManager } from "@mongodb-js/mcp-test-utils";
+import type { TestConnectionManager } from "../testConnectionManager.js";
 
 const DEFAULT_TIMEOUT = 60_000;
 const DEFAULT_RETRIES = 5;

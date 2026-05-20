@@ -21,7 +21,6 @@
   },
   "dependencies": {
     "@mongodb-js/mcp-types": "workspace:*",
-    "@mongodb-js/mcp-tools-mongodb": "workspace:*",
     "@mongodb-js/mcp-metrics": "workspace:*",
     "mongodb": "^7.1.1",
     "mongodb-runner": "^6.7.6",

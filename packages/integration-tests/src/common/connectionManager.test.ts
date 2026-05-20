@@ -5,7 +5,7 @@ import { describeWithMongoDB, waitUntilSearchIsReady } from "../mongodbHelpers.j
 import { MongoServerError } from "mongodb";
 import { describe, beforeEach, expect, it, vi, afterEach } from "vitest";
 import type { MockInstance } from "vitest";
-import { type TestConnectionManager } from "@mongodb-js/mcp-test-utils";
+import type { TestConnectionManager } from "../testConnectionManager.js";
 
 describeWithMongoDB("Connection Manager", (integration) => {
     function connectionManager(): TestConnectionManager {

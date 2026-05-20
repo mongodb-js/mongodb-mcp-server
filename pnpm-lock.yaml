@@ -150,9 +150,6 @@ importers:
         specifier: ^0.17.0
         version: 0.17.0
     devDependencies:
-      '@mongodb-js/mcp-atlas-telemetry':
-        specifier: workspace:*
-        version: link:../atlas-telemetry
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
@@ -699,9 +696,6 @@ importers:
       '@mongodb-js/mcp-metrics':
         specifier: workspace:*
         version: link:../metrics
-      '@mongodb-js/mcp-tools-mongodb':
-        specifier: workspace:*
-        version: link:../tools-mongodb
       '@mongodb-js/mcp-types':
         specifier: workspace:*
         version: link:../types
