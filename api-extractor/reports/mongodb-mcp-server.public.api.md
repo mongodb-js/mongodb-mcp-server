@@ -458,7 +458,7 @@ export type ConnectionErrorHandled = {
     errorHandled: true;
     result: CallToolResult;
 };
-packages/tools-atlas/src/tools/update/upgradeCluster.test.ts
+
 // @public (undocumented)
 export type ConnectionErrorHandler = (error: MongoDBError<NotConnectedToMongoDBErrorCode | MisconfiguredConnectionStringErrorCode>, additionalContext: ConnectionErrorHandlerContext) => ConnectionErrorUnhandled | ConnectionErrorHandled | Promise<ConnectionErrorUnhandled | ConnectionErrorHandled>;
 
