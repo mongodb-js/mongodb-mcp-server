@@ -15,18 +15,19 @@
     "dist"
   ],
   "scripts": {
-    "compile": "tsc --build tsconfig.build.json",
-    "test": "vitest --run"
+    "build": "tsc --build tsconfig.build.json",
+    "test": "vitest --run",
+    "check": "tsc --build tsconfig.build.json --noEmit"
   },
   "dependencies": {
     "@mongodb-js/mcp-core": "workspace:*",
-    "@mongodb-js/mcp-types": "workspace:*",
     "@mongodb-js/devtools-proxy-support": "^0.7.8",
     "node-fetch": "^3.3.2",
     "oauth4webapi": "^3.8.5",
     "openapi-fetch": "^0.17.0"
   },
   "devDependencies": {
+    "@mongodb-js/mcp-types": "workspace:*",
     "@types/node": "^25.6.0",
     "typescript": "^5.9.2",
     "vitest": "^4.1.5"

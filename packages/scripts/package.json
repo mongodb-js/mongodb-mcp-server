@@ -13,7 +13,8 @@
     "generate:api": "./generate.sh",
     "generate:release-notes": "./generate-release-notes.sh",
     "filter:openapi": "tsx src/filter.ts",
-    "apply:openapi": "tsx src/apply.ts"
+    "apply:openapi": "tsx src/apply.ts",
+    "check": "tsc --build tsconfig.build.json --noEmit"
   },
   "devDependencies": {
     "@mongodb-js/mcp-ui": "workspace:*",

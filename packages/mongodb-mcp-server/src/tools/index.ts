@@ -10,9 +10,8 @@ export {
     ToolBase,
     type ToolClass,
     type ToolConstructorParams,
-    type ToolCategory,
-    type OperationType,
     type ToolArgs,
-    type ToolExecutionContext,
     type ToolResult,
 } from "@mongodb-js/mcp-core";
+
+export { type ToolCategory, type OperationType, type ToolExecutionContext } from "@mongodb-js/mcp-types";

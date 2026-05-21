@@ -1,6 +1,6 @@
 import type { CallToolResult } from "@mongodb-js/mcp-types";
 import { AtlasToolBase } from "../../atlasTool.js";
-import type { OperationType } from "@mongodb-js/mcp-core";
+import type { OperationType } from "@mongodb-js/mcp-types";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
 
 export class ListOrganizationsTool extends AtlasToolBase {

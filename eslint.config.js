@@ -6,13 +6,12 @@ import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended"
 import vitestPlugin from "@vitest/eslint-plugin";
 import enforceZodV4 from "./eslint-rules/enforce-zod-v4.js";
 
-const testFiles = ["packages/**/*.test.ts", "packages/**/*.test.tsx", "packages/**/*.ts", "packages/**/*.tsx"];
-
-const files = [...testFiles, "packages/**/*.ts"];
+const sourceFiles = ["knip.ts", "packages/**/*.ts", "packages/**/*.tsx"];
+const testFiles = ["packages/**/*.test.ts", "packages/**/*.test.tsx"];
 
 export default defineConfig([
-    { files, plugins: { js }, extends: ["js/recommended"] },
-    { files, languageOptions: { globals: globals.node } },
+    { files: sourceFiles, plugins: { js }, extends: ["js/recommended"] },
+    { files: sourceFiles, languageOptions: { globals: globals.node } },
     {
         files: testFiles,
         plugins: {
@@ -37,7 +36,7 @@ export default defineConfig([
         },
     },
     {
-        files,
+        files: sourceFiles,
         extends: [tseslint.configs.recommendedTypeChecked],
         languageOptions: {
             parserOptions: {
@@ -47,7 +46,7 @@ export default defineConfig([
         },
     },
     {
-        files,
+        files: sourceFiles,
         rules: {
             "@typescript-eslint/switch-exhaustiveness-check": ["error", { considerDefaultExhaustiveForUnions: true }],
             "@typescript-eslint/no-non-null-assertion": "error",
@@ -106,17 +105,16 @@ export default defineConfig([
     globalIgnores([
         "node_modules",
         "**/dist/**",
-        "packages/*/dist/**",
         "packages/atlas-api-client/openapi.d.ts",
         ".claude/**",
-        "packages/mongodb-mcp-server/src/ui/lib",
+        "packages/ui/src/lib/**",
         "coverage",
         "global.d.ts",
         "eslint.config.js",
-        "vitest.config.ts",
-        "vite.ui.config.ts",
-        "src/types/*.d.ts",
-        "tests/integration/fixtures/",
+        "**/vitest.config.ts",
+        "**/vite*.config.ts",
+        "**/temp/**",
+        "**/*.tsbuildinfo",
         "packages/browser-tests/polyfills/**",
         "eslint-rules",
         ".yalc",

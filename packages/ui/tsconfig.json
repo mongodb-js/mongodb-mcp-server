@@ -14,5 +14,6 @@
     "vite.ui.config.ts",
     "src/build/mount.tsx"
   ],
-  "exclude": ["dist", "node_modules"]
+  "exclude": ["dist", "node_modules"],
+  "references": [{ "path": "../types" }]
 }

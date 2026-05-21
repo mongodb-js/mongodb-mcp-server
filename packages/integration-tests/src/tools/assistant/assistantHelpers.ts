@@ -22,7 +22,6 @@ export function describeWithAssistant(name: string, fn: MockIntegrationTestFunct
         });
     };
 
-    // eslint-disable-next-line vitest/valid-describe-callback
     return describe("assistant (mocked)", () => testDefinition());
 }
 

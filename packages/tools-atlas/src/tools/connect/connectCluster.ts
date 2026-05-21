@@ -1,5 +1,6 @@
 import type { CallToolResult } from "@mongodb-js/mcp-types";
-import { type OperationType, type ToolArgs } from "@mongodb-js/mcp-core";
+import { type ToolArgs } from "@mongodb-js/mcp-core";
+import type { OperationType } from "@mongodb-js/mcp-types";
 import { AtlasToolBase } from "../../atlasTool.js";
 import { LogId } from "@mongodb-js/mcp-core";
 import { generateSecurePassword } from "../../helpers/generatePassword.js";

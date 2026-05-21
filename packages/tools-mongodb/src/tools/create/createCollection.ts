@@ -1,5 +1,6 @@
 import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
-import type { OperationType, ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
+import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
+import type { OperationType } from "@mongodb-js/mcp-types";
 import { z } from "zod";
 
 const CreateCollectionOutputSchema = {

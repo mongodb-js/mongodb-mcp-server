@@ -1,8 +1,6 @@
-export type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-types";
 export { AtlasToolBase, type IAtlasConfig, type IAtlasSession } from "./atlasTool.js";
 export { StreamsToolBase } from "./streams/streamsToolBase.js";
 export { StreamsArgs, ConnectionConfig, PrivateLinkConfig } from "./streams/streamsArgs.js";
-export { type ToolConstructorParams } from "@mongodb-js/mcp-core";
 export { ensureCurrentIpInAccessList, DEFAULT_ACCESS_LIST_COMMENT } from "./helpers/accessListUtils.js";
 export { getDefaultRoleFromConfig } from "./helpers/roles.js";
 export {

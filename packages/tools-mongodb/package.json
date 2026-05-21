@@ -15,13 +15,13 @@
     "dist"
   ],
   "scripts": {
-    "compile": "tsc --build tsconfig.build.json",
-    "test": "vitest --run"
+    "build": "tsc --build tsconfig.build.json",
+    "test": "vitest --run",
+    "check": "tsc --build tsconfig.build.json --noEmit"
   },
   "dependencies": {
     "@mongodb-js/device-id": "^0.4.6",
     "@mongodb-js/mcp-core": "workspace:*",
-    "@mongodb-js/mcp-types": "workspace:*",
     "@mongosh/arg-parser": "^5.0.2",
     "@mongosh/service-provider-node-driver": "^5.0.2",
     "bson": "^7.2.0",
@@ -33,6 +33,7 @@
     "zod": "^4.4.2"
   },
   "devDependencies": {
+    "@mongodb-js/mcp-types": "workspace:*",
     "@mongodb-js/mcp-test-utils": "workspace:*",
     "@types/node": "^25.6.0",
     "typescript": "^5.9.2",

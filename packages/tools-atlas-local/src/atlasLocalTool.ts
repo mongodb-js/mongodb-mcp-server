@@ -1,5 +1,6 @@
 import type { CallToolResult, ISession, IToolConfig, ConnectionMetadata } from "@mongodb-js/mcp-types";
-import type { ToolArgs, ToolExecutionContext } from "@mongodb-js/mcp-core";
+import type { ToolArgs } from "@mongodb-js/mcp-core";
+import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { ToolBase } from "@mongodb-js/mcp-core";
 import { LogId } from "@mongodb-js/mcp-core";
 import type { Client } from "@mongodb-js/atlas-local";

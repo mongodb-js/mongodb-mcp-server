@@ -1,6 +1,5 @@
 import type { Secret } from "mongodb-redact";
 import type { IKeychain } from "@mongodb-js/mcp-types";
-export type { Secret } from "mongodb-redact";
 
 /**
  * This class holds the secrets of a single server. Ideally, we might want to have a keychain

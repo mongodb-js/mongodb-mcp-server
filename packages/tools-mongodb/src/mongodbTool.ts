@@ -1,5 +1,6 @@
 import { z } from "zod";
-import type { McpServer, ToolArgs, ToolCategory, ToolConstructorParams } from "@mongodb-js/mcp-core";
+import type { ToolArgs, ToolConstructorParams } from "@mongodb-js/mcp-core";
+import type { McpServer, ToolCategory } from "@mongodb-js/mcp-types";
 import { ToolBase } from "@mongodb-js/mcp-core";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import type { CallToolResult, ISession, IToolConfig } from "@mongodb-js/mcp-types";

@@ -15,11 +15,11 @@ import {
     type UserConfig,
     CliSession,
     CliServer,
-    type AnyToolClass,
     connectionErrorHandler,
     type ConnectionErrorHandler,
     Elicitation,
 } from "mongodb-mcp-server";
+import type { AnyToolClass } from "@mongodb-js/mcp-core";
 import { CompositeLogger, InMemoryTransport, Keychain } from "@mongodb-js/mcp-core";
 import {
     createTestApiClient,

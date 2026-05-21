@@ -1,8 +1,8 @@
 import { z } from "zod";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
-import { type ToolArgs, type OperationType, formatUntrustedData, type ToolResult } from "@mongodb-js/mcp-core";
-
+import { type ToolArgs, formatUntrustedData, type ToolResult } from "@mongodb-js/mcp-core";
+import type { OperationType } from "@mongodb-js/mcp-types";
 const DropIndexOutputSchema = {
     database: z.string(),
     collection: z.string(),

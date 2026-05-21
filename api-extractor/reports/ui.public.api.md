@@ -4,10 +4,8 @@
 
 ```ts
 
-import { IUIRegistry } from '@mongodb-js/mcp-types';
-import { UIRegistryOptions } from '@mongodb-js/mcp-types';
-
-export { IUIRegistry }
+import type { IUIRegistry } from '@mongodb-js/mcp-types';
+import type { UIRegistryOptions } from '@mongodb-js/mcp-types';
 
 // @public
 export const uiLoaders: Record<string, () => Promise<string>>;
@@ -17,8 +15,6 @@ export class UIRegistry implements IUIRegistry {
     constructor(options?: UIRegistryOptions);
     get(toolName: string): Promise<string | null>;
 }
-
-export { UIRegistryOptions }
 
 // (No @packageDocumentation comment for this package)
 

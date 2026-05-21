@@ -15,16 +15,9 @@ export { AllTools } from "./allTools.js";
 export { packageInfo } from "./common/packageInfo.js";
 export { ExportedData } from "@mongodb-js/mcp-cli";
 
-export {
-    LoggerBase,
-    type LogPayload,
-    type LoggerType,
-    type LogLevel,
-    CompositeLogger,
-    NoopLogger,
-    type EventMap,
-    type DefaultEventMap,
-} from "@mongodb-js/mcp-core";
+export { LoggerBase, CompositeLogger, NoopLogger } from "@mongodb-js/mcp-core";
+export { type LogLevel, type LogPayload, type LoggerType } from "@mongodb-js/mcp-types";
+export { type EventMap, type DefaultEventMap } from "@mongodb-js/mcp-types";
 export { McpLogger } from "@mongodb-js/mcp-logging";
 export { ConsoleLogger } from "@mongodb-js/mcp-logging";
 export { StdioRunner } from "@mongodb-js/mcp-core";
@@ -92,17 +85,11 @@ export type { MonitoringServerFeature } from "@mongodb-js/mcp-tools-mongodb";
 export { ApiClient, type ApiClientOptions } from "@mongodb-js/mcp-atlas-api-client";
 export type { AuthProvider } from "@mongodb-js/mcp-atlas-api-client";
 export { ClientCredentialsAuthProvider } from "@mongodb-js/mcp-atlas-api-client";
-export { type UIRegistryOptions, UIRegistry } from "@mongodb-js/mcp-ui";
-export {
-    type ToolExecutionContext,
-    type AnyToolBase,
-    type AnyToolClass,
-    type OperationType,
-    ToolBase,
-    type ToolCategory,
-    type ToolClass,
-    type ToolArgs,
-} from "@mongodb-js/mcp-core";
+export { UIRegistry } from "@mongodb-js/mcp-ui";
+export { ToolBase, type AnyToolClass, type AnyToolBase, type ToolClass, type ToolArgs } from "@mongodb-js/mcp-core";
+export { type ToolExecutionContext } from "@mongodb-js/mcp-types";
+export { type OperationType } from "@mongodb-js/mcp-types";
+export { type ToolCategory } from "@mongodb-js/mcp-types";
 export { TRANSPORT_PAYLOAD_LIMITS, type TransportType } from "@mongodb-js/mcp-cli";
 export {
     PrometheusMetrics,

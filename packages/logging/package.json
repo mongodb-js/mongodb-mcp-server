@@ -21,14 +21,15 @@
     "dist"
   ],
   "scripts": {
-    "compile": "tsc --build tsconfig.build.json",
-    "test": "vitest --run"
+    "build": "tsc --build tsconfig.build.json",
+    "test": "vitest --run",
+    "check": "tsc --build tsconfig.build.json --noEmit"
   },
   "dependencies": {
-    "@mongodb-js/mcp-core": "workspace:*",
-    "@mongodb-js/mcp-types": "workspace:*"
+    "@mongodb-js/mcp-core": "workspace:*"
   },
   "devDependencies": {
+    "@mongodb-js/mcp-types": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@types/node": "^25.6.0",
     "typescript": "^5.9.2",

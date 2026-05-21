@@ -3,7 +3,9 @@ export { type ITransportRunner, type TransportRequestContext } from "@mongodb-js
 export { createDefaultMetrics, type DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
 export type { ToolCategory } from "@mongodb-js/mcp-types";
 export { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
-export { LoggerBase, CompositeLogger, type EventMap, type DefaultEventMap } from "@mongodb-js/mcp-core";
+export { LoggerBase, CompositeLogger } from "@mongodb-js/mcp-core";
+export { type LogLevel, type LogPayload, type LoggerType } from "@mongodb-js/mcp-types";
+export { type EventMap, type DefaultEventMap } from "@mongodb-js/mcp-types";
 export type { DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
 export type {
     TelemetryCommonProperties,
@@ -19,7 +21,6 @@ export type {
     UpgradeClusterMetadata,
 } from "@mongodb-js/mcp-atlas-telemetry";
 export type { SessionEvents } from "@mongodb-js/mcp-types";
-export type { LogLevel, LogPayload, LoggerType } from "@mongodb-js/mcp-core";
 export { Keychain } from "@mongodb-js/mcp-core";
 export type { Secret } from "mongodb-redact";
 export type {
@@ -65,10 +66,10 @@ export {
     type AnyToolBase,
     type ToolClass,
     type ToolConstructorParams,
-    type OperationType,
     type ToolArgs,
-    type ToolExecutionContext,
 } from "@mongodb-js/mcp-core";
+export { type OperationType } from "@mongodb-js/mcp-types";
+export { type ToolExecutionContext } from "@mongodb-js/mcp-types";
 export { AtlasTelemetry as Telemetry, EventCache } from "@mongodb-js/mcp-atlas-telemetry";
 export type {
     TelemetryEvents,

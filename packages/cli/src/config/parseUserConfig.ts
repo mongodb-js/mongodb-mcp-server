@@ -1,6 +1,5 @@
 import { type CliOptions, generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
-import { Keychain } from "@mongodb-js/mcp-core";
-import type { Secret } from "@mongodb-js/mcp-core";
+import { Keychain, type Secret } from "@mongodb-js/mcp-core";
 import { UserConfigSchema, ALL_CONFIG_KEYS, type UserConfig } from "./userConfig.js";
 import {
     defaultParserOptions as defaultArgParserOptions,

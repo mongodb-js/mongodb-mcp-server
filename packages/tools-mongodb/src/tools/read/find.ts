@@ -1,7 +1,8 @@
 import { z } from "zod";
 import type { CallToolResult } from "@mongodb-js/mcp-types";
 import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolExecutionContext } from "@mongodb-js/mcp-core";
+import type { ToolArgs } from "@mongodb-js/mcp-core";
+import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
 import type { FindCursor } from "mongodb";
 import { checkIndexUsage } from "../../helpers/indexCheck.js";

@@ -1,5 +1,6 @@
 import { MongoDBToolBase } from "../../mongodbTool.js";
-import type { ToolExecutionContext, ToolArgs, OperationType, ToolResult } from "@mongodb-js/mcp-core";
+import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
+import type { ToolExecutionContext, OperationType } from "@mongodb-js/mcp-types";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
 import { z } from "zod";
 

@@ -1,8 +1,6 @@
 // CLI server class and types
 export { CliServer } from "./cliServer.js";
 export type { CliServerOptions, ToolRegistry, ResourceRegistry, McpSession } from "./cliServer.js";
-export type { ServerMetadata } from "@mongodb-js/mcp-types";
-
 // Main CLI exports
 export { runMcpCli, type RunMcpCliOptions } from "./runMcpCli.js";
 export { startServer } from "./startServer.js";

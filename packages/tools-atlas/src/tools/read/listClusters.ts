@@ -1,6 +1,7 @@
 import type { CallToolResult } from "@mongodb-js/mcp-types";
 import { AtlasToolBase } from "../../atlasTool.js";
-import type { ToolArgs, OperationType } from "@mongodb-js/mcp-core";
+import type { ToolArgs } from "@mongodb-js/mcp-core";
+import type { OperationType } from "@mongodb-js/mcp-types";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
 import type {
     PaginatedClusterDescription20240805,

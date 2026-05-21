@@ -1,16 +1,12 @@
 {
-  "extends": "../../tsconfig.json",
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "./dist",
     "rootDir": ".",
-    "composite": true
+    "baseUrl": ".",
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts", "../test-utils/src/vitest.d.ts"],
-  "exclude": ["node_modules", "dist"],
-  "references": [
-    { "path": "../test-utils" },
-    { "path": "../mongodb-mcp-server" },
-    { "path": "../cli" },
-    { "path": "../types" }
-  ]
+  "exclude": ["node_modules"]
 }

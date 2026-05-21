@@ -2,12 +2,12 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "rootDir": "./src",
-    "outDir": "./dist",
     "baseUrl": ".",
-    "erasableSyntaxOnly": true,
-    "composite": true
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts"],
-  "exclude": ["dist", "node_modules"],
+  "exclude": ["node_modules"],
   "references": [{ "path": "../types" }, { "path": "../metrics" }]
 }

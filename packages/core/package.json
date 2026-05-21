@@ -21,18 +21,19 @@
     "dist"
   ],
   "scripts": {
-    "compile": "tsc --build tsconfig.build.json",
-    "test": "vitest --run"
+    "build": "tsc --build tsconfig.build.json",
+    "test": "vitest --run",
+    "check": "tsc --build tsconfig.build.json --noEmit"
   },
   "dependencies": {
     "@mcp-ui/server": "^6.1.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "bson": "^7.2.0",
-    "@mongodb-js/mcp-types": "workspace:*",
     "mongodb-redact": "^1.1.6",
     "zod": "^4.0.0"
   },
   "devDependencies": {
+    "@mongodb-js/mcp-types": "workspace:*",
     "@mongodb-js/mcp-test-utils": "workspace:*",
     "@types/node": "^25.6.0",
     "typescript": "^5.9.2",

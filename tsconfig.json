@@ -2,27 +2,11 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "rootDir": ".",
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false
   },
   "include": ["*.ts", "*.js", "eslint-rules/*.js"],
-  "exclude": ["dist", "node_modules", "**/dist", "packaging", "tests"],
-  "references": [
-    { "path": "./packages/types" },
-    { "path": "./packages/core" },
-    { "path": "./packages/logging" },
-    { "path": "./packages/metrics" },
-    { "path": "./packages/atlas-api-client" },
-    { "path": "./packages/atlas-telemetry" },
-    { "path": "./packages/http-runners" },
-    { "path": "./packages/test-utils" },
-    { "path": "./packages/tools-assistant" },
-    { "path": "./packages/tools-atlas" },
-    { "path": "./packages/tools-atlas-local" },
-    { "path": "./packages/tools-mongodb" },
-    { "path": "./packages/ui" },
-    { "path": "./packages/scripts" },
-    { "path": "./packages/mongodb-mcp-server" },
-    { "path": "./packages/integration-tests" },
-    { "path": "./packages/accuracy-tests" }
-  ]
+  "exclude": ["dist", "node_modules", "**/dist", "packaging", "tests"]
 }

@@ -1,4 +1,5 @@
-import { type IMetrics, PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
+import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
+import type { IMetrics } from "@mongodb-js/mcp-types";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import { Elicitation, Keychain, McpServer } from "@mongodb-js/mcp-core";
 import { createDefaultLoggers } from "./utils/loggers.js";

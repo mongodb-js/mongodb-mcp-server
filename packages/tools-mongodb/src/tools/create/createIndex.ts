@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
-import { type ToolArgs, type OperationType, type ToolResult } from "@mongodb-js/mcp-core";
+import { type ToolArgs, type ToolResult } from "@mongodb-js/mcp-core";
+import type { OperationType } from "@mongodb-js/mcp-types";
 import { IndexDirectionSchema, modelsSupportingAutoEmbedIndexes } from "../../mongodbSchemas.js";
 
 const CreateIndexOutputSchema = {

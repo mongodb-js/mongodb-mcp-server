@@ -43,8 +43,7 @@ const config: KnipConfig = {
             ],
         },
         "packages/test-utils": {
-            // Required for knip --strict; normal knip reports these entry patterns as redundant (vitest plugin overlap)
-            entry: ["src/setup.ts", "scripts/copy-assets.js"],
+            entry: ["src/index.ts", "src/setup.ts"],
         },
         "packages/scripts": {
             entry: ["src/*.ts"],
@@ -90,13 +89,6 @@ const config: KnipConfig = {
                 "@vitejs/plugin-react", // Used in vite.ui.config.ts (see ignore)
                 "vite-plugin-node-polyfills", // Used in vite.ui.config.ts (see ignore)
                 "vite-plugin-singlefile", // Used in vite.ui.config.ts (see ignore)
-            ],
-        },
-        "packages/types": {
-            ignoreDependencies: [
-                // `import type` and re-exports; knip --strict ignores type-only usage (knip hints to remove)
-                "@modelcontextprotocol/sdk",
-                "mongodb-redact",
             ],
         },
         "packages/cli": {

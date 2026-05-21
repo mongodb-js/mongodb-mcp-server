@@ -2,7 +2,8 @@ import { z } from "zod";
 import { StreamsToolBase } from "../../streams/streamsToolBase.js";
 import type { CallToolResult } from "@mongodb-js/mcp-types";
 import type { ElicitRequestFormParams } from "@modelcontextprotocol/sdk/types.js";
-import type { OperationType, ToolArgs } from "@mongodb-js/mcp-core";
+import type { ToolArgs } from "@mongodb-js/mcp-core";
+import type { OperationType } from "@mongodb-js/mcp-types";
 import { AtlasArgs } from "../../args.js";
 import { ConnectionConfig, PrivateLinkConfig, StreamsArgs } from "../../streams/streamsArgs.js";
 

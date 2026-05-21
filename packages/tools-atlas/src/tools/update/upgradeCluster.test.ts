@@ -1,10 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type {
-    ToolConstructorParams,
-    IAtlasConfig,
-    IAtlasSession,
-    AtlasClusterConnectionInfo,
-} from "@mongodb-js/mcp-tools-atlas";
+import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
+import type { IAtlasConfig, IAtlasSession } from "@mongodb-js/mcp-tools-atlas";
+import type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-types";
 import { UpgradeClusterTool } from "./upgradeCluster.js";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { Elicitation } from "@mongodb-js/mcp-core";

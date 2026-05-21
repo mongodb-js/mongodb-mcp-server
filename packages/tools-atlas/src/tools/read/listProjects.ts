@@ -1,6 +1,6 @@
 import type { CallToolResult } from "@mongodb-js/mcp-types";
 import { AtlasToolBase } from "../../atlasTool.js";
-import type { OperationType } from "@mongodb-js/mcp-core";
+import type { OperationType } from "@mongodb-js/mcp-types";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
 import type { ToolArgs } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
@@ -25,8 +25,8 @@ export class ListProjectsTool extends AtlasToolBase {
         }
 
         const orgs: Record<string, string> = orgData.results
-            .filter((org) => org.id)
-            .reduce((acc, org) => ({ ...acc, [org.id!]: org.name }), {});
+            .filter((org): org is typeof org & { id: string } => org.id !== undefined)
+            .reduce((acc, org) => ({ ...acc, [org.id]: org.name }), {});
 
         const data = orgId
             ? await this.apiClient.getOrgGroups({

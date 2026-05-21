@@ -5,18 +5,10 @@
   "type": "module",
   "description": "Integration tests for the MongoDB MCP server",
   "exports": {
-    ".": {
-      "types": "./dist/src/index.d.ts",
-      "default": "./dist/src/index.js"
-    }
+    ".": "./src/index.ts"
   },
-  "main": "./dist/src/index.js",
-  "types": "./dist/src/index.d.ts",
-  "files": [
-    "dist"
-  ],
   "scripts": {
-    "compile": "tsc --build tsconfig.build.json"
+    "check": "tsc --noEmit --project tsconfig.json"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",

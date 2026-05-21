@@ -4,7 +4,7 @@ import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 import { defaultTestConfig } from "./integrationHelpers.js";
 import { parsePrometheusValue } from "./metricsHelpers.js";
 import type { UserConfig } from "mongodb-mcp-server";
-import type { OperationType, ToolCategory } from "@mongodb-js/mcp-core";
+import type { OperationType, ToolCategory } from "@mongodb-js/mcp-types";
 import { ToolBase } from "@mongodb-js/mcp-core";
 import type { CallToolResult } from "@mongodb-js/mcp-types";
 import type { TelemetryToolMetadata, AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
@@ -24,7 +24,8 @@ import type {
     HttpServerOptions,
     SessionManagementOptions,
 } from "@mongodb-js/mcp-types";
-import { CliServer, type AnyToolClass, CliSession, Elicitation, connectionErrorHandler } from "mongodb-mcp-server";
+import { CliServer, CliSession, Elicitation, connectionErrorHandler } from "mongodb-mcp-server";
+import type { AnyToolClass } from "@mongodb-js/mcp-core";
 import { MCPConnectionManager, ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { StreamableHttpRunner, MonitoringServer, MCPHttpServer } from "@mongodb-js/mcp-http-runners";
 import { SessionStore } from "@mongodb-js/mcp-core";

@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "check": "tsc --noEmit --project tsconfig.json",
     "test": "vitest run --coverage",
     "test:watch": "vitest watch",
     "install:browser": "pnpm exec playwright install chromium"
