@@ -13,7 +13,7 @@ export interface paths {
         };
         /**
          * Return All Authorized Clusters in All Projects
-         * @description Returns the details for all clusters in all projects to which you have access. Clusters contain a group of hosts that maintain the same data set. The response does not include multi-cloud clusters. To use this resource, the requesting Service Account or API Key can have any cluster-level role.
+         * @description Returns the details for all clusters in all projects to which you have access. Clusters contain a group of hosts that maintain the same data set. The response does not include multi-cloud clusters.
          */
         get: operations["listClusterDetails"];
         put?: never;
@@ -33,13 +33,13 @@ export interface paths {
         };
         /**
          * Return All Projects
-         * @description Returns details about all projects. Projects group clusters into logical collections that support an application environment, workload, or both. Each project can have its own users, teams, security, tags, and alert settings. To use this resource, the requesting Service Account or API Key must have the Organization Read Only role or higher.
+         * @description Returns details about all projects. Projects group clusters into logical collections that support an application environment, workload, or both. Each project can have its own users, teams, security, tags, and alert settings.
          */
         get: operations["listGroups"];
         put?: never;
         /**
          * Create One Project
-         * @description Creates one project. Projects group clusters into logical collections that support an application environment, workload, or both. Each project can have its own users, teams, security, tags, and alert settings. To use this resource, the requesting Service Account or API Key must have the Read Write role.
+         * @description Creates one project. Projects group clusters into logical collections that support an application environment, workload, or both. Each project can have its own users, teams, security, tags, and alert settings.
          */
         post: operations["createGroup"];
         delete?: never;
@@ -57,14 +57,14 @@ export interface paths {
         };
         /**
          * Return One Project
-         * @description Returns details about the specified project. Projects group clusters into logical collections that support an application environment, workload, or both. Each project can have its own users, teams, security, tags, and alert settings. To use this resource, the requesting Service Account or API Key must have the Project Read Only role.
+         * @description Returns details about the specified project. Projects group clusters into logical collections that support an application environment, workload, or both. Each project can have its own users, teams, security, tags, and alert settings.
          */
         get: operations["getGroup"];
         put?: never;
         post?: never;
         /**
          * Remove One Project
-         * @description Removes the specified project. Projects group clusters into logical collections that support an application environment, workload, or both. Each project can have its own users, teams, security, tags, and alert settings. You can delete a project only if there are no Online Archives for the clusters in the project. To use this resource, the requesting Service Account or API Key must have the Project Owner role.
+         * @description Removes the specified project. Projects group clusters into logical collections that support an application environment, workload, or both. Each project can have its own users, teams, security, tags, and alert settings. You can delete a project only if there are no Online Archives for the clusters in the project.
          */
         delete: operations["deleteGroup"];
         options?: never;
@@ -81,13 +81,13 @@ export interface paths {
         };
         /**
          * Return All Project IP Access List Entries
-         * @description Returns all access list entries from the specified project's IP access list. Each entry in the project's IP access list contains either one IP address or one CIDR-notated block of IP addresses. MongoDB Cloud only allows client connections to the cluster from entries in the project's IP access list. To use this resource, the requesting Service Account or API Key must have the Project Read Only or Project Charts Admin roles. This resource replaces the whitelist resource. MongoDB Cloud removed whitelists in July 2021. Update your applications to use this new resource. The `/groups/{GROUP-ID}/accessList` endpoint manages the database IP access list. This endpoint is distinct from the `orgs/{ORG-ID}/apiKeys/{API-KEY-ID}/accesslist` endpoint, which manages the access list for MongoDB Cloud organizations.
+         * @description Returns all access list entries from the specified project's IP access list. Each entry in the project's IP access list contains either one IP address or one CIDR-notated block of IP addresses. MongoDB Cloud only allows client connections to the cluster from entries in the project's IP access list. This resource replaces the whitelist resource. MongoDB Cloud removed whitelists in July 2021. Update your applications to use this new resource. The `/groups/{GROUP-ID}/accessList` endpoint manages the database IP access list. This endpoint is distinct from the `orgs/{ORG-ID}/apiKeys/{API-KEY-ID}/accesslist` endpoint, which manages the access list for MongoDB Cloud organizations.
          */
         get: operations["listGroupAccessListEntries"];
         put?: never;
         /**
          * Add Entries to Project IP Access List
-         * @description Adds one or more access list entries to the specified project. MongoDB Cloud only allows client connections to the cluster from entries in the project's IP access list. Write each entry as either one IP address or one CIDR-notated block of IP addresses. To use this resource, the requesting Service Account or API Key must have the Project Owner role, Project Charts Admin role, or Project Network Access Manager role. This resource replaces the whitelist resource. MongoDB Cloud removed whitelists in July 2021. Update your applications to use this new resource. The `/groups/{GROUP-ID}/accessList` endpoint manages the database IP access list. This endpoint is distinct from the `orgs/{ORG-ID}/apiKeys/{API-KEY-ID}/accesslist` endpoint, which manages the access list for MongoDB Cloud organizations. This endpoint doesn't support concurrent `POST` requests. You must submit multiple `POST` requests synchronously.
+         * @description Adds one or more access list entries to the specified project. MongoDB Cloud only allows client connections to the cluster from entries in the project's IP access list. Write each entry as either one IP address or one CIDR-notated block of IP addresses. This resource replaces the whitelist resource. MongoDB Cloud removed whitelists in July 2021. Update your applications to use this new resource. The `/groups/{GROUP-ID}/accessList` endpoint manages the database IP access list. This endpoint is distinct from the `orgs/{ORG-ID}/apiKeys/{API-KEY-ID}/accesslist` endpoint, which manages the access list for MongoDB Cloud organizations. This endpoint doesn't support concurrent `POST` requests. You must submit multiple `POST` requests synchronously.
          */
         post: operations["createGroupAccessListEntry"];
         delete?: never;
@@ -108,7 +108,7 @@ export interface paths {
         post?: never;
         /**
          * Remove One Entry from One Project IP Access List
-         * @description Removes one access list entry from the specified project's IP access list. Each entry in the project's IP access list contains one IP address, one CIDR-notated block of IP addresses, or one AWS Security Group ID. MongoDB Cloud only allows client connections to the cluster from entries in the project's IP access list. To use this resource, the requesting Service Account or API Key must have the Project Owner role or Project Network Access Manager role. This resource replaces the whitelist resource. MongoDB Cloud removed whitelists in July 2021. Update your applications to use this new resource. The `/groups/{GROUP-ID}/accessList` endpoint manages the database IP access list. This endpoint is distinct from the `orgs/{ORG-ID}/apiKeys/{API-KEY-ID}/accesslist` endpoint, which manages the access list for MongoDB Cloud organizations.
+         * @description Removes one access list entry from the specified project's IP access list. Each entry in the project's IP access list contains one IP address, one CIDR-notated block of IP addresses, or one AWS Security Group ID. MongoDB Cloud only allows client connections to the cluster from entries in the project's IP access list. This resource replaces the whitelist resource. MongoDB Cloud removed whitelists in July 2021. Update your applications to use this new resource. The `/groups/{GROUP-ID}/accessList` endpoint manages the database IP access list. This endpoint is distinct from the `orgs/{ORG-ID}/apiKeys/{API-KEY-ID}/accesslist` endpoint, which manages the access list for MongoDB Cloud organizations.
          */
         delete: operations["deleteGroupAccessListEntry"];
         options?: never;
@@ -125,7 +125,7 @@ export interface paths {
         };
         /**
          * Return All Alerts from One Project
-         * @description Returns all alerts. These alerts apply to all components in one project. You receive an alert when a monitored component meets or exceeds a value you set. To use this resource, the requesting Service Account or API Key must have the Project Read Only role.
+         * @description Returns all alerts. These alerts apply to all components in one project. You receive an alert when a monitored component meets or exceeds a value you set.
          *
          *     This resource remains under revision and may change.
          */
@@ -147,7 +147,7 @@ export interface paths {
         };
         /**
          * Return All Clusters in One Project
-         * @description Returns the details for all clusters in the specific project to which you have access. Clusters contain a group of hosts that maintain the same data set. The response includes clusters with asymmetrically-sized shards. To use this resource, the requesting Service Account or API Key must have the Project Read Only role. This feature is not  available for serverless clusters.
+         * @description Returns the details for all clusters in the specific project to which you have access. Clusters contain a group of hosts that maintain the same data set. The response includes clusters with asymmetrically-sized shards. This feature is not  available for serverless clusters.
          *
          *     This endpoint can also be used on Flex clusters that were created using the [Create Cluster](https://www.mongodb.com/docs/atlas/reference/api-resources-spec/v2/#tag/Clusters/operation/createCluster) endpoint or former M2/M5 clusters that have been migrated to Flex clusters until January 2026. Please use the List Flex Clusters endpoint for Flex clusters instead. Deprecated versions: v2-{2023-02-01}, v2-{2023-01-01}
          */
@@ -155,7 +155,7 @@ export interface paths {
         put?: never;
         /**
          * Create One Cluster in One Project
-         * @description Creates one cluster in the specified project. Clusters contain a group of hosts that maintain the same data set. This resource can create clusters with asymmetrically-sized shards. Each project supports up to 25 database deployments. To use this resource, the requesting Service Account or API Key must have the Project Owner role or Project Cluster Creator role. This feature is not available for serverless clusters.
+         * @description Creates one cluster in the specified project. Clusters contain a group of hosts that maintain the same data set. This resource can create clusters with asymmetrically-sized shards. Each project supports up to 25 database deployments. This feature is not available for serverless clusters.
          *
          *     Please note that using an `instanceSize` of M2 or M5 will create a Flex cluster instead. Support for the `instanceSize` of M2 or M5 will be discontinued in January 2026. We recommend using the Create Flex Cluster API for such configurations moving forward. Deprecated versions: v2-{2024-08-05}, v2-{2023-02-01}, v2-{2023-01-01}
          */
@@ -175,7 +175,7 @@ export interface paths {
         };
         /**
          * Return One Cluster from One Project
-         * @description Returns the details for one cluster in the specified project. Clusters contain a group of hosts that maintain the same data set. The response includes clusters with asymmetrically-sized shards. To use this resource, the requesting Service Account or API Key must have the Project Read Only role. This feature is not available for serverless clusters.
+         * @description Returns the details for one cluster in the specified project. Clusters contain a group of hosts that maintain the same data set. The response includes clusters with asymmetrically-sized shards. This feature is not available for serverless clusters.
          *
          *     This endpoint can also be used on Flex clusters that were created using the [Create Cluster](https://www.mongodb.com/docs/atlas/reference/api-resources-spec/v2/#tag/Clusters/operation/createCluster) endpoint or former M2/M5 clusters that have been migrated to Flex clusters until January 2026. Please use the Get Flex Cluster endpoint for Flex clusters instead. Deprecated versions: v2-{2023-02-01}, v2-{2023-01-01}
          */
@@ -184,7 +184,7 @@ export interface paths {
         post?: never;
         /**
          * Remove One Cluster from One Project
-         * @description Removes one cluster from the specified project. The cluster must have termination protection disabled in order to be deleted. To use this resource, the requesting Service Account or API Key must have the Project Owner role. This feature is not available for serverless clusters.
+         * @description Removes one cluster from the specified project. The cluster must have termination protection disabled in order to be deleted. This feature is not available for serverless clusters.
          *
          *     This endpoint can also be used on Flex clusters that were created using the [Create Cluster](https://www.mongodb.com/docs/atlas/reference/api-resources-spec/v2/#tag/Clusters/operation/createCluster) endpoint or former M2/M5 clusters that have been migrated to Flex clusters until January 2026. Please use the Delete Flex Cluster endpoint for Flex clusters instead. Deprecated versions: v2-{2023-01-01}
          */
@@ -203,7 +203,7 @@ export interface paths {
         };
         /**
          * Return All Suggested Indexes to Drop
-         * @description Returns the indexes that the Performance Advisor suggests to drop. The Performance Advisor suggests dropping unused, redundant, and hidden indexes to improve write performance and increase storage space. To use this resource, the requesting Service Account or API Key must have the Project Read Only role.
+         * @description Returns the indexes that the Performance Advisor suggests to drop. The Performance Advisor suggests dropping unused, redundant, and hidden indexes to improve write performance and increase storage space.
          */
         get: operations["listGroupClusterPerformanceAdvisorDropIndexSuggestions"];
         put?: never;
@@ -223,7 +223,7 @@ export interface paths {
         };
         /**
          * Return Schema Advice
-         * @description Returns the schema suggestions that the Performance Advisor detects. The Performance Advisor provides holistic schema recommendations for your cluster by sampling documents in your most active collections and collections with slow-running queries. To use this resource, the requesting Service Account or API Key must have the Project Read Only role.
+         * @description Returns the schema suggestions that the Performance Advisor detects. The Performance Advisor provides holistic schema recommendations for your cluster by sampling documents in your most active collections and collections with slow-running queries.
          */
         get: operations["listGroupClusterPerformanceAdvisorSchemaAdvice"];
         put?: never;
@@ -243,7 +243,7 @@ export interface paths {
         };
         /**
          * Return All Suggested Indexes
-         * @description Returns the indexes that the Performance Advisor suggests. The Performance Advisor monitors queries that MongoDB considers slow and suggests new indexes to improve query performance. To use this resource, the requesting Service Account or API Key must have the Project Read Only role.
+         * @description Returns the indexes that the Performance Advisor suggests. The Performance Advisor monitors queries that MongoDB considers slow and suggests new indexes to improve query performance.
          */
         get: operations["listGroupClusterPerformanceAdvisorSuggestedIndexes"];
         put?: never;
@@ -263,13 +263,13 @@ export interface paths {
         };
         /**
          * Return All Database Users in One Project
-         * @description Returns all database users that belong to the specified project. To use this resource, the requesting Service Account or API Key must have the Project Read Only role.
+         * @description Returns all database users that belong to the specified project.
          */
         get: operations["listGroupDatabaseUsers"];
         put?: never;
         /**
          * Create One Database User in One Project
-         * @description Creates one database user in the specified project. This MongoDB Cloud supports a maximum of 100 database users per project. If you require more than 100 database users on a project, contact Support. To use this resource, the requesting Service Account or API Key must have the Project Owner role, the Project Charts Admin role, Project Stream Processing Owner role, or the Project Database Access Admin role.
+         * @description Creates one database user in the specified project. This MongoDB Cloud supports a maximum of 100 database users per project. If you require more than 100 database users on a project, contact Support.
          */
         post: operations["createGroupDatabaseUser"];
         delete?: never;
@@ -290,7 +290,7 @@ export interface paths {
         post?: never;
         /**
          * Remove One Database User from One Project
-         * @description Removes one database user from the specified project. To use this resource, the requesting Service Account or API Key must have the Project Owner role, the Project Stream Processing Owner role, or the Project Database Access Admin role.
+         * @description Removes one database user from the specified project.
          */
         delete: operations["deleteGroupDatabaseUser"];
         options?: never;
@@ -307,13 +307,13 @@ export interface paths {
         };
         /**
          * Return All Flex Clusters from One Project
-         * @description Returns details for all flex clusters in the specified project. To use this resource, the requesting Service Account or API Key must have the Project Read Only role.
+         * @description Returns details for all flex clusters in the specified project.
          */
         get: operations["listGroupFlexClusters"];
         put?: never;
         /**
          * Create One Flex Cluster in One Project
-         * @description Creates one flex cluster in the specified project. To use this resource, the requesting Service Account or API Key must have the Project Owner role.
+         * @description Creates one flex cluster in the specified project.
          */
         post: operations["createGroupFlexCluster"];
         delete?: never;
@@ -331,14 +331,14 @@ export interface paths {
         };
         /**
          * Return One Flex Cluster from One Project
-         * @description Returns details for one flex cluster in the specified project. To use this resource, the requesting Service Account or API Key must have the Project Read Only role.
+         * @description Returns details for one flex cluster in the specified project.
          */
         get: operations["getGroupFlexCluster"];
         put?: never;
         post?: never;
         /**
          * Remove One Flex Cluster from One Project
-         * @description Removes one flex cluster from the specified project. The flex cluster must have termination protection disabled in order to be deleted. To use this resource, the requesting Service Account or API Key must have the Project Owner role.
+         * @description Removes one flex cluster from the specified project. The flex cluster must have termination protection disabled in order to be deleted.
          */
         delete: operations["deleteGroupFlexCluster"];
         options?: never;
@@ -355,7 +355,7 @@ export interface paths {
         };
         /**
          * Return Slow Queries
-         * @description Returns log lines for slow queries that the Performance Advisor and Query Profiler identified. The Performance Advisor monitors queries that MongoDB considers slow and suggests new indexes to improve query performance. MongoDB Cloud bases the threshold for slow queries on the average time of operations on your cluster. This enables workload-relevant recommendations. To use this resource, the requesting Service Account or API Key must have any Project Data Access role or the Project Observability Viewer role.
+         * @description Returns log lines for slow queries that the Performance Advisor and Query Profiler identified. The Performance Advisor monitors queries that MongoDB considers slow and suggests new indexes to improve query performance. MongoDB Cloud bases the threshold for slow queries on the average time of operations on your cluster. This enables workload-relevant recommendations.
          */
         get: operations["listGroupProcessPerformanceAdvisorSlowQueryLogs"];
         put?: never;
@@ -381,7 +381,7 @@ export interface paths {
         put?: never;
         /**
          * Create One Stream Workspace
-         * @description Creates one stream workspace in the specified project. To use this resource, the requesting Service Account or API Key must have the Project Data Access Admin role, Project Owner role or Project Stream Processing Owner role.
+         * @description Creates one stream workspace in the specified project.
          */
         post: operations["createGroupStreamWorkspace"];
         delete?: never;
@@ -419,13 +419,13 @@ export interface paths {
         };
         /**
          * Return All Private Link Connections
-         * @description Returns all Private Link connections for the specified project. To use this resource, the requesting Service Account or API Key must have the Project Read Only role, Project Data Access roles, Project Owner role or Project Stream Processing Owner role.
+         * @description Returns all Private Link connections for the specified project.
          */
         get: operations["listGroupStreamPrivateLinkConnections"];
         put?: never;
         /**
          * Create One Private Link Connection
-         * @description Creates one Private Link in the specified project. To use this resource, the requesting Service Account or API Key must have the Project Owner or Project Stream Processing Owner role.
+         * @description Creates one Private Link in the specified project.
          */
         post: operations["createGroupStreamPrivateLinkConnection"];
         delete?: never;
@@ -443,14 +443,14 @@ export interface paths {
         };
         /**
          * Return One Private Link Connection
-         * @description Returns the details of one Private Link connection within the project. To use this resource, the requesting Service Account or API Key must have the Project Read Only role.
+         * @description Returns the details of one Private Link connection within the project.
          */
         get: operations["getGroupStreamPrivateLinkConnection"];
         put?: never;
         post?: never;
         /**
          * Delete One Private Link Connection
-         * @description Deletes one Private Link in the specified project. To use this resource, the requesting Service Account or API Key must have the Project Owner or Project Stream Processing Owner role.
+         * @description Deletes one Private Link in the specified project.
          */
         delete: operations["deleteGroupStreamPrivateLinkConnection"];
         options?: never;
@@ -527,21 +527,21 @@ export interface paths {
         };
         /**
          * Return One Stream Workspace
-         * @description Returns the details of one stream workspace within the specified project. To use this resource, the requesting Service Account or API Key must have the Project Data Access roles, Project Owner role or Project Stream Processing Owner role.
+         * @description Returns the details of one stream workspace within the specified project.
          */
         get: operations["getGroupStreamWorkspace"];
         put?: never;
         post?: never;
         /**
          * Delete One Stream Workspace
-         * @description Delete one stream workspace in the specified project. To use this resource, the requesting Service Account or API Key must have the Project Data Access Admin role, Project Owner role or Project Stream Processing Owner role.
+         * @description Delete one stream workspace in the specified project.
          */
         delete: operations["deleteGroupStreamWorkspace"];
         options?: never;
         head?: never;
         /**
          * Update One Stream Workspace
-         * @description Update one stream workspace in the specified project. To use this resource, the requesting Service Account or API Key must have the Project Data Access Admin role, Project Owner role or Project Stream Processing Owner role.
+         * @description Update one stream workspace in the specified project.
          */
         patch: operations["updateGroupStreamWorkspace"];
         trace?: never;
@@ -555,7 +555,7 @@ export interface paths {
         };
         /**
          * Download Audit Logs for One Atlas Stream Processing Workspace
-         * @description Downloads the audit logs for the specified Atlas Streams Processing workspace or stream processor. By default, logs cover periods of 30 days. To use this resource, the requesting Service Account or API Key must have the Project Data Access roles, Project Owner role or Project Stream Processing Owner role. The API does not support direct calls with the json response schema. You must request a gzip response schema using an accept header of the format: `Accept: application/vnd.atlas.YYYY-MM-DD+gzip`.
+         * @description Downloads the audit logs for the specified Atlas Streams Processing workspace or stream processor. By default, logs cover periods of 30 days. The API does not support direct calls with the json response schema. You must request a gzip response schema using an accept header of the format: `Accept: application/vnd.atlas.YYYY-MM-DD+gzip`.
          */
         get: operations["downloadGroupStreamAuditLogs"];
         put?: never;
@@ -575,13 +575,13 @@ export interface paths {
         };
         /**
          * Return All Connections of the Stream Workspaces
-         * @description Returns all connections of the stream workspace for the specified project. To use this resource, the requesting Service Account or API Key must have the Project Data Access roles, Project Owner role or Project Stream Processing Owner role.
+         * @description Returns all connections of the stream workspace for the specified project.
          */
         get: operations["listGroupStreamConnections"];
         put?: never;
         /**
          * Create One Stream Connection
-         * @description Creates one connection for a stream workspace in the specified project. To use this resource, the requesting Service Account or API Key must have the Project Owner or Project Stream Processing Owner role.
+         * @description Creates one connection for a stream workspace in the specified project.
          */
         post: operations["createGroupStreamConnection"];
         delete?: never;
@@ -599,21 +599,21 @@ export interface paths {
         };
         /**
          * Return One Stream Connection
-         * @description Returns the details of one stream connection within the specified stream workspace. To use this resource, the requesting Service Account or API Key must have the Project Read Only role.
+         * @description Returns the details of one stream connection within the specified stream workspace.
          */
         get: operations["getGroupStreamConnection"];
         put?: never;
         post?: never;
         /**
          * Delete One Stream Connection
-         * @description Delete one connection of the specified stream workspace. To use this resource, the requesting Service Account or API Key must have the Project Owner role or Project Stream Processing Owner role.
+         * @description Delete one connection of the specified stream workspace.
          */
         delete: operations["deleteGroupStreamConnection"];
         options?: never;
         head?: never;
         /**
          * Update One Stream Connection
-         * @description Update one connection for the specified stream workspace in the specified project. To use this resource, the requesting Service Account or API Key must have the Project Owner role or Project Stream Processing Owner role.
+         * @description Update one connection for the specified stream workspace in the specified project.
          */
         patch: operations["updateGroupStreamConnection"];
         trace?: never;
@@ -629,7 +629,7 @@ export interface paths {
         put?: never;
         /**
          * Create One Stream Processor
-         * @description Create one Stream Processor within the specified stream workspace. To use this resource, the requesting Service Account or API Key must have the Project Owner role or Project Stream Processing Owner role.
+         * @description Create one Stream Processor within the specified stream workspace.
          */
         post: operations["createGroupStreamProcessor"];
         delete?: never;
@@ -647,21 +647,21 @@ export interface paths {
         };
         /**
          * Return One Stream Processor
-         * @description Get one Stream Processor within the specified stream workspace. To use this resource, the requesting Service Account or API Key must have the Project Owner role or Project Stream Processing Owner role.
+         * @description Get one Stream Processor within the specified stream workspace.
          */
         get: operations["getGroupStreamProcessor"];
         put?: never;
         post?: never;
         /**
          * Delete One Stream Processor
-         * @description Delete a Stream Processor within the specified stream workspace. To use this resource, the requesting Service Account or API Key must have the Project Owner role or Project Stream Processing Owner role.
+         * @description Delete a Stream Processor within the specified stream workspace.
          */
         delete: operations["deleteGroupStreamProcessor"];
         options?: never;
         head?: never;
         /**
          * Update One Stream Processor
-         * @description Modify one existing Stream Processor within the specified stream workspace. To use this resource, the requesting Service Account or API Key must have the Project Owner role or Project Stream Processing Owner role.
+         * @description Modify one existing Stream Processor within the specified stream workspace.
          */
         patch: operations["updateGroupStreamProcessor"];
         trace?: never;
@@ -677,7 +677,7 @@ export interface paths {
         put?: never;
         /**
          * Start One Stream Processor
-         * @description Start a Stream Processor within the specified stream workspace. To use this resource, the requesting Service Account or API Key must have the Project Owner role or Project Stream Processing Owner role.
+         * @description Start a Stream Processor within the specified stream workspace.
          */
         post: operations["startGroupStreamProcessor"];
         delete?: never;
@@ -697,7 +697,7 @@ export interface paths {
         put?: never;
         /**
          * Start One Stream Processor With Options
-         * @description Start a Stream Processor within the specified stream workspace. To use this resource, the requesting Service Account or API Key must have the Project Owner role or Project Stream Processing Owner role.
+         * @description Start a Stream Processor within the specified stream workspace.
          */
         post: operations["startGroupStreamProcessorWith"];
         delete?: never;
@@ -717,7 +717,7 @@ export interface paths {
         put?: never;
         /**
          * Stop One Stream Processor
-         * @description Stop a Stream Processor within the specified stream workspace. To use this resource, the requesting Service Account or API Key must have the Project Owner role or Project Stream Processing Owner role.
+         * @description Stop a Stream Processor within the specified stream workspace.
          */
         post: operations["stopGroupStreamProcessor"];
         delete?: never;
@@ -735,7 +735,7 @@ export interface paths {
         };
         /**
          * Return All Stream Processors in One Stream Workspace
-         * @description Returns all Stream Processors within the specified stream workspace. To use this resource, the requesting Service Account or API Key must have the Project Owner role or Project Stream Processing Owner role.
+         * @description Returns all Stream Processors within the specified stream workspace.
          */
         get: operations["getGroupStreamProcessors"];
         put?: never;
@@ -755,7 +755,7 @@ export interface paths {
         };
         /**
          * Download Operational Logs for One Atlas Stream Processing Workspace
-         * @description Downloads the operational logs for the specified Atlas Streams Processing workspace or stream processor. By default, logs cover periods of 30 days. To use this resource, the requesting Service Account or API Key must have the Project Data Access roles, Project Owner role or Project Stream Processing Owner role. The API does not support direct calls with the json response schema. You must request a gzip response schema using an accept header of the format: "Accept: application/vnd.atlas.2025-03-12+gzip".
+         * @description Downloads the operational logs for the specified Atlas Streams Processing workspace or stream processor. By default, logs cover periods of 30 days. The API does not support direct calls with the json response schema. You must request a gzip response schema using an accept header of the format: "Accept: application/vnd.atlas.2025-03-12+gzip".
          */
         get: operations["downloadGroupStreamOperationalLogs"];
         put?: never;
@@ -777,7 +777,7 @@ export interface paths {
         put?: never;
         /**
          * Create One Stream Workspace with Sample Connections
-         * @description Creates one stream workspace in the specified project with sample connections. To use this resource the requesting Service Account or API Key must have the Project Data Access Admin role, Project Owner role or Project Stream Processing Owner role.
+         * @description Creates one stream workspace in the specified project with sample connections.
          */
         post: operations["withGroupStreamSampleConnections"];
         delete?: never;
@@ -795,7 +795,7 @@ export interface paths {
         };
         /**
          * Return All Organizations
-         * @description Returns all organizations to which the requesting Service Account or API Key has access. To use this resource, the requesting Service Account or API Key must have the Organization Member role.
+         * @description Returns all organizations to which the requesting Service Account or API Key has access.
          */
         get: operations["listOrgs"];
         put?: never;
@@ -821,8 +821,6 @@ export interface paths {
          *     - Associate different MongoDB Cloud users or teams with different environments, or give different permission to MongoDB Cloud users in different environments.
          *     - Maintain separate cluster security configurations.
          *     - Create different alert settings.
-         *
-         *     To use this resource, the requesting Service Account or API Key must have the Organization Member role.
          */
         get: operations["getOrgGroups"];
         put?: never;
@@ -977,7 +975,29 @@ export interface components {
                 | "M60_NVME"
                 | "M80_NVME"
                 | "M200_NVME"
-                | "M400_NVME";
+                | "M400_NVME"
+                | "M30_GEN_2"
+                | "M40_GEN_2"
+                | "M50_GEN_2"
+                | "M60_GEN_2"
+                | "M80_GEN_2"
+                | "M140_GEN_2"
+                | "M200_GEN_2"
+                | "M300_GEN_2"
+                | "R40_GEN_2"
+                | "R50_GEN_2"
+                | "R60_GEN_2"
+                | "R80_GEN_2"
+                | "R200_GEN_2"
+                | "R300_GEN_2"
+                | "R400_GEN_2"
+                | "R700_GEN_2"
+                | "M40_NVME_GEN_2"
+                | "M50_NVME_GEN_2"
+                | "M60_NVME_GEN_2"
+                | "M80_NVME_GEN_2"
+                | "M200_NVME_GEN_2"
+                | "M400_NVME_GEN_2";
             /**
              * AWS Regions
              * @description Physical location where MongoDB Cloud deploys your AWS-hosted MongoDB cluster nodes. The region you choose can affect network latency for clients accessing your databases. When MongoDB Cloud deploys a dedicated cluster, it checks if a VPC or VPC connection exists for that provider and region. If not, MongoDB Cloud creates them as part of the deployment. MongoDB Cloud assigns the VPC a CIDR block. To limit a new VPC peering connection to one CIDR block and region, create the connection first. Deploy the cluster after the connection starts.
@@ -1076,7 +1096,29 @@ export interface components {
                 | "M60_NVME"
                 | "M80_NVME"
                 | "M200_NVME"
-                | "M400_NVME";
+                | "M400_NVME"
+                | "M30_GEN_2"
+                | "M40_GEN_2"
+                | "M50_GEN_2"
+                | "M60_GEN_2"
+                | "M80_GEN_2"
+                | "M140_GEN_2"
+                | "M200_GEN_2"
+                | "M300_GEN_2"
+                | "R40_GEN_2"
+                | "R50_GEN_2"
+                | "R60_GEN_2"
+                | "R80_GEN_2"
+                | "R200_GEN_2"
+                | "R300_GEN_2"
+                | "R400_GEN_2"
+                | "R700_GEN_2"
+                | "M40_NVME_GEN_2"
+                | "M50_NVME_GEN_2"
+                | "M60_NVME_GEN_2"
+                | "M80_NVME_GEN_2"
+                | "M200_NVME_GEN_2"
+                | "M400_NVME_GEN_2";
             /**
              * AWS Instance Sizes
              * @description Minimum instance size to which your cluster can automatically scale.
@@ -1107,7 +1149,29 @@ export interface components {
                 | "M60_NVME"
                 | "M80_NVME"
                 | "M200_NVME"
-                | "M400_NVME";
+                | "M400_NVME"
+                | "M30_GEN_2"
+                | "M40_GEN_2"
+                | "M50_GEN_2"
+                | "M60_GEN_2"
+                | "M80_GEN_2"
+                | "M140_GEN_2"
+                | "M200_GEN_2"
+                | "M300_GEN_2"
+                | "R40_GEN_2"
+                | "R50_GEN_2"
+                | "R60_GEN_2"
+                | "R80_GEN_2"
+                | "R200_GEN_2"
+                | "R300_GEN_2"
+                | "R400_GEN_2"
+                | "R700_GEN_2"
+                | "M40_NVME_GEN_2"
+                | "M50_NVME_GEN_2"
+                | "M60_NVME_GEN_2"
+                | "M80_NVME_GEN_2"
+                | "M200_NVME_GEN_2"
+                | "M400_NVME_GEN_2";
         };
         AWSCreateDataProcessRegionView: Omit<components["schemas"]["CreateDataProcessRegionView"], "cloudProvider"> & {
             /**
@@ -1200,6 +1264,11 @@ export interface components {
              */
             diskSizeGB?: number;
             /**
+             * Format: int32
+             * @description Target throughput desired for storage attached to this hardware. Only returned for Gen 2 instance sizes with Standard (GP3) volume type.
+             */
+            readonly diskThroughput?: number;
+            /**
              * @description Type of storage you want to attach to your AWS-provisioned cluster.
              *
              *     - `STANDARD` volume types can't exceed the default input/output operations per second (IOPS) rate for the selected volume size.
@@ -1239,7 +1308,29 @@ export interface components {
                 | "M60_NVME"
                 | "M80_NVME"
                 | "M200_NVME"
-                | "M400_NVME";
+                | "M400_NVME"
+                | "M30_GEN_2"
+                | "M40_GEN_2"
+                | "M50_GEN_2"
+                | "M60_GEN_2"
+                | "M80_GEN_2"
+                | "M140_GEN_2"
+                | "M200_GEN_2"
+                | "M300_GEN_2"
+                | "R40_GEN_2"
+                | "R50_GEN_2"
+                | "R60_GEN_2"
+                | "R80_GEN_2"
+                | "R200_GEN_2"
+                | "R300_GEN_2"
+                | "R400_GEN_2"
+                | "R700_GEN_2"
+                | "M40_NVME_GEN_2"
+                | "M50_NVME_GEN_2"
+                | "M60_NVME_GEN_2"
+                | "M80_NVME_GEN_2"
+                | "M200_NVME_GEN_2"
+                | "M400_NVME_GEN_2";
             /**
              * Format: int32
              * @description Number of nodes of the given type for MongoDB Cloud to deploy to the region.
@@ -1305,6 +1396,7 @@ export interface components {
             | components["schemas"]["AppServiceAlertView"]
             | components["schemas"]["ClusterAlertViewForNdsGroup"]
             | components["schemas"]["HostAlertViewForNdsGroup"]
+            | components["schemas"]["FlexMetricAlert"]
             | components["schemas"]["HostMetricAlert"]
             | components["schemas"]["ReplicaSetAlertViewForNdsGroup"]
             | components["schemas"]["StreamProcessorAlertViewForNdsGroup"]
@@ -1443,12 +1535,13 @@ export interface components {
             | "SAOPAULO_BRA"
             | "MONTREAL_CAN"
             | "TOKYO_JPN"
-            | "SINGAPORE_SGP";
+            | "SINGAPORE_SGP"
+            | "PARIS_FRA";
         /**
          * @description Atlas Streams Azure Regions.
          * @enum {string}
          */
-        ApiStreamsAzureRegionView: "eastus" | "westus" | "eastus2" | "westeurope";
+        ApiStreamsAzureRegionView: "eastus" | "westus" | "eastus2" | "westeurope" | "brazilsouth" | "australiaeast";
         /**
          * @description Atlas Streams GCP Regions.
          * @enum {string}
@@ -1470,7 +1563,7 @@ export interface components {
             acknowledgedUntil?: string;
             /**
              * @description Comment that a MongoDB Cloud user submitted when acknowledging the alert.
-             * @example Expiration on 3/19.  Silencing for 7days.
+             * @example Expiration on 3/19.  Silencing for 7 days.
              */
             acknowledgementComment?: string;
             /**
@@ -1881,6 +1974,20 @@ export interface components {
                 | "M400_NVME"
                 | "M600_NVME";
         };
+        /** @description Azure-specific configuration for the connection. */
+        AzureConnection: {
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            /**
+             * @deprecated
+             * @description Azure region where the storage account is located.
+             */
+            region?: string;
+            /** @description Unique ID of the Azure Service Principal that has access to the storage account. */
+            servicePrincipalId?: string;
+            /** @description Name of the Azure Storage Account to connect to. */
+            storageAccountName?: string;
+        };
         AzureCreateDataProcessRegionView: Omit<
             components["schemas"]["CreateDataProcessRegionView"],
             "cloudProvider"
@@ -2124,6 +2231,28 @@ export interface components {
                   | "M80_NVME"
                   | "M200_NVME"
                   | "M400_NVME"
+                  | "M30_GEN_2"
+                  | "M40_GEN_2"
+                  | "M50_GEN_2"
+                  | "M60_GEN_2"
+                  | "M80_GEN_2"
+                  | "M140_GEN_2"
+                  | "M200_GEN_2"
+                  | "M300_GEN_2"
+                  | "R40_GEN_2"
+                  | "R50_GEN_2"
+                  | "R60_GEN_2"
+                  | "R80_GEN_2"
+                  | "R200_GEN_2"
+                  | "R300_GEN_2"
+                  | "R400_GEN_2"
+                  | "R700_GEN_2"
+                  | "M40_NVME_GEN_2"
+                  | "M50_NVME_GEN_2"
+                  | "M60_NVME_GEN_2"
+                  | "M80_NVME_GEN_2"
+                  | "M200_NVME_GEN_2"
+                  | "M400_NVME_GEN_2"
               )
             | (
                   | "M10"
@@ -2191,266 +2320,6 @@ export interface components {
              * @enum {string}
              */
             readPreference?: "PRIMARY" | "SECONDARY" | "ANALYTICS";
-        };
-        BillingInvoice: {
-            /**
-             * Format: int64
-             * @description Sum of services that the specified organization consumed in the period covered in this invoice. This parameter expresses its value in cents (100ths of one US Dollar).
-             */
-            readonly amountBilledCents?: number;
-            /**
-             * Format: int64
-             * @description Sum that the specified organization paid toward this invoice. This parameter expresses its value in cents (100ths of one US Dollar).
-             */
-            readonly amountPaidCents?: number;
-            /**
-             * Format: date-time
-             * @description Date and time when MongoDB Cloud created this invoice. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
-             */
-            readonly created?: string;
-            /**
-             * Format: int64
-             * @description Sum that MongoDB credited the specified organization toward this invoice. This parameter expresses its value in cents (100ths of one US Dollar).
-             */
-            readonly creditsCents?: number;
-            /**
-             * Format: date-time
-             * @description Date and time when MongoDB Cloud finished the billing period that this invoice covers. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
-             */
-            readonly endDate?: string;
-            /**
-             * @description Unique 24-hexadecimal digit string that identifies the invoice submitted to the specified organization. Charges typically post the next day.
-             * @example 32b6e34b3d91647abb20e7b8
-             */
-            readonly id?: string;
-            /** @description List that contains individual services included in this invoice. */
-            readonly lineItems?: components["schemas"]["InvoiceLineItem"][];
-            /** @description List that contains the invoices for organizations linked to the paying organization. */
-            readonly linkedInvoices?: components["schemas"]["BillingInvoice"][];
-            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
-            readonly links?: components["schemas"]["Link"][];
-            /**
-             * @description Unique 24-hexadecimal digit string that identifies the organization charged for services consumed from MongoDB Cloud.
-             * @example 32b6e34b3d91647abb20e7b8
-             */
-            readonly orgId?: string;
-            /** @description List that contains funds transferred to MongoDB to cover the specified service noted in this invoice. */
-            readonly payments?: components["schemas"]["BillingPayment"][];
-            /** @description List that contains payments that MongoDB returned to the organization for this invoice. */
-            readonly refunds?: components["schemas"]["BillingRefund"][];
-            /**
-             * Format: int64
-             * @description Sum of sales tax applied to this invoice. This parameter expresses its value in cents (100ths of one US Dollar).
-             */
-            readonly salesTaxCents?: number;
-            /**
-             * Format: date-time
-             * @description Date and time when MongoDB Cloud began the billing period that this invoice covers. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
-             */
-            readonly startDate?: string;
-            /**
-             * Format: int64
-             * @description Sum that the specified organization owed to MongoDB when MongoDB issued this invoice. This parameter expresses its value in US Dollars.
-             */
-            readonly startingBalanceCents?: number;
-            /**
-             * @description Phase of payment processing in which this invoice exists when you made this request. Accepted phases include:
-             *
-             *     - `CLOSED`: MongoDB finalized all charges in the billing cycle but has yet to charge the customer.
-             *     - `FAILED`: MongoDB attempted to charge the provided credit card but charge for that amount failed.
-             *     - `FORGIVEN`: Customer initiated payment which MongoDB later forgave.
-             *     - `FREE`: All charges totalled zero so the customer won't be charged.
-             *     - `INVOICED`: MongoDB handled these charges using elastic invoicing.
-             *     - `PAID`: MongoDB succeeded in charging the provided credit card.
-             *     - `PENDING`: Invoice includes charges for the current billing cycle.
-             *     - `PREPAID`: Customer has a pre-paid plan so they won't be charged.
-             * @enum {string}
-             */
-            statusName?: "PENDING" | "CLOSED" | "FORGIVEN" | "FAILED" | "PAID" | "FREE" | "PREPAID" | "INVOICED";
-            /**
-             * Format: int64
-             * @description Sum of all positive invoice line items contained in this invoice. This parameter expresses its value in cents (100ths of one US Dollar).
-             */
-            readonly subtotalCents?: number;
-            /**
-             * Format: date-time
-             * @description Date and time when MongoDB Cloud last updated the value of this payment. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
-             */
-            readonly updated?: string;
-        };
-        BillingInvoiceMetadata: {
-            /**
-             * Format: int64
-             * @description Sum of services that the specified organization consumed in the period covered in this invoice. This parameter expresses its value in cents (100ths of one US Dollar).
-             */
-            readonly amountBilledCents?: number;
-            /**
-             * Format: int64
-             * @description Sum that the specified organization paid toward this invoice. This parameter expresses its value in cents (100ths of one US Dollar).
-             */
-            readonly amountPaidCents?: number;
-            /**
-             * Format: date-time
-             * @description Date and time when MongoDB Cloud created this invoice. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
-             */
-            readonly created?: string;
-            /**
-             * Format: int64
-             * @description Sum that MongoDB credited the specified organization toward this invoice. This parameter expresses its value in cents (100ths of one US Dollar).
-             */
-            readonly creditsCents?: number;
-            /**
-             * Format: date-time
-             * @description Date and time when MongoDB Cloud finished the billing period that this invoice covers. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
-             */
-            readonly endDate?: string;
-            /**
-             * @description Unique 24-hexadecimal digit string that identifies the invoice submitted to the specified organization. Charges typically post the next day.
-             * @example 32b6e34b3d91647abb20e7b8
-             */
-            readonly id?: string;
-            /** @description List that contains the invoices for organizations linked to the paying organization. */
-            readonly linkedInvoices?: components["schemas"]["BillingInvoiceMetadata"][];
-            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
-            readonly links?: components["schemas"]["Link"][];
-            /**
-             * @description Unique 24-hexadecimal digit string that identifies the organization charged for services consumed from MongoDB Cloud.
-             * @example 32b6e34b3d91647abb20e7b8
-             */
-            readonly orgId?: string;
-            /**
-             * Format: int64
-             * @description Sum of sales tax applied to this invoice. This parameter expresses its value in cents (100ths of one US Dollar).
-             */
-            readonly salesTaxCents?: number;
-            /**
-             * Format: date-time
-             * @description Date and time when MongoDB Cloud began the billing period that this invoice covers. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
-             */
-            readonly startDate?: string;
-            /**
-             * Format: int64
-             * @description Sum that the specified organization owed to MongoDB when MongoDB issued this invoice. This parameter expresses its value in US Dollars.
-             */
-            readonly startingBalanceCents?: number;
-            /**
-             * @description Phase of payment processing in which this invoice exists when you made this request. Accepted phases include:
-             *
-             *     - `CLOSED`: MongoDB finalized all charges in the billing cycle but has yet to charge the customer.
-             *     - `FAILED`: MongoDB attempted to charge the provided credit card but charge for that amount failed.
-             *     - `FORGIVEN`: Customer initiated payment which MongoDB later forgave.
-             *     - `FREE`: All charges totalled zero so the customer won't be charged.
-             *     - `INVOICED`: MongoDB handled these charges using elastic invoicing.
-             *     - `PAID`: MongoDB succeeded in charging the provided credit card.
-             *     - `PENDING`: Invoice includes charges for the current billing cycle.
-             *     - `PREPAID`: Customer has a pre-paid plan so they won't be charged.
-             * @enum {string}
-             */
-            statusName?: "PENDING" | "CLOSED" | "FORGIVEN" | "FAILED" | "PAID" | "FREE" | "PREPAID" | "INVOICED";
-            /**
-             * Format: int64
-             * @description Sum of all positive invoice line items contained in this invoice. This parameter expresses its value in cents (100ths of one US Dollar).
-             */
-            readonly subtotalCents?: number;
-            /**
-             * Format: date-time
-             * @description Date and time when MongoDB Cloud last updated the value of this payment. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
-             */
-            readonly updated?: string;
-        };
-        /**
-         * Payment
-         * @description Funds transferred to MongoDB to cover the specified service in this invoice.
-         */
-        BillingPayment: {
-            /**
-             * Format: int64
-             * @description Sum of services that the specified organization consumed in the period covered in this invoice. This parameter expresses its value in cents (100ths of one US Dollar).
-             */
-            readonly amountBilledCents?: number;
-            /**
-             * Format: int64
-             * @description Sum that the specified organization paid toward the associated invoice. This parameter expresses its value in cents (100ths of one US Dollar).
-             */
-            readonly amountPaidCents?: number;
-            /**
-             * Format: date-time
-             * @description Date and time when the customer made this payment attempt. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
-             */
-            readonly created?: string;
-            /** @description The currency in which payment was paid. This parameter expresses its value in 3-letter ISO 4217 currency code. */
-            readonly currency?: string;
-            /**
-             * @description Unique 24-hexadecimal digit string that identifies this payment toward the associated invoice.
-             * @example 32b6e34b3d91647abb20e7b8
-             */
-            readonly id?: string;
-            /**
-             * Format: int64
-             * @description Sum of sales tax applied to this invoice. This parameter expresses its value in cents (100ths of one US Dollar).
-             */
-            readonly salesTaxCents?: number;
-            /**
-             * @description Phase of payment processing for the associated invoice when you made this request. These phases include:
-             *
-             *     - `CANCELLED`: Customer or MongoDB cancelled the payment.
-             *     - `ERROR`: Issue arose when attempting to complete payment.
-             *     - `FAILED`: MongoDB tried to charge the credit card without success.
-             *     - `FAILED_AUTHENTICATION`: Strong Customer Authentication has failed. Confirm that your payment method is authenticated.
-             *     - `FORGIVEN`: Customer initiated payment which MongoDB later forgave.
-             *     - `INVOICED`: MongoDB issued an invoice that included this line item.
-             *     - `NEW`: Customer provided a method of payment, but MongoDB hasn't tried to charge the credit card.
-             *     - `PAID`: Customer submitted a successful payment.
-             *     - `PARTIAL_PAID`: Customer paid for part of this line item.
-             * @enum {string}
-             */
-            statusName?:
-                | "NEW"
-                | "FORGIVEN"
-                | "FAILED"
-                | "PAID"
-                | "PARTIAL_PAID"
-                | "CANCELLED"
-                | "INVOICED"
-                | "FAILED_AUTHENTICATION"
-                | "PROCESSING"
-                | "PENDING_REVERSAL"
-                | "REFUNDED";
-            /**
-             * Format: int64
-             * @description Sum of all positive invoice line items contained in this invoice. This parameter expresses its value in cents (100ths of one US Dollar).
-             */
-            readonly subtotalCents?: number;
-            /** @description The unit price applied to `amountBilledCents` to compute total payment amount. This value is represented as a decimal string. */
-            readonly unitPrice?: string;
-            /**
-             * Format: date-time
-             * @description Date and time when the customer made an update to this payment attempt. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
-             */
-            readonly updated?: string;
-        };
-        /**
-         * Refund
-         * @description One payment that MongoDB returned to the organization for this invoice.
-         */
-        BillingRefund: {
-            /**
-             * Format: int64
-             * @description Sum of the funds returned to the specified organization expressed in cents (100th of US Dollar).
-             */
-            readonly amountCents?: number;
-            /**
-             * Format: date-time
-             * @description Date and time when MongoDB Cloud created this refund. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
-             */
-            readonly created?: string;
-            /**
-             * @description Unique 24-hexadecimal digit string that identifies the payment that the organization had made.
-             * @example 32b6e34b3d91647abb20e7b8
-             */
-            readonly paymentId?: string;
-            /** @description Justification that MongoDB accepted to return funds to the organization. */
-            readonly reason?: string;
         };
         /** @description Settings that describe the clusters in each project that the API key is authorized to view. */
         CloudCluster: {
@@ -3267,7 +3136,7 @@ export interface components {
             acknowledgedUntil?: string;
             /**
              * @description Comment that a MongoDB Cloud user submitted when acknowledging the alert.
-             * @example Expiration on 3/19.  Silencing for 7days.
+             * @example Expiration on 3/19.  Silencing for 7 days.
              */
             acknowledgementComment?: string;
             /**
@@ -3360,6 +3229,11 @@ export interface components {
              * @description If reconfiguration is necessary to regain a primary due to a regional outage, submit this field alongside your topology reconfiguration to request a new regional outage resistant topology. Forced reconfigurations during an outage of the majority of electable nodes carry a risk of data loss if replicated writes (even majority committed writes) have not been replicated to the new primary node. MongoDB Atlas docs contain more information. To proceed with an operation which carries that risk, set `acceptDataRisksAndForceReplicaSetReconfig` to the current date. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
              */
             acceptDataRisksAndForceReplicaSetReconfig?: string;
+            /**
+             * @description Governs adaptive capacity behavior of Azure nodes in single-cloud Azure clusters or multi-cloud clusters that include Azure nodes. Adaptive capacity enables fallback hardware selection when the primary instance family is unavailable. ``ENABLED`` means the cluster explicitly opts in to adaptive capacity. ``DISABLED`` means the cluster explicitly opts out; the cluster receives capacity errors instead of being placed on fallback hardware. ``null`` means the field is unset; Azure clusters use adaptive capacity by default when the feature is enabled at the group level. Setting this field for single-cloud AWS or GCP clusters is a no-op.
+             * @enum {string|null}
+             */
+            adaptiveCapacity?: "ENABLED" | "DISABLED" | null;
             advancedConfiguration?: components["schemas"]["ApiAtlasClusterAdvancedConfigurationView"];
             /**
              * @description Flag that indicates whether the cluster can perform backups. If set to `true`, the cluster can perform backups. You must set this value to `true` for NVMe clusters. Backup uses Cloud Backups for dedicated clusters and [Shared Cluster Backups](https://docs.atlas.mongodb.com/backup/shared-tier/overview/) for tenant clusters. If set to `false`, the cluster doesn't use backups.
@@ -3743,18 +3617,30 @@ export interface components {
          * AWS
          * @description Group of Private Endpoint settings.
          */
-        CreateAWSEndpointRequest: components["schemas"]["CreateEndpointRequest"] & {
+        CreateAWSEndpointRequest: Omit<components["schemas"]["CreateEndpointRequest"], "cloudProvider"> & {
             /**
              * @description Unique string that identifies the private endpoint's network interface that someone added to this private endpoint service.
              * @example vpce-3bf78b0ddee411ba1
              */
             id: string;
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            cloudProvider: "AWS";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            cloudProvider: "AWS";
         };
         /**
          * AZURE
          * @description Group of Private Endpoint settings.
          */
-        CreateAzureEndpointRequest: components["schemas"]["CreateEndpointRequest"] & {
+        CreateAzureEndpointRequest: Omit<components["schemas"]["CreateEndpointRequest"], "cloudProvider"> & {
             /**
              * @description Unique string that identifies the private endpoint's network interface that someone added to this private endpoint service.
              * @example /subscriptions/cba6d9c6-1d3f-3c11-03cb-c705d895e636/resourcegroups/qrRTqi4TSN)7yB5YLRjVDveH3.yLzpNR7Br0D3-SGrU3j0.0/providers/Microsoft.Network/privateEndpoints/pVP(vb(XeckpxtXzP0NaOsDjeWDbOK)DX8A2j2E_vBYL2.GEYIdln
@@ -3762,6 +3648,18 @@ export interface components {
             id: string;
             /** @description IPv4 address of the private endpoint in your Azure VNet that someone added to this private endpoint service. */
             privateEndpointIPAddress: string;
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            cloudProvider: "AZURE";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            cloudProvider: "AZURE";
         };
         /** @description Settings to configure the region where you wish to store your archived data. */
         CreateDataProcessRegionView: {
@@ -3771,15 +3669,22 @@ export interface components {
              */
             cloudProvider?: "AWS" | "AZURE" | "GCP";
         };
-        CreateEndpointRequest:
+        CreateEndpointRequest: {
+            /**
+             * @description Cloud service provider that manages this private endpoint.
+             * @enum {string}
+             */
+            cloudProvider?: "AWS" | "AZURE" | "GCP";
+        } & (
             | components["schemas"]["CreateAWSEndpointRequest"]
             | components["schemas"]["CreateAzureEndpointRequest"]
-            | components["schemas"]["CreateGCPEndpointGroupRequest"];
+            | components["schemas"]["CreateGCPEndpointGroupRequest"]
+        );
         /**
          * GCP
          * @description Group of Private Endpoint settings.
          */
-        CreateGCPEndpointGroupRequest: components["schemas"]["CreateEndpointRequest"] & {
+        CreateGCPEndpointGroupRequest: Omit<components["schemas"]["CreateEndpointRequest"], "cloudProvider"> & {
             /** @description Human-readable label that identifies a set of endpoints. If this private endpoint belongs to a port-mapped endpoint service, this field is still required but ignored. */
             endpointGroupName: string;
             /** @description List of individual private endpoints that comprise this endpoint group. If this endpoint belongs to a port-mapped endpoint service, this field will only take in a list of one private endpoint. */
@@ -3789,6 +3694,18 @@ export interface components {
              * @example p-fdeeb3e43b8e733e5ab627b1
              */
             gcpProjectId: string;
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            cloudProvider: "GCP";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            cloudProvider: "GCP";
         };
         /** GCP Forwarding Rules */
         CreateGCPForwardingRuleRequest: {
@@ -3864,22 +3781,22 @@ export interface components {
         DailyScheduleView: Omit<WithRequired<components["schemas"]["OnlineArchiveSchedule"], "type">, "type"> & {
             /**
              * Format: int32
-             * @description Hour of the day when the scheduled window to run one online archive ends.
+             * @description Hour of the day when the scheduled window to run one online archive ends. This field uses the UTC time zone. The window must have a duration of at least two hours. If the end time is before or equal to the start time, the window extends to the next day.
              */
             endHour?: number;
             /**
              * Format: int32
-             * @description Minute of the hour when the scheduled window to run one online archive ends.
+             * @description Minute of the hour when the scheduled window to run one online archive ends. This field uses the UTC time zone. The window must have a duration of at least two hours. If the end time is before or equal to the start time, the window extends to the next day.
              */
             endMinute?: number;
             /**
              * Format: int32
-             * @description Hour of the day when the when the scheduled window to run one online archive starts.
+             * @description Hour of the day when the scheduled window to run one online archive starts. This field uses the UTC time zone.
              */
             startHour?: number;
             /**
              * Format: int32
-             * @description Minute of the hour when the scheduled window to run one online archive starts.
+             * @description Minute of the hour when the scheduled window to run one online archive starts. This field uses the UTC time zone.
              */
             startMinute?: number;
         } & {
@@ -4412,7 +4329,7 @@ export interface components {
             acknowledgedUntil?: string;
             /**
              * @description Comment that a MongoDB Cloud user submitted when acknowledging the alert.
-             * @example Expiration on 3/19.  Silencing for 7days.
+             * @example Expiration on 3/19.  Silencing for 7 days.
              */
             acknowledgementComment?: string;
             /**
@@ -4705,7 +4622,7 @@ export interface components {
             acknowledgedUntil?: string;
             /**
              * @description Comment that a MongoDB Cloud user submitted when acknowledging the alert.
-             * @example Expiration on 3/19.  Silencing for 7days.
+             * @example Expiration on 3/19.  Silencing for 7 days.
              */
             acknowledgementComment?: string;
             /**
@@ -4725,7 +4642,14 @@ export interface components {
             readonly created: string;
             /** @description Incident that triggered this alert. */
             readonly eventTypeName:
-                | ("CREDIT_CARD_ABOUT_TO_EXPIRE" | "PENDING_INVOICE_OVER_THRESHOLD" | "DAILY_BILL_OVER_THRESHOLD")
+                | (
+                      | "CREDIT_CARD_ABOUT_TO_EXPIRE"
+                      | "PENDING_INVOICE_OVER_THRESHOLD"
+                      | "DAILY_BILL_OVER_THRESHOLD"
+                      | "DAILY_BILLING_CHANGE_OVER_THRESHOLD"
+                      | "WEEKLY_BILLING_CHANGE_OVER_THRESHOLD"
+                      | "MONTHLY_BILLING_CHANGE_OVER_THRESHOLD"
+                  )
                 | (
                       | "CPS_SNAPSHOT_STARTED"
                       | "CPS_SNAPSHOT_SUCCESSFUL"
@@ -4764,6 +4688,7 @@ export interface components {
                       | "FTS_INDEX_DELETION_FAILED"
                       | "FTS_INDEX_BUILD_COMPLETE"
                       | "FTS_INDEX_BUILD_FAILED"
+                      | "FTS_INDEX_CLEANED_UP"
                       | "FTS_INDEX_STALE"
                       | "FTS_INDEXES_RESTORE_FAILED"
                       | "FTS_INDEXES_SYNONYM_MAPPING_INVALID"
@@ -4824,6 +4749,9 @@ export interface components {
                       | "PREDICTIVE_COMPUTE_AUTO_SCALE_MAX_INSTANCE_SIZE_FAIL_BASE"
                       | "PREDICTIVE_COMPUTE_AUTO_SCALE_OPLOG_FAIL_BASE"
                       | "CLUSTER_AUTO_SHARDING_INITIATED"
+                      | "CLUSTER_RESHARDING_COMPLETED"
+                      | "COMPUTE_AUTO_SCALE_DOWNSCALE_SKIPPED_FALLBACK_BASE"
+                      | "COMPUTE_AUTO_SCALE_DOWNSCALE_SKIPPED_FALLBACK_ANALYTICS"
                   )
                 | (
                       | "CPS_DATA_PROTECTION_ENABLE_REQUESTED"
@@ -4843,6 +4771,7 @@ export interface components {
                       | "HOST_MONGOT_APPROACHING_STOP_REPLICATION"
                       | "HOST_MONGOT_PAUSE_INITIAL_SYNC"
                       | "HOST_SEARCH_NODE_INDEX_FAILED"
+                      | "HOST_SEARCH_PROCESS_THROTTLING"
                       | "HOST_EXTERNAL_LOG_SINK_EXPORT_DOWN"
                       | "HOST_NOT_ENOUGH_DISK_SPACE"
                       | "SSH_KEY_NDS_HOST_ACCESS_REQUESTED"
@@ -5321,6 +5250,98 @@ export interface components {
             readonly standardSrv?: string;
         };
         /**
+         * Flex Metric Alerts
+         * @description Flex Metric Alert notifies about changes of measurements or metrics for a Flex cluster.
+         */
+        FlexMetricAlert: {
+            /**
+             * Format: date-time
+             * @description Date and time until which this alert has been acknowledged. This parameter expresses its value in the ISO 8601 timestamp format in UTC. The resource returns this parameter if a MongoDB User previously acknowledged this alert.
+             *
+             *     - To acknowledge this alert forever, set the parameter value to 100 years in the future.
+             *
+             *     - To unacknowledge a previously acknowledged alert, do not set this parameter value.
+             */
+            acknowledgedUntil?: string;
+            /**
+             * @description Comment that a MongoDB Cloud user submitted when acknowledging the alert.
+             * @example Expiration on 3/19.  Silencing for 7 days.
+             */
+            acknowledgementComment?: string;
+            /**
+             * Format: email
+             * @description MongoDB Cloud username of the person who acknowledged the alert. The response returns this parameter if a MongoDB Cloud user previously acknowledged this alert.
+             */
+            readonly acknowledgingUsername?: string;
+            /**
+             * @description Unique 24-hexadecimal digit string that identifies the alert configuration that sets this alert.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            readonly alertConfigId: string;
+            /**
+             * @description Human-readable label that identifies the cluster to which this alert applies.
+             * @example myFlexCluster
+             */
+            readonly clusterName: string;
+            /**
+             * Format: date-time
+             * @description Date and time when MongoDB Cloud created this alert. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
+             */
+            readonly created: string;
+            currentValue?: components["schemas"]["HostMetricValue"];
+            eventTypeName: components["schemas"]["FlexMetricEventTypeViewAlertable"];
+            /**
+             * @description Unique 24-hexadecimal digit string that identifies the project that owns this alert.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            readonly groupId?: string;
+            /**
+             * @description Unique 24-hexadecimal digit string that identifies this alert.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            readonly id: string;
+            /**
+             * Format: date-time
+             * @description Date and time that any notifications were last sent for this alert. This parameter expresses its value in the ISO 8601 timestamp format in UTC. The resource returns this parameter if MongoDB Cloud has sent notifications for this alert.
+             */
+            readonly lastNotified?: string;
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            /**
+             * @description Name of the metric against which Atlas checks the configured alert condition.
+             * @example FLEX_CONNECTIONS_PERCENT
+             */
+            readonly metricName?: string;
+            /**
+             * @description Unique 24-hexadecimal character string that identifies the organization that owns the project to which this alert applies.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            readonly orgId?: string;
+            /**
+             * Format: date-time
+             * @description Date and time that this alert changed to `"status" : "CLOSED"`. This parameter expresses its value in the ISO 8601 timestamp format in UTC. The resource returns this parameter once `"status" : "CLOSED"`.
+             */
+            readonly resolved?: string;
+            /**
+             * @description State of this alert at the time you requested its details. TRACKING indicates the alert condition exists but has not persisted for the minimum notification delay. OPEN indicates the alert condition currently exists. CLOSED indicates the alert condition has been resolved.
+             * @example OPEN
+             * @enum {string}
+             */
+            readonly status: "CANCELLED" | "CLOSED" | "OPEN" | "TRACKING";
+            /**
+             * Format: date-time
+             * @description Date and time when someone last updated this alert. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
+             */
+            readonly updated: string;
+        };
+        /**
+         * Flex Metric Event Types
+         * @description Event type that triggers an alert.
+         * @example OUTSIDE_FLEX_METRIC_THRESHOLD
+         * @enum {string}
+         */
+        FlexMetricEventTypeViewAlertable: "OUTSIDE_FLEX_METRIC_THRESHOLD";
+        /**
          * Cloud Service Provider Settings for a Flex Cluster
          * @description Group of cloud provider settings that configure the provisioned MongoDB flex cluster.
          */
@@ -5762,7 +5783,7 @@ export interface components {
             /** @description List that contains key-value pairs between 1 to 255 characters in length for tagging and categorizing the project. */
             tags?: components["schemas"]["ResourceTag"][];
             /**
-             * @description Flag that indicates whether to create the project with default alert settings. This setting cannot be updated after project creation.
+             * @description Flag that indicates whether to create the project with default alert settings.
              * @default true
              */
             withDefaultAlertsSettings: boolean;
@@ -5823,14 +5844,14 @@ export interface components {
         > & {
             /**
              * Format: date-time
-             * @description Date and time when MongoDB Cloud sent the invitation. MongoDB Cloud represents this timestamp in ISO 8601 format in UTC.
+             * @description Date and time when MongoDB Cloud sent the invitation. MongoDB Cloud represents this timestamp in ISO 8601 format in UTC. This field is absent for active users.
              */
             readonly invitationCreatedAt: string;
             /**
              * Format: date-time
-             * @description Date and time when the invitation from MongoDB Cloud expires. MongoDB Cloud represents this timestamp in ISO 8601 format in UTC.
+             * @description Date and time when the invitation from MongoDB Cloud expires. MongoDB Cloud represents this timestamp in ISO 8601 format in UTC. This field is absent for active users and null for rejected invitations.
              */
-            readonly invitationExpiresAt: string;
+            readonly invitationExpiresAt?: string | null;
             /**
              * Format: email
              * @description Username of the MongoDB Cloud user who sent the invitation to join the organization.
@@ -5841,13 +5862,13 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            orgMembershipStatus: "PENDING";
+            orgMembershipStatus: "INVITATION_EXPIRED" | "INVITATION_REJECTED" | "PENDING";
         } & {
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            orgMembershipStatus: "PENDING";
+            orgMembershipStatus: "INVITATION_EXPIRED" | "INVITATION_REJECTED" | "PENDING";
         };
         GroupRoleAssignment: {
             /**
@@ -5865,10 +5886,10 @@ export interface components {
              */
             readonly id: string;
             /**
-             * @description String enum that indicates whether the MongoDB Cloud user has a pending invitation to join the organization or they are already active in the organization.
+             * @description String enum that indicates the user's organization membership status: ACTIVE (member), PENDING (invited), `INVITATION_EXPIRED` (invitation expired), or `INVITATION_REJECTED` (invitation declined).
              * @enum {string}
              */
-            readonly orgMembershipStatus: "PENDING" | "ACTIVE";
+            readonly orgMembershipStatus: "PENDING" | "ACTIVE" | "INVITATION_EXPIRED" | "INVITATION_REJECTED";
             /** @description One or more project-level roles assigned to the MongoDB Cloud user. */
             readonly roles: string[];
             /**
@@ -5932,7 +5953,7 @@ export interface components {
             acknowledgedUntil?: string;
             /**
              * @description Comment that a MongoDB Cloud user submitted when acknowledging the alert.
-             * @example Expiration on 3/19.  Silencing for 7days.
+             * @example Expiration on 3/19.  Silencing for 7 days.
              */
             acknowledgementComment?: string;
             /**
@@ -6019,6 +6040,7 @@ export interface components {
             | "HOST_MONGOT_APPROACHING_STOP_REPLICATION"
             | "HOST_MONGOT_PAUSE_INITIAL_SYNC"
             | "HOST_SEARCH_NODE_INDEX_FAILED"
+            | "HOST_SEARCH_PROCESS_THROTTLING"
             | "HOST_EXTERNAL_LOG_SINK_EXPORT_DOWN"
             | "HOST_NOT_ENOUGH_DISK_SPACE"
             | "SSH_KEY_NDS_HOST_ACCESS_REQUESTED"
@@ -6048,7 +6070,7 @@ export interface components {
             acknowledgedUntil?: string;
             /**
              * @description Comment that a MongoDB Cloud user submitted when acknowledging the alert.
-             * @example Expiration on 3/19.  Silencing for 7days.
+             * @example Expiration on 3/19.  Silencing for 7 days.
              */
             acknowledgementComment?: string;
             /**
@@ -6209,87 +6231,6 @@ export interface components {
              */
             type?: "PERIODIC_CPS" | "ON_DEMAND_CPS";
         };
-        /**
-         * Line Item
-         * @description One service included in this invoice.
-         */
-        InvoiceLineItem: {
-            /** @description Human-readable label that identifies the cluster that incurred the charge. */
-            readonly clusterName?: string;
-            /**
-             * Format: date-time
-             * @description Date and time when MongoDB Cloud created this line item. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
-             */
-            readonly created?: string;
-            /**
-             * Format: int64
-             * @description Sum by which MongoDB discounted this line item. MongoDB Cloud expresses this value in cents (100ths of one US Dollar). The resource returns this parameter when a discount applies.
-             */
-            readonly discountCents?: number;
-            /**
-             * Format: date-time
-             * @description Date and time when when MongoDB Cloud finished charging for this line item. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
-             */
-            readonly endDate?: string;
-            /**
-             * @description Unique 24-hexadecimal digit string that identifies the project associated to this line item.
-             * @example 32b6e34b3d91647abb20e7b8
-             */
-            readonly groupId?: string;
-            /** @description Human-readable label that identifies the project. */
-            groupName?: string;
-            /** @description Comment that applies to this line item. */
-            readonly note?: string;
-            /**
-             * Format: float
-             * @description Percentage by which MongoDB discounted this line item. The resource returns this parameter when a discount applies.
-             */
-            readonly percentDiscount?: number;
-            /**
-             * Format: double
-             * @description Number of units included for the line item. These can be expressions of storage (GB), time (hours), or other units.
-             */
-            readonly quantity?: number;
-            /** @description Human-readable description of the service that this line item provided. This Stock Keeping Unit (SKU) could be the instance type, a support charge, advanced security, or another service. */
-            readonly sku?: string;
-            /**
-             * Format: date-time
-             * @description Date and time when MongoDB Cloud began charging for this line item. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
-             */
-            readonly startDate?: string;
-            /** @description Human-readable label that identifies the Atlas App Services application associated with this line item. */
-            readonly stitchAppName?: string;
-            /** @description A map of key-value pairs corresponding to the tags associated with the line item resource. */
-            readonly tags?: {
-                [key: string]: string[];
-            };
-            /**
-             * Format: double
-             * @description Lower bound for usage amount range in current SKU tier.
-             *
-             *     **NOTE**: `lineItems[n].tierLowerBound` appears only if your `lineItems[n].sku` is tiered.
-             */
-            readonly tierLowerBound?: number;
-            /**
-             * Format: double
-             * @description Upper bound for usage amount range in current SKU tier.
-             *
-             *     **NOTE**: `lineItems[n].tierUpperBound` appears only if your `lineItems[n].sku` is tiered.
-             */
-            readonly tierUpperBound?: number;
-            /**
-             * Format: int64
-             * @description Sum of the cost set for this line item. MongoDB Cloud expresses this value in cents (100ths of one US Dollar) and calculates this value as `unitPriceDollars` * `quantity` * 100.
-             */
-            readonly totalPriceCents?: number;
-            /** @description Element used to express what **quantity** this line item measures. This value can be elements of time, storage capacity, and the like. */
-            readonly unit?: string;
-            /**
-             * Format: double
-             * @description Value per **unit** for this line item expressed in US Dollars.
-             */
-            readonly unitPriceDollars?: number;
-        };
         Link: {
             /**
              * @description Uniform Resource Locator (URL) that points another API resource to which this response has some relationship. This URL often begins with `https://cloud.mongodb.com/api/atlas`.
@@ -6379,22 +6320,22 @@ export interface components {
             dayOfMonth?: number;
             /**
              * Format: int32
-             * @description Hour of the day when the scheduled window to run one online archive ends.
+             * @description Hour of the day when the scheduled window to run one online archive ends. This field uses the UTC time zone. The window must have a duration of at least two hours. If the end time is before or equal to the start time, the window extends to the next day.
              */
             endHour?: number;
             /**
              * Format: int32
-             * @description Minute of the hour when the scheduled window to run one online archive ends.
+             * @description Minute of the hour when the scheduled window to run one online archive ends. This field uses the UTC time zone. The window must have a duration of at least two hours. If the end time is before or equal to the start time, the window extends to the next day.
              */
             endMinute?: number;
             /**
              * Format: int32
-             * @description Hour of the day when the when the scheduled window to run one online archive starts.
+             * @description Hour of the day when the scheduled window to run one online archive starts. This field uses the UTC time zone.
              */
             startHour?: number;
             /**
              * Format: int32
-             * @description Minute of the hour when the scheduled window to run one online archive starts.
+             * @description Minute of the hour when the scheduled window to run one online archive starts. This field uses the UTC time zone.
              */
             startMinute?: number;
         } & {
@@ -6444,7 +6385,7 @@ export interface components {
             acknowledgedUntil?: string;
             /**
              * @description Comment that a MongoDB Cloud user submitted when acknowledging the alert.
-             * @example Expiration on 3/19.  Silencing for 7days.
+             * @example Expiration on 3/19.  Silencing for 7 days.
              */
             acknowledgementComment?: string;
             /**
@@ -6651,14 +6592,14 @@ export interface components {
         > & {
             /**
              * Format: date-time
-             * @description Date and time when MongoDB Cloud sent the invitation. MongoDB Cloud represents this timestamp in ISO 8601 format in UTC.
+             * @description Date and time when MongoDB Cloud sent the invitation. MongoDB Cloud represents this timestamp in ISO 8601 format in UTC. This field is absent for active users.
              */
             readonly invitationCreatedAt: string;
             /**
              * Format: date-time
-             * @description Date and time when the invitation from MongoDB Cloud expires. MongoDB Cloud represents this timestamp in ISO 8601 format in UTC.
+             * @description Date and time when the invitation from MongoDB Cloud expires. MongoDB Cloud represents this timestamp in ISO 8601 format in UTC. This field is absent for active users and null for rejected invitations.
              */
-            readonly invitationExpiresAt: string;
+            readonly invitationExpiresAt?: string | null;
             /**
              * Format: email
              * @description Username of the MongoDB Cloud user who sent the invitation to join the organization.
@@ -6669,13 +6610,13 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            orgMembershipStatus: "PENDING";
+            orgMembershipStatus: "INVITATION_EXPIRED" | "INVITATION_REJECTED" | "PENDING";
         } & {
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            orgMembershipStatus: "PENDING";
+            orgMembershipStatus: "INVITATION_EXPIRED" | "INVITATION_REJECTED" | "PENDING";
         };
         OrgUserResponse: {
             /**
@@ -6684,10 +6625,10 @@ export interface components {
              */
             readonly id: string;
             /**
-             * @description String enum that indicates whether the MongoDB Cloud user has a pending invitation to join the organization or they are already active in the organization.
+             * @description String enum that indicates the user's organization membership status: ACTIVE (member), PENDING (invited), `INVITATION_EXPIRED` (invitation expired), or `INVITATION_REJECTED` (invitation declined).
              * @enum {string}
              */
-            readonly orgMembershipStatus: "PENDING" | "ACTIVE";
+            readonly orgMembershipStatus: "PENDING" | "ACTIVE" | "INVITATION_EXPIRED" | "INVITATION_REJECTED";
             roles: components["schemas"]["OrgUserRolesResponse"];
             /** @description List of unique 24-hexadecimal digit strings that identifies the teams to which this MongoDB Cloud user belongs. */
             readonly teamIds?: string[];
@@ -7101,7 +7042,7 @@ export interface components {
             acknowledgedUntil?: string;
             /**
              * @description Comment that a MongoDB Cloud user submitted when acknowledging the alert.
-             * @example Expiration on 3/19.  Silencing for 7days.
+             * @example Expiration on 3/19.  Silencing for 7 days.
              */
             acknowledgementComment?: string;
             /**
@@ -7219,7 +7160,7 @@ export interface components {
             acknowledgedUntil?: string;
             /**
              * @description Comment that a MongoDB Cloud user submitted when acknowledging the alert.
-             * @example Expiration on 3/19.  Silencing for 7days.
+             * @example Expiration on 3/19.  Silencing for 7 days.
              */
             acknowledgementComment?: string;
             /**
@@ -7381,6 +7322,8 @@ export interface components {
              * @enum {string}
              */
             type: "S3_LOG_EXPORT";
+            /** @description When true, uses the legacy daily-folder path structure compatible with Push-Based Log Export: `{prefix}/{cluster}/{hostname}/{logType}/{YYYY-MM-DD}/{timestamp}-{logType}.log`. When false (default), uses the flat timestamped structure: `{prefix}/{cluster}/{hostname}/{logType}/{timestamp}-{logType}.log`. */
+            useLegacyPathStructure?: boolean | null;
         } & {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -7427,6 +7370,8 @@ export interface components {
              * @enum {string}
              */
             type: "S3_LOG_EXPORT";
+            /** @description When true, uses the legacy daily-folder path structure compatible with Push-Based Log Export: `{prefix}/{cluster}/{hostname}/{logType}/{YYYY-MM-DD}/{timestamp}-{logType}.log`. When false (default), uses the flat timestamped structure: `{prefix}/{cluster}/{hostname}/{logType}/{timestamp}-{logType}.log`. */
+            useLegacyPathStructure?: boolean | null;
         } & {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -8021,7 +7966,7 @@ export interface components {
             acknowledgedUntil?: string;
             /**
              * @description Comment that a MongoDB Cloud user submitted when acknowledging the alert.
-             * @example Expiration on 3/19.  Silencing for 7days.
+             * @example Expiration on 3/19.  Silencing for 7 days.
              */
             acknowledgementComment?: string;
             /**
@@ -8141,6 +8086,23 @@ export interface components {
              */
             type: "AWSLambda";
         };
+        /** @description The configuration for Azure Blob Storage connections. */
+        StreamsAzureBlobStorageConnection: Omit<components["schemas"]["StreamsConnection"], "type"> & {
+            azure?: components["schemas"]["AzureConnection"];
+            publicPrivateNetworking?: components["schemas"]["StreamsPublicPrivateLinkNetworking"];
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "AzureBlobStorage";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "AzureBlobStorage";
+        };
         StreamsClusterConnection: Omit<components["schemas"]["StreamsConnection"], "type"> & {
             /** @description Unique 24-hexadecimal digit string that identifies the project that contains the configured cluster. Required if the ID does not match the project containing the streams workspace. You must first enable the organization setting. */
             clusterGroupId?: string;
@@ -8162,6 +8124,8 @@ export interface components {
         };
         /** @description Settings that define a connection to an external data store. */
         StreamsConnection: {
+            /** @description Unique identifier of the connection. */
+            readonly id?: string;
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
             /** @description Human-readable label that identifies the stream connection. In the case of the Sample type, this is the name of the sample source. */
@@ -8177,7 +8141,16 @@ export interface components {
              * @description Type of the connection.
              * @enum {string}
              */
-            type?: "Kafka" | "Cluster" | "Sample" | "Https" | "AWSLambda" | "AWSKinesisDataStreams" | "SchemaRegistry";
+            type?:
+                | "Kafka"
+                | "Cluster"
+                | "Sample"
+                | "Https"
+                | "AzureBlobStorage"
+                | "AWSLambda"
+                | "AWSKinesisDataStreams"
+                | "SchemaRegistry"
+                | "GCPPubSub";
         } & (
             | components["schemas"]["StreamsSampleConnection"]
             | components["schemas"]["StreamsClusterConnection"]
@@ -8187,6 +8160,8 @@ export interface components {
             | components["schemas"]["StreamsS3Connection"]
             | components["schemas"]["StreamsAWSKinesisDataStreamsConnection"]
             | components["schemas"]["StreamsSchemaRegistryConnection"]
+            | components["schemas"]["StreamsAzureBlobStorageConnection"]
+            | components["schemas"]["StreamsGCPPubSubConnection"]
         );
         /** @description Dead letter queue for the stream processor. */
         StreamsDLQ: {
@@ -8209,6 +8184,30 @@ export interface components {
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
             region: components["schemas"]["BaseStreamsRegion"];
+        };
+        /** @description GCP-specific configuration for the connection. */
+        StreamsGCPConnectionConfig: {
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            /** @description Email address of the Google Cloud Platform (GCP) service account that Atlas Streams uses to connect to the GCP Pub/Sub resources. */
+            serviceAccountId?: string;
+        };
+        /** @description The configuration for GCP Pub/Sub connections. */
+        StreamsGCPPubSubConnection: Omit<components["schemas"]["StreamsConnection"], "type"> & {
+            gcp?: components["schemas"]["StreamsGCPConnectionConfig"];
+            publicPrivateNetworking?: components["schemas"]["StreamsPublicPrivateLinkNetworking"];
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "GCPPubSub";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "GCPPubSub";
         };
         StreamsHttpsConnection: Omit<components["schemas"]["StreamsConnection"], "type"> & {
             /** @description A map of key-value pairs that will be passed as headers for the request. */
@@ -8387,11 +8386,11 @@ export interface components {
             readonly interfaceEndpointName?: string;
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
-            /** @description Provider where the Kafka cluster is deployed. Valid values are AWS and AZURE. */
+            /** @description Cloud provider where the private endpoint's target resource is deployed. Valid values are AWS, AZURE, and GCP. */
             provider: string;
             /** @description Account ID from the cloud provider. */
             readonly providerAccountId?: string;
-            /** @description The region of the Provider’s cluster. See [AZURE](https://www.mongodb.com/docs/atlas/reference/microsoft-azure/#stream-processing-instances) and [AWS](https://www.mongodb.com/docs/atlas/reference/amazon-aws/#stream-processing-instances) supported regions. */
+            /** @description The region of the Provider’s cluster. See [AWS](https://www.mongodb.com/docs/atlas/reference/amazon-aws/#stream-processing-workspaces), [AZURE](https://www.mongodb.com/docs/atlas/reference/microsoft-azure/#stream-processing-workspaces), and [GCP](https://www.mongodb.com/docs/atlas/reference/google-gcp/#stream-processing-workspaces) supported regions. */
             region?: string;
             /** @description For AZURE EVENTHUB, this is the [namespace endpoint ID](https://learn.microsoft.com/en-us/rest/api/eventhub/namespaces/get). For AWS CONFLUENT cluster, this is the [VPC Endpoint service name](https://docs.confluent.io/cloud/current/networking/private-links/aws-privatelink.html). */
             serviceEndpointId?: string;
@@ -8400,16 +8399,18 @@ export interface components {
             /**
              * @description Vendor that manages the cloud service. The list of supported vendor values is:
              *     - AWS
-             *     -- MSK for AWS MSK Kafka clusters
-             *     -- CONFLUENT for Confluent Kafka clusters on AWS
-             *     -- KINESIS for AWS Kinesis Data Streams
+             *     -- `MSK` for AWS MSK Kafka clusters
+             *     -- `CONFLUENT` for Confluent Kafka clusters on AWS
+             *     -- `KINESIS` for AWS Kinesis Data Streams
              *
              *     - Azure
-             *     -- EVENTHUB for Azure EventHub.
-             *     -- CONFLUENT for Confluent Kafka clusters on Azure
+             *     -- `EVENTHUB` for Azure EventHub.
+             *     -- `CONFLUENT` for Confluent Kafka clusters on Azure
+             *     -- `AZURE_BLOB_STORAGE` for Azure Blob Storage
              *
              *     - GCP
-             *     -- CONFLUENT for Confluent Kafka clusters on GCP
+             *     -- `CONFLUENT` for Confluent Kafka clusters on GCP
+             *     -- `PUBSUB` for Google Cloud Pub/Sub
              *
              *     **NOTE** Omitting the vendor field will default to using the GENERIC vendor.
              */
@@ -8429,6 +8430,12 @@ export interface components {
             options?: components["schemas"]["StreamsOptions"];
             /** @description Stream aggregation pipeline you want to apply to your streaming data. */
             pipeline?: components["schemas"]["Document"][];
+            /**
+             * Stream Workspace Tier
+             * @description Selected tier for the Stream Workspace. Configures Memory / VCPU allowances.
+             * @enum {string}
+             */
+            tier?: "SP50" | "SP30" | "SP10" | "SP5" | "SP2";
         };
         /** @description An atlas stream processor with optional stats. */
         StreamsProcessorWithStats: {
@@ -8458,6 +8465,28 @@ export interface components {
              * @enum {string}
              */
             tier?: "SP50" | "SP30" | "SP10" | "SP5" | "SP2";
+        };
+        /** @description Networking configuration for connections that support `PUBLIC` and `PRIVATE_LINK` access types. For GCP connections, use `PRIVATE_LINK` for GCP Private Service Connect (PSC). */
+        StreamsPublicPrivateLinkNetworking: {
+            access?: components["schemas"]["StreamsPublicPrivateLinkNetworkingAccess"];
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+        };
+        /** @description Information about networking access. */
+        StreamsPublicPrivateLinkNetworkingAccess: {
+            /**
+             * @description The ID of the Private Link connection. Required for `PRIVATE_LINK` type. For GCP connections using Private Service Connect (PSC), this is the PSC connection ID.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            connectionId?: string;
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            /**
+             * Networking Access Type
+             * @description Selected networking type. Either `PUBLIC` or `PRIVATE_LINK`. Defaults to `PUBLIC`. For AWS, Azure, and GCP connections, use `PRIVATE_LINK` for AWS PrivateLink, Azure Private Link, or GCP Private Service Connect (PSC) respectively.
+             * @enum {string}
+             */
+            type?: "PUBLIC" | "PRIVATE_LINK";
         };
         /** @description The configuration for S3 connections. */
         StreamsS3Connection: Omit<components["schemas"]["StreamsConnection"], "type"> & {
@@ -8905,7 +8934,7 @@ export interface components {
             acknowledgedUntil?: string;
             /**
              * @description Comment that a MongoDB Cloud user submitted when acknowledging the alert.
-             * @example Expiration on 3/19.  Silencing for 7days.
+             * @example Expiration on 3/19.  Silencing for 7 days.
              */
             acknowledgementComment?: string;
             /**
@@ -9294,22 +9323,22 @@ export interface components {
             dayOfWeek?: number;
             /**
              * Format: int32
-             * @description Hour of the day when the scheduled window to run one online archive ends.
+             * @description Hour of the day when the scheduled window to run one online archive ends. This field uses the UTC time zone. The window must have a duration of at least two hours. If the end time is before or equal to the start time, the window extends to the next day.
              */
             endHour?: number;
             /**
              * Format: int32
-             * @description Minute of the hour when the scheduled window to run one online archive ends.
+             * @description Minute of the hour when the scheduled window to run one online archive ends. This field uses the UTC time zone. The window must have a duration of at least two hours. If the end time is before or equal to the start time, the window extends to the next day.
              */
             endMinute?: number;
             /**
              * Format: int32
-             * @description Hour of the day when the when the scheduled window to run one online archive starts.
+             * @description Hour of the day when the scheduled window to run one online archive starts. This field uses the UTC time zone.
              */
             startHour?: number;
             /**
              * Format: int32
-             * @description Minute of the hour when the scheduled window to run one online archive starts.
+             * @description Minute of the hour when the scheduled window to run one online archive starts. This field uses the UTC time zone.
              */
             startMinute?: number;
         } & {
@@ -9964,6 +9993,7 @@ export type AzureAccountDetails = components["schemas"]["AzureAccountDetails"];
 export type AzureCloudProviderContainer = components["schemas"]["AzureCloudProviderContainer"];
 export type AzureCloudProviderSettings = components["schemas"]["AzureCloudProviderSettings"];
 export type AzureComputeAutoScalingRules = components["schemas"]["AzureComputeAutoScalingRules"];
+export type AzureConnection = components["schemas"]["AzureConnection"];
 export type AzureCreateDataProcessRegionView = components["schemas"]["AzureCreateDataProcessRegionView"];
 export type AzureDataProcessRegionView = components["schemas"]["AzureDataProcessRegionView"];
 export type AzureHardwareSpec20240805 = components["schemas"]["AzureHardwareSpec20240805"];
@@ -9975,10 +10005,6 @@ export type BaseCloudProviderInstanceSize = components["schemas"]["BaseCloudProv
 export type BaseStreamsRegion = components["schemas"]["BaseStreamsRegion"];
 export type BasicDbObject = components["schemas"]["BasicDBObject"];
 export type BiConnector = components["schemas"]["BiConnector"];
-export type BillingInvoice = components["schemas"]["BillingInvoice"];
-export type BillingInvoiceMetadata = components["schemas"]["BillingInvoiceMetadata"];
-export type BillingPayment = components["schemas"]["BillingPayment"];
-export type BillingRefund = components["schemas"]["BillingRefund"];
 export type CloudCluster = components["schemas"]["CloudCluster"];
 export type CloudDatabaseUser = components["schemas"]["CloudDatabaseUser"];
 export type CloudGcpProviderSettings = components["schemas"]["CloudGCPProviderSettings"];
@@ -10097,6 +10123,8 @@ export type FlexBackupSettings20241113 = components["schemas"]["FlexBackupSettin
 export type FlexClusterDescription20241113 = components["schemas"]["FlexClusterDescription20241113"];
 export type FlexClusterDescriptionCreate20241113 = components["schemas"]["FlexClusterDescriptionCreate20241113"];
 export type FlexConnectionStrings20241113 = components["schemas"]["FlexConnectionStrings20241113"];
+export type FlexMetricAlert = components["schemas"]["FlexMetricAlert"];
+export type FlexMetricEventTypeViewAlertable = components["schemas"]["FlexMetricEventTypeViewAlertable"];
 export type FlexProviderSettings20241113 = components["schemas"]["FlexProviderSettings20241113"];
 export type FlexProviderSettingsCreate20241113 = components["schemas"]["FlexProviderSettingsCreate20241113"];
 export type FreeComputeAutoScalingRules = components["schemas"]["FreeComputeAutoScalingRules"];
@@ -10123,7 +10151,6 @@ export type HostMetricEventTypeViewAlertable = components["schemas"]["HostMetric
 export type HostMetricValue = components["schemas"]["HostMetricValue"];
 export type IngestionSink = components["schemas"]["IngestionSink"];
 export type IngestionSource = components["schemas"]["IngestionSource"];
-export type InvoiceLineItem = components["schemas"]["InvoiceLineItem"];
 export type Link = components["schemas"]["Link"];
 export type LogIntegrationRequest = components["schemas"]["LogIntegrationRequest"];
 export type LogIntegrationResponse = components["schemas"]["LogIntegrationResponse"];
@@ -10199,10 +10226,13 @@ export type StreamProcessorAlertViewForNdsGroup = components["schemas"]["StreamP
 export type StreamsAwsConnectionConfig = components["schemas"]["StreamsAWSConnectionConfig"];
 export type StreamsAwsKinesisDataStreamsConnection = components["schemas"]["StreamsAWSKinesisDataStreamsConnection"];
 export type StreamsAwsLambdaConnection = components["schemas"]["StreamsAWSLambdaConnection"];
+export type StreamsAzureBlobStorageConnection = components["schemas"]["StreamsAzureBlobStorageConnection"];
 export type StreamsClusterConnection = components["schemas"]["StreamsClusterConnection"];
 export type StreamsConnection = components["schemas"]["StreamsConnection"];
 export type StreamsDlq = components["schemas"]["StreamsDLQ"];
 export type StreamsDataProcessRegion = components["schemas"]["StreamsDataProcessRegion"];
+export type StreamsGcpConnectionConfig = components["schemas"]["StreamsGCPConnectionConfig"];
+export type StreamsGcpPubSubConnection = components["schemas"]["StreamsGCPPubSubConnection"];
 export type StreamsHttpsConnection = components["schemas"]["StreamsHttpsConnection"];
 export type StreamsKafkaAuthentication = components["schemas"]["StreamsKafkaAuthentication"];
 export type StreamsKafkaConnection = components["schemas"]["StreamsKafkaConnection"];
@@ -10215,6 +10245,9 @@ export type StreamsOptions = components["schemas"]["StreamsOptions"];
 export type StreamsPrivateLinkConnection = components["schemas"]["StreamsPrivateLinkConnection"];
 export type StreamsProcessor = components["schemas"]["StreamsProcessor"];
 export type StreamsProcessorWithStats = components["schemas"]["StreamsProcessorWithStats"];
+export type StreamsPublicPrivateLinkNetworking = components["schemas"]["StreamsPublicPrivateLinkNetworking"];
+export type StreamsPublicPrivateLinkNetworkingAccess =
+    components["schemas"]["StreamsPublicPrivateLinkNetworkingAccess"];
 export type StreamsS3Connection = components["schemas"]["StreamsS3Connection"];
 export type StreamsSampleConnection = components["schemas"]["StreamsSampleConnection"];
 export type StreamsSampleConnections = components["schemas"]["StreamsSampleConnections"];
