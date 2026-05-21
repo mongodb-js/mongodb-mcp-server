@@ -8,7 +8,7 @@
     "test": "sh ./runAccuracyTests.sh",
     "update-status": "tsx ./src/updateAccuracyRunStatus.ts",
     "generate-summary": "tsx ./src/generateTestSummary.ts",
-    "compile": "tsc --build tsconfig.build.json"
+    "check": "tsc --noEmit --project tsconfig.json"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",

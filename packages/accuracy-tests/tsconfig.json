@@ -1,15 +1,13 @@
 {
-  "extends": "../../tsconfig.json",
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "./dist",
     "rootDir": ".",
-    "composite": true,
+    "baseUrl": ".",
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
     "erasableSyntaxOnly": false
   },
-  "include": ["**/*.ts"],
-  "exclude": ["node_modules", "dist"],
-  "references": [
-    { "path": "../test-utils" },
-    { "path": "../integration-tests" }
-  ]
+  "include": ["**/*.ts", "../test-utils/src/vitest.d.ts"],
+  "exclude": ["node_modules"]
 }

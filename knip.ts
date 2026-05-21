@@ -43,8 +43,7 @@ const config: KnipConfig = {
             ],
         },
         "packages/test-utils": {
-            // Required for knip --strict; normal knip reports these entry patterns as redundant (vitest plugin overlap)
-            entry: ["src/setup.ts", "scripts/copy-assets.js"],
+            entry: ["src/index.ts", "src/setup.ts"],
         },
         "packages/scripts": {
             entry: ["src/*.ts"],

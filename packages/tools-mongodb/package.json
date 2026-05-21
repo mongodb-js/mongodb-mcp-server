@@ -15,8 +15,9 @@
     "dist"
   ],
   "scripts": {
-    "compile": "tsc --build tsconfig.build.json",
-    "test": "vitest --run"
+    "build": "tsc --build tsconfig.build.json",
+    "test": "vitest --run",
+    "check": "tsc --build tsconfig.build.json --noEmit"
   },
   "dependencies": {
     "@mongodb-js/device-id": "^0.4.6",

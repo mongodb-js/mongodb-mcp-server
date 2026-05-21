@@ -17,7 +17,6 @@
     { "path": "../atlas-api-client" },
     { "path": "../atlas-telemetry" },
     { "path": "../http-runners" },
-    { "path": "../test-utils" },
     { "path": "../cli" },
     { "path": "../mongodb-mcp-server" }
   ]

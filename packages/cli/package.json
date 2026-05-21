@@ -24,8 +24,9 @@
     "dist"
   ],
   "scripts": {
-    "compile": "tsc --build tsconfig.build.json",
-    "test": "vitest --run"
+    "build": "tsc --build tsconfig.build.json",
+    "test": "vitest --run",
+    "check": "tsc --build tsconfig.build.json --noEmit"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",

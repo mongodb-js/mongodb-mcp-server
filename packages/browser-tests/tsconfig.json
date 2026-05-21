@@ -8,7 +8,11 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "skipLibCheck": true,
-    "rootDir": "."
+    "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {
+      "@mongodb-js/devtools-proxy-support/proxy-options": ["polyfills/empty.ts"]
+    }
   },
   "include": ["**/*.ts"],
   "exclude": ["node_modules"]
