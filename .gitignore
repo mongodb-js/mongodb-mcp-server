@@ -1,5 +1,6 @@
 dist
 node_modules
+.eslintcache
 
 .vscode/mcp.json
 .github/prompts/*

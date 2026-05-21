@@ -25,8 +25,8 @@ export class ListProjectsTool extends AtlasToolBase {
         }
 
         const orgs: Record<string, string> = orgData.results
-            .filter((org) => org.id)
-            .reduce((acc, org) => ({ ...acc, [org.id!]: org.name }), {});
+            .filter((org): org is typeof org & { id: string } => org.id !== undefined)
+            .reduce((acc, org) => ({ ...acc, [org.id]: org.name }), {});
 
         const data = orgId
             ? await this.apiClient.getOrgGroups({
