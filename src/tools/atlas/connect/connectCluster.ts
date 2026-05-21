@@ -31,24 +31,16 @@ export const ConnectClusterArgs = {
 };
 
 const ConnectClusterOutputSchema = {
-    connected: z.boolean(),
+    state: z.enum(["connected", "connecting"]),
     addedCurrentIp: z.boolean(),
     createdTemporaryUser: z.boolean(),
+    temporaryUserClarification: z.string().optional(),
     sharedTierAlertsDetected: z.boolean().optional(),
     sharedTierTier: z.enum(["Free", "Flex"]).optional(),
     sharedTierAlerts: z.enum(SHARED_TIER_METRIC_NAMES).array().optional(),
 };
 
 export type ConnectClusterOutput = z.infer<z.ZodObject<typeof ConnectClusterOutputSchema>>;
-
-function transformTelemetryFormat(sc: ConnectClusterOutput): Partial<ConnectionMetadata> {
-    return {
-        // TelemetryBoolSet type required
-        shared_tier_alerts_detected: sc.sharedTierAlertsDetected ? "true" : "false",
-        shared_tier_tier: sc.sharedTierTier,
-        shared_tier_alerts: sc.sharedTierAlerts,
-    };
-}
 
 export class ConnectClusterTool extends AtlasToolBase {
     static toolName = "atlas-connect-cluster";
@@ -302,9 +294,10 @@ export class ConnectClusterTool extends AtlasToolBase {
                     }
 
                     const baseStructuredContent = {
-                        connected: true,
+                        state: "connected" as const,
                         addedCurrentIp: ipAccessListUpdated,
                         createdTemporaryUser: createdUser,
+                        ...(createdUser && { temporaryUserClarification: createdUserMessage }),
                     };
 
                     const atlas = this.session.connectedAtlasCluster;
@@ -327,7 +320,7 @@ export class ConnectClusterTool extends AtlasToolBase {
                                     ...baseStructuredContent,
                                     sharedTierAlertsDetected: true,
                                     sharedTierTier: hookResult.tier,
-                                    sharedTierAlerts: hookResult.alerts,
+                                    sharedTierAlerts: hookResult.alertTypes,
                                 },
                             };
                         }
@@ -375,9 +368,10 @@ export class ConnectClusterTool extends AtlasToolBase {
         return {
             content,
             structuredContent: {
-                connected: false,
+                state: "connecting",
                 addedCurrentIp: ipAccessListUpdated,
                 createdTemporaryUser: createdUser,
+                ...(createdUser && { temporaryUserClarification: createdUserMessage }),
             },
         };
     }
@@ -395,7 +389,12 @@ export class ConnectClusterTool extends AtlasToolBase {
         return {
             ...parentMetadata,
             ...connectionMetadata,
-            ...transformTelemetryFormat(result.structuredContent),
+            ...(result.structuredContent.sharedTierTier !== undefined && {
+                // TelemetryBoolSet type required
+                shared_tier_alerts_detected: result.structuredContent.sharedTierAlertsDetected ? "true" : "false",
+                shared_tier_tier: result.structuredContent.sharedTierTier,
+                shared_tier_alerts: result.structuredContent.sharedTierAlerts,
+            }),
         };
     }
 }

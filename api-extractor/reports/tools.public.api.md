@@ -213,9 +213,13 @@ export class ConnectClusterTool extends AtlasToolBase {
     static operationType: OperationType;
     // (undocumented)
     outputSchema: {
-        connected: z.ZodBoolean;
+        state: z.ZodEnum<{
+            connected: "connected";
+            connecting: "connecting";
+        }>;
         addedCurrentIp: z.ZodBoolean;
         createdTemporaryUser: z.ZodBoolean;
+        temporaryUserClarification: z.ZodOptional<z.ZodString>;
         sharedTierAlertsDetected: z.ZodOptional<z.ZodBoolean>;
         sharedTierTier: z.ZodOptional<z.ZodEnum<{
             Free: "Free";

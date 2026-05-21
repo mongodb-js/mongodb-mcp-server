@@ -232,7 +232,7 @@ describeWithAtlas("clusters", (integration) => {
                         );
 
                         // structuredContent must mirror content
-                        expect(structuredContent.connected).toBe(true);
+                        expect(structuredContent.state).toBe("connected");
                         expect(structuredContent.createdTemporaryUser).toBe(
                             content.includes("A temporary user has been created")
                         );
@@ -244,7 +244,7 @@ describeWithAtlas("clusters", (integration) => {
                         break;
                     } else {
                         expect(content).toContain(`Attempting to connect to cluster "${clusterName}"...`);
-                        expect(structuredContent.connected).toBe(false);
+                        expect(structuredContent.state).toBe("connecting");
                     }
                     await sleep(500);
                 }

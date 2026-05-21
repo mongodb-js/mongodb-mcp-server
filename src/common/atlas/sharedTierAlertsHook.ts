@@ -41,7 +41,7 @@ function buildRecommendationParagraph(
 
 /**
  * Post-connect: inspect tier; for Free/Flex only, fetch OPEN alerts and return upgrade guidance when filters match.
- * Returns tier, JSON-serialized alerts, and recommendation text for the caller to surface and attach to telemetry.
+ * Returns tier, alert type names, and recommendation text for the caller to surface and attach to telemetry.
  */
 export async function runSharedTierAlertsHook({
     projectId,
@@ -50,7 +50,7 @@ export async function runSharedTierAlertsHook({
     apiClient,
     logger,
 }: RunSharedTierAlertsHookParams): Promise<
-    { recommendationText: string; tier: SharedTierTier; alerts: SharedTierMetricName[] } | undefined
+    { recommendationText: string; tier: SharedTierTier; alertTypes: SharedTierMetricName[] } | undefined
 > {
     if (!["FREE", "FLEX"].includes(instanceType)) {
         return undefined;
@@ -79,7 +79,7 @@ export async function runSharedTierAlertsHook({
         return undefined;
     }
 
-    const alerts = [
+    const alertTypes = [
         ...new Set(
             (data?.results ?? []).flatMap((alert) => {
                 const parsed = SharedTierAlertSchema.safeParse(alert);
@@ -88,15 +88,15 @@ export async function runSharedTierAlertsHook({
         ),
     ];
 
-    if (!alerts.length) {
+    if (!alertTypes.length) {
         return undefined;
     }
 
     const tier = instanceType === "FREE" ? "Free" : "Flex";
 
     return {
-        recommendationText: buildRecommendationParagraph(clusterName, tier, alerts),
+        recommendationText: buildRecommendationParagraph(clusterName, tier, alertTypes),
         tier,
-        alerts,
+        alertTypes,
     };
 }
