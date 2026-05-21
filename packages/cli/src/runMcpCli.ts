@@ -27,15 +27,15 @@ export type RunMcpCliOptions = {
  * Example usage:
  * ```typescript
  * import { runMcpCli, DryRunHandler } from "@mongodb-js/mcp-cli";
- * import { AllTools } from "mongodb-mcp-server";
- * import { Resources } from "./resources/resources.js";
+ * import { MongoDBTools } from "@mongodb-js/mcp-tools-mongodb";
+ * import { Resources } from "@mongodb-js/mcp-cli";
  *
  * await runMcpCli({
  *   args: process.argv.slice(2),
  *   serverMetadata,
  *   consoleLogger: console,
  *   onExit: (code) => process.exit(code),
- *   tools: AllTools,
+ *   tools: [...MongoDBTools, MyCustomTool],
  *   resources: Resources,
  *   handlers: [new DryRunHandler()],
  * });
