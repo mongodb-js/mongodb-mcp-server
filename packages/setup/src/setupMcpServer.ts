@@ -9,7 +9,7 @@ import { AI_TOOL_REGISTRY, openConfigSettings, TOOLS_WITHOUT_EDITORS } from "./a
 import type { Platform } from "./setupAiToolsUtils.js";
 import { formatError, getPlatform } from "./setupAiToolsUtils.js";
 import { getAuthType } from "@mongodb-js/mcp-tools-mongodb";
-import type { ServerMetadata } from "@mongodb-js/mcp-cli";
+import type { ServerMetadata } from "@mongodb-js/mcp-types";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 import { NoopLogger } from "@mongodb-js/mcp-core";
 import type { TelemetryResult } from "@mongodb-js/mcp-atlas-telemetry";

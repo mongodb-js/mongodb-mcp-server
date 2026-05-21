@@ -2,8 +2,8 @@ import { z } from "zod";
 import type { CallToolResult } from "@mongodb-js/mcp-types";
 
 import { MongoDBToolBase, type IMongoDBSession, type MongoDBToolRegistrationServer } from "../../mongodbTool.js";
-import { type ToolArgs, type OperationType, type ToolConstructorParams } from "@mongodb-js/mcp-core";
-
+import { type ToolArgs, type ToolConstructorParams } from "@mongodb-js/mcp-core";
+import type { OperationType } from "@mongodb-js/mcp-types";
 export class SwitchConnectionTool extends MongoDBToolBase {
     static toolName = "switch-connection";
     public override description =

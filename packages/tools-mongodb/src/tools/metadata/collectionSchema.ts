@@ -1,5 +1,6 @@
 import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "@mongodb-js/mcp-core";
+import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
+import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
 import { getSimplifiedSchema } from "mongodb-schema";
 import { z } from "zod";

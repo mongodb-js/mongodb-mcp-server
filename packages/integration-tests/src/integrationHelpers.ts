@@ -1,4 +1,4 @@
-import type { LoggerType, LogLevel, LogPayload } from "@mongodb-js/mcp-core";
+import type { LoggerType, LogLevel, LogPayload } from "@mongodb-js/mcp-types";
 import { CompositeLogger, LoggerBase } from "@mongodb-js/mcp-core";
 import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { CliSession, UserConfigSchema, packageInfo } from "mongodb-mcp-server";
@@ -17,8 +17,8 @@ import { Keychain } from "@mongodb-js/mcp-core";
 import { Elicitation } from "mongodb-mcp-server";
 import type { MockClientCapabilities, createMockElicitInput } from "@mongodb-js/mcp-test-utils";
 import { createAtlasLocalClient } from "mongodb-mcp-server";
-import type { AnyToolClass, OperationType } from "@mongodb-js/mcp-core";
-import type { AnyResourceClass } from "@mongodb-js/mcp-types";
+import type { AnyToolClass } from "@mongodb-js/mcp-core";
+import type { AnyResourceClass, OperationType } from "@mongodb-js/mcp-types";
 import { ApiClient, ClientCredentialsAuthProvider } from "@mongodb-js/mcp-atlas-api-client";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 export { CliSession } from "@mongodb-js/mcp-cli";

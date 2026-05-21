@@ -1,7 +1,8 @@
 import { z } from "zod";
 import type { CallToolResult } from "@mongodb-js/mcp-types";
 import { MongoDBToolBase, type IMongoDBSession, type MongoDBToolRegistrationServer } from "../../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolConstructorParams } from "@mongodb-js/mcp-core";
+import type { ToolArgs, ToolConstructorParams } from "@mongodb-js/mcp-core";
+import type { OperationType } from "@mongodb-js/mcp-types";
 export class ConnectTool extends MongoDBToolBase {
     static toolName = "connect";
     public override description =

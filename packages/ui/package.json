@@ -21,10 +21,9 @@
     "test": "vitest --run",
     "check": "tsc --build tsconfig.build.json --noEmit"
   },
-  "dependencies": {
-    "@mongodb-js/mcp-types": "workspace:*"
-  },
+  "dependencies": {},
   "devDependencies": {
+    "@mongodb-js/mcp-types": "workspace:*",
     "@microsoft/api-extractor": "^7.58.5",
     "@lg-mcp/embeddable-uis": "^0.1.0",
     "@lg-mcp/hooks": "^0.2.0",

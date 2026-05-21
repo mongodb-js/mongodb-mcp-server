@@ -1,6 +1,7 @@
 import type { CallToolResult, ISession, IToolConfig, AtlasMetadata } from "@mongodb-js/mcp-types";
 import { ToolBase } from "@mongodb-js/mcp-core";
-import type { ToolArgs, ToolCategory } from "@mongodb-js/mcp-core";
+import type { ToolArgs } from "@mongodb-js/mcp-core";
+import type { ToolCategory } from "@mongodb-js/mcp-types";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { LogId } from "@mongodb-js/mcp-core";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";

@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { AtlasToolBase } from "../../atlasTool.js";
 import type { CallToolResult } from "@mongodb-js/mcp-types";
-import type { OperationType, ToolArgs } from "@mongodb-js/mcp-core";
+import type { ToolArgs } from "@mongodb-js/mcp-core";
+import type { OperationType } from "@mongodb-js/mcp-types";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
 import {
     getSuggestedIndexes,

@@ -27,11 +27,11 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "@mongodb-js/mcp-types": "workspace:*",
     "@mongodb-js/mcp-core": "workspace:*",
     "express": "^5.2.1"
   },
   "devDependencies": {
+    "@mongodb-js/mcp-types": "workspace:*",
     "@mongodb-js/mcp-metrics": "workspace:*",
     "@types/express": "^5.0.3",
     "@types/node": "^25.6.0",

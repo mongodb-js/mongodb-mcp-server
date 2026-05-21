@@ -1,5 +1,4 @@
 export type { StreamableHttpRunnerOptions } from "./streamableHttpRunner.js";
-export type { ToolArgs } from "@mongodb-js/mcp-core";
 
 // Node.js-specific transport runners
 export { StreamableHttpRunner } from "./streamableHttpRunner.js";

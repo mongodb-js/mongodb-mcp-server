@@ -1241,12 +1241,6 @@ export class UIRegistry implements IUIRegistry {
 }
 
 // @public (undocumented)
-export interface UIRegistryOptions {
-    customUIs?: (toolName: string) => string | null | Promise<string | null>;
-    loaders?: Record<string, (() => Promise<string>) | undefined>;
-}
-
-// @public (undocumented)
 export type UserConfig = z.infer<typeof UserConfigSchema>;
 
 // @public (undocumented)

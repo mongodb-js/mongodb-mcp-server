@@ -5,6 +5,8 @@
     "moduleResolution": "node",
     "outDir": "./dist/cjs",
     "rootDir": "./src",
+    "declaration": true,
+    "declarationMap": true,
     "paths": {
       "mongodb-connection-string-url": [
         "./node_modules/mongodb-connection-string-url/lib/index.d.ts"

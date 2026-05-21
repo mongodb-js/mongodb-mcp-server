@@ -21,13 +21,13 @@
   },
   "dependencies": {
     "@mongodb-js/mcp-atlas-api-client": "workspace:*",
-    "@mongodb-js/mcp-atlas-telemetry": "workspace:*",
     "@mongodb-js/mcp-core": "workspace:*",
-    "@mongodb-js/mcp-types": "workspace:*",
     "mongodb-connection-string-url": "^7.0.1",
     "zod": "^4.0.0"
   },
   "devDependencies": {
+    "@mongodb-js/mcp-types": "workspace:*",
+    "@mongodb-js/mcp-atlas-telemetry": "workspace:*",
     "@types/node": "^25.6.0",
     "typescript": "^5.9.2",
     "vitest": "^4.1.4",

@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
-import type { LogLevel } from "@mongodb-js/mcp-core";
+import type { LogLevel } from "@mongodb-js/mcp-types";
 import { MCP_LOG_LEVELS, LogId } from "@mongodb-js/mcp-core";
 import type { UserConfig } from "./config/userConfig.js";
 import type { CallToolResult, IApiClient, ISession, IUIRegistry } from "@mongodb-js/mcp-types";
@@ -14,9 +14,10 @@ import { type ConnectionErrorHandler, type ConnectionManager } from "@mongodb-js
 import type { Elicitation } from "@mongodb-js/mcp-core";
 import type { AnyResourceClass, IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
 import type { AtlasTelemetry, TelemetryServerCommand, TelemetryServerEvent } from "@mongodb-js/mcp-atlas-telemetry";
-import type { AnyToolBase, AnyToolClass, ToolCategory } from "@mongodb-js/mcp-core";
+import type { AnyToolBase, AnyToolClass } from "@mongodb-js/mcp-core";
+import type { ToolCategory } from "@mongodb-js/mcp-types";
 import { validateConnectionString } from "@mongodb-js/mcp-tools-mongodb";
-import { type ServerMetadata } from "@mongodb-js/mcp-types";
+import type { ServerMetadata } from "@mongodb-js/mcp-types";
 
 /** A list of tool classes that can be instantiated. */
 export type ToolRegistry = AnyToolClass[];

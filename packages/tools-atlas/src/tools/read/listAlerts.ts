@@ -1,6 +1,7 @@
 import type { CallToolResult } from "@mongodb-js/mcp-types";
 import { z } from "zod";
-import { type OperationType, type ToolArgs, formatUntrustedData } from "@mongodb-js/mcp-core";
+import { type ToolArgs, formatUntrustedData } from "@mongodb-js/mcp-core";
+import type { OperationType } from "@mongodb-js/mcp-types";
 import { AtlasToolBase } from "../../atlasTool.js";
 import { AtlasArgs } from "../../args.js";
 

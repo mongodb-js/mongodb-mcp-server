@@ -1,5 +1,6 @@
 import type { CallToolResult } from "@mongodb-js/mcp-types";
-import { type ToolArgs, type OperationType } from "@mongodb-js/mcp-core";
+import { type ToolArgs } from "@mongodb-js/mcp-core";
+import type { OperationType } from "@mongodb-js/mcp-types";
 import { AtlasToolBase } from "../../atlasTool.js";
 import type { ClusterDescription20240805 } from "@mongodb-js/mcp-atlas-api-client";
 import { ensureCurrentIpInAccessList } from "../../helpers/accessListUtils.js";

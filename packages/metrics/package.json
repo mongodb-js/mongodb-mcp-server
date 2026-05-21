@@ -29,10 +29,10 @@
     "check": "tsc --build tsconfig.build.json --noEmit"
   },
   "dependencies": {
-    "@mongodb-js/mcp-types": "workspace:*",
     "prom-client": "^15.1.3"
   },
   "devDependencies": {
+    "@mongodb-js/mcp-types": "workspace:*",
     "@types/node": "^25.6.0",
     "typescript": "^5.9.2",
     "vitest": "^4.1.5"

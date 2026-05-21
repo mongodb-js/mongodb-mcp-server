@@ -91,13 +91,6 @@ const config: KnipConfig = {
                 "vite-plugin-singlefile", // Used in vite.ui.config.ts (see ignore)
             ],
         },
-        "packages/types": {
-            ignoreDependencies: [
-                // `import type` and re-exports; knip --strict ignores type-only usage (knip hints to remove)
-                "@modelcontextprotocol/sdk",
-                "mongodb-redact",
-            ],
-        },
         "packages/cli": {
             entry: ["src/**/*.test.ts"],
             ignoreDependencies: [

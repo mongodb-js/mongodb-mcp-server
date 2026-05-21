@@ -1,6 +1,7 @@
 import type { CallToolResult } from "@mongodb-js/mcp-types";
 import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolExecutionContext } from "@mongodb-js/mcp-core";
+import type { ToolArgs } from "@mongodb-js/mcp-core";
+import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { checkIndexUsage } from "../../helpers/indexCheck.js";
 import { zEJSON } from "../../args.js";
 

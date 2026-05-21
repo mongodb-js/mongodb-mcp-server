@@ -1,6 +1,6 @@
 import type { CallToolResult } from "@mongodb-js/mcp-types";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
-import type { OperationType, ToolCategory } from "@mongodb-js/mcp-core";
+import type { OperationType, ToolCategory } from "@mongodb-js/mcp-types";
 import { LogId } from "@mongodb-js/mcp-core";
 import { AssistantToolBase } from "../../assistantTool.js";
 import { stringify as yamlStringify } from "yaml";

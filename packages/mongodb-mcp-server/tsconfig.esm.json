@@ -4,7 +4,9 @@
     "module": "esnext",
     "moduleResolution": "bundler",
     "outDir": "./dist/esm",
-    "rootDir": "./src"
+    "rootDir": "./src",
+    "declaration": true,
+    "declarationMap": true
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"]
 }

@@ -4,16 +4,6 @@ export { CompositeLogger } from "./logging/compositeLogger.js";
 export { Keychain, registerGlobalSecretToRedact } from "./keychain.js";
 export { NoopTelemetry } from "./telemetry/noopTelemetry.js";
 export { UserFacingError } from "./errors.js";
-export type {
-    LogLevel,
-    LogPayload,
-    LoggerType,
-    EventMap,
-    DefaultEventMap,
-    ILogger,
-    ICompositeLogger,
-    IKeychain,
-} from "@mongodb-js/mcp-types";
 export type { Secret } from "mongodb-redact";
 export { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
@@ -29,9 +19,7 @@ export {
     type ToolResult,
     formatUntrustedData,
 } from "./toolBase.js";
-export type { ToolExecutionContext, OperationType, ToolCategory, CallToolResult } from "@mongodb-js/mcp-types";
 export { ReactiveResource } from "./reactiveResource.js";
-export type { AnyResourceClass, ResourceClass } from "@mongodb-js/mcp-types";
 export { getRandomUUID } from "./getRandomUUID.js";
 export { TRANSPORT_PAYLOAD_LIMITS } from "./transportConstants.js";
 export { CommonArgs, NO_UNICODE_ERROR } from "./args.js";
@@ -54,8 +42,6 @@ export {
     JSON_RPC_ERROR_CODE_INVALID_REQUEST,
     JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION,
 } from "./jsonRpcErrorCodes.js";
-export type { TransportRequestContext, CloseableTransport } from "@mongodb-js/mcp-types";
-
 export const MCP_LOG_LEVELS: readonly LogLevel[] = [
     "debug",
     "info",

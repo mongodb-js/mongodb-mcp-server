@@ -137,9 +137,6 @@ importers:
       '@mongodb-js/mcp-core':
         specifier: workspace:*
         version: link:../core
-      '@mongodb-js/mcp-types':
-        specifier: workspace:*
-        version: link:../types
       node-fetch:
         specifier: ^3.3.2
         version: 3.3.2
@@ -150,6 +147,9 @@ importers:
         specifier: ^0.17.0
         version: 0.17.0
     devDependencies:
+      '@mongodb-js/mcp-types':
+        specifier: workspace:*
+        version: link:../types
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
@@ -168,9 +168,6 @@ importers:
       '@mongodb-js/mcp-core':
         specifier: workspace:*
         version: link:../core
-      '@mongodb-js/mcp-types':
-        specifier: workspace:*
-        version: link:../types
       lru-cache:
         specifier: ^11.2.6
         version: 11.3.6
@@ -178,6 +175,9 @@ importers:
         specifier: ^1.4.6
         version: 1.4.7
     devDependencies:
+      '@mongodb-js/mcp-types':
+        specifier: workspace:*
+        version: link:../types
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
@@ -280,9 +280,6 @@ importers:
       '@mongodb-js/mcp-tools-mongodb':
         specifier: workspace:*
         version: link:../tools-mongodb
-      '@mongodb-js/mcp-types':
-        specifier: workspace:*
-        version: link:../types
       '@mongosh/arg-parser':
         specifier: ^5.0.2
         version: 5.0.2(zod@4.4.2)
@@ -302,6 +299,9 @@ importers:
       '@mongodb-js/atlas-local':
         specifier: ^1.3.0
         version: 1.3.0
+      '@mongodb-js/mcp-types':
+        specifier: workspace:*
+        version: link:../types
       '@mongosh/service-provider-node-driver':
         specifier: ^5.0.2
         version: 5.0.2(mongodb-log-writer@2.5.7(bson@7.2.0))
@@ -329,9 +329,6 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.29.0
         version: 1.29.0(zod@4.4.2)
-      '@mongodb-js/mcp-types':
-        specifier: workspace:*
-        version: link:../types
       bson:
         specifier: ^7.2.0
         version: 7.2.0
@@ -345,6 +342,9 @@ importers:
       '@mongodb-js/mcp-test-utils':
         specifier: workspace:*
         version: link:../test-utils
+      '@mongodb-js/mcp-types':
+        specifier: workspace:*
+        version: link:../types
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
@@ -363,9 +363,6 @@ importers:
       '@mongodb-js/mcp-core':
         specifier: workspace:*
         version: link:../core
-      '@mongodb-js/mcp-types':
-        specifier: workspace:*
-        version: link:../types
       express:
         specifier: ^5.2.1
         version: 5.2.1
@@ -373,6 +370,9 @@ importers:
       '@mongodb-js/mcp-metrics':
         specifier: workspace:*
         version: link:../metrics
+      '@mongodb-js/mcp-types':
+        specifier: workspace:*
+        version: link:../types
       '@types/express':
         specifier: ^5.0.3
         version: 5.0.6
@@ -502,13 +502,13 @@ importers:
       '@mongodb-js/mcp-core':
         specifier: workspace:*
         version: link:../core
-      '@mongodb-js/mcp-types':
-        specifier: workspace:*
-        version: link:../types
     devDependencies:
       '@modelcontextprotocol/sdk':
         specifier: ^1.29.0
         version: 1.29.0(zod@4.4.2)
+      '@mongodb-js/mcp-types':
+        specifier: workspace:*
+        version: link:../types
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
@@ -521,13 +521,13 @@ importers:
 
   packages/metrics:
     dependencies:
-      '@mongodb-js/mcp-types':
-        specifier: workspace:*
-        version: link:../types
       prom-client:
         specifier: ^15.1.3
         version: 15.1.3
     devDependencies:
+      '@mongodb-js/mcp-types':
+        specifier: workspace:*
+        version: link:../types
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
@@ -716,9 +716,6 @@ importers:
       '@mongodb-js/mcp-atlas-telemetry':
         specifier: workspace:*
         version: link:../atlas-telemetry
-      '@mongodb-js/mcp-cli':
-        specifier: workspace:*
-        version: link:../cli
       '@mongodb-js/mcp-core':
         specifier: workspace:*
         version: link:../core
@@ -728,9 +725,6 @@ importers:
       '@mongodb-js/mcp-tools-mongodb':
         specifier: workspace:*
         version: link:../tools-mongodb
-      '@mongodb-js/mcp-types':
-        specifier: workspace:*
-        version: link:../types
       '@mongosh/service-provider-node-driver':
         specifier: ^5.0.2
         version: 5.0.2(mongodb-log-writer@2.5.7(bson@7.2.0))
@@ -747,6 +741,12 @@ importers:
         specifier: ^7.7.4
         version: 7.7.4
     devDependencies:
+      '@mongodb-js/mcp-cli':
+        specifier: workspace:*
+        version: link:../cli
+      '@mongodb-js/mcp-types':
+        specifier: workspace:*
+        version: link:../types
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
@@ -765,9 +765,6 @@ importers:
       '@mongodb-js/mcp-metrics':
         specifier: workspace:*
         version: link:../metrics
-      '@mongodb-js/mcp-types':
-        specifier: workspace:*
-        version: link:../types
       mongodb:
         specifier: ^7.1.1
         version: 7.1.1(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
@@ -784,6 +781,9 @@ importers:
         specifier: ^4.1.5
         version: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/browser-playwright@4.1.5)(@vitest/coverage-v8@4.1.5)(happy-dom@20.9.0)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
     devDependencies:
+      '@mongodb-js/mcp-types':
+        specifier: workspace:*
+        version: link:../types
       '@testing-library/jest-dom':
         specifier: ^6.9.1
         version: 6.9.1
@@ -802,9 +802,6 @@ importers:
       '@mongodb-js/mcp-core':
         specifier: workspace:*
         version: link:../core
-      '@mongodb-js/mcp-types':
-        specifier: workspace:*
-        version: link:../types
       yaml:
         specifier: ^2.8.1
         version: 2.8.3
@@ -812,6 +809,9 @@ importers:
         specifier: ^4.4.2
         version: 4.4.2
     devDependencies:
+      '@mongodb-js/mcp-types':
+        specifier: workspace:*
+        version: link:../types
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
@@ -827,15 +827,9 @@ importers:
       '@mongodb-js/mcp-atlas-api-client':
         specifier: workspace:*
         version: link:../atlas-api-client
-      '@mongodb-js/mcp-atlas-telemetry':
-        specifier: workspace:*
-        version: link:../atlas-telemetry
       '@mongodb-js/mcp-core':
         specifier: workspace:*
         version: link:../core
-      '@mongodb-js/mcp-types':
-        specifier: workspace:*
-        version: link:../types
       mongodb-connection-string-url:
         specifier: ^7.0.1
         version: 7.0.1
@@ -846,12 +840,18 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.29.0
         version: 1.29.0(zod@4.4.2)
+      '@mongodb-js/mcp-atlas-telemetry':
+        specifier: workspace:*
+        version: link:../atlas-telemetry
       '@mongodb-js/mcp-metrics':
         specifier: workspace:*
         version: link:../metrics
       '@mongodb-js/mcp-test-utils':
         specifier: workspace:*
         version: link:../test-utils
+      '@mongodb-js/mcp-types':
+        specifier: workspace:*
+        version: link:../types
       '@mongodb-js/mcp-ui':
         specifier: workspace:*
         version: link:../ui
@@ -873,13 +873,13 @@ importers:
       '@mongodb-js/mcp-core':
         specifier: workspace:*
         version: link:../core
-      '@mongodb-js/mcp-types':
-        specifier: workspace:*
-        version: link:../types
       zod:
         specifier: ^4.4.2
         version: 4.4.2
     devDependencies:
+      '@mongodb-js/mcp-types':
+        specifier: workspace:*
+        version: link:../types
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
@@ -898,9 +898,6 @@ importers:
       '@mongodb-js/mcp-core':
         specifier: workspace:*
         version: link:../core
-      '@mongodb-js/mcp-types':
-        specifier: workspace:*
-        version: link:../types
       '@mongosh/arg-parser':
         specifier: ^5.0.2
         version: 5.0.2(zod@4.4.2)
@@ -932,6 +929,9 @@ importers:
       '@mongodb-js/mcp-test-utils':
         specifier: workspace:*
         version: link:../test-utils
+      '@mongodb-js/mcp-types':
+        specifier: workspace:*
+        version: link:../types
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
@@ -943,17 +943,16 @@ importers:
         version: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/browser-playwright@4.1.5)(@vitest/coverage-v8@4.1.5)(happy-dom@20.9.0)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
 
   packages/types:
-    dependencies:
+    devDependencies:
       '@modelcontextprotocol/sdk':
         specifier: ^1.29.0
         version: 1.29.0(zod@4.4.2)
-      mongodb-redact:
-        specifier: ^1.4.6
-        version: 1.4.7
-    devDependencies:
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
+      mongodb-redact:
+        specifier: ^1.4.6
+        version: 1.4.7
       typescript:
         specifier: ^5.9.2
         version: 5.9.3
@@ -962,10 +961,6 @@ importers:
         version: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/browser-playwright@4.1.5)(@vitest/coverage-v8@4.1.5)(happy-dom@20.9.0)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
 
   packages/ui:
-    dependencies:
-      '@mongodb-js/mcp-types':
-        specifier: workspace:*
-        version: link:../types
     devDependencies:
       '@lg-mcp/embeddable-uis':
         specifier: ^0.1.0
@@ -976,6 +971,9 @@ importers:
       '@microsoft/api-extractor':
         specifier: ^7.58.5
         version: 7.58.7(@types/node@25.6.0)
+      '@mongodb-js/mcp-types':
+        specifier: workspace:*
+        version: link:../types
       '@testing-library/jest-dom':
         specifier: ^6.9.1
         version: 6.9.1

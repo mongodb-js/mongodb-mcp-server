@@ -1,5 +1,6 @@
 import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolResult } from "@mongodb-js/mcp-core";
+import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
+import type { OperationType } from "@mongodb-js/mcp-types";
 import { checkIndexUsage } from "../../helpers/indexCheck.js";
 import { EJSON } from "bson";
 import { zEJSON } from "../../args.js";
