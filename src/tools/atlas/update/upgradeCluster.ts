@@ -206,10 +206,11 @@ export class UpgradeClusterTool extends AtlasToolBase {
                     throw new UpgradeClusterError(`Cluster "${clusterName}" is already a Flex cluster.`);
                 }
 
-                ({ id: clusterId } = await this.apiClient.upgradeFlexToDedicated({
-                    groupId: projectId,
+                // tenantUpgrade: upgrades Flex clusters to Dedicated (M10+)
+                ({ id: clusterId } = await this.apiClient.tenantUpgrade({
+                    params: { path: { groupId: projectId } },
                     body: buildM10UpgradeBody("FLEX", clusterName, clusterInfo.provider, clusterInfo.region),
-                }));
+                } as unknown as Parameters<typeof this.apiClient.tenantUpgrade>[0]));
                 break;
             case "FREE":
                 ({ id: clusterId } = await this.upgradeFreeCluster(
@@ -257,10 +258,11 @@ export class UpgradeClusterTool extends AtlasToolBase {
         backingProviderName: string | undefined,
         regionName: string | undefined
     ): Promise<{ id?: string }> {
+        // upgradeTenantUpgrade: upgrades Free (M0/shared) clusters to Flex or Dedicated (M10+)
         switch (target) {
             case "FLEX":
-                return await this.apiClient.upgradeSharedTierCluster({
-                    groupId: projectId,
+                return await this.apiClient.upgradeTenantUpgrade({
+                    params: { path: { groupId: projectId } },
                     body: {
                         name: clusterName,
                         providerSettings: {
@@ -270,12 +272,12 @@ export class UpgradeClusterTool extends AtlasToolBase {
                             ...(regionName !== undefined && { regionName }),
                         },
                     },
-                });
+                } as unknown as Parameters<typeof this.apiClient.upgradeTenantUpgrade>[0]);
             case "M10":
-                return await this.apiClient.upgradeSharedTierCluster({
-                    groupId: projectId,
+                return await this.apiClient.upgradeTenantUpgrade({
+                    params: { path: { groupId: projectId } },
                     body: buildM10UpgradeBody("FREE", clusterName, backingProviderName, regionName),
-                });
+                } as unknown as Parameters<typeof this.apiClient.upgradeTenantUpgrade>[0]);
         }
     }
 
