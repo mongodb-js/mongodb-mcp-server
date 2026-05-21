@@ -117,6 +117,8 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     // (undocumented)
     getPrivateLinkConnection(options: FetchOptions<operations["getGroupStreamPrivateLinkConnection"]>): Promise<components["schemas"]["StreamsPrivateLinkConnection"]>;
     // (undocumented)
+    getSampleDatasetLoad(options: FetchOptions<operations["getGroupSampleDatasetLoad"]>): Promise<components["schemas"]["SampleDatasetStatus"]>;
+    // (undocumented)
     getStreamConnection(options: FetchOptions<operations["getGroupStreamConnection"]>): Promise<components["schemas"]["StreamsConnection"]>;
     // (undocumented)
     getStreamProcessor(options: FetchOptions<operations["getGroupStreamProcessor"]>): Promise<components["schemas"]["StreamsProcessorWithStats"]>;
@@ -160,6 +162,8 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     readonly logger: LoggerBase;
     // (undocumented)
     rejectVpcPeeringConnection(options: FetchOptions<operations["rejectGroupStreamVpcPeeringConnection"]>): Promise<void>;
+    // (undocumented)
+    requestSampleDatasetLoad(options: FetchOptions<operations["requestGroupSampleDatasetLoad"]>): Promise<components["schemas"]["SampleDatasetStatus"]>;
     // (undocumented)
     sendEvents(input?: {
         events: TelemetryEvent<TelemetryCommonProperties>[];

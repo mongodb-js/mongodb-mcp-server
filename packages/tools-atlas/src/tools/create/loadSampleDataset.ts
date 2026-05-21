@@ -1,8 +1,9 @@
-import type { OperationType, ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
+import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import { AtlasToolBase } from "../../atlasTool.js";
 import { AtlasArgs, CommonArgs } from "../../args.js";
 import type { SampleDatasetStatus } from "@mongodb-js/mcp-atlas-api-client";
 import { z } from "zod";
+import type { OperationType } from "@mongodb-js/mcp-types";
 
 export const LoadSampleDatasetArgs = {
     projectId: AtlasArgs.projectId().describe("Atlas project ID that owns the cluster"),
@@ -71,10 +72,10 @@ export class LoadSampleDatasetTool extends AtlasToolBase {
         }
 
         const structuredContent: LoadSampleDatasetOutput = {
-            jobId: status._id!,
-            clusterName: status.clusterName!,
-            state: status.state!,
-            createDate: status.createDate!,
+            jobId: status._id as string,
+            clusterName: status.clusterName as string,
+            state: status.state || "WORKING",
+            createDate: status.createDate as string,
             ...(status.completeDate ? { completeDate: status.completeDate } : {}),
             ...(status.errorMessage ? { errorMessage: status.errorMessage } : {}),
         };

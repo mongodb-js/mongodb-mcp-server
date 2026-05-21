@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ToolConstructorParams, IAtlasConfig, IAtlasSession } from "@mongodb-js/mcp-tools-atlas";
+import type { IAtlasConfig, IAtlasSession } from "@mongodb-js/mcp-tools-atlas";
 import { LoadSampleDatasetTool } from "@mongodb-js/mcp-tools-atlas";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
-import type { Elicitation, CompositeLogger } from "@mongodb-js/mcp-core";
+import type { Elicitation, CompositeLogger, ToolConstructorParams } from "@mongodb-js/mcp-core";
 import { Keychain } from "@mongodb-js/mcp-core";
 import type { ApiClient, SampleDatasetStatus } from "@mongodb-js/mcp-atlas-api-client";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
