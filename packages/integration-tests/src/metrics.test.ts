@@ -220,7 +220,6 @@ function createMetricsTestRunner(
 
     const runner = new StreamableHttpRunner<CliServer>({
         logger,
-        metrics: metrics,
         mcpHttpServer,
         monitoringServer,
     });

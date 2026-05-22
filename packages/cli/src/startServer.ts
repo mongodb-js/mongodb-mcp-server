@@ -68,7 +68,6 @@ export async function startServer(
 
         transportRunner = new StreamableHttpRunner({
             logger,
-            metrics,
             mcpHttpServer,
             monitoringServer,
         });

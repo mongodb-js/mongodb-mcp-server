@@ -216,7 +216,6 @@ function createStreamableHttpRunner(
     return Promise.resolve(
         new StreamableHttpRunner<CliServer>({
             logger,
-            metrics: metrics,
             mcpHttpServer,
         })
     );
@@ -845,7 +844,6 @@ describe("StreamableHttpRunner", () => {
                     });
 
                     const ownershipRunner = new StreamableHttpRunner<CliServer>({
-                        metrics: metrics,
                         mcpHttpServer,
                         logger,
                     });
@@ -1056,7 +1054,6 @@ describe("StreamableHttpRunner", () => {
             });
 
             runner = new StreamableHttpRunner<CliServer>({
-                metrics: metrics,
                 mcpHttpServer: customMcpHttpServer,
                 logger,
             });
@@ -1113,7 +1110,6 @@ describe("StreamableHttpRunner", () => {
             });
 
             runner = new StreamableHttpRunner<CliServer>({
-                metrics: metrics,
                 mcpHttpServer: rejectingMcpHttpServer,
                 logger,
             });

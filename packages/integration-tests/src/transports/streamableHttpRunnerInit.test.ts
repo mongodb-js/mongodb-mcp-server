@@ -96,7 +96,6 @@ function createStreamableHttpRunnerFromConfig(options: {
     });
 
     return new StreamableHttpRunner<SessionServer>({
-        metrics,
         mcpHttpServer,
         monitoringServer,
         logger,

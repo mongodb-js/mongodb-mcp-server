@@ -1,4 +1,4 @@
-import type { DefaultMetricDefinitions, IMetrics, ITransportRunner } from "@mongodb-js/mcp-types";
+import type { DefaultMetricDefinitions, ITransportRunner } from "@mongodb-js/mcp-types";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import { LogId } from "@mongodb-js/mcp-core";
 import type { MCPHttpServer } from "./mcpHttpServer.js";
@@ -8,12 +8,14 @@ import type { MonitoringServer } from "./monitoringServer.js";
 /**
  * Options for StreamableHttpRunner.
  */
-export type StreamableHttpRunnerOptions<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
+export type StreamableHttpRunnerOptions<
+    TServer extends SessionServer = SessionServer,
+    TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions,
+> = {
     /** Logger instance */
     logger: CompositeLogger;
-
-    /** Metrics instance */
-    metrics: IMetrics<TMetrics>;
+    mcpHttpServer: MCPHttpServer<TServer, TMetrics>;
+    monitoringServer?: MonitoringServer<TMetrics>;
 };
 
 /**
@@ -31,19 +33,9 @@ export class StreamableHttpRunner<
     protected readonly mcpHttpServer: MCPHttpServer<TServer, TMetrics>;
     protected readonly monitoringServer: MonitoringServer<TMetrics> | undefined;
     protected readonly logger: CompositeLogger;
-    protected readonly metrics: IMetrics<TMetrics>;
 
-    constructor({
-        logger,
-        metrics,
-        mcpHttpServer,
-        monitoringServer,
-    }: StreamableHttpRunnerOptions<TMetrics> & {
-        mcpHttpServer: MCPHttpServer<TServer, TMetrics>;
-        monitoringServer?: MonitoringServer<TMetrics>;
-    }) {
+    constructor({ logger, mcpHttpServer, monitoringServer }: StreamableHttpRunnerOptions<TServer, TMetrics>) {
         this.logger = logger;
-        this.metrics = metrics;
         this.mcpHttpServer = mcpHttpServer;
         this.monitoringServer = monitoringServer;
     }

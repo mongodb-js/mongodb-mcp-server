@@ -164,11 +164,9 @@ function createRunnerComponents({
     sessionStore: ISessionStore<StreamableHTTPServerTransport>;
 }): RunnerComponents {
     const logger = new CompositeLogger({ loggers: [] });
-    const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
 
     const runner = new StreamableHttpRunner<CliServer>({
         logger,
-        metrics,
         mcpHttpServer,
     });
 

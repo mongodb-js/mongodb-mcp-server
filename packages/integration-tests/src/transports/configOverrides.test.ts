@@ -181,7 +181,6 @@ function createConfigOverrideRunner(baseConfig: UserConfig): Promise<{
 
     const runner = new StreamableHttpRunner<CliServer>({
         logger,
-        metrics: metrics,
         mcpHttpServer,
     });
 
