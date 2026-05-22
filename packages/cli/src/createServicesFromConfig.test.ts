@@ -20,6 +20,10 @@ vi.mock("./createTelemetryFromConfig.js", () => ({
     createTelemetryFromConfig: vi.fn().mockReturnValue({}),
 }));
 
+vi.mock("./createMonitoringServerFromConfig.js", () => ({
+    createMonitoringServerFromConfig: vi.fn().mockReturnValue(undefined),
+}));
+
 vi.mock("@mongodb-js/mcp-tools-mongodb", async (importOriginal) => {
     const actual: typeof McpToolsMongodb = await importOriginal();
     return {
@@ -56,13 +60,14 @@ vi.mock("./cliServer.js", () => ({
     CliServer: class MockCliServer {},
 }));
 
-import { createServicesFromUserConfig } from "./createServicesFromUserConfig.js";
+import { createServicesFromConfig } from "./createServicesFromConfig.js";
 import { createLoggerFromConfig } from "./createLoggerFromConfig.js";
 import { createExportsManagerFromConfig } from "./createExportsManagerFromConfig.js";
 import { createApiClientFromConfig } from "./createApiClientFromConfig.js";
 import { createTelemetryFromConfig } from "./createTelemetryFromConfig.js";
+import { createMonitoringServerFromConfig } from "./createMonitoringServerFromConfig.js";
 
-describe("createServicesFromUserConfig", () => {
+describe("createServicesFromConfig", () => {
     const serverMetadata = {
         mcpServerName: "MongoDB MCP Server",
         version: "1.2.3-test",
@@ -78,7 +83,7 @@ describe("createServicesFromUserConfig", () => {
             loggers: ["stderr"],
         });
 
-        await createServicesFromUserConfig({
+        await createServicesFromConfig({
             config,
             serverMetadata,
             tools: [],
@@ -89,5 +94,6 @@ describe("createServicesFromUserConfig", () => {
         expect(createExportsManagerFromConfig).toHaveBeenCalledWith(expect.objectContaining({ config }));
         expect(createApiClientFromConfig).toHaveBeenCalledWith(expect.objectContaining({ config, serverMetadata }));
         expect(createTelemetryFromConfig).toHaveBeenCalledWith(expect.objectContaining({ config, serverMetadata }));
+        expect(createMonitoringServerFromConfig).toHaveBeenCalledWith(expect.objectContaining({ config }));
     });
 });

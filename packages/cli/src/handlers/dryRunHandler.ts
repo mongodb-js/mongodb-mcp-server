@@ -1,6 +1,6 @@
 import type { CliHandler, CliHandlerContext } from "../cliHandler.js";
 import { DryRunModeRunner } from "../transports/dryModeRunner.js";
-import { createServicesFromUserConfig } from "../createServicesFromUserConfig.js";
+import { createServicesFromConfig } from "../createServicesFromConfig.js";
 import type { ToolRegistry, ResourceRegistry } from "../cliServer.js";
 
 export type DryRunHandlerOptions = {
@@ -38,7 +38,7 @@ export class DryRunHandler implements CliHandler {
 
         try {
             // Create a minimal server just for listing tools
-            const { server } = await createServicesFromUserConfig({
+            const { server } = await createServicesFromConfig({
                 config,
                 serverMetadata,
                 tools: this.tools,

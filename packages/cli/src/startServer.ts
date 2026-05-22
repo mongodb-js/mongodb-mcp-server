@@ -1,19 +1,31 @@
 import { StdioRunner, SessionStore, LogId } from "@mongodb-js/mcp-core";
-import { StreamableHttpRunner, MonitoringServer } from "@mongodb-js/mcp-http-runners";
+import { StreamableHttpRunner } from "@mongodb-js/mcp-http-runners";
+import type { MonitoringServer } from "@mongodb-js/mcp-http-runners";
 import type { SessionServer } from "@mongodb-js/mcp-types";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { UserConfig } from "./config/userConfig.js";
+import type { OnExit } from "./types.js";
 import { SharedSessionMCPHttpServer } from "./cliServer/sharedSessionMCPHttpServer.js";
 
-export async function startServer(
-    server: SessionServer,
-    config: UserConfig,
-    logger: CompositeLogger,
-    metrics: IMetrics<DefaultMetricDefinitions>,
-    onExit: (errorCode: number) => void
-): Promise<void> {
+export type StartServerOptions = {
+    server: SessionServer;
+    config: UserConfig;
+    logger: CompositeLogger;
+    metrics: IMetrics<DefaultMetricDefinitions>;
+    monitoringServer?: MonitoringServer;
+    onExit: OnExit;
+};
+
+export async function startServer({
+    server,
+    config,
+    logger,
+    metrics,
+    monitoringServer,
+    onExit,
+}: StartServerOptions): Promise<void> {
     let transportRunner: StdioRunner | StreamableHttpRunner;
 
     if (config.transport === "stdio") {
@@ -24,8 +36,8 @@ export async function startServer(
     } else {
         const sessionStore = new SessionStore<StreamableHTTPServerTransport>({
             options: {
-                idleTimeoutMS: 3600000,
-                notificationTimeoutMS: 3000000,
+                idleTimeoutMS: config.idleTimeoutMs,
+                notificationTimeoutMS: config.notificationTimeoutMs,
             },
             logger,
             metrics,
@@ -42,29 +54,14 @@ export async function startServer(
                 },
                 session: {
                     externallyManagedSessions: config.externallyManagedSessions,
-                    idleTimeoutMs: 3600000,
-                    notificationTimeoutMs: 3000000,
+                    idleTimeoutMs: config.idleTimeoutMs,
+                    notificationTimeoutMs: config.notificationTimeoutMs,
                 },
             },
             logger,
             metrics,
             sessionStore,
         });
-
-        let monitoringServer: MonitoringServer | undefined;
-        if (config.monitoringServerHost && config.monitoringServerPort) {
-            monitoringServer = new MonitoringServer({
-                options: {
-                    http: {
-                        host: config.monitoringServerHost,
-                        port: config.monitoringServerPort,
-                    },
-                    features: config.monitoringServerFeatures,
-                },
-                logger,
-                metrics,
-            });
-        }
 
         transportRunner = new StreamableHttpRunner({
             logger,

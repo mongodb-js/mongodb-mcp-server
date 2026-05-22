@@ -8,12 +8,12 @@ Migrate from the v1 **single-package** API (`mongodb-mcp-server` on `main`) to t
 
 The `mongodb-mcp-server` npm package is the **shipped CLI binary** (`npx mongodb-mcp-server`, MCPB bundle). **Do not** add it as a library dependency for embedding or customization.
 
-| Need                                               | Use instead                                                                                                                                       |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Custom branded CLI (tools, resources, extra flags) | [`@mongodb-js/mcp-cli`](#simple-cli-customization-runmcpcli) — `runMcpCli`                                                                        |
-| Lower-level server / HTTP / per-request control    | `@mongodb-js/mcp-cli` (`CliServer`, `createServicesFromUserConfig`, `startServer`) plus `@mongodb-js/mcp-http-runners`, `@mongodb-js/mcp-core`, … |
-| Tool classes only                                  | `@mongodb-js/mcp-tools-mongodb`, `@mongodb-js/mcp-tools-atlas`, …                                                                                 |
-| Browser build                                      | Scoped packages (see [web-oriented imports](#scoped-packages)); not `mongodb-mcp-server/web` as a long-term library entry                         |
+| Need                                               | Use instead                                                                                                                                   |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Custom branded CLI (tools, resources, extra flags) | [`@mongodb-js/mcp-cli`](#simple-cli-customization-runmcpcli) — `runMcpCli`                                                                    |
+| Lower-level server / HTTP / per-request control    | `@mongodb-js/mcp-cli` (`CliServer`, `createServicesFromConfig`, `startServer`) plus `@mongodb-js/mcp-http-runners`, `@mongodb-js/mcp-core`, … |
+| Tool classes only                                  | `@mongodb-js/mcp-tools-mongodb`, `@mongodb-js/mcp-tools-atlas`, …                                                                             |
+| Browser build                                      | Scoped packages (see [web-oriented imports](#scoped-packages)); not `mongodb-mcp-server/web` as a long-term library entry                     |
 
 The root package may still re-export symbols for transitional API reports; new integrations should depend on **`@mongodb-js/mcp-*`** packages directly.
 
@@ -57,9 +57,75 @@ await runMcpCli({
 });
 ```
 
-`runMcpCli` parses argv/env (`parseUserConfig`), runs optional `CliHandler`s (help, version, setup, dry-run), builds the server (`createServicesFromUserConfig`), and starts stdio or HTTP transport (`startServer`). You only supply `serverMetadata`, `tools`, `resources`, and optional `handlers`.
+`runMcpCli` parses argv/env (`parseUserConfig`), runs optional `CliHandler`s (help, version, setup, dry-run), builds the server (`createServicesFromConfig`), and starts stdio or HTTP transport (`startServer`). You only supply `serverMetadata`, `tools`, `resources`, and optional `handlers`.
 
-Use **`createServicesFromUserConfig` + `startServer`** only when you need to customize wiring between parse and listen. Use **`CliServer` + runners** directly only for advanced hosts (e.g. per-request HTTP servers).
+Use **`createServicesFromConfig` + `startServer`** only when you need to customize wiring between parse and listen. Use **`CliServer` + runners** directly only for advanced hosts (e.g. per-request HTTP servers).
+
+## Composing infrastructure from config
+
+`@mongodb-js/mcp-cli` exposes small **`…FromConfig`** factories: each reads `UserConfig` and builds one dependency. Use them when you want official defaults but need to swap or reorder pieces (replacing v1 `defaultCreate*` helpers).
+
+| Factory                            | `UserConfig` fields used                                                   | Package               |
+| ---------------------------------- | -------------------------------------------------------------------------- | --------------------- |
+| `createLoggerFromConfig`           | `loggers`, `logPath`                                                       | `@mongodb-js/mcp-cli` |
+| `createExportsManagerFromConfig`   | `exportsPath`, `exportTimeoutMs`, `exportCleanupIntervalMs`                | `@mongodb-js/mcp-cli` |
+| `createApiClientFromConfig`        | `apiBaseUrl`, `apiClientId`, `apiClientSecret`                             | `@mongodb-js/mcp-cli` |
+| `createTelemetryFromConfig`        | `telemetry`                                                                | `@mongodb-js/mcp-cli` |
+| `createMonitoringServerFromConfig` | `monitoringServerHost`, `monitoringServerPort`, `monitoringServerFeatures` | `@mongodb-js/mcp-cli` |
+
+**Full stack (same wiring as `runMcpCli` internally):**
+
+```typescript
+import {
+  parseUserConfig,
+  createServicesFromConfig,
+  startServer,
+} from "@mongodb-js/mcp-cli";
+
+const { parsed: config } = parseUserConfig({ args: process.argv.slice(2) });
+
+const { server, logger, metrics, monitoringServer } =
+  await createServicesFromConfig({
+    config,
+    serverMetadata,
+    tools,
+    resources,
+  });
+
+await startServer({
+  server,
+  config,
+  logger,
+  metrics,
+  monitoringServer,
+  onExit,
+});
+```
+
+`createServicesFromConfig` returns `{ server, config, logger, metrics, monitoringServer }`. `monitoringServer` is `undefined` unless both `monitoringServerHost` and `monitoringServerPort` are set.
+
+**Pick individual factories** when you only replace part of the stack:
+
+```typescript
+import {
+  createLoggerFromConfig,
+  createApiClientFromConfig,
+} from "@mongodb-js/mcp-cli";
+import { Keychain } from "@mongodb-js/mcp-core";
+
+const keychain = Keychain.root;
+const logger = await createLoggerFromConfig({ config, keychain });
+const apiClient = createApiClientFromConfig({ config, serverMetadata, logger });
+```
+
+| v1 helper                                   | v2 replacement                                                    |
+| ------------------------------------------- | ----------------------------------------------------------------- |
+| `defaultCreateApiClient`                    | `createApiClientFromConfig` or construct `ApiClient` directly     |
+| `createDefaultMonitoringServer`             | `createMonitoringServerFromConfig` or `new MonitoringServer(...)` |
+| Ad-hoc logger setup from config             | `createLoggerFromConfig`                                          |
+| `createServicesFromUserConfig` (older name) | **`createServicesFromConfig`**                                    |
+
+Metrics are still created inline in `createServicesFromConfig` (`PrometheusMetrics` + `createDefaultMetrics()`); there is no `createMetricsFromConfig` because `UserConfig` has no metrics fields today.
 
 ## Package selection by use case
 
@@ -76,8 +142,8 @@ Use **`createServicesFromUserConfig` + `startServer`** only when you need to cus
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | Host MCP over stdio         | `@mongodb-js/mcp-core`                                                                                                                                                                                                                         | `StdioRunner`, `SessionStore`, `InMemoryTransport`, `Keychain`, `Elicitation`, `NoopTelemetry` |
 | Host MCP over HTTP          | `@mongodb-js/mcp-http-runners`, `@mongodb-js/mcp-core`                                                                                                                                                                                         | `StreamableHttpRunner`, `MCPHttpServer`, `MonitoringServer`                                    |
-| Custom CLI (recommended)    | `@mongodb-js/mcp-cli` + tool packages                                                                                                                                                                                                          | `runMcpCli`, `Resources`, `CliHandler`, `HelpHandler`, …                                       |
-| Embed server (advanced)     | `@mongodb-js/mcp-cli`, `@mongodb-js/mcp-core`, `@mongodb-js/mcp-http-runners`, `@mongodb-js/mcp-metrics`, `@mongodb-js/mcp-logging`, `@mongodb-js/mcp-atlas-telemetry`, `@mongodb-js/mcp-atlas-api-client`, `@mongodb-js/mcp-tools-mongodb`, … | `CliServer`, `CliSession`, `createServicesFromUserConfig`, `startServer`                       |
+| Custom CLI (recommended)    | `@mongodb-js/mcp-cli` + tool packages                                                                                                                                                                                                          | `runMcpCli`, `createServicesFromConfig`, `create*FromConfig`, `Resources`, …                   |
+| Embed server (advanced)     | `@mongodb-js/mcp-cli`, `@mongodb-js/mcp-core`, `@mongodb-js/mcp-http-runners`, `@mongodb-js/mcp-metrics`, `@mongodb-js/mcp-logging`, `@mongodb-js/mcp-atlas-telemetry`, `@mongodb-js/mcp-atlas-api-client`, `@mongodb-js/mcp-tools-mongodb`, … | `CliServer`, `CliSession`, `createServicesFromConfig`, `startServer`, `create*FromConfig`      |
 | Config / CLI parsing only   | `@mongodb-js/mcp-cli`                                                                                                                                                                                                                          | `UserConfig`, `UserConfigSchema`, `parseUserConfig`, `applyConfigOverrides`, `configRegistry`  |
 | Custom tools (any category) | `@mongodb-js/mcp-core`, `@mongodb-js/mcp-types`                                                                                                                                                                                                | `ToolBase`, `ToolClass`, `OperationType`, `ToolCategory`                                       |
 | MongoDB tools + connections | `@mongodb-js/mcp-tools-mongodb`                                                                                                                                                                                                                | `FindTool`, `MongoDBToolBase`, `MCPConnectionManager`, `ErrorCodes`, `MongoDBError`            |
@@ -117,30 +183,31 @@ npm install @mongodb-js/mcp-cli @mongodb-js/mcp-tools-mongodb @mongodb-js/mcp-to
 
 From API report diff (`origin/main` → current). Symbols **removed** from `mongodb-mcp-server` public API:
 
-| v1 symbol                                                                                                                    | v2 replacement / notes                                                                      |
-| ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `Server`                                                                                                                     | `CliServer` from `@mongodb-js/mcp-cli`                                                      |
-| `Session`                                                                                                                    | `CliSession` / `McpSession` from `@mongodb-js/mcp-cli`                                      |
-| `import { … } from "mongodb-mcp-server"` (library)                                                                           | Use `@mongodb-js/mcp-cli` or specific `@mongodb-js/mcp-*` package                           |
-| `ServerOptions`                                                                                                              | `CliServerOptions` (no `userConfig`; use `session.config`)                                  |
-| `Telemetry`                                                                                                                  | `AtlasTelemetry` from `@mongodb-js/mcp-atlas-telemetry`                                     |
-| `Telemetry.create(session, userConfig, deviceId)`                                                                            | `AtlasTelemetry.create({ logger, deviceId, apiClient, keychain, enabled, serverMetadata })` |
-| `BaseEvent`                                                                                                                  | `TelemetryBaseEvent`                                                                        |
-| `CommonProperties`                                                                                                           | `TelemetryCommonProperties`                                                                 |
-| `RequestContext` (config overrides)                                                                                          | `TransportRequestContext` from `@mongodb-js/mcp-types`                                      |
-| `NullLogger`                                                                                                                 | `NoopLogger` from `@mongodb-js/mcp-core`                                                    |
-| `TransportRunnerBase`                                                                                                        | Removed; use `ITransportRunner`                                                             |
-| `TransportRunnerConfig`                                                                                                      | Removed; pass options to runners / servers directly                                         |
-| `StreamableHttpTransportRunnerConfig`                                                                                        | `StreamableHttpRunnerOptions` + explicit `MCPHttpServer` / `SessionStore`                   |
-| `CustomizableServerOptions` / `CustomizableSessionOptions`                                                                   | Removed                                                                                     |
-| `CreateSessionConfigFn`                                                                                                      | Extend `MCPHttpServer` and override `createServerForRequest()`                              |
-| `createDefaultMcpHttpServer` / `createDefaultMonitoringServer` / `createDefaultSessionStore`                                 | `new MCPHttpServer(...)`, `new MonitoringServer(...)`, `new SessionStore(...)`              |
-| `MCPHttpServerConstructorArgs`                                                                                               | `MCPHttpServerOptions` with nested `options: { http, session }`                             |
-| `MonitoringServerConstructorArgs`                                                                                            | `MonitoringServerOptions` with nested `options: { http, features }`                         |
-| `parseArgsWithCliOptions`                                                                                                    | `parseUserConfig`                                                                           |
-| `defaultCreateApiClient` / `defaultCreateAtlasLocalClient` / `defaultCreateConnectionManager` / `createMCPConnectionManager` | Wire dependencies explicitly (see `createServicesFromUserConfig`)                           |
-| `ApiClientFactoryFn`                                                                                                         | Construct `ApiClient` directly                                                              |
-| `UIRegistryOptions` (exported type)                                                                                          | Options still accepted; type may be internal — use inline object                            |
+| v1 symbol                                                                                                                    | v2 replacement / notes                                                                                                                            |
+| ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Server`                                                                                                                     | `CliServer` from `@mongodb-js/mcp-cli`                                                                                                            |
+| `Session`                                                                                                                    | `CliSession` / `McpSession` from `@mongodb-js/mcp-cli`                                                                                            |
+| `import { … } from "mongodb-mcp-server"` (library)                                                                           | Use `@mongodb-js/mcp-cli` or specific `@mongodb-js/mcp-*` package                                                                                 |
+| `ServerOptions`                                                                                                              | `CliServerOptions` (no `userConfig`; use `session.config`)                                                                                        |
+| `Telemetry`                                                                                                                  | `AtlasTelemetry` from `@mongodb-js/mcp-atlas-telemetry`                                                                                           |
+| `Telemetry.create(session, userConfig, deviceId)`                                                                            | `AtlasTelemetry.create({ logger, deviceId, apiClient, keychain, enabled, serverMetadata })`                                                       |
+| `BaseEvent`                                                                                                                  | `TelemetryBaseEvent`                                                                                                                              |
+| `CommonProperties`                                                                                                           | `TelemetryCommonProperties`                                                                                                                       |
+| `RequestContext` (config overrides)                                                                                          | `TransportRequestContext` from `@mongodb-js/mcp-types`                                                                                            |
+| `NullLogger`                                                                                                                 | `NoopLogger` from `@mongodb-js/mcp-core`                                                                                                          |
+| `TransportRunnerBase`                                                                                                        | Removed; use `ITransportRunner`                                                                                                                   |
+| `TransportRunnerConfig`                                                                                                      | Removed; pass options to runners / servers directly                                                                                               |
+| `StreamableHttpTransportRunnerConfig`                                                                                        | `StreamableHttpRunnerOptions` + explicit `MCPHttpServer` / `SessionStore`                                                                         |
+| `CustomizableServerOptions` / `CustomizableSessionOptions`                                                                   | Removed                                                                                                                                           |
+| `CreateSessionConfigFn`                                                                                                      | Extend `MCPHttpServer` and override `createServerForRequest()`                                                                                    |
+| `createDefaultMcpHttpServer` / `createDefaultMonitoringServer` / `createDefaultSessionStore`                                 | `new MCPHttpServer(...)`, `new MonitoringServer(...)`, `new SessionStore(...)`                                                                    |
+| `MCPHttpServerConstructorArgs`                                                                                               | `MCPHttpServerOptions` with nested `options: { http, session }`                                                                                   |
+| `MonitoringServerConstructorArgs`                                                                                            | `MonitoringServerOptions` with nested `options: { http, features }`                                                                               |
+| `parseArgsWithCliOptions`                                                                                                    | `parseUserConfig`                                                                                                                                 |
+| `defaultCreateApiClient` / `defaultCreateAtlasLocalClient` / `defaultCreateConnectionManager` / `createMCPConnectionManager` | `create*FromConfig` factories or wire dependencies explicitly (see [Composing infrastructure from config](#composing-infrastructure-from-config)) |
+| `createServicesFromUserConfig`                                                                                               | **`createServicesFromConfig`**                                                                                                                    |
+| `ApiClientFactoryFn`                                                                                                         | Construct `ApiClient` directly                                                                                                                    |
+| `UIRegistryOptions` (exported type)                                                                                          | Options still accepted; type may be internal — use inline object                                                                                  |
 
 Symbols **added** on the main entry (install or import as listed):
 
@@ -278,13 +345,13 @@ Note: `SessionStore` uses **`idleTimeoutMS`** / **`notificationTimeoutMS`** (cap
 
 ### UserConfig field mapping (HTTP)
 
-| v1 `UserConfig` field                                                          | v2 destination                                                        |
-| ------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
-| `transport`                                                                    | Choose `StdioRunner` vs `StreamableHttpRunner`                        |
-| `httpHost` / `httpPort` / `httpBodyLimit` / `httpHeaders` / `httpResponseType` | `MCPHttpServerOptions.options.http.*`                                 |
-| `idleTimeoutMs` / `notificationTimeoutMs`                                      | `SessionStore.options.*` and `MCPHttpServerOptions.options.session.*` |
-| `externallyManagedSessions`                                                    | `MCPHttpServerOptions.options.session.externallyManagedSessions`      |
-| `monitoringServerHost` / `monitoringServerPort` / `monitoringServerFeatures`   | `MonitoringServerOptions.options.http` / `.features`                  |
+| v1 `UserConfig` field                                                          | v2 destination                                                                                                          |
+| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| `transport`                                                                    | Choose `StdioRunner` vs `StreamableHttpRunner`                                                                          |
+| `httpHost` / `httpPort` / `httpBodyLimit` / `httpHeaders` / `httpResponseType` | `MCPHttpServerOptions.options.http.*`                                                                                   |
+| `idleTimeoutMs` / `notificationTimeoutMs`                                      | `SessionStore.options.*` and `MCPHttpServerOptions.options.session.*`                                                   |
+| `externallyManagedSessions`                                                    | `MCPHttpServerOptions.options.session.externallyManagedSessions`                                                        |
+| `monitoringServerHost` / `monitoringServerPort` / `monitoringServerFeatures`   | `createMonitoringServerFromConfig({ config, logger, metrics })` or `MonitoringServerOptions.options.http` / `.features` |
 
 ---
 
@@ -377,14 +444,24 @@ Import from **`@mongodb-js/mcp-tools-mongodb`**.
 
 ## ApiClient
 
+Package: **`@mongodb-js/mcp-atlas-api-client`**. Pass **`serverMetadata`** at the top level (not inside `options`). The client derives `User-Agent` as `${mcpServerName}/${version}` via `userAgentFromServerMetadata`.
+
 ```diff
 - new ApiClient(options, logger, authProvider);
+- new ApiClient({ options: { baseUrl, userAgent }, logger, authProvider });
 + new ApiClient({
-+   options: { baseUrl, userAgent },
++   options: { baseUrl },
++   serverMetadata,
 +   logger,
-+   authProvider,
++   authProvider: new ClientCredentialsAuthProvider({
++     options: { baseUrl, clientId, clientSecret },
++     serverMetadata,
++     logger,
++   }),
 + });
 ```
+
+Or use **`createApiClientFromConfig({ config, serverMetadata, logger })`** from `@mongodb-js/mcp-cli` when wiring from parsed `UserConfig`.
 
 ---
 
@@ -454,4 +531,4 @@ Helpers: `getConfigMeta`, `nameToConfigKey`, `onlyStricterLogLevelOverride` from
 5. Refactor transport setup to pre-built server + `MCPHttpServer.createServerForRequest`.
 6. Run `pnpm run check` (or your consumer test suite).
 
-Reference implementation: [`packages/cli/src/createServicesFromUserConfig.ts`](packages/cli/src/createServicesFromUserConfig.ts), [`packages/cli/src/startServer.ts`](packages/cli/src/startServer.ts), [`packages/integration-tests/src/integrationHelpers.ts`](packages/integration-tests/src/integrationHelpers.ts).
+Reference implementation: [`packages/cli/src/createServicesFromConfig.ts`](packages/cli/src/createServicesFromConfig.ts), [`packages/cli/src/startServer.ts`](packages/cli/src/startServer.ts), [`packages/integration-tests/src/integrationHelpers.ts`](packages/integration-tests/src/integrationHelpers.ts).

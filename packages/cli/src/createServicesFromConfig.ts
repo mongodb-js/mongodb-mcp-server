@@ -1,4 +1,5 @@
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
+import type { MonitoringServer } from "@mongodb-js/mcp-http-runners";
 import type { IMetrics } from "@mongodb-js/mcp-types";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import { Elicitation, Keychain, McpServer } from "@mongodb-js/mcp-core";
@@ -13,8 +14,9 @@ import { createLoggerFromConfig } from "./createLoggerFromConfig.js";
 import { createExportsManagerFromConfig } from "./createExportsManagerFromConfig.js";
 import { createApiClientFromConfig } from "./createApiClientFromConfig.js";
 import { createTelemetryFromConfig } from "./createTelemetryFromConfig.js";
+import { createMonitoringServerFromConfig } from "./createMonitoringServerFromConfig.js";
 
-export type CreateServicesOptions = {
+export type CreateServicesFromConfigOptions = {
     config: UserConfig;
     serverMetadata: ServerMetadata;
     tools: ToolRegistry;
@@ -24,20 +26,22 @@ export type CreateServicesOptions = {
 /**
  * Creates the shared infrastructure with common defaults.
  */
-export async function createServicesFromUserConfig({
+export async function createServicesFromConfig({
     config,
     serverMetadata,
     tools,
     resources,
-}: CreateServicesOptions): Promise<{
+}: CreateServicesFromConfigOptions): Promise<{
     server: CliServer;
     config: UserConfig;
     logger: CompositeLogger;
     metrics: IMetrics;
+    monitoringServer: MonitoringServer | undefined;
 }> {
     const keychain = Keychain.root;
     const logger = await createLoggerFromConfig({ config, keychain });
     const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
+    const monitoringServer = createMonitoringServerFromConfig({ config, logger, metrics });
 
     const exportsManager = createExportsManagerFromConfig({ config, logger });
     const deviceId = DeviceId.create(logger);
@@ -91,5 +95,5 @@ export async function createServicesFromUserConfig({
         serverMetadata,
     });
 
-    return { server, config, logger, metrics };
+    return { server, config, logger, metrics, monitoringServer };
 }

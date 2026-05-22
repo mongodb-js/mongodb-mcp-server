@@ -1,5 +1,5 @@
 import { parseUserConfig } from "./config/parseUserConfig.js";
-import { createServicesFromUserConfig } from "./createServicesFromUserConfig.js";
+import { createServicesFromConfig } from "./createServicesFromConfig.js";
 import { startServer } from "./startServer.js";
 import type { CliHandler } from "./cliHandler.js";
 import type { ServerMetadata } from "@mongodb-js/mcp-types";
@@ -82,7 +82,7 @@ export async function runMcpCli({
     }
 
     // Create server and infrastructure
-    const { server, logger, metrics } = await createServicesFromUserConfig({
+    const { server, logger, metrics, monitoringServer } = await createServicesFromConfig({
         config,
         serverMetadata,
         tools,
@@ -90,5 +90,5 @@ export async function runMcpCli({
     });
 
     // Start the server (stdio or HTTP based on config)
-    await startServer(server, config, logger, metrics, onExit);
+    await startServer({ server, config, logger, metrics, monitoringServer, onExit });
 }

@@ -3,8 +3,9 @@ name: mongodb-mcp-v2-migration
 description: >-
   Migrates consumer code from mongodb-mcp-server v1 to v2 scoped packages.
   Do not use mongodb-mcp-server as a library; use runMcpCli from
-  @mongodb-js/mcp-cli for simple CLIs, or other @mongodb-js/mcp-* packages.
-  Covers Server→CliServer, transport, telemetry, and tool imports.
+  @mongodb-js/mcp-cli for simple CLIs, or create*FromConfig factories /
+  createServicesFromConfig for custom wiring. Covers Server→CliServer,
+  transport, telemetry, ApiClient serverMetadata, and tool imports.
 ---
 
 # MongoDB MCP v1 → v2 migration
@@ -65,7 +66,7 @@ await runMcpCli({
 | `resources`        | e.g. `Resources` from `@mongodb-js/mcp-cli`                                                |
 | `handlers?`        | `CliHandler[]` — return `true` from `handle()` to skip server start (help, setup, dry-run) |
 
-Escalation: `createServicesFromUserConfig` + `startServer` (same package) → `CliServer` + `@mongodb-js/mcp-http-runners` for per-request HTTP.
+Escalation: `createServicesFromConfig` + `startServer` (same package) → `CliServer` + `@mongodb-js/mcp-http-runners` for per-request HTTP.
 
 ## npm installs by use case
 
@@ -338,7 +339,7 @@ Also exported: `getConfigMeta`, `nameToConfigKey`, `onlyStricterLogLevelOverride
 
 ## In-repo wiring examples
 
-`packages/cli/src/createServicesFromUserConfig.ts` — `CliSession`, `MCPConnectionManager`, `AtlasTelemetry`, `CliServer`.
+`packages/cli/src/createServicesFromConfig.ts` — `CliSession`, `MCPConnectionManager`, `AtlasTelemetry`, `CliServer`.
 
 `packages/cli/src/startServer.ts` — `StdioRunner({ logger, server })`, `SessionStore`, `MCPHttpServer`, `StreamableHttpRunner`.
 
