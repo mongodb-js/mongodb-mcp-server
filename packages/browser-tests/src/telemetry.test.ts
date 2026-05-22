@@ -55,14 +55,16 @@ describe("Telemetry in browser environment", () => {
         vi.clearAllMocks();
     });
 
+    const browserTestServerMetadata = { mcpServerName: "browser-test-agent", version: "1.0.0" };
+
     it("can construct an ApiClient without throwing due to node-fetch / createFetch", () => {
         expect(
             () =>
                 new ApiClient({
                     options: {
                         baseUrl: API_BASE,
-                        userAgent: "browser-test-agent",
                     },
+                    serverMetadata: browserTestServerMetadata,
                     logger: new CompositeLogger(),
                     authProvider: undefined,
                 })
@@ -73,8 +75,8 @@ describe("Telemetry in browser environment", () => {
         const apiClient = new ApiClient({
             options: {
                 baseUrl: API_BASE,
-                userAgent: "browser-test-agent",
             },
+            serverMetadata: browserTestServerMetadata,
             logger: new CompositeLogger(),
             authProvider: undefined,
         });

@@ -17,7 +17,7 @@ describe("ApiClient integration test", () => {
             process.env.HTTP_PROXY = `https://localhost:${proxyTestSetup.httpsProxyPort}/`;
             apiClient = createTestApiClient({
                 baseUrl: `https://localhost:${proxyTestSetup.httpsServerPort}/`,
-                userAgent: "test-user-agent",
+                serverMetadata: { mcpServerName: "test-user-agent", version: "1.0.0" },
                 logger: new NoopLogger(),
                 clientId: "test-client-id",
                 clientSecret: "test-client-secret",

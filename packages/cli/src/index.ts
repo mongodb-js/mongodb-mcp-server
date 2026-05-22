@@ -7,6 +7,13 @@ export { startServer } from "./startServer.js";
 
 // Server creation helper
 export { createServicesFromUserConfig, type CreateServicesOptions } from "./createServicesFromUserConfig.js";
+export { createLoggerFromConfig, type CreateLoggerFromConfigOptions } from "./createLoggerFromConfig.js";
+export {
+    createExportsManagerFromConfig,
+    type CreateExportsManagerFromConfigOptions,
+} from "./createExportsManagerFromConfig.js";
+export { createApiClientFromConfig, type CreateApiClientFromConfigOptions } from "./createApiClientFromConfig.js";
+export { createTelemetryFromConfig, type CreateTelemetryFromConfigOptions } from "./createTelemetryFromConfig.js";
 
 export type { CliHandler, CliHandlerContext } from "./cliHandler.js";
 

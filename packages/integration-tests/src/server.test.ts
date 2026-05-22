@@ -203,7 +203,7 @@ describe("CliServer integration test", () => {
             atlasLocalClient: await createAtlasLocalClient({ logger }),
             apiClient: createTestApiClient({
                 baseUrl: config.apiBaseUrl,
-                userAgent: "test",
+                serverMetadata: { mcpServerName: "test", version: "1" },
                 logger,
                 clientId: config.apiClientId,
                 clientSecret: config.apiClientSecret,

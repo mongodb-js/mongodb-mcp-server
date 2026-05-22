@@ -197,7 +197,7 @@ describe("mcpUI feature with custom UIs", () => {
             atlasLocalClient: await createAtlasLocalClient({ logger }),
             apiClient: createTestApiClient({
                 baseUrl: userConfig.apiBaseUrl,
-                userAgent: "test",
+                serverMetadata: { mcpServerName: "test", version: "1" },
                 logger,
                 clientId: userConfig.apiClientId,
                 clientSecret: userConfig.apiClientSecret,

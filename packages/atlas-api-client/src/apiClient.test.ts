@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiClient, ClientCredentialsAuthProvider } from "@mongodb-js/mcp-atlas-api-client";
 import type { TelemetryEvent } from "@mongodb-js/mcp-types";
+import { NoopLogger } from "@mongodb-js/mcp-core";
+import { userAgentFromServerMetadata } from "./userAgentFromServerMetadata.js";
 
 /** Subset of atlas telemetry common properties used in ApiClient tests */
 type MockTelemetryCommonProperties = {
@@ -12,7 +14,9 @@ type MockTelemetryCommonProperties = {
     arch: string;
     os_type: string;
 };
-import { NoopLogger } from "@mongodb-js/mcp-core";
+
+const testServerMetadata = { mcpServerName: "test-user-agent", version: "1.0.0" };
+const TEST_USER_AGENT = userAgentFromServerMetadata(testServerMetadata);
 
 describe("ApiClient", () => {
     let apiClient: ApiClient;
@@ -41,16 +45,16 @@ describe("ApiClient", () => {
         apiClient = new ApiClient({
             options: {
                 baseUrl: "https://api.test.com",
-                userAgent: "test-user-agent",
             },
+            serverMetadata: testServerMetadata,
             logger: new NoopLogger(),
             authProvider: new ClientCredentialsAuthProvider({
                 options: {
                     baseUrl: "https://api.test.com",
-                    userAgent: "test-user-agent",
                     clientId: "test-client-id",
                     clientSecret: "test-client-secret",
                 },
+                serverMetadata: testServerMetadata,
                 logger: new NoopLogger(),
             }),
         });
@@ -75,7 +79,7 @@ describe("ApiClient", () => {
     });
 
     describe("User-Agent", () => {
-        it("should use custom userAgent when provided in options", async () => {
+        it("should derive userAgent from serverMetadata", async () => {
             const mockFetch = vi.spyOn(global, "fetch");
             mockFetch.mockResolvedValueOnce(new Response(null, { status: 200 }));
 
@@ -88,26 +92,26 @@ describe("ApiClient", () => {
             expect(url instanceof URL ? url.href : url).toBe("https://api.test.com/api/private/v1.0/telemetry/events");
             const headers = init?.headers as Record<string, string>;
             expect(headers).toBeDefined();
-            expect(headers["User-Agent"]).toBe("test-user-agent");
+            expect(headers["User-Agent"]).toBe(TEST_USER_AGENT);
             expect(init?.signal).toBeInstanceOf(AbortSignal);
         });
 
-        it("should use the provided userAgent in unauth requests", async () => {
-            const testVersion = "1.0.0-test";
-            const expectedUserAgent = `AtlasMCP/${testVersion} (${process.platform}; ${process.arch})`;
+        it("should use serverMetadata-derived userAgent in unauth requests", async () => {
+            const serverMetadata = { mcpServerName: "AtlasMCP", version: "1.0.0-test" };
+            const expectedUserAgent = userAgentFromServerMetadata(serverMetadata);
             const clientWithUserAgent = new ApiClient({
                 options: {
                     baseUrl: "https://api.test.com",
-                    userAgent: expectedUserAgent,
                 },
+                serverMetadata,
                 logger: new NoopLogger(),
                 authProvider: new ClientCredentialsAuthProvider({
                     options: {
                         baseUrl: "https://api.test.com",
-                        userAgent: expectedUserAgent,
                         clientId: "test-client-id",
                         clientSecret: "test-client-secret",
                     },
+                    serverMetadata,
                     logger: new NoopLogger(),
                 }),
             });
@@ -192,7 +196,7 @@ describe("ApiClient", () => {
                         "Content-Type": "application/json",
                         Authorization: "Bearer mockToken",
                         Accept: "application/json",
-                        "User-Agent": "test-user-agent",
+                        "User-Agent": TEST_USER_AGENT,
                     },
                     body: JSON.stringify(mockEvents),
                 })
@@ -216,7 +220,7 @@ describe("ApiClient", () => {
                     headers: {
                         "Content-Type": "application/json",
                         Accept: "application/json",
-                        "User-Agent": "test-user-agent",
+                        "User-Agent": TEST_USER_AGENT,
                     },
                     body: JSON.stringify(mockEvents),
                 })
@@ -240,7 +244,7 @@ describe("ApiClient", () => {
                     headers: {
                         "Content-Type": "application/json",
                         Accept: "application/json",
-                        "User-Agent": "test-user-agent",
+                        "User-Agent": TEST_USER_AGENT,
                     },
                     body: JSON.stringify(mockEvents),
                 })
@@ -264,7 +268,7 @@ describe("ApiClient", () => {
                     headers: {
                         "Content-Type": "application/json",
                         Accept: "application/json",
-                        "User-Agent": "test-user-agent",
+                        "User-Agent": TEST_USER_AGENT,
                     },
                     body: JSON.stringify(mockEvents),
                 })
@@ -316,7 +320,7 @@ describe("ApiClient", () => {
                         "Content-Type": "application/vnd.atlas.2023-01-01+json",
                         Accept: "application/vnd.atlas.2023-01-01+json",
                         Authorization: "Bearer mockToken",
-                        "User-Agent": "test-user-agent",
+                        "User-Agent": TEST_USER_AGENT,
                     },
                     body: JSON.stringify(upgradeOptions.body),
                 })
@@ -373,7 +377,7 @@ describe("ApiClient", () => {
                         "Content-Type": "application/vnd.atlas.2025-03-12+json",
                         Accept: "application/vnd.atlas.2025-03-12+json",
                         Authorization: "Bearer mockToken",
-                        "User-Agent": "test-user-agent",
+                        "User-Agent": TEST_USER_AGENT,
                     },
                     body: JSON.stringify(upgradeOptions.body),
                 })

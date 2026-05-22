@@ -3,10 +3,11 @@ import type { ClientOptions, FetchOptions, Client, Middleware } from "openapi-fe
 import { ApiClientError } from "./apiClientError.js";
 import type { components, paths, operations } from "./openapi.js";
 import type { LoggerBase } from "@mongodb-js/mcp-core";
-import type { IApiClient, TelemetryCommonProperties, TelemetryEvent } from "@mongodb-js/mcp-types";
+import type { IApiClient, ServerMetadata, TelemetryCommonProperties, TelemetryEvent } from "@mongodb-js/mcp-types";
 import { createFetch } from "@mongodb-js/devtools-proxy-support";
 import { Request as NodeFetchRequest } from "node-fetch";
 import type { AuthProvider } from "./auth/authProvider.js";
+import { userAgentFromServerMetadata } from "./userAgentFromServerMetadata.js";
 
 const ATLAS_API_VERSION = "2025-03-12";
 const LEGACY_ATLAS_API_VERSION = "2023-01-01";
@@ -25,8 +26,8 @@ function isNodeRuntime(): boolean {
 export interface ApiClientOptions {
     options: {
         baseUrl: string;
-        userAgent: string;
     };
+    serverMetadata: ServerMetadata;
     logger: LoggerBase;
     authProvider: AuthProvider | undefined;
 }
@@ -48,7 +49,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     readonly logger: LoggerBase;
     readonly authProvider?: AuthProvider;
 
-    constructor({ logger, authProvider, options }: ApiClientOptions) {
+    constructor({ logger, authProvider, options, serverMetadata }: ApiClientOptions) {
         this.logger = logger;
         this.authProvider = authProvider;
         // In Node we use `createFetch` from devtools-proxy-support to pick up
@@ -71,7 +72,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
         }
         this.options = {
             baseUrl: options.baseUrl,
-            userAgent: options.userAgent,
+            userAgent: userAgentFromServerMetadata(serverMetadata),
         };
 
         this.client = createClient<paths>({

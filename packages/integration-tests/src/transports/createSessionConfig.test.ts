@@ -49,7 +49,7 @@ async function createTestServer(config: UserConfig): Promise<CliServer> {
 
     const apiClient = createTestApiClient({
         baseUrl: config.apiBaseUrl,
-        userAgent: `mongodb-mcp-server/${packageInfo.version}`,
+        serverMetadata: packageInfo,
         logger,
         clientId: "test-client-id",
         clientSecret: "test-client-secret",

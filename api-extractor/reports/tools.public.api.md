@@ -357,7 +357,7 @@ export const CollOperationArgs: {
 
 // @public (undocumented)
 export const CommonArgs: {
-    string: () => ZodString;
+    asciiOnlyString: () => ZodString;
     objectId: (fieldName: string) => z.ZodString;
 };
 
@@ -405,7 +405,7 @@ export class ConnectClusterTool extends AtlasToolBase {
     // (undocumented)
     protected resolveTelemetryMetadata(args: ToolArgs<typeof ConnectClusterTool.argsShape>, input: {
         result: CallToolResult;
-    }): AtlasConnectionMetadata;
+    }): ConnectionMetadata;
     // (undocumented)
     static toolName: string;
 }
@@ -563,7 +563,8 @@ export type ConnectionManagerFactoryFn = (params: ConnectionManagerFactoryOption
 export type ConnectionManagerFactoryOptions = {
     logger: LoggerBase;
     deviceId: DeviceId;
-    options: ConnectionManagerOptions["options"];
+    serverMetadata: ServerMetadata;
+    connectionInfo: ConnectionInfo;
 };
 
 // @public (undocumented)
@@ -875,8 +876,8 @@ export class CreateIndexTool extends MongoDBToolBase {
                         string: "string";
                         number: "number";
                         boolean: "boolean";
-                        date: "date";
                         uuid: "uuid";
+                        date: "date";
                         autocomplete: "autocomplete";
                         document: "document";
                         embeddedDocuments: "embeddedDocuments";
@@ -1383,7 +1384,7 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
     // (undocumented)
     protected resolveTelemetryMetadata(args: ToolArgs<typeof GetPerformanceAdvisorTool.argsShape>, input: {
         result: CallToolResult;
-    }): AtlasPerfAdvisorToolMetadata;
+    }): PerfAdvisorToolMetadata;
     // (undocumented)
     static toolName: string;
 }
@@ -1890,9 +1891,6 @@ export type MonitoringServerFeature = (typeof monitoringServerFeatureValues)[num
 export const monitoringServerFeatureValues: readonly ["health-check", "metrics"];
 
 // @public (undocumented)
-export const NO_UNICODE_ERROR = "String cannot contain special characters or Unicode symbols";
-
-// @public (undocumented)
 export type NotConnectedToMongoDBErrorCode = typeof ErrorCodes.NotConnectedToMongoDB;
 
 // @public (undocumented)
@@ -2087,8 +2085,8 @@ export class StreamsBuildTool extends StreamsToolBase {
             dbRoleToExecute: z.ZodOptional<z.ZodObject<{
                 role: z.ZodOptional<z.ZodString>;
                 type: z.ZodOptional<z.ZodEnum<{
-                    BUILT_IN: "BUILT_IN";
                     CUSTOM: "CUSTOM";
+                    BUILT_IN: "BUILT_IN";
                 }>>;
             }, z.core.$strip>>;
             aws: z.ZodOptional<z.ZodObject<{
@@ -2247,8 +2245,8 @@ export class StreamsManageTool extends StreamsToolBase {
             dbRoleToExecute: z.ZodOptional<z.ZodObject<{
                 role: z.ZodOptional<z.ZodString>;
                 type: z.ZodOptional<z.ZodEnum<{
-                    BUILT_IN: "BUILT_IN";
                     CUSTOM: "CUSTOM";
+                    BUILT_IN: "BUILT_IN";
                 }>>;
             }, z.core.$strip>>;
             aws: z.ZodOptional<z.ZodObject<{
@@ -2326,7 +2324,7 @@ export abstract class StreamsToolBase extends AtlasToolBase {
     // (undocumented)
     protected resolveTelemetryMetadata(args: ToolArgs<typeof StreamsToolBase.argsShape>, input: {
         result: CallToolResult;
-    }): AtlasStreamsToolMetadata;
+    }): StreamsToolMetadata;
 }
 
 // @public (undocumented)
@@ -2475,8 +2473,8 @@ export class UpgradeClusterTool extends AtlasToolBase {
         projectId: z.ZodOptional<z.ZodString>;
         clusterName: z.ZodOptional<z.ZodString>;
         targetTier: z.ZodOptional<z.ZodEnum<{
-            FLEX: "FLEX";
             M10: "M10";
+            FLEX: "FLEX";
         }>>;
         provider: z.ZodOptional<z.ZodString>;
         region: z.ZodOptional<z.ZodString>;

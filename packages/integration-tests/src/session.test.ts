@@ -44,7 +44,7 @@ describe("CliSession", () => {
             keychain: new Keychain(),
             apiClient: createTestApiClient({
                 baseUrl: defaultTestConfig.apiBaseUrl,
-                userAgent: "test",
+                serverMetadata: { mcpServerName: "test", version: "1" },
                 logger,
                 clientId: defaultTestConfig.apiClientId,
                 clientSecret: defaultTestConfig.apiClientSecret,

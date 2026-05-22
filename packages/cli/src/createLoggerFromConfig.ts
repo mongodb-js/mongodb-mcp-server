@@ -2,15 +2,17 @@ import { ConsoleLogger, DiskLogger } from "@mongodb-js/mcp-logging";
 import { CompositeLogger, type Keychain } from "@mongodb-js/mcp-core";
 import { MongoLogManager } from "mongodb-log-writer";
 import * as fs from "fs/promises";
-import type { UserConfig } from "../config/userConfig.js";
+import type { UserConfig } from "./config/userConfig.js";
 
-export async function createDefaultLoggers({
-    config,
-    keychain,
-}: {
+export type CreateLoggerFromConfigOptions = {
     config: UserConfig;
     keychain: Keychain;
-}): Promise<CompositeLogger> {
+};
+
+export async function createLoggerFromConfig({
+    config,
+    keychain,
+}: CreateLoggerFromConfigOptions): Promise<CompositeLogger> {
     const baseLoggers: (ConsoleLogger | DiskLogger)[] = [];
 
     if (config.loggers.includes("stderr")) {

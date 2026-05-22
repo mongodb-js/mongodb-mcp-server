@@ -122,7 +122,7 @@ describe("MongoDBTool implementations", () => {
             connectionErrorHandler: errorHandler,
             apiClient: createTestApiClient({
                 baseUrl: userConfig.apiBaseUrl,
-                userAgent: "test",
+                serverMetadata: { mcpServerName: "test", version: "1" },
                 logger,
                 clientId: userConfig.apiClientId,
                 clientSecret: userConfig.apiClientSecret,

@@ -2,6 +2,8 @@
 
 Migrate from the v1 **single-package** API (`mongodb-mcp-server` on `main`) to the v2 **monorepo** API.
 
+> Are you migrating using a coding agent? You can use the [MongoDB MCP v1 → v2 migration skill](skills/mongodb-mcp-v2-migration/SKILL.md)!
+
 ## Do not use `mongodb-mcp-server` as a library
 
 The `mongodb-mcp-server` npm package is the **shipped CLI binary** (`npx mongodb-mcp-server`, MCPB bundle). **Do not** add it as a library dependency for embedding or customization.

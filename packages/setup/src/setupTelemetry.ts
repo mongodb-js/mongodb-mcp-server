@@ -68,8 +68,8 @@ export class SetupTelemetry {
         const apiClient = new ApiClient({
             options: {
                 baseUrl: config.apiBaseUrl,
-                userAgent: `AtlasMCP/${serverMetadata.version} (${process.platform}; ${process.arch})`,
             },
+            serverMetadata,
             logger,
             authProvider: undefined,
         });

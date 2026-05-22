@@ -1,3 +1,4 @@
+export { userAgentFromServerMetadata } from "./userAgentFromServerMetadata.js";
 export { ApiClient, type ApiClientOptions } from "./apiClient.js";
 export { ApiClientError } from "./apiClientError.js";
 export type { AuthProvider, AccessToken } from "./auth/authProvider.js";

@@ -237,8 +237,9 @@ export interface ApiClientOptions {
     // (undocumented)
     options: {
         baseUrl: string;
-        userAgent: string;
     };
+    // (undocumented)
+    serverMetadata: ServerMetadata;
 }
 
 // @public
@@ -522,7 +523,8 @@ export type ConnectionManagerFactoryFn = (params: ConnectionManagerFactoryOption
 export type ConnectionManagerFactoryOptions = {
     logger: LoggerBase;
     deviceId: DeviceId;
-    options: ConnectionManagerOptions["options"];
+    serverMetadata: ServerMetadata;
+    connectionInfo: ConnectionInfo_2;
 };
 
 // @public (undocumented)
@@ -1081,29 +1083,22 @@ export class StdioRunner<TServer extends {
 
 // @public
 export class StreamableHttpRunner<TServer extends SessionServer = SessionServer, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> implements ITransportRunner {
-    constructor(input: StreamableHttpRunnerOptions<TMetrics> & {
-        mcpHttpServer: MCPHttpServer<TServer, TMetrics>;
-        monitoringServer?: MonitoringServer<TMetrics>;
-        sessionStore: ISessionStore<StreamableHTTPServerTransport>;
-    });
+    constructor(input: StreamableHttpRunnerOptions<TServer, TMetrics>);
     close(): Promise<void>;
     // (undocumented)
     protected readonly logger: CompositeLogger;
     // (undocumented)
     protected readonly mcpHttpServer: MCPHttpServer<TServer, TMetrics>;
     // (undocumented)
-    protected readonly metrics: IMetrics<TMetrics>;
-    // (undocumented)
     protected readonly monitoringServer: MonitoringServer<TMetrics> | undefined;
-    // (undocumented)
-    protected readonly sessionStore: ISessionStore<StreamableHTTPServerTransport>;
     start(): Promise<void>;
 }
 
 // @public
-export type StreamableHttpRunnerOptions<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
+export type StreamableHttpRunnerOptions<TServer extends SessionServer = SessionServer, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
     logger: CompositeLogger;
-    metrics: IMetrics<TMetrics>;
+    mcpHttpServer: MCPHttpServer<TServer, TMetrics>;
+    monitoringServer?: MonitoringServer<TMetrics>;
 };
 
 export { StreamableHTTPServerTransport }

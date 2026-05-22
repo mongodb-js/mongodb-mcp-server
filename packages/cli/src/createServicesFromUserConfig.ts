@@ -2,16 +2,17 @@ import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics
 import type { IMetrics } from "@mongodb-js/mcp-types";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import { Elicitation, Keychain, McpServer } from "@mongodb-js/mcp-core";
-import { createDefaultLoggers } from "./utils/loggers.js";
 import type { ResourceRegistry, ToolRegistry } from "./cliServer.js";
 import { CliServer } from "./cliServer.js";
-import { ApiClient, ClientCredentialsAuthProvider } from "@mongodb-js/mcp-atlas-api-client";
-import { connectionErrorHandler, DeviceId, ExportsManager, MCPConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
-import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
+import { connectionErrorHandler, DeviceId, MCPConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 import { CliSession } from "./cliSession.js";
 import type { UserConfig } from "./config/userConfig.js";
 import type { ServerMetadata } from "@mongodb-js/mcp-types";
+import { createLoggerFromConfig } from "./createLoggerFromConfig.js";
+import { createExportsManagerFromConfig } from "./createExportsManagerFromConfig.js";
+import { createApiClientFromConfig } from "./createApiClientFromConfig.js";
+import { createTelemetryFromConfig } from "./createTelemetryFromConfig.js";
 
 export type CreateServicesOptions = {
     config: UserConfig;
@@ -34,21 +35,11 @@ export async function createServicesFromUserConfig({
     logger: CompositeLogger;
     metrics: IMetrics;
 }> {
-    // Create logger and metrics
     const keychain = Keychain.root;
-    const logger = await createDefaultLoggers({ config, keychain });
+    const logger = await createLoggerFromConfig({ config, keychain });
     const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
 
-    // Create MongoDB-specific infrastructure
-    const exportsManager = ExportsManager.init({
-        options: {
-            exportsPath: config.exportsPath,
-            exportTimeoutMs: config.exportTimeoutMs,
-            exportCleanupIntervalMs: config.exportCleanupIntervalMs,
-        },
-        logger,
-    });
-
+    const exportsManager = createExportsManagerFromConfig({ config, logger });
     const deviceId = DeviceId.create(logger);
 
     const connectionManager = new MCPConnectionManager({
@@ -58,35 +49,15 @@ export async function createServicesFromUserConfig({
         connectionInfo: { transport: "http", httpHost: "localhost" },
     });
 
-    const userAgent = `${serverMetadata.mcpServerName}/${serverMetadata.version}`;
-    const apiClient = new ApiClient({
-        options: {
-            baseUrl: config.apiBaseUrl,
-            userAgent,
-        },
-        logger,
-        authProvider:
-            config.apiClientId && config.apiClientSecret
-                ? new ClientCredentialsAuthProvider({
-                      options: {
-                          baseUrl: config.apiBaseUrl,
-                          userAgent,
-                          clientId: config.apiClientId,
-                          clientSecret: config.apiClientSecret,
-                      },
-                      logger,
-                  })
-                : undefined,
-    });
-
+    const apiClient = createApiClientFromConfig({ config, serverMetadata, logger });
     const atlasLocalClient = await createAtlasLocalClient({ logger });
 
-    const telemetry = AtlasTelemetry.create({
+    const telemetry = createTelemetryFromConfig({
+        config,
         logger,
         deviceId,
         apiClient,
         keychain,
-        enabled: config.telemetry === "enabled",
         serverMetadata,
     });
 

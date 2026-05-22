@@ -17,7 +17,10 @@ describe("AtlasTelemetry", () => {
             deviceId,
             apiClient: createTestApiClient({
                 baseUrl: "https://fake.address.com/",
-                userAgent: "",
+                serverMetadata: {
+                    mcpServerName: "test-server",
+                    version: "1.0.0",
+                },
                 logger,
             }),
             keychain: new Keychain(),

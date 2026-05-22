@@ -649,7 +649,8 @@ describe("AtlasTelemetry", () => {
  */
 describe("AtlasTelemetry credentials handling", () => {
     const API_BASE = "https://api.test.com";
-    const USER_AGENT = "test-user-agent";
+    const TEST_SERVER_METADATA = { mcpServerName: "test-user-agent", version: "1.0.0" };
+    const USER_AGENT = "test-user-agent/1.0.0";
 
     let fetchSpy: MockInstance<typeof fetch>;
 
@@ -693,18 +694,18 @@ describe("AtlasTelemetry credentials handling", () => {
                 ? new ClientCredentialsAuthProvider({
                       options: {
                           baseUrl: API_BASE,
-                          userAgent: USER_AGENT,
                           clientId,
                           clientSecret,
                       },
+                      serverMetadata: TEST_SERVER_METADATA,
                       logger,
                   })
                 : undefined;
         const apiClient = new ApiClient({
             options: {
                 baseUrl: API_BASE,
-                userAgent: USER_AGENT,
             },
+            serverMetadata: TEST_SERVER_METADATA,
             logger,
             authProvider,
         });

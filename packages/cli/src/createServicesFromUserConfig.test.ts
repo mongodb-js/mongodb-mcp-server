@@ -1,26 +1,29 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NoopLogger, type CompositeLogger } from "@mongodb-js/mcp-core";
-import type * as McpAtlasTelemetry from "@mongodb-js/mcp-atlas-telemetry";
 import type * as McpCore from "@mongodb-js/mcp-core";
 import type * as McpToolsMongodb from "@mongodb-js/mcp-tools-mongodb";
 import { UserConfigSchema } from "./config/userConfig.js";
 
-const { capturedApiClientOptions, capturedAuthProviderOptions } = vi.hoisted(() => ({
-    capturedApiClientOptions: [] as Array<{ options: { userAgent: string } }>,
-    capturedAuthProviderOptions: [] as Array<{ userAgent: string }>,
+vi.mock("./createLoggerFromConfig.js", () => ({
+    createLoggerFromConfig: vi.fn().mockResolvedValue(new NoopLogger() as CompositeLogger),
 }));
 
-vi.mock("./utils/loggers.js", () => ({
-    createDefaultLoggers: vi.fn().mockResolvedValue(new NoopLogger() as CompositeLogger),
+vi.mock("./createExportsManagerFromConfig.js", () => ({
+    createExportsManagerFromConfig: vi.fn().mockReturnValue({}),
+}));
+
+vi.mock("./createApiClientFromConfig.js", () => ({
+    createApiClientFromConfig: vi.fn().mockReturnValue({}),
+}));
+
+vi.mock("./createTelemetryFromConfig.js", () => ({
+    createTelemetryFromConfig: vi.fn().mockReturnValue({}),
 }));
 
 vi.mock("@mongodb-js/mcp-tools-mongodb", async (importOriginal) => {
     const actual: typeof McpToolsMongodb = await importOriginal();
     return {
         ...actual,
-        ExportsManager: {
-            init: vi.fn().mockReturnValue({}),
-        },
         DeviceId: {
             create: vi.fn().mockReturnValue({}),
         },
@@ -32,29 +35,6 @@ vi.mock("@mongodb-js/mcp-tools-mongodb", async (importOriginal) => {
 
 vi.mock("@mongodb-js/mcp-tools-atlas-local", () => ({
     createAtlasLocalClient: vi.fn().mockResolvedValue(undefined),
-}));
-
-vi.mock("@mongodb-js/mcp-atlas-telemetry", async (importOriginal) => {
-    const actual: typeof McpAtlasTelemetry = await importOriginal();
-    return {
-        ...actual,
-        AtlasTelemetry: {
-            create: vi.fn().mockReturnValue({}),
-        },
-    };
-});
-
-vi.mock("@mongodb-js/mcp-atlas-api-client", () => ({
-    ApiClient: class MockApiClient {
-        constructor(options: { options: { userAgent: string } }) {
-            capturedApiClientOptions.push(options);
-        }
-    },
-    ClientCredentialsAuthProvider: class MockClientCredentialsAuthProvider {
-        constructor({ options }: { options: { userAgent: string } }) {
-            capturedAuthProviderOptions.push(options);
-        }
-    },
 }));
 
 vi.mock("@mongodb-js/mcp-core", async (importOriginal) => {
@@ -77,6 +57,10 @@ vi.mock("./cliServer.js", () => ({
 }));
 
 import { createServicesFromUserConfig } from "./createServicesFromUserConfig.js";
+import { createLoggerFromConfig } from "./createLoggerFromConfig.js";
+import { createExportsManagerFromConfig } from "./createExportsManagerFromConfig.js";
+import { createApiClientFromConfig } from "./createApiClientFromConfig.js";
+import { createTelemetryFromConfig } from "./createTelemetryFromConfig.js";
 
 describe("createServicesFromUserConfig", () => {
     const serverMetadata = {
@@ -85,11 +69,10 @@ describe("createServicesFromUserConfig", () => {
     };
 
     beforeEach(() => {
-        capturedApiClientOptions.length = 0;
-        capturedAuthProviderOptions.length = 0;
+        vi.clearAllMocks();
     });
 
-    it("should not include hostname in userAgent passed to ApiClient", async () => {
+    it("should wire config-based factories when creating services", async () => {
         const config = UserConfigSchema.parse({
             telemetry: "disabled",
             loggers: ["stderr"],
@@ -102,34 +85,9 @@ describe("createServicesFromUserConfig", () => {
             resources: [],
         });
 
-        expect(capturedApiClientOptions).toHaveLength(1);
-        const userAgent = capturedApiClientOptions[0]!.options.userAgent;
-        expect(userAgent).toBe("MongoDB MCP Server/1.2.3-test");
-        expect(userAgent).not.toContain("; unknown");
-        expect(userAgent).not.toMatch(/\bhostname\b/i);
-        expect(userAgent).not.toMatch(/\([^)]*;[^)]*\)/);
-    });
-
-    it("should pass the same userAgent to ClientCredentialsAuthProvider when credentials are configured", async () => {
-        const config = UserConfigSchema.parse({
-            telemetry: "disabled",
-            loggers: ["stderr"],
-            apiClientId: "test-client-id",
-            apiClientSecret: "test-client-secret",
-        });
-
-        await createServicesFromUserConfig({
-            config,
-            serverMetadata,
-            tools: [],
-            resources: [],
-        });
-
-        expect(capturedApiClientOptions).toHaveLength(1);
-        expect(capturedAuthProviderOptions).toHaveLength(1);
-        const expectedUserAgent = "MongoDB MCP Server/1.2.3-test";
-        expect(capturedApiClientOptions[0]!.options.userAgent).toBe(expectedUserAgent);
-        expect(capturedAuthProviderOptions[0]!.userAgent).toBe(expectedUserAgent);
-        expect(capturedAuthProviderOptions[0]!.userAgent).not.toMatch(/\bhostname\b/i);
+        expect(createLoggerFromConfig).toHaveBeenCalledWith(expect.objectContaining({ config }));
+        expect(createExportsManagerFromConfig).toHaveBeenCalledWith(expect.objectContaining({ config }));
+        expect(createApiClientFromConfig).toHaveBeenCalledWith(expect.objectContaining({ config, serverMetadata }));
+        expect(createTelemetryFromConfig).toHaveBeenCalledWith(expect.objectContaining({ config, serverMetadata }));
     });
 });

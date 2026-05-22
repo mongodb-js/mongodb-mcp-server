@@ -216,8 +216,9 @@ export interface ApiClientOptions {
     // (undocumented)
     options: {
         baseUrl: string;
-        userAgent: string;
     };
+    // (undocumented)
+    serverMetadata: ServerMetadata;
 }
 
 // @public
@@ -232,37 +233,20 @@ export type AtlasClusterConnectionInfo = {
 };
 
 // @public (undocumented)
-export type AtlasConnectionMetadata = AtlasMetadata & AtlasLocalToolMetadata & {
-    connection_auth_type?: string;
-    connection_host_type?: string;
-};
-
-// @public (undocumented)
 export type AtlasLocalClientFactoryFn = (input: {
     logger: LoggerBase;
     loader?: LibraryLoader;
 }) => Promise<Client | undefined>;
 
 // @public (undocumented)
-export type AtlasLocalToolMetadata = {
+export type AtlasLocalToolMetadata = TelemetryToolMetadataBase & {
     atlas_local_deployment_id?: string;
 };
 
 // @public (undocumented)
-export type AtlasMetadata = {
+export type AtlasMetadata = TelemetryToolMetadataBase & {
     project_id?: string;
     org_id?: string;
-};
-
-// @public (undocumented)
-export type AtlasPerfAdvisorToolMetadata = AtlasMetadata & AtlasConnectionMetadata & {
-    operations: string[];
-};
-
-// @public (undocumented)
-export type AtlasStreamsToolMetadata = AtlasMetadata & {
-    action?: string;
-    resource?: string;
 };
 
 // @public
@@ -387,7 +371,14 @@ export type ConnectionManagerFactoryFn = (params: ConnectionManagerFactoryOption
 export type ConnectionManagerFactoryOptions = {
     logger: LoggerBase;
     deviceId: DeviceId;
-    options: ConnectionManagerOptions["options"];
+    serverMetadata: ServerMetadata;
+    connectionInfo: ConnectionInfo_2;
+};
+
+// @public (undocumented)
+export type ConnectionMetadata = AtlasMetadata & AtlasLocalToolMetadata & {
+    connection_auth_type?: string;
+    connection_host_type?: string;
 };
 
 // @public (undocumented)
@@ -683,6 +674,11 @@ export type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
 export type OperationType = "metadata" | "read" | "create" | "delete" | "update" | "connect";
 
 // @public (undocumented)
+export type PerfAdvisorToolMetadata = AtlasMetadata & ConnectionMetadata & {
+    operations: string[];
+};
+
+// @public (undocumented)
 export type PreviewFeature = (typeof previewFeatureValues)[number];
 
 // @public (undocumented)
@@ -710,6 +706,12 @@ export type SessionEvents = {
 
 // @public (undocumented)
 export type StoredExport = ReadyExport | InProgressExport;
+
+// @public (undocumented)
+export type StreamsToolMetadata = AtlasMetadata & {
+    action?: string;
+    resource?: string;
+};
 
 // @public (undocumented)
 export class Telemetry implements ITelemetry {
@@ -794,8 +796,8 @@ export type TelemetryEvents = {
 // @public (undocumented)
 export type TelemetryResult = "success" | "failure";
 
-// @public
-export type TelemetryToolMetadata = AtlasMetadata | AtlasConnectionMetadata | AtlasPerfAdvisorToolMetadata | AtlasStreamsToolMetadata | UpgradeClusterMetadata;
+// @public (undocumented)
+export type TelemetryToolMetadata = TelemetryToolMetadata_2 | UpgradeClusterMetadata;
 
 // @public (undocumented)
 export type ToolArgs<T extends ZodRawShape> = {

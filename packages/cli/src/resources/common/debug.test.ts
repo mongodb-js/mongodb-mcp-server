@@ -40,8 +40,8 @@ describe("debug resource", () => {
             apiClient: new ApiClient({
                 options: {
                     baseUrl: defaultTestConfig.apiBaseUrl,
-                    userAgent: "test",
                 },
+                serverMetadata: testServerMetadata,
                 logger,
                 authProvider: undefined,
             }),
