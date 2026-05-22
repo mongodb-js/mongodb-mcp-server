@@ -163,56 +163,15 @@ export class ApiClient {
     // (undocumented)
     stopStreamProcessor(options: FetchOptions<operations["stopGroupStreamProcessor"]>): Promise<void>;
     // (undocumented)
+    tenantUpgrade(options: FetchOptions<operations["tenantGroupFlexClusterUpgrade"]>): Promise<components["schemas"]["FlexClusterDescription20241113"]>;
+    // (undocumented)
     updateStreamConnection(options: FetchOptions<operations["updateGroupStreamConnection"]>): Promise<components["schemas"]["StreamsConnection"]>;
     // (undocumented)
     updateStreamProcessor(options: FetchOptions<operations["updateGroupStreamProcessor"]>): Promise<components["schemas"]["StreamsProcessorWithStats"]>;
     // (undocumented)
     updateStreamWorkspace(options: FetchOptions<operations["updateGroupStreamWorkspace"]>): Promise<components["schemas"]["StreamsTenant"]>;
     // (undocumented)
-    upgradeFlexToDedicated(options: {
-        groupId: string;
-        body: {
-            name: string;
-            clusterType: "REPLICASET";
-            replicationSpecs: Array<{
-                regionConfigs: Array<{
-                    providerName?: string;
-                    regionName?: string;
-                    priority: number;
-                    electableSpecs: {
-                        instanceSize: string;
-                        nodeCount: number;
-                    };
-                }>;
-            }>;
-            autoScaling: {
-                compute: {
-                    enabled: boolean;
-                    scaleDownEnabled: boolean;
-                    minInstanceSize: string;
-                    maxInstanceSize: string;
-                };
-                diskGBEnabled: boolean;
-            };
-        };
-    }): Promise<{
-        id?: string;
-    }>;
-    // (undocumented)
-    upgradeSharedTierCluster(options: {
-        groupId: string;
-        body: {
-            name: string;
-            providerSettings: {
-                providerName?: string;
-                instanceSizeName: "FLEX" | "M10";
-                backingProviderName?: string;
-                regionName?: string;
-            };
-        };
-    }): Promise<{
-        id?: string;
-    }>;
+    upgradeTenantUpgrade(options: FetchOptions<operations["upgradeGroupClusterTenantUpgrade"]>): Promise<components["schemas"]["LegacyAtlasCluster"]>;
     // (undocumented)
     validateAuthConfig(): Promise<void>;
     // (undocumented)
@@ -1123,8 +1082,7 @@ export class UIRegistry {
 export type UpgradeClusterMetadata = AtlasMetadata & {
     original_tier?: "free" | "flex";
     target_tier?: "flex" | "m10";
-    original_cluster_id?: string;
-    target_cluster_id?: string;
+    cluster_id?: string;
     provider?: string;
     region?: string;
 };

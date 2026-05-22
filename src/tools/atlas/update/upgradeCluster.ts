@@ -1,6 +1,5 @@
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
-import { type OperationType, type ToolArgs } from "../../tool.js";
+import { type OperationType, type ToolArgs, type ToolResult } from "../../tool.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import { formatCluster } from "../../../common/atlas/cluster.js";
 import type { ApiClient } from "../../../common/atlas/apiClient.js";
@@ -8,6 +7,7 @@ import { ApiClientError } from "../../../common/atlas/apiClientError.js";
 import { AtlasArgs } from "../../args.js";
 import type { UpgradeClusterMetadata } from "../../../telemetry/types.js";
 import type { AtlasClusterConnectionInfo } from "../../../common/connectionInfo.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
 const ALLOWED_PROVIDER_REGEX = /^[A-Z_]+$/;
 
@@ -19,10 +19,13 @@ AZURE: "East US" → US_EAST_2, "West US" → US_WEST_2, "Europe"/"EU" → EUROP
 // Hardcoded defaults for all dedicated (M10) upgrade paths.
 // provider and region are the only fields callers may override.
 const DEDICATED_CLUSTER_DEFAULTS = {
-    clusterType: "REPLICASET" as const,
+    clusterType: "REPLICASET",
     regionConfig: {
         priority: 7,
-        electableSpecs: { instanceSize: "M10", nodeCount: 3 },
+        electableSpecs: {
+            instanceSize: "M10",
+            nodeCount: 3,
+        },
     },
     autoScaling: {
         compute: { enabled: true, scaleDownEnabled: true, minInstanceSize: "M10", maxInstanceSize: "M30" },
@@ -89,7 +92,6 @@ type ResolvedClusterInfo = {
     instanceType: "FREE" | "FLEX" | "DEDICATED";
     provider?: string;
     region?: string;
-    originalClusterId?: string;
 };
 
 async function resolveClusterInfo(
@@ -122,7 +124,6 @@ async function resolveClusterInfo(
             instanceType: cluster.instanceType,
             provider: argOverrides.provider ?? firstRegionConfig?.backingProviderName,
             region: argOverrides.region ?? firstRegionConfig?.regionName,
-            originalClusterId: raw.id,
         };
     } catch (err) {
         // Atlas returns 400 for Flex clusters on the regular cluster endpoint ("cannot be used in the Cluster API")
@@ -135,15 +136,25 @@ async function resolveClusterInfo(
             instanceType: "FLEX",
             provider: argOverrides.provider ?? raw.providerSettings?.backingProviderName,
             region: argOverrides.region ?? raw.providerSettings?.regionName,
-            originalClusterId: raw.id,
         };
     }
 }
+
+class UpgradeClusterError extends Error {}
+
+export const UpgradeClusterOutputSchema = {
+    originalTier: z.enum(["FREE", "FLEX"]),
+    targetTier: z.enum(["FLEX", "M10"]),
+    resolvedProvider: z.string().optional(),
+    resolvedRegion: z.string().optional(),
+    clusterId: z.string().optional(),
+};
 
 export class UpgradeClusterTool extends AtlasToolBase {
     static toolName = "atlas-upgrade-cluster";
     public description = `Upgrade a MongoDB Atlas cluster tier. Upgrades Free (M0) clusters to Flex or M10 Dedicated, or Flex clusters to M10 Dedicated. The upgrade path is determined automatically from the current tier unless overridden with targetTier. Note to LLM: If provider and region are not already known, ask for both together in a single question before calling this tool. ${REGION_RECOMMENDATIONS}`;
     static operationType: OperationType = "update";
+    public override outputSchema = UpgradeClusterOutputSchema;
     public argsShape = {
         projectId: AtlasArgs.projectId()
             .optional()
@@ -167,31 +178,12 @@ export class UpgradeClusterTool extends AtlasToolBase {
             ),
     };
 
-    private upgradeContext?: {
-        originalTier: "free" | "flex";
-        targetTier: "flex" | "m10";
-        originalClusterId?: string;
-        targetClusterId?: string;
-        resolvedProvider?: string;
-        resolvedRegion?: string;
-    };
-
-    protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
-        this.upgradeContext = undefined;
-
+    protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
         const projectId = args.projectId ?? this.session.connectedAtlasCluster?.projectId;
         const clusterName = args.clusterName ?? this.session.connectedAtlasCluster?.clusterName;
 
         if (!projectId || !clusterName) {
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: "projectId and clusterName are required when not connected to a cluster.",
-                    },
-                ],
-                isError: true,
-            };
+            throw new UpgradeClusterError("projectId and clusterName are required when not connected to a cluster.");
         }
 
         const clusterInfo = await resolveClusterInfo(
@@ -202,39 +194,61 @@ export class UpgradeClusterTool extends AtlasToolBase {
             this.session.connectedAtlasCluster
         );
 
-        if (clusterInfo.instanceType === "DEDICATED") {
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: `Cluster "${clusterName}" is already at the Dedicated tier and cannot be upgraded further.`,
-                    },
-                ],
-                isError: true,
-            };
-        }
-
         const target = args.targetTier ?? (clusterInfo.instanceType === "FREE" ? "FLEX" : "M10");
+        let clusterId: string | undefined;
+        switch (clusterInfo.instanceType) {
+            case "DEDICATED":
+                throw new UpgradeClusterError(
+                    `Cluster "${clusterName}" is already at the Dedicated tier and cannot be upgraded further.`
+                );
+            case "FLEX":
+                if (target === "FLEX") {
+                    throw new UpgradeClusterError(`Cluster "${clusterName}" is already a Flex cluster.`);
+                }
 
-        if (clusterInfo.instanceType === "FLEX" && target === "FLEX") {
+                // tenantUpgrade: upgrades Flex clusters to Dedicated (M10+)
+                ({ id: clusterId } = await this.apiClient.tenantUpgrade({
+                    params: { path: { groupId: projectId } },
+                    body: buildM10UpgradeBody("FLEX", clusterName, clusterInfo.provider, clusterInfo.region),
+                } as unknown as Parameters<typeof this.apiClient.tenantUpgrade>[0]));
+                break;
+            case "FREE":
+                ({ id: clusterId } = await this.upgradeFreeCluster(
+                    projectId,
+                    clusterName,
+                    target,
+                    clusterInfo.provider,
+                    clusterInfo.region
+                ));
+                break;
+        }
+
+        return {
+            content: [
+                {
+                    type: "text",
+                    text: `Cluster "${clusterName}" is being upgraded from ${clusterInfo.instanceType} to ${target} tier. This may take a few minutes.`,
+                },
+            ],
+            structuredContent: {
+                originalTier: clusterInfo.instanceType,
+                targetTier: target,
+                resolvedProvider: clusterInfo.provider,
+                resolvedRegion: clusterInfo.region,
+                clusterId,
+            },
+        };
+    }
+
+    protected override handleError(error: unknown, args: ToolArgs<typeof this.argsShape>): CallToolResult {
+        if (error instanceof UpgradeClusterError) {
             return {
-                content: [{ type: "text", text: `Cluster "${clusterName}" is already a Flex cluster.` }],
+                content: [{ type: "text", text: error.message }],
                 isError: true,
             };
         }
 
-        this.upgradeContext = {
-            originalTier: clusterInfo.instanceType === "FREE" ? "free" : "flex",
-            targetTier: target === "FLEX" ? "flex" : "m10",
-            originalClusterId: clusterInfo.originalClusterId,
-            resolvedProvider: clusterInfo.provider,
-            resolvedRegion: clusterInfo.region,
-        };
-
-        if (clusterInfo.instanceType === "FREE") {
-            return this.upgradeFreeCluster(projectId, clusterName, target, clusterInfo.provider, clusterInfo.region);
-        }
-        return this.upgradeFlexCluster(projectId, clusterName, clusterInfo.provider, clusterInfo.region);
+        return super.handleError(error, args) as CallToolResult;
     }
 
     private async upgradeFreeCluster(
@@ -243,65 +257,28 @@ export class UpgradeClusterTool extends AtlasToolBase {
         target: "FLEX" | "M10",
         backingProviderName: string | undefined,
         regionName: string | undefined
-    ): Promise<CallToolResult> {
-        if (target === "FLEX") {
-            const { id } = await this.apiClient.upgradeSharedTierCluster({
-                groupId: projectId,
-                body: {
-                    name: clusterName,
-                    providerSettings: {
-                        providerName: "FLEX",
-                        instanceSizeName: "FLEX",
-                        ...(backingProviderName !== undefined && { backingProviderName }),
-                        ...(regionName !== undefined && { regionName }),
+    ): Promise<{ id?: string }> {
+        // upgradeTenantUpgrade: upgrades Free (M0/shared) clusters to Flex or Dedicated (M10+)
+        switch (target) {
+            case "FLEX":
+                return await this.apiClient.upgradeTenantUpgrade({
+                    params: { path: { groupId: projectId } },
+                    body: {
+                        name: clusterName,
+                        providerSettings: {
+                            providerName: "FLEX",
+                            instanceSizeName: "FLEX",
+                            ...(backingProviderName !== undefined && { backingProviderName }),
+                            ...(regionName !== undefined && { regionName }),
+                        },
                     },
-                },
-            });
-            if (this.upgradeContext) this.upgradeContext.targetClusterId = id;
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: `Cluster "${clusterName}" is being upgraded from Free to Flex tier. This may take a few minutes.`,
-                    },
-                ],
-            };
+                } as unknown as Parameters<typeof this.apiClient.upgradeTenantUpgrade>[0]);
+            case "M10":
+                return await this.apiClient.upgradeTenantUpgrade({
+                    params: { path: { groupId: projectId } },
+                    body: buildM10UpgradeBody("FREE", clusterName, backingProviderName, regionName),
+                } as unknown as Parameters<typeof this.apiClient.upgradeTenantUpgrade>[0]);
         }
-
-        const { id } = await this.apiClient.upgradeSharedTierCluster({
-            groupId: projectId,
-            body: buildM10UpgradeBody("FREE", clusterName, backingProviderName, regionName),
-        });
-        if (this.upgradeContext) this.upgradeContext.targetClusterId = id;
-        return {
-            content: [
-                {
-                    type: "text",
-                    text: `Cluster "${clusterName}" is being upgraded from Free to M10 Dedicated tier. This may take a few minutes.`,
-                },
-            ],
-        };
-    }
-
-    private async upgradeFlexCluster(
-        projectId: string,
-        clusterName: string,
-        provider: string | undefined,
-        region: string | undefined
-    ): Promise<CallToolResult> {
-        const { id } = await this.apiClient.upgradeFlexToDedicated({
-            groupId: projectId,
-            body: buildM10UpgradeBody("FLEX", clusterName, provider, region),
-        });
-        if (this.upgradeContext) this.upgradeContext.targetClusterId = id;
-        return {
-            content: [
-                {
-                    type: "text",
-                    text: `Cluster "${clusterName}" is being upgraded from Flex to M10 Dedicated tier. This may take a few minutes.`,
-                },
-            ],
-        };
     }
 
     protected override resolveTelemetryMetadata(
@@ -309,14 +286,24 @@ export class UpgradeClusterTool extends AtlasToolBase {
         context: { result: CallToolResult }
     ): UpgradeClusterMetadata {
         const parentMetadata = super.resolveTelemetryMetadata(args, context);
+        type UpgradeClusterOutput = z.infer<z.ZodObject<typeof UpgradeClusterOutputSchema>>;
+        const sc = context.result.structuredContent as UpgradeClusterOutput | undefined;
+
         return {
             ...parentMetadata,
-            original_tier: this.upgradeContext?.originalTier,
-            target_tier: this.upgradeContext?.targetTier,
-            original_cluster_id: this.upgradeContext?.originalClusterId,
-            target_cluster_id: this.upgradeContext?.targetClusterId,
-            provider: this.upgradeContext?.resolvedProvider,
-            region: this.upgradeContext?.resolvedRegion,
+            original_tier: UpgradeClusterTool.toLowerCase(sc?.originalTier),
+            target_tier: UpgradeClusterTool.toLowerCase(sc?.targetTier),
+            cluster_id: sc?.clusterId,
+            provider: sc?.resolvedProvider,
+            region: sc?.resolvedRegion,
         };
+    }
+
+    private static toLowerCase<T extends string>(value?: T): Lowercase<T> | undefined {
+        if (typeof value === "undefined") {
+            return undefined;
+        }
+
+        return value.toLowerCase() as Lowercase<T>;
     }
 }

@@ -11,7 +11,6 @@ import type { Credentials, AuthProvider } from "./auth/authProvider.js";
 import { AuthProviderFactory } from "./auth/authProvider.js";
 
 const ATLAS_API_VERSION = "2025-03-12";
-const LEGACY_ATLAS_API_VERSION = "2023-01-01";
 const DEFAULT_SEND_TIMEOUT_MS = 5_000;
 
 /**
@@ -237,7 +236,7 @@ export class ApiClient {
     }
 
     // DO NOT EDIT. This is auto-generated code.
-    /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+    /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return */
     async listClusterDetails(
         options?: FetchOptions<operations["listClusterDetails"]>
     ): Promise<components["schemas"]["PaginatedOrgGroupView"]> {
@@ -337,6 +336,19 @@ export class ApiClient {
         options: FetchOptions<operations["createGroupCluster"]>
     ): Promise<components["schemas"]["ClusterDescription20240805"]> {
         const { data, error, response } = await this.client.POST("/api/atlas/v2/groups/{groupId}/clusters", options);
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    async upgradeTenantUpgrade(
+        options: FetchOptions<operations["upgradeGroupClusterTenantUpgrade"]>
+    ): Promise<components["schemas"]["LegacyAtlasCluster"]> {
+        const { data, error, response } = await this.client.POST(
+            "/api/atlas/v2/groups/{groupId}/clusters/tenantUpgrade",
+            { ...options, headers: { Accept: "application/vnd.atlas.2023-01-01+json", ...options?.headers } }
+        );
         if (error) {
             throw ApiClientError.fromError(response, error);
         }
@@ -482,6 +494,19 @@ export class ApiClient {
     ): Promise<components["schemas"]["FlexClusterDescription20241113"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/flexClusters/{name}",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    async tenantUpgrade(
+        options: FetchOptions<operations["tenantGroupFlexClusterUpgrade"]>
+    ): Promise<components["schemas"]["FlexClusterDescription20241113"]> {
+        const { data, error, response } = await this.client.POST(
+            "/api/atlas/v2/groups/{groupId}/flexClusters:tenantUpgrade",
             options
         );
         if (error) {
@@ -871,80 +896,6 @@ export class ApiClient {
         }
         return data;
     }
-    /* eslint-enable @typescript-eslint/no-unsafe-assignment */
+    /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return */
     // DO NOT EDIT. This is auto-generated code.
-
-    async upgradeSharedTierCluster(options: {
-        groupId: string;
-        body: {
-            name: string;
-            providerSettings: {
-                providerName?: string;
-                instanceSizeName: "FLEX" | "M10";
-                backingProviderName?: string;
-                regionName?: string;
-            };
-        };
-    }): Promise<{ id?: string }> {
-        const authHeaders = (await this.authProvider?.getAuthHeaders()) ?? {};
-        const url = new URL(`api/atlas/v2/groups/${options.groupId}/clusters/tenantUpgrade`, this.options.baseUrl);
-        const response = await this.customFetch(url.toString(), {
-            method: "POST",
-            signal: AbortSignal.timeout(DEFAULT_SEND_TIMEOUT_MS),
-            headers: {
-                ...authHeaders,
-                "Content-Type": `application/vnd.atlas.${LEGACY_ATLAS_API_VERSION}+json`,
-                Accept: `application/vnd.atlas.${LEGACY_ATLAS_API_VERSION}+json`,
-                "User-Agent": this.options.userAgent,
-            },
-            body: JSON.stringify(options.body),
-        });
-        if (!response.ok) {
-            throw await ApiClientError.fromResponse(response);
-        }
-        return (await response.json()) as { id?: string };
-    }
-
-    async upgradeFlexToDedicated(options: {
-        groupId: string;
-        body: {
-            name: string;
-            clusterType: "REPLICASET";
-            replicationSpecs: Array<{
-                regionConfigs: Array<{
-                    providerName?: string;
-                    regionName?: string;
-                    priority: number;
-                    electableSpecs: { instanceSize: string; nodeCount: number };
-                }>;
-            }>;
-            autoScaling: {
-                compute: {
-                    enabled: boolean;
-                    scaleDownEnabled: boolean;
-                    minInstanceSize: string;
-                    maxInstanceSize: string;
-                };
-                diskGBEnabled: boolean;
-            };
-        };
-    }): Promise<{ id?: string }> {
-        const authHeaders = (await this.authProvider?.getAuthHeaders()) ?? {};
-        const url = new URL(`api/atlas/v2/groups/${options.groupId}/flexClusters:tenantUpgrade`, this.options.baseUrl);
-        const response = await this.customFetch(url.toString(), {
-            method: "POST",
-            signal: AbortSignal.timeout(DEFAULT_SEND_TIMEOUT_MS),
-            headers: {
-                ...authHeaders,
-                "Content-Type": `application/vnd.atlas.${ATLAS_API_VERSION}+json`,
-                Accept: `application/vnd.atlas.${ATLAS_API_VERSION}+json`,
-                "User-Agent": this.options.userAgent,
-            },
-            body: JSON.stringify(options.body),
-        });
-        if (!response.ok) {
-            throw await ApiClientError.fromResponse(response);
-        }
-        return (await response.json()) as { id?: string };
-    }
 }
