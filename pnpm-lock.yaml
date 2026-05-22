@@ -137,6 +137,9 @@ importers:
       '@mongodb-js/mcp-core':
         specifier: workspace:*
         version: link:../core
+      '@mongodb-js/mcp-types':
+        specifier: workspace:*
+        version: link:../types
       node-fetch:
         specifier: ^3.3.2
         version: 3.3.2
@@ -147,9 +150,6 @@ importers:
         specifier: ^0.17.0
         version: 0.17.0
     devDependencies:
-      '@mongodb-js/mcp-types':
-        specifier: workspace:*
-        version: link:../types
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
