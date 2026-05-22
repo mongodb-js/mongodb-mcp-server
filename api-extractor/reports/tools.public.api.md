@@ -194,6 +194,9 @@ export class CollectionStorageSizeTool extends MongoDBToolBase {
 }
 
 // @public (undocumented)
+export type ConnectClusterOutput = z.infer<z.ZodObject<typeof ConnectClusterOutputSchema>>;
+
+// @public (undocumented)
 export class ConnectClusterTool extends AtlasToolBase {
     // (undocumented)
     argsShape: {
