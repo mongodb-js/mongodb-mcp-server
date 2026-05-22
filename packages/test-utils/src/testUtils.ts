@@ -14,7 +14,13 @@ export function createEnvironment(): {
         },
 
         clearVariables(): void {
+            for (const key of Object.keys(process.env)) {
+                if (!(key in originalEnv)) {
+                    delete process.env[key];
+                }
+            }
             Object.assign(process.env, originalEnv);
+            registeredEnvVariables.length = 0;
         },
     };
 }

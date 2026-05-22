@@ -866,6 +866,8 @@ describe("config", () => {
 });
 
 describe("keychain management", () => {
+    useClearEnvironment("MDB_MCP_");
+
     type TestCase = { readonly cliArg: keyof UserConfig; secretKind: Secret["kind"] };
     const testCases = [
         { cliArg: "apiClientId", secretKind: "user" },
