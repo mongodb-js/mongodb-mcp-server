@@ -5,6 +5,7 @@ export function createEnvironment(): {
     clearVariables(this: void): void;
 } {
     const registeredEnvVariables: string[] = [];
+    const originalEnv = { ...process.env };
 
     return {
         setVariable(variable: string, value: unknown): void {
@@ -13,9 +14,7 @@ export function createEnvironment(): {
         },
 
         clearVariables(): void {
-            for (const variable of registeredEnvVariables) {
-                delete (process.env as Record<string, unknown>)[variable];
-            }
+            Object.assign(process.env, originalEnv);
         },
     };
 }

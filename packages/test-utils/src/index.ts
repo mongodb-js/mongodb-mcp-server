@@ -25,10 +25,9 @@ export function expectDefined<T>(arg: T): asserts arg is Exclude<T, undefined | 
     }
 }
 
-export function timeout(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 export function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+/** @alias sleep */
+export const timeout = sleep;

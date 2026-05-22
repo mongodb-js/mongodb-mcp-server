@@ -12,7 +12,7 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
         "Create a MongoDB Atlas local deployment. Default image is preview. When the user does not specify an image tag, inform them that preview is used by default and provide this link for more information: https://hub.docker.com/r/mongodb/mongodb-atlas-local";
     static operationType: OperationType = "create";
     public argsShape = {
-        deploymentName: CommonArgs.string().describe("Name of the deployment to create").optional(),
+        deploymentName: CommonArgs.asciiOnlyString().describe("Name of the deployment to create").optional(),
         loadSampleData: z.boolean().describe("Load sample data into the deployment").optional().default(false),
         imageTag: z
             .string()

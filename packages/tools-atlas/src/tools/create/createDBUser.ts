@@ -22,9 +22,9 @@ export const CreateDBUserArgs = {
     roles: z
         .array(
             z.object({
-                roleName: CommonArgs.string().describe("Role name"),
-                databaseName: CommonArgs.string().describe("Database name").default("admin"),
-                collectionName: CommonArgs.string().describe("Collection name").optional(),
+                roleName: CommonArgs.asciiOnlyString().describe("Role name"),
+                databaseName: CommonArgs.asciiOnlyString().describe("Database name").default("admin"),
+                collectionName: CommonArgs.asciiOnlyString().describe("Collection name").optional(),
             })
         )
         .describe("Roles for the new user"),

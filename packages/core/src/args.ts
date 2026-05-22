@@ -1,10 +1,10 @@
-import z, { type ZodString } from "zod";
+import { z, type ZodString } from "zod";
 
-const NO_UNICODE_REGEX = /^[\x20-\x7E]*$/;
-export const NO_UNICODE_ERROR = "String cannot contain special characters or Unicode symbols";
+const ASCII_ONLY_NON_CC_REGEX = /^[\x20-\x7E]*$/;
+export const ASCII_ONLY_NON_CC_ERROR = "String cannot contain control characters or non-ASCII characters";
 
 export const CommonArgs = {
-    string: (): ZodString => z.string().regex(NO_UNICODE_REGEX, NO_UNICODE_ERROR),
+    asciiOnlyString: (): ZodString => z.string().regex(ASCII_ONLY_NON_CC_REGEX, ASCII_ONLY_NON_CC_ERROR),
 
     objectId: (fieldName: string): z.ZodString =>
         z

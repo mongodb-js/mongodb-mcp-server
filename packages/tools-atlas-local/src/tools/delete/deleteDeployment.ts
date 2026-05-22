@@ -10,7 +10,7 @@ export class DeleteDeploymentTool extends AtlasLocalToolBase {
     public description = "Delete a MongoDB Atlas local deployment";
     static operationType: OperationType = "delete";
     public argsShape = {
-        deploymentName: CommonArgs.string().describe("Name of the deployment to delete"),
+        deploymentName: CommonArgs.asciiOnlyString().describe("Name of the deployment to delete"),
     };
 
     protected async executeWithAtlasLocalClient(

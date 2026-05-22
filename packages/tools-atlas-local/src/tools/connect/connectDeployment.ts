@@ -11,7 +11,7 @@ export class ConnectDeploymentTool extends AtlasLocalToolBase {
     public description = "Connect to a MongoDB Atlas Local deployment";
     static operationType: OperationType = "connect";
     public argsShape = {
-        deploymentName: CommonArgs.string().describe("Name of the deployment to connect to"),
+        deploymentName: CommonArgs.asciiOnlyString().describe("Name of the deployment to connect to"),
     };
 
     protected async executeWithAtlasLocalClient(

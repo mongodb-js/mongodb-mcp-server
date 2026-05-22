@@ -11,7 +11,7 @@ export const CreateAccessListArgs = {
     ipAddresses: z.array(AtlasArgs.ipAddress()).describe("IP addresses to allow access from").optional(),
     cidrBlocks: z.array(AtlasArgs.cidrBlock()).describe("CIDR blocks to allow access from").optional(),
     currentIpAddress: z.boolean().describe("Add the current IP address").default(false),
-    comment: CommonArgs.string()
+    comment: CommonArgs.asciiOnlyString()
         .describe("Comment for the access list entries")
         .default(DEFAULT_ACCESS_LIST_COMMENT)
         .optional(),
