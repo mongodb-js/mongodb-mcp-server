@@ -1,0 +1,36 @@
+{
+  "name": "@mongodb-js/mcp-accuracy-tests",
+  "version": "1.11.0-prerelease.1",
+  "private": true,
+  "type": "module",
+  "description": "Accuracy testing scripts for the MongoDB MCP server",
+  "scripts": {
+    "test": "sh ./runAccuracyTests.sh",
+    "update-status": "tsx ./src/updateAccuracyRunStatus.ts",
+    "generate-summary": "tsx ./src/generateTestSummary.ts",
+    "check": "tsc --noEmit --project tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2",
+    "vitest": "^4.1.5",
+    "uuid": "^14.0.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "mongodb": "^7.1.1",
+    "@mongodb-js/mcp-integration-tests": "workspace:*",
+    "mongodb-mcp-server": "workspace:*",
+    "@mongodb-js/mcp-core": "workspace:*",
+    "@mongodb-js/mcp-types": "workspace:*",
+    "@mongodb-js/mcp-tools-assistant": "workspace:*",
+    "@mongodb-js/mcp-test-utils": "workspace:*",
+    "@ai-sdk/google": "^3.0.67",
+    "@ai-sdk/azure": "^3.0.62",
+    "@ai-sdk/openai": "^3.0.61",
+    "@ai-sdk/mcp": "^1.0.40",
+    "ai": "^6.0.175",
+    "proper-lockfile": "^4.1.2",
+    "@types/proper-lockfile": "^4.1.4",
+    "simple-git": "^3.36.0"
+  }
+}

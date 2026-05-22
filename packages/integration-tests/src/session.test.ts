@@ -1,0 +1,239 @@
+import type { Mocked, MockedFunction } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { MongoServerError } from "mongodb";
+import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
+import { CliSession } from "@mongodb-js/mcp-cli";
+import { CompositeLogger } from "@mongodb-js/mcp-core";
+import { MCPConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
+import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
+import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
+import { Keychain } from "@mongodb-js/mcp-core";
+import { ErrorCodes, MongoDBError } from "@mongodb-js/mcp-tools-mongodb";
+import { createTestApiClient, defaultTestConfig, testServerMetadata } from "./integrationHelpers.js";
+import { connectionErrorHandler as defaultConnectionErrorHandler } from "@mongodb-js/mcp-tools-mongodb";
+
+vi.mock("@mongosh/service-provider-node-driver");
+
+const MockNodeDriverServiceProvider = vi.mocked(NodeDriverServiceProvider);
+const MockDeviceId = vi.mocked(DeviceId.create(new CompositeLogger()));
+
+describe("CliSession", () => {
+    let session: CliSession;
+    let mockDeviceId: Mocked<DeviceId>;
+
+    beforeEach(() => {
+        const logger = new CompositeLogger();
+
+        mockDeviceId = MockDeviceId;
+        const connectionManager = new MCPConnectionManager({
+            logger,
+            deviceId: mockDeviceId,
+            serverMetadata: testServerMetadata,
+            connectionInfo: defaultTestConfig,
+        });
+
+        session = new CliSession({
+            userConfig: {
+                ...defaultTestConfig,
+                apiClientId: "test-client-id",
+                apiBaseUrl: "https://api.test.com",
+            },
+            logger,
+            exportsManager: ExportsManager.init({ options: defaultTestConfig, logger: logger }),
+            connectionManager: connectionManager,
+            keychain: new Keychain(),
+            apiClient: createTestApiClient({
+                baseUrl: defaultTestConfig.apiBaseUrl,
+                serverMetadata: { mcpServerName: "test", version: "1" },
+                logger,
+                clientId: defaultTestConfig.apiClientId,
+                clientSecret: defaultTestConfig.apiClientSecret,
+            }),
+            connectionErrorHandler: defaultConnectionErrorHandler,
+        });
+
+        MockNodeDriverServiceProvider.connect = vi.fn().mockResolvedValue({});
+        MockDeviceId.get = vi.fn().mockResolvedValue("test-device-id");
+    });
+
+    describe("connectToMongoDB", () => {
+        const testCases: {
+            connectionString: string;
+            expectAppName: boolean;
+            name: string;
+        }[] = [
+            {
+                connectionString: "mongodb://localhost:27017",
+                expectAppName: true,
+                name: "db without appName",
+            },
+            {
+                connectionString: "mongodb://localhost:27017?appName=CustomAppName",
+                expectAppName: false,
+                name: "db with custom appName",
+            },
+            {
+                connectionString:
+                    "mongodb+srv://test.mongodb.net/test?retryWrites=true&w=majority&appName=CustomAppName",
+                expectAppName: false,
+                name: "atlas db with custom appName",
+            },
+        ];
+
+        for (const testCase of testCases) {
+            it(`should update connection string for ${testCase.name}`, async () => {
+                await session.connectToMongoDB({
+                    connectionString: testCase.connectionString,
+                });
+                expect(session.serviceProvider).toBeDefined();
+
+                const connectMock = MockNodeDriverServiceProvider.connect;
+                expect(connectMock).toHaveBeenCalledOnce();
+                const connectionString = connectMock.mock.calls[0]?.[0];
+                if (testCase.expectAppName) {
+                    // Check for the extended appName format: appName--deviceId--clientName
+                    expect(connectionString).toContain("appName=MongoDB+MCP+Server+");
+                    expect(connectionString).toContain("--test-device-id--");
+                } else {
+                    expect(connectionString).not.toContain("appName=MongoDB+MCP+Server");
+                }
+            });
+        }
+
+        it("should configure the proxy to use environment variables", async () => {
+            await session.connectToMongoDB({ connectionString: "mongodb://localhost" });
+            expect(session.serviceProvider).toBeDefined();
+
+            const connectMock = MockNodeDriverServiceProvider.connect;
+            expect(connectMock).toHaveBeenCalledOnce();
+
+            const connectionConfig = connectMock.mock.calls[0]?.[1];
+            expect(connectionConfig?.proxy).toEqual({ useEnvironmentVariableProxies: true });
+            expect(connectionConfig?.applyProxyToOIDC).toEqual(true);
+        });
+
+        it("should include client name when agent runner is set", async () => {
+            session.setMcpClient({ name: "test-client", version: "1.0.0" });
+
+            await session.connectToMongoDB({ connectionString: "mongodb://localhost:27017" });
+            expect(session.serviceProvider).toBeDefined();
+
+            const connectMock = MockNodeDriverServiceProvider.connect;
+            expect(connectMock).toHaveBeenCalledOnce();
+            const connectionString = connectMock.mock.calls[0]?.[0];
+
+            // Should include the client name in the appName
+            expect(connectionString).toContain("--test-device-id--test-client");
+        });
+
+        it("should use 'unknown' for client name when agent runner is not set", async () => {
+            await session.connectToMongoDB({ connectionString: "mongodb://localhost:27017" });
+            expect(session.serviceProvider).toBeDefined();
+
+            const connectMock = MockNodeDriverServiceProvider.connect;
+            expect(connectMock).toHaveBeenCalledOnce();
+            const connectionString = connectMock.mock.calls[0]?.[0];
+
+            // Should use 'unknown' for client name when agent runner is not set
+            expect(connectionString).toContain("--test-device-id--unknown");
+        });
+    });
+
+    describe("getSearchIndexAvailability", () => {
+        let getSearchIndexesMock: MockedFunction<() => unknown>;
+        let createSearchIndexesMock: MockedFunction<() => unknown>;
+        let insertOneMock: MockedFunction<() => unknown>;
+        let listDatabasesMock: MockedFunction<() => unknown>;
+
+        beforeEach(() => {
+            getSearchIndexesMock = vi.fn();
+            createSearchIndexesMock = vi.fn();
+            insertOneMock = vi.fn();
+            listDatabasesMock = vi.fn().mockResolvedValue({ databases: [] });
+
+            MockNodeDriverServiceProvider.connect = vi.fn().mockResolvedValue({
+                initialDb: "admin",
+                getSearchIndexes: getSearchIndexesMock,
+                createSearchIndexes: createSearchIndexesMock,
+                insertOne: insertOneMock,
+                dropDatabase: vi.fn().mockResolvedValue({}),
+                listDatabases: listDatabasesMock,
+            });
+        });
+
+        it("should return 'available' if listing search indexes succeed and create search indexes succeed", async () => {
+            getSearchIndexesMock.mockResolvedValue([]);
+            insertOneMock.mockResolvedValue([]);
+            createSearchIndexesMock.mockResolvedValue([]);
+
+            await session.connectToMongoDB({
+                connectionString: "mongodb://localhost:27017",
+            });
+
+            expect(await session.isSearchSupported()).toBeTruthy();
+        });
+
+        it("should return false when the server reports SearchNotEnabled", async () => {
+            getSearchIndexesMock.mockRejectedValue(
+                new MongoServerError({ message: "Search is not enabled", code: 31082, codeName: "SearchNotEnabled" })
+            );
+
+            await session.connectToMongoDB({
+                connectionString: "mongodb://localhost:27017",
+            });
+            expect(await session.isSearchSupported()).toEqual(false);
+        });
+
+        it("should assume search is supported when the probe never sees SearchNotEnabled", async () => {
+            getSearchIndexesMock.mockRejectedValue(new MongoServerError({ message: "not authorized on db", code: 13 }));
+
+            await session.connectToMongoDB({
+                connectionString: "mongodb://localhost:27017",
+            });
+            expect(await session.isSearchSupported()).toEqual(true);
+            expect(await session.isSearchSupported()).toEqual(true);
+            expect(getSearchIndexesMock).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    describe("assertSearchSupported", () => {
+        let getSearchIndexesMock: MockedFunction<() => unknown>;
+
+        beforeEach(() => {
+            getSearchIndexesMock = vi.fn();
+
+            MockNodeDriverServiceProvider.connect = vi.fn().mockResolvedValue({
+                initialDb: "test",
+                getSearchIndexes: getSearchIndexesMock,
+                listDatabases: vi.fn().mockResolvedValue({ databases: [] }),
+            });
+        });
+
+        it("should not throw if it is available", async () => {
+            getSearchIndexesMock.mockResolvedValue([]);
+
+            await session.connectToMongoDB({
+                connectionString: "mongodb://localhost:27017",
+            });
+
+            await expect(session.assertSearchSupported()).resolves.not.toThrow();
+        });
+
+        it("should throw if it is not supported", async () => {
+            getSearchIndexesMock.mockRejectedValue(
+                new MongoServerError({ message: "Search is not enabled", code: 31082, codeName: "SearchNotEnabled" })
+            );
+
+            await session.connectToMongoDB({
+                connectionString: "mongodb://localhost:27017",
+            });
+
+            await expect(session.assertSearchSupported()).rejects.toThrow(
+                new MongoDBError(
+                    ErrorCodes.AtlasSearchNotSupported,
+                    "Atlas Search is not supported in the current cluster."
+                )
+            );
+        });
+    });
+});

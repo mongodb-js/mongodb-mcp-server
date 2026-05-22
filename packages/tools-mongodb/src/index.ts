@@ -1,0 +1,142 @@
+export {
+    MongoDBToolBase,
+    type IMongoDBConfig,
+    type IMongoDBSession,
+    type MongoDBToolRegistrationServer,
+    DBOperationArgs,
+    CollOperationArgs,
+} from "./mongodbTool.js";
+export type {
+    ConnectionSettings,
+    ConnectionState,
+    ConnectionStateConnected,
+    ConnectionStateConnecting,
+    ConnectionStateDisconnected,
+    ConnectionStateErrored,
+    AnyConnectionState,
+    ConnectionManagerFactoryFn,
+    ConnectionManagerFactoryOptions,
+    ConnectionManagerEvents,
+    ConnectionTag,
+    OIDCConnectionAuthType,
+} from "./common/connectionManager.js";
+export { MCPConnectionManager, ConnectionManager } from "./common/connectionManager.js";
+export type {
+    ConnectionStringInfo,
+    ConnectionStringAuthType,
+    AtlasClusterConnectionInfo,
+    ConnectionStringHostType,
+    ConnectionInfo,
+} from "./common/connectionInfo.js";
+export { getAuthType, getHostType, getConnectionStringInfo } from "./common/connectionInfo.js";
+export { ErrorCodes, MongoDBError } from "./common/errors.js";
+export type {
+    ErrorCode,
+    NotConnectedToMongoDBErrorCode,
+    MisconfiguredConnectionStringErrorCode,
+} from "./common/errors.js";
+export { validateConnectionString } from "./helpers/connectionOptions.js";
+export type { MonitoringServerFeature, PreviewFeature } from "./common/schemas.js";
+export { previewFeatureValues, monitoringServerFeatureValues } from "./common/schemas.js";
+export {
+    ExportsManager,
+    type JSONExportFormat,
+    type AvailableExport,
+    type CreateJSONExportParams,
+    type ExportsManagerOptions,
+    type StoredExport,
+    type ExportsManagerEvents,
+    type ReadyExport,
+    type InProgressExport,
+    type CommonExportData,
+    jsonExportFormat,
+    ensureExtension,
+    isExportExpired,
+} from "./common/exportsManager.js";
+export {
+    connectionErrorHandler,
+    type ConnectionErrorHandler,
+    type ConnectionErrorHandlerContext,
+    type ConnectionErrorHandled,
+    type ConnectionErrorUnhandled,
+} from "./connectionErrorHandler.js";
+export { DeviceId } from "./helpers/deviceId.js";
+export { isObjectEmpty } from "./helpers/isObjectEmpty.js";
+export { setAppNameParamIfMissing, type AppNameComponents } from "./helpers/connectionOptions.js";
+export { usesIndex, getIndexCheckErrorMessage, checkIndexUsage } from "./helpers/indexCheck.js";
+export { collectCursorUntilMaxBytesLimit, getResponseBytesLimit } from "./helpers/collectCursorUntilMaxBytes.js";
+export { operationWithFallback } from "./helpers/operationWithFallback.js";
+export {
+    assertVectorSearchFilterFieldsAreIndexed,
+    collectFieldsFromVectorSearchFilter,
+    type SearchIndex,
+} from "./helpers/assertVectorSearchFilterFieldsAreIndexed.js";
+export {
+    QUERY_COUNT_MAX_TIME_MS_CAP,
+    AGG_COUNT_MAX_TIME_MS_CAP,
+    ONE_MB,
+    CURSOR_LIMITS_TO_LLM_TEXT,
+} from "./helpers/constants.js";
+export { pipelineDescriptionWithVectorSearch } from "./tools/read/aggregate.js";
+export { IndexDirectionSchema, SortDirectionSchema } from "./mongodbSchemas.js";
+export * from "./tools/tools.js";
+
+import type { IMongoDBSession } from "./mongodbTool.js";
+import {
+    AggregateTool,
+    AggregateDBTool,
+    ConnectTool,
+    CountTool,
+    FindTool,
+    InsertManyTool,
+    UpdateManyTool,
+    DeleteManyTool,
+    ExplainTool,
+    ExportTool,
+    DropIndexTool,
+    SwitchConnectionTool,
+} from "./tools/tools.js";
+import {
+    CreateIndexTool,
+    CreateCollectionTool,
+    DropCollectionTool,
+    DropDatabaseTool,
+    RenameCollectionTool,
+} from "./tools/tools.js";
+import {
+    ListCollectionsTool,
+    ListDatabasesTool,
+    CollectionIndexesTool,
+    CollectionSchemaTool,
+    CollectionStorageSizeTool,
+    DbStatsTool,
+    LogsTool,
+} from "./tools/tools.js";
+import type { ToolClass } from "@mongodb-js/mcp-core";
+
+export const MongoDBTools: ToolClass<IMongoDBSession>[] = [
+    AggregateDBTool,
+    AggregateTool,
+    CollectionIndexesTool,
+    CollectionSchemaTool,
+    CollectionStorageSizeTool,
+    ConnectTool,
+    CountTool,
+    CreateCollectionTool,
+    CreateIndexTool,
+    DbStatsTool,
+    DeleteManyTool,
+    DropCollectionTool,
+    DropDatabaseTool,
+    DropIndexTool,
+    ExplainTool,
+    ExportTool,
+    FindTool,
+    InsertManyTool,
+    ListCollectionsTool,
+    ListDatabasesTool,
+    LogsTool,
+    RenameCollectionTool,
+    SwitchConnectionTool,
+    UpdateManyTool,
+] as const;

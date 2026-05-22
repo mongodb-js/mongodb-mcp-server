@@ -1,0 +1,51 @@
+{
+  "name": "@mongodb-js/mcp-integration-tests",
+  "version": "1.11.0-prerelease.1",
+  "private": true,
+  "type": "module",
+  "description": "Integration tests for the MongoDB MCP server",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "check": "tsc --noEmit --project tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "typescript": "^5.9.2",
+    "vitest": "^4.1.5",
+    "@vitest/coverage-v8": "^4.1.5",
+    "express": "^5.2.1",
+    "@types/express": "^5.0.0",
+    "@types/semver": "^7.7.0",
+    "mongodb-mcp-server": "workspace:*",
+    "@mongodb-js/mcp-core": "workspace:*",
+    "@mongodb-js/mcp-types": "workspace:*",
+    "@mongodb-js/mcp-test-utils": "workspace:*",
+    "@mongodb-js/mcp-atlas-api-client": "workspace:*",
+    "@mongodb-js/mcp-atlas-telemetry": "workspace:*",
+    "@mongodb-js/mcp-metrics": "workspace:*",
+    "@mongodb-js/mcp-tools-mongodb": "workspace:*",
+    "@mongodb-js/mcp-tools-atlas": "workspace:*",
+    "@mongodb-js/mcp-setup": "workspace:*",
+    "@mongodb-js/mcp-tools-atlas-local": "workspace:*",
+    "@mongodb-js/mcp-tools-assistant": "workspace:*",
+    "@mongodb-js/mcp-http-runners": "workspace:*",
+    "@mongodb-js/mcp-logging": "workspace:*",
+    "@mongodb-js/devtools-proxy-support": "^0.7.8",
+    "@mongodb-js/mcp-cli": "workspace:*",
+    "@mongodb-js/mcp-ui": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@mongosh/arg-parser": "^5.0.2",
+    "@mongosh/service-provider-node-driver": "^5.0.2",
+    "mongodb": "^7.1.1",
+    "mongodb-schema": "^12.7.0",
+    "node-machine-id": "1.1.12",
+    "bson": "^7.2.0",
+    "zod": "^4.4.2",
+    "@mongodb-js/oidc-mock-provider": "^0.13.7",
+    "duplexpair": "^1.0.2",
+    "yaml": "^2.8.1",
+    "semver": "^7.7.4"
+  }
+}

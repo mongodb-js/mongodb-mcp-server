@@ -27,6 +27,8 @@ jobs:
           cache: "pnpm"
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm run build
       - name: Validate manifest
         run: pnpm run validate:mcpb
       - name: Build .mcpb

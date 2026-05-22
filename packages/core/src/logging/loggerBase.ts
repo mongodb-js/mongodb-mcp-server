@@ -1,0 +1,114 @@
+import { EventEmitter } from "events";
+import { redact } from "mongodb-redact";
+import type {
+    DefaultEventMap,
+    EventMap,
+    IKeychain,
+    ILogger,
+    LoggerConfig,
+    LoggerType,
+    LogLevel,
+    LogPayload,
+} from "@mongodb-js/mcp-types";
+
+export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extends EventEmitter<T> implements ILogger {
+    private readonly defaultUnredactedLogger: LoggerType = "mcp";
+    private readonly keychain: IKeychain;
+
+    constructor(options: LoggerConfig) {
+        super();
+        this.keychain = options.keychain;
+    }
+
+    public log(level: LogLevel, payload: LogPayload): void {
+        // If no explicit value is supplied for unredacted loggers, default to "mcp"
+        const noRedaction = payload.noRedaction !== undefined ? payload.noRedaction : this.defaultUnredactedLogger;
+
+        this.logCore(level, {
+            ...payload,
+            message: this.redactIfNecessary(payload.message, noRedaction),
+            attributes: this.redactAttributes(payload.attributes, noRedaction),
+        });
+    }
+
+    protected abstract readonly type?: LoggerType;
+
+    protected abstract logCore(level: LogLevel, payload: LogPayload): void;
+
+    private redactAttributes(
+        attributes: Record<string, string> | undefined,
+        noRedaction: LogPayload["noRedaction"]
+    ): Record<string, string> | undefined {
+        if (!attributes) {
+            return undefined;
+        }
+        const redacted: Record<string, string> = {};
+        for (const [key, value] of Object.entries(attributes)) {
+            redacted[key] = this.redactIfNecessary(value, noRedaction);
+        }
+        return redacted;
+    }
+
+    private redactIfNecessary(message: string, noRedaction: LogPayload["noRedaction"]): string {
+        // If the consumer has supplied noRedaction: true, we don't redact the log message
+        // regardless of the logger type
+        if (typeof noRedaction === "boolean" && noRedaction) {
+            return message;
+        }
+
+        // If the consumer has supplied noRedaction: logger-type, we skip redacting if
+        // our logger type is the same as what the consumer requested
+        if (typeof noRedaction === "string" && noRedaction === this.type) {
+            return message;
+        }
+
+        // If the consumer has supplied noRedaction: array, we skip redacting if our logger
+        // type is included in that array
+        if (
+            typeof noRedaction === "object" &&
+            Array.isArray(noRedaction) &&
+            this.type &&
+            noRedaction.indexOf(this.type) !== -1
+        ) {
+            return message;
+        }
+
+        return redact(message, this.keychain?.allSecrets ?? []);
+    }
+
+    public info(payload: LogPayload): void {
+        this.log("info", payload);
+    }
+
+    public error(payload: LogPayload): void {
+        this.log("error", payload);
+    }
+
+    public debug(payload: LogPayload): void {
+        this.log("debug", payload);
+    }
+
+    public notice(payload: LogPayload): void {
+        this.log("notice", payload);
+    }
+
+    public warning(payload: LogPayload): void {
+        this.log("warning", payload);
+    }
+
+    public critical(payload: LogPayload): void {
+        this.log("critical", payload);
+    }
+
+    public alert(payload: LogPayload): void {
+        this.log("alert", payload);
+    }
+
+    public emergency(payload: LogPayload): void {
+        this.log("emergency", payload);
+    }
+
+    public flush(): Promise<PromiseSettledResult<void>[]> {
+        return Promise.resolve([]);
+    }
+}

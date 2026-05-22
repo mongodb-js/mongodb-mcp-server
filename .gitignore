@@ -1,5 +1,6 @@
 dist
 node_modules
+.eslintcache
 
 .vscode/mcp.json
 .github/prompts/*
@@ -10,12 +11,12 @@ node_modules
 # Sensitive
 state.json
 
-tests/tmp
+**/tmp
 coverage
 # Generated assets by accuracy runs
 .accuracy
 
-temp
+**/temp
 .DS_Store
 
 # Development tool files
@@ -25,3 +26,8 @@ yalc.lock
 # .mcpb build artifacts
 mcpb-build/
 dist-mcpb/
+
+.claude
+CLAUDE.md
+
+**/*.tsbuildinfo

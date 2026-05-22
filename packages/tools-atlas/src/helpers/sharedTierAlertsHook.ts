@@ -1,0 +1,105 @@
+import { z } from "zod";
+import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { LogId } from "@mongodb-js/mcp-core";
+import {
+    SHARED_TIER_METRIC_NAMES,
+    type ILogger,
+    type SharedTierMetricName,
+    type SharedTierTier,
+} from "@mongodb-js/mcp-types";
+
+/** One page of OPEN alerts (same defaults as atlas-list-alerts); sufficient for shared-tier MVP. */
+const LIST_ALERTS_PAGE_SIZE = 100;
+
+const SharedTierAlertSchema = z.object({
+    id: z.string(),
+    eventTypeName: z.enum(["OUTSIDE_METRIC_THRESHOLD", "OUTSIDE_FLEX_METRIC_THRESHOLD"]),
+    metricName: z.enum(SHARED_TIER_METRIC_NAMES),
+    clusterName: z.string(),
+    status: z.string(),
+    created: z.string().optional(),
+    updated: z.string().optional(),
+});
+
+export type RunSharedTierAlertsHookParams = {
+    projectId: string;
+    clusterName: string;
+    instanceType: "FREE" | "FLEX" | "DEDICATED";
+    apiClient: ApiClient;
+    logger: ILogger;
+};
+
+function buildRecommendationParagraph(
+    clusterName: string,
+    tier: SharedTierTier,
+    metricNames: SharedTierMetricName[]
+): string {
+    const metricsList = [...metricNames].sort().join(", ");
+    return (
+        `Note: Atlas reports open shared-tier threshold alerts for cluster "${clusterName}" affecting: ${metricsList}. ` +
+        `You may be near connection or storage limits on this ${tier} tier deployment. ` +
+        `Consider upgrading to a paid tier for more headroom — use the atlas-upgrade-cluster tool to upgrade "${clusterName}".`
+    );
+}
+
+/**
+ * Post-connect: inspect tier; for Free/Flex only, fetch OPEN alerts and return upgrade guidance when filters match.
+ * Returns tier, alert type names, and recommendation text for the caller to surface and attach to telemetry.
+ */
+export async function runSharedTierAlertsHook({
+    projectId,
+    clusterName,
+    instanceType,
+    apiClient,
+    logger,
+}: RunSharedTierAlertsHookParams): Promise<
+    { recommendationText: string; tier: SharedTierTier; alertTypes: SharedTierMetricName[] } | undefined
+> {
+    if (!["FREE", "FLEX"].includes(instanceType)) {
+        return undefined;
+    }
+
+    let data;
+    try {
+        data = await apiClient.listAlerts({
+            params: {
+                path: { groupId: projectId },
+                query: {
+                    status: "OPEN",
+                    itemsPerPage: LIST_ALERTS_PAGE_SIZE,
+                    pageNum: 1,
+                    includeCount: false,
+                },
+            },
+        });
+    } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        logger.warning({
+            id: LogId.atlasSharedTierAlertsHookWarning,
+            context: "shared-tier-alerts-hook",
+            message: `Failed to list Atlas alerts for shared-tier hook: ${message}`,
+        });
+        return undefined;
+    }
+
+    const alertTypes = [
+        ...new Set(
+            (data?.results ?? []).flatMap((alert) => {
+                const parsed = SharedTierAlertSchema.safeParse(alert);
+                return parsed.success && parsed.data.clusterName === clusterName ? [parsed.data.metricName] : [];
+            })
+        ),
+    ];
+
+    if (!alertTypes.length) {
+        return undefined;
+    }
+
+    const tier = instanceType === "FREE" ? "Free" : "Flex";
+
+    return {
+        recommendationText: buildRecommendationParagraph(clusterName, tier, alertTypes),
+        tier,
+        alertTypes,
+    };
+}
