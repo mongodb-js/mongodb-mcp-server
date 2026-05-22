@@ -159,6 +159,7 @@ describe("UpgradeClusterTool", () => {
 
         it("returns error for DEDICATED cluster when connected", async () => {
             const connectedCluster: AtlasClusterConnectionInfo = {
+                authType: "temp-user",
                 username: "user",
                 projectId: "proj1",
                 clusterName: "MyCluster",
@@ -190,6 +191,7 @@ describe("UpgradeClusterTool", () => {
 
         it("returns error when attempting to upgrade FLEX to FLEX (connected)", async () => {
             const connectedCluster: AtlasClusterConnectionInfo = {
+                authType: "temp-user",
                 username: "user",
                 projectId: "proj1",
                 clusterName: "MyCluster",
@@ -471,6 +473,7 @@ describe("UpgradeClusterTool", () => {
 
     describe("connected — FREE cluster", () => {
         const connectedFreeCluster: AtlasClusterConnectionInfo = {
+            authType: "temp-user",
             username: "user",
             projectId: "proj1",
             clusterName: "MyCluster",
@@ -552,6 +555,7 @@ describe("UpgradeClusterTool", () => {
 
     describe("connected — FLEX cluster", () => {
         const connectedFlexCluster: AtlasClusterConnectionInfo = {
+            authType: "temp-user",
             username: "user",
             projectId: "proj1",
             clusterName: "MyCluster",
@@ -611,6 +615,7 @@ describe("UpgradeClusterTool", () => {
     describe("session resolves projectId and clusterName", () => {
         it("uses session projectId and clusterName when args are omitted", async () => {
             const connectedCluster: AtlasClusterConnectionInfo = {
+                authType: "temp-user",
                 username: "user",
                 projectId: "session-proj",
                 clusterName: "SessionCluster",
@@ -631,6 +636,7 @@ describe("UpgradeClusterTool", () => {
 
         it("returns error when session cluster exists but projectId/clusterName mismatch args", async () => {
             const connectedCluster: AtlasClusterConnectionInfo = {
+                authType: "temp-user",
                 username: "user",
                 projectId: "other-proj",
                 clusterName: "OtherCluster",

@@ -49,6 +49,8 @@ const expectedDefaults = {
     maxDocumentsPerQuery: 100,
     maxBytesPerQuery: 16 * 1024 * 1024, // ~16 mb
     atlasTemporaryDatabaseUserLifetimeMs: 4 * 60 * 60 * 1000, // 4 hours
+    atlasAuthMechanism: "username-password",
+    atlasOidcMechanismProperties: "",
     voyageApiKey: "",
     previewFeatures: [],
     dryRun: false,

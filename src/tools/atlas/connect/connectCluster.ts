@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { type OperationType, type ToolArgs } from "../../tool.js";
 import { AtlasToolBase } from "../atlasTool.js";
@@ -9,6 +10,9 @@ import type { AtlasClusterConnectionInfo } from "../../../common/connectionManag
 import { getDefaultRoleFromConfig } from "../../../common/atlas/roles.js";
 import { AtlasArgs } from "../../args.js";
 import type { ConnectionMetadata } from "../../../telemetry/types.js";
+import { ConnectionString } from "mongodb-connection-string-url";
+import semver from "semver";
+import { oidcDeviceFlowContent } from "../../../common/connectionErrorHandler.js";
 
 const addedIpAccessListMessage =
     "Note: Your current IP address has been added to the Atlas project's IP access list to enable secure connection.";
@@ -26,6 +30,17 @@ export const ConnectClusterArgs = {
     connectionType: AtlasArgs.connectionType().describe(
         "Type of connection (standard, private, or privateEndpoint) to an Atlas cluster"
     ),
+    authMechanism: z
+        .literal("username-password")
+        .optional()
+        .describe(
+            "Override to force temporary user creation for this connection. " +
+                "Only set this if: the server is configured for 'mongodb-oidc' AND a previous " +
+                "OIDC-authenticated connection to this cluster produced authorization errors on " +
+                "database operations, indicating the OIDC identity lacks sufficient access. " +
+                "Requires Atlas API credentials with database user management permissions. " +
+                "Do not set this preemptively."
+        ),
 };
 
 export class ConnectClusterTool extends AtlasToolBase {
@@ -116,6 +131,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         });
 
         const connectedAtlasCluster = {
+            authType: "temp-user" as const,
             username,
             projectId,
             clusterName,
@@ -134,6 +150,48 @@ export class ConnectClusterTool extends AtlasToolBase {
         this.session.keychain.register(password, "password");
 
         return { connectionString: cn.toString(), atlas: connectedAtlasCluster };
+    }
+
+    private async prepareClusterConnectionOIDC(
+        projectId: string,
+        clusterName: string,
+        connectionType: "standard" | "private" | "privateEndpoint" | undefined = "standard"
+    ): Promise<{ connectionString: string; atlas: AtlasClusterConnectionInfo } | null> {
+        const cluster = await inspectCluster(this.apiClient, projectId, clusterName);
+
+        if (cluster.connectionStrings === undefined) {
+            throw new Error("Connection strings not available");
+        }
+        const connectionString = getConnectionString(cluster.connectionStrings, connectionType);
+        if (connectionString === undefined) {
+            throw new Error(
+                `Connection string for connection type "${connectionType}" is not available. Please ensure this connection type is set up in Atlas. See https://www.mongodb.com/docs/atlas/connect-to-database-deployment/#connect-to-an-atlas-cluster.`
+            );
+        }
+
+        if (cluster.mongoDBVersion) {
+            const coerced = semver.coerce(cluster.mongoDBVersion);
+            if (coerced && semver.lt(coerced, "7.0.0")) {
+                return null;
+            }
+        }
+
+        const cn = new ConnectionString(connectionString);
+        cn.searchParams.set("authMechanism", "MONGODB-OIDC");
+        if (this.config.atlasOidcMechanismProperties) {
+            cn.searchParams.set("authMechanismProperties", this.config.atlasOidcMechanismProperties);
+        }
+
+        const atlas: AtlasClusterConnectionInfo = {
+            authType: "oidc",
+            projectId,
+            clusterName,
+            instanceType: cluster.instanceType,
+            provider: cluster.provider,
+            region: cluster.region,
+        };
+
+        return { connectionString: cn.toString(), atlas };
     }
 
     private async connectToCluster(connectionString: string, atlas: AtlasClusterConnectionInfo): Promise<void> {
@@ -177,17 +235,18 @@ export class ConnectClusterTool extends AtlasToolBase {
         }
 
         if (lastError) {
+            const connectedCluster = this.session.connectedAtlasCluster;
             if (
-                this.session.connectedAtlasCluster?.projectId === atlas.projectId &&
-                this.session.connectedAtlasCluster?.clusterName === atlas.clusterName &&
-                this.session.connectedAtlasCluster?.username
+                connectedCluster?.projectId === atlas.projectId &&
+                connectedCluster?.clusterName === atlas.clusterName &&
+                connectedCluster?.authType === "temp-user"
             ) {
                 void this.apiClient
                     .deleteDatabaseUser({
                         params: {
                             path: {
-                                groupId: this.session.connectedAtlasCluster.projectId,
-                                username: this.session.connectedAtlasCluster.username,
+                                groupId: connectedCluster.projectId,
+                                username: connectedCluster.username,
                                 databaseName: "admin",
                             },
                         },
@@ -216,15 +275,43 @@ export class ConnectClusterTool extends AtlasToolBase {
         projectId,
         clusterName,
         connectionType,
+        authMechanism,
     }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const ipAccessListUpdated = await ensureCurrentIpInAccessList(this.apiClient, projectId);
         let createdUser = false;
+        let oidcFallbackMessage: string | undefined;
 
         const state = this.queryConnection(projectId, clusterName);
         switch (state) {
             case "connected-to-other-cluster":
             case "disconnected": {
                 await this.session.disconnect();
+
+                if (this.config.atlasAuthMechanism === "mongodb-oidc" && authMechanism !== "username-password") {
+                    const oidcResult = await this.prepareClusterConnectionOIDC(
+                        projectId,
+                        clusterName,
+                        connectionType
+                    );
+
+                    if (oidcResult !== null) {
+                        void this.session
+                            .connectToMongoDB(oidcResult)
+                            .catch((err: unknown) => {
+                                const error = err instanceof Error ? err : new Error(String(err));
+                                this.session.logger.error({
+                                    id: LogId.atlasConnectFailure,
+                                    context: "atlas-connect-cluster",
+                                    message: `error connecting to cluster via OIDC: ${error.message}`,
+                                });
+                            });
+                        break;
+                    }
+
+                    oidcFallbackMessage =
+                        `Note: OIDC authentication is not supported on this cluster's MongoDB version. ` +
+                        `Falling back to temporary user creation.`;
+                }
 
                 const { connectionString, atlas } = await this.prepareClusterConnection(
                     projectId,
@@ -254,8 +341,22 @@ export class ConnectClusterTool extends AtlasToolBase {
         }
 
         for (let i = 0; i < 60; i++) {
-            const state = this.queryConnection(projectId, clusterName);
-            switch (state) {
+            const connState = this.session.connectionManager.currentConnectionState;
+
+            // Surface OIDC device-flow info so the user can complete authentication.
+            if (
+                connState.tag === "connecting" &&
+                connState.connectedAtlasCluster?.projectId === projectId &&
+                connState.connectedAtlasCluster?.clusterName === clusterName &&
+                connState.oidcLoginUrl
+            ) {
+                return {
+                    content: [oidcDeviceFlowContent(connState.oidcLoginUrl, connState.oidcUserCode)],
+                };
+            }
+
+            const queryState = this.queryConnection(projectId, clusterName);
+            switch (queryState) {
                 case "connected": {
                     const content: CallToolResult["content"] = [
                         {
@@ -268,6 +369,13 @@ export class ConnectClusterTool extends AtlasToolBase {
                         content.push({
                             type: "text",
                             text: addedIpAccessListMessage,
+                        });
+                    }
+
+                    if (oidcFallbackMessage) {
+                        content.push({
+                            type: "text",
+                            text: oidcFallbackMessage,
                         });
                     }
 
@@ -307,6 +415,13 @@ export class ConnectClusterTool extends AtlasToolBase {
             content.push({
                 type: "text" as const,
                 text: addedIpAccessListMessage,
+            });
+        }
+
+        if (oidcFallbackMessage) {
+            content.push({
+                type: "text" as const,
+                text: oidcFallbackMessage,
             });
         }
 
