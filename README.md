@@ -379,9 +379,9 @@ For more information about configuring OpenCode as an MCP client, including the 
 - `atlas-streams-manage` - Manage Atlas Stream Processing resources: start/stop processors, modify pipelines, update configurations. Also use for 'change the pipeline', 'scale up my processor', or 'update my workspace tier'. Common workflow: action='stop-processor' → action='modify-processor' → action='start-processor'. Use `atlas-streams-discover` with action 'inspect-processor' to check state before managing.
 - `atlas-streams-teardown` - Delete Atlas Stream Processing resources. Also use for 'remove my workspace', 'disconnect a source', 'delete all processors', or 'clean up my streams environment'. Performs basic safety checks before deletion: summarizes counts of processors and connections, highlights connections referenced by processors where possible, and surfaces API errors if processors are still running when deletion is attempted. Use `atlas-streams-discover` to review resources before deleting.
 - `atlas-upgrade-cluster` - Upgrade a MongoDB Atlas cluster tier. Upgrades Free (M0) clusters to Flex or M10 Dedicated, or Flex clusters to M10 Dedicated. The upgrade path is determined automatically from the current tier unless overridden with targetTier. Note to LLM: If provider and region are not already known, ask for both together in a single question before calling this tool. Common region mappings by provider (default recommendation: AWS US_EAST_1):
-AWS: "East Coast"/"Virginia"/"US East" → US_EAST_1, "Ohio" → US_EAST_2, "California"/"West Coast" → US_WEST_2, "Southeast Asia"/"APAC"/"Singapore" → AP_SOUTHEAST_1, "Europe"/"EU"/"Ireland" → EU_WEST_1.
-GCP: "Central US" → CENTRAL_US, "Western US" → WESTERN_US, "Southeast Asia"/"APAC" → SOUTHEASTERN_ASIA_PACIFIC, "Europe"/"EU" → WESTERN_EUROPE.
-AZURE: "East US" → US_EAST_2, "West US" → US_WEST_2, "Europe"/"EU" → EUROPE_NORTH.
+  AWS: "East Coast"/"Virginia"/"US East" → US_EAST_1, "Ohio" → US_EAST_2, "California"/"West Coast" → US_WEST_2, "Southeast Asia"/"APAC"/"Singapore" → AP_SOUTHEAST_1, "Europe"/"EU"/"Ireland" → EU_WEST_1.
+  GCP: "Central US" → CENTRAL_US, "Western US" → WESTERN_US, "Southeast Asia"/"APAC" → SOUTHEASTERN_ASIA_PACIFIC, "Europe"/"EU" → WESTERN_EUROPE.
+  AZURE: "East US" → US_EAST_2, "West US" → US_WEST_2, "Europe"/"EU" → EUROPE_NORTH.
 
 NOTE: atlas tools are only available when you set credentials on [configuration](#configuration) section.
 
