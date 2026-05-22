@@ -5,7 +5,7 @@ export {
     defaultTestConfig,
     getDataFromUntrustedContent,
     DEFAULT_LONG_RUNNING_TEST_WAIT_TIMEOUT_MS,
-    testConnectionManagerDriverLabels,
+    testServerMetadata,
     getResponseElements,
     getParameters,
     databaseParameters,

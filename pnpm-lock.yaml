@@ -168,6 +168,9 @@ importers:
       '@mongodb-js/mcp-core':
         specifier: workspace:*
         version: link:../core
+      '@mongodb-js/mcp-types':
+        specifier: workspace:*
+        version: link:../types
       lru-cache:
         specifier: ^11.2.6
         version: 11.3.6
@@ -175,9 +178,6 @@ importers:
         specifier: ^1.4.6
         version: 1.4.7
     devDependencies:
-      '@mongodb-js/mcp-types':
-        specifier: workspace:*
-        version: link:../types
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
@@ -898,6 +898,9 @@ importers:
       '@mongodb-js/mcp-core':
         specifier: workspace:*
         version: link:../core
+      '@mongodb-js/mcp-types':
+        specifier: workspace:*
+        version: link:../types
       '@mongosh/arg-parser':
         specifier: ^5.0.2
         version: 5.0.2(zod@4.4.2)
@@ -929,9 +932,6 @@ importers:
       '@mongodb-js/mcp-test-utils':
         specifier: workspace:*
         version: link:../test-utils
-      '@mongodb-js/mcp-types':
-        specifier: workspace:*
-        version: link:../types
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0

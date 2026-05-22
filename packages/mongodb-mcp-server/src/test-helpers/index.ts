@@ -7,8 +7,5 @@ export const defaultTestConfig: UserConfig = {
     loggers: ["stderr"],
 };
 
-/** Driver product labels for tests; mirrors root `packageInfo`. */
-export const testConnectionManagerDriverLabels = {
-    displayName: packageInfo.mcpServerName,
-    version: packageInfo.version,
-} as const;
+/** Server metadata for tests; mirrors root `packageInfo`. */
+export const testServerMetadata = packageInfo;

@@ -29,7 +29,7 @@ export class TestTool extends ToolBase<ISession<IToolConfig>, DefaultPrometheusM
         { result }: { result: CallToolResult }
     ): TelemetryToolMetadata {
         if (args.param2 === 3) {
-            return { test_param2: "three" } as TelemetryToolMetadata;
+            return { test_param2: "three" };
         }
         return {};
     }

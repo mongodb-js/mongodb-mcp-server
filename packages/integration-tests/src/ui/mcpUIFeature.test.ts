@@ -5,7 +5,7 @@ import {
     defaultTestConfig,
     expectDefined,
     getResponseElements,
-    testConnectionManagerDriverLabels,
+    testServerMetadata,
 } from "../integrationHelpers.js";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
 import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
@@ -182,10 +182,8 @@ describe("mcpUI feature with custom UIs", () => {
         const connectionManager = new MCPConnectionManager({
             logger,
             deviceId,
-            options: {
-                connectionInfo: userConfig,
-                ...testConnectionManagerDriverLabels,
-            },
+            serverMetadata: testServerMetadata,
+            connectionInfo: userConfig,
         });
         const exportsManager = ExportsManager.init({ options: userConfig, logger });
 

@@ -21,11 +21,11 @@
   "dependencies": {
     "@mongodb-js/mcp-atlas-api-client": "workspace:*",
     "@mongodb-js/mcp-core": "workspace:*",
+    "@mongodb-js/mcp-types": "workspace:*",
     "lru-cache": "^11.2.6",
     "mongodb-redact": "^1.4.6"
   },
   "devDependencies": {
-    "@mongodb-js/mcp-types": "workspace:*",
     "@types/node": "^25.6.0",
     "typescript": "^5.9.2",
     "vitest": "^4.1.4"

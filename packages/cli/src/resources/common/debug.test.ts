@@ -14,8 +14,8 @@ const defaultTestConfig: UserConfig = {
     loggers: ["stderr"],
 };
 
-const testConnectionManagerDriverLabels = {
-    displayName: "test-server",
+const testServerMetadata = {
+    mcpServerName: "test-server",
     version: "0.0.0",
 } as const;
 
@@ -25,10 +25,8 @@ describe("debug resource", () => {
     const connectionManager = new MCPConnectionManager({
         logger,
         deviceId,
-        options: {
-            connectionInfo: defaultTestConfig,
-            ...testConnectionManagerDriverLabels,
-        },
+        serverMetadata: testServerMetadata,
+        connectionInfo: defaultTestConfig,
     });
 
     const session = vi.mocked(

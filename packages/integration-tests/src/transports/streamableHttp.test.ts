@@ -70,11 +70,8 @@ async function createTestServer(
     const connectionManager = new MCPConnectionManager({
         logger,
         deviceId: {} as unknown as DeviceId,
-        options: {
-            connectionInfo: { transport: "http", httpHost: "localhost" },
-            displayName: packageInfo.mcpServerName,
-            version: packageInfo.version,
-        },
+        serverMetadata: packageInfo,
+        connectionInfo: { transport: "http", httpHost: "localhost" },
     });
 
     const apiClient = createTestApiClient({

@@ -54,11 +54,8 @@ export async function createServicesFromUserConfig({
     const connectionManager = new MCPConnectionManager({
         logger,
         deviceId,
-        options: {
-            connectionInfo: { transport: "http", httpHost: "localhost" },
-            displayName: serverMetadata.mcpServerName,
-            version: serverMetadata.version,
-        },
+        serverMetadata,
+        connectionInfo: { transport: "http", httpHost: "localhost" },
     });
 
     const userAgent = `${serverMetadata.mcpServerName}/${serverMetadata.version}`;

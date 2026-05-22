@@ -8,7 +8,7 @@ import {
     defaultTestConfig,
     expectDefined,
     InMemoryLogger,
-    testConnectionManagerDriverLabels,
+    testServerMetadata,
 } from "./integrationHelpers.js";
 import { describeWithMongoDB } from "./mongodbHelpers.js";
 import { afterEach, describe, expect, it } from "vitest";
@@ -189,10 +189,8 @@ describe("CliServer integration test", () => {
         const connectionManager = new MCPConnectionManager({
             logger,
             deviceId,
-            options: {
-                connectionInfo: config,
-                ...testConnectionManagerDriverLabels,
-            },
+            serverMetadata: testServerMetadata,
+            connectionInfo: config,
         });
         const exportsManager = ExportsManager.init({ options: config, logger });
         const session = new CliSession({

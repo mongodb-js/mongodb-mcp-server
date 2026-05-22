@@ -8,7 +8,7 @@ import { getConnectionString, inspectCluster } from "../../helpers/cluster.js";
 import { ensureCurrentIpInAccessList } from "../../helpers/accessListUtils.js";
 import { getDefaultRoleFromConfig } from "../../helpers/roles.js";
 import { AtlasArgs } from "../../args.js";
-import type { AtlasConnectionMetadata as ConnectionMetadata } from "@mongodb-js/mcp-atlas-telemetry";
+import type { ConnectionMetadata } from "@mongodb-js/mcp-types";
 import type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-types";
 
 const addedIpAccessListMessage =

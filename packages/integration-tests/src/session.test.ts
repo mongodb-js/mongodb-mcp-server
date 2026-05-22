@@ -9,7 +9,7 @@ import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { Keychain } from "@mongodb-js/mcp-core";
 import { ErrorCodes, MongoDBError } from "@mongodb-js/mcp-tools-mongodb";
-import { createTestApiClient, defaultTestConfig, testConnectionManagerDriverLabels } from "./integrationHelpers.js";
+import { createTestApiClient, defaultTestConfig, testServerMetadata } from "./integrationHelpers.js";
 import { connectionErrorHandler as defaultConnectionErrorHandler } from "@mongodb-js/mcp-tools-mongodb";
 
 vi.mock("@mongosh/service-provider-node-driver");
@@ -28,10 +28,8 @@ describe("CliSession", () => {
         const connectionManager = new MCPConnectionManager({
             logger,
             deviceId: mockDeviceId,
-            options: {
-                connectionInfo: defaultTestConfig,
-                ...testConnectionManagerDriverLabels,
-            },
+            serverMetadata: testServerMetadata,
+            connectionInfo: defaultTestConfig,
         });
 
         session = new CliSession({

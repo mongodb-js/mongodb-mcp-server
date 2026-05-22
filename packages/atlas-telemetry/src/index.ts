@@ -28,8 +28,5 @@ export type {
     TelemetryToolMetadata,
     AtlasMetadata,
     AtlasLocalToolMetadata,
-    AtlasConnectionMetadata,
-    AtlasPerfAdvisorToolMetadata,
-    AtlasStreamsToolMetadata,
     UpgradeClusterMetadata,
 } from "./types.js";

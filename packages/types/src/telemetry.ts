@@ -47,22 +47,18 @@ export type TelemetryEvent<T> = {
     } & Record<string, string | number | string[]>;
 };
 
-export type ToolEventProperties = {
-    command: string;
-    error_code?: string;
-    error_type?: string;
-    cluster_name?: string;
-    is_atlas?: boolean;
-} & TelemetryToolMetadata;
+export type TelemetryToolMetadataValue = string | number | boolean | undefined | string[];
 
-export type ToolEvent = TelemetryEvent<ToolEventProperties>;
+export type TelemetryToolMetadataBase = {
+    [key: string]: TelemetryToolMetadataValue;
+};
 
-export type AtlasMetadata = {
+export type AtlasMetadata = TelemetryToolMetadataBase & {
     project_id?: string;
     org_id?: string;
 };
 
-export type AtlasLocalToolMetadata = {
+export type AtlasLocalToolMetadata = TelemetryToolMetadataBase & {
     atlas_local_deployment_id?: string;
 };
 
@@ -83,3 +79,12 @@ export type StreamsToolMetadata = AtlasMetadata & {
 };
 
 export type TelemetryToolMetadata = AtlasMetadata | ConnectionMetadata | PerfAdvisorToolMetadata | StreamsToolMetadata;
+
+export type ToolEventProperties = {
+    command: string;
+    error_code?: string;
+    error_type?: string;
+    is_atlas?: boolean;
+} & TelemetryToolMetadata;
+
+export type ToolEvent = TelemetryEvent<ToolEventProperties>;

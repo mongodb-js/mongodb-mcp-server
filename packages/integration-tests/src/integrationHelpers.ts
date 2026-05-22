@@ -55,10 +55,7 @@ export function createTestApiClient(options: CreateTestApiClientOptions): ApiCli
 }
 
 /** Driver product labels for tests; mirrors root `serverMetadata`. */
-export const testConnectionManagerDriverLabels = {
-    displayName: packageInfo.mcpServerName,
-    version: packageInfo.version,
-} as const;
+export const testServerMetadata = packageInfo;
 
 interface Parameter {
     name: string;
@@ -183,10 +180,8 @@ export function setupIntegrationTest(
         const connectionManager = new MCPConnectionManager({
             logger: logger,
             deviceId: deviceId,
-            options: {
-                connectionInfo: userConfig,
-                ...testConnectionManagerDriverLabels,
-            },
+            serverMetadata: packageInfo,
+            connectionInfo: userConfig,
         });
 
         const session = new CliSession({

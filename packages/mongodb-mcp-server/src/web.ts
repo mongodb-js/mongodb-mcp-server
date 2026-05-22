@@ -13,13 +13,11 @@ export type {
     TelemetryCommonStaticProperties,
     TelemetryResult,
     TelemetryToolMetadata,
-    AtlasConnectionMetadata,
     AtlasMetadata,
     AtlasLocalToolMetadata,
-    AtlasPerfAdvisorToolMetadata,
-    AtlasStreamsToolMetadata,
     UpgradeClusterMetadata,
 } from "@mongodb-js/mcp-atlas-telemetry";
+export type { ConnectionMetadata, PerfAdvisorToolMetadata, StreamsToolMetadata } from "@mongodb-js/mcp-types";
 export type { SessionEvents } from "@mongodb-js/mcp-types";
 export { Keychain } from "@mongodb-js/mcp-core";
 export type { Secret } from "mongodb-redact";

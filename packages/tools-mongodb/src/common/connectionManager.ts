@@ -12,6 +12,7 @@ import {
     type AtlasClusterConnectionInfo,
     type ConnectionInfo,
 } from "./connectionInfo.js";
+import type { ServerMetadata } from "@mongodb-js/mcp-types";
 
 export type { ConnectionStringInfo, ConnectionStringAuthType, AtlasClusterConnectionInfo } from "./connectionInfo.js";
 
@@ -242,21 +243,18 @@ export abstract class ConnectionManager {
 /**
  * Configuration options for creating an {@link MCPConnectionManager}.
  */
-export interface ConnectionManagerOptions {
+export type ConnectionManagerOptions = {
     /** Logger used for OIDC and disconnect diagnostics. */
     logger: LoggerBase;
     /** Provider of the stable device identifier embedded in the connection's `appName`. */
     deviceId: DeviceId;
-    options: {
-        /** Transport / browser hints for OIDC auth inference. */
-        connectionInfo: ConnectionInfo;
-        /** Host application title merged into MongoDB driver `appName` when not already set on the URI. */
-        displayName: string;
-        version: string;
-    };
+    /** Product name and version merged into MongoDB driver `appName` when not already set on the URI. */
+    serverMetadata: ServerMetadata;
+    /** Transport / browser hints for OIDC auth inference. */
+    connectionInfo: ConnectionInfo;
     /** Optional event emitter shared with the OIDC plugin to receive `mongodb-oidc-plugin:auth-*` notifications. */
     bus?: EventEmitter;
-}
+};
 
 /**
  * Default {@link ConnectionManager} implementation used by the MongoDB MCP
@@ -278,19 +276,22 @@ export class MCPConnectionManager extends ConnectionManager {
     private deviceId: DeviceId;
     private bus: EventEmitter;
 
-    private readonly options: ConnectionManagerOptions["options"];
+    private readonly serverMetadata: ServerMetadata;
+    private readonly connectionInfo: ConnectionInfo;
     private logger: LoggerBase;
 
     /**
      * @param options.logger - Logger used for OIDC and disconnect diagnostics.
      * @param options.deviceId - Provider of the stable device identifier embedded in
      * the connection's `appName`.
-     * @param options.options - Object containing connectionInfo, displayName, and version.
+     * @param options.serverMetadata - Product name and version for MongoDB driver `appName`.
+     * @param options.connectionInfo - Transport / browser hints for OIDC auth inference.
      * @param options.bus - Optional event emitter shared with the OIDC plugin.
      */
-    constructor({ logger, deviceId, bus, options }: ConnectionManagerOptions) {
+    constructor({ logger, deviceId, bus, serverMetadata, connectionInfo }: ConnectionManagerOptions) {
         super();
-        this.options = options;
+        this.serverMetadata = serverMetadata;
+        this.connectionInfo = connectionInfo;
         this.logger = logger;
         this.bus = bus ?? new EventEmitter();
         this.bus.on("mongodb-oidc-plugin:auth-failed", this.onOidcAuthFailed.bind(this));
@@ -323,7 +324,7 @@ export class MCPConnectionManager extends ConnectionManager {
         try {
             settings = { ...settings };
             const appNameComponents: AppNameComponents = {
-                appName: `${this.options.displayName} ${this.options.version}`,
+                appName: `${this.serverMetadata.mcpServerName} ${this.serverMetadata.version}`,
                 deviceId: this.deviceId.get(),
                 clientName: this.clientName,
             };
@@ -353,7 +354,7 @@ export class MCPConnectionManager extends ConnectionManager {
 
             connectionStringInfo = getConnectionStringInfo(
                 mongoshConnectionInfo.connectionString,
-                this.options.connectionInfo,
+                this.connectionInfo,
                 settings.atlas
             );
 
@@ -537,7 +538,8 @@ export class MCPConnectionManager extends ConnectionManager {
 export type ConnectionManagerFactoryOptions = {
     logger: LoggerBase;
     deviceId: DeviceId;
-    options: ConnectionManagerOptions["options"];
+    serverMetadata: ServerMetadata;
+    connectionInfo: ConnectionInfo;
 };
 
 export type ConnectionManagerFactoryFn = (params: ConnectionManagerFactoryOptions) => Promise<ConnectionManager>;

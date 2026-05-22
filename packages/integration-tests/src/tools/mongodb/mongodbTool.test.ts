@@ -26,7 +26,7 @@ import {
     defaultTestConfig,
     expectDefined,
     resetSessionAfterIntegrationTest,
-    testConnectionManagerDriverLabels,
+    testServerMetadata,
 } from "../../integrationHelpers.js";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 import { setupMongoDBIntegrationTest } from "../../mongodbHelpers.js";
@@ -110,10 +110,8 @@ describe("MongoDBTool implementations", () => {
         const connectionManager = new MCPConnectionManager({
             logger: logger,
             deviceId: deviceId,
-            options: {
-                connectionInfo: userConfig,
-                ...testConnectionManagerDriverLabels,
-            },
+            serverMetadata: testServerMetadata,
+            connectionInfo: userConfig,
         });
         const session = new CliSession({
             userConfig,

@@ -4,6 +4,9 @@ import type {
     TelemetryCommonStaticProperties,
     TelemetryEvent,
     TelemetryResult,
+    AtlasMetadata,
+    AtlasLocalToolMetadata,
+    TelemetryToolMetadata as TelemetryToolMetadataFromCore,
 } from "@mongodb-js/mcp-types";
 
 export type {
@@ -12,15 +15,25 @@ export type {
     TelemetryCommonStaticProperties,
     TelemetryEvent,
     TelemetryResult,
+    AtlasMetadata,
+    AtlasLocalToolMetadata,
 };
 
 export type TelemetryServerCommand = "start" | "stop";
 
 export type TelemetryBaseEvent = TelemetryEvent<unknown>;
 
-/**
- * Interface for tool events
- */
+export type UpgradeClusterMetadata = AtlasMetadata & {
+    original_tier?: "free" | "flex";
+    target_tier?: "flex" | "m10";
+    original_cluster_id?: string;
+    target_cluster_id?: string;
+    provider?: string;
+    region?: string;
+};
+
+export type TelemetryToolMetadata = TelemetryToolMetadataFromCore | UpgradeClusterMetadata;
+
 export type TelemetryToolEventProperties = {
     command: string;
     error_code?: string;
@@ -132,49 +145,3 @@ export type TelemetrySetupEventProperties = {
 } & Pick<TelemetryCommonProperties, "has_docker">;
 
 export type TelemetrySetupEvent = TelemetryEvent<TelemetrySetupEventProperties>;
-
-/**
- * Telemetry metadata that can be provided by tools when emitting telemetry events.
- * For MongoDB tools, this is typically empty, while for Atlas tools, this should include
- * the project and organization IDs if available.
- */
-export type TelemetryToolMetadata =
-    | AtlasMetadata
-    | AtlasConnectionMetadata
-    | AtlasPerfAdvisorToolMetadata
-    | AtlasStreamsToolMetadata
-    | UpgradeClusterMetadata;
-
-export type AtlasMetadata = {
-    project_id?: string;
-    org_id?: string;
-};
-
-export type AtlasLocalToolMetadata = {
-    atlas_local_deployment_id?: string;
-};
-
-export type AtlasConnectionMetadata = AtlasMetadata &
-    AtlasLocalToolMetadata & {
-        connection_auth_type?: string;
-        connection_host_type?: string;
-    };
-
-export type AtlasPerfAdvisorToolMetadata = AtlasMetadata &
-    AtlasConnectionMetadata & {
-        operations: string[];
-    };
-
-export type AtlasStreamsToolMetadata = AtlasMetadata & {
-    action?: string;
-    resource?: string;
-};
-
-export type UpgradeClusterMetadata = AtlasMetadata & {
-    original_tier?: "free" | "flex";
-    target_tier?: "flex" | "m10";
-    original_cluster_id?: string;
-    target_cluster_id?: string;
-    provider?: string;
-    region?: string;
-};
