@@ -28,7 +28,6 @@ import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import { z } from 'zod';
 import { ZodDefault } from 'zod';
-import { ZodEnum } from 'zod';
 import { ZodOptional } from 'zod';
 import type { ZodRawShape } from 'zod';
 import { ZodRecord } from 'zod';
@@ -195,26 +194,50 @@ export class CollectionStorageSizeTool extends MongoDBToolBase {
 }
 
 // @public (undocumented)
+export type ConnectClusterOutput = z.infer<z.ZodObject<typeof ConnectClusterOutputSchema>>;
+
+// @public (undocumented)
 export class ConnectClusterTool extends AtlasToolBase {
     // (undocumented)
     argsShape: {
-        projectId: ZodString;
-        clusterName: ZodString;
-        connectionType: ZodDefault<ZodEnum<    {
-        standard: "standard";
-        private: "private";
-        privateEndpoint: "privateEndpoint";
+        projectId: z.ZodString;
+        clusterName: z.ZodString;
+        connectionType: z.ZodDefault<z.ZodEnum<{
+            standard: "standard";
+            private: "private";
+            privateEndpoint: "privateEndpoint";
         }>>;
     };
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof ConnectClusterTool.argsShape>): Promise<CallToolResult>;
+    protected execute(input: ToolArgs<typeof ConnectClusterTool.argsShape>): Promise<ToolResult<typeof ConnectClusterTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
+    outputSchema: {
+        state: z.ZodEnum<{
+            connected: "connected";
+            connecting: "connecting";
+        }>;
+        addedCurrentIp: z.ZodBoolean;
+        createdTemporaryUser: z.ZodBoolean;
+        temporaryUserClarification: z.ZodOptional<z.ZodString>;
+        sharedTierAlertsDetected: z.ZodOptional<z.ZodBoolean>;
+        sharedTierTier: z.ZodOptional<z.ZodEnum<{
+            Free: "Free";
+            Flex: "Flex";
+        }>>;
+        sharedTierAlerts: z.ZodOptional<z.ZodArray<z.ZodEnum<{
+            CONNECTIONS_PERCENT: "CONNECTIONS_PERCENT";
+            FLEX_CONNECTIONS_PERCENT: "FLEX_CONNECTIONS_PERCENT";
+            FLEX_DATA_SIZE_TOTAL: "FLEX_DATA_SIZE_TOTAL";
+            LOGICAL_SIZE: "LOGICAL_SIZE";
+        }>>>;
+    };
+    // (undocumented)
     protected resolveTelemetryMetadata(args: ToolArgs<typeof ConnectClusterTool.argsShape>, input: {
-        result: CallToolResult;
+        result: ToolResult<typeof ConnectClusterOutputSchema>;
     }): ConnectionMetadata;
     // (undocumented)
     static toolName: string;

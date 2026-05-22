@@ -368,6 +368,9 @@ export type ConnectionManagerFactoryFn = (createParams: {
 export type ConnectionMetadata = AtlasMetadata & AtlasLocalToolMetadata & {
     connection_auth_type?: string;
     connection_host_type?: string;
+    shared_tier_alerts_detected?: TelemetryBoolSet;
+    shared_tier_tier?: SharedTierTier;
+    shared_tier_alerts?: SharedTierMetricName[];
 };
 
 // @public (undocumented)

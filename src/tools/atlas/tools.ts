@@ -8,7 +8,7 @@ export { ListDBUsersTool } from "./read/listDBUsers.js";
 export { CreateDBUserTool } from "./create/createDBUser.js";
 export { CreateProjectTool } from "./create/createProject.js";
 export { ListOrganizationsTool } from "./read/listOrgs.js";
-export { ConnectClusterTool } from "./connect/connectCluster.js";
+export { ConnectClusterTool, type ConnectClusterOutput } from "./connect/connectCluster.js";
 export { ListAlertsTool } from "./read/listAlerts.js";
 export { GetPerformanceAdvisorTool } from "./read/getPerformanceAdvisor.js";
 export { UpgradeClusterTool } from "./update/upgradeCluster.js";
