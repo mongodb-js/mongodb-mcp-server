@@ -1,4 +1,5 @@
 import { expectDefined, getResponseContent, sleep } from "../../integrationHelpers.js";
+import type { ConnectClusterOutput } from "@mongodb-js/mcp-tools-atlas";
 import {
     describeWithAtlas,
     withProject,
@@ -217,6 +218,7 @@ describeWithAtlas("clusters", (integration) => {
                     const content = getResponseContent(response.content);
                     expect(content).toContain("Connected to cluster");
                     expect(content).toContain(clusterName);
+                    const structuredContent = response.structuredContent as ConnectClusterOutput;
                     if (content.includes(`Connected to cluster "${clusterName}"`)) {
                         connected = true;
 
@@ -227,9 +229,20 @@ describeWithAtlas("clusters", (integration) => {
                             "Note: A temporary user has been created to enable secure connection to the cluster. For more information, see https://dochub.mongodb.org/core/mongodb-mcp-server-tools-considerations"
                         );
 
+                        // structuredContent must mirror content
+                        expect(structuredContent.state).toBe("connected");
+                        expect(structuredContent.createdTemporaryUser).toBe(
+                            content.includes("A temporary user has been created")
+                        );
+                        expect(structuredContent.addedCurrentIp).toBe(content.includes("IP address has been added"));
+                        expect(structuredContent.sharedTierAlertsDetected ?? false).toBe(
+                            content.includes("shared-tier threshold alerts")
+                        );
+
                         break;
                     } else {
                         expect(content).toContain(`Attempting to connect to cluster "${clusterName}"...`);
+                        expect(structuredContent.state).toBe("connecting");
                     }
                     await sleep(500);
                 }
@@ -288,6 +301,10 @@ describeWithAtlas("clusters", (integration) => {
             });
 
             describe("when not connected", () => {
+                beforeAll(async () => {
+                    await integration.mcpServer().session.disconnect();
+                });
+
                 it("prompts for atlas-connect-cluster when querying mongodb", async () => {
                     const response = await integration.mcpClient().callTool({
                         name: "find",

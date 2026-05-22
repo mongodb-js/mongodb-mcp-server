@@ -10,7 +10,7 @@ export { CreateProjectTool } from "./create/createProject.js";
 export { CreateDBUserTool, CreateDBUserArgs } from "./create/createDBUser.js";
 export { CreateFreeClusterTool } from "./create/createFreeCluster.js";
 export { CreateAccessListTool, CreateAccessListArgs } from "./create/createAccessList.js";
-export { ConnectClusterTool, ConnectClusterArgs } from "./connect/connectCluster.js";
+export { ConnectClusterTool, ConnectClusterArgs, type ConnectClusterOutput } from "./connect/connectCluster.js";
 export { StreamsDiscoverTool } from "./streams/discover.js";
 export { StreamsBuildTool } from "./streams/build.js";
 export { StreamsManageTool } from "./streams/manage.js";

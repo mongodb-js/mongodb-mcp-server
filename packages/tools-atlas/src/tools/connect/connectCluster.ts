@@ -1,15 +1,14 @@
-import type { CallToolResult } from "@mongodb-js/mcp-types";
-import { type ToolArgs } from "@mongodb-js/mcp-core";
-import type { OperationType } from "@mongodb-js/mcp-types";
+import { z } from "zod";
+import { type ToolArgs, type ToolResult, LogId } from "@mongodb-js/mcp-core";
+import type { OperationType, ConnectionMetadata, AtlasClusterConnectionInfo } from "@mongodb-js/mcp-types";
+import { SHARED_TIER_METRIC_NAMES } from "@mongodb-js/mcp-types";
 import { AtlasToolBase } from "../../atlasTool.js";
-import { LogId } from "@mongodb-js/mcp-core";
 import { generateSecurePassword } from "../../helpers/generatePassword.js";
 import { getConnectionString, inspectCluster } from "../../helpers/cluster.js";
 import { ensureCurrentIpInAccessList } from "../../helpers/accessListUtils.js";
 import { getDefaultRoleFromConfig } from "../../helpers/roles.js";
+import { runSharedTierAlertsHook } from "../../helpers/sharedTierAlertsHook.js";
 import { AtlasArgs } from "../../args.js";
-import type { ConnectionMetadata } from "@mongodb-js/mcp-types";
-import type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-types";
 
 const addedIpAccessListMessage =
     "Note: Your current IP address has been added to the Atlas project's IP access list to enable secure connection.";
@@ -29,11 +28,24 @@ export const ConnectClusterArgs = {
     ),
 };
 
+const ConnectClusterOutputSchema = {
+    state: z.enum(["connected", "connecting"]),
+    addedCurrentIp: z.boolean(),
+    createdTemporaryUser: z.boolean(),
+    temporaryUserClarification: z.string().optional(),
+    sharedTierAlertsDetected: z.boolean().optional(),
+    sharedTierTier: z.enum(["Free", "Flex"]).optional(),
+    sharedTierAlerts: z.enum(SHARED_TIER_METRIC_NAMES).array().optional(),
+};
+
+export type ConnectClusterOutput = z.infer<z.ZodObject<typeof ConnectClusterOutputSchema>>;
+
 export class ConnectClusterTool extends AtlasToolBase {
     static toolName = "atlas-connect-cluster";
     public description = "Connect to MongoDB Atlas cluster";
     static operationType: OperationType = "connect";
     public argsShape = ConnectClusterArgs;
+    public override outputSchema = ConnectClusterOutputSchema;
 
     private queryConnection(
         projectId: string,
@@ -120,7 +132,7 @@ export class ConnectClusterTool extends AtlasToolBase {
             },
         });
 
-        const connectedAtlasCluster = {
+        const connectedAtlasCluster: AtlasClusterConnectionInfo = {
             username,
             projectId,
             clusterName,
@@ -224,7 +236,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         projectId,
         clusterName,
         connectionType,
-    }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
         const ipAccessListUpdated = await ensureCurrentIpInAccessList(this.apiClient, projectId);
         let createdUser = false;
 
@@ -265,28 +277,61 @@ export class ConnectClusterTool extends AtlasToolBase {
             const state = this.queryConnection(projectId, clusterName);
             switch (state) {
                 case "connected": {
-                    const content: CallToolResult["content"] = [
+                    const content: ToolResult<typeof ConnectClusterOutputSchema>["content"] = [
                         {
-                            type: "text",
+                            type: "text" as const,
                             text: `Connected to cluster "${clusterName}".`,
                         },
                     ];
 
                     if (ipAccessListUpdated) {
                         content.push({
-                            type: "text",
+                            type: "text" as const,
                             text: addedIpAccessListMessage,
                         });
                     }
 
                     if (createdUser) {
                         content.push({
-                            type: "text",
+                            type: "text" as const,
                             text: createdUserMessage,
                         });
                     }
 
-                    return { content };
+                    const baseStructuredContent = {
+                        state: "connected" as const,
+                        addedCurrentIp: ipAccessListUpdated,
+                        createdTemporaryUser: createdUser,
+                        ...(createdUser && { temporaryUserClarification: createdUserMessage }),
+                    };
+
+                    const atlas = this.session.connectedAtlasCluster;
+                    if (atlas !== undefined && ["FREE", "FLEX"].includes(atlas.instanceType)) {
+                        const hookResult = await runSharedTierAlertsHook({
+                            projectId: atlas.projectId,
+                            clusterName: atlas.clusterName,
+                            instanceType: atlas.instanceType,
+                            apiClient: this.apiClient,
+                            logger: this.session.logger,
+                        });
+                        if (hookResult !== undefined) {
+                            content.push({
+                                type: "text",
+                                text: hookResult.recommendationText,
+                            });
+                            return {
+                                content,
+                                structuredContent: {
+                                    ...baseStructuredContent,
+                                    sharedTierAlertsDetected: true,
+                                    sharedTierTier: hookResult.tier,
+                                    sharedTierAlerts: hookResult.alertTypes,
+                                },
+                            };
+                        }
+                    }
+
+                    return { content, structuredContent: baseStructuredContent };
                 }
                 case "connecting":
                 case "unknown":
@@ -300,7 +345,7 @@ export class ConnectClusterTool extends AtlasToolBase {
             await sleep(500); // wait 500ms before checking the connection state again
         }
 
-        const content: CallToolResult["content"] = [
+        const content: ToolResult<typeof ConnectClusterOutputSchema>["content"] = [
             {
                 type: "text" as const,
                 text: `Attempting to connect to cluster "${clusterName}"...`,
@@ -325,12 +370,20 @@ export class ConnectClusterTool extends AtlasToolBase {
             });
         }
 
-        return { content };
+        return {
+            content,
+            structuredContent: {
+                state: "connecting",
+                addedCurrentIp: ipAccessListUpdated,
+                createdTemporaryUser: createdUser,
+                ...(createdUser && { temporaryUserClarification: createdUserMessage }),
+            },
+        };
     }
 
     protected override resolveTelemetryMetadata(
         args: ToolArgs<typeof this.argsShape>,
-        { result }: { result: CallToolResult }
+        { result }: { result: ToolResult<typeof ConnectClusterOutputSchema> }
     ): ConnectionMetadata {
         const parentMetadata = super.resolveTelemetryMetadata(args, { result });
         const connectionMetadata = this.getConnectionInfoMetadata();
@@ -338,6 +391,15 @@ export class ConnectClusterTool extends AtlasToolBase {
             // delete the project_id from the parent metadata to avoid duplication
             delete parentMetadata.project_id;
         }
-        return { ...parentMetadata, ...connectionMetadata };
+        return {
+            ...parentMetadata,
+            ...connectionMetadata,
+            ...(result.structuredContent.sharedTierTier !== undefined && {
+                // TelemetryBoolSet type required
+                shared_tier_alerts_detected: result.structuredContent.sharedTierAlertsDetected ? "true" : "false",
+                shared_tier_tier: result.structuredContent.sharedTierTier,
+                shared_tier_alerts: result.structuredContent.sharedTierAlerts,
+            }),
+        };
     }
 }

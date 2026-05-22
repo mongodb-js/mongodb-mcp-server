@@ -1,7 +1,7 @@
 import { describe, it, beforeAll, beforeEach, afterAll } from "vitest";
 import { getAvailableModels } from "./models.js";
 import { calculateToolCallingAccuracy } from "./accuracyScorer.js";
-import type { PromptDefinition, VercelAgent } from "./agent.js";
+import type { PromptDefinition, VercelAgent, VercelAgentPromptResult } from "./agent.js";
 import { getVercelToolCallingAgent } from "./agent.js";
 import { prepareTestData, setupMongoDBIntegrationTest } from "@mongodb-js/mcp-integration-tests";
 import type { MockedTools } from "./accuracyTestingClient.js";
@@ -48,6 +48,11 @@ export interface AccuracyTestConfig {
         actualToolCalls: LLMToolCall[],
         mdbClient: MongoClient
     ) => Promise<number> | number;
+
+    /**
+     * Optional assertions on the agent's final merged text (and related fields), e.g. keywords from tool output.
+     */
+    validateAgentResult?: (result: VercelAgentPromptResult) => void | Promise<void>;
 }
 
 export function describeAccuracyTests(
@@ -128,6 +133,10 @@ export function describeAccuracyTests(
                     llmToolCalls,
                     mdbIntegration.mongoClient()
                 );
+            }
+
+            if (testConfig.validateAgentResult) {
+                await testConfig.validateAgentResult(result);
             }
 
             const responseTime = timeAfterPrompt - timeBeforePrompt;

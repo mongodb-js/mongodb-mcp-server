@@ -2,6 +2,7 @@ export { AtlasToolBase, type IAtlasConfig, type IAtlasSession } from "./atlasToo
 export { StreamsToolBase } from "./streams/streamsToolBase.js";
 export { StreamsArgs, ConnectionConfig, PrivateLinkConfig } from "./streams/streamsArgs.js";
 export { ensureCurrentIpInAccessList, DEFAULT_ACCESS_LIST_COMMENT } from "./helpers/accessListUtils.js";
+export { runSharedTierAlertsHook } from "./helpers/sharedTierAlertsHook.js";
 export { getDefaultRoleFromConfig } from "./helpers/roles.js";
 export {
     AtlasArgs,
@@ -33,6 +34,7 @@ export {
     CreateAccessListArgs,
     ConnectClusterTool,
     ConnectClusterArgs,
+    type ConnectClusterOutput,
     StreamsDiscoverTool,
     StreamsBuildTool,
     StreamsManageTool,

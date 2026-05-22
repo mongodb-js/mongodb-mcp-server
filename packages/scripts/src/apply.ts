@@ -117,6 +117,7 @@ async function main(): Promise<void> {
             // @ts-expect-error This is a workaround for the OpenAPI types
             const operation = openapi.paths[pathKey][methodKey] as OpenAPIV3_1.OperationObject & {
                 "x-xgen-operation-id-override": string;
+                "x-accept-override"?: string;
             };
 
             if (!operation.operationId || !operation.tags?.length) {
@@ -124,10 +125,13 @@ async function main(): Promise<void> {
             }
 
             let requiredParams = !!operation.requestBody;
-            const { hasResponseBody, acceptOverride, responseBodySchemaKey } = analyzeSuccessResponse(
-                operation,
-                openapi
-            );
+            const {
+                hasResponseBody,
+                acceptOverride: detectedAcceptOverride,
+                responseBodySchemaKey,
+            } = analyzeSuccessResponse(operation, openapi);
+            // x-accept-override (set by filter.ts) takes precedence; fall back to auto-detected non-JSON types
+            const acceptOverride = operation["x-accept-override"] ?? detectedAcceptOverride;
 
             for (const param of operation.parameters || []) {
                 const paramObject = findObjectFromRef(param, openapi);

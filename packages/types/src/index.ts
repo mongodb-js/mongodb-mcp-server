@@ -14,5 +14,6 @@ export type { IObservable, ICounter, DefaultMetricDefinitions, IMetrics } from "
 export type * from "./ui.js";
 export type * from "./resources.js";
 export type * from "./telemetry.js";
+export { SHARED_TIER_METRIC_NAMES } from "./telemetry.js";
 export type * from "./helpers.js";
 export type * from "./server.js";

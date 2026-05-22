@@ -166,6 +166,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/atlas/v2/groups/{groupId}/clusters/tenantUpgrade": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upgrade One Shared-Tier Cluster
+         * @description Upgrades a shared-tier cluster to a Flex or Dedicated (M10+) cluster in the specified project. Each project supports up to 25 clusters.
+         *
+         *     This endpoint can also be used to upgrade Flex clusters that were created using the [Create Cluster](https://www.mongodb.com/docs/atlas/reference/api-resources-spec/v2/#tag/Clusters/operation/createCluster) API or former M2/M5 clusters that have been migrated to Flex clusters, using `instanceSizeName` to “M2” or “M5” until January 2026. This functionality will be available until January 22, 2026, after which it will only be available for M0 clusters. Please use the Upgrade Flex Cluster endpoint instead.
+         */
+        post: operations["upgradeGroupClusterTenantUpgrade"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}": {
         parameters: {
             query?: never;
@@ -341,6 +363,26 @@ export interface paths {
          * @description Removes one flex cluster from the specified project. The flex cluster must have termination protection disabled in order to be deleted.
          */
         delete: operations["deleteGroupFlexCluster"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/atlas/v2/groups/{groupId}/flexClusters:tenantUpgrade": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upgrade One Flex Cluster
+         * @description Upgrades a flex cluster to a dedicated cluster (M10+) in the specified project.
+         */
+        post: operations["tenantGroupFlexClusterUpgrade"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1681,6 +1723,186 @@ export interface components {
             tokenizer: {
                 [key: string]: Record<string, never>;
             };
+        };
+        /**
+         * Tenant Cluster Upgrade Request
+         * @description Request containing target state of tenant cluster to be upgraded.
+         */
+        AtlasTenantClusterUpgradeRequest20240805: {
+            /**
+             * Format: date-time
+             * @description If reconfiguration is necessary to regain a primary due to a regional outage, submit this field alongside your topology reconfiguration to request a new regional outage resistant topology. Forced reconfigurations during an outage of the majority of electable nodes carry a risk of data loss if replicated writes (even majority committed writes) have not been replicated to the new primary node. MongoDB Atlas docs contain more information. To proceed with an operation which carries that risk, set `acceptDataRisksAndForceReplicaSetReconfig` to the current date. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
+             */
+            acceptDataRisksAndForceReplicaSetReconfig?: string;
+            /**
+             * @description Governs adaptive capacity behavior of Azure nodes in single-cloud Azure clusters or multi-cloud clusters that include Azure nodes. Adaptive capacity enables fallback hardware selection when the primary instance family is unavailable. ``ENABLED`` means the cluster explicitly opts in to adaptive capacity. ``DISABLED`` means the cluster explicitly opts out; the cluster receives capacity errors instead of being placed on fallback hardware. ``null`` means the field is unset; Azure clusters use adaptive capacity by default when the feature is enabled at the group level. Setting this field for single-cloud AWS or GCP clusters is a no-op.
+             * @enum {string|null}
+             */
+            adaptiveCapacity?: "ENABLED" | "DISABLED" | null;
+            advancedConfiguration?: components["schemas"]["ApiAtlasClusterAdvancedConfigurationView"];
+            /**
+             * @description Flag that indicates whether the cluster can perform backups. If set to `true`, the cluster can perform backups. You must set this value to `true` for NVMe clusters. Backup uses Cloud Backups for dedicated clusters and [Shared Cluster Backups](https://docs.atlas.mongodb.com/backup/shared-tier/overview/) for tenant clusters. If set to `false`, the cluster doesn't use backups.
+             * @default false
+             */
+            backupEnabled: boolean;
+            biConnector?: components["schemas"]["BiConnector"];
+            /**
+             * @description Configuration of nodes that comprise the cluster.
+             * @enum {string}
+             */
+            clusterType?: "REPLICASET" | "SHARDED" | "GEOSHARDED";
+            /**
+             * @description Config Server Management Mode for creating or updating a sharded cluster. When configured as `ATLAS_MANAGED`, Atlas may automatically switch the cluster's config server type for optimal performance and savings. When configured as `FIXED_TO_DEDICATED`, the cluster will always use a dedicated config server.
+             * @default ATLAS_MANAGED
+             * @enum {string}
+             */
+            configServerManagementMode: "ATLAS_MANAGED" | "FIXED_TO_DEDICATED";
+            /**
+             * @description Describes a sharded cluster's config server type.
+             * @enum {string}
+             */
+            readonly configServerType?: "DEDICATED" | "EMBEDDED";
+            connectionStrings?: components["schemas"]["ClusterConnectionStrings"];
+            /**
+             * Format: date-time
+             * @description Date and time when MongoDB Cloud created this cluster. This parameter expresses its value in ISO 8601 format in UTC.
+             */
+            readonly createDate?: string;
+            /**
+             * @description Disk warming mode selection.
+             * @default FULLY_WARMED
+             * @enum {string}
+             */
+            diskWarmingMode: "FULLY_WARMED" | "VISIBLE_EARLIER";
+            /** @description List of settings that represent the actual cluster state. This is read-only and always returned in the response. It reflects the current cluster configuration, which may differ from `replicationSpecs` due to system-managed changes. */
+            readonly effectiveReplicationSpecs?: components["schemas"]["ReplicationSpec20240805"][];
+            /**
+             * @description Cloud service provider that manages your customer keys to provide an additional layer of encryption at rest for the cluster. To enable customer key management for encryption at rest, the cluster `replicationSpecs[n].regionConfigs[m].{type}Specs.instanceSize` setting must be `M10` or higher and `"backupEnabled" : false` or omitted entirely.
+             * @enum {string}
+             */
+            encryptionAtRestProvider?: "NONE" | "AWS" | "AZURE" | "GCP";
+            /** @description Feature compatibility version of the cluster. This will always appear regardless of whether FCV is pinned. */
+            readonly featureCompatibilityVersion?: string;
+            /**
+             * Format: date-time
+             * @description Feature compatibility version expiration date. Will only appear if FCV is pinned. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
+             */
+            readonly featureCompatibilityVersionExpirationDate?: string;
+            /**
+             * @description Set this field to configure the Sharding Management Mode when creating a new Global Cluster.
+             *
+             *     When set to false, the management mode is set to Atlas-Managed Sharding. This mode fully manages the sharding of your Global Cluster and is built to provide a seamless deployment experience.
+             *
+             *     When set to true, the management mode is set to Self-Managed Sharding. This mode leaves the management of shards in your hands and is built to provide an advanced and flexible deployment experience.
+             *
+             *     This setting cannot be changed once the cluster is deployed.
+             */
+            globalClusterSelfManagedSharding?: boolean;
+            /**
+             * @description Unique 24-hexadecimal character string that identifies the project.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            readonly groupId?: string;
+            /**
+             * @description Unique 24-hexadecimal digit string that identifies the cluster.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            readonly id?: string;
+            /**
+             * @description Internal classification of the cluster's role. Possible values: `NONE` (regular user cluster), `SYSTEM_CLUSTER` (system cluster for backup), `INTERNAL_SHADOW_CLUSTER` (internal use shadow cluster for testing).
+             * @enum {string}
+             */
+            readonly internalClusterRole?: "NONE" | "SYSTEM_CLUSTER" | "INTERNAL_SHADOW_CLUSTER";
+            /**
+             * @deprecated
+             * @description Collection of key-value pairs between 1 to 255 characters in length that tag and categorize the cluster. The MongoDB Cloud console doesn't display your labels.
+             *
+             *     Cluster labels are deprecated and will be removed in a future release. We strongly recommend that you use Resource Tags instead.
+             */
+            labels?: components["schemas"]["ComponentLabel"][];
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            mongoDBEmployeeAccessGrant?: components["schemas"]["EmployeeAccessGrantView"];
+            /**
+             * @description MongoDB major version of the cluster. Set to the binary major version.
+             *
+             *     On creation: Choose from the available versions of MongoDB, or leave unspecified for the current recommended default in the MongoDB Cloud platform. The recommended version is a recent Long Term Support version. The default is not guaranteed to be the most recently released version throughout the entire release cycle. For versions available in a specific project, see the linked documentation or use the API endpoint for [project LTS versions endpoint](#tag/Projects/operation/getProjectLtsVersions).
+             *
+             *      On update: Increase version only by 1 major version at a time. If the cluster is pinned to a MongoDB feature compatibility version exactly one major version below the current MongoDB version, the MongoDB version can be downgraded to the previous major version.
+             */
+            mongoDBMajorVersion?: string;
+            /** @description Version of MongoDB that the cluster runs. */
+            readonly mongoDBVersion?: string;
+            /** @description Human-readable label that identifies the cluster. */
+            name: string;
+            /** @description Flag that indicates whether the cluster is paused. */
+            paused?: boolean;
+            /** @description Flag that indicates whether the cluster uses continuous cloud backups. */
+            pitEnabled?: boolean;
+            /**
+             * @description Enable or disable log redaction.
+             *
+             *     This setting configures the ``mongod`` or ``mongos`` to redact any document field contents from a message accompanying a given log event before logging. This prevents the program from writing potentially sensitive data stored on the database to the diagnostic log. Metadata such as error or operation codes, line numbers, and source file names are still visible in the logs.
+             *
+             *     Use ``redactClientLogData`` in conjunction with Encryption at Rest and TLS/SSL (Transport Encryption) to assist compliance with regulatory requirements.
+             *
+             *     *Note*: changing this setting on a cluster will trigger a rolling restart as soon as the cluster is updated.
+             */
+            redactClientLogData?: boolean;
+            /**
+             * @description Set this field to configure the replica set scaling mode for your cluster.
+             *
+             *     By default, Atlas scales under `WORKLOAD_TYPE`. This mode allows Atlas to scale your analytics nodes in parallel to your operational nodes.
+             *
+             *     When configured as `SEQUENTIAL`, Atlas scales all nodes sequentially. This mode is intended for steady-state workloads and applications performing latency-sensitive secondary reads.
+             *
+             *     When configured as `NODE_TYPE`, Atlas scales your electable nodes in parallel with your read-only and analytics nodes. This mode is intended for large, dynamic workloads requiring frequent and timely cluster tier scaling. This is the fastest scaling strategy, but it might impact latency of workloads when performing extensive secondary reads.
+             * @default WORKLOAD_TYPE
+             * @enum {string}
+             */
+            replicaSetScalingStrategy: "SEQUENTIAL" | "WORKLOAD_TYPE" | "NODE_TYPE";
+            /** @description List of settings that configure your cluster regions. This array has one object per shard representing node configurations in each shard. For replica sets there is only one object representing node configurations. */
+            replicationSpecs?: components["schemas"]["ReplicationSpec20240805"][];
+            /**
+             * @description Flag that indicates whether the cluster retains backups.
+             * @default false
+             */
+            retainBackups: boolean;
+            /**
+             * @description Root Certificate Authority that MongoDB Atlas cluster uses. MongoDB Cloud supports Internet Security Research Group.
+             * @default ISRGROOTX1
+             * @enum {string}
+             */
+            rootCertType: "ISRGROOTX1";
+            /**
+             * @description Human-readable label that indicates any current activity being taken on this cluster by the Atlas control plane. With the exception of CREATING and DELETING states, clusters should always be available and have a Primary node even when in states indicating ongoing activity.
+             *
+             *      - `IDLE`: Atlas is making no changes to this cluster and all changes requested via the UI or API can be assumed to have been applied.
+             *      - `CREATING`: A cluster being provisioned for the very first time returns state CREATING until it is ready for connections. Ensure IP Access List and DB Users are configured before attempting to connect.
+             *      - `UPDATING`: A change requested via the UI, API, AutoScaling, or other scheduled activity is taking place.
+             *      - `DELETING`: The cluster is in the process of deletion and will soon be deleted.
+             *      - `REPAIRING`: One or more nodes in the cluster are being returned to service by the Atlas control plane. Other nodes should continue to provide service as normal.
+             * @enum {string}
+             */
+            readonly stateName?: "IDLE" | "CREATING" | "UPDATING" | "DELETING" | "REPAIRING";
+            /** @description List that contains key-value pairs between 1 to 255 characters in length for tagging and categorizing the cluster. */
+            tags?: components["schemas"]["ResourceTag"][];
+            /**
+             * @description Flag that indicates whether termination protection is enabled on the cluster. If set to `true`, MongoDB Cloud won't delete the cluster. If set to `false`, MongoDB Cloud will delete the cluster.
+             * @default false
+             */
+            terminationProtectionEnabled: boolean;
+            /**
+             * @description Flag that indicates whether AWS time-based snapshot copies will be used instead of slower standard snapshot copies during fast Atlas cross-region initial syncs. This flag is only relevant for clusters containing AWS nodes.
+             * @default false
+             */
+            useAwsTimeBasedSnapshotCopyForFastInitialSync: boolean;
+            /**
+             * @description Method by which the cluster maintains the MongoDB versions. If value is `CONTINUOUS`, you must not specify `mongoDBMajorVersion`.
+             * @default LTS
+             * @enum {string}
+             */
+            versionReleaseSystem: "LTS" | "CONTINUOUS";
         };
         AzureAccountDetails: {
             /** @description The Azure Subscription ID. */
@@ -3198,6 +3420,34 @@ export interface components {
              * @description Date and time when someone last updated this alert. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
              */
             readonly updated: string;
+        };
+        /**
+         * Automatic Cluster Scaling Settings
+         * @description Range of instance sizes to which your cluster can scale.
+         */
+        ClusterAutoScalingSettings: {
+            compute?: components["schemas"]["ClusterComputeAutoScaling"];
+            /**
+             * @description Flag that indicates whether someone enabled disk auto-scaling for this cluster.
+             * @default false
+             */
+            diskGBEnabled: boolean;
+        };
+        /** @description Collection of settings that configures how a cluster might scale its cluster tier and whether the cluster can scale down. Cluster tier auto-scaling is unavailable for clusters using Low CPU or NVME storage classes. */
+        ClusterComputeAutoScaling: {
+            /**
+             * @description Flag that indicates whether instance size reactive auto-scaling is enabled.
+             *
+             *     - Set to `true` to enable instance size reactive auto-scaling. If enabled, you must specify a value for `providerSettings.autoScaling.compute.maxInstanceSize`.
+             *     - Set to `false` to disable instance size reactive auto-scaling.
+             * @default false
+             */
+            enabled: boolean;
+            /**
+             * @description Flag that indicates whether the cluster tier can scale down via reactive auto-scaling. This is required if `autoScaling.compute.enabled` is `true`. If you enable this option, specify a value for `providerSettings.autoScaling.compute.minInstanceSize`.
+             * @default false
+             */
+            scaleDownEnabled: boolean;
         };
         /**
          * Cluster Connection Strings
@@ -6231,6 +6481,492 @@ export interface components {
              */
             type?: "PERIODIC_CPS" | "ON_DEMAND_CPS";
         };
+        /**
+         * Cluster Description
+         * @description Group of settings that configure a MongoDB cluster.
+         */
+        LegacyAtlasCluster: {
+            /**
+             * Format: date-time
+             * @description If reconfiguration is necessary to regain a primary due to a regional outage, submit this field alongside your topology reconfiguration to request a new regional outage resistant topology. Forced reconfigurations during an outage of the majority of electable nodes carry a risk of data loss if replicated writes (even majority committed writes) have not been replicated to the new primary node. MongoDB Atlas docs contain more information. To proceed with an operation which carries that risk, set `acceptDataRisksAndForceReplicaSetReconfig` to the current date. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
+             */
+            acceptDataRisksAndForceReplicaSetReconfig?: string;
+            advancedConfiguration?: components["schemas"]["ApiAtlasClusterAdvancedConfigurationView"];
+            autoScaling?: components["schemas"]["ClusterAutoScalingSettings"];
+            /** @description Flag that indicates whether the cluster can perform backups. If set to `true`, the cluster can perform backups. You must set this value to `true` for NVMe clusters. Backup uses Cloud Backups for dedicated clusters and Shared Cluster Backups for tenant clusters. If set to `false`, the cluster doesn't use MongoDB Cloud backups. */
+            backupEnabled?: boolean;
+            biConnector?: components["schemas"]["BiConnector"];
+            /**
+             * @description Configuration of nodes that comprise the cluster.
+             * @enum {string}
+             */
+            clusterType?: "REPLICASET" | "SHARDED" | "GEOSHARDED";
+            /**
+             * @description Config Server Management Mode for creating or updating a sharded cluster. When configured as `ATLAS_MANAGED`, Atlas may automatically switch the cluster's config server type for optimal performance and savings. When configured as `FIXED_TO_DEDICATED`, the cluster will always use a dedicated config server.
+             * @default ATLAS_MANAGED
+             * @enum {string}
+             */
+            configServerManagementMode: "ATLAS_MANAGED" | "FIXED_TO_DEDICATED";
+            /**
+             * @description Describes a sharded cluster's config server type.
+             * @enum {string}
+             */
+            readonly configServerType?: "DEDICATED" | "EMBEDDED";
+            connectionStrings?: components["schemas"]["ClusterConnectionStrings"];
+            /**
+             * Format: date-time
+             * @description Date and time when MongoDB Cloud created this serverless instance. MongoDB Cloud represents this timestamp in ISO 8601 format in UTC.
+             */
+            readonly createDate?: string;
+            /**
+             * Format: int32
+             * @description Number of hours after cluster creation that this cluster will be automatically deleted.
+             *
+             *     This field is used to derive `deleteAfterDate` relative to `createDate`.
+             *
+             *     When set to null or zero on cluster creation, the cluster will not be automatically deleted.
+             *
+             *     When set to a positive value on cluster creation, the cluster will be automatically deleted after the specified number of hours.
+             *
+             *     When updating this field on an existing (non-deleted) cluster, and this is set to null, then existing values are preserved for this & `deleteAfterDate`.
+             *
+             *     When updating this field on an existing (non-deleted) cluster, and this is set to zero, then `deleteAfterDate` is reset to null (disable auto deletion) regardless of previous configurations.
+             *
+             *     When updating this field on an existing (non-deleted) cluster, and this is set to a positive value, then `createDate` + `deleteAfterCreationHours` must be later than now else the field update is ignored and existing values are preserved for this & `deleteAfterDate`.
+             */
+            deleteAfterCreationHours?: number;
+            /**
+             * Format: date-time
+             * @description The date at which this cluster will be automatically deleted.
+             *
+             *     This parameter expresses its value in the ISO 8601 timestamp format in UTC and is derived based on the `createDate` + `deleteAfterCreationHours`.
+             */
+            readonly deleteAfterDate?: string;
+            /**
+             * Format: double
+             * @description Storage capacity of instance data volumes expressed in gigabytes. Increase this number to add capacity.
+             *
+             *      This value is not configurable on M0/M2/M5 clusters.
+             *
+             *      MongoDB Cloud requires this parameter if you set `replicationSpecs`.
+             *
+             *      If you specify a disk size below the minimum (10 GB), this parameter defaults to the minimum disk size value.
+             *
+             *      Storage charge calculations depend on whether you choose the default value or a custom value.
+             *
+             *      The maximum value for disk storage cannot exceed 50 times the maximum RAM for the selected cluster. If you require more storage space, consider upgrading your cluster to a higher tier.
+             */
+            diskSizeGB?: number;
+            /**
+             * @description Disk warming mode selection.
+             * @default FULLY_WARMED
+             * @enum {string}
+             */
+            diskWarmingMode: "FULLY_WARMED" | "VISIBLE_EARLIER";
+            /**
+             * @description Cloud service provider that manages your customer keys to provide an additional layer of encryption at rest for the cluster. To enable customer key management for encryption at rest, the cluster `replicationSpecs[n].regionConfigs[m].{type}Specs.instanceSize` setting must be `M10` or higher and `"backupEnabled" : false` or omitted entirely.
+             * @enum {string}
+             */
+            encryptionAtRestProvider?: "NONE" | "AWS" | "AZURE" | "GCP";
+            /** @description Feature compatibility version of the cluster. */
+            readonly featureCompatibilityVersion?: string;
+            /**
+             * Format: date-time
+             * @description Feature compatibility version expiration date. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
+             */
+            readonly featureCompatibilityVersionExpirationDate?: string;
+            /**
+             * @description Set this field to configure the Sharding Management Mode when creating a new Global Cluster.
+             *
+             *     When set to false, the management mode is set to Atlas-Managed Sharding. This mode fully manages the sharding of your Global Cluster and is built to provide a seamless deployment experience.
+             *
+             *     When set to true, the management mode is set to Self-Managed Sharding. This mode leaves the management of shards in your hands and is built to provide an advanced and flexible deployment experience.
+             *
+             *     This setting cannot be changed once the cluster is deployed.
+             */
+            globalClusterSelfManagedSharding?: boolean;
+            /**
+             * @description Unique 24-hexadecimal character string that identifies the project.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            readonly groupId?: string;
+            /**
+             * @description Unique 24-hexadecimal digit string that identifies the cluster.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            readonly id?: string;
+            /**
+             * @deprecated
+             * @description Collection of key-value pairs between 1 to 255 characters in length that tag and categorize the cluster. The MongoDB Cloud console doesn't display your labels.
+             *
+             *     Cluster labels are deprecated and will be removed in a future release. We strongly recommend that you use Resource Tags instead.
+             */
+            labels?: components["schemas"]["ComponentLabel"][];
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            mongoDBEmployeeAccessGrant?: components["schemas"]["EmployeeAccessGrantView"];
+            /**
+             * @description MongoDB major version of the cluster.
+             *
+             *     On creation: Choose from the available versions of MongoDB, or leave unspecified for the current recommended default in the MongoDB Cloud platform. The recommended version is a recent Long Term Support version. The default is not guaranteed to be the most recently released version throughout the entire release cycle. For versions available in a specific project, see the linked documentation or use the API endpoint for [project LTS versions endpoint](#tag/Projects/operation/getProjectLTSVersions).
+             *
+             *      On update: Increase version only by 1 major version at a time. If the cluster is pinned to a MongoDB feature compatibility version exactly one major version below the current MongoDB version, the MongoDB version can be downgraded to the previous major version.
+             * @example 5.0
+             */
+            mongoDBMajorVersion?: string;
+            /**
+             * @description Version of MongoDB that the cluster runs.
+             * @example 5.0.25
+             */
+            mongoDBVersion?: string;
+            /** @description Base connection string that you can use to connect to the cluster. MongoDB Cloud displays the string only after the cluster starts, not while it builds the cluster. */
+            readonly mongoURI?: string;
+            /**
+             * Format: date-time
+             * @description Date and time when someone last updated the connection string. MongoDB Cloud represents this timestamp in ISO 8601 format in UTC.
+             */
+            readonly mongoURIUpdated?: string;
+            /** @description Connection string that you can use to connect to the cluster including the `replicaSet`, `ssl`, and `authSource` query parameters with values appropriate for the cluster. You may need to add MongoDB database users. The response returns this parameter once the cluster can receive requests, not while it builds the cluster. */
+            readonly mongoURIWithOptions?: string;
+            /** @description Human-readable label that identifies the cluster. */
+            name?: string;
+            /**
+             * Format: int32
+             * @description Number of shards up to 50 to deploy for a sharded cluster. The resource returns `1` to indicate a replica set and values of `2` and higher to indicate a sharded cluster. The returned value equals the number of shards in the cluster.
+             * @default 1
+             */
+            numShards: number;
+            /** @description Flag that indicates whether the cluster is paused. */
+            paused?: boolean;
+            /** @description Flag that indicates whether the cluster uses continuous cloud backups. */
+            pitEnabled?: boolean;
+            /** @description Flag that indicates whether the M10 or higher cluster can perform Cloud Backups. If set to `true`, the cluster can perform backups. If this and `backupEnabled` are set to `false`, the cluster doesn't use MongoDB Cloud backups. */
+            providerBackupEnabled?: boolean;
+            providerSettings?: components["schemas"]["ClusterProviderSettings"];
+            /**
+             * @description Set this field to configure the replica set scaling mode for your cluster.
+             *
+             *     By default, Atlas scales under `WORKLOAD_TYPE`. This mode allows Atlas to scale your analytics nodes in parallel to your operational nodes.
+             *
+             *     When configured as `SEQUENTIAL`, Atlas scales all nodes sequentially. This mode is intended for steady-state workloads and applications performing latency-sensitive secondary reads.
+             *
+             *     When configured as `NODE_TYPE`, Atlas scales your electable nodes in parallel with your read-only and analytics nodes. This mode is intended for large, dynamic workloads requiring frequent and timely cluster tier scaling. This is the fastest scaling strategy, but it might impact latency of workloads when performing extensive secondary reads.
+             * @default WORKLOAD_TYPE
+             * @enum {string}
+             */
+            replicaSetScalingStrategy: "SEQUENTIAL" | "WORKLOAD_TYPE" | "NODE_TYPE";
+            /**
+             * Format: int32
+             * @deprecated
+             * @description Number of members that belong to the replica set. Each member retains a copy of your databases, providing high availability and data redundancy. Use `replicationSpecs` instead.
+             * @default 3
+             * @enum {integer}
+             */
+            replicationFactor: 3 | 5 | 7;
+            /**
+             * Region Configuration
+             * @description Physical location where MongoDB Cloud provisions cluster nodes.
+             */
+            replicationSpec?: {
+                [key: string]: components["schemas"]["RegionSpec"];
+            };
+            /**
+             * @description List of settings that configure your cluster regions.
+             *
+             *     - For Global Clusters, each object in the array represents one zone where MongoDB Cloud deploys your clusters nodes.
+             *     - For non-Global sharded clusters and replica sets, the single object represents where MongoDB Cloud deploys your clusters nodes.
+             */
+            replicationSpecs?: components["schemas"]["LegacyReplicationSpec"][];
+            /**
+             * @description Root Certificate Authority that MongoDB Atlas cluster uses. MongoDB Cloud supports Internet Security Research Group.
+             * @default ISRGROOTX1
+             * @enum {string}
+             */
+            rootCertType: "ISRGROOTX1";
+            /** @description Connection string that you can use to connect to the cluster. The `+srv` modifier forces the connection to use Transport Layer Security (TLS). The `mongoURI` parameter lists additional options. */
+            readonly srvAddress?: string;
+            /**
+             * @description Human-readable label that indicates any current activity being taken on this cluster by the Atlas control plane. With the exception of CREATING and DELETING states, clusters should always be available and have a Primary node even when in states indicating ongoing activity.
+             *
+             *      - `IDLE`: Atlas is making no changes to this cluster and all changes requested via the UI or API can be assumed to have been applied.
+             *      - `CREATING`: A cluster being provisioned for the very first time returns state CREATING until it is ready for connections. Ensure IP Access List and DB Users are configured before attempting to connect.
+             *      - `UPDATING`: A change requested via the UI, API, AutoScaling, or other scheduled activity is taking place.
+             *      - `DELETING`: The cluster is in the process of deletion and will soon be deleted.
+             *      - `REPAIRING`: One or more nodes in the cluster are being returned to service by the Atlas control plane. Other nodes should continue to provide service as normal.
+             * @enum {string}
+             */
+            readonly stateName?: "IDLE" | "CREATING" | "UPDATING" | "DELETING" | "REPAIRING";
+            /** @description List that contains key-value pairs between 1 to 255 characters in length for tagging and categorizing the cluster. */
+            tags?: components["schemas"]["ResourceTag"][];
+            /**
+             * @description Flag that indicates whether termination protection is enabled on the cluster. If set to `true`, MongoDB Cloud won't delete the cluster. If set to `false`, MongoDB Cloud will delete the cluster.
+             * @default false
+             */
+            terminationProtectionEnabled: boolean;
+            /**
+             * @description Method by which the cluster maintains the MongoDB versions. If value is `CONTINUOUS`, you must not specify `mongoDBMajorVersion`.
+             * @default LTS
+             * @enum {string}
+             */
+            versionReleaseSystem: "LTS" | "CONTINUOUS";
+        };
+        /**
+         * Tenant Cluster Upgrade Request
+         * @description Request containing target state of tenant cluster to be upgraded.
+         */
+        LegacyAtlasTenantClusterUpgradeRequest: {
+            /**
+             * Format: date-time
+             * @description If reconfiguration is necessary to regain a primary due to a regional outage, submit this field alongside your topology reconfiguration to request a new regional outage resistant topology. Forced reconfigurations during an outage of the majority of electable nodes carry a risk of data loss if replicated writes (even majority committed writes) have not been replicated to the new primary node. MongoDB Atlas docs contain more information. To proceed with an operation which carries that risk, set `acceptDataRisksAndForceReplicaSetReconfig` to the current date. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
+             */
+            acceptDataRisksAndForceReplicaSetReconfig?: string;
+            advancedConfiguration?: components["schemas"]["ApiAtlasClusterAdvancedConfigurationView"];
+            autoScaling?: components["schemas"]["ClusterAutoScalingSettings"];
+            /** @description Flag that indicates whether the cluster can perform backups. If set to `true`, the cluster can perform backups. You must set this value to `true` for NVMe clusters. Backup uses Cloud Backups for dedicated clusters and Shared Cluster Backups for tenant clusters. If set to `false`, the cluster doesn't use MongoDB Cloud backups. */
+            backupEnabled?: boolean;
+            biConnector?: components["schemas"]["BiConnector"];
+            /**
+             * @description Configuration of nodes that comprise the cluster.
+             * @enum {string}
+             */
+            clusterType?: "REPLICASET" | "SHARDED" | "GEOSHARDED";
+            /**
+             * @description Config Server Management Mode for creating or updating a sharded cluster. When configured as `ATLAS_MANAGED`, Atlas may automatically switch the cluster's config server type for optimal performance and savings. When configured as `FIXED_TO_DEDICATED`, the cluster will always use a dedicated config server.
+             * @default ATLAS_MANAGED
+             * @enum {string}
+             */
+            configServerManagementMode: "ATLAS_MANAGED" | "FIXED_TO_DEDICATED";
+            /**
+             * @description Describes a sharded cluster's config server type.
+             * @enum {string}
+             */
+            readonly configServerType?: "DEDICATED" | "EMBEDDED";
+            connectionStrings?: components["schemas"]["ClusterConnectionStrings"];
+            /**
+             * Format: date-time
+             * @description Date and time when MongoDB Cloud created this serverless instance. MongoDB Cloud represents this timestamp in ISO 8601 format in UTC.
+             */
+            readonly createDate?: string;
+            /**
+             * Format: int32
+             * @description Number of hours after cluster creation that this cluster will be automatically deleted.
+             *
+             *     This field is used to derive `deleteAfterDate` relative to `createDate`.
+             *
+             *     When set to null or zero on cluster creation, the cluster will not be automatically deleted.
+             *
+             *     When set to a positive value on cluster creation, the cluster will be automatically deleted after the specified number of hours.
+             *
+             *     When updating this field on an existing (non-deleted) cluster, and this is set to null, then existing values are preserved for this & `deleteAfterDate`.
+             *
+             *     When updating this field on an existing (non-deleted) cluster, and this is set to zero, then `deleteAfterDate` is reset to null (disable auto deletion) regardless of previous configurations.
+             *
+             *     When updating this field on an existing (non-deleted) cluster, and this is set to a positive value, then `createDate` + `deleteAfterCreationHours` must be later than now else the field update is ignored and existing values are preserved for this & `deleteAfterDate`.
+             */
+            deleteAfterCreationHours?: number;
+            /**
+             * Format: date-time
+             * @description The date at which this cluster will be automatically deleted.
+             *
+             *     This parameter expresses its value in the ISO 8601 timestamp format in UTC and is derived based on the `createDate` + `deleteAfterCreationHours`.
+             */
+            readonly deleteAfterDate?: string;
+            /**
+             * Format: double
+             * @description Storage capacity of instance data volumes expressed in gigabytes. Increase this number to add capacity.
+             *
+             *      This value is not configurable on M0/M2/M5 clusters.
+             *
+             *      MongoDB Cloud requires this parameter if you set `replicationSpecs`.
+             *
+             *      If you specify a disk size below the minimum (10 GB), this parameter defaults to the minimum disk size value.
+             *
+             *      Storage charge calculations depend on whether you choose the default value or a custom value.
+             *
+             *      The maximum value for disk storage cannot exceed 50 times the maximum RAM for the selected cluster. If you require more storage space, consider upgrading your cluster to a higher tier.
+             */
+            diskSizeGB?: number;
+            /**
+             * @description Disk warming mode selection.
+             * @default FULLY_WARMED
+             * @enum {string}
+             */
+            diskWarmingMode: "FULLY_WARMED" | "VISIBLE_EARLIER";
+            /**
+             * @description Cloud service provider that manages your customer keys to provide an additional layer of encryption at rest for the cluster. To enable customer key management for encryption at rest, the cluster `replicationSpecs[n].regionConfigs[m].{type}Specs.instanceSize` setting must be `M10` or higher and `"backupEnabled" : false` or omitted entirely.
+             * @enum {string}
+             */
+            encryptionAtRestProvider?: "NONE" | "AWS" | "AZURE" | "GCP";
+            /** @description Feature compatibility version of the cluster. */
+            readonly featureCompatibilityVersion?: string;
+            /**
+             * Format: date-time
+             * @description Feature compatibility version expiration date. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
+             */
+            readonly featureCompatibilityVersionExpirationDate?: string;
+            /**
+             * @description Set this field to configure the Sharding Management Mode when creating a new Global Cluster.
+             *
+             *     When set to false, the management mode is set to Atlas-Managed Sharding. This mode fully manages the sharding of your Global Cluster and is built to provide a seamless deployment experience.
+             *
+             *     When set to true, the management mode is set to Self-Managed Sharding. This mode leaves the management of shards in your hands and is built to provide an advanced and flexible deployment experience.
+             *
+             *     This setting cannot be changed once the cluster is deployed.
+             */
+            globalClusterSelfManagedSharding?: boolean;
+            /**
+             * @description Unique 24-hexadecimal character string that identifies the project.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            readonly groupId?: string;
+            /**
+             * @description Unique 24-hexadecimal digit string that identifies the cluster.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            readonly id?: string;
+            /**
+             * @deprecated
+             * @description Collection of key-value pairs between 1 to 255 characters in length that tag and categorize the cluster. The MongoDB Cloud console doesn't display your labels.
+             *
+             *     Cluster labels are deprecated and will be removed in a future release. We strongly recommend that you use Resource Tags instead.
+             */
+            labels?: components["schemas"]["ComponentLabel"][];
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            mongoDBEmployeeAccessGrant?: components["schemas"]["EmployeeAccessGrantView"];
+            /**
+             * @description MongoDB major version of the cluster.
+             *
+             *     On creation: Choose from the available versions of MongoDB, or leave unspecified for the current recommended default in the MongoDB Cloud platform. The recommended version is a recent Long Term Support version. The default is not guaranteed to be the most recently released version throughout the entire release cycle. For versions available in a specific project, see the linked documentation or use the API endpoint for [project LTS versions endpoint](#tag/Projects/operation/getProjectLTSVersions).
+             *
+             *      On update: Increase version only by 1 major version at a time. If the cluster is pinned to a MongoDB feature compatibility version exactly one major version below the current MongoDB version, the MongoDB version can be downgraded to the previous major version.
+             * @example 5.0
+             */
+            mongoDBMajorVersion?: string;
+            /**
+             * @description Version of MongoDB that the cluster runs.
+             * @example 5.0.25
+             */
+            mongoDBVersion?: string;
+            /** @description Base connection string that you can use to connect to the cluster. MongoDB Cloud displays the string only after the cluster starts, not while it builds the cluster. */
+            readonly mongoURI?: string;
+            /**
+             * Format: date-time
+             * @description Date and time when someone last updated the connection string. MongoDB Cloud represents this timestamp in ISO 8601 format in UTC.
+             */
+            readonly mongoURIUpdated?: string;
+            /** @description Connection string that you can use to connect to the cluster including the `replicaSet`, `ssl`, and `authSource` query parameters with values appropriate for the cluster. You may need to add MongoDB database users. The response returns this parameter once the cluster can receive requests, not while it builds the cluster. */
+            readonly mongoURIWithOptions?: string;
+            /** @description Human-readable label that identifies the cluster. */
+            name: string;
+            /**
+             * Format: int32
+             * @description Number of shards up to 50 to deploy for a sharded cluster. The resource returns `1` to indicate a replica set and values of `2` and higher to indicate a sharded cluster. The returned value equals the number of shards in the cluster.
+             * @default 1
+             */
+            numShards: number;
+            /** @description Flag that indicates whether the cluster is paused. */
+            paused?: boolean;
+            /** @description Flag that indicates whether the cluster uses continuous cloud backups. */
+            pitEnabled?: boolean;
+            /** @description Flag that indicates whether the M10 or higher cluster can perform Cloud Backups. If set to `true`, the cluster can perform backups. If this and `backupEnabled` are set to `false`, the cluster doesn't use MongoDB Cloud backups. */
+            providerBackupEnabled?: boolean;
+            providerSettings?: components["schemas"]["ClusterProviderSettings"];
+            /**
+             * @description Set this field to configure the replica set scaling mode for your cluster.
+             *
+             *     By default, Atlas scales under `WORKLOAD_TYPE`. This mode allows Atlas to scale your analytics nodes in parallel to your operational nodes.
+             *
+             *     When configured as `SEQUENTIAL`, Atlas scales all nodes sequentially. This mode is intended for steady-state workloads and applications performing latency-sensitive secondary reads.
+             *
+             *     When configured as `NODE_TYPE`, Atlas scales your electable nodes in parallel with your read-only and analytics nodes. This mode is intended for large, dynamic workloads requiring frequent and timely cluster tier scaling. This is the fastest scaling strategy, but it might impact latency of workloads when performing extensive secondary reads.
+             * @default WORKLOAD_TYPE
+             * @enum {string}
+             */
+            replicaSetScalingStrategy: "SEQUENTIAL" | "WORKLOAD_TYPE" | "NODE_TYPE";
+            /**
+             * Format: int32
+             * @deprecated
+             * @description Number of members that belong to the replica set. Each member retains a copy of your databases, providing high availability and data redundancy. Use `replicationSpecs` instead.
+             * @default 3
+             * @enum {integer}
+             */
+            replicationFactor: 3 | 5 | 7;
+            /**
+             * Region Configuration
+             * @description Physical location where MongoDB Cloud provisions cluster nodes.
+             */
+            replicationSpec?: {
+                [key: string]: components["schemas"]["RegionSpec"];
+            };
+            /**
+             * @description List of settings that configure your cluster regions.
+             *
+             *     - For Global Clusters, each object in the array represents one zone where MongoDB Cloud deploys your clusters nodes.
+             *     - For non-Global sharded clusters and replica sets, the single object represents where MongoDB Cloud deploys your clusters nodes.
+             */
+            replicationSpecs?: components["schemas"]["LegacyReplicationSpec"][];
+            /**
+             * @description Root Certificate Authority that MongoDB Atlas cluster uses. MongoDB Cloud supports Internet Security Research Group.
+             * @default ISRGROOTX1
+             * @enum {string}
+             */
+            rootCertType: "ISRGROOTX1";
+            /** @description Connection string that you can use to connect to the cluster. The `+srv` modifier forces the connection to use Transport Layer Security (TLS). The `mongoURI` parameter lists additional options. */
+            readonly srvAddress?: string;
+            /**
+             * @description Human-readable label that indicates any current activity being taken on this cluster by the Atlas control plane. With the exception of CREATING and DELETING states, clusters should always be available and have a Primary node even when in states indicating ongoing activity.
+             *
+             *      - `IDLE`: Atlas is making no changes to this cluster and all changes requested via the UI or API can be assumed to have been applied.
+             *      - `CREATING`: A cluster being provisioned for the very first time returns state CREATING until it is ready for connections. Ensure IP Access List and DB Users are configured before attempting to connect.
+             *      - `UPDATING`: A change requested via the UI, API, AutoScaling, or other scheduled activity is taking place.
+             *      - `DELETING`: The cluster is in the process of deletion and will soon be deleted.
+             *      - `REPAIRING`: One or more nodes in the cluster are being returned to service by the Atlas control plane. Other nodes should continue to provide service as normal.
+             * @enum {string}
+             */
+            readonly stateName?: "IDLE" | "CREATING" | "UPDATING" | "DELETING" | "REPAIRING";
+            /** @description List that contains key-value pairs between 1 to 255 characters in length for tagging and categorizing the cluster. */
+            tags?: components["schemas"]["ResourceTag"][];
+            /**
+             * @description Flag that indicates whether termination protection is enabled on the cluster. If set to `true`, MongoDB Cloud won't delete the cluster. If set to `false`, MongoDB Cloud will delete the cluster.
+             * @default false
+             */
+            terminationProtectionEnabled: boolean;
+            /**
+             * @description Method by which the cluster maintains the MongoDB versions. If value is `CONTINUOUS`, you must not specify `mongoDBMajorVersion`.
+             * @default LTS
+             * @enum {string}
+             */
+            versionReleaseSystem: "LTS" | "CONTINUOUS";
+        };
+        LegacyReplicationSpec: {
+            /**
+             * @description Unique 24-hexadecimal digit string that identifies the replication object for a zone in a Global Cluster.
+             *
+             *     - If you include existing zones in the request, you must specify this parameter.
+             *
+             *     - If you add a new zone to an existing Global Cluster, you may specify this parameter. The request deletes any existing zones in a Global Cluster that you exclude from the request.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            id?: string;
+            /**
+             * Format: int32
+             * @description Positive integer that specifies the number of shards to deploy in each specified zone If you set this value to `1` and `clusterType` is `SHARDED`, MongoDB Cloud deploys a single-shard sharded cluster. Don't create a sharded cluster with a single shard for production environments. Single-shard sharded clusters don't provide the same benefits as multi-shard configurations.
+             *
+             *      If you are upgrading a replica set to a sharded cluster, you cannot increase the number of shards in the same update request.  You should wait until after the cluster has completed upgrading to sharded and you have reconnected all application clients to the MongoDB router before adding additional shards. Otherwise, your data might become inconsistent once MongoDB Cloud begins distributing data across shards.
+             * @default 1
+             */
+            numShards: number;
+            /**
+             * Region Configuration
+             * @description Physical location where MongoDB Cloud provisions cluster nodes.
+             */
+            regionsConfig?: {
+                [key: string]: components["schemas"]["RegionSpec"];
+            };
+            /** @description Human-readable label that identifies the zone in a Global Cluster. Provide this value only if `clusterType` is `GEOSHARDED`. */
+            zoneName?: string;
+        };
         Link: {
             /**
              * @description Uniform Resource Locator (URL) that points another API resource to which this response has some relationship. This URL often begins with `https://cloud.mongodb.com/api/atlas`.
@@ -7143,6 +7879,33 @@ export interface components {
              */
             readonly number?: number;
             units?: components["schemas"]["RawMetricUnits"];
+        };
+        /**
+         * Region Configuration
+         * @description Physical location where MongoDB Cloud provisions cluster nodes.
+         */
+        RegionSpec: {
+            /**
+             * Format: int32
+             * @description Number of analytics nodes in the region. Analytics nodes handle analytic data such as reporting queries from MongoDB Connector for Business Intelligence on MongoDB Cloud. Analytics nodes are read-only, and can never become the primary. Use `replicationSpecs[n].{region}.analyticsNodes` instead.
+             */
+            analyticsNodes?: number;
+            /**
+             * Format: int32
+             * @description Number of electable nodes to deploy in the specified region. Electable nodes can become the primary and can facilitate local reads. Use `replicationSpecs[n].{region}.electableNodes` instead.
+             * @enum {integer}
+             */
+            electableNodes?: 0 | 3 | 5 | 7;
+            /**
+             * Format: int32
+             * @description Number that indicates the election priority of the region. To identify the Preferred Region of the cluster, set this parameter to `7`. The primary node runs in the **Preferred Region**. To identify a read-only region, set this parameter to `0`.
+             */
+            priority?: number;
+            /**
+             * Format: int32
+             * @description Number of read-only nodes in the region. Read-only nodes can never become the primary member, but can facilitate local reads. Use `replicationSpecs[n].{region}.readOnlyNodes` instead.
+             */
+            readOnlyNodes?: number;
         };
         /**
          * ReplicaSet Alerts
@@ -9989,6 +10752,8 @@ export type AppServiceAlertView = components["schemas"]["AppServiceAlertView"];
 export type AppServiceEventTypeViewAlertable = components["schemas"]["AppServiceEventTypeViewAlertable"];
 export type AtlasOrganization = components["schemas"]["AtlasOrganization"];
 export type AtlasSearchAnalyzer = components["schemas"]["AtlasSearchAnalyzer"];
+export type AtlasTenantClusterUpgradeRequest20240805 =
+    components["schemas"]["AtlasTenantClusterUpgradeRequest20240805"];
 export type AzureAccountDetails = components["schemas"]["AzureAccountDetails"];
 export type AzureCloudProviderContainer = components["schemas"]["AzureCloudProviderContainer"];
 export type AzureCloudProviderSettings = components["schemas"]["AzureCloudProviderSettings"];
@@ -10044,6 +10809,8 @@ export type CloudProviderContainer = components["schemas"]["CloudProviderContain
 export type CloudProviderGcpAutoScaling = components["schemas"]["CloudProviderGCPAutoScaling"];
 export type CloudRegionConfig20240805 = components["schemas"]["CloudRegionConfig20240805"];
 export type ClusterAlertViewForNdsGroup = components["schemas"]["ClusterAlertViewForNdsGroup"];
+export type ClusterAutoScalingSettings = components["schemas"]["ClusterAutoScalingSettings"];
+export type ClusterComputeAutoScaling = components["schemas"]["ClusterComputeAutoScaling"];
 export type ClusterConnectionStrings = components["schemas"]["ClusterConnectionStrings"];
 export type ClusterDescription20240805 = components["schemas"]["ClusterDescription20240805"];
 export type ClusterDescriptionConnectionStringsPrivateEndpoint =
@@ -10151,6 +10918,9 @@ export type HostMetricEventTypeViewAlertable = components["schemas"]["HostMetric
 export type HostMetricValue = components["schemas"]["HostMetricValue"];
 export type IngestionSink = components["schemas"]["IngestionSink"];
 export type IngestionSource = components["schemas"]["IngestionSource"];
+export type LegacyAtlasCluster = components["schemas"]["LegacyAtlasCluster"];
+export type LegacyAtlasTenantClusterUpgradeRequest = components["schemas"]["LegacyAtlasTenantClusterUpgradeRequest"];
+export type LegacyReplicationSpec = components["schemas"]["LegacyReplicationSpec"];
 export type Link = components["schemas"]["Link"];
 export type LogIntegrationRequest = components["schemas"]["LogIntegrationRequest"];
 export type LogIntegrationResponse = components["schemas"]["LogIntegrationResponse"];
@@ -10193,6 +10963,7 @@ export type PeriodicCpsSnapshotSource = components["schemas"]["PeriodicCpsSnapsh
 export type RawMetricAlertView = components["schemas"]["RawMetricAlertView"];
 export type RawMetricUnits = components["schemas"]["RawMetricUnits"];
 export type RawMetricValueView = components["schemas"]["RawMetricValueView"];
+export type RegionSpec = components["schemas"]["RegionSpec"];
 export type ReplicaSetAlertViewForNdsGroup = components["schemas"]["ReplicaSetAlertViewForNdsGroup"];
 export type ReplicaSetEventTypeViewForNdsGroupAlertable =
     components["schemas"]["ReplicaSetEventTypeViewForNdsGroupAlertable"];
@@ -10822,6 +11593,53 @@ export interface operations {
             500: components["responses"]["internalServerError"];
         };
     };
+    upgradeGroupClusterTenantUpgrade: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description Flag that indicates whether the response body should be in the prettyprint format. */
+                pretty?: components["parameters"]["pretty"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+            };
+            cookie?: never;
+        };
+        /** @description Details of the shared-tier cluster upgrade in the specified project. */
+        requestBody: {
+            content: {
+                "application/vnd.atlas.2023-01-01+json": components["schemas"]["LegacyAtlasTenantClusterUpgradeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2023-01-01+json": components["schemas"]["LegacyAtlasCluster"];
+                };
+            };
+            400: components["responses"]["badRequest"];
+            401: components["responses"]["unauthorized"];
+            402: components["responses"]["paymentRequired"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            409: components["responses"]["conflict"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
     getGroupCluster: {
         parameters: {
             query?: {
@@ -11364,6 +12182,53 @@ export interface operations {
             };
             400: components["responses"]["badRequest"];
             401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            409: components["responses"]["conflict"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    tenantGroupFlexClusterUpgrade: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description Flag that indicates whether the response body should be in the prettyprint format. */
+                pretty?: components["parameters"]["pretty"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+            };
+            cookie?: never;
+        };
+        /** @description Details of the flex cluster upgrade in the specified project. */
+        requestBody: {
+            content: {
+                "application/vnd.atlas.2024-11-13+json": components["schemas"]["AtlasTenantClusterUpgradeRequest20240805"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2024-11-13+json": components["schemas"]["FlexClusterDescription20241113"];
+                };
+            };
+            400: components["responses"]["badRequest"];
+            401: components["responses"]["unauthorized"];
+            402: components["responses"]["paymentRequired"];
             403: components["responses"]["forbidden"];
             404: components["responses"]["notFound"];
             409: components["responses"]["conflict"];
