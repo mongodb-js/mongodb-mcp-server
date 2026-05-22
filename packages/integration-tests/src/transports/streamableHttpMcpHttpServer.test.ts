@@ -170,7 +170,6 @@ function createRunnerComponents({
         logger,
         metrics,
         mcpHttpServer,
-        sessionStore,
     });
 
     return { runner, sessionStore };
@@ -181,7 +180,8 @@ function getServerAddress(runner: StreamableHttpRunner<CliServer>): string {
 }
 
 function getSessionStore(runner: StreamableHttpRunner<CliServer>): ISessionStore<StreamableHTTPServerTransport> {
-    return (runner as unknown as { sessionStore: ISessionStore<StreamableHTTPServerTransport> }).sessionStore;
+    return (runner as unknown as { mcpHttpServer: { sessionStore: ISessionStore<StreamableHTTPServerTransport> } })
+        .mcpHttpServer.sessionStore;
 }
 
 describe("MCPHttpServer (streamable HTTP)", () => {

@@ -179,7 +179,6 @@ function createConfigModifyingRunner(
         logger,
         metrics: metrics,
         mcpHttpServer,
-        sessionStore,
     });
 
     const getServerAddress = (): string => {

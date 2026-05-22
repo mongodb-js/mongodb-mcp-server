@@ -99,7 +99,6 @@ function createStreamableHttpRunnerFromConfig(options: {
         metrics,
         mcpHttpServer,
         monitoringServer,
-        sessionStore,
         logger,
     });
 }
@@ -327,8 +326,8 @@ function getMonitoringServer(runner: StreamableHttpRunner<any>): MonitoringServe
 // Access private field for white-box testing of constructor logic
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getSessionStore(runner: StreamableHttpRunner<any>): ISessionStore<StreamableHTTPServerTransport> | undefined {
-    return (runner as unknown as { sessionStore: ISessionStore<StreamableHTTPServerTransport> | undefined })
-        .sessionStore;
+    return (runner as unknown as { mcpHttpServer: { sessionStore: ISessionStore<StreamableHTTPServerTransport> } })
+        .mcpHttpServer.sessionStore;
 }
 
 class CustomMonitoringServer extends MonitoringServer<DefaultMetricDefinitions> {

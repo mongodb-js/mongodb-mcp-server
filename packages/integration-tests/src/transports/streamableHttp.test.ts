@@ -218,7 +218,6 @@ function createStreamableHttpRunner(
             logger,
             metrics: metrics,
             mcpHttpServer,
-            sessionStore,
         })
     );
 }
@@ -848,7 +847,6 @@ describe("StreamableHttpRunner", () => {
                     const ownershipRunner = new StreamableHttpRunner<CliServer>({
                         metrics: metrics,
                         mcpHttpServer,
-                        sessionStore: ownershipStore,
                         logger,
                     });
 
@@ -1060,7 +1058,6 @@ describe("StreamableHttpRunner", () => {
             runner = new StreamableHttpRunner<CliServer>({
                 metrics: metrics,
                 mcpHttpServer: customMcpHttpServer,
-                sessionStore,
                 logger,
             });
 
@@ -1118,7 +1115,6 @@ describe("StreamableHttpRunner", () => {
             runner = new StreamableHttpRunner<CliServer>({
                 metrics: metrics,
                 mcpHttpServer: rejectingMcpHttpServer,
-                sessionStore,
                 logger,
             });
 
@@ -1215,5 +1211,6 @@ function getServerAddress(runner: StreamableHttpRunner<CliServer>): string {
 
 // Helper to get session store from runner
 function getSessionStore(runner: StreamableHttpRunner<CliServer>): ISessionStore<StreamableHTTPServerTransport> {
-    return (runner as unknown as { sessionStore: ISessionStore<StreamableHTTPServerTransport> }).sessionStore;
+    return (runner as unknown as { mcpHttpServer: { sessionStore: ISessionStore<StreamableHTTPServerTransport> } })
+        .mcpHttpServer.sessionStore;
 }

@@ -183,7 +183,6 @@ function createConfigOverrideRunner(baseConfig: UserConfig): Promise<{
         logger,
         metrics: metrics,
         mcpHttpServer,
-        sessionStore,
     });
 
     const getServerAddress = (): string => {

@@ -71,7 +71,6 @@ export async function startServer(
             metrics,
             mcpHttpServer,
             monitoringServer,
-            sessionStore,
         });
     }
 

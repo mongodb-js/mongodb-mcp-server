@@ -223,7 +223,6 @@ function createMetricsTestRunner(
         metrics: metrics,
         mcpHttpServer,
         monitoringServer,
-        sessionStore,
     });
 
     const getServerAddress = (): string => {
@@ -349,8 +348,8 @@ describe("/metrics endpoint", () => {
         await connectClient();
         await connectClient();
 
-        type SessionStoreAccessor = { sessionStore: { closeAllSessions(): Promise<void> } };
-        await (runner as unknown as SessionStoreAccessor).sessionStore.closeAllSessions();
+        type SessionStoreAccessor = { mcpHttpServer: { sessionStore: { closeAllSessions(): Promise<void> } } };
+        await (runner as unknown as SessionStoreAccessor).mcpHttpServer.sessionStore.closeAllSessions();
 
         const body = await (await fetch(monitoringUrl("/metrics"))).text();
         expect(parsePrometheusValue(body, "mcp_session_created", {})).toBe(2);
