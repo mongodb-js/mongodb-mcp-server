@@ -2,8 +2,8 @@ dist
 node_modules
 *.lock
 resources/
-src/ui/lib/loaders.ts
-temp
+packages/ui/src/lib/tools/*
+packages/ui/src/lib/loaders.ts
 **/reports/*.api.md
 **/reports/*.api.json
 .github/workflows/*.lock.yml
