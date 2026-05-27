@@ -265,6 +265,59 @@ function getSessionStore(runner: StreamableHttpRunner<any>): ISessionStore<Strea
         .sessionStore;
 }
 
+// OAuth + non-loopback bind config validation. The runner runs the
+// check inside start(); validation failures throw before any socket
+// is opened so each test is cheap.
+describe("StreamableHttpRunner: OAuth config validation", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let runner: StreamableHttpRunner<any> | undefined;
+
+    afterEach(async () => {
+        await runner?.close();
+        runner = undefined;
+    });
+
+    it("refuses to start on non-loopback httpHost when oauthIssuer is not set", async () => {
+        runner = new StreamableHttpRunner({
+            userConfig: { ...defaultTestConfig, httpHost: "0.0.0.0", httpPort: 0 },
+        });
+        await expect(runner.start()).rejects.toThrow(
+            /Refusing to start.*non-loopback.*OAuth authentication is not configured/
+        );
+    });
+
+    it("refuses to start when oauthIssuer is set but oauthAudience is missing", async () => {
+        runner = new StreamableHttpRunner({
+            userConfig: {
+                ...defaultTestConfig,
+                httpHost: "127.0.0.1",
+                httpPort: 0,
+                oauthIssuer: "https://issuer.example.com",
+            },
+        });
+        await expect(runner.start()).rejects.toThrow(/oauthIssuer and oauthAudience must be configured together/);
+    });
+
+    it("refuses to start when oauthAudience is set but oauthIssuer is missing", async () => {
+        runner = new StreamableHttpRunner({
+            userConfig: {
+                ...defaultTestConfig,
+                httpHost: "127.0.0.1",
+                httpPort: 0,
+                oauthAudience: "mcp-test",
+            },
+        });
+        await expect(runner.start()).rejects.toThrow(/oauthIssuer and oauthAudience must be configured together/);
+    });
+
+    it("permits loopback bind without OAuth (default test config)", async () => {
+        runner = new StreamableHttpRunner({
+            userConfig: { ...defaultTestConfig, httpHost: "127.0.0.1", httpPort: 0 },
+        });
+        await expect(runner.start()).resolves.toBeUndefined();
+    });
+});
+
 class CustomMonitoringServer extends MonitoringServer {
     constructor(args: MonitoringServerConstructorArgs<DefaultMetrics>) {
         super(args);

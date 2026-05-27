@@ -36,6 +36,13 @@ export type {
     ConnectionErrorHandlerContext,
 } from "./common/connectionErrorHandler.js";
 export { Elicitation, type ElicitedInputResult } from "./elicitation.js";
+export {
+    JwksCache,
+    createOAuthMiddleware,
+    getAuthContext,
+    type AuthContext,
+    type OAuthMiddlewareOptions,
+} from "./transports/auth/index.js";
 export type {
     ConnectionStateConnecting,
     ConnectionSettings,
