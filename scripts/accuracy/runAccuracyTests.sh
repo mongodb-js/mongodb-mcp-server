@@ -3,10 +3,14 @@
 export MDB_ACCURACY_RUN_ID=$(pnpm dlx uuid v4)
 
 # For providing access tokens for different LLM providers
-# export MDB_OPEN_AI_API_KEY=""
-# export MDB_GEMINI_API_KEY=""
+# Azure OpenAI (CI default)
 # export MDB_AZURE_OPEN_AI_API_KEY=""
 # export MDB_AZURE_OPEN_AI_API_URL=""
+# Grove
+# export MDB_GROVE_API_KEY=""
+# Other providers
+# export MDB_OPEN_AI_API_KEY=""
+# export MDB_GEMINI_API_KEY=""
 
 # For providing Atlas API credentials (required for Atlas tools)
 # Set dummy values for testing (allows Atlas tools to be registered for mocking)
@@ -20,9 +24,9 @@ export MDB_MCP_API_CLIENT_SECRET=${MDB_MCP_API_CLIENT_SECRET:-"test-atlas-client
 
 # By default we run all the tests under tests/accuracy folder unless a path is
 # specified in the command line. Such as:
-# pnpm run test:accuracy -- tests/accuracy/some-test.test.ts
+# pnpm run test:accuracy tests/accuracy/some-test.test.ts
 echo "Running accuracy tests with MDB_ACCURACY_RUN_ID '$MDB_ACCURACY_RUN_ID'"
-vitest --config vitest.config.ts --project=accuracy --coverage=false --max-workers=2 --run "$@"
+vitest --config vitest.config.ts --project=accuracy --coverage=false --max-workers="${MDB_ACCURACY_MAX_WORKERS:-2}" --run "$@"
 
 # Preserving the exit code from test run to correctly notify in the CI
 # environments when the tests fail.
