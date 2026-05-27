@@ -69,22 +69,26 @@ describe("config", () => {
     });
 
     it("should generate defaults when no config sources are populated", () => {
-        expect(parseUserConfig({ args: [] })).toStrictEqual({
+        const { secrets, ...rest } = parseUserConfig({ args: [] });
+        expect(rest).toStrictEqual({
             parsed: expectedDefaults,
             warnings: [],
             error: undefined,
         });
+        // parseUserConfig now also returns its own keychain alongside the
+        // legacy Keychain.root registration; verify it's a real Keychain.
+        expect(secrets).toBeInstanceOf(Keychain);
+        expect(secrets.allSecrets).toEqual([]);
     });
 
     it("can override defaults in the schema and those are populated instead", () => {
-        expect(
-            parseUserConfig({
-                args: [],
-                overrides: {
-                    exportTimeoutMs: UserConfigSchema.shape.exportTimeoutMs.default(123),
-                },
-            })
-        ).toStrictEqual({
+        const { secrets, ...rest } = parseUserConfig({
+            args: [],
+            overrides: {
+                exportTimeoutMs: UserConfigSchema.shape.exportTimeoutMs.default(123),
+            },
+        });
+        expect(rest).toStrictEqual({
             parsed: {
                 ...expectedDefaults,
                 exportTimeoutMs: 123,
@@ -92,6 +96,7 @@ describe("config", () => {
             warnings: [],
             error: undefined,
         });
+        expect(secrets).toBeInstanceOf(Keychain);
     });
 
     describe("env var parsing", () => {
@@ -410,15 +415,17 @@ describe("config", () => {
             }
 
             it("cannot mix --httpHeaders and --httpHeaders.fieldX", () => {
-                expect(
-                    parseUserConfig({
-                        args: ["--httpHeaders", '{"fieldA": "3", "fieldB": "4"}', "--httpHeaders.fieldA", "5"],
-                    })
-                ).toStrictEqual({
+                const { secrets, ...rest } = parseUserConfig({
+                    args: ["--httpHeaders", '{"fieldA": "3", "fieldB": "4"}', "--httpHeaders.fieldA", "5"],
+                });
+                expect(rest).toStrictEqual({
                     error: "Invalid configuration for the following fields:\nhttpHeaders - Invalid input: expected object, received array",
                     warnings: [],
                     parsed: undefined,
                 });
+                // An empty keychain is returned even on failure so callers
+                // can uniformly destructure the result.
+                expect(secrets.allSecrets).toEqual([]);
             });
         });
 

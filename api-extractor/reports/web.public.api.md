@@ -614,14 +614,13 @@ export const jsonExportFormat: z.ZodEnum<{
 
 // @public
 export class Keychain {
-    constructor();
     // (undocumented)
     get allSecrets(): Secret[];
     // (undocumented)
     clearAllSecrets(): void;
     // (undocumented)
     register(value: Secret["value"], kind: Secret["kind"]): void;
-    // (undocumented)
+    // @deprecated (undocumented)
     static get root(): Keychain;
 }
 

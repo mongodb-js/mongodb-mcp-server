@@ -240,6 +240,17 @@ export type CommonProperties = {
     has_docker?: TelemetryBoolSet;
 } & CommonStaticProperties;
 
+// @public
+export class CompositeKeychain extends Keychain {
+    constructor(delegates: readonly Keychain[]);
+    // (undocumented)
+    get allSecrets(): Secret[];
+    // (undocumented)
+    clearAllSecrets(): void;
+    // (undocumented)
+    register(value: Secret["value"], kind: Secret["kind"]): void;
+}
+
 // @public (undocumented)
 export class CompositeLogger extends LoggerBase {
     constructor(...loggers: LoggerBase[]);
@@ -627,14 +638,13 @@ export const JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND = -32003;
 
 // @public
 export class Keychain {
-    constructor();
     // (undocumented)
     get allSecrets(): Secret[];
     // (undocumented)
     clearAllSecrets(): void;
     // (undocumented)
     register(value: Secret["value"], kind: Secret["kind"]): void;
-    // (undocumented)
+    // @deprecated (undocumented)
     static get root(): Keychain;
 }
 
@@ -807,13 +817,14 @@ export function parseUserConfig(input: {
     warnings: string[];
     parsed: UserConfig | undefined;
     error: string | undefined;
+    secrets: Keychain;
 };
 
 export { PrometheusMetrics }
 
 export { PrometheusMetricsOptions }
 
-// @public (undocumented)
+// @public @deprecated (undocumented)
 export function registerGlobalSecretToRedact(value: Secret["value"], kind: Secret["kind"]): void;
 
 export { Registry }
