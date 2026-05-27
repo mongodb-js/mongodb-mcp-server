@@ -60,23 +60,23 @@ describe("Elicitation", () => {
     describe("requestConfirmation", () => {
         const testMessage = "Are you sure you want to proceed?";
 
-        it("should return true when client does not support elicitation", async () => {
+        it("fails closed with reason 'no-elicitation-support' when client cannot elicit (OWASP MCP06)", async () => {
             mockGetClientCapabilities.mockReturnValue({});
 
             const result = await elicitation.requestConfirmation(testMessage);
 
-            expect(result).toBe(true);
+            expect(result).toEqual({ ok: false, reason: "no-elicitation-support" });
             expect(mockGetClientCapabilities).toHaveBeenCalledTimes(1);
             expect(mockElicitInput.mock).not.toHaveBeenCalled();
         });
 
-        it("should return true when user confirms with 'Yes' and action is 'accept'", async () => {
+        it("returns ok=true when user confirms with 'Yes' and action is 'accept'", async () => {
             mockGetClientCapabilities.mockReturnValue({ elicitation: {} });
             mockElicitInput.confirmYes();
 
             const result = await elicitation.requestConfirmation(testMessage);
 
-            expect(result).toBe(true);
+            expect(result).toEqual({ ok: true });
             expect(mockGetClientCapabilities).toHaveBeenCalledTimes(1);
             expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
             expect(mockElicitInput.mock).toHaveBeenCalledWith(
@@ -89,47 +89,47 @@ describe("Elicitation", () => {
             );
         });
 
-        it("should return false when user selects 'No' with action 'accept'", async () => {
+        it("returns ok=false with reason 'declined' when user selects 'No'", async () => {
             mockGetClientCapabilities.mockReturnValue({ elicitation: {} });
             mockElicitInput.confirmNo();
 
             const result = await elicitation.requestConfirmation(testMessage);
 
-            expect(result).toBe(false);
+            expect(result).toEqual({ ok: false, reason: "declined" });
             expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
         });
 
-        it("should return false when content is undefined", async () => {
+        it("returns ok=false with reason 'declined' when content is undefined", async () => {
             mockGetClientCapabilities.mockReturnValue({ elicitation: {} });
             mockElicitInput.acceptWith(undefined);
 
             const result = await elicitation.requestConfirmation(testMessage);
 
-            expect(result).toBe(false);
+            expect(result).toEqual({ ok: false, reason: "declined" });
             expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
         });
 
-        it("should return false when confirmation field is missing", async () => {
+        it("returns ok=false with reason 'declined' when confirmation field is missing", async () => {
             mockGetClientCapabilities.mockReturnValue({ elicitation: {} });
             mockElicitInput.acceptWith({});
 
             const result = await elicitation.requestConfirmation(testMessage);
 
-            expect(result).toBe(false);
+            expect(result).toEqual({ ok: false, reason: "declined" });
             expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
         });
 
-        it("should return false when user cancels", async () => {
+        it("returns ok=false with reason 'declined' when user cancels", async () => {
             mockGetClientCapabilities.mockReturnValue({ elicitation: {} });
             mockElicitInput.cancel();
 
             const result = await elicitation.requestConfirmation(testMessage);
 
-            expect(result).toBe(false);
+            expect(result).toEqual({ ok: false, reason: "declined" });
             expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
         });
 
-        it("should handle elicitInput erroring", async () => {
+        it("propagates elicitInput errors", async () => {
             mockGetClientCapabilities.mockReturnValue({ elicitation: {} });
             const error = new Error("Elicitation failed");
             mockElicitInput.rejectWith(error);

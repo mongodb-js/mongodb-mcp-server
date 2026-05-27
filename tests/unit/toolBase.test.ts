@@ -26,7 +26,9 @@ describe("ToolBase", () => {
     let mockConfig: UserConfig;
     let mockTelemetry: Telemetry;
     let mockElicitation: Elicitation;
-    let mockRequestConfirmation: MockedFunction<(message: string) => Promise<boolean>>;
+    let mockRequestConfirmation: MockedFunction<
+        (message: string) => Promise<{ ok: true } | { ok: false; reason: "declined" | "no-elicitation-support" }>
+    >;
     let testTool: TestTool;
     let mockMetrics: MockMetrics;
 
@@ -78,48 +80,59 @@ describe("ToolBase", () => {
     });
 
     describe("verifyConfirmed", () => {
-        it("should return true when tool is not in confirmationRequiredTools list", async () => {
+        it("returns ok=true when tool is not in confirmationRequiredTools list", async () => {
             mockConfig.confirmationRequiredTools = ["other-tool", "another-tool"];
 
             const args = { param1: "test" };
             const result = await testTool.verifyConfirmed(args);
 
-            expect(result).toBe(true);
+            expect(result).toEqual({ ok: true });
             expect(mockRequestConfirmation).not.toHaveBeenCalled();
         });
 
-        it("should return true when confirmationRequiredTools list is empty", async () => {
+        it("returns ok=true when confirmationRequiredTools list is empty", async () => {
             mockConfig.confirmationRequiredTools = [];
 
             const args = { param1: "test" };
             const result = await testTool.verifyConfirmed(args);
 
-            expect(result).toBe(true);
+            expect(result).toEqual({ ok: true });
             expect(mockRequestConfirmation).not.toHaveBeenCalled();
         });
 
-        it("should call requestConfirmation when tool is in confirmationRequiredTools list", async () => {
+        it("calls requestConfirmation when tool is in confirmationRequiredTools list", async () => {
             mockConfig.confirmationRequiredTools = ["test-tool"];
-            mockRequestConfirmation.mockResolvedValue(true);
+            mockRequestConfirmation.mockResolvedValue({ ok: true });
 
             const args = { param1: "test", param2: 42 };
             const result = await testTool.verifyConfirmed(args);
 
-            expect(result).toBe(true);
+            expect(result).toEqual({ ok: true });
             expect(mockRequestConfirmation).toHaveBeenCalledTimes(1);
             expect(mockRequestConfirmation).toHaveBeenCalledWith(
                 "You are about to execute the `test-tool` tool which requires additional confirmation. Would you like to proceed?"
             );
         });
 
-        it("should return false when user declines confirmation", async () => {
+        it("propagates ok=false reason='declined' when user declines confirmation", async () => {
             mockConfig.confirmationRequiredTools = ["test-tool"];
-            mockRequestConfirmation.mockResolvedValue(false);
+            mockRequestConfirmation.mockResolvedValue({ ok: false, reason: "declined" });
 
             const args = { param1: "test" };
             const result = await testTool.verifyConfirmed(args);
 
-            expect(result).toBe(false);
+            expect(result).toEqual({ ok: false, reason: "declined" });
+            expect(mockRequestConfirmation).toHaveBeenCalledTimes(1);
+        });
+
+        it("propagates ok=false reason='no-elicitation-support' when client lacks elicitation (MCP06)", async () => {
+            mockConfig.confirmationRequiredTools = ["test-tool"];
+            mockRequestConfirmation.mockResolvedValue({ ok: false, reason: "no-elicitation-support" });
+
+            const args = { param1: "test" };
+            const result = await testTool.verifyConfirmed(args);
+
+            expect(result).toEqual({ ok: false, reason: "no-elicitation-support" });
             expect(mockRequestConfirmation).toHaveBeenCalledTimes(1);
         });
     });

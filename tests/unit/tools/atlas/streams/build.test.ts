@@ -53,7 +53,7 @@ describe("StreamsBuildTool", () => {
         } as unknown as Telemetry;
 
         mockElicitation = {
-            requestConfirmation: vi.fn().mockResolvedValue(true),
+            requestConfirmation: vi.fn().mockResolvedValue({ ok: true }),
             requestInput: vi.fn().mockResolvedValue({ accepted: false }),
         };
 

@@ -295,6 +295,14 @@ export class CompositeLogger extends LoggerBase {
     protected readonly type?: LoggerType;
 }
 
+// @public
+export type ConfirmationResult = {
+    ok: true;
+} | {
+    ok: false;
+    reason: "declined" | "no-elicitation-support";
+};
+
 // @public (undocumented)
 export type ConnectionErrorHandled = {
     errorHandled: true;
@@ -506,7 +514,7 @@ export class Elicitation {
         };
         required: string[];
     };
-    requestConfirmation(message: string): Promise<boolean>;
+    requestConfirmation(message: string): Promise<ConfirmationResult>;
     requestInput(message: string, schema: ElicitRequestFormParams["requestedSchema"]): Promise<ElicitedInputResult>;
     supportsElicitation(): boolean;
 }
@@ -970,7 +978,7 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
     protected get toolMeta(): Record<string, unknown>;
     // (undocumented)
     protected verifyAllowed(): boolean;
-    verifyConfirmed(args: ToolArgs<typeof ToolBase.argsShape>): Promise<boolean>;
+    verifyConfirmed(args: ToolArgs<typeof ToolBase.argsShape>): Promise<ConfirmationResult>;
 }
 
 // @public

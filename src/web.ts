@@ -35,7 +35,7 @@ export type {
     ConnectionErrorUnhandled,
     ConnectionErrorHandlerContext,
 } from "./common/connectionErrorHandler.js";
-export { Elicitation, type ElicitedInputResult } from "./elicitation.js";
+export { Elicitation, type ConfirmationResult, type ElicitedInputResult } from "./elicitation.js";
 export type {
     ConnectionStateConnecting,
     ConnectionSettings,
