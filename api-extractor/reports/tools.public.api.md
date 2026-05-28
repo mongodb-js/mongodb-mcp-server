@@ -325,6 +325,97 @@ export class CreateAccessListTool extends AtlasToolBase {
 }
 
 // @public (undocumented)
+export class CreateClusterTool extends AtlasToolBase {
+    // (undocumented)
+    argsShape: {
+        projectId: z.ZodString;
+        clusterName: z.ZodString;
+        provider: z.ZodEnum<{
+            AWS: "AWS";
+            AZURE: "AZURE";
+            GCP: "GCP";
+        }>;
+        region: z.ZodString;
+        clusterType: z.ZodDefault<z.ZodEnum<{
+            REPLICASET: "REPLICASET";
+            SHARDED: "SHARDED";
+        }>>;
+        instanceSize: z.ZodOptional<z.ZodEnum<{
+            M10: "M10";
+            M20: "M20";
+            M30: "M30";
+            M40: "M40";
+            M50: "M50";
+            M60: "M60";
+            M80: "M80";
+        }>>;
+        computeAutoScaling: z.ZodDefault<z.ZodBoolean>;
+        diskSizeGB: z.ZodOptional<z.ZodNumber>;
+        mongoDBVersion: z.ZodDefault<z.ZodEnum<{
+            "7.0": "7.0";
+            "8.0": "8.0";
+            LATEST: "LATEST";
+        }>>;
+        backup: z.ZodDefault<z.ZodEnum<{
+            CONTINUOUS: "CONTINUOUS";
+            OFF: "OFF";
+            SNAPSHOT: "SNAPSHOT";
+        }>>;
+        terminationProtectionEnabled: z.ZodDefault<z.ZodBoolean>;
+    };
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    protected execute(args: ToolArgs<typeof CreateClusterTool.argsShape>): Promise<ToolResult<typeof CreateClusterTool.outputSchema>>;
+    // (undocumented)
+    protected handleError(error: unknown, args: ToolArgs<typeof CreateClusterTool.argsShape>): CallToolResult;
+    // (undocumented)
+    static operationType: OperationType;
+    // (undocumented)
+    outputSchema: {
+        clusterId: z.ZodOptional<z.ZodString>;
+        provider: z.ZodEnum<{
+            AWS: "AWS";
+            AZURE: "AZURE";
+            GCP: "GCP";
+        }>;
+        region: z.ZodString;
+        instanceSize: z.ZodEnum<{
+            M10: "M10";
+            M20: "M20";
+            M30: "M30";
+            M40: "M40";
+            M50: "M50";
+            M60: "M60";
+            M80: "M80";
+        }>;
+        clusterType: z.ZodEnum<{
+            REPLICASET: "REPLICASET";
+            SHARDED: "SHARDED";
+        }>;
+        mongoDBVersion: z.ZodEnum<{
+            "7.0": "7.0";
+            "8.0": "8.0";
+            LATEST: "LATEST";
+        }>;
+        backup: z.ZodEnum<{
+            CONTINUOUS: "CONTINUOUS";
+            OFF: "OFF";
+            SNAPSHOT: "SNAPSHOT";
+        }>;
+        computeAutoScaling: z.ZodBoolean;
+        terminationProtectionEnabled: z.ZodBoolean;
+        diskSizeGB: z.ZodOptional<z.ZodNumber>;
+    };
+    // (undocumented)
+    protected resolveTelemetryMetadata(args: ToolArgs<typeof CreateClusterTool.argsShape>, context: {
+        result: CallToolResult;
+    }): CreateClusterMetadata;
+    // (undocumented)
+    static toolName: string;
+}
+
+// @public (undocumented)
 export type CreateCollectionOutput = z.infer<z.ZodObject<typeof CreateCollectionOutputSchema>>;
 
 // @public (undocumented)
