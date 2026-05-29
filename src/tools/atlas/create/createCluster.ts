@@ -6,12 +6,12 @@ import { AtlasArgs } from "../../args.js";
 import type { CreateClusterMetadata } from "../../../telemetry/types.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
-// There is a similar (not exactly the same) region recommendation string for atlas-upgrade-cluster.
-// Intentionally keeping them separate in the short term.
-const REGION_RECOMMENDATIONS = `Common, non exhaustive region default mappings by provider:
+// Keeping this region recommendation string and the one for atlas-upgrade-cluster independent in the short term. The current effort is intentionally limited to additive changes only.
+// Differences include the mention of "non-exhaustive" and a nudge to respect user-specified regions when not in the mapping.
+const REGION_RECOMMENDATIONS = `Common, non-exhaustive region default mappings by provider:
 AWS: "East Coast"/"Virginia"/"US East" → US_EAST_1, "Ohio" → US_EAST_2, "California"/"West Coast" → US_WEST_2, "Southeast Asia"/"APAC"/"Singapore" → AP_SOUTHEAST_1, "Europe"/"EU"/"Ireland" → EU_WEST_1.
 GCP: "Central US" → CENTRAL_US, "Western US" → WESTERN_US, "Southeast Asia"/"APAC" → SOUTHEASTERN_ASIA_PACIFIC, "Europe"/"EU" → WESTERN_EUROPE.
-AZURE: "East US" → US_EAST_2, "West US" → US_WEST_2, "Europe North" → EUROPE_NORTH, "Europe West" -> EUROPE_WEST.
+AZURE: "East US" → US_EAST_2, "West US" → US_WEST_2, "Europe North" → EUROPE_NORTH, "Europe West" → EUROPE_WEST.
 Default recommendation: AWS US_EAST_1.
 User-specified regions not present in the mapping MUST be respected, rely on the tool to surface errors if a region is not supported.
 `;
@@ -118,9 +118,7 @@ export const CreateClusterArgsShape = {
 
     clusterName: AtlasArgs.clusterName().describe("Name of the cluster."),
 
-    provider: z
-        .enum(["AWS", "GCP", "AZURE"])
-        .describe("Cloud provider for the cluster. Allowed values: `AWS`, `GCP`, `AZURE`."),
+    provider: z.enum(["AWS", "GCP", "AZURE"]).describe("Cloud provider for the cluster."),
 
     region: AtlasArgs.region().describe(
         "Cloud provider region in Atlas format using uppercase letters and underscores (e.g. US_EAST_1)."
@@ -130,14 +128,14 @@ export const CreateClusterArgsShape = {
         .enum(["REPLICASET", "SHARDED"])
         .default("REPLICASET")
         .describe(
-            "Cluster topology. Allowed values: `REPLICASET`, `SHARDED`. Use `SHARDED` for single-shard clusters, requires M30 or higher. Defaults to `REPLICASET`."
+            "Cluster topology. Use `SHARDED` for single-shard clusters, requires M30 or higher. Defaults to `REPLICASET`."
         ),
 
     instanceSize: z
         .enum(["M10", "M20", "M30", "M40", "M50", "M60", "M80"])
         .optional()
         .describe(
-            "Instance size. Allowed values: M10–M80. NVME and high-memory instances are not supported. Minimum M30 when clusterType is SHARDED. Defaults to M10 for projects with fewer than 2 existing clusters, M30 otherwise. Omit unless explicitly specified by the user."
+            "Instance size. NVME and high-memory instances are not supported. Minimum M30 when clusterType is SHARDED. Defaults to M10 for projects with fewer than 2 existing clusters, M30 otherwise. Omit unless explicitly specified by the user."
         ),
 
     computeAutoScaling: z
@@ -159,7 +157,7 @@ export const CreateClusterArgsShape = {
         .enum(["7.0", "8.0", "LATEST"])
         .default("LATEST")
         .describe(
-            "MongoDB version to deploy. Allowed values: `7.0`, `8.0`, `LATEST`. Use a pinned version for production environments where version stability is required. Defaults to `LATEST`."
+            "MongoDB version to deploy. Use a pinned version for production environments where version stability is required. Defaults to `LATEST`."
         ),
 
     backup: z
@@ -206,12 +204,13 @@ export class CreateClusterTool extends AtlasToolBase {
     protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
         const { projectId, clusterName, provider, region, clusterType, terminationProtectionEnabled } = args;
 
+        if (clusterType === "SHARDED" && (args.instanceSize === "M10" || args.instanceSize === "M20")) {
+            throw new CreateClusterError("SHARDED clusters require M30 or higher instance size.");
+        }
+
         let instanceSize: InstanceSize;
         if (args.instanceSize !== undefined) {
             instanceSize = args.instanceSize;
-            if (clusterType === "SHARDED" && (instanceSize === "M10" || instanceSize === "M20")) {
-                throw new CreateClusterError("SHARDED clusters require M30 or higher instance size.");
-            }
         } else if (clusterType === "SHARDED") {
             instanceSize = "M30";
         } else {
