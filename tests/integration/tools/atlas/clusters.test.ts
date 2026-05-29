@@ -401,4 +401,82 @@ describeWithAtlas("clusters", (integration) => {
             });
         });
     });
+
+    withProject(integration, ({ getProjectId }) => {
+        const clusterName = "ClusterTest-" + randomId();
+
+        afterAll(async () => {
+            const projectId = getProjectId();
+            if (projectId) {
+                const session: Session = integration.mcpServer().session;
+                await deleteCluster(session, projectId, clusterName);
+            }
+        });
+
+        describe("atlas-create-cluster", () => {
+            it("should have correct metadata", async () => {
+                const { tools } = await integration.mcpClient().listTools();
+                const tool = tools.find((t) => t.name === "atlas-create-cluster");
+
+                expectDefined(tool);
+                expect(tool.inputSchema.type).toBe("object");
+                expectDefined(tool.inputSchema.properties);
+
+                const properties = tool.inputSchema.properties;
+                expect(properties).toHaveProperty("projectId");
+                expect(properties).toHaveProperty("clusterName");
+                expect(properties).toHaveProperty("provider");
+                expect(properties).toHaveProperty("region");
+                expect(properties).toHaveProperty("clusterType");
+                expect(properties).toHaveProperty("instanceSize");
+                expect(properties).toHaveProperty("computeAutoScaling");
+                expect(properties).toHaveProperty("diskSizeGB");
+                expect(properties).toHaveProperty("mongoDBVersion");
+                expect(properties).toHaveProperty("backup");
+                expect(properties).toHaveProperty("terminationProtectionEnabled");
+
+                const required = tool.inputSchema.required as string[];
+                expect(required).toContain("projectId");
+                expect(required).toContain("clusterName");
+                expect(required).toContain("provider");
+                expect(required).toContain("region");
+            });
+
+            it("creates a dedicated cluster", async () => {
+                const projectId = getProjectId();
+
+                const response = await integration.mcpClient().callTool({
+                    name: "atlas-create-cluster",
+                    arguments: {
+                        projectId,
+                        clusterName,
+                        provider: "AWS",
+                        region: "US_EAST_1",
+                        instanceSize: "M10",
+                        diskSizeGB: 20,
+                    },
+                });
+
+                expect(response.isError).toBeFalsy();
+
+                const content = getResponseContent(response.content);
+                expect(content).toContain(clusterName);
+                expect(content).toContain(projectId);
+                expect(content).toContain("atlas-inspect-cluster");
+                expect(content).toContain("IDLE");
+
+                expect(response.structuredContent).toMatchObject({
+                    provider: "AWS",
+                    region: "US_EAST_1",
+                    instanceSize: "M10",
+                    clusterType: "REPLICASET",
+                    mongoDBVersion: "LATEST",
+                    backup: "SNAPSHOT",
+                    computeAutoScaling: true,
+                    terminationProtectionEnabled: false,
+                    diskSizeGB: 20,
+                });
+            });
+        });
+    });
 });
