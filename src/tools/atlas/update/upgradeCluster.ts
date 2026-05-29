@@ -143,8 +143,8 @@ async function resolveClusterInfo(
 class UpgradeClusterError extends Error {}
 
 export const UpgradeClusterOutputSchema = {
-    originalTier: z.enum(["FREE", "FLEX"]),
-    targetTier: z.enum(["FLEX", "M10"]),
+    originalTier: z.enum(["FREE", "FLEX"]).optional(),
+    targetTier: z.enum(["FLEX", "M10"]).optional(),
     resolvedProvider: z.string().optional(),
     resolvedRegion: z.string().optional(),
     clusterId: z.string().optional(),
@@ -245,10 +245,11 @@ export class UpgradeClusterTool extends AtlasToolBase {
             return {
                 content: [{ type: "text", text: error.message }],
                 isError: true,
+                structuredContent: {},
             };
         }
 
-        return super.handleError(error, args) as CallToolResult;
+        return { ...(super.handleError(error, args) as CallToolResult), structuredContent: {} };
     }
 
     private async upgradeFreeCluster(

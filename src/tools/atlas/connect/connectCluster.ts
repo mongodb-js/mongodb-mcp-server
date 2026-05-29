@@ -10,7 +10,7 @@ import type { AtlasClusterConnectionInfo } from "../../../common/connectionManag
 import { getDefaultRoleFromConfig } from "../../../common/atlas/roles.js";
 import { AtlasArgs } from "../../args.js";
 import { SHARED_TIER_METRIC_NAMES } from "../../../telemetry/types.js";
-import type { ConnectionMetadata } from "../../../telemetry/types.js";
+import type { ConnectionMetadata, SharedTierTier, SharedTierMetricName } from "../../../telemetry/types.js";
 
 const addedIpAccessListMessage =
     "Note: Your current IP address has been added to the Atlas project's IP access list to enable secure connection.";
@@ -300,33 +300,8 @@ export class ConnectClusterTool extends AtlasToolBase {
                         ...(createdUser && { temporaryUserClarification: createdUserMessage }),
                     };
 
-                    const atlas = this.session.connectedAtlasCluster;
-                    if (atlas !== undefined && ["FREE", "FLEX"].includes(atlas.instanceType)) {
-                        const hookResult = await runSharedTierAlertsHook({
-                            projectId: atlas.projectId,
-                            clusterName: atlas.clusterName,
-                            instanceType: atlas.instanceType,
-                            apiClient: this.apiClient,
-                            logger: this.session.logger,
-                        });
-                        if (hookResult !== undefined) {
-                            content.push({
-                                type: "text",
-                                text: hookResult.recommendationText,
-                            });
-                            return {
-                                content,
-                                structuredContent: {
-                                    ...baseStructuredContent,
-                                    sharedTierAlertsDetected: true,
-                                    sharedTierTier: hookResult.tier,
-                                    sharedTierAlerts: hookResult.alertTypes,
-                                },
-                            };
-                        }
-                    }
-
-                    return { content, structuredContent: baseStructuredContent };
+                    const sharedTierFields = await this.runSharedTierHook(this.session.connectedAtlasCluster, content);
+                    return { content, structuredContent: { ...baseStructuredContent, ...sharedTierFields } };
                 }
                 case "connecting":
                 case "unknown":
@@ -365,6 +340,7 @@ export class ConnectClusterTool extends AtlasToolBase {
             });
         }
 
+        const sharedTierFields = await this.runSharedTierHook(this.session.connectedAtlasCluster, content);
         return {
             content,
             structuredContent: {
@@ -372,8 +348,39 @@ export class ConnectClusterTool extends AtlasToolBase {
                 addedCurrentIp: ipAccessListUpdated,
                 createdTemporaryUser: createdUser,
                 ...(createdUser && { temporaryUserClarification: createdUserMessage }),
+                ...sharedTierFields,
             },
         };
+    }
+
+    private async runSharedTierHook(
+        atlas: AtlasClusterConnectionInfo | undefined,
+        content: ToolResult<typeof ConnectClusterOutputSchema>["content"]
+    ): Promise<{
+        sharedTierAlertsDetected?: boolean;
+        sharedTierTier?: SharedTierTier;
+        sharedTierAlerts?: SharedTierMetricName[];
+    }> {
+        if (atlas === undefined || !["FREE", "FLEX"].includes(atlas.instanceType)) {
+            return {};
+        }
+        const tier: SharedTierTier = atlas.instanceType === "FREE" ? "Free" : "Flex";
+        const hookResult = await runSharedTierAlertsHook({
+            projectId: atlas.projectId,
+            clusterName: atlas.clusterName,
+            instanceType: atlas.instanceType,
+            apiClient: this.apiClient,
+            logger: this.session.logger,
+        });
+        if (hookResult !== undefined) {
+            content.push({ type: "text", text: hookResult.recommendationText });
+            return {
+                sharedTierAlertsDetected: true,
+                sharedTierTier: hookResult.tier,
+                sharedTierAlerts: hookResult.alertTypes,
+            };
+        }
+        return { sharedTierAlertsDetected: false, sharedTierTier: tier };
     }
 
     protected override resolveTelemetryMetadata(
@@ -389,7 +396,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         return {
             ...parentMetadata,
             ...connectionMetadata,
-            ...(result.structuredContent.sharedTierTier !== undefined && {
+            ...(result.structuredContent?.sharedTierTier !== undefined && {
                 // TelemetryBoolSet type required
                 shared_tier_alerts_detected: result.structuredContent.sharedTierAlertsDetected ? "true" : "false",
                 shared_tier_tier: result.structuredContent.sharedTierTier,
