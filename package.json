@@ -129,7 +129,7 @@
     "@types/yargs-parser": "^21.0.3",
     "@typescript-eslint/parser": "^8.58.2",
     "@vitejs/plugin-react": "^6.0.1",
-    "@vitest/coverage-v8": "^4.1.5",
+    "@vitest/coverage-v8": "^4.1.7",
     "@vitest/eslint-plugin": "^1.6.17",
     "ai": "^6.0.175",
     "concurrently": "^9.2.1",
@@ -161,7 +161,7 @@
     "vite": "^8.0.8",
     "vite-plugin-node-polyfills": "^0.26.0",
     "vite-plugin-singlefile": "^2.3.2",
-    "vitest": "^4.1.5"
+    "vitest": "^4.1.7"
   },
   "dependencies": {
     "@inquirer/prompts": "^8.0.2",
