@@ -203,19 +203,5 @@
   "optionalDependencies": {
     "@mongodb-js/atlas-local": "^1.3.0",
     "kerberos": "^7.0.0"
-  },
-  "pnpm": {
-    "overrides": {
-      "mongodb": "^7.1.1",
-      "kerberos": "^7.0.0",
-      "bson": "^7.2.0",
-      "zod": "^4.4.2"
-    }
-  },
-  "overrides": {
-    "mongodb": "^7.1.1",
-    "kerberos": "^7.0.0",
-    "bson": "^7.2.0",
-    "zod": "^4.4.2"
   }
 }
