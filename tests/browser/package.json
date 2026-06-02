@@ -19,7 +19,7 @@
     "evp_bytestokey": "^1.0.3",
     "path-browserify": "^1.0.1",
     "os-browserify": "^0.3.0",
-    "playwright": "^1.49.1",
+    "playwright": "^1.60.0",
     "readable-stream": "^4.7.0",
     "typescript": "^5.9.2",
     "util": "^0.12.5",
