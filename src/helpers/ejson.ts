@@ -4,6 +4,9 @@ import { EJSON, Long } from "bson";
  * Pre-processes an object by converting BSON Long values into EJSON format
  * if they exceed the JavaScript safe integer limits. Safe Long values are
  * converted to standard JavaScript numbers to maintain readability.
+ *
+ * Note: Recursion is restricted to plain objects (proto is Object.prototype or null)
+ * and arrays to avoid traversing and corrupting other BSON wrapper types (e.g. ObjectId, Binary).
  */
 export function serializeSafeLongs(obj: unknown): unknown {
     if (obj === null || obj === undefined) {
@@ -15,9 +18,11 @@ export function serializeSafeLongs(obj: unknown): unknown {
         (typeof obj === "object" && "_bsontype" in obj && (obj as Record<string, unknown>)._bsontype === "Long")
     ) {
         const longObj = obj as unknown as Long;
-        const num = longObj.toNumber();
-        if (num >= Number.MIN_SAFE_INTEGER && num <= Number.MAX_SAFE_INTEGER) {
-            return num;
+        const isSafe =
+            longObj.lessThanOrEqual(Long.fromNumber(Number.MAX_SAFE_INTEGER)) &&
+            longObj.greaterThanOrEqual(Long.fromNumber(Number.MIN_SAFE_INTEGER));
+        if (isSafe) {
+            return longObj.toNumber();
         }
         return { $numberLong: longObj.toString() };
     }
