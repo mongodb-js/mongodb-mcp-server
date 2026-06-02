@@ -5,7 +5,7 @@ import type { ToolArgs, OperationType, ToolExecutionContext } from "../../tool.j
 import { formatUntrustedData } from "../../tool.js";
 import type { FindCursor } from "mongodb";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
-import { EJSON } from "bson";
+import { stringifyEJSON } from "../../../helpers/ejson.js";
 import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorUntilMaxBytes.js";
 import { operationWithFallback } from "../../../helpers/operationWithFallback.js";
 import { ONE_MB, QUERY_COUNT_MAX_TIME_MS_CAP, CURSOR_LIMITS_TO_LLM_TEXT } from "../../../helpers/constants.js";
@@ -115,7 +115,7 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
                         documents: cursorResults.documents,
                         appliedLimits: [limitOnFindCursor.cappedBy, cursorResults.cappedBy].filter((limit) => !!limit),
                     }),
-                    ...(cursorResults.documents.length > 0 ? [EJSON.stringify(cursorResults.documents)] : [])
+                    ...(cursorResults.documents.length > 0 ? [stringifyEJSON(cursorResults.documents)] : [])
                 ),
             };
         } finally {
