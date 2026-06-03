@@ -364,6 +364,7 @@ For more information about configuring OpenCode as an MCP client, including the 
 - `atlas-connect-cluster` - Connect to MongoDB Atlas cluster
 - `atlas-create-access-list` - Allow Ip/CIDR ranges to access your MongoDB Atlas clusters.
 - `atlas-create-db-user` - Create an MongoDB Atlas database user
+- `atlas-create-cluster` - Create a dedicated MongoDB Atlas cluster (M10–M80, replica set or single shard).
 - `atlas-create-free-cluster` - Create a free MongoDB Atlas cluster
 - `atlas-create-project` - Create a MongoDB Atlas project
 - `atlas-get-performance-advisor` - Get MongoDB Atlas performance advisor recommendations and suggestions, which includes the operations: suggested indexes, drop index suggestions, schema suggestions, and a sample of the most recent (max 50) slow query logs

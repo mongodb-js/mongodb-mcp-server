@@ -238,7 +238,8 @@ export type TelemetryToolMetadata =
     | ConnectionMetadata
     | PerfAdvisorToolMetadata
     | StreamsToolMetadata
-    | UpgradeClusterMetadata;
+    | UpgradeClusterMetadata
+    | CreateClusterMetadata;
 
 export type AtlasMetadata = {
     project_id?: string;
@@ -282,4 +283,17 @@ export type UpgradeClusterMetadata = AtlasMetadata & {
     cluster_id?: string;
     provider?: string;
     region?: string;
+};
+
+export type CreateClusterMetadata = AtlasMetadata & {
+    cluster_id?: string;
+    provider?: string;
+    region?: string;
+    instance_size?: string;
+    cluster_type?: string;
+    backup?: string;
+    compute_auto_scaling?: TelemetryBoolSet;
+    termination_protection?: TelemetryBoolSet;
+    disk_size_gb?: number;
+    mongodb_version?: string;
 };

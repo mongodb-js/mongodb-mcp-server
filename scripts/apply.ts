@@ -193,8 +193,8 @@ async function main(): Promise<void> {
         })
         .join("\n");
 
-    const eslintDisableBlock = `/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return */\n`;
-    const eslintEnableBlock = `/* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return */`;
+    const eslintDisableBlock = `/* eslint-disable @typescript-eslint/no-unsafe-assignment */\n`;
+    const eslintEnableBlock = `/* eslint-enable @typescript-eslint/no-unsafe-assignment */`;
     const wrappedOperationOutput = eslintDisableBlock + operationOutput + eslintEnableBlock;
 
     const templateFile = await fs.readFile(file, "utf8");
