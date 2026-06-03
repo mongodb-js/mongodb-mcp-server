@@ -20,30 +20,20 @@ if (process.env.SKIP_ATLAS_LOCAL_TESTS === "true") {
     vitestDefaultExcludes.push("**/atlas-local/**");
 }
 
-// On Windows CI we cap the number of test workers. Each integration test file
-// spins up its own mongod, and running too many in parallel exhausts the
-// resource-constrained CI runner and silently kills vitest workers, leaving
-// orphaned mongod processes (MCP-495). Limiting concurrency keeps the peak
-// number of concurrent mongod processes low. Only applied on CI (local
-// machines have enough headroom); overridable via VITEST_MAX_WORKERS for
-// tuning. This can be relaxed once mongodb-runner spawns mongod non-detached
-// (so a dying worker takes its mongod with it and orphans can no longer
-// accumulate).
-const maxWorkers = process.env.VITEST_MAX_WORKERS
-    ? Number(process.env.VITEST_MAX_WORKERS)
-    : process.platform === "win32" && process.env.CI
-      ? 2
-      : undefined;
-
 export default defineConfig({
     test: {
         environment: "node",
         pool: "threads",
-        ...(maxWorkers !== undefined ? { maxWorkers } : {}),
         testTimeout: 3600000,
         hookTimeout: 3600000,
         setupFiles: ["./tests/setup.ts"],
         coverage: {
+            // Coverage is disabled on Windows: it is only ever consumed from the
+            // ubuntu-latest/node-22 CI job (see code-health.yml), so on Windows the v8
+            // coverage instrumentation just adds per-worker overhead for a result we
+            // discard. It is also a prime suspect for the silent worker crashes there
+            // (MCP-495). Pass --coverage explicitly to force it on regardless.
+            enabled: process.platform !== "win32",
             exclude: [
                 // Required: import.meta.glob() in src/ui creates Vite virtual modules (\0 prefixed paths)
                 // that crash Istanbul reporters. See: https://github.com/vitest-dev/vitest/issues/5101
