@@ -14,3 +14,5 @@ allowBuilds:
   protobufjs: true
   ssh2: true
   win-export-certificate-and-key: true
+patchedDependencies:
+  mongodb-runner@6.7.6: patches/mongodb-runner@6.7.6.patch
