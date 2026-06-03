@@ -361,10 +361,17 @@ export class ConnectClusterTool extends AtlasToolBase {
         sharedTierTier?: SharedTierTier;
         sharedTierAlerts?: SharedTierMetricName[];
     }> {
-        if (atlas === undefined || !["FREE", "FLEX"].includes(atlas.instanceType)) {
-            return {};
+        let tier: SharedTierTier;
+        switch (atlas?.instanceType) {
+            case "FREE":
+                tier = "Free";
+                break;
+            case "FLEX":
+                tier = "Flex";
+                break;
+            default:
+                return {};
         }
-        const tier: SharedTierTier = atlas.instanceType === "FREE" ? "Free" : "Flex";
         const hookResult = await runSharedTierAlertsHook({
             projectId: atlas.projectId,
             clusterName: atlas.clusterName,
