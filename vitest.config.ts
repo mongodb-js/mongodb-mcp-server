@@ -27,11 +27,7 @@ export default defineConfig({
         hookTimeout: 3600000,
         setupFiles: ["./tests/setup.ts"],
         coverage: {
-            // Coverage is disabled on Windows: it is only ever consumed from the
-            // ubuntu-latest/node-22 CI job (see code-health.yml), so on Windows the v8
-            // coverage instrumentation just adds per-worker overhead for a result we
-            // discard. It is also a prime suspect for the silent worker crashes there
-            // (MCP-495). Pass --coverage explicitly to force it on regardless.
+            // Coverage is disabled on Windows as we only report it from the ubuntu job
             enabled: process.platform !== "win32",
             exclude: [
                 // Required: import.meta.glob() in src/ui creates Vite virtual modules (\0 prefixed paths)
