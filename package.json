@@ -94,7 +94,7 @@
     "generate:api": "./scripts/generate.sh",
     "generate:arguments": "tsx --tsconfig scripts/generate/tsconfig.json scripts/generate/index.ts",
     "pretest": "pnpm run build",
-    "test": "vitest --project eslint-rules --project unit-and-integration --project mcpb-build-script --coverage --run",
+    "test": "vitest --project eslint-rules --project unit-and-integration --project mcpb-build-script --run",
     "test:accuracy": "sh ./scripts/accuracy/runAccuracyTests.sh",
     "test:browser": "pnpm --filter browser test",
     "test:long-running-tests": "vitest --project long-running-tests --coverage",
