@@ -1757,14 +1757,14 @@ export class UpgradeClusterTool extends AtlasToolBase {
     static operationType: OperationType;
     // (undocumented)
     outputSchema: {
-        originalTier: z.ZodOptional<z.ZodEnum<{
+        originalTier: z.ZodEnum<{
             FLEX: "FLEX";
             FREE: "FREE";
-        }>>;
-        targetTier: z.ZodOptional<z.ZodEnum<{
+        }>;
+        targetTier: z.ZodEnum<{
             FLEX: "FLEX";
             M10: "M10";
-        }>>;
+        }>;
         resolvedProvider: z.ZodOptional<z.ZodString>;
         resolvedRegion: z.ZodOptional<z.ZodString>;
         clusterId: z.ZodOptional<z.ZodString>;

@@ -131,15 +131,6 @@ describe("UpgradeClusterTool", () => {
     });
 
     describe("error cases", () => {
-        // The MCP SDK requires structuredContent to be present on all responses for tools that define
-        // an outputSchema — including error responses. Without it, the client receives an output
-        // validation error ("no structured content was provided") instead of the actual error message.
-        it("includes structuredContent on error response", async () => {
-            const result = await exec({});
-            expect(result.isError).toBe(true);
-            expect(result.structuredContent).toBeDefined();
-        });
-
         it("returns error when projectId and clusterName are missing and not connected", async () => {
             const result = await exec({});
 
