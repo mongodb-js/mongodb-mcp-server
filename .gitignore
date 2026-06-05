@@ -1,6 +1,7 @@
 dist
 node_modules
 
+.idea
 .vscode/mcp.json
 .github/prompts/*
 
