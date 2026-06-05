@@ -29,6 +29,8 @@ export class CountTool extends MongoDBToolBase {
     ): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
 
+        this.assertMqlIsAllowed(query);
+
         // Check if count operation uses an index if enabled
         if (this.config.indexCheck) {
             await checkIndexUsage({

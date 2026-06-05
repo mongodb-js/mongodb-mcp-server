@@ -4,7 +4,7 @@ import {
     validateThrowsForInvalidArguments,
     getResponseContent,
 } from "../../../helpers.js";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, afterEach, describe, expect, it } from "vitest";
 import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 import type { UpdateManyOutput } from "../../../../../src/tools/mongodb/update/updateMany.js";
 
@@ -255,4 +255,44 @@ describeWithMongoDB("updateMany tool", (integration) => {
             expectedResponse: "No documents matched the filter.",
         };
     });
+});
+
+describeWithMongoDB("updateMany tool with server-side JavaScript operators", (integration) => {
+    afterEach(() => {
+        integration.mcpServer().userConfig.disableServerSideJs = true;
+    });
+
+    beforeEach(async () => {
+        await integration
+            .mongoClient()
+            .db(integration.randomDbName())
+            .collection("people")
+            .insertMany([
+                { name: "Peter", age: 5 },
+                { name: "Laura", age: 10 },
+            ]);
+    });
+
+    for (const jsDisabled of [true, false]) {
+        it(`${jsDisabled ? "rejects" : "allows"} filters using $where when disableServerSideJs is ${jsDisabled}`, async () => {
+            integration.mcpServer().userConfig.disableServerSideJs = jsDisabled;
+            await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "update-many",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "people",
+                    filter: { $where: "function() { return this.age > 8; }" },
+                    update: { $set: { adult: true } },
+                },
+            });
+            const content = getResponseContent(response.content);
+            if (jsDisabled) {
+                expect(content).toContain(`The "$where" operator is not allowed.`);
+            } else {
+                expect(content).not.toContain("server-side JavaScript operators");
+                expect(content).toContain("Matched 1 document(s)");
+            }
+        });
+    }
 });

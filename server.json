@@ -66,6 +66,13 @@
           "isSecret": true
         },
         {
+          "name": "MDB_MCP_DISABLE_SERVER_SIDE_JS",
+          "description": "When set to true, disallows the use of server-side JavaScript operators (such as $where, $function, and $accumulator) in query filters and aggregation pipelines.",
+          "isRequired": false,
+          "format": "boolean",
+          "isSecret": false
+        },
+        {
           "name": "MDB_MCP_DISABLED_TOOLS",
           "description": "Comma separated values of tool names, operation types, and/or categories of tools that will be disabled.",
           "isRequired": false,
@@ -320,6 +327,13 @@
           "name": "--connectionString",
           "description": "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data.",
           "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--disableServerSideJs",
+          "description": "When set to true, disallows the use of server-side JavaScript operators (such as $where, $function, and $accumulator) in query filters and aggregation pipelines.",
+          "isRequired": false,
+          "format": "boolean"
         },
         {
           "type": "named",
@@ -575,6 +589,13 @@
           "isSecret": true
         },
         {
+          "name": "MDB_MCP_DISABLE_SERVER_SIDE_JS",
+          "description": "When set to true, disallows the use of server-side JavaScript operators (such as $where, $function, and $accumulator) in query filters and aggregation pipelines.",
+          "isRequired": false,
+          "format": "boolean",
+          "isSecret": false
+        },
+        {
           "name": "MDB_MCP_DISABLED_TOOLS",
           "description": "Comma separated values of tool names, operation types, and/or categories of tools that will be disabled.",
           "isRequired": false,
@@ -829,6 +850,13 @@
           "name": "--connectionString",
           "description": "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data.",
           "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--disableServerSideJs",
+          "description": "When set to true, disallows the use of server-side JavaScript operators (such as $where, $function, and $accumulator) in query filters and aggregation pipelines.",
+          "isRequired": false,
+          "format": "boolean"
         },
         {
           "type": "named",

@@ -37,7 +37,7 @@ export default defineConfig([
             "vitest/expect-expect": [
                 "error",
                 {
-                    assertFunctionNames: ["expect", "expectDefined", "verifyMockCalls"],
+                    assertFunctionNames: ["expect", "expectDefined", "verifyMockCalls", "expectForbiddenOperator"],
                 },
             ],
         },
