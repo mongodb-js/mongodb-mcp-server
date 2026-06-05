@@ -2,8 +2,8 @@ import * as untracedAi from "ai";
 import { wrapAISDK, traced } from "braintrust";
 import { z } from "zod";
 
-import type { VercelMCPClientTools } from "../../sdk/agent.js";
-import type { Model } from "../../sdk/models.js";
+import type { VercelMCPClientTools } from "../../accuracy/sdk/agent.js";
+import type { Model } from "../../accuracy/sdk/models.js";
 import type { Verdict } from "./scaffolding.types.js";
 import { type Conversation, ROLE, serializeMessages, debugStep } from "./conversation.js";
 

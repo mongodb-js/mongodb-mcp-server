@@ -1,6 +1,6 @@
 import type { EvalScorerArgs } from "braintrust";
 import type { SeedCollectionData } from "./seeding.js";
-import type { MongoClusterConfiguration } from "../../../integration/tools/mongodb/mongodbClusterProcess.js";
+import type { MongoClusterConfiguration } from "../../integration/tools/mongodb/mongodbClusterProcess.js";
 import { ModelMessage } from "ai";
 
 export interface RunEvalConfig {

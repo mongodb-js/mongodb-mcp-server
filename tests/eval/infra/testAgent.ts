@@ -1,7 +1,7 @@
 import { initLogger } from "braintrust";
 
-import type { VercelMCPClientTools } from "../../sdk/agent.js";
-import type { Model } from "../../sdk/models.js";
+import type { VercelMCPClientTools } from "../../accuracy/sdk/agent.js";
+import type { Model } from "../../accuracy/sdk/models.js";
 import type { RunEvalInput, Verdict } from "./scaffolding.types.js";
 import { Conversation } from "./conversation.js";
 import { FollowUpBot } from "./followUpBot.js";

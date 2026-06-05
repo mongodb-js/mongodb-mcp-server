@@ -2,14 +2,14 @@ import { randomUUID } from "crypto";
 import { Eval } from "braintrust";
 import { MongoClient } from "mongodb";
 
-import type { UserConfig } from "../../../../src/lib.js";
+import type { UserConfig } from "../../../src/lib.js";
 import {
     MongoDBClusterProcess,
     type MongoClusterConfiguration,
-} from "../../../integration/tools/mongodb/mongodbClusterProcess.js";
-import { AccuracyTestingClient } from "../../sdk/accuracyTestingClient.js";
-import type { Model } from "../../sdk/models.js";
-import { getAvailableModels } from "../../sdk/models.js";
+} from "../../integration/tools/mongodb/mongodbClusterProcess.js";
+import { AccuracyTestingClient } from "../../accuracy/sdk/accuracyTestingClient.js";
+import type { Model } from "../../accuracy/sdk/models.js";
+import { getAvailableModels } from "../../accuracy/sdk/models.js";
 import { seedCollections } from "./seeding.js";
 import { runConversation } from "./testAgent.js";
 import type {

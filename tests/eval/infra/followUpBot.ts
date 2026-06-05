@@ -2,7 +2,7 @@ import * as untracedAi from "ai";
 import { wrapAISDK, traced } from "braintrust";
 import { z } from "zod";
 
-import type { Model } from "../../sdk/models.js";
+import type { Model } from "../../accuracy/sdk/models.js";
 import type { FollowUpResult } from "./scaffolding.types.js";
 import { type Conversation, ROLE, serializeMessages, debugStep } from "./conversation.js";
 

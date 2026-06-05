@@ -2,8 +2,8 @@ import * as untracedAi from "ai";
 import type { ModelMessage, OnStepFinishEvent } from "ai";
 import { wrapAISDK } from "braintrust";
 
-import type { VercelMCPClientTools } from "../../sdk/agent.js";
-import type { Model } from "../../sdk/models.js";
+import type { VercelMCPClientTools } from "../../accuracy/sdk/agent.js";
+import type { Model } from "../../accuracy/sdk/models.js";
 
 const ai = wrapAISDK(untracedAi); // wraps Vercel AI SDK for Braintrust tracing
 
