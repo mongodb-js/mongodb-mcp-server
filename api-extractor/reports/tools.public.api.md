@@ -1226,6 +1226,7 @@ export class LogsTool extends MongoDBToolBase {
 
 // @public (undocumented)
 export abstract class MongoDBToolBase extends ToolBase {
+    protected assertMqlIsAllowed(value: Record<string, unknown> | Record<string, unknown>[] | undefined): void;
     // (undocumented)
     static category: ToolCategory;
     // (undocumented)
