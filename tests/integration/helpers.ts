@@ -434,6 +434,13 @@ export function waitUntil<T extends ConnectionState>(
                     return resolve(status as T);
                 }
             }
+
+            // If we're waiting for a non-errored state but the connection has entered the
+            // terminal `errored` state, fail fast with the real reason instead of spinning
+            // until the test times out.
+            if (tag !== "errored" && status.tag === "errored") {
+                return reject(new Error(`Connection errored while waiting for "${tag}": ${status.errorReason}`));
+            }
         }, 100);
     }).finally(() => {
         if (ts !== undefined) {
