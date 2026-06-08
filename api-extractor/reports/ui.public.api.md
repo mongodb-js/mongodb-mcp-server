@@ -4,11 +4,6 @@
 
 ```ts
 
-import { ReactElement } from 'react';
-
-// @public (undocumented)
-export const ListDatabases: () => ReactElement | null;
-
 // @public
 export class UIRegistry {
     constructor(options?: {

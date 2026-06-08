@@ -1,6 +1,8 @@
+import { execFileSync } from "child_process";
 import { createRequire } from "module";
 import path from "path";
 import { describe, it, expect } from "vitest";
+import packageJson from "../../package.json" with { type: "json" };
 
 // Current directory where the test file is located
 const currentDir = import.meta.dirname;
@@ -13,6 +15,9 @@ const cjsPath = path.resolve(projectRoot, "dist/cjs/lib.js");
 
 const esmToolsPath = path.resolve(projectRoot, "dist/esm/tools/index.js");
 const cjsToolsPath = path.resolve(projectRoot, "dist/cjs/tools/index.js");
+
+const uiComponentBuildDependencies = ["@lg-mcp/embeddable-uis", "@lg-mcp/hooks", "react", "react-dom"];
+const uiExports = ["UIRegistry"];
 
 describe("Build Test", () => {
     it("should successfully require CommonJS module", () => {
@@ -72,5 +77,32 @@ describe("Build Test", () => {
         expect(cjsKeys).toEqual(esmKeys);
         // There are more tools but we will only check for a few.
         expect(cjsKeys).toEqual(expect.arrayContaining(["AllTools", "AggregateTool", "FindTool"]));
+    });
+
+    it("should keep bundled UI component packages out of server runtime dependencies", () => {
+        for (const dependency of uiComponentBuildDependencies) {
+            expect(packageJson.dependencies).not.toHaveProperty(dependency);
+            expect(packageJson.devDependencies).toHaveProperty(dependency);
+        }
+    });
+
+    it("should load the public UI registry module from ESM and CommonJS consumers", () => {
+        const esmOutput = execFileSync(
+            process.execPath,
+            [
+                "--input-type=module",
+                "-e",
+                "const mod = await import('mongodb-mcp-server/ui'); console.log(Object.keys(mod).sort().join(','));",
+            ],
+            { cwd: projectRoot, encoding: "utf8" }
+        ).trim();
+        const cjsOutput = execFileSync(
+            process.execPath,
+            ["-e", "const mod = require('mongodb-mcp-server/ui'); console.log(Object.keys(mod).sort().join(','));"],
+            { cwd: projectRoot, encoding: "utf8" }
+        ).trim();
+
+        expect(cjsOutput.split(",")).toEqual(uiExports);
+        expect(esmOutput.split(",")).toEqual(uiExports);
     });
 });
