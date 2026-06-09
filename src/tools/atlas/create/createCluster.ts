@@ -243,7 +243,7 @@ export class CreateClusterTool extends AtlasToolBase {
                 {
                     type: "text",
                     text:
-                        `Cluster "${clusterName}" is being created in project "${projectId}". ` +
+                        `Cluster "${clusterName}" is being created in project "${projectId}" (${instanceSize} ${clusterType} on ${provider}/${region}). ` +
                         `Use the atlas-inspect-cluster tool with projectId "${projectId}" and clusterName "${clusterName}" to poll for readiness. ` +
                         `The cluster is ready when its state is IDLE, connection strings are unavailable until then.`,
                 },
