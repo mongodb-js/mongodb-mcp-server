@@ -3,6 +3,7 @@ export { ListProjectsTool } from "./read/listProjects.js";
 export { InspectClusterTool } from "./read/inspectCluster.js";
 export { CreateFreeClusterTool } from "./create/createFreeCluster.js";
 export { CreateClusterTool } from "./create/createCluster.js";
+export { LoadSampleDatasetTool, type LoadSampleDatasetOutput } from "./create/loadSampleDataset.js";
 export { CreateAccessListTool } from "./create/createAccessList.js";
 export { InspectAccessListTool } from "./read/inspectAccessList.js";
 export { ListDBUsersTool } from "./read/listDBUsers.js";
