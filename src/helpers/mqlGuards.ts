@@ -17,13 +17,7 @@ type ServerSideJSOperator = (typeof SERVER_SIDE_JS_OPERATORS)[number];
  */
 function findServerSideJSOperator(value: unknown): ServerSideJSOperator | undefined {
     if (Array.isArray(value)) {
-        for (const item of value) {
-            const found = findServerSideJSOperator(item);
-            if (found) {
-                return found;
-            }
-        }
-        return undefined;
+        return value.map((item) => findServerSideJSOperator(item)).find((operator) => operator !== undefined);
     }
 
     if (value !== null && typeof value === "object") {
