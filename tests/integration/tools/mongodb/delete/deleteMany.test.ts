@@ -6,7 +6,7 @@ import {
     validateToolMetadata,
     validateThrowsForInvalidArguments,
 } from "../../../helpers.js";
-import { describe, expect, it } from "vitest";
+import { beforeEach, afterEach, describe, expect, it } from "vitest";
 import type { DeleteManyOutput } from "../../../../../src/tools/mongodb/delete/deleteMany.js";
 
 describeWithMongoDB("deleteMany tool", (integration) => {
@@ -159,4 +159,43 @@ describeWithMongoDB("deleteMany tool", (integration) => {
             expectedResponse: 'Deleted `0` document(s) from collection "coll1"',
         };
     });
+});
+
+describeWithMongoDB("deleteMany tool with server-side JavaScript operators", (integration) => {
+    afterEach(() => {
+        integration.mcpServer().userConfig.disableServerSideJs = true;
+    });
+
+    beforeEach(async () => {
+        await integration
+            .mongoClient()
+            .db(integration.randomDbName())
+            .collection("people")
+            .insertMany([
+                { name: "Peter", age: 5 },
+                { name: "Laura", age: 10 },
+            ]);
+    });
+
+    for (const jsDisabled of [true, false]) {
+        it(`${jsDisabled ? "rejects" : "allows"} filters using $where when disableServerSideJs is ${jsDisabled}`, async () => {
+            integration.mcpServer().userConfig.disableServerSideJs = jsDisabled;
+            await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "delete-many",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "people",
+                    filter: { $where: "function() { return this.age > 8; }" },
+                },
+            });
+            const content = getResponseContent(response.content);
+            if (jsDisabled) {
+                expect(content).toContain(`The "$where" operator is not allowed.`);
+            } else {
+                expect(content).not.toContain("server-side JavaScript operators");
+                expect(content).toContain('Deleted `1` document(s) from collection "people"');
+            }
+        });
+    }
 });

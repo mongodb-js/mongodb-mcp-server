@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ToolArgs, ToolCategory } from "../tool.js";
+import type { OperationType, ToolArgs, ToolCategory } from "../tool.js";
 import { ToolBase } from "../tool.js";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
@@ -7,6 +7,7 @@ import { ErrorCodes, MongoDBError } from "../../common/errors.js";
 import { LogId } from "../../common/logging/index.js";
 import type { Server } from "../../server.js";
 import type { ConnectionMetadata } from "../../telemetry/types.js";
+import { assertNoServerSideJS, isWriteStage } from "../../helpers/mqlGuards.js";
 
 export const DBOperationArgs = {
     database: z.string().describe("Database name"),
@@ -60,6 +61,51 @@ export abstract class MongoDBToolBase extends ToolBase {
             ...(signal && { signal }),
             ...(this.config.maxTimeMS !== undefined && { maxTimeMS: this.config.maxTimeMS }),
         };
+    }
+
+    /**
+     * Rejects the operation when the provided MQL input is not permitted by the
+     * current configuration:
+     *  - server-side JavaScript operators (such as $where, $function, or
+     *    $accumulator) are rejected when the `disableServerSideJs` configuration
+     *    option is enabled. This applies to both query filters and aggregation
+     *    pipelines.
+     *  - aggregation pipelines containing a write stage ($out or $merge) are
+     *    rejected in readOnly mode or when create/update/delete operations are
+     *    disabled. This prevents read-oriented tools such as aggregate and
+     *    export from being used to circumvent those restrictions.
+     *
+     * Write stages only exist in aggregation pipelines, which are passed as an
+     * array, so that check is skipped for plain query filters.
+     */
+    protected assertMqlIsAllowed(value: Record<string, unknown> | Record<string, unknown>[] | undefined): void {
+        if (this.config.disableServerSideJs) {
+            assertNoServerSideJS(value);
+        }
+
+        if (Array.isArray(value)) {
+            // Only check for forbidden write stages when the value is an array, which indicates it's an
+            // aggregation pipeline. Query filters are objects, so they won't be checked for write stages,
+            // which is correct since they can't contain them.
+            const writeOperations: OperationType[] = ["update", "create", "delete"];
+
+            let writeStageForbiddenErrorMessage = "";
+            if (this.config.readOnly) {
+                writeStageForbiddenErrorMessage =
+                    "In readOnly mode you can not run pipelines with $out or $merge stages.";
+            } else if (this.config.disabledTools.some((t) => writeOperations.includes(t as OperationType))) {
+                writeStageForbiddenErrorMessage =
+                    "When 'create', 'update', or 'delete' operations are disabled, you can not run pipelines with $out or $merge stages.";
+            }
+
+            if (writeStageForbiddenErrorMessage) {
+                for (const stage of value) {
+                    if (isWriteStage(stage)) {
+                        throw new MongoDBError(ErrorCodes.ForbiddenWriteOperation, writeStageForbiddenErrorMessage);
+                    }
+                }
+            }
+        }
     }
 
     public register(server: Server): boolean {

@@ -531,6 +531,8 @@ export enum ErrorCodes {
     // (undocumented)
     ForbiddenCollscan = 1000002,
     // (undocumented)
+    ForbiddenServerSideJS = 1000009,
+    // (undocumented)
     ForbiddenWriteOperation = 1000003,
     // (undocumented)
     InvalidPipeline = 1000008,
@@ -1201,6 +1203,7 @@ export const UserConfigSchema: z.ZodObject<{
     confirmationRequiredTools: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodString>>>;
     readOnly: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
     indexCheck: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
+    disableServerSideJs: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
     telemetry: z.ZodDefault<z.ZodEnum<{
         enabled: "enabled";
         disabled: "disabled";

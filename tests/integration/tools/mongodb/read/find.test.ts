@@ -453,104 +453,111 @@ describeWithMongoDB(
     }
 );
 
-describeWithMongoDB("find tool with abort signal", (integration) => {
-    beforeEach(async () => {
-        // Insert many documents with complex data to simulate a slow query
-        await freshInsertDocuments({
-            collection: integration.mongoClient().db(integration.randomDbName()).collection("abort_collection"),
-            count: 10,
-            documentMapper: (index) => ({
-                _id: index,
-                description: `Document ${index}`,
-            }),
+describeWithMongoDB(
+    "find tool with abort signal",
+    (integration) => {
+        beforeEach(async () => {
+            // Insert many documents with complex data to simulate a slow query
+            await freshInsertDocuments({
+                collection: integration.mongoClient().db(integration.randomDbName()).collection("abort_collection"),
+                count: 10,
+                documentMapper: (index) => ({
+                    _id: index,
+                    description: `Document ${index}`,
+                }),
+            });
         });
-    });
 
-    const runSlowFind = async (
-        signal?: AbortSignal
-    ): Promise<{ executionTime: number; result?: Awaited<ReturnType<Client["callTool"]>>; error?: Error }> => {
-        const startTime = performance.now();
+        const runSlowFind = async (
+            signal?: AbortSignal
+        ): Promise<{ executionTime: number; result?: Awaited<ReturnType<Client["callTool"]>>; error?: Error }> => {
+            const startTime = performance.now();
 
-        let result: Awaited<ReturnType<Client["callTool"]>> | undefined;
-        let error: Error | undefined;
-        try {
-            result = await integration.mcpClient().callTool(
-                {
-                    name: "find",
-                    arguments: {
-                        database: integration.randomDbName(),
-                        collection: "abort_collection",
-                        filter: {
-                            $where: "function() { sleep(100); return true; }",
+            let result: Awaited<ReturnType<Client["callTool"]>> | undefined;
+            let error: Error | undefined;
+            try {
+                result = await integration.mcpClient().callTool(
+                    {
+                        name: "find",
+                        arguments: {
+                            database: integration.randomDbName(),
+                            collection: "abort_collection",
+                            filter: {
+                                $where: "function() { sleep(100); return true; }",
+                            },
                         },
                     },
-                },
-                undefined,
-                { signal }
-            );
-        } catch (err: unknown) {
-            error = err as Error;
-        }
+                    undefined,
+                    { signal }
+                );
+            } catch (err: unknown) {
+                error = err as Error;
+            }
 
-        const executionTime = performance.now() - startTime;
+            const executionTime = performance.now() - startTime;
 
-        return {
-            result,
-            error,
-            executionTime,
+            return {
+                result,
+                error,
+                executionTime,
+            };
         };
-    };
 
-    it("should abort find operation when signal is triggered immediately", async () => {
-        await integration.connectMcpClient();
-        const abortController = new AbortController();
+        it("should abort find operation when signal is triggered immediately", async () => {
+            await integration.connectMcpClient();
+            const abortController = new AbortController();
 
-        const findPromise = runSlowFind(abortController.signal);
+            const findPromise = runSlowFind(abortController.signal);
 
-        // Abort immediately
-        abortController.abort();
+            // Abort immediately
+            abortController.abort();
 
-        const { result, error, executionTime } = await findPromise;
+            const { result, error, executionTime } = await findPromise;
 
-        expect(executionTime).toBeLessThan(50); // Ensure it aborted quickly
-        expect(result).toBeUndefined();
-        expectDefined(error);
-        expect(error.message).toContain("This operation was aborted");
-    });
+            expect(executionTime).toBeLessThan(50); // Ensure it aborted quickly
+            expect(result).toBeUndefined();
+            expectDefined(error);
+            expect(error.message).toContain("This operation was aborted");
+        });
 
-    it("should abort find operation during cursor iteration", async () => {
-        await integration.connectMcpClient();
-        const abortController = new AbortController();
+        it("should abort find operation during cursor iteration", async () => {
+            await integration.connectMcpClient();
+            const abortController = new AbortController();
 
-        // Start a query with regex and complex filter that requires scanning many documents
-        const findPromise = runSlowFind(abortController.signal);
+            // Start a query with regex and complex filter that requires scanning many documents
+            const findPromise = runSlowFind(abortController.signal);
 
-        // Give the cursor a bit of time to start processing, then abort
-        setTimeout(() => abortController.abort(), 250);
+            // Give the cursor a bit of time to start processing, then abort
+            setTimeout(() => abortController.abort(), 250);
 
-        const { result, error, executionTime } = await findPromise;
+            const { result, error, executionTime } = await findPromise;
 
-        // Ensure it aborted quickly, but possibly after some processing
-        expect(executionTime).toBeGreaterThanOrEqual(250);
-        expect(executionTime).toBeLessThan(450);
-        expect(result).toBeUndefined();
-        expectDefined(error);
-        expect(error.message).toContain("This operation was aborted");
-    });
+            // Ensure it aborted quickly, but possibly after some processing
+            expect(executionTime).toBeGreaterThanOrEqual(250);
+            expect(executionTime).toBeLessThan(450);
+            expect(result).toBeUndefined();
+            expectDefined(error);
+            expect(error.message).toContain("This operation was aborted");
+        });
 
-    it("should complete successfully when not aborted", async () => {
-        await integration.connectMcpClient();
+        it("should complete successfully when not aborted", async () => {
+            await integration.connectMcpClient();
 
-        const { result, error, executionTime } = await runSlowFind();
+            const { result, error, executionTime } = await runSlowFind();
 
-        // 10 docs, each doc processing sleeps 100ms, so total should be around 1s
-        expect(executionTime).toBeGreaterThan(1000);
-        expectDefined(result);
-        expect(error).toBeUndefined();
-        const content = getResponseContent(result);
-        expect(content).toContain('Query on collection "abort_collection"');
-    });
-});
+            // 10 docs, each doc processing sleeps 100ms, so total should be around 1s
+            expect(executionTime).toBeGreaterThan(1000);
+            expectDefined(result);
+            expect(error).toBeUndefined();
+            const content = getResponseContent(result);
+            expect(content).toContain('Query on collection "abort_collection"');
+        });
+    },
+    {
+        // The slow-query tests rely on $where, which is a server-side JS operator.
+        getUserConfig: () => ({ ...defaultTestConfig, disableServerSideJs: false }),
+    }
+);
 
 describeWithMongoDB(
     "find tool with configured maxTimeMS",
@@ -612,6 +619,48 @@ describeWithMongoDB(
         });
     },
     {
-        getUserConfig: () => ({ ...defaultTestConfig, maxTimeMS: 100 }),
+        getUserConfig: () => ({ ...defaultTestConfig, maxTimeMS: 100, disableServerSideJs: false }),
     }
 );
+
+describeWithMongoDB("find tool with server-side JavaScript operators", (integration) => {
+    afterEach(() => {
+        integration.mcpServer().userConfig.disableServerSideJs = true;
+    });
+
+    beforeEach(async () => {
+        await integration
+            .mongoClient()
+            .db(integration.randomDbName())
+            .collection("people")
+            .insertMany([
+                { name: "Peter", age: 5 },
+                { name: "Laura", age: 10 },
+            ]);
+    });
+
+    for (const jsDisabled of [true, false]) {
+        it(`${jsDisabled ? "rejects" : "allows"} filters using $where when disableServerSideJs is ${jsDisabled}`, async () => {
+            integration.mcpServer().userConfig.disableServerSideJs = jsDisabled;
+            await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "find",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "people",
+                    filter: { $where: "function() { return this.age > 8; }" },
+                },
+            });
+            const content = getResponseContent(response);
+            if (jsDisabled) {
+                expect(content).toContain(`The "$where" operator is not allowed.`);
+            } else {
+                expect(content).not.toContain("server-side JavaScript operators");
+                expect(content).toContain('Query on collection "people"');
+                const docs = getDocsFromUntrustedContent(content);
+                expect(docs).toHaveLength(1);
+                expect(docs[0]).toEqual(expect.objectContaining({ name: "Laura", age: 10 }));
+            }
+        });
+    }
+});

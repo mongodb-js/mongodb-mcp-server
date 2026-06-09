@@ -842,8 +842,17 @@ export class ExplainTool extends MongoDBToolBase {
     // (undocumented)
     outputSchema: {
         explainResult: z.ZodRecord<z.ZodString, z.ZodUnknown>;
-        method: z.ZodString;
-        verbosity: z.ZodString;
+        method: z.ZodEnum<{
+            find: "find";
+            count: "count";
+            aggregate: "aggregate";
+        }>;
+        verbosity: z.ZodEnum<{
+            queryPlanner: "queryPlanner";
+            queryPlannerExtended: "queryPlannerExtended";
+            executionStats: "executionStats";
+            allPlansExecution: "allPlansExecution";
+        }>;
     };
     // (undocumented)
     static toolName: string;
@@ -1226,6 +1235,7 @@ export class LogsTool extends MongoDBToolBase {
 
 // @public (undocumented)
 export abstract class MongoDBToolBase extends ToolBase {
+    protected assertMqlIsAllowed(value: Record<string, unknown> | Record<string, unknown>[] | undefined): void;
     // (undocumented)
     static category: ToolCategory;
     // (undocumented)

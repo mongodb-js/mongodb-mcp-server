@@ -28,6 +28,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
     afterEach(() => {
         integration.mcpServer().userConfig.readOnly = false;
         integration.mcpServer().userConfig.disabledTools = [];
+        integration.mcpServer().userConfig.disableServerSideJs = true;
     });
 
     validateToolMetadata(integration, "aggregate", "Run an aggregation against a MongoDB collection", "read", [
@@ -155,6 +156,103 @@ describeWithMongoDB("aggregate tool", (integration) => {
         expect(content).toEqual(
             "Error running aggregate: In readOnly mode you can not run pipelines with $out or $merge stages."
         );
+    });
+
+    describe("server-side JavaScript operators", () => {
+        beforeEach(async () => {
+            await integration
+                .mongoClient()
+                .db(integration.randomDbName())
+                .collection("people")
+                .insertMany([
+                    { name: "Peter", age: 5 },
+                    { name: "Laura", age: 10 },
+                ]);
+        });
+
+        const jsPipelines: {
+            name: string;
+            pipeline: Record<string, unknown>[];
+            operator: string;
+            executable: boolean;
+        }[] = [
+            {
+                name: "$where in a $match stage",
+                pipeline: [{ $match: { $where: "function() { return this.age > 8; }" } }],
+                operator: "$where",
+                // $where is not supported inside an aggregation $match stage by the
+                // server, so we only validate that our guard rejects it first.
+                executable: false,
+            },
+            {
+                name: "$function in a $project stage",
+                pipeline: [
+                    {
+                        $project: {
+                            doubled: {
+                                $function: {
+                                    body: "function(age) { return age * 2; }",
+                                    args: ["$age"],
+                                    lang: "js",
+                                },
+                            },
+                        },
+                    },
+                ],
+                operator: "$function",
+                executable: true,
+            },
+            {
+                name: "$accumulator in a $group stage",
+                pipeline: [
+                    {
+                        $group: {
+                            _id: null,
+                            total: {
+                                $accumulator: {
+                                    init: "function() { return 0; }",
+                                    accumulate: "function(state, age) { return state + age; }",
+                                    accumulateArgs: ["$age"],
+                                    merge: "function(a, b) { return a + b; }",
+                                    lang: "js",
+                                },
+                            },
+                        },
+                    },
+                ],
+                operator: "$accumulator",
+                executable: true,
+            },
+        ];
+
+        for (const { name, pipeline, operator, executable } of jsPipelines) {
+            for (const jsDisabled of [true, false]) {
+                // The server can't execute some operators even when JS is enabled,
+                // so there's nothing meaningful to assert for the "allowed" case.
+                if (!jsDisabled && !executable) {
+                    continue;
+                }
+                it(`${jsDisabled ? "rejects" : "allows"} pipelines using ${name} when disableServerSideJs is ${jsDisabled}`, async () => {
+                    integration.mcpServer().userConfig.disableServerSideJs = jsDisabled;
+                    await integration.connectMcpClient();
+                    const response = await integration.mcpClient().callTool({
+                        name: "aggregate",
+                        arguments: {
+                            database: integration.randomDbName(),
+                            collection: "people",
+                            pipeline,
+                        },
+                    });
+                    const content = getResponseContent(response);
+                    if (jsDisabled) {
+                        expect(content).toContain(`The "${operator}" operator is not allowed.`);
+                    } else {
+                        expect(content).not.toContain("server-side JavaScript operators");
+                        expect(content).toContain("The aggregation resulted in");
+                    }
+                });
+            }
+        }
     });
 
     it("can run $limit stages with a small number", async () => {
