@@ -32,16 +32,13 @@ A Model Context Protocol server for interacting with MongoDB Databases and Mongo
 
 ## Prerequisites
 
+> [!NOTE]
+> Node 20.x support is deprecated and will be removed in a future release. Please upgrade to Node 22.13 or later. See https://nodejs.org/en/blog/migrations/v20-to-v22 for migration details.
+
 - Node.js
-  - At least 20.19.0
-  - When using v22 then at least v22.12.0
-  - Otherwise any version 23+
+  - At least v22.13.0. Check with `node -v`.
 
-```shell
-node -v
-```
-
-- A MongoDB connection string or Atlas API credentials, **_the Server will not start unless configured_**.
+- A MongoDB connection string or Atlas API credentials.
   - **_Service Accounts Atlas API credentials_** are required to use the Atlas tools. You can create a service account in MongoDB Atlas and use its credentials for authentication. See [Atlas API Access](#atlas-api-access) for more details.
   - If you have a MongoDB connection string, you can use it directly to connect to your MongoDB instance.
 

@@ -15,15 +15,25 @@ interface ClusterMockParams {
     clusterName: string;
     instanceSize?: string;
     mongoDBVersion?: string;
+    clusterType?: string;
+    provider?: string;
+    region?: string;
 }
 
-function mockCreateClusterResponse({ projectId, clusterName }: ClusterMockParams): () => CallToolResult {
+function mockCreateClusterResponse({
+    projectId,
+    clusterName,
+    provider,
+    region,
+    instanceSize = "M10",
+    clusterType = "REPLICASET",
+}: ClusterMockParams): () => CallToolResult {
     return () => ({
         content: [
             {
                 type: "text",
                 text:
-                    `Cluster "${clusterName}" is being created in project "${projectId}". ` +
+                    `Cluster "${clusterName}" is being created in project "${projectId}" (${instanceSize} ${clusterType} on ${provider}/${region}). ` +
                     `Use the atlas-inspect-cluster tool with projectId "${projectId}" and clusterName "${clusterName}" to poll for readiness. ` +
                     `The cluster is ready when its state is IDLE, connection strings are unavailable until then.`,
             },
@@ -65,7 +75,12 @@ describeAccuracyTests([
         prompt: `Create a cluster named "${CLUSTER_NAME}" in project "${PROJECT_ID}" on AWS in US_EAST_1`,
         mockedTools: {
             ...mockListProjects,
-            "atlas-create-cluster": mockCreateClusterResponse({ projectId: PROJECT_ID, clusterName: CLUSTER_NAME }),
+            "atlas-create-cluster": mockCreateClusterResponse({
+                projectId: PROJECT_ID,
+                clusterName: CLUSTER_NAME,
+                provider: "AWS",
+                region: "US_EAST_1",
+            }),
         },
         expectedToolCalls: [
             ...optionalListProjects,
@@ -85,7 +100,13 @@ describeAccuracyTests([
         prompt: `Set up an M30 cluster called "${CLUSTER_NAME}" on GCP central US for project ${PROJECT_ID}`,
         mockedTools: {
             ...mockListProjects,
-            "atlas-create-cluster": mockCreateClusterResponse({ projectId: PROJECT_ID, clusterName: CLUSTER_NAME }),
+            "atlas-create-cluster": mockCreateClusterResponse({
+                projectId: PROJECT_ID,
+                clusterName: CLUSTER_NAME,
+                provider: "GCP",
+                region: "CENTRAL_US",
+                instanceSize: "M30",
+            }),
         },
         expectedToolCalls: [
             ...optionalListProjects,
@@ -106,7 +127,12 @@ describeAccuracyTests([
         prompt: `I need an Azure cluster called "${CLUSTER_NAME}" in europe_west for project ${PROJECT_ID}. Lock the version to 7.0.`,
         mockedTools: {
             ...mockListProjects,
-            "atlas-create-cluster": mockCreateClusterResponse({ projectId: PROJECT_ID, clusterName: CLUSTER_NAME }),
+            "atlas-create-cluster": mockCreateClusterResponse({
+                projectId: PROJECT_ID,
+                clusterName: CLUSTER_NAME,
+                provider: "AZURE",
+                region: "EUROPE_WEST",
+            }),
         },
         expectedToolCalls: [
             ...optionalListProjects,
@@ -127,7 +153,12 @@ describeAccuracyTests([
         prompt: `Set up cluster "${CLUSTER_NAME}" in project ${PROJECT_ID} on AWS US_EAST_1. I need point-in-time recovery enabled.`,
         mockedTools: {
             ...mockListProjects,
-            "atlas-create-cluster": mockCreateClusterResponse({ projectId: PROJECT_ID, clusterName: CLUSTER_NAME }),
+            "atlas-create-cluster": mockCreateClusterResponse({
+                projectId: PROJECT_ID,
+                clusterName: CLUSTER_NAME,
+                provider: "AWS",
+                region: "US_EAST_1",
+            }),
         },
         expectedToolCalls: [
             ...optionalListProjects,
@@ -148,7 +179,12 @@ describeAccuracyTests([
         prompt: `Create a dev cluster named "${CLUSTER_NAME}" in project "${PROJECT_ID}" on GCP in SOUTH_AMERICA_EAST_1 without any backups`,
         mockedTools: {
             ...mockListProjects,
-            "atlas-create-cluster": mockCreateClusterResponse({ projectId: PROJECT_ID, clusterName: CLUSTER_NAME }),
+            "atlas-create-cluster": mockCreateClusterResponse({
+                projectId: PROJECT_ID,
+                clusterName: CLUSTER_NAME,
+                provider: "GCP",
+                region: "SOUTH_AMERICA_EAST_1",
+            }),
         },
         expectedToolCalls: [
             ...optionalListProjects,
@@ -169,7 +205,13 @@ describeAccuracyTests([
         prompt: `Provision an M30 cluster "${CLUSTER_NAME}" in project ${PROJECT_ID} on Azure North Europe. No autoscaling or backups.`,
         mockedTools: {
             ...mockListProjects,
-            "atlas-create-cluster": mockCreateClusterResponse({ projectId: PROJECT_ID, clusterName: CLUSTER_NAME }),
+            "atlas-create-cluster": mockCreateClusterResponse({
+                projectId: PROJECT_ID,
+                clusterName: CLUSTER_NAME,
+                provider: "AZURE",
+                region: "EUROPE_NORTH",
+                instanceSize: "M30",
+            }),
         },
         expectedToolCalls: [
             ...optionalListProjects,
@@ -192,7 +234,12 @@ describeAccuracyTests([
         prompt: `Create a cluster named "${CLUSTER_NAME}" in project "${PROJECT_ID}" on AWS in EU_WEST_1, make sure it can't be accidentally removed.`,
         mockedTools: {
             ...mockListProjects,
-            "atlas-create-cluster": mockCreateClusterResponse({ projectId: PROJECT_ID, clusterName: CLUSTER_NAME }),
+            "atlas-create-cluster": mockCreateClusterResponse({
+                projectId: PROJECT_ID,
+                clusterName: CLUSTER_NAME,
+                provider: "AWS",
+                region: "EU_WEST_1",
+            }),
         },
         expectedToolCalls: [
             ...optionalListProjects,
@@ -213,7 +260,14 @@ describeAccuracyTests([
         prompt: `Create a sharded cluster named "${CLUSTER_NAME}" in project "${PROJECT_ID}" on GCP in US_EAST_4`,
         mockedTools: {
             ...mockListProjects,
-            "atlas-create-cluster": mockCreateClusterResponse({ projectId: PROJECT_ID, clusterName: CLUSTER_NAME }),
+            "atlas-create-cluster": mockCreateClusterResponse({
+                projectId: PROJECT_ID,
+                clusterName: CLUSTER_NAME,
+                provider: "GCP",
+                region: "US_EAST_4",
+                clusterType: "SHARDED",
+                instanceSize: "M30",
+            }),
         },
         expectedToolCalls: [
             ...optionalListProjects,
@@ -237,7 +291,12 @@ describeAccuracyTests([
         prompt: `I need a new cluster called "${CLUSTER_NAME}" in my project "${PROJECT_NAME}" on AWS US_EAST_1`,
         mockedTools: {
             ...mockListProjects,
-            "atlas-create-cluster": mockCreateClusterResponse({ projectId: PROJECT_ID, clusterName: CLUSTER_NAME }),
+            "atlas-create-cluster": mockCreateClusterResponse({
+                projectId: PROJECT_ID,
+                clusterName: CLUSTER_NAME,
+                provider: "AWS",
+                region: "US_EAST_1",
+            }),
         },
         expectedToolCalls: [
             {
@@ -261,7 +320,12 @@ describeAccuracyTests([
         prompt: `Spin up "${CLUSTER_NAME}" on AWS US_EAST_1 in project ${PROJECT_ID} and let me know when it's ready to use`,
         mockedTools: {
             ...mockListProjects,
-            "atlas-create-cluster": mockCreateClusterResponse({ projectId: PROJECT_ID, clusterName: CLUSTER_NAME }),
+            "atlas-create-cluster": mockCreateClusterResponse({
+                projectId: PROJECT_ID,
+                clusterName: CLUSTER_NAME,
+                provider: "AWS",
+                region: "US_EAST_1",
+            }),
             "atlas-inspect-cluster": mockInspectClusterResponse({ projectId: PROJECT_ID, clusterName: CLUSTER_NAME }),
         },
         expectedToolCalls: [
@@ -335,6 +399,9 @@ describeAccuracyTests([
             "atlas-create-cluster": mockCreateClusterResponse({
                 projectId: PROJECT_ID,
                 clusterName: SOURCE_CLUSTER_NAME,
+                provider: "AWS",
+                region: "EU_WEST_1",
+                instanceSize: "M40",
             }),
         },
         expectedToolCalls: [

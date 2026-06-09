@@ -1,4 +1,4 @@
-import { isAtlas } from "mongodb-build-info";
+import { isAtlas, isLocalhost } from "mongodb-build-info";
 import type { MongoClientOptions } from "mongodb";
 import { ConnectionString } from "mongodb-connection-string-url";
 import type { UserConfig } from "./config/userConfig.js";
@@ -62,6 +62,11 @@ export function getHostType(connectionString: string): ConnectionStringHostType 
     if (isAtlas(connectionString)) {
         return "atlas";
     }
+
+    if (isLocalhost(connectionString)) {
+        return "local";
+    }
+
     return "unknown";
 }
 
