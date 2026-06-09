@@ -357,9 +357,9 @@ export class CreateClusterTool extends AtlasToolBase {
             LATEST: "LATEST";
         }>>;
         backup: z.ZodDefault<z.ZodEnum<{
-            CONTINUOUS: "CONTINUOUS";
             OFF: "OFF";
             SNAPSHOT: "SNAPSHOT";
+            CONTINUOUS: "CONTINUOUS";
         }>>;
         terminationProtectionEnabled: z.ZodDefault<z.ZodBoolean>;
     };
@@ -399,9 +399,9 @@ export class CreateClusterTool extends AtlasToolBase {
             LATEST: "LATEST";
         }>;
         backup: z.ZodEnum<{
-            CONTINUOUS: "CONTINUOUS";
             OFF: "OFF";
             SNAPSHOT: "SNAPSHOT";
+            CONTINUOUS: "CONTINUOUS";
         }>;
         computeAutoScaling: z.ZodBoolean;
         terminationProtectionEnabled: z.ZodBoolean;

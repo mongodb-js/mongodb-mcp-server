@@ -290,8 +290,8 @@ export type CreateClusterMetadata = AtlasMetadata & {
     provider?: string;
     region?: string;
     instance_size?: string;
-    cluster_type?: string;
-    backup?: string;
+    cluster_type?: "REPLICASET" | "SHARDED";
+    backup?: "OFF" | "SNAPSHOT" | "CONTINUOUS";
     compute_auto_scaling?: TelemetryBoolSet;
     termination_protection?: TelemetryBoolSet;
     disk_size_gb?: number;
