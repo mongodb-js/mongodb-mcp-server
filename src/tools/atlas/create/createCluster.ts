@@ -17,8 +17,15 @@ User-specified regions not present in the mapping MUST be respected, rely on the
 `;
 
 const INSTANCE_SIZES = ["M10", "M20", "M30", "M40", "M50", "M60", "M80"] as const;
+const CLOUD_PROVIDERS = ["AWS", "GCP", "AZURE"] as const;
+const CLUSTER_TYPES = ["REPLICASET", "SHARDED"] as const;
+const MONGODB_VERSIONS = ["7.0", "8.0", "LATEST"] as const;
+const BACKUP_OPTIONS = ["OFF", "SNAPSHOT", "CONTINUOUS"] as const;
+
 type InstanceSize = (typeof INSTANCE_SIZES)[number];
-type CloudProvider = "AWS" | "GCP" | "AZURE";
+type CloudProvider = (typeof CLOUD_PROVIDERS)[number];
+type MongoDBVersion = (typeof MONGODB_VERSIONS)[number];
+type Backup = (typeof BACKUP_OPTIONS)[number];
 
 function getMaxAutoScalingSize(size: InstanceSize, provider: CloudProvider): string {
     // M60 and M80 extend beyond the selectable range. M140 is not supported on Azure.
@@ -85,7 +92,7 @@ function buildReplicationSpecs(
     ];
 }
 
-function buildBackupConfig(backups: "OFF" | "SNAPSHOT" | "CONTINUOUS"): {
+function buildBackupConfig(backups: Backup): {
     backupEnabled: boolean;
     pitEnabled: boolean;
 } {
@@ -99,7 +106,7 @@ function buildBackupConfig(backups: "OFF" | "SNAPSHOT" | "CONTINUOUS"): {
     }
 }
 
-function buildVersionConfig(version: "7.0" | "8.0" | "LATEST"): {
+function buildVersionConfig(version: MongoDBVersion): {
     versionReleaseSystem: "LTS" | "CONTINUOUS";
     mongoDBMajorVersion?: string;
 } {
@@ -118,21 +125,21 @@ export const CreateClusterArgsShape = {
 
     clusterName: AtlasArgs.clusterName().describe("Name of the cluster."),
 
-    provider: z.enum(["AWS", "GCP", "AZURE"]).describe("Cloud provider for the cluster."),
+    provider: z.enum(CLOUD_PROVIDERS).describe("Cloud provider for the cluster."),
 
     region: AtlasArgs.region().describe(
         "Cloud provider region in Atlas format using uppercase letters and underscores (e.g. US_EAST_1)."
     ),
 
     clusterType: z
-        .enum(["REPLICASET", "SHARDED"])
+        .enum(CLUSTER_TYPES)
         .default("REPLICASET")
         .describe(
             "Cluster topology. Use `SHARDED` for single-shard clusters, requires M30 or higher. Defaults to `REPLICASET`."
         ),
 
     instanceSize: z
-        .enum(["M10", "M20", "M30", "M40", "M50", "M60", "M80"])
+        .enum(INSTANCE_SIZES)
         .optional()
         .describe(
             "Instance size. NVME and high-memory instances are not supported. Minimum M30 when clusterType is SHARDED. Defaults to M10 for projects with fewer than 2 existing clusters, M30 otherwise. Omit unless explicitly specified by the user."
@@ -154,14 +161,14 @@ export const CreateClusterArgsShape = {
         ),
 
     mongoDBVersion: z
-        .enum(["7.0", "8.0", "LATEST"])
+        .enum(MONGODB_VERSIONS)
         .default("LATEST")
         .describe(
             "MongoDB version to deploy. Use a pinned version for production environments where version stability is required. Defaults to `LATEST`."
         ),
 
     backup: z
-        .enum(["OFF", "SNAPSHOT", "CONTINUOUS"])
+        .enum(BACKUP_OPTIONS)
         .default("SNAPSHOT")
         .describe(
             "`OFF`: no backups. `SNAPSHOT`: cloud backup snapshots, recommended for most workloads. `CONTINUOUS`: point-in-time restore, required for RPO-sensitive production workloads. Defaults to `SNAPSHOT`."
@@ -177,12 +184,12 @@ export const CreateClusterArgsShape = {
 
 const CreateClusterOutputSchema = {
     clusterId: z.string().optional(),
-    provider: z.enum(["AWS", "GCP", "AZURE"]),
+    provider: z.enum(CLOUD_PROVIDERS),
     region: z.string(),
-    instanceSize: z.enum(["M10", "M20", "M30", "M40", "M50", "M60", "M80"]),
-    clusterType: z.enum(["REPLICASET", "SHARDED"]),
-    mongoDBVersion: z.enum(["7.0", "8.0", "LATEST"]),
-    backup: z.enum(["OFF", "SNAPSHOT", "CONTINUOUS"]),
+    instanceSize: z.enum(INSTANCE_SIZES),
+    clusterType: z.enum(CLUSTER_TYPES),
+    mongoDBVersion: z.enum(MONGODB_VERSIONS),
+    backup: z.enum(BACKUP_OPTIONS),
     computeAutoScaling: z.boolean(),
     terminationProtectionEnabled: z.boolean(),
     diskSizeGB: z.number().optional(),
