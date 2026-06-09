@@ -45,6 +45,8 @@ function mockInspectClusterResponse({
     clusterName,
     instanceSize,
     mongoDBVersion,
+    provider,
+    region,
 }: ClusterMockParams): () => CallToolResult {
     return (): CallToolResult => ({
         content: [
@@ -52,9 +54,12 @@ function mockInspectClusterResponse({
                 type: "text",
                 text: JSON.stringify({
                     name: clusterName,
+                    paused: false,
                     state: "IDLE",
                     instanceSize,
                     mongoDBVersion,
+                    provider,
+                    region,
                     connectionStrings: { standardSrv: `mongodb+srv://${clusterName}.example.mongodb.net` },
                 }),
             },
@@ -383,6 +388,7 @@ describeAccuracyTests([
                                 clusterName: SOURCE_CLUSTER_NAME,
                                 instanceType: "DEDICATED",
                                 instanceSize: "M40",
+                                paused: false,
                                 state: "IDLE",
                                 mongoDBVersion: "7.0",
                                 provider: "AWS",

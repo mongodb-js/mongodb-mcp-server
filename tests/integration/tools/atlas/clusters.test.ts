@@ -89,6 +89,9 @@ describeWithAtlas("clusters", (integration) => {
                 expect(content).toContain("Cluster details:");
                 expect(content).toContain("<untrusted-user-data-");
                 expect(content).toContain(clusterName);
+                expect(content).toContain('"provider"');
+                expect(content).toContain('"region"');
+                expect(content).toContain('"paused"');
             });
         });
 

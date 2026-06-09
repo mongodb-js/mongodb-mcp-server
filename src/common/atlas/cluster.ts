@@ -22,6 +22,7 @@ export interface Cluster {
     instanceSize?: string;
     provider?: string;
     region?: string;
+    paused: boolean;
     state?: "IDLE" | "CREATING" | "UPDATING" | "DELETING" | "REPAIRING";
     mongoDBVersion?: string;
     connectionStrings?: ClusterConnectionStrings;
@@ -35,6 +36,7 @@ export function formatFlexCluster(cluster: FlexClusterDescription20241113): Clus
         instanceSize: undefined,
         provider: cluster.providerSettings?.backingProviderName,
         region: cluster.providerSettings?.regionName,
+        paused: false,
         state: cluster.stateName,
         mongoDBVersion: cluster.mongoDBVersion,
         connectionStrings: cluster.connectionStrings,
@@ -86,6 +88,7 @@ export function formatCluster(cluster: ClusterDescription20240805): Cluster {
         instanceSize: clusterInstanceType === "DEDICATED" ? instanceSize : undefined,
         provider,
         region,
+        paused: cluster.paused ?? false,
         state: cluster.stateName,
         mongoDBVersion: cluster.mongoDBVersion,
         connectionStrings: cluster.connectionStrings,
