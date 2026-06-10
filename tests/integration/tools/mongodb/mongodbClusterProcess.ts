@@ -81,7 +81,9 @@ export class MongoDBClusterProcess {
                 // DO_NOT_TRACK=1 skips telemetry startup work (Atlas Local v1.0.11+), which
                 // otherwise increases startup time enough to exceed testcontainers' 60s timeout.
                 .withEnvironment({ DO_NOT_TRACK: "1" })
-                .withWaitStrategy(new ShellWaitStrategy(`mongosh --eval 'db.test.getSearchIndexes()'`))
+                .withWaitStrategy(
+                    new ShellWaitStrategy(`mongosh --eval 'db.test.getSearchIndexes()'`).withStartupTimeout(120_000)
+                )
                 .start();
 
             return new MongoDBClusterProcess(
