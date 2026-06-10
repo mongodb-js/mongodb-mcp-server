@@ -32,6 +32,7 @@ function filterOpenapi(openapi: OpenAPIV3_1.Document): OpenAPIV3_1.Document {
         "createFlexCluster",
         "deleteCluster",
         "deleteFlexCluster",
+        "updateCluster",
         "listClusterDetails",
         "upgradeGroupClusterTenantUpgrade",
         "tenantGroupFlexClusterUpgrade",

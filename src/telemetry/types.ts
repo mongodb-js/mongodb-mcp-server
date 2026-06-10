@@ -240,7 +240,8 @@ export type TelemetryToolMetadata =
     | StreamsToolMetadata
     | UpgradeClusterMetadata
     | CreateClusterMetadata
-    | IndexMetadata;
+    | IndexMetadata
+    | PauseResumeClusterMetadata;
 
 export type AtlasMetadata = {
     project_id?: string;
@@ -284,6 +285,11 @@ export type UpgradeClusterMetadata = AtlasMetadata & {
     cluster_id?: string;
     provider?: string;
     region?: string;
+};
+
+export type PauseResumeClusterMetadata = AtlasMetadata & {
+    cluster_id?: string;
+    action?: "PAUSE" | "RESUME";
 };
 
 export type CreateClusterMetadata = AtlasMetadata & {

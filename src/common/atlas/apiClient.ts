@@ -379,6 +379,19 @@ export class ApiClient {
         return data;
     }
 
+    async updateCluster(
+        options: FetchOptions<operations["updateGroupCluster"]>
+    ): Promise<components["schemas"]["ClusterDescription20240805"]> {
+        const { data, error, response } = await this.client.PATCH(
+            "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
     async listDropIndexSuggestions(
         options: FetchOptions<operations["listGroupClusterPerformanceAdvisorDropIndexSuggestions"]>
     ): Promise<components["schemas"]["DropIndexSuggestionsResponse"]> {

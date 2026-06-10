@@ -181,6 +181,8 @@ export class ApiClient {
     // (undocumented)
     tenantUpgrade(options: FetchOptions<operations["tenantGroupFlexClusterUpgrade"]>): Promise<components["schemas"]["FlexClusterDescription20241113"]>;
     // (undocumented)
+    updateCluster(options: FetchOptions<operations["updateGroupCluster"]>): Promise<components["schemas"]["ClusterDescription20240805"]>;
+    // (undocumented)
     updateStreamConnection(options: FetchOptions<operations["updateGroupStreamConnection"]>): Promise<components["schemas"]["StreamsConnection"]>;
     // (undocumented)
     updateStreamProcessor(options: FetchOptions<operations["updateGroupStreamProcessor"]>): Promise<components["schemas"]["StreamsProcessorWithStats"]>;
