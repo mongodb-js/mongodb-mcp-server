@@ -62,15 +62,8 @@ export type MongoClusterConfiguration =
 
 const DOWNLOAD_RETRIES = 10;
 
-// Pinned to 8.2.x for two reasons:
-// 1. Atlas Local v1.0.11 (first released in the 8.3.x line) added telemetry startup work
-//    that increases container startup time beyond testcontainers' default 60s timeout on
-//    Ubuntu CI. DO_NOT_TRACK=1 below fixes this, but only for the search image path.
-// 2. MongoDB 8.3+ has a regression where the search index management task executor briefly
-//    enters a "shutting down" state after a collection drop, causing subsequent
-//    createSearchIndex calls to fail. This does not reproduce with 8.2.x.
-// TODO: Revert to "mongodb/mongodb-atlas-local:8" once both issues are resolved.
-const DEFAULT_LOCAL_IMAGE = "mongodb/mongodb-atlas-local:8.2.2-20251125T154829Z";
+// Pinned to preview image for now to avoid the issues with the 8.2.x image.
+const DEFAULT_LOCAL_IMAGE = "mongodb/mongodb-atlas-local:preview";
 
 export class MongoDBClusterProcess {
     static async spinUp(config: MongoClusterConfiguration): Promise<MongoDBClusterProcess> {
