@@ -4,7 +4,7 @@ set -e
 CONTAINER_NAME=mcp-eval-db
 IMAGE=mongodb/mongodb-atlas-local:latest
 
-function start() {
+start() {
     docker run -d --rm --name="$CONTAINER_NAME" --publish=27017:27017 "$IMAGE"
     docker logs -f "$CONTAINER_NAME" &
     LOG_PID=$!
@@ -14,17 +14,19 @@ function start() {
     kill "$LOG_PID" 2>/dev/null || true
     wait "$LOG_PID" 2>/dev/null || true
     
-	echo "✅ MongoDB container ($CONTAINER_NAME) is healthy and accepting connections at localhost:27017."
-	echo ""
-	echo "To use this local MongoDB instance for Braintrust evals in a remote/sandboxed environment:"
-	echo "  1. In a new terminal, run: `ngrok tcp 27017`"
-	echo "  2. After it starts, note the 'Forwarding' address (e.g. `tcp://0.tcp.us-cal-1.ngrok.io:21413`)."
-	echo "  3. Convert that to a MongoDB URI like:"
-	echo "       `mongodb://0.tcp.us-cal-1.ngrok.io:21413/?directConnection=true`"
-	echo "  4. Paste this connection string into the 'connectionString' field in your eval script."
+	cat <<EOF
+✅ MongoDB container ($CONTAINER_NAME) is healthy and accepting connections at localhost:27017.
+
+To use this local MongoDB instance for Braintrust evals in a remote/sandboxed environment:
+  1. In a new terminal, run: \`ngrok tcp 27017\`
+  2. After it starts, note the 'Forwarding' address (e.g. \`tcp://0.tcp.us-cal-1.ngrok.io:21413\`).
+  3. Convert that to a MongoDB URI like:
+       \`mongodb://0.tcp.us-cal-1.ngrok.io:21413/?directConnection=true\`
+  4. Paste this connection string into the 'connectionString' field in your eval script.
+EOF
 }
 
-function stop() {
+stop() {
     docker rm --force "$CONTAINER_NAME"
     echo "MongoDB stopped ($CONTAINER_NAME)"
 }

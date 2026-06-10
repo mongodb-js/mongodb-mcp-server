@@ -2,7 +2,7 @@
  * Generate JSON Schemas from the eval's zod types so they can be set on
  * Braintrust datasets (the `input`/`expected` schema of a dataset).
  *
- * Run with `pnpm run eval:schemas`. Writes one file per schema into
+ * Run with `pnpm run eval:generate-schemas`. Writes one file per schema into
  * `tests/eval/dist/` and prints each path.
  */
 import { mkdirSync, writeFileSync } from "node:fs";

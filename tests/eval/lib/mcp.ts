@@ -90,7 +90,10 @@ class InMemoryMcpConnection {
                     } catch (error) {
                         return {
                             isError: true,
-                            content: JSON.stringify(error),
+                            content:
+                                error instanceof Error
+                                    ? `${error.name}${error.message ? ": " + error.message : ""}${error.stack ? "\n" + error.stack : ""}`
+                                    : String(error),
                         };
                     }
                 },

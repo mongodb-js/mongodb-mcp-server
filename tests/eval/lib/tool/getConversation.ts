@@ -39,12 +39,12 @@ const MAX_TOOL_OUTPUT_CHARS = 4000;
  * <turn n="1" role="user">
  *   What is the capital of France?
  * </turn>
- * <turn n="1" role="assistant">
+ * <turn n="2" role="assistant">
  *   <tool_call id="1" name="get_capital">
  *     France
  *   </tool_call>
  * </turn>
- * <turn n="2" role="assistant">
+ * <turn n="3" role="assistant">
  *   The capital of France is Paris.
  * </turn>
  * ```

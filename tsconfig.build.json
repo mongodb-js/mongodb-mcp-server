@@ -21,7 +21,7 @@
     "declarationMap": true,
     "jsx": "react-jsx",
     "paths": {
-      "ts-levenshtein": ["./node_modules/ts-levenshtein/dist/index.d.mts"],      
+      "ts-levenshtein": ["./node_modules/ts-levenshtein/dist/index.d.mts"],
       "openapi-typescript-helpers": [
         "./node_modules/openapi-typescript-helpers/index.d.ts"
       ]
