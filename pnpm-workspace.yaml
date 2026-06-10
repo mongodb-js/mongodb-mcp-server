@@ -4,6 +4,7 @@ packages:
   - "tests/browser"
 allowBuilds:
   "@modelcontextprotocol/ext-apps": false
+  braintrust: true
   core-js: false
   cpu-features: true
   esbuild: true
