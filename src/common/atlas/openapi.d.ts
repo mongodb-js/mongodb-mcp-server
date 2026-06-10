@@ -408,6 +408,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/atlas/v2/groups/{groupId}/sampleDatasetLoad/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Load Sample Dataset into One Cluster
+         * @description Requests loading the MongoDB sample dataset into the specified cluster.
+         */
+        post: operations["requestGroupSampleDatasetLoad"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/atlas/v2/groups/{groupId}/sampleDatasetLoad/{sampleDatasetId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Return Status of Sample Dataset Load for One Cluster
+         * @description Checks the progress of loading the sample dataset into one cluster.
+         */
+        get: operations["getGroupSampleDatasetLoad"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/atlas/v2/groups/{groupId}/streams": {
         parameters: {
             query?: never;
@@ -6489,6 +6529,32 @@ export interface components {
              */
             type: "S3_LOG_EXPORT";
         };
+        SampleDatasetStatus: {
+            /**
+             * @description Unique 24-hexadecimal character string that identifies this sample dataset.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            readonly _id?: string;
+            /** @description Human-readable label that identifies the cluster into which you loaded the sample dataset. */
+            readonly clusterName?: string;
+            /**
+             * Format: date-time
+             * @description Date and time when the sample dataset load job completed. MongoDB Cloud represents this timestamp in ISO 8601 format in UTC.
+             */
+            readonly completeDate?: string;
+            /**
+             * Format: date-time
+             * @description Date and time when you started the sample dataset load job. MongoDB Cloud represents this timestamp in ISO 8601 format in UTC.
+             */
+            readonly createDate?: string;
+            /** @description Details of the error returned when MongoDB Cloud loads the sample dataset. This endpoint returns null if state has a value other than FAILED. */
+            readonly errorMessage?: string;
+            /**
+             * @description Status of the sample dataset load job.
+             * @enum {string}
+             */
+            readonly state?: "WORKING" | "FAILED" | "COMPLETED";
+        };
         SchemaAdvisorItemRecommendation: {
             /** @description List that contains the namespaces and information on why those namespaces triggered the recommendation. */
             readonly affectedNamespaces?: components["schemas"]["SchemaAdvisorNamespaceTriggers"][];
@@ -8970,6 +9036,7 @@ export type ReplicationSpec20240805 = components['schemas']['ReplicationSpec2024
 export type ResourceTag = components['schemas']['ResourceTag'];
 export type S3LogIntegrationRequest = components['schemas']['S3LogIntegrationRequest'];
 export type S3LogIntegrationResponse = components['schemas']['S3LogIntegrationResponse'];
+export type SampleDatasetStatus = components['schemas']['SampleDatasetStatus'];
 export type SchemaAdvisorItemRecommendation = components['schemas']['SchemaAdvisorItemRecommendation'];
 export type SchemaAdvisorNamespaceTriggers = components['schemas']['SchemaAdvisorNamespaceTriggers'];
 export type SchemaAdvisorResponse = components['schemas']['SchemaAdvisorResponse'];
@@ -10290,6 +10357,86 @@ export interface operations {
                 };
                 content: {
                     "application/vnd.atlas.2023-01-01+json": components["schemas"]["PerformanceAdvisorSlowQueryList"];
+                };
+            };
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    requestGroupSampleDatasetLoad: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+                /** @description Human-readable label that identifies the cluster into which you load the sample dataset. */
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2023-01-01+json": components["schemas"]["SampleDatasetStatus"];
+                };
+            };
+            400: components["responses"]["badRequest"];
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            409: components["responses"]["conflict"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    getGroupSampleDatasetLoad: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+                /** @description Unique 24-hexadecimal digit string that identifies the loaded sample dataset. */
+                sampleDatasetId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2023-01-01+json": components["schemas"]["SampleDatasetStatus"];
                 };
             };
             401: components["responses"]["unauthorized"];
