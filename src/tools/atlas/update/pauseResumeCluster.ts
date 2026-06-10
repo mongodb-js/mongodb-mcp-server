@@ -18,6 +18,7 @@ export const PauseResumeClusterOutputSchema = {
     clusterName: z.string(),
     action: actionEnum,
     clusterId: z.string().optional(),
+    disconnected: z.boolean(),
 };
 
 export class PauseResumeClusterTool extends AtlasToolBase {
@@ -27,6 +28,7 @@ export class PauseResumeClusterTool extends AtlasToolBase {
     public description =
         "Pause or resume a dedicated (M10+) MongoDB Atlas cluster (Free and Flex clusters cannot be paused). " +
         "Pause: paused clusters are unavailable for connections and do not incur compute costs. " +
+        "If the cluster being paused is the current active connection, it will be automatically disconnected. " +
         "Returns an error if the cluster is already paused or not in a pausable state (must be IDLE). " +
         "Resume: the cluster will not be immediately available after resuming. " +
         "Use the atlas-inspect-cluster tool to poll the cluster state for readiness (state: IDLE). " +
@@ -38,19 +40,34 @@ export class PauseResumeClusterTool extends AtlasToolBase {
 
     protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
         const { projectId, clusterName, action } = args;
+        const isPause = action === "PAUSE";
 
         const result = await this.apiClient.updateCluster({
             params: { path: { groupId: projectId, clusterName } },
-            body: { paused: action === "PAUSE" } as unknown as ClusterDescription20240805,
+            body: { paused: isPause } as unknown as ClusterDescription20240805,
         });
 
-        const text =
-            action === "PAUSE"
-                ? `Cluster "${clusterName}" in project "${projectId}" is being paused. ` +
-                  `Paused clusters are unavailable for connections and do not incur compute costs.`
-                : `Cluster "${clusterName}" in project "${projectId}" is being resumed. ` +
-                  `Use the atlas-inspect-cluster tool with projectId "${projectId}" and clusterName "${clusterName}" to poll for readiness. ` +
-                  `The cluster is ready when its state is IDLE.`;
+        let text: string;
+        let disconnected = false;
+
+        if (isPause) {
+            text =
+                `Cluster "${clusterName}" in project "${projectId}" is being paused. ` +
+                `Paused clusters are unavailable for connections and do not incur compute costs.`;
+
+            // Disconnect if the cluster being paused is the one with the active connection.
+            const connection = this.session.connectedAtlasCluster;
+            if (connection?.projectId === projectId && connection?.clusterName === clusterName) {
+                await this.session.disconnect();
+                text += ` The connection to cluster "${clusterName}" is now disconnected.`;
+                disconnected = true;
+            }
+        } else {
+            text =
+                `Cluster "${clusterName}" in project "${projectId}" is being resumed. ` +
+                `Use the atlas-inspect-cluster tool with projectId "${projectId}" and clusterName "${clusterName}" to poll for readiness. ` +
+                `The cluster is ready when its state is IDLE.`;
+        }
 
         return {
             content: [{ type: "text", text }],
@@ -58,6 +75,7 @@ export class PauseResumeClusterTool extends AtlasToolBase {
                 clusterName,
                 action,
                 clusterId: result.id,
+                disconnected,
             },
         };
     }

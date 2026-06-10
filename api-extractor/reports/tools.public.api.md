@@ -1321,6 +1321,7 @@ export class PauseResumeClusterTool extends AtlasToolBase {
             RESUME: "RESUME";
         }>;
         clusterId: z.ZodOptional<z.ZodString>;
+        disconnected: z.ZodBoolean;
     };
     // (undocumented)
     protected resolveTelemetryMetadata(args: ToolArgs<typeof PauseResumeClusterTool.argsShape>, context: {

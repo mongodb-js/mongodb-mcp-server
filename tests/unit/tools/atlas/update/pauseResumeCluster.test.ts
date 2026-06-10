@@ -11,6 +11,7 @@ import type { Telemetry } from "../../../../../src/telemetry/telemetry.js";
 import type { Elicitation } from "../../../../../src/elicitation.js";
 import type { CompositeLogger } from "../../../../../src/common/logging/index.js";
 import type { ApiClient } from "../../../../../src/common/atlas/apiClient.js";
+import type { AtlasClusterConnectionInfo } from "../../../../../src/common/connectionInfo.js";
 import { UIRegistry } from "../../../../../src/ui/registry/index.js";
 import { MockMetrics } from "../../../mocks/metrics.js";
 import type { Keychain } from "../../../../../src/lib.js";
@@ -22,12 +23,15 @@ const UPDATE_RESULT = { id: "cluster-id" };
 
 describe("PauseResumeClusterTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
+    let mockDisconnect: ReturnType<typeof vi.fn>;
     let tool: PauseResumeClusterTool;
 
-    function buildTool(): PauseResumeClusterTool {
+    function buildTool(connectedCluster?: AtlasClusterConnectionInfo): PauseResumeClusterTool {
         mockApiClient = {
             updateCluster: vi.fn().mockResolvedValue(UPDATE_RESULT),
         };
+
+        mockDisconnect = vi.fn().mockResolvedValue(undefined);
 
         const mockLogger = {
             info: vi.fn(),
@@ -39,7 +43,8 @@ describe("PauseResumeClusterTool", () => {
         const mockSession: Partial<Session> = {
             logger: mockLogger,
             apiClient: mockApiClient as unknown as ApiClient,
-            connectedAtlasCluster: undefined,
+            connectedAtlasCluster: connectedCluster,
+            disconnect: mockDisconnect as unknown as () => Promise<void>,
             keychain: { allSecrets: [] } as unknown as Keychain,
         };
 
@@ -116,6 +121,7 @@ describe("PauseResumeClusterTool", () => {
                 clusterName: CLUSTER_NAME,
                 action: "PAUSE",
                 clusterId: "cluster-id",
+                disconnected: false,
             });
         });
 
@@ -132,7 +138,40 @@ describe("PauseResumeClusterTool", () => {
                 clusterName: CLUSTER_NAME,
                 action: "RESUME",
                 clusterId: "cluster-id",
+                disconnected: false,
             });
+        });
+    });
+
+    describe("disconnect on pause", () => {
+        const connectedCluster: AtlasClusterConnectionInfo = {
+            projectId: PROJECT_ID,
+            clusterName: CLUSTER_NAME,
+            instanceType: "DEDICATED",
+            username: "test-user",
+            provider: "AWS",
+            region: "US_EAST_1",
+            expiryDate: new Date(Date.now() + 3_600_000),
+        };
+
+        it("disconnects and mentions it in the response when pausing the connected cluster", async () => {
+            tool = buildTool(connectedCluster);
+
+            const result = await exec({ ...BASE_ARGS, action: "PAUSE" });
+
+            expect(mockDisconnect).toHaveBeenCalledTimes(1);
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("disconnected");
+            expect(text).toContain(CLUSTER_NAME);
+            expect(result.structuredContent).toMatchObject({ disconnected: true });
+        });
+
+        it("does not disconnect when pausing a different cluster", async () => {
+            tool = buildTool({ ...connectedCluster, clusterName: "other-cluster" });
+
+            await exec({ ...BASE_ARGS, action: "PAUSE" });
+
+            expect(mockDisconnect).not.toHaveBeenCalled();
         });
     });
 
@@ -147,7 +186,7 @@ describe("PauseResumeClusterTool", () => {
             expect(metadata.project_id).toBe(PROJECT_ID);
         });
 
-        it("returns empty metadata fields when result has no structuredContent (no structuredContent)", () => {
+        it("returns empty metadata fields when result has no structuredContent", () => {
             const args = { ...BASE_ARGS, action: "PAUSE" as const };
             const metadata = tool["resolveTelemetryMetadata"](args as never, {
                 result: { content: [] } as never,
