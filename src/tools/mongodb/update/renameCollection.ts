@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolResult } from "../../tool.js";
+import { ErrorCodes, MongoDBError } from "../../../common/errors.js";
 
 const RenameCollectionOutputSchema = {
     database: z.string(),
@@ -28,6 +29,17 @@ export class RenameCollectionTool extends MongoDBToolBase {
         newName,
         dropTarget,
     }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
+        if (dropTarget && this.config.disabledTools.includes("delete")) {
+            // Renaming with `dropTarget: true` drops the existing target collection, which is a
+            // destructive delete operation. Since this tool's operation type is `update`, it remains
+            // available even when delete operations are disabled, so reject `dropTarget` in that case
+            // to prevent it from being used to drop a collection through the back door.
+            throw new MongoDBError(
+                ErrorCodes.ForbiddenWriteOperation,
+                "When 'delete' operations are disabled, you can not rename a collection with 'dropTarget' set to true, as it would drop the target collection."
+            );
+        }
+
         const provider = await this.ensureConnected();
         const result = await provider.renameCollection(database, collection, newName, {
             dropTarget,
