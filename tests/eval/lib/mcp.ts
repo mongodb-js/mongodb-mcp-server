@@ -23,38 +23,15 @@ export type McpClient = {
 };
 
 /**
- * This class is a singleton factory for creating and managing an in-memory MCP connection.
- */
-export class InMemoryMcpFactory {
-    #instance: InMemoryMcpConnection | null = null;
-
-    constructor(private readonly connectionString: string) {}
-
-    async singletonInstance(): Promise<McpClient> {
-        if (!this.#instance) {
-            this.#instance = await InMemoryMcpConnection.create(this.connectionString);
-        }
-        return this.#instance;
-    }
-
-    async close(): Promise<void> {
-        if (this.#instance) {
-            await this.#instance.close();
-            this.#instance = null;
-        }
-    }
-}
-
-/**
  * This class launches MongoDB MCP Server in memory and exposes its tools in Vercel compatible AI SDK format.
  */
-class InMemoryMcpConnection {
+export class InMemoryMcpConnection {
     private constructor(
         private readonly mcpClient: McpClient,
         private readonly shutdown: () => Promise<void>
     ) {}
 
-    static async create(mdbConnectionString: string): Promise<InMemoryMcpConnection> {
+    static async create(mdbConnectionString: string): Promise<McpClient> {
         const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
 
         const runner = new InMemoryMcpRunner({

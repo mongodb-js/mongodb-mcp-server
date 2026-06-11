@@ -1,10 +1,34 @@
 import { MongoClient } from "mongodb";
-import { InMemoryMcpFactory, type McpClient } from "./mcp.js";
+import { InMemoryMcpConnection, type McpClient } from "./mcp.js";
 import { dropTempDb } from "./seeding.js";
 
-let mcpFactory: InMemoryMcpFactory | null = null;
-let mongoDbClient: MongoClient | null = null;
+let mcpClientFactory: AsyncSingleton<McpClient> | null = null;
+let mongoClientFactory: AsyncSingleton<MongoClient> | null = null;
 const tempDbRegistry = new Set<string>();
+
+/**
+ * A helper class to create a singleton instance of a promise.
+ * In case of failure, the instance is cleared and the next call will retry.
+ *
+ * @template T - The type of the instance.
+ * @param factory - The factory function to create the instance.
+ * @returns The singleton instance.
+ */
+class AsyncSingleton<T> {
+    #instance: Promise<T> | null = null;
+
+    constructor(private readonly factory: () => Promise<T>) {}
+
+    singletonInstance(): Promise<T> {
+        if (!this.#instance) {
+            this.#instance = this.factory().catch((e) => {
+                this.#instance = null;
+                throw e;
+            });
+        }
+        return this.#instance;
+    }
+}
 
 /**
  * Gets the singleton in-memory MCP client instance.
@@ -13,10 +37,10 @@ const tempDbRegistry = new Set<string>();
  * @returns The MCP client.
  */
 export async function getMcpClient(connectionString: string): Promise<McpClient> {
-    if (!mcpFactory) {
-        mcpFactory = new InMemoryMcpFactory(connectionString);
+    if (!mcpClientFactory) {
+        mcpClientFactory = new AsyncSingleton(() => InMemoryMcpConnection.create(connectionString));
     }
-    return mcpFactory.singletonInstance();
+    return mcpClientFactory.singletonInstance();
 }
 
 /**
@@ -25,12 +49,11 @@ export async function getMcpClient(connectionString: string): Promise<McpClient>
  * @param connectionString - The MongoDB connection string.
  * @returns The MongoDB client.
  */
-export async function getMongoDbClient(connectionString: string): Promise<MongoClient> {
-    if (!mongoDbClient) {
-        mongoDbClient = new MongoClient(connectionString);
-        await mongoDbClient.connect();
+export function getMongoDbClient(connectionString: string): Promise<MongoClient> {
+    if (!mongoClientFactory) {
+        mongoClientFactory = new AsyncSingleton(() => new MongoClient(connectionString).connect());
     }
-    return mongoDbClient;
+    return mongoClientFactory.singletonInstance();
 }
 
 /**
@@ -51,10 +74,11 @@ export function registerTempDb(name: string): void {
 export async function dropCaseDb(name: string): Promise<void> {
     if (!tempDbRegistry.has(name)) return;
     try {
-        if (!mongoDbClient) {
+        if (!mongoClientFactory) {
             throw new Error("MongoDB client not initialized");
         }
-        await dropTempDb(mongoDbClient, name);
+        const client = await mongoClientFactory.singletonInstance();
+        await dropTempDb(client, name);
     } catch (error) {
         console.error(`Failed to drop temp database '${name}':`, error);
     } finally {
@@ -68,18 +92,24 @@ export async function dropCaseDb(name: string): Promise<void> {
  * This will run when the Eval completes.
  */
 export async function teardown(): Promise<void> {
-    if (mongoDbClient) {
+    if (mcpClientFactory) {
+        const mcpClient = await mcpClientFactory.singletonInstance();
+        await mcpClient.close();
+    }
+
+    if (mongoClientFactory) {
+        const client = await mongoClientFactory.singletonInstance();
         for (const db of tempDbRegistry) {
             try {
-                await dropTempDb(mongoDbClient, db);
+                await dropTempDb(client, db);
             } catch (error) {
                 console.error(`Failed to drop temp database '${db}':`, error);
             }
         }
+        tempDbRegistry.clear();
+        await client.close();
     }
-    tempDbRegistry.clear();
 
-    await Promise.allSettled([mongoDbClient?.close(), mcpFactory?.close()]);
-    mongoDbClient = null;
-    mcpFactory = null;
+    mongoClientFactory = null;
+    mcpClientFactory = null;
 }
