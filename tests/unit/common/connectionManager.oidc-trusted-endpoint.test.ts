@@ -54,8 +54,6 @@ describe("MCPConnectionManager.connect() — mongosh CLI option propagation", ()
 
         await manager.connect({ connectionString }).catch(() => {});
 
-        expect(mockGenerateFn).toHaveBeenCalledWith(
-            expect.not.objectContaining({ oidcTrustedEndpoint: true })
-        );
+        expect(mockGenerateFn).toHaveBeenCalledWith(expect.not.objectContaining({ oidcTrustedEndpoint: true }));
     });
 });
