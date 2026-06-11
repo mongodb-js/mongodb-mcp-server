@@ -1,11 +1,12 @@
 import path from "path";
 import { Long } from "bson";
 import fs from "fs/promises";
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import {
     databaseCollectionParameters,
     defaultTestConfig,
+    getResponseContent,
     resourceChangedNotification,
     validateThrowsForInvalidArguments,
     validateToolMetadata,
@@ -452,6 +453,139 @@ describeWithMongoDB(
                 expect(exportedContent).toHaveLength(1);
                 expect(exportedContent[0]?.name).toEqual("foo");
             });
+        });
+
+        describe("server-side JavaScript operators", function () {
+            beforeEach(async () => {
+                await integration
+                    .mongoClient()
+                    .db(integration.randomDbName())
+                    .collection("foo")
+                    .insertMany([{ age: 5 }, { age: 10 }]);
+                integration.mcpServer().userConfig.disableServerSideJs = true;
+            });
+
+            afterEach(() => {
+                integration.mcpServer().userConfig.disableServerSideJs = true;
+            });
+
+            const jsTargets: {
+                name: string;
+                operator: string;
+                exportTarget: Record<string, unknown>[];
+            }[] = [
+                {
+                    name: "find target using $where",
+                    operator: "$where",
+                    exportTarget: [
+                        {
+                            name: "find",
+                            arguments: {
+                                filter: { $where: "function() { return this.age > 8; }" },
+                            },
+                        },
+                    ],
+                },
+                {
+                    name: "aggregate target using $function",
+                    operator: "$function",
+                    exportTarget: [
+                        {
+                            name: "aggregate",
+                            arguments: {
+                                pipeline: [
+                                    {
+                                        $project: {
+                                            doubled: {
+                                                $function: {
+                                                    body: "function(age) { return age * 2; }",
+                                                    args: ["$age"],
+                                                    lang: "js",
+                                                },
+                                            },
+                                        },
+                                    },
+                                ],
+                            },
+                        },
+                    ],
+                },
+            ];
+
+            for (const { name, operator, exportTarget } of jsTargets) {
+                for (const jsDisabled of [true, false]) {
+                    it(`${jsDisabled ? "rejects" : "allows"} ${name} when disableServerSideJs is ${jsDisabled}`, async function () {
+                        integration.mcpServer().userConfig.disableServerSideJs = jsDisabled;
+                        const response = await integration.mcpClient().callTool({
+                            name: "export",
+                            arguments: {
+                                database: integration.randomDbName(),
+                                collection: "foo",
+                                exportTitle: `Export with ${operator} (disableServerSideJs=${jsDisabled})`,
+                                exportTarget,
+                            },
+                        });
+                        if (jsDisabled) {
+                            const content = getResponseContent(response.content);
+                            expect(content).toContain(`The "${operator}" operator is not allowed.`);
+                        } else {
+                            const content = response.content as CallToolResult["content"];
+                            expect(contentWithResourceURILink(content)).toBeDefined();
+                        }
+                    });
+                }
+            }
+        });
+
+        describe("write stages", function () {
+            beforeEach(async () => {
+                await integration
+                    .mongoClient()
+                    .db(integration.randomDbName())
+                    .collection("foo")
+                    .insertMany([{ age: 5 }, { age: 10 }]);
+            });
+
+            afterEach(() => {
+                integration.mcpServer().userConfig.readOnly = false;
+                integration.mcpServer().userConfig.disabledTools = [];
+            });
+
+            for (const stage of [{ $out: "outpeople" }, { $merge: "outpeople" }]) {
+                const operator = Object.keys(stage)[0];
+
+                it(`rejects aggregate targets using ${operator} in readOnly mode`, async function () {
+                    integration.mcpServer().userConfig.readOnly = true;
+                    const response = await integration.mcpClient().callTool({
+                        name: "export",
+                        arguments: {
+                            database: integration.randomDbName(),
+                            collection: "foo",
+                            exportTitle: `Export with ${operator}`,
+                            exportTarget: [{ name: "aggregate", arguments: { pipeline: [stage] } }],
+                        },
+                    });
+                    const content = getResponseContent(response.content);
+                    expect(content).toContain("In readOnly mode you can not run pipelines with $out or $merge stages.");
+                });
+
+                it(`rejects aggregate targets using ${operator} when write operations are disabled`, async function () {
+                    integration.mcpServer().userConfig.disabledTools = ["create", "update", "delete"];
+                    const response = await integration.mcpClient().callTool({
+                        name: "export",
+                        arguments: {
+                            database: integration.randomDbName(),
+                            collection: "foo",
+                            exportTitle: `Export with ${operator}`,
+                            exportTarget: [{ name: "aggregate", arguments: { pipeline: [stage] } }],
+                        },
+                    });
+                    const content = getResponseContent(response.content);
+                    expect(content).toContain(
+                        "When 'create', 'update', or 'delete' operations are disabled, you can not run pipelines with $out or $merge stages."
+                    );
+                });
+            }
         });
     },
     {

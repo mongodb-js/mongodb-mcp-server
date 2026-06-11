@@ -357,9 +357,9 @@ export class CreateClusterTool extends AtlasToolBase {
             LATEST: "LATEST";
         }>>;
         backup: z.ZodDefault<z.ZodEnum<{
-            CONTINUOUS: "CONTINUOUS";
             OFF: "OFF";
             SNAPSHOT: "SNAPSHOT";
+            CONTINUOUS: "CONTINUOUS";
         }>>;
         terminationProtectionEnabled: z.ZodDefault<z.ZodBoolean>;
     };
@@ -399,9 +399,9 @@ export class CreateClusterTool extends AtlasToolBase {
             LATEST: "LATEST";
         }>;
         backup: z.ZodEnum<{
-            CONTINUOUS: "CONTINUOUS";
             OFF: "OFF";
             SNAPSHOT: "SNAPSHOT";
+            CONTINUOUS: "CONTINUOUS";
         }>;
         computeAutoScaling: z.ZodBoolean;
         terminationProtectionEnabled: z.ZodBoolean;
@@ -842,8 +842,17 @@ export class ExplainTool extends MongoDBToolBase {
     // (undocumented)
     outputSchema: {
         explainResult: z.ZodRecord<z.ZodString, z.ZodUnknown>;
-        method: z.ZodString;
-        verbosity: z.ZodString;
+        method: z.ZodEnum<{
+            find: "find";
+            count: "count";
+            aggregate: "aggregate";
+        }>;
+        verbosity: z.ZodEnum<{
+            queryPlanner: "queryPlanner";
+            queryPlannerExtended: "queryPlannerExtended";
+            executionStats: "executionStats";
+            allPlansExecution: "allPlansExecution";
+        }>;
     };
     // (undocumented)
     static toolName: string;
@@ -1196,6 +1205,40 @@ export class ListProjectsTool extends AtlasToolBase {
 }
 
 // @public (undocumented)
+export type LoadSampleDatasetOutput = z.infer<z.ZodObject<typeof LoadSampleDatasetOutputSchema>>;
+
+// @public (undocumented)
+export class LoadSampleDatasetTool extends AtlasToolBase {
+    // (undocumented)
+    argsShape: {
+        projectId: z.ZodString;
+        clusterName: z.ZodOptional<z.ZodString>;
+        jobId: z.ZodOptional<z.ZodString>;
+    };
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    protected execute(input: ToolArgs<typeof LoadSampleDatasetTool.argsShape>): Promise<ToolResult<typeof LoadSampleDatasetTool.outputSchema>>;
+    // (undocumented)
+    static operationType: OperationType;
+    // (undocumented)
+    outputSchema: {
+        jobId: z.ZodString;
+        clusterName: z.ZodString;
+        state: z.ZodEnum<{
+            WORKING: "WORKING";
+            FAILED: "FAILED";
+            COMPLETED: "COMPLETED";
+        }>;
+        createDate: z.ZodString;
+        completeDate: z.ZodOptional<z.ZodString>;
+        errorMessage: z.ZodOptional<z.ZodString>;
+    };
+    // (undocumented)
+    static toolName: string;
+}
+
+// @public (undocumented)
 export type LogsOutput = z.infer<z.ZodObject<typeof LogsOutputSchema>>;
 
 // @public (undocumented)
@@ -1226,6 +1269,7 @@ export class LogsTool extends MongoDBToolBase {
 
 // @public (undocumented)
 export abstract class MongoDBToolBase extends ToolBase {
+    protected assertMqlIsAllowed(value: Record<string, unknown> | Record<string, unknown>[] | undefined): void;
     // (undocumented)
     static category: ToolCategory;
     // (undocumented)

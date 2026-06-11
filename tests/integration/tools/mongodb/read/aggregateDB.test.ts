@@ -508,3 +508,45 @@ describeWithMongoDB(
         }),
     }
 );
+
+describeWithMongoDB("aggregate-db tool with server-side JavaScript operators", (integration) => {
+    afterEach(() => {
+        integration.mcpServer().userConfig.disableServerSideJs = true;
+    });
+
+    const jsPipeline = [
+        { $documents: [{ age: 5 }, { age: 10 }] },
+        {
+            $project: {
+                doubled: {
+                    $function: {
+                        body: "function(age) { return age * 2; }",
+                        args: ["$age"],
+                        lang: "js",
+                    },
+                },
+            },
+        },
+    ];
+
+    for (const jsDisabled of [true, false]) {
+        it(`${jsDisabled ? "rejects" : "allows"} pipelines using $function when disableServerSideJs is ${jsDisabled}`, async () => {
+            integration.mcpServer().userConfig.disableServerSideJs = jsDisabled;
+            await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "aggregate-db",
+                arguments: {
+                    database: integration.randomDbName(),
+                    pipeline: jsPipeline,
+                },
+            });
+            const content = getResponseContent(response);
+            if (jsDisabled) {
+                expect(content).toContain(`The "$function" operator is not allowed.`);
+            } else {
+                expect(content).not.toContain("server-side JavaScript operators");
+                expect(content).toContain("The aggregation resulted in");
+            }
+        });
+    }
+});

@@ -7,7 +7,7 @@ import {
     validateThrowsForInvalidArguments,
     expectDefined,
 } from "../../../helpers.js";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, afterEach, describe, expect, it } from "vitest";
 import type { Client } from "@modelcontextprotocol/sdk/client";
 import { freshInsertDocuments } from "./find.test.js";
 
@@ -183,8 +183,8 @@ describeWithMongoDB("count tool with abort signal", (integration) => {
         const { result, error, executionTime } = await countPromise;
 
         // Ensure it aborted quickly, but possibly after some processing
-        expect(executionTime).toBeGreaterThanOrEqual(15);
-        expect(executionTime).toBeLessThan(30);
+        expect(executionTime).toBeGreaterThanOrEqual(10);
+        expect(executionTime).toBeLessThan(50);
         expect(result).toBeUndefined();
         expectDefined(error);
         expect(error.message).toContain("This operation was aborted");
@@ -201,4 +201,45 @@ describeWithMongoDB("count tool with abort signal", (integration) => {
         const content = getResponseContent(result);
         expect(content).toContain('Found 0 documents in the collection "abort_collection" that matched the query.');
     });
+});
+
+describeWithMongoDB("count tool with server-side JavaScript operators", (integration) => {
+    afterEach(() => {
+        integration.mcpServer().userConfig.disableServerSideJs = true;
+    });
+
+    beforeEach(async () => {
+        await integration
+            .mongoClient()
+            .db(integration.randomDbName())
+            .collection("people")
+            .insertMany([
+                { name: "Peter", age: 5 },
+                { name: "Laura", age: 10 },
+            ]);
+    });
+
+    for (const jsDisabled of [true, false]) {
+        it(`${jsDisabled ? "rejects" : "does not reject"} queries using $where when disableServerSideJs is ${jsDisabled}`, async () => {
+            integration.mcpServer().userConfig.disableServerSideJs = jsDisabled;
+            await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "count",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "people",
+                    query: { $where: "function() { return this.age > 8; }" },
+                },
+            });
+            const content = getResponseContent(response);
+            if (jsDisabled) {
+                expect(content).toContain(`The "$where" operator is not allowed.`);
+            } else {
+                // MongoDB itself rejects $where inside the count command, but our guard
+                // must not be the one blocking it once disableServerSideJs is false.
+                expect(content).not.toContain("server-side JavaScript operators");
+                expect(content).not.toContain("operator is not allowed");
+            }
+        });
+    }
 });

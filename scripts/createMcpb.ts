@@ -223,17 +223,14 @@ async function stageDependencies(rootPkg: PackageJson): Promise<void> {
     // (workspace:* → file:, atlas-local platforms force-added) while preserving the locked
     // versions for everything else.
     await cp(resolve(paths.repoRoot, "pnpm-lock.yaml"), resolve(paths.stagingDir, "pnpm-lock.yaml"));
+    await cp(resolve(paths.repoRoot, "pnpm-workspace.yaml"), resolve(paths.stagingDir, "pnpm-workspace.yaml"));
 
     // No --config.supported-architectures here: that would fan out cross-platform optional
     // deps (e.g. all four @oven/bun-linux-* variants on Linux runners). We only need the
     // host's optional deps for the install to succeed; the atlas-local platform binaries we
     // care about are listed as required deps in buildStagingPackageJson, so they install
     // unconditionally.
-    await spawnAsync(
-        "pnpm",
-        ["install", "--prod", "--ignore-workspace", "--node-linker=hoisted", "--no-frozen-lockfile"],
-        paths.stagingDir
-    );
+    await spawnAsync("pnpm", ["install", "--prod", "--node-linker=hoisted", "--no-frozen-lockfile"], paths.stagingDir);
 
     const stagedNodeModules = resolve(paths.stagingDir, "node_modules");
 

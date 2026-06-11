@@ -121,6 +121,8 @@ export class ApiClient {
     // (undocumented)
     getPrivateLinkConnection(options: FetchOptions<operations["getGroupStreamPrivateLinkConnection"]>): Promise<components["schemas"]["StreamsPrivateLinkConnection"]>;
     // (undocumented)
+    getSampleDatasetLoad(options: FetchOptions<operations["getGroupSampleDatasetLoad"]>): Promise<components["schemas"]["SampleDatasetStatus"]>;
+    // (undocumented)
     getStreamConnection(options: FetchOptions<operations["getGroupStreamConnection"]>): Promise<components["schemas"]["StreamsConnection"]>;
     // (undocumented)
     getStreamProcessor(options: FetchOptions<operations["getGroupStreamProcessor"]>): Promise<components["schemas"]["StreamsProcessorWithStats"]>;
@@ -164,6 +166,8 @@ export class ApiClient {
     readonly logger: LoggerBase;
     // (undocumented)
     rejectVpcPeeringConnection(options: FetchOptions<operations["rejectGroupStreamVpcPeeringConnection"]>): Promise<void>;
+    // (undocumented)
+    requestSampleDatasetLoad(options: FetchOptions<operations["requestGroupSampleDatasetLoad"]>): Promise<components["schemas"]["SampleDatasetStatus"]>;
     // (undocumented)
     sendEvents(events: TelemetryEvent<CommonProperties>[], input?: {
         signal?: AbortSignal;
@@ -530,6 +534,8 @@ export enum ErrorCodes {
     AtlasVectorSearchInvalidQuery = 1000007,
     // (undocumented)
     ForbiddenCollscan = 1000002,
+    // (undocumented)
+    ForbiddenServerSideJS = 1000009,
     // (undocumented)
     ForbiddenWriteOperation = 1000003,
     // (undocumented)
@@ -1201,6 +1207,7 @@ export const UserConfigSchema: z.ZodObject<{
     confirmationRequiredTools: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodString>>>;
     readOnly: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
     indexCheck: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
+    disableServerSideJs: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
     telemetry: z.ZodDefault<z.ZodEnum<{
         enabled: "enabled";
         disabled: "disabled";

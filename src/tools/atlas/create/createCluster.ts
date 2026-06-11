@@ -16,15 +16,22 @@ Default recommendation: AWS US_EAST_1.
 User-specified regions not present in the mapping MUST be respected, rely on the tool to surface errors if a region is not supported.
 `;
 
-const INSTANCE_SIZES = ["M10", "M20", "M30", "M40", "M50", "M60", "M80"] as const;
-type InstanceSize = (typeof INSTANCE_SIZES)[number];
-type CloudProvider = "AWS" | "GCP" | "AZURE";
+const instanceSizeEnum = z.enum(["M10", "M20", "M30", "M40", "M50", "M60", "M80"]);
+const cloudProviderEnum = z.enum(["AWS", "GCP", "AZURE"]);
+const clusterTypeEnum = z.enum(["REPLICASET", "SHARDED"]);
+const mongoDBVersionEnum = z.enum(["7.0", "8.0", "LATEST"]);
+const backupEnum = z.enum(["OFF", "SNAPSHOT", "CONTINUOUS"]);
+
+type InstanceSize = z.infer<typeof instanceSizeEnum>;
+type CloudProvider = z.infer<typeof cloudProviderEnum>;
+type MongoDBVersion = z.infer<typeof mongoDBVersionEnum>;
+type Backup = z.infer<typeof backupEnum>;
 
 function getMaxAutoScalingSize(size: InstanceSize, provider: CloudProvider): string {
     // M60 and M80 extend beyond the selectable range. M140 is not supported on Azure.
     if (size === "M80") return "M200";
     if (size === "M60") return provider === "AZURE" ? "M200" : "M140";
-    return INSTANCE_SIZES[INSTANCE_SIZES.indexOf(size) + 2] ?? "M80";
+    return instanceSizeEnum.options[instanceSizeEnum.options.indexOf(size) + 2] ?? "M80";
 }
 
 type AutoScalingConfig = {
@@ -85,7 +92,7 @@ function buildReplicationSpecs(
     ];
 }
 
-function buildBackupConfig(backups: "OFF" | "SNAPSHOT" | "CONTINUOUS"): {
+function buildBackupConfig(backups: Backup): {
     backupEnabled: boolean;
     pitEnabled: boolean;
 } {
@@ -99,7 +106,7 @@ function buildBackupConfig(backups: "OFF" | "SNAPSHOT" | "CONTINUOUS"): {
     }
 }
 
-function buildVersionConfig(version: "7.0" | "8.0" | "LATEST"): {
+function buildVersionConfig(version: MongoDBVersion): {
     versionReleaseSystem: "LTS" | "CONTINUOUS";
     mongoDBMajorVersion?: string;
 } {
@@ -118,21 +125,19 @@ export const CreateClusterArgsShape = {
 
     clusterName: AtlasArgs.clusterName().describe("Name of the cluster."),
 
-    provider: z.enum(["AWS", "GCP", "AZURE"]).describe("Cloud provider for the cluster."),
+    provider: cloudProviderEnum.describe("Cloud provider for the cluster."),
 
     region: AtlasArgs.region().describe(
         "Cloud provider region in Atlas format using uppercase letters and underscores (e.g. US_EAST_1)."
     ),
 
-    clusterType: z
-        .enum(["REPLICASET", "SHARDED"])
+    clusterType: clusterTypeEnum
         .default("REPLICASET")
         .describe(
             "Cluster topology. Use `SHARDED` for single-shard clusters, requires M30 or higher. Defaults to `REPLICASET`."
         ),
 
-    instanceSize: z
-        .enum(["M10", "M20", "M30", "M40", "M50", "M60", "M80"])
+    instanceSize: instanceSizeEnum
         .optional()
         .describe(
             "Instance size. NVME and high-memory instances are not supported. Minimum M30 when clusterType is SHARDED. Defaults to M10 for projects with fewer than 2 existing clusters, M30 otherwise. Omit unless explicitly specified by the user."
@@ -153,15 +158,13 @@ export const CreateClusterArgsShape = {
             "Initial disk size in GB. Disk autoscaling is always enabled regardless of this value. Omit unless explicitly specified by the user."
         ),
 
-    mongoDBVersion: z
-        .enum(["7.0", "8.0", "LATEST"])
+    mongoDBVersion: mongoDBVersionEnum
         .default("LATEST")
         .describe(
             "MongoDB version to deploy. Use a pinned version for production environments where version stability is required. Defaults to `LATEST`."
         ),
 
-    backup: z
-        .enum(["OFF", "SNAPSHOT", "CONTINUOUS"])
+    backup: backupEnum
         .default("SNAPSHOT")
         .describe(
             "`OFF`: no backups. `SNAPSHOT`: cloud backup snapshots, recommended for most workloads. `CONTINUOUS`: point-in-time restore, required for RPO-sensitive production workloads. Defaults to `SNAPSHOT`."
@@ -177,12 +180,12 @@ export const CreateClusterArgsShape = {
 
 const CreateClusterOutputSchema = {
     clusterId: z.string().optional(),
-    provider: z.enum(["AWS", "GCP", "AZURE"]),
+    provider: cloudProviderEnum,
     region: z.string(),
-    instanceSize: z.enum(["M10", "M20", "M30", "M40", "M50", "M60", "M80"]),
-    clusterType: z.enum(["REPLICASET", "SHARDED"]),
-    mongoDBVersion: z.enum(["7.0", "8.0", "LATEST"]),
-    backup: z.enum(["OFF", "SNAPSHOT", "CONTINUOUS"]),
+    instanceSize: instanceSizeEnum,
+    clusterType: clusterTypeEnum,
+    mongoDBVersion: mongoDBVersionEnum,
+    backup: backupEnum,
     computeAutoScaling: z.boolean(),
     terminationProtectionEnabled: z.boolean(),
     diskSizeGB: z.number().optional(),
@@ -243,7 +246,7 @@ export class CreateClusterTool extends AtlasToolBase {
                 {
                     type: "text",
                     text:
-                        `Cluster "${clusterName}" is being created in project "${projectId}". ` +
+                        `Cluster "${clusterName}" is being created in project "${projectId}" (${instanceSize} ${clusterType} on ${provider}/${region}). ` +
                         `Use the atlas-inspect-cluster tool with projectId "${projectId}" and clusterName "${clusterName}" to poll for readiness. ` +
                         `The cluster is ready when its state is IDLE, connection strings are unavailable until then.`,
                 },
