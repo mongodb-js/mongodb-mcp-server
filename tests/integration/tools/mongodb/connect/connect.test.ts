@@ -102,17 +102,22 @@ describeWithMongoDB(
             });
         });
 
-        it("should be able to connect to next connection and not use the connect options of the connection setup during server boot", async () => {
+        it("should connect to the provided connection string while applying user config driver options", async () => {
             const newConnectionString = `${integration.connectionString()}`;
-            // Note: The connect function is called with OIDC options for the
-            // configured string
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            const expectedDriverOptions = expect.objectContaining({
+                applyProxyToOIDC: true,
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                oidc: expect.objectContaining({ openBrowser: { command: "not-a-browser" } }),
+                productDocsLink: "https://github.com/mongodb-js/mongodb-mcp-server/",
+                productName: "MongoDB MCP",
+                proxy: { useEnvironmentVariableProxies: true },
+            });
+
             expect(connectFnSpy).toHaveBeenNthCalledWith(
                 1,
                 expect.stringContaining(`${integration.connectionString()}/?directConnection=true`),
-                expect.objectContaining({
-                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                    oidc: expect.objectContaining({ openBrowser: { command: "not-a-browser" } }),
-                }),
+                expectedDriverOptions,
                 undefined,
                 expect.anything()
             );
@@ -129,16 +134,10 @@ describeWithMongoDB(
             // for OIDC handling.
             expect(content).toContain("Successfully connected");
 
-            // Now that we're connected lets verify the config
-            // Note: The connect function is called with OIDC options for the
-            // configured string
             expect(connectFnSpy).toHaveBeenNthCalledWith(
                 2,
                 expect.stringContaining(`${integration.connectionString()}`),
-                expect.not.objectContaining({
-                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                    oidc: expect.objectContaining({ openBrowser: { command: "not-a-browser" } }),
-                }),
+                expectedDriverOptions,
                 undefined,
                 expect.anything()
             );

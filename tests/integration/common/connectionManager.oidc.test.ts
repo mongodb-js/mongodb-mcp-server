@@ -1,11 +1,10 @@
-import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import type { TestContext } from "vitest";
 import { describe, beforeEach, afterAll, it, expect, vi } from "vitest";
 import semver from "semver";
 import process from "process";
 import type { MongoDBIntegrationTestCase } from "../tools/mongodb/mongodbHelpers.js";
 import { describeWithMongoDB, isCommunityServer, getServerVersion } from "../tools/mongodb/mongodbHelpers.js";
-import { defaultTestConfig, responseAsText, timeout, waitUntil } from "../helpers.js";
+import { connect, defaultTestConfig, responseAsText, timeout, waitUntil } from "../helpers.js";
 import type { ConnectionStateConnected, ConnectionStateConnecting } from "../../../src/common/connectionManager.js";
 import type { UserConfig } from "../../../src/common/config/userConfig.js";
 import path from "path";
@@ -146,21 +145,7 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
                     // state of the connection manager
                     connectionManager.changeState("connection-close", { tag: "disconnected" });
 
-                    // Note: Instead of using `integration.connectMcpClient`,
-                    // we're connecting straight using Session because
-                    // `integration.connectMcpClient` uses `connect` tool which
-                    // does not work the same way as connect on server start up.
-                    // So to mimic the same functionality as that of server
-                    // startup we call the connectToMongoDB the same way as the
-                    // `Server.connectToConfigConnectionString` does.
-                    const connectionInfo = generateConnectionInfoFromCliArgs({
-                        ...oidcConfig,
-                        connectionSpecifier: integration.connectionString(),
-                    });
-
-                    expect(connectionInfo.driverOptions.oidc?.redirectURI).toBe("http://localhost:0/");
-
-                    await integration.mcpServer().session.connectToMongoDB(connectionInfo);
+                    await connect(integration.mcpClient(), integration.connectionString());
                 }, DEFAULT_TIMEOUT);
 
                 addCb?.(oidcIt);
