@@ -138,7 +138,11 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
 
                     const connectionManager = integration.mcpServer().session
                         .connectionManager as TestConnectionManager;
+                    // disconnect on purpose doesn't change the state if it was failed to avoid losing
+                    // information in production.
                     await connectionManager.disconnect();
+                    // for testing, force disconnecting AND setting the connection to closed to reset the
+                    // state of the connection manager
                     connectionManager.changeState("connection-close", { tag: "disconnected" });
 
                     await connect(integration.mcpClient(), integration.connectionString());
