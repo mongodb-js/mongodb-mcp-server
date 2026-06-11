@@ -32,7 +32,11 @@ if (!process.env.OPENAI_BASE_URL) {
 
 const btGateway = createOpenAI({
     baseURL: process.env.OPENAI_BASE_URL ?? DEFAULT_OPENAI_BASE_URL,
-    apiKey: process.env.BRAINTRUST_API_KEY,
+    // When using Remote Eval in the Braintrust Playground connected to your local dev server (started with `pnpm run eval:serve`),
+    // set BRAINTRUST_API_KEY_OVERRIDE to work around a Braintrust issue:
+    // The Braintrust server overrides the local BRAINTRUST_API_KEY, which the Braintrust Gateway then rejects, resulting in 404 errors.
+    // Using BRAINTRUST_API_KEY_OVERRIDE ensures the correct API key is used for authentication.
+    apiKey: process.env.BRAINTRUST_API_KEY_OVERRIDE ?? process.env.BRAINTRUST_API_KEY,
 });
 
 const parameters = {

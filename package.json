@@ -108,7 +108,7 @@
     "eval:debug": "tsx tests/eval/mongodb.eval.ts",
     "eval:generate-schemas": "tsx tests/eval/scripts/generateSchemas.ts",
     "eval:bundle": "tsx tests/eval/scripts/bundleEval.ts",
-    "eval:serve": "bt eval --dev tests/eval/mongodb.eval.ts",
+    "eval:serve": "BRAINTRUST_API_KEY_OVERRIDE=$BRAINTRUST_API_KEY bt eval --dev tests/eval/mongodb.eval.ts",
     "eval:push": "pnpm run eval:bundle && braintrust push tests/eval/dist/mongodb.eval.cjs --if-exists replace"
   },
   "license": "Apache-2.0",
