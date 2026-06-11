@@ -41,6 +41,21 @@ const outFile = join(evalDir, "dist/mongodb.eval.cjs");
 
 mkdirSync(dirname(outFile), { recursive: true });
 
+/**
+ * esbuild plugin that redirects a set of packages (and any of their subpaths) to a stub
+ * module. Unlike `alias`, this never appends the import subpath onto the stub file path,
+ * so e.g. `require("mongodb-client-encryption/lib/...")` still resolves to the stub.
+ */
+function stubModules(packages: string[], stubPath: string): esbuild.Plugin {
+    const filter = new RegExp(`^(${packages.join("|")})(/|$)`);
+    return {
+        name: "stub-optional-native",
+        setup(build: esbuild.PluginBuild): void {
+            build.onResolve({ filter }, () => ({ path: stubPath }));
+        },
+    };
+}
+
 await esbuild.build({
     entryPoints: [join(evalDir, "mongodb.eval.ts")],
     outfile: outFile,
@@ -64,8 +79,14 @@ await esbuild.build({
         "@mongodb-js/atlas-local-win32-x64-msvc": stub,
         "os-dns-native": osDnsStub,
     },
+    // Optional native driver deps loaded via try/catch require (the eval uses neither
+    // Kerberos auth nor client-side encryption). Stub them — including any subpath import —
+    // so no `.node` reference survives for Braintrust's own re-bundle to choke on.
+    plugins: [stubModules(["kerberos", "mongodb-client-encryption"], stub)],
     // Provided by the Braintrust CLI / Lambda runtime; keep a single instance so
-    // `Eval()` registration (via globalThis) is visible to the runner.
+    // `Eval()` registration (via globalThis) is visible to the runner. Anything else
+    // (e.g. pac-proxy-agent) is inlined here so Braintrust's own re-bundle never has to
+    // resolve a bare `require()` — external requires fail Braintrust's bundling phase.
     external: ["braintrust", "autoevals", "fsevents", "chokidar"],
     logLevel: "info",
 });
