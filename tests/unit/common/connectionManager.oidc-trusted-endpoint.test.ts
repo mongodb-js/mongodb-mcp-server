@@ -6,6 +6,7 @@ import { defaultTestConfig } from "../../integration/helpers.js";
 
 vi.mock("@mongosh/service-provider-node-driver");
 vi.mock("@mongosh/arg-parser", async (importOriginal) => {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-imports
     const actual = await importOriginal<typeof import("@mongosh/arg-parser")>();
     return {
         ...actual,
@@ -28,7 +29,13 @@ describe("MCPConnectionManager.connect() — mongosh CLI option propagation", ()
             oidcTrustedEndpoint: true,
         };
 
-        const manager = new MCPConnectionManager(userConfig, {} as any, { get: async () => "test-device-id" } as any);
+        const manager = new MCPConnectionManager(
+            userConfig,
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
+            {} as any,
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
+            { get: async () => Promise.resolve("test-device-id") } as any
+        );
 
         const connectionString = "mongodb://localhost:27017/";
 
@@ -37,6 +44,7 @@ describe("MCPConnectionManager.connect() — mongosh CLI option propagation", ()
         expect(mockGenerateFn).toHaveBeenCalledWith(
             expect.objectContaining({
                 oidcTrustedEndpoint: true,
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                 connectionSpecifier: expect.stringContaining("mongodb://localhost:27017/"),
             })
         );
@@ -48,7 +56,13 @@ describe("MCPConnectionManager.connect() — mongosh CLI option propagation", ()
             oidcTrustedEndpoint: undefined,
         };
 
-        const manager = new MCPConnectionManager(userConfig, {} as any, { get: async () => "test-device-id" } as any);
+        const manager = new MCPConnectionManager(
+            userConfig,
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
+            {} as any,
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
+            { get: async () => Promise.resolve("test-device-id") } as any
+        );
 
         const connectionString = "mongodb://localhost:27017/";
 
