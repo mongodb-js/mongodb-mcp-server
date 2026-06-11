@@ -239,7 +239,8 @@ export type TelemetryToolMetadata =
     | PerfAdvisorToolMetadata
     | StreamsToolMetadata
     | UpgradeClusterMetadata
-    | CreateClusterMetadata;
+    | CreateClusterMetadata
+    | IndexMetadata;
 
 export type AtlasMetadata = {
     project_id?: string;
@@ -296,4 +297,8 @@ export type CreateClusterMetadata = AtlasMetadata & {
     termination_protection?: TelemetryBoolSet;
     disk_size_gb?: number;
     mongodb_version?: string;
+};
+
+export type IndexMetadata = ConnectionMetadata & {
+    index_type: "classic" | "vectorSearch" | "search";
 };

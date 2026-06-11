@@ -586,11 +586,15 @@ export class CreateIndexTool extends MongoDBToolBase {
         collection: z.ZodString;
         indexName: z.ZodString;
         indexType: z.ZodEnum<{
-            search: "search";
-            vectorSearch: "vectorSearch";
             classic: "classic";
+            vectorSearch: "vectorSearch";
+            search: "search";
         }>;
     };
+    // (undocumented)
+    protected resolveTelemetryMetadata(args: ToolArgs<typeof CreateIndexTool.argsShape>, input: {
+        result: ToolResult<typeof CreateIndexOutputSchema>;
+    }): IndexMetadata;
     // (undocumented)
     static toolName: string;
 }
@@ -745,8 +749,8 @@ export class DropIndexTool extends MongoDBToolBase {
     argsShape: {
         indexName: z.ZodString;
         type: z.ZodEnum<{
-            search: "search";
             classic: "classic";
+            search: "search";
         }>;
         collection: z.ZodString;
         database: z.ZodString;

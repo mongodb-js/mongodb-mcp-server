@@ -929,7 +929,7 @@ export { TelemetryEvents }
 export type TelemetryResult = "success" | "failure";
 
 // @public
-export type TelemetryToolMetadata = AtlasMetadata | ConnectionMetadata | PerfAdvisorToolMetadata | StreamsToolMetadata | UpgradeClusterMetadata | CreateClusterMetadata;
+export type TelemetryToolMetadata = AtlasMetadata | ConnectionMetadata | PerfAdvisorToolMetadata | StreamsToolMetadata | UpgradeClusterMetadata | CreateClusterMetadata | IndexMetadata;
 
 // @public (undocumented)
 export type ToolArgs<T extends ZodRawShape> = {

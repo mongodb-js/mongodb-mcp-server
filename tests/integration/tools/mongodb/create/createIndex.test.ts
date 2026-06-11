@@ -9,8 +9,9 @@ import {
     getResponseElements,
 } from "../../../helpers.js";
 import type { CreateIndexOutput } from "../../../../../src/tools/mongodb/create/createIndex.js";
+import type { ToolEvent } from "../../../../../src/telemetry/types.js";
 import { ObjectId, type Collection, type Document, type IndexDirection } from "mongodb";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 describeWithMongoDB("createIndex tool", (integration) => {
     validateToolMetadata(integration, "create-index", "Create an index for a collection", "create", [
@@ -337,6 +338,62 @@ describeWithMongoDB("createIndex tool with classic indexes", (integration) => {
         await validateIndex("coll1", [{ name: "prop1_1", key: { prop1: 1 } }]);
     });
 
+    it("emits index_type telemetry metadata for classic indexes", async () => {
+        const mockEmitEvents = vi.spyOn(integration.mcpServer()["telemetry"], "emitEvents");
+        vi.spyOn(integration.mcpServer()["telemetry"], "isTelemetryEnabled").mockReturnValue(true);
+        await integration.connectMcpClient();
+
+        await integration.mcpClient().callTool({
+            name: "create-index",
+            arguments: {
+                database: integration.randomDbName(),
+                collection: "coll1",
+                definition: [{ type: "classic", keys: { prop1: 1 } }],
+            },
+        });
+
+        expect(mockEmitEvents).toHaveBeenCalled();
+        const emittedEvent = mockEmitEvents.mock.lastCall?.[0][0] as ToolEvent;
+        expectDefined(emittedEvent);
+        expect(emittedEvent.properties.result).toEqual("success");
+        expect(emittedEvent.properties.command).toEqual("create-index");
+        expect(emittedEvent.properties.index_type).toEqual("classic");
+    });
+
+    it("does not emit index_type telemetry metadata when the tool call fails", async () => {
+        const mockEmitEvents = vi.spyOn(integration.mcpServer()["telemetry"], "emitEvents");
+        vi.spyOn(integration.mcpServer()["telemetry"], "isTelemetryEnabled").mockReturnValue(true);
+        await integration.connectMcpClient();
+        const collection = new ObjectId().toString();
+        await integration.mongoClient().db(integration.randomDbName()).createCollection(collection);
+
+        const response = await integration.mcpClient().callTool({
+            name: "create-index",
+            arguments: {
+                database: integration.randomDbName(),
+                collection,
+                name: "vector_1_vector",
+                definition: [
+                    {
+                        type: "vectorSearch",
+                        fields: [
+                            { type: "vector", path: "vector_1", numDimensions: 4 },
+                            { type: "filter", path: "category" },
+                        ],
+                    },
+                ],
+            },
+        });
+
+        expect(response.isError).toBe(true);
+        expect(mockEmitEvents).toHaveBeenCalled();
+        const emittedEvent = mockEmitEvents.mock.lastCall?.[0][0] as ToolEvent;
+        expectDefined(emittedEvent);
+        expect(emittedEvent.properties.result).toEqual("failure");
+        expect(emittedEvent.properties.command).toEqual("create-index");
+        expect(emittedEvent.properties.index_type).toBeUndefined();
+    });
+
     it("fails to create a vector search index", async () => {
         await integration.connectMcpClient();
         const collection = new ObjectId().toString();
@@ -523,6 +580,36 @@ describeWithMongoDB(
                         { type: "filter", path: "category" },
                     ],
                 });
+            });
+
+            it("emits index_type telemetry metadata for vector search indexes", async () => {
+                const mockEmitEvents = vi.spyOn(integration.mcpServer()["telemetry"], "emitEvents");
+                vi.spyOn(integration.mcpServer()["telemetry"], "isTelemetryEnabled").mockReturnValue(true);
+
+                await integration.mcpClient().callTool({
+                    name: "create-index",
+                    arguments: {
+                        database: integration.randomDbName(),
+                        collection: collectionName,
+                        name: "vector_1_vector",
+                        definition: [
+                            {
+                                type: "vectorSearch",
+                                fields: [
+                                    { type: "vector", path: "vector_1", numDimensions: 4 },
+                                    { type: "filter", path: "category" },
+                                ],
+                            },
+                        ],
+                    },
+                });
+
+                expect(mockEmitEvents).toHaveBeenCalled();
+                const emittedEvent = mockEmitEvents.mock.lastCall?.[0][0] as ToolEvent;
+                expectDefined(emittedEvent);
+                expect(emittedEvent.properties.result).toEqual("success");
+                expect(emittedEvent.properties.command).toEqual("create-index");
+                expect(emittedEvent.properties.index_type).toEqual("vectorSearch");
             });
 
             it("doesn't duplicate indexes", async () => {
@@ -844,6 +931,39 @@ describeWithMongoDB(
                         },
                     },
                 });
+            });
+
+            it("emits index_type telemetry metadata for Atlas search indexes", async () => {
+                const mockEmitEvents = vi.spyOn(integration.mcpServer()["telemetry"], "emitEvents");
+                vi.spyOn(integration.mcpServer()["telemetry"], "isTelemetryEnabled").mockReturnValue(true);
+
+                await integration.mcpClient().callTool({
+                    name: "create-index",
+                    arguments: {
+                        database: integration.randomDbName(),
+                        collection: collectionName,
+                        name: "search_index",
+                        definition: [
+                            {
+                                type: "search",
+                                analyzer: "lucene.standard",
+                                mappings: {
+                                    dynamic: false,
+                                    fields: {
+                                        title: { type: "string" },
+                                    },
+                                },
+                            },
+                        ],
+                    },
+                });
+
+                expect(mockEmitEvents).toHaveBeenCalled();
+                const emittedEvent = mockEmitEvents.mock.lastCall?.[0][0] as ToolEvent;
+                expectDefined(emittedEvent);
+                expect(emittedEvent.properties.result).toEqual("success");
+                expect(emittedEvent.properties.command).toEqual("create-index");
+                expect(emittedEvent.properties.index_type).toEqual("search");
             });
 
             it("creates the index with dynamic mappings", async () => {
