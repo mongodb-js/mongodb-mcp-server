@@ -257,7 +257,7 @@ export function getResponseElements(content: unknown): ResponseElement[] {
 export async function connect(client: Client, connectionString: string): Promise<void> {
     await client.callTool({
         name: "connect",
-        arguments: { connectionStringOrClusterName: connectionString },
+        arguments: { connectionString },
     });
 }
 
