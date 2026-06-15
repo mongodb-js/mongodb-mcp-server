@@ -15,6 +15,14 @@ export const AGG_COUNT_MAX_TIME_MS_CAP: number = 60_000;
 
 export const ONE_MB: number = 1 * 1024 * 1024;
 
+export const CURSOR_LIMIT_KEYS = [
+    "config.maxDocumentsPerQuery",
+    "config.maxBytesPerQuery",
+    "tool.responseBytesLimit",
+] as const;
+
+export type CursorLimitKey = (typeof CURSOR_LIMIT_KEYS)[number];
+
 /**
  * A map of applied limit on cursors to a text that is supposed to be sent as
  * response to LLM
@@ -23,4 +31,4 @@ export const CURSOR_LIMITS_TO_LLM_TEXT = {
     "config.maxDocumentsPerQuery": "server's configured - maxDocumentsPerQuery",
     "config.maxBytesPerQuery": "server's configured - maxBytesPerQuery",
     "tool.responseBytesLimit": "tool's parameter - responseBytesLimit",
-} as const;
+} as const satisfies Record<CursorLimitKey, string>;

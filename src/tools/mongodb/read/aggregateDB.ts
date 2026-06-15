@@ -10,7 +10,12 @@ import { ErrorCodes, MongoDBError } from "../../../common/errors.js";
 import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorUntilMaxBytes.js";
 import { operationWithFallback } from "../../../helpers/operationWithFallback.js";
 import { isWriteStage } from "../../../helpers/mqlGuards.js";
-import { AGG_COUNT_MAX_TIME_MS_CAP, ONE_MB, CURSOR_LIMITS_TO_LLM_TEXT } from "../../../helpers/constants.js";
+import {
+    AGG_COUNT_MAX_TIME_MS_CAP,
+    ONE_MB,
+    CURSOR_LIMITS_TO_LLM_TEXT,
+    type CursorLimitKey,
+} from "../../../helpers/constants.js";
 import { LogId } from "../../../common/logging/index.js";
 import { AnyAggregateStage, DB_AGGREGATE_STAGE_OPERATORS } from "../mongodbSchemas.js";
 
@@ -93,7 +98,7 @@ The maximum number of bytes to return in the response. This value is capped by t
                     appliedLimits: [
                         aggregationResultsCappedByMaxDocumentsLimit ? "config.maxDocumentsPerQuery" : undefined,
                         cursorResults.cappedBy,
-                    ].filter((limit): limit is keyof typeof CURSOR_LIMITS_TO_LLM_TEXT => !!limit),
+                    ].filter((limit): limit is CursorLimitKey => !!limit),
                 });
             }
 
@@ -178,7 +183,7 @@ The maximum number of bytes to return in the response. This value is capped by t
     }: {
         aggResultsCount: number | undefined;
         documents: unknown[];
-        appliedLimits: (keyof typeof CURSOR_LIMITS_TO_LLM_TEXT)[];
+        appliedLimits: CursorLimitKey[];
     }): string {
         let message = `The aggregation resulted in ${aggResultsCount === undefined ? "indeterminable number of" : aggResultsCount} documents.`;
 

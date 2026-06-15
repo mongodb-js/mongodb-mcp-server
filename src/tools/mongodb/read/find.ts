@@ -8,7 +8,12 @@ import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 import { EJSON } from "bson";
 import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorUntilMaxBytes.js";
 import { operationWithFallback } from "../../../helpers/operationWithFallback.js";
-import { ONE_MB, QUERY_COUNT_MAX_TIME_MS_CAP, CURSOR_LIMITS_TO_LLM_TEXT } from "../../../helpers/constants.js";
+import {
+    ONE_MB,
+    QUERY_COUNT_MAX_TIME_MS_CAP,
+    CURSOR_LIMITS_TO_LLM_TEXT,
+    type CursorLimitKey,
+} from "../../../helpers/constants.js";
 import { zEJSON } from "../../args.js";
 import { LogId } from "../../../common/logging/index.js";
 import { SortDirectionSchema } from "../mongodbSchemas.js";
@@ -113,7 +118,9 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
                         collection,
                         queryResultsCount,
                         documents: cursorResults.documents,
-                        appliedLimits: [limitOnFindCursor.cappedBy, cursorResults.cappedBy].filter((limit) => !!limit),
+                        appliedLimits: [limitOnFindCursor.cappedBy, cursorResults.cappedBy].filter(
+                            (limit): limit is CursorLimitKey => !!limit
+                        ),
                     }),
                     ...(cursorResults.documents.length > 0 ? [EJSON.stringify(cursorResults.documents)] : [])
                 ),
@@ -146,7 +153,7 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
         collection: string;
         queryResultsCount: number | undefined;
         documents: unknown[];
-        appliedLimits: (keyof typeof CURSOR_LIMITS_TO_LLM_TEXT)[];
+        appliedLimits: CursorLimitKey[];
     }): string {
         const appliedLimitsText = appliedLimits.length
             ? `\

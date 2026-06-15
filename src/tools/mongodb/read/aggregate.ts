@@ -1,16 +1,21 @@
 import { z } from "zod";
 import type { AggregationCursor } from "mongodb";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolExecutionContext } from "../../tool.js";
+import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 import { type Document, EJSON } from "bson";
 import { ErrorCodes, MongoDBError } from "../../../common/errors.js";
 import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorUntilMaxBytes.js";
 import { operationWithFallback } from "../../../helpers/operationWithFallback.js";
-import { AGG_COUNT_MAX_TIME_MS_CAP, ONE_MB, CURSOR_LIMITS_TO_LLM_TEXT } from "../../../helpers/constants.js";
+import {
+    AGG_COUNT_MAX_TIME_MS_CAP,
+    ONE_MB,
+    CURSOR_LIMIT_KEYS,
+    CURSOR_LIMITS_TO_LLM_TEXT,
+    type CursorLimitKey,
+} from "../../../helpers/constants.js";
 import { LogId } from "../../../common/logging/index.js";
 import { AnyAggregateStage, VectorSearchStage } from "../mongodbSchemas.js";
 import {
@@ -45,6 +50,17 @@ If the user has asked for lexical/Atlas search, use \`$search\` instead of \`$te
 - The \`$search\` stage supports multiple operators, such as 'autocomplete', 'text', 'geoWithin', and others. Choose the approprate operator based on the user's query. If unsure of the exact syntax, consult the MongoDB Atlas Search documentation, which can be found here: https://www.mongodb.com/docs/atlas/atlas-search/operators-and-collectors/
 `;
 
+const AggregateOutputSchema = {
+    documents: z.array(z.unknown()).describe("The documents returned by the aggregation pipeline"),
+    aggResultsCount: z
+        .number()
+        .optional()
+        .describe("The total number of documents returned by the aggregation pipeline"),
+    appliedLimits: z.array(z.enum(CURSOR_LIMIT_KEYS)).describe("The limits applied to the aggregation pipeline"),
+};
+
+export type AggregateOutput = z.infer<z.ZodObject<typeof AggregateOutputSchema>>;
+
 export const AggregateArgs = {
     pipeline: z.array(z.union([VectorSearchStage, AnyAggregateStage])).describe(pipelineDescriptionWithVectorSearch),
 };
@@ -62,10 +78,12 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
     };
     static operationType: OperationType = "read";
 
+    public override outputSchema = AggregateOutputSchema;
+
     protected async execute(
         { database, collection, pipeline, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
-    ): Promise<CallToolResult> {
+    ): Promise<ToolResult<typeof this.outputSchema>> {
         let aggregationCursor: AggregationCursor | undefined = undefined;
         try {
             const provider = await this.ensureConnected();
@@ -132,6 +150,9 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
 
             let successMessage: string;
             let documents: unknown[];
+            let aggResultsCount: number | undefined;
+            let appliedLimits: CursorLimitKey[] = [];
+
             if (pipeline.some((stage) => isWriteStage(stage))) {
                 // This is a write pipeline, so special-case it and don't attempt to apply limits or caps
                 aggregationCursor = provider.aggregate(database, collection, pipeline, {
@@ -175,13 +196,15 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                     totalDocuments > this.config.maxDocumentsPerQuery;
 
                 documents = cursorResults.documents;
+                aggResultsCount = totalDocuments;
+                appliedLimits = [
+                    aggregationResultsCappedByMaxDocumentsLimit ? "config.maxDocumentsPerQuery" : undefined,
+                    cursorResults.cappedBy,
+                ].filter((limit): limit is CursorLimitKey => !!limit);
                 successMessage = this.generateMessage({
-                    aggResultsCount: totalDocuments,
-                    documents: cursorResults.documents,
-                    appliedLimits: [
-                        aggregationResultsCappedByMaxDocumentsLimit ? "config.maxDocumentsPerQuery" : undefined,
-                        cursorResults.cappedBy,
-                    ].filter((limit): limit is keyof typeof CURSOR_LIMITS_TO_LLM_TEXT => !!limit),
+                    aggResultsCount,
+                    documents,
+                    appliedLimits,
                 });
             }
 
@@ -190,6 +213,11 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                     successMessage,
                     ...(documents.length > 0 ? [EJSON.stringify(documents)] : [])
                 ),
+                structuredContent: {
+                    documents,
+                    ...(aggResultsCount !== undefined ? { aggResultsCount } : {}),
+                    appliedLimits,
+                },
             };
         } finally {
             if (aggregationCursor) {
@@ -319,7 +347,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
     }: {
         aggResultsCount: number | undefined;
         documents: unknown[];
-        appliedLimits: (keyof typeof CURSOR_LIMITS_TO_LLM_TEXT)[];
+        appliedLimits: CursorLimitKey[];
     }): string {
         let message = `The aggregation resulted in ${aggResultsCount === undefined ? "indeterminable number of" : aggResultsCount} documents.`;
 
