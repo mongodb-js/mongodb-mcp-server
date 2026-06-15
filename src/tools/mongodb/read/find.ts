@@ -1,7 +1,6 @@
 import { z } from "zod";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolExecutionContext } from "../../tool.js";
+import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import type { FindCursor } from "mongodb";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
@@ -13,6 +12,7 @@ import {
     QUERY_COUNT_MAX_TIME_MS_CAP,
     CURSOR_LIMITS_TO_LLM_TEXT,
     type CursorLimitKey,
+    CURSOR_LIMIT_KEYS,
 } from "../../../helpers/constants.js";
 import { zEJSON } from "../../args.js";
 import { LogId } from "../../../common/logging/index.js";
@@ -36,6 +36,14 @@ export const FindArgs = {
         ),
 };
 
+const FindOutputSchema = {
+    documents: z.array(z.unknown()).describe("The documents returned by the find query"),
+    queryResultsCount: z.number().optional().describe("The total number of documents returned by the find query"),
+    appliedLimits: z.array(z.enum(CURSOR_LIMIT_KEYS)).describe("The limits applied to the find query"),
+};
+
+export type FindOutput = z.infer<z.ZodObject<typeof FindOutputSchema>>;
+
 export class FindTool extends MongoDBToolBase {
     static toolName = "find";
     public description = "Run a find query against a MongoDB collection";
@@ -49,10 +57,12 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
     };
     static operationType: OperationType = "read";
 
+    public override outputSchema = FindOutputSchema;
+
     protected async execute(
         { database, collection, filter, projection, limit, sort, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
-    ): Promise<CallToolResult> {
+    ): Promise<ToolResult<typeof this.outputSchema>> {
         let findCursor: FindCursor<unknown> | undefined = undefined;
         try {
             const provider = await this.ensureConnected();
@@ -124,6 +134,13 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
                     }),
                     ...(cursorResults.documents.length > 0 ? [EJSON.stringify(cursorResults.documents)] : [])
                 ),
+                structuredContent: {
+                    documents: cursorResults.documents,
+                    queryResultsCount,
+                    appliedLimits: [limitOnFindCursor.cappedBy, cursorResults.cappedBy].filter(
+                        (limit): limit is CursorLimitKey => !!limit
+                    ),
+                },
             };
         } finally {
             if (findCursor) {

@@ -11,6 +11,7 @@ import {
 import * as constants from "../../../../../src/helpers/constants.js";
 import { describeWithMongoDB, getDocsFromUntrustedContent, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 import type { Client } from "@modelcontextprotocol/sdk/client";
+import type { FindOutput } from "../../../../../src/tools/mongodb/read/find.js";
 
 export async function freshInsertDocuments({
     collection,
@@ -81,6 +82,10 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
         });
         const content = getResponseContent(response.content);
         expect(content).toEqual('Query on collection "foos" resulted in 0 documents. Returning 0 documents.');
+        const structuredContent = response.structuredContent as FindOutput;
+        expect(structuredContent.queryResultsCount).toBe(0);
+        expect(structuredContent.appliedLimits).toEqual([]);
+        expect(structuredContent.documents).toEqual([]);
     });
 
     it("returns 0 when collection doesn't exist", async () => {
@@ -93,6 +98,10 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
         });
         const content = getResponseContent(response.content);
         expect(content).toEqual('Query on collection "non-existent" resulted in 0 documents. Returning 0 documents.');
+        const structuredContent = response.structuredContent as FindOutput;
+        expect(structuredContent.queryResultsCount).toBe(0);
+        expect(structuredContent.appliedLimits).toEqual([]);
+        expect(structuredContent.documents).toEqual([]);
     });
 
     describe("with existing database", () => {
@@ -117,6 +126,7 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
                 expected: Array(10)
                     .fill(0)
                     .map((_, index) => ({ _id: expect.any(Object) as unknown, value: index })),
+                expectedTotalCount: 10,
             },
             {
                 name: "returns documents matching the filter",
@@ -125,6 +135,7 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
                     .fill(0)
 
                     .map((_, index) => ({ _id: expect.any(Object) as unknown, value: index + 6 })),
+                expectedTotalCount: 4,
             },
             {
                 name: "returns documents matching the filter with projection",
@@ -133,6 +144,7 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
                 expected: Array(4)
                     .fill(0)
                     .map((_, index) => ({ value: index + 6 })),
+                expectedTotalCount: 4,
             },
             {
                 name: "returns documents matching the filter with limit",
@@ -152,6 +164,7 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
                     .fill(0)
                     .map((_, index) => ({ _id: expect.any(Object) as unknown, value: index }))
                     .reverse(),
+                expectedTotalCount: 10,
             },
         ];
 
@@ -178,6 +191,10 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
                 for (let i = 0; i < expected.length; i++) {
                     expect(docs[i]).toEqual(expected[i]);
                 }
+                const structuredContent = response.structuredContent as FindOutput;
+                expect(structuredContent.queryResultsCount).toBe(expectedCount);
+                expect(structuredContent.appliedLimits).toEqual([]);
+                expect(structuredContent.documents).toEqual(docs);
             });
         }
 
@@ -196,6 +213,10 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
             for (let i = 0; i < 10; i++) {
                 expect((docs[i] as { value: number }).value).toEqual(i);
             }
+            const structuredContent = response.structuredContent as FindOutput;
+            expect(structuredContent.queryResultsCount).toBe(10);
+            expect(structuredContent.appliedLimits).toEqual([]);
+            expect(structuredContent.documents).toEqual(docs);
         });
 
         it("can find objects by $oid", async () => {
@@ -224,6 +245,10 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
             expect(docs.length).toEqual(1);
 
             expect((docs[0] as { value: number }).value).toEqual(fooObject.value);
+            const structuredContent = response.structuredContent as FindOutput;
+            expect(structuredContent.queryResultsCount).toBe(1);
+            expect(structuredContent.appliedLimits).toEqual([]);
+            expect(structuredContent.documents).toEqual(docs);
         });
 
         it("can find objects by date", async () => {
@@ -256,6 +281,10 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
             expect(docs.length).toEqual(1);
 
             expect(docs[0]?.date.toISOString()).toContain("2025-05-11");
+            const structuredContent = response.structuredContent as FindOutput;
+            expect(structuredContent.queryResultsCount).toBe(1);
+            expect(structuredContent.appliedLimits).toEqual([]);
+            expect(structuredContent.documents).toEqual(docs);
         });
     });
 
@@ -290,6 +319,10 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
 
             const docs = getDocsFromUntrustedContent(content);
             expect(docs.length).toEqual(10);
+            const structuredContent = response.structuredContent as FindOutput;
+            expect(structuredContent.queryResultsCount).toBeUndefined();
+            expect(structuredContent.appliedLimits).toEqual([]);
+            expect(structuredContent.documents).toEqual(docs);
         });
     });
 });
@@ -323,6 +356,10 @@ describeWithMongoDB(
             const content = getResponseContent(response);
             expect(content).toContain(`Query on collection "foo" resulted in 1000 documents.`);
             expect(content).toContain(`Returning 8 documents.`);
+            const structuredContent = response.structuredContent as FindOutput;
+            expect(structuredContent.queryResultsCount).toBe(1000);
+            expect(structuredContent.appliedLimits).toEqual([]);
+            expect(structuredContent.documents).toHaveLength(8);
         });
 
         it("should return documents limited to the configured max limit when provided limit > configured limit", async () => {
@@ -342,6 +379,10 @@ describeWithMongoDB(
             expect(content).toContain(
                 `Returning 10 documents while respecting the applied limits of server's configured - maxDocumentsPerQuery.`
             );
+            const structuredContent = response.structuredContent as FindOutput;
+            expect(structuredContent.queryResultsCount).toBe(1000);
+            expect(structuredContent.documents).toHaveLength(10);
+            expect(structuredContent.appliedLimits).toEqual(["config.maxDocumentsPerQuery"]);
         });
     },
     {
@@ -375,6 +416,10 @@ describeWithMongoDB(
             expect(content).toContain(
                 `Returning 3 documents while respecting the applied limits of server's configured - maxDocumentsPerQuery, server's configured - maxBytesPerQuery`
             );
+            const structuredContent = response.structuredContent as FindOutput;
+            expect(structuredContent.queryResultsCount).toBe(1000);
+            expect(structuredContent.documents).toHaveLength(3);
+            expect(structuredContent.appliedLimits).toEqual(["config.maxDocumentsPerQuery", "config.maxBytesPerQuery"]);
         });
         it("should return only the documents that could fit in provided responseBytesLimit", async () => {
             await integration.connectMcpClient();
@@ -394,6 +439,10 @@ describeWithMongoDB(
             expect(content).toContain(
                 `Returning 1 documents while respecting the applied limits of server's configured - maxDocumentsPerQuery, tool's parameter - responseBytesLimit.`
             );
+            const structuredContent = response.structuredContent as FindOutput;
+            expect(structuredContent.queryResultsCount).toBe(1000);
+            expect(structuredContent.documents).toHaveLength(1);
+            expect(structuredContent.appliedLimits).toEqual(["config.maxDocumentsPerQuery", "tool.responseBytesLimit"]);
         });
     },
     {
@@ -426,6 +475,10 @@ describeWithMongoDB(
             const content = getResponseContent(response);
             expect(content).toContain(`Query on collection "foo" resulted in 1000 documents.`);
             expect(content).toContain(`Returning 8 documents.`);
+            const structuredContent = response.structuredContent as FindOutput;
+            expect(structuredContent.queryResultsCount).toBe(1000);
+            expect(structuredContent.documents).toHaveLength(8);
+            expect(structuredContent.appliedLimits).toEqual([]);
         });
 
         it("should return documents limited to the responseBytesLimit", async () => {
@@ -446,6 +499,10 @@ describeWithMongoDB(
             expect(content).toContain(
                 `Returning 1 documents while respecting the applied limits of tool's parameter - responseBytesLimit.`
             );
+            const structuredContent = response.structuredContent as FindOutput;
+            expect(structuredContent.queryResultsCount).toBe(1000);
+            expect(structuredContent.documents).toHaveLength(1);
+            expect(structuredContent.appliedLimits).toEqual(["tool.responseBytesLimit"]);
         });
     },
     {
@@ -551,6 +608,8 @@ describeWithMongoDB(
             expect(error).toBeUndefined();
             const content = getResponseContent(result);
             expect(content).toContain('Query on collection "abort_collection"');
+            const structuredContent = result?.structuredContent as FindOutput;
+            expect(structuredContent.documents).toBeDefined();
         });
     },
     {
@@ -584,6 +643,10 @@ describeWithMongoDB(
             expect(content).toContain('Query on collection "foo"');
             const docs = getDocsFromUntrustedContent(content);
             expect(docs.length).toEqual(5);
+            const structuredContent = response.structuredContent as FindOutput;
+            expect(structuredContent.queryResultsCount).toBe(5);
+            expect(structuredContent.appliedLimits).toEqual([]);
+            expect(structuredContent.documents).toEqual(docs);
         });
     },
     {
@@ -616,6 +679,8 @@ describeWithMongoDB(
 
             const content = getResponseContent(response);
             expect(content).toContain("operation exceeded time limit");
+            const structuredContent = response.structuredContent as FindOutput;
+            expect(structuredContent).toBeUndefined();
         });
     },
     {
@@ -660,6 +725,9 @@ describeWithMongoDB("find tool with server-side JavaScript operators", (integrat
                 const docs = getDocsFromUntrustedContent(content);
                 expect(docs).toHaveLength(1);
                 expect(docs[0]).toEqual(expect.objectContaining({ name: "Laura", age: 10 }));
+                const structuredContent = response.structuredContent as FindOutput;
+                expect(structuredContent.appliedLimits).toEqual([]);
+                expect(structuredContent.documents).toEqual(docs);
             }
         });
     }
