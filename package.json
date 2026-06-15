@@ -180,7 +180,7 @@
     "jsonc-parser": "^3.3.1",
     "lru-cache": "^11.2.6",
     "mongodb": "^7.1.1",
-    "mongodb-build-info": "^1.9.7",
+    "mongodb-build-info": "^1.9.11",
     "mongodb-connection-string-url": "^7.0.1",
     "mongodb-log-writer": "^2.5.13",
     "mongodb-redact": "^1.4.6",

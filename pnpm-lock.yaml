@@ -60,8 +60,8 @@ importers:
         specifier: ^7.1.1
         version: 7.1.1(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
       mongodb-build-info:
-        specifier: ^1.9.7
-        version: 1.9.7
+        specifier: ^1.9.11
+        version: 1.9.11
       mongodb-connection-string-url:
         specifier: ^7.0.1
         version: 7.0.1
@@ -5479,8 +5479,8 @@ packages:
   mobx@6.15.0:
     resolution: {integrity: sha512-UczzB+0nnwGotYSgllfARAqWCJ5e/skuV2K/l+Zyck/H6pJIhLXuBnz+6vn2i211o7DtbE78HQtsYEKICHGI+g==}
 
-  mongodb-build-info@1.9.7:
-    resolution: {integrity: sha512-bXqtFSXnYtDQznrqyKtgNOUrD30nJtHF6p4bKmbgrblhtgUsC3VE4dduysmyaHWzHrglffsbBXF/bPuFAYz3Nw==}
+  mongodb-build-info@1.9.11:
+    resolution: {integrity: sha512-QGPUAT8mvkwIAm3FoGnNOU0j1AUNxF6bYyhDBhierHliQlv7lRl8Lwssecs4zA8Raab6wuM0Tbb0WKHQxGCd2Q==}
 
   mongodb-client-encryption@7.0.0:
     resolution: {integrity: sha512-0egSmyCQ31MLdDFH2j5fHnX8OkAWytUC4ZoPuelU0E+lgPQ2/UcpxkYQXF20SW0rCzADIc0qouiULtqAKDs/uQ==}
@@ -9112,7 +9112,7 @@ snapshots:
       '@mongosh/shell-bson': 3.0.1(bson@7.2.0)
       bson: 7.2.0
       mongodb: 7.1.1(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
-      mongodb-build-info: 1.9.7
+      mongodb-build-info: 1.9.11
       mongodb-connection-string-url: 7.0.1
     transitivePeerDependencies:
       - '@aws-sdk/credential-providers'
@@ -9134,7 +9134,7 @@ snapshots:
       '@mongosh/types': 5.0.1(@mongodb-js/oidc-plugin@2.0.8)(mongodb-log-writer@2.5.13(bson@7.2.0))(mongodb@7.1.1(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7))
       gcp-metadata: 7.0.1
       mongodb: 7.1.1(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
-      mongodb-build-info: 1.9.7
+      mongodb-build-info: 1.9.11
       mongodb-connection-string-url: 7.0.1
       socks: 2.8.7
     optionalDependencies:
@@ -13344,7 +13344,7 @@ snapshots:
 
   mobx@6.15.0: {}
 
-  mongodb-build-info@1.9.7:
+  mongodb-build-info@1.9.11:
     dependencies:
       debug: 4.4.3(supports-color@10.2.2)
       mongodb-connection-string-url: 7.0.1
