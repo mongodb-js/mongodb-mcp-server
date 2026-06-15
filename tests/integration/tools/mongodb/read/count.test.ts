@@ -10,6 +10,7 @@ import {
 import { beforeEach, afterEach, describe, expect, it } from "vitest";
 import type { Client } from "@modelcontextprotocol/sdk/client";
 import { freshInsertDocuments } from "./find.test.js";
+import type { CountOutput } from "../../../../../src/tools/mongodb/read/count.js";
 
 describeWithMongoDB("count tool", (integration) => {
     validateToolMetadata(
@@ -44,6 +45,8 @@ describeWithMongoDB("count tool", (integration) => {
         });
         const content = getResponseContent(response.content);
         expect(content).toEqual('Found 0 documents in the collection "foos".');
+        const structuredContent = response.structuredContent as CountOutput;
+        expect(structuredContent.count).toBe(0);
     });
 
     it("returns 0 when collection doesn't exist", async () => {
@@ -56,6 +59,8 @@ describeWithMongoDB("count tool", (integration) => {
         });
         const content = getResponseContent(response.content);
         expect(content).toEqual('Found 0 documents in the collection "non-existent".');
+        const structuredContent = response.structuredContent as CountOutput;
+        expect(structuredContent.count).toBe(0);
     });
 
     describe("with existing database", () => {
@@ -89,6 +94,8 @@ describeWithMongoDB("count tool", (integration) => {
                 expect(content).toEqual(
                     `Found ${testCase.expectedCount} documents in the collection "foo"${testCase.filter ? " that matched the query" : ""}.`
                 );
+                const structuredContent = response.structuredContent as CountOutput;
+                expect(structuredContent.count).toBe(testCase.expectedCount);
             });
         }
     });
@@ -168,6 +175,8 @@ describeWithMongoDB("count tool with abort signal", (integration) => {
         expect(result).toBeUndefined();
         expectDefined(error);
         expect(error.message).toContain("This operation was aborted");
+        const structuredContent = result?.structuredContent as CountOutput;
+        expect(structuredContent?.count).toBeUndefined();
     });
 
     it("should abort count operation during query execution", async () => {
@@ -188,6 +197,8 @@ describeWithMongoDB("count tool with abort signal", (integration) => {
         expect(result).toBeUndefined();
         expectDefined(error);
         expect(error.message).toContain("This operation was aborted");
+        const structuredContent = result?.structuredContent as CountOutput;
+        expect(structuredContent?.count).toBeUndefined();
     });
 
     it("should complete successfully when not aborted", async () => {
@@ -200,6 +211,8 @@ describeWithMongoDB("count tool with abort signal", (integration) => {
         expect(error).toBeUndefined();
         const content = getResponseContent(result);
         expect(content).toContain('Found 0 documents in the collection "abort_collection" that matched the query.');
+        const structuredContent = result?.structuredContent as CountOutput;
+        expect(structuredContent?.count).toBe(0);
     });
 });
 
@@ -240,6 +253,7 @@ describeWithMongoDB("count tool with server-side JavaScript operators", (integra
                 expect(content).not.toContain("server-side JavaScript operators");
                 expect(content).not.toContain("operator is not allowed");
             }
+            expect(response.structuredContent).toBeUndefined();
         });
     }
 });
