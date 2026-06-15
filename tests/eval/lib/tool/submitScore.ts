@@ -20,6 +20,9 @@ export class SubmitScoreTool {
             description: "Submit your final score. Call this exactly once when ready.",
             inputSchema: SubmitScoreTool.scoreSchema,
             execute: (input) => {
+                if (this.#captured !== undefined) {
+                    throw new Error(`${SubmitScoreTool.toolName} must be called exactly once`);
+                }
                 this.#captured = input;
                 return { ok: true };
             },

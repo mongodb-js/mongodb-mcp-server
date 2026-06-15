@@ -19,12 +19,12 @@ function truncate(value: string, max: number): string {
 }
 
 /**
- * Pass through the value if it is already a string, otherwise returns an empty string.
+ * Return the value when it is already a string; otherwise return an empty string.
  *
  * @param value - The value to pass through.
  * @returns The value if it is a string, otherwise an empty string.
  */
-function partString(value: unknown): string {
+function ensureString(value: unknown): string {
     return typeof value === "string" ? value : "";
 }
 
@@ -61,8 +61,8 @@ function serializeMessages(messages: ModelMessage[]): string {
         const content = (msg as Record<string, unknown>).content;
         const inner: string[] = [];
 
-        if (typeof content === "string") {
-            if (content) inner.push(content);
+        if (typeof content === "string" && content) {
+            inner.push(content);
         } else if (Array.isArray(content)) {
             for (const part of content as Record<string, unknown>[]) {
                 switch (part.type) {
@@ -70,14 +70,14 @@ function serializeMessages(messages: ModelMessage[]): string {
                         if (typeof part.text === "string" && part.text) inner.push(part.text);
                         break;
                     case "tool-call": {
-                        const id = partString(part.toolCallId);
-                        const name = partString(part.toolName);
+                        const id = ensureString(part.toolCallId);
+                        const name = ensureString(part.toolName);
                         inner.push(`<tool_call id="${id}" name="${name}">${JSON.stringify(part.input)}</tool_call>`);
                         break;
                     }
                     case "tool-result": {
-                        const id = partString(part.toolCallId);
-                        const name = partString(part.toolName);
+                        const id = ensureString(part.toolCallId);
+                        const name = ensureString(part.toolName);
                         const output = truncate(JSON.stringify(part.output), MAX_TOOL_OUTPUT_CHARS);
                         inner.push(`<tool_result for="${id}" name="${name}">${output}</tool_result>`);
                         break;
@@ -88,7 +88,9 @@ function serializeMessages(messages: ModelMessage[]): string {
             }
         }
 
-        if (inner.length === 0) continue;
+        if (inner.length === 0) {
+            continue;
+        }
         turn += 1;
         blocks.push(`<turn n="${turn}" role="${role}">\n${inner.join("\n")}\n</turn>`);
     }

@@ -16,8 +16,9 @@ start() {
     
 	cat <<EOF
 ✅ MongoDB container ($CONTAINER_NAME) is healthy and accepting connections at localhost:27017.
+✅ To use this local MongoDB instance in Braintrust local or remote evals you are good to go.
 
-To use this local MongoDB instance for Braintrust evals in a remote/sandboxed environment:
+If you intend to use this local MongoDB instance in Braintrust sandboxed environment:
   1. In a new terminal, run: \`ngrok tcp 27017\`
   2. After it starts, note the 'Forwarding' address (e.g. \`tcp://0.tcp.us-cal-1.ngrok.io:21413\`).
   3. Convert that to a MongoDB URI like:

@@ -1,8 +1,7 @@
 import { Eval, Reporter, reportFailures, type EvalParameters } from "braintrust";
-import { createOpenAI } from "@ai-sdk/openai";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import { dropCaseDb, getMcpClient, getMongoDbClient, registerTempDb, teardown } from "./lib/shared.js";
+import { dropCaseDb, getAiProvider, getMcpClient, getMongoDbClient, registerTempDb, teardown } from "./lib/shared.js";
 import { llmJudgeScore } from "./lib/scoring.js";
 import { judgeUsingLLM } from "./lib/judge.js";
 import { runTask } from "./lib/user.js";
@@ -16,28 +15,10 @@ const PROJECT_NAME = "mongodb-mcp-server-evals";
 const DATASET_NAME = "Search";
 const AGENT_STEP_LIMIT = 10;
 const DEFAULT_MODEL = "gpt-4o";
-const DEFAULT_OPENAI_BASE_URL = "https://gateway.braintrust.dev";
 const DEFAULT_CONNECTION_STRING = "mongodb://localhost:27017/?directConnection=true";
 
 const DEFAULT_SYSTEM_CONTEXT =
     'You are a MongoDB assistant operating autonomously in a single turn; the user cannot answer follow-up questions. Use the available MongoDB MCP tools to fulfill the request end-to-end. Never ask for clarification; make a reasonable decision and finish the task. If the request refers to "the collection" without naming it, discover collections with the list tools and act on the appropriate one (if there is exactly one user collection, use it). Prefer tools over guessing, and briefly confirm what you did when done.';
-
-if (!process.env.BRAINTRUST_API_KEY) {
-    console.warn("BRAINTRUST_API_KEY is not set.");
-}
-
-if (!process.env.OPENAI_BASE_URL) {
-    console.warn("OPENAI_BASE_URL is not set, using default value.");
-}
-
-const btGateway = createOpenAI({
-    baseURL: process.env.OPENAI_BASE_URL ?? DEFAULT_OPENAI_BASE_URL,
-    // When using Remote Eval in the Braintrust Playground connected to your local dev server (started with `pnpm run eval:serve`),
-    // set BRAINTRUST_API_KEY_OVERRIDE to work around a Braintrust issue:
-    // The Braintrust server overrides the local BRAINTRUST_API_KEY, which the Braintrust Gateway then rejects, resulting in 404 errors.
-    // Using BRAINTRUST_API_KEY_OVERRIDE ensures the correct API key is used for authentication.
-    apiKey: process.env.BRAINTRUST_API_KEY_OVERRIDE ?? process.env.BRAINTRUST_API_KEY,
-});
 
 const parameters = {
     connectionString: z.string().default(DEFAULT_CONNECTION_STRING).describe("MongoDB connection string."),
@@ -115,12 +96,13 @@ void Eval<RunEvalInput, RunEvalOutput, RunEvalExpected, void, boolean, EvalParam
             dataset: DATASET_NAME,
         }),
         task: async (input, hooks) => {
+            const aiProvider = await getAiProvider();
             const resolved = resolveParameters(hooks.parameters as Record<string, unknown>);
+            const model = aiProvider.chat(resolved.model);
 
             const dbName = transientDbName();
             registerTempDb(dbName);
             const dbClient = await getMongoDbClient(resolved.connectionString);
-            const model = btGateway.chat(resolved.model);
 
             try {
                 await hooks.span.traced(() => seedTempDb(dbClient, dbName, input.db_seed), { name: "seedTempDb" });

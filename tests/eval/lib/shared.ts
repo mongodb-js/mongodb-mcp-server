@@ -1,7 +1,9 @@
 import { MongoClient } from "mongodb";
 import { InMemoryMcpConnection, type McpClient } from "./mcp.js";
 import { dropTempDb } from "./seeding.js";
+import { createOpenAI, type OpenAIProvider } from "@ai-sdk/openai";
 
+let braintrustGatewayFactory: AsyncSingleton<OpenAIProvider> | null = null;
 let mcpClientFactory: AsyncSingleton<McpClient> | null = null;
 let mongoClientFactory: AsyncSingleton<MongoClient> | null = null;
 const tempDbRegistry = new Set<string>();
@@ -30,6 +32,23 @@ class AsyncSingleton<T> {
     }
 }
 
+export async function getAiProvider(): Promise<OpenAIProvider> {
+    if (!braintrustGatewayFactory) {
+        // eslint-disable-next-line @typescript-eslint/require-await
+        braintrustGatewayFactory = new AsyncSingleton(async () => {
+            const apiKey = process.env.BRAINTRUST_API_KEY_OVERRIDE ?? process.env.BRAINTRUST_API_KEY;
+            if (!apiKey) {
+                throw new Error("BRAINTRUST_API_KEY is required to run the eval.");
+            }
+
+            const defaultBaseURL = "https://gateway.braintrust.dev";
+            const baseURL = process.env.OPENAI_BASE_URL ?? defaultBaseURL;
+
+            return createOpenAI({ baseURL, apiKey });
+        });
+    }
+    return braintrustGatewayFactory.singletonInstance();
+}
 /**
  * Gets the singleton in-memory MCP client instance.
  *
