@@ -213,7 +213,11 @@ export interface paths {
         delete: operations["deleteGroupCluster"];
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Update One Cluster in One Project
+         * @description Updates the details for one cluster in the specified project. Clusters contain a group of hosts that maintain the same data set. This resource can update clusters with asymmetrically-sized shards. To update a cluster's termination protection, the requesting Service Account or API Key must have the Project Owner role. For all other updates, the requesting Service Account or API Key must have the Project Cluster Manager role or the Project Replica Set Manager role. You can't modify a paused cluster (`paused : true`). You must call this endpoint to set `paused : false`. After this endpoint responds with `paused : false`, you can call it again with the changes you want to make to the cluster. This feature is not available for serverless clusters. Deprecated versions: v2-{2024-08-05}, v2-{2023-02-01}, v2-{2023-01-01}
+         */
+        patch: operations["updateGroupCluster"];
         trace?: never;
     };
     "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}/performanceAdvisor/dropIndexSuggestions": {
@@ -1001,10 +1005,10 @@ export interface components {
              */
             regionName?: "US_GOV_WEST_1" | "US_GOV_EAST_1" | "US_EAST_1" | "US_EAST_2" | "US_WEST_1" | "US_WEST_2" | "CA_CENTRAL_1" | "EU_NORTH_1" | "EU_WEST_1" | "EU_WEST_2" | "EU_WEST_3" | "EU_CENTRAL_1" | "EU_CENTRAL_2" | "AP_EAST_1" | "AP_EAST_2" | "AP_NORTHEAST_1" | "AP_NORTHEAST_2" | "AP_NORTHEAST_3" | "AP_SOUTHEAST_1" | "AP_SOUTHEAST_2" | "AP_SOUTHEAST_3" | "AP_SOUTHEAST_4" | "AP_SOUTHEAST_5" | "AP_SOUTHEAST_6" | "AP_SOUTHEAST_7" | "AP_SOUTH_1" | "AP_SOUTH_2" | "SA_EAST_1" | "CN_NORTH_1" | "CN_NORTHWEST_1" | "ME_SOUTH_1" | "ME_CENTRAL_1" | "AF_SOUTH_1" | "EU_SOUTH_1" | "EU_SOUTH_2" | "IL_CENTRAL_1" | "CA_WEST_1" | "MX_CENTRAL_1" | "GLOBAL";
             /**
-             * @description Disk Input/Output Operations per Second (IOPS) setting for Amazon Web Services (AWS) storage that you configure only for AWS. Specify whether Disk Input/Output Operations per Second (IOPS) must not exceed the default Input/Output Operations per Second (IOPS) rate for the selected volume size (`STANDARD`), or must fall within the allowable Input/Output Operations per Second (IOPS) range for the selected volume size (`PROVISIONED`). You must set this value to (`PROVISIONED`) for NVMe clusters.
+             * @description Disk Input/Output Operations per Second (IOPS) setting for Amazon Web Services (AWS) storage that you configure only for AWS. Specify whether Disk Input/Output Operations per Second (IOPS) must not exceed the default Input/Output Operations per Second (IOPS) rate for the selected volume size (`STANDARD`), or must fall within the allowable Input/Output Operations per Second (IOPS) range for the selected volume size (`PROVISIONED` or `HIGH_PERFORMANCE`). NVMe clusters require either `PROVISIONED` or `HIGH_PERFORMANCE`.
              * @enum {string}
              */
-            volumeType?: "STANDARD" | "PROVISIONED";
+            volumeType?: "STANDARD" | "PROVISIONED" | "HIGH_PERFORMANCE";
         } & {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -1116,11 +1120,15 @@ export interface components {
              *
              *     - `STANDARD` volume types can't exceed the default input/output operations per second (IOPS) rate for the selected volume size.
              *
-             *     - `PROVISIONED` volume types must fall within the allowable IOPS range for the selected volume size. You must set this value to (`PROVISIONED`) for NVMe clusters.
+             *     - `PROVISIONED` volume types must fall within the allowable IOPS range for the selected volume size.
+             *
+             *     - `HIGH_PERFORMANCE` volume types use IO2 EBS volumes and must fall within the allowable IOPS range for the selected volume size.
+             *
+             *     NVMe clusters require either `PROVISIONED` or `HIGH_PERFORMANCE`.
              * @default STANDARD
              * @enum {string}
              */
-            ebsVolumeType: "STANDARD" | "PROVISIONED";
+            ebsVolumeType: "STANDARD" | "PROVISIONED" | "HIGH_PERFORMANCE";
             /**
              * AWS Instance Sizes
              * @description Hardware specification for the instance sizes in this region in this shard. Each instance size has a default storage and memory capacity. Electable nodes and read-only nodes (known as "base nodes") within a single shard must use the same instance size. Analytics nodes can scale independently from base nodes within a shard. Both base nodes and analytics nodes can scale independently from their equivalents in other shards.
@@ -1190,9 +1198,9 @@ export interface components {
         ApiAtlasCloudProviderAccessFeatureUsageFeatureIdView: Record<string, never> | null;
         /** @description Group of settings that configures a subset of the advanced configuration details. */
         ApiAtlasClusterAdvancedConfigurationView: {
-            /** @description The custom OpenSSL cipher suite list for TLS 1.2. This field is only valid when `tlsCipherConfigMode` is set to `CUSTOM`. */
+            /** @description The custom OpenSSL cipher suite list for TLS 1.2. Requires `tlsCipherConfigMode` = `CUSTOM`; when `tlsCipherConfigMode` is omitted, supplying a non-empty list infers `CUSTOM`. */
             customOpensslCipherConfigTls12?: ("TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384" | "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256")[];
-            /** @description The custom OpenSSL cipher suite list for TLS 1.3. This field is only valid when `tlsCipherConfigMode` is set to `CUSTOM`. */
+            /** @description The custom OpenSSL cipher suite list for TLS 1.3. Requires `tlsCipherConfigMode` = `CUSTOM`; when `tlsCipherConfigMode` is omitted, supplying a non-empty list infers `CUSTOM`. */
             customOpensslCipherConfigTls13?: ("TLS_AES_256_GCM_SHA384" | "TLS_CHACHA20_POLY1305_SHA256" | "TLS_AES_128_GCM_SHA256" | "TLS_AES_128_CCM_SHA256")[];
             /**
              * @description Minimum Transport Layer Security (TLS) version that the cluster accepts for incoming connections. Clusters using TLS 1.0 or 1.1 should consider setting TLS 1.2 as the minimum TLS protocol version.
@@ -9786,6 +9794,59 @@ export interface operations {
                 };
                 content: {
                     "application/vnd.atlas.2023-02-01+json": unknown;
+                };
+            };
+            400: components["responses"]["badRequest"];
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            409: components["responses"]["conflict"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    updateGroupCluster: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description Flag that indicates whether the response body should be in the prettyprint format. */
+                pretty?: components["parameters"]["pretty"];
+            };
+            header?: {
+                /** @description Controls how hardware specification fields are returned in the response after cluster updates. When set to true, returns the original client-specified values and provides separate effective fields showing current operational values. When false (default), hardware specification fields show current operational values directly. Note: When using this header with autoscaling enabled, MongoDB ignores `replicationSpecs` changes during updates. To intentionally override the `replicationSpecs`, disable this header. */
+                "Use-Effective-Instance-Fields"?: boolean;
+                /** @description Controls how `replicationSpecs` fields are returned in the response. When set to `true`, stores the client's view of `replicationSpecs` and returns it in `replicationSpecs`, while the actual cluster state (including auto-scaled hardware and auto-added shards) is returned in `effectiveReplicationSpecs`. When `false` (default), `replicationSpecs` contains the actual cluster state. */
+                "Use-Effective-Fields-Replication-Specs"?: boolean;
+            };
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+                /** @description Human-readable label that identifies the cluster. */
+                clusterName: string;
+            };
+            cookie?: never;
+        };
+        /** @description Cluster to update in the specified project. */
+        requestBody: {
+            content: {
+                "application/vnd.atlas.2024-10-23+json": components["schemas"]["ClusterDescription20240805"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2024-10-23+json": components["schemas"]["ClusterDescription20240805"];
                 };
             };
             400: components["responses"]["badRequest"];

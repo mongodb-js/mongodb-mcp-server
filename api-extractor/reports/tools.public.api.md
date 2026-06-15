@@ -1297,6 +1297,41 @@ export abstract class MongoDBToolBase extends ToolBase {
 export type OperationType = "metadata" | "read" | "create" | "delete" | "update" | "connect";
 
 // @public (undocumented)
+export class PauseResumeClusterTool extends AtlasToolBase {
+    // (undocumented)
+    argsShape: {
+        projectId: z.ZodString;
+        clusterName: z.ZodString;
+        action: z.ZodEnum<{
+            PAUSE: "PAUSE";
+            RESUME: "RESUME";
+        }>;
+    };
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    protected execute(args: ToolArgs<typeof PauseResumeClusterTool.argsShape>): Promise<ToolResult<typeof PauseResumeClusterTool.outputSchema>>;
+    // (undocumented)
+    static operationType: OperationType;
+    // (undocumented)
+    outputSchema: {
+        clusterName: z.ZodString;
+        action: z.ZodEnum<{
+            PAUSE: "PAUSE";
+            RESUME: "RESUME";
+        }>;
+        clusterId: z.ZodOptional<z.ZodString>;
+        disconnected: z.ZodBoolean;
+    };
+    // (undocumented)
+    protected resolveTelemetryMetadata(args: ToolArgs<typeof PauseResumeClusterTool.argsShape>, context: {
+        result: CallToolResult;
+    }): PauseResumeClusterMetadata;
+    // (undocumented)
+    static toolName: string;
+}
+
+// @public (undocumented)
 export type RenameCollectionOutput = z.infer<z.ZodObject<typeof RenameCollectionOutputSchema>>;
 
 // @public (undocumented)

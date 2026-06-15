@@ -481,5 +481,78 @@ describeWithAtlas("clusters", (integration) => {
                 });
             });
         });
+
+        describe("atlas-pause-resume-cluster", () => {
+            it("should have correct metadata", async () => {
+                const { tools } = await integration.mcpClient().listTools();
+                const tool = tools.find((t) => t.name === "atlas-pause-resume-cluster");
+
+                expectDefined(tool);
+                expect(tool.inputSchema.type).toBe("object");
+                expectDefined(tool.inputSchema.properties);
+                expect(tool.inputSchema.properties).toHaveProperty("projectId");
+                expect(tool.inputSchema.properties).toHaveProperty("clusterName");
+                expect(tool.inputSchema.properties).toHaveProperty("action");
+
+                const required = tool.inputSchema.required as string[];
+                expect(required).toContain("projectId");
+                expect(required).toContain("clusterName");
+                expect(required).toContain("action");
+            });
+
+            it("pauses and resumes a dedicated cluster", async () => {
+                const projectId = getProjectId();
+                const session = integration.mcpServer().session;
+                const pollingInterval = 10000;
+                const maxPollingIterations = 120;
+
+                await waitCluster(
+                    session,
+                    projectId,
+                    clusterName,
+                    (c) => c.stateName === "IDLE",
+                    pollingInterval,
+                    maxPollingIterations
+                );
+
+                const pauseResponse = await integration.mcpClient().callTool({
+                    name: "atlas-pause-resume-cluster",
+                    arguments: { projectId, clusterName, action: "PAUSE" },
+                });
+                expect(pauseResponse.isError).toBeFalsy();
+                const pauseContent = getResponseContent(pauseResponse.content);
+                expect(pauseContent).toContain(clusterName);
+                expect(pauseContent).toContain(projectId);
+                expect(pauseContent).toContain("paused");
+                expect(pauseResponse.structuredContent).toMatchObject({
+                    clusterName,
+                    action: "PAUSE",
+                });
+
+                await waitCluster(
+                    session,
+                    projectId,
+                    clusterName,
+                    (c) => c.paused === true,
+                    pollingInterval,
+                    maxPollingIterations
+                );
+
+                const resumeResponse = await integration.mcpClient().callTool({
+                    name: "atlas-pause-resume-cluster",
+                    arguments: { projectId, clusterName, action: "RESUME" },
+                });
+                expect(resumeResponse.isError).toBeFalsy();
+                const resumeContent = getResponseContent(resumeResponse.content);
+                expect(resumeContent).toContain(clusterName);
+                expect(resumeContent).toContain(projectId);
+                expect(resumeContent).toContain("atlas-inspect-cluster");
+                expect(resumeContent).toContain("IDLE");
+                expect(resumeResponse.structuredContent).toMatchObject({
+                    clusterName,
+                    action: "RESUME",
+                });
+            });
+        });
     });
 });
