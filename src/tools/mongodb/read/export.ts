@@ -1,8 +1,7 @@
 import z from "zod";
 import { ObjectId } from "bson";
 import type { AggregationCursor, FindCursor } from "mongodb";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { OperationType, ToolArgs, ToolExecutionContext } from "../../tool.js";
+import type { OperationType, ToolArgs, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { FindArgs } from "./find.js";
 import { jsonExportFormat } from "../../../common/exportsManager.js";
@@ -17,8 +16,6 @@ const ExportOutputSchema = {
 };
 
 export type ExportOutput = z.infer<z.ZodObject<typeof ExportOutputSchema>>;
-
-type ExportToolResult = CallToolResult & { structuredContent: ExportOutput };
 
 export class ExportTool extends MongoDBToolBase {
     static toolName = "export";
@@ -72,7 +69,7 @@ export class ExportTool extends MongoDBToolBase {
     protected async execute(
         { database, collection, jsonExportFormat, exportTitle, exportTarget: target }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
-    ): Promise<ExportToolResult> {
+    ): Promise<ToolResult<typeof this.outputSchema>> {
         const provider = await this.ensureConnected();
         const exportTarget = target[0];
         if (!exportTarget) {
@@ -119,7 +116,7 @@ export class ExportTool extends MongoDBToolBase {
             description: "Resource URI for fetching exported data once it is ready.",
             mimeType: "application/json",
         };
-        const toolCallContent: CallToolResult["content"] = [
+        const toolCallContent: ToolResult<typeof ExportOutputSchema>["content"] = [
             // Not all the clients as of this commit understands how to
             // parse a resource_link so we provide a text result for them to
             // understand what to do with the result.
