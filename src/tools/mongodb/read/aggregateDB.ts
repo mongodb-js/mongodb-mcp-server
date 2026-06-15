@@ -1,9 +1,8 @@
 import { z } from "zod";
 import type { AggregationCursor } from "mongodb";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { DBOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolExecutionContext } from "../../tool.js";
+import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { type Document, EJSON } from "bson";
 import { ErrorCodes, MongoDBError } from "../../../common/errors.js";
@@ -13,11 +12,23 @@ import { isWriteStage } from "../../../helpers/mqlGuards.js";
 import {
     AGG_COUNT_MAX_TIME_MS_CAP,
     ONE_MB,
+    CURSOR_LIMIT_KEYS,
     CURSOR_LIMITS_TO_LLM_TEXT,
     type CursorLimitKey,
 } from "../../../helpers/constants.js";
 import { LogId } from "../../../common/logging/index.js";
 import { AnyAggregateStage, DB_AGGREGATE_STAGE_OPERATORS } from "../mongodbSchemas.js";
+
+const AggregateDBOutputSchema = {
+    documents: z.array(z.unknown()).describe("The documents returned by the aggregation pipeline"),
+    aggResultsCount: z
+        .number()
+        .optional()
+        .describe("The total number of documents returned by the aggregation pipeline"),
+    appliedLimits: z.array(z.enum(CURSOR_LIMIT_KEYS)).describe("The limits applied to the aggregation pipeline"),
+};
+
+export type AggregateDBOutput = z.infer<z.ZodObject<typeof AggregateDBOutputSchema>>;
 
 export const AggregateArgs = {
     pipeline: z
@@ -39,10 +50,12 @@ The maximum number of bytes to return in the response. This value is capped by t
     };
     static operationType: OperationType = "read";
 
+    public override outputSchema = AggregateDBOutputSchema;
+
     protected async execute(
         { database, pipeline, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
-    ): Promise<CallToolResult> {
+    ): Promise<ToolResult<typeof this.outputSchema>> {
         let aggregationCursor: AggregationCursor | undefined = undefined;
         try {
             const provider = await this.ensureConnected();
@@ -50,6 +63,9 @@ The maximum number of bytes to return in the response. This value is capped by t
 
             let successMessage: string;
             let documents: unknown[];
+            let aggResultsCount: number | undefined;
+            let appliedLimits: CursorLimitKey[] = [];
+
             if (pipeline.some((stage) => isWriteStage(stage))) {
                 // This is a write pipeline, so special-case it and don't attempt to apply limits or caps
                 aggregationCursor = provider.aggregateDb(database, pipeline, {
@@ -92,13 +108,15 @@ The maximum number of bytes to return in the response. This value is capped by t
                     totalDocuments > this.config.maxDocumentsPerQuery;
 
                 documents = cursorResults.documents;
+                aggResultsCount = totalDocuments;
+                appliedLimits = [
+                    aggregationResultsCappedByMaxDocumentsLimit ? "config.maxDocumentsPerQuery" : undefined,
+                    cursorResults.cappedBy,
+                ].filter((limit): limit is CursorLimitKey => !!limit);
                 successMessage = this.generateMessage({
-                    aggResultsCount: totalDocuments,
-                    documents: cursorResults.documents,
-                    appliedLimits: [
-                        aggregationResultsCappedByMaxDocumentsLimit ? "config.maxDocumentsPerQuery" : undefined,
-                        cursorResults.cappedBy,
-                    ].filter((limit): limit is CursorLimitKey => !!limit),
+                    aggResultsCount,
+                    documents,
+                    appliedLimits,
                 });
             }
 
@@ -107,6 +125,11 @@ The maximum number of bytes to return in the response. This value is capped by t
                     successMessage,
                     ...(documents.length > 0 ? [EJSON.stringify(documents)] : [])
                 ),
+                structuredContent: {
+                    documents,
+                    ...(aggResultsCount !== undefined ? { aggResultsCount } : {}),
+                    appliedLimits,
+                },
             };
         } finally {
             if (aggregationCursor) {
