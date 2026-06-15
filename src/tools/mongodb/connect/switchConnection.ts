@@ -1,9 +1,15 @@
 import z from "zod";
-import { type CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
 import { MongoDBToolBase } from "../mongodbTool.js";
-import { type ToolArgs, type OperationType, type ToolConstructorParams } from "../../tool.js";
+import type { ToolArgs, OperationType, ToolConstructorParams, ToolResult } from "../../tool.js";
 import type { Server } from "../../../server.js";
+
+const SwitchConnectionOutputSchema = {
+    connected: z.boolean(),
+};
+
+export type SwitchConnectionOutput = z.infer<z.ZodObject<typeof SwitchConnectionOutputSchema>>;
 
 export class SwitchConnectionTool extends MongoDBToolBase {
     static toolName = "switch-connection";
@@ -20,6 +26,8 @@ export class SwitchConnectionTool extends MongoDBToolBase {
     };
 
     static operationType: OperationType = "connect";
+
+    public override outputSchema = SwitchConnectionOutputSchema;
 
     constructor(params: ToolConstructorParams) {
         super(params);
@@ -44,7 +52,9 @@ export class SwitchConnectionTool extends MongoDBToolBase {
         return registrationSuccessful;
     }
 
-    protected override async execute({ connectionString }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected override async execute({
+        connectionString,
+    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
         if (typeof connectionString !== "string") {
             await this.session.connectToConfiguredConnection();
         } else {
@@ -53,6 +63,18 @@ export class SwitchConnectionTool extends MongoDBToolBase {
 
         return {
             content: [{ type: "text", text: "Successfully connected to MongoDB." }],
+            structuredContent: { connected: true },
         };
+    }
+
+    protected override async handleError(
+        error: unknown,
+        args: ToolArgs<typeof this.argsShape>
+    ): Promise<CallToolResult> {
+        const result = await super.handleError(error, args);
+        if (result.isError) {
+            return { ...result, structuredContent: { connected: false } };
+        }
+        return result;
     }
 }
