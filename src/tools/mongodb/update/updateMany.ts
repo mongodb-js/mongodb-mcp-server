@@ -47,6 +47,11 @@ export class UpdateManyTool extends MongoDBToolBase {
         const provider = await this.ensureConnected();
 
         this.assertMqlIsAllowed(filter);
+        // The update document is also MQL and, in its aggregation-pipeline form, can carry
+        // server-side JS operators ($function/$where/$accumulator) and write stages ($out/$merge).
+        // It must go through the same guard as the filter so `disableServerSideJs` / readOnly /
+        // disabled-tools restrictions can't be bypassed via the update argument.
+        this.assertMqlIsAllowed(update);
 
         // Check if update operation uses an index if enabled
         if (this.config.indexCheck) {
