@@ -21,7 +21,7 @@ describeWithMongoDB("aggregate-db tool", (integration) => {
         {
             name: "pipeline",
             description:
-                "An array of aggregation stages to execute. Has to start with a database aggregation stage. https://www.mongodb.com/docs/manual/reference/mql/aggregation-stages/#db.aggregate---stages",
+                "An array of aggregation stages to execute. The first stage must be a database-level aggregation stage (one of `$changeStream`, `$currentOp`, `$documents`, `$listLocalSessions`, `$queryStats`). https://www.mongodb.com/docs/manual/reference/mql/aggregation-stages/#db.aggregate---stages",
             type: "array",
             required: true,
         },
@@ -38,8 +38,18 @@ describeWithMongoDB("aggregate-db tool", (integration) => {
         { database: "test", collection: "foo" },
         { database: "test", pipeline: {} },
         { database: 123, pipeline: [] },
-        { database: "test", pipeline: [{ $match: { name: "Peter" } }] }, // This is invalid because we don't have any documents yet. The first stage has to be a db level aggregate stage
     ]);
+
+    it("rejects pipelines whose first stage is not a database-level aggregation stage", async () => {
+        await integration.connectMcpClient();
+        const result = await integration.mcpClient().callTool({
+            name: "aggregate-db",
+            arguments: { database: "test", pipeline: [{ $match: { name: "Peter" } }] },
+        });
+        expect(result.isError).toBe(true);
+        const message = getResponseContent(result.content);
+        expect(message).toContain("first stage of the pipeline must be a database-level aggregation stage");
+    });
 
     it("can run aggregation-db on an existing database", async () => {
         await integration.connectMcpClient();
@@ -440,7 +450,7 @@ describeWithMongoDB(
 
             const { result, error, executionTime } = await aggregatePromise;
 
-            expect(executionTime).toBeLessThan(100); // Ensure it aborted quickly
+            expect(executionTime).toBeLessThan(50); // Ensure it aborted quickly
             expect(result).toBeUndefined();
             expectDefined(error);
             expect(error.message).toContain("This operation was aborted");
@@ -448,6 +458,18 @@ describeWithMongoDB(
 
         it("should abort aggregate-db operation during cursor iteration", async () => {
             await integration.connectMcpClient();
+
+            // Measure the full (unaborted) run time as a baseline so the abort bound
+            // stays meaningful regardless of how fast the CI runner is.
+            const {
+                result: baselineResult,
+                error: baselineError,
+                executionTime: fullRunTime,
+            } = await runSlowAggregateDb();
+            // Validate the baseline actually completed so its timing is a meaningful reference.
+            expectDefined(baselineResult);
+            expect(baselineError).toBeUndefined();
+
             const abortController = new AbortController();
 
             // Start an aggregation with regex and complex filter that requires scanning many documents
@@ -458,9 +480,9 @@ describeWithMongoDB(
 
             const { result, error, executionTime } = await aggregatePromise;
 
-            // Ensure it aborted quickly, but possibly after some processing
+            // Ensure it aborted quickly relative to the full run — must complete faster than a full run.
             expect(executionTime).toBeGreaterThanOrEqual(25);
-            expect(executionTime).toBeLessThan(250);
+            expect(executionTime).toBeLessThan(Math.max(fullRunTime * 0.75, 50));
             expect(result).toBeUndefined();
             expectDefined(error);
             expect(error.message).toContain("This operation was aborted");
@@ -471,8 +493,8 @@ describeWithMongoDB(
 
             const { result, error, executionTime } = await runSlowAggregateDb();
 
-            // Complex regex matching and calculations on 10000 docs should take some time
-            expect(executionTime).toBeGreaterThan(100);
+            // Complex regex matching and calculations on 1000 docs should take some time
+            expect(executionTime).toBeGreaterThan(50);
             expectDefined(result);
             expect(error).toBeUndefined();
             const content = getResponseContent(result);
@@ -486,3 +508,45 @@ describeWithMongoDB(
         }),
     }
 );
+
+describeWithMongoDB("aggregate-db tool with server-side JavaScript operators", (integration) => {
+    afterEach(() => {
+        integration.mcpServer().userConfig.disableServerSideJs = true;
+    });
+
+    const jsPipeline = [
+        { $documents: [{ age: 5 }, { age: 10 }] },
+        {
+            $project: {
+                doubled: {
+                    $function: {
+                        body: "function(age) { return age * 2; }",
+                        args: ["$age"],
+                        lang: "js",
+                    },
+                },
+            },
+        },
+    ];
+
+    for (const jsDisabled of [true, false]) {
+        it(`${jsDisabled ? "rejects" : "allows"} pipelines using $function when disableServerSideJs is ${jsDisabled}`, async () => {
+            integration.mcpServer().userConfig.disableServerSideJs = jsDisabled;
+            await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "aggregate-db",
+                arguments: {
+                    database: integration.randomDbName(),
+                    pipeline: jsPipeline,
+                },
+            });
+            const content = getResponseContent(response);
+            if (jsDisabled) {
+                expect(content).toContain(`The "$function" operator is not allowed.`);
+            } else {
+                expect(content).not.toContain("server-side JavaScript operators");
+                expect(content).toContain("The aggregation resulted in");
+            }
+        });
+    }
+});

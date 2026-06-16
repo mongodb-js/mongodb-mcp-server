@@ -32,16 +32,13 @@ A Model Context Protocol server for interacting with MongoDB Databases and Mongo
 
 ## Prerequisites
 
+> [!NOTE]
+> Node 20.x support is deprecated and will be removed in a future release. Please upgrade to Node 22.13 or later. See https://nodejs.org/en/blog/migrations/v20-to-v22 for migration details.
+
 - Node.js
-  - At least 20.19.0
-  - When using v22 then at least v22.12.0
-  - Otherwise any version 23+
+  - At least v22.13.0. Check with `node -v`.
 
-```shell
-node -v
-```
-
-- A MongoDB connection string or Atlas API credentials, **_the Server will not start unless configured_**.
+- A MongoDB connection string or Atlas API credentials.
   - **_Service Accounts Atlas API credentials_** are required to use the Atlas tools. You can create a service account in MongoDB Atlas and use its credentials for authentication. See [Atlas API Access](#atlas-api-access) for more details.
   - If you have a MongoDB connection string, you can use it directly to connect to your MongoDB instance.
 
@@ -363,6 +360,7 @@ For more information about configuring OpenCode as an MCP client, including the 
 
 - `atlas-connect-cluster` - Connect to MongoDB Atlas cluster
 - `atlas-create-access-list` - Allow Ip/CIDR ranges to access your MongoDB Atlas clusters.
+- `atlas-create-cluster` - Create a MongoDB Atlas cluster (M10–M80, replica set or single shard). Compute autoscaling is enabled by default: min instance size is set to the selected instance size, max is set two tiers above. Disk autoscaling is always enabled. The tool returns immediately, use the atlas-inspect-cluster tool to poll the cluster state for readiness (state: IDLE). Connection strings are unavailable until the cluster reaches IDLE state.
 - `atlas-create-db-user` - Create an MongoDB Atlas database user
 - `atlas-create-free-cluster` - Create a free MongoDB Atlas cluster
 - `atlas-create-project` - Create a MongoDB Atlas project
@@ -374,10 +372,16 @@ For more information about configuring OpenCode as an MCP client, including the 
 - `atlas-list-db-users` - List MongoDB Atlas database users
 - `atlas-list-orgs` - List MongoDB Atlas organizations
 - `atlas-list-projects` - List MongoDB Atlas projects
+- `atlas-load-sample-dataset` - Load a MongoDB sample dataset into an Atlas cluster, or check the status of a previously-initiated load. To start a new load, provide `clusterName` — the load runs asynchronously and the response includes a `jobId` and initial state. To check progress, call this tool again with `jobId` (sample dataset loads typically take 1–5 minutes). State can be WORKING, COMPLETED, or FAILED.
+- `atlas-pause-resume-cluster` - Pause or resume a dedicated (M10+) MongoDB Atlas cluster.
 - `atlas-streams-build` - Create Atlas Stream Processing resources. Use this tool for 'set up a Kafka pipeline', 'create a workspace', 'add a connection', or 'deploy a processor'. Use resource='workspace' to create a new workspace (specify cloud provider, region, and tier). Use resource='connection' to add a data source or sink to an existing workspace. Use resource='processor' to deploy a stream processor with a pipeline. Use resource='privatelink' to set up private networking. Typical workflow: create workspace → add connections → deploy processor.
 - `atlas-streams-discover` - Discover and inspect Atlas Stream Processing resources. Also use for 'why is my processor failing', 'what workspaces do I have', 'show processor stats', or 'check processor health'. Use 'list-workspaces' to see all workspaces in a project. Use inspect actions for details on a specific resource. Use 'diagnose-processor' for a combined health report including state, stats, connection health, and recent errors. Use 'get-networking' for PrivateLink and account details.
 - `atlas-streams-manage` - Manage Atlas Stream Processing resources: start/stop processors, modify pipelines, update configurations. Also use for 'change the pipeline', 'scale up my processor', or 'update my workspace tier'. Common workflow: action='stop-processor' → action='modify-processor' → action='start-processor'. Use `atlas-streams-discover` with action 'inspect-processor' to check state before managing.
 - `atlas-streams-teardown` - Delete Atlas Stream Processing resources. Also use for 'remove my workspace', 'disconnect a source', 'delete all processors', or 'clean up my streams environment'. Performs basic safety checks before deletion: summarizes counts of processors and connections, highlights connections referenced by processors where possible, and surfaces API errors if processors are still running when deletion is attempted. Use `atlas-streams-discover` to review resources before deleting.
+- `atlas-upgrade-cluster` - Upgrade a MongoDB Atlas cluster tier. Upgrades Free (M0) clusters to Flex or M10 Dedicated, or Flex clusters to M10 Dedicated. The upgrade path is determined automatically from the current tier unless overridden with targetTier. Note to LLM: If provider and region are not already known, ask for both together in a single question before calling this tool. Common region mappings by provider (default recommendation: AWS US_EAST_1):
+  AWS: "East Coast"/"Virginia"/"US East" → US_EAST_1, "Ohio" → US_EAST_2, "California"/"West Coast" → US_WEST_2, "Southeast Asia"/"APAC"/"Singapore" → AP_SOUTHEAST_1, "Europe"/"EU"/"Ireland" → EU_WEST_1.
+  GCP: "Central US" → CENTRAL_US, "Western US" → WESTERN_US, "Southeast Asia"/"APAC" → SOUTHEASTERN_ASIA_PACIFIC, "Europe"/"EU" → WESTERN_EUROPE.
+  AZURE: "East US" → US_EAST_2, "West US" → US_WEST_2, "Europe"/"EU" → EUROPE_NORTH.
 
 NOTE: atlas tools are only available when you set credentials on [configuration](#configuration) section.
 
@@ -420,6 +424,7 @@ The MongoDB MCP Server can be configured using multiple methods, with the follow
 | `MDB_MCP_ATLAS_TEMPORARY_DATABASE_USER_LIFETIME_MS` / `--atlasTemporaryDatabaseUserLifetimeMs` | `14400000`                                                                                                                                         | Time in milliseconds that temporary database users created when connecting to MongoDB Atlas clusters will remain active before being automatically deleted.                                              |
 | `MDB_MCP_CONFIRMATION_REQUIRED_TOOLS` / `--confirmationRequiredTools`                          | `"atlas-create-access-list,atlas-create-db-user,drop-database,drop-collection,delete-many,drop-index,atlas-streams-manage,atlas-streams-teardown"` | Comma separated values of tool names that require user confirmation before execution. Requires the client to support elicitation.                                                                        |
 | `MDB_MCP_CONNECTION_STRING` / `--connectionString`                                             | `<not set>`                                                                                                                                        | MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data.                                              |
+| `MDB_MCP_DISABLE_SERVER_SIDE_JS` / `--disableServerSideJs`                                     | `true`                                                                                                                                             | When set to true, disallows the use of server-side JavaScript operators (such as $where, $function, and $accumulator) in query filters and aggregation pipelines.                                        |
 | `MDB_MCP_DISABLED_TOOLS` / `--disabledTools`                                                   | `""`                                                                                                                                               | Comma separated values of tool names, operation types, and/or categories of tools that will be disabled.                                                                                                 |
 | `MDB_MCP_DRY_RUN` / `--dryRun`                                                                 | `false`                                                                                                                                            | When true, runs the server in dry mode: dumps configuration and enabled tools, then exits without starting the server.                                                                                   |
 | `MDB_MCP_EXPORT_CLEANUP_INTERVAL_MS` / `--exportCleanupIntervalMs`                             | `120000`                                                                                                                                           | Time in milliseconds between export cleanup cycles that remove expired export files.                                                                                                                     |

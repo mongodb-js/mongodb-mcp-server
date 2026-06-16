@@ -119,7 +119,7 @@ function generateReadmeToolsList(tools: ToolInfo[]): string {
         sections.push(`#### ${categoryTitles[category]}\n`);
 
         for (const tool of toolsByCategory[category]) {
-            sections.push(`- \`${tool.name}\` - ${tool.description}`);
+            sections.push(`- \`${tool.name}\` - ${tool.description.replace(/\n/g, "\n  ")}`);
         }
 
         // Add note for Atlas tools

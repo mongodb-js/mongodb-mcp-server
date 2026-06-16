@@ -7,10 +7,12 @@ import { AggregateArgs } from "../read/aggregate.js";
 import { FindArgs } from "../read/find.js";
 import { CountArgs } from "../read/count.js";
 
+const verbosityEnum = z.enum(["queryPlanner", "queryPlannerExtended", "executionStats", "allPlansExecution"]);
+
 const ExplainOutputSchema = {
     explainResult: z.record(z.string(), z.unknown()),
-    method: z.string(),
-    verbosity: z.string(),
+    method: z.enum(["aggregate", "find", "count"]),
+    verbosity: verbosityEnum,
 };
 
 export type ExplainOutput = z.infer<z.ZodObject<typeof ExplainOutputSchema>>;
@@ -46,8 +48,7 @@ export class ExplainTool extends MongoDBToolBase {
                 ])
             )
             .describe("The method and its arguments to run"),
-        verbosity: z
-            .enum(["queryPlanner", "queryPlannerExtended", "executionStats", "allPlansExecution"])
+        verbosity: verbosityEnum
             .optional()
             .default("queryPlanner")
             .describe(
@@ -73,6 +74,7 @@ export class ExplainTool extends MongoDBToolBase {
         switch (method.name) {
             case "aggregate": {
                 const { pipeline } = method.arguments;
+                this.assertMqlIsAllowed(pipeline);
                 result = await provider
                     .aggregate(
                         database,
@@ -90,6 +92,7 @@ export class ExplainTool extends MongoDBToolBase {
             }
             case "find": {
                 const { filter, ...rest } = method.arguments;
+                this.assertMqlIsAllowed(filter);
                 result = await provider
                     .find(database, collection, filter as Document, {
                         ...rest,
@@ -100,6 +103,7 @@ export class ExplainTool extends MongoDBToolBase {
             }
             case "count": {
                 const { query } = method.arguments;
+                this.assertMqlIsAllowed(query);
                 result = await provider.runCommandWithCheck(
                     database,
                     {

@@ -22,6 +22,7 @@ export type {
     AtlasLocalToolMetadata,
     PerfAdvisorToolMetadata,
     StreamsToolMetadata,
+    UpgradeClusterMetadata,
 } from "./telemetry/types.js";
 export { Session, type SessionOptions, type SessionEvents } from "./common/session.js";
 export type { CustomizableServerOptions, CustomizableSessionOptions } from "./transports/base.js";
@@ -79,10 +80,12 @@ export {
     type ToolArgs,
     type ToolExecutionContext,
 } from "./tools/tool.js";
-export { Telemetry, type TelemetryEvents } from "./telemetry/telemetry.js";
+export { Telemetry } from "./telemetry/telemetry.js";
+export type { TelemetryEvents, TelemetryConfig } from "./telemetry/telemetry.js";
 export type { TelemetryEvent, BaseEvent } from "./telemetry/types.js";
 export { EventCache } from "./telemetry/eventCache.js";
 export { ErrorCodes, MongoDBError } from "./common/errors.js";
+export { getRandomUUID } from "./helpers/getRandomUUID.js";
 export type { AuthProvider, Credentials } from "./common/atlas/auth/authProvider.js";
 export type {
     ConnectionStringAuthType,

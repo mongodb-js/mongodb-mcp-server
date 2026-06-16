@@ -1,4 +1,5 @@
 import type { Session } from "../../../../src/common/session.js";
+import type { ConnectClusterOutput } from "../../../../src/tools/atlas/connect/connectCluster.js";
 import { expectDefined, getResponseContent } from "../../helpers.js";
 import {
     describeWithAtlas,
@@ -88,6 +89,9 @@ describeWithAtlas("clusters", (integration) => {
                 expect(content).toContain("Cluster details:");
                 expect(content).toContain("<untrusted-user-data-");
                 expect(content).toContain(clusterName);
+                expect(content).toContain('"provider"');
+                expect(content).toContain('"region"');
+                expect(content).toContain('"paused"');
             });
         });
 
@@ -102,8 +106,12 @@ describeWithAtlas("clusters", (integration) => {
             });
 
             it("returns clusters by project", async () => {
-                const projectId = getProjectId();
+                const session = integration.mcpServer().session;
+                assertApiClientIsAvailable(session);
+                const listClustersSpy = vitest.spyOn(session.apiClient, "listClusters");
+                const listFlexClustersSpy = vitest.spyOn(session.apiClient, "listFlexClusters");
 
+                const projectId = getProjectId();
                 const response = await integration
                     .mcpClient()
                     .callTool({ name: "atlas-list-clusters", arguments: { projectId } });
@@ -112,6 +120,50 @@ describeWithAtlas("clusters", (integration) => {
                 expect(content).toContain("<untrusted-user-data-");
                 expect(content).toMatch(/Found \d+ clusters in project/);
                 expect(content).toContain(projectId);
+                expect(listClustersSpy).toHaveBeenCalledTimes(1);
+                expect(listFlexClustersSpy).toHaveBeenCalledTimes(1);
+            });
+
+            it("returns clusters when listFlexClusters fails", async () => {
+                const session = integration.mcpServer().session;
+                assertApiClientIsAvailable(session);
+                vitest
+                    .spyOn(session.apiClient, "listFlexClusters")
+                    .mockRejectedValue(new Error("Flex clusters not available"));
+
+                const projectId = getProjectId();
+                const response = await integration
+                    .mcpClient()
+                    .callTool({ name: "atlas-list-clusters", arguments: { projectId } });
+
+                const content = getResponseContent(response.content);
+                expect(content).toMatch(/Found \d+ clusters in project/);
+                expect(content).toContain(projectId);
+            });
+
+            it("returns clusters when listClusters fails", async () => {
+                const session = integration.mcpServer().session;
+                assertApiClientIsAvailable(session);
+                vitest.spyOn(session.apiClient, "listClusters").mockRejectedValue(new Error("Clusters not available"));
+
+                const projectId = getProjectId();
+                const response = await integration
+                    .mcpClient()
+                    .callTool({ name: "atlas-list-clusters", arguments: { projectId } });
+
+                const content = getResponseContent(response.content);
+                expect(content).toBeDefined();
+            });
+
+            it("returns a successful empty result when no clusters exist across all projects", async () => {
+                const session = integration.mcpServer().session;
+                assertApiClientIsAvailable(session);
+                vitest.spyOn(session.apiClient, "listClusterDetails").mockResolvedValue({ results: [], totalCount: 0 });
+
+                const response = await integration.mcpClient().callTool({ name: "atlas-list-clusters", arguments: {} });
+
+                expect(response.isError).toBeFalsy();
+                expect(getResponseContent(response.content)).toContain("No clusters found.");
             });
         });
 
@@ -171,6 +223,7 @@ describeWithAtlas("clusters", (integration) => {
                     const content = getResponseContent(response.content);
                     expect(content).toContain("Connected to cluster");
                     expect(content).toContain(clusterName);
+                    const structuredContent = response.structuredContent as ConnectClusterOutput;
                     if (content.includes(`Connected to cluster "${clusterName}"`)) {
                         connected = true;
 
@@ -181,9 +234,20 @@ describeWithAtlas("clusters", (integration) => {
                             "Note: A temporary user has been created to enable secure connection to the cluster. For more information, see https://dochub.mongodb.org/core/mongodb-mcp-server-tools-considerations"
                         );
 
+                        // structuredContent must mirror content
+                        expect(structuredContent.state).toBe("connected");
+                        expect(structuredContent.createdTemporaryUser).toBe(
+                            content.includes("A temporary user has been created")
+                        );
+                        expect(structuredContent.addedCurrentIp).toBe(content.includes("IP address has been added"));
+                        expect(structuredContent.sharedTierAlertsDetected ?? false).toBe(
+                            content.includes("shared-tier threshold alerts")
+                        );
+
                         break;
                     } else {
                         expect(content).toContain(`Attempting to connect to cluster "${clusterName}"...`);
+                        expect(structuredContent.state).toBe("connecting");
                     }
                     await sleep(500);
                 }
@@ -242,6 +306,10 @@ describeWithAtlas("clusters", (integration) => {
             });
 
             describe("when not connected", () => {
+                beforeAll(async () => {
+                    await integration.mcpServer().session.disconnect();
+                });
+
                 it("prompts for atlas-connect-cluster when querying mongodb", async () => {
                     const response = await integration.mcpClient().callTool({
                         name: "find",
@@ -262,6 +330,227 @@ describeWithAtlas("clusters", (integration) => {
                             'Please use one of the following tools: "atlas-connect-cluster", "atlas-local-connect-deployment", "connect" to connect to a MongoDB instance'
                         );
                     }
+                });
+            });
+        });
+        describe("atlas-upgrade-cluster", () => {
+            it("should have correct metadata", async () => {
+                const { tools } = await integration.mcpClient().listTools();
+                const upgradeCluster = tools.find((tool) => tool.name === "atlas-upgrade-cluster");
+
+                expectDefined(upgradeCluster);
+                expect(upgradeCluster.inputSchema.type).toBe("object");
+                expectDefined(upgradeCluster.inputSchema.properties);
+                expect(upgradeCluster.inputSchema.properties).toHaveProperty("projectId");
+                expect(upgradeCluster.inputSchema.properties).toHaveProperty("clusterName");
+                expect(upgradeCluster.inputSchema.properties).toHaveProperty("targetTier");
+                expect(upgradeCluster.inputSchema.properties).toHaveProperty("provider");
+                expect(upgradeCluster.inputSchema.properties).toHaveProperty("region");
+            });
+
+            withCluster(integration, ({ getProjectId: getUpgradeProjectId, getClusterName: getUpgradeClusterName }) => {
+                // This withCluster creates a dedicated FREE cluster for the upgrade test.
+                // The test makes a real upgrade API call; withCluster's cleanup handles teardown regardless of tier.
+                describe("when not connected to the cluster being upgraded", () => {
+                    it("upgrades FREE cluster to FLEX with explicit projectId and clusterName", async () => {
+                        const response = await integration.mcpClient().callTool({
+                            name: "atlas-upgrade-cluster",
+                            arguments: {
+                                projectId: getUpgradeProjectId(),
+                                clusterName: getUpgradeClusterName(),
+                            },
+                        });
+                        const content = getResponseContent(response.content);
+                        expect(content).toContain(getUpgradeClusterName());
+                        expect(content).toContain("being upgraded");
+                    });
+                });
+            });
+
+            // Simulates being "connected" to the outer cluster (created by atlas-create-free-cluster above).
+            // The session state is patched so the tool picks up projectId/clusterName without explicit args,
+            // then makes a real upgrade API call against that outer cluster.
+            describe("when connected to the cluster being upgraded", () => {
+                beforeAll(() => {
+                    const session: Session = integration.mcpServer().session;
+                    (session.connectionManager as unknown as { state: unknown }).state = {
+                        tag: "disconnected",
+                        connectedAtlasCluster: {
+                            username: "testuser",
+                            projectId: getProjectId(),
+                            clusterName,
+                            instanceType: "FREE" as const,
+                            provider: "AWS",
+                            region: "US_EAST_1",
+                            expiryDate: new Date(Date.now() + 3_600_000),
+                        },
+                    };
+                });
+
+                afterAll(() => {
+                    const session: Session = integration.mcpServer().session;
+                    (session.connectionManager as unknown as { state: unknown }).state = { tag: "disconnected" };
+                });
+
+                it("upgrades FREE cluster to FLEX using session state without explicit params", async () => {
+                    const response = await integration.mcpClient().callTool({
+                        name: "atlas-upgrade-cluster",
+                        arguments: {},
+                    });
+                    const content = getResponseContent(response.content);
+                    expect(content).toContain(clusterName);
+                    expect(content).toContain("being upgraded");
+                });
+            });
+        });
+    });
+
+    withProject(integration, ({ getProjectId }) => {
+        const clusterName = "ClusterTest-" + randomId();
+
+        afterAll(async () => {
+            const projectId = getProjectId();
+            if (projectId) {
+                const session: Session = integration.mcpServer().session;
+                await deleteCluster(session, projectId, clusterName);
+            }
+        });
+
+        describe("atlas-create-cluster", () => {
+            it("should have correct metadata", async () => {
+                const { tools } = await integration.mcpClient().listTools();
+                const tool = tools.find((t) => t.name === "atlas-create-cluster");
+
+                expectDefined(tool);
+                expect(tool.inputSchema.type).toBe("object");
+                expectDefined(tool.inputSchema.properties);
+
+                const properties = tool.inputSchema.properties;
+                expect(properties).toHaveProperty("projectId");
+                expect(properties).toHaveProperty("clusterName");
+                expect(properties).toHaveProperty("provider");
+                expect(properties).toHaveProperty("region");
+                expect(properties).toHaveProperty("clusterType");
+                expect(properties).toHaveProperty("instanceSize");
+                expect(properties).toHaveProperty("computeAutoScaling");
+                expect(properties).toHaveProperty("diskSizeGB");
+                expect(properties).toHaveProperty("mongoDBVersion");
+                expect(properties).toHaveProperty("backup");
+                expect(properties).toHaveProperty("terminationProtectionEnabled");
+
+                const required = tool.inputSchema.required as string[];
+                expect(required).toContain("projectId");
+                expect(required).toContain("clusterName");
+                expect(required).toContain("provider");
+                expect(required).toContain("region");
+            });
+
+            it("creates a dedicated cluster", async () => {
+                const projectId = getProjectId();
+
+                const response = await integration.mcpClient().callTool({
+                    name: "atlas-create-cluster",
+                    arguments: {
+                        projectId,
+                        clusterName,
+                        provider: "AWS",
+                        region: "US_EAST_1",
+                        instanceSize: "M10",
+                        diskSizeGB: 20,
+                    },
+                });
+
+                expect(response.isError).toBeFalsy();
+
+                const content = getResponseContent(response.content);
+                expect(content).toContain(clusterName);
+                expect(content).toContain(projectId);
+                expect(content).toContain("atlas-inspect-cluster");
+                expect(content).toContain("IDLE");
+
+                expect(response.structuredContent).toMatchObject({
+                    provider: "AWS",
+                    region: "US_EAST_1",
+                    instanceSize: "M10",
+                    clusterType: "REPLICASET",
+                    mongoDBVersion: "LATEST",
+                    backup: "SNAPSHOT",
+                    computeAutoScaling: true,
+                    terminationProtectionEnabled: false,
+                    diskSizeGB: 20,
+                });
+            });
+        });
+
+        describe("atlas-pause-resume-cluster", () => {
+            it("should have correct metadata", async () => {
+                const { tools } = await integration.mcpClient().listTools();
+                const tool = tools.find((t) => t.name === "atlas-pause-resume-cluster");
+
+                expectDefined(tool);
+                expect(tool.inputSchema.type).toBe("object");
+                expectDefined(tool.inputSchema.properties);
+                expect(tool.inputSchema.properties).toHaveProperty("projectId");
+                expect(tool.inputSchema.properties).toHaveProperty("clusterName");
+                expect(tool.inputSchema.properties).toHaveProperty("action");
+
+                const required = tool.inputSchema.required as string[];
+                expect(required).toContain("projectId");
+                expect(required).toContain("clusterName");
+                expect(required).toContain("action");
+            });
+
+            it("pauses and resumes a dedicated cluster", async () => {
+                const projectId = getProjectId();
+                const session = integration.mcpServer().session;
+                const pollingInterval = 10000;
+                const maxPollingIterations = 120;
+
+                await waitCluster(
+                    session,
+                    projectId,
+                    clusterName,
+                    (c) => c.stateName === "IDLE",
+                    pollingInterval,
+                    maxPollingIterations
+                );
+
+                const pauseResponse = await integration.mcpClient().callTool({
+                    name: "atlas-pause-resume-cluster",
+                    arguments: { projectId, clusterName, action: "PAUSE" },
+                });
+                expect(pauseResponse.isError).toBeFalsy();
+                const pauseContent = getResponseContent(pauseResponse.content);
+                expect(pauseContent).toContain(clusterName);
+                expect(pauseContent).toContain(projectId);
+                expect(pauseContent).toContain("paused");
+                expect(pauseResponse.structuredContent).toMatchObject({
+                    clusterName,
+                    action: "PAUSE",
+                });
+
+                await waitCluster(
+                    session,
+                    projectId,
+                    clusterName,
+                    (c) => c.paused === true,
+                    pollingInterval,
+                    maxPollingIterations
+                );
+
+                const resumeResponse = await integration.mcpClient().callTool({
+                    name: "atlas-pause-resume-cluster",
+                    arguments: { projectId, clusterName, action: "RESUME" },
+                });
+                expect(resumeResponse.isError).toBeFalsy();
+                const resumeContent = getResponseContent(resumeResponse.content);
+                expect(resumeContent).toContain(clusterName);
+                expect(resumeContent).toContain(projectId);
+                expect(resumeContent).toContain("atlas-inspect-cluster");
+                expect(resumeContent).toContain("IDLE");
+                expect(resumeResponse.structuredContent).toMatchObject({
+                    clusterName,
+                    action: "RESUME",
                 });
             });
         });

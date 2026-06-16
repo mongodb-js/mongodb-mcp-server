@@ -1,6 +1,10 @@
 import { expect, it, beforeAll, afterAll } from "vitest";
 import { expectDefined, getResponseElements, validateToolMetadata } from "../../helpers.js";
-import { describeWithAtlasLocal, describeWithAtlasLocalDisabled } from "./atlasLocalHelpers.js";
+import {
+    createAtlasLocalDeployment,
+    describeWithAtlasLocal,
+    describeWithAtlasLocalDisabled,
+} from "./atlasLocalHelpers.js";
 
 describeWithAtlasLocal("atlas-local-connect-deployment", (integration) => {
     validateToolMetadata(
@@ -46,17 +50,11 @@ describeWithAtlasLocal("atlas-local-connect-deployment with deployments", (integ
         // Create deployments
         deploymentName = `test-deployment-1-${Date.now()}`;
         deploymentNamesToCleanup.push(deploymentName);
-        await integration.mcpClient().callTool({
-            name: "atlas-local-create-deployment",
-            arguments: { deploymentName },
-        });
+        await createAtlasLocalDeployment(integration, { deploymentName });
 
         const anotherDeploymentName = `test-deployment-2-${Date.now()}`;
         deploymentNamesToCleanup.push(anotherDeploymentName);
-        await integration.mcpClient().callTool({
-            name: "atlas-local-create-deployment",
-            arguments: { deploymentName: anotherDeploymentName },
-        });
+        await createAtlasLocalDeployment(integration, { deploymentName: anotherDeploymentName });
     });
 
     afterAll(async () => {

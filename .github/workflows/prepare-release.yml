@@ -37,9 +37,12 @@ jobs:
         env:
           INPUTS_VERSION: ${{ inputs.version }}
         run: |
-          pnpm run bump -- --override "mongodb-mcp-server:$INPUTS_VERSION"
+          set -euo pipefail
+          npm version "$INPUTS_VERSION" --no-git-tag-version --allow-same-version
           NEW_VERSION=$(npm pkg get version | tr -d '"')
-          echo "NEW_VERSION=v${NEW_VERSION}" >> $GITHUB_OUTPUT
+          pnpm -r --filter './packages/*' exec npm version "$NEW_VERSION" --no-git-tag-version --allow-same-version
+          pnpm run build:update-package-version
+          echo "NEW_VERSION=v${NEW_VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Update server.json version and arguments
         run: |

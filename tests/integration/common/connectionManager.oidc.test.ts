@@ -1,11 +1,10 @@
-import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import type { TestContext } from "vitest";
 import { describe, beforeEach, afterAll, it, expect, vi } from "vitest";
 import semver from "semver";
 import process from "process";
 import type { MongoDBIntegrationTestCase } from "../tools/mongodb/mongodbHelpers.js";
 import { describeWithMongoDB, isCommunityServer, getServerVersion } from "../tools/mongodb/mongodbHelpers.js";
-import { defaultTestConfig, responseAsText, timeout, waitUntil } from "../helpers.js";
+import { connect, defaultTestConfig, responseAsText, timeout, waitUntil } from "../helpers.js";
 import type { ConnectionStateConnected, ConnectionStateConnecting } from "../../../src/common/connectionManager.js";
 import type { UserConfig } from "../../../src/common/config/userConfig.js";
 import path from "path";
@@ -15,6 +14,11 @@ import { type TestConnectionManager } from "../../utils/index.js";
 
 const DEFAULT_TIMEOUT = 60_000;
 const DEFAULT_RETRIES = 5;
+// Long-lived token for tests that only need a successful connection. A short (1s) lifetime
+// races the OIDC handshake under CI load and intermittently produces server-side
+// "Authentication failed" (code 18) errors. Only the token-refresh test deliberately
+// overrides this with a short lifetime.
+const DEFAULT_TOKEN_EXPIRY_SECONDS = 3600;
 
 // OIDC is only supported on Linux servers
 describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", async () => {
@@ -34,6 +38,7 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
     const fetchBrowserFixture = `"${path.resolve(__dirname, "../fixtures/curl.mjs")}"`;
 
     let tokenFetches: number = 0;
+    let tokenExpiresInSeconds: number = DEFAULT_TOKEN_EXPIRY_SECONDS;
     let getTokenPayload: OIDCMockProviderConfig["getTokenPayload"];
     const oidcMockProviderConfig: OIDCMockProviderConfig = {
         getTokenPayload(metadata) {
@@ -51,7 +56,7 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
         getTokenPayload = ((metadata) => {
             tokenFetches++;
             return {
-                expires_in: 1,
+                expires_in: tokenExpiresInSeconds,
                 payload: {
                     // Define the user information stored inside the access tokens
                     groups: [`${metadata.client_id}-group`],
@@ -70,6 +75,7 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
         defaultTests: boolean;
         additionalConfig: Partial<UserConfig>;
         additionalServerParams: string[];
+        tokenExpiresInSeconds: number;
     };
 
     type OidcIt = (
@@ -94,7 +100,7 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
 
         const oidcConfig = {
             ...defaultTestConfig,
-            oidcRedirectURi: "http://localhost:0/",
+            oidcRedirectUri: "http://localhost:0/",
             authenticationMechanism: "MONGODB-OIDC",
             maxIdleTimeMS: "10000",
             minPoolSize: "0",
@@ -128,6 +134,8 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
                 }
 
                 beforeEach(async () => {
+                    tokenExpiresInSeconds = args?.tokenExpiresInSeconds ?? DEFAULT_TOKEN_EXPIRY_SECONDS;
+
                     const connectionManager = integration.mcpServer().session
                         .connectionManager as TestConnectionManager;
                     // disconnect on purpose doesn't change the state if it was failed to avoid losing
@@ -137,19 +145,7 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
                     // state of the connection manager
                     connectionManager.changeState("connection-close", { tag: "disconnected" });
 
-                    // Note: Instead of using `integration.connectMcpClient`,
-                    // we're connecting straight using Session because
-                    // `integration.connectMcpClient` uses `connect` tool which
-                    // does not work the same way as connect on server start up.
-                    // So to mimic the same functionality as that of server
-                    // startup we call the connectToMongoDB the same way as the
-                    // `Server.connectToConfigConnectionString` does.
-                    await integration.mcpServer().session.connectToMongoDB(
-                        generateConnectionInfoFromCliArgs({
-                            ...oidcConfig,
-                            connectionSpecifier: integration.connectionString(),
-                        })
-                    );
+                    await connect(integration.mcpClient(), integration.connectionString());
                 }, DEFAULT_TIMEOUT);
 
                 addCb?.(oidcIt);
@@ -230,7 +226,15 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
                 const databases = listDbResult.databases as unknown[];
                 expect(databases.length).toBeGreaterThan(0);
             });
+        });
+    }
 
+    // Token refresh behaviour is independent of the nonce setting, so we run it once per
+    // server version. It deliberately uses a short-lived (1s) token so the token expires
+    // during the test and the next operation triggers a refresh.
+    const refreshMatrix = new Set(baseTestMatrix.map((base) => base.version));
+    for (const version of refreshMatrix) {
+        describeOidcTest(version, "token-refresh", { tokenExpiresInSeconds: 1 }, (it) => {
             it("can refresh a token once expired", async ({ signal }, integration) => {
                 const state = await waitUntil<ConnectionStateConnected>(
                     "connected",

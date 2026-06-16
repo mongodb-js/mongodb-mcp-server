@@ -297,4 +297,76 @@ describe("ApiClient", () => {
             await expect(apiClient.sendEvents(mockEvents)).rejects.toThrow();
         });
     });
+
+    describe("upgradeTenantUpgrade", () => {
+        // upgradeTenantUpgrade: upgrades Free (M0/shared) clusters to Flex or Dedicated (M10+)
+        const upgradeOptions = {
+            params: { path: { groupId: "test-group-id" } },
+            body: { name: "MyCluster", providerSettings: { providerName: "FLEX", instanceSizeName: "FLEX" } },
+        } as unknown as Parameters<ApiClient["upgradeTenantUpgrade"]>[0];
+
+        it("should POST to the tenant upgrade endpoint", async () => {
+            const mockResult = { id: "upgraded-cluster-id", name: "MyCluster" };
+            const mockPost = vi.fn().mockResolvedValue({ data: mockResult, error: null, response: new Response() });
+            // @ts-expect-error accessing private property for testing
+            apiClient.client.POST = mockPost;
+
+            const result = await apiClient.upgradeTenantUpgrade(upgradeOptions);
+
+            expect(mockPost).toHaveBeenCalledWith(
+                "/api/atlas/v2/groups/{groupId}/clusters/tenantUpgrade",
+                expect.anything()
+            );
+            const [, options] = mockPost.mock.calls[0] as [string, { headers: Record<string, string> }];
+            expect(options.headers["Accept"]).toBe("application/vnd.atlas.2023-01-01+json");
+            expect(result).toEqual(mockResult);
+        });
+
+        it("should throw when the API call fails", async () => {
+            const mockPost = vi.fn().mockResolvedValue({
+                data: null,
+                error: { reason: "Bad Request" },
+                response: new Response(),
+            });
+            // @ts-expect-error accessing private property for testing
+            apiClient.client.POST = mockPost;
+
+            await expect(apiClient.upgradeTenantUpgrade(upgradeOptions)).rejects.toThrow();
+        });
+    });
+
+    describe("tenantUpgrade", () => {
+        // tenantUpgrade: upgrades Flex clusters to Dedicated (M10+)
+        const upgradeOptions = {
+            params: { path: { groupId: "test-group-id" } },
+            body: { name: "MyCluster", clusterType: "REPLICASET", replicationSpecs: [] },
+        } as unknown as Parameters<ApiClient["tenantUpgrade"]>[0];
+
+        it("should POST to the flex tenant upgrade endpoint", async () => {
+            const mockResult = { id: "upgraded-cluster-id", name: "MyCluster" };
+            const mockPost = vi.fn().mockResolvedValue({ data: mockResult, error: null, response: new Response() });
+            // @ts-expect-error accessing private property for testing
+            apiClient.client.POST = mockPost;
+
+            const result = await apiClient.tenantUpgrade(upgradeOptions);
+
+            expect(mockPost).toHaveBeenCalledWith(
+                "/api/atlas/v2/groups/{groupId}/flexClusters:tenantUpgrade",
+                upgradeOptions
+            );
+            expect(result).toEqual(mockResult);
+        });
+
+        it("should throw when the API call fails", async () => {
+            const mockPost = vi.fn().mockResolvedValue({
+                data: null,
+                error: { reason: "Bad Request" },
+                response: new Response(),
+            });
+            // @ts-expect-error accessing private property for testing
+            apiClient.client.POST = mockPost;
+
+            await expect(apiClient.tenantUpgrade(upgradeOptions)).rejects.toThrow();
+        });
+    });
 });

@@ -17,6 +17,7 @@ import {
     assertVectorSearchFilterFieldsAreIndexed,
     type SearchIndex,
 } from "../../../helpers/assertVectorSearchFilterFieldsAreIndexed.js";
+import { isWriteStage } from "../../../helpers/mqlGuards.js";
 
 export const pipelineDescriptionWithVectorSearch = `\
 An array of aggregation stages to execute.
@@ -70,11 +71,23 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
             const provider = await this.ensureConnected();
             await this.assertOnlyUsesPermittedStages(pipeline);
             if (await this.session.isSearchSupported()) {
-                assertVectorSearchFilterFieldsAreIndexed({
-                    searchIndexes: (await provider.getSearchIndexes(database, collection)) as SearchIndex[],
-                    pipeline,
-                    logger: this.session.logger,
-                });
+                let searchIndexes: SearchIndex[] | undefined;
+                try {
+                    searchIndexes = (await provider.getSearchIndexes(database, collection)) as SearchIndex[];
+                } catch (error) {
+                    this.session.logger.debug({
+                        id: LogId.mongodbGetSearchIndexesFailure,
+                        context: "aggregate tool",
+                        message: `Failed to fetch search indexes for pre-filter validation, skipping check: ${error instanceof Error ? error.message : String(error)}`,
+                    });
+                }
+                if (searchIndexes !== undefined) {
+                    assertVectorSearchFilterFieldsAreIndexed({
+                        searchIndexes,
+                        pipeline,
+                        logger: this.session.logger,
+                    });
+                }
             }
 
             // Check if aggregate operation uses an index if enabled
@@ -119,7 +132,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
 
             let successMessage: string;
             let documents: unknown[];
-            if (pipeline.some((stage) => this.isWriteStage(stage))) {
+            if (pipeline.some((stage) => isWriteStage(stage))) {
                 // This is a write pipeline, so special-case it and don't attempt to apply limits or caps
                 aggregationCursor = provider.aggregate(database, collection, pipeline, {
                     signal,
@@ -198,26 +211,11 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
     }
 
     private async assertOnlyUsesPermittedStages(pipeline: Record<string, unknown>[]): Promise<void> {
-        const writeOperations: OperationType[] = ["update", "create", "delete"];
         const isSearchSupported = await this.session.isSearchSupported();
 
-        let writeStageForbiddenError = "";
-
-        if (this.config.readOnly) {
-            writeStageForbiddenError = "In readOnly mode you can not run pipelines with $out or $merge stages.";
-        } else if (this.config.disabledTools.some((t) => writeOperations.includes(t as OperationType))) {
-            writeStageForbiddenError =
-                "When 'create', 'update', or 'delete' operations are disabled, you can not run pipelines with $out or $merge stages.";
-        }
+        this.assertMqlIsAllowed(pipeline);
 
         for (const stage of pipeline) {
-            // This validates that in readOnly mode or "write" operations are disabled, we can't use $out or $merge.
-            // This is really important because aggregates are the only "multi-faceted" tool in the MQL, where you
-            // can both read and write.
-            if (this.isWriteStage(stage) && writeStageForbiddenError) {
-                throw new MongoDBError(ErrorCodes.ForbiddenWriteOperation, writeStageForbiddenError);
-            }
-
             // This ensure that you can't use $search if the cluster does not support MongoDB Search
             // either in Atlas or in a local cluster.
             if (this.isSearchStage(stage) && !isSearchSupported) {
@@ -298,8 +296,17 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
         let indexExists = false;
         if (isSearchSupported) {
             const provider = await this.ensureConnected();
-            const indexes = await provider.getSearchIndexes(database, collection, indexName);
-            indexExists = indexes.length >= 1;
+            try {
+                const indexes = await provider.getSearchIndexes(database, collection, indexName);
+                indexExists = indexes.length >= 1;
+            } catch (error) {
+                this.session.logger.debug({
+                    id: LogId.mongodbGetSearchIndexesFailure,
+                    context: "aggregate tool",
+                    message: `Failed to fetch search indexes for vector search index check, skipping check: ${error instanceof Error ? error.message : String(error)}`,
+                });
+                return ["valid-index", indexName];
+            }
         }
 
         return [indexExists ? "valid-index" : "non-existent-index", indexName];
@@ -336,9 +343,5 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
 
     private isSearchStage(stage: Record<string, unknown>): boolean {
         return "$vectorSearch" in stage || "$search" in stage || "$searchMeta" in stage;
-    }
-
-    private isWriteStage(stage: Record<string, unknown>): boolean {
-        return "$out" in stage || "$merge" in stage;
     }
 }

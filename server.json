@@ -6,12 +6,12 @@
     "url": "https://github.com/mongodb-js/mongodb-mcp-server",
     "source": "github"
   },
-  "version": "1.10.0",
+  "version": "1.12.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "mongodb-mcp-server",
-      "version": "1.10.0",
+      "version": "1.12.0",
       "transport": {
         "type": "stdio"
       },
@@ -64,6 +64,13 @@
           "isRequired": false,
           "format": "string",
           "isSecret": true
+        },
+        {
+          "name": "MDB_MCP_DISABLE_SERVER_SIDE_JS",
+          "description": "When set to true, disallows the use of server-side JavaScript operators (such as $where, $function, and $accumulator) in query filters and aggregation pipelines.",
+          "isRequired": false,
+          "format": "boolean",
+          "isSecret": false
         },
         {
           "name": "MDB_MCP_DISABLED_TOOLS",
@@ -320,6 +327,13 @@
           "name": "--connectionString",
           "description": "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data.",
           "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--disableServerSideJs",
+          "description": "When set to true, disallows the use of server-side JavaScript operators (such as $where, $function, and $accumulator) in query filters and aggregation pipelines.",
+          "isRequired": false,
+          "format": "boolean"
         },
         {
           "type": "named",
@@ -520,7 +534,7 @@
     },
     {
       "registryType": "oci",
-      "identifier": "docker.io/mongodb/mongodb-mcp-server:1.10.0",
+      "identifier": "docker.io/mongodb/mongodb-mcp-server:1.12.0",
       "transport": {
         "type": "stdio"
       },
@@ -573,6 +587,13 @@
           "isRequired": false,
           "format": "string",
           "isSecret": true
+        },
+        {
+          "name": "MDB_MCP_DISABLE_SERVER_SIDE_JS",
+          "description": "When set to true, disallows the use of server-side JavaScript operators (such as $where, $function, and $accumulator) in query filters and aggregation pipelines.",
+          "isRequired": false,
+          "format": "boolean",
+          "isSecret": false
         },
         {
           "name": "MDB_MCP_DISABLED_TOOLS",
@@ -829,6 +850,13 @@
           "name": "--connectionString",
           "description": "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data.",
           "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--disableServerSideJs",
+          "description": "When set to true, disallows the use of server-side JavaScript operators (such as $where, $function, and $accumulator) in query filters and aggregation pipelines.",
+          "isRequired": false,
+          "format": "boolean"
         },
         {
           "type": "named",

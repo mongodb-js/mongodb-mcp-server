@@ -9,15 +9,17 @@ import { type Document, EJSON } from "bson";
 import { ErrorCodes, MongoDBError } from "../../../common/errors.js";
 import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorUntilMaxBytes.js";
 import { operationWithFallback } from "../../../helpers/operationWithFallback.js";
+import { isWriteStage } from "../../../helpers/mqlGuards.js";
 import { AGG_COUNT_MAX_TIME_MS_CAP, ONE_MB, CURSOR_LIMITS_TO_LLM_TEXT } from "../../../helpers/constants.js";
 import { LogId } from "../../../common/logging/index.js";
-import { AnyAggregateStage, DBAggregateStage } from "../mongodbSchemas.js";
+import { AnyAggregateStage, DB_AGGREGATE_STAGE_OPERATORS } from "../mongodbSchemas.js";
 
 export const AggregateArgs = {
     pipeline: z
-        .tuple([DBAggregateStage], AnyAggregateStage)
+        .array(AnyAggregateStage)
+        .min(1)
         .describe(
-            "An array of aggregation stages to execute. Has to start with a database aggregation stage. https://www.mongodb.com/docs/manual/reference/mql/aggregation-stages/#db.aggregate---stages"
+            `An array of aggregation stages to execute. The first stage must be a database-level aggregation stage (one of ${DB_AGGREGATE_STAGE_OPERATORS.map((op) => `\`${op}\``).join(", ")}). https://www.mongodb.com/docs/manual/reference/mql/aggregation-stages/#db.aggregate---stages`
         ),
 };
 
@@ -43,7 +45,7 @@ The maximum number of bytes to return in the response. This value is capped by t
 
             let successMessage: string;
             let documents: unknown[];
-            if (pipeline.some((stage) => this.isWriteStage(stage))) {
+            if (pipeline.some((stage) => isWriteStage(stage))) {
                 // This is a write pipeline, so special-case it and don't attempt to apply limits or caps
                 aggregationCursor = provider.aggregateDb(database, pipeline, {
                     ...this.getOperationOptions(signal),
@@ -121,24 +123,15 @@ The maximum number of bytes to return in the response. This value is capped by t
     }
 
     private assertOnlyUsesPermittedStages(pipeline: Record<string, unknown>[]): void {
-        const writeOperations: OperationType[] = ["update", "create", "delete"];
-        let writeStageForbiddenError = "";
-
-        if (this.config.readOnly) {
-            writeStageForbiddenError = "In readOnly mode you can not run pipelines with $out or $merge stages.";
-        } else if (this.config.disabledTools.some((t) => writeOperations.includes(t as OperationType))) {
-            writeStageForbiddenError =
-                "When 'create', 'update', or 'delete' operations are disabled, you can not run pipelines with $out or $merge stages.";
+        const firstStage = pipeline[0];
+        if (!firstStage || !DB_AGGREGATE_STAGE_OPERATORS.some((op) => op in firstStage)) {
+            throw new MongoDBError(
+                ErrorCodes.InvalidPipeline,
+                `The first stage of the pipeline must be a database-level aggregation stage (one of ${DB_AGGREGATE_STAGE_OPERATORS.join(", ")})`
+            );
         }
 
-        for (const stage of pipeline) {
-            // This validates that in readOnly mode or "write" operations are disabled, we can't use $out or $merge.
-            // This is really important because aggregates are the only "multi-faceted" tool in the MQL, where you
-            // can both read and write.
-            if (this.isWriteStage(stage) && writeStageForbiddenError) {
-                throw new MongoDBError(ErrorCodes.ForbiddenWriteOperation, writeStageForbiddenError);
-            }
-        }
+        this.assertMqlIsAllowed(pipeline);
     }
 
     private async countAggregationResultDocuments({
@@ -203,9 +196,5 @@ The maximum number of bytes to return in the response. This value is capped by t
         }
 
         return message;
-    }
-
-    private isWriteStage(stage: Record<string, unknown>): boolean {
-        return "$out" in stage || "$merge" in stage;
     }
 }

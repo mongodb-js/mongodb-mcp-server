@@ -22,7 +22,8 @@
         "src/ui/hooks/**/*.ts",
         "src/ui/registry/uiMap.ts",
         "src/ui/lib/tools/**/*.ts",
-        "src/ui/lib/loaders.ts"
+        "src/ui/lib/loaders.ts",
+        "packaging/mcpb/server/index.js"
       ],
       "ignoreDependencies": [
         "@mongodb-js/atlas-local",

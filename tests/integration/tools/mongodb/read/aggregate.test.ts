@@ -22,12 +22,13 @@ import { DOCUMENT_EMBEDDINGS } from "./vyai/embeddings.js";
 import type { ToolEvent } from "../../../../../src/telemetry/types.js";
 import type { Client } from "@modelcontextprotocol/sdk/client";
 import { pipelineDescriptionWithVectorSearch } from "../../../../../src/tools/mongodb/read/aggregate.js";
-import type { Collection } from "mongodb";
+import { MongoServerError, type Collection } from "mongodb";
 
 describeWithMongoDB("aggregate tool", (integration) => {
     afterEach(() => {
         integration.mcpServer().userConfig.readOnly = false;
         integration.mcpServer().userConfig.disabledTools = [];
+        integration.mcpServer().userConfig.disableServerSideJs = true;
     });
 
     validateToolMetadata(integration, "aggregate", "Run an aggregation against a MongoDB collection", "read", [
@@ -155,6 +156,103 @@ describeWithMongoDB("aggregate tool", (integration) => {
         expect(content).toEqual(
             "Error running aggregate: In readOnly mode you can not run pipelines with $out or $merge stages."
         );
+    });
+
+    describe("server-side JavaScript operators", () => {
+        beforeEach(async () => {
+            await integration
+                .mongoClient()
+                .db(integration.randomDbName())
+                .collection("people")
+                .insertMany([
+                    { name: "Peter", age: 5 },
+                    { name: "Laura", age: 10 },
+                ]);
+        });
+
+        const jsPipelines: {
+            name: string;
+            pipeline: Record<string, unknown>[];
+            operator: string;
+            executable: boolean;
+        }[] = [
+            {
+                name: "$where in a $match stage",
+                pipeline: [{ $match: { $where: "function() { return this.age > 8; }" } }],
+                operator: "$where",
+                // $where is not supported inside an aggregation $match stage by the
+                // server, so we only validate that our guard rejects it first.
+                executable: false,
+            },
+            {
+                name: "$function in a $project stage",
+                pipeline: [
+                    {
+                        $project: {
+                            doubled: {
+                                $function: {
+                                    body: "function(age) { return age * 2; }",
+                                    args: ["$age"],
+                                    lang: "js",
+                                },
+                            },
+                        },
+                    },
+                ],
+                operator: "$function",
+                executable: true,
+            },
+            {
+                name: "$accumulator in a $group stage",
+                pipeline: [
+                    {
+                        $group: {
+                            _id: null,
+                            total: {
+                                $accumulator: {
+                                    init: "function() { return 0; }",
+                                    accumulate: "function(state, age) { return state + age; }",
+                                    accumulateArgs: ["$age"],
+                                    merge: "function(a, b) { return a + b; }",
+                                    lang: "js",
+                                },
+                            },
+                        },
+                    },
+                ],
+                operator: "$accumulator",
+                executable: true,
+            },
+        ];
+
+        for (const { name, pipeline, operator, executable } of jsPipelines) {
+            for (const jsDisabled of [true, false]) {
+                // The server can't execute some operators even when JS is enabled,
+                // so there's nothing meaningful to assert for the "allowed" case.
+                if (!jsDisabled && !executable) {
+                    continue;
+                }
+                it(`${jsDisabled ? "rejects" : "allows"} pipelines using ${name} when disableServerSideJs is ${jsDisabled}`, async () => {
+                    integration.mcpServer().userConfig.disableServerSideJs = jsDisabled;
+                    await integration.connectMcpClient();
+                    const response = await integration.mcpClient().callTool({
+                        name: "aggregate",
+                        arguments: {
+                            database: integration.randomDbName(),
+                            collection: "people",
+                            pipeline,
+                        },
+                    });
+                    const content = getResponseContent(response);
+                    if (jsDisabled) {
+                        expect(content).toContain(`The "${operator}" operator is not allowed.`);
+                    } else {
+                        expect(content).not.toContain("server-side JavaScript operators");
+                        expect(content).toContain("The aggregation resulted in");
+                    }
+                });
+            }
+        }
     });
 
     it("can run $limit stages with a small number", async () => {
@@ -300,6 +398,73 @@ describeWithMongoDB("aggregate tool", (integration) => {
             );
         });
     }
+
+    describe("when getSearchIndexes throws after a successful search capability probe", () => {
+        afterEach(() => {
+            vi.restoreAllMocks();
+        });
+
+        it("should succeed for non-search aggregations", async () => {
+            await integration
+                .mongoClient()
+                .db(integration.randomDbName())
+                .collection("people")
+                .insertMany([{ name: "Alice" }, { name: "Bob" }]);
+
+            await integration.connectMcpClient();
+
+            vi.spyOn(integration.mcpServer().session, "isSearchSupported").mockResolvedValue(true);
+            vi.spyOn(integration.mcpServer().session.serviceProvider, "getSearchIndexes").mockRejectedValue(
+                new MongoServerError({ message: "Error connecting to Search Index Management service" })
+            );
+
+            const response = await integration.mcpClient().callTool({
+                name: "aggregate",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "people",
+                    pipeline: [{ $match: { name: "Alice" } }],
+                },
+            });
+
+            const content = getResponseContent(response);
+            expect(content).toContain("The aggregation resulted in 1 documents");
+            const docs = getDocsFromUntrustedContent<{ name: string }>(content);
+            expect(docs[0]?.name).toBe("Alice");
+        });
+
+        it("should skip pre-filter validation and let the server decide for $vectorSearch aggregations", async () => {
+            await integration.connectMcpClient();
+
+            vi.spyOn(integration.mcpServer().session, "isSearchSupported").mockResolvedValue(true);
+            vi.spyOn(integration.mcpServer().session.serviceProvider, "getSearchIndexes").mockRejectedValue(
+                new MongoServerError({ message: "Error connecting to Search Index Management service" })
+            );
+
+            const response = await integration.mcpClient().callTool({
+                name: "aggregate",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "people",
+                    pipeline: [
+                        {
+                            $vectorSearch: {
+                                index: "myIndex",
+                                path: "embedding",
+                                queryVector: [1, 2, 3],
+                                numCandidates: 10,
+                                limit: 5,
+                                filter: { category: "electronics" },
+                            },
+                        },
+                    ],
+                },
+            });
+
+            const content = getResponseContent(response);
+            expect(content).not.toContain("Vector search stage contains filter on fields that are not indexed");
+        });
+    });
 
     validateAutoConnectBehavior(integration, "aggregate", () => {
         return {

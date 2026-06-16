@@ -1,4 +1,5 @@
 import { EventEmitter } from "events";
+import { MongoServerError } from "mongodb";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { generateConnectionInfoFromCliArgs, type ConnectionInfo } from "@mongosh/arg-parser";
 import type { DeviceId } from "../helpers/deviceId.js";
@@ -29,7 +30,10 @@ export interface ConnectionState {
     connectedAtlasCluster?: AtlasClusterConnectionInfo;
 }
 
-const MCP_TEST_DATABASE = "#mongodb-mcp";
+const SEARCH_PROBE_COLLECTION_NAME = "test";
+
+/** See https://github.com/mongodb/mongo/blob/master/src/mongo/base/error_codes.yml (SearchNotEnabled). */
+const MONGODB_SEARCH_NOT_ENABLED_ERROR_CODE = 31082;
 
 export const defaultDriverOptions: ConnectionInfo["driverOptions"] = {
     readConcern: {
@@ -55,21 +59,104 @@ export class ConnectionStateConnected implements ConnectionState {
 
     private _isSearchSupported?: boolean;
 
-    public async isSearchSupported(): Promise<boolean> {
+    public async isSearchSupported(logger: LoggerBase): Promise<boolean> {
         if (this._isSearchSupported === undefined) {
-            try {
-                // If a cluster supports search indexes, the call below will succeed
-                // with a cursor otherwise will throw an Error.
-                // the Search Index Management Service might not be ready yet, but
-                // we assume that the agent can retry in that situation.
-                await this.serviceProvider.getSearchIndexes(MCP_TEST_DATABASE, "test");
-                this._isSearchSupported = true;
-            } catch {
-                this._isSearchSupported = false;
-            }
+            this._isSearchSupported = await this.probeSearchCapability(logger);
         }
 
         return this._isSearchSupported;
+    }
+
+    private async probeSearchCapability(logger: LoggerBase): Promise<boolean> {
+        const databases = await this.buildSearchProbeDatabaseCandidates(logger);
+
+        for (const databaseName of databases) {
+            try {
+                await this.serviceProvider.getSearchIndexes(databaseName, SEARCH_PROBE_COLLECTION_NAME);
+                logger.debug({
+                    id: LogId.searchCapabilityProbe,
+                    context: "ConnectionStateConnected",
+                    message: "Atlas Search capability probe succeeded",
+                });
+                return true;
+            } catch (probeError: unknown) {
+                if (
+                    probeError instanceof MongoServerError &&
+                    (probeError.code === MONGODB_SEARCH_NOT_ENABLED_ERROR_CODE ||
+                        probeError.codeName === "SearchNotEnabled")
+                ) {
+                    logger.debug({
+                        id: LogId.searchCapabilityProbe,
+                        context: "ConnectionStateConnected",
+                        message: "Atlas Search capability probe: search not enabled on cluster",
+                    });
+
+                    return false;
+                }
+
+                logger.debug({
+                    id: LogId.searchCapabilityProbe,
+                    context: "ConnectionStateConnected",
+                    message: "Atlas Search capability probe: inconclusive error for database candidate, trying next",
+                });
+            }
+        }
+
+        logger.debug({
+            id: LogId.searchCapabilityProbe,
+            context: "ConnectionStateConnected",
+            message: "Atlas Search capability probe: no success and no SearchNotEnabled; assuming search is supported",
+        });
+
+        return true;
+    }
+
+    /**
+     * Build an ordered list of database names to try for the search index probe.
+     * Prefers the driver's initial database from the connection string (when not
+     * a system DB), then other non-system databases from listDatabases, then the
+     * fallback #mongodb-mcp database.
+     */
+    private async buildSearchProbeDatabaseCandidates(logger: LoggerBase): Promise<string[]> {
+        type ListDatabasesDocument = { databases?: { name?: string }[] };
+        let listedNames: string[] = [];
+        try {
+            const raw = (await this.serviceProvider.listDatabases("")) as ListDatabasesDocument;
+            const rows = raw.databases;
+            if (Array.isArray(rows)) {
+                listedNames = rows
+                    .map((row) => row.name)
+                    .filter((name): name is string => typeof name === "string" && name.length > 0);
+            }
+        } catch {
+            logger.debug({
+                id: LogId.searchCapabilityProbe,
+                context: "ConnectionStateConnected",
+                message: "listDatabases failed while building Atlas Search probe candidates",
+            });
+        }
+
+        // System databases that should be skipped when searching for accessible databases
+        const SYSTEM_DATABASES = new Set(["admin", "local", "config"]);
+
+        const nonSystem = listedNames
+            .filter((name) => !SYSTEM_DATABASES.has(name))
+            .slice(0, 10)
+            .sort((a, b) => a.localeCompare(b));
+
+        const result = new Set<string>();
+        const initialDb = this.serviceProvider.initialDb;
+        if (initialDb.length > 0 && !SYSTEM_DATABASES.has(initialDb)) {
+            result.add(initialDb);
+        }
+
+        for (const name of nonSystem) {
+            result.add(name);
+        }
+
+        result.add("#mongodb-mcp");
+
+        return [...result];
     }
 }
 
@@ -141,10 +228,36 @@ export abstract class ConnectionManager {
     abstract close(): Promise<void>;
 }
 
+/**
+ * Default {@link ConnectionManager} implementation used by the MongoDB MCP
+ * server.
+ *
+ * Establishes and tears down MongoDB connections via mongosh's
+ * NodeDriverServiceProvider, applying MCP-specific defaults such as the
+ * `appName` (composed from package info, device id and client name) and driver
+ * options (read/write concerns, proxy and OIDC settings).
+ *
+ * Tracks connection lifecycle as an {@link AnyConnectionState} and emits
+ * `connection-request`, `connection-success`, `connection-error`,
+ * `connection-close` and `close` events on {@link ConnectionManager.events}.
+ * For OIDC connection strings it stays in the `connecting` state until the OIDC
+ * plugin reports auth success or failure (via the shared event bus), surfacing
+ * device-flow verification URL and user code when applicable.
+ */
 export class MCPConnectionManager extends ConnectionManager {
     private deviceId: DeviceId;
     private bus: EventEmitter;
 
+    /**
+     * @param userConfig - Active user configuration; used when classifying the
+     * connection string (e.g. Atlas vs. local).
+     * @param logger - Logger used for OIDC and disconnect diagnostics.
+     * @param deviceId - Provider of the stable device identifier embedded in
+     * the connection's `appName`.
+     * @param bus - Optional event emitter shared with the OIDC plugin to
+     * receive `mongodb-oidc-plugin:auth-*` notifications. A fresh emitter is
+     * created when omitted.
+     */
     constructor(
         private userConfig: UserConfig,
         private logger: LoggerBase,
@@ -159,6 +272,17 @@ export class MCPConnectionManager extends ConnectionManager {
         this.deviceId = deviceId;
     }
 
+    /**
+     * Opens a new MongoDB connection from the supplied {@link ConnectionSettings},
+     * disconnecting any prior connection first.
+     *
+     * Resolves to a `connected` state for non-OIDC auth and to a `connecting`
+     * state for OIDC flows (which transition to `connected` once the OIDC
+     * plugin reports success on the shared event bus). On failure, transitions
+     * to an `errored` state and throws a {@link MongoDBError} with either
+     * {@link ErrorCodes.MisconfiguredConnectionString} or
+     * {@link ErrorCodes.NotConnectedToMongoDB}.
+     */
     override async connect(settings: ConnectionSettings): Promise<AnyConnectionState> {
         this._events.emit("connection-request", this.currentConnectionState);
 
@@ -189,6 +313,8 @@ export class MCPConnectionManager extends ConnectionManager {
                   }
                 : generateConnectionInfoFromCliArgs({
                       ...defaultDriverOptions,
+                      /** TODO: Currently we're passing the entire user config to make it apply the mongosh CLI commands that were passed in. We should consider seperating the fields in the future. */
+                      ...this.userConfig,
                       connectionSpecifier: settings.connectionString,
                   });
 
@@ -254,6 +380,12 @@ export class MCPConnectionManager extends ConnectionManager {
         }
     }
 
+    /**
+     * Closes the underlying NodeDriverServiceProvider (awaiting it first when
+     * the manager is still in the `connecting` state) and emits
+     * `connection-close`. No-op when already `disconnected` or `errored`, in
+     * which case the current state is returned as-is.
+     */
     override async disconnect(): Promise<ConnectionStateDisconnected | ConnectionStateErrored> {
         if (this.currentConnectionState.tag === "disconnected" || this.currentConnectionState.tag === "errored") {
             return this.currentConnectionState;
@@ -278,6 +410,11 @@ export class MCPConnectionManager extends ConnectionManager {
         return { tag: "disconnected" };
     }
 
+    /**
+     * Permanently shuts the manager down: best-effort disconnect (errors are
+     * logged, not thrown) followed by emission of the `close` event with the
+     * final connection state.
+     */
     override async close(): Promise<void> {
         try {
             await this.disconnect();

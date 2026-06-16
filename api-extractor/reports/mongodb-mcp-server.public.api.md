@@ -7,6 +7,7 @@
 import type { AggregationCursor } from 'mongodb';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { Client } from '@mongodb-js/atlas-local';
+import type { CloseableTransport } from '@mongodb-js/mcp-types';
 import type { components } from './openapi.js';
 import { ConnectionInfo } from '@mongosh/arg-parser';
 import { Counter } from '@mongodb-js/mcp-metrics';
@@ -21,6 +22,7 @@ import type { FindCursor } from 'mongodb';
 import { Gauge } from '@mongodb-js/mcp-metrics';
 import { Histogram } from '@mongodb-js/mcp-metrics';
 import type http from 'http';
+import type { IDeviceId } from '@mongodb-js/mcp-types';
 import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
 import type { LoggingMessageNotification } from '@modelcontextprotocol/sdk/types.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -33,22 +35,21 @@ import { PrometheusMetrics } from '@mongodb-js/mcp-metrics';
 import { PrometheusMetricsOptions } from '@mongodb-js/mcp-metrics';
 import { Registry } from '@mongodb-js/mcp-metrics';
 import { Secret } from 'mongodb-redact';
+import type { SessionCloseReason } from '@mongodb-js/mcp-types';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import type { TelemetryEvents } from '@mongodb-js/mcp-types';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
+import type { TransportRequestContext } from '@mongodb-js/mcp-types';
 import { z } from 'zod';
 import type { ZodRawShape } from 'zod';
 
 // @public (undocumented)
 export type AnyConnectionState = ConnectionStateConnected | ConnectionStateConnecting | ConnectionStateDisconnected | ConnectionStateErrored;
 
-// Warning: (ae-forgotten-export) The symbol "ToolBase" needs to be exported by the entry point lib.d.ts
-//
 // @public (undocumented)
 export type AnyToolBase = ToolBase<any, any, any>;
 
-// Warning: (ae-forgotten-export) The symbol "ToolClass" needs to be exported by the entry point lib.d.ts
-//
 // @public (undocumented)
 export type AnyToolClass = ToolClass<any, any, any>;
 
@@ -120,6 +121,8 @@ export class ApiClient {
     // (undocumented)
     getPrivateLinkConnection(options: FetchOptions<operations["getGroupStreamPrivateLinkConnection"]>): Promise<components["schemas"]["StreamsPrivateLinkConnection"]>;
     // (undocumented)
+    getSampleDatasetLoad(options: FetchOptions<operations["getGroupSampleDatasetLoad"]>): Promise<components["schemas"]["SampleDatasetStatus"]>;
+    // (undocumented)
     getStreamConnection(options: FetchOptions<operations["getGroupStreamConnection"]>): Promise<components["schemas"]["StreamsConnection"]>;
     // (undocumented)
     getStreamProcessor(options: FetchOptions<operations["getGroupStreamProcessor"]>): Promise<components["schemas"]["StreamsProcessorWithStats"]>;
@@ -164,6 +167,8 @@ export class ApiClient {
     // (undocumented)
     rejectVpcPeeringConnection(options: FetchOptions<operations["rejectGroupStreamVpcPeeringConnection"]>): Promise<void>;
     // (undocumented)
+    requestSampleDatasetLoad(options: FetchOptions<operations["requestGroupSampleDatasetLoad"]>): Promise<components["schemas"]["SampleDatasetStatus"]>;
+    // (undocumented)
     sendEvents(events: TelemetryEvent<CommonProperties>[], input?: {
         signal?: AbortSignal;
     }): Promise<void>;
@@ -174,11 +179,17 @@ export class ApiClient {
     // (undocumented)
     stopStreamProcessor(options: FetchOptions<operations["stopGroupStreamProcessor"]>): Promise<void>;
     // (undocumented)
+    tenantUpgrade(options: FetchOptions<operations["tenantGroupFlexClusterUpgrade"]>): Promise<components["schemas"]["FlexClusterDescription20241113"]>;
+    // (undocumented)
+    updateCluster(options: FetchOptions<operations["updateGroupCluster"]>): Promise<components["schemas"]["ClusterDescription20240805"]>;
+    // (undocumented)
     updateStreamConnection(options: FetchOptions<operations["updateGroupStreamConnection"]>): Promise<components["schemas"]["StreamsConnection"]>;
     // (undocumented)
     updateStreamProcessor(options: FetchOptions<operations["updateGroupStreamProcessor"]>): Promise<components["schemas"]["StreamsProcessorWithStats"]>;
     // (undocumented)
     updateStreamWorkspace(options: FetchOptions<operations["updateGroupStreamWorkspace"]>): Promise<components["schemas"]["StreamsTenant"]>;
+    // (undocumented)
+    upgradeTenantUpgrade(options: FetchOptions<operations["upgradeGroupClusterTenantUpgrade"]>): Promise<components["schemas"]["LegacyAtlasCluster"]>;
     // (undocumented)
     validateAuthConfig(): Promise<void>;
     // (undocumented)
@@ -219,13 +230,8 @@ export interface AuthProvider {
 // @public (undocumented)
 export type BaseEvent = TelemetryEvent<unknown>;
 
-// @public
-export type CloseableTransport = {
-    close(): Promise<void>;
-};
+export { CloseableTransport }
 
-// Warning: (ae-forgotten-export) The symbol "CommonStaticProperties" needs to be exported by the entry point lib.d.ts
-//
 // @public
 export type CommonProperties = {
     device_id?: string;
@@ -237,6 +243,7 @@ export type CommonProperties = {
     config_connection_string?: TelemetryBoolSet;
     session_id?: string;
     hosting_mode?: string;
+    has_docker?: TelemetryBoolSet;
 } & CommonStaticProperties;
 
 // @public (undocumented)
@@ -330,8 +337,6 @@ export type ConnectionManagerFactoryFn = (createParams: {
 
 // @public (undocumented)
 export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"> {
-    // Warning: (ae-forgotten-export) The symbol "AtlasClusterConnectionInfo" needs to be exported by the entry point lib.d.ts
-    //
     // (undocumented)
     atlas?: AtlasClusterConnectionInfo;
     // (undocumented)
@@ -342,8 +347,6 @@ export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"
 export interface ConnectionState {
     // (undocumented)
     connectedAtlasCluster?: AtlasClusterConnectionInfo;
-    // Warning: (ae-forgotten-export) The symbol "ConnectionStringInfo" needs to be exported by the entry point lib.d.ts
-    //
     // (undocumented)
     connectionStringInfo?: ConnectionStringInfo;
     // (undocumented)
@@ -358,7 +361,7 @@ export class ConnectionStateConnected implements ConnectionState {
     // (undocumented)
     connectionStringInfo?: ConnectionStringInfo | undefined;
     // (undocumented)
-    isSearchSupported(): Promise<boolean>;
+    isSearchSupported(logger: LoggerBase): Promise<boolean>;
     // (undocumented)
     serviceProvider: NodeDriverServiceProvider;
     // (undocumented)
@@ -455,8 +458,6 @@ export type CustomizableSessionOptions<TUserConfig extends UserConfig = UserConf
 // @public (undocumented)
 export const defaultCreateApiClient: ApiClientFactoryFn;
 
-// Warning: (ae-forgotten-export) The symbol "AtlasLocalClientFactoryFn" needs to be exported by the entry point lib.d.ts
-//
 // @public (undocumented)
 export const defaultCreateAtlasLocalClient: AtlasLocalClientFactoryFn;
 
@@ -495,7 +496,7 @@ export const defaultParserOptions: {
 };
 
 // @public (undocumented)
-export class DeviceId {
+export class DeviceId implements IDeviceId {
     close(): void;
     // (undocumented)
     static create(logger: LoggerBase, timeout?: number): DeviceId;
@@ -521,7 +522,6 @@ export class Elicitation {
         required: string[];
     };
     requestConfirmation(message: string): Promise<boolean>;
-    // Warning: (ae-forgotten-export) The symbol "ElicitedInputResult" needs to be exported by the entry point lib.d.ts
     requestInput(message: string, schema: ElicitRequestFormParams["requestedSchema"]): Promise<ElicitedInputResult>;
     supportsElicitation(): boolean;
 }
@@ -537,7 +537,11 @@ export enum ErrorCodes {
     // (undocumented)
     ForbiddenCollscan = 1000002,
     // (undocumented)
+    ForbiddenServerSideJS = 1000009,
+    // (undocumented)
     ForbiddenWriteOperation = 1000003,
+    // (undocumented)
+    InvalidPipeline = 1000008,
     // (undocumented)
     MisconfiguredConnectionString = 1000001,
     // (undocumented)
@@ -564,12 +568,8 @@ export class EventCache {
 // @public (undocumented)
 export type EventMap<T> = Record<keyof T, any[]>;
 
-// Warning: (ae-forgotten-export) The symbol "ExportsManagerEvents" needs to be exported by the entry point lib.d.ts
-//
 // @public (undocumented)
 export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
-    // Warning: (ae-forgotten-export) The symbol "AvailableExport" needs to be exported by the entry point lib.d.ts
-    //
     // (undocumented)
     get availableExports(): AvailableExport[];
     // (undocumented)
@@ -583,8 +583,6 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
     }): Promise<AvailableExport>;
     // (undocumented)
     protected init(): void;
-    // Warning: (ae-forgotten-export) The symbol "ExportsManagerConfig" needs to be exported by the entry point lib.d.ts
-    //
     // (undocumented)
     static init(config: ExportsManagerConfig, logger: LoggerBase, sessionId?: string): ExportsManager;
     // (undocumented)
@@ -616,6 +614,24 @@ export interface ISessionStore<T extends CloseableTransport = CloseableTransport
     // (undocumented)
     getSession(sessionId: string): Promise<T | undefined>;
 }
+
+// @public
+export const JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION = -32005;
+
+// @public
+export const JSON_RPC_ERROR_CODE_INVALID_REQUEST = -32004;
+
+// @public
+export const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
+
+// @public
+export const JSON_RPC_ERROR_CODE_SESSION_ID_INVALID = -32002;
+
+// @public
+export const JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED = -32001;
+
+// @public
+export const JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND = -32003;
 
 // @public
 export class Keychain {
@@ -679,11 +695,19 @@ export interface LogPayload {
     noRedaction?: boolean | LoggerType | LoggerType[];
 }
 
-// Warning: (ae-forgotten-export) The symbol "ExpressBasedHttpServer" needs to be exported by the entry point lib.d.ts
-//
+// @public
+export class MCPConnectionManager extends ConnectionManager {
+    constructor(userConfig: UserConfig, logger: LoggerBase, deviceId: DeviceId, bus?: EventEmitter);
+    close(): Promise<void>;
+    connect(settings: ConnectionSettings): Promise<AnyConnectionState>;
+    disconnect(): Promise<ConnectionStateDisconnected | ConnectionStateErrored>;
+}
+
 // @public (undocumented)
 export class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unknown> extends ExpressBasedHttpServer {
     constructor(input: MCPHttpServerConstructorArgs<TUserConfig, TContext>);
+    // (undocumented)
+    protected readonly sessionStore: ISessionStore<StreamableHTTPServerTransport>;
     // (undocumented)
     protected setupMiddlewares(): void;
     // (undocumented)
@@ -757,8 +781,6 @@ export type MonitoringServerConstructorArgs<TMetrics extends DefaultMetrics = De
     metrics: Metrics<TMetrics>;
 };
 
-// Warning: (ae-forgotten-export) The symbol "monitoringServerFeatureValues" needs to be exported by the entry point lib.d.ts
-//
 // @public (undocumented)
 export type MonitoringServerFeature = (typeof monitoringServerFeatureValues)[number];
 
@@ -906,7 +928,7 @@ export class Session extends EventEmitter<SessionEvents> {
     // (undocumented)
     readonly keychain: Keychain;
     // (undocumented)
-    logger: CompositeLogger;
+    readonly logger: CompositeLogger;
     // (undocumented)
     mcpClient?: {
         name?: string;
@@ -921,8 +943,7 @@ export class Session extends EventEmitter<SessionEvents> {
     setMcpClient(mcpClient: Implementation | undefined): void;
 }
 
-// @public (undocumented)
-export type SessionCloseReason = "idle_timeout" | "transport_closed" | "server_stop" | "unknown";
+export { SessionCloseReason }
 
 // @public (undocumented)
 export type SessionEvents = {
@@ -1030,17 +1051,30 @@ export type StreamableHttpTransportRunnerConfig<TUserConfig extends UserConfig =
 export class Telemetry {
     // (undocumented)
     close(): Promise<void>;
-    // (undocumented)
-    static create(session: Session, userConfig: UserConfig, deviceId: DeviceId, input?: {
+    // @deprecated (undocumented)
+    static create(session: Session, userConfig: UserConfig, deviceId: DeviceId, options?: {
         commonProperties?: Partial<CommonProperties>;
         eventCache?: EventCache;
     }): Telemetry;
+    // (undocumented)
+    static create(config: TelemetryConfig): Telemetry;
     emitEvents(events: BaseEvent[]): void;
     // (undocumented)
     readonly events: EventEmitter<TelemetryEvents>;
     getCommonProperties(): CommonProperties;
     isTelemetryEnabled(): boolean;
     setupPromise: Promise<[string, boolean]> | undefined;
+}
+
+// @public
+export interface TelemetryConfig {
+    apiClient: ApiClient;
+    deviceId: DeviceId;
+    enabled: boolean;
+    eventCache?: EventCache;
+    getCommonProperties?: () => Partial<CommonProperties>;
+    keychain?: Keychain;
+    logger: LoggerBase;
 }
 
 // @public
@@ -1055,15 +1089,7 @@ export type TelemetryEvent<T> = {
     } & Record<string, string | number | string[]>;
 };
 
-// @public (undocumented)
-export interface TelemetryEvents {
-    // (undocumented)
-    "events-emitted": [];
-    // (undocumented)
-    "events-send-failed": [];
-    // (undocumented)
-    "events-skipped": [];
-}
+export { TelemetryEvents }
 
 // @public
 export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant";
@@ -1077,11 +1103,7 @@ export interface ToolExecutionContext {
     signal: AbortSignal;
 }
 
-// @public
-export type TransportRequestContext = {
-    headers?: Record<string, string | string[] | undefined>;
-    query?: Record<string, string | string[] | undefined>;
-};
+export { TransportRequestContext }
 
 // @public (undocumented)
 export abstract class TransportRunnerBase<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> {
@@ -1167,7 +1189,7 @@ export const UserConfigSchema: z.ZodObject<{
     apiClientId: z.ZodOptional<z.ZodString>;
     apiClientSecret: z.ZodOptional<z.ZodString>;
     connectionString: z.ZodOptional<z.ZodString>;
-    loggers: z.ZodDefault<z.ZodPipe<z.ZodTransform<string[] | undefined, string | string[] | undefined>, z.ZodArray<z.ZodEnum<{
+    loggers: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodEnum<{
         disk: "disk";
         mcp: "mcp";
         stderr: "stderr";
@@ -1183,10 +1205,11 @@ export const UserConfigSchema: z.ZodObject<{
         alert: "alert";
         emergency: "emergency";
     }>>;
-    disabledTools: z.ZodDefault<z.ZodPipe<z.ZodTransform<string[] | undefined, string | string[] | undefined>, z.ZodArray<z.ZodString>>>;
-    confirmationRequiredTools: z.ZodDefault<z.ZodPipe<z.ZodTransform<string[] | undefined, string | string[] | undefined>, z.ZodArray<z.ZodString>>>;
-    readOnly: z.ZodDefault<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodBoolean>>;
-    indexCheck: z.ZodDefault<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodBoolean>>;
+    disabledTools: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodString>>>;
+    confirmationRequiredTools: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodString>>>;
+    readOnly: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
+    indexCheck: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
+    disableServerSideJs: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
     telemetry: z.ZodDefault<z.ZodEnum<{
         enabled: "enabled";
         disabled: "disabled";
@@ -1209,10 +1232,10 @@ export const UserConfigSchema: z.ZodObject<{
     exportCleanupIntervalMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     atlasTemporaryDatabaseUserLifetimeMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     voyageApiKey: z.ZodDefault<z.ZodString>;
-    previewFeatures: z.ZodDefault<z.ZodPipe<z.ZodTransform<string[] | undefined, string | string[] | undefined>, z.ZodArray<z.ZodEnum<{
+    previewFeatures: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodEnum<{
         mcpUI: "mcpUI";
     }>>>>;
-    allowRequestOverrides: z.ZodDefault<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodBoolean>>;
+    allowRequestOverrides: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
     dryRun: z.ZodDefault<z.ZodBoolean>;
     externallyManagedSessions: z.ZodDefault<z.ZodBoolean>;
     httpResponseType: z.ZodDefault<z.ZodEnum<{
@@ -1223,7 +1246,7 @@ export const UserConfigSchema: z.ZodObject<{
     healthCheckHost: z.ZodOptional<z.ZodString>;
     monitoringServerPort: z.ZodOptional<z.ZodNumber>;
     monitoringServerHost: z.ZodOptional<z.ZodString>;
-    monitoringServerFeatures: z.ZodDefault<z.ZodPipe<z.ZodTransform<string[] | undefined, string | string[] | undefined>, z.ZodArray<z.ZodEnum<{
+    monitoringServerFeatures: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodEnum<{
         metrics: "metrics";
         "health-check": "health-check";
     }>>>>;
@@ -1308,13 +1331,6 @@ export const UserConfigSchema: z.ZodObject<{
     }>]>>;
     browser: z.ZodOptional<z.ZodUnion<readonly [z.ZodLiteral<false>, z.ZodString]>>;
 }, z.core.$strip>;
-
-// Warnings were encountered during analysis:
-//
-// src/common/config/configOverrides.ts:29:5 - (ae-forgotten-export) The symbol "RequestContext_2" needs to be exported by the entry point lib.d.ts
-// src/common/exportsManager.ts:166:9 - (ae-forgotten-export) The symbol "JSONExportFormat" needs to be exported by the entry point lib.d.ts
-// src/telemetry/types.ts:17:9 - (ae-forgotten-export) The symbol "TelemetryResult" needs to be exported by the entry point lib.d.ts
-// src/telemetry/types.ts:100:5 - (ae-forgotten-export) The symbol "TelemetryBoolSet" needs to be exported by the entry point lib.d.ts
 
 // (No @packageDocumentation comment for this package)
 

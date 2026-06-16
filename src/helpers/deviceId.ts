@@ -1,10 +1,11 @@
 import { getDeviceId } from "@mongodb-js/device-id";
+import type { IDeviceId } from "@mongodb-js/mcp-types";
 import type { LoggerBase } from "../common/logging/index.js";
 import { LogId } from "../common/logging/index.js";
 
 export const DEVICE_ID_TIMEOUT = 3000;
 
-export class DeviceId {
+export class DeviceId implements IDeviceId {
     private static readonly UnknownDeviceId = Promise.resolve("unknown");
 
     private deviceIdPromise: Promise<string>;

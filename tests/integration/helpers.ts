@@ -3,7 +3,6 @@ import { CompositeLogger, LoggerBase } from "../../src/common/logging/index.js";
 import { ExportsManager } from "../../src/common/exportsManager.js";
 import { Session } from "../../src/common/session.js";
 import { Server, type ServerOptions } from "../../src/server.js";
-import { Telemetry } from "../../src/telemetry/telemetry.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "../../src/transports/inMemoryTransport.js";
@@ -22,6 +21,7 @@ import { UserConfigSchema } from "../../src/common/config/userConfig.js";
 import type { OperationType } from "../../src/tools/tool.js";
 import { defaultCreateApiClient, type ApiClient } from "../../src/common/atlas/apiClient.js";
 import { MockMetrics } from "../unit/mocks/metrics.js";
+import { Telemetry } from "../../src/telemetry/telemetry.js";
 
 interface Parameter {
     name: string;
@@ -134,7 +134,13 @@ export function setupIntegrationTest(
 
         userConfig.telemetry = "disabled";
 
-        const telemetry = Telemetry.create(session, userConfig, deviceId);
+        const telemetry = Telemetry.create({
+            logger,
+            deviceId,
+            apiClient: session.apiClient,
+            keychain: session.keychain,
+            enabled: false,
+        });
 
         const mcpServerInstance = new McpServer({
             name: "test-server",
@@ -251,7 +257,7 @@ export function getResponseElements(content: unknown): ResponseElement[] {
 export async function connect(client: Client, connectionString: string): Promise<void> {
     await client.callTool({
         name: "connect",
-        arguments: { connectionStringOrClusterName: connectionString },
+        arguments: { connectionString },
     });
 }
 
@@ -427,6 +433,13 @@ export function waitUntil<T extends ConnectionState>(
                 if (!additionalCondition || (additionalCondition && additionalCondition(status as T))) {
                     return resolve(status as T);
                 }
+            }
+
+            // If we're waiting for a non-errored state but the connection has entered the
+            // terminal `errored` state, fail fast with the real reason instead of spinning
+            // until the test times out.
+            if (tag !== "errored" && status.tag === "errored") {
+                return reject(new Error(`Connection errored while waiting for "${tag}": ${status.errorReason}`));
             }
         }, 100);
     }).finally(() => {

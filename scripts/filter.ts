@@ -32,7 +32,10 @@ function filterOpenapi(openapi: OpenAPIV3_1.Document): OpenAPIV3_1.Document {
         "createFlexCluster",
         "deleteCluster",
         "deleteFlexCluster",
+        "updateCluster",
         "listClusterDetails",
+        "upgradeGroupClusterTenantUpgrade",
+        "tenantGroupFlexClusterUpgrade",
         "createDatabaseUser",
         "deleteDatabaseUser",
         "listDatabaseUsers",
@@ -45,6 +48,8 @@ function filterOpenapi(openapi: OpenAPIV3_1.Document): OpenAPIV3_1.Document {
         "listClusterSuggestedIndexes",
         "listSchemaAdvice",
         "listSlowQueryLogs",
+        "requestSampleDatasetLoad",
+        "getSampleDatasetLoad",
 
         // Streams: Workspaces
         "listStreamWorkspaces",
@@ -86,6 +91,12 @@ function filterOpenapi(openapi: OpenAPIV3_1.Document): OpenAPIV3_1.Document {
         "downloadOperationalLogs",
     ];
 
+    // upgradeGroupClusterTenantUpgrade requires 2023-01-01 — the endpoint behaves differently
+    // under 2025-03-12 (rejects direct FREE→M10, requires FLEX first).
+    const acceptOverrides: Record<string, string> = {
+        upgradeGroupClusterTenantUpgrade: "application/vnd.atlas.2023-01-01+json",
+    };
+
     const filteredPaths = {};
 
     for (const path in openapi.paths) {
@@ -94,12 +105,18 @@ function filterOpenapi(openapi: OpenAPIV3_1.Document): OpenAPIV3_1.Document {
         for (const [method, operation] of Object.entries(openapi.paths[path])) {
             const op = operation as OpenAPIV3_1.OperationObject & {
                 "x-xgen-operation-id-override": string;
+                "x-accept-override"?: string;
             };
             if (
                 op.operationId &&
                 (allowedOperations.includes(op.operationId) ||
                     allowedOperations.includes(op["x-xgen-operation-id-override"]))
             ) {
+                const acceptOverride =
+                    acceptOverrides[op.operationId] ?? acceptOverrides[op["x-xgen-operation-id-override"]];
+                if (acceptOverride) {
+                    op["x-accept-override"] = acceptOverride;
+                }
                 // @ts-expect-error This is a workaround for the OpenAPI types
                 filteredMethods[method] = openapi.paths[path][method] as OpenAPIV3_1.OperationObject;
             }

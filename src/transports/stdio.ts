@@ -1,5 +1,4 @@
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { LogId } from "../common/logging/index.js";
 import type { Server } from "../server.js";
 import type { CustomizableServerOptions } from "./base.js";
 import type { CustomizableSessionOptions } from "./base.js";
@@ -25,19 +24,10 @@ export class StdioRunner<
         serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
         sessionOptions?: CustomizableSessionOptions<TUserConfig>;
     } = {}): Promise<void> {
-        try {
-            this.server = await this.createServer({ serverOptions, sessionOptions });
-            const transport = new StdioServerTransport();
+        this.server = await this.createServer({ serverOptions, sessionOptions });
+        const transport = new StdioServerTransport();
 
-            await this.server.connect(transport);
-        } catch (error: unknown) {
-            this.logger.emergency({
-                id: LogId.serverStartFailure,
-                context: "server",
-                message: `Fatal error running server: ${error as string}`,
-            });
-            process.exit(1);
-        }
+        await this.server.connect(transport);
     }
 
     async closeTransport(): Promise<void> {

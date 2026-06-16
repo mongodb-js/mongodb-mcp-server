@@ -55,7 +55,7 @@ export class Session extends EventEmitter<SessionEvents> {
         title?: string;
     };
 
-    public logger: CompositeLogger;
+    public readonly logger: CompositeLogger;
 
     constructor({
         userConfig,
@@ -156,7 +156,7 @@ export class Session extends EventEmitter<SessionEvents> {
     async isSearchSupported(): Promise<boolean> {
         const state = this.connectionManager.currentConnectionState;
         if (state.tag === "connected") {
-            return await state.isSearchSupported();
+            return await state.isSearchSupported(this.logger);
         }
 
         return false;

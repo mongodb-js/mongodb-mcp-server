@@ -86,7 +86,7 @@ jobs:
       - uses: pnpm/action-setup@v5
       - uses: actions/setup-node@v6
         with:
-          node-version-file: package.json
+          node-version: "24"
           registry-url: "https://registry.npmjs.org"
           cache: "pnpm"
 
@@ -94,6 +94,8 @@ jobs:
         run: |
           pnpm install --frozen-lockfile
           pnpm run build
+      - name: Build .mcpb
+        run: pnpm run build:mcpb
       - name: Publish to NPM
         run: |
           pnpm publish --tag ${{ needs.check.outputs.RELEASE_CHANNEL }} --no-git-checks
@@ -103,11 +105,11 @@ jobs:
         id: ai-summary
         continue-on-error: true
         env:
-          GH_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
-        run: ./scripts/generate-release-notes.sh ${{ needs.check.outputs.GIT_TAG_VERSION }} ${{ github.sha }}
-        shell: bash
+          GROVE_API_KEY: ${{ secrets.GROVE_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
+        run: node --experimental-strip-types scripts/generate-release-notes.ts --newVersion ${{ needs.check.outputs.GIT_TAG_VERSION }} --commitSha ${{ github.sha }}
 
-      - name: Publish git release and create tags
+      - name: Publish github release
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -115,26 +117,11 @@ jobs:
           set -e
 
           gh release create ${{ needs.check.outputs.GIT_TAG_VERSION }} \
+            dist-mcpb/*.mcpb \
             --title "${{ needs.check.outputs.GIT_TAG_VERSION }}" \
             --notes-file "${{ steps.ai-summary.outputs.notes_file }}" \
             --target ${{ github.sha }} \
             ${{ (needs.check.outputs.RELEASE_CHANNEL != 'latest' && '--prerelease') || ''}}
-
-          echo "Creating tags for packages..."
-          for pkg_json in packages/*/package.json; do
-            pkg_name=$(node -p "require('./$pkg_json').name")
-            pkg_version=$(node -p "require('./$pkg_json').version")
-            git_tag="${pkg_name}@${pkg_version}"
-
-            if git rev-parse "$git_tag" >/dev/null 2>&1; then
-              continue
-            fi
-
-            echo "Creating tag ${git_tag}..."
-            gh api repos/${{ github.repository }}/git/refs \
-              -f ref="refs/tags/${git_tag}" \
-              -f sha="${{ github.sha }}"
-          done
 
       - name: Wait for package to be available on npm
         run: |
@@ -156,58 +143,6 @@ jobs:
 
           echo "::error::Package ${PACKAGE_NAME}@${NPM_VERSION} did not become available after $((MAX_ATTEMPTS * SLEEP_SECONDS)) seconds"
           exit 1
-
-  publish-auxiliary:
-    runs-on: ubuntu-latest
-    environment: Production
-    permissions:
-      contents: write
-      id-token: write
-    needs:
-      - check
-    if: needs.check.outputs.VERSION_EXISTS == 'true'
-    steps:
-      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
-      - uses: actions/checkout@v6
-        with:
-          persist-credentials: false
-          fetch-depth: 0
-      - uses: pnpm/action-setup@v5
-      - uses: actions/setup-node@v6
-        with:
-          node-version-file: package.json
-          registry-url: "https://registry.npmjs.org"
-          cache: "pnpm"
-
-      - name: Build
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm run build
-
-      - name: Publish auxiliary packages to NPM
-        run: |
-          pnpm -r --filter './packages/*' publish --tag ${{ needs.check.outputs.RELEASE_CHANNEL }} --no-git-checks
-
-      - name: Create tags for auxiliary packages
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -e
-          for pkg_json in packages/*/package.json; do
-            pkg_name=$(node -p "require('./$pkg_json').name")
-            pkg_version=$(node -p "require('./$pkg_json').version")
-            git_tag="${pkg_name}@${pkg_version}"
-
-            if git rev-parse "$git_tag" >/dev/null 2>&1; then
-              continue
-            fi
-
-            echo "Creating tag ${git_tag}..."
-            gh api repos/${{ github.repository }}/git/refs \
-              -f ref="refs/tags/${git_tag}" \
-              -f sha="${{ github.sha }}"
-          done
 
   docker-push:
     needs: [check, publish]

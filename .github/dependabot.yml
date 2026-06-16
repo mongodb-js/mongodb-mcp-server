@@ -29,6 +29,10 @@ updates:
         patterns:
           - ai
           - "@ai-sdk/*"
+      vitest:
+        patterns:
+          - vitest
+          - "@vitest/*"
     versioning-strategy: increase
   - package-ecosystem: "github-actions"
     directory: "/"

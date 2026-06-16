@@ -61,6 +61,7 @@ export {
 } from "./transports/base.js";
 export {
     ConnectionManager,
+    MCPConnectionManager,
     ConnectionStateConnected,
     type AnyConnectionState,
     type ConnectionState,
@@ -83,7 +84,7 @@ export {
 export { ErrorCodes, MongoDBError } from "./common/errors.js";
 export { Telemetry } from "./telemetry/telemetry.js";
 export { type TelemetryEvent, type CommonProperties, type BaseEvent } from "./telemetry/types.js";
-export { type TelemetryEvents } from "./telemetry/telemetry.js";
+export type { TelemetryEvents, TelemetryConfig } from "./telemetry/telemetry.js";
 export { EventCache } from "./telemetry/eventCache.js";
 export { Keychain, registerGlobalSecretToRedact } from "./common/keychain.js";
 export type { Secret } from "./common/keychain.js";
@@ -122,3 +123,11 @@ export {
     Histogram,
     Counter,
 } from "@mongodb-js/mcp-metrics";
+export {
+    JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
+    JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED,
+    JSON_RPC_ERROR_CODE_SESSION_ID_INVALID,
+    JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND,
+    JSON_RPC_ERROR_CODE_INVALID_REQUEST,
+    JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION,
+} from "./transports/jsonRpcErrorCodes.js";

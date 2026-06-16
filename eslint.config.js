@@ -1,4 +1,3 @@
-import path from "path";
 import { defineConfig, globalIgnores } from "eslint/config";
 import js from "@eslint/js";
 import globals from "globals";
@@ -38,7 +37,7 @@ export default defineConfig([
             "vitest/expect-expect": [
                 "error",
                 {
-                    assertFunctionNames: ["expect", "expectDefined", "verifyMockCalls"],
+                    assertFunctionNames: ["expect", "expectDefined", "verifyMockCalls", "expectForbiddenOperator"],
                 },
             ],
         },

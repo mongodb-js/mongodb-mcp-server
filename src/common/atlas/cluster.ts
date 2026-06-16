@@ -20,6 +20,9 @@ export interface Cluster {
     name?: string;
     instanceType: "FREE" | "DEDICATED" | "FLEX";
     instanceSize?: string;
+    provider?: string;
+    region?: string;
+    paused: boolean;
     state?: "IDLE" | "CREATING" | "UPDATING" | "DELETING" | "REPAIRING";
     mongoDBVersion?: string;
     connectionStrings?: ClusterConnectionStrings;
@@ -31,6 +34,9 @@ export function formatFlexCluster(cluster: FlexClusterDescription20241113): Clus
         name: cluster.name,
         instanceType: "FLEX",
         instanceSize: undefined,
+        provider: cluster.providerSettings?.backingProviderName,
+        region: cluster.providerSettings?.regionName,
+        paused: false,
         state: cluster.stateName,
         mongoDBVersion: cluster.mongoDBVersion,
         connectionStrings: cluster.connectionStrings,
@@ -69,10 +75,20 @@ export function formatCluster(cluster: ClusterDescription20240805): Cluster {
     const instanceSize = regionConfigs[0]?.instanceSize ?? "UNKNOWN";
     const clusterInstanceType = instanceSize === "M0" ? "FREE" : "DEDICATED";
 
+    const primaryRegionConfig = cluster.replicationSpecs?.[0]?.regionConfigs?.[0] as
+        | { backingProviderName?: string; providerName?: string; regionName?: string }
+        | undefined;
+    const provider =
+        clusterInstanceType === "FREE" ? primaryRegionConfig?.backingProviderName : primaryRegionConfig?.providerName;
+    const region = primaryRegionConfig?.regionName;
+
     return {
         name: cluster.name,
         instanceType: clusterInstanceType,
         instanceSize: clusterInstanceType === "DEDICATED" ? instanceSize : undefined,
+        provider,
+        region,
+        paused: cluster.paused ?? false,
         state: cluster.stateName,
         mongoDBVersion: cluster.mongoDBVersion,
         connectionStrings: cluster.connectionStrings,

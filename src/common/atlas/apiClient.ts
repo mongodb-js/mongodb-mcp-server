@@ -342,6 +342,19 @@ export class ApiClient {
         return data;
     }
 
+    async upgradeTenantUpgrade(
+        options: FetchOptions<operations["upgradeGroupClusterTenantUpgrade"]>
+    ): Promise<components["schemas"]["LegacyAtlasCluster"]> {
+        const { data, error, response } = await this.client.POST(
+            "/api/atlas/v2/groups/{groupId}/clusters/tenantUpgrade",
+            { ...options, headers: { Accept: "application/vnd.atlas.2023-01-01+json", ...options?.headers } }
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     async deleteCluster(options: FetchOptions<operations["deleteGroupCluster"]>) {
         const { error, response } = await this.client.DELETE(
@@ -357,6 +370,19 @@ export class ApiClient {
         options: FetchOptions<operations["getGroupCluster"]>
     ): Promise<components["schemas"]["ClusterDescription20240805"]> {
         const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    async updateCluster(
+        options: FetchOptions<operations["updateGroupCluster"]>
+    ): Promise<components["schemas"]["ClusterDescription20240805"]> {
+        const { data, error, response } = await this.client.PATCH(
             "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}",
             options
         );
@@ -489,11 +515,50 @@ export class ApiClient {
         return data;
     }
 
+    async tenantUpgrade(
+        options: FetchOptions<operations["tenantGroupFlexClusterUpgrade"]>
+    ): Promise<components["schemas"]["FlexClusterDescription20241113"]> {
+        const { data, error, response } = await this.client.POST(
+            "/api/atlas/v2/groups/{groupId}/flexClusters:tenantUpgrade",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
     async listSlowQueryLogs(
         options: FetchOptions<operations["listGroupProcessPerformanceAdvisorSlowQueryLogs"]>
     ): Promise<components["schemas"]["PerformanceAdvisorSlowQueryList"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/processes/{processId}/performanceAdvisor/slowQueryLogs",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    async requestSampleDatasetLoad(
+        options: FetchOptions<operations["requestGroupSampleDatasetLoad"]>
+    ): Promise<components["schemas"]["SampleDatasetStatus"]> {
+        const { data, error, response } = await this.client.POST(
+            "/api/atlas/v2/groups/{groupId}/sampleDatasetLoad/{name}",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    async getSampleDatasetLoad(
+        options: FetchOptions<operations["getGroupSampleDatasetLoad"]>
+    ): Promise<components["schemas"]["SampleDatasetStatus"]> {
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/sampleDatasetLoad/{sampleDatasetId}",
             options
         );
         if (error) {

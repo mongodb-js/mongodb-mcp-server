@@ -86,7 +86,7 @@ async function main(): Promise<void> {
     }
 
     if (isSetupRequested) {
-        await handleSetupRequest(config);
+        await runSetup(config);
     }
 
     if (config.dryRun) {
@@ -181,11 +181,6 @@ function handleHelpRequest(): never {
 
 function handleVersionRequest(): never {
     console.log(packageInfo.version);
-    process.exit(0);
-}
-
-async function handleSetupRequest(config: UserConfig): Promise<never> {
-    await runSetup(config);
     process.exit(0);
 }
 

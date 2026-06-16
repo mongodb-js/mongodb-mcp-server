@@ -27,6 +27,8 @@ export default defineConfig({
         hookTimeout: 3600000,
         setupFiles: ["./tests/setup.ts"],
         coverage: {
+            // Coverage is disabled on Windows as we only report it from the ubuntu job
+            enabled: process.platform !== "win32",
             exclude: [
                 // Required: import.meta.glob() in src/ui creates Vite virtual modules (\0 prefixed paths)
                 // that crash Istanbul reporters. See: https://github.com/vitest-dev/vitest/issues/5101
@@ -47,7 +49,13 @@ export default defineConfig({
                 test: {
                     name: "unit-and-integration",
                     include: ["**/*.test.ts"],
-                    exclude: [...vitestDefaultExcludes, "scripts/**", "tests/accuracy/**", ...longRunningTests],
+                    exclude: [
+                        ...vitestDefaultExcludes,
+                        "scripts/**",
+                        "tests/accuracy/**",
+                        "tests/browser/**",
+                        ...longRunningTests,
+                    ],
                 },
             },
             {
@@ -69,6 +77,13 @@ export default defineConfig({
                 test: {
                     name: "atlas-cleanup",
                     include: ["scripts/cleanupAtlasTestLeftovers.test.ts"],
+                },
+            },
+            {
+                extends: true,
+                test: {
+                    name: "mcpb-build-script",
+                    include: ["scripts/createMcpb.test.ts"],
                 },
             },
             {

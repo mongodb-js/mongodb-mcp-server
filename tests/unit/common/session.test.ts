@@ -1,5 +1,6 @@
 import type { Mocked, MockedFunction } from "vitest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { MongoServerError } from "mongodb";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { Session } from "../../../src/common/session.js";
 import { CompositeLogger } from "../../../src/common/logging/index.js";
@@ -141,17 +142,21 @@ describe("Session", () => {
         let getSearchIndexesMock: MockedFunction<() => unknown>;
         let createSearchIndexesMock: MockedFunction<() => unknown>;
         let insertOneMock: MockedFunction<() => unknown>;
+        let listDatabasesMock: MockedFunction<() => unknown>;
 
         beforeEach(() => {
             getSearchIndexesMock = vi.fn();
             createSearchIndexesMock = vi.fn();
             insertOneMock = vi.fn();
+            listDatabasesMock = vi.fn().mockResolvedValue({ databases: [] });
 
             MockNodeDriverServiceProvider.connect = vi.fn().mockResolvedValue({
+                initialDb: "admin",
                 getSearchIndexes: getSearchIndexesMock,
                 createSearchIndexes: createSearchIndexesMock,
                 insertOne: insertOneMock,
                 dropDatabase: vi.fn().mockResolvedValue({}),
+                listDatabases: listDatabasesMock,
             } as unknown as NodeDriverServiceProvider);
         });
 
@@ -167,13 +172,26 @@ describe("Session", () => {
             expect(await session.isSearchSupported()).toBeTruthy();
         });
 
-        it("should return false if listing search indexes fail with search error", async () => {
-            getSearchIndexesMock.mockRejectedValue(new Error("SearchNotEnabled"));
+        it("should return false when the server reports SearchNotEnabled", async () => {
+            getSearchIndexesMock.mockRejectedValue(
+                new MongoServerError({ message: "Search is not enabled", code: 31082, codeName: "SearchNotEnabled" })
+            );
 
             await session.connectToMongoDB({
                 connectionString: "mongodb://localhost:27017",
             });
             expect(await session.isSearchSupported()).toEqual(false);
+        });
+
+        it("should assume search is supported when the probe never sees SearchNotEnabled", async () => {
+            getSearchIndexesMock.mockRejectedValue(new MongoServerError({ message: "not authorized on db", code: 13 }));
+
+            await session.connectToMongoDB({
+                connectionString: "mongodb://localhost:27017",
+            });
+            expect(await session.isSearchSupported()).toEqual(true);
+            expect(await session.isSearchSupported()).toEqual(true);
+            expect(getSearchIndexesMock).toHaveBeenCalledTimes(1);
         });
     });
 
@@ -184,7 +202,9 @@ describe("Session", () => {
             getSearchIndexesMock = vi.fn();
 
             MockNodeDriverServiceProvider.connect = vi.fn().mockResolvedValue({
+                initialDb: "test",
                 getSearchIndexes: getSearchIndexesMock,
+                listDatabases: vi.fn().mockResolvedValue({ databases: [] }),
             } as unknown as NodeDriverServiceProvider);
         });
 
@@ -195,17 +215,19 @@ describe("Session", () => {
                 connectionString: "mongodb://localhost:27017",
             });
 
-            await expect(session.assertSearchSupported()).resolves.not.toThrowError();
+            await expect(session.assertSearchSupported()).resolves.not.toThrow();
         });
 
         it("should throw if it is not supported", async () => {
-            getSearchIndexesMock.mockRejectedValue(new Error("Not supported"));
+            getSearchIndexesMock.mockRejectedValue(
+                new MongoServerError({ message: "Search is not enabled", code: 31082, codeName: "SearchNotEnabled" })
+            );
 
             await session.connectToMongoDB({
                 connectionString: "mongodb://localhost:27017",
             });
 
-            await expect(session.assertSearchSupported()).rejects.toThrowError(
+            await expect(session.assertSearchSupported()).rejects.toThrow(
                 new MongoDBError(
                     ErrorCodes.AtlasSearchNotSupported,
                     "Atlas Search is not supported in the current cluster."
