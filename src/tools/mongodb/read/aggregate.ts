@@ -23,6 +23,7 @@ import {
     type SearchIndex,
 } from "../../../helpers/assertVectorSearchFilterFieldsAreIndexed.js";
 import { isWriteStage } from "../../../helpers/mqlGuards.js";
+import { serializeBsonToJsonObjects } from "../../../helpers/bsonToJson.js";
 
 export const pipelineDescriptionWithVectorSearch = `\
 An array of aggregation stages to execute.
@@ -214,7 +215,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                     ...(documents.length > 0 ? [EJSON.stringify(documents)] : [])
                 ),
                 structuredContent: {
-                    documents,
+                    documents: serializeBsonToJsonObjects(documents),
                     ...(aggResultsCount !== undefined ? { aggResultsCount } : {}),
                     appliedLimits,
                 },

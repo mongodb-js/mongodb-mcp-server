@@ -17,6 +17,7 @@ import {
 import { zEJSON } from "../../args.js";
 import { LogId } from "../../../common/logging/index.js";
 import { SortDirectionSchema } from "../mongodbSchemas.js";
+import { serializeBsonToJsonObjects } from "../../../helpers/bsonToJson.js";
 
 export const FindArgs = {
     filter: zEJSON()
@@ -135,7 +136,7 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
                     ...(cursorResults.documents.length > 0 ? [EJSON.stringify(cursorResults.documents)] : [])
                 ),
                 structuredContent: {
-                    documents: cursorResults.documents,
+                    documents: serializeBsonToJsonObjects(cursorResults.documents),
                     queryResultsCount,
                     appliedLimits: [limitOnFindCursor.cappedBy, cursorResults.cappedBy].filter(
                         (limit): limit is CursorLimitKey => !!limit

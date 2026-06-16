@@ -12,6 +12,7 @@ import * as constants from "../../../../../src/helpers/constants.js";
 import { describeWithMongoDB, getDocsFromUntrustedContent, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 import type { Client } from "@modelcontextprotocol/sdk/client";
 import type { FindOutput } from "../../../../../src/tools/mongodb/read/find.js";
+import { serializeBsonToJsonObjects } from "../../../../../src/helpers/bsonToJson.js";
 
 export async function freshInsertDocuments({
     collection,
@@ -194,7 +195,7 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
                 const structuredContent = response.structuredContent as FindOutput;
                 expect(structuredContent.queryResultsCount).toBe(expectedCount);
                 expect(structuredContent.appliedLimits).toEqual([]);
-                expect(structuredContent.documents).toEqual(docs);
+                expect(structuredContent.documents).toEqual(serializeBsonToJsonObjects(docs));
             });
         }
 
@@ -216,7 +217,7 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
             const structuredContent = response.structuredContent as FindOutput;
             expect(structuredContent.queryResultsCount).toBe(10);
             expect(structuredContent.appliedLimits).toEqual([]);
-            expect(structuredContent.documents).toEqual(docs);
+            expect(structuredContent.documents).toEqual(serializeBsonToJsonObjects(docs));
         });
 
         it("can find objects by $oid", async () => {
@@ -248,7 +249,7 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
             const structuredContent = response.structuredContent as FindOutput;
             expect(structuredContent.queryResultsCount).toBe(1);
             expect(structuredContent.appliedLimits).toEqual([]);
-            expect(structuredContent.documents).toEqual(docs);
+            expect(structuredContent.documents).toEqual(serializeBsonToJsonObjects(docs));
         });
 
         it("can find objects by date", async () => {
@@ -284,7 +285,7 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
             const structuredContent = response.structuredContent as FindOutput;
             expect(structuredContent.queryResultsCount).toBe(1);
             expect(structuredContent.appliedLimits).toEqual([]);
-            expect(structuredContent.documents).toEqual(docs);
+            expect(structuredContent.documents).toEqual(serializeBsonToJsonObjects(docs));
         });
     });
 
@@ -322,7 +323,7 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
             const structuredContent = response.structuredContent as FindOutput;
             expect(structuredContent.queryResultsCount).toBeUndefined();
             expect(structuredContent.appliedLimits).toEqual([]);
-            expect(structuredContent.documents).toEqual(docs);
+            expect(structuredContent.documents).toEqual(serializeBsonToJsonObjects(docs));
         });
     });
 });
@@ -646,7 +647,7 @@ describeWithMongoDB(
             const structuredContent = response.structuredContent as FindOutput;
             expect(structuredContent.queryResultsCount).toBe(5);
             expect(structuredContent.appliedLimits).toEqual([]);
-            expect(structuredContent.documents).toEqual(docs);
+            expect(structuredContent.documents).toEqual(serializeBsonToJsonObjects(docs));
         });
     },
     {
@@ -727,7 +728,7 @@ describeWithMongoDB("find tool with server-side JavaScript operators", (integrat
                 expect(docs[0]).toEqual(expect.objectContaining({ name: "Laura", age: 10 }));
                 const structuredContent = response.structuredContent as FindOutput;
                 expect(structuredContent.appliedLimits).toEqual([]);
-                expect(structuredContent.documents).toEqual(docs);
+                expect(structuredContent.documents).toEqual(serializeBsonToJsonObjects(docs));
             }
         });
     }

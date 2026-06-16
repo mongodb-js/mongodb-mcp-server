@@ -9,9 +9,9 @@ import {
 import { expect, it, afterEach } from "vitest";
 import { describeWithMongoDB, getDocsFromUntrustedContent, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 import type { Client } from "@modelcontextprotocol/sdk/client";
-import { EJSON } from "bson";
 import type { AggregateDBOutput } from "../../../../../src/tools/mongodb/read/aggregateDB.js";
 import type { CursorLimitKey } from "../../../../../src/helpers/constants.js";
+import { serializeBsonToJsonObjects } from "../../../../../src/helpers/bsonToJson.js";
 
 type AggregateDBToolResponse = Awaited<ReturnType<Client["callTool"]>>;
 
@@ -27,7 +27,7 @@ function expectAggregateDBStructuredContent(
     const structuredContent = response.structuredContent as AggregateDBOutput;
     const contentDocs = structuredContent.documents.length > 0 ? getDocsFromUntrustedContent(content) : [];
 
-    expect(EJSON.stringify(structuredContent.documents)).toEqual(EJSON.stringify(contentDocs));
+    expect(structuredContent.documents).toEqual(serializeBsonToJsonObjects(contentDocs));
 
     if (expected.omitAggResultsCount) {
         expect(structuredContent.aggResultsCount).toBeUndefined();

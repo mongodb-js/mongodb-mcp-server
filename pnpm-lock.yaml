@@ -50,6 +50,9 @@ importers:
       express:
         specifier: ^5.2.1
         version: 5.2.1
+      hadron-document:
+        specifier: ^8.11.5
+        version: 8.11.5(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
       jsonc-parser:
         specifier: ^3.3.1
         version: 3.3.1
@@ -4253,6 +4256,9 @@ packages:
     resolution: {integrity: sha512-i/2XbnSz/uxRCU6+NdVJgKWDTM427+MqYbkQzD321DuCQJUqOuJKIA0IM2+W2xtYHdKOmZ4dR6fExsd4SXL+WQ==}
     engines: {node: '>=6'}
 
+  eventemitter3@4.0.7:
+    resolution: {integrity: sha512-8guHBZCwKnFhYdHr2ysuRWErTwhoN2X8XELRlrRwpmfeY2jjuUN4taQMsULKUVo1K4DvZl+0pgfyoysHxvmvEw==}
+
   eventemitter3@5.0.1:
     resolution: {integrity: sha512-GWkBvjiSZK87ELrYOSESUYeVIc9mvLLf/nXalMOS5dYrgZq9o5OVkbZAVM06CVxYsCwH9BDZFPlQTlPA1j4ahA==}
 
@@ -4572,6 +4578,12 @@ packages:
 
   graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
+
+  hadron-document@8.11.5:
+    resolution: {integrity: sha512-LUyPJPZ0XJpqsgI50TWJOx/xGPESfJRaWZtPSy6V5ldqzn8bQJUKdXwHwHMAYx9JBkAXXR4HMGHd7Dqs5KPYPg==}
+
+  hadron-type-checker@7.5.5:
+    resolution: {integrity: sha512-OviWZ7scw9nagjAtbFKAPidincGEgamFx6Pt2z+OXUuIXzrJM1tkWitld/RzionCadnOTEpUkhfHAOPBzjbRsw==}
 
   handlebars@4.7.9:
     resolution: {integrity: sha512-4E71E0rpOaQuJR2A3xDZ+GM1HyWYv1clR58tC8emQNeQe3RH7MAzSbat+V0wG78LQBo6m6bzSG/L4pBuCsgnUQ==}
@@ -8280,7 +8292,7 @@ snapshots:
     dependencies:
       '@leafygreen-ui/lib': 15.7.0(react@18.3.1)
       '@leafygreen-ui/tokens': 4.2.0(react@18.3.1)
-      lodash: 4.17.23
+      lodash: 4.18.1
     transitivePeerDependencies:
       - react
       - supports-color
@@ -11973,6 +11985,8 @@ snapshots:
 
   event-target-shim@5.0.1: {}
 
+  eventemitter3@4.0.7: {}
+
   eventemitter3@5.0.1: {}
 
   events-universal@1.0.1:
@@ -12337,6 +12351,27 @@ snapshots:
   gopd@1.2.0: {}
 
   graceful-fs@4.2.11: {}
+
+  hadron-document@8.11.5(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7):
+    dependencies:
+      bson: 7.2.0
+      eventemitter3: 4.0.7
+      hadron-type-checker: 7.5.5
+      lodash: 4.18.1
+      mongodb: 7.2.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
+    transitivePeerDependencies:
+      - '@aws-sdk/credential-providers'
+      - '@mongodb-js/zstd'
+      - gcp-metadata
+      - kerberos
+      - mongodb-client-encryption
+      - snappy
+      - socks
+
+  hadron-type-checker@7.5.5:
+    dependencies:
+      bson: 7.2.0
+      lodash: 4.18.1
 
   handlebars@4.7.9:
     dependencies:
@@ -13131,7 +13166,7 @@ snapshots:
 
   mongodb@7.2.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7):
     dependencies:
-      '@mongodb-js/saslprep': 1.4.8
+      '@mongodb-js/saslprep': 1.4.11
       bson: 7.2.0
       mongodb-connection-string-url: 7.0.1
     optionalDependencies:

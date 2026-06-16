@@ -18,6 +18,7 @@ import {
 } from "../../../helpers/constants.js";
 import { LogId } from "../../../common/logging/index.js";
 import { AnyAggregateStage, DB_AGGREGATE_STAGE_OPERATORS } from "../mongodbSchemas.js";
+import { serializeBsonToJsonObjects } from "../../../helpers/bsonToJson.js";
 
 const AggregateDBOutputSchema = {
     documents: z.array(z.unknown()).describe("The documents returned by the aggregation pipeline"),
@@ -126,7 +127,7 @@ The maximum number of bytes to return in the response. This value is capped by t
                     ...(documents.length > 0 ? [EJSON.stringify(documents)] : [])
                 ),
                 structuredContent: {
-                    documents,
+                    documents: serializeBsonToJsonObjects(documents),
                     ...(aggResultsCount !== undefined ? { aggResultsCount } : {}),
                     appliedLimits,
                 },

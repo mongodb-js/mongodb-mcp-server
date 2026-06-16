@@ -17,7 +17,7 @@ import {
 } from "../mongodbHelpers.js";
 import * as constants from "../../../../../src/helpers/constants.js";
 import { freshInsertDocuments } from "./find.test.js";
-import { BSON, EJSON } from "bson";
+import { BSON } from "bson";
 import { DOCUMENT_EMBEDDINGS } from "./vyai/embeddings.js";
 import type { ToolEvent } from "../../../../../src/telemetry/types.js";
 import type { Client } from "@modelcontextprotocol/sdk/client";
@@ -27,6 +27,7 @@ import {
 } from "../../../../../src/tools/mongodb/read/aggregate.js";
 import { MongoServerError, type Collection } from "mongodb";
 import type { CursorLimitKey } from "../../../../../src/helpers/constants.js";
+import { serializeBsonToJsonObjects } from "../../../../../src/helpers/bsonToJson.js";
 
 type AggregateToolResponse = Awaited<ReturnType<Client["callTool"]>>;
 
@@ -42,7 +43,7 @@ function expectAggregateStructuredContent(
     const structuredContent = response.structuredContent as AggregateOutput;
     const contentDocs = structuredContent.documents.length > 0 ? getDocsFromUntrustedContent(content) : [];
 
-    expect(EJSON.stringify(structuredContent.documents)).toEqual(EJSON.stringify(contentDocs));
+    expect(structuredContent.documents).toEqual(serializeBsonToJsonObjects(contentDocs));
 
     if (expected.omitAggResultsCount) {
         expect(structuredContent.aggResultsCount).toBeUndefined();
