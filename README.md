@@ -835,10 +835,10 @@ npx -y mongodb-mcp-server@latest --logPath=/path/to/logs --readOnly --indexCheck
 
 ### Proxy Support
 
-The MCP Server detects standard proxy environment variables and uses them for all
-outbound connections: the Atlas Administration API, your MongoDB cluster, OIDC identity
-providers, and other external services such as the MongoDB Assistant. The behaviour
-matches `mongosh` (both rely on [`@mongodb-js/devtools-proxy-support`](https://www.npmjs.com/package/@mongodb-js/devtools-proxy-support)),
+The MCP Server detects standard proxy environment variables and uses them for supported
+outbound connections, including the Atlas Administration API, MongoDB cluster connections,
+OIDC identity providers, and the MongoDB Assistant. The behaviour matches `mongosh`
+(both rely on [`@mongodb-js/devtools-proxy-support`](https://www.npmjs.com/package/@mongodb-js/devtools-proxy-support)),
 so any proxy configuration that works with `mongosh` also works here.
 
 #### Environment variables
@@ -856,7 +856,7 @@ variables are honored:
 ```shell
 # Route outbound traffic through a corporate proxy, except internal hosts
 export HTTPS_PROXY="http://proxy.example.com:8080"
-export NO_PROXY="localhost,127.0.0.1,.internal.example.com"
+export NO_PROXY="localhost,127.0.0.1,*.internal.example.com"
 ```
 
 #### Proxy in the connection string
@@ -872,10 +872,10 @@ Supported parameters: `proxyHost`, `proxyPort`, `proxyUsername`, `proxyPassword`
 
 #### Certificate authorities
 
-When connecting through a proxy that performs TLS interception, the server also trusts
-the operating system's certificate store in addition to the bundled CAs — the same way
-`mongosh` does — so corporate root certificates installed at the OS level are picked up
-automatically.
+For the HTTP(S) requests handled by `@mongodb-js/devtools-proxy-support` (the Atlas API,
+OIDC, and the MongoDB Assistant), the operating system's certificate store is trusted in
+addition to the bundled CAs — the same way `mongosh` does — so corporate root certificates
+installed at the OS level are picked up automatically.
 
 ## 🚀Deploy on Public Clouds
 
