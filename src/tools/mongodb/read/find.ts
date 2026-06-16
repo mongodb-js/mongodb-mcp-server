@@ -42,8 +42,6 @@ const FindOutputSchema = {
     appliedLimits: z.array(z.enum(CURSOR_LIMIT_KEYS)).describe("The limits applied to the find query"),
 };
 
-export type FindOutput = z.infer<z.ZodObject<typeof FindOutputSchema>>;
-
 export class FindTool extends MongoDBToolBase {
     static toolName = "find";
     public description = "Run a find query against a MongoDB collection";

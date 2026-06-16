@@ -29,8 +29,6 @@ const AggregateDBOutputSchema = {
     appliedLimits: z.array(z.enum(CURSOR_LIMIT_KEYS)).describe("The limits applied to the aggregation pipeline"),
 };
 
-export type AggregateDBOutput = z.infer<z.ZodObject<typeof AggregateDBOutputSchema>>;
-
 export const AggregateArgs = {
     pipeline: z
         .array(AnyAggregateStage)

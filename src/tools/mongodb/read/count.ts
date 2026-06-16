@@ -16,8 +16,6 @@ const CountOutputSchema = {
     count: z.number().optional().describe("The number of documents in the collection"),
 };
 
-export type CountOutput = z.infer<z.ZodObject<typeof CountOutputSchema>>;
-
 export class CountTool extends MongoDBToolBase {
     static toolName = "count";
     public description =

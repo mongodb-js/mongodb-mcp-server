@@ -8,8 +8,6 @@ import {
 import { defaultTestConfig } from "../../../helpers.js";
 import { beforeEach, describe, expect, it, type MockInstance, vi } from "vitest";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import type { ConnectOutput } from "../../../../../src/tools/mongodb/connect/connect.js";
-import type { SwitchConnectionOutput } from "../../../../../src/tools/mongodb/connect/switchConnection.js";
 
 describeWithMongoDB(
     "SwitchConnection tool",
@@ -41,8 +39,7 @@ describeWithMongoDB(
         describe("without arguments", () => {
             it("connects to the database", async () => {
                 const response = await integration.mcpClient().callTool({ name: "switch-connection" });
-                const structuredContent = response.structuredContent as SwitchConnectionOutput;
-                expect(structuredContent.connected).toBe(true);
+                expect(response.structuredContent).toEqual({ connected: true });
                 const content = getResponseContent(response.content);
                 expect(content).toContain("Successfully connected");
             });
@@ -84,8 +81,7 @@ describeWithMongoDB(
                 const content = getResponseContent(response.content);
 
                 expect(content).toContain("The configured connection string is not valid.");
-                const structuredContent = response.structuredContent as SwitchConnectionOutput;
-                expect(structuredContent.connected).toBe(false);
+                expect(response.structuredContent).toEqual({ connected: false });
             });
         });
     },
@@ -194,8 +190,7 @@ describeWithMongoDB("Connect tool", (integration) => {
                     connectionString: integration.connectionString(),
                 },
             });
-            const structuredContent = response.structuredContent as ConnectOutput;
-            expect(structuredContent.connected).toBe(true);
+            expect(response.structuredContent).toEqual({ connected: true });
             const content = getResponseContent(response.content);
             expect(content).toContain("Successfully connected");
         });
@@ -209,8 +204,7 @@ describeWithMongoDB("Connect tool", (integration) => {
             });
             const content = getResponseContent(response.content);
             expect(content).toContain("The configured connection string is not valid.");
-            const structuredContent = response.structuredContent as ConnectOutput;
-            expect(structuredContent.connected).toBe(false);
+            expect(response.structuredContent).toEqual({ connected: false });
 
             // Should not suggest using the config connection string (because we don't have one)
             expect(content).not.toContain("Your config lists a different connection string");

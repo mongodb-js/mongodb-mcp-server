@@ -8,8 +8,6 @@ const ConnectOutputSchema = {
     connected: z.boolean(),
 };
 
-export type ConnectOutput = z.infer<z.ZodObject<typeof ConnectOutputSchema>>;
-
 export class ConnectTool extends MongoDBToolBase {
     static toolName = "connect";
     public override description =

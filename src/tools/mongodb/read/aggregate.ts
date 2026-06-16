@@ -60,8 +60,6 @@ const AggregateOutputSchema = {
     appliedLimits: z.array(z.enum(CURSOR_LIMIT_KEYS)).describe("The limits applied to the aggregation pipeline"),
 };
 
-export type AggregateOutput = z.infer<z.ZodObject<typeof AggregateOutputSchema>>;
-
 export const AggregateArgs = {
     pipeline: z.array(z.union([VectorSearchStage, AnyAggregateStage])).describe(pipelineDescriptionWithVectorSearch),
 };

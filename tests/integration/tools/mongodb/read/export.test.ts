@@ -13,7 +13,6 @@ import {
 } from "../../../helpers.js";
 import { describeWithMongoDB } from "../mongodbHelpers.js";
 import type { UserConfig } from "../../../../../src/lib.js";
-import type { ExportOutput } from "../../../../../src/tools/mongodb/read/export.js";
 
 const userConfig: UserConfig = {
     ...defaultTestConfig,
@@ -28,23 +27,30 @@ export function contentWithTextResourceURI(
     });
 }
 
-export function contentWithResourceURILink(content: CallToolResult["content"]): ExportOutput | undefined {
-    return content?.find((part): part is ExportOutput => part.type === "resource_link");
+export function contentWithResourceURILink(
+    content: CallToolResult["content"]
+): Extract<NonNullable<CallToolResult["content"]>[number], { type: "resource_link" }> | undefined {
+    const part = content?.find((item) => item.type === "resource_link");
+    return part?.type === "resource_link" ? part : undefined;
 }
 
-type TextContent = Extract<NonNullable<CallToolResult["content"]>[number], { type: "text" }>;
-
-export function contentWithExportPath(content: CallToolResult["content"]): TextContent | undefined {
-    return content?.find(
-        (part): part is TextContent =>
-            part.type === "text" &&
-            part.text.startsWith(
+export function contentWithExportPath(
+    content: CallToolResult["content"]
+): Extract<NonNullable<CallToolResult["content"]>[number], { type: "text" }> | undefined {
+    const part = content?.find(
+        (item) =>
+            item.type === "text" &&
+            item.text.startsWith(
                 `Optionally, when the export is finished, the exported data can also be accessed under path -`
             )
     );
+    return part?.type === "text" ? part : undefined;
 }
 
-function expectExportStructuredContent(response: CallToolResult, content: CallToolResult["content"]): ExportOutput {
+function expectExportStructuredContent(
+    response: CallToolResult,
+    content: CallToolResult["content"]
+): Extract<NonNullable<CallToolResult["content"]>[number], { type: "resource_link" }> {
     const resourceLink = contentWithResourceURILink(content);
     if (resourceLink === undefined) {
         throw new Error("Expected resource_link in export tool response content");

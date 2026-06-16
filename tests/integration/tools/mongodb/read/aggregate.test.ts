@@ -21,15 +21,20 @@ import { BSON } from "bson";
 import { DOCUMENT_EMBEDDINGS } from "./vyai/embeddings.js";
 import type { ToolEvent } from "../../../../../src/telemetry/types.js";
 import type { Client } from "@modelcontextprotocol/sdk/client";
-import {
-    pipelineDescriptionWithVectorSearch,
-    type AggregateOutput,
-} from "../../../../../src/tools/mongodb/read/aggregate.js";
+import { pipelineDescriptionWithVectorSearch } from "../../../../../src/tools/mongodb/read/aggregate.js";
 import { MongoServerError, type Collection } from "mongodb";
 import type { CursorLimitKey } from "../../../../../src/helpers/constants.js";
 import { serializeBsonToJsonObjects } from "../../../../../src/helpers/bsonToJson.js";
 
 type AggregateToolResponse = Awaited<ReturnType<Client["callTool"]>>;
+
+function getDocsFromUntrustedContentWhenPresent(content: string): unknown[] {
+    try {
+        return getDocsFromUntrustedContent(content);
+    } catch {
+        return [];
+    }
+}
 
 function expectAggregateStructuredContent(
     response: AggregateToolResponse,
@@ -40,19 +45,23 @@ function expectAggregateStructuredContent(
         appliedLimits?: CursorLimitKey[];
     }
 ): void {
-    const structuredContent = response.structuredContent as AggregateOutput;
-    const contentDocs = structuredContent.documents.length > 0 ? getDocsFromUntrustedContent(content) : [];
+    const contentDocs = getDocsFromUntrustedContentWhenPresent(content);
+    const expectedStructuredContent: Record<string, unknown> = {
+        documents: contentDocs.length > 0 ? serializeBsonToJsonObjects(contentDocs) : [],
+    };
 
-    expect(structuredContent.documents).toEqual(serializeBsonToJsonObjects(contentDocs));
-
-    if (expected.omitAggResultsCount) {
-        expect(structuredContent.aggResultsCount).toBeUndefined();
-    } else if (expected.aggResultsCount !== undefined) {
-        expect(structuredContent.aggResultsCount).toBe(expected.aggResultsCount);
+    if (!expected.omitAggResultsCount && expected.aggResultsCount !== undefined) {
+        expectedStructuredContent.aggResultsCount = expected.aggResultsCount;
     }
 
     if (expected.appliedLimits !== undefined) {
-        expect(structuredContent.appliedLimits).toEqual(expected.appliedLimits);
+        expectedStructuredContent.appliedLimits = expected.appliedLimits;
+    }
+
+    expect(response.structuredContent).toMatchObject(expectedStructuredContent);
+
+    if (expected.omitAggResultsCount) {
+        expect(response.structuredContent).not.toHaveProperty("aggResultsCount");
     }
 }
 

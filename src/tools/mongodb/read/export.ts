@@ -15,8 +15,6 @@ const ExportOutputSchema = {
     mimeType: z.string().describe("The MIME type of the exported data."),
 };
 
-export type ExportOutput = z.infer<z.ZodObject<typeof ExportOutputSchema>>;
-
 export class ExportTool extends MongoDBToolBase {
     static toolName = "export";
     public description = "Export a query or aggregation results in the specified EJSON format.";

@@ -9,8 +9,6 @@ const SwitchConnectionOutputSchema = {
     connected: z.boolean(),
 };
 
-export type SwitchConnectionOutput = z.infer<z.ZodObject<typeof SwitchConnectionOutputSchema>>;
-
 export class SwitchConnectionTool extends MongoDBToolBase {
     static toolName = "switch-connection";
     public override description =

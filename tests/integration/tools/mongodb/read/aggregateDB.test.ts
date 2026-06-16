@@ -9,11 +9,18 @@ import {
 import { expect, it, afterEach } from "vitest";
 import { describeWithMongoDB, getDocsFromUntrustedContent, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 import type { Client } from "@modelcontextprotocol/sdk/client";
-import type { AggregateDBOutput } from "../../../../../src/tools/mongodb/read/aggregateDB.js";
 import type { CursorLimitKey } from "../../../../../src/helpers/constants.js";
 import { serializeBsonToJsonObjects } from "../../../../../src/helpers/bsonToJson.js";
 
 type AggregateDBToolResponse = Awaited<ReturnType<Client["callTool"]>>;
+
+function getDocsFromUntrustedContentWhenPresent(content: string): unknown[] {
+    try {
+        return getDocsFromUntrustedContent(content);
+    } catch {
+        return [];
+    }
+}
 
 function expectAggregateDBStructuredContent(
     response: AggregateDBToolResponse,
@@ -24,19 +31,23 @@ function expectAggregateDBStructuredContent(
         appliedLimits?: CursorLimitKey[];
     }
 ): void {
-    const structuredContent = response.structuredContent as AggregateDBOutput;
-    const contentDocs = structuredContent.documents.length > 0 ? getDocsFromUntrustedContent(content) : [];
+    const contentDocs = getDocsFromUntrustedContentWhenPresent(content);
+    const expectedStructuredContent: Record<string, unknown> = {
+        documents: contentDocs.length > 0 ? serializeBsonToJsonObjects(contentDocs) : [],
+    };
 
-    expect(structuredContent.documents).toEqual(serializeBsonToJsonObjects(contentDocs));
-
-    if (expected.omitAggResultsCount) {
-        expect(structuredContent.aggResultsCount).toBeUndefined();
-    } else if (expected.aggResultsCount !== undefined) {
-        expect(structuredContent.aggResultsCount).toBe(expected.aggResultsCount);
+    if (!expected.omitAggResultsCount && expected.aggResultsCount !== undefined) {
+        expectedStructuredContent.aggResultsCount = expected.aggResultsCount;
     }
 
     if (expected.appliedLimits !== undefined) {
-        expect(structuredContent.appliedLimits).toEqual(expected.appliedLimits);
+        expectedStructuredContent.appliedLimits = expected.appliedLimits;
+    }
+
+    expect(response.structuredContent).toMatchObject(expectedStructuredContent);
+
+    if (expected.omitAggResultsCount) {
+        expect(response.structuredContent).not.toHaveProperty("aggResultsCount");
     }
 }
 
