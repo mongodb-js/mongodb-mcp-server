@@ -6,6 +6,13 @@ import { AtlasArgs } from "../../args.js";
 import type { CreateClusterMetadata } from "../../../telemetry/types.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
+/** @public */
+export const ATLAS_CREATE_CLUSTER_README_DESCRIPTION =
+    "Create a MongoDB Atlas cluster (M10–M80, replica set or single shard). " +
+    "Compute autoscaling is enabled by default: min instance size is set to the selected instance size, max is set two tiers above. " +
+    "Disk autoscaling is always enabled. The tool returns immediately, use the atlas-inspect-cluster tool to poll the cluster state for readiness (state: IDLE). " +
+    "Connection strings are unavailable until the cluster reaches IDLE state.";
+
 // Keeping this region recommendation string and the one for atlas-upgrade-cluster independent in the short term. The current effort is intentionally limited to additive changes only.
 // Differences include the mention of "non-exhaustive" and a nudge to respect user-specified regions when not in the mapping.
 const REGION_RECOMMENDATIONS = `Common, non-exhaustive region default mappings by provider:
