@@ -366,7 +366,6 @@ For more information about configuring OpenCode as an MCP client, including the 
   AZURE: "East US" → US_EAST_2, "West US" → US_WEST_2, "Europe North" → EUROPE_NORTH, "Europe West" → EUROPE_WEST.
   Default recommendation: AWS US_EAST_1.
   User-specified regions not present in the mapping MUST be respected, rely on the tool to surface errors if a region is not supported.
-  
 - `atlas-create-db-user` - Create an MongoDB Atlas database user
 - `atlas-create-free-cluster` - Create a free MongoDB Atlas cluster
 - `atlas-create-project` - Create a MongoDB Atlas project
