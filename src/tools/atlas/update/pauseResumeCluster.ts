@@ -6,6 +6,10 @@ import type { PauseResumeClusterMetadata } from "../../../telemetry/types.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { ClusterDescription20240805 } from "../../../common/atlas/openapi.js";
 
+/** @public */
+export const ATLAS_PAUSE_RESUME_CLUSTER_README_DESCRIPTION =
+    "Pause or resume a dedicated (M10+) MongoDB Atlas cluster.";
+
 const actionEnum = z.enum(["PAUSE", "RESUME"]);
 
 export const PauseResumeClusterArgsShape = {
