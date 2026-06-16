@@ -30,9 +30,7 @@ import { z } from 'zod';
 import { ZodDefault } from 'zod';
 import { ZodOptional } from 'zod';
 import type { ZodRawShape } from 'zod';
-import { ZodRecord } from 'zod';
 import { ZodString } from 'zod';
-import { ZodUnknown } from 'zod';
 
 // @public (undocumented)
 export class AggregateDBTool extends MongoDBToolBase {
@@ -45,9 +43,19 @@ export class AggregateDBTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof AggregateDBTool.argsShape>, input2: ToolExecutionContext): Promise<CallToolResult>;
+    protected execute(input: ToolArgs<typeof AggregateDBTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof AggregateDBTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
+    // (undocumented)
+    outputSchema: {
+        documents: z.ZodArray<z.ZodUnknown>;
+        aggResultsCount: z.ZodOptional<z.ZodNumber>;
+        appliedLimits: z.ZodArray<z.ZodEnum<{
+            "config.maxDocumentsPerQuery": "config.maxDocumentsPerQuery";
+            "config.maxBytesPerQuery": "config.maxBytesPerQuery";
+            "tool.responseBytesLimit": "tool.responseBytesLimit";
+        }>>;
+    };
     // (undocumented)
     static toolName: string;
 }
@@ -90,9 +98,19 @@ export class AggregateTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof AggregateTool.argsShape>, input2: ToolExecutionContext): Promise<CallToolResult>;
+    protected execute(input: ToolArgs<typeof AggregateTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof AggregateTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
+    // (undocumented)
+    outputSchema: {
+        documents: z.ZodArray<z.ZodUnknown>;
+        aggResultsCount: z.ZodOptional<z.ZodNumber>;
+        appliedLimits: z.ZodArray<z.ZodEnum<{
+            "config.maxDocumentsPerQuery": "config.maxDocumentsPerQuery";
+            "config.maxBytesPerQuery": "config.maxBytesPerQuery";
+            "tool.responseBytesLimit": "tool.responseBytesLimit";
+        }>>;
+    };
     // (undocumented)
     static toolName: string;
 }
@@ -275,9 +293,15 @@ export class ConnectTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof ConnectTool.argsShape>): Promise<CallToolResult>;
+    protected execute(input: ToolArgs<typeof ConnectTool.argsShape>): Promise<ToolResult<typeof ConnectTool.outputSchema>>;
+    // (undocumented)
+    protected handleError(error: unknown, args: ToolArgs<typeof ConnectTool.argsShape>): Promise<CallToolResult>;
     // (undocumented)
     static operationType: OperationType;
+    // (undocumented)
+    outputSchema: {
+        connected: z.ZodBoolean;
+    };
     // (undocumented)
     register(server: Server): boolean;
     // (undocumented)
@@ -288,16 +312,20 @@ export class ConnectTool extends MongoDBToolBase {
 export class CountTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
-        query: ZodOptional<ZodRecord<ZodString, ZodUnknown>>;
-        collection: ZodString;
-        database: ZodString;
+        query: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+        collection: z.ZodString;
+        database: z.ZodString;
     };
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof CountTool.argsShape>, input2: ToolExecutionContext): Promise<CallToolResult>;
+    protected execute(input: ToolArgs<typeof CountTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof CountTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
+    // (undocumented)
+    outputSchema: {
+        count: z.ZodOptional<z.ZodNumber>;
+    };
     // (undocumented)
     static toolName: string;
 }
@@ -919,9 +947,17 @@ export class ExportTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof ExportTool.argsShape>, input2: ToolExecutionContext): Promise<CallToolResult>;
+    protected execute(input: ToolArgs<typeof ExportTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof ExportTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
+    // (undocumented)
+    outputSchema: {
+        type: z.ZodLiteral<"resource_link">;
+        name: z.ZodString;
+        uri: z.ZodString;
+        description: z.ZodString;
+        mimeType: z.ZodString;
+    };
     // (undocumented)
     static toolName: string;
 }
@@ -943,9 +979,19 @@ export class FindTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof FindTool.argsShape>, input2: ToolExecutionContext): Promise<CallToolResult>;
+    protected execute(input: ToolArgs<typeof FindTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof FindTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
+    // (undocumented)
+    outputSchema: {
+        documents: z.ZodArray<z.ZodUnknown>;
+        queryResultsCount: z.ZodOptional<z.ZodNumber>;
+        appliedLimits: z.ZodArray<z.ZodEnum<{
+            "config.maxDocumentsPerQuery": "config.maxDocumentsPerQuery";
+            "config.maxBytesPerQuery": "config.maxBytesPerQuery";
+            "tool.responseBytesLimit": "tool.responseBytesLimit";
+        }>>;
+    };
     // (undocumented)
     static toolName: string;
 }
@@ -1685,9 +1731,15 @@ export class SwitchConnectionTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof SwitchConnectionTool.argsShape>): Promise<CallToolResult>;
+    protected execute(input: ToolArgs<typeof SwitchConnectionTool.argsShape>): Promise<ToolResult<typeof SwitchConnectionTool.outputSchema>>;
+    // (undocumented)
+    protected handleError(error: unknown, args: ToolArgs<typeof SwitchConnectionTool.argsShape>): Promise<CallToolResult>;
     // (undocumented)
     static operationType: OperationType;
+    // (undocumented)
+    outputSchema: {
+        connected: z.ZodBoolean;
+    };
     // (undocumented)
     register(server: Server): boolean;
     // (undocumented)
@@ -1778,10 +1830,7 @@ export interface ToolExecutionContext {
 
 // @public (undocumented)
 export type ToolResult<OutputSchema extends ZodRawShape | undefined = undefined> = OutputSchema extends ZodRawShape ? StructuredToolResult<OutputSchema> : {
-    content: {
-        type: "text";
-        text: string;
-    }[];
+    content: CallToolResult["content"];
     isError?: boolean;
 };
 
