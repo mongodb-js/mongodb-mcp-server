@@ -4,7 +4,6 @@ import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "
 import { formatUntrustedData } from "../../tool.js";
 import type { FindCursor } from "mongodb";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
-import { EJSON } from "bson";
 import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorUntilMaxBytes.js";
 import { operationWithFallback } from "../../../helpers/operationWithFallback.js";
 import {
@@ -123,20 +122,22 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
                 }),
             ]);
 
+            const serializedDocuments = serializeBsonToJsonObjects(cursorResults.documents);
+
             return {
                 content: formatUntrustedData(
                     this.generateMessage({
                         collection,
                         queryResultsCount,
-                        documents: cursorResults.documents,
+                        documents: serializedDocuments,
                         appliedLimits: [limitOnFindCursor.cappedBy, cursorResults.cappedBy].filter(
                             (limit): limit is CursorLimitKey => !!limit
                         ),
                     }),
-                    ...(cursorResults.documents.length > 0 ? [EJSON.stringify(cursorResults.documents)] : [])
+                    ...(serializedDocuments.length > 0 ? [JSON.stringify(serializedDocuments)] : [])
                 ),
                 structuredContent: {
-                    documents: serializeBsonToJsonObjects(cursorResults.documents),
+                    documents: serializedDocuments,
                     queryResultsCount,
                     appliedLimits: [limitOnFindCursor.cappedBy, cursorResults.cappedBy].filter(
                         (limit): limit is CursorLimitKey => !!limit

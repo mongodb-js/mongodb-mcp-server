@@ -4,7 +4,7 @@ import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-d
 import { DBOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
-import { type Document, EJSON } from "bson";
+import { type Document } from "bson";
 import { ErrorCodes, MongoDBError } from "../../../common/errors.js";
 import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorUntilMaxBytes.js";
 import { operationWithFallback } from "../../../helpers/operationWithFallback.js";
@@ -108,7 +108,7 @@ The maximum number of bytes to return in the response. This value is capped by t
                     !!totalDocuments &&
                     totalDocuments > this.config.maxDocumentsPerQuery;
 
-                documents = cursorResults.documents;
+                documents = serializeBsonToJsonObjects(cursorResults.documents);
                 aggResultsCount = totalDocuments;
                 appliedLimits = [
                     aggregationResultsCappedByMaxDocumentsLimit ? "config.maxDocumentsPerQuery" : undefined,
@@ -124,10 +124,10 @@ The maximum number of bytes to return in the response. This value is capped by t
             return {
                 content: formatUntrustedData(
                     successMessage,
-                    ...(documents.length > 0 ? [EJSON.stringify(documents)] : [])
+                    ...(documents.length > 0 ? [JSON.stringify(documents)] : [])
                 ),
                 structuredContent: {
-                    documents: serializeBsonToJsonObjects(documents),
+                    documents,
                     ...(aggResultsCount !== undefined ? { aggResultsCount } : {}),
                     appliedLimits,
                 },

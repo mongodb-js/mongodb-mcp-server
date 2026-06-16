@@ -209,13 +209,15 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                 });
             }
 
+            const serializedDocuments = serializeBsonToJsonObjects(documents);
+
             return {
                 content: formatUntrustedData(
                     successMessage,
-                    ...(documents.length > 0 ? [EJSON.stringify(documents)] : [])
+                    ...(serializedDocuments.length > 0 ? [EJSON.stringify(serializedDocuments)] : [])
                 ),
                 structuredContent: {
-                    documents: serializeBsonToJsonObjects(documents),
+                    documents: serializedDocuments,
                     ...(aggResultsCount !== undefined ? { aggResultsCount } : {}),
                     appliedLimits,
                 },
