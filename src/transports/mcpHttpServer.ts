@@ -305,6 +305,7 @@ export class MCPHttpServer<
 
     protected setupMiddlewares(): void {
         this.app.use(express.json({ limit: this.userConfig.httpBodyLimit }));
+        this.app.use(this.validateRequestHost());
         this.app.use((req, res, next) => {
             for (const [key, value] of Object.entries(this.userConfig.httpHeaders)) {
                 const header = req.headers[key.toLowerCase()];
@@ -316,6 +317,60 @@ export class MCPHttpServer<
 
             next();
         });
+    }
+
+    /**
+     * DNS-rebinding / cross-origin protection for the HTTP transport.
+     *
+     * A malicious web page can use DNS rebinding to make a browser issue requests to a
+     * locally-bound server while treating them as same-origin, bypassing CORS. We defend by:
+     *  - rejecting any browser `Origin` whose host is not in the allowlist (loopback + the
+     *    address the server is bound to), and
+     *  - rejecting any `Host` header outside that allowlist when bound to a concrete address.
+     *
+     * The allowlist is derived from the configured `httpHost`/`httpPort`, so non-browser MCP
+     * clients (which omit `Origin` and connect with a matching `Host`) are unaffected. When the
+     * server is bound to a wildcard address (e.g. `0.0.0.0`), the operator has opted into broad
+     * exposure, so `Host` is not enforced — but the `Origin` check still blocks browser rebinding.
+     */
+    private validateRequestHost(): express.RequestHandler {
+        const port = this.userConfig.httpPort;
+        const configuredHost = (this.userConfig.httpHost ?? "").toLowerCase();
+        const wildcardHosts = ["", "0.0.0.0", "::", "[::]"];
+        const enforceHost = !wildcardHosts.includes(configuredHost);
+
+        const allowed = new Set<string>();
+        for (const name of ["127.0.0.1", "localhost", "::1", "[::1]", enforceHost ? configuredHost : ""]) {
+            if (!name) continue;
+            allowed.add(name);
+            allowed.add(`${name}:${port}`);
+        }
+
+        const hostOf = (value: string): string => {
+            try {
+                return new URL(value).host.toLowerCase();
+            } catch {
+                return value.toLowerCase();
+            }
+        };
+
+        return (req, res, next): void => {
+            const origin = req.headers.origin;
+            if (typeof origin === "string" && origin.length > 0 && !allowed.has(hostOf(origin))) {
+                res.status(403).json({ error: "Origin not allowed" });
+                return;
+            }
+
+            if (enforceHost) {
+                const host = req.headers.host;
+                if (typeof host !== "string" || !allowed.has(host.toLowerCase())) {
+                    res.status(403).json({ error: "Host not allowed" });
+                    return;
+                }
+            }
+
+            next();
+        };
     }
 
     // eslint-disable-next-line @typescript-eslint/require-await
