@@ -23,6 +23,7 @@ const PROJECT_NAME = "mongodb-mcp-server-evals";
 const DATASET_NAME = "Search";
 const AGENT_STEP_LIMIT = 10;
 const DEFAULT_MODEL = "gpt-4o";
+const DEFAULT_JUDGE_MODEL = "gpt-4o";
 const DEFAULT_CONNECTION_STRING = "mongodb://localhost:27017/?directConnection=true";
 
 const DEFAULT_SYSTEM_CONTEXT =
@@ -35,6 +36,11 @@ const parameters = {
         default: DEFAULT_MODEL,
         description: "Model used by the agent under test.",
     },
+    judgeModel: {
+        type: "model" as const,
+        default: DEFAULT_JUDGE_MODEL,
+        description: "Model used by the judge.",
+    },
     systemContext: z
         .string()
         .default(DEFAULT_SYSTEM_CONTEXT)
@@ -44,6 +50,7 @@ const parameters = {
 type ResolvedParameters = {
     connectionString: string;
     model: string;
+    judgeModel: string;
     systemContext: string;
 };
 
@@ -69,9 +76,10 @@ function resolveParameters(hooksParameters: Record<string, unknown>): ResolvedPa
         DEFAULT_CONNECTION_STRING
     );
     const model = stringParam(hooksParameters.model ?? envParams.model, DEFAULT_MODEL);
+    const judgeModel = stringParam(hooksParameters.judgeModel ?? envParams.judgeModel, DEFAULT_JUDGE_MODEL);
     const systemContext = stringParam(hooksParameters.systemContext ?? envParams.systemContext, DEFAULT_SYSTEM_CONTEXT);
 
-    return { connectionString, model, systemContext };
+    return { connectionString, model, judgeModel, systemContext };
 }
 
 function transientDbName(): string {
@@ -107,6 +115,7 @@ void Eval<RunEvalInput, RunEvalOutput, RunEvalExpected, void, boolean, EvalParam
             const aiProvider = await getAiProvider();
             const resolved = resolveParameters(hooks.parameters as Record<string, unknown>);
             const model = aiProvider.chat(resolved.model);
+            const judgeModel = aiProvider.chat(resolved.judgeModel);
 
             const dbName = transientDbName();
             registerTempDb(dbName);
@@ -141,7 +150,7 @@ void Eval<RunEvalInput, RunEvalOutput, RunEvalExpected, void, boolean, EvalParam
                     const readOnlyTools = await readOnlyMcpClient.tools();
 
                     judge = await judgeUsingLLM({
-                        model,
+                        model: judgeModel,
                         tools: {
                             ...readOnlyTools,
                             [GetConversationTool.toolName]: new GetConversationTool(messages).getTool(),
