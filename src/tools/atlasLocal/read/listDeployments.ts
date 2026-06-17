@@ -16,8 +16,6 @@ const ListDeploymentsOutputSchema = {
     ),
 };
 
-export type ListDeploymentsOutput = z.infer<z.ZodObject<typeof ListDeploymentsOutputSchema>>;
-
 export class ListDeploymentsTool extends AtlasLocalToolBase {
     static toolName = "atlas-local-list-deployments";
     public description = "List MongoDB Atlas local deployments";
