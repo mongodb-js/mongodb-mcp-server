@@ -87,10 +87,11 @@ describeWithAtlasLocal("atlas-local-connect-deployment with deployments", (integ
 
     it("should be able to insert and read data after connecting", async () => {
         // Connect to the deployment
-        await integration.mcpClient().callTool({
+        const connectResponse = await integration.mcpClient().callTool({
             name: "atlas-local-connect-deployment",
             arguments: { deploymentName },
         });
+        expect(connectResponse.structuredContent).toEqual({ connected: true, deploymentName });
 
         const testDatabase = "test-db";
         const testCollection = "test-collection";
