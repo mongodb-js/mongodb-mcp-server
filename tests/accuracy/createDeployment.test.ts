@@ -126,6 +126,10 @@ describeAccuracyTests([
                         text: "Deployment Name | State | MongoDB Version\n----------------|----------------|----------------\nexisting-database | Running | 6.0",
                     },
                 ],
+                structuredContent: {
+                    count: 1,
+                    deployments: [{ name: "existing-database", state: "Running", mongodbVersion: "6.0" }],
+                },
             }),
         },
         expectedToolCalls: [
