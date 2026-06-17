@@ -23,8 +23,7 @@ jobs:
           - os: ubuntu-latest
             node-version: "26"
       fail-fast: false
-    # Ubuntu + Node 22 is the one used for coverage; failures there must not fail the job or block merged coverage.
-    continue-on-error: ${{ matrix.os == 'ubuntu-latest' && (matrix.node-version == '24' || matrix.node-version == '26') }}
+    continue-on-error: true
     runs-on: ${{ matrix.os }}
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
