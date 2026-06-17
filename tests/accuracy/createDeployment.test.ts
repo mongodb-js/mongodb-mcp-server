@@ -10,6 +10,12 @@ export function mockCreateDeploymentResponse(name: string): () => CallToolResult
                 text: `Deployment with container ID "1FOO" and name "${name}" created.`,
             },
         ],
+        structuredContent: {
+            deploymentName: name,
+            containerId: "1FOO",
+            loadSampleData: false,
+            imageTag: "preview",
+        },
     });
 }
 

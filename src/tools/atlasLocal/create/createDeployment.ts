@@ -1,9 +1,18 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { z } from "zod";
 import { AtlasLocalToolBase } from "../atlasLocalTool.js";
-import type { OperationType, ToolArgs } from "../../tool.js";
-import type { Client, CreateDeploymentOptions } from "@mongodb-js/atlas-local";
+import type { OperationType, ToolArgs, ToolResult } from "../../tool.js";
+import type { Client, CreateDeploymentOptions, Deployment } from "@mongodb-js/atlas-local";
 import { CommonArgs } from "../../args.js";
-import z from "zod";
+
+const CreateDeploymentOutputSchema = {
+    deploymentName: z.string(),
+    containerId: z.string(),
+    loadSampleData: z.boolean(),
+    imageTag: z.string(),
+};
+
+export type CreateDeploymentOutput = z.infer<z.ZodObject<typeof CreateDeploymentOutputSchema>>;
 
 export class CreateDeploymentTool extends AtlasLocalToolBase {
     static toolName = "atlas-local-create-deployment";
@@ -20,10 +29,12 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
             .default("preview"),
     };
 
+    public override outputSchema = CreateDeploymentOutputSchema;
+
     protected async executeWithAtlasLocalClient(
         { deploymentName, loadSampleData, imageTag }: ToolArgs<typeof this.argsShape>,
         { client }: { client: Client }
-    ): Promise<CallToolResult> {
+    ): Promise<ToolResult<typeof CreateDeploymentOutputSchema> & Pick<CallToolResult, "_meta">> {
         const deploymentOptions: CreateDeploymentOptions = {
             name: deploymentName,
             creationSource: {
@@ -35,19 +46,38 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
             ...(this.config.voyageApiKey ? { voyageApiKey: this.config.voyageApiKey } : {}),
             doNotTrack: !this.telemetry.isTelemetryEnabled(),
         };
-        // Create the deployment
         const deployment = await client.createDeployment(deploymentOptions);
+
+        const resolvedDeploymentName = deployment.name ?? deploymentName ?? "";
+        const structuredContent = this.buildStructuredContent(deployment, {
+            deploymentName: resolvedDeploymentName,
+            loadSampleData,
+            imageTag,
+        });
 
         return {
             content: [
                 {
                     type: "text",
-                    text: `Deployment with container ID "${deployment.containerId}" and name "${deployment.name}" created (imageTag: ${imageTag}).`,
+                    text: `Deployment with container ID "${deployment.containerId}" and name "${resolvedDeploymentName}" created (imageTag: ${imageTag}).`,
                 },
             ],
+            structuredContent,
             _meta: {
                 ...(await this.lookupTelemetryMetadata(client, deployment.containerId)),
             },
+        };
+    }
+
+    private buildStructuredContent(
+        deployment: Deployment,
+        args: { deploymentName: string; loadSampleData: boolean; imageTag: string }
+    ): CreateDeploymentOutput {
+        return {
+            deploymentName: args.deploymentName,
+            containerId: deployment.containerId,
+            loadSampleData: args.loadSampleData,
+            imageTag: args.imageTag,
         };
     }
 }

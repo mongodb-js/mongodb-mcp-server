@@ -102,6 +102,13 @@ describeWithAtlasLocal(
             const createElements = getResponseElements(createResponse.content);
             expect(createElements.length).toBeGreaterThanOrEqual(1);
             expect(createElements[0]?.text).toContain(deploymentName);
+            expect(createResponse.structuredContent).toEqual(
+                expect.objectContaining({
+                    deploymentName,
+                    loadSampleData: false,
+                    imageTag: "preview",
+                })
+            );
 
             // List the deployments
             const response = await integration.mcpClient().callTool({
