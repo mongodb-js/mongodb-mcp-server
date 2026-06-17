@@ -5,6 +5,7 @@ import { createOpenAI, type OpenAIProvider } from "@ai-sdk/openai";
 
 let braintrustGatewayFactory: AsyncSingleton<OpenAIProvider> | null = null;
 let mcpClientFactory: AsyncSingleton<McpClient> | null = null;
+let readOnlyMcpClientFactory: AsyncSingleton<McpClient> | null = null;
 let mongoClientFactory: AsyncSingleton<MongoClient> | null = null;
 const tempDbRegistry = new Set<string>();
 
@@ -57,9 +58,18 @@ export async function getAiProvider(): Promise<OpenAIProvider> {
  */
 export async function getMcpClient(connectionString: string): Promise<McpClient> {
     if (!mcpClientFactory) {
-        mcpClientFactory = new AsyncSingleton(() => InMemoryMcpConnection.create(connectionString));
+        mcpClientFactory = new AsyncSingleton(() => InMemoryMcpConnection.create({ connectionString }));
     }
     return mcpClientFactory.singletonInstance();
+}
+
+export async function getReadOnlyMcpClient(connectionString: string): Promise<McpClient> {
+    if (!readOnlyMcpClientFactory) {
+        readOnlyMcpClientFactory = new AsyncSingleton(() =>
+            InMemoryMcpConnection.create({ connectionString, readOnly: true })
+        );
+    }
+    return readOnlyMcpClientFactory.singletonInstance();
 }
 
 /**

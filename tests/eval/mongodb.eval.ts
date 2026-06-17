@@ -1,7 +1,15 @@
 import { Eval, Reporter, reportFailures, type EvalParameters } from "braintrust";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import { dropCaseDb, getAiProvider, getMcpClient, getMongoDbClient, registerTempDb, teardown } from "./lib/shared.js";
+import {
+    dropCaseDb,
+    getAiProvider,
+    getMcpClient,
+    getMongoDbClient,
+    getReadOnlyMcpClient,
+    registerTempDb,
+    teardown,
+} from "./lib/shared.js";
 import { llmJudgeScore } from "./lib/scoring.js";
 import { judgeUsingLLM } from "./lib/judge.js";
 import { runTask } from "./lib/user.js";
@@ -124,10 +132,18 @@ void Eval<RunEvalInput, RunEvalOutput, RunEvalExpected, void, boolean, EvalParam
                 let judge: RunEvalOutput["judge"];
                 const criteria = hooks.expected?.llm_judge;
                 if (criteria) {
+                    const readOnlyMcpClient = await hooks.span.traced(
+                        () => getReadOnlyMcpClient(resolved.connectionString),
+                        {
+                            name: "getReadOnlyMcpClient",
+                        }
+                    );
+                    const readOnlyTools = await readOnlyMcpClient.tools();
+
                     judge = await judgeUsingLLM({
                         model,
                         tools: {
-                            ...tools,
+                            ...readOnlyTools,
                             [GetConversationTool.toolName]: new GetConversationTool(messages).getTool(),
                             [GetResponseTool.toolName]: new GetResponseTool(response).getTool(),
                         },

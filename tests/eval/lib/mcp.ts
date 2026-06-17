@@ -6,6 +6,7 @@ import {
     type CloseableTransport,
     StdioRunner,
     type TransportRunnerConfig,
+    type UserConfig,
     UserConfigSchema,
 } from "../../../src/lib.js";
 
@@ -31,14 +32,14 @@ export class InMemoryMcpConnection {
         private readonly shutdown: () => Promise<void>
     ) {}
 
-    static async create(mdbConnectionString: string): Promise<McpClient> {
+    static async create(userConfig: Partial<UserConfig> & { connectionString: string }): Promise<McpClient> {
         const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
 
         const runner = new InMemoryMcpRunner({
             userConfig: UserConfigSchema.parse({
-                connectionString: mdbConnectionString,
                 telemetry: "disabled",
                 loggers: ["mcp"],
+                ...userConfig,
             }),
         });
 

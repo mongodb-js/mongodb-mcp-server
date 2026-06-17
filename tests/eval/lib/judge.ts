@@ -10,23 +10,6 @@ const ai = wrapAISDK(untracedAi);
 
 const DEFAULT_STEP_COUNT = 10;
 
-/**
- * Filters out tools that mutate the database state.
- * This is to prevent the LLM judge from mutating the database state during the evaluation.
- *
- * @param tools - The tools to filter.
- * @returns The filtered tools.
- */
-export function safeTools(tools: ToolSet): ToolSet {
-    const BLACK_LISTED_PREFIXES = ["create", "drop", "delete", "update", "insert"];
-    return Object.fromEntries(
-        Object.entries(tools).filter(([name]) => {
-            const lower = name.toLowerCase();
-            return !BLACK_LISTED_PREFIXES.some((prefix) => lower.startsWith(prefix));
-        })
-    ) as ToolSet;
-}
-
 const FALLBACK: Verdict = {
     score: 0,
     explanation: `Judge did not submit a score before the step limit (${DEFAULT_STEP_COUNT}).`,
@@ -63,7 +46,7 @@ export async function judgeUsingLLM(params: {
                     },
                 ],
                 tools: {
-                    ...safeTools(tools),
+                    ...tools,
                     [SubmitScoreTool.toolName]: submitScoreTool.getTool(),
                 },
                 stopWhen: [
