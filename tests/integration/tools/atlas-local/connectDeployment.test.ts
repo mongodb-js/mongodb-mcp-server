@@ -39,6 +39,7 @@ describeWithAtlasLocal("atlas-local-connect-deployment", (integration) => {
         expect(elements[0]?.text).toContain(
             `The Atlas Local deployment "${deploymentName}" was not found. Please check the deployment name or use "atlas-local-list-deployments" to see available deployments.`
         );
+        expect(response.structuredContent).toBeUndefined();
     });
 });
 
@@ -81,6 +82,7 @@ describeWithAtlasLocal("atlas-local-connect-deployment with deployments", (integ
         const elements = getResponseElements(response.content);
         expect(elements.length).toBeGreaterThanOrEqual(1);
         expect(elements[0]?.text).toContain(`Successfully connected to Atlas Local deployment "${deploymentName}".`);
+        expect(response.structuredContent).toEqual({ connected: true, deploymentName });
     });
 
     it("should be able to insert and read data after connecting", async () => {
