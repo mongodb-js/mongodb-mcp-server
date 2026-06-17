@@ -1,15 +1,7 @@
 import { Eval, Reporter, reportFailures, type EvalParameters } from "braintrust";
-import { randomUUID } from "node:crypto";
+import { getRandomValues } from "node:crypto";
 import { z } from "zod";
-import {
-    dropCaseDb,
-    getAiProvider,
-    getMcpClient,
-    getMongoDbClient,
-    getReadOnlyMcpClient,
-    registerTempDb,
-    teardown,
-} from "./lib/shared.js";
+import * as shared from "./lib/shared.js";
 import { llmJudgeScore } from "./lib/scoring.js";
 import { judgeUsingLLM } from "./lib/judge.js";
 import { runTask } from "./lib/user.js";
@@ -69,6 +61,12 @@ function stringParam(value: unknown, fallback: string): string {
     return typeof value === "string" && value.trim() ? value.trim() : fallback;
 }
 
+/**
+ * Ensures parameter resolution works across all eval modes:
+ * - Braintrust CLI ('bt'): supports 'BT_EVAL_PARAMS_JSON'
+ * - Braintrust script ('braintrust') and tsx: do not support 'BT_EVAL_PARAMS_JSON'
+ * Always resolve parameters so eval runs correctly regardless of entry point.
+ */
 function resolveParameters(hooksParameters: Record<string, unknown>): ResolvedParameters {
     const envParams = parseEnvParams();
     const connectionString = stringParam(
@@ -82,8 +80,17 @@ function resolveParameters(hooksParameters: Record<string, unknown>): ResolvedPa
     return { connectionString, model, judgeModel, systemContext };
 }
 
+/**
+ * Generates a unique but shorter name for the transient database.
+ *
+ * @returns The transient database name in the format of 'eval_<YYYY-MM-dd>_<HH-mm-ss>_<random>' (e.g. 'eval__2026-01-02_03-04-05__9a1e23').
+ */
 function transientDbName(): string {
-    return `eval_${randomUUID().replace(/-/g, "")}`;
+    const now = new Date();
+    const pad = (n: number): string => String(n).padStart(2, "0");
+    const time = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
+    const random = Buffer.from(getRandomValues(new Uint8Array(4))).toString("hex");
+    return `eval_${time}_${random}`;
 }
 
 const reporter = Reporter<boolean>("mongodb-eval-cleanup", {
@@ -97,7 +104,7 @@ const reporter = Reporter<boolean>("mongodb-eval-cleanup", {
             .join(" ");
         console.log(`[eval] ${summary.experimentName ?? PROJECT_NAME} ${scores}`);
 
-        await teardown();
+        await shared.teardown();
         return failing.length === 0;
     },
     reportRun(reports) {
@@ -112,18 +119,20 @@ void Eval<RunEvalInput, RunEvalOutput, RunEvalExpected, void, boolean, EvalParam
             dataset: DATASET_NAME,
         }),
         task: async (input, hooks) => {
-            const aiProvider = await getAiProvider();
+            const aiProvider = await shared.getAiProvider();
             const resolved = resolveParameters(hooks.parameters as Record<string, unknown>);
+            shared.registerConnectionString(resolved.connectionString);
+
             const model = aiProvider.chat(resolved.model);
             const judgeModel = aiProvider.chat(resolved.judgeModel);
 
             const dbName = transientDbName();
-            registerTempDb(dbName);
-            const dbClient = await getMongoDbClient(resolved.connectionString);
+            shared.registerTempDb(dbName);
+            const dbClient = await shared.getMongoDbClient();
 
             try {
                 await hooks.span.traced(() => seedTempDb(dbClient, dbName, input.db_seed), { name: "seedTempDb" });
-                const mcpClient = await hooks.span.traced(() => getMcpClient(resolved.connectionString), {
+                const mcpClient = await hooks.span.traced(() => shared.getMcpClient(), {
                     name: "getMcpClient",
                 });
 
@@ -141,12 +150,9 @@ void Eval<RunEvalInput, RunEvalOutput, RunEvalExpected, void, boolean, EvalParam
                 let judge: RunEvalOutput["judge"];
                 const criteria = hooks.expected?.llm_judge;
                 if (criteria) {
-                    const readOnlyMcpClient = await hooks.span.traced(
-                        () => getReadOnlyMcpClient(resolved.connectionString),
-                        {
-                            name: "getReadOnlyMcpClient",
-                        }
-                    );
+                    const readOnlyMcpClient = await hooks.span.traced(() => shared.getReadOnlyMcpClient(), {
+                        name: "getReadOnlyMcpClient",
+                    });
                     const readOnlyTools = await readOnlyMcpClient.tools();
 
                     judge = await judgeUsingLLM({
@@ -163,7 +169,7 @@ void Eval<RunEvalInput, RunEvalOutput, RunEvalExpected, void, boolean, EvalParam
 
                 return { response, judge };
             } finally {
-                await hooks.span.traced(() => dropCaseDb(dbName), { name: "dropTempDb" });
+                await hooks.span.traced(() => shared.dropCaseDb(dbName), { name: "dropTempDb" });
             }
         },
         scores: [llmJudgeScore],

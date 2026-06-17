@@ -3,6 +3,7 @@ import { InMemoryMcpConnection, type McpClient } from "./mcp.js";
 import { dropTempDb } from "./seeding.js";
 import { createOpenAI, type OpenAIProvider } from "@ai-sdk/openai";
 
+let connectionStringRegistry: string | null = null;
 let braintrustGatewayFactory: AsyncSingleton<OpenAIProvider> | null = null;
 let mcpClientFactory: AsyncSingleton<McpClient> | null = null;
 let readOnlyMcpClientFactory: AsyncSingleton<McpClient> | null = null;
@@ -33,6 +34,10 @@ class AsyncSingleton<T> {
     }
 }
 
+export function registerConnectionString(connectionString: string): void {
+    connectionStringRegistry = connectionString;
+}
+
 export async function getAiProvider(): Promise<OpenAIProvider> {
     if (!braintrustGatewayFactory) {
         // eslint-disable-next-line @typescript-eslint/require-await
@@ -56,17 +61,25 @@ export async function getAiProvider(): Promise<OpenAIProvider> {
  * @param connectionString - The MongoDB connection string.
  * @returns The MCP client.
  */
-export async function getMcpClient(connectionString: string): Promise<McpClient> {
+export async function getMcpClient(): Promise<McpClient> {
+    if (!connectionStringRegistry) {
+        throw new Error("Connection string not registered");
+    }
     if (!mcpClientFactory) {
-        mcpClientFactory = new AsyncSingleton(() => InMemoryMcpConnection.create({ connectionString }));
+        mcpClientFactory = new AsyncSingleton(() =>
+            InMemoryMcpConnection.create({ connectionString: connectionStringRegistry! })
+        );
     }
     return mcpClientFactory.singletonInstance();
 }
 
-export async function getReadOnlyMcpClient(connectionString: string): Promise<McpClient> {
+export async function getReadOnlyMcpClient(): Promise<McpClient> {
+    if (!connectionStringRegistry) {
+        throw new Error("Connection string not registered");
+    }
     if (!readOnlyMcpClientFactory) {
         readOnlyMcpClientFactory = new AsyncSingleton(() =>
-            InMemoryMcpConnection.create({ connectionString, readOnly: true })
+            InMemoryMcpConnection.create({ connectionString: connectionStringRegistry!, readOnly: true })
         );
     }
     return readOnlyMcpClientFactory.singletonInstance();
@@ -78,9 +91,12 @@ export async function getReadOnlyMcpClient(connectionString: string): Promise<Mc
  * @param connectionString - The MongoDB connection string.
  * @returns The MongoDB client.
  */
-export function getMongoDbClient(connectionString: string): Promise<MongoClient> {
+export function getMongoDbClient(): Promise<MongoClient> {
+    if (connectionStringRegistry === null) {
+        throw new Error("Connection string not registered");
+    }
     if (!mongoClientFactory) {
-        mongoClientFactory = new AsyncSingleton(() => new MongoClient(connectionString).connect());
+        mongoClientFactory = new AsyncSingleton(() => new MongoClient(connectionStringRegistry!).connect());
     }
     return mongoClientFactory.singletonInstance();
 }
