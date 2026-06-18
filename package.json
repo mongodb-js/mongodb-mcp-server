@@ -101,7 +101,15 @@
     "test:local": "SKIP_ATLAS_INTEGRATION_TESTS=true SKIP_ATLAS_LOCAL_TESTS=true pnpm run test",
     "prevalidate:mcpb": "pnpm run build",
     "validate:mcpb": "node scripts/createMcpb.ts --validate-only",
-    "atlas:cleanup": "vitest --project atlas-cleanup"
+    "atlas:cleanup": "vitest --project atlas-cleanup",
+    "eval:db-start": "sh tests/eval/scripts/evalDb.sh start",
+    "eval:db-stop": "sh tests/eval/scripts/evalDb.sh stop",
+    "eval:run": "bt eval tests/eval/mongodb.eval.ts",
+    "eval:debug": "tsx tests/eval/mongodb.eval.ts",
+    "eval:generate-schemas": "tsx tests/eval/scripts/generateSchemas.ts",
+    "eval:bundle": "tsx tests/eval/scripts/bundleEval.ts",
+    "eval:serve": "BRAINTRUST_API_KEY_OVERRIDE=$BRAINTRUST_API_KEY bt eval --dev tests/eval/mongodb.eval.ts",
+    "eval:push": "pnpm run eval:bundle && braintrust push tests/eval/dist/mongodb.eval.cjs --if-exists replace"
   },
   "license": "Apache-2.0",
   "devDependencies": {
@@ -132,6 +140,8 @@
     "@vitest/coverage-v8": "^4.1.8",
     "@vitest/eslint-plugin": "^1.6.19",
     "ai": "^6.0.175",
+    "esbuild": "^0.27.1",
+    "braintrust": "^3.17.0",
     "concurrently": "^9.2.1",
     "duplexpair": "^1.0.2",
     "eslint": "^10.2.0",
