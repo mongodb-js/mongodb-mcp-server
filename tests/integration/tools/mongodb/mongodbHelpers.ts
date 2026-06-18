@@ -9,6 +9,7 @@ import {
     setupIntegrationTest,
     defaultTestConfig,
     getDataFromUntrustedContent,
+    timeout,
 } from "../../helpers.js";
 import type { UserConfig } from "../../../../src/common/config/userConfig.js";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -19,6 +20,12 @@ import type { createMockElicitInput, MockClientCapabilities } from "../../../uti
 
 export const DEFAULT_WAIT_TIMEOUT = 1000;
 export const DEFAULT_RETRY_INTERVAL = 100;
+
+// How many times `connectMcpClient` retries a failed connect (and how long it
+// waits between attempts) before giving up and failing clearly. Connecting can
+// transiently fail while the cluster settles (e.g. a replica set election).
+const CONNECT_MAX_ATTEMPTS = 3;
+const CONNECT_RETRY_INTERVAL = 1000;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -118,11 +125,28 @@ export function describeWithMongoDB(
             ...mdbIntegration,
             connectMcpClient: async () => {
                 const { tools } = await integration.mcpClient().listTools();
-                if (tools.find((tool) => tool.name === "connect")) {
-                    await integration.mcpClient().callTool({
+                if (!tools.find((tool) => tool.name === "connect")) {
+                    return;
+                }
+
+                let attempt = 0;
+                while (true) {
+                    const response = await integration.mcpClient().callTool({
                         name: "connect",
                         arguments: { connectionString: mdbIntegration.connectionString() },
                     });
+
+                    if (!response.isError) {
+                        return;
+                    }
+
+                    if (++attempt >= CONNECT_MAX_ATTEMPTS) {
+                        throw new Error(
+                            `Failed to connect MCP client after ${attempt} attempts: ${getResponseContent(response.content)}`
+                        );
+                    }
+
+                    await timeout(CONNECT_RETRY_INTERVAL);
                 }
             },
         });
