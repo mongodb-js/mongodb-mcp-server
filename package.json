@@ -202,7 +202,7 @@
     "semver": "^7.7.2",
     "ts-levenshtein": "^1.0.7",
     "yaml": "^2.8.1",
-    "zod": "^4.4.2"
+    "zod": "^4.4.3"
   },
   "peerDependencies": {
     "@types/express": "^5.0.3"
