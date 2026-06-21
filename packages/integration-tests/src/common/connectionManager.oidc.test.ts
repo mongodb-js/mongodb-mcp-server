@@ -268,6 +268,42 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
                     expect(connectedResponse).toContain("config");
                     expect(connectedResponse).toContain("local");
                 });
+
+                it("surfaces the device-flow URL and code directly from the connect tool", async ({
+                    signal,
+                    skip,
+                }, integration) => {
+                    const connectResult = await integration.mcpClient().callTool({
+                        name: "connect",
+                        arguments: { connectionString: integration.connectionString() },
+                    });
+                    const connectResponse = responseAsText(connectResult);
+
+                    // If the IdP completed auth without ever falling back to device flow, there is
+                    // nothing to assert here; the dedicated test above covers the device-flow path.
+                    if (!connectResponse.includes("The user needs to finish their OIDC connection by opening")) {
+                        return skip();
+                    }
+
+                    const { connectionId } = connectResult.structuredContent as { connectionId: string };
+                    const [entry] = await integration
+                        .mcpServer()
+                        .connectionRegistry.find((candidate) => candidate.connectionId === connectionId);
+                    if (!entry) {
+                        throw new Error(`Expected connection ${connectionId} to be registered`);
+                    }
+
+                    const state = await waitUntil<ConnectionStateConnecting>({
+                        tag: "connecting",
+                        source: entry,
+                        signal,
+                        additionalCondition: (state) => !!state.oidcLoginUrl && !!state.oidcUserCode,
+                    });
+
+                    expect(connectResponse).toContain(state.oidcLoginUrl);
+                    expect(connectResponse).toContain(state.oidcUserCode);
+                    expect(connectResponse).not.toContain("Successfully connected to MongoDB.");
+                });
             }
         );
     }
