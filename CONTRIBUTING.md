@@ -88,6 +88,11 @@ pnpm --filter mongodb-mcp-remote test
 - **Unit** tests mock the network, so they need no external setup.
 - **Integration** tests spawn the built wrapper (`dist/cli.js`) over stdio and drive it
   against an in-process mock remote MCP server (`src/testHelpers/mockRemote.ts`), so they run deterministically.
+- **End-to-end** tests (`src/wrapper.e2e.test.ts`) hit the real cloud-dev Remote MCP server.
+  They run in the normal `pnpm test` but are skipped unless `MDB_MCP_REMOTE_E2E_CLIENT_ID`
+  is set, and skip when `SKIP_REMOTE_MCP_E2E=true`.
+  In CI the `run-tests` job injects `MDB_MCP_REMOTE_E2E_*` from the `TEST_REMOTE_MCP_*`
+  GitHub secrets/var; until those are registered the e2e tests self-skip and CI stays green.
 
 #### Accuracy Tests and colima
 
