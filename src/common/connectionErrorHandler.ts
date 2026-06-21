@@ -2,6 +2,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ErrorCodes, type MongoDBError } from "./errors.js";
 import type { AnyConnectionState } from "./connectionManager.js";
 import type { AnyToolBase } from "../tools/tool.js";
+import { oidcDeviceFlowMessage } from "./oidcDeviceFlowMessage.js";
 
 export type ConnectionErrorHandler = (
     error: MongoDBError<ErrorCodes.NotConnectedToMongoDB | ErrorCodes.MisconfiguredConnectionString>,
@@ -47,7 +48,7 @@ export const connectionErrorHandler: ConnectionErrorHandler = (error, { availabl
     if (connectionState.tag === "connecting" && connectionState.oidcConnectionType) {
         additionalPromptForConnectivity.push({
             type: "text",
-            text: `The user needs to finish their OIDC connection by opening '${connectionState.oidcLoginUrl}' in the browser and use the following user code: '${connectionState.oidcUserCode}'`,
+            text: oidcDeviceFlowMessage(connectionState.oidcLoginUrl, connectionState.oidcUserCode),
         });
     } else {
         additionalPromptForConnectivity.push({
