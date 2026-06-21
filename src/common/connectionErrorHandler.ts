@@ -4,6 +4,7 @@ import type { AnyConnectionState } from "./connectionManager.js";
 import type { AnyToolBase } from "../tools/tool.js";
 import { DisconnectTool } from "../tools/mongodb/connect/disconnect.js";
 import { ListConnectionsTool } from "../tools/mongodb/connect/listConnections.js";
+import { oidcDeviceFlowMessage } from "./oidcDeviceFlowMessage.js";
 
 export type ConnectionErrorHandler = (
     error: MongoDBError<
@@ -61,7 +62,7 @@ export const connectionErrorHandler: ConnectionErrorHandler = (error, { availabl
     if (connectionState?.tag === "connecting" && connectionState.oidcConnectionType) {
         additionalPromptForConnectivity.push({
             type: "text",
-            text: `The user needs to finish their OIDC connection by opening '${connectionState.oidcLoginUrl}' in the browser and use the following user code: '${connectionState.oidcUserCode}'`,
+            text: oidcDeviceFlowMessage(connectionState.oidcLoginUrl, connectionState.oidcUserCode),
         });
     } else {
         additionalPromptForConnectivity.push({
