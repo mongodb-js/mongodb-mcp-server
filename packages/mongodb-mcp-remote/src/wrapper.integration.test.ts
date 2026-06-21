@@ -3,52 +3,45 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { startFakeRemote, type FakeRemote } from "./testHelpers/fakeRemote.js";
+import { startMockRemote, type MockRemote } from "./testHelpers/mockRemote.js";
 
 /**
- * Integration tests for the mongodb-mcp-remote wrapper.
+ * Integration tests for the mongodb-mcp-remote wrapper:
  *
- * Shape of the world under test (see README / 1-pager MCP-436):
  *
  *   ┌──────────────┐   stdio   ┌─────────────┐   HTTP   ┌──────────────────────┐
  *   │  MCP Client  │ ────────► │   WRAPPER   │ ───────► │  Remote MCP server   │
- *   │  (real, SDK) │ ◄──────── │ (under test)│ ◄─────── │  (FAKE, built below) │
+ *   │  (real, SDK) │ ◄──────── │ (under test)│ ◄─────── │  (MOCK)              │
  *   └──────────────┘           └─────────────┘          └──────────────────────┘
  *                                     │
  *                                     ▼
- *                            Token endpoint (FAKE)
+ *                            Token endpoint (MOCK)
  *
- * - LEFT  end: a real MCP SDK `Client` over `StdioClientTransport`, which spawns
- *   the built wrapper CLI as a child process and speaks MCP over its stdin/stdout.
- * - RIGHT end: a fake Express server standing in for mcp.mongodb.com AND the Atlas
- *   token endpoint, so the test is fully offline and deterministic.
+ * - LEFT: a real MCP SDK `Client` that starts the built wrapper as a child
+ *   process and talks to it over stdin/stdout.
+ * - RIGHT: a mock Express server that pretends to be mcp.mongodb.com and the
+ *   Atlas token endpoint, so the tests need no real network and behave the same every run.
  *
- * NOTE: most tests are `it.todo` until packages/mongodb-mcp-remote/src/cli.ts is
- * implemented. The fake-remote scaffold below is live and exercised by the
- * "fake remote scaffold" sanity test so the harness is proven before the wrapper
- * exists.
+ *  TODO: most tests here are `it.todo` until the wrapper implementation is complete in
+ *  packages/mongodb-mcp-remote/src/. Tests will be implemented in MCP-539.
  */
 
-// Path to the built wrapper CLI this package produces. The wrapper must be compiled
-// before these tests run, since StdioClientTransport spawns dist/cli.js as a child process.
 const CLI_PATH = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "dist", "cli.js");
 
 /**
- * Connects a real MCP SDK client by spawning the wrapper CLI against the fake remote.
- * Used by the (currently `it.todo`) scenarios below; kept ready for MCP-539.
+ * Connects a real MCP SDK client by spawning the wrapper CLI against the mock remote.
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function connectClientToWrapper(remote: FakeRemote): Promise<Client> {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- not called yet; the it.todo tests below will use it (remove once MCP-539 enables them)
+async function connectClientToWrapper(remote: MockRemote): Promise<Client> {
     const client = new Client({ name: "integration-test", version: "0.0.0" });
     const transport = new StdioClientTransport({
         command: process.execPath, // node
         args: [CLI_PATH],
         env: {
-            // Env var names per the 1-pager (MCP-436). Adjust if finalized differently.
-            MDB_MCP_API_CLIENT_ID: "fake-id",
-            MDB_MCP_API_CLIENT_SECRET: "fake-secret",
-            MDB_MCP_API_BASE_URL: remote.url, // token calls go here
-            MDB_MCP_REMOTE_URL: `${remote.url}/mcp`, // MCP calls go here
+            MDB_MCP_API_CLIENT_ID: "mock-id",
+            MDB_MCP_API_CLIENT_SECRET: "mock-secret",
+            MDB_MCP_API_BASE_URL: remote.url,
+            MDB_MCP_REMOTE_URL: `${remote.url}/mcp`,
         },
     });
     await client.connect(transport);
@@ -56,11 +49,11 @@ async function connectClientToWrapper(remote: FakeRemote): Promise<Client> {
 }
 
 describe("mongodb-mcp-remote wrapper (integration)", () => {
-    let remote: FakeRemote;
+    let remote: MockRemote;
     let client: Client | undefined;
 
     beforeEach(async () => {
-        remote = await startFakeRemote();
+        remote = await startMockRemote();
     });
 
     afterEach(async () => {
@@ -69,11 +62,11 @@ describe("mongodb-mcp-remote wrapper (integration)", () => {
         await remote.close();
     });
 
-    it("fake remote scaffold responds to token and mcp endpoints", async () => {
-        // Sanity check that the harness itself works, independent of the wrapper.
+    it("mock remote responds to token and mcp endpoints", async () => {
+        // Checks the mock remote works on its own
         const tokenRes = await fetch(`${remote.url}/api/oauth/token`, { method: "POST" });
         expect(tokenRes.status).toBe(200);
-        await expect(tokenRes.json()).resolves.toMatchObject({ access_token: "fake-token-123" });
+        await expect(tokenRes.json()).resolves.toMatchObject({ access_token: "mock-token-123" });
 
         const unauthorized = await fetch(`${remote.url}/mcp`, {
             method: "POST",
@@ -84,14 +77,11 @@ describe("mongodb-mcp-remote wrapper (integration)", () => {
         expect(remote.tokenRequestCount()).toBe(1);
     });
 
-    // ── Wrapper behaviors to implement once src/cli.ts exists ───────────────────
-    // Each becomes a real test by replacing `it.todo(...)` with an `it(..., async () => {...})`
-    // that uses connectClientToWrapper(remote) and asserts on the fake remote's spies.
     it.todo("forwards a tools/list request and attaches the bearer token to the remote call");
     // client = await connectClientToWrapper(remote);
     // const res = await client.listTools();
     // expect(res.tools.map((t) => t.name)).toContain("find");
-    // expect(remote.lastAuthHeader()).toBe("Bearer fake-token-123");
+    // expect(remote.lastAuthHeader()).toBe("Bearer mock-token-123");
 
     it.todo("reuses the cached token across multiple calls (token endpoint hit once)");
     // make two calls, then: expect(remote.tokenRequestCount()).toBe(1);
