@@ -6,21 +6,13 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { startMockRemote, type MockRemote } from "./testHelpers/mockRemote.js";
 
 /**
- * Integration tests for the mongodb-mcp-remote wrapper:
+ * Integration tests for the mongodb-mcp-remote wrapper.
  *
- *
- *   ┌──────────────┐   stdio   ┌─────────────┐   HTTP   ┌──────────────────────┐
- *   │  MCP Client  │ ────────► │   WRAPPER   │ ───────► │  Remote MCP server   │
- *   │  (real, SDK) │ ◄──────── │ (under test)│ ◄─────── │  (MOCK)              │
- *   └──────────────┘           └─────────────┘          └──────────────────────┘
- *                                     │
- *                                     ▼
- *                            Token endpoint (MOCK)
- *
- * - LEFT: a real MCP SDK `Client` that starts the built wrapper as a child
- *   process and talks to it over stdin/stdout.
- * - RIGHT: a mock Express server that pretends to be mcp.mongodb.com and the
- *   Atlas token endpoint, so the tests need no real network and behave the same every run.
+ * Each test runs the whole wrapper end to end: an MCP SDK `Client` starts the built wrapper
+ * (dist/cli.js) as a child process and talks to it over stdin/stdout, while the wrapper
+ * forwards requests over HTTP to a mock remote server. That mock (mockRemote.ts) stands in
+ * for both the Remote MCP server and the Atlas token endpoint, so the tests run offline and
+ * deterministically.
  *
  *  TODO: most tests here are `it.todo` until the wrapper implementation is complete in
  *  packages/mongodb-mcp-remote/src/. Tests will be implemented in MCP-539.
