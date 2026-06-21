@@ -2,6 +2,8 @@ import { z } from "zod";
 import { MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolConstructorParams, ToolResult } from "../../tool.js";
 import type { Server } from "../../../server.js";
+import { waitForConnectResult } from "../../../common/waitForConnectResult.js";
+import { oidcDeviceFlowMessage } from "../../../common/oidcDeviceFlowMessage.js";
 
 const ConnectOutputSchema = {
     connected: z.boolean(),
@@ -49,6 +51,27 @@ export class ConnectTool extends MongoDBToolBase {
         connectionString,
     }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
         await this.session.connectToMongoDB({ connectionString });
+
+        const connectionManager = this.session.connectionManager;
+
+        // For OIDC, `connectToMongoDB` resolves while still in the `connecting`
+        // state — before the device-flow callback has populated the verification
+        // URL and user code. Wait for the attempt to make progress so we can
+        // surface those to the user directly, instead of reporting success and
+        // having the next data operation fail asking them to authenticate.
+        if (connectionManager.currentConnectionState.tag === "connecting") {
+            const result = await waitForConnectResult({
+                events: connectionManager.events,
+                getCurrentState: () => connectionManager.currentConnectionState,
+            });
+
+            if (result.kind === "device-flow") {
+                return {
+                    content: [{ type: "text", text: oidcDeviceFlowMessage(result.oidcLoginUrl, result.oidcUserCode) }],
+                    structuredContent: { connected: false },
+                };
+            }
+        }
 
         return {
             content: [{ type: "text", text: "Successfully connected to MongoDB." }],
