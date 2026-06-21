@@ -87,8 +87,7 @@ pnpm --filter mongodb-mcp-remote test
 
 - **Unit** tests mock the network, so they need no external setup.
 - **Integration** tests spawn the built wrapper (`dist/cli.js`) over stdio and drive it
-  against an in-process fake remote MCP server (`src/testHelpers/fakeRemote.ts`), so they
-  run fully offline and deterministically.
+  against an in-process mock remote MCP server (`src/testHelpers/mockRemote.ts`), so they run deterministically.
 
 #### Accuracy Tests and colima
 
