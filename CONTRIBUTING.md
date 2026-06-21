@@ -76,6 +76,20 @@ pnpm test path/to/test/file.test.ts
 pnpm test path/to/directory
 ```
 
+### Testing the `mongodb-mcp-remote` wrapper
+
+Tests for the wrapper package live in `packages/mongodb-mcp-remote/src/*.test.ts` and are
+picked up by the normal `pnpm test`. To run just the package:
+
+```bash
+pnpm --filter mongodb-mcp-remote test
+```
+
+- **Unit** tests mock the network, so they need no external setup.
+- **Integration** tests spawn the built wrapper (`dist/cli.js`) over stdio and drive it
+  against an in-process fake remote MCP server (`src/testHelpers/fakeRemote.ts`), so they
+  run fully offline and deterministically.
+
 #### Accuracy Tests and colima
 
 If you use [colima](https://github.com/abiosoft/colima) to run Docker on Mac, you will need to apply [additional configuration](https://node.testcontainers.org/supported-container-runtimes/#colima) to ensure the accuracy tests run correctly.
