@@ -312,9 +312,18 @@ importers:
         specifier: ^0.7.14
         version: 0.7.14
     devDependencies:
+      '@modelcontextprotocol/sdk':
+        specifier: ^1.29.0
+        version: 1.29.0(zod@4.4.3)
+      '@types/express':
+        specifier: ^5.0.0
+        version: 5.0.6
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
+      express:
+        specifier: ^5.2.1
+        version: 5.2.1
       typescript:
         specifier: ^5.9.2
         version: 5.9.3
