@@ -15,6 +15,8 @@ import { TRANSPORT_PAYLOAD_LIMITS, type TransportType } from "../transports/cons
 import { getRandomUUID } from "../helpers/getRandomUUID.js";
 import type { Metrics, DefaultMetrics } from "@mongodb-js/mcp-metrics";
 import { redact } from "mongodb-redact";
+import { ErrorCodes, MongoDBError } from "../common/errors.js";
+import type { MaybePromise } from "@mongodb-js/mcp-types";
 
 export type ToolArgs<T extends ZodRawShape> = {
     [K in keyof T]: z.infer<T[K]>;
@@ -54,6 +56,21 @@ type StructuredToolResult<OutputSchema extends ZodRawShape> = {
  * - `connect` is used for tools that allow you to connect or switch the connection to a MongoDB instance.
  */
 export type OperationType = "metadata" | "read" | "create" | "delete" | "update" | "connect";
+
+const READONLY_ALLOWED_OPERATIONS: OperationType[] = ["read", "metadata", "connect"];
+
+/**
+ * Optional hosting-provided callback invoked before every tool execution to
+ * decide whether the call is permitted for the current target/session. It is
+ * intentionally generic (not read-only specific) so it can express any
+ * per-request authorization policy.
+ */
+export type ToolExecutionAuthorizer = (input: {
+    tool: { name: string; category: ToolCategory; operationType: OperationType };
+    args: unknown;
+    session: Session;
+    context: ToolExecutionContext;
+}) => MaybePromise<{ allowed: true } | { allowed: false; reason: string }>;
 
 /**
  * The category of the tool. This is used when evaluating if a tool is allowed to run based on
@@ -154,6 +171,12 @@ export type ToolConstructorParams<
      * ```
      */
     context?: TContext;
+
+    /**
+     * Optional hosting-provided callback invoked before each tool execution to
+     * authorize the call for the current target/session.
+     */
+    authorizeToolExecution?: ToolExecutionAuthorizer;
 };
 
 /**
@@ -488,6 +511,25 @@ export abstract class ToolBase<
         let startTime: number = Date.now();
 
         try {
+            const toolExecutionAuthorized = await this.authorizeToolExecution?.({
+                tool: { name: this.name, category: this.category, operationType: this.operationType },
+                args,
+                session: this.session,
+                context,
+            });
+
+            if (toolExecutionAuthorized?.allowed === false) {
+                // `reason` comes from the hosting-provided authorizer and is not under our control,
+                // so it is redacted (unlike the fully-controlled tool-lifecycle log messages below).
+                this.session.logger.debug({
+                    id: LogId.toolExecute,
+                    context: "tool",
+                    message: `Execution of the \`${this.name}\` tool was rejected by the authorizer: ${toolExecutionAuthorized.reason}`,
+                });
+
+                return this.buildAuthorizationDeniedResult(toolExecutionAuthorized.reason);
+            }
+
             if (this.requiresConfirmation()) {
                 if (!(await this.verifyConfirmed(args))) {
                     this.session.logger.debug({
@@ -511,6 +553,8 @@ export abstract class ToolBase<
                 // a separate field for elicitation time in the future.
                 startTime = Date.now();
             }
+
+            this.assertWriteOperationAllowed();
             this.session.logger.debug({
                 id: LogId.toolExecute,
                 context: "tool",
@@ -565,6 +609,18 @@ export abstract class ToolBase<
 
             return toolResult;
         }
+    }
+
+    private buildAuthorizationDeniedResult(reason: string): CallToolResult {
+        return {
+            content: [
+                {
+                    type: "text",
+                    text: `The \`${this.name}\` tool is available but was not permitted for this request: ${reason}`,
+                },
+            ],
+            isError: true,
+        };
     }
 
     /**
@@ -665,6 +721,12 @@ export abstract class ToolBase<
      */
     protected readonly context?: TContext;
 
+    /**
+     * Optional hosting-provided authorization callback. When set, it is invoked
+     * before each execution; a denial short-circuits the tool with an error.
+     */
+    protected readonly authorizeToolExecution?: ToolExecutionAuthorizer;
+
     constructor({
         name,
         category,
@@ -676,6 +738,7 @@ export abstract class ToolBase<
         metrics,
         uiRegistry,
         context,
+        authorizeToolExecution,
     }: ToolConstructorParams<TUserConfig, TContext, TMetrics>) {
         this.name = name;
         this.category = category;
@@ -687,6 +750,7 @@ export abstract class ToolBase<
         this.metrics = metrics;
         this.uiRegistry = uiRegistry;
         this.context = context;
+        this.authorizeToolExecution = authorizeToolExecution;
     }
 
     public register(server: Server<TUserConfig, TContext, TMetrics>): boolean {
@@ -753,12 +817,37 @@ export abstract class ToolBase<
         this.registeredTool.enable();
     }
 
+    /**
+     * Whether write operations must currently be rejected, derived from the
+     * session config and — for data-plane subclasses — the active connection's
+     * read-only flag. Recomputed on each call because the active connection (and
+     * therefore the effective value) can change over the tool's lifetime.
+     */
+    protected isEffectivelyReadOnly(): boolean {
+        return this.config.readOnly ?? false;
+    }
+
+    /**
+     * Throws when the target is effectively read-only and the tool performs a
+     * non-read operation. Mirrors the registration-time read-only rule but at
+     * execution time, so write tools registered under a writable session can
+     * still be rejected for a read-only target.
+     */
+    protected assertWriteOperationAllowed(): void {
+        if (this.isEffectivelyReadOnly() && !READONLY_ALLOWED_OPERATIONS.includes(this.operationType)) {
+            throw new MongoDBError(
+                ErrorCodes.ForbiddenWriteOperation,
+                `The \`${this.name}\` tool is available but was rejected for this target: it performs a \`${this.operationType}\` operation, which is not permitted because the current target is configured as read-only. Only read and metadata operations are allowed here.`
+            );
+        }
+    }
+
     // Checks if a tool is allowed to run based on the config
     protected verifyAllowed(): boolean {
         let errorClarification: string | undefined;
 
         // Check read-only mode first
-        if (this.config.readOnly && !["read", "metadata", "connect"].includes(this.operationType)) {
+        if (this.config.readOnly && !READONLY_ALLOWED_OPERATIONS.includes(this.operationType)) {
             errorClarification = `read-only mode is enabled, its operation type, \`${this.operationType}\`,`;
         } else if (this.config.disabledTools.includes(this.category)) {
             errorClarification = `its category, \`${this.category}\`,`;
@@ -814,7 +903,7 @@ export abstract class ToolBase<
         error: unknown,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         args: z.infer<z.ZodObject<typeof this.argsShape>>
-    ): Promise<CallToolResult> | CallToolResult {
+    ): MaybePromise<CallToolResult> {
         const rawMessage = error instanceof Error ? error.message : String(error);
         const safeMessage = redact(rawMessage, this.session.keychain.allSecrets);
         return {

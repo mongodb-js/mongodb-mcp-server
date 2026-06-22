@@ -1,6 +1,7 @@
 import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolResult } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
+import type { MaybePromise } from "@mongodb-js/mcp-types";
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
@@ -88,7 +89,7 @@ export class CollectionIndexesTool extends MongoDBToolBase {
             };
         }
 
-        return super.handleError(error, args) as ToolResult | Promise<ToolResult>;
+        return super.handleError(error, args) as MaybePromise<ToolResult>;
     }
 
     /**

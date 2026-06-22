@@ -1,7 +1,7 @@
 import type { Mock } from "vitest";
 import { describe, it, expect, vi, beforeEach, type MockedFunction } from "vitest";
 import type { ZodRawShape } from "zod";
-import type { ToolConstructorParams } from "../../src/tools/tool.js";
+import type { ToolConstructorParams, ToolExecutionContext, ToolExecutionAuthorizer } from "../../src/tools/tool.js";
 import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { Session } from "../../src/common/session.js";
 import type { UserConfig } from "../../src/common/config/userConfig.js";
@@ -15,7 +15,13 @@ import type { PreviewFeature } from "../../src/common/schemas.js";
 import { UIRegistry } from "../../src/ui/registry/index.js";
 import { TRANSPORT_PAYLOAD_LIMITS } from "../../src/transports/constants.js";
 import { expectDefined } from "../integration/helpers.js";
-import { TestTool, TestToolWithOutputSchema, TestToolWithoutStructuredContent, ErrorTool } from "./mocks/tools.js";
+import {
+    TestTool,
+    TestToolWithOutputSchema,
+    TestToolWithoutStructuredContent,
+    ErrorTool,
+    EchoTool,
+} from "./mocks/tools.js";
 import { MockMetrics } from "./mocks/metrics.js";
 import { Keychain } from "../../src/common/keychain.js";
 
@@ -121,6 +127,60 @@ describe("ToolBase", () => {
 
             expect(result).toBe(false);
             expect(mockRequestConfirmation).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    describe("authorizeToolExecution hook", () => {
+        const execContext: ToolExecutionContext = {
+            signal: new AbortController().signal,
+            requestInfo: { headers: {} },
+        };
+
+        function makeTool(authorizeToolExecution?: ToolExecutionAuthorizer): TestTool {
+            return new TestTool({
+                name: TestTool.toolName,
+                category: TestTool.category,
+                operationType: TestTool.operationType,
+                session: mockSession,
+                config: mockConfig,
+                telemetry: mockTelemetry,
+                elicitation: mockElicitation,
+                metrics: mockMetrics,
+                authorizeToolExecution,
+            });
+        }
+
+        it("executes normally when no authorizer is provided", async () => {
+            const result = await makeTool().invoke({ param1: "x" }, execContext);
+            expect(result.isError).toBeUndefined();
+            expect((result.content[0] as { text: string }).text).toBe("Test tool executed successfully");
+        });
+
+        it("executes when the authorizer allows", async () => {
+            const result = await makeTool(() => ({ allowed: true })).invoke({ param1: "x" }, execContext);
+            expect(result.isError).toBeUndefined();
+            expect((result.content[0] as { text: string }).text).toBe("Test tool executed successfully");
+        });
+
+        it("blocks and surfaces the reason when the authorizer denies", async () => {
+            const result = await makeTool(() => ({ allowed: false, reason: "org is read-only" })).invoke(
+                { param1: "x" },
+                execContext
+            );
+            expect(result.isError).toBe(true);
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("org is read-only");
+            expect(text).not.toContain("Test tool executed successfully");
+        });
+
+        it("passes tool identity and args to the authorizer", async () => {
+            const authorizer = vi.fn<ToolExecutionAuthorizer>().mockReturnValue({ allowed: true });
+            await makeTool(authorizer).invoke({ param1: "abc" }, execContext);
+            expect(authorizer).toHaveBeenCalledTimes(1);
+            const input = authorizer.mock.calls[0]![0];
+            expect(input.tool).toEqual({ name: "test-tool", category: "mongodb", operationType: "delete" });
+            expect(input.args).toEqual({ param1: "abc" });
+            expect(input.session).toBe(mockSession);
         });
     });
 
@@ -549,6 +609,44 @@ describe("ToolBase", () => {
                     v.labels.status === "error"
             );
             expect(count?.value).toBe(1);
+        });
+    });
+    describe("effective read-only write guard", () => {
+        const execContext = { signal: new AbortController().signal, requestInfo: { headers: {} } };
+
+        function makeTool<T extends typeof TestTool | typeof EchoTool>(ctor: T): InstanceType<T> {
+            return new ctor({
+                name: ctor.toolName,
+                category: ctor.category,
+                operationType: ctor.operationType,
+                session: mockSession,
+                config: mockConfig,
+                telemetry: mockTelemetry,
+                elicitation: mockElicitation,
+                metrics: mockMetrics,
+            }) as InstanceType<T>;
+        }
+
+        it("blocks a write operation when config.readOnly is true", async () => {
+            mockConfig.readOnly = true;
+            const result = await makeTool(TestTool).invoke({ param1: "x" }, execContext);
+            expect(result.isError).toBe(true);
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("read-only");
+            expect(text).toContain("delete");
+        });
+
+        it("allows a write operation when config.readOnly is false", async () => {
+            mockConfig.readOnly = false;
+            const result = await makeTool(TestTool).invoke({ param1: "x" }, execContext);
+            expect(result.isError).toBeUndefined();
+        });
+
+        it("allows a read operation even when config.readOnly is true", async () => {
+            mockConfig.readOnly = true;
+            const result = await makeTool(EchoTool).invoke({}, execContext);
+            expect(result.isError).toBeUndefined();
+            expect((result.content[0] as { text: string }).text).toBe("ok");
         });
     });
 });

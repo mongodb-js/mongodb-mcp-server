@@ -2,6 +2,7 @@
 type UILoaders = Record<string, (() => Promise<string>) | undefined>;
 
 import { uiLoaders as _uiLoaders } from "../lib/loaders.js";
+import type { MaybePromise } from "@mongodb-js/mcp-types";
 const uiLoaders = _uiLoaders as UILoaders;
 
 export type UIRegistryOptions = {
@@ -24,17 +25,17 @@ export type UIRegistryOptions = {
      * });
      * ```
      */
-    customUIs?: (toolName: string) => string | null | Promise<string | null>;
+    customUIs?: (toolName: string) => MaybePromise<string | null>;
 };
 
 /**
  * UI Registry that manages bundled UI HTML strings for tools.
  */
 export class UIRegistry {
-    private customUIs?: (toolName: string) => string | null | Promise<string | null>;
+    private customUIs?: (toolName: string) => MaybePromise<string | null>;
     private cache: Map<string, string> = new Map();
 
-    constructor(options?: { customUIs?: (toolName: string) => string | null | Promise<string | null> }) {
+    constructor(options?: { customUIs?: (toolName: string) => MaybePromise<string | null> }) {
         this.customUIs = options?.customUIs;
     }
 

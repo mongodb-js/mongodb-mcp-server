@@ -4,6 +4,7 @@ import { ToolBase } from "../tool.js";
 import type { Client } from "@mongodb-js/atlas-local";
 import { LogId } from "../../common/logging/index.js";
 import type { ConnectionMetadata } from "../../telemetry/types.js";
+import type { MaybePromise } from "@mongodb-js/mcp-types";
 
 export const AtlasLocalToolMetadataDeploymentIdKey = "deploymentId";
 
@@ -79,10 +80,7 @@ please log a ticket here: https://github.com/mongodb-js/mongodb-mcp-server/issue
         context: { client: Client }
     ): Promise<CallToolResult>;
 
-    protected handleError(
-        error: unknown,
-        args: ToolArgs<typeof this.argsShape>
-    ): Promise<CallToolResult> | CallToolResult {
+    protected handleError(error: unknown, args: ToolArgs<typeof this.argsShape>): MaybePromise<CallToolResult> {
         // Error Handling for expected Atlas Local errors go here
         const errorMessage = error instanceof Error ? error.message : String(error);
 

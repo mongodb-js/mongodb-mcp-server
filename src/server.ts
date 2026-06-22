@@ -15,7 +15,7 @@ import {
     SubscribeRequestSchema,
     UnsubscribeRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import type { AnyToolBase, ToolCategory, ToolClass } from "./tools/tool.js";
+import type { AnyToolBase, ToolCategory, ToolClass, ToolExecutionAuthorizer } from "./tools/tool.js";
 export type { ToolCategory } from "./tools/tool.js";
 import { validateConnectionString } from "./helpers/connectionOptions.js";
 import { packageInfo } from "./common/packageInfo.js";
@@ -102,6 +102,12 @@ export interface ServerOptions<
      * ```
      */
     toolContext?: TContext;
+    /**
+     * Optional hosting-provided callback invoked before each tool execution to
+     * authorize the call for the current target/session. Forwarded to every
+     * registered tool.
+     */
+    authorizeToolExecution?: ToolExecutionAuthorizer;
 }
 
 export class Server<
@@ -119,6 +125,7 @@ export class Server<
     public readonly connectionErrorHandler: ConnectionErrorHandler;
     public readonly uiRegistry?: UIRegistry;
     public readonly toolContext?: TContext;
+    public readonly authorizeToolExecution?: ToolExecutionAuthorizer;
     public readonly metrics: Metrics<TMetrics>;
 
     private _mcpLogLevel: LogLevel;
@@ -143,6 +150,7 @@ export class Server<
         uiRegistry,
         toolContext,
         metrics,
+        authorizeToolExecution,
     }: ServerOptions<TUserConfig, TContext, TMetrics>) {
         this.startTime = Date.now();
         this.session = session;
@@ -155,6 +163,7 @@ export class Server<
         this.uiRegistry = uiRegistry;
         this.toolContext = toolContext;
         this.metrics = metrics;
+        this.authorizeToolExecution = authorizeToolExecution;
 
         this._mcpLogLevel = userConfig.mcpClientLogLevel;
         this.mcpLogLevelFloor = this._mcpLogLevel;
@@ -325,6 +334,7 @@ export class Server<
                 metrics: this.metrics,
                 uiRegistry: this.uiRegistry,
                 context: this.toolContext,
+                authorizeToolExecution: this.authorizeToolExecution,
             });
             if (tool.register(this)) {
                 this.tools.push(tool);

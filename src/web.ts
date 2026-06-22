@@ -79,6 +79,7 @@ export {
     type OperationType,
     type ToolArgs,
     type ToolExecutionContext,
+    type ToolExecutionAuthorizer,
 } from "./tools/tool.js";
 export { Telemetry } from "./telemetry/telemetry.js";
 export type { TelemetryEvents, TelemetryConfig } from "./telemetry/telemetry.js";

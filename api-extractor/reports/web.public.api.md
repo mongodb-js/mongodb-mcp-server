@@ -18,6 +18,7 @@ import type { FindCursor } from 'mongodb';
 import type { IDeviceId } from '@mongodb-js/mcp-types';
 import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
 import type { LoggingMessageNotification } from '@modelcontextprotocol/sdk/types.js';
+import type { MaybePromise } from '@mongodb-js/mcp-types';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { MetricDefinitions } from '@mongodb-js/mcp-metrics';
 import { Metrics } from '@mongodb-js/mcp-metrics';
@@ -308,7 +309,7 @@ export type ConnectionErrorHandled = {
 };
 
 // @public (undocumented)
-export type ConnectionErrorHandler = (error: MongoDBError<ErrorCodes.NotConnectedToMongoDB | ErrorCodes.MisconfiguredConnectionString>, additionalContext: ConnectionErrorHandlerContext) => ConnectionErrorUnhandled | ConnectionErrorHandled | Promise<ConnectionErrorUnhandled | ConnectionErrorHandled>;
+export type ConnectionErrorHandler = (error: MongoDBError<ErrorCodes.NotConnectedToMongoDB | ErrorCodes.MisconfiguredConnectionString>, additionalContext: ConnectionErrorHandlerContext) => MaybePromise<ConnectionErrorUnhandled | ConnectionErrorHandled>;
 
 // @public (undocumented)
 export type ConnectionErrorHandlerContext = {
@@ -385,6 +386,8 @@ export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"
     atlas?: AtlasClusterConnectionInfo;
     // (undocumented)
     driverOptions?: ConnectionInfo["driverOptions"];
+    // (undocumented)
+    readOnly?: boolean;
 }
 
 // @public (undocumented)
@@ -399,13 +402,15 @@ export interface ConnectionState {
 
 // @public (undocumented)
 export class ConnectionStateConnected implements ConnectionState {
-    constructor(serviceProvider: NodeDriverServiceProvider, connectionStringInfo?: ConnectionStringInfo | undefined, connectedAtlasCluster?: AtlasClusterConnectionInfo | undefined);
+    constructor(serviceProvider: NodeDriverServiceProvider, connectionStringInfo?: ConnectionStringInfo | undefined, connectedAtlasCluster?: AtlasClusterConnectionInfo | undefined, readOnly?: boolean | undefined);
     // (undocumented)
     connectedAtlasCluster?: AtlasClusterConnectionInfo | undefined;
     // (undocumented)
     connectionStringInfo?: ConnectionStringInfo | undefined;
     // (undocumented)
     isSearchSupported(logger: LoggerBase): Promise<boolean>;
+    // (undocumented)
+    readonly readOnly?: boolean | undefined;
     // (undocumented)
     serviceProvider: NodeDriverServiceProvider;
     // (undocumented)
@@ -420,6 +425,8 @@ export interface ConnectionStateConnecting extends ConnectionState {
     oidcLoginUrl?: string;
     // (undocumented)
     oidcUserCode?: string;
+    // (undocumented)
+    readOnly?: boolean;
     // (undocumented)
     serviceProvider: Promise<NodeDriverServiceProvider>;
     // (undocumented)
@@ -463,7 +470,7 @@ export { createDefaultMetrics }
 export type CreateSessionConfigFn<TUserConfig extends UserConfig = UserConfig> = (context: {
     userConfig: TUserConfig;
     request?: TransportRequestContext;
-}) => Promise<TUserConfig> | TUserConfig;
+}) => MaybePromise<TUserConfig>;
 
 // @public (undocumented)
 export interface Credentials {
@@ -474,7 +481,7 @@ export interface Credentials {
 }
 
 // @public (undocumented)
-export type CustomizableServerOptions<TUserConfig extends UserConfig = UserConfig, TContext = unknown> = Partial<Pick<ServerOptions<TUserConfig, TContext>, "uiRegistry" | "tools" | "toolContext" | "elicitation">> & {
+export type CustomizableServerOptions<TUserConfig extends UserConfig = UserConfig, TContext = unknown> = Partial<Pick<ServerOptions<TUserConfig, TContext>, "uiRegistry" | "tools" | "toolContext" | "elicitation" | "authorizeToolExecution">> & {
     telemetryProperties?: Partial<CommonProperties>;
 };
 
@@ -737,6 +744,8 @@ export { Secret }
 export class Server<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> {
     constructor(input: ServerOptions<TUserConfig, TContext, TMetrics>);
     // (undocumented)
+    readonly authorizeToolExecution?: ToolExecutionAuthorizer;
+    // (undocumented)
     close(): Promise<void>;
     // (undocumented)
     connect(transport: Transport): Promise<void>;
@@ -774,6 +783,7 @@ export class Server<TUserConfig extends UserConfig = UserConfig, TContext = unkn
 
 // @public (undocumented)
 export interface ServerOptions<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> {
+    authorizeToolExecution?: ToolExecutionAuthorizer;
     // @deprecated (undocumented)
     connectionErrorHandler: ConnectionErrorHandler;
     // (undocumented)
@@ -944,6 +954,8 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
     // (undocumented)
     get annotations(): ToolAnnotations;
     abstract argsShape: ZodRawShape;
+    protected assertWriteOperationAllowed(): void;
+    protected readonly authorizeToolExecution?: ToolExecutionAuthorizer;
     readonly category: ToolCategory;
     protected readonly config: TUserConfig;
     protected readonly context?: TContext;
@@ -957,8 +969,9 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
     protected getConfirmationMessage(args: ToolArgs<typeof ToolBase.argsShape>): string;
     // (undocumented)
     protected getConnectionInfoMetadata(): ConnectionMetadata;
-    protected handleError(error: unknown, args: z.infer<z.ZodObject<typeof ToolBase.argsShape>>): Promise<CallToolResult> | CallToolResult;
+    protected handleError(error: unknown, args: z.infer<z.ZodObject<typeof ToolBase.argsShape>>): MaybePromise<CallToolResult>;
     invoke(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
+    protected isEffectivelyReadOnly(): boolean;
     // (undocumented)
     isEnabled(): boolean;
     // (undocumented)
@@ -1004,7 +1017,25 @@ export type ToolConstructorParams<TUserConfig extends UserConfig = UserConfig, T
     metrics: Metrics<TMetrics>;
     uiRegistry?: UIRegistry;
     context?: TContext;
+    authorizeToolExecution?: ToolExecutionAuthorizer;
 };
+
+// @public
+export type ToolExecutionAuthorizer = (input: {
+    tool: {
+        name: string;
+        category: ToolCategory;
+        operationType: OperationType;
+    };
+    args: unknown;
+    session: Session;
+    context: ToolExecutionContext;
+}) => MaybePromise<{
+    allowed: true;
+} | {
+    allowed: false;
+    reason: string;
+}>;
 
 // @public (undocumented)
 export interface ToolExecutionContext {
@@ -1084,7 +1115,7 @@ export type TransportRunnerConfig<TUserConfig extends UserConfig = UserConfig, T
 // @public
 export class UIRegistry {
     constructor(options?: {
-        customUIs?: (toolName: string) => string | null | Promise<string | null>;
+        customUIs?: (toolName: string) => MaybePromise<string | null>;
     });
     get(toolName: string): Promise<string | null>;
 }

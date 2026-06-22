@@ -17,6 +17,7 @@ import type { FindCursor } from 'mongodb';
 import type { IDeviceId } from '@mongodb-js/mcp-types';
 import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
 import type { LoggingMessageNotification } from '@modelcontextprotocol/sdk/types.js';
+import type { MaybePromise } from '@mongodb-js/mcp-types';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { Metrics } from '@mongodb-js/mcp-metrics';
 import type { MongoLogId } from 'mongodb-log-writer';
@@ -1285,6 +1286,8 @@ export abstract class MongoDBToolBase extends ToolBase {
     // (undocumented)
     protected handleError(error: unknown, args: ToolArgs<typeof MongoDBToolBase.argsShape>): Promise<CallToolResult>;
     // (undocumented)
+    protected isEffectivelyReadOnly(): boolean;
+    // (undocumented)
     register(server: Server): boolean;
     protected resolveTelemetryMetadata(_args: ToolArgs<typeof MongoDBToolBase.argsShape>, input: {
         result: CallToolResult;
@@ -1705,6 +1708,8 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
     // (undocumented)
     get annotations(): ToolAnnotations;
     abstract argsShape: ZodRawShape;
+    protected assertWriteOperationAllowed(): void;
+    protected readonly authorizeToolExecution?: ToolExecutionAuthorizer;
     readonly category: ToolCategory;
     protected readonly config: TUserConfig;
     protected readonly context?: TContext;
@@ -1718,8 +1723,9 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
     protected getConfirmationMessage(args: ToolArgs<typeof ToolBase.argsShape>): string;
     // (undocumented)
     protected getConnectionInfoMetadata(): ConnectionMetadata;
-    protected handleError(error: unknown, args: z.infer<z.ZodObject<typeof ToolBase.argsShape>>): Promise<CallToolResult> | CallToolResult;
+    protected handleError(error: unknown, args: z.infer<z.ZodObject<typeof ToolBase.argsShape>>): MaybePromise<CallToolResult>;
     invoke(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
+    protected isEffectivelyReadOnly(): boolean;
     // (undocumented)
     isEnabled(): boolean;
     // (undocumented)
@@ -1765,7 +1771,25 @@ export type ToolConstructorParams<TUserConfig extends UserConfig = UserConfig, T
     metrics: Metrics<TMetrics>;
     uiRegistry?: UIRegistry;
     context?: TContext;
+    authorizeToolExecution?: ToolExecutionAuthorizer;
 };
+
+// @public
+export type ToolExecutionAuthorizer = (input: {
+    tool: {
+        name: string;
+        category: ToolCategory;
+        operationType: OperationType;
+    };
+    args: unknown;
+    session: Session;
+    context: ToolExecutionContext;
+}) => MaybePromise<{
+    allowed: true;
+} | {
+    allowed: false;
+    reason: string;
+}>;
 
 // @public (undocumented)
 export interface ToolExecutionContext {
