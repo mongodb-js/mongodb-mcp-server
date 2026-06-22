@@ -519,8 +519,6 @@ export abstract class ToolBase<
             });
 
             if (toolExecutionAuthorized?.allowed === false) {
-                // `reason` comes from the hosting-provided authorizer and is not under our control,
-                // so it is redacted (unlike the fully-controlled tool-lifecycle log messages below).
                 this.session.logger.debug({
                     id: LogId.toolExecute,
                     context: "tool",
@@ -529,6 +527,8 @@ export abstract class ToolBase<
 
                 return this.buildAuthorizationDeniedResult(toolExecutionAuthorized.reason);
             }
+
+            this.assertWriteOperationAllowed();
 
             if (this.requiresConfirmation()) {
                 if (!(await this.verifyConfirmed(args))) {
@@ -554,7 +554,6 @@ export abstract class ToolBase<
                 startTime = Date.now();
             }
 
-            this.assertWriteOperationAllowed();
             this.session.logger.debug({
                 id: LogId.toolExecute,
                 context: "tool",
@@ -837,7 +836,7 @@ export abstract class ToolBase<
         if (this.isEffectivelyReadOnly() && !READONLY_ALLOWED_OPERATIONS.includes(this.operationType)) {
             throw new MongoDBError(
                 ErrorCodes.ForbiddenWriteOperation,
-                `The \`${this.name}\` tool is available but was rejected for this target: it performs a \`${this.operationType}\` operation, which is not permitted because the current target is configured as read-only. Only read and metadata operations are allowed here.`
+                `The \`${this.name}\` tool is available but was rejected for this target: it performs a \`${this.operationType}\` operation, which is not permitted because the current target is configured as read-only. Only non-destructive operations are allowed here.`
             );
         }
     }
