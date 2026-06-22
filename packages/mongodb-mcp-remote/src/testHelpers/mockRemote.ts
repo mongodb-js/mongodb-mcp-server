@@ -1,6 +1,6 @@
-import express, { type Express, type Response } from "express";
+import { createServer } from "node:http";
+import type { IncomingMessage, ServerResponse, Server } from "node:http";
 import type { AddressInfo } from "node:net";
-import type { Server } from "node:http";
 
 /**
  * A mock remote MCP server + mock Atlas token endpoint, for integration tests.
@@ -33,6 +33,30 @@ export interface MockRemote {
     close: () => Promise<void>;
 }
 
+function readBody(req: IncomingMessage): Promise<string> {
+    return new Promise((resolve) => {
+        let body = "";
+        req.on("data", (chunk) => (body += chunk));
+        req.on("end", () => resolve(body));
+    });
+}
+
+function sendJson(res: ServerResponse, status: number, body: unknown): void {
+    const payload = JSON.stringify(body);
+    res.writeHead(status, { "Content-Type": "application/json" });
+    res.end(payload);
+}
+
+function sendRpc(res: ServerResponse, payload: unknown, mode: "sse" | "json"): void {
+    if (mode === "sse") {
+        res.writeHead(200, { "Content-Type": "text/event-stream" });
+        res.write(`event: message\ndata: ${JSON.stringify(payload)}\n\n`);
+        res.end();
+    } else {
+        sendJson(res, 200, payload);
+    }
+}
+
 /** Starts a mock remote MCP server + mock Atlas token endpoint on a random free port. */
 export async function startMockRemote(options: MockRemoteOptions = {}): Promise<MockRemote> {
     const responseMode = options.responseMode ?? "sse";
@@ -40,95 +64,95 @@ export async function startMockRemote(options: MockRemoteOptions = {}): Promise<
     let lastAuth: string | undefined;
     let mcpFailuresRemaining = 0;
 
-    // Reply to an /mcp request with a JSON-RPC payload, as SSE or plain JSON.
-    const sendRpc = (res: Response, payload: unknown): void => {
-        if (responseMode === "sse") {
-            res.setHeader("Content-Type", "text/event-stream");
-            res.write(`event: message\ndata: ${JSON.stringify(payload)}\n\n`);
-            res.end();
-        } else {
-            res.json(payload);
+    const handleRequest = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
+        // Mock Atlas token endpoint
+        if (req.url === "/api/oauth/token") {
+            tokenRequests++;
+            sendJson(res, 200, { access_token: "mock-token-123", expires_in: 3600, token_type: "Bearer" });
+            return;
         }
+
+        // Mock remote MCP endpoint: requires the bearer token, else 401
+        if (req.url === "/mcp") {
+            const body = await readBody(req);
+            const parsed = body
+                ? (JSON.parse(body) as {
+                      id?: string | number | null;
+                      method?: string;
+                      params?: { protocolVersion?: string };
+                  })
+                : {};
+            const { id, method, params } = parsed;
+            lastAuth = req.headers["authorization"];
+
+            // Don't apply the forced 401 to the initialize call or to notifications
+            const isHandshakeOrNotification = method === "initialize" || id === undefined || id === null;
+
+            if (!isHandshakeOrNotification && mcpFailuresRemaining > 0) {
+                mcpFailuresRemaining--;
+                sendJson(res, 401, { error: "unauthorized" });
+                return;
+            }
+
+            if (lastAuth !== "Bearer mock-token-123") {
+                sendJson(res, 401, { error: "unauthorized" });
+                return;
+            }
+
+            // Notifications (e.g. notifications/initialized) have no id
+            if (id === undefined || id === null) {
+                res.writeHead(202);
+                res.end();
+                return;
+            }
+
+            res.setHeader("Mcp-Session-Id", "mock-session-1");
+
+            if (method === "initialize") {
+                sendRpc(
+                    res,
+                    {
+                        jsonrpc: "2.0",
+                        id,
+                        result: {
+                            protocolVersion: params?.protocolVersion ?? "2024-11-05",
+                            capabilities: { tools: {} },
+                            serverInfo: { name: "mock-remote-mcp", version: "0.0.0" },
+                        },
+                    },
+                    responseMode
+                );
+                return;
+            }
+
+            if (method === "tools/list") {
+                sendRpc(
+                    res,
+                    {
+                        jsonrpc: "2.0",
+                        id,
+                        result: {
+                            tools: [{ name: "find", description: "Mock find tool", inputSchema: { type: "object" } }],
+                        },
+                    },
+                    responseMode
+                );
+                return;
+            }
+
+            sendRpc(res, { jsonrpc: "2.0", id, result: {} }, responseMode);
+            return;
+        }
+
+        res.writeHead(404);
+        res.end();
     };
 
-    const app: Express = express();
-    app.use(express.json());
-
-    // Mock Atlas token endpoint
-    app.post("/api/oauth/token", (_req, res) => {
-        tokenRequests++;
-        res.json({ access_token: "mock-token-123", expires_in: 3600, token_type: "Bearer" });
+    const server: Server = createServer((req, res) => {
+        void handleRequest(req, res);
     });
 
-    // Mock remote MCP endpoint: requires the bearer token, else 401
-    app.post("/mcp", (req, res) => {
-        lastAuth = req.headers["authorization"];
-
-        const { id, method, params } = (req.body ?? {}) as {
-            id?: string | number | null;
-            method?: string;
-            params?: { protocolVersion?: string };
-        };
-
-        // Don't apply the forced 401 to the initialize call or to notifications
-        const isHandshakeOrNotification = method === "initialize" || id === undefined || id === null;
-
-        if (!isHandshakeOrNotification && mcpFailuresRemaining > 0) {
-            mcpFailuresRemaining--;
-            res.status(401).json({ error: "unauthorized" });
-            return;
-        }
-        if (lastAuth !== "Bearer mock-token-123") {
-            res.status(401).json({ error: "unauthorized" });
-            return;
-        }
-
-        // Notifications (e.g. notifications/initialized) have no id
-        if (id === undefined || id === null) {
-            res.status(202).end();
-            return;
-        }
-
-        // Return a session id on the first (initialize) call
-        res.setHeader("Mcp-Session-Id", "mock-session-1");
-
-        if (method === "initialize") {
-            sendRpc(res, {
-                jsonrpc: "2.0",
-                id,
-                result: {
-                    protocolVersion: params?.protocolVersion ?? "2024-11-05",
-                    capabilities: { tools: {} },
-                    serverInfo: { name: "mock-remote-mcp", version: "0.0.0" },
-                },
-            });
-            return;
-        }
-
-        if (method === "tools/list") {
-            sendRpc(res, {
-                jsonrpc: "2.0",
-                id,
-                result: {
-                    tools: [
-                        {
-                            name: "find",
-                            description: "Mock find tool",
-                            inputSchema: { type: "object" },
-                        },
-                    ],
-                },
-            });
-            return;
-        }
-
-        // Default: return a minimal valid JSON-RPC result.
-        sendRpc(res, { jsonrpc: "2.0", id, result: {} });
-    });
-
-    const server: Server = await new Promise((resolve) => {
-        const s = app.listen(0, () => resolve(s)); // port 0 → OS picks a free port
-    });
+    await new Promise<void>((resolve) => server.listen(0, () => resolve()));
     const port = (server.address() as AddressInfo).port;
 
     return {
