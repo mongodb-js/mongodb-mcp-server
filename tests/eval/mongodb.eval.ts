@@ -173,6 +173,7 @@ void Eval<RunEvalInput, RunEvalOutput, RunEvalExpected, void, boolean, EvalParam
             }
         },
         scores: [llmJudgeScore],
+        baseExperimentName: process.env.EVAL_BASE_EXPERIMENT_NAME,
         parameters,
     },
     reporter
