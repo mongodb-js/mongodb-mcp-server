@@ -80,6 +80,60 @@ pnpm test path/to/directory
 
 If you use [colima](https://github.com/abiosoft/colima) to run Docker on Mac, you will need to apply [additional configuration](https://node.testcontainers.org/supported-container-runtimes/#colima) to ensure the accuracy tests run correctly.
 
+## Running Braintrust Evals
+
+The Braintrust eval suite (found in `tests/eval/`) evaluates how well an LLM, when connected to the MongoDB MCP server, can understand and fulfill user requests given in natural language. Each evaluation is scored by an LLM judge, and the results are tracked over time in [Braintrust](https://www.braintrust.dev/). To run the Braintrust evals, you will need both access to a MongoDB instance (either running locally or in the cloud) and a Braintrust API key.
+
+### Prerequisites
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (needed if you plan to run a local MongoDB instance using the `mongodb/mongodb-atlas-local` Docker image)
+- A [Braintrust API key](https://www.braintrust.dev/app/<organization>/p/<project>/configuration/org/api-keys), which must be set in the `BRAINTRUST_API_KEY` environment variable
+
+### Running Locally
+
+1. Start the local MongoDB docker container for the evals:
+
+   ```bash
+   pnpm run eval:db-start
+   ```
+
+2. Run the eval suite and upload the results to Braintrust:
+
+   ```bash
+   pnpm run eval:run
+   ```
+
+   By default, the eval is configured to use the `mongodb-education-ai` (organization) > `mongodb-mcp-server-evals` (project) > `Search` (dataset) in MongoDB's Braintrust organization.
+
+   Additional useful scripts:
+   - `pnpm run eval:debug` — runs the eval directly using `tsx`, which can be simpler for local debugging. `pnpm run eval:run` also works if used with VSCode's "JavaScript Debug Terminal".
+   - `pnpm run eval:serve` — launches Braintrust in dev mode, which can serve requests directly if Braintrust playground is configured with Remote Eval set to "http://localhost:8300"
+   - `pnpm run eval:ci:run` — used in CI: fetches eval history for the `main` branch, runs the eval suite on current working directory with the experiment baseline set to the latest `main-<number>` run (to compare against), and writes a markdown report to `.eval/ci-report.md` which will be posted as a sticky PR comment.
+   - `pnpm run eval:push` — bundles the eval and pushes it to Braintrust to be used as [sandbox Eval](https://www.braintrust.dev/docs/evaluate/remote-evals#run-a-sandbox-eval).
+   - `pnpm run eval:generate-schemas` — generates json schema for the input and expected fields of the eval dataset which can be set on Braintrust for better validation.
+
+3. Feel free to stop the local MongoDB instance when you are done:
+
+   ```bash
+   pnpm run eval:db-stop
+   ```
+
+#### Notable Environment Variables
+
+- `BRAINTRUST_API_KEY`: Required for all eval runs.
+- `EVAL_CONNECTION_STRING`: Overrides the MongoDB connection string (defaults to `mongodb://localhost:27017/?directConnection=true`).
+- `EVAL_BASE_EXPERIMENT_NAME`: Lets you compare the current run against a specific baseline experiment. In CI, this is set automatically from the latest `main-<number>` run.
+
+### Running in CI
+
+The `Braintrust Evals` GitHub Actions workflow (`.github/workflows/braintrust-evals.yml`) runs the suite against a local MongoDB and reports results. It is triggered by:
+
+- manual runs (`workflow_dispatch`)
+- pushes to the `main` branch
+- pull requests with the `braintrust-evals` label
+
+To kick off an eval on a PR, add the `braintrust-evals` label. The workflow runs `pnpm run eval:ci:run`, generates a report in `.eval/ci-report.md`, and posts it as a sticky PR comment. This report includes the current `llm_judge` accuracy as well as a chart showing accuracy over time compared to the latest `main-<number>` baseline.
+
 ## Troubleshooting
 
 ### Restart Server
