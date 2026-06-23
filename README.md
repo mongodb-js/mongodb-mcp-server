@@ -277,7 +277,7 @@ npx -y mongodb-mcp-server@latest --transport http --httpHost=0.0.0.0 --httpPort=
 
 > **Note:** The default transport is `stdio`, which is suitable for integration with most MCP clients. Use `http` transport if you need to interact with the server over HTTP.
 
-##### Monitoring server (health check and metrics)
+##### Monitoring server health checks
 
 When running with `--transport http`, you can optionally start a **separate** monitoring HTTP server that exposes a health-check endpoint and, optionally, a metrics endpoint. It listens on its own host and port, independent of the main MCP HTTP server, so you can keep it on an internal-only interface.
 
@@ -286,7 +286,7 @@ The monitoring server is only started when **both** `--monitoringServerHost` and
 ```shell
 npx -y mongodb-mcp-server@latest --transport http \
   --httpHost=0.0.0.0 --httpPort=3000 \
-  --monitoringServerHost=0.0.0.0 --monitoringServerPort=8080
+  --monitoringServerHost=127.0.0.1 --monitoringServerPort=8080
 ```
 
 It exposes the following routes:
@@ -299,7 +299,7 @@ It exposes the following routes:
 Check the health endpoint:
 
 ```shell
-curl http://0.0.0.0:8080/health
+curl http://127.0.0.1:8080/health
 # {"status":"ok"}
 ```
 
@@ -308,7 +308,7 @@ Use `--monitoringServerFeatures` (or `MDB_MCP_MONITORING_SERVER_FEATURES`) to co
 ```shell
 npx -y mongodb-mcp-server@latest --transport http \
   --httpHost=0.0.0.0 --httpPort=3000 \
-  --monitoringServerHost=0.0.0.0 --monitoringServerPort=8080 \
+  --monitoringServerHost=127.0.0.1 --monitoringServerPort=8080 \
   --monitoringServerFeatures=health-check,metrics
 ```
 
