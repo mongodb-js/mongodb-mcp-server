@@ -12,7 +12,7 @@ const DEFAULT_STEP_COUNT = 10;
 
 const FALLBACK: Verdict = {
     score: 0,
-    explanation: `Judge did not submit a score before the step limit (${DEFAULT_STEP_COUNT}).`,
+    explanation: `Judge finished without submitting a score (step limit ${DEFAULT_STEP_COUNT}).`,
 };
 
 /**
@@ -34,26 +34,51 @@ export async function judgeUsingLLM(params: {
     const { model, tools, criteria, tempDbName } = params;
     const submitScoreTool = new SubmitScoreTool();
 
+    const judgeTools: ToolSet = {
+        ...tools,
+        [SubmitScoreTool.toolName]: submitScoreTool.getTool(),
+    };
+    const system = composeJudgeSystemPrompt(criteria, tempDbName);
+    const messages: untracedAi.ModelMessage[] = [
+        {
+            role: "user",
+            content: `Verify the criteria, then call ${SubmitScoreTool.toolName} exactly once.`,
+        },
+    ];
+
     await traced(
         async () => {
-            await ai.generateText({
+            const result = await ai.generateText({
                 model,
-                system: composeJudgeSystemPrompt(criteria, tempDbName),
-                messages: [
-                    {
-                        role: "user" as const,
-                        content: `Verify the criteria, then call ${SubmitScoreTool.toolName} exactly once.`,
-                    },
-                ],
-                tools: {
-                    ...tools,
-                    [SubmitScoreTool.toolName]: submitScoreTool.getTool(),
-                },
+                system,
+                messages,
+                tools: judgeTools,
                 stopWhen: [
                     untracedAi.stepCountIs(DEFAULT_STEP_COUNT),
                     untracedAi.hasToolCall(SubmitScoreTool.toolName),
                 ],
             });
+
+            // The judge may end its turn with a plain-text verdict instead of calling submit_score (text responses stop
+            // generateText naturally, independent of stopWhen). If that happens, re-prompt once and
+            // force the submit_score call so a verdict is always captured.
+            if (submitScoreTool.getCapturedVerdict() === undefined) {
+                await ai.generateText({
+                    model,
+                    system,
+                    messages: [
+                        ...messages,
+                        ...result.response.messages,
+                        {
+                            role: "user",
+                            content: `You did not call ${SubmitScoreTool.toolName}. Call it now exactly once with your final score.`,
+                        },
+                    ],
+                    tools: judgeTools,
+                    toolChoice: { type: "tool", toolName: SubmitScoreTool.toolName },
+                    stopWhen: untracedAi.stepCountIs(1),
+                });
+            }
         },
         { name: "llm-judge" }
     );
