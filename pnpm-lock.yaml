@@ -16,10 +16,10 @@ importers:
         version: 5.1.3(@types/node@25.6.0)
       '@mcp-ui/server':
         specifier: ^6.1.0
-        version: 6.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@4.4.2)
+        version: 6.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@4.4.3)
       '@modelcontextprotocol/sdk':
         specifier: ^1.29.0
-        version: 1.29.0(zod@4.4.2)
+        version: 1.29.0(zod@4.4.3)
       '@mongodb-js/device-id':
         specifier: ^0.4.11
         version: 0.4.11
@@ -34,7 +34,7 @@ importers:
         version: link:packages/types
       '@mongosh/arg-parser':
         specifier: ^5.0.2
-        version: 5.0.2(zod@4.4.2)
+        version: 5.0.2(zod@4.4.3)
       '@mongosh/service-provider-node-driver':
         specifier: ^5.0.2
         version: 5.0.2(mongodb-log-writer@2.5.13(bson@7.2.0))
@@ -96,24 +96,24 @@ importers:
         specifier: ^2.8.1
         version: 2.8.3
       zod:
-        specifier: ^4.4.2
-        version: 4.4.2
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@ai-sdk/anthropic':
         specifier: ^3.0.71
-        version: 3.0.71(zod@4.4.2)
+        version: 3.0.71(zod@4.4.3)
       '@ai-sdk/azure':
         specifier: ^3.0.62
-        version: 3.0.62(zod@4.4.2)
+        version: 3.0.62(zod@4.4.3)
       '@ai-sdk/google':
         specifier: ^3.0.67
-        version: 3.0.67(zod@4.4.2)
+        version: 3.0.67(zod@4.4.3)
       '@ai-sdk/mcp':
         specifier: ^1.0.40
-        version: 1.0.40(zod@4.4.2)
+        version: 1.0.40(zod@4.4.3)
       '@ai-sdk/openai':
         specifier: ^3.0.61
-        version: 3.0.61(zod@4.4.2)
+        version: 3.0.61(zod@4.4.3)
       '@anthropic-ai/mcpb':
         specifier: 2.1.2
         version: 2.1.2
@@ -128,7 +128,7 @@ importers:
         version: 0.1.0(@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@19.2.14)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@19.2.14)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@lg-mcp/hooks':
         specifier: ^0.2.0
-        version: 0.2.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@4.4.2)
+        version: 0.2.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@4.4.3)
       '@microsoft/api-extractor':
         specifier: ^7.58.7
         version: 7.58.7(@types/node@25.6.0)
@@ -179,10 +179,10 @@ importers:
         version: 1.6.19(@typescript-eslint/eslint-plugin@8.58.2(@typescript-eslint/parser@8.61.0(eslint@10.2.0(jiti@2.7.0))(typescript@5.9.3))(eslint@10.2.0(jiti@2.7.0))(typescript@5.9.3))(eslint@10.2.0(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.8)
       ai:
         specifier: ^6.0.175
-        version: 6.0.175(zod@4.4.2)
+        version: 6.0.175(zod@4.4.3)
       braintrust:
         specifier: ^3.17.0
-        version: 3.17.0(@aws-sdk/credential-provider-web-identity@3.972.16)(zod@4.4.2)
+        version: 3.17.0(@aws-sdk/credential-provider-web-identity@3.972.16)(zod@4.4.3)
       concurrently:
         specifier: ^9.2.1
         version: 9.2.1
@@ -199,8 +199,8 @@ importers:
         specifier: ^10.1.8
         version: 10.1.8(eslint@10.2.0(jiti@2.7.0))
       eslint-plugin-prettier:
-        specifier: ^5.5.5
-        version: 5.5.5(eslint-config-prettier@10.1.8(eslint@10.2.0(jiti@2.7.0)))(eslint@10.2.0(jiti@2.7.0))(prettier@3.8.3)
+        specifier: ^5.5.6
+        version: 5.5.6(eslint-config-prettier@10.1.8(eslint@10.2.0(jiti@2.7.0)))(eslint@10.2.0(jiti@2.7.0))(prettier@3.8.3)
       globals:
         specifier: ^17.6.0
         version: 17.6.0
@@ -2306,9 +2306,9 @@ packages:
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
     engines: {node: '>=14'}
 
-  '@pkgr/core@0.2.9':
-    resolution: {integrity: sha512-QNqXyfVS2wm9hweSYD2O7F0G06uurj9kZ96TRQE5Y9hU7+tgdZwIkbAKc5Ocy1HxEY2kuDQa6cQ1WRs/O5LFKA==}
-    engines: {node: ^12.20.0 || ^14.18.0 || >=16.0.0}
+  '@pkgr/core@0.3.6':
+    resolution: {integrity: sha512-SEeaJLb3qBNF/OaXnaR1NmmBbFYk1zC0ZH/52fATcRPLFg/p791YrcyFFy44Bo9sLaGuSuLp5Q6axbb/O+v/RA==}
+    engines: {node: ^14.18.0 || >=16.0.0}
 
   '@polka/url@1.0.0-next.29':
     resolution: {integrity: sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww==}
@@ -4606,8 +4606,8 @@ packages:
     peerDependencies:
       eslint: '>=7.0.0'
 
-  eslint-plugin-prettier@5.5.5:
-    resolution: {integrity: sha512-hscXkbqUZ2sPithAuLm5MXL+Wph+U7wHngPBv9OMWwlP8iaflyxpjTYZkmdgB4/vPIhemRlBEoLrH7UC1n7aUw==}
+  eslint-plugin-prettier@5.5.6:
+    resolution: {integrity: sha512-ifetmTcxWfz+4qRW3pH/ujdTq2jQIj59AxJMIN26K5avYgU8dxycUETQonWiW+wPrYXA0j3Try0l1CnwVQtDqQ==}
     engines: {node: ^14.18.0 || >=16.0.0}
     peerDependencies:
       '@types/eslint': '>=8.0.0'
@@ -6900,8 +6900,8 @@ packages:
   symbol-tree@3.2.4:
     resolution: {integrity: sha512-9QNk5KwDF+Bvz+PyObkmSYjI5ksVUYtjW7AU22r2NKcfLJcXp96hkDWU3+XndOsUb+AQ9QhfzfCT2O+CNWT5Tw==}
 
-  synckit@0.11.12:
-    resolution: {integrity: sha512-Bh7QjT8/SuKUIfObSXNHNSK6WHo6J1tHCqJsuaFDP7gP0fkzSfTxI8y85JrppZ0h8l0maIgc2tfuZQ6/t3GtnQ==}
+  synckit@0.11.13:
+    resolution: {integrity: sha512-eNRKgb3z66Yp3D2CixVujOUvXLFUTij/zVnV8KRyvFdQwpz7I5DS8UfRkTeLzb64u+dkzDSdelE24izu+zSSUg==}
     engines: {node: ^14.18.0 || >=16.0.0}
 
   system-ca@3.0.0:
@@ -7579,9 +7579,6 @@ packages:
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
-  zod@4.4.2:
-    resolution: {integrity: sha512-IynmDyxsEsb9RKzO3J9+4SxXnl2FTFSzNBaKKaMV6tsSk0rw9gYw9gs+JFCq/qk2LCZ78KDwyj+Z289TijSkUw==}
-
   zod@4.4.3:
     resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
 
@@ -7589,58 +7586,58 @@ snapshots:
 
   '@adobe/css-tools@4.4.4': {}
 
-  '@ai-sdk/anthropic@3.0.71(zod@4.4.2)':
+  '@ai-sdk/anthropic@3.0.71(zod@4.4.3)':
     dependencies:
       '@ai-sdk/provider': 3.0.8
-      '@ai-sdk/provider-utils': 4.0.23(zod@4.4.2)
-      zod: 4.4.2
+      '@ai-sdk/provider-utils': 4.0.23(zod@4.4.3)
+      zod: 4.4.3
 
-  '@ai-sdk/azure@3.0.62(zod@4.4.2)':
+  '@ai-sdk/azure@3.0.62(zod@4.4.3)':
     dependencies:
-      '@ai-sdk/openai': 3.0.61(zod@4.4.2)
+      '@ai-sdk/openai': 3.0.61(zod@4.4.3)
       '@ai-sdk/provider': 3.0.10
-      '@ai-sdk/provider-utils': 4.0.26(zod@4.4.2)
-      zod: 4.4.2
+      '@ai-sdk/provider-utils': 4.0.26(zod@4.4.3)
+      zod: 4.4.3
 
-  '@ai-sdk/gateway@3.0.110(zod@4.4.2)':
+  '@ai-sdk/gateway@3.0.110(zod@4.4.3)':
     dependencies:
       '@ai-sdk/provider': 3.0.10
-      '@ai-sdk/provider-utils': 4.0.26(zod@4.4.2)
+      '@ai-sdk/provider-utils': 4.0.26(zod@4.4.3)
       '@vercel/oidc': 3.2.0
-      zod: 4.4.2
+      zod: 4.4.3
 
-  '@ai-sdk/google@3.0.67(zod@4.4.2)':
+  '@ai-sdk/google@3.0.67(zod@4.4.3)':
     dependencies:
       '@ai-sdk/provider': 3.0.10
-      '@ai-sdk/provider-utils': 4.0.26(zod@4.4.2)
-      zod: 4.4.2
+      '@ai-sdk/provider-utils': 4.0.26(zod@4.4.3)
+      zod: 4.4.3
 
-  '@ai-sdk/mcp@1.0.40(zod@4.4.2)':
+  '@ai-sdk/mcp@1.0.40(zod@4.4.3)':
     dependencies:
       '@ai-sdk/provider': 3.0.10
-      '@ai-sdk/provider-utils': 4.0.26(zod@4.4.2)
+      '@ai-sdk/provider-utils': 4.0.26(zod@4.4.3)
       pkce-challenge: 5.0.1
-      zod: 4.4.2
+      zod: 4.4.3
 
-  '@ai-sdk/openai@3.0.61(zod@4.4.2)':
+  '@ai-sdk/openai@3.0.61(zod@4.4.3)':
     dependencies:
       '@ai-sdk/provider': 3.0.10
-      '@ai-sdk/provider-utils': 4.0.26(zod@4.4.2)
-      zod: 4.4.2
+      '@ai-sdk/provider-utils': 4.0.26(zod@4.4.3)
+      zod: 4.4.3
 
-  '@ai-sdk/provider-utils@4.0.23(zod@4.4.2)':
+  '@ai-sdk/provider-utils@4.0.23(zod@4.4.3)':
     dependencies:
       '@ai-sdk/provider': 3.0.8
       '@standard-schema/spec': 1.1.0
       eventsource-parser: 3.0.8
-      zod: 4.4.2
+      zod: 4.4.3
 
-  '@ai-sdk/provider-utils@4.0.26(zod@4.4.2)':
+  '@ai-sdk/provider-utils@4.0.26(zod@4.4.3)':
     dependencies:
       '@ai-sdk/provider': 3.0.10
       '@standard-schema/spec': 1.1.0
       eventsource-parser: 3.0.8
-      zod: 4.4.2
+      zod: 4.4.3
 
   '@ai-sdk/provider@3.0.10':
     dependencies:
@@ -9078,9 +9075,9 @@ snapshots:
       - react-dom
       - supports-color
 
-  '@lg-mcp/hooks@0.2.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@4.4.2)':
+  '@lg-mcp/hooks@0.2.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@4.4.3)':
     dependencies:
-      '@mcp-ui/server': 5.16.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@4.4.2)
+      '@mcp-ui/server': 5.16.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@4.4.3)
     transitivePeerDependencies:
       - '@cfworker/json-schema'
       - react
@@ -9109,10 +9106,10 @@ snapshots:
       - preact
       - supports-color
 
-  '@mcp-ui/server@5.16.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@4.4.2)':
+  '@mcp-ui/server@5.16.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@4.4.3)':
     dependencies:
-      '@modelcontextprotocol/ext-apps': 0.2.2(@modelcontextprotocol/sdk@1.29.0(zod@4.4.2))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@4.4.2)
-      '@modelcontextprotocol/sdk': 1.29.0(zod@4.4.2)
+      '@modelcontextprotocol/ext-apps': 0.2.2(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@4.4.3)
+      '@modelcontextprotocol/sdk': 1.29.0(zod@4.4.3)
     transitivePeerDependencies:
       - '@cfworker/json-schema'
       - react
@@ -9120,10 +9117,10 @@ snapshots:
       - supports-color
       - zod
 
-  '@mcp-ui/server@6.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@4.4.2)':
+  '@mcp-ui/server@6.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@4.4.3)':
     dependencies:
-      '@modelcontextprotocol/ext-apps': 0.3.1(@modelcontextprotocol/sdk@1.29.0(zod@4.4.2))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@4.4.2)
-      '@modelcontextprotocol/sdk': 1.29.0(zod@4.4.2)
+      '@modelcontextprotocol/ext-apps': 0.3.1(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@4.4.3)
+      '@modelcontextprotocol/sdk': 1.29.0(zod@4.4.3)
     transitivePeerDependencies:
       - '@cfworker/json-schema'
       - react
@@ -9166,11 +9163,11 @@ snapshots:
 
   '@microsoft/tsdoc@0.16.0': {}
 
-  '@modelcontextprotocol/ext-apps@0.2.2(@modelcontextprotocol/sdk@1.29.0(zod@4.4.2))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@4.4.2)':
+  '@modelcontextprotocol/ext-apps@0.2.2(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@4.4.3)':
     dependencies:
-      '@modelcontextprotocol/sdk': 1.29.0(zod@4.4.2)
+      '@modelcontextprotocol/sdk': 1.29.0(zod@4.4.3)
       prettier: 3.8.3
-      zod: 4.4.2
+      zod: 4.4.3
     optionalDependencies:
       '@oven/bun-darwin-aarch64': 1.3.13
       '@oven/bun-darwin-x64': 1.3.13
@@ -9216,10 +9213,10 @@ snapshots:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 
-  '@modelcontextprotocol/ext-apps@0.3.1(@modelcontextprotocol/sdk@1.29.0(zod@4.4.2))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@4.4.2)':
+  '@modelcontextprotocol/ext-apps@0.3.1(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@4.4.3)':
     dependencies:
-      '@modelcontextprotocol/sdk': 1.29.0(zod@4.4.2)
-      zod: 4.4.2
+      '@modelcontextprotocol/sdk': 1.29.0(zod@4.4.3)
+      zod: 4.4.3
     optionalDependencies:
       '@oven/bun-darwin-aarch64': 1.3.13
       '@oven/bun-darwin-x64': 1.3.13
@@ -9364,28 +9361,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@modelcontextprotocol/sdk@1.29.0(zod@4.4.2)':
-    dependencies:
-      '@hono/node-server': 1.19.14(hono@4.12.14)
-      ajv: 8.18.0
-      ajv-formats: 3.0.1(ajv@8.18.0)
-      content-type: 1.0.5
-      cors: 2.8.6
-      cross-spawn: 7.0.6
-      eventsource: 3.0.7
-      eventsource-parser: 3.0.6
-      express: 5.2.1
-      express-rate-limit: 8.3.1(express@5.2.1)
-      hono: 4.12.14
-      jose: 6.2.1
-      json-schema-typed: 8.0.2
-      pkce-challenge: 5.0.1
-      raw-body: 3.0.2
-      zod: 4.4.2
-      zod-to-json-schema: 3.25.1(zod@4.4.2)
-    transitivePeerDependencies:
-      - supports-color
-
   '@modelcontextprotocol/sdk@1.29.0(zod@4.4.3)':
     dependencies:
       '@hono/node-server': 1.19.14(hono@4.12.14)
@@ -9511,13 +9486,13 @@ snapshots:
     dependencies:
       ip-address: 9.0.5
 
-  '@mongosh/arg-parser@5.0.2(zod@4.4.2)':
+  '@mongosh/arg-parser@5.0.2(zod@4.4.3)':
     dependencies:
       '@mongosh/errors': 2.4.6
       '@mongosh/i18n': 2.20.2
       mongodb-connection-string-url: 7.0.1
       yargs-parser: 20.2.9
-      zod: 4.4.2
+      zod: 4.4.3
 
   '@mongosh/errors@2.4.6': {}
 
@@ -9923,7 +9898,7 @@ snapshots:
   '@pkgjs/parseargs@0.11.0':
     optional: true
 
-  '@pkgr/core@0.2.9': {}
+  '@pkgr/core@0.3.6': {}
 
   '@polka/url@1.0.0-next.29': {}
 
@@ -11541,13 +11516,13 @@ snapshots:
 
   agent-base@7.1.4: {}
 
-  ai@6.0.175(zod@4.4.2):
+  ai@6.0.175(zod@4.4.3):
     dependencies:
-      '@ai-sdk/gateway': 3.0.110(zod@4.4.2)
+      '@ai-sdk/gateway': 3.0.110(zod@4.4.3)
       '@ai-sdk/provider': 3.0.10
-      '@ai-sdk/provider-utils': 4.0.26(zod@4.4.2)
+      '@ai-sdk/provider-utils': 4.0.26(zod@4.4.3)
       '@opentelemetry/api': 1.9.0
-      zod: 4.4.2
+      zod: 4.4.3
 
   ajv-draft-04@1.0.0(ajv@8.18.0):
     optionalDependencies:
@@ -11838,7 +11813,7 @@ snapshots:
     dependencies:
       fill-range: 7.1.1
 
-  braintrust@3.17.0(@aws-sdk/credential-provider-web-identity@3.972.16)(zod@4.4.2):
+  braintrust@3.17.0(@aws-sdk/credential-provider-web-identity@3.972.16)(zod@4.4.3):
     dependencies:
       '@apm-js-collab/code-transformer': 0.12.0
       '@next/env': 14.2.35
@@ -11863,8 +11838,8 @@ snapshots:
       termi-link: 1.1.0
       unplugin: 2.3.11
       uuid: 11.1.1
-      zod: 4.4.2
-      zod-to-json-schema: 3.25.1(zod@4.4.2)
+      zod: 4.4.3
+      zod-to-json-schema: 3.25.1(zod@4.4.3)
     optionalDependencies:
       '@braintrust/bt-darwin-arm64': 0.11.1
       '@braintrust/bt-darwin-x64': 0.11.1
@@ -12671,12 +12646,12 @@ snapshots:
     dependencies:
       eslint: 10.2.0(jiti@2.7.0)
 
-  eslint-plugin-prettier@5.5.5(eslint-config-prettier@10.1.8(eslint@10.2.0(jiti@2.7.0)))(eslint@10.2.0(jiti@2.7.0))(prettier@3.8.3):
+  eslint-plugin-prettier@5.5.6(eslint-config-prettier@10.1.8(eslint@10.2.0(jiti@2.7.0)))(eslint@10.2.0(jiti@2.7.0))(prettier@3.8.3):
     dependencies:
       eslint: 10.2.0(jiti@2.7.0)
       prettier: 3.8.3
       prettier-linter-helpers: 1.0.1
-      synckit: 0.11.12
+      synckit: 0.11.13
     optionalDependencies:
       eslint-config-prettier: 10.1.8(eslint@10.2.0(jiti@2.7.0))
 
@@ -15264,9 +15239,9 @@ snapshots:
 
   symbol-tree@3.2.4: {}
 
-  synckit@0.11.12:
+  synckit@0.11.13:
     dependencies:
-      '@pkgr/core': 0.2.9
+      '@pkgr/core': 0.3.6
 
   system-ca@3.0.0:
     optionalDependencies:
@@ -15980,16 +15955,10 @@ snapshots:
     dependencies:
       zod: 3.25.76
 
-  zod-to-json-schema@3.25.1(zod@4.4.2):
-    dependencies:
-      zod: 4.4.2
-
   zod-to-json-schema@3.25.1(zod@4.4.3):
     dependencies:
       zod: 4.4.3
 
   zod@3.25.76: {}
-
-  zod@4.4.2: {}
 
   zod@4.4.3: {}

@@ -835,10 +835,47 @@ npx -y mongodb-mcp-server@latest --logPath=/path/to/logs --readOnly --indexCheck
 
 ### Proxy Support
 
-The MCP Server will detect typical PROXY environment variables and use them for
-connecting to the Atlas API, your MongoDB Cluster, or any other external calls
-to third-party services like OID Providers. The behaviour is the same as what
-`mongosh` does, so the same settings will work in the MCP Server.
+The MCP Server detects standard proxy environment variables and uses them for supported
+outbound connections, including the Atlas Administration API, MongoDB cluster connections,
+OIDC identity providers, and the MongoDB Assistant. The behaviour matches `mongosh`
+(both rely on [`@mongodb-js/devtools-proxy-support`](https://www.npmjs.com/package/@mongodb-js/devtools-proxy-support)),
+so any proxy configuration that works with `mongosh` also works here.
+
+#### Environment variables
+
+Set the relevant variable before starting the server. The conventional `*_PROXY`
+variables are honored:
+
+| Variable      | Purpose                                                     |
+| ------------- | ----------------------------------------------------------- |
+| `HTTPS_PROXY` | Proxy used for HTTPS requests (Atlas API, OIDC, Assistant)  |
+| `HTTP_PROXY`  | Proxy used for plain HTTP requests                          |
+| `ALL_PROXY`   | Fallback proxy used for all protocols                       |
+| `NO_PROXY`    | Comma-separated list of hosts/domains that bypass the proxy |
+
+```shell
+# Route outbound traffic through a corporate proxy, except internal hosts
+export HTTPS_PROXY="http://proxy.example.com:8080"
+export NO_PROXY="localhost,127.0.0.1,*.internal.example.com"
+```
+
+#### Proxy in the connection string
+
+For the MongoDB cluster connection specifically, you can configure a SOCKS5 proxy
+directly in the connection string instead of using environment variables:
+
+```
+mongodb+srv://<host>/?proxyHost=127.0.0.1&proxyPort=1080&proxyUsername=user&proxyPassword=pass
+```
+
+Supported parameters: `proxyHost`, `proxyPort`, `proxyUsername`, `proxyPassword`.
+
+#### Certificate authorities
+
+For the HTTP(S) requests handled by `@mongodb-js/devtools-proxy-support` (the Atlas API,
+OIDC, and the MongoDB Assistant), the operating system's certificate store is trusted in
+addition to the bundled CAs — the same way `mongosh` does — so corporate root certificates
+installed at the OS level are picked up automatically.
 
 ## 🚀Deploy on Public Clouds
 

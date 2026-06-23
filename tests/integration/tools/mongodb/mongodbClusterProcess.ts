@@ -69,7 +69,16 @@ export class MongoDBClusterProcess {
             const runningContainer = await new GenericContainer(config.image ?? DEFAULT_LOCAL_IMAGE)
                 .withExposedPorts(27017)
                 .withCommand(["/usr/local/bin/runner", "server"])
-                .withWaitStrategy(new ShellWaitStrategy(`mongosh --eval 'db.test.getSearchIndexes()'`))
+                // Require an elected, writable primary *and* search readiness before
+                // declaring the container ready. `getSearchIndexes()` is a read that
+                // succeeds before the single-node replica set finishes electing a
+                // primary, so gating on it alone lets the first connect/write race the
+                // election (manifesting as a flaky "not connected"/"not primary" error).
+                .withWaitStrategy(
+                    new ShellWaitStrategy(
+                        `mongosh --quiet --eval 'db.hello().isWritablePrimary || quit(1); db.test.getSearchIndexes()'`
+                    )
+                )
                 .start();
 
             return new MongoDBClusterProcess(
