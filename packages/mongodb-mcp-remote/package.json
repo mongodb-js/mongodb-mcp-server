@@ -25,6 +25,9 @@
     "compile": "tsc --project tsconfig.json",
     "test": "vitest --run"
   },
+  "dependencies": {
+    "@mongodb-js/devtools-proxy-support": "^0.7.14"
+  },
   "devDependencies": {
     "@types/node": "^25.6.0",
     "typescript": "^5.9.2",
