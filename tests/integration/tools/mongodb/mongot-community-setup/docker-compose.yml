@@ -15,8 +15,18 @@ services:
       - ./config/mongod.conf:/etc/mongod.conf:ro
       - ./init-mongo.sh:/docker-entrypoint-initdb.d/init-mongo.sh:ro
     healthcheck:
+      # Assert the single-node replica set has elected a writable primary, not
+      # just that mongod answers. `ping` succeeds before the replica set has
+      # initiated/elected, so gating on it lets the first write race the
+      # election and fail with NotWritablePrimary ("not primary").
       test:
-        ["CMD", "mongosh", "--eval", "db.adminCommand('ping').ok", "--quiet"]
+        [
+          "CMD",
+          "mongosh",
+          "--quiet",
+          "--eval",
+          "db.hello().isWritablePrimary || quit(1)",
+        ]
       interval: 5s
       timeout: 10s
       retries: 5
