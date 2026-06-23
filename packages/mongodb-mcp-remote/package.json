@@ -23,9 +23,11 @@
   },
   "scripts": {
     "compile": "tsc --project tsconfig.json",
+    "pretest": "pnpm compile",
     "test": "vitest --run"
   },
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@types/node": "^25.6.0",
     "typescript": "^5.9.2",
     "vitest": "^4.1.8"
