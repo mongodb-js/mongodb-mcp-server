@@ -50,19 +50,15 @@ async function fetchScorePercent(
     experimentId: string,
     scoreName: string
 ): Promise<{ pct?: number; experimentUrl?: string }> {
-    try {
-        const summary = await client.experiments.summarize(experimentId, { summarize_scores: true });
-        const raw = summary.scores?.[scoreName]?.score;
-        if (typeof raw !== "number" || Number.isNaN(raw)) {
-            return { experimentUrl: summary.experiment_url ?? undefined };
-        }
-        return {
-            pct: raw * 100,
-            experimentUrl: summary.experiment_url ?? undefined,
-        };
-    } catch {
-        return {};
+    const summary = await client.experiments.summarize(experimentId, { summarize_scores: true });
+    const raw = summary.scores?.[scoreName]?.score;
+    if (typeof raw !== "number" || Number.isNaN(raw)) {
+        return { experimentUrl: summary.experiment_url ?? undefined };
     }
+    return {
+        pct: raw * 100,
+        experimentUrl: summary.experiment_url ?? undefined,
+    };
 }
 
 /** Page through experiments in the eval project */

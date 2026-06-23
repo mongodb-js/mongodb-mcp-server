@@ -51,16 +51,12 @@ async function* evalLines(stdout: Readable): AsyncGenerator<string> {
  */
 function parseSummaryLine(line: string): ParsedEvalSummary | undefined {
     const t = line.trim();
-    if (!t) return undefined;
-    let obj: Record<string, unknown>;
-    try {
-        obj = JSON.parse(t) as Record<string, unknown>;
-    } catch {
-        console.error("reportCi: failed to parse summary line:", t);
+    if (!(t && t.startsWith("{") && t.endsWith("}"))) {
         return undefined;
     }
-    const summary = (obj.summary as Record<string, unknown> | undefined) ?? obj;
-    return summary as ParsedEvalSummary;
+
+    const obj = JSON.parse(t) as Record<string, unknown>;
+    return obj.summary ?? obj;
 }
 
 /**
@@ -152,7 +148,7 @@ async function main(): Promise<void> {
     const baseExperimentName = explicitBase || historyPoints.at(-1)?.experimentName;
     if (baseExperimentName) {
         console.error(
-            `reportCi: EVAL_BASE_EXPERIMENT_NAME=${baseExperimentName} (${explicitBase ? "from env" : "from history (first)"})`
+            `reportCi: EVAL_BASE_EXPERIMENT_NAME=${baseExperimentName} (${explicitBase ? "from env" : "from history (latest)"})`
         );
     }
 

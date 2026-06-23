@@ -18,7 +18,7 @@ function escapeMermaidLabel(s: string): string {
     return s.replace(/"/g, "'").replace(/[[\]]/g, "");
 }
 
-/** Build a mermaid `xychart-beta` fenced block for accuracy over time. */
+/** Build a mermaid `xychart` fenced block for accuracy over time. */
 function renderMermaidXychart(points: TimelinePoint[]): string {
     if (points.length === 0) {
         return [

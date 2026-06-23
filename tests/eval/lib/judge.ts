@@ -68,7 +68,7 @@ function composeJudgeSystemPrompt(criteria: string | string[], tempDbName: strin
         "Decide whether the criteria below are satisfied and produce a score from 0 to 1.",
         "",
         "### Rules of Engagement",
-        `- You MUST conclude the iteration by passing your results to the ${SubmitScoreTool.toolName} tool.`,
+        `- You MUST conclude the iteration by passing your results to the ${SubmitScoreTool.toolName} tool exactly once.`,
         "",
         "### Criteria",
         ...list.map((c, i) => `${i + 1}. ${c}`),
