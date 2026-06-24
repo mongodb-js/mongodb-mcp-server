@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { type OperationType, type ToolArgs, type ToolResult } from "../../tool.js";
+import { type OperationType, type ToolArgs, type ToolResult, type ToolExecutionContext } from "../../tool.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import type { ClusterDescription20240805 } from "../../../common/atlas/openapi.js";
 import { AtlasArgs } from "../../args.js";
@@ -211,7 +211,10 @@ export class CreateClusterTool extends AtlasToolBase {
     public override outputSchema = CreateClusterOutputSchema;
     public argsShape = CreateClusterArgsShape;
 
-    protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
+    protected async execute(
+        args: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<ToolResult<typeof this.outputSchema>> {
         const { projectId, clusterName, provider, region, clusterType, terminationProtectionEnabled } = args;
 
         if (clusterType === "SHARDED" && (args.instanceSize === "M10" || args.instanceSize === "M20")) {
@@ -225,7 +228,7 @@ export class CreateClusterTool extends AtlasToolBase {
             instanceSize = "M30";
         } else {
             // REPLICASET defaults to M10 if there are less than 2 clusters in the project, M30 otherwise.
-            const existing = await this.apiClient.listClusters({ params: { path: { groupId: projectId } } });
+            const existing = await this.apiClient.listClusters({ params: { path: { groupId: projectId } } }, context);
             instanceSize = (existing.results?.length ?? 0) < 2 ? "M10" : "M30";
         }
 
@@ -243,10 +246,13 @@ export class CreateClusterTool extends AtlasToolBase {
             ...versionConfig,
         } as unknown as ClusterDescription20240805;
 
-        const result = await this.apiClient.createCluster({
-            params: { path: { groupId: projectId } },
-            body,
-        });
+        const result = await this.apiClient.createCluster(
+            {
+                params: { path: { groupId: projectId } },
+                body,
+            },
+            context
+        );
 
         return {
             content: [

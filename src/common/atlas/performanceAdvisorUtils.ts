@@ -1,5 +1,5 @@
 import { LogId } from "../logging/index.js";
-import type { ApiClient } from "./apiClient.js";
+import type { ApiClient, ApiClientRequestContext } from "./apiClient.js";
 import { getProcessIdsFromCluster } from "./cluster.js";
 import type { components } from "./openapi.js";
 
@@ -26,17 +26,21 @@ export type SchemaRecommendation = components["schemas"]["SchemaAdvisorItemRecom
 export async function getSuggestedIndexes(
     apiClient: ApiClient,
     projectId: string,
-    clusterName: string
+    clusterName: string,
+    context?: ApiClientRequestContext
 ): Promise<{ suggestedIndexes: Array<SuggestedIndex> }> {
     try {
-        const response = await apiClient.listClusterSuggestedIndexes({
-            params: {
-                path: {
-                    groupId: projectId,
-                    clusterName,
+        const response = await apiClient.listClusterSuggestedIndexes(
+            {
+                params: {
+                    path: {
+                        groupId: projectId,
+                        clusterName,
+                    },
                 },
             },
-        });
+            context
+        );
         return {
             suggestedIndexes: (response as SuggestedIndexesResponse).content.suggestedIndexes ?? [],
         };
@@ -55,21 +59,25 @@ export async function getSuggestedIndexes(
 export async function getDropIndexSuggestions(
     apiClient: ApiClient,
     projectId: string,
-    clusterName: string
+    clusterName: string,
+    context?: ApiClientRequestContext
 ): Promise<{
     hiddenIndexes: Array<DropIndexSuggestion>;
     redundantIndexes: Array<DropIndexSuggestion>;
     unusedIndexes: Array<DropIndexSuggestion>;
 }> {
     try {
-        const response = await apiClient.listDropIndexSuggestions({
-            params: {
-                path: {
-                    groupId: projectId,
-                    clusterName,
+        const response = await apiClient.listDropIndexSuggestions(
+            {
+                params: {
+                    path: {
+                        groupId: projectId,
+                        clusterName,
+                    },
                 },
             },
-        });
+            context
+        );
         return {
             hiddenIndexes: (response as DropIndexesResponse).content.hiddenIndexes ?? [],
             redundantIndexes: (response as DropIndexesResponse).content.redundantIndexes ?? [],
@@ -90,17 +98,21 @@ export async function getDropIndexSuggestions(
 export async function getSchemaAdvice(
     apiClient: ApiClient,
     projectId: string,
-    clusterName: string
+    clusterName: string,
+    context?: ApiClientRequestContext
 ): Promise<{ recommendations: Array<SchemaRecommendation> }> {
     try {
-        const response = await apiClient.listSchemaAdvice({
-            params: {
-                path: {
-                    groupId: projectId,
-                    clusterName,
+        const response = await apiClient.listSchemaAdvice(
+            {
+                params: {
+                    path: {
+                        groupId: projectId,
+                        clusterName,
+                    },
                 },
             },
-        });
+            context
+        );
         return { recommendations: (response as SchemaAdviceResponse).content.recommendations ?? [] };
     } catch (err) {
         apiClient.logger.debug({
@@ -119,29 +131,33 @@ export async function getSlowQueries(
     projectId: string,
     clusterName: string,
     since?: Date,
-    namespaces?: Array<string>
+    namespaces?: Array<string>,
+    context?: ApiClientRequestContext
 ): Promise<{ slowQueryLogs: Array<SlowQueryLog> }> {
     try {
-        const processIds = await getProcessIdsFromCluster(apiClient, projectId, clusterName);
+        const processIds = await getProcessIdsFromCluster(apiClient, projectId, clusterName, context);
 
         if (processIds.length === 0) {
             return { slowQueryLogs: [] };
         }
 
         const slowQueryPromises = processIds.map((processId) =>
-            apiClient.listSlowQueryLogs({
-                params: {
-                    path: {
-                        groupId: projectId,
-                        processId,
-                    },
-                    query: {
-                        ...(since && { since: since.getTime() }),
-                        ...(namespaces && { namespaces: namespaces }),
-                        nLogs: DEFAULT_SLOW_QUERY_LOGS_LIMIT,
+            apiClient.listSlowQueryLogs(
+                {
+                    params: {
+                        path: {
+                            groupId: projectId,
+                            processId,
+                        },
+                        query: {
+                            ...(since && { since: since.getTime() }),
+                            ...(namespaces && { namespaces: namespaces }),
+                            nLogs: DEFAULT_SLOW_QUERY_LOGS_LIMIT,
+                        },
                     },
                 },
-            })
+                context
+            )
         );
 
         const responses = await Promise.allSettled(slowQueryPromises);

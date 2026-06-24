@@ -81,7 +81,8 @@ describe("StreamsManageTool", () => {
 
     const baseArgs = { projectId: "proj1", workspaceName: "ws1" };
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    const exec = (args: Record<string, unknown>) => tool["execute"](args as never);
+    const exec = (args: Record<string, unknown>) =>
+        tool["execute"](args as never, { signal: new AbortController().signal } as never);
 
     describe("start-processor", () => {
         it("should start a STOPPED processor", async () => {
@@ -127,7 +128,8 @@ describe("StreamsManageTool", () => {
             expect(mockApiClient.startStreamProcessorWith).toHaveBeenCalledWith(
                 expect.objectContaining({
                     body: expect.objectContaining({ tier: "SP30" }),
-                })
+                }),
+                expect.anything()
             );
             expect(mockApiClient.startStreamProcessor).not.toHaveBeenCalled();
         });
@@ -145,7 +147,8 @@ describe("StreamsManageTool", () => {
             expect(mockApiClient.startStreamProcessorWith).toHaveBeenCalledWith(
                 expect.objectContaining({
                     body: expect.objectContaining({ resumeFromCheckpoint: false }),
-                })
+                }),
+                expect.anything()
             );
         });
 
@@ -192,7 +195,8 @@ describe("StreamsManageTool", () => {
             expect(mockApiClient.startStreamProcessorWith).toHaveBeenCalledWith(
                 expect.objectContaining({
                     body: expect.objectContaining({ tier: "SP30" }),
-                })
+                }),
+                expect.anything()
             );
         });
 
@@ -223,7 +227,8 @@ describe("StreamsManageTool", () => {
             expect(mockApiClient.startStreamProcessorWith).toHaveBeenCalledWith(
                 expect.objectContaining({
                     body: expect.objectContaining({ startAtOperationTime: "2026-01-01T00:00:00Z" }),
-                })
+                }),
+                expect.anything()
             );
         });
 
@@ -344,7 +349,8 @@ describe("StreamsManageTool", () => {
             expect(mockApiClient.updateStreamProcessor).toHaveBeenCalledWith(
                 expect.objectContaining({
                     body: expect.objectContaining({ pipeline: newPipeline }),
-                })
+                }),
+                expect.anything()
             );
             expect((result.content[0] as { text: string }).text).toContain("modified");
         });
@@ -375,7 +381,8 @@ describe("StreamsManageTool", () => {
             expect(mockApiClient.updateStreamProcessor).toHaveBeenCalledWith(
                 expect.objectContaining({
                     body: expect.objectContaining({ name: "proc1-renamed" }),
-                })
+                }),
+                expect.anything()
             );
             expect((result.content[0] as { text: string }).text).toContain("modified");
             expect((result.content[0] as { text: string }).text).toContain("name");
@@ -395,7 +402,8 @@ describe("StreamsManageTool", () => {
             expect(mockApiClient.updateStreamProcessor).toHaveBeenCalledWith(
                 expect.objectContaining({
                     body: expect.objectContaining({ options: { dlq } }),
-                })
+                }),
+                expect.anything()
             );
             expect((result.content[0] as { text: string }).text).toContain("modified");
             expect((result.content[0] as { text: string }).text).toContain("options");
@@ -417,10 +425,13 @@ describe("StreamsManageTool", () => {
             });
 
             expect(mockApiClient.getStreamWorkspace).toHaveBeenCalled();
-            expect(mockApiClient.updateStreamWorkspace).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1", tenantName: "ws1" } },
-                body: { cloudProvider: "AWS", region: "OREGON_USA", streamConfig: { tier: "SP30" } },
-            });
+            expect(mockApiClient.updateStreamWorkspace).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1", tenantName: "ws1" } },
+                    body: { cloudProvider: "AWS", region: "OREGON_USA", streamConfig: { tier: "SP30" } },
+                },
+                expect.anything()
+            );
             expect((result.content[0] as { text: string }).text).toContain("updated");
         });
 
@@ -436,10 +447,13 @@ describe("StreamsManageTool", () => {
             });
 
             expect(mockApiClient.getStreamWorkspace).toHaveBeenCalled();
-            expect(mockApiClient.updateStreamWorkspace).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1", tenantName: "ws1" } },
-                body: { cloudProvider: "AWS", region: "DUBLIN_IRL" },
-            });
+            expect(mockApiClient.updateStreamWorkspace).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1", tenantName: "ws1" } },
+                    body: { cloudProvider: "AWS", region: "DUBLIN_IRL" },
+                },
+                expect.anything()
+            );
             expect((result.content[0] as { text: string }).text).toContain("updated");
         });
 
@@ -456,10 +470,13 @@ describe("StreamsManageTool", () => {
             });
 
             expect(mockApiClient.getStreamWorkspace).not.toHaveBeenCalled();
-            expect(mockApiClient.updateStreamWorkspace).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1", tenantName: "ws1" } },
-                body: { streamConfig: { tier: "SP30" } },
-            });
+            expect(mockApiClient.updateStreamWorkspace).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1", tenantName: "ws1" } },
+                    body: { streamConfig: { tier: "SP30" } },
+                },
+                expect.anything()
+            );
             expect((result.content[0] as { text: string }).text).toContain("updated");
         });
 
@@ -546,7 +563,8 @@ describe("StreamsManageTool", () => {
                     body: expect.objectContaining({
                         bootstrapServers: "broker1:9092,broker2:9092",
                     }),
-                })
+                }),
+                expect.anything()
             );
         });
 
@@ -563,7 +581,8 @@ describe("StreamsManageTool", () => {
                     body: expect.objectContaining({
                         schemaRegistryUrls: ["https://sr.example.com"],
                     }),
-                })
+                }),
+                expect.anything()
             );
         });
 
@@ -583,12 +602,14 @@ describe("StreamsManageTool", () => {
             expect(mockApiClient.updateStreamConnection).toHaveBeenCalledWith(
                 expect.objectContaining({
                     body: expect.not.objectContaining({ type: expect.anything() }),
-                })
+                }),
+                expect.anything()
             );
             expect(mockApiClient.updateStreamConnection).toHaveBeenCalledWith(
                 expect.objectContaining({
                     body: expect.objectContaining({ name: "conn1" }),
-                })
+                }),
+                expect.anything()
             );
         });
 
@@ -628,10 +649,13 @@ describe("StreamsManageTool", () => {
                 },
             });
 
-            expect(mockApiClient.updateStreamConnection).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1", tenantName: "ws1", connectionName: "conn1" } },
-                body: expect.objectContaining({ type: "Kafka" }),
-            });
+            expect(mockApiClient.updateStreamConnection).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1", tenantName: "ws1", connectionName: "conn1" } },
+                    body: expect.objectContaining({ type: "Kafka" }),
+                },
+                expect.anything()
+            );
         });
     });
 
@@ -645,10 +669,13 @@ describe("StreamsManageTool", () => {
                 requesterVpcId: "vpc-abc",
             });
 
-            expect(mockApiClient.acceptVpcPeeringConnection).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1", id: "peer-1" } },
-                body: { requesterAccountId: "123456789", requesterVpcId: "vpc-abc" },
-            });
+            expect(mockApiClient.acceptVpcPeeringConnection).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1", id: "peer-1" } },
+                    body: { requesterAccountId: "123456789", requesterVpcId: "vpc-abc" },
+                },
+                expect.anything()
+            );
             expect((result.content[0] as { text: string }).text).toContain("accepted");
         });
 
@@ -808,9 +835,12 @@ describe("StreamsManageTool", () => {
                 peeringId: "peer-1",
             });
 
-            expect(mockApiClient.rejectVpcPeeringConnection).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1", id: "peer-1" } },
-            });
+            expect(mockApiClient.rejectVpcPeeringConnection).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1", id: "peer-1" } },
+                },
+                expect.anything()
+            );
             expect((result.content[0] as { text: string }).text).toContain("rejected");
         });
 
