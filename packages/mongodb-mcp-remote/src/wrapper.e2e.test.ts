@@ -6,10 +6,10 @@ import { describe, it } from "vitest";
  *
  * Skip when:
  *   - SKIP_REMOTE_MCP_E2E=true, or
- *   - no MDB_MCP_REMOTE_E2E_CLIENT_ID is set
+ *   - no REMOTE_MCP_E2E_CLIENT_ID is set
  * TODO: The tests below will be implemented in by MCP-539 once wrapper is code complete (MCP-536).
  */
-const skipE2E = process.env.SKIP_REMOTE_MCP_E2E === "true" || !process.env.MDB_MCP_REMOTE_E2E_CLIENT_ID;
+const skipE2E = process.env.SKIP_REMOTE_MCP_E2E === "true" || !process.env.REMOTE_MCP_E2E_CLIENT_ID;
 
 describe.skipIf(skipE2E)("mongodb-mcp-remote wrapper (e2e, cloud-dev)", () => {
     it.todo("acquires a token from the configured Atlas endpoint and lists tools");
