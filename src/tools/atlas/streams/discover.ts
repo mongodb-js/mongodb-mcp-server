@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { StreamsToolBase } from "./streamsToolBase.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { OperationType, ToolArgs } from "../../tool.js";
+import type { OperationType, ToolArgs, ToolExecutionContext } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { AtlasArgs } from "../../args.js";
 import { StreamsArgs } from "./streamsArgs.js";
@@ -73,35 +73,45 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         pageNum: z.number().int().min(1).optional().describe("Page number for list actions. Default: 1."),
     };
 
-    protected async execute({
-        projectId,
-        action,
-        workspaceName,
-        resourceName,
-        responseFormat,
-        cloudProvider,
-        region,
-        limit,
-        pageNum,
-    }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute(
+        {
+            projectId,
+            action,
+            workspaceName,
+            resourceName,
+            responseFormat,
+            cloudProvider,
+            region,
+            limit,
+            pageNum,
+        }: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<CallToolResult> {
         switch (action) {
             case "list-workspaces":
-                return this.listWorkspaces(projectId, responseFormat, limit, pageNum);
+                return this.listWorkspaces(projectId, responseFormat, limit, pageNum, context);
             case "inspect-workspace":
-                return this.inspectWorkspace(projectId, this.requireWorkspaceName(workspaceName), responseFormat);
+                return this.inspectWorkspace(
+                    projectId,
+                    this.requireWorkspaceName(workspaceName),
+                    responseFormat,
+                    context
+                );
             case "list-connections":
                 return this.listConnections(
                     projectId,
                     this.requireWorkspaceName(workspaceName),
                     responseFormat,
                     limit,
-                    pageNum
+                    pageNum,
+                    context
                 );
             case "inspect-connection":
                 return this.inspectConnection(
                     projectId,
                     this.requireWorkspaceName(workspaceName),
-                    this.requireResourceName(resourceName, "connection")
+                    this.requireResourceName(resourceName, "connection"),
+                    context
                 );
             case "list-processors":
                 return this.listProcessors(
@@ -109,22 +119,25 @@ export class StreamsDiscoverTool extends StreamsToolBase {
                     this.requireWorkspaceName(workspaceName),
                     responseFormat,
                     limit,
-                    pageNum
+                    pageNum,
+                    context
                 );
             case "inspect-processor":
                 return this.inspectProcessor(
                     projectId,
                     this.requireWorkspaceName(workspaceName),
-                    this.requireResourceName(resourceName, "processor")
+                    this.requireResourceName(resourceName, "processor"),
+                    context
                 );
             case "diagnose-processor":
                 return this.diagnoseProcessor(
                     projectId,
                     this.requireWorkspaceName(workspaceName),
-                    this.requireResourceName(resourceName, "processor")
+                    this.requireResourceName(resourceName, "processor"),
+                    context
                 );
             case "get-networking":
-                return this.getNetworking(projectId, cloudProvider, region);
+                return this.getNetworking(projectId, cloudProvider, region, context);
             default:
                 return {
                     content: [{ type: "text", text: `Unknown action: ${action as string}` }],
@@ -156,11 +169,15 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         projectId: string,
         responseFormat: string | undefined,
         limit: number | undefined,
-        pageNum: number | undefined
+        pageNum: number | undefined,
+        context: ToolExecutionContext
     ): Promise<CallToolResult> {
-        const data = await this.apiClient.listStreamWorkspaces({
-            params: { path: { groupId: projectId }, query: { itemsPerPage: limit ?? 20, pageNum: pageNum ?? 1 } },
-        });
+        const data = await this.apiClient.listStreamWorkspaces(
+            {
+                params: { path: { groupId: projectId }, query: { itemsPerPage: limit ?? 20, pageNum: pageNum ?? 1 } },
+            },
+            context
+        );
 
         if (!data?.results?.length) {
             return {
@@ -197,11 +214,18 @@ export class StreamsDiscoverTool extends StreamsToolBase {
     private async inspectWorkspace(
         projectId: string,
         workspaceName: string,
-        responseFormat: string | undefined
+        responseFormat: string | undefined,
+        context: ToolExecutionContext
     ): Promise<CallToolResult> {
-        const data = await this.apiClient.getStreamWorkspace({
-            params: { path: { groupId: projectId, tenantName: workspaceName }, query: { includeConnections: true } },
-        });
+        const data = await this.apiClient.getStreamWorkspace(
+            {
+                params: {
+                    path: { groupId: projectId, tenantName: workspaceName },
+                    query: { includeConnections: true },
+                },
+            },
+            context
+        );
         if (!data) {
             throw new Error(`Workspace '${workspaceName}' not found.`);
         }
@@ -230,14 +254,18 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         workspaceName: string,
         responseFormat: string | undefined,
         limit: number | undefined,
-        pageNum: number | undefined
+        pageNum: number | undefined,
+        context: ToolExecutionContext
     ): Promise<CallToolResult> {
-        const data = await this.apiClient.listStreamConnections({
-            params: {
-                path: { groupId: projectId, tenantName: workspaceName },
-                query: { itemsPerPage: limit ?? 20, pageNum: pageNum ?? 1 },
+        const data = await this.apiClient.listStreamConnections(
+            {
+                params: {
+                    path: { groupId: projectId, tenantName: workspaceName },
+                    query: { itemsPerPage: limit ?? 20, pageNum: pageNum ?? 1 },
+                },
             },
-        });
+            context
+        );
 
         if (!data?.results?.length) {
             return {
@@ -274,11 +302,15 @@ export class StreamsDiscoverTool extends StreamsToolBase {
     private async inspectConnection(
         projectId: string,
         workspaceName: string,
-        connectionName: string
+        connectionName: string,
+        context: ToolExecutionContext
     ): Promise<CallToolResult> {
-        const data = (await this.apiClient.getStreamConnection({
-            params: { path: { groupId: projectId, tenantName: workspaceName, connectionName } },
-        })) as Record<string, unknown>;
+        const data = (await this.apiClient.getStreamConnection(
+            {
+                params: { path: { groupId: projectId, tenantName: workspaceName, connectionName } },
+            },
+            context
+        )) as Record<string, unknown>;
 
         let header = `Connection '${connectionName}' in workspace '${workspaceName}':`;
 
@@ -298,14 +330,18 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         workspaceName: string,
         responseFormat: string | undefined,
         limit: number | undefined,
-        pageNum: number | undefined
+        pageNum: number | undefined,
+        context: ToolExecutionContext
     ): Promise<CallToolResult> {
-        const data = await this.apiClient.getStreamProcessors({
-            params: {
-                path: { groupId: projectId, tenantName: workspaceName },
-                query: { itemsPerPage: limit ?? 20, pageNum: pageNum ?? 1 },
+        const data = await this.apiClient.getStreamProcessors(
+            {
+                params: {
+                    path: { groupId: projectId, tenantName: workspaceName },
+                    query: { itemsPerPage: limit ?? 20, pageNum: pageNum ?? 1 },
+                },
             },
-        });
+            context
+        );
 
         if (!data?.results?.length) {
             return {
@@ -339,11 +375,15 @@ export class StreamsDiscoverTool extends StreamsToolBase {
     private async inspectProcessor(
         projectId: string,
         workspaceName: string,
-        processorName: string
+        processorName: string,
+        context: ToolExecutionContext
     ): Promise<CallToolResult> {
-        const data = await this.apiClient.getStreamProcessor({
-            params: { path: { groupId: projectId, tenantName: workspaceName, processorName } },
-        });
+        const data = await this.apiClient.getStreamProcessor(
+            {
+                params: { path: { groupId: projectId, tenantName: workspaceName, processorName } },
+            },
+            context
+        );
         return {
             content: formatUntrustedData(
                 `Processor '${processorName}' in workspace '${workspaceName}':`,
@@ -355,15 +395,22 @@ export class StreamsDiscoverTool extends StreamsToolBase {
     private async diagnoseProcessor(
         projectId: string,
         workspaceName: string,
-        processorName: string
+        processorName: string,
+        context: ToolExecutionContext
     ): Promise<CallToolResult> {
         const [processorResult, connectionsResult] = await Promise.allSettled([
-            this.apiClient.getStreamProcessor({
-                params: { path: { groupId: projectId, tenantName: workspaceName, processorName } },
-            }),
-            this.apiClient.listStreamConnections({
-                params: { path: { groupId: projectId, tenantName: workspaceName } },
-            }),
+            this.apiClient.getStreamProcessor(
+                {
+                    params: { path: { groupId: projectId, tenantName: workspaceName, processorName } },
+                },
+                context
+            ),
+            this.apiClient.listStreamConnections(
+                {
+                    params: { path: { groupId: projectId, tenantName: workspaceName } },
+                },
+                context
+            ),
         ]);
 
         const sections: string[] = [];
@@ -452,24 +499,31 @@ export class StreamsDiscoverTool extends StreamsToolBase {
     private async getNetworking(
         projectId: string,
         cloudProvider: string | undefined,
-        region: string | undefined
+        region: string | undefined,
+        context: ToolExecutionContext
     ): Promise<CallToolResult> {
         const [privateLinkResult] = await Promise.allSettled([
-            this.apiClient.listPrivateLinkConnections({
-                params: { path: { groupId: projectId } },
-            }),
+            this.apiClient.listPrivateLinkConnections(
+                {
+                    params: { path: { groupId: projectId } },
+                },
+                context
+            ),
         ]);
 
         const sections: string[] = [];
 
         if (cloudProvider && region) {
             try {
-                const accountDetails = await this.apiClient.getAccountDetails({
-                    params: {
-                        path: { groupId: projectId },
-                        query: { cloudProvider, regionName: region },
+                const accountDetails = await this.apiClient.getAccountDetails(
+                    {
+                        params: {
+                            path: { groupId: projectId },
+                            query: { cloudProvider, regionName: region },
+                        },
                     },
-                });
+                    context
+                );
                 sections.push(
                     `## Account Details (${cloudProvider}/${region})\n${JSON.stringify(accountDetails, null, 2)}`
                 );

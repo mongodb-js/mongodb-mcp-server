@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ApiClient } from "./apiClient.js";
+import type { ApiClient, ApiClientRequestContext } from "./apiClient.js";
 import type { LoggerBase } from "../logging/loggerBase.js";
 import { LogId } from "../logging/index.js";
 import { SHARED_TIER_METRIC_NAMES } from "../../telemetry/types.js";
@@ -24,6 +24,7 @@ export interface RunSharedTierAlertsHookParams {
     instanceType: "FREE" | "FLEX" | "DEDICATED";
     apiClient: ApiClient;
     logger: LoggerBase;
+    context?: ApiClientRequestContext;
 }
 
 function buildRecommendationParagraph(
@@ -49,6 +50,7 @@ export async function runSharedTierAlertsHook({
     instanceType,
     apiClient,
     logger,
+    context,
 }: RunSharedTierAlertsHookParams): Promise<
     { recommendationText: string; tier: SharedTierTier; alertTypes: SharedTierMetricName[] } | undefined
 > {
@@ -58,17 +60,20 @@ export async function runSharedTierAlertsHook({
 
     let data;
     try {
-        data = await apiClient.listAlerts({
-            params: {
-                path: { groupId: projectId },
-                query: {
-                    status: "OPEN",
-                    itemsPerPage: LIST_ALERTS_PAGE_SIZE,
-                    pageNum: 1,
-                    includeCount: false,
+        data = await apiClient.listAlerts(
+            {
+                params: {
+                    path: { groupId: projectId },
+                    query: {
+                        status: "OPEN",
+                        itemsPerPage: LIST_ALERTS_PAGE_SIZE,
+                        pageNum: 1,
+                        includeCount: false,
+                    },
                 },
             },
-        });
+            context
+        );
     } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);
         logger.warning({
