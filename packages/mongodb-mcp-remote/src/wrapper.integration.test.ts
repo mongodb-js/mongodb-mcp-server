@@ -33,10 +33,14 @@ async function connectClientToWrapper(remote: MockRemote): Promise<Client> {
             MDB_MCP_API_CLIENT_ID: "mock-id",
             MDB_MCP_API_CLIENT_SECRET: "mock-secret",
             MDB_MCP_API_BASE_URL: remote.url,
-            MDB_MCP_REMOTE_URL: `${remote.url}/mcp`,
         },
     });
     await client.connect(transport);
+    const originalClose = client.close.bind(client);
+    client.close = async () => {
+        await originalClose();
+        await transport.close();
+    };
     return client;
 }
 
