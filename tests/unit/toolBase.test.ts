@@ -1,7 +1,8 @@
 import type { Mock } from "vitest";
 import { describe, it, expect, vi, beforeEach, type MockedFunction } from "vitest";
 import type { ZodRawShape } from "zod";
-import type { ToolConstructorParams } from "../../src/tools/tool.js";
+import type { ToolConstructorParams, ToolExecutionContext } from "../../src/tools/tool.js";
+import { requestIdAttr } from "../../src/tools/tool.js";
 import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { Session } from "../../src/common/session.js";
 import type { UserConfig } from "../../src/common/config/userConfig.js";
@@ -550,6 +551,91 @@ describe("ToolBase", () => {
             );
             expect(count?.value).toBe(1);
         });
+    });
+
+    describe("invoke logging", () => {
+        const contextWithRequestId: ToolExecutionContext = {
+            signal: new AbortController().signal,
+            requestInfo: { headers: { "x-request-id": "req-test-123" } },
+        };
+        const contextWithoutRequestId: ToolExecutionContext = {
+            signal: new AbortController().signal,
+        };
+
+        it("includes x-request-id in debug logs when context carries it", async () => {
+            await testTool["invoke"]({ param1: "test" }, contextWithRequestId);
+
+            // eslint-disable-next-line @typescript-eslint/unbound-method
+            expect(mockLogger.debug).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                    attributes: expect.objectContaining({ "x-request-id": "req-test-123" }),
+                })
+            );
+        });
+
+        it("includes x-request-id in error log when execute() throws", async () => {
+            const errorTool = new ErrorTool({
+                name: ErrorTool.toolName,
+                category: ErrorTool.category,
+                operationType: ErrorTool.operationType,
+                session: mockSession,
+                config: mockConfig,
+                telemetry: mockTelemetry,
+                elicitation: mockElicitation,
+                metrics: mockMetrics,
+            });
+
+            await errorTool["invoke"]({}, contextWithRequestId);
+
+            // eslint-disable-next-line @typescript-eslint/unbound-method
+            expect(mockLogger.error).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                    attributes: expect.objectContaining({ "x-request-id": "req-test-123" }),
+                })
+            );
+        });
+
+        it("omits x-request-id from log attributes when context has no requestInfo", async () => {
+            await testTool["invoke"]({ param1: "test" }, contextWithoutRequestId);
+
+            for (const [payload] of (mockLogger.debug as Mock).mock.calls) {
+                expect((payload as { attributes?: Record<string, string> }).attributes).not.toHaveProperty(
+                    "x-request-id"
+                );
+            }
+        });
+    });
+});
+
+describe("requestIdAttr", () => {
+    it("returns the x-request-id when present as a string header", () => {
+        const context: ToolExecutionContext = {
+            signal: new AbortController().signal,
+            requestInfo: { headers: { "x-request-id": "my-req-id" } },
+        };
+        expect(requestIdAttr(context)).toEqual({ "x-request-id": "my-req-id" });
+    });
+
+    it("returns empty object when requestInfo is absent", () => {
+        expect(requestIdAttr({ signal: new AbortController().signal })).toEqual({});
+    });
+
+    it("returns empty object when x-request-id header is missing", () => {
+        const context: ToolExecutionContext = {
+            signal: new AbortController().signal,
+            requestInfo: { headers: {} },
+        };
+        expect(requestIdAttr(context)).toEqual({});
+    });
+
+    it("returns empty object when x-request-id header is not a string", () => {
+        const context: ToolExecutionContext = {
+            signal: new AbortController().signal,
+            requestInfo: { headers: { "x-request-id": ["id1", "id2"] } },
+        };
+        expect(requestIdAttr(context)).toEqual({});
     });
 });
 

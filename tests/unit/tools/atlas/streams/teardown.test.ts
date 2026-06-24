@@ -120,6 +120,24 @@ describe("StreamsTeardownTool", () => {
             );
         });
 
+        it("includes x-request-id in debug log when getStreamProcessor throws during delete", async () => {
+            mockApiClient.getStreamProcessor!.mockRejectedValue(new Error("lookup failed"));
+            mockApiClient.deleteStreamProcessor!.mockResolvedValue({});
+
+            await tool["execute"](
+                { ...baseArgs, resource: "processor", workspaceName: "ws1", resourceName: "proc1" } as never,
+                { signal: new AbortController().signal, requestInfo: { headers: { "x-request-id": "req-del-1" } } }
+            );
+
+            expect(mockLogger.debug).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    context: "streams-teardown",
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                    attributes: expect.objectContaining({ "x-request-id": "req-del-1" }),
+                })
+            );
+        });
+
         it("should delete a STOPPED processor without stopping first", async () => {
             mockApiClient.getStreamProcessor!.mockResolvedValue({ state: "STOPPED", name: "proc1" });
             mockApiClient.deleteStreamProcessor!.mockResolvedValue({});

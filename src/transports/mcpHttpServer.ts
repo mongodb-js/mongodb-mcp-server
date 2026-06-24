@@ -192,6 +192,9 @@ export class MCPHttpServer<
         const { StreamableHTTPServerTransport } = await import("@modelcontextprotocol/sdk/server/streamableHttp.js");
 
         const sessionId = providedSessionId ?? getRandomUUID();
+        const requestId = req.headers["x-request-id"];
+        const requestIdAttrs: Record<string, string> =
+            typeof requestId === "string" ? { "x-request-id": requestId } : {};
 
         // Check if session already exists
         if (await this.sessionStore.getSession(sessionId)) {
@@ -205,6 +208,7 @@ export class MCPHttpServer<
                 id: LogId.streamableHttpTransportSessionNotFound,
                 context: "streamableHttpTransport",
                 message: `Session with ID ${sessionId} is already being initialized, waiting`,
+                attributes: { ...requestIdAttrs },
             });
             try {
                 await pendingInit;
@@ -219,6 +223,7 @@ export class MCPHttpServer<
             id: LogId.streamableHttpTransportSessionNotFound,
             context: "streamableHttpTransport",
             message: `Session with ID ${sessionId} not found, initializing new session`,
+            ...requestIdAttrs,
         });
 
         const initPromise = (async (): Promise<void> => {
@@ -288,6 +293,7 @@ export class MCPHttpServer<
                 id: LogId.streamableHttpTransportRequestFailure,
                 context: "streamableHttpTransport",
                 message: `Failed to initialize session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
+                attributes: { ...requestIdAttrs },
             });
             // Remove the partially initialized session on failure so that
             // subsequent requests don't see a broken session and can retry
