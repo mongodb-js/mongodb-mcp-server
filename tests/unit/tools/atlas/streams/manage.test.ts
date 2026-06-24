@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { z } from "zod";
 import type { ToolConstructorParams } from "../../../../../src/tools/tool.js";
 import { StreamsManageTool } from "../../../../../src/tools/atlas/streams/manage.js";
 import type { Session } from "../../../../../src/common/session.js";
@@ -80,8 +81,18 @@ describe("StreamsManageTool", () => {
     });
 
     const baseArgs = { projectId: "proj1", workspaceName: "ws1" };
+    // Tests were written against the pre-MCP-483 flat args shape. The tool now
+    // expects { projectId, workspaceName, operation: [{ action, ...params }] }. This
+    // helper wraps flat test args into the new shape so we don't churn every assertion.
+    const wrap = (args: Record<string, unknown>): Record<string, unknown> => {
+        const { projectId, workspaceName, action, ...rest } = args;
+        if (action === undefined) {
+            return { projectId, workspaceName, operation: [] };
+        }
+        return { projectId, workspaceName, operation: [{ action, ...rest }] };
+    };
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    const exec = (args: Record<string, unknown>) => tool["execute"](args as never);
+    const exec = (args: Record<string, unknown>) => tool["execute"](wrap(args) as never);
 
     describe("start-processor", () => {
         it("should start a STOPPED processor", async () => {
@@ -147,15 +158,6 @@ describe("StreamsManageTool", () => {
                     body: expect.objectContaining({ resumeFromCheckpoint: false }),
                 })
             );
-        });
-
-        it("should throw when resourceName is missing", async () => {
-            await expect(
-                exec({
-                    ...baseArgs,
-                    action: "start-processor",
-                })
-            ).rejects.toThrow("resourceName is required");
         });
 
         it("should return error when tier exceeds workspace max tier", async () => {
@@ -551,6 +553,13 @@ describe("StreamsManageTool", () => {
         });
 
         it("should normalize schemaRegistryUrls string to array", async () => {
+            // Use a SchemaRegistry-typed existing connection so update-mode validation passes.
+            mockApiClient.getStreamConnection = vi.fn().mockResolvedValue({
+                name: "conn1",
+                type: "SchemaRegistry",
+                state: "READY",
+            });
+
             await exec({
                 ...baseArgs,
                 action: "update-connection",
@@ -592,26 +601,6 @@ describe("StreamsManageTool", () => {
             );
         });
 
-        it("should throw when connectionConfig is missing", async () => {
-            await expect(
-                exec({
-                    ...baseArgs,
-                    action: "update-connection",
-                    resourceName: "conn1",
-                })
-            ).rejects.toThrow("connectionConfig is required");
-        });
-
-        it("should throw when resourceName is missing", async () => {
-            await expect(
-                exec({
-                    ...baseArgs,
-                    action: "update-connection",
-                    connectionConfig: { bootstrapServers: "broker:9092" },
-                })
-            ).rejects.toThrow("resourceName is required");
-        });
-
         it("should include connection type from existing connection in the update body", async () => {
             mockApiClient.getStreamConnection = vi.fn().mockResolvedValue({
                 name: "conn1",
@@ -633,6 +622,64 @@ describe("StreamsManageTool", () => {
                 body: expect.objectContaining({ type: "Kafka" }),
             });
         });
+
+        describe("per-type update validation (pre-Atlas-API)", () => {
+            it("rejects patching a Kafka connection with Cluster-only field clusterName", async () => {
+                mockApiClient.getStreamConnection = vi.fn().mockResolvedValue({
+                    name: "conn1",
+                    type: "Kafka",
+                    state: "READY",
+                });
+
+                const result = await exec({
+                    ...baseArgs,
+                    action: "update-connection",
+                    resourceName: "conn1",
+                    connectionConfig: { clusterName: "wrong-type" },
+                });
+
+                expect(result.isError).toBe(true);
+                expect((result.content[0] as { text: string }).text.toLowerCase()).toContain("clustername");
+                expect(mockApiClient.updateStreamConnection).not.toHaveBeenCalled();
+            });
+
+            it("rejects patching the immutable networking field on a Kafka connection", async () => {
+                mockApiClient.getStreamConnection = vi.fn().mockResolvedValue({
+                    name: "conn1",
+                    type: "Kafka",
+                    state: "READY",
+                });
+
+                const result = await exec({
+                    ...baseArgs,
+                    action: "update-connection",
+                    resourceName: "conn1",
+                    connectionConfig: {
+                        networking: { access: { type: "PRIVATE_LINK", connectionId: "pl-1" } },
+                    },
+                });
+
+                expect(result.isError).toBe(true);
+                expect((result.content[0] as { text: string }).text.toLowerCase()).toContain("networking");
+                expect(mockApiClient.updateStreamConnection).not.toHaveBeenCalled();
+            });
+
+            it("uses connectionType from args when existing connection lookup fails to return a type", async () => {
+                mockApiClient.getStreamConnection = vi.fn().mockResolvedValue({ name: "conn1", state: "READY" });
+
+                const result = await exec({
+                    ...baseArgs,
+                    action: "update-connection",
+                    resourceName: "conn1",
+                    connectionType: "Cluster",
+                    connectionConfig: { bootstrapServers: "broker:9092" }, // Kafka-only field
+                });
+
+                expect(result.isError).toBe(true);
+                expect((result.content[0] as { text: string }).text.toLowerCase()).toContain("bootstrapservers");
+                expect(mockApiClient.updateStreamConnection).not.toHaveBeenCalled();
+            });
+        });
     });
 
     describe("accept-peering", () => {
@@ -651,44 +698,11 @@ describe("StreamsManageTool", () => {
             });
             expect((result.content[0] as { text: string }).text).toContain("accepted");
         });
-
-        it("should throw when peeringId is missing", async () => {
-            await expect(
-                exec({
-                    ...baseArgs,
-                    action: "accept-peering",
-                    requesterAccountId: "123",
-                    requesterVpcId: "vpc-1",
-                })
-            ).rejects.toThrow("peeringId is required");
-        });
-
-        it("should throw when requesterAccountId is missing", async () => {
-            await expect(
-                exec({
-                    ...baseArgs,
-                    action: "accept-peering",
-                    peeringId: "peer-1",
-                    requesterVpcId: "vpc-1",
-                })
-            ).rejects.toThrow("requesterAccountId is required");
-        });
-
-        it("should throw when requesterVpcId is missing", async () => {
-            await expect(
-                exec({
-                    ...baseArgs,
-                    action: "accept-peering",
-                    peeringId: "peer-1",
-                    requesterAccountId: "123",
-                })
-            ).rejects.toThrow("requesterVpcId is required");
-        });
     });
 
     describe("getConfirmationMessage", () => {
         // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-        const confirmMsg = (args: Record<string, unknown>) => tool["getConfirmationMessage"](args as never);
+        const confirmMsg = (args: Record<string, unknown>) => tool["getConfirmationMessage"](wrap(args) as never);
 
         it("should include billing warning for start-processor", () => {
             const msg = confirmMsg({
@@ -787,17 +801,6 @@ describe("StreamsManageTool", () => {
             expect(msg).toContain("cannot be undone");
             expect(msg).toContain("peer-1");
         });
-
-        it("should throw when resourceName is missing for processor actions", () => {
-            for (const action of ["start-processor", "stop-processor", "modify-processor", "update-connection"]) {
-                expect(() => confirmMsg({ ...baseArgs, action })).toThrow("resourceName is required");
-            }
-        });
-
-        it("should throw when peeringId is missing for peering actions", () => {
-            expect(() => confirmMsg({ ...baseArgs, action: "accept-peering" })).toThrow("peeringId is required");
-            expect(() => confirmMsg({ ...baseArgs, action: "reject-peering" })).toThrow("peeringId is required");
-        });
     });
 
     describe("reject-peering", () => {
@@ -813,26 +816,58 @@ describe("StreamsManageTool", () => {
             });
             expect((result.content[0] as { text: string }).text).toContain("rejected");
         });
+    });
 
-        it("should throw when peeringId is missing", async () => {
-            await expect(
-                exec({
-                    ...baseArgs,
-                    action: "reject-peering",
-                })
-            ).rejects.toThrow("peeringId is required");
+    describe("schema validation", () => {
+        const validProjectId = "507f1f77bcf86cd799439011";
+        const validBase = { projectId: validProjectId, workspaceName: "ws1" };
+        const parse = (args: Record<string, unknown>): { success: boolean } =>
+            z.object(tool["argsShape"]).safeParse(args);
+
+        it.each([
+            ["start-processor without resourceName", { action: "start-processor" }],
+            ["stop-processor without resourceName", { action: "stop-processor" }],
+            ["modify-processor without resourceName", { action: "modify-processor" }],
+            ["update-connection without connectionConfig", { action: "update-connection", resourceName: "c1" }],
+            ["update-connection without resourceName", { action: "update-connection", connectionConfig: {} }],
+            [
+                "accept-peering without peeringId",
+                { action: "accept-peering", requesterAccountId: "123", requesterVpcId: "vpc-1" },
+            ],
+            [
+                "accept-peering without requesterAccountId",
+                { action: "accept-peering", peeringId: "p1", requesterVpcId: "vpc-1" },
+            ],
+            [
+                "accept-peering without requesterVpcId",
+                { action: "accept-peering", peeringId: "p1", requesterAccountId: "123" },
+            ],
+            ["reject-peering without peeringId", { action: "reject-peering" }],
+            ["unknown action", { action: "invalid-action" }],
+        ])("rejects %s", (_desc, operation) => {
+            const result = parse({ ...validBase, operation: [operation] });
+            expect(result.success).toBe(false);
+        });
+
+        it("accepts empty operation array at schema level (runtime surfaces missing-op error)", () => {
+            const result = parse({ ...validBase, operation: [] });
+            expect(result.success).toBe(true);
+        });
+
+        it("accepts valid start-processor operation", () => {
+            const result = parse({
+                ...validBase,
+                operation: [{ action: "start-processor", resourceName: "p1", tier: "SP10" }],
+            });
+            expect(result.success).toBe(true);
         });
     });
 
-    describe("unknown action", () => {
-        it("should return error for unknown action", async () => {
-            const result = await exec({
-                ...baseArgs,
-                action: "unknown-action",
-            });
-
-            expect(result.isError).toBe(true);
-            expect((result.content[0] as { text: string }).text).toContain("Unknown action");
+    describe("execute with missing operation", () => {
+        it("throws when operation array is empty", async () => {
+            await expect(tool["execute"]({ ...baseArgs, operation: [] } as never)).rejects.toThrow(
+                "No operation provided"
+            );
         });
     });
 });

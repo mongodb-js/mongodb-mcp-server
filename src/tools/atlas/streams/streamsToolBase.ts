@@ -171,8 +171,14 @@ export abstract class StreamsToolBase extends AtlasToolBase {
 
         const data = parsedResult.data;
 
+        // Top-level `action` (discover/teardown) or the first entry of `operation[]` (manage).
         if ("action" in data && typeof data.action === "string") {
             metadata.action = data.action;
+        } else if (Array.isArray(data.operation) && data.operation.length > 0) {
+            const firstOp = data.operation[0] as { action?: unknown };
+            if (typeof firstOp?.action === "string") {
+                metadata.action = firstOp.action;
+            }
         }
         if ("resource" in data && typeof data.resource === "string") {
             metadata.resource = data.resource;

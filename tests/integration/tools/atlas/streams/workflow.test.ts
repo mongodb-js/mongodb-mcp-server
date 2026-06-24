@@ -49,13 +49,15 @@ describeWithStreams("atlas-streams workflows", (integration) => {
                     arguments: {
                         projectId: getProjectId(),
                         workspaceName: getWorkspaceName(),
-                        action: "update-connection",
-                        resourceName: connectionName,
-                        connectionConfig: {
-                            name: connectionName,
-                            type: "Https",
-                            url: "https://httpbin.org/get",
-                        },
+                        operation: [
+                            {
+                                action: "update-connection",
+                                resourceName: connectionName,
+                                connectionConfig: {
+                                    url: "https://httpbin.org/get",
+                                },
+                            },
+                        ],
                     },
                 });
                 const content = getResponseContent(response.content);
@@ -215,8 +217,7 @@ describeWithStreams("atlas-streams workflows", (integration) => {
                         arguments: {
                             projectId: getProjectId(),
                             workspaceName: getWorkspaceName(),
-                            action: "start-processor",
-                            resourceName: processorName,
+                            operation: [{ action: "start-processor", resourceName: processorName }],
                         },
                     });
                     const content = getResponseContent(response.content);
@@ -229,8 +230,7 @@ describeWithStreams("atlas-streams workflows", (integration) => {
                         arguments: {
                             projectId: getProjectId(),
                             workspaceName: getWorkspaceName(),
-                            action: "stop-processor",
-                            resourceName: processorName,
+                            operation: [{ action: "stop-processor", resourceName: processorName }],
                         },
                     });
                     const content = getResponseContent(response.content);
@@ -243,19 +243,23 @@ describeWithStreams("atlas-streams workflows", (integration) => {
                         arguments: {
                             projectId: getProjectId(),
                             workspaceName: getWorkspaceName(),
-                            action: "modify-processor",
-                            resourceName: processorName,
-                            pipeline: [
-                                { $source: { connectionName: "sample_stream_solar" } },
-                                { $match: { device_id: "device_1" } },
+                            operation: [
                                 {
-                                    $merge: {
-                                        into: {
-                                            connectionName: getClusterConnectionName(),
-                                            db: "test",
-                                            coll: "out",
+                                    action: "modify-processor",
+                                    resourceName: processorName,
+                                    pipeline: [
+                                        { $source: { connectionName: "sample_stream_solar" } },
+                                        { $match: { device_id: "device_1" } },
+                                        {
+                                            $merge: {
+                                                into: {
+                                                    connectionName: getClusterConnectionName(),
+                                                    db: "test",
+                                                    coll: "out",
+                                                },
+                                            },
                                         },
-                                    },
+                                    ],
                                 },
                             ],
                         },
@@ -286,8 +290,7 @@ describeWithStreams("atlas-streams workflows", (integration) => {
                         arguments: {
                             projectId: getProjectId(),
                             workspaceName: getWorkspaceName(),
-                            action: "update-workspace",
-                            newTier: "SP30",
+                            operation: [{ action: "update-workspace", newTier: "SP30" }],
                         },
                     });
                     const content = getResponseContent(response.content);

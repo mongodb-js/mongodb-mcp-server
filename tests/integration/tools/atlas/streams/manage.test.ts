@@ -11,7 +11,8 @@ describeWithStreams("atlas-streams-manage", (integration) => {
             expect(tool!.inputSchema.type).toBe("object");
             expect(tool!.inputSchema.properties).toBeDefined();
             expect(tool!.inputSchema.properties).toHaveProperty("projectId");
-            expect(tool!.inputSchema.properties).toHaveProperty("action");
+            expect(tool!.inputSchema.properties).toHaveProperty("workspaceName");
+            expect(tool!.inputSchema.properties).toHaveProperty("operation");
         });
     });
 
@@ -53,8 +54,7 @@ describeWithStreams("atlas-streams-manage", (integration) => {
                     arguments: {
                         projectId: getProjectId(),
                         workspaceName: getWorkspaceName(),
-                        action: "start-processor",
-                        resourceName: processorName,
+                        operation: [{ action: "start-processor", resourceName: processorName }],
                     },
                 });
                 const content = getResponseContent(response.content);
@@ -67,8 +67,7 @@ describeWithStreams("atlas-streams-manage", (integration) => {
                     arguments: {
                         projectId: getProjectId(),
                         workspaceName: getWorkspaceName(),
-                        action: "stop-processor",
-                        resourceName: processorName,
+                        operation: [{ action: "stop-processor", resourceName: processorName }],
                     },
                 });
                 const content = getResponseContent(response.content);
@@ -81,19 +80,23 @@ describeWithStreams("atlas-streams-manage", (integration) => {
                     arguments: {
                         projectId: getProjectId(),
                         workspaceName: getWorkspaceName(),
-                        action: "modify-processor",
-                        resourceName: processorName,
-                        pipeline: [
-                            { $source: { connectionName: "sample_stream_solar" } },
-                            { $match: { device_id: "device_1" } },
+                        operation: [
                             {
-                                $merge: {
-                                    into: {
-                                        connectionName: getClusterConnectionName(),
-                                        db: "test",
-                                        coll: "out",
+                                action: "modify-processor",
+                                resourceName: processorName,
+                                pipeline: [
+                                    { $source: { connectionName: "sample_stream_solar" } },
+                                    { $match: { device_id: "device_1" } },
+                                    {
+                                        $merge: {
+                                            into: {
+                                                connectionName: getClusterConnectionName(),
+                                                db: "test",
+                                                coll: "out",
+                                            },
+                                        },
                                     },
-                                },
+                                ],
                             },
                         ],
                     },
@@ -109,8 +112,7 @@ describeWithStreams("atlas-streams-manage", (integration) => {
                     arguments: {
                         projectId: getProjectId(),
                         workspaceName: getWorkspaceName(),
-                        action: "update-workspace",
-                        newTier: "SP30",
+                        operation: [{ action: "update-workspace", newTier: "SP30" }],
                     },
                 });
                 const content = getResponseContent(response.content);

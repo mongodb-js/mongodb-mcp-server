@@ -349,6 +349,58 @@ describe("StreamsBuildTool", () => {
             ).rejects.toThrow("connectionType is required");
         });
 
+        describe("per-type config validation (pre-Atlas-API)", () => {
+            it("rejects Kafka connection with Cluster-only field clusterName before calling Atlas", async () => {
+                const result = await exec({
+                    ...baseArgs,
+                    resource: "connection",
+                    connectionName: "kafka-bad",
+                    connectionType: "Kafka",
+                    connectionConfig: {
+                        bootstrapServers: "broker1:9092",
+                        authentication: { mechanism: "PLAIN", username: "u", password: "p" },
+                        security: { protocol: "SASL_SSL" },
+                        clusterName: "wrong-field",
+                    },
+                });
+                expect(result.isError).toBe(true);
+                expect((result.content[0] as { text: string }).text.toLowerCase()).toContain("clustername");
+                expect(mockApiClient.createStreamConnection).not.toHaveBeenCalled();
+            });
+
+            it("rejects S3 connection with Kafka-only field bootstrapServers before calling Atlas", async () => {
+                const result = await exec({
+                    ...baseArgs,
+                    resource: "connection",
+                    connectionName: "s3-bad",
+                    connectionType: "S3",
+                    connectionConfig: {
+                        aws: { roleArn: "arn:aws:iam::123:role/r" },
+                        bootstrapServers: "broker1:9092",
+                    },
+                });
+                expect(result.isError).toBe(true);
+                expect((result.content[0] as { text: string }).text.toLowerCase()).toContain("bootstrapservers");
+                expect(mockApiClient.createStreamConnection).not.toHaveBeenCalled();
+            });
+
+            it("rejects Https connection with SchemaRegistry-only field schemaRegistryUrls", async () => {
+                const result = await exec({
+                    ...baseArgs,
+                    resource: "connection",
+                    connectionName: "https-bad",
+                    connectionType: "Https",
+                    connectionConfig: {
+                        url: "https://webhook.example.com",
+                        schemaRegistryUrls: ["https://sr.example.com"],
+                    },
+                });
+                expect(result.isError).toBe(true);
+                expect((result.content[0] as { text: string }).text.toLowerCase()).toContain("schemaregistryurls");
+                expect(mockApiClient.createStreamConnection).not.toHaveBeenCalled();
+            });
+        });
+
         it("should warn about PENDING state when connection uses PrivateLink", async () => {
             const result = await exec({
                 ...baseArgs,
