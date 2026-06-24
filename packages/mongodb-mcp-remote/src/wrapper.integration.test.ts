@@ -37,7 +37,7 @@ async function connectClientToWrapper(remote: MockRemote): Promise<Client> {
     });
     await client.connect(transport);
     const originalClose = client.close.bind(client);
-    client.close = async () => {
+    client.close = async (): Promise<void> => {
         await originalClose();
         await transport.close();
     };
