@@ -46,6 +46,14 @@ export type ApiClientRequestContext = {
     };
 };
 
+/**
+ * Allowlist of incoming MCP request header names that may be forwarded to outgoing
+ * Atlas API requests. Kept intentionally minimal to avoid propagating hop-by-hop
+ * headers (e.g. `host`, `content-length`), cookies, or other sensitive/irrelevant
+ * headers. Comparison is case-insensitive, so entries must be lowercase.
+ */
+const FORWARDABLE_REQUEST_HEADERS: ReadonlySet<string> = new Set(["x-request-id"]);
+
 export type ApiClientFactoryFn = (options: ApiClientOptions, logger: LoggerBase) => ApiClient;
 
 export const defaultCreateApiClient: ApiClientFactoryFn = (options, logger) => {
@@ -155,20 +163,32 @@ export class ApiClient {
     }
 
     /**
-     * Merges the headers from an optional `ApiClientRequestContext` into the
-     * provided request options. Headers already present in `options` take
-     * precedence over those coming from the context. Used by the auto-generated
-     * Atlas API methods to forward request headers such as `x-request-id`.
+     * Merges allowlisted headers from an optional `ApiClientRequestContext` into the
+     * provided request options. Only headers in {@link FORWARDABLE_REQUEST_HEADERS}
+     * with a string value are forwarded (e.g. `x-request-id`); all other incoming
+     * headers are ignored. Headers already present in `options` take precedence over
+     * those coming from the context. Used by the auto-generated Atlas API methods.
      */
     private applyRequestContext<Options>(options: Options, context?: ApiClientRequestContext): Options {
         const contextHeaders = context?.requestInfo?.headers;
         if (!contextHeaders) {
             return options;
         }
+
+        const forwardedHeaders: Record<string, string> = {};
+        for (const [name, value] of Object.entries(contextHeaders)) {
+            if (typeof value === "string" && FORWARDABLE_REQUEST_HEADERS.has(name.toLowerCase())) {
+                forwardedHeaders[name] = value;
+            }
+        }
+        if (Object.keys(forwardedHeaders).length === 0) {
+            return options;
+        }
+
         const existingHeaders = (options as { headers?: Record<string, unknown> } | undefined)?.headers;
         return {
             ...(options as object),
-            headers: { ...contextHeaders, ...existingHeaders },
+            headers: { ...forwardedHeaders, ...existingHeaders },
         } as Options;
     }
 
