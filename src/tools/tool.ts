@@ -31,6 +31,12 @@ export interface ToolExecutionContext {
     };
 }
 
+/** Returns `{ "x-request-id": "..." }` when the context carries one, else `{}`. Spread inside a LogPayload's `attributes` field. */
+export function requestIdAttr(context: ToolExecutionContext): { "x-request-id": string } | Record<never, never> {
+    const id = context.requestInfo?.headers?.["x-request-id"];
+    return typeof id === "string" ? { "x-request-id": id } : {};
+}
+
 export type ToolResult<OutputSchema extends ZodRawShape | undefined = undefined> = OutputSchema extends ZodRawShape
     ? StructuredToolResult<OutputSchema>
     : { content: { type: "text"; text: string }[]; isError?: boolean };
@@ -495,6 +501,7 @@ export abstract class ToolBase<
                         context: "tool",
                         message: `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`,
                         noRedaction: true,
+                        attributes: { ...requestIdAttr(context) },
                     });
                     return {
                         content: [
@@ -516,6 +523,7 @@ export abstract class ToolBase<
                 context: "tool",
                 message: `Executing tool ${this.name}`,
                 noRedaction: true,
+                attributes: { ...requestIdAttr(context) },
             });
 
             const toolCallResult = await this.execute(args, context);
@@ -540,6 +548,7 @@ export abstract class ToolBase<
                 context: "tool",
                 message: `Executed tool ${this.name}`,
                 noRedaction: true,
+                attributes: { ...requestIdAttr(context) },
             });
             return result;
         } catch (error: unknown) {
@@ -547,6 +556,7 @@ export abstract class ToolBase<
                 id: LogId.toolExecuteFailure,
                 context: "tool",
                 message: `Error executing ${this.name}: ${error as string}`,
+                attributes: { ...requestIdAttr(context) },
             });
             const toolResult = await this.handleError(error, args);
             this.emitToolEvent(args, { startTime, result: toolResult });

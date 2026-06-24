@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { StreamsToolBase } from "./streamsToolBase.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { OperationType, ToolArgs, ToolExecutionContext } from "../../tool.js";
+import { type OperationType, type ToolArgs, type ToolExecutionContext, requestIdAttr } from "../../tool.js";
 import { AtlasArgs } from "../../args.js";
 import { StreamsArgs } from "./streamsArgs.js";
 import { LogId } from "../../../common/logging/index.js";
@@ -136,6 +136,7 @@ export class StreamsTeardownTool extends StreamsToolBase {
                 id: LogId.streamsProcessorStateLookupFailure,
                 context: "streams-teardown",
                 message: `Failed to get processor state before delete: ${error instanceof Error ? error.message : String(error)}`,
+                attributes: { ...requestIdAttr(context) },
             });
         }
 
