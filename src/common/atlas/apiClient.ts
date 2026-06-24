@@ -164,10 +164,10 @@ export class ApiClient {
 
     /**
      * Merges allowlisted headers from an optional `ApiClientRequestContext` into the
-     * provided request options. Only headers in {@link FORWARDABLE_REQUEST_HEADERS}
-     * with a string value are forwarded (e.g. `x-request-id`); all other incoming
-     * headers are ignored. Headers already present in `options` take precedence over
-     * those coming from the context. Used by the auto-generated Atlas API methods.
+     * provided request options. Only headers in `FORWARDABLE_REQUEST_HEADERS` with a
+     * string value are forwarded (e.g. `x-request-id`); all other incoming headers are
+     * ignored. Headers already present in `options` take precedence over those coming
+     * from the context. Used by the auto-generated Atlas API methods.
      */
     private applyRequestContext<Options>(options: Options, context?: ApiClientRequestContext): Options {
         const contextHeaders = context?.requestInfo?.headers;
