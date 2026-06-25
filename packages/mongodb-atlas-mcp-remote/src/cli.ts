@@ -24,9 +24,11 @@ async function main(): Promise<void> {
 
     logger.setLevel(config.logLevel);
 
-    await systemCA().catch((error) => {
+    try {
+        await systemCA();
+    } catch (error) {
         logger.warning(`Failed to load system CA certificates: ${String(error)}`);
-    });
+    }
 
     const proxyFetch = createFetch({ useEnvironmentVariableProxies: true }) as unknown as FetchLike;
 

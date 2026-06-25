@@ -19,7 +19,7 @@ export class TokenManager {
     private cachedToken: CachedToken | null = null;
     private refreshPromise: Promise<string> | null = null;
 
-    private readonly userAgent = `mongodb-mcp-remote/${packageInfo.version} (${process.platform}; ${process.arch})`;
+    private readonly userAgent = `mongodb-atlas-mcp-remote/${packageInfo.version} (${process.platform}; ${process.arch})`;
 
     constructor(
         private readonly tokenUrl: string,
