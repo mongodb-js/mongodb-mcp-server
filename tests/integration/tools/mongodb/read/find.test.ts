@@ -11,7 +11,7 @@ import {
 import * as constants from "../../../../../src/helpers/constants.js";
 import { describeWithMongoDB, getDocsFromUntrustedContent, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 import type { Client } from "@modelcontextprotocol/sdk/client";
-import { serializeBsonToJsonObjects } from "../../../../../src/helpers/bsonToJson.js";
+import { bsonToJson } from "../../../../../src/helpers/bsonToJson.js";
 
 export async function freshInsertDocuments({
     collection,
@@ -196,7 +196,7 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
                 expect(response.structuredContent).toMatchObject({
                     queryResultsCount: expectedCount,
                     appliedLimits: [],
-                    documents: serializeBsonToJsonObjects(docs),
+                    documents: bsonToJson(docs),
                 });
             });
         }
@@ -219,7 +219,7 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
             expect(response.structuredContent).toMatchObject({
                 queryResultsCount: 10,
                 appliedLimits: [],
-                documents: serializeBsonToJsonObjects(docs),
+                documents: bsonToJson(docs),
             });
         });
 
@@ -252,7 +252,7 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
             expect(response.structuredContent).toMatchObject({
                 queryResultsCount: 1,
                 appliedLimits: [],
-                documents: serializeBsonToJsonObjects(docs),
+                documents: bsonToJson(docs),
             });
         });
 
@@ -289,7 +289,7 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
             expect(response.structuredContent).toMatchObject({
                 queryResultsCount: 1,
                 appliedLimits: [],
-                documents: serializeBsonToJsonObjects(docs),
+                documents: bsonToJson(docs),
             });
         });
     });
@@ -327,7 +327,7 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
             expect(docs.length).toEqual(10);
             expect(response.structuredContent).toMatchObject({
                 appliedLimits: [],
-                documents: serializeBsonToJsonObjects(docs),
+                documents: bsonToJson(docs),
             });
             const queryResultsCount =
                 typeof response.structuredContent === "object" &&
@@ -706,7 +706,7 @@ describeWithMongoDB(
             expect(response.structuredContent).toMatchObject({
                 queryResultsCount: 5,
                 appliedLimits: [],
-                documents: serializeBsonToJsonObjects(docs),
+                documents: bsonToJson(docs),
             });
         });
     },
@@ -787,7 +787,7 @@ describeWithMongoDB("find tool with server-side JavaScript operators", (integrat
                 expect(docs[0]).toEqual(expect.objectContaining({ name: "Laura", age: 10 }));
                 expect(response.structuredContent).toMatchObject({
                     appliedLimits: [],
-                    documents: serializeBsonToJsonObjects(docs),
+                    documents: bsonToJson(docs),
                 });
             }
         });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Long, ObjectId } from "bson";
-import { bsonToJson, serializeBsonToJsonObjects } from "../../../src/helpers/bsonToJson.js";
+import { bsonToJson } from "../../../src/helpers/bsonToJson.js";
 
 describe("safeBsonJson", () => {
     it("serializes ObjectId to idiomatic Extended JSON", () => {
@@ -16,6 +16,6 @@ describe("safeBsonJson", () => {
     it("serializes document arrays for structured content", () => {
         const id = new ObjectId();
         const docs = [{ _id: id, name: "foo" }];
-        expect(serializeBsonToJsonObjects(docs)).toEqual([{ _id: { $oid: id.toHexString() }, name: "foo" }]);
+        expect(bsonToJson(docs)).toEqual([{ _id: { $oid: id.toHexString() }, name: "foo" }]);
     });
 });

@@ -23,7 +23,7 @@ import {
     type SearchIndex,
 } from "../../../helpers/assertVectorSearchFilterFieldsAreIndexed.js";
 import { isWriteStage } from "../../../helpers/mqlGuards.js";
-import { serializeBsonToJsonObjects } from "../../../helpers/bsonToJson.js";
+import { bsonToJson } from "../../../helpers/bsonToJson.js";
 
 export const pipelineDescriptionWithVectorSearch = `\
 An array of aggregation stages to execute.
@@ -207,7 +207,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                 });
             }
 
-            const serializedDocuments = serializeBsonToJsonObjects(documents);
+            const serializedDocuments = bsonToJson(documents);
 
             return {
                 content: formatUntrustedData(

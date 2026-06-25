@@ -24,7 +24,7 @@ import type { Client } from "@modelcontextprotocol/sdk/client";
 import { pipelineDescriptionWithVectorSearch } from "../../../../../src/tools/mongodb/read/aggregate.js";
 import { MongoServerError, type Collection } from "mongodb";
 import type { CursorLimitKey } from "../../../../../src/helpers/constants.js";
-import { serializeBsonToJsonObjects } from "../../../../../src/helpers/bsonToJson.js";
+import { bsonToJson } from "../../../../../src/helpers/bsonToJson.js";
 
 type AggregateToolResponse = Awaited<ReturnType<Client["callTool"]>>;
 
@@ -47,7 +47,7 @@ function expectAggregateStructuredContent(
 ): void {
     const contentDocs = getDocsFromUntrustedContentWhenPresent(content);
     const expectedStructuredContent: Record<string, unknown> = {
-        documents: contentDocs.length > 0 ? serializeBsonToJsonObjects(contentDocs) : [],
+        documents: contentDocs.length > 0 ? bsonToJson(contentDocs) : [],
     };
 
     if (!expected.omitAggResultsCount && expected.aggResultsCount !== undefined) {
