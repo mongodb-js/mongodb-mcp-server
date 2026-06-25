@@ -54,6 +54,9 @@
   "repository": {
     "url": "https://github.com/mongodb-js/mongodb-mcp-server.git"
   },
+  "bugs": {
+    "url": "https://github.com/mongodb-js/mongodb-mcp-server/issues"
+  },
   "bin": {
     "mongodb-mcp-server": "dist/esm/index.js"
   },
