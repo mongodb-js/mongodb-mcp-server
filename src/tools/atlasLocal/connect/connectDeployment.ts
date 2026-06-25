@@ -48,9 +48,9 @@ export class ConnectDeploymentTool extends AtlasLocalToolBase {
     }
 
     protected override resolveTelemetryMetadata(
-        _args: ToolArgs<typeof this.argsShape>,
-        { result }: { result: ToolResult<typeof ConnectDeploymentOutputSchema> }
+        args: ToolArgs<typeof this.argsShape>,
+        { result }: { result: CallToolResult }
     ): ConnectionMetadata {
-        return { ...super.resolveTelemetryMetadata(_args, { result }), ...this.getConnectionInfoMetadata() };
+        return { ...super.resolveTelemetryMetadata(args, { result }), ...this.getConnectionInfoMetadata() };
     }
 }
