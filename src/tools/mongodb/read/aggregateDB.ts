@@ -12,13 +12,13 @@ import { isWriteStage } from "../../../helpers/mqlGuards.js";
 import {
     AGG_COUNT_MAX_TIME_MS_CAP,
     ONE_MB,
-    CURSOR_LIMIT_KEYS,
     CURSOR_LIMITS_TO_LLM_TEXT,
+    CURSOR_LIMIT_KEYS,
     type CursorLimitKey,
 } from "../../../helpers/constants.js";
 import { LogId } from "../../../common/logging/index.js";
 import { AnyAggregateStage, DB_AGGREGATE_STAGE_OPERATORS } from "../mongodbSchemas.js";
-import { serializeBsonToJsonObjects } from "../../../helpers/bsonToJson.js";
+import { bsonToJson } from "../../../helpers/bsonToJson.js";
 
 const AggregateDBOutputSchema = {
     documents: z.array(z.unknown()).describe("The documents returned by the aggregation pipeline"),
@@ -26,7 +26,7 @@ const AggregateDBOutputSchema = {
         .number()
         .optional()
         .describe("The total number of documents returned by the aggregation pipeline"),
-    appliedLimits: z.array(z.enum(CURSOR_LIMIT_KEYS)).describe("The limits applied to the aggregation pipeline"),
+    appliedLimits: z.array(CURSOR_LIMIT_KEYS).describe("The limits applied to the aggregation pipeline"),
 };
 
 export const AggregateArgs = {
@@ -106,7 +106,7 @@ The maximum number of bytes to return in the response. This value is capped by t
                     !!totalDocuments &&
                     totalDocuments > this.config.maxDocumentsPerQuery;
 
-                documents = serializeBsonToJsonObjects(cursorResults.documents);
+                documents = bsonToJson(cursorResults.documents);
                 aggResultsCount = totalDocuments;
                 appliedLimits = [
                     aggregationResultsCappedByMaxDocumentsLimit ? "config.maxDocumentsPerQuery" : undefined,

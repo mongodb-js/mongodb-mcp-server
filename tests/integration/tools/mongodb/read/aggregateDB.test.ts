@@ -10,7 +10,7 @@ import { expect, it, afterEach } from "vitest";
 import { describeWithMongoDB, getDocsFromUntrustedContent, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 import type { Client } from "@modelcontextprotocol/sdk/client";
 import type { CursorLimitKey } from "../../../../../src/helpers/constants.js";
-import { serializeBsonToJsonObjects } from "../../../../../src/helpers/bsonToJson.js";
+import { bsonToJson } from "../../../../../src/helpers/bsonToJson.js";
 
 type AggregateDBToolResponse = Awaited<ReturnType<Client["callTool"]>>;
 
@@ -33,7 +33,7 @@ function expectAggregateDBStructuredContent(
 ): void {
     const contentDocs = getDocsFromUntrustedContentWhenPresent(content);
     const expectedStructuredContent: Record<string, unknown> = {
-        documents: contentDocs.length > 0 ? serializeBsonToJsonObjects(contentDocs) : [],
+        documents: contentDocs.length > 0 ? bsonToJson(contentDocs) : [],
     };
 
     if (!expected.omitAggResultsCount && expected.aggResultsCount !== undefined) {

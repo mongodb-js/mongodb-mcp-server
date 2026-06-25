@@ -24,44 +24,27 @@ import type { Client } from "@modelcontextprotocol/sdk/client";
 import { pipelineDescriptionWithVectorSearch } from "../../../../../src/tools/mongodb/read/aggregate.js";
 import { MongoServerError, type Collection } from "mongodb";
 import type { CursorLimitKey } from "../../../../../src/helpers/constants.js";
-import { serializeBsonToJsonObjects } from "../../../../../src/helpers/bsonToJson.js";
 
 type AggregateToolResponse = Awaited<ReturnType<Client["callTool"]>>;
 
-function getDocsFromUntrustedContentWhenPresent(content: string): unknown[] {
-    try {
-        return getDocsFromUntrustedContent(content);
-    } catch {
-        return [];
-    }
-}
-
 function expectAggregateStructuredContent(
     response: AggregateToolResponse,
-    content: string,
-    expected: {
-        aggResultsCount?: number;
-        omitAggResultsCount?: boolean;
-        appliedLimits?: CursorLimitKey[];
-    }
+    { count, appliedLimits }: { count?: number; appliedLimits?: CursorLimitKey[] } = {}
 ): void {
-    const contentDocs = getDocsFromUntrustedContentWhenPresent(content);
-    const expectedStructuredContent: Record<string, unknown> = {
-        documents: contentDocs.length > 0 ? serializeBsonToJsonObjects(contentDocs) : [],
-    };
+    const expectedStructuredContent: Record<string, unknown> = {};
 
-    if (!expected.omitAggResultsCount && expected.aggResultsCount !== undefined) {
-        expectedStructuredContent.aggResultsCount = expected.aggResultsCount;
+    if (count !== undefined) {
+        expectedStructuredContent.count = count;
     }
 
-    if (expected.appliedLimits !== undefined) {
-        expectedStructuredContent.appliedLimits = expected.appliedLimits;
+    if (appliedLimits !== undefined) {
+        expectedStructuredContent.appliedLimits = appliedLimits;
     }
 
     expect(response.structuredContent).toMatchObject(expectedStructuredContent);
 
-    if (expected.omitAggResultsCount) {
-        expect(response.structuredContent).not.toHaveProperty("aggResultsCount");
+    if (count === undefined) {
+        expect(response.structuredContent).not.toHaveProperty("count");
     }
 }
 
@@ -106,8 +89,8 @@ describeWithMongoDB("aggregate tool", (integration) => {
 
         const content = getResponseContent(response);
         expect(content).toEqual("The aggregation resulted in 0 documents.");
-        expectAggregateStructuredContent(response, content, {
-            aggResultsCount: 0,
+        expectAggregateStructuredContent(response, {
+            count: 0,
             appliedLimits: [],
         });
     });
@@ -127,8 +110,8 @@ describeWithMongoDB("aggregate tool", (integration) => {
 
         const content = getResponseContent(response);
         expect(content).toEqual("The aggregation resulted in 0 documents.");
-        expectAggregateStructuredContent(response, content, {
-            aggResultsCount: 0,
+        expectAggregateStructuredContent(response, {
+            count: 0,
             appliedLimits: [],
         });
     });
@@ -171,8 +154,8 @@ describeWithMongoDB("aggregate tool", (integration) => {
                 age: 10,
             })
         );
-        expectAggregateStructuredContent(response, content, {
-            aggResultsCount: 2,
+        expectAggregateStructuredContent(response, {
+            count: 2,
             appliedLimits: [],
         });
     });
@@ -332,8 +315,8 @@ describeWithMongoDB("aggregate tool", (integration) => {
         });
         const content = getResponseContent(response);
         expect(content).toContain("The aggregation resulted in 1 documents");
-        expectAggregateStructuredContent(response, content, {
-            aggResultsCount: 1,
+        expectAggregateStructuredContent(response, {
+            count: 1,
             appliedLimits: [],
         });
     });
@@ -359,8 +342,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
         });
         const content = getResponseContent(response);
         expect(content).toEqual("The aggregation pipeline executed successfully.");
-        expectAggregateStructuredContent(response, content, {
-            omitAggResultsCount: true,
+        expectAggregateStructuredContent(response, {
             appliedLimits: [],
         });
 
@@ -390,8 +372,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
         });
         const content = getResponseContent(response);
         expect(content).toEqual("The aggregation pipeline executed successfully.");
-        expectAggregateStructuredContent(response, content, {
-            omitAggResultsCount: true,
+        expectAggregateStructuredContent(response, {
             appliedLimits: [],
         });
 
@@ -498,8 +479,8 @@ describeWithMongoDB("aggregate tool", (integration) => {
             expect(content).toContain("The aggregation resulted in 1 documents");
             const docs = getDocsFromUntrustedContent<{ name: string }>(content);
             expect(docs[0]?.name).toBe("Alice");
-            expectAggregateStructuredContent(response, content, {
-                aggResultsCount: 1,
+            expectAggregateStructuredContent(response, {
+                count: 1,
                 appliedLimits: [],
             });
         });
@@ -592,8 +573,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
                     age: 998,
                 })
             );
-            expectAggregateStructuredContent(response, content, {
-                omitAggResultsCount: true,
+            expectAggregateStructuredContent(response, {
                 appliedLimits: [],
             });
         });
@@ -644,8 +624,8 @@ describeWithMongoDB(
             );
             const docs = getDocsFromUntrustedContent(content);
             validateDocs(docs, 20);
-            expectAggregateStructuredContent(response, content, {
-                aggResultsCount: 990,
+            expectAggregateStructuredContent(response, {
+                count: 990,
                 appliedLimits: ["config.maxDocumentsPerQuery"],
             });
         });
@@ -668,8 +648,8 @@ describeWithMongoDB(
             );
             const docs = getDocsFromUntrustedContent(content);
             validateDocs(docs, 20);
-            expectAggregateStructuredContent(response, content, {
-                aggResultsCount: 50,
+            expectAggregateStructuredContent(response, {
+                count: 50,
                 appliedLimits: ["config.maxDocumentsPerQuery"],
             });
         });
@@ -690,8 +670,8 @@ describeWithMongoDB(
 
             const docs = getDocsFromUntrustedContent(content);
             validateDocs(docs, 5);
-            expectAggregateStructuredContent(response, content, {
-                aggResultsCount: 5,
+            expectAggregateStructuredContent(response, {
+                count: 5,
                 appliedLimits: [],
             });
         });
@@ -727,8 +707,8 @@ describeWithMongoDB(
             expect(content).toContain(
                 `Returning 3 documents while respecting the applied limits of server's configured - maxDocumentsPerQuery, server's configured - maxBytesPerQuery.`
             );
-            expectAggregateStructuredContent(response, content, {
-                aggResultsCount: 990,
+            expectAggregateStructuredContent(response, {
+                count: 990,
                 appliedLimits: ["config.maxDocumentsPerQuery", "config.maxBytesPerQuery"],
             });
         });
@@ -757,8 +737,8 @@ describeWithMongoDB(
             expect(content).toContain(
                 `Returning 1 documents while respecting the applied limits of server's configured - maxDocumentsPerQuery, tool's parameter - responseBytesLimit.`
             );
-            expectAggregateStructuredContent(response, content, {
-                aggResultsCount: 990,
+            expectAggregateStructuredContent(response, {
+                count: 990,
                 appliedLimits: ["config.maxDocumentsPerQuery", "tool.responseBytesLimit"],
             });
         });
@@ -792,8 +772,8 @@ describeWithMongoDB(
 
             const content = getResponseContent(response);
             expect(content).toContain("The aggregation resulted in 990 documents");
-            expectAggregateStructuredContent(response, content, {
-                aggResultsCount: 990,
+            expectAggregateStructuredContent(response, {
+                count: 990,
                 appliedLimits: [],
             });
         });

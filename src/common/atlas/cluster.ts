@@ -3,7 +3,7 @@ import type {
     ClusterDescription20240805,
     FlexClusterDescription20241113,
 } from "./openapi.js";
-import type { ApiClient } from "./apiClient.js";
+import type { ApiClient, ApiClientRequestContext } from "./apiClient.js";
 import { LogId } from "../logging/index.js";
 import { ConnectionString } from "mongodb-connection-string-url";
 
@@ -96,27 +96,38 @@ export function formatCluster(cluster: ClusterDescription20240805): Cluster {
     };
 }
 
-export async function inspectCluster(apiClient: ApiClient, projectId: string, clusterName: string): Promise<Cluster> {
+export async function inspectCluster(
+    apiClient: ApiClient,
+    projectId: string,
+    clusterName: string,
+    context?: ApiClientRequestContext
+): Promise<Cluster> {
     try {
-        const cluster = await apiClient.getCluster({
-            params: {
-                path: {
-                    groupId: projectId,
-                    clusterName,
-                },
-            },
-        });
-        return formatCluster(cluster);
-    } catch (error) {
-        try {
-            const cluster = await apiClient.getFlexCluster({
+        const cluster = await apiClient.getCluster(
+            {
                 params: {
                     path: {
                         groupId: projectId,
-                        name: clusterName,
+                        clusterName,
                     },
                 },
-            });
+            },
+            context
+        );
+        return formatCluster(cluster);
+    } catch (error) {
+        try {
+            const cluster = await apiClient.getFlexCluster(
+                {
+                    params: {
+                        path: {
+                            groupId: projectId,
+                            name: clusterName,
+                        },
+                    },
+                },
+                context
+            );
             return formatFlexCluster(cluster);
         } catch (flexError) {
             const err = flexError instanceof Error ? flexError : new Error(String(flexError));
@@ -154,10 +165,11 @@ export function getConnectionString(
 export async function getProcessIdsFromCluster(
     apiClient: ApiClient,
     projectId: string,
-    clusterName: string
+    clusterName: string,
+    context?: ApiClientRequestContext
 ): Promise<Array<string>> {
     try {
-        const cluster = await inspectCluster(apiClient, projectId, clusterName);
+        const cluster = await inspectCluster(apiClient, projectId, clusterName, context);
         return cluster.processIds || [];
     } catch (error) {
         throw new Error(

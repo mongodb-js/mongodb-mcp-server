@@ -5,15 +5,15 @@ import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
-import { type Document, EJSON } from "bson";
+import { type Document } from "bson";
 import { ErrorCodes, MongoDBError } from "../../../common/errors.js";
 import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorUntilMaxBytes.js";
 import { operationWithFallback } from "../../../helpers/operationWithFallback.js";
 import {
     AGG_COUNT_MAX_TIME_MS_CAP,
     ONE_MB,
-    CURSOR_LIMIT_KEYS,
     CURSOR_LIMITS_TO_LLM_TEXT,
+    CURSOR_LIMIT_KEYS,
     type CursorLimitKey,
 } from "../../../helpers/constants.js";
 import { LogId } from "../../../common/logging/index.js";
@@ -23,7 +23,7 @@ import {
     type SearchIndex,
 } from "../../../helpers/assertVectorSearchFilterFieldsAreIndexed.js";
 import { isWriteStage } from "../../../helpers/mqlGuards.js";
-import { serializeBsonToJsonObjects } from "../../../helpers/bsonToJson.js";
+import { bsonToJson } from "../../../helpers/bsonToJson.js";
 
 export const pipelineDescriptionWithVectorSearch = `\
 An array of aggregation stages to execute.
@@ -53,11 +53,8 @@ If the user has asked for lexical/Atlas search, use \`$search\` instead of \`$te
 
 const AggregateOutputSchema = {
     documents: z.array(z.unknown()).describe("The documents returned by the aggregation pipeline"),
-    aggResultsCount: z
-        .number()
-        .optional()
-        .describe("The total number of documents returned by the aggregation pipeline"),
-    appliedLimits: z.array(z.enum(CURSOR_LIMIT_KEYS)).describe("The limits applied to the aggregation pipeline"),
+    count: z.number().optional().describe("The total number of documents returned by the aggregation pipeline"),
+    appliedLimits: z.array(CURSOR_LIMIT_KEYS).describe("The limits applied to the aggregation pipeline"),
 };
 
 export const AggregateArgs = {
@@ -149,7 +146,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
 
             let successMessage: string;
             let documents: unknown[];
-            let aggResultsCount: number | undefined;
+            let count: number | undefined;
             let appliedLimits: CursorLimitKey[] = [];
 
             if (pipeline.some((stage) => isWriteStage(stage))) {
@@ -195,28 +192,28 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                     totalDocuments > this.config.maxDocumentsPerQuery;
 
                 documents = cursorResults.documents;
-                aggResultsCount = totalDocuments;
+                count = totalDocuments;
                 appliedLimits = [
                     aggregationResultsCappedByMaxDocumentsLimit ? "config.maxDocumentsPerQuery" : undefined,
                     cursorResults.cappedBy,
                 ].filter((limit): limit is CursorLimitKey => !!limit);
                 successMessage = this.generateMessage({
-                    aggResultsCount,
+                    count,
                     documents,
                     appliedLimits,
                 });
             }
 
-            const serializedDocuments = serializeBsonToJsonObjects(documents);
+            documents = bsonToJson(documents);
 
             return {
                 content: formatUntrustedData(
                     successMessage,
-                    ...(serializedDocuments.length > 0 ? [EJSON.stringify(serializedDocuments)] : [])
+                    ...(documents.length > 0 ? [JSON.stringify(documents)] : [])
                 ),
                 structuredContent: {
-                    documents: serializedDocuments,
-                    ...(aggResultsCount !== undefined ? { aggResultsCount } : {}),
+                    documents,
+                    ...(count !== undefined ? { count } : {}),
                     appliedLimits,
                 },
             };
@@ -342,19 +339,19 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
     }
 
     private generateMessage({
-        aggResultsCount,
+        count,
         documents,
         appliedLimits,
     }: {
-        aggResultsCount: number | undefined;
+        count: number | undefined;
         documents: unknown[];
         appliedLimits: CursorLimitKey[];
     }): string {
-        let message = `The aggregation resulted in ${aggResultsCount === undefined ? "indeterminable number of" : aggResultsCount} documents.`;
+        let message = `The aggregation resulted in ${count === undefined ? "indeterminable number of" : count} documents.`;
 
         // If we applied a limit or the count is different from the aggregation result count,
         // communicate what is the actual number of returned documents
-        if (documents.length !== aggResultsCount || appliedLimits.length) {
+        if (documents.length !== count || appliedLimits.length) {
             message += ` Returning ${documents.length} documents`;
             if (appliedLimits.length) {
                 message += ` while respecting the applied limits of ${appliedLimits

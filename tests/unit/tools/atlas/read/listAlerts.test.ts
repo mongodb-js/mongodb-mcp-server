@@ -65,7 +65,8 @@ describe("ListAlertsTool", () => {
 
     const baseArgs = { projectId: "proj1", status: "OPEN" as const, limit: 100, pageNum: 1 };
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    const exec = (args: Record<string, unknown>) => tool["execute"](args as never);
+    const exec = (args: Record<string, unknown>) =>
+        tool["execute"](args as never, { signal: new AbortController().signal } as never);
 
     it("should return alerts when they exist", async () => {
         mockApiClient.listAlerts!.mockResolvedValue({
@@ -112,12 +113,15 @@ describe("ListAlertsTool", () => {
 
         await exec({ ...baseArgs, status: "CLOSED" });
 
-        expect(mockApiClient.listAlerts).toHaveBeenCalledWith({
-            params: {
-                path: { groupId: "proj1" },
-                query: { status: "CLOSED", itemsPerPage: 100, pageNum: 1, includeCount: true },
+        expect(mockApiClient.listAlerts).toHaveBeenCalledWith(
+            {
+                params: {
+                    path: { groupId: "proj1" },
+                    query: { status: "CLOSED", itemsPerPage: 100, pageNum: 1, includeCount: true },
+                },
             },
-        });
+            expect.anything()
+        );
     });
 
     it("should pass limit and pageNum to API", async () => {
@@ -125,12 +129,15 @@ describe("ListAlertsTool", () => {
 
         await exec({ ...baseArgs, limit: 10, pageNum: 3 });
 
-        expect(mockApiClient.listAlerts).toHaveBeenCalledWith({
-            params: {
-                path: { groupId: "proj1" },
-                query: { status: "OPEN", itemsPerPage: 10, pageNum: 3, includeCount: true },
+        expect(mockApiClient.listAlerts).toHaveBeenCalledWith(
+            {
+                params: {
+                    path: { groupId: "proj1" },
+                    query: { status: "OPEN", itemsPerPage: 10, pageNum: 3, includeCount: true },
+                },
             },
-        });
+            expect.anything()
+        );
     });
 
     it("should include totalCount in response header", async () => {

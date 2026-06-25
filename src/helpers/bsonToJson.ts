@@ -6,14 +6,11 @@ import { objectToIdiomaticEJSON } from "hadron-document";
  * ObjectId becomes `{ "$oid": "..." }`, Long becomes `{ "$numberLong": "..." }`, etc.
  */
 export function bsonToJson(value: Record<string, unknown>): Record<string, unknown>;
+export function bsonToJson(value: unknown[]): unknown[];
 export function bsonToJson(value: unknown): unknown;
 export function bsonToJson(value: unknown): unknown {
+    if (Array.isArray(value)) {
+        return value.map((item) => bsonToJson(item));
+    }
     return JSON.parse(objectToIdiomaticEJSON(value));
-}
-
-/**
- * Serializes an array of BSON objects.
- */
-export function serializeBsonToJsonObjects(objects: unknown[]): unknown[] {
-    return objects.map((object) => bsonToJson(object));
 }

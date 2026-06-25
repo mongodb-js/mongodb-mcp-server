@@ -75,7 +75,8 @@ describe("StreamsTeardownTool", () => {
 
     const baseArgs = { projectId: "proj1" };
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    const exec = (args: Record<string, unknown>) => tool["execute"](args as never);
+    const exec = (args: Record<string, unknown>) =>
+        tool["execute"](args as never, { signal: new AbortController().signal } as never);
     const confirmMsg = (args: Record<string, unknown>): string => tool["getConfirmationMessage"](args as never);
 
     describe("deleteProcessor", () => {
@@ -391,9 +392,12 @@ describe("StreamsTeardownTool", () => {
                 resourceName: "pl-123",
             });
 
-            expect(mockApiClient.deletePrivateLinkConnection).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1", connectionId: "pl-123" } },
-            });
+            expect(mockApiClient.deletePrivateLinkConnection).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1", connectionId: "pl-123" } },
+                },
+                expect.anything()
+            );
             expect((result.content[0] as { text: string }).text).toContain("pl-123");
             expect((result.content[0] as { text: string }).text).toContain("deletion initiated");
         });
@@ -409,9 +413,12 @@ describe("StreamsTeardownTool", () => {
                 resourceName: "peer-456",
             });
 
-            expect(mockApiClient.deleteVpcPeeringConnection).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1", id: "peer-456" } },
-            });
+            expect(mockApiClient.deleteVpcPeeringConnection).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1", id: "peer-456" } },
+                },
+                expect.anything()
+            );
             expect((result.content[0] as { text: string }).text).toContain("peer-456");
         });
     });

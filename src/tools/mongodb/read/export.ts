@@ -1,19 +1,12 @@
 import z from "zod";
 import { ObjectId } from "bson";
 import type { AggregationCursor, FindCursor } from "mongodb";
-import type { OperationType, ToolArgs, ToolExecutionContext, ToolResult } from "../../tool.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { OperationType, ToolArgs, ToolExecutionContext } from "../../tool.js";
 import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { FindArgs } from "./find.js";
 import { jsonExportFormat } from "../../../common/exportsManager.js";
 import { AggregateArgs } from "./aggregate.js";
-
-const ExportOutputSchema = {
-    type: z.literal("resource_link").describe("The content type of the export resource link."),
-    name: z.string().describe("The name of the exported file."),
-    uri: z.string().describe("The URI of the exported data."),
-    description: z.string().describe("Description of the export resource link."),
-    mimeType: z.string().describe("The MIME type of the exported data."),
-};
 
 export class ExportTool extends MongoDBToolBase {
     static toolName = "export";
@@ -62,12 +55,10 @@ export class ExportTool extends MongoDBToolBase {
     };
     static operationType: OperationType = "read";
 
-    public override outputSchema = ExportOutputSchema;
-
     protected async execute(
         { database, collection, jsonExportFormat, exportTitle, exportTarget: target }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+    ): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
         const exportTarget = target[0];
         if (!exportTarget) {
@@ -107,14 +98,7 @@ export class ExportTool extends MongoDBToolBase {
                 `Export for namespace ${database}.${collection} requested on ${new Date().toLocaleString()}`,
             jsonExportFormat,
         });
-        const resourceLink = {
-            type: "resource_link" as const,
-            name: exportName,
-            uri: exportURI,
-            description: "Resource URI for fetching exported data once it is ready.",
-            mimeType: "application/json",
-        };
-        const toolCallContent: ToolResult<typeof ExportOutputSchema>["content"] = [
+        const toolCallContent: CallToolResult["content"] = [
             // Not all the clients as of this commit understands how to
             // parse a resource_link so we provide a text result for them to
             // understand what to do with the result.
@@ -122,7 +106,13 @@ export class ExportTool extends MongoDBToolBase {
                 type: "text",
                 text: `Data for namespace ${database}.${collection} is being exported and will be made available under resource URI - "${exportURI}".`,
             },
-            resourceLink,
+            {
+                type: "resource_link",
+                name: exportName,
+                uri: exportURI,
+                description: "Resource URI for fetching exported data once it is ready.",
+                mimeType: "application/json",
+            },
         ];
 
         // This special case is to make it easier to work with exported data for
@@ -137,7 +127,6 @@ export class ExportTool extends MongoDBToolBase {
 
         return {
             content: toolCallContent,
-            structuredContent: resourceLink,
         };
     }
 

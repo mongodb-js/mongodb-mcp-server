@@ -13,7 +13,7 @@ export const CountArgs = {
 };
 
 const CountOutputSchema = {
-    count: z.number().optional().describe("The number of documents in the collection"),
+    count: z.number().describe("The number of documents in the collection"),
 };
 
 export class CountTool extends MongoDBToolBase {

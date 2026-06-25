@@ -10,13 +10,13 @@ import {
     ONE_MB,
     QUERY_COUNT_MAX_TIME_MS_CAP,
     CURSOR_LIMITS_TO_LLM_TEXT,
-    type CursorLimitKey,
     CURSOR_LIMIT_KEYS,
+    type CursorLimitKey,
 } from "../../../helpers/constants.js";
 import { zEJSON } from "../../args.js";
 import { LogId } from "../../../common/logging/index.js";
 import { SortDirectionSchema } from "../mongodbSchemas.js";
-import { serializeBsonToJsonObjects } from "../../../helpers/bsonToJson.js";
+import { bsonToJson } from "../../../helpers/bsonToJson.js";
 
 export const FindArgs = {
     filter: zEJSON()
@@ -36,10 +36,10 @@ export const FindArgs = {
         ),
 };
 
-const FindOutputSchema = {
+export const FindOutputSchema = {
     documents: z.array(z.unknown()).describe("The documents returned by the find query"),
     queryResultsCount: z.number().optional().describe("The total number of documents returned by the find query"),
-    appliedLimits: z.array(z.enum(CURSOR_LIMIT_KEYS)).describe("The limits applied to the find query"),
+    appliedLimits: z.array(CURSOR_LIMIT_KEYS).describe("The limits applied to the find query"),
 };
 
 export class FindTool extends MongoDBToolBase {
@@ -120,7 +120,10 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
                 }),
             ]);
 
-            const serializedDocuments = serializeBsonToJsonObjects(cursorResults.documents);
+            const serializedDocuments = bsonToJson(cursorResults.documents);
+            const appliedLimits = [limitOnFindCursor.cappedBy, cursorResults.cappedBy].filter(
+                (limit): limit is CursorLimitKey => !!limit
+            );
 
             return {
                 content: formatUntrustedData(
@@ -128,18 +131,14 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
                         collection,
                         queryResultsCount,
                         documents: serializedDocuments,
-                        appliedLimits: [limitOnFindCursor.cappedBy, cursorResults.cappedBy].filter(
-                            (limit): limit is CursorLimitKey => !!limit
-                        ),
+                        appliedLimits,
                     }),
                     ...(serializedDocuments.length > 0 ? [JSON.stringify(serializedDocuments)] : [])
                 ),
                 structuredContent: {
                     documents: serializedDocuments,
-                    queryResultsCount,
-                    appliedLimits: [limitOnFindCursor.cappedBy, cursorResults.cappedBy].filter(
-                        (limit): limit is CursorLimitKey => !!limit
-                    ),
+                    ...(queryResultsCount !== undefined ? { queryResultsCount } : {}),
+                    appliedLimits,
                 },
             };
         } finally {
