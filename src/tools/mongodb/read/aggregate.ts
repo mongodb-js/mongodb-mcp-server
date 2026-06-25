@@ -53,7 +53,10 @@ If the user has asked for lexical/Atlas search, use \`$search\` instead of \`$te
 
 const AggregateOutputSchema = {
     documents: z.array(z.unknown()).describe("The documents returned by the aggregation pipeline"),
-    count: z.number().optional().describe("The total number of documents returned by the aggregation pipeline"),
+    count: z
+        .number()
+        .or(z.literal("indeterminate"))
+        .describe("The total number of documents returned by the aggregation pipeline"),
     appliedLimits: z.array(CURSOR_LIMIT_KEYS).describe("The limits applied to the aggregation pipeline"),
 };
 
@@ -213,7 +216,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                 ),
                 structuredContent: {
                     documents,
-                    ...(count !== undefined ? { count } : {}),
+                    count: count ?? "indeterminate",
                     appliedLimits,
                 },
             };

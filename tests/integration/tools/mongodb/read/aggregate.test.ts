@@ -44,7 +44,7 @@ function expectAggregateStructuredContent(
     expect(response.structuredContent).toMatchObject(expectedStructuredContent);
 
     if (count === undefined) {
-        expect(response.structuredContent).not.toHaveProperty("count");
+        expect(response.structuredContent).toEqual(expect.objectContaining({ count: "indeterminate" }));
     }
 }
 
