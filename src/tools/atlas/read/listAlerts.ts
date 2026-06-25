@@ -1,6 +1,6 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
-import { type OperationType, type ToolArgs, formatUntrustedData } from "../../tool.js";
+import { type OperationType, type ToolArgs, type ToolExecutionContext, formatUntrustedData } from "../../tool.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import { AtlasArgs } from "../../args.js";
 
@@ -23,25 +23,26 @@ export class ListAlertsTool extends AtlasToolBase {
         ...ListAlertsArgs,
     };
 
-    protected async execute({
-        projectId,
-        status,
-        limit,
-        pageNum,
-    }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
-        const data = await this.apiClient.listAlerts({
-            params: {
-                path: {
-                    groupId: projectId,
-                },
-                query: {
-                    status,
-                    itemsPerPage: limit,
-                    pageNum: pageNum,
-                    includeCount: true,
+    protected async execute(
+        { projectId, status, limit, pageNum }: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<CallToolResult> {
+        const data = await this.apiClient.listAlerts(
+            {
+                params: {
+                    path: {
+                        groupId: projectId,
+                    },
+                    query: {
+                        status,
+                        itemsPerPage: limit,
+                        pageNum: pageNum,
+                        includeCount: true,
+                    },
                 },
             },
-        });
+            context
+        );
 
         if (!data?.results?.length) {
             return {
