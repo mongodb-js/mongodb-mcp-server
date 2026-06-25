@@ -1,8 +1,32 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiClient } from "../../../src/common/atlas/apiClient.js";
+import { ApiClient, requestIdAttr } from "../../../src/common/atlas/apiClient.js";
 import { packageInfo } from "../../../src/common/packageInfo.js";
 import type { CommonProperties, TelemetryEvent, TelemetryResult } from "../../../src/telemetry/types.js";
 import { NullLogger } from "../../../src/common/logging/index.js";
+
+describe("requestIdAttr", () => {
+    it("returns the x-request-id when present as a string header", () => {
+        expect(requestIdAttr({ requestInfo: { headers: { "x-request-id": "req-123" } } })).toEqual({
+            "x-request-id": "req-123",
+        });
+    });
+
+    it("returns empty object when context is undefined", () => {
+        expect(requestIdAttr(undefined)).toEqual({});
+    });
+
+    it("returns empty object when requestInfo is absent", () => {
+        expect(requestIdAttr({})).toEqual({});
+    });
+
+    it("returns empty object when x-request-id header is missing", () => {
+        expect(requestIdAttr({ requestInfo: { headers: {} } })).toEqual({});
+    });
+
+    it("returns empty object when x-request-id header is not a string", () => {
+        expect(requestIdAttr({ requestInfo: { headers: { "x-request-id": ["a", "b"] } } })).toEqual({});
+    });
+});
 
 describe("ApiClient", () => {
     let apiClient: ApiClient;
