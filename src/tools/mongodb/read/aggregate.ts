@@ -5,7 +5,7 @@ import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
-import { type Document, EJSON } from "bson";
+import { type Document } from "bson";
 import { ErrorCodes, MongoDBError } from "../../../common/errors.js";
 import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorUntilMaxBytes.js";
 import { operationWithFallback } from "../../../helpers/operationWithFallback.js";
@@ -204,15 +204,15 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                 });
             }
 
-            const serializedDocuments = bsonToJson(documents);
+            documents = bsonToJson(documents);
 
             return {
                 content: formatUntrustedData(
                     successMessage,
-                    ...(serializedDocuments.length > 0 ? [EJSON.stringify(serializedDocuments)] : [])
+                    ...(documents.length > 0 ? [JSON.stringify(documents)] : [])
                 ),
                 structuredContent: {
-                    documents: serializedDocuments,
+                    documents,
                     ...(count !== undefined ? { count } : {}),
                     appliedLimits,
                 },
