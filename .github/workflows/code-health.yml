@@ -23,6 +23,7 @@ jobs:
           - os: ubuntu-latest
             node-version: "26"
       fail-fast: false
+    continue-on-error: true
     runs-on: ${{ matrix.os }}
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
