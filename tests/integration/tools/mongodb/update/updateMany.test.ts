@@ -295,4 +295,33 @@ describeWithMongoDB("updateMany tool with server-side JavaScript operators", (in
             }
         });
     }
+
+    // The `update` document is MQL too, so it must go through the same guard as the `filter`
+    // (the regression this protects against). Unlike a filter, a classic update document does not
+    // execute the operator server-side, so the enabled case only asserts the guard lets it through.
+    for (const jsDisabled of [true, false]) {
+        it(`${jsDisabled ? "rejects" : "allows"} an update document carrying $function when disableServerSideJs is ${jsDisabled}`, async () => {
+            integration.mcpServer().userConfig.disableServerSideJs = jsDisabled;
+            await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "update-many",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "people",
+                    filter: {},
+                    update: {
+                        $set: {
+                            flagged: { $function: { body: "function () { return true; }", args: [], lang: "js" } },
+                        },
+                    },
+                },
+            });
+            const content = getResponseContent(response.content);
+            if (jsDisabled) {
+                expect(content).toContain(`The "$function" operator is not allowed.`);
+            } else {
+                expect(content).not.toContain("server-side JavaScript operators");
+            }
+        });
+    }
 });
