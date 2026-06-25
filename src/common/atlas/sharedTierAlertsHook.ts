@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ApiClient, ApiClientRequestContext } from "./apiClient.js";
+import { type ApiClient, type ApiClientRequestContext, requestIdAttr } from "./apiClient.js";
 import type { LoggerBase } from "../logging/loggerBase.js";
 import { LogId } from "../logging/index.js";
 import { SHARED_TIER_METRIC_NAMES } from "../../telemetry/types.js";
@@ -80,6 +80,7 @@ export async function runSharedTierAlertsHook({
             id: LogId.atlasSharedTierAlertsHookWarning,
             context: "shared-tier-alerts-hook",
             message: `Failed to list Atlas alerts for shared-tier hook: ${message}`,
+            attributes: { ...requestIdAttr(context) },
         });
         return undefined;
     }

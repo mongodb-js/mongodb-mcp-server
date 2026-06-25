@@ -3,7 +3,7 @@ import type {
     ClusterDescription20240805,
     FlexClusterDescription20241113,
 } from "./openapi.js";
-import type { ApiClient, ApiClientRequestContext } from "./apiClient.js";
+import { type ApiClient, type ApiClientRequestContext, requestIdAttr } from "./apiClient.js";
 import { LogId } from "../logging/index.js";
 import { ConnectionString } from "mongodb-connection-string-url";
 
@@ -135,6 +135,7 @@ export async function inspectCluster(
                 id: LogId.atlasInspectFailure,
                 context: "inspect-cluster",
                 message: `error inspecting cluster: ${err.message}`,
+                attributes: { ...requestIdAttr(context) },
             });
             throw error;
         }

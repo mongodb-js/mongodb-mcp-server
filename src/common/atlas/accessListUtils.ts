@@ -1,4 +1,4 @@
-import type { ApiClient, ApiClientRequestContext } from "./apiClient.js";
+import { type ApiClient, type ApiClientRequestContext, requestIdAttr } from "./apiClient.js";
 import { LogId } from "../logging/index.js";
 import { ApiClientError } from "./apiClientError.js";
 
@@ -42,6 +42,7 @@ export async function ensureCurrentIpInAccessList(
             id: LogId.atlasIpAccessListAdded,
             context: "accessListUtils",
             message: `IP access list created: ${JSON.stringify(entry)}`,
+            attributes: { ...requestIdAttr(context) },
         });
         return true;
     } catch (err) {
@@ -51,6 +52,7 @@ export async function ensureCurrentIpInAccessList(
                 id: LogId.atlasIpAccessListAdded,
                 context: "accessListUtils",
                 message: `IP address ${entry.ipAddress} is already present in the access list for project ${projectId}.`,
+                attributes: { ...requestIdAttr(context) },
             });
             return false;
         }
@@ -58,6 +60,7 @@ export async function ensureCurrentIpInAccessList(
             id: LogId.atlasIpAccessListAddFailure,
             context: "accessListUtils",
             message: `Error adding IP access list: ${err instanceof Error ? err.message : String(err)}`,
+            attributes: { ...requestIdAttr(context) },
         });
     }
     return false;
