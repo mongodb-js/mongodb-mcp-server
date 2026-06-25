@@ -36,7 +36,7 @@ export const FindArgs = {
         ),
 };
 
-const FindOutputSchema = {
+export const FindOutputSchema = {
     documents: z.array(z.unknown()).describe("The documents returned by the find query"),
     queryResultsCount: z.number().optional().describe("The total number of documents returned by the find query"),
     appliedLimits: z.array(CURSOR_LIMIT_KEYS).describe("The limits applied to the find query"),
@@ -136,7 +136,7 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
                 ),
                 structuredContent: {
                     documents: serializedDocuments,
-                    queryResultsCount,
+                    ...(queryResultsCount !== undefined ? { queryResultsCount } : {}),
                     appliedLimits: [limitOnFindCursor.cappedBy, cursorResults.cappedBy].filter(
                         (limit): limit is CursorLimitKey => !!limit
                     ),
