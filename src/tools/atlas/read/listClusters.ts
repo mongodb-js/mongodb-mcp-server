@@ -1,6 +1,6 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "../atlasTool.js";
-import type { ToolArgs, OperationType } from "../../tool.js";
+import type { ToolArgs, OperationType, ToolExecutionContext } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import type {
     PaginatedClusterDescription20240805,
@@ -23,39 +23,51 @@ export class ListClustersTool extends AtlasToolBase {
         ...ListClustersArgs,
     };
 
-    protected async execute({ projectId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute(
+        { projectId }: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<CallToolResult> {
         if (!projectId) {
-            const data = await this.apiClient.listClusterDetails();
+            const data = await this.apiClient.listClusterDetails(undefined, context);
 
             return this.formatAllClustersTable(data);
         } else {
-            const project = await this.apiClient.getGroup({
-                params: {
-                    path: {
-                        groupId: projectId,
+            const project = await this.apiClient.getGroup(
+                {
+                    params: {
+                        path: {
+                            groupId: projectId,
+                        },
                     },
                 },
-            });
+                context
+            );
 
             if (!project?.id) {
                 throw new Error(`Project with ID "${projectId}" not found.`);
             }
 
             const [clustersResult, flexClustersResult] = await Promise.allSettled([
-                this.apiClient.listClusters({
-                    params: {
-                        path: {
-                            groupId: project.id || "",
+                this.apiClient.listClusters(
+                    {
+                        params: {
+                            path: {
+                                groupId: project.id || "",
+                            },
                         },
                     },
-                }),
-                this.apiClient.listFlexClusters({
-                    params: {
-                        path: {
-                            groupId: project.id || "",
+                    context
+                ),
+                this.apiClient.listFlexClusters(
+                    {
+                        params: {
+                            path: {
+                                groupId: project.id || "",
+                            },
                         },
                     },
-                }),
+                    context
+                ),
             ]);
 
             const clusters = clustersResult.status === "fulfilled" ? clustersResult.value : undefined;

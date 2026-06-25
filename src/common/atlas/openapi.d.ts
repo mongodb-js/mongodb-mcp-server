@@ -821,7 +821,7 @@ export interface paths {
         };
         /**
          * Return All Stream Processors in One Stream Workspace
-         * @description Returns all Stream Processors within the specified stream workspace.
+         * @description Returns all Stream Processors within the specified stream workspace, including information on which processors are failover-eligible.
          */
         get: operations["getGroupStreamProcessors"];
         put?: never;
@@ -1273,7 +1273,7 @@ export interface components {
          * @description Atlas Streams AWS Regions.
          * @enum {string}
          */
-        ApiStreamsAWSRegionView: "SYDNEY_AUS" | "MUMBAI_IND" | "FRANKFURT_DEU" | "DUBLIN_IRL" | "LONDON_GBR" | "VIRGINIA_USA" | "OHIO_USA" | "OREGON_USA" | "SAOPAULO_BRA" | "MONTREAL_CAN" | "TOKYO_JPN" | "SINGAPORE_SGP" | "PARIS_FRA";
+        ApiStreamsAWSRegionView: "SYDNEY_AUS" | "MUMBAI_IND" | "FRANKFURT_DEU" | "DUBLIN_IRL" | "LONDON_GBR" | "VIRGINIA_USA" | "OHIO_USA" | "OREGON_USA" | "SAOPAULO_BRA" | "MONTREAL_CAN" | "TOKYO_JPN" | "SINGAPORE_SGP" | "PARIS_FRA" | "SEOUL_KOR";
         /**
          * @description Atlas Streams Azure Regions.
          * @enum {string}
@@ -1457,7 +1457,7 @@ export interface components {
              * @default FULLY_WARMED
              * @enum {string}
              */
-            diskWarmingMode: "FULLY_WARMED" | "VISIBLE_EARLIER";
+            diskWarmingMode: "FULLY_WARMED" | "VISIBLE_EARLIER" | "ENHANCED_FULLY_WARMED";
             /** @description List of settings that represent the actual cluster state. This is read-only and always returned in the response. It reflects the current cluster configuration, which may differ from `replicationSpecs` due to system-managed changes. */
             readonly effectiveReplicationSpecs?: components["schemas"]["ReplicationSpec20240805"][];
             /**
@@ -2620,7 +2620,7 @@ export interface components {
              * @default FULLY_WARMED
              * @enum {string}
              */
-            diskWarmingMode: "FULLY_WARMED" | "VISIBLE_EARLIER";
+            diskWarmingMode: "FULLY_WARMED" | "VISIBLE_EARLIER" | "ENHANCED_FULLY_WARMED";
             /** @description List of settings that represent the actual cluster state. This is read-only and always returned in the response. It reflects the current cluster configuration, which may differ from `replicationSpecs` due to system-managed changes. */
             readonly effectiveReplicationSpecs?: components["schemas"]["ReplicationSpec20240805"][];
             /**
@@ -5014,7 +5014,7 @@ export interface components {
              * @default FULLY_WARMED
              * @enum {string}
              */
-            diskWarmingMode: "FULLY_WARMED" | "VISIBLE_EARLIER";
+            diskWarmingMode: "FULLY_WARMED" | "VISIBLE_EARLIER" | "ENHANCED_FULLY_WARMED";
             /**
              * @description Cloud service provider that manages your customer keys to provide an additional layer of encryption at rest for the cluster. To enable customer key management for encryption at rest, the cluster `replicationSpecs[n].regionConfigs[m].{type}Specs.instanceSize` setting must be `M10` or higher and `"backupEnabled" : false` or omitted entirely.
              * @enum {string}
@@ -5243,7 +5243,7 @@ export interface components {
              * @default FULLY_WARMED
              * @enum {string}
              */
-            diskWarmingMode: "FULLY_WARMED" | "VISIBLE_EARLIER";
+            diskWarmingMode: "FULLY_WARMED" | "VISIBLE_EARLIER" | "ENHANCED_FULLY_WARMED";
             /**
              * @description Cloud service provider that manages your customer keys to provide an additional layer of encryption at rest for the cluster. To enable customer key management for encryption at rest, the cluster `replicationSpecs[n].regionConfigs[m].{type}Specs.instanceSize` setting must be `M10` or higher and `"backupEnabled" : false` or omitted entirely.
              * @enum {string}
@@ -7321,6 +7321,8 @@ export interface components {
         };
         /** @description A request to modify an existing stream processor. */
         StreamsModifyStreamProcessor: {
+            /** @description Flag that enables or disables failover for the stream processor. */
+            failoverEnabled?: boolean;
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
             /** @description New name for the stream processor. */
@@ -7411,6 +7413,8 @@ export interface components {
              * @example 32b6e34b3d91647abb20e7b8
              */
             readonly _id?: string;
+            /** @description Flag that enables or disables failover for the stream processor. */
+            failoverEnabled?: boolean;
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
             /** @description Human-readable name of the stream processor. */
@@ -7425,6 +7429,23 @@ export interface components {
              */
             tier?: "SP50" | "SP30" | "SP10" | "SP5" | "SP2";
         };
+        /** @description Desired status change to apply to a tenant's stream processors. */
+        StreamsProcessorStatus: {
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            /**
+             * @description Strategy for the processor: GRACEFUL - attempt to stop the processor, error if processor cannot be stopped. if stop was successful, start the processor in the new region with the latest checkpoint.  FORCED - attempt to stop the processor, proceed to starting the processor in the new region with checkpoints disabled regardless of whether or not the stop succeeds.
+             * @enum {string}
+             */
+            mode?: "GRACEFUL" | "FORCED";
+            /** @description Name of the region against which to apply the status change. Required when `status` is `FAILED_OVER`; optional otherwise. */
+            region?: string;
+            /**
+             * @description Represents the desired action to apply to stream processors within a workspace, such as starting all processors, stopping all processors, or performing a bulk regional failover.
+             * @enum {string}
+             */
+            status: "STARTED" | "STOPPED" | "FAILED_OVER";
+        };
         /** @description An atlas stream processor with optional stats. */
         StreamsProcessorWithStats: {
             /**
@@ -7432,6 +7453,10 @@ export interface components {
              * @example 32b6e34b3d91647abb20e7b8
              */
             readonly _id: string;
+            /** @description Flag that indicates whether the stream processor is eligible for failover. */
+            readonly eligibleForFailover?: boolean;
+            /** @description Flag that enables or disables failover for the stream processor. */
+            readonly failoverEnabled?: boolean;
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
             /** @description Human-readable name of the stream processor. */
@@ -7539,8 +7564,24 @@ export interface components {
              */
             type: "SchemaRegistry";
         };
+        /** @description Failover options for starting a stream processor. */
+        StreamsStartProcessorFailover: {
+            /** @description If true, simulates the operation without making any changes. */
+            dryRun?: boolean;
+            /**
+             * @description Strategy for the processor: GRACEFUL - attempt to stop the processor, error if processor cannot be stopped. if stop was successful, start the processor in the new region with the latest checkpoint.  FORCED - attempt to stop the processor, proceed to starting the processor in the new region with checkpoints disabled regardless of whether or not the stop succeeds.
+             * @enum {string}
+             */
+            mode?: "GRACEFUL" | "FORCED";
+            /**
+             * @description Cloud provider region where the stream processor should be started in failover mode. The region must be a valid region for the stream processor's cloud provider and must be included in the tenant's configured failover regions, or it may be the tenant's default (primary) region.
+             * @example VIRGINIA_USA
+             */
+            region: string;
+        };
         /** @description A request to start a stream processor. */
         StreamsStartStreamProcessorWith: {
+            failover?: components["schemas"]["StreamsStartProcessorFailover"];
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
             /** @description When true or not specified, the stream processor resumes from its last checkpoint. When false, the stream processor starts fresh. */
@@ -7566,6 +7607,8 @@ export interface components {
             /** @description List of connections configured in the stream workspace. */
             readonly connections?: components["schemas"]["StreamsConnection"][];
             dataProcessRegion?: components["schemas"]["StreamsDataProcessRegion"];
+            /** @description List of failover regions configured for the stream workspace. */
+            failoverRegions?: components["schemas"]["StreamsDataProcessRegion"][];
             /**
              * @description Unique 24-hexadecimal character string that identifies the project.
              * @example 32b6e34b3d91647abb20e7b8
@@ -7580,15 +7623,18 @@ export interface components {
             sampleConnections?: components["schemas"]["StreamsSampleConnections"];
             streamConfig?: components["schemas"]["StreamConfig"];
         };
-        /** @description Details to update a stream tenant. */
+        /** @description Details to update a stream tenant, optionally accompanied by a processor status change (for example, triggering bulk regional failover). */
         StreamsTenantUpdateRequest: {
             /**
              * @description Human-readable label that identifies the cloud provider.
              * @enum {string}
              */
             cloudProvider?: "AWS" | "GCP" | "AZURE" | "TENANT" | "SERVERLESS";
+            /** @description Failover regions for the stream workspace. */
+            failoverRegions?: components["schemas"]["StreamsDataProcessRegion"][];
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
+            processorStatus?: components["schemas"]["StreamsProcessorStatus"];
             region?: components["schemas"]["BaseStreamsRegion"];
             streamConfig?: components["schemas"]["StreamConfig"];
         };
@@ -9089,6 +9135,7 @@ export type StreamsModifyStreamProcessorOptions = components['schemas']['Streams
 export type StreamsOptions = components['schemas']['StreamsOptions'];
 export type StreamsPrivateLinkConnection = components['schemas']['StreamsPrivateLinkConnection'];
 export type StreamsProcessor = components['schemas']['StreamsProcessor'];
+export type StreamsProcessorStatus = components['schemas']['StreamsProcessorStatus'];
 export type StreamsProcessorWithStats = components['schemas']['StreamsProcessorWithStats'];
 export type StreamsPublicPrivateLinkNetworking = components['schemas']['StreamsPublicPrivateLinkNetworking'];
 export type StreamsPublicPrivateLinkNetworkingAccess = components['schemas']['StreamsPublicPrivateLinkNetworkingAccess'];
@@ -9096,6 +9143,7 @@ export type StreamsS3Connection = components['schemas']['StreamsS3Connection'];
 export type StreamsSampleConnection = components['schemas']['StreamsSampleConnection'];
 export type StreamsSampleConnections = components['schemas']['StreamsSampleConnections'];
 export type StreamsSchemaRegistryConnection = components['schemas']['StreamsSchemaRegistryConnection'];
+export type StreamsStartProcessorFailover = components['schemas']['StreamsStartProcessorFailover'];
 export type StreamsStartStreamProcessorWith = components['schemas']['StreamsStartStreamProcessorWith'];
 export type StreamsTenant = components['schemas']['StreamsTenant'];
 export type StreamsTenantUpdateRequest = components['schemas']['StreamsTenantUpdateRequest'];

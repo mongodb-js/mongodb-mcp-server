@@ -72,7 +72,8 @@ describe("StreamsDiscoverTool", () => {
 
     const baseArgs = { projectId: "proj1" };
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    const exec = (args: Record<string, unknown>) => tool["execute"](args as never);
+    const exec = (args: Record<string, unknown>) =>
+        tool["execute"](args as never, { signal: new AbortController().signal } as never);
 
     describe("list-workspaces", () => {
         it("should return workspace list when workspaces exist", async () => {
@@ -107,9 +108,12 @@ describe("StreamsDiscoverTool", () => {
 
             await exec({ ...baseArgs, action: "list-workspaces", limit: 5, pageNum: 2 });
 
-            expect(mockApiClient.listStreamWorkspaces).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1" }, query: { itemsPerPage: 5, pageNum: 2 } },
-            });
+            expect(mockApiClient.listStreamWorkspaces).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1" }, query: { itemsPerPage: 5, pageNum: 2 } },
+                },
+                expect.anything()
+            );
         });
     });
 
@@ -305,12 +309,15 @@ describe("StreamsDiscoverTool", () => {
                 pageNum: 3,
             });
 
-            expect(mockApiClient.listStreamConnections).toHaveBeenCalledWith({
-                params: {
-                    path: { groupId: "proj1", tenantName: "ws1" },
-                    query: { itemsPerPage: 10, pageNum: 3 },
+            expect(mockApiClient.listStreamConnections).toHaveBeenCalledWith(
+                {
+                    params: {
+                        path: { groupId: "proj1", tenantName: "ws1" },
+                        query: { itemsPerPage: 10, pageNum: 3 },
+                    },
                 },
-            });
+                expect.anything()
+            );
         });
 
         it("should throw when workspaceName is missing", async () => {

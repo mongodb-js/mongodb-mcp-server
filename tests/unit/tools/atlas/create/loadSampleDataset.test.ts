@@ -127,9 +127,12 @@ describe("LoadSampleDatasetTool", () => {
             await exec({ projectId: PROJECT_ID, clusterName: CLUSTER_NAME });
 
             expect(mockApiClient.requestSampleDatasetLoad).toHaveBeenCalledTimes(1);
-            expect(mockApiClient.requestSampleDatasetLoad).toHaveBeenCalledWith({
-                params: { path: { groupId: PROJECT_ID, name: CLUSTER_NAME } },
-            });
+            expect(mockApiClient.requestSampleDatasetLoad).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: PROJECT_ID, name: CLUSTER_NAME } },
+                },
+                expect.anything()
+            );
             expect(mockApiClient.getSampleDatasetLoad).not.toHaveBeenCalled();
         });
 
@@ -179,9 +182,12 @@ describe("LoadSampleDatasetTool", () => {
             await exec({ projectId: PROJECT_ID, jobId: JOB_ID });
 
             expect(mockApiClient.getSampleDatasetLoad).toHaveBeenCalledTimes(1);
-            expect(mockApiClient.getSampleDatasetLoad).toHaveBeenCalledWith({
-                params: { path: { groupId: PROJECT_ID, sampleDatasetId: JOB_ID } },
-            });
+            expect(mockApiClient.getSampleDatasetLoad).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: PROJECT_ID, sampleDatasetId: JOB_ID } },
+                },
+                expect.anything()
+            );
             expect(mockApiClient.requestSampleDatasetLoad).not.toHaveBeenCalled();
         });
 

@@ -1,5 +1,5 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { type OperationType, type ToolArgs, formatUntrustedData } from "../../tool.js";
+import { type OperationType, type ToolArgs, type ToolExecutionContext, formatUntrustedData } from "../../tool.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import type { Cluster } from "../../../common/atlas/cluster.js";
 import { inspectCluster } from "../../../common/atlas/cluster.js";
@@ -18,8 +18,11 @@ export class InspectClusterTool extends AtlasToolBase {
         ...InspectClusterArgs,
     };
 
-    protected async execute({ projectId, clusterName }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
-        const cluster = await inspectCluster(this.apiClient, projectId, clusterName);
+    protected async execute(
+        { projectId, clusterName }: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<CallToolResult> {
+        const cluster = await inspectCluster(this.apiClient, projectId, clusterName, context);
 
         return this.formatOutput(cluster);
     }

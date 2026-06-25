@@ -166,9 +166,10 @@ async function main(): Promise<void> {
                 acceptOverride,
                 responseBodySchemaKey,
             } = operation;
-            const optionsArg = acceptOverride
+            const baseOptionsArg = acceptOverride
                 ? `{ ...options, headers: { Accept: "${acceptOverride}", ...options?.headers } }`
                 : `options`;
+            const optionsArg = `this.applyRequestContext(${baseOptionsArg}, context)`;
             const returnType =
                 hasResponseBody && responseBodySchemaKey
                     ? `: Promise<components['schemas']['${responseBodySchemaKey}']>`
@@ -178,7 +179,7 @@ async function main(): Promise<void> {
                     ? ""
                     : `// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 `;
-            return `${explicitReturnLint}async ${methodName}(options${requiredParams ? "" : "?"}: FetchOptions<operations["${operationId}"]>)${returnType} {
+            return `${explicitReturnLint}async ${methodName}(options${requiredParams ? "" : "?"}: FetchOptions<operations["${operationId}"]>, context?: ApiClientRequestContext)${returnType} {
     const { ${hasResponseBody ? `data, ` : ``}error, response } = await this.client.${method}("${opPath}", ${optionsArg});
     if (error) {
         throw ApiClientError.fromError(response, error);

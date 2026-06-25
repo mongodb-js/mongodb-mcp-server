@@ -1,6 +1,6 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "../atlasTool.js";
-import type { OperationType } from "../../tool.js";
+import type { OperationType, ToolArgs, ToolExecutionContext } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 
 export class ListOrganizationsTool extends AtlasToolBase {
@@ -9,8 +9,11 @@ export class ListOrganizationsTool extends AtlasToolBase {
     static operationType: OperationType = "read";
     public argsShape = {};
 
-    protected async execute(): Promise<CallToolResult> {
-        const data = await this.apiClient.listOrgs();
+    protected async execute(
+        _args: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<CallToolResult> {
+        const data = await this.apiClient.listOrgs(undefined, context);
 
         if (!data?.results?.length) {
             return {
