@@ -121,6 +121,9 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
             ]);
 
             const serializedDocuments = bsonToJson(cursorResults.documents);
+            const appliedLimits = [limitOnFindCursor.cappedBy, cursorResults.cappedBy].filter(
+                (limit): limit is CursorLimitKey => !!limit
+            );
 
             return {
                 content: formatUntrustedData(
@@ -128,18 +131,14 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
                         collection,
                         queryResultsCount,
                         documents: serializedDocuments,
-                        appliedLimits: [limitOnFindCursor.cappedBy, cursorResults.cappedBy].filter(
-                            (limit): limit is CursorLimitKey => !!limit
-                        ),
+                        appliedLimits,
                     }),
                     ...(serializedDocuments.length > 0 ? [JSON.stringify(serializedDocuments)] : [])
                 ),
                 structuredContent: {
                     documents: serializedDocuments,
                     ...(queryResultsCount !== undefined ? { queryResultsCount } : {}),
-                    appliedLimits: [limitOnFindCursor.cappedBy, cursorResults.cappedBy].filter(
-                        (limit): limit is CursorLimitKey => !!limit
-                    ),
+                    appliedLimits,
                 },
             };
         } finally {
