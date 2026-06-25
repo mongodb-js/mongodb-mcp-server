@@ -184,8 +184,8 @@ importers:
         specifier: ^6.0.175
         version: 6.0.175(zod@4.4.3)
       braintrust:
-        specifier: ^3.17.0
-        version: 3.17.0(@aws-sdk/credential-provider-web-identity@3.972.16)(zod@4.4.3)
+        specifier: ^3.20.0
+        version: 3.20.0(@aws-sdk/credential-provider-web-identity@3.972.16)(zod@4.4.3)
       concurrently:
         specifier: ^9.2.1
         version: 9.2.1
@@ -672,41 +672,41 @@ packages:
   '@braintrust/api@0.5.0':
     resolution: {integrity: sha512-FR4XMe5rIw1meOJCV0uFbn7TXBMWN+UvDkkJv/T4poY1nB1QPxdkBpNCik3mInYIu/7uOmi2l+1DWaqjjSf0fg==}
 
-  '@braintrust/bt-darwin-arm64@0.11.1':
-    resolution: {integrity: sha512-jhL/X24ss4e4qMMdlXtxO8rA957Z77wJA59XXFHqpuaaVCd4pXE5JPUQBkms9dHcs4efJhY3Lx9zNQqoaeCqWg==}
+  '@braintrust/bt-darwin-arm64@0.12.0':
+    resolution: {integrity: sha512-mY6VW/3VwcOQOGN8sYHS6F0xzHTFwgZcNlj7zlQttI6OXOCGt/bhonGIqd03QBhxmj0M31ymSS7TqSeCK/RYIQ==}
     cpu: [arm64]
     os: [darwin]
 
-  '@braintrust/bt-darwin-x64@0.11.1':
-    resolution: {integrity: sha512-f4l25gVUpCJ99mFS9y+zmnYOcevtI7KLLvlLF/xOil2YCIx/KCM6AqS96jj6CJW74B7hYhd74dLnFKMFFL429w==}
+  '@braintrust/bt-darwin-x64@0.12.0':
+    resolution: {integrity: sha512-woyRyDv2DfCF8+von+3X9f1cddAbFnKLSfCbEkrBQVc0ZsAM60as8nehYv7DkafJF/67yKFx/sUraV65sukesQ==}
     cpu: [x64]
     os: [darwin]
 
-  '@braintrust/bt-linux-arm64@0.11.1':
-    resolution: {integrity: sha512-01GWsP/p17I3yy0kxkp+Yt8w5L28j3nFL+7iLCkQWtDdfCGkuRsnrIbrY8dbnqGo/wvgz7uPXBkCXoIuNsfoxw==}
+  '@braintrust/bt-linux-arm64@0.12.0':
+    resolution: {integrity: sha512-J9/7f3EIMKmFmSSQHQnAQLpUgB8YJENrOlkABjlTprBgsIYVgz7tSH7yg2P3ur+2Jem7PpGnrDxHGh/UjRfjsg==}
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
 
-  '@braintrust/bt-linux-x64-musl@0.11.1':
-    resolution: {integrity: sha512-QLqlFsF6HKON5Vc0c8JfpQ4vrl4KjmInGF1Vsqy+ecVkgXVk8pwCVibb8Ea/udVpBQqctAaNMn7ZsmvWR2vO8Q==}
+  '@braintrust/bt-linux-x64-musl@0.12.0':
+    resolution: {integrity: sha512-KnLgENOoztBXcH+mLFJe4bYzi67kSOuELOQrm4Hler35GjgaBMI1fFLIUjKRPAmyT9VIhBMhy1ICfGEFLueMEQ==}
     cpu: [x64]
     os: [linux]
     libc: [musl]
 
-  '@braintrust/bt-linux-x64@0.11.1':
-    resolution: {integrity: sha512-E/XwRuhPrZxD+IZgSbPCuj4gywBrim/g+tU0MjWxFohpMMkJJW2CxMCIO+6RVk8gTxlVh/ajCIjv2/Ph1Yugeg==}
+  '@braintrust/bt-linux-x64@0.12.0':
+    resolution: {integrity: sha512-HJFbUl3HYYY1Ivw8OYBeIMcIsU9r7+fC9BzLWB5FdH7881ToKee2wbbLZssMCxFbMVeUxzEo+SzGD/1Z9Gk9CA==}
     cpu: [x64]
     os: [linux]
     libc: [glibc]
 
-  '@braintrust/bt-win32-arm64@0.11.1':
-    resolution: {integrity: sha512-0LSVXZ/tE79VVcpRjaTE+iTMQR4EKNC6tteAS01uKT34eID7OqJ7xJijZOthe11kGqMcX8nnNbdDrWHqLczDow==}
+  '@braintrust/bt-win32-arm64@0.12.0':
+    resolution: {integrity: sha512-+7PkdBAmiqEJsWteGHP/Zs62F75PkHPA8m/ej4TOz/mHGKulUU0bZibw91KRqIB7J7jGi5ItvCiqkiGaLKLnyw==}
     cpu: [arm64]
     os: [win32]
 
-  '@braintrust/bt-win32-x64@0.11.1':
-    resolution: {integrity: sha512-JPo3xffJvW0OKowqpbh+XtlafpoZq8VXzhOcW2yQmHcN56Me2u9plPiXi4gzrpgz2cnFx6/EiJ1bTa3F25F0RA==}
+  '@braintrust/bt-win32-x64@0.12.0':
+    resolution: {integrity: sha512-Q0c+pVUGm82n/7N8QJ5s6j/G/Q0GFzqOaTipHjkmElLbAOOEcfRH/uljdtIPNBiEQcrzqirS0GmOgiFkeQ3Txg==}
     cpu: [x64]
     os: [win32]
 
@@ -4006,9 +4006,6 @@ packages:
   brace-expansion@1.1.14:
     resolution: {integrity: sha512-MWPGfDxnyzKU7rNOW9SP/c50vi3xrmrua/+6hfPbCS2ABNWfx24vPidzvC7krjU/RTo235sV776ymlsMtGKj8g==}
 
-  brace-expansion@2.1.0:
-    resolution: {integrity: sha512-TN1kCZAgdgweJhWWpgKYrQaMNHcDULHkWwQIspdtjV4Y5aurRdZpjAqn6yX3FPqTA9ngHCc4hJxMAMgGfve85w==}
-
   brace-expansion@2.1.1:
     resolution: {integrity: sha512-WR1cURNjuvBLMZBMbqM0UoE+WAfdUcEV1ccD8PVBVOI+Z3ND4+SZbN8RsfT2bMuG1qwz5RFvPukSZm5fF2D5eA==}
 
@@ -4024,8 +4021,8 @@ packages:
     resolution: {integrity: sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA==}
     engines: {node: '>=8'}
 
-  braintrust@3.17.0:
-    resolution: {integrity: sha512-nyV+j/FJJJsWnkiSn9tAoNSTsMtDfbH4v8EQpBTYGj1120eXFPcPPs66kkkKcYuN0tEo/Ai7VO8Ujcy5j3SrUQ==}
+  braintrust@3.20.0:
+    resolution: {integrity: sha512-UU8dpWLS6pstp4RjjH9vllYvfgcIFYP9NcFzwdCSzpnRK6fko9PsCKx+jGyO3AowBrtDb5OErsJ6y2Gm+l7HZw==}
     hasBin: true
     peerDependencies:
       zod: ^3.25.34 || ^4.0
@@ -8204,25 +8201,25 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  '@braintrust/bt-darwin-arm64@0.11.1':
+  '@braintrust/bt-darwin-arm64@0.12.0':
     optional: true
 
-  '@braintrust/bt-darwin-x64@0.11.1':
+  '@braintrust/bt-darwin-x64@0.12.0':
     optional: true
 
-  '@braintrust/bt-linux-arm64@0.11.1':
+  '@braintrust/bt-linux-arm64@0.12.0':
     optional: true
 
-  '@braintrust/bt-linux-x64-musl@0.11.1':
+  '@braintrust/bt-linux-x64-musl@0.12.0':
     optional: true
 
-  '@braintrust/bt-linux-x64@0.11.1':
+  '@braintrust/bt-linux-x64@0.12.0':
     optional: true
 
-  '@braintrust/bt-win32-arm64@0.11.1':
+  '@braintrust/bt-win32-arm64@0.12.0':
     optional: true
 
-  '@braintrust/bt-win32-x64@0.11.1':
+  '@braintrust/bt-win32-x64@0.12.0':
     optional: true
 
   '@bramus/specificity@2.4.2':
@@ -10606,7 +10603,7 @@ snapshots:
 
   '@rollup/pluginutils@5.3.0(rollup@4.60.1)':
     dependencies:
-      '@types/estree': 1.0.8
+      '@types/estree': 1.0.9
       estree-walker: 2.0.2
       picomatch: 4.0.4
     optionalDependencies:
@@ -11870,10 +11867,6 @@ snapshots:
       balanced-match: 1.0.2
       concat-map: 0.0.1
 
-  brace-expansion@2.1.0:
-    dependencies:
-      balanced-match: 1.0.2
-
   brace-expansion@2.1.1:
     dependencies:
       balanced-match: 1.0.2
@@ -11890,7 +11883,7 @@ snapshots:
     dependencies:
       fill-range: 7.1.1
 
-  braintrust@3.17.0(@aws-sdk/credential-provider-web-identity@3.972.16)(zod@4.4.3):
+  braintrust@3.20.0(@aws-sdk/credential-provider-web-identity@3.972.16)(zod@4.4.3):
     dependencies:
       '@apm-js-collab/code-transformer': 0.12.0
       '@next/env': 14.2.35
@@ -11918,13 +11911,13 @@ snapshots:
       zod: 4.4.3
       zod-to-json-schema: 3.25.1(zod@4.4.3)
     optionalDependencies:
-      '@braintrust/bt-darwin-arm64': 0.11.1
-      '@braintrust/bt-darwin-x64': 0.11.1
-      '@braintrust/bt-linux-arm64': 0.11.1
-      '@braintrust/bt-linux-x64': 0.11.1
-      '@braintrust/bt-linux-x64-musl': 0.11.1
-      '@braintrust/bt-win32-arm64': 0.11.1
-      '@braintrust/bt-win32-x64': 0.11.1
+      '@braintrust/bt-darwin-arm64': 0.12.0
+      '@braintrust/bt-darwin-x64': 0.12.0
+      '@braintrust/bt-linux-arm64': 0.12.0
+      '@braintrust/bt-linux-x64': 0.12.0
+      '@braintrust/bt-linux-x64-musl': 0.12.0
+      '@braintrust/bt-win32-arm64': 0.12.0
+      '@braintrust/bt-win32-x64': 0.12.0
     transitivePeerDependencies:
       - '@aws-sdk/credential-provider-web-identity'
       - supports-color
@@ -13872,7 +13865,7 @@ snapshots:
 
   minimatch@5.1.9:
     dependencies:
-      brace-expansion: 2.1.0
+      brace-expansion: 2.1.1
 
   minimatch@9.0.9:
     dependencies:
