@@ -51,6 +51,9 @@
   "types": "./dist/cjs/lib.d.ts",
   "author": "MongoDB <info@mongodb.com>",
   "homepage": "https://github.com/mongodb-js/mongodb-mcp-server",
+  "bugs": {
+    "url": "https://github.com/mongodb-js/mongodb-mcp-server/issues"
+  },
   "repository": {
     "url": "https://github.com/mongodb-js/mongodb-mcp-server.git"
   },
