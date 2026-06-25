@@ -10,12 +10,13 @@ import type { RunEvalExpected, RunEvalInput, RunEvalOutput } from "./lib/dataset
 import { GetConversationTool } from "./lib/tool/getConversation.js";
 import { GetResponseTool } from "./lib/tool/getResponse.js";
 import { initDataset } from "braintrust";
+import { GetReferenceAnswerTool } from "./lib/tool/getReferenceAnswer.js";
 
 const PROJECT_NAME = "mongodb-mcp-server-evals";
 const DATASET_NAME = "Search";
 const AGENT_STEP_LIMIT = 10;
-const DEFAULT_MODEL = "gpt-4o";
-const DEFAULT_JUDGE_MODEL = "gpt-4o";
+const DEFAULT_MODEL = "gpt-5";
+const DEFAULT_JUDGE_MODEL = "us.anthropic.claude-sonnet-4-6";
 const DEFAULT_CONNECTION_STRING = "mongodb://localhost:27017/?directConnection=true";
 
 const DEFAULT_SYSTEM_CONTEXT =
@@ -161,6 +162,9 @@ void Eval<RunEvalInput, RunEvalOutput, RunEvalExpected, void, boolean, EvalParam
                             ...readOnlyTools,
                             [GetConversationTool.toolName]: new GetConversationTool(messages).getTool(),
                             [GetResponseTool.toolName]: new GetResponseTool(response).getTool(),
+                            [GetReferenceAnswerTool.toolName]: new GetReferenceAnswerTool(
+                                hooks.expected?.reference_answer ?? "<no reference answer provided>"
+                            ).getTool(),
                         },
                         criteria,
                         tempDbName: dbName,

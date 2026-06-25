@@ -29,7 +29,7 @@ export async function judgeUsingLLM(params: {
     model: LanguageModel;
     tools: ToolSet;
     tempDbName: string;
-    criteria: string | string[];
+    criteria: string;
 }): Promise<Verdict> {
     const { model, tools, criteria, tempDbName } = params;
     const submitScoreTool = new SubmitScoreTool();
@@ -38,11 +38,11 @@ export async function judgeUsingLLM(params: {
         ...tools,
         [SubmitScoreTool.toolName]: submitScoreTool.getTool(),
     };
-    const system = composeJudgeSystemPrompt(criteria, tempDbName);
+    const system = composeJudgeSystemPrompt(tempDbName);
     const messages: untracedAi.ModelMessage[] = [
         {
             role: "user",
-            content: `Verify the criteria, then call ${SubmitScoreTool.toolName} exactly once.`,
+            content: `Verify the following criteria:\n${criteria}`,
         },
     ];
 
@@ -86,17 +86,13 @@ export async function judgeUsingLLM(params: {
     return submitScoreTool.getCapturedVerdict() ?? FALLBACK;
 }
 
-function composeJudgeSystemPrompt(criteria: string | string[], tempDbName: string): string {
-    const list = Array.isArray(criteria) ? criteria : [criteria];
+function composeJudgeSystemPrompt(tempDbName: string): string {
     return [
         "You are evaluating a MongoDB AI assistant on behalf of a human tester.",
-        "Decide whether the criteria below are satisfied and produce a score from 0 to 1.",
+        "Decide whether the provided criteria are satisfied and produce a score from 0 to 1.",
         "",
         "### Rules of Engagement",
         `- You MUST conclude the iteration by passing your results to the ${SubmitScoreTool.toolName} tool exactly once.`,
-        "",
-        "### Criteria",
-        ...list.map((c, i) => `${i + 1}. ${c}`),
         "",
         "### Tools",
         `- Use the MCP tools to inspect the current database state. Operate ONLY on the database named '${tempDbName}'.`,
@@ -104,6 +100,8 @@ function composeJudgeSystemPrompt(criteria: string | string[], tempDbName: strin
         `- If a criterion references ${GetResponseTool.keyword}, call ${GetResponseTool.toolName} to read the assistant's final response.`,
         "",
         "### Scoring",
-        "- 1.0 = every criterion fully satisfied; partial credit proportional to how many are satisfied; 0.0 = none.",
+        "If no scoring criteria are provided, score the assistant's response based on the following criteria:",
+        "- 1.0 = every criterion fully satisfied; partial credit proportional to how many are satisfied.",
+        "- 0.0 = none.",
     ].join("\n");
 }

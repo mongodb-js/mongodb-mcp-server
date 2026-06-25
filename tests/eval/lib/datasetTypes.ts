@@ -1,5 +1,8 @@
 import { z } from "zod";
 import type { EvalScorerArgs } from "braintrust";
+import { GetResponseTool } from "./tool/getResponse.js";
+import { GetConversationTool } from "./tool/getConversation.js";
+import { GetReferenceAnswerTool } from "./tool/getReferenceAnswer.js";
 
 // ╭──────────────────────────────────────────────╮
 // │   ↘️ "Input" Types in Eval                   │
@@ -80,12 +83,37 @@ export const RunEvalInputSchema = z
 /** Eval `expected`: the criteria the LLM judge grades the answer against. */
 export const RunEvalExpectedSchema = z
     .object({
-        llm_judge: z
-            .union([z.string(), z.array(z.string())])
+        llm_judge: z.union([z.string()]).optional()
+            .describe(`Provide a prompt for the LLM judge to evaluate and make assertions about:
+- the state of the database after the assistant completes the prompt. The judge may use any available read-only MCP tools to check and validate these assertions.
+- if prompt references ${GetResponseTool.keyword}, the assistant’s response for this eval case will be made available for evaluation.
+- if prompt references ${GetConversationTool.keyword}, the full conversation history, including tool calls and tool results for this eval case, will be accessible for evaluation.
+- if prompt references ${GetReferenceAnswerTool.keyword}, the reference answer as specified in the "expected.reference_answer" field will be made available for evaluation.
+`),
+        reference_answer: z
+            .string()
             .optional()
-            .describe("Grading criteria (one string or several) the LLM judge checks the output against."),
+            .describe(
+                `The reference answer for the eval case. This provides human reviewers with a clear example of the expected answer.
+                If the LLM judge prompt references ${GetReferenceAnswerTool.keyword}, this value will be made available to the judge for automated evaluation.`
+            ),
     })
     .describe("Expected outcome for a case, expressed as LLM-judge criteria.");
+
+// ╭──────────────────────────────────────────────╮
+// │   ↘️ "Metadata" Types in Eval                │
+// ╰──────────────────────────────────────────────╯
+
+export const RunEvalMetadataSchema = z
+    .object({
+        name: z.string().describe("A short, descriptive name for this eval case."),
+        description: z.string().describe("A brief summary explaining what this eval case tests."),
+        category: z.string().optional().describe("The primary (level 1) taxonomy category for this eval case."),
+        subcategory: z.string().optional().describe("The secondary (level 2) taxonomy subcategory for this eval case."),
+        group: z.string().optional().describe("Level 3 taxonomy group for this eval case."),
+        subGroup: z.string().optional().describe("Level 4 taxonomy subgroup for this eval case."),
+    })
+    .describe("Metadata for a single MongoDB agent eval case.");
 
 // ╭──────────────────────────────────────────────╮
 // │   ↘️ "Output" Types in Eval                 │
