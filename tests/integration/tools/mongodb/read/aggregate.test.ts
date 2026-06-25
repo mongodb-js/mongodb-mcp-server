@@ -40,8 +40,8 @@ function expectAggregateStructuredContent(
     response: AggregateToolResponse,
     content: string,
     expected: {
-        aggResultsCount?: number;
-        omitAggResultsCount?: boolean;
+        count?: number;
+        omitCount?: boolean;
         appliedLimits?: CursorLimitKey[];
     }
 ): void {
@@ -50,8 +50,8 @@ function expectAggregateStructuredContent(
         documents: contentDocs.length > 0 ? bsonToJson(contentDocs) : [],
     };
 
-    if (!expected.omitAggResultsCount && expected.aggResultsCount !== undefined) {
-        expectedStructuredContent.aggResultsCount = expected.aggResultsCount;
+    if (!expected.omitCount && expected.count !== undefined) {
+        expectedStructuredContent.count = expected.count;
     }
 
     if (expected.appliedLimits !== undefined) {
@@ -60,8 +60,8 @@ function expectAggregateStructuredContent(
 
     expect(response.structuredContent).toMatchObject(expectedStructuredContent);
 
-    if (expected.omitAggResultsCount) {
-        expect(response.structuredContent).not.toHaveProperty("aggResultsCount");
+    if (expected.omitCount) {
+        expect(response.structuredContent).not.toHaveProperty("count");
     }
 }
 
@@ -107,7 +107,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
         const content = getResponseContent(response);
         expect(content).toEqual("The aggregation resulted in 0 documents.");
         expectAggregateStructuredContent(response, content, {
-            aggResultsCount: 0,
+            count: 0,
             appliedLimits: [],
         });
     });
@@ -128,7 +128,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
         const content = getResponseContent(response);
         expect(content).toEqual("The aggregation resulted in 0 documents.");
         expectAggregateStructuredContent(response, content, {
-            aggResultsCount: 0,
+            count: 0,
             appliedLimits: [],
         });
     });
@@ -172,7 +172,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
             })
         );
         expectAggregateStructuredContent(response, content, {
-            aggResultsCount: 2,
+            count: 2,
             appliedLimits: [],
         });
     });
@@ -333,7 +333,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
         const content = getResponseContent(response);
         expect(content).toContain("The aggregation resulted in 1 documents");
         expectAggregateStructuredContent(response, content, {
-            aggResultsCount: 1,
+            count: 1,
             appliedLimits: [],
         });
     });
@@ -360,7 +360,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
         const content = getResponseContent(response);
         expect(content).toEqual("The aggregation pipeline executed successfully.");
         expectAggregateStructuredContent(response, content, {
-            omitAggResultsCount: true,
+            omitCount: true,
             appliedLimits: [],
         });
 
@@ -391,7 +391,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
         const content = getResponseContent(response);
         expect(content).toEqual("The aggregation pipeline executed successfully.");
         expectAggregateStructuredContent(response, content, {
-            omitAggResultsCount: true,
+            omitCount: true,
             appliedLimits: [],
         });
 
@@ -499,7 +499,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
             const docs = getDocsFromUntrustedContent<{ name: string }>(content);
             expect(docs[0]?.name).toBe("Alice");
             expectAggregateStructuredContent(response, content, {
-                aggResultsCount: 1,
+                count: 1,
                 appliedLimits: [],
             });
         });
@@ -593,7 +593,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
                 })
             );
             expectAggregateStructuredContent(response, content, {
-                omitAggResultsCount: true,
+                omitCount: true,
                 appliedLimits: [],
             });
         });
@@ -645,7 +645,7 @@ describeWithMongoDB(
             const docs = getDocsFromUntrustedContent(content);
             validateDocs(docs, 20);
             expectAggregateStructuredContent(response, content, {
-                aggResultsCount: 990,
+                count: 990,
                 appliedLimits: ["config.maxDocumentsPerQuery"],
             });
         });
@@ -669,7 +669,7 @@ describeWithMongoDB(
             const docs = getDocsFromUntrustedContent(content);
             validateDocs(docs, 20);
             expectAggregateStructuredContent(response, content, {
-                aggResultsCount: 50,
+                count: 50,
                 appliedLimits: ["config.maxDocumentsPerQuery"],
             });
         });
@@ -691,7 +691,7 @@ describeWithMongoDB(
             const docs = getDocsFromUntrustedContent(content);
             validateDocs(docs, 5);
             expectAggregateStructuredContent(response, content, {
-                aggResultsCount: 5,
+                count: 5,
                 appliedLimits: [],
             });
         });
@@ -728,7 +728,7 @@ describeWithMongoDB(
                 `Returning 3 documents while respecting the applied limits of server's configured - maxDocumentsPerQuery, server's configured - maxBytesPerQuery.`
             );
             expectAggregateStructuredContent(response, content, {
-                aggResultsCount: 990,
+                count: 990,
                 appliedLimits: ["config.maxDocumentsPerQuery", "config.maxBytesPerQuery"],
             });
         });
@@ -758,7 +758,7 @@ describeWithMongoDB(
                 `Returning 1 documents while respecting the applied limits of server's configured - maxDocumentsPerQuery, tool's parameter - responseBytesLimit.`
             );
             expectAggregateStructuredContent(response, content, {
-                aggResultsCount: 990,
+                count: 990,
                 appliedLimits: ["config.maxDocumentsPerQuery", "tool.responseBytesLimit"],
             });
         });
@@ -793,7 +793,7 @@ describeWithMongoDB(
             const content = getResponseContent(response);
             expect(content).toContain("The aggregation resulted in 990 documents");
             expectAggregateStructuredContent(response, content, {
-                aggResultsCount: 990,
+                count: 990,
                 appliedLimits: [],
             });
         });

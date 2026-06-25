@@ -53,10 +53,7 @@ If the user has asked for lexical/Atlas search, use \`$search\` instead of \`$te
 
 const AggregateOutputSchema = {
     documents: z.array(z.unknown()).describe("The documents returned by the aggregation pipeline"),
-    aggResultsCount: z
-        .number()
-        .optional()
-        .describe("The total number of documents returned by the aggregation pipeline"),
+    count: z.number().optional().describe("The total number of documents returned by the aggregation pipeline"),
     appliedLimits: z.array(CURSOR_LIMIT_KEYS).describe("The limits applied to the aggregation pipeline"),
 };
 
@@ -149,7 +146,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
 
             let successMessage: string;
             let documents: unknown[];
-            let aggResultsCount: number | undefined;
+            let count: number | undefined;
             let appliedLimits: CursorLimitKey[] = [];
 
             if (pipeline.some((stage) => isWriteStage(stage))) {
@@ -195,13 +192,13 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                     totalDocuments > this.config.maxDocumentsPerQuery;
 
                 documents = cursorResults.documents;
-                aggResultsCount = totalDocuments;
+                count = totalDocuments;
                 appliedLimits = [
                     aggregationResultsCappedByMaxDocumentsLimit ? "config.maxDocumentsPerQuery" : undefined,
                     cursorResults.cappedBy,
                 ].filter((limit): limit is CursorLimitKey => !!limit);
                 successMessage = this.generateMessage({
-                    aggResultsCount,
+                    count,
                     documents,
                     appliedLimits,
                 });
@@ -216,7 +213,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                 ),
                 structuredContent: {
                     documents: serializedDocuments,
-                    ...(aggResultsCount !== undefined ? { aggResultsCount } : {}),
+                    ...(count !== undefined ? { count } : {}),
                     appliedLimits,
                 },
             };
@@ -342,19 +339,19 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
     }
 
     private generateMessage({
-        aggResultsCount,
+        count,
         documents,
         appliedLimits,
     }: {
-        aggResultsCount: number | undefined;
+        count: number | undefined;
         documents: unknown[];
         appliedLimits: CursorLimitKey[];
     }): string {
-        let message = `The aggregation resulted in ${aggResultsCount === undefined ? "indeterminable number of" : aggResultsCount} documents.`;
+        let message = `The aggregation resulted in ${count === undefined ? "indeterminable number of" : count} documents.`;
 
         // If we applied a limit or the count is different from the aggregation result count,
         // communicate what is the actual number of returned documents
-        if (documents.length !== aggResultsCount || appliedLimits.length) {
+        if (documents.length !== count || appliedLimits.length) {
             message += ` Returning ${documents.length} documents`;
             if (appliedLimits.length) {
                 message += ` while respecting the applied limits of ${appliedLimits
