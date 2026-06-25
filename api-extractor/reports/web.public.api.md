@@ -45,143 +45,143 @@ export type AnyToolClass = ToolClass<any, any, any>;
 export class ApiClient {
     constructor(options: ApiClientOptions, logger: LoggerBase, authProvider?: AuthProvider | undefined);
     // (undocumented)
-    acceptVpcPeeringConnection(options: FetchOptions<operations["acceptGroupStreamVpcPeeringConnection"]>): Promise<void>;
+    acceptVpcPeeringConnection(options: FetchOptions<operations["acceptGroupStreamVpcPeeringConnection"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
     readonly authProvider?: AuthProvider | undefined;
     // (undocumented)
     close(): Promise<void>;
     // (undocumented)
-    createAccessListEntry(options: FetchOptions<operations["createGroupAccessListEntry"]>): Promise<components["schemas"]["PaginatedNetworkAccessView"]>;
+    createAccessListEntry(options: FetchOptions<operations["createGroupAccessListEntry"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedNetworkAccessView"]>;
     // (undocumented)
-    createCluster(options: FetchOptions<operations["createGroupCluster"]>): Promise<components["schemas"]["ClusterDescription20240805"]>;
+    createCluster(options: FetchOptions<operations["createGroupCluster"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["ClusterDescription20240805"]>;
     // (undocumented)
-    createDatabaseUser(options: FetchOptions<operations["createGroupDatabaseUser"]>): Promise<components["schemas"]["CloudDatabaseUser"]>;
+    createDatabaseUser(options: FetchOptions<operations["createGroupDatabaseUser"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["CloudDatabaseUser"]>;
     // (undocumented)
-    createFlexCluster(options: FetchOptions<operations["createGroupFlexCluster"]>): Promise<components["schemas"]["FlexClusterDescription20241113"]>;
+    createFlexCluster(options: FetchOptions<operations["createGroupFlexCluster"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["FlexClusterDescription20241113"]>;
     // (undocumented)
-    createGroup(options: FetchOptions<operations["createGroup"]>): Promise<components["schemas"]["Group"]>;
+    createGroup(options: FetchOptions<operations["createGroup"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["Group"]>;
     // (undocumented)
-    createPrivateLinkConnection(options: FetchOptions<operations["createGroupStreamPrivateLinkConnection"]>): Promise<components["schemas"]["StreamsPrivateLinkConnection"]>;
+    createPrivateLinkConnection(options: FetchOptions<operations["createGroupStreamPrivateLinkConnection"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsPrivateLinkConnection"]>;
     // (undocumented)
-    createStreamConnection(options: FetchOptions<operations["createGroupStreamConnection"]>): Promise<components["schemas"]["StreamsConnection"]>;
+    createStreamConnection(options: FetchOptions<operations["createGroupStreamConnection"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsConnection"]>;
     // (undocumented)
-    createStreamProcessor(options: FetchOptions<operations["createGroupStreamProcessor"]>): Promise<components["schemas"]["StreamsProcessor"]>;
+    createStreamProcessor(options: FetchOptions<operations["createGroupStreamProcessor"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsProcessor"]>;
     // (undocumented)
-    createStreamWorkspace(options: FetchOptions<operations["createGroupStreamWorkspace"]>): Promise<components["schemas"]["StreamsTenant"]>;
+    createStreamWorkspace(options: FetchOptions<operations["createGroupStreamWorkspace"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsTenant"]>;
     // (undocumented)
-    deleteAccessListEntry(options: FetchOptions<operations["deleteGroupAccessListEntry"]>): Promise<void>;
+    deleteAccessListEntry(options: FetchOptions<operations["deleteGroupAccessListEntry"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    deleteCluster(options: FetchOptions<operations["deleteGroupCluster"]>): Promise<void>;
+    deleteCluster(options: FetchOptions<operations["deleteGroupCluster"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    deleteDatabaseUser(options: FetchOptions<operations["deleteGroupDatabaseUser"]>): Promise<void>;
+    deleteDatabaseUser(options: FetchOptions<operations["deleteGroupDatabaseUser"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    deleteFlexCluster(options: FetchOptions<operations["deleteGroupFlexCluster"]>): Promise<void>;
+    deleteFlexCluster(options: FetchOptions<operations["deleteGroupFlexCluster"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    deleteGroup(options: FetchOptions<operations["deleteGroup"]>): Promise<void>;
+    deleteGroup(options: FetchOptions<operations["deleteGroup"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    deletePrivateLinkConnection(options: FetchOptions<operations["deleteGroupStreamPrivateLinkConnection"]>): Promise<void>;
+    deletePrivateLinkConnection(options: FetchOptions<operations["deleteGroupStreamPrivateLinkConnection"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    deleteStreamConnection(options: FetchOptions<operations["deleteGroupStreamConnection"]>): Promise<void>;
+    deleteStreamConnection(options: FetchOptions<operations["deleteGroupStreamConnection"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    deleteStreamProcessor(options: FetchOptions<operations["deleteGroupStreamProcessor"]>): Promise<void>;
+    deleteStreamProcessor(options: FetchOptions<operations["deleteGroupStreamProcessor"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    deleteStreamWorkspace(options: FetchOptions<operations["deleteGroupStreamWorkspace"]>): Promise<void>;
+    deleteStreamWorkspace(options: FetchOptions<operations["deleteGroupStreamWorkspace"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    deleteVpcPeeringConnection(options: FetchOptions<operations["deleteGroupStreamVpcPeeringConnection"]>): Promise<void>;
+    deleteVpcPeeringConnection(options: FetchOptions<operations["deleteGroupStreamVpcPeeringConnection"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    downloadAuditLogs(options: FetchOptions<operations["downloadGroupStreamAuditLogs"]>): Promise<string>;
+    downloadAuditLogs(options: FetchOptions<operations["downloadGroupStreamAuditLogs"]>, context?: ApiClientRequestContext): Promise<string>;
     // (undocumented)
-    downloadOperationalLogs(options: FetchOptions<operations["downloadGroupStreamOperationalLogs"]>): Promise<string>;
+    downloadOperationalLogs(options: FetchOptions<operations["downloadGroupStreamOperationalLogs"]>, context?: ApiClientRequestContext): Promise<string>;
     // (undocumented)
-    getAccountDetails(options: FetchOptions<operations["getGroupStreamAccountDetails"]>): Promise<components["schemas"]["AccountDetails"]>;
+    getAccountDetails(options: FetchOptions<operations["getGroupStreamAccountDetails"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["AccountDetails"]>;
     // (undocumented)
-    getCluster(options: FetchOptions<operations["getGroupCluster"]>): Promise<components["schemas"]["ClusterDescription20240805"]>;
+    getCluster(options: FetchOptions<operations["getGroupCluster"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["ClusterDescription20240805"]>;
     // (undocumented)
-    getFlexCluster(options: FetchOptions<operations["getGroupFlexCluster"]>): Promise<components["schemas"]["FlexClusterDescription20241113"]>;
+    getFlexCluster(options: FetchOptions<operations["getGroupFlexCluster"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["FlexClusterDescription20241113"]>;
     // (undocumented)
-    getGroup(options: FetchOptions<operations["getGroup"]>): Promise<components["schemas"]["Group"]>;
+    getGroup(options: FetchOptions<operations["getGroup"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["Group"]>;
     // (undocumented)
     getIpInfo(): Promise<{
         currentIpv4Address: string;
     }>;
     // (undocumented)
-    getOrgGroups(options: FetchOptions<operations["getOrgGroups"]>): Promise<components["schemas"]["PaginatedAtlasGroupView"]>;
+    getOrgGroups(options: FetchOptions<operations["getOrgGroups"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedAtlasGroupView"]>;
     // (undocumented)
-    getPrivateLinkConnection(options: FetchOptions<operations["getGroupStreamPrivateLinkConnection"]>): Promise<components["schemas"]["StreamsPrivateLinkConnection"]>;
+    getPrivateLinkConnection(options: FetchOptions<operations["getGroupStreamPrivateLinkConnection"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsPrivateLinkConnection"]>;
     // (undocumented)
-    getSampleDatasetLoad(options: FetchOptions<operations["getGroupSampleDatasetLoad"]>): Promise<components["schemas"]["SampleDatasetStatus"]>;
+    getSampleDatasetLoad(options: FetchOptions<operations["getGroupSampleDatasetLoad"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["SampleDatasetStatus"]>;
     // (undocumented)
-    getStreamConnection(options: FetchOptions<operations["getGroupStreamConnection"]>): Promise<components["schemas"]["StreamsConnection"]>;
+    getStreamConnection(options: FetchOptions<operations["getGroupStreamConnection"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsConnection"]>;
     // (undocumented)
-    getStreamProcessor(options: FetchOptions<operations["getGroupStreamProcessor"]>): Promise<components["schemas"]["StreamsProcessorWithStats"]>;
+    getStreamProcessor(options: FetchOptions<operations["getGroupStreamProcessor"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsProcessorWithStats"]>;
     // (undocumented)
-    getStreamProcessors(options: FetchOptions<operations["getGroupStreamProcessors"]>): Promise<components["schemas"]["PaginatedApiStreamsStreamProcessorWithStatsView"]>;
+    getStreamProcessors(options: FetchOptions<operations["getGroupStreamProcessors"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedApiStreamsStreamProcessorWithStatsView"]>;
     // (undocumented)
-    getStreamWorkspace(options: FetchOptions<operations["getGroupStreamWorkspace"]>): Promise<components["schemas"]["StreamsTenant"]>;
+    getStreamWorkspace(options: FetchOptions<operations["getGroupStreamWorkspace"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsTenant"]>;
     // (undocumented)
     isAuthConfigured(): boolean;
     // (undocumented)
-    listAccessListEntries(options: FetchOptions<operations["listGroupAccessListEntries"]>): Promise<components["schemas"]["PaginatedNetworkAccessView"]>;
+    listAccessListEntries(options: FetchOptions<operations["listGroupAccessListEntries"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedNetworkAccessView"]>;
     // (undocumented)
-    listAlerts(options: FetchOptions<operations["listGroupAlerts"]>): Promise<components["schemas"]["PaginatedAlertView"]>;
+    listAlerts(options: FetchOptions<operations["listGroupAlerts"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedAlertView"]>;
     // (undocumented)
-    listClusterDetails(options?: FetchOptions<operations["listClusterDetails"]>): Promise<components["schemas"]["PaginatedOrgGroupView"]>;
+    listClusterDetails(options?: FetchOptions<operations["listClusterDetails"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedOrgGroupView"]>;
     // (undocumented)
-    listClusters(options: FetchOptions<operations["listGroupClusters"]>): Promise<components["schemas"]["PaginatedClusterDescription20240805"]>;
+    listClusters(options: FetchOptions<operations["listGroupClusters"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedClusterDescription20240805"]>;
     // (undocumented)
-    listClusterSuggestedIndexes(options: FetchOptions<operations["listGroupClusterPerformanceAdvisorSuggestedIndexes"]>): Promise<components["schemas"]["PerformanceAdvisorResponse"]>;
+    listClusterSuggestedIndexes(options: FetchOptions<operations["listGroupClusterPerformanceAdvisorSuggestedIndexes"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PerformanceAdvisorResponse"]>;
     // (undocumented)
-    listDatabaseUsers(options: FetchOptions<operations["listGroupDatabaseUsers"]>): Promise<components["schemas"]["PaginatedApiAtlasDatabaseUserView"]>;
+    listDatabaseUsers(options: FetchOptions<operations["listGroupDatabaseUsers"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedApiAtlasDatabaseUserView"]>;
     // (undocumented)
-    listDropIndexSuggestions(options: FetchOptions<operations["listGroupClusterPerformanceAdvisorDropIndexSuggestions"]>): Promise<components["schemas"]["DropIndexSuggestionsResponse"]>;
+    listDropIndexSuggestions(options: FetchOptions<operations["listGroupClusterPerformanceAdvisorDropIndexSuggestions"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["DropIndexSuggestionsResponse"]>;
     // (undocumented)
-    listFlexClusters(options: FetchOptions<operations["listGroupFlexClusters"]>): Promise<components["schemas"]["PaginatedFlexClusters20241113"]>;
+    listFlexClusters(options: FetchOptions<operations["listGroupFlexClusters"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedFlexClusters20241113"]>;
     // (undocumented)
-    listGroups(options?: FetchOptions<operations["listGroups"]>): Promise<components["schemas"]["PaginatedAtlasGroupView"]>;
+    listGroups(options?: FetchOptions<operations["listGroups"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedAtlasGroupView"]>;
     // (undocumented)
-    listOrgs(options?: FetchOptions<operations["listOrgs"]>): Promise<components["schemas"]["PaginatedOrganizationView"]>;
+    listOrgs(options?: FetchOptions<operations["listOrgs"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedOrganizationView"]>;
     // (undocumented)
-    listPrivateLinkConnections(options: FetchOptions<operations["listGroupStreamPrivateLinkConnections"]>): Promise<components["schemas"]["PaginatedApiStreamsPrivateLinkView"]>;
+    listPrivateLinkConnections(options: FetchOptions<operations["listGroupStreamPrivateLinkConnections"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedApiStreamsPrivateLinkView"]>;
     // (undocumented)
-    listSchemaAdvice(options: FetchOptions<operations["listGroupClusterPerformanceAdvisorSchemaAdvice"]>): Promise<components["schemas"]["SchemaAdvisorResponse"]>;
+    listSchemaAdvice(options: FetchOptions<operations["listGroupClusterPerformanceAdvisorSchemaAdvice"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["SchemaAdvisorResponse"]>;
     // (undocumented)
-    listSlowQueryLogs(options: FetchOptions<operations["listGroupProcessPerformanceAdvisorSlowQueryLogs"]>): Promise<components["schemas"]["PerformanceAdvisorSlowQueryList"]>;
+    listSlowQueryLogs(options: FetchOptions<operations["listGroupProcessPerformanceAdvisorSlowQueryLogs"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PerformanceAdvisorSlowQueryList"]>;
     // (undocumented)
-    listStreamConnections(options: FetchOptions<operations["listGroupStreamConnections"]>): Promise<components["schemas"]["PaginatedApiStreamsConnectionView"]>;
+    listStreamConnections(options: FetchOptions<operations["listGroupStreamConnections"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedApiStreamsConnectionView"]>;
     // (undocumented)
-    listStreamWorkspaces(options: FetchOptions<operations["listGroupStreamWorkspaces"]>): Promise<components["schemas"]["PaginatedApiStreamsTenantView"]>;
+    listStreamWorkspaces(options: FetchOptions<operations["listGroupStreamWorkspaces"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedApiStreamsTenantView"]>;
     // (undocumented)
     readonly logger: LoggerBase;
     // (undocumented)
-    rejectVpcPeeringConnection(options: FetchOptions<operations["rejectGroupStreamVpcPeeringConnection"]>): Promise<void>;
+    rejectVpcPeeringConnection(options: FetchOptions<operations["rejectGroupStreamVpcPeeringConnection"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    requestSampleDatasetLoad(options: FetchOptions<operations["requestGroupSampleDatasetLoad"]>): Promise<components["schemas"]["SampleDatasetStatus"]>;
+    requestSampleDatasetLoad(options: FetchOptions<operations["requestGroupSampleDatasetLoad"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["SampleDatasetStatus"]>;
     // (undocumented)
     sendEvents(events: TelemetryEvent<CommonProperties>[], input?: {
         signal?: AbortSignal;
     }): Promise<void>;
     // (undocumented)
-    startStreamProcessor(options: FetchOptions<operations["startGroupStreamProcessor"]>): Promise<void>;
+    startStreamProcessor(options: FetchOptions<operations["startGroupStreamProcessor"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    startStreamProcessorWith(options: FetchOptions<operations["startGroupStreamProcessorWith"]>): Promise<void>;
+    startStreamProcessorWith(options: FetchOptions<operations["startGroupStreamProcessorWith"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    stopStreamProcessor(options: FetchOptions<operations["stopGroupStreamProcessor"]>): Promise<void>;
+    stopStreamProcessor(options: FetchOptions<operations["stopGroupStreamProcessor"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    tenantUpgrade(options: FetchOptions<operations["tenantGroupFlexClusterUpgrade"]>): Promise<components["schemas"]["FlexClusterDescription20241113"]>;
+    tenantUpgrade(options: FetchOptions<operations["tenantGroupFlexClusterUpgrade"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["FlexClusterDescription20241113"]>;
     // (undocumented)
-    updateCluster(options: FetchOptions<operations["updateGroupCluster"]>): Promise<components["schemas"]["ClusterDescription20240805"]>;
+    updateCluster(options: FetchOptions<operations["updateGroupCluster"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["ClusterDescription20240805"]>;
     // (undocumented)
-    updateStreamConnection(options: FetchOptions<operations["updateGroupStreamConnection"]>): Promise<components["schemas"]["StreamsConnection"]>;
+    updateStreamConnection(options: FetchOptions<operations["updateGroupStreamConnection"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsConnection"]>;
     // (undocumented)
-    updateStreamProcessor(options: FetchOptions<operations["updateGroupStreamProcessor"]>): Promise<components["schemas"]["StreamsProcessorWithStats"]>;
+    updateStreamProcessor(options: FetchOptions<operations["updateGroupStreamProcessor"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsProcessorWithStats"]>;
     // (undocumented)
-    updateStreamWorkspace(options: FetchOptions<operations["updateGroupStreamWorkspace"]>): Promise<components["schemas"]["StreamsTenant"]>;
+    updateStreamWorkspace(options: FetchOptions<operations["updateGroupStreamWorkspace"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsTenant"]>;
     // (undocumented)
-    upgradeTenantUpgrade(options: FetchOptions<operations["upgradeGroupClusterTenantUpgrade"]>): Promise<components["schemas"]["LegacyAtlasCluster"]>;
+    upgradeTenantUpgrade(options: FetchOptions<operations["upgradeGroupClusterTenantUpgrade"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["LegacyAtlasCluster"]>;
     // (undocumented)
     validateAuthConfig(): Promise<void>;
     // (undocumented)
-    withStreamSampleConnections(options: FetchOptions<operations["withGroupStreamSampleConnections"]>): Promise<components["schemas"]["StreamsTenant"]>;
+    withStreamSampleConnections(options: FetchOptions<operations["withGroupStreamSampleConnections"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsTenant"]>;
 }
 
 // @public (undocumented)

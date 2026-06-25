@@ -1,5 +1,5 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { type OperationType, type ToolArgs, formatUntrustedData } from "../../tool.js";
+import { type OperationType, type ToolArgs, type ToolExecutionContext, formatUntrustedData } from "../../tool.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import { AtlasArgs } from "../../args.js";
 
@@ -15,14 +15,20 @@ export class InspectAccessListTool extends AtlasToolBase {
         ...InspectAccessListArgs,
     };
 
-    protected async execute({ projectId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
-        const accessList = await this.apiClient.listAccessListEntries({
-            params: {
-                path: {
-                    groupId: projectId,
+    protected async execute(
+        { projectId }: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<CallToolResult> {
+        const accessList = await this.apiClient.listAccessListEntries(
+            {
+                params: {
+                    path: {
+                        groupId: projectId,
+                    },
                 },
             },
-        });
+            context
+        );
 
         const results = accessList.results ?? [];
 

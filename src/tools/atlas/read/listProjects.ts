@@ -2,7 +2,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import type { OperationType } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
-import type { ToolArgs } from "../../tool.js";
+import type { ToolArgs, ToolExecutionContext } from "../../tool.js";
 import { AtlasArgs } from "../../args.js";
 
 export class ListProjectsTool extends AtlasToolBase {
@@ -15,8 +15,11 @@ export class ListProjectsTool extends AtlasToolBase {
             .optional(),
     };
 
-    protected async execute({ orgId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
-        const orgData = await this.apiClient.listOrgs();
+    protected async execute(
+        { orgId }: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<CallToolResult> {
+        const orgData = await this.apiClient.listOrgs(undefined, context);
 
         if (!orgData?.results?.length) {
             return {
@@ -30,23 +33,29 @@ export class ListProjectsTool extends AtlasToolBase {
             .reduce((acc, org) => ({ ...acc, [org.id!]: org.name }), {});
 
         const data = orgId
-            ? await this.apiClient.getOrgGroups({
-                  params: {
-                      path: {
-                          orgId,
-                      },
-                      query: {
-                          itemsPerPage: 500,
-                      },
-                  },
-              })
-            : await this.apiClient.listGroups({
-                  params: {
-                      query: {
-                          itemsPerPage: 500,
+            ? await this.apiClient.getOrgGroups(
+                  {
+                      params: {
+                          path: {
+                              orgId,
+                          },
+                          query: {
+                              itemsPerPage: 500,
+                          },
                       },
                   },
-              });
+                  context
+              )
+            : await this.apiClient.listGroups(
+                  {
+                      params: {
+                          query: {
+                              itemsPerPage: 500,
+                          },
+                      },
+                  },
+                  context
+              );
 
         if (!data?.results?.length) {
             return {
