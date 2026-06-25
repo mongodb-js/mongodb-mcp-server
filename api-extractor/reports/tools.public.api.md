@@ -104,7 +104,7 @@ export class AggregateTool extends MongoDBToolBase {
     // (undocumented)
     outputSchema: {
         documents: z.ZodArray<z.ZodUnknown>;
-        aggResultsCount: z.ZodOptional<z.ZodNumber>;
+        count: z.ZodUnion<[z.ZodNumber, z.ZodLiteral<"indeterminate">]>;
         appliedLimits: z.ZodArray<z.ZodEnum<{
             "config.maxDocumentsPerQuery": "config.maxDocumentsPerQuery";
             "config.maxBytesPerQuery": "config.maxBytesPerQuery";
@@ -324,7 +324,7 @@ export class CountTool extends MongoDBToolBase {
     static operationType: OperationType;
     // (undocumented)
     outputSchema: {
-        count: z.ZodOptional<z.ZodNumber>;
+        count: z.ZodNumber;
     };
     // (undocumented)
     static toolName: string;
@@ -947,17 +947,9 @@ export class ExportTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof ExportTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof ExportTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof ExportTool.argsShape>, input2: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)
     static operationType: OperationType;
-    // (undocumented)
-    outputSchema: {
-        type: z.ZodLiteral<"resource_link">;
-        name: z.ZodString;
-        uri: z.ZodString;
-        description: z.ZodString;
-        mimeType: z.ZodString;
-    };
     // (undocumented)
     static toolName: string;
 }
