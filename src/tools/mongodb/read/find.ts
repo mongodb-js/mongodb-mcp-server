@@ -10,8 +10,8 @@ import {
     ONE_MB,
     QUERY_COUNT_MAX_TIME_MS_CAP,
     CURSOR_LIMITS_TO_LLM_TEXT,
-    type CursorLimitKey,
     CURSOR_LIMIT_KEYS,
+    type CursorLimitKey,
 } from "../../../helpers/constants.js";
 import { zEJSON } from "../../args.js";
 import { LogId } from "../../../common/logging/index.js";
@@ -39,7 +39,7 @@ export const FindArgs = {
 const FindOutputSchema = {
     documents: z.array(z.unknown()).describe("The documents returned by the find query"),
     queryResultsCount: z.number().optional().describe("The total number of documents returned by the find query"),
-    appliedLimits: z.array(z.enum(CURSOR_LIMIT_KEYS)).describe("The limits applied to the find query"),
+    appliedLimits: z.array(CURSOR_LIMIT_KEYS).describe("The limits applied to the find query"),
 };
 
 export class FindTool extends MongoDBToolBase {

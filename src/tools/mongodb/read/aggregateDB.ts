@@ -12,8 +12,8 @@ import { isWriteStage } from "../../../helpers/mqlGuards.js";
 import {
     AGG_COUNT_MAX_TIME_MS_CAP,
     ONE_MB,
-    CURSOR_LIMIT_KEYS,
     CURSOR_LIMITS_TO_LLM_TEXT,
+    CURSOR_LIMIT_KEYS,
     type CursorLimitKey,
 } from "../../../helpers/constants.js";
 import { LogId } from "../../../common/logging/index.js";
@@ -26,7 +26,7 @@ const AggregateDBOutputSchema = {
         .number()
         .optional()
         .describe("The total number of documents returned by the aggregation pipeline"),
-    appliedLimits: z.array(z.enum(CURSOR_LIMIT_KEYS)).describe("The limits applied to the aggregation pipeline"),
+    appliedLimits: z.array(CURSOR_LIMIT_KEYS).describe("The limits applied to the aggregation pipeline"),
 };
 
 export const AggregateArgs = {
