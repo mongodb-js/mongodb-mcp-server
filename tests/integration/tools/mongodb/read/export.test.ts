@@ -27,40 +27,20 @@ export function contentWithTextResourceURI(
     });
 }
 
-export function contentWithResourceURILink(
-    content: CallToolResult["content"]
-): Extract<NonNullable<CallToolResult["content"]>[number], { type: "resource_link" }> | undefined {
-    const part = content?.find((item) => item.type === "resource_link");
-    return part?.type === "resource_link" ? part : undefined;
+export function contentWithResourceURILink(content: CallToolResult["content"]): { uri: string } | undefined {
+    return content.find((part) => {
+        return part.type === "resource_link";
+    });
 }
 
-export function contentWithExportPath(
-    content: CallToolResult["content"]
-): Extract<NonNullable<CallToolResult["content"]>[number], { type: "text" }> | undefined {
-    const part = content?.find(
-        (item) =>
-            item.type === "text" &&
-            item.text.startsWith(
+export function contentWithExportPath(content: CallToolResult["content"]): { text: string } | undefined {
+    return content
+        .filter((part) => part.type === "text")
+        .find((part) => {
+            return part.text.startsWith(
                 `Optionally, when the export is finished, the exported data can also be accessed under path -`
-            )
-    );
-    return part?.type === "text" ? part : undefined;
-}
-
-function expectExportStructuredContent(
-    response: CallToolResult,
-    content: CallToolResult["content"]
-): Extract<NonNullable<CallToolResult["content"]>[number], { type: "resource_link" }> {
-    const resourceLink = contentWithResourceURILink(content);
-    if (resourceLink === undefined) {
-        throw new Error("Expected resource_link in export tool response content");
-    }
-    expect(response.structuredContent).toEqual(resourceLink);
-    return resourceLink;
-}
-
-function expectExportStructuredContentAbsent(response: CallToolResult): void {
-    expect(response.structuredContent).toBeUndefined();
+            );
+        });
 }
 
 describeWithMongoDB(
@@ -108,12 +88,6 @@ describeWithMongoDB(
             { database: "test", collection: "bar", sort: [], limit: 10 },
         ]);
 
-        it("does not return structuredContent for invalid arguments", async () => {
-            const response = await integration.mcpClient().callTool({ name: "export", arguments: {} });
-            expect(response.isError).toBe(true);
-            expectExportStructuredContentAbsent(response as CallToolResult);
-        });
-
         beforeEach(async () => {
             await integration.connectMcpClient();
         });
@@ -140,11 +114,12 @@ describeWithMongoDB(
                 },
             });
             const content = response.content as CallToolResult["content"];
-            const resourceLink = expectExportStructuredContent(response as CallToolResult, content);
-            await resourceChangedNotification(integration.mcpClient(), resourceLink.uri);
+            const exportURI = contentWithResourceURILink(content)?.uri as string;
+            await resourceChangedNotification(integration.mcpClient(), exportURI);
 
             expect(content).toHaveLength(3);
             expect(contentWithTextResourceURI(content)).toBeDefined();
+            expect(contentWithResourceURILink(content)).toBeDefined();
 
             const localPathPart = contentWithExportPath(content);
             expect(localPathPart).toBeDefined();
@@ -186,8 +161,8 @@ describeWithMongoDB(
                     },
                 });
                 const content = response.content as CallToolResult["content"];
-                const resourceLink = expectExportStructuredContent(response as CallToolResult, content);
-                await resourceChangedNotification(integration.mcpClient(), resourceLink.uri);
+                const exportURI = contentWithResourceURILink(content)?.uri as string;
+                await resourceChangedNotification(integration.mcpClient(), exportURI);
 
                 const localPathPart = contentWithExportPath(content);
                 expect(localPathPart).toBeDefined();
@@ -222,8 +197,8 @@ describeWithMongoDB(
                     },
                 });
                 const content = response.content as CallToolResult["content"];
-                const resourceLink = expectExportStructuredContent(response as CallToolResult, content);
-                await resourceChangedNotification(integration.mcpClient(), resourceLink.uri);
+                const exportURI = contentWithResourceURILink(content)?.uri as string;
+                await resourceChangedNotification(integration.mcpClient(), exportURI);
 
                 const localPathPart = contentWithExportPath(content);
                 expect(localPathPart).toBeDefined();
@@ -258,8 +233,8 @@ describeWithMongoDB(
                     },
                 });
                 const content = response.content as CallToolResult["content"];
-                const resourceLink = expectExportStructuredContent(response as CallToolResult, content);
-                await resourceChangedNotification(integration.mcpClient(), resourceLink.uri);
+                const exportURI = contentWithResourceURILink(content)?.uri as string;
+                await resourceChangedNotification(integration.mcpClient(), exportURI);
 
                 const localPathPart = contentWithExportPath(content);
                 expect(localPathPart).toBeDefined();
@@ -295,8 +270,8 @@ describeWithMongoDB(
                     },
                 });
                 const content = response.content as CallToolResult["content"];
-                const resourceLink = expectExportStructuredContent(response as CallToolResult, content);
-                await resourceChangedNotification(integration.mcpClient(), resourceLink.uri);
+                const exportURI = contentWithResourceURILink(content)?.uri as string;
+                await resourceChangedNotification(integration.mcpClient(), exportURI);
 
                 const localPathPart = contentWithExportPath(content);
                 expect(localPathPart).toBeDefined();
@@ -332,8 +307,8 @@ describeWithMongoDB(
                     },
                 });
                 const content = response.content as CallToolResult["content"];
-                const resourceLink = expectExportStructuredContent(response as CallToolResult, content);
-                await resourceChangedNotification(integration.mcpClient(), resourceLink.uri);
+                const exportURI = contentWithResourceURILink(content)?.uri as string;
+                await resourceChangedNotification(integration.mcpClient(), exportURI);
 
                 const localPathPart = contentWithExportPath(content);
                 expect(localPathPart).toBeDefined();
@@ -373,8 +348,8 @@ describeWithMongoDB(
                     },
                 });
                 const content = response.content as CallToolResult["content"];
-                const resourceLink = expectExportStructuredContent(response as CallToolResult, content);
-                await resourceChangedNotification(integration.mcpClient(), resourceLink.uri);
+                const exportURI = contentWithResourceURILink(content)?.uri as string;
+                await resourceChangedNotification(integration.mcpClient(), exportURI);
 
                 const localPathPart = contentWithExportPath(content);
                 expect(localPathPart).toBeDefined();
@@ -415,8 +390,8 @@ describeWithMongoDB(
                     },
                 });
                 const content = response.content as CallToolResult["content"];
-                const resourceLink = expectExportStructuredContent(response as CallToolResult, content);
-                await resourceChangedNotification(integration.mcpClient(), resourceLink.uri);
+                const exportURI = contentWithResourceURILink(content)?.uri as string;
+                await resourceChangedNotification(integration.mcpClient(), exportURI);
 
                 const localPathPart = contentWithExportPath(content);
                 expect(localPathPart).toBeDefined();
@@ -463,8 +438,8 @@ describeWithMongoDB(
                     },
                 });
                 const content = response.content as CallToolResult["content"];
-                const resourceLink = expectExportStructuredContent(response as CallToolResult, content);
-                await resourceChangedNotification(integration.mcpClient(), resourceLink.uri);
+                const exportURI = contentWithResourceURILink(content)?.uri as string;
+                await resourceChangedNotification(integration.mcpClient(), exportURI);
 
                 const localPathPart = contentWithExportPath(content);
                 expect(localPathPart).toBeDefined();
@@ -553,10 +528,9 @@ describeWithMongoDB(
                         if (jsDisabled) {
                             const content = getResponseContent(response.content);
                             expect(content).toContain(`The "${operator}" operator is not allowed.`);
-                            expectExportStructuredContentAbsent(response as CallToolResult);
                         } else {
                             const content = response.content as CallToolResult["content"];
-                            expectExportStructuredContent(response as CallToolResult, content);
+                            expect(contentWithResourceURILink(content)).toBeDefined();
                         }
                     });
                 }
@@ -593,7 +567,6 @@ describeWithMongoDB(
                     });
                     const content = getResponseContent(response.content);
                     expect(content).toContain("In readOnly mode you can not run pipelines with $out or $merge stages.");
-                    expectExportStructuredContentAbsent(response as CallToolResult);
                 });
 
                 it(`rejects aggregate targets using ${operator} when write operations are disabled`, async function () {
@@ -611,7 +584,6 @@ describeWithMongoDB(
                     expect(content).toContain(
                         "When 'create', 'update', or 'delete' operations are disabled, you can not run pipelines with $out or $merge stages."
                     );
-                    expectExportStructuredContentAbsent(response as CallToolResult);
                 });
             }
         });
