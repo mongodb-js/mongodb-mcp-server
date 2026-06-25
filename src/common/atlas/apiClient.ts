@@ -46,12 +46,6 @@ export type ApiClientRequestContext = {
     };
 };
 
-/** Returns `{ "x-request-id": "..." }` when the context carries one, else `{}`. Spread inside a LogPayload's `attributes` field. */
-export function requestIdAttr(context: ApiClientRequestContext | undefined): Record<string, string> {
-    const id = context?.requestInfo?.headers?.["x-request-id"];
-    return typeof id === "string" ? { "x-request-id": id } : {};
-}
-
 /**
  * Allowlist of incoming MCP request header names that may be forwarded to outgoing
  * Atlas API requests. Kept intentionally minimal to avoid propagating hop-by-hop

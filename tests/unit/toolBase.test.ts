@@ -2,7 +2,6 @@ import type { Mock } from "vitest";
 import { describe, it, expect, vi, beforeEach, type MockedFunction } from "vitest";
 import type { ZodRawShape } from "zod";
 import type { ToolConstructorParams, ToolExecutionContext } from "../../src/tools/tool.js";
-import { requestIdAttr } from "../../src/tools/tool.js";
 import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { Session } from "../../src/common/session.js";
 import type { UserConfig } from "../../src/common/config/userConfig.js";
@@ -606,36 +605,6 @@ describe("ToolBase", () => {
                 );
             }
         });
-    });
-});
-
-describe("requestIdAttr", () => {
-    it("returns the x-request-id when present as a string header", () => {
-        const context: ToolExecutionContext = {
-            signal: new AbortController().signal,
-            requestInfo: { headers: { "x-request-id": "my-req-id" } },
-        };
-        expect(requestIdAttr(context)).toEqual({ "x-request-id": "my-req-id" });
-    });
-
-    it("returns empty object when requestInfo is absent", () => {
-        expect(requestIdAttr({ signal: new AbortController().signal })).toEqual({});
-    });
-
-    it("returns empty object when x-request-id header is missing", () => {
-        const context: ToolExecutionContext = {
-            signal: new AbortController().signal,
-            requestInfo: { headers: {} },
-        };
-        expect(requestIdAttr(context)).toEqual({});
-    });
-
-    it("returns empty object when x-request-id header is not a string", () => {
-        const context: ToolExecutionContext = {
-            signal: new AbortController().signal,
-            requestInfo: { headers: { "x-request-id": ["id1", "id2"] } },
-        };
-        expect(requestIdAttr(context)).toEqual({});
     });
 });
 

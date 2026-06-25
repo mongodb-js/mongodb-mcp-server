@@ -1,5 +1,6 @@
 import { LogId } from "../logging/index.js";
-import { type ApiClient, type ApiClientRequestContext, requestIdAttr } from "./apiClient.js";
+import { type ApiClient, type ApiClientRequestContext } from "./apiClient.js";
+import { requestIdAttr } from "../../helpers/requestIdAttr.js";
 import { getProcessIdsFromCluster } from "./cluster.js";
 import type { components } from "./openapi.js";
 
@@ -49,7 +50,7 @@ export async function getSuggestedIndexes(
             id: LogId.atlasPaSuggestedIndexesFailure,
             context: "performanceAdvisorUtils",
             message: `Failed to list suggested indexes: ${err instanceof Error ? err.message : String(err)}`,
-            attributes: { ...requestIdAttr(context) },
+            attributes: { ...requestIdAttr(context?.requestInfo?.headers) },
         });
         throw new Error(`Failed to list suggested indexes: ${err instanceof Error ? err.message : String(err)}`, {
             cause: err,
@@ -89,7 +90,7 @@ export async function getDropIndexSuggestions(
             id: LogId.atlasPaDropIndexSuggestionsFailure,
             context: "performanceAdvisorUtils",
             message: `Failed to list drop index suggestions: ${err instanceof Error ? err.message : String(err)}`,
-            attributes: { ...requestIdAttr(context) },
+            attributes: { ...requestIdAttr(context?.requestInfo?.headers) },
         });
         throw new Error(`Failed to list drop index suggestions: ${err instanceof Error ? err.message : String(err)}`, {
             cause: err,
@@ -121,7 +122,7 @@ export async function getSchemaAdvice(
             id: LogId.atlasPaSchemaAdviceFailure,
             context: "performanceAdvisorUtils",
             message: `Failed to list schema advice: ${err instanceof Error ? err.message : String(err)}`,
-            attributes: { ...requestIdAttr(context) },
+            attributes: { ...requestIdAttr(context?.requestInfo?.headers) },
         });
         throw new Error(`Failed to list schema advice: ${err instanceof Error ? err.message : String(err)}`, {
             cause: err,
@@ -175,7 +176,7 @@ export async function getSlowQueries(
             id: LogId.atlasPaSlowQueryLogsFailure,
             context: "performanceAdvisorUtils",
             message: `Failed to list slow query logs: ${err instanceof Error ? err.message : String(err)}`,
-            attributes: { ...requestIdAttr(context) },
+            attributes: { ...requestIdAttr(context?.requestInfo?.headers) },
         });
         throw new Error(`Failed to list slow query logs: ${err instanceof Error ? err.message : String(err)}`, {
             cause: err,

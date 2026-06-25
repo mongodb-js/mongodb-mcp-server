@@ -14,6 +14,7 @@ import {
 import { ConfigOverrideError } from "../common/config/configOverrides.js";
 import type { CustomizableServerOptions, CustomizableSessionOptions, TransportRequestContext } from "./base.js";
 import { ExpressBasedHttpServer } from "./expressBasedHttpServer.js";
+import { requestIdAttr } from "../helpers/requestIdAttr.js";
 import {
     JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED,
     JSON_RPC_ERROR_CODE_SESSION_ID_INVALID,
@@ -192,9 +193,7 @@ export class MCPHttpServer<
         const { StreamableHTTPServerTransport } = await import("@modelcontextprotocol/sdk/server/streamableHttp.js");
 
         const sessionId = providedSessionId ?? getRandomUUID();
-        const requestId = req.headers["x-request-id"];
-        const requestIdAttrs: Record<string, string> =
-            typeof requestId === "string" ? { "x-request-id": requestId } : {};
+        const requestIdAttrs = requestIdAttr(req.headers);
 
         // Check if session already exists
         if (await this.sessionStore.getSession(sessionId)) {
@@ -339,9 +338,7 @@ export class MCPHttpServer<
                 return this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_ID_INVALID);
             }
 
-            const requestId = req.headers["x-request-id"];
-            const requestIdAttrs: Record<string, string> =
-                typeof requestId === "string" ? { "x-request-id": requestId } : {};
+            const requestIdAttrs = requestIdAttr(req.headers);
 
             let transport = await this.sessionStore.getSession(sessionId);
             if (!transport) {
@@ -380,12 +377,11 @@ export class MCPHttpServer<
 
                 if (isInitializeRequest(req.body)) {
                     if (sessionId && !this.userConfig.externallyManagedSessions) {
-                        const reqId = req.headers["x-request-id"];
                         this.logger.debug({
                             id: LogId.streamableHttpTransportDisallowedExternalSessionError,
                             context: "streamableHttpTransport",
                             message: `Client provided session ID ${sessionId}, but externallyManagedSessions is disabled`,
-                            attributes: typeof reqId === "string" ? { "x-request-id": reqId } : {},
+                            attributes: requestIdAttr(req.headers),
                         });
 
                         return this.reportSessionError(res, JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION);
@@ -431,12 +427,11 @@ export class MCPHttpServer<
     ) {
         return (req: express.Request, res: express.Response, next: express.NextFunction): void => {
             fn(req, res, next).catch((error) => {
-                const reqId = req.headers["x-request-id"];
                 this.logger.error({
                     id: LogId.streamableHttpTransportRequestFailure,
                     context: "streamableHttpTransport",
                     message: `Error handling request: ${error instanceof Error ? error.message : String(error)}`,
-                    attributes: typeof reqId === "string" ? { "x-request-id": reqId } : {},
+                    attributes: requestIdAttr(req.headers),
                 });
 
                 const message = error instanceof ConfigOverrideError ? error.message : `failed to handle request`;
