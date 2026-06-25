@@ -19,6 +19,7 @@ export type { ConnectionStringInfo, ConnectionStringAuthType, AtlasClusterConnec
 export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"> {
     driverOptions?: ConnectionInfo["driverOptions"];
     atlas?: AtlasClusterConnectionInfo;
+    readOnly?: boolean;
 }
 
 export type ConnectionTag = "connected" | "connecting" | "disconnected" | "errored";
@@ -54,7 +55,8 @@ export class ConnectionStateConnected implements ConnectionState {
     constructor(
         public serviceProvider: NodeDriverServiceProvider,
         public connectionStringInfo?: ConnectionStringInfo,
-        public connectedAtlasCluster?: AtlasClusterConnectionInfo
+        public connectedAtlasCluster?: AtlasClusterConnectionInfo,
+        public readonly readOnly?: boolean
     ) {}
 
     private _isSearchSupported?: boolean;
@@ -166,6 +168,7 @@ export interface ConnectionStateConnecting extends ConnectionState {
     oidcConnectionType: OIDCConnectionAuthType;
     oidcLoginUrl?: string;
     oidcUserCode?: string;
+    readOnly?: boolean;
 }
 
 export interface ConnectionStateDisconnected extends ConnectionState {
@@ -360,13 +363,19 @@ export class MCPConnectionManager extends ConnectionManager {
                     serviceProvider,
                     connectedAtlasCluster: settings.atlas,
                     connectionStringInfo,
+                    readOnly: settings.readOnly,
                     oidcConnectionType: connectionStringInfo.authType as OIDCConnectionAuthType,
                 });
             }
 
             return this.changeState(
                 "connection-success",
-                new ConnectionStateConnected(await serviceProvider, connectionStringInfo, settings.atlas)
+                new ConnectionStateConnected(
+                    await serviceProvider,
+                    connectionStringInfo,
+                    settings.atlas,
+                    settings.readOnly
+                )
             );
         } catch (error: unknown) {
             const errorReason = error instanceof Error ? error.message : `${error as string}`;
@@ -449,7 +458,8 @@ export class MCPConnectionManager extends ConnectionManager {
                 new ConnectionStateConnected(
                     await this.currentConnectionState.serviceProvider,
                     this.currentConnectionState.connectionStringInfo,
-                    this.currentConnectionState.connectedAtlasCluster
+                    this.currentConnectionState.connectedAtlasCluster,
+                    this.currentConnectionState.readOnly
                 )
             );
         }

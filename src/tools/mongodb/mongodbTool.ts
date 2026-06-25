@@ -22,6 +22,13 @@ export abstract class MongoDBToolBase extends ToolBase {
     protected server?: Server;
     static category: ToolCategory = "mongodb";
 
+    protected override isEffectivelyReadOnly(): boolean {
+        const connectionState = this.session.connectionManager.currentConnectionState;
+        return (
+            super.isEffectivelyReadOnly() || (connectionState.tag === "connected" && connectionState.readOnly === true)
+        );
+    }
+
     protected async ensureConnected(): Promise<NodeDriverServiceProvider> {
         if (!this.session.isConnectedToMongoDB) {
             if (this.session.connectedAtlasCluster) {
@@ -90,7 +97,7 @@ export abstract class MongoDBToolBase extends ToolBase {
             const writeOperations: OperationType[] = ["update", "create", "delete"];
 
             let writeStageForbiddenErrorMessage = "";
-            if (this.config.readOnly) {
+            if (this.isEffectivelyReadOnly()) {
                 writeStageForbiddenErrorMessage =
                     "In readOnly mode you can not run pipelines with $out or $merge stages.";
             } else if (this.config.disabledTools.some((t) => writeOperations.includes(t as OperationType))) {

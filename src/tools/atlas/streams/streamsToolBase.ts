@@ -4,12 +4,13 @@ import type { ToolArgs } from "../../tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ApiClientError } from "../../../common/atlas/apiClientError.js";
 import type { StreamsToolMetadata } from "../../../telemetry/types.js";
+import type { MaybePromise } from "@mongodb-js/mcp-types";
 
 export abstract class StreamsToolBase extends AtlasToolBase {
     protected override handleError(
         error: unknown,
         args: ToolArgs<typeof this.argsShape>
-    ): Promise<CallToolResult> | CallToolResult {
+    ): MaybePromise<CallToolResult> {
         if (error instanceof ApiClientError) {
             const statusCode = error.response.status;
 

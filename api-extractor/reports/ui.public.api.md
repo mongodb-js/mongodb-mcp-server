@@ -4,6 +4,7 @@
 
 ```ts
 
+import type { MaybePromise } from '@mongodb-js/mcp-types';
 import { ReactElement } from 'react';
 
 // @public (undocumented)
@@ -12,7 +13,7 @@ export const ListDatabases: () => ReactElement | null;
 // @public
 export class UIRegistry {
     constructor(options?: {
-        customUIs?: (toolName: string) => string | null | Promise<string | null>;
+        customUIs?: (toolName: string) => MaybePromise<string | null>;
     });
     get(toolName: string): Promise<string | null>;
 }

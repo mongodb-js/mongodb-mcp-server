@@ -2,11 +2,12 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ErrorCodes, type MongoDBError } from "./errors.js";
 import type { AnyConnectionState } from "./connectionManager.js";
 import type { AnyToolBase } from "../tools/tool.js";
+import type { MaybePromise } from "@mongodb-js/mcp-types";
 
 export type ConnectionErrorHandler = (
     error: MongoDBError<ErrorCodes.NotConnectedToMongoDB | ErrorCodes.MisconfiguredConnectionString>,
     additionalContext: ConnectionErrorHandlerContext
-) => ConnectionErrorUnhandled | ConnectionErrorHandled | Promise<ConnectionErrorUnhandled | ConnectionErrorHandled>;
+) => MaybePromise<ConnectionErrorUnhandled | ConnectionErrorHandled>;
 
 export type ConnectionErrorHandlerContext = { availableTools: AnyToolBase[]; connectionState: AnyConnectionState };
 export type ConnectionErrorUnhandled = { errorHandled: false };

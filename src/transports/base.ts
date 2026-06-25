@@ -25,7 +25,7 @@ import { defaultCreateApiClient } from "../common/atlas/apiClient.js";
 import type { UIRegistry } from "../ui/registry/index.js";
 import { PrometheusMetrics, createDefaultMetrics, type Metrics, type DefaultMetrics } from "@mongodb-js/mcp-metrics";
 
-import type { TransportRequestContext } from "@mongodb-js/mcp-types";
+import type { MaybePromise, TransportRequestContext } from "@mongodb-js/mcp-types";
 
 export type { TransportRequestContext };
 
@@ -40,7 +40,10 @@ export type CustomizableSessionOptions<TUserConfig extends UserConfig = UserConf
 >;
 
 export type CustomizableServerOptions<TUserConfig extends UserConfig = UserConfig, TContext = unknown> = Partial<
-    Pick<ServerOptions<TUserConfig, TContext>, "uiRegistry" | "tools" | "toolContext" | "elicitation">
+    Pick<
+        ServerOptions<TUserConfig, TContext>,
+        "uiRegistry" | "tools" | "toolContext" | "elicitation" | "authorizeToolExecution"
+    >
 > & {
     /**
      * An optional key value pair of telemetry properties that are reported to
@@ -70,7 +73,7 @@ export type CustomizableServerOptions<TUserConfig extends UserConfig = UserConfi
 export type CreateSessionConfigFn<TUserConfig extends UserConfig = UserConfig> = (context: {
     userConfig: TUserConfig;
     request?: TransportRequestContext;
-}) => Promise<TUserConfig> | TUserConfig;
+}) => MaybePromise<TUserConfig>;
 
 /**
  * Configuration options for customizing how transport runners are initialized.
@@ -360,6 +363,7 @@ export abstract class TransportRunnerBase<
             tools: serverOptions?.tools ?? this.tools,
             uiRegistry,
             toolContext: serverOptions?.toolContext,
+            authorizeToolExecution: serverOptions?.authorizeToolExecution,
             metrics: this.metrics,
         });
 

@@ -5,6 +5,7 @@ import { LogId } from "../../common/logging/index.js";
 import { z } from "zod";
 import { ApiClientError } from "../../common/atlas/apiClientError.js";
 import type { ApiClient } from "../../common/atlas/apiClient.js";
+import type { MaybePromise } from "@mongodb-js/mcp-types";
 
 export abstract class AtlasToolBase extends ToolBase {
     public static category: ToolCategory = "atlas";
@@ -28,10 +29,7 @@ export abstract class AtlasToolBase extends ToolBase {
         return client;
     }
 
-    protected handleError(
-        error: unknown,
-        args: ToolArgs<typeof this.argsShape>
-    ): Promise<CallToolResult> | CallToolResult {
+    protected handleError(error: unknown, args: ToolArgs<typeof this.argsShape>): MaybePromise<CallToolResult> {
         if (error instanceof ApiClientError) {
             const statusCode = error.response.status;
 

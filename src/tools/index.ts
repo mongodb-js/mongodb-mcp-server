@@ -29,5 +29,6 @@ export {
     type OperationType,
     type ToolArgs,
     type ToolExecutionContext,
+    type ToolExecutionAuthorizer,
     type ToolResult,
 } from "./tool.js";

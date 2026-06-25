@@ -5,6 +5,7 @@ import type { Telemetry } from "../telemetry/telemetry.js";
 import type { SessionEvents } from "../common/session.js";
 import type { ReadResourceCallback, ResourceMetadata } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { LogId } from "../common/logging/index.js";
+import type { MaybePromise } from "@mongodb-js/mcp-types";
 
 type PayloadOf<K extends keyof SessionEvents> = SessionEvents[K][0];
 
@@ -106,5 +107,5 @@ export abstract class ReactiveResource<
     }
 
     protected abstract reduce(eventName: RelevantEvents[number], ...event: PayloadOf<RelevantEvents[number]>[]): Value;
-    public abstract toOutput(): string | Promise<string>;
+    public abstract toOutput(): MaybePromise<string>;
 }

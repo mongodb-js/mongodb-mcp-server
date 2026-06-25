@@ -1,9 +1,11 @@
+import type { MaybePromise } from "@mongodb-js/mcp-types";
+
 export interface ManagedTimeout {
     cancel: () => void;
     restart: () => void;
 }
 
-export function setManagedTimeout(callback: () => Promise<void> | void, timeoutMS: number): ManagedTimeout {
+export function setManagedTimeout(callback: () => MaybePromise<void>, timeoutMS: number): ManagedTimeout {
     let timeoutId: NodeJS.Timeout | undefined = setTimeout(() => {
         void callback();
     }, timeoutMS);
