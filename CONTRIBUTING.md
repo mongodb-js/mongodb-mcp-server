@@ -76,13 +76,13 @@ pnpm test path/to/test/file.test.ts
 pnpm test path/to/directory
 ```
 
-### Testing the `mongodb-mcp-remote` wrapper
+### Testing the `mongodb-atlas-mcp-remote` wrapper
 
-Tests for the wrapper package live in `packages/mongodb-mcp-remote/src/*.test.ts` and are
+Tests for the wrapper package live in `packages/mongodb-atlas-mcp-remote/src/*.test.ts` and are
 picked up by the normal `pnpm test`. To run just the package:
 
 ```bash
-pnpm --filter mongodb-mcp-remote test
+pnpm --filter mongodb-atlas-mcp-remote test
 ```
 
 - **Unit** tests mock the network, so they need no external setup.
