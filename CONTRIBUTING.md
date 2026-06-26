@@ -121,7 +121,7 @@ The Braintrust eval suite (found in `tests/eval/`) evaluates how well an LLM, wh
 #### Notable Environment Variables
 
 - `BRAINTRUST_API_KEY`: Required for all eval runs.
-- `EVAL_CONNECTION_STRING`: Overrides the MongoDB connection string (defaults to `mongodb://localhost:27017/?directConnection=true`).
+- `BT_EVAL_PARAMS_JSON`: JSON string of parameters to override the default parameters for the eval.
 - `EVAL_BASE_EXPERIMENT_NAME`: Lets you compare the current run against a specific baseline experiment. In CI, this is set automatically from the latest `main-<number>` run.
 
 ### Running in CI
