@@ -92,6 +92,19 @@ describeWithAtlas("clusters", (integration) => {
                 expect(content).toContain('"provider"');
                 expect(content).toContain('"region"');
                 expect(content).toContain('"paused"');
+
+                expectDefined(response.structuredContent);
+                expect(response.structuredContent).toMatchObject({
+                    name: clusterName,
+                    instanceType: "FREE",
+                    instanceSize: "N/A",
+                    provider: "AWS",
+                    region: "US_EAST_1",
+                    paused: false,
+                    mongoDBVersion: expect.any(String) as string,
+                    state: expect.any(String) as string,
+                    connectionStrings: expect.any(Object) as Record<string, string>,
+                });
             });
         });
 
