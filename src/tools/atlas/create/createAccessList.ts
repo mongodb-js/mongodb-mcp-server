@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { type OperationType, type ToolArgs } from "../../tool.js";
+import { type OperationType, type ToolArgs, type ToolExecutionContext } from "../../tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import { makeCurrentIpAccessListEntry, DEFAULT_ACCESS_LIST_COMMENT } from "../../../common/atlas/accessListUtils.js";
@@ -24,13 +24,10 @@ export class CreateAccessListTool extends AtlasToolBase {
         ...CreateAccessListArgs,
     };
 
-    protected async execute({
-        projectId,
-        ipAddresses,
-        cidrBlocks,
-        comment,
-        currentIpAddress,
-    }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute(
+        { projectId, ipAddresses, cidrBlocks, comment, currentIpAddress }: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<CallToolResult> {
         if (!ipAddresses?.length && !cidrBlocks?.length && !currentIpAddress) {
             throw new Error("One of  ipAddresses, cidrBlocks, currentIpAddress must be provided.");
         }
@@ -58,14 +55,17 @@ export class CreateAccessListTool extends AtlasToolBase {
 
         const inputs = [...ipInputs, ...cidrInputs];
 
-        await this.apiClient.createAccessListEntry({
-            params: {
-                path: {
-                    groupId: projectId,
+        await this.apiClient.createAccessListEntry(
+            {
+                params: {
+                    path: {
+                        groupId: projectId,
+                    },
                 },
+                body: inputs,
             },
-            body: inputs,
-        });
+            context
+        );
 
         return {
             content: [

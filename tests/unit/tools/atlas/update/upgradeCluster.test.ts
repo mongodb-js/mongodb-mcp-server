@@ -221,18 +221,21 @@ describe("UpgradeClusterTool", () => {
             const text = (result.content[0] as { text: string }).text;
             expect(text).toContain("FREE to FLEX");
 
-            expect(mockApiClient.upgradeTenantUpgrade).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1" } },
-                body: {
-                    name: "MyCluster",
-                    providerSettings: {
-                        providerName: "FLEX",
-                        instanceSizeName: "FLEX",
-                        backingProviderName: "AWS",
-                        regionName: "US_EAST_1",
+            expect(mockApiClient.upgradeTenantUpgrade).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1" } },
+                    body: {
+                        name: "MyCluster",
+                        providerSettings: {
+                            providerName: "FLEX",
+                            instanceSizeName: "FLEX",
+                            backingProviderName: "AWS",
+                            regionName: "US_EAST_1",
+                        },
                     },
                 },
-            });
+                expect.anything()
+            );
         });
 
         it("upgrades FREE to M10 when targetTier is M10", async () => {
@@ -242,17 +245,20 @@ describe("UpgradeClusterTool", () => {
             const text = (result.content[0] as { text: string }).text;
             expect(text).toContain("FREE to M10");
 
-            expect(mockApiClient.upgradeTenantUpgrade).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1" } },
-                body: {
-                    name: "MyCluster",
-                    providerSettings: {
-                        providerName: "AWS",
-                        instanceSizeName: "M10",
-                        regionName: "US_EAST_1",
+            expect(mockApiClient.upgradeTenantUpgrade).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1" } },
+                    body: {
+                        name: "MyCluster",
+                        providerSettings: {
+                            providerName: "AWS",
+                            instanceSizeName: "M10",
+                            regionName: "US_EAST_1",
+                        },
                     },
                 },
-            });
+                expect.anything()
+            );
         });
 
         it("uses provided provider and region overrides for FREE to FLEX", async () => {
@@ -264,18 +270,21 @@ describe("UpgradeClusterTool", () => {
             });
 
             expect(result.isError).toBeFalsy();
-            expect(mockApiClient.upgradeTenantUpgrade).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1" } },
-                body: {
-                    name: "MyCluster",
-                    providerSettings: {
-                        providerName: "FLEX",
-                        instanceSizeName: "FLEX",
-                        backingProviderName: "GCP",
-                        regionName: "CENTRAL_US",
+            expect(mockApiClient.upgradeTenantUpgrade).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1" } },
+                    body: {
+                        name: "MyCluster",
+                        providerSettings: {
+                            providerName: "FLEX",
+                            instanceSizeName: "FLEX",
+                            backingProviderName: "GCP",
+                            regionName: "CENTRAL_US",
+                        },
                     },
                 },
-            });
+                expect.anything()
+            );
         });
 
         it("uses provided provider and region overrides for FREE to M10", async () => {
@@ -288,17 +297,20 @@ describe("UpgradeClusterTool", () => {
             });
 
             expect(result.isError).toBeFalsy();
-            expect(mockApiClient.upgradeTenantUpgrade).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1" } },
-                body: {
-                    name: "MyCluster",
-                    providerSettings: {
-                        providerName: "GCP",
-                        instanceSizeName: "M10",
-                        regionName: "CENTRAL_US",
+            expect(mockApiClient.upgradeTenantUpgrade).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1" } },
+                    body: {
+                        name: "MyCluster",
+                        providerSettings: {
+                            providerName: "GCP",
+                            instanceSizeName: "M10",
+                            regionName: "CENTRAL_US",
+                        },
                     },
                 },
-            });
+                expect.anything()
+            );
         });
 
         it("omits regionName when cluster has no region", async () => {
@@ -344,34 +356,37 @@ describe("UpgradeClusterTool", () => {
             const text = (result.content[0] as { text: string }).text;
             expect(text).toContain("FLEX to M10");
 
-            expect(mockApiClient.tenantUpgrade).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1" } },
-                body: {
-                    name: "MyCluster",
-                    clusterType: "REPLICASET",
-                    replicationSpecs: [
-                        {
-                            regionConfigs: [
-                                {
-                                    providerName: "AWS",
-                                    regionName: "US_EAST_1",
-                                    priority: 7,
-                                    electableSpecs: { instanceSize: "M10", nodeCount: 3 },
-                                },
-                            ],
+            expect(mockApiClient.tenantUpgrade).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1" } },
+                    body: {
+                        name: "MyCluster",
+                        clusterType: "REPLICASET",
+                        replicationSpecs: [
+                            {
+                                regionConfigs: [
+                                    {
+                                        providerName: "AWS",
+                                        regionName: "US_EAST_1",
+                                        priority: 7,
+                                        electableSpecs: { instanceSize: "M10", nodeCount: 3 },
+                                    },
+                                ],
+                            },
+                        ],
+                        autoScaling: {
+                            compute: {
+                                enabled: true,
+                                scaleDownEnabled: true,
+                                minInstanceSize: "M10",
+                                maxInstanceSize: "M30",
+                            },
+                            diskGBEnabled: true,
                         },
-                    ],
-                    autoScaling: {
-                        compute: {
-                            enabled: true,
-                            scaleDownEnabled: true,
-                            minInstanceSize: "M10",
-                            maxInstanceSize: "M30",
-                        },
-                        diskGBEnabled: true,
                     },
                 },
-            });
+                expect.anything()
+            );
         });
 
         it("uses provided provider and region overrides for FLEX to M10", async () => {
@@ -493,18 +508,21 @@ describe("UpgradeClusterTool", () => {
 
             expect(mockApiClient.getCluster).not.toHaveBeenCalled();
             expect(mockApiClient.getFlexCluster).not.toHaveBeenCalled();
-            expect(mockApiClient.upgradeTenantUpgrade).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1" } },
-                body: {
-                    name: "MyCluster",
-                    providerSettings: {
-                        providerName: "FLEX",
-                        instanceSizeName: "FLEX",
-                        backingProviderName: "AWS",
-                        regionName: "US_EAST_1",
+            expect(mockApiClient.upgradeTenantUpgrade).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1" } },
+                    body: {
+                        name: "MyCluster",
+                        providerSettings: {
+                            providerName: "FLEX",
+                            instanceSizeName: "FLEX",
+                            backingProviderName: "AWS",
+                            regionName: "US_EAST_1",
+                        },
                     },
                 },
-            });
+                expect.anything()
+            );
         });
 
         it("upgrades FREE to M10 when targetTier is M10 without fetching cluster", async () => {
@@ -545,7 +563,8 @@ describe("UpgradeClusterTool", () => {
 
             expect(result.isError).toBeFalsy();
             expect(mockApiClient.upgradeTenantUpgrade).toHaveBeenCalledWith(
-                expect.objectContaining({ params: { path: { groupId: "proj1" } } })
+                expect.objectContaining({ params: { path: { groupId: "proj1" } } }),
+                expect.anything()
             );
         });
     });
@@ -625,7 +644,8 @@ describe("UpgradeClusterTool", () => {
 
             expect(result.isError).toBeFalsy();
             expect(mockApiClient.upgradeTenantUpgrade).toHaveBeenCalledWith(
-                expect.objectContaining({ params: { path: { groupId: "session-proj" } } })
+                expect.objectContaining({ params: { path: { groupId: "session-proj" } } }),
+                expect.anything()
             );
         });
 

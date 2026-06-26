@@ -187,6 +187,118 @@ describe("ApiClient", () => {
         });
     });
 
+    describe("request header forwarding", () => {
+        const okResponse = { data: { results: [], totalCount: 0 }, error: null, response: new Response() };
+
+        it("forwards context.requestInfo.headers to the underlying client when no options are provided", async () => {
+            const mockGet = vi.fn().mockReturnValue(okResponse);
+            // @ts-expect-error accessing private property for testing
+            apiClient.client.GET = mockGet;
+
+            await apiClient.listGroups(undefined, { requestInfo: { headers: { "x-request-id": "req-123" } } });
+
+            expect(mockGet).toHaveBeenCalledWith("/api/atlas/v2/groups", {
+                headers: { "x-request-id": "req-123" },
+            });
+        });
+
+        it("merges allowlisted context headers with existing option headers, letting option headers win", async () => {
+            const mockGet = vi.fn().mockReturnValue(okResponse);
+            // @ts-expect-error accessing private property for testing
+            apiClient.client.GET = mockGet;
+
+            await apiClient.listGroups(
+                {
+                    params: { query: { itemsPerPage: 10 } },
+                    headers: { "x-request-id": "from-options", Accept: "application/json" },
+                } as never,
+                { requestInfo: { headers: { "x-request-id": "from-context" } } }
+            );
+
+            expect(mockGet).toHaveBeenCalledWith("/api/atlas/v2/groups", {
+                params: { query: { itemsPerPage: 10 } },
+                headers: {
+                    // the explicit option header wins over the context value on conflict
+                    "x-request-id": "from-options",
+                    Accept: "application/json",
+                },
+            });
+        });
+
+        it("only forwards allowlisted string headers and drops everything else", async () => {
+            const mockGet = vi.fn().mockReturnValue(okResponse);
+            // @ts-expect-error accessing private property for testing
+            apiClient.client.GET = mockGet;
+
+            await apiClient.listGroups(undefined, {
+                requestInfo: {
+                    headers: {
+                        "x-request-id": "req-123",
+                        // non-allowlisted headers must not be propagated
+                        host: "internal.example.com",
+                        "content-length": "42",
+                        cookie: "session=secret",
+                        authorization: "Bearer leaked",
+                        // non-string values must be ignored even if the name were allowlisted
+                        "x-request-id-extra": ["a", "b"],
+                    },
+                },
+            });
+
+            expect(mockGet).toHaveBeenCalledWith("/api/atlas/v2/groups", {
+                headers: { "x-request-id": "req-123" },
+            });
+        });
+
+        it("matches allowlisted header names case-insensitively", async () => {
+            const mockGet = vi.fn().mockReturnValue(okResponse);
+            // @ts-expect-error accessing private property for testing
+            apiClient.client.GET = mockGet;
+
+            await apiClient.listGroups(undefined, { requestInfo: { headers: { "X-Request-Id": "req-Case" } } });
+
+            expect(mockGet).toHaveBeenCalledWith("/api/atlas/v2/groups", {
+                headers: { "X-Request-Id": "req-Case" },
+            });
+        });
+
+        it("passes options through unchanged when no context is provided", async () => {
+            const mockGet = vi.fn().mockReturnValue(okResponse);
+            // @ts-expect-error accessing private property for testing
+            apiClient.client.GET = mockGet;
+
+            await apiClient.listGroups();
+
+            expect(mockGet).toHaveBeenCalledWith("/api/atlas/v2/groups", undefined);
+        });
+
+        it("does not add headers when the context carries no headers", async () => {
+            const mockGet = vi.fn().mockReturnValue(okResponse);
+            // @ts-expect-error accessing private property for testing
+            apiClient.client.GET = mockGet;
+
+            const options = { params: { query: { itemsPerPage: 5 } } } as never;
+            await apiClient.listGroups(options, { requestInfo: {} });
+
+            expect(mockGet).toHaveBeenCalledWith("/api/atlas/v2/groups", options);
+        });
+
+        it("forwards context headers on POST (create) requests", async () => {
+            const mockPost = vi.fn().mockReturnValue({ data: { id: "1" }, error: null, response: new Response() });
+            // @ts-expect-error accessing private property for testing
+            apiClient.client.POST = mockPost;
+
+            await apiClient.createGroup({ body: { name: "proj" } } as never, {
+                requestInfo: { headers: { "x-request-id": "req-xyz" } },
+            });
+
+            expect(mockPost).toHaveBeenCalledWith("/api/atlas/v2/groups", {
+                body: { name: "proj" },
+                headers: { "x-request-id": "req-xyz" },
+            });
+        });
+    });
+
     describe("sendEvents", () => {
         it("should send events to authenticated endpoint when token is available and valid", async () => {
             const mockFetch = vi.spyOn(global, "fetch");

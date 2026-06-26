@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ToolArgs, OperationType } from "../../tool.js";
+import type { ToolArgs, OperationType, ToolExecutionContext } from "../../tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import type { CloudDatabaseUser, DatabaseUserRole } from "../../../common/atlas/openapi.js";
@@ -41,14 +41,11 @@ export class CreateDBUserTool extends AtlasToolBase {
         ...CreateDBUserArgs,
     };
 
-    protected async execute({
-        projectId,
-        username,
-        password,
-        roles,
-        clusters,
-    }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
-        await ensureCurrentIpInAccessList(this.apiClient, projectId);
+    protected async execute(
+        { projectId, username, password, roles, clusters }: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<CallToolResult> {
+        await ensureCurrentIpInAccessList(this.apiClient, projectId, context);
         const shouldGeneratePassword = !password;
         if (shouldGeneratePassword) {
             password = await generateSecurePassword();
@@ -72,14 +69,17 @@ export class CreateDBUserTool extends AtlasToolBase {
                 : undefined,
         } as CloudDatabaseUser;
 
-        await this.apiClient.createDatabaseUser({
-            params: {
-                path: {
-                    groupId: projectId,
+        await this.apiClient.createDatabaseUser(
+            {
+                params: {
+                    path: {
+                        groupId: projectId,
+                    },
                 },
+                body: input,
             },
-            body: input,
-        });
+            context
+        );
 
         this.session.keychain.register(username, "user");
         if (password) {
