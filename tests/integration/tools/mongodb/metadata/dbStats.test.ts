@@ -37,24 +37,21 @@ describeWithMongoDB("dbStats tool", (integration) => {
             const json = getDataFromUntrustedContent(elements[1]?.text ?? "{}");
             const stats = JSON.parse(json) as {
                 db: string;
-                collections: number;
-                storageSize: number;
+                collections: unknown;
+                storageSize: unknown;
             };
             expect(stats.db).toBe(integration.randomDbName());
-            expect(stats.collections).toBe(0);
-            expect(stats.storageSize).toBe(0);
+            expectIdiomaticNumber(stats.collections, 0);
+            expectIdiomaticNumber(stats.storageSize, 0);
 
-            // Validate structured content - compare specific fields since BSON types differ from JSON
             const structuredContent = response.structuredContent as DbStatsOutput;
-            expect(structuredContent.stats.db).toBe(stats.db);
-
-            expectLongOrNumber(structuredContent.stats.collections, stats.collections);
-            expectLongOrNumber(structuredContent.stats.storageSize, stats.storageSize);
+            expect(structuredContent.stats).toEqual(stats);
+            expect((structuredContent.stats as typeof stats).db).toBe(stats.db);
         });
     });
 
     describe("with existing database", () => {
-        const testCases = [
+        const testCases: Array<{ collections: Record<string, number>; name: string }> = [
             {
                 collections: {
                     foos: 3,
@@ -96,17 +93,16 @@ describeWithMongoDB("dbStats tool", (integration) => {
                     objects: unknown;
                 };
                 expect(stats.db).toBe(integration.randomDbName());
-                expect(stats.collections).toBe(Object.entries(test.collections).length);
-                expect(stats.storageSize).toBeGreaterThan(1024);
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-                expect(stats.objects).toBe(Object.values(test.collections).reduce((a, b) => a + b, 0));
+                expectIdiomaticNumber(stats.collections, Object.entries(test.collections).length);
+                expectIdiomaticNumber(stats.storageSize, 1024, { greaterThan: true });
+                const expectedObjectCount = Object.values(test.collections).reduce<number>(
+                    (sum, count) => sum + count,
+                    0
+                );
+                expectIdiomaticNumber(stats.objects, expectedObjectCount);
 
-                // Validate structured content - compare specific fields since BSON types differ from JSON
                 const structuredContent = response.structuredContent as DbStatsOutput;
-                expect(structuredContent.stats.db).toBe(stats.db);
-                expectLongOrNumber(structuredContent.stats.collections, stats.collections as number);
-                expectLongOrNumber(structuredContent.stats.storageSize, stats.storageSize as number);
-                expectLongOrNumber(structuredContent.stats.objects, stats.objects as number);
+                expect(structuredContent.stats).toEqual(stats);
             });
         }
     });
@@ -121,11 +117,30 @@ describeWithMongoDB("dbStats tool", (integration) => {
         };
     });
 
-    function expectLongOrNumber(value: unknown, expected: number): void {
+    function expectIdiomaticNumber(value: unknown, expected: number, options?: { greaterThan?: boolean }): void {
+        const assertValue = (actual: number): void => {
+            if (options?.greaterThan) {
+                expect(actual).toBeGreaterThan(expected);
+            } else {
+                expect(actual).toBe(expected);
+            }
+        };
+
         if (typeof value === "number") {
-            expect(value).toBe(expected);
-        } else {
-            expect(value).toEqual(Long.fromNumber(expected));
+            assertValue(value);
+            return;
         }
+
+        if (
+            typeof value === "object" &&
+            value !== null &&
+            "$numberLong" in value &&
+            typeof (value as { $numberLong: unknown }).$numberLong === "string"
+        ) {
+            assertValue(Number((value as { $numberLong: string }).$numberLong));
+            return;
+        }
+
+        expect(value).toEqual(Long.fromNumber(expected));
     }
 });

@@ -1,8 +1,13 @@
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolConstructorParams } from "../../tool.js";
+import type { ToolArgs, OperationType, ToolConstructorParams, ToolResult } from "../../tool.js";
 import type { Server } from "../../../server.js";
+
+const ConnectOutputSchema = {
+    connected: z.boolean(),
+};
+
 export class ConnectTool extends MongoDBToolBase {
     static toolName = "connect";
     public override description =
@@ -15,6 +20,8 @@ export class ConnectTool extends MongoDBToolBase {
     };
 
     static operationType: OperationType = "connect";
+
+    public override outputSchema = ConnectOutputSchema;
 
     constructor(params: ToolConstructorParams) {
         super(params);
@@ -39,11 +46,25 @@ export class ConnectTool extends MongoDBToolBase {
         return registrationSuccessful;
     }
 
-    protected override async execute({ connectionString }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected override async execute({
+        connectionString,
+    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
         await this.session.connectToMongoDB({ connectionString });
 
         return {
             content: [{ type: "text", text: "Successfully connected to MongoDB." }],
+            structuredContent: { connected: true },
         };
+    }
+
+    protected override async handleError(
+        error: unknown,
+        args: ToolArgs<typeof this.argsShape>
+    ): Promise<CallToolResult> {
+        const result = await super.handleError(error, args);
+        if (result.isError) {
+            return { ...result, structuredContent: { connected: false } };
+        }
+        return result;
     }
 }
