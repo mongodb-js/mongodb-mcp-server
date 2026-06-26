@@ -106,7 +106,7 @@ describe("Tool Context", () => {
         } as unknown as Telemetry;
 
         const elicitation = {
-            requestConfirmation: () => Promise.resolve(true),
+            requestConfirmation: () => Promise.resolve({ ok: true } as const),
         } as unknown as Elicitation;
 
         const customContext: CustomContext = {
@@ -178,7 +178,7 @@ describe("Tool Context", () => {
         } as unknown as Telemetry;
 
         const elicitation = {
-            requestConfirmation: () => Promise.resolve(true),
+            requestConfirmation: () => Promise.resolve({ ok: true } as const),
         } as unknown as Elicitation;
 
         const customContext: CustomContext = {

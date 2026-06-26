@@ -7,7 +7,7 @@ import type { Telemetry } from "../telemetry/telemetry.js";
 import type { ConnectionMetadata, TelemetryToolMetadata, ToolEvent } from "../telemetry/types.js";
 import type { UserConfig } from "../common/config/userConfig.js";
 import type { Server } from "../server.js";
-import type { Elicitation } from "../elicitation.js";
+import type { ConfirmationResult, Elicitation } from "../elicitation.js";
 import type { PreviewFeature } from "../common/schemas.js";
 import type { UIRegistry } from "../ui/registry/index.js";
 import { createUIResource, type UIResource } from "@mcp-ui/server";
@@ -490,7 +490,31 @@ export abstract class ToolBase<
 
         try {
             if (this.requiresConfirmation()) {
-                if (!(await this.verifyConfirmed(args))) {
+                const confirmation = await this.verifyConfirmed(args);
+                if (!confirmation.ok) {
+                    if (confirmation.reason === "no-elicitation-support") {
+                        // OWASP MCP06: refuse the confirmation-gated tool when
+                        // the client cannot show a prompt. The user never had
+                        // the chance to consent, so silently proceeding (the
+                        // previous behaviour) would bypass
+                        // `confirmationRequiredTools`.
+                        this.session.logger.warning({
+                            id: LogId.toolBlockedNoElicitation,
+                            context: "tool",
+                            message: `Refused to execute the \`${this.name}\` tool: the connected MCP client does not advertise the elicitation capability, so user confirmation cannot be obtained.`,
+                            noRedaction: true,
+                        });
+                        return {
+                            content: [
+                                {
+                                    type: "text",
+                                    text: `Refused to execute \`${this.name}\`: this tool requires explicit user confirmation, and the connected MCP client does not support the elicitation capability. Use a client that supports elicitation, or remove \`${this.name}\` from the \`confirmationRequiredTools\` configuration.`,
+                                },
+                            ],
+                            isError: true,
+                        };
+                    }
+
                     this.session.logger.debug({
                         id: LogId.toolExecute,
                         context: "tool",
@@ -603,17 +627,17 @@ export abstract class ToolBase<
      * Check if the user has confirmed the tool execution (if required by
      * configuration).
      *
-     * This method automatically checks if the tool name is in the
-     * `confirmationRequiredTools` configuration list and requests user
-     * confirmation via the elicitation service if needed.
+     * Returns a typed result so the caller can distinguish a user-level
+     * decline ("user clicked no") from an environment-level inability
+     * to obtain consent ("client doesn't support elicitation"). Both
+     * block execution, but the two cases want different error messages
+     * and different audit-log severities. See OWASP MCP06.
      *
      * @param args - The tool arguments
-     * @returns A promise resolving to `true` if confirmed or confirmation not
-     * required, `false` otherwise
      */
-    public async verifyConfirmed(args: ToolArgs<typeof this.argsShape>): Promise<boolean> {
+    public async verifyConfirmed(args: ToolArgs<typeof this.argsShape>): Promise<ConfirmationResult> {
         if (!this.requiresConfirmation()) {
-            return true;
+            return { ok: true };
         }
 
         return this.elicitation.requestConfirmation(this.getConfirmationMessage(args));

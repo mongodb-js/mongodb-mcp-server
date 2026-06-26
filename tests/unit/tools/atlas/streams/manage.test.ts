@@ -61,7 +61,7 @@ describe("StreamsManageTool", () => {
         } as unknown as Telemetry;
 
         const mockElicitation = {
-            requestConfirmation: vi.fn().mockResolvedValue(true),
+            requestConfirmation: vi.fn().mockResolvedValue({ ok: true }),
         } as unknown as Elicitation;
 
         const params: ToolConstructorParams = {

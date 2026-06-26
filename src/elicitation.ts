@@ -5,6 +5,25 @@ export type ElicitedInputResult =
     | { accepted: true; fields: Record<string, string> }
     | { accepted: false; fields?: undefined };
 
+/**
+ * Outcome of a confirmation elicitation.
+ *
+ * `ok: true` means the user explicitly confirmed and the caller may
+ * proceed. Both `ok: false` reasons mean the caller MUST refuse the
+ * operation; they are kept distinct so the caller can produce a
+ * different, actionable error message for each — a user who declined
+ * sees a different message than a client that can't show a prompt at
+ * all.
+ *
+ * This replaces a previous `Promise<boolean>` shape that conflated the
+ * two failure modes and returned `true` (proceed) when the client did
+ * not advertise elicitation support. See OWASP MCP Top 10 (2025) item
+ * MCP06 — Intent Flow Subversion — for the rationale.
+ */
+export type ConfirmationResult =
+    | { ok: true }
+    | { ok: false; reason: "declined" | "no-elicitation-support" };
+
 const ELICITATION_TIMEOUT_MS = 300_000; // 5 minutes for user interaction
 
 export class Elicitation {
@@ -24,12 +43,21 @@ export class Elicitation {
 
     /**
      * Requests a boolean confirmation from the user.
+     *
+     * Fails closed: if the connected client does not advertise the
+     * `elicitation` capability there is no way to obtain explicit
+     * consent, so the caller MUST refuse to proceed
+     * (`{ ok: false, reason: "no-elicitation-support" }`). The previous
+     * behaviour returned `true` in that case, which let
+     * confirmation-gated tools execute without any user prompt against
+     * clients that don't support elicitation — a silent bypass of
+     * `confirmationRequiredTools`. See OWASP MCP06.
+     *
      * @param message - The message to display to the user.
-     * @returns True if the user confirms the action or the client does not support elicitation, false otherwise.
      */
-    public async requestConfirmation(message: string): Promise<boolean> {
+    public async requestConfirmation(message: string): Promise<ConfirmationResult> {
         if (!this.supportsElicitation()) {
-            return true;
+            return { ok: false, reason: "no-elicitation-support" };
         }
 
         const result = await this.server.elicitInput(
@@ -40,7 +68,10 @@ export class Elicitation {
             },
             { timeout: ELICITATION_TIMEOUT_MS }
         );
-        return result.action === "accept" && result.content?.confirmation === "Yes";
+        if (result.action === "accept" && result.content?.confirmation === "Yes") {
+            return { ok: true };
+        }
+        return { ok: false, reason: "declined" };
     }
 
     /**
