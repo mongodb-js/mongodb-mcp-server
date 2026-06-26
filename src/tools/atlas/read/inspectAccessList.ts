@@ -1,11 +1,31 @@
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { type OperationType, type ToolArgs, type ToolExecutionContext, formatUntrustedData } from "../../tool.js";
+import { z } from "zod";
+import {
+    type OperationType,
+    type ToolArgs,
+    type ToolExecutionContext,
+    type ToolResult,
+    formatUntrustedData,
+} from "../../tool.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import { AtlasArgs } from "../../args.js";
 
 export const InspectAccessListArgs = {
     projectId: AtlasArgs.projectId().describe("Atlas project ID"),
 };
+
+const InspectAccessListOutputSchema = {
+    projectId: z.string(),
+    entries: z.array(
+        z.object({
+            ipAddress: z.string().optional(),
+            cidrBlock: z.string().optional(),
+            comment: z.string().optional(),
+        })
+    ),
+    totalCount: z.number(),
+};
+
+export type InspectAccessListOutput = z.infer<z.ZodObject<typeof InspectAccessListOutputSchema>>;
 
 export class InspectAccessListTool extends AtlasToolBase {
     static toolName = "atlas-inspect-access-list";
@@ -14,11 +34,12 @@ export class InspectAccessListTool extends AtlasToolBase {
     public argsShape = {
         ...InspectAccessListArgs,
     };
+    public override outputSchema = InspectAccessListOutputSchema;
 
     protected async execute(
         { projectId }: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
-    ): Promise<CallToolResult> {
+    ): Promise<ToolResult<typeof this.outputSchema>> {
         const accessList = await this.apiClient.listAccessListEntries(
             {
                 params: {
@@ -35,6 +56,11 @@ export class InspectAccessListTool extends AtlasToolBase {
         if (!results.length) {
             return {
                 content: [{ type: "text", text: "No access list entries found." }],
+                structuredContent: {
+                    projectId,
+                    entries: [],
+                    totalCount: 0,
+                },
             };
         }
 
@@ -46,6 +72,11 @@ export class InspectAccessListTool extends AtlasToolBase {
 
         return {
             content: formatUntrustedData(`Found ${results.length} access list entries`, JSON.stringify(entries)),
+            structuredContent: {
+                projectId,
+                entries,
+                totalCount: entries.length,
+            },
         };
     }
 }
