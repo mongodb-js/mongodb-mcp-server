@@ -1,4 +1,5 @@
 import { type OperationType, type ToolArgs, type ToolResult, type ToolExecutionContext } from "../../tool.js";
+import { requestIdAttr } from "../../../helpers/requestIdAttr.js";
 import { z } from "zod";
 import { AtlasToolBase } from "../atlasTool.js";
 import { generateSecurePassword } from "../../../helpers/generatePassword.js";
@@ -167,6 +168,7 @@ export class ConnectClusterTool extends AtlasToolBase {
             context: "atlas-connect-cluster",
             message: `attempting to connect to cluster: ${this.session.connectedAtlasCluster?.clusterName}`,
             noRedaction: true,
+            attributes: { ...requestIdAttr(context.requestInfo?.headers) },
         });
 
         // try to connect for about 5 minutes
@@ -185,6 +187,7 @@ export class ConnectClusterTool extends AtlasToolBase {
                     id: LogId.atlasConnectFailure,
                     context: "atlas-connect-cluster",
                     message: `error connecting to cluster: ${error.message}`,
+                    attributes: { ...requestIdAttr(context.requestInfo?.headers) },
                 });
 
                 await sleep(500); // wait for 500ms before retrying
@@ -224,6 +227,7 @@ export class ConnectClusterTool extends AtlasToolBase {
                             id: LogId.atlasConnectFailure,
                             context: "atlas-connect-cluster",
                             message: `error deleting database user: ${error.message}`,
+                            attributes: { ...requestIdAttr(context.requestInfo?.headers) },
                         });
                     });
             }
@@ -235,6 +239,7 @@ export class ConnectClusterTool extends AtlasToolBase {
             context: "atlas-connect-cluster",
             message: `connected to cluster: ${this.session.connectedAtlasCluster?.clusterName}`,
             noRedaction: true,
+            attributes: { ...requestIdAttr(context.requestInfo?.headers) },
         });
     }
 
