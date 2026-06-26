@@ -27,7 +27,6 @@ import type { TelemetryEvents } from '@mongodb-js/mcp-types';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import { z } from 'zod';
-import { ZodDefault } from 'zod';
 import { ZodOptional } from 'zod';
 import type { ZodRawShape } from 'zod';
 import { ZodRecord } from 'zod';
@@ -315,11 +314,15 @@ export class CreateAccessListTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof CreateAccessListTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
+    protected execute(input: ToolArgs<typeof CreateAccessListTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof CreateAccessListTool.outputSchema>>;
     // (undocumented)
     protected getConfirmationMessage(input: ToolArgs<typeof CreateAccessListTool.argsShape>): string;
     // (undocumented)
     static operationType: OperationType;
+    // (undocumented)
+    outputSchema: {
+        projectId: z.ZodString;
+    };
     // (undocumented)
     static toolName: string;
 }
@@ -458,11 +461,16 @@ export class CreateDBUserTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof CreateDBUserTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
+    protected execute(input: ToolArgs<typeof CreateDBUserTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof CreateDBUserTool.outputSchema>>;
     // (undocumented)
     protected getConfirmationMessage(input: ToolArgs<typeof CreateDBUserTool.argsShape>): string;
     // (undocumented)
     static operationType: OperationType;
+    // (undocumented)
+    outputSchema: {
+        username: z.ZodString;
+        password: z.ZodOptional<z.ZodString>;
+    };
     // (undocumented)
     static toolName: string;
 }
@@ -491,16 +499,21 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
 export class CreateFreeClusterTool extends AtlasToolBase {
     // (undocumented)
     argsShape: {
-        projectId: ZodString;
-        name: ZodString;
-        region: ZodDefault<ZodString>;
+        projectId: z.ZodString;
+        name: z.ZodString;
+        region: z.ZodDefault<z.ZodString>;
     };
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof CreateFreeClusterTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
+    protected execute(input: ToolArgs<typeof CreateFreeClusterTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof CreateFreeClusterTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
+    // (undocumented)
+    outputSchema: {
+        name: z.ZodString;
+        region: z.ZodString;
+    };
     // (undocumented)
     static toolName: string;
 }
@@ -603,15 +616,20 @@ export class CreateIndexTool extends MongoDBToolBase {
 export class CreateProjectTool extends AtlasToolBase {
     // (undocumented)
     argsShape: {
-        projectName: ZodOptional<ZodString>;
-        organizationId: ZodOptional<ZodString>;
+        projectName: z.ZodOptional<z.ZodString>;
+        organizationId: z.ZodOptional<z.ZodString>;
     };
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof CreateProjectTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
+    protected execute(input: ToolArgs<typeof CreateProjectTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof CreateProjectTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
+    // (undocumented)
+    outputSchema: {
+        projectName: z.ZodString;
+        organizationId: z.ZodOptional<z.ZodString>;
+    };
     // (undocumented)
     static toolName: string;
 }
@@ -968,9 +986,24 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof GetPerformanceAdvisorTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
+    protected execute(input: ToolArgs<typeof GetPerformanceAdvisorTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof GetPerformanceAdvisorTool.outputSchema>>;
+    // (undocumented)
+    protected handleError(error: unknown, args: ToolArgs<typeof GetPerformanceAdvisorTool.argsShape>): Promise<CallToolResult> | CallToolResult;
     // (undocumented)
     static operationType: OperationType;
+    // (undocumented)
+    outputSchema: {
+        projectId: z.ZodString;
+        clusterName: z.ZodString;
+        suggestedIndexes: z.ZodOptional<z.ZodArray<z.ZodUnknown>>;
+        dropIndexSuggestions: z.ZodOptional<z.ZodObject<{
+            hiddenIndexes: z.ZodArray<z.ZodUnknown>;
+            redundantIndexes: z.ZodArray<z.ZodUnknown>;
+            unusedIndexes: z.ZodArray<z.ZodUnknown>;
+        }, z.core.$strip>>;
+        slowQueryLogs: z.ZodOptional<z.ZodArray<z.ZodUnknown>>;
+        schemaSuggestions: z.ZodOptional<z.ZodArray<z.ZodUnknown>>;
+    };
     // (undocumented)
     protected resolveTelemetryMetadata(args: ToolArgs<typeof GetPerformanceAdvisorTool.argsShape>, input: {
         result: CallToolResult;
@@ -1011,14 +1044,24 @@ export class InsertManyTool extends MongoDBToolBase {
 export class InspectAccessListTool extends AtlasToolBase {
     // (undocumented)
     argsShape: {
-        projectId: ZodString;
+        projectId: z.ZodString;
     };
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof InspectAccessListTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
+    protected execute(input: ToolArgs<typeof InspectAccessListTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof InspectAccessListTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
+    // (undocumented)
+    outputSchema: {
+        projectId: z.ZodString;
+        entries: z.ZodArray<z.ZodObject<{
+            ipAddress: z.ZodOptional<z.ZodString>;
+            cidrBlock: z.ZodOptional<z.ZodString>;
+            comment: z.ZodOptional<z.ZodString>;
+        }, z.core.$strip>>;
+        totalCount: z.ZodNumber;
+    };
     // (undocumented)
     static toolName: string;
 }
@@ -1027,15 +1070,31 @@ export class InspectAccessListTool extends AtlasToolBase {
 export class InspectClusterTool extends AtlasToolBase {
     // (undocumented)
     argsShape: {
-        projectId: ZodString;
-        clusterName: ZodString;
+        projectId: z.ZodString;
+        clusterName: z.ZodString;
     };
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof InspectClusterTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
+    protected execute(input: ToolArgs<typeof InspectClusterTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof InspectClusterTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
+    // (undocumented)
+    outputSchema: {
+        name: z.ZodString;
+        instanceType: z.ZodEnum<{
+            DEDICATED: "DEDICATED";
+            FLEX: "FLEX";
+            FREE: "FREE";
+        }>;
+        instanceSize: z.ZodString;
+        provider: z.ZodOptional<z.ZodString>;
+        region: z.ZodOptional<z.ZodString>;
+        paused: z.ZodBoolean;
+        state: z.ZodString;
+        mongoDBVersion: z.ZodString;
+        connectionStrings: z.ZodRecord<z.ZodString, z.ZodUnknown>;
+    };
     // (undocumented)
     static toolName: string;
 }
@@ -1056,9 +1115,29 @@ export class ListAlertsTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof ListAlertsTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
+    protected execute(input: ToolArgs<typeof ListAlertsTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof ListAlertsTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
+    // (undocumented)
+    outputSchema: {
+        projectId: z.ZodString;
+        status: z.ZodEnum<{
+            CLOSED: "CLOSED";
+            OPEN: "OPEN";
+            TRACKING: "TRACKING";
+        }>;
+        pageNum: z.ZodNumber;
+        limit: z.ZodNumber;
+        alerts: z.ZodArray<z.ZodObject<{
+            id: z.ZodString;
+            status: z.ZodString;
+            created: z.ZodString;
+            updated: z.ZodString;
+            eventTypeName: z.ZodString;
+            acknowledgementComment: z.ZodString;
+        }, z.core.$strip>>;
+        totalCount: z.ZodNumber;
+    };
     // (undocumented)
     static toolName: string;
 }
@@ -1067,14 +1146,45 @@ export class ListAlertsTool extends AtlasToolBase {
 export class ListClustersTool extends AtlasToolBase {
     // (undocumented)
     argsShape: {
-        projectId: ZodOptional<ZodString>;
+        projectId: z.ZodOptional<z.ZodString>;
     };
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof ListClustersTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
+    protected execute(input: ToolArgs<typeof ListClustersTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof ListClustersTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
+    // (undocumented)
+    outputSchema: {
+        projectId: z.ZodOptional<z.ZodString>;
+        clusters: z.ZodArray<z.ZodUnion<readonly [z.ZodObject<{
+            clusterName: z.ZodOptional<z.ZodString>;
+            projectId: z.ZodOptional<z.ZodString>;
+            projectName: z.ZodOptional<z.ZodString>;
+        }, z.core.$strip>, z.ZodObject<{
+            name: z.ZodOptional<z.ZodString>;
+            instanceType: z.ZodEnum<{
+                DEDICATED: "DEDICATED";
+                FLEX: "FLEX";
+                FREE: "FREE";
+            }>;
+            instanceSize: z.ZodOptional<z.ZodString>;
+            provider: z.ZodOptional<z.ZodString>;
+            region: z.ZodOptional<z.ZodString>;
+            paused: z.ZodBoolean;
+            state: z.ZodOptional<z.ZodEnum<{
+                IDLE: "IDLE";
+                CREATING: "CREATING";
+                UPDATING: "UPDATING";
+                DELETING: "DELETING";
+                REPAIRING: "REPAIRING";
+            }>>;
+            mongoDBVersion: z.ZodOptional<z.ZodString>;
+            connectionStrings: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+            processIds: z.ZodOptional<z.ZodArray<z.ZodString>>;
+        }, z.core.$strip>]>>;
+        totalCount: z.ZodNumber;
+    };
     // (undocumented)
     static toolName: string;
 }
@@ -1134,14 +1244,35 @@ export class ListDatabasesTool extends MongoDBToolBase {
 export class ListDBUsersTool extends AtlasToolBase {
     // (undocumented)
     argsShape: {
-        projectId: ZodString;
+        projectId: z.ZodString;
     };
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof ListDBUsersTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
+    protected execute(input: ToolArgs<typeof ListDBUsersTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof ListDBUsersTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
+    // (undocumented)
+    outputSchema: {
+        projectId: z.ZodString;
+        users: z.ZodArray<z.ZodObject<{
+            username: z.ZodString;
+            roles: z.ZodArray<z.ZodObject<{
+                roleName: z.ZodString;
+                databaseName: z.ZodString;
+                collectionName: z.ZodOptional<z.ZodString>;
+            }, z.core.$strip>>;
+            scopes: z.ZodArray<z.ZodObject<{
+                type: z.ZodEnum<{
+                    CLUSTER: "CLUSTER";
+                    DATA_LAKE: "DATA_LAKE";
+                    STREAM: "STREAM";
+                }>;
+                name: z.ZodString;
+            }, z.core.$strip>>;
+        }, z.core.$strip>>;
+        totalCount: z.ZodNumber;
+    };
     // (undocumented)
     static toolName: string;
 }
@@ -1185,9 +1316,17 @@ export class ListOrganizationsTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(_args: ToolArgs<typeof ListOrganizationsTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
+    protected execute(_args: ToolArgs<typeof ListOrganizationsTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof ListOrganizationsTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
+    // (undocumented)
+    outputSchema: {
+        organizations: z.ZodArray<z.ZodObject<{
+            name: z.ZodOptional<z.ZodString>;
+            id: z.ZodOptional<z.ZodString>;
+        }, z.core.$strip>>;
+        totalCount: z.ZodNumber;
+    };
     // (undocumented)
     static toolName: string;
 }
@@ -1196,14 +1335,26 @@ export class ListOrganizationsTool extends AtlasToolBase {
 export class ListProjectsTool extends AtlasToolBase {
     // (undocumented)
     argsShape: {
-        orgId: ZodOptional<ZodString>;
+        orgId: z.ZodOptional<z.ZodString>;
     };
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof ListProjectsTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
+    protected execute(input: ToolArgs<typeof ListProjectsTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof ListProjectsTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
+    // (undocumented)
+    outputSchema: {
+        orgId: z.ZodOptional<z.ZodString>;
+        projects: z.ZodArray<z.ZodObject<{
+            name: z.ZodString;
+            id: z.ZodOptional<z.ZodString>;
+            orgId: z.ZodString;
+            orgName: z.ZodString;
+            created: z.ZodString;
+        }, z.core.$strip>>;
+        totalCount: z.ZodNumber;
+    };
     // (undocumented)
     static toolName: string;
 }
@@ -1499,9 +1650,38 @@ export class StreamsBuildTool extends StreamsToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof StreamsBuildTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
+    protected execute(args: ToolArgs<typeof StreamsBuildTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof StreamsBuildTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
+    // (undocumented)
+    outputSchema: {
+        workspaceName: z.ZodOptional<z.ZodString>;
+        name: z.ZodOptional<z.ZodString>;
+        cloudProvider: z.ZodOptional<z.ZodEnum<{
+            AWS: "AWS";
+            AZURE: "AZURE";
+            GCP: "GCP";
+        }>>;
+        region: z.ZodOptional<z.ZodString>;
+        tier: z.ZodOptional<z.ZodEnum<{
+            SP50: "SP50";
+            SP30: "SP30";
+            SP10: "SP10";
+            SP5: "SP5";
+            SP2: "SP2";
+        }>>;
+        connectionType: z.ZodOptional<z.ZodString>;
+        provider: z.ZodOptional<z.ZodEnum<{
+            AWS: "AWS";
+            AZURE: "AZURE";
+            GCP: "GCP";
+        }>>;
+        dlq: z.ZodOptional<z.ZodObject<{
+            connectionName: z.ZodString;
+            db: z.ZodString;
+            coll: z.ZodString;
+        }, z.core.$strip>>;
+    };
     // (undocumented)
     static toolName: string;
 }
