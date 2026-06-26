@@ -129,6 +129,20 @@
           "isSecret": false
         },
         {
+          "name": "MDB_MCP_HTTP_ALLOWED_HOSTS",
+          "description": "Additional values accepted in the HTTP Host header beyond the loopback defaults and the bound httpHost/httpPort (only used when transport is 'http'). Set this to allow reverse-proxy hostnames or, when binding to a non-loopback address, the externally reachable host. Each entry may include a port, e.g. 'mcp.example.com' or 'mcp.example.com:8443'.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_HTTP_ALLOWED_ORIGINS",
+          "description": "Additional values accepted in the browser Origin header beyond the loopback defaults, the bound httpHost/httpPort, and httpAllowedHosts (only used when transport is 'http'). Entries may be full origins such as 'https://app.example.com' or host[:port] values.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
           "name": "MDB_MCP_HTTP_BODY_LIMIT",
           "description": "Maximum size of the HTTP request body in bytes (only used when transport is 'http'). This value is passed as the optional limit parameter to the Express.js json() middleware.",
           "isRequired": false,
@@ -387,6 +401,18 @@
           "description": "Deprecated. Use `monitoringServerPort` instead. Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
           "isRequired": false,
           "format": "number"
+        },
+        {
+          "type": "named",
+          "name": "--httpAllowedHosts",
+          "description": "Additional values accepted in the HTTP Host header beyond the loopback defaults and the bound httpHost/httpPort (only used when transport is 'http'). Set this to allow reverse-proxy hostnames or, when binding to a non-loopback address, the externally reachable host. Each entry may include a port, e.g. 'mcp.example.com' or 'mcp.example.com:8443'.",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--httpAllowedOrigins",
+          "description": "Additional values accepted in the browser Origin header beyond the loopback defaults, the bound httpHost/httpPort, and httpAllowedHosts (only used when transport is 'http'). Entries may be full origins such as 'https://app.example.com' or host[:port] values.",
+          "isRequired": false
         },
         {
           "type": "named",
@@ -652,6 +678,20 @@
           "isSecret": false
         },
         {
+          "name": "MDB_MCP_HTTP_ALLOWED_HOSTS",
+          "description": "Additional values accepted in the HTTP Host header beyond the loopback defaults and the bound httpHost/httpPort (only used when transport is 'http'). Set this to allow reverse-proxy hostnames or, when binding to a non-loopback address, the externally reachable host. Each entry may include a port, e.g. 'mcp.example.com' or 'mcp.example.com:8443'.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_HTTP_ALLOWED_ORIGINS",
+          "description": "Additional values accepted in the browser Origin header beyond the loopback defaults, the bound httpHost/httpPort, and httpAllowedHosts (only used when transport is 'http'). Entries may be full origins such as 'https://app.example.com' or host[:port] values.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
           "name": "MDB_MCP_HTTP_BODY_LIMIT",
           "description": "Maximum size of the HTTP request body in bytes (only used when transport is 'http'). This value is passed as the optional limit parameter to the Express.js json() middleware.",
           "isRequired": false,
@@ -910,6 +950,18 @@
           "description": "Deprecated. Use `monitoringServerPort` instead. Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
           "isRequired": false,
           "format": "number"
+        },
+        {
+          "type": "named",
+          "name": "--httpAllowedHosts",
+          "description": "Additional values accepted in the HTTP Host header beyond the loopback defaults and the bound httpHost/httpPort (only used when transport is 'http'). Set this to allow reverse-proxy hostnames or, when binding to a non-loopback address, the externally reachable host. Each entry may include a port, e.g. 'mcp.example.com' or 'mcp.example.com:8443'.",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--httpAllowedOrigins",
+          "description": "Additional values accepted in the browser Origin header beyond the loopback defaults, the bound httpHost/httpPort, and httpAllowedHosts (only used when transport is 'http'). Entries may be full origins such as 'https://app.example.com' or host[:port] values.",
+          "isRequired": false
         },
         {
           "type": "named",
