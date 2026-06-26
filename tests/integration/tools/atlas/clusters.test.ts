@@ -135,6 +135,20 @@ describeWithAtlas("clusters", (integration) => {
                 expect(content).toContain(projectId);
                 expect(listClustersSpy).toHaveBeenCalledTimes(1);
                 expect(listFlexClustersSpy).toHaveBeenCalledTimes(1);
+
+                expectDefined(response.structuredContent);
+                const structuredContent = response.structuredContent as {
+                    projectId: string;
+                    totalCount: number;
+                    clusters: Array<{ name?: string; instanceType?: string }>;
+                };
+                expect(structuredContent.projectId).toBe(projectId);
+                expect(structuredContent.totalCount).toBeGreaterThanOrEqual(1);
+                expect(
+                    structuredContent.clusters.some(
+                        (cluster) => cluster.name === clusterName && cluster.instanceType === "FREE"
+                    )
+                ).toBe(true);
             });
 
             it("returns clusters when listFlexClusters fails", async () => {
@@ -152,6 +166,16 @@ describeWithAtlas("clusters", (integration) => {
                 const content = getResponseContent(response.content);
                 expect(content).toMatch(/Found \d+ clusters in project/);
                 expect(content).toContain(projectId);
+
+                expectDefined(response.structuredContent);
+                const structuredContent = response.structuredContent as {
+                    projectId: string;
+                    totalCount: number;
+                    clusters: Array<{ name?: string }>;
+                };
+                expect(structuredContent.projectId).toBe(projectId);
+                expect(structuredContent.totalCount).toBeGreaterThanOrEqual(1);
+                expect(structuredContent.clusters.some((cluster) => cluster.name === clusterName)).toBe(true);
             });
 
             it("returns clusters when listClusters fails", async () => {
@@ -166,6 +190,16 @@ describeWithAtlas("clusters", (integration) => {
 
                 const content = getResponseContent(response.content);
                 expect(content).toBeDefined();
+
+                expectDefined(response.structuredContent);
+                const structuredContent = response.structuredContent as {
+                    projectId: string;
+                    totalCount: number;
+                    clusters: unknown[];
+                };
+                expect(structuredContent.projectId).toBe(projectId);
+                expect(typeof structuredContent.totalCount).toBe("number");
+                expect(Array.isArray(structuredContent.clusters)).toBe(true);
             });
 
             it("returns a successful empty result when no clusters exist across all projects", async () => {
@@ -177,6 +211,10 @@ describeWithAtlas("clusters", (integration) => {
 
                 expect(response.isError).toBeFalsy();
                 expect(getResponseContent(response.content)).toContain("No clusters found.");
+                expect(response.structuredContent).toEqual({
+                    clusters: [],
+                    totalCount: 0,
+                });
             });
         });
 
