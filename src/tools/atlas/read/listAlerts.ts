@@ -40,7 +40,8 @@ const ListAlertsOutputSchema = {
 
 export class ListAlertsTool extends AtlasToolBase {
     static toolName = "atlas-list-alerts";
-    public description = "List MongoDB Atlas alerts";
+    public description =
+        "List triggered alerts for a MongoDB Atlas project. These are alerts Atlas has raised, not the alert configurations that define them. Defaults to OPEN alerts; set status to TRACKING or CLOSED to see others.";
     static operationType: OperationType = "read";
     public argsShape = {
         ...ListAlertsArgs,

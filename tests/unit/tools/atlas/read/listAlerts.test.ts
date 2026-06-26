@@ -192,6 +192,13 @@ describe("ListAlertsTool", () => {
         expect(text).toContain("No alerts with status");
     });
 
+    it("description clarifies it returns triggered alerts, not configurations, and defaults to OPEN", () => {
+        const description = tool.description.toLowerCase();
+        expect(description).toContain("triggered");
+        expect(description).toContain("configuration");
+        expect(tool.description).toContain("OPEN");
+    });
+
     it("should handle missing acknowledgementComment", async () => {
         mockApiClient.listAlerts!.mockResolvedValue({
             results: [
