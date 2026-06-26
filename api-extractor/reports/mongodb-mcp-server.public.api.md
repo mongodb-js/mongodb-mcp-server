@@ -1220,6 +1220,8 @@ export const UserConfigSchema: z.ZodObject<{
     }>>;
     httpPort: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     httpHost: z.ZodDefault<z.ZodString>;
+    httpAllowedHosts: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodString>>>;
+    httpAllowedOrigins: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodString>>>;
     httpHeaders: z.ZodDefault<z.ZodObject<{}, z.core.$loose>>;
     httpBodyLimit: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     idleTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;

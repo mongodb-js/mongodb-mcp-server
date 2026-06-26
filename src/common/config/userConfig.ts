@@ -142,6 +142,20 @@ const ServerConfigSchema = z.object({
         .default("127.0.0.1")
         .describe("Host address to bind the HTTP server to (only used when transport is 'http').")
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    httpAllowedHosts: z
+        .preprocess((val: string | string[] | undefined) => commaSeparatedToArray(val), z.array(z.string()))
+        .default([])
+        .describe(
+            "Additional values accepted in the HTTP Host header beyond the loopback defaults and the bound httpHost/httpPort (only used when transport is 'http'). Set this to allow reverse-proxy hostnames or, when binding to a non-loopback address, the externally reachable host. Each entry may include a port, e.g. 'mcp.example.com' or 'mcp.example.com:8443'."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    httpAllowedOrigins: z
+        .preprocess((val: string | string[] | undefined) => commaSeparatedToArray(val), z.array(z.string()))
+        .default([])
+        .describe(
+            "Additional values accepted in the browser Origin header beyond the loopback defaults, the bound httpHost/httpPort, and httpAllowedHosts (only used when transport is 'http'). Entries may be full origins such as 'https://app.example.com' or host[:port] values."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
     httpHeaders: z
         .object({})
         .loose()

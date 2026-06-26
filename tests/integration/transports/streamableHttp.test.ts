@@ -20,7 +20,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { TelemetryToolMetadata } from "../../../src/telemetry/types.js";
 import type { RequestContext } from "../../../src/transports/base.js";
 import type { AnyToolClass, Server } from "../../../src/lib.js";
-import type { IncomingMessage } from "node:http";
+import http, { type IncomingMessage } from "node:http";
 import { AsyncLocalStorage } from "node:async_hooks";
 
 describe("StreamableHttpRunner", () => {
@@ -208,6 +208,148 @@ describe("StreamableHttpRunner", () => {
 
             // Should return 413 Payload Too Large
             expect(response.status).toBe(413);
+        });
+    });
+
+    describe("DNS-rebinding / cross-origin protection", () => {
+        // Sends a raw HTTP POST to /mcp with caller-controlled Host/Origin headers (which the
+        // Fetch API forbids overriding), always connecting over loopback so a wildcard bind is
+        // still reachable. The validation middleware runs first, so a blocked request is a 403
+        // regardless of the body; an allowed request falls through to the MCP layer (not a 403).
+        const rawMcpRequest = (
+            serverAddress: string,
+            headers: Record<string, string>
+        ): Promise<{ status: number; body: string }> => {
+            const { port } = new URL(serverAddress);
+            return new Promise((resolve, reject) => {
+                const request = http.request(
+                    {
+                        hostname: "127.0.0.1",
+                        port,
+                        path: "/mcp",
+                        method: "POST",
+                        headers: {
+                            "content-type": "application/json",
+                            accept: "application/json, text/event-stream",
+                            ...headers,
+                        },
+                    },
+                    (response) => {
+                        let body = "";
+                        response.setEncoding("utf-8");
+                        response.on("data", (chunk) => (body += chunk));
+                        response.on("end", () => resolve({ status: response.statusCode ?? 0, body }));
+                    }
+                );
+                request.on("error", reject);
+                request.end(JSON.stringify({ jsonrpc: "2.0", id: 1, method: "ping" }));
+            });
+        };
+
+        describe("when bound to a loopback address", () => {
+            beforeEach(async () => {
+                runner = new StreamableHttpRunner({ userConfig: config });
+                await runner.start();
+            });
+
+            // Guards the ephemeral-port fix: httpPort is 0 here, so the allowlist must use the
+            // resolved listening port rather than the configured 0.
+            it("accepts a request whose Host matches the resolved (ephemeral) port", async () => {
+                const response = await rawMcpRequest(runner["mcpServer"]!.serverAddress, {});
+                expect(response.status).not.toBe(403);
+            });
+
+            it("accepts a loopback Origin", async () => {
+                const response = await rawMcpRequest(runner["mcpServer"]!.serverAddress, {
+                    origin: runner["mcpServer"]!.serverAddress,
+                });
+                expect(response.status).not.toBe(403);
+            });
+
+            it("rejects a foreign Host header", async () => {
+                const response = await rawMcpRequest(runner["mcpServer"]!.serverAddress, {
+                    host: "evil.example.com",
+                });
+                expect(response.status).toBe(403);
+                expect(JSON.parse(response.body)).toEqual({ error: "Host not allowed" });
+            });
+
+            it("rejects a foreign Origin header", async () => {
+                const response = await rawMcpRequest(runner["mcpServer"]!.serverAddress, {
+                    origin: "http://evil.example.com",
+                });
+                expect(response.status).toBe(403);
+                expect(JSON.parse(response.body)).toEqual({ error: "Origin not allowed" });
+            });
+        });
+
+        describe("when bound to a wildcard address", () => {
+            beforeEach(async () => {
+                config.httpHost = "0.0.0.0";
+                runner = new StreamableHttpRunner({ userConfig: config });
+                await runner.start();
+            });
+
+            it("does not enforce the Host header", async () => {
+                const response = await rawMcpRequest(runner["mcpServer"]!.serverAddress, {
+                    host: "anything.example.com",
+                });
+                expect(response.status).not.toBe(403);
+            });
+
+            it("still rejects a foreign Origin to block browser rebinding", async () => {
+                const response = await rawMcpRequest(runner["mcpServer"]!.serverAddress, {
+                    origin: "http://evil.example.com",
+                });
+                expect(response.status).toBe(403);
+                expect(JSON.parse(response.body)).toEqual({ error: "Origin not allowed" });
+            });
+        });
+
+        describe("with httpAllowedHosts configured", () => {
+            beforeEach(async () => {
+                config.httpAllowedHosts = ["proxy.internal:8443"];
+                runner = new StreamableHttpRunner({ userConfig: config });
+                await runner.start();
+            });
+
+            it("accepts a Host listed in httpAllowedHosts", async () => {
+                const response = await rawMcpRequest(runner["mcpServer"]!.serverAddress, {
+                    host: "proxy.internal:8443",
+                });
+                expect(response.status).not.toBe(403);
+            });
+
+            it("still rejects a Host not in the allowlist", async () => {
+                const response = await rawMcpRequest(runner["mcpServer"]!.serverAddress, {
+                    host: "evil.example.com",
+                });
+                expect(response.status).toBe(403);
+                expect(JSON.parse(response.body)).toEqual({ error: "Host not allowed" });
+            });
+        });
+
+        describe("with httpAllowedOrigins configured", () => {
+            beforeEach(async () => {
+                config.httpAllowedOrigins = ["https://app.example.com"];
+                runner = new StreamableHttpRunner({ userConfig: config });
+                await runner.start();
+            });
+
+            it("accepts an Origin listed in httpAllowedOrigins", async () => {
+                const response = await rawMcpRequest(runner["mcpServer"]!.serverAddress, {
+                    origin: "https://app.example.com",
+                });
+                expect(response.status).not.toBe(403);
+            });
+
+            it("still rejects an Origin not in the allowlist", async () => {
+                const response = await rawMcpRequest(runner["mcpServer"]!.serverAddress, {
+                    origin: "https://evil.example.com",
+                });
+                expect(response.status).toBe(403);
+                expect(JSON.parse(response.body)).toEqual({ error: "Origin not allowed" });
+            });
         });
     });
 

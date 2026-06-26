@@ -311,6 +311,9 @@ export class MCPHttpServer<
     }
 
     protected setupMiddlewares(): void {
+        // Reject disallowed Host/Origin before parsing the body, so a cross-origin request
+        // is turned away without spending effort parsing a (potentially large) JSON payload.
+        this.app.use(this.validateRequestHost());
         this.app.use(express.json({ limit: this.userConfig.httpBodyLimit }));
         this.app.use((req, res, next) => {
             for (const [key, value] of Object.entries(this.userConfig.httpHeaders)) {
@@ -323,6 +326,93 @@ export class MCPHttpServer<
 
             next();
         });
+    }
+
+    /** The port the HTTP server is actually listening on, resolving an ephemeral `httpPort: 0`. */
+    private get boundPort(): number {
+        const address = this.httpServer?.address();
+        if (address && typeof address === "object") {
+            return address.port;
+        }
+        return this.userConfig.httpPort;
+    }
+
+    /**
+     * DNS-rebinding / cross-origin protection for the HTTP transport.
+     *
+     * A malicious web page can use DNS rebinding to make a browser issue requests to a
+     * locally-bound server while treating them as same-origin, bypassing CORS. We defend by:
+     *  - rejecting any browser `Origin` whose host is not in the allowlist, and
+     *  - rejecting any `Host` header outside the allowlist when bound to a concrete address.
+     *
+     * The allowlist is loopback (127.0.0.1 / localhost / ::1) plus the address the server is
+     * bound to, plus any operator-configured `httpAllowedHosts` (and, for the `Origin` check,
+     * `httpAllowedOrigins`). Those options enable reverse-proxy deployments and binding to a
+     * non-loopback address. Non-browser MCP clients (which omit `Origin` and connect with a
+     * matching `Host`) are unaffected.
+     *
+     * When the server is bound to a wildcard address (e.g. `0.0.0.0`), the operator has opted
+     * into broad exposure, so `Host` is not enforced — but the `Origin` check still blocks
+     * browser rebinding, and `httpAllowedOrigins` controls which browser origins are accepted.
+     *
+     * The bound port may be ephemeral (`httpPort: 0`) and is only known once the server is
+     * listening, so it is resolved from the live server at request time rather than captured
+     * from the configured value.
+     */
+    private validateRequestHost(): express.RequestHandler {
+        const configuredHost = (this.userConfig.httpHost ?? "").toLowerCase();
+        const wildcardHosts = ["", "0.0.0.0", "::", "[::]"];
+        const enforceHost = !wildcardHosts.includes(configuredHost);
+
+        const hostOf = (value: string): string => {
+            try {
+                return new URL(value).host.toLowerCase();
+            } catch {
+                return value.toLowerCase();
+            }
+        };
+
+        const baseHosts = ["127.0.0.1", "localhost", "::1", "[::1]"];
+        if (enforceHost && configuredHost) {
+            baseHosts.push(configuredHost);
+        }
+        const extraHosts = (this.userConfig.httpAllowedHosts ?? []).map((host) => host.toLowerCase());
+        const extraOrigins = (this.userConfig.httpAllowedOrigins ?? []).map(hostOf);
+
+        // The bound port is only known once the server is listening and may be ephemeral, so the
+        // allowlists are built lazily and memoised per resolved port.
+        let cache: { port: number; hosts: Set<string>; origins: Set<string> } | undefined;
+        const allowlistsFor = (port: number): { hosts: Set<string>; origins: Set<string> } => {
+            if (cache?.port !== port) {
+                const hosts = new Set<string>();
+                for (const name of [...baseHosts, ...extraHosts]) {
+                    hosts.add(name);
+                    hosts.add(`${name}:${port}`);
+                }
+                cache = { port, hosts, origins: new Set([...hosts, ...extraOrigins]) };
+            }
+            return cache;
+        };
+
+        return (req, res, next): void => {
+            const { hosts, origins } = allowlistsFor(this.boundPort);
+
+            const origin = req.headers.origin;
+            if (typeof origin === "string" && origin.length > 0 && !origins.has(hostOf(origin))) {
+                res.status(403).json({ error: "Origin not allowed" });
+                return;
+            }
+
+            if (enforceHost) {
+                const host = req.headers.host;
+                if (typeof host !== "string" || !hosts.has(host.toLowerCase())) {
+                    res.status(403).json({ error: "Host not allowed" });
+                    return;
+                }
+            }
+
+            next();
+        };
     }
 
     // eslint-disable-next-line @typescript-eslint/require-await
