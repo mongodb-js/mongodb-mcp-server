@@ -240,12 +240,36 @@ export class StreamableHttpRunner<
         }
 
         if (this.shouldWarnAboutHttpHost(this.userConfig.httpHost)) {
+            if (!this.userConfig.oauthIssuer || !this.userConfig.oauthAudience) {
+                // OWASP MCP07: a non-loopback bind without authentication is
+                // an open back door into the MCP server (and through it,
+                // the configured MongoDB cluster). Refuse to start rather
+                // than log a warning and continue.
+                throw new Error(
+                    `Refusing to start: httpHost=${this.userConfig.httpHost} is non-loopback and OAuth authentication is not configured. ` +
+                        `Set oauthIssuer + oauthAudience (and configure your OIDC provider) to enable bearer-token auth, ` +
+                        `or bind to 127.0.0.1 / localhost / ::1 for local-only access.`
+                );
+            }
+
             this.logger.warning({
                 id: LogId.streamableHttpTransportHttpHostWarning,
                 context: "streamableHttpTransport",
-                message: `Binding to ${this.userConfig.httpHost} can expose the MCP Server to the entire local network, which allows other devices on the same network to potentially access the MCP Server. This is a security risk and could allow unauthorized access to your database context.`,
+                message: `Binding to ${this.userConfig.httpHost}. OAuth bearer-token authentication is enabled (issuer=${this.userConfig.oauthIssuer}).`,
                 noRedaction: true,
             });
+        }
+
+        // Config-shape rule: oauthIssuer and oauthAudience must be set
+        // together. Specifying one without the other is almost certainly
+        // a misconfiguration; fail loudly instead of silently disabling
+        // auth.
+        if (Boolean(this.userConfig.oauthIssuer) !== Boolean(this.userConfig.oauthAudience)) {
+            throw new Error(
+                "oauthIssuer and oauthAudience must be configured together. " +
+                    `Got oauthIssuer=${this.userConfig.oauthIssuer ?? "<unset>"}, ` +
+                    `oauthAudience=${this.userConfig.oauthAudience ?? "<unset>"}.`
+            );
         }
     }
 }
