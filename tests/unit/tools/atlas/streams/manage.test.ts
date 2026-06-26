@@ -317,6 +317,22 @@ describe("StreamsManageTool", () => {
                 })
             );
         });
+
+        it("includes x-request-id in debug log when getStreamProcessor throws during stop", async () => {
+            mockApiClient.getStreamProcessor!.mockRejectedValue(new Error("lookup failed"));
+
+            await tool["execute"]({ ...baseArgs, action: "stop-processor", resourceName: "proc1" } as never, {
+                signal: new AbortController().signal,
+                requestInfo: { headers: { "x-request-id": "req-stop-1" } },
+            });
+
+            expect(mockLogger.debug).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    context: "streams-manage",
+                    attributes: expect.objectContaining({ "x-request-id": "req-stop-1" }),
+                })
+            );
+        });
     });
 
     describe("modify-processor", () => {

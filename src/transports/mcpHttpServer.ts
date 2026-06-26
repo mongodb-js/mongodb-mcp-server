@@ -14,6 +14,7 @@ import {
 import { ConfigOverrideError } from "../common/config/configOverrides.js";
 import type { CustomizableServerOptions, CustomizableSessionOptions, TransportRequestContext } from "./base.js";
 import { ExpressBasedHttpServer } from "./expressBasedHttpServer.js";
+import { requestIdAttr } from "../helpers/requestIdAttr.js";
 import {
     JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED,
     JSON_RPC_ERROR_CODE_SESSION_ID_INVALID,
@@ -192,6 +193,7 @@ export class MCPHttpServer<
         const { StreamableHTTPServerTransport } = await import("@modelcontextprotocol/sdk/server/streamableHttp.js");
 
         const sessionId = providedSessionId ?? getRandomUUID();
+        const requestIdAttrs = requestIdAttr(req.headers);
 
         // Check if session already exists
         if (await this.sessionStore.getSession(sessionId)) {
@@ -205,6 +207,7 @@ export class MCPHttpServer<
                 id: LogId.streamableHttpTransportSessionNotFound,
                 context: "streamableHttpTransport",
                 message: `Session with ID ${sessionId} is already being initialized, waiting`,
+                attributes: { ...requestIdAttrs },
             });
             try {
                 await pendingInit;
@@ -219,6 +222,9 @@ export class MCPHttpServer<
             id: LogId.streamableHttpTransportSessionNotFound,
             context: "streamableHttpTransport",
             message: `Session with ID ${sessionId} not found, initializing new session`,
+            attributes: {
+                ...requestIdAttrs,
+            },
         });
 
         const initPromise = (async (): Promise<void> => {
@@ -288,6 +294,7 @@ export class MCPHttpServer<
                 id: LogId.streamableHttpTransportRequestFailure,
                 context: "streamableHttpTransport",
                 message: `Failed to initialize session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
+                attributes: { ...requestIdAttrs },
             });
             // Remove the partially initialized session on failure so that
             // subsequent requests don't see a broken session and can retry
@@ -331,6 +338,8 @@ export class MCPHttpServer<
                 return this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_ID_INVALID);
             }
 
+            const requestIdAttrs = requestIdAttr(req.headers);
+
             let transport = await this.sessionStore.getSession(sessionId);
             if (!transport) {
                 if (!this.userConfig.externallyManagedSessions) {
@@ -338,6 +347,7 @@ export class MCPHttpServer<
                         id: LogId.streamableHttpTransportSessionNotFound,
                         context: "streamableHttpTransport",
                         message: `Session with ID ${sessionId} not found`,
+                        attributes: { ...requestIdAttrs },
                     });
 
                     return this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND);
@@ -371,6 +381,7 @@ export class MCPHttpServer<
                             id: LogId.streamableHttpTransportDisallowedExternalSessionError,
                             context: "streamableHttpTransport",
                             message: `Client provided session ID ${sessionId}, but externallyManagedSessions is disabled`,
+                            attributes: requestIdAttr(req.headers),
                         });
 
                         return this.reportSessionError(res, JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION);
@@ -420,6 +431,7 @@ export class MCPHttpServer<
                     id: LogId.streamableHttpTransportRequestFailure,
                     context: "streamableHttpTransport",
                     message: `Error handling request: ${error instanceof Error ? error.message : String(error)}`,
+                    attributes: requestIdAttr(req.headers),
                 });
 
                 const message = error instanceof ConfigOverrideError ? error.message : `failed to handle request`;
