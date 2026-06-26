@@ -11,7 +11,12 @@ import { UIRegistry } from "../../../../../src/ui/registry/index.js";
 import { MockMetrics } from "../../../mocks/metrics.js";
 
 describe("CreateFreeClusterTool", () => {
-    let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
+    let mockApiClient: {
+        createCluster: ReturnType<typeof vi.fn>;
+        getIpInfo: ReturnType<typeof vi.fn>;
+        createAccessListEntry: ReturnType<typeof vi.fn>;
+        logger: CompositeLogger;
+    };
     let tool: CreateFreeClusterTool;
 
     const baseArgs = {
@@ -21,18 +26,19 @@ describe("CreateFreeClusterTool", () => {
     };
 
     beforeEach(() => {
-        mockApiClient = {
-            createCluster: vi.fn().mockResolvedValue({}),
-            getIpInfo: vi.fn().mockResolvedValue({ currentIpv4Address: "127.0.0.1" }),
-            createAccessListEntry: vi.fn().mockResolvedValue({}),
-        };
-
         const mockLogger = {
             info: vi.fn(),
             debug: vi.fn(),
             warning: vi.fn(),
             error: vi.fn(),
         } as unknown as CompositeLogger;
+
+        mockApiClient = {
+            createCluster: vi.fn().mockResolvedValue({}),
+            getIpInfo: vi.fn().mockResolvedValue({ currentIpv4Address: "127.0.0.1" }),
+            createAccessListEntry: vi.fn().mockResolvedValue({}),
+            logger: mockLogger,
+        };
 
         const mockSession = {
             logger: mockLogger,
