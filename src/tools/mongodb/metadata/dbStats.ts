@@ -1,7 +1,7 @@
 import { DBOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
-import { EJSON } from "bson";
+import { stringifyEJSON } from "../../../helpers/ejson.js";
 import { z } from "zod";
 
 const DbStatsOutputSchema = {
@@ -34,7 +34,7 @@ export class DbStatsTool extends MongoDBToolBase {
         );
 
         return {
-            content: formatUntrustedData(`Statistics for database ${database}`, EJSON.stringify(result)),
+            content: formatUntrustedData(`Statistics for database ${database}`, stringifyEJSON(result)),
             structuredContent: {
                 stats: result,
             },

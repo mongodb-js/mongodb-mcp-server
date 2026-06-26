@@ -6,7 +6,8 @@ import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolExecutionContext } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
-import { type Document, EJSON } from "bson";
+import { type Document } from "bson";
+import { stringifyEJSON } from "../../../helpers/ejson.js";
 import { ErrorCodes, MongoDBError } from "../../../common/errors.js";
 import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorUntilMaxBytes.js";
 import { operationWithFallback } from "../../../helpers/operationWithFallback.js";
@@ -188,7 +189,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
             return {
                 content: formatUntrustedData(
                     successMessage,
-                    ...(documents.length > 0 ? [EJSON.stringify(documents)] : [])
+                    ...(documents.length > 0 ? [stringifyEJSON(documents)] : [])
                 ),
             };
         } finally {
