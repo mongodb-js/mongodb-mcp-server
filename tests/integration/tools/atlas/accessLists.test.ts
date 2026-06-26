@@ -75,6 +75,11 @@ describeWithAtlas("ip access lists", (integration) => {
                 const elements = getResponseElements(response.content);
                 expect(elements).toHaveLength(1);
                 expect(elements[0]?.text).toContain("IP/CIDR ranges added to access list");
+
+                expectDefined(response.structuredContent);
+                expect(response.structuredContent).toEqual({
+                    projectId,
+                });
             });
         });
 
