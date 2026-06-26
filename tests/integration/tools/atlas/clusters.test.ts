@@ -56,6 +56,12 @@ describeWithAtlas("clusters", (integration) => {
                 expect(content).toContain("has been created");
                 expect(content).toContain("US_EAST_1");
 
+                expectDefined(response.structuredContent);
+                expect(response.structuredContent).toEqual({
+                    name: clusterName,
+                    region: "US_EAST_1",
+                });
+
                 assertApiClientIsAvailable(session);
                 // Check that the current IP is present in the access list
                 const accessList = await session.apiClient.listAccessListEntries({
