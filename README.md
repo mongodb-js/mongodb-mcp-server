@@ -591,6 +591,44 @@ List of available preview features:
 
 - `mcpUI` - Enables an optional web-based UI for interacting with the MCP server.
 
+#### Monitoring Server (Health Check & Metrics)
+
+When running with `--transport http`, you can expose a separate monitoring HTTP server for health checks and metrics. This server is only started when both `monitoringServerHost` and `monitoringServerPort` are set, and it listens on its own host/port (independent from the main `httpHost`/`httpPort`).
+
+The features exposed are controlled by `monitoringServerFeatures` (default: `health-check`). Available features and their endpoints:
+
+| Feature        | Endpoint   | Description                                                                                 |
+| -------------- | ---------- | ------------------------------------------------------------------------------------------- |
+| `health-check` | `/health`  | Returns `200 OK` with a JSON body describing the server status. Useful for liveness probes. |
+| `metrics`      | `/metrics` | Returns server metrics in Prometheus text format.                                           |
+
+The `/health` response is sent with `Cache-Control: no-store` and has the following shape (`status` is always `"ok"` while the process is alive):
+
+```json
+{
+  "status": "ok",
+  "version": "1.13.0",
+  "uptimeSeconds": 42,
+  "timestamp": "2026-06-20T12:00:00.000Z"
+}
+```
+
+Example: start the server with the monitoring server enabled and call the health-check endpoint:
+
+```shell
+npx -y mongodb-mcp-server@latest --transport http --httpHost 0.0.0.0 --httpPort 3000 --monitoringServerHost 0.0.0.0 --monitoringServerPort 8080 &
+curl http://0.0.0.0:8080/health
+# => {"status":"ok"}
+```
+
+To expose both endpoints, pass the features explicitly:
+
+```shell
+npx -y mongodb-mcp-server@latest --transport http --monitoringServerHost 0.0.0.0 --monitoringServerPort 8080 --monitoringServerFeatures health-check,metrics
+```
+
+> **💡 Note:** `healthCheckHost` / `healthCheckPort` are deprecated aliases for `monitoringServerHost` / `monitoringServerPort` and continue to serve the same `/health` endpoint.
+
 ### Atlas API Access
 
 To use the Atlas API tools, you'll need to create a service account in MongoDB Atlas:

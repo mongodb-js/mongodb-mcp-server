@@ -885,7 +885,12 @@ describe("StreamableHttpRunner", () => {
                 const healthResponse = await fetch("http://localhost:3001/health");
                 expect(healthResponse.status).toBe(200);
                 const healthData = (await healthResponse.json()) as unknown;
-                expect(healthData).toEqual({ status: "ok" });
+                expect(healthData).toEqual({
+                    status: "ok",
+                    version: expect.any(String),
+                    uptimeSeconds: expect.any(Number),
+                    timestamp: expect.any(String),
+                });
             });
 
             it("does not start the monitoring server when not configured", async () => {
@@ -928,7 +933,12 @@ describe("StreamableHttpRunner", () => {
                 const healthResponse = await fetch(`${runner["monitoringServer"]!.serverAddress}/health`);
                 expect(healthResponse.status).toBe(200);
                 const healthData = (await healthResponse.json()) as unknown;
-                expect(healthData).toEqual({ status: "ok" });
+                expect(healthData).toEqual({
+                    status: "ok",
+                    version: expect.any(String),
+                    uptimeSeconds: expect.any(Number),
+                    timestamp: expect.any(String),
+                });
             });
         });
 
@@ -951,7 +961,12 @@ describe("StreamableHttpRunner", () => {
                 const healthResponse = await fetch("http://localhost:3001/health");
                 expect(healthResponse.status).toBe(200);
                 const healthData = (await healthResponse.json()) as unknown;
-                expect(healthData).toEqual({ status: "ok" });
+                expect(healthData).toEqual({
+                    status: "ok",
+                    version: expect.any(String),
+                    uptimeSeconds: expect.any(Number),
+                    timestamp: expect.any(String),
+                });
             });
 
             it("does not start the monitoring server when not configured", async () => {
