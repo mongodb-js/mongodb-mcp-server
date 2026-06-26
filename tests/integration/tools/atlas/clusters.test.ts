@@ -56,6 +56,12 @@ describeWithAtlas("clusters", (integration) => {
                 expect(content).toContain("has been created");
                 expect(content).toContain("US_EAST_1");
 
+                expectDefined(response.structuredContent);
+                expect(response.structuredContent).toEqual({
+                    name: clusterName,
+                    region: "US_EAST_1",
+                });
+
                 assertApiClientIsAvailable(session);
                 // Check that the current IP is present in the access list
                 const accessList = await session.apiClient.listAccessListEntries({
@@ -92,6 +98,19 @@ describeWithAtlas("clusters", (integration) => {
                 expect(content).toContain('"provider"');
                 expect(content).toContain('"region"');
                 expect(content).toContain('"paused"');
+
+                expectDefined(response.structuredContent);
+                expect(response.structuredContent).toMatchObject({
+                    name: clusterName,
+                    instanceType: "FREE",
+                    instanceSize: "N/A",
+                    provider: "AWS",
+                    region: "US_EAST_1",
+                    paused: false,
+                    mongoDBVersion: expect.any(String) as string,
+                    state: expect.any(String) as string,
+                    connectionStrings: expect.any(Object) as Record<string, string>,
+                });
             });
         });
 
@@ -122,6 +141,20 @@ describeWithAtlas("clusters", (integration) => {
                 expect(content).toContain(projectId);
                 expect(listClustersSpy).toHaveBeenCalledTimes(1);
                 expect(listFlexClustersSpy).toHaveBeenCalledTimes(1);
+
+                expectDefined(response.structuredContent);
+                const structuredContent = response.structuredContent as {
+                    projectId: string;
+                    totalCount: number;
+                    clusters: Array<{ name?: string; instanceType?: string }>;
+                };
+                expect(structuredContent.projectId).toBe(projectId);
+                expect(structuredContent.totalCount).toBeGreaterThanOrEqual(1);
+                expect(
+                    structuredContent.clusters.some(
+                        (cluster) => cluster.name === clusterName && cluster.instanceType === "FREE"
+                    )
+                ).toBe(true);
             });
 
             it("returns clusters when listFlexClusters fails", async () => {
@@ -139,6 +172,16 @@ describeWithAtlas("clusters", (integration) => {
                 const content = getResponseContent(response.content);
                 expect(content).toMatch(/Found \d+ clusters in project/);
                 expect(content).toContain(projectId);
+
+                expectDefined(response.structuredContent);
+                const structuredContent = response.structuredContent as {
+                    projectId: string;
+                    totalCount: number;
+                    clusters: Array<{ name?: string }>;
+                };
+                expect(structuredContent.projectId).toBe(projectId);
+                expect(structuredContent.totalCount).toBeGreaterThanOrEqual(1);
+                expect(structuredContent.clusters.some((cluster) => cluster.name === clusterName)).toBe(true);
             });
 
             it("returns clusters when listClusters fails", async () => {
@@ -153,6 +196,16 @@ describeWithAtlas("clusters", (integration) => {
 
                 const content = getResponseContent(response.content);
                 expect(content).toBeDefined();
+
+                expectDefined(response.structuredContent);
+                const structuredContent = response.structuredContent as {
+                    projectId: string;
+                    totalCount: number;
+                    clusters: unknown[];
+                };
+                expect(structuredContent.projectId).toBe(projectId);
+                expect(typeof structuredContent.totalCount).toBe("number");
+                expect(Array.isArray(structuredContent.clusters)).toBe(true);
             });
 
             it("returns a successful empty result when no clusters exist across all projects", async () => {
@@ -164,6 +217,10 @@ describeWithAtlas("clusters", (integration) => {
 
                 expect(response.isError).toBeFalsy();
                 expect(getResponseContent(response.content)).toContain("No clusters found.");
+                expect(response.structuredContent).toEqual({
+                    clusters: [],
+                    totalCount: 0,
+                });
             });
         });
 

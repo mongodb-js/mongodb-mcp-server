@@ -1,6 +1,5 @@
 import { z } from "zod";
-import type { ToolArgs, OperationType, ToolExecutionContext } from "../../tool.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import type { CloudDatabaseUser, DatabaseUserRole } from "../../../common/atlas/openapi.js";
 import { generateSecurePassword } from "../../../helpers/generatePassword.js";
@@ -33,6 +32,11 @@ export const CreateDBUserArgs = {
         .optional(),
 };
 
+const CreateDBUserOutputSchema = {
+    username: z.string(),
+    password: z.string().optional(),
+};
+
 export class CreateDBUserTool extends AtlasToolBase {
     static toolName = "atlas-create-db-user";
     public description = "Create an MongoDB Atlas database user";
@@ -40,11 +44,12 @@ export class CreateDBUserTool extends AtlasToolBase {
     public argsShape = {
         ...CreateDBUserArgs,
     };
+    public override outputSchema = CreateDBUserOutputSchema;
 
     protected async execute(
         { projectId, username, password, roles, clusters }: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
-    ): Promise<CallToolResult> {
+    ): Promise<ToolResult<typeof this.outputSchema>> {
         await ensureCurrentIpInAccessList(this.apiClient, projectId, context);
         const shouldGeneratePassword = !password;
         if (shouldGeneratePassword) {
@@ -93,6 +98,10 @@ export class CreateDBUserTool extends AtlasToolBase {
                     text: `User "${username}" created successfully${shouldGeneratePassword ? ` with password: \`${password}\`` : ""}.`,
                 },
             ],
+            structuredContent: {
+                username,
+                password: shouldGeneratePassword ? (password ?? undefined) : undefined,
+            },
         };
     }
 
