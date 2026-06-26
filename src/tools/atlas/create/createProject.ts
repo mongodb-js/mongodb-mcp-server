@@ -9,8 +9,6 @@ const CreateProjectOutputSchema = {
     organizationId: z.string().optional(),
 };
 
-export type CreateProjectOutput = z.infer<z.ZodObject<typeof CreateProjectOutputSchema>>;
-
 export class CreateProjectTool extends AtlasToolBase {
     static toolName = "atlas-create-project";
     public description = "Create a MongoDB Atlas project";

@@ -31,8 +31,6 @@ const ListDBUsersOutputSchema = {
     totalCount: z.number(),
 };
 
-export type ListDBUsersOutput = z.infer<z.ZodObject<typeof ListDBUsersOutputSchema>>;
-
 export class ListDBUsersTool extends AtlasToolBase {
     static toolName = "atlas-list-db-users";
     public description = "List MongoDB Atlas database users";

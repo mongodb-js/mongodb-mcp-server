@@ -25,8 +25,6 @@ const InspectAccessListOutputSchema = {
     totalCount: z.number(),
 };
 
-export type InspectAccessListOutput = z.infer<z.ZodObject<typeof InspectAccessListOutputSchema>>;
-
 export class InspectAccessListTool extends AtlasToolBase {
     static toolName = "atlas-inspect-access-list";
     public description = "Inspect Ip/CIDR ranges with access to your MongoDB Atlas clusters.";
