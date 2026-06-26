@@ -104,7 +104,11 @@ export class AggregateTool extends MongoDBToolBase {
     // (undocumented)
     outputSchema: {
         documents: z.ZodArray<z.ZodUnknown>;
+<<<<<<< HEAD
         count: z.ZodUnion<[z.ZodNumber, z.ZodLiteral<"indeterminate">]>;
+=======
+        count: z.ZodOptional<z.ZodNumber>;
+>>>>>>> fc4e5bea (docs: update public api docs with new output format)
         appliedLimits: z.ZodArray<z.ZodEnum<{
             "config.maxDocumentsPerQuery": "config.maxDocumentsPerQuery";
             "config.maxBytesPerQuery": "config.maxBytesPerQuery";
@@ -281,8 +285,8 @@ export class ConnectDeploymentTool extends AtlasLocalToolBase {
         deploymentName: z.ZodString;
     };
     // (undocumented)
-    protected resolveTelemetryMetadata(_args: ToolArgs<typeof ConnectDeploymentTool.argsShape>, input: {
-        result: ToolResult<typeof ConnectDeploymentOutputSchema>;
+    protected resolveTelemetryMetadata(args: ToolArgs<typeof ConnectDeploymentTool.argsShape>, input: {
+        result: CallToolResult;
     }): ConnectionMetadata;
     // (undocumented)
     static toolName: string;
