@@ -75,7 +75,8 @@ describe("StreamsTeardownTool", () => {
 
     const baseArgs = { projectId: "proj1" };
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    const exec = (args: Record<string, unknown>) => tool["execute"](args as never);
+    const exec = (args: Record<string, unknown>) =>
+        tool["execute"](args as never, { signal: new AbortController().signal } as never);
     const confirmMsg = (args: Record<string, unknown>): string => tool["getConfirmationMessage"](args as never);
 
     describe("deleteProcessor", () => {
@@ -115,6 +116,24 @@ describe("StreamsTeardownTool", () => {
                     context: "streams-teardown",
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                     message: expect.stringContaining("400 Bad Request"),
+                })
+            );
+        });
+
+        it("includes x-request-id in debug log when getStreamProcessor throws during delete", async () => {
+            mockApiClient.getStreamProcessor!.mockRejectedValue(new Error("lookup failed"));
+            mockApiClient.deleteStreamProcessor!.mockResolvedValue({});
+
+            await tool["execute"](
+                { ...baseArgs, resource: "processor", workspaceName: "ws1", resourceName: "proc1" } as never,
+                { signal: new AbortController().signal, requestInfo: { headers: { "x-request-id": "req-del-1" } } }
+            );
+
+            expect(mockLogger.debug).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    context: "streams-teardown",
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                    attributes: expect.objectContaining({ "x-request-id": "req-del-1" }),
                 })
             );
         });
@@ -391,9 +410,12 @@ describe("StreamsTeardownTool", () => {
                 resourceName: "pl-123",
             });
 
-            expect(mockApiClient.deletePrivateLinkConnection).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1", connectionId: "pl-123" } },
-            });
+            expect(mockApiClient.deletePrivateLinkConnection).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1", connectionId: "pl-123" } },
+                },
+                expect.anything()
+            );
             expect((result.content[0] as { text: string }).text).toContain("pl-123");
             expect((result.content[0] as { text: string }).text).toContain("deletion initiated");
         });
@@ -409,9 +431,12 @@ describe("StreamsTeardownTool", () => {
                 resourceName: "peer-456",
             });
 
-            expect(mockApiClient.deleteVpcPeeringConnection).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1", id: "peer-456" } },
-            });
+            expect(mockApiClient.deleteVpcPeeringConnection).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1", id: "peer-456" } },
+                },
+                expect.anything()
+            );
             expect((result.content[0] as { text: string }).text).toContain("peer-456");
         });
     });

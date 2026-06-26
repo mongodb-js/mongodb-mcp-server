@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { AtlasToolBase } from "../atlasTool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { OperationType, ToolArgs } from "../../tool.js";
+import type { OperationType, ToolArgs, ToolExecutionContext } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import {
     getSuggestedIndexes,
@@ -48,21 +48,18 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
             .optional(),
     };
 
-    protected async execute({
-        projectId,
-        clusterName,
-        operations,
-        since,
-        namespaces,
-    }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute(
+        { projectId, clusterName, operations, since, namespaces }: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<CallToolResult> {
         try {
             const [suggestedIndexesResult, dropIndexSuggestionsResult, slowQueryLogsResult, schemaSuggestionsResult] =
                 await Promise.allSettled([
                     operations.includes("suggestedIndexes")
-                        ? getSuggestedIndexes(this.apiClient, projectId, clusterName)
+                        ? getSuggestedIndexes(this.apiClient, projectId, clusterName, context)
                         : Promise.resolve(undefined),
                     operations.includes("dropIndexSuggestions")
-                        ? getDropIndexSuggestions(this.apiClient, projectId, clusterName)
+                        ? getDropIndexSuggestions(this.apiClient, projectId, clusterName, context)
                         : Promise.resolve(undefined),
                     operations.includes("slowQueryLogs")
                         ? getSlowQueries(
@@ -70,11 +67,12 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
                               projectId,
                               clusterName,
                               since ? new Date(since) : undefined,
-                              namespaces
+                              namespaces,
+                              context
                           )
                         : Promise.resolve(undefined),
                     operations.includes("schemaSuggestions")
-                        ? getSchemaAdvice(this.apiClient, projectId, clusterName)
+                        ? getSchemaAdvice(this.apiClient, projectId, clusterName, context)
                         : Promise.resolve(undefined),
                 ]);
 

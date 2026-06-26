@@ -1,6 +1,6 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "../atlasTool.js";
-import type { ToolArgs, OperationType } from "../../tool.js";
+import type { ToolArgs, OperationType, ToolExecutionContext } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { AtlasArgs } from "../../args.js";
 
@@ -16,14 +16,20 @@ export class ListDBUsersTool extends AtlasToolBase {
         ...ListDBUsersArgs,
     };
 
-    protected async execute({ projectId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
-        const data = await this.apiClient.listDatabaseUsers({
-            params: {
-                path: {
-                    groupId: projectId,
+    protected async execute(
+        { projectId }: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<CallToolResult> {
+        const data = await this.apiClient.listDatabaseUsers(
+            {
+                params: {
+                    path: {
+                        groupId: projectId,
+                    },
                 },
             },
-        });
+            context
+        );
 
         if (!data?.results?.length) {
             return {

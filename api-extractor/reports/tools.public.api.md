@@ -211,7 +211,7 @@ export class ConnectClusterTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof ConnectClusterTool.argsShape>): Promise<ToolResult<typeof ConnectClusterTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof ConnectClusterTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof ConnectClusterTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -315,7 +315,7 @@ export class CreateAccessListTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof CreateAccessListTool.argsShape>): Promise<CallToolResult>;
+    protected execute(input: ToolArgs<typeof CreateAccessListTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)
     protected getConfirmationMessage(input: ToolArgs<typeof CreateAccessListTool.argsShape>): string;
     // (undocumented)
@@ -366,7 +366,7 @@ export class CreateClusterTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof CreateClusterTool.argsShape>): Promise<ToolResult<typeof CreateClusterTool.outputSchema>>;
+    protected execute(args: ToolArgs<typeof CreateClusterTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof CreateClusterTool.outputSchema>>;
     // (undocumented)
     protected handleError(error: unknown, args: ToolArgs<typeof CreateClusterTool.argsShape>): CallToolResult;
     // (undocumented)
@@ -458,7 +458,7 @@ export class CreateDBUserTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof CreateDBUserTool.argsShape>): Promise<CallToolResult>;
+    protected execute(input: ToolArgs<typeof CreateDBUserTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)
     protected getConfirmationMessage(input: ToolArgs<typeof CreateDBUserTool.argsShape>): string;
     // (undocumented)
@@ -498,7 +498,7 @@ export class CreateFreeClusterTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof CreateFreeClusterTool.argsShape>): Promise<CallToolResult>;
+    protected execute(input: ToolArgs<typeof CreateFreeClusterTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -609,7 +609,7 @@ export class CreateProjectTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof CreateProjectTool.argsShape>): Promise<CallToolResult>;
+    protected execute(input: ToolArgs<typeof CreateProjectTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -968,7 +968,7 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof GetPerformanceAdvisorTool.argsShape>): Promise<CallToolResult>;
+    protected execute(input: ToolArgs<typeof GetPerformanceAdvisorTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -1016,7 +1016,7 @@ export class InspectAccessListTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof InspectAccessListTool.argsShape>): Promise<CallToolResult>;
+    protected execute(input: ToolArgs<typeof InspectAccessListTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -1033,7 +1033,7 @@ export class InspectClusterTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof InspectClusterTool.argsShape>): Promise<CallToolResult>;
+    protected execute(input: ToolArgs<typeof InspectClusterTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -1056,7 +1056,7 @@ export class ListAlertsTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof ListAlertsTool.argsShape>): Promise<CallToolResult>;
+    protected execute(input: ToolArgs<typeof ListAlertsTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -1072,7 +1072,7 @@ export class ListClustersTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof ListClustersTool.argsShape>): Promise<CallToolResult>;
+    protected execute(input: ToolArgs<typeof ListClustersTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -1139,7 +1139,7 @@ export class ListDBUsersTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof ListDBUsersTool.argsShape>): Promise<CallToolResult>;
+    protected execute(input: ToolArgs<typeof ListDBUsersTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -1185,7 +1185,7 @@ export class ListOrganizationsTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(): Promise<CallToolResult>;
+    protected execute(_args: ToolArgs<typeof ListOrganizationsTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -1201,7 +1201,7 @@ export class ListProjectsTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof ListProjectsTool.argsShape>): Promise<CallToolResult>;
+    protected execute(input: ToolArgs<typeof ListProjectsTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -1222,7 +1222,7 @@ export class LoadSampleDatasetTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof LoadSampleDatasetTool.argsShape>): Promise<ToolResult<typeof LoadSampleDatasetTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof LoadSampleDatasetTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof LoadSampleDatasetTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -1310,7 +1310,7 @@ export class PauseResumeClusterTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof PauseResumeClusterTool.argsShape>): Promise<ToolResult<typeof PauseResumeClusterTool.outputSchema>>;
+    protected execute(args: ToolArgs<typeof PauseResumeClusterTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof PauseResumeClusterTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -1499,7 +1499,7 @@ export class StreamsBuildTool extends StreamsToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof StreamsBuildTool.argsShape>): Promise<CallToolResult>;
+    protected execute(args: ToolArgs<typeof StreamsBuildTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -1535,7 +1535,7 @@ export class StreamsDiscoverTool extends StreamsToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof StreamsDiscoverTool.argsShape>): Promise<CallToolResult>;
+    protected execute(input: ToolArgs<typeof StreamsDiscoverTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -1639,7 +1639,7 @@ export class StreamsManageTool extends StreamsToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof StreamsManageTool.argsShape>): Promise<CallToolResult>;
+    protected execute(args: ToolArgs<typeof StreamsManageTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)
     protected getConfirmationMessage(args: ToolArgs<typeof StreamsManageTool.argsShape>): string;
     // (undocumented)
@@ -1666,7 +1666,7 @@ export class StreamsTeardownTool extends StreamsToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof StreamsTeardownTool.argsShape>): Promise<CallToolResult>;
+    protected execute(args: ToolArgs<typeof StreamsTeardownTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)
     protected getConfirmationMessage(args: ToolArgs<typeof StreamsTeardownTool.argsShape>): string;
     // (undocumented)
@@ -1833,7 +1833,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof UpgradeClusterTool.argsShape>): Promise<ToolResult<typeof UpgradeClusterTool.outputSchema>>;
+    protected execute(args: ToolArgs<typeof UpgradeClusterTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof UpgradeClusterTool.outputSchema>>;
     // (undocumented)
     protected handleError(error: unknown, args: ToolArgs<typeof UpgradeClusterTool.argsShape>): CallToolResult;
     // (undocumented)

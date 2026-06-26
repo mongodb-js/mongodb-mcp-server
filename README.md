@@ -367,7 +367,7 @@ For more information about configuring OpenCode as an MCP client, including the 
 - `atlas-get-performance-advisor` - Get MongoDB Atlas performance advisor recommendations and suggestions, which includes the operations: suggested indexes, drop index suggestions, schema suggestions, and a sample of the most recent (max 50) slow query logs
 - `atlas-inspect-access-list` - Inspect Ip/CIDR ranges with access to your MongoDB Atlas clusters.
 - `atlas-inspect-cluster` - Inspect metadata of a MongoDB Atlas cluster
-- `atlas-list-alerts` - List MongoDB Atlas alerts
+- `atlas-list-alerts` - List triggered alerts for a MongoDB Atlas project. These are alerts Atlas has raised, not the alert configurations that define them. Defaults to OPEN alerts; set status to TRACKING or CLOSED to see others.
 - `atlas-list-clusters` - List MongoDB Atlas clusters
 - `atlas-list-db-users` - List MongoDB Atlas database users
 - `atlas-list-orgs` - List MongoDB Atlas organizations
@@ -873,10 +873,47 @@ npx -y mongodb-mcp-server@latest --logPath=/path/to/logs --readOnly --indexCheck
 
 ### Proxy Support
 
-The MCP Server will detect typical PROXY environment variables and use them for
-connecting to the Atlas API, your MongoDB Cluster, or any other external calls
-to third-party services like OID Providers. The behaviour is the same as what
-`mongosh` does, so the same settings will work in the MCP Server.
+The MCP Server detects standard proxy environment variables and uses them for supported
+outbound connections, including the Atlas Administration API, MongoDB cluster connections,
+OIDC identity providers, and the MongoDB Assistant. The behaviour matches `mongosh`
+(both rely on [`@mongodb-js/devtools-proxy-support`](https://www.npmjs.com/package/@mongodb-js/devtools-proxy-support)),
+so any proxy configuration that works with `mongosh` also works here.
+
+#### Environment variables
+
+Set the relevant variable before starting the server. The conventional `*_PROXY`
+variables are honored:
+
+| Variable      | Purpose                                                     |
+| ------------- | ----------------------------------------------------------- |
+| `HTTPS_PROXY` | Proxy used for HTTPS requests (Atlas API, OIDC, Assistant)  |
+| `HTTP_PROXY`  | Proxy used for plain HTTP requests                          |
+| `ALL_PROXY`   | Fallback proxy used for all protocols                       |
+| `NO_PROXY`    | Comma-separated list of hosts/domains that bypass the proxy |
+
+```shell
+# Route outbound traffic through a corporate proxy, except internal hosts
+export HTTPS_PROXY="http://proxy.example.com:8080"
+export NO_PROXY="localhost,127.0.0.1,*.internal.example.com"
+```
+
+#### Proxy in the connection string
+
+For the MongoDB cluster connection specifically, you can configure a SOCKS5 proxy
+directly in the connection string instead of using environment variables:
+
+```
+mongodb+srv://<host>/?proxyHost=127.0.0.1&proxyPort=1080&proxyUsername=user&proxyPassword=pass
+```
+
+Supported parameters: `proxyHost`, `proxyPort`, `proxyUsername`, `proxyPassword`.
+
+#### Certificate authorities
+
+For the HTTP(S) requests handled by `@mongodb-js/devtools-proxy-support` (the Atlas API,
+OIDC, and the MongoDB Assistant), the operating system's certificate store is trusted in
+addition to the bundled CAs — the same way `mongosh` does — so corporate root certificates
+installed at the OS level are picked up automatically.
 
 ## 🚀Deploy on Public Clouds
 

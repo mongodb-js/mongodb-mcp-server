@@ -1,4 +1,4 @@
-import { type ToolArgs, type ToolResult, type OperationType } from "../../tool.js";
+import { type ToolArgs, type ToolResult, type OperationType, type ToolExecutionContext } from "../../tool.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import { AtlasArgs, CommonArgs } from "../../args.js";
 import type { SampleDatasetStatus } from "../../../common/atlas/openapi.js";
@@ -45,23 +45,28 @@ export class LoadSampleDatasetTool extends AtlasToolBase {
     };
     public override outputSchema = LoadSampleDatasetOutputSchema;
 
-    protected async execute({
-        projectId,
-        clusterName,
-        jobId,
-    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
+    protected async execute(
+        { projectId, clusterName, jobId }: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<ToolResult<typeof this.outputSchema>> {
         let status: SampleDatasetStatus;
         let headerText: string;
         if (jobId !== undefined && clusterName === undefined) {
-            status = await this.apiClient.getSampleDatasetLoad({
-                params: { path: { groupId: projectId, sampleDatasetId: jobId } },
-            });
+            status = await this.apiClient.getSampleDatasetLoad(
+                {
+                    params: { path: { groupId: projectId, sampleDatasetId: jobId } },
+                },
+                context
+            );
 
             headerText = `Sample dataset load status for cluster "${status.clusterName}" in project ${projectId}.`;
         } else if (clusterName !== undefined && jobId === undefined) {
-            status = await this.apiClient.requestSampleDatasetLoad({
-                params: { path: { groupId: projectId, name: clusterName } },
-            });
+            status = await this.apiClient.requestSampleDatasetLoad(
+                {
+                    params: { path: { groupId: projectId, name: clusterName } },
+                },
+                context
+            );
 
             headerText = `Sample dataset load requested for cluster "${status.clusterName}" in project ${projectId}.`;
         } else {
