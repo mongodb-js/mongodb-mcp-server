@@ -132,6 +132,19 @@ describe("runSharedTierAlertsHook", () => {
         expect(listAlertsFailPayload?.message).toContain("network down");
     });
 
+    it("includes x-request-id in warning log when listAlerts rejects", async () => {
+        listAlerts.mockRejectedValue(new Error("timeout"));
+
+        await runSharedTierAlertsHook({
+            ...baseParams,
+            instanceType: "FREE",
+            context: { requestInfo: { headers: { "x-request-id": "req-hook-1" } } },
+        });
+
+        const payload = warning.mock.calls[0]?.[0];
+        expect(payload?.attributes).toEqual(expect.objectContaining({ "x-request-id": "req-hook-1" }));
+    });
+
     it("matches LOGICAL_SIZE among mixed OPEN alerts on one page", async () => {
         listAlerts.mockResolvedValue({
             results: [

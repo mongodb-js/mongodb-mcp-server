@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { StreamsToolBase } from "./streamsToolBase.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { OperationType, ToolArgs, ToolExecutionContext } from "../../tool.js";
+import { type OperationType, type ToolArgs, type ToolExecutionContext } from "../../tool.js";
+import { requestIdAttr } from "../../../helpers/requestIdAttr.js";
 import { AtlasArgs } from "../../args.js";
 import { ConnectionConfig, StreamsArgs } from "./streamsArgs.js";
 import { LogId } from "../../../common/logging/index.js";
@@ -323,6 +324,7 @@ export class StreamsManageTool extends StreamsToolBase {
                 id: LogId.streamsProcessorStateLookupFailure,
                 context: "streams-manage",
                 message: `Failed to get processor state before stop: ${error instanceof Error ? error.message : String(error)}`,
+                attributes: { ...requestIdAttr(context.requestInfo?.headers) },
             });
         }
 

@@ -13,6 +13,7 @@ import type { UIRegistry } from "../ui/registry/index.js";
 import { createUIResource, type UIResource } from "@mcp-ui/server";
 import { TRANSPORT_PAYLOAD_LIMITS, type TransportType } from "../transports/constants.js";
 import { getRandomUUID } from "../helpers/getRandomUUID.js";
+import { requestIdAttr } from "../helpers/requestIdAttr.js";
 import type { Metrics, DefaultMetrics } from "@mongodb-js/mcp-metrics";
 import { redact } from "mongodb-redact";
 
@@ -495,6 +496,7 @@ export abstract class ToolBase<
                         context: "tool",
                         message: `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`,
                         noRedaction: true,
+                        attributes: { ...requestIdAttr(context.requestInfo?.headers) },
                     });
                     return {
                         content: [
@@ -516,6 +518,7 @@ export abstract class ToolBase<
                 context: "tool",
                 message: `Executing tool ${this.name}`,
                 noRedaction: true,
+                attributes: { ...requestIdAttr(context.requestInfo?.headers) },
             });
 
             const toolCallResult = await this.execute(args, context);
@@ -540,6 +543,7 @@ export abstract class ToolBase<
                 context: "tool",
                 message: `Executed tool ${this.name}`,
                 noRedaction: true,
+                attributes: { ...requestIdAttr(context.requestInfo?.headers) },
             });
             return result;
         } catch (error: unknown) {
@@ -547,6 +551,7 @@ export abstract class ToolBase<
                 id: LogId.toolExecuteFailure,
                 context: "tool",
                 message: `Error executing ${this.name}: ${error as string}`,
+                attributes: { ...requestIdAttr(context.requestInfo?.headers) },
             });
             const toolResult = await this.handleError(error, args);
             this.emitToolEvent(args, { startTime, result: toolResult });
