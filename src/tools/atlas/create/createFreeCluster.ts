@@ -66,7 +66,7 @@ export class CreateFreeClusterTool extends AtlasToolBase {
                 { type: "text", text: `Double check your access lists to enable your current IP.` },
             ],
             structuredContent: {
-                name: name,
+                name,
                 region,
             },
         };

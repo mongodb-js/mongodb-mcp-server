@@ -184,6 +184,11 @@ describe("StreamsBuildTool", () => {
                 expect.anything()
             );
             expect((result.content[0] as { text: string }).text).toContain("proc1");
+            expect(result.structuredContent).toEqual({
+                workspaceName: "ws1",
+                name: "proc1",
+                dlq: { connectionName: "sink", db: "db1", coll: "dlq" },
+            });
         });
 
         it("should throw when processorName is missing", async () => {
@@ -827,7 +832,7 @@ describe("StreamsBuildTool", () => {
 
     describe("createPrivateLink", () => {
         it("should create AWS CONFLUENT PrivateLink with correct params", async () => {
-            await exec({
+            const result = await exec({
                 ...baseArgs,
                 resource: "privatelink",
                 privateLinkConfig: {
@@ -854,6 +859,7 @@ describe("StreamsBuildTool", () => {
                 },
                 expect.anything()
             );
+            expect(result.structuredContent).toEqual({ provider: "AWS" });
         });
 
         it("should create AWS S3 PrivateLink", async () => {
@@ -1099,6 +1105,48 @@ describe("StreamsBuildTool", () => {
                     ],
                 })
             ).rejects.toThrow("workspaceName is required");
+        });
+    });
+
+    describe("structuredContent", () => {
+        it("returns build metadata when a workspace is created", async () => {
+            const result = await exec({
+                ...baseArgs,
+                resource: "workspace",
+                cloudProvider: "AWS",
+                region: "VIRGINIA_USA",
+                tier: "SP30",
+            });
+
+            expect(result.structuredContent).toEqual({
+                workspaceName: "ws1",
+                name: "ws1",
+                cloudProvider: "AWS",
+                region: "VIRGINIA_USA",
+                tier: "SP30",
+            });
+        });
+
+        it("returns processor metadata when a processor is deployed", async () => {
+            mockApiClient.listStreamConnections!.mockResolvedValue({
+                results: [{ name: "src" }, { name: "sink" }],
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                resource: "processor",
+                processorName: "proc1",
+                autoStart: true,
+                pipeline: [
+                    { $source: { connectionName: "src" } },
+                    { $merge: { into: { connectionName: "sink", db: "db1", coll: "c1" } } },
+                ],
+            });
+
+            expect(result.structuredContent).toEqual({
+                workspaceName: "ws1",
+                name: "proc1",
+            });
         });
     });
 });
