@@ -92,19 +92,25 @@ describe("PauseResumeClusterTool", () => {
         it("sends paused: true for PAUSE action", async () => {
             await exec({ ...BASE_ARGS, action: "PAUSE" });
 
-            expect(mockApiClient.updateCluster).toHaveBeenCalledWith({
-                params: { path: { groupId: PROJECT_ID, clusterName: CLUSTER_NAME } },
-                body: { paused: true },
-            });
+            expect(mockApiClient.updateCluster).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: PROJECT_ID, clusterName: CLUSTER_NAME } },
+                    body: { paused: true },
+                },
+                expect.anything()
+            );
         });
 
         it("sends paused: false for RESUME action", async () => {
             await exec({ ...BASE_ARGS, action: "RESUME" });
 
-            expect(mockApiClient.updateCluster).toHaveBeenCalledWith({
-                params: { path: { groupId: PROJECT_ID, clusterName: CLUSTER_NAME } },
-                body: { paused: false },
-            });
+            expect(mockApiClient.updateCluster).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: PROJECT_ID, clusterName: CLUSTER_NAME } },
+                    body: { paused: false },
+                },
+                expect.anything()
+            );
         });
     });
 

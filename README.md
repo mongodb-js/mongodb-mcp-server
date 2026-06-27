@@ -367,7 +367,7 @@ For more information about configuring OpenCode as an MCP client, including the 
 - `atlas-get-performance-advisor` - Get MongoDB Atlas performance advisor recommendations and suggestions, which includes the operations: suggested indexes, drop index suggestions, schema suggestions, and a sample of the most recent (max 50) slow query logs
 - `atlas-inspect-access-list` - Inspect Ip/CIDR ranges with access to your MongoDB Atlas clusters.
 - `atlas-inspect-cluster` - Inspect metadata of a MongoDB Atlas cluster
-- `atlas-list-alerts` - List MongoDB Atlas alerts
+- `atlas-list-alerts` - List triggered alerts for a MongoDB Atlas project. These are alerts Atlas has raised, not the alert configurations that define them. Defaults to OPEN alerts; set status to TRACKING or CLOSED to see others.
 - `atlas-list-clusters` - List MongoDB Atlas clusters
 - `atlas-list-db-users` - List MongoDB Atlas database users
 - `atlas-list-orgs` - List MongoDB Atlas organizations

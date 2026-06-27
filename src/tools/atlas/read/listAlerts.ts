@@ -1,6 +1,6 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
-import { type OperationType, type ToolArgs, formatUntrustedData } from "../../tool.js";
+import { type OperationType, type ToolArgs, type ToolExecutionContext, formatUntrustedData } from "../../tool.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import { AtlasArgs } from "../../args.js";
 
@@ -17,31 +17,33 @@ export const ListAlertsArgs = {
 
 export class ListAlertsTool extends AtlasToolBase {
     static toolName = "atlas-list-alerts";
-    public description = "List MongoDB Atlas alerts";
+    public description =
+        "List triggered alerts for a MongoDB Atlas project. These are alerts Atlas has raised, not the alert configurations that define them. Defaults to OPEN alerts; set status to TRACKING or CLOSED to see others.";
     static operationType: OperationType = "read";
     public argsShape = {
         ...ListAlertsArgs,
     };
 
-    protected async execute({
-        projectId,
-        status,
-        limit,
-        pageNum,
-    }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
-        const data = await this.apiClient.listAlerts({
-            params: {
-                path: {
-                    groupId: projectId,
-                },
-                query: {
-                    status,
-                    itemsPerPage: limit,
-                    pageNum: pageNum,
-                    includeCount: true,
+    protected async execute(
+        { projectId, status, limit, pageNum }: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<CallToolResult> {
+        const data = await this.apiClient.listAlerts(
+            {
+                params: {
+                    path: {
+                        groupId: projectId,
+                    },
+                    query: {
+                        status,
+                        itemsPerPage: limit,
+                        pageNum: pageNum,
+                        includeCount: true,
+                    },
                 },
             },
-        });
+            context
+        );
 
         if (!data?.results?.length) {
             return {

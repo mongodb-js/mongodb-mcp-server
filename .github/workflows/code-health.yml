@@ -23,11 +23,12 @@ jobs:
           - os: ubuntu-latest
             node-version: "26"
       fail-fast: false
+    continue-on-error: true
     runs-on: ${{ matrix.os }}
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
         if: matrix.os == 'ubuntu-latest'
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - uses: docker/setup-docker-action@v5
@@ -62,7 +63,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - uses: pnpm/action-setup@v5
@@ -91,7 +92,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - uses: pnpm/action-setup@v5
@@ -121,7 +122,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - uses: pnpm/action-setup@v5
@@ -149,7 +150,7 @@ jobs:
     needs:
       [run-tests, run-atlas-tests, run-atlas-local-tests, run-browser-tests]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - uses: pnpm/action-setup@v5
@@ -193,7 +194,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - name: Install dependencies

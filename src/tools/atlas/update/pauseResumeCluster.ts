@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { type OperationType, type ToolArgs, type ToolResult } from "../../tool.js";
+import { type OperationType, type ToolArgs, type ToolResult, type ToolExecutionContext } from "../../tool.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import { AtlasArgs } from "../../args.js";
 import type { PauseResumeClusterMetadata } from "../../../telemetry/types.js";
@@ -42,14 +42,20 @@ export class PauseResumeClusterTool extends AtlasToolBase {
 
     public argsShape = PauseResumeClusterArgsShape;
 
-    protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
+    protected async execute(
+        args: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<ToolResult<typeof this.outputSchema>> {
         const { projectId, clusterName, action } = args;
         const isPause = action === "PAUSE";
 
-        const result = await this.apiClient.updateCluster({
-            params: { path: { groupId: projectId, clusterName } },
-            body: { paused: isPause } as unknown as ClusterDescription20240805,
-        });
+        const result = await this.apiClient.updateCluster(
+            {
+                params: { path: { groupId: projectId, clusterName } },
+                body: { paused: isPause } as unknown as ClusterDescription20240805,
+            },
+            context
+        );
 
         let text: string;
         let disconnected = false;

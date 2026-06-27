@@ -1,5 +1,5 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { type ToolArgs, type OperationType } from "../../tool.js";
+import { type ToolArgs, type OperationType, type ToolExecutionContext } from "../../tool.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import type { ClusterDescription20240805 } from "../../../common/atlas/openapi.js";
 import { ensureCurrentIpInAccessList } from "../../../common/atlas/accessListUtils.js";
@@ -15,7 +15,10 @@ export class CreateFreeClusterTool extends AtlasToolBase {
         region: AtlasArgs.region().describe("Region of the cluster").default("US_EAST_1"),
     };
 
-    protected async execute({ projectId, name, region }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute(
+        { projectId, name, region }: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<CallToolResult> {
         const input = {
             groupId: projectId,
             name,
@@ -38,15 +41,18 @@ export class CreateFreeClusterTool extends AtlasToolBase {
             terminationProtectionEnabled: false,
         } as unknown as ClusterDescription20240805;
 
-        await ensureCurrentIpInAccessList(this.apiClient, projectId);
-        await this.apiClient.createCluster({
-            params: {
-                path: {
-                    groupId: projectId,
+        await ensureCurrentIpInAccessList(this.apiClient, projectId, context);
+        await this.apiClient.createCluster(
+            {
+                params: {
+                    path: {
+                        groupId: projectId,
+                    },
                 },
+                body: input,
             },
-            body: input,
-        });
+            context
+        );
 
         return {
             content: [

@@ -91,38 +91,41 @@ describe("CreateClusterTool", () => {
             const result = await exec(BASE_ARGS);
 
             expect(result.isError).toBeFalsy();
-            expect(mockApiClient.createCluster).toHaveBeenCalledWith({
-                params: { path: { groupId: "507f1f77bcf86cd799439011" } },
-                body: {
-                    name: "my-cluster",
-                    clusterType: "REPLICASET",
-                    backupEnabled: true,
-                    pitEnabled: false,
-                    terminationProtectionEnabled: false,
-                    versionReleaseSystem: "CONTINUOUS",
-                    replicationSpecs: [
-                        {
-                            regionConfigs: [
-                                {
-                                    providerName: "AWS",
-                                    regionName: "US_EAST_1",
-                                    priority: 7,
-                                    electableSpecs: { instanceSize: "M10", nodeCount: 3 },
-                                    autoScaling: {
-                                        compute: {
-                                            enabled: true,
-                                            scaleDownEnabled: true,
-                                            minInstanceSize: "M10",
-                                            maxInstanceSize: "M30",
+            expect(mockApiClient.createCluster).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "507f1f77bcf86cd799439011" } },
+                    body: {
+                        name: "my-cluster",
+                        clusterType: "REPLICASET",
+                        backupEnabled: true,
+                        pitEnabled: false,
+                        terminationProtectionEnabled: false,
+                        versionReleaseSystem: "CONTINUOUS",
+                        replicationSpecs: [
+                            {
+                                regionConfigs: [
+                                    {
+                                        providerName: "AWS",
+                                        regionName: "US_EAST_1",
+                                        priority: 7,
+                                        electableSpecs: { instanceSize: "M10", nodeCount: 3 },
+                                        autoScaling: {
+                                            compute: {
+                                                enabled: true,
+                                                scaleDownEnabled: true,
+                                                minInstanceSize: "M10",
+                                                maxInstanceSize: "M30",
+                                            },
+                                            diskGB: { enabled: true },
                                         },
-                                        diskGB: { enabled: true },
                                     },
-                                },
-                            ],
-                        },
-                    ],
+                                ],
+                            },
+                        ],
+                    },
                 },
-            });
+                expect.anything()
+            );
         });
 
         it("sends correct body when all params are provided", async () => {
@@ -138,34 +141,37 @@ describe("CreateClusterTool", () => {
             });
 
             expect(result.isError).toBeFalsy();
-            expect(mockApiClient.createCluster).toHaveBeenCalledWith({
-                params: { path: { groupId: "507f1f77bcf86cd799439011" } },
-                body: {
-                    name: "my-cluster",
-                    clusterType: "SHARDED",
-                    backupEnabled: true,
-                    pitEnabled: true,
-                    terminationProtectionEnabled: true,
-                    versionReleaseSystem: "LTS",
-                    mongoDBMajorVersion: "8.0",
-                    replicationSpecs: [
-                        {
-                            regionConfigs: [
-                                {
-                                    providerName: "AWS",
-                                    regionName: "US_EAST_1",
-                                    priority: 7,
-                                    electableSpecs: { instanceSize: "M40", nodeCount: 3, diskSizeGB: 100 },
-                                    autoScaling: {
-                                        compute: { enabled: false, scaleDownEnabled: false },
-                                        diskGB: { enabled: true },
+            expect(mockApiClient.createCluster).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "507f1f77bcf86cd799439011" } },
+                    body: {
+                        name: "my-cluster",
+                        clusterType: "SHARDED",
+                        backupEnabled: true,
+                        pitEnabled: true,
+                        terminationProtectionEnabled: true,
+                        versionReleaseSystem: "LTS",
+                        mongoDBMajorVersion: "8.0",
+                        replicationSpecs: [
+                            {
+                                regionConfigs: [
+                                    {
+                                        providerName: "AWS",
+                                        regionName: "US_EAST_1",
+                                        priority: 7,
+                                        electableSpecs: { instanceSize: "M40", nodeCount: 3, diskSizeGB: 100 },
+                                        autoScaling: {
+                                            compute: { enabled: false, scaleDownEnabled: false },
+                                            diskGB: { enabled: true },
+                                        },
                                     },
-                                },
-                            ],
-                        },
-                    ],
+                                ],
+                            },
+                        ],
+                    },
                 },
-            });
+                expect.anything()
+            );
         });
     });
 
@@ -234,33 +240,36 @@ describe("CreateClusterTool", () => {
         it("disables compute autoscaling when computeAutoScaling is false", async () => {
             await exec({ ...BASE_ARGS, instanceSize: "M10", computeAutoScaling: false });
 
-            expect(mockApiClient.createCluster).toHaveBeenCalledWith({
-                params: { path: { groupId: "507f1f77bcf86cd799439011" } },
-                body: {
-                    name: "my-cluster",
-                    clusterType: "REPLICASET",
-                    backupEnabled: true,
-                    pitEnabled: false,
-                    terminationProtectionEnabled: false,
-                    versionReleaseSystem: "CONTINUOUS",
-                    replicationSpecs: [
-                        {
-                            regionConfigs: [
-                                {
-                                    providerName: "AWS",
-                                    regionName: "US_EAST_1",
-                                    priority: 7,
-                                    electableSpecs: { instanceSize: "M10", nodeCount: 3 },
-                                    autoScaling: {
-                                        compute: { enabled: false, scaleDownEnabled: false },
-                                        diskGB: { enabled: true },
+            expect(mockApiClient.createCluster).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "507f1f77bcf86cd799439011" } },
+                    body: {
+                        name: "my-cluster",
+                        clusterType: "REPLICASET",
+                        backupEnabled: true,
+                        pitEnabled: false,
+                        terminationProtectionEnabled: false,
+                        versionReleaseSystem: "CONTINUOUS",
+                        replicationSpecs: [
+                            {
+                                regionConfigs: [
+                                    {
+                                        providerName: "AWS",
+                                        regionName: "US_EAST_1",
+                                        priority: 7,
+                                        electableSpecs: { instanceSize: "M10", nodeCount: 3 },
+                                        autoScaling: {
+                                            compute: { enabled: false, scaleDownEnabled: false },
+                                            diskGB: { enabled: true },
+                                        },
                                     },
-                                },
-                            ],
-                        },
-                    ],
+                                ],
+                            },
+                        ],
+                    },
                 },
-            });
+                expect.anything()
+            );
         });
     });
 

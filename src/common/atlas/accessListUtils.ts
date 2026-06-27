@@ -1,4 +1,5 @@
-import type { ApiClient } from "./apiClient.js";
+import { type ApiClient, type ApiClientRequestContext } from "./apiClient.js";
+import { requestIdAttr } from "../../helpers/requestIdAttr.js";
 import { LogId } from "../logging/index.js";
 import { ApiClientError } from "./apiClientError.js";
 
@@ -24,17 +25,25 @@ export async function makeCurrentIpAccessListEntry(
  * @param projectId The Atlas project ID
  * @returns Promise<boolean> - true if a new IP access list entry was created, false if it already existed
  */
-export async function ensureCurrentIpInAccessList(apiClient: ApiClient, projectId: string): Promise<boolean> {
+export async function ensureCurrentIpInAccessList(
+    apiClient: ApiClient,
+    projectId: string,
+    context?: ApiClientRequestContext
+): Promise<boolean> {
     const entry = await makeCurrentIpAccessListEntry(apiClient, projectId, DEFAULT_ACCESS_LIST_COMMENT);
     try {
-        await apiClient.createAccessListEntry({
-            params: { path: { groupId: projectId } },
-            body: [entry],
-        });
+        await apiClient.createAccessListEntry(
+            {
+                params: { path: { groupId: projectId } },
+                body: [entry],
+            },
+            context
+        );
         apiClient.logger.debug({
             id: LogId.atlasIpAccessListAdded,
             context: "accessListUtils",
             message: `IP access list created: ${JSON.stringify(entry)}`,
+            attributes: { ...requestIdAttr(context?.requestInfo?.headers) },
         });
         return true;
     } catch (err) {
@@ -44,6 +53,7 @@ export async function ensureCurrentIpInAccessList(apiClient: ApiClient, projectI
                 id: LogId.atlasIpAccessListAdded,
                 context: "accessListUtils",
                 message: `IP address ${entry.ipAddress} is already present in the access list for project ${projectId}.`,
+                attributes: { ...requestIdAttr(context?.requestInfo?.headers) },
             });
             return false;
         }
@@ -51,6 +61,7 @@ export async function ensureCurrentIpInAccessList(apiClient: ApiClient, projectI
             id: LogId.atlasIpAccessListAddFailure,
             context: "accessListUtils",
             message: `Error adding IP access list: ${err instanceof Error ? err.message : String(err)}`,
+            attributes: { ...requestIdAttr(context?.requestInfo?.headers) },
         });
     }
     return false;
