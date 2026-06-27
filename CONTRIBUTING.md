@@ -121,8 +121,11 @@ The Braintrust eval suite (found in `tests/eval/`) evaluates how well an LLM, wh
 #### Notable Environment Variables
 
 - `BRAINTRUST_API_KEY`: Required for all eval runs.
+- `BRAINTRUST_API_KEY_OVERRIDE`: When running in dev mode (`pnpm run eval:serve`), there is a known issue where Braintrust substitutes your `BRAINTRUST_API_KEY` with a temporary token that will not work with the Braintrust gateway. To work around this, we also set your actual API key in the `BRAINTRUST_API_KEY_OVERRIDE` environment variable. The eval logic is designed to prioritize this variable, ensuring the eval process uses your real API key.
+  More info: https://www.braintrust.dev/docs/kb/gateway-calls-fail-in-bt-eval-dev-mode
 - `BT_EVAL_PARAMS_JSON`: JSON string of parameters to override the default parameters for the eval.
 - `EVAL_BASE_EXPERIMENT_NAME`: Lets you compare the current run against a specific baseline experiment. In CI, this is set automatically from the latest `main-<number>` run.
+- `GIT_BRANCH_NAME`: The git branch name for the eval run. It is attached to the experiment as `metadata.git_branch_name` in Braintrust, allowing you to filter and group results by branch. In CI, this lets us compare accuracy rates between the main branch and the PR.
 
 ### Running in CI
 

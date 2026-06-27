@@ -8,6 +8,7 @@ on:
   pull_request:
     types:
       - labeled
+      - synchronize
 
 jobs:
   run-braintrust-evals:
@@ -19,7 +20,8 @@ jobs:
     if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'braintrust-evals')
     env:
       BRAINTRUST_API_KEY: ${{ secrets.BRAINTRUST_API_KEY }}
-
+      VOYAGE_API_KEY: ${{ secrets.TEST_MDB_MCP_VOYAGE_API_KEY }}
+      GIT_BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
       - uses: actions/checkout@v6
@@ -43,7 +45,7 @@ jobs:
         if: always()
         run: pnpm run eval:db-stop
       - name: Comment summary on PR
-        if: github.event_name == 'pull_request' && github.event.label.name == 'braintrust-evals'
+        if: github.event_name == 'pull_request'
         uses: marocchino/sticky-pull-request-comment@0ea0beb66eb9baf113663a64ec522f60e49231c0 # v3.0.4
         with:
           hide_and_recreate: true

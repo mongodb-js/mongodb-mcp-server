@@ -1,6 +1,5 @@
-import { Eval, Reporter, reportFailures, type EvalParameters } from "braintrust";
+import { Eval, Reporter, reportFailures } from "braintrust";
 import { getRandomValues } from "node:crypto";
-import { z } from "zod";
 import * as shared from "./lib/shared.js";
 import { llmJudgeScore } from "./lib/scoring.js";
 import { judgeUsingLLM } from "./lib/judge.js";
@@ -11,64 +10,11 @@ import { GetConversationTool } from "./lib/tool/getConversation.js";
 import { GetResponseTool } from "./lib/tool/getResponse.js";
 import { initDataset } from "braintrust";
 import { GetReferenceAnswerTool } from "./lib/tool/getReferenceAnswer.js";
+import { EvalParametersBtSchema } from "./lib/evalTypes.js";
 
 const PROJECT_NAME = "mongodb-mcp-server-evals";
 const DATASET_NAME = "Search";
 const AGENT_STEP_LIMIT = 10;
-
-const staticDefaultParameters = {
-    connectionString: "mongodb://localhost:27017/?directConnection=true",
-    model: "gpt-5",
-    judgeModel: "us.anthropic.claude-sonnet-4-6",
-    systemContext: `You are a MongoDB assistant operating autonomously in a single turn;
-the user cannot answer follow-up questions.
-Use the available MongoDB MCP tools to fulfill the request end-to-end.
-Never ask for clarification; make a reasonable decision and finish the task.
-If the request refers to "the collection" without naming it,
-discover collections with the list tools and act on the appropriate one
-(if there is exactly one user collection, use it).
-Prefer tools over guessing, and briefly confirm what you did when done.`,
-    validateReferenceAnswer: false,
-};
-
-const defaultParameters = {
-    ...staticDefaultParameters,
-    ...(process.env.BT_EVAL_PARAMS_JSON
-        ? (JSON.parse(process.env.BT_EVAL_PARAMS_JSON) as typeof staticDefaultParameters)
-        : {}),
-};
-
-const parameters = {
-    connectionString: z.string().default(defaultParameters.connectionString).describe("MongoDB connection string."),
-    model: {
-        type: "model" as const,
-        default: defaultParameters.model,
-        description: "Model used by the agent under test.",
-    },
-    judgeModel: {
-        type: "model" as const,
-        default: defaultParameters.judgeModel,
-        description: "Model used by the judge.",
-    },
-    systemContext: z
-        .string()
-        .default(defaultParameters.systemContext)
-        .describe("System prompt prepended for the agent under test."),
-    validateReferenceAnswer: z
-        .boolean()
-        .default(defaultParameters.validateReferenceAnswer)
-        .describe(
-            "Uses `input.reference_answer` as the prompt instead of `input.prompt`; helpful for validating judge criteria against the reference answer."
-        ),
-} as unknown as EvalParameters;
-
-type ResolvedParameters = {
-    connectionString: string;
-    model: string;
-    judgeModel: string;
-    systemContext: string;
-    validateReferenceAnswer: boolean;
-};
 
 /**
  * Generates a unique but shorter name for the transient database.
@@ -102,7 +48,7 @@ const reporter = Reporter<boolean>("mongodb-eval-cleanup", {
     },
 });
 
-void Eval<RunEvalInput, RunEvalOutput, RunEvalExpected, void, boolean, EvalParameters>(
+void Eval<RunEvalInput, RunEvalOutput, RunEvalExpected, void, boolean, typeof EvalParametersBtSchema>(
     PROJECT_NAME,
     {
         data: initDataset(PROJECT_NAME, {
@@ -110,7 +56,7 @@ void Eval<RunEvalInput, RunEvalOutput, RunEvalExpected, void, boolean, EvalParam
         }),
         task: async (input, hooks) => {
             const aiProvider = await shared.getAiProvider();
-            const resolved = hooks.parameters as ResolvedParameters;
+            const resolved = hooks.parameters;
             shared.registerConnectionString(resolved.connectionString);
 
             const model = aiProvider.chat(resolved.model);
@@ -122,9 +68,7 @@ void Eval<RunEvalInput, RunEvalOutput, RunEvalExpected, void, boolean, EvalParam
 
             try {
                 await hooks.span.traced(() => seedTempDb(dbClient, dbName, input.db_seed), { name: "seedTempDb" });
-                const mcpClient = await hooks.span.traced(() => shared.getMcpClient(), {
-                    name: "getMcpClient",
-                });
+                const mcpClient = await hooks.span.traced(shared.getMcpClient, { name: "getMcpClient" });
 
                 const tools = await mcpClient.tools();
 
@@ -150,7 +94,7 @@ void Eval<RunEvalInput, RunEvalOutput, RunEvalExpected, void, boolean, EvalParam
                 let judge: RunEvalOutput["judge"];
                 const criteria = hooks.expected?.llm_judge;
                 if (criteria) {
-                    const readOnlyMcpClient = await hooks.span.traced(() => shared.getReadOnlyMcpClient(), {
+                    const readOnlyMcpClient = await hooks.span.traced(shared.getReadOnlyMcpClient, {
                         name: "getReadOnlyMcpClient",
                     });
                     const readOnlyTools = await readOnlyMcpClient.tools();
@@ -177,7 +121,10 @@ void Eval<RunEvalInput, RunEvalOutput, RunEvalExpected, void, boolean, EvalParam
         },
         scores: [llmJudgeScore],
         baseExperimentName: process.env.EVAL_BASE_EXPERIMENT_NAME,
-        parameters,
+        parameters: EvalParametersBtSchema,
+        metadata: {
+            git_branch_name: process.env.GIT_BRANCH_NAME,
+        },
     },
     reporter
 );

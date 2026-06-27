@@ -83,10 +83,10 @@ export const RunEvalInputSchema = z
 /** Eval `expected`: the criteria the LLM judge grades the answer against. */
 export const RunEvalExpectedSchema = z
     .object({
-        llm_judge: z.union([z.string()]).optional()
+        llm_judge: z.string().optional()
             .describe(`Provide a prompt for the LLM judge to evaluate and make assertions about:
 - the state of the database after the assistant completes the prompt. The judge may use any available read-only MCP tools to check and validate these assertions.
-- if prompt references ${GetResponseTool.keyword}, the assistant’s response for this eval case will be made available for evaluation.
+- if prompt references ${GetResponseTool.keyword}, the assistant's response for this eval case will be made available for evaluation.
 - if prompt references ${GetConversationTool.keyword}, the full conversation history, including tool calls and tool results for this eval case, will be accessible for evaluation.
 - if prompt references ${GetReferenceAnswerTool.keyword}, the reference answer as specified in the "expected.reference_answer" field will be made available for evaluation.
 `),

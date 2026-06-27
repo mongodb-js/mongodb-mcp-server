@@ -3,12 +3,6 @@ import type { Experiment } from "@braintrust/api/resources/shared.js";
 
 import type { TimelinePoint } from "./types.js";
 
-/** Max number of pages to fetch from the API. */
-const MAX_PAGES = 10;
-/** Max number of experiments per page to fetch from the API. */
-const MAX_PAGE_SIZE = 100;
-/** Upper bound on experiments streamed from `experiments.list` before stopping. */
-const MAX_EXPERIMENTS = MAX_PAGE_SIZE * MAX_PAGES;
 /** Max concurrency to fetch experiments and score percentages. */
 const FETCH_CONCURRENCY = 5;
 /** Max history rows included in timeline (report copy should reference this same value). */
@@ -62,18 +56,26 @@ async function fetchScorePercent(
 }
 
 /** Page through experiments in the eval project */
-async function* listExperiments(client: Braintrust, orgName: string, projectName: string): AsyncGenerator<Experiment> {
+async function listExperiments(
+    client: Braintrust,
+    orgName: string,
+    projectName: string,
+    gitBranchName: string,
+    limit: number
+): Promise<Experiment[]> {
     const listParams = {
         project_name: projectName,
         org_name: orgName,
-        limit: MAX_PAGE_SIZE,
-    };
+        metadata: JSON.stringify({ git_branch_name: gitBranchName }),
+        limit,
+    } satisfies Braintrust.ExperimentListParams &
+        // The Braintrust SDK does not currently allow filtering experiments by metadata.
+        // However, the Braintrust API itself does support this feature.
+        // This expands the type to include the metadata field.
+        // Reference: https://www.braintrust.dev/docs/api-reference#filter-experiments-by-metadata
+        { metadata?: string };
 
-    let count = 0;
-    for await (const experiment of client.experiments.list(listParams)) {
-        yield experiment;
-        if (++count >= MAX_EXPERIMENTS) break;
-    }
+    return (await client.experiments.list(listParams)).objects;
 }
 
 function printDate(date: Date): string {
@@ -92,30 +94,20 @@ async function fetchExperimentHistory(
     scoreName: string,
     gitBranchName: string
 ): Promise<TimelinePoint[]> {
-    logHistoryProgress(`listing experiments in \`${projectName}\` on branch \`${gitBranchName}\`...`);
-
-    const rows: Experiment[] = [];
-    let scanned = 0;
-    for await (const experiment of listExperiments(client, orgName, projectName)) {
-        scanned++;
-        if (scanned % 50 === 0) {
-            logHistoryProgress(`scanned ${scanned} experiment(s), ${rows.length} on branch so far`);
-        }
-        if (gitBranchName.toLowerCase() === experiment.repo_info?.branch?.toLowerCase()) {
-            rows.push(experiment);
-            logHistoryProgress(
-                `found ${rows.length} experiments on branch \`${gitBranchName}\`: ${experiment.name ?? experiment.id}`
-            );
-            if (rows.length >= BRANCH_HISTORY_CHART_CAP) break;
-        }
-    }
+    const rows: Experiment[] = await listExperiments(
+        client,
+        orgName,
+        projectName,
+        gitBranchName,
+        BRANCH_HISTORY_CHART_CAP
+    );
+    logHistoryProgress(`found ${rows.length} experiments on branch '${gitBranchName}'`);
 
     if (rows.length === 0) {
-        logHistoryProgress(`no experiments on branch \`${gitBranchName}\` after scanning ${scanned}`);
         return [];
     }
 
-    logHistoryProgress(`fetching \`${scoreName}\` scores for ${rows.length} experiment(s)...`);
+    logHistoryProgress(`fetching '${scoreName}' scores for ${rows.length} experiment(s)...`);
     let scored = 0;
     const withScores = await parallelMap(rows, FETCH_CONCURRENCY, async (row) => {
         const { pct, experimentUrl } = await fetchScorePercent(client, row.id, scoreName);
