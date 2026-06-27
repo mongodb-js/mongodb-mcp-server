@@ -1,0 +1,53 @@
+name: Braintrust Evals
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    types:
+      - labeled
+      - synchronize
+
+jobs:
+  run-braintrust-evals:
+    name: Run Braintrust Evals
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'braintrust-evals')
+    env:
+      BRAINTRUST_API_KEY: ${{ secrets.BRAINTRUST_API_KEY }}
+      VOYAGE_API_KEY: ${{ secrets.TEST_MDB_MCP_VOYAGE_API_KEY }}
+      GIT_BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: package.json
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Push eval to Braintrust
+        if: github.ref == 'refs/heads/main'
+        run: pnpm run eval:push
+      - name: Start local MongoDB
+        run: pnpm run eval:db-start
+      - name: Run Braintrust eval suite
+        run: pnpm run eval:ci:run
+      - name: Stop local MongoDB
+        if: always()
+        run: pnpm run eval:db-stop
+      - name: Comment summary on PR
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@0ea0beb66eb9baf113663a64ec522f60e49231c0 # v3.0.4
+        with:
+          hide_and_recreate: true
+          hide_classify: "OUTDATED"
+          path: .eval/ci-report.md
