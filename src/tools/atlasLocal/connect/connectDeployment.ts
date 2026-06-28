@@ -2,7 +2,10 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasLocalToolBase } from "../atlasLocalTool.js";
 import type { OperationType, ToolArgs } from "../../tool.js";
 import type { Client } from "@mongodb-js/atlas-local";
-import { waitForConnectionString } from "../../../common/atlasLocal/connectionString.js";
+import {
+    AtlasLocalDeploymentNotReadyError,
+    waitForConnectionString,
+} from "../../../common/atlasLocal/connectionString.js";
 import { CommonArgs } from "../../args.js";
 import type { ConnectionMetadata } from "../../../telemetry/types.js";
 
@@ -18,9 +21,24 @@ export class ConnectDeploymentTool extends AtlasLocalToolBase {
         { deploymentName }: ToolArgs<typeof this.argsShape>,
         { client }: { client: Client }
     ): Promise<CallToolResult> {
-        const connectionString = await waitForConnectionString(client, deploymentName);
+        let connectionString: string;
+        try {
+            connectionString = await waitForConnectionString(client, deploymentName);
+        } catch (error: unknown) {
+            if (error instanceof AtlasLocalDeploymentNotReadyError) {
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: `Atlas Local deployment "${deploymentName}" is still starting up. Wait a few seconds and call atlas-local-connect-deployment again with the same deployment name.`,
+                        },
+                    ],
+                    isError: true,
+                };
+            }
+            throw error;
+        }
 
-        // Connect to the deployment
         await this.session.connectToMongoDB({ connectionString });
 
         return {

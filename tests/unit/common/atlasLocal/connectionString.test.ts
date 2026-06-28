@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Client } from "@mongodb-js/atlas-local";
-import { waitForConnectionString } from "../../../../src/common/atlasLocal/connectionString.js";
+import {
+    AtlasLocalDeploymentNotReadyError,
+    waitForConnectionString,
+} from "../../../../src/common/atlasLocal/connectionString.js";
+
+const portBindingError = new Error("get connection string\n\nCaused by:\n    Missing port binding information");
 
 describe("waitForConnectionString", () => {
     it("returns immediately when port bindings are already available", async () => {
@@ -18,12 +23,8 @@ describe("waitForConnectionString", () => {
         const client = {
             getConnectionString: vi
                 .fn()
-                .mockRejectedValueOnce(
-                    new Error("get connection string\n\nCaused by:\n    Missing port binding information")
-                )
-                .mockRejectedValueOnce(
-                    new Error("get connection string\n\nCaused by:\n    Missing port binding information")
-                )
+                .mockRejectedValueOnce(portBindingError)
+                .mockRejectedValueOnce(portBindingError)
                 .mockResolvedValue("mongodb://localhost:27017"),
         };
 
@@ -44,19 +45,15 @@ describe("waitForConnectionString", () => {
         expect(client.getConnectionString).toHaveBeenCalledTimes(1);
     });
 
-    it("retries up to maxAttempts then throws the last port-binding error", async () => {
+    it("throws AtlasLocalDeploymentNotReadyError after maxAttempts", async () => {
         const maxAttempts = 3;
         const client = {
-            getConnectionString: vi
-                .fn()
-                .mockRejectedValue(
-                    new Error("get connection string\n\nCaused by:\n    Missing port binding information")
-                ),
+            getConnectionString: vi.fn().mockRejectedValue(portBindingError),
         };
 
         await expect(
             waitForConnectionString(client as unknown as Client, "local1", { maxAttempts, intervalMs: 1 })
-        ).rejects.toThrow("Missing port binding information");
+        ).rejects.toBeInstanceOf(AtlasLocalDeploymentNotReadyError);
         expect(client.getConnectionString).toHaveBeenCalledTimes(maxAttempts);
     });
 });

@@ -2,7 +2,10 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasLocalToolBase } from "../atlasLocalTool.js";
 import type { OperationType, ToolArgs } from "../../tool.js";
 import type { Client, CreateDeploymentOptions } from "@mongodb-js/atlas-local";
-import { waitForConnectionString } from "../../../common/atlasLocal/connectionString.js";
+import {
+    AtlasLocalDeploymentNotReadyError,
+    waitForConnectionString,
+} from "../../../common/atlasLocal/connectionString.js";
 import { CommonArgs } from "../../args.js";
 import z from "zod";
 
@@ -41,15 +44,28 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
         // createDeployment returns once the container is healthy, but Docker may
         // not have published port bindings yet. Block until connect can succeed.
         const resolvedDeploymentName = deployment.name ?? deploymentName;
+        let stillStarting = false;
         if (resolvedDeploymentName) {
-            await waitForConnectionString(client, resolvedDeploymentName);
+            try {
+                await waitForConnectionString(client, resolvedDeploymentName);
+            } catch (error: unknown) {
+                if (error instanceof AtlasLocalDeploymentNotReadyError) {
+                    stillStarting = true;
+                } else {
+                    throw error;
+                }
+            }
         }
+
+        const startingNote = stillStarting
+            ? " The deployment is still initializing; if atlas-local-connect-deployment fails, wait a few seconds and try connecting again."
+            : "";
 
         return {
             content: [
                 {
                     type: "text",
-                    text: `Deployment with container ID "${deployment.containerId}" and name "${deployment.name}" created (imageTag: ${imageTag}).`,
+                    text: `Deployment with container ID "${deployment.containerId}" and name "${deployment.name}" created (imageTag: ${imageTag}).${startingNote}`,
                 },
             ],
             _meta: {

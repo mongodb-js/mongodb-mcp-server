@@ -1,8 +1,16 @@
 import type { Client } from "@mongodb-js/atlas-local";
 import { sleep } from "../managedTimeout.js";
 
-const DEFAULT_MAX_ATTEMPTS = 600;
-const DEFAULT_INTERVAL_MS = 500;
+/** Keep well under the MCP client's default ~60s request timeout. */
+export const DEFAULT_MAX_ATTEMPTS = 60;
+export const DEFAULT_INTERVAL_MS = 500;
+
+export class AtlasLocalDeploymentNotReadyError extends Error {
+    constructor(public readonly deploymentName: string) {
+        super(`Atlas Local deployment "${deploymentName}" is still starting up`);
+        this.name = "AtlasLocalDeploymentNotReadyError";
+    }
+}
 
 function isMissingPortBindingError(error: unknown): boolean {
     const message = error instanceof Error ? error.message : String(error);
@@ -11,7 +19,7 @@ function isMissingPortBindingError(error: unknown): boolean {
 
 /**
  * atlas-local-create-deployment can return before Docker publishes port bindings.
- * Wait until getConnectionString succeeds so connect works right after create.
+ * Retry briefly so connect usually works without exceeding MCP request timeouts.
  */
 export async function waitForConnectionString(
     client: Client,
@@ -21,24 +29,19 @@ export async function waitForConnectionString(
         intervalMs = DEFAULT_INTERVAL_MS,
     }: { maxAttempts?: number; intervalMs?: number } = {}
 ): Promise<string> {
-    let lastError: Error | undefined;
-
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
         try {
             return await client.getConnectionString(deploymentName);
         } catch (error: unknown) {
-            const err = error instanceof Error ? error : new Error(String(error));
-            lastError = err;
-
-            if (!isMissingPortBindingError(err)) {
-                throw err;
+            if (!isMissingPortBindingError(error)) {
+                throw error;
             }
 
-            await sleep(intervalMs);
+            if (attempt < maxAttempts - 1) {
+                await sleep(intervalMs);
+            }
         }
     }
 
-    throw (
-        lastError ?? new Error(`Timed out waiting for connection string for Atlas Local deployment "${deploymentName}"`)
-    );
+    throw new AtlasLocalDeploymentNotReadyError(deploymentName);
 }
