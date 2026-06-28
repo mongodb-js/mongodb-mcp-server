@@ -23,6 +23,13 @@ import type { AnyToolClass, Server } from "../../../src/lib.js";
 import type { IncomingMessage } from "node:http";
 import { AsyncLocalStorage } from "node:async_hooks";
 
+const expectedHealthData: Record<string, unknown> = {
+    status: "ok",
+    version: expect.any(String) as unknown,
+    uptimeSeconds: expect.any(Number) as unknown,
+    timestamp: expect.any(String) as unknown,
+};
+
 describe("StreamableHttpRunner", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let runner: StreamableHttpRunner<UserConfig, any>;
@@ -885,12 +892,7 @@ describe("StreamableHttpRunner", () => {
                 const healthResponse = await fetch("http://localhost:3001/health");
                 expect(healthResponse.status).toBe(200);
                 const healthData = (await healthResponse.json()) as unknown;
-                expect(healthData).toEqual({
-                    status: "ok",
-                    version: expect.any(String),
-                    uptimeSeconds: expect.any(Number),
-                    timestamp: expect.any(String),
-                });
+                expect(healthData).toEqual(expectedHealthData);
             });
 
             it("does not start the monitoring server when not configured", async () => {
@@ -933,12 +935,7 @@ describe("StreamableHttpRunner", () => {
                 const healthResponse = await fetch(`${runner["monitoringServer"]!.serverAddress}/health`);
                 expect(healthResponse.status).toBe(200);
                 const healthData = (await healthResponse.json()) as unknown;
-                expect(healthData).toEqual({
-                    status: "ok",
-                    version: expect.any(String),
-                    uptimeSeconds: expect.any(Number),
-                    timestamp: expect.any(String),
-                });
+                expect(healthData).toEqual(expectedHealthData);
             });
         });
 
@@ -961,12 +958,7 @@ describe("StreamableHttpRunner", () => {
                 const healthResponse = await fetch("http://localhost:3001/health");
                 expect(healthResponse.status).toBe(200);
                 const healthData = (await healthResponse.json()) as unknown;
-                expect(healthData).toEqual({
-                    status: "ok",
-                    version: expect.any(String),
-                    uptimeSeconds: expect.any(Number),
-                    timestamp: expect.any(String),
-                });
+                expect(healthData).toEqual(expectedHealthData);
             });
 
             it("does not start the monitoring server when not configured", async () => {
