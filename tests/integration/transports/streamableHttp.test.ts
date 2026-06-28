@@ -11,7 +11,7 @@ import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import { LogId, type LoggerBase } from "../../../src/common/logging/index.js";
 import { defaultCreateConnectionManager } from "../../../src/common/connectionManager.js";
 import { Keychain } from "../../../src/common/keychain.js";
-import { defaultTestConfig, InMemoryLogger, timeout } from "../helpers.js";
+import { defaultTestConfig, InMemoryLogger } from "../helpers.js";
 import { type UserConfig } from "../../../src/common/config/userConfig.js";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { OperationType, ToolArgs, ToolCategory, ToolExecutionContext } from "../../../src/tools/tool.js";
@@ -22,6 +22,7 @@ import type { RequestContext } from "../../../src/transports/base.js";
 import type { AnyToolClass, Server } from "../../../src/lib.js";
 import type { IncomingMessage } from "node:http";
 import { AsyncLocalStorage } from "node:async_hooks";
+import { sleep } from "../../../src/common/managedTimeout.js";
 
 describe("StreamableHttpRunner", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -474,7 +475,7 @@ describe("StreamableHttpRunner", () => {
 
                         const sessionBefore = await getSessionFromStore(sessionId);
                         expect(sessionBefore).toBeDefined();
-                        await timeout(1100);
+                        await sleep(1100);
 
                         const sessionAfter = await getSessionFromStore(sessionId);
                         expect(sessionAfter).toBeUndefined();

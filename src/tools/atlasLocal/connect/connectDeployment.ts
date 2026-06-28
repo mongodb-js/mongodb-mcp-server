@@ -2,6 +2,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasLocalToolBase } from "../atlasLocalTool.js";
 import type { OperationType, ToolArgs } from "../../tool.js";
 import type { Client } from "@mongodb-js/atlas-local";
+import { waitForConnectionString } from "../../../common/atlasLocal/connectionString.js";
 import { CommonArgs } from "../../args.js";
 import type { ConnectionMetadata } from "../../../telemetry/types.js";
 
@@ -17,8 +18,7 @@ export class ConnectDeploymentTool extends AtlasLocalToolBase {
         { deploymentName }: ToolArgs<typeof this.argsShape>,
         { client }: { client: Client }
     ): Promise<CallToolResult> {
-        // Get the connection string for the deployment
-        const connectionString = await client.getConnectionString(deploymentName);
+        const connectionString = await waitForConnectionString(client, deploymentName);
 
         // Connect to the deployment
         await this.session.connectToMongoDB({ connectionString });

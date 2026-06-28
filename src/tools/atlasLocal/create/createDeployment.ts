@@ -2,6 +2,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasLocalToolBase } from "../atlasLocalTool.js";
 import type { OperationType, ToolArgs } from "../../tool.js";
 import type { Client, CreateDeploymentOptions } from "@mongodb-js/atlas-local";
+import { waitForConnectionString } from "../../../common/atlasLocal/connectionString.js";
 import { CommonArgs } from "../../args.js";
 import z from "zod";
 
@@ -35,8 +36,14 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
             ...(this.config.voyageApiKey ? { voyageApiKey: this.config.voyageApiKey } : {}),
             doNotTrack: !this.telemetry.isTelemetryEnabled(),
         };
-        // Create the deployment
         const deployment = await client.createDeployment(deploymentOptions);
+
+        // createDeployment returns once the container is healthy, but Docker may
+        // not have published port bindings yet. Block until connect can succeed.
+        const resolvedDeploymentName = deployment.name ?? deploymentName;
+        if (resolvedDeploymentName) {
+            await waitForConnectionString(client, resolvedDeploymentName);
+        }
 
         return {
             content: [
