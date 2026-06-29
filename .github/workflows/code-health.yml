@@ -50,10 +50,6 @@ jobs:
           SKIP_ATLAS_LOCAL_TESTS: "true"
           MDB_MONGOT_PASSWORD: ${{ secrets.TEST_MDB_MONGOT_PASSWORD }}
           MDB_VOYAGE_API_KEY: ${{ secrets.TEST_MDB_MCP_VOYAGE_API_KEY }}
-          # Stream testcontainers container stdout and docker-compose output so
-          # the mongot/mongod auto-embed container logs are visible when their
-          # health check fails.
-          DEBUG: "testcontainers:containers,testcontainers:compose"
       - name: Report auto-embed image versions
         if: always() && matrix.os == 'ubuntu-latest'
         run: |
