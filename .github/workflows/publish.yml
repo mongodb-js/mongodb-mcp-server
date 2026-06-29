@@ -260,8 +260,8 @@ jobs:
       id-token: write
     needs:
       - check-atlas-mcp-remote
-    # below condition can be removed once the first version of this package has been 
-    # published to npm manually, see https://jira.mongodb.org/browse/MCP-493 
+    # below condition can be removed once the first version of this package has been
+    # published to npm manually, see https://jira.mongodb.org/browse/MCP-493
     if: needs.check-atlas-mcp-remote.outputs.VERSION_EXISTS == 'false' && needs.check-atlas-mcp-remote.outputs.PACKAGE_EXISTS_ON_NPM == 'true' && needs.check-atlas-mcp-remote.outputs.NPM_VERSION != '0.0.0'
     steps:
       - uses: ./.github/actions/setup-node-pnpm
