@@ -66,7 +66,7 @@ export class CollectionStorageSizeTool extends MongoDBToolBase {
             };
         }
 
-        return super.handleError(error, args) as ToolResult | Promise<ToolResult>;
+        return super.handleError(error, args);
     }
 
     private static getStats(value: number): { value: number; units: string } {
