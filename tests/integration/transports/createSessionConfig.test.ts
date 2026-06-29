@@ -4,6 +4,7 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import { afterEach, describe, expect, it } from "vitest";
 import type { TransportRunnerConfig, UserConfig } from "../../../src/lib.js";
 import { defaultTestConfig, expectDefined } from "../helpers.js";
+import { sleep } from "../../../src/common/managedTimeout.js";
 
 describe("createSessionConfig", () => {
     const userConfig = defaultTestConfig;
@@ -82,7 +83,7 @@ describe("createSessionConfig", () => {
                 userConfig: { ...userConfig, connectionString: undefined },
                 createSessionConfig: async ({ userConfig }) => {
                     // Simulate fetching connection string from environment or secrets
-                    await new Promise((resolve) => setTimeout(resolve, 10));
+                    await sleep(10);
                     return {
                         ...userConfig,
                         connectionString: "mongodb://test-server:27017/test-db",
@@ -100,7 +101,7 @@ describe("createSessionConfig", () => {
             await startRunner({
                 createSessionConfig: async ({ userConfig }) => {
                     // Simulate async config modification
-                    await new Promise((resolve) => setTimeout(resolve, 10));
+                    await sleep(10);
                     return {
                         ...userConfig,
                         readOnly: true, // Enable read-only mode
