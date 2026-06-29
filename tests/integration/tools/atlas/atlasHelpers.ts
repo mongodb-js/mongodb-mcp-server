@@ -6,6 +6,7 @@ import { setupIntegrationTest, defaultTestConfig } from "../../helpers.js";
 import type { SuiteCollector } from "vitest";
 import { afterAll, beforeAll, describe } from "vitest";
 import type { Session } from "../../../../src/common/session.js";
+import { sleep } from "../../../../src/common/managedTimeout.js";
 
 export type IntegrationTestFunction = (integration: IntegrationTest) => void;
 
@@ -175,10 +176,6 @@ async function createGroup(apiClient: ApiClient): Promise<Group & Required<Pick<
     });
 
     return group as Group & Required<Pick<Group, "id">>;
-}
-
-export function sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export async function assertClusterIsAvailable(
