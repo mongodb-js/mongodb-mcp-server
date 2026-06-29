@@ -34,10 +34,10 @@ export interface ToolExecutionContext {
 
 export type ToolResult<OutputSchema extends ZodRawShape | undefined = undefined> = OutputSchema extends ZodRawShape
     ? StructuredToolResult<OutputSchema>
-    : { content: { type: "text"; text: string }[]; isError?: boolean };
+    : { content: CallToolResult["content"]; isError?: boolean };
 
 type StructuredToolResult<OutputSchema extends ZodRawShape> = {
-    content: { type: "text"; text: string }[];
+    content: CallToolResult["content"];
     isError?: boolean;
     structuredContent: z.infer<z.ZodObject<OutputSchema>>;
 };
