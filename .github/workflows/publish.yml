@@ -99,7 +99,7 @@ jobs:
       - name: Publish to NPM
         run: |
           pnpm publish --tag ${{ needs.check.outputs.RELEASE_CHANNEL }} --no-git-checks
-          pnpm -r --filter './packages/*' publish --tag ${{ needs.check.outputs.RELEASE_CHANNEL }} --no-git-checks
+          pnpm -r --filter './packages/*' --filter '!mongodb-atlas-mcp-remote' publish --tag ${{ needs.check.outputs.RELEASE_CHANNEL }} --no-git-checks
 
       - name: Generate AI release summary
         id: ai-summary
@@ -206,3 +206,133 @@ jobs:
             -d "{\"name\": \"vNext\", \"projectId\": ${project_id}, \"startDate\": \"${TODAY}\"}" \
             "${JIRA_URL}/rest/api/2/version" > /dev/null
           echo "Created new vNext version with start date ${TODAY}"
+
+  check-atlas-mcp-remote:
+    runs-on: ubuntu-latest
+    permissions: {}
+    outputs:
+      VERSION_EXISTS: ${{ steps.check-version.outputs.VERSION_EXISTS }}
+      NPM_VERSION: ${{ steps.get-version.outputs.NPM_VERSION }}
+      GIT_TAG_VERSION: ${{ steps.get-version.outputs.GIT_TAG_VERSION }}
+      RELEASE_CHANNEL: ${{ steps.npm-tag.outputs.RELEASE_CHANNEL }}
+      PACKAGE_EXISTS_ON_NPM: ${{ steps.check-npm.outputs.PACKAGE_EXISTS_ON_NPM }}
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Get version
+        id: get-version
+        shell: bash
+        run: |
+          set -e
+
+          NPM_VERSION=$(npm pkg get version --prefix packages/mongodb-atlas-mcp-remote | tr -d '"')
+          GIT_TAG_VERSION="atlas-mcp-remote-v${NPM_VERSION}"
+          echo "NPM_VERSION=${NPM_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "GIT_TAG_VERSION=${GIT_TAG_VERSION}" >> "$GITHUB_OUTPUT"
+      - name: Check if version already exists
+        id: check-version
+        shell: bash
+        run: |
+          set +e
+
+          git rev-parse "${{ steps.get-version.outputs.GIT_TAG_VERSION }}" >/dev/null 2>&1
+          if [[ $? -eq 0 ]]; then
+            echo "VERSION_EXISTS=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "VERSION_EXISTS=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Get npm tag
+        id: npm-tag
+        shell: bash
+        run: |
+          set -e
+          VERSION="${{ steps.get-version.outputs.NPM_VERSION }}"
+
+          if [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+(-(.+))?$ ]]; then
+            if [[ -n "${BASH_REMATCH[2]}" ]]; then
+              CAPTURED_CHANNEL="${BASH_REMATCH[2]}"
+              RELEASE_CHANNEL="${CAPTURED_CHANNEL%%.*}"
+            else
+              RELEASE_CHANNEL="latest"
+            fi
+          else
+            echo "::error title=Invalid Version::Encountered unexpected version ${VERSION}, cannot proceed!"
+            exit 1
+          fi
+
+          echo "RELEASE_CHANNEL=${RELEASE_CHANNEL}" >> "$GITHUB_OUTPUT"
+      - name: Check if package exists on npm
+        id: check-npm
+        shell: bash
+        run: |
+          if npm view mongodb-atlas-mcp-remote version >/dev/null 2>&1; then
+            echo "PACKAGE_EXISTS_ON_NPM=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "PACKAGE_EXISTS_ON_NPM=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Output deployment info
+        run: echo "::notice title=atlas-mcp-remote Deployment Info::Deploying version ${{ steps.get-version.outputs.GIT_TAG_VERSION }} to channel ${{ steps.npm-tag.outputs.RELEASE_CHANNEL }}"
+
+  publish-atlas-mcp-remote:
+    runs-on: ubuntu-latest
+    environment: Production
+    permissions:
+      contents: write
+      id-token: write
+    needs:
+      - check-atlas-mcp-remote
+    if: needs.check-atlas-mcp-remote.outputs.VERSION_EXISTS == 'false' && needs.check-atlas-mcp-remote.outputs.PACKAGE_EXISTS_ON_NPM == 'true'
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+          cache: "pnpm"
+
+      - name: Build
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --filter 'mongodb-atlas-mcp-remote' run compile
+      - name: Publish to NPM
+        run: pnpm --filter 'mongodb-atlas-mcp-remote' publish --tag ${{ needs.check-atlas-mcp-remote.outputs.RELEASE_CHANNEL }} --no-git-checks
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -e
+
+          gh release create ${{ needs.check-atlas-mcp-remote.outputs.GIT_TAG_VERSION }} \
+            --title "${{ needs.check-atlas-mcp-remote.outputs.GIT_TAG_VERSION }}" \
+            --generate-notes \
+            --target ${{ github.sha }} \
+            ${{ (needs.check-atlas-mcp-remote.outputs.RELEASE_CHANNEL != 'latest' && '--prerelease') || ''}}
+
+      - name: Wait for package to be available on npm
+        run: |
+          NPM_VERSION="${{ needs.check-atlas-mcp-remote.outputs.NPM_VERSION }}"
+          MAX_ATTEMPTS=30
+          SLEEP_SECONDS=10
+
+          echo "Waiting for mongodb-atlas-mcp-remote@${NPM_VERSION} to be available on npm..."
+
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            if npm view "mongodb-atlas-mcp-remote@${NPM_VERSION}" version >/dev/null 2>&1; then
+              echo "✓ Package mongodb-atlas-mcp-remote@${NPM_VERSION} is now available on npm"
+              exit 0
+            fi
+            echo "Attempt $i/$MAX_ATTEMPTS: Package not yet available, waiting ${SLEEP_SECONDS}s..."
+            sleep $SLEEP_SECONDS
+          done
+
+          echo "::error::Package mongodb-atlas-mcp-remote@${NPM_VERSION} did not become available after $((MAX_ATTEMPTS * SLEEP_SECONDS)) seconds"
+          exit 1
