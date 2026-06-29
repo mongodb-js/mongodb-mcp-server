@@ -55,7 +55,7 @@
     "url": "https://github.com/mongodb-js/mongodb-mcp-server.git"
   },
   "bin": {
-    "mongodb-mcp-server": "dist/esm/index.js"
+    "mongodb-mcp-server": "dist/esm/entrypoint.js"
   },
   "publishConfig": {
     "access": "public"
