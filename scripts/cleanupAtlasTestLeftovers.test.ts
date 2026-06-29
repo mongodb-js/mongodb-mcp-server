@@ -3,10 +3,7 @@ import { ApiClient } from "../src/common/atlas/apiClient.js";
 import { ConsoleLogger } from "../src/common/logging/index.js";
 import { Keychain } from "../src/lib.js";
 import { describe, it } from "vitest";
-
-function sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
+import { sleep } from "../src/common/managedTimeout.js";
 
 function isOlderThanTwoHours(date: string): boolean {
     const twoHoursInMs = 2 * 60 * 60 * 1000;
