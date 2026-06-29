@@ -77,7 +77,11 @@ void Eval<RunEvalInput, RunEvalOutput, RunEvalExpected, void, boolean, typeof Ev
                     if (!hooks.expected?.reference_answer) {
                         throw new Error("No reference answer provided in the eval case");
                     }
-                    prompt = `Run the reference answer: ${hooks.expected.reference_answer}`;
+                    prompt = `Execute the following reference answer:
+
+\`\`\`
+${hooks.expected.reference_answer}
+\`\`\``;
                 } else {
                     prompt = input.prompt;
                 }
