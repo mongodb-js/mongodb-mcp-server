@@ -1,0 +1,22 @@
+name: Set up Node.js and pnpm
+description: Installs pnpm, sets up Node.js with npm registry and pnpm cache, and checks out the repository.
+
+inputs:
+  node-version:
+    description: Node.js version to use
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+    - uses: actions/checkout@v7
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - uses: pnpm/action-setup@v5
+    - uses: actions/setup-node@v6
+      with:
+        node-version: ${{ inputs.node-version }}
+        registry-url: "https://registry.npmjs.org"
+        cache: "pnpm"
