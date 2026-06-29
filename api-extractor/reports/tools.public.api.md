@@ -300,8 +300,6 @@ export class ConnectTool extends MongoDBToolBase {
     // (undocumented)
     protected execute(input: ToolArgs<typeof ConnectTool.argsShape>): Promise<ToolResult<typeof ConnectTool.outputSchema>>;
     // (undocumented)
-    protected handleError(error: unknown, args: ToolArgs<typeof ConnectTool.argsShape>): Promise<CallToolResult>;
-    // (undocumented)
     static operationType: OperationType;
     // (undocumented)
     outputSchema: {
