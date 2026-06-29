@@ -46,8 +46,6 @@ jobs:
       - name: Check version regression
         id: version-check
         continue-on-error: true
-        env:
-          INPUTS_VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
           NEW="${{ steps.bump-version.outputs.NEW_VERSION }}"
