@@ -618,7 +618,7 @@ Example: start the server with the monitoring server enabled and call the health
 ```shell
 npx -y mongodb-mcp-server@latest --transport http --httpHost 0.0.0.0 --httpPort 3000 --monitoringServerHost 0.0.0.0 --monitoringServerPort 8080 &
 curl http://0.0.0.0:8080/health
-# => {"status":"ok"}
+# => {"status":"ok","version":"1.13.0","uptimeSeconds":42,"timestamp":"2026-06-20T12:00:00.000Z"}
 ```
 
 To expose both endpoints, pass the features explicitly:
