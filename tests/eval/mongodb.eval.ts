@@ -126,6 +126,7 @@ ${hooks.expected.reference_answer}
         scores: [llmJudgeScore],
         baseExperimentName: process.env.EVAL_BASE_EXPERIMENT_NAME,
         parameters: EvalParametersBtSchema,
+        maxConcurrency: process.env.EVAL_MAX_CONCURRENCY ? parseInt(process.env.EVAL_MAX_CONCURRENCY) : undefined,
         metadata: {
             git_branch_name: process.env.GIT_BRANCH_NAME,
         },
