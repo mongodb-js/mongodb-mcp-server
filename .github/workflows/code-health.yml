@@ -50,18 +50,6 @@ jobs:
           SKIP_ATLAS_LOCAL_TESTS: "true"
           MDB_MONGOT_PASSWORD: ${{ secrets.TEST_MDB_MONGOT_PASSWORD }}
           MDB_VOYAGE_API_KEY: ${{ secrets.TEST_MDB_MCP_VOYAGE_API_KEY }}
-      - name: Report auto-embed image versions
-        if: always() && matrix.os == 'ubuntu-latest'
-        run: |
-          for image in \
-            mongodb/mongodb-community-server:latest \
-            mongodb/mongodb-community-search:latest; do
-            echo "::group::$image"
-            docker image inspect "$image" \
-              --format 'Created={{.Created}} RepoDigests={{json .RepoDigests}}' \
-              || echo "image not present (not pulled during this run)"
-            echo "::endgroup::"
-          done
       - name: Upload test results
         if: always() && matrix.os == 'ubuntu-latest' && matrix.node-version == '22'
         uses: actions/upload-artifact@v7.0.1
