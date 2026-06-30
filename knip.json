@@ -44,7 +44,7 @@
         "setup.ts"
       ]
     },
-    "packages/mongodb-mcp-remote": {
+    "packages/mongodb-atlas-mcp-remote": {
       "entry": ["src/cli.ts!", "src/**/*.test.ts", "src/testHelpers/**/*.ts"]
     }
   },

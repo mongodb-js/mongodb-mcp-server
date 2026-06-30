@@ -33,7 +33,6 @@
     "@mongodb-js/devtools-proxy-support": "^0.7.14"
   },
   "devDependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
     "@types/node": "^25.6.0",
     "typescript": "^5.9.2",
     "vitest": "^4.1.8"
