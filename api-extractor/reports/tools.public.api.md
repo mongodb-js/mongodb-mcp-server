@@ -1712,32 +1712,12 @@ export class StreamsBuildTool extends StreamsToolBase {
     static operationType: OperationType;
     // (undocumented)
     outputSchema: {
-        workspaceName: z.ZodOptional<z.ZodString>;
-        name: z.ZodOptional<z.ZodString>;
-        cloudProvider: z.ZodOptional<z.ZodEnum<{
-            AWS: "AWS";
-            AZURE: "AZURE";
-            GCP: "GCP";
-        }>>;
-        region: z.ZodOptional<z.ZodString>;
-        tier: z.ZodOptional<z.ZodEnum<{
-            SP50: "SP50";
-            SP30: "SP30";
-            SP10: "SP10";
-            SP5: "SP5";
-            SP2: "SP2";
-        }>>;
-        connectionType: z.ZodOptional<z.ZodString>;
-        provider: z.ZodOptional<z.ZodEnum<{
-            AWS: "AWS";
-            AZURE: "AZURE";
-            GCP: "GCP";
-        }>>;
-        dlq: z.ZodOptional<z.ZodObject<{
-            connectionName: z.ZodString;
-            db: z.ZodString;
-            coll: z.ZodString;
-        }, z.core.$strip>>;
+        resource: z.ZodEnum<{
+            processor: "processor";
+            connection: "connection";
+            workspace: "workspace";
+            privatelink: "privatelink";
+        }>;
     };
     // (undocumented)
     static toolName: string;

@@ -185,9 +185,7 @@ describe("StreamsBuildTool", () => {
             );
             expect((result.content[0] as { text: string }).text).toContain("proc1");
             expect(result.structuredContent).toEqual({
-                workspaceName: "ws1",
-                name: "proc1",
-                dlq: { connectionName: "sink", db: "db1", coll: "dlq" },
+                resource: "processor",
             });
         });
 
@@ -232,6 +230,9 @@ describe("StreamsBuildTool", () => {
             expect(text).toContain("created and started");
             expect(text).toContain("Billing");
             expect(text).toContain("stop-processor");
+            expect(result.structuredContent).toEqual({
+                resource: "processor",
+            });
         });
     });
 
@@ -380,6 +381,9 @@ describe("StreamsBuildTool", () => {
             const text = (result.content[0] as { text: string }).text;
             expect(text).toContain("PENDING");
             expect(text).toContain("PrivateLink");
+            expect(result.structuredContent).toEqual({
+                resource: "connection",
+            });
         });
     });
 
@@ -859,7 +863,9 @@ describe("StreamsBuildTool", () => {
                 },
                 expect.anything()
             );
-            expect(result.structuredContent).toEqual({ provider: "AWS" });
+            expect(result.structuredContent).toEqual({
+                resource: "privatelink",
+            });
         });
 
         it("should create AWS S3 PrivateLink", async () => {
@@ -1109,7 +1115,7 @@ describe("StreamsBuildTool", () => {
     });
 
     describe("structuredContent", () => {
-        it("returns build metadata when a workspace is created", async () => {
+        it("returns workspace step outcome when a workspace is created", async () => {
             const result = await exec({
                 ...baseArgs,
                 resource: "workspace",
@@ -1119,15 +1125,11 @@ describe("StreamsBuildTool", () => {
             });
 
             expect(result.structuredContent).toEqual({
-                workspaceName: "ws1",
-                name: "ws1",
-                cloudProvider: "AWS",
-                region: "VIRGINIA_USA",
-                tier: "SP30",
+                resource: "workspace",
             });
         });
 
-        it("returns processor metadata when a processor is deployed", async () => {
+        it("returns processor step outcome when a processor is deployed with autoStart", async () => {
             mockApiClient.listStreamConnections!.mockResolvedValue({
                 results: [{ name: "src" }, { name: "sink" }],
             });
@@ -1144,8 +1146,7 @@ describe("StreamsBuildTool", () => {
             });
 
             expect(result.structuredContent).toEqual({
-                workspaceName: "ws1",
-                name: "proc1",
+                resource: "processor",
             });
         });
     });

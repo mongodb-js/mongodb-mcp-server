@@ -91,23 +91,8 @@ const HTTPS_FIELDS = {
 } as const satisfies Record<string, FieldSchema>;
 
 const BuildOutputSchema = {
-    workspaceName: z.string().optional(),
-    name: z.string().optional(),
-    cloudProvider: CloudProvider.optional(),
-    region: z.string().optional(),
-    tier: z.enum(["SP2", "SP5", "SP10", "SP30", "SP50"]).optional(),
-    connectionType: z.string().optional(),
-    provider: CloudProvider.optional(),
-    dlq: z
-        .object({
-            connectionName: z.string(),
-            db: z.string(),
-            coll: z.string(),
-        })
-        .optional(),
+    resource: BuildResource.describe("Which build step completed"),
 };
-
-type BuildOutput = z.infer<z.ZodObject<typeof BuildOutputSchema>>;
 
 export class StreamsBuildTool extends StreamsToolBase {
     static toolName = "atlas-streams-build";
@@ -243,28 +228,18 @@ export class StreamsBuildTool extends StreamsToolBase {
             case "privatelink":
                 return this.createPrivateLink(args, context);
             default:
-                return this.buildResult(
-                    [{ type: "text", text: `Unknown resource type: ${args.resource as string}` }],
-                    {},
-                    { isError: true }
-                );
+                return {
+                    content: [{ type: "text", text: `Unknown resource type: ${args.resource as string}` }],
+                    isError: true,
+                } as ToolResult<typeof this.outputSchema>;
         }
     }
 
-    private buildResult(
-        content: ToolResult<typeof this.outputSchema>["content"],
-        structuredContent: BuildOutput,
-        { isError }: { isError?: boolean } = {}
-    ): ToolResult<typeof this.outputSchema> {
-        return {
-            content,
-            ...(isError ? { isError: true } : {}),
-            structuredContent,
-        };
-    }
-
     private fromValidationError(error: CallToolResult): ToolResult<typeof this.outputSchema> {
-        return this.buildResult(StreamsBuildTool.textContentFrom(error), {}, { isError: error.isError ?? true });
+        return {
+            content: StreamsBuildTool.textContentFrom(error),
+            isError: error.isError ?? true,
+        } as ToolResult<typeof this.outputSchema>;
     }
 
     private static textContentFrom(error: CallToolResult): ToolResult<typeof BuildOutputSchema>["content"] {
@@ -326,8 +301,8 @@ export class StreamsBuildTool extends StreamsToolBase {
 
         const sampleNote = useSample ? " Includes sample_stream_solar connection for testing." : "";
 
-        return this.buildResult(
-            [
+        return {
+            content: [
                 {
                     type: "text",
                     text:
@@ -336,14 +311,8 @@ export class StreamsBuildTool extends StreamsToolBase {
                         `then deploy a processor with resource='processor'.`,
                 },
             ],
-            {
-                workspaceName,
-                name: workspaceName,
-                cloudProvider: args.cloudProvider,
-                region: args.region,
-                tier: args.tier ?? "SP10",
-            }
-        );
+            structuredContent: { resource: "workspace" },
+        };
     }
 
     private async createConnection(
@@ -386,8 +355,8 @@ export class StreamsBuildTool extends StreamsToolBase {
                 ? `\n\nNote: This connection uses PrivateLink and will start in PENDING state. It may take a few minutes to provision. Use \`atlas-streams-discover\` with action 'inspect-connection' to check when it becomes READY.`
                 : "";
 
-        return this.buildResult(
-            [
+        return {
+            content: [
                 {
                     type: "text",
                     text:
@@ -396,12 +365,8 @@ export class StreamsBuildTool extends StreamsToolBase {
                         `Reference this connection as '${args.connectionName}' in your processor pipeline's $source, $merge, or $emit stages.`,
                 },
             ],
-            {
-                workspaceName,
-                name: args.connectionName,
-                connectionType: args.connectionType,
-            }
-        );
+            structuredContent: { resource: "connection" },
+        };
     }
 
     /**
@@ -852,8 +817,8 @@ export class StreamsBuildTool extends StreamsToolBase {
               `Use \`atlas-streams-manage\` with action 'stop-processor' to stop billing.`
             : "";
 
-        return this.buildResult(
-            [
+        return {
+            content: [
                 {
                     type: "text",
                     text:
@@ -864,12 +829,8 @@ export class StreamsBuildTool extends StreamsToolBase {
                         billingNote,
                 },
             ],
-            {
-                workspaceName,
-                name: args.processorName,
-                ...(args.dlq ? { dlq: args.dlq } : {}),
-            }
-        );
+            structuredContent: { resource: "processor" },
+        };
     }
 
     private async createPrivateLink(
@@ -904,8 +865,8 @@ export class StreamsBuildTool extends StreamsToolBase {
             context
         );
 
-        return this.buildResult(
-            [
+        return {
+            content: [
                 {
                     type: "text",
                     text:
@@ -915,7 +876,7 @@ export class StreamsBuildTool extends StreamsToolBase {
                         `Once active, create connections with networking.access.type='PRIVATE_LINK' to use it.`,
                 },
             ],
-            { provider: args.privateLinkConfig.provider }
-        );
+            structuredContent: { resource: "privatelink" },
+        };
     }
 }

@@ -58,9 +58,7 @@ describeWithStreams("atlas-streams-build", (integration) => {
 
                 expectDefined(response.structuredContent);
                 expect(response.structuredContent).toEqual({
-                    workspaceName: getWorkspaceName(),
-                    name: connectionName,
-                    connectionType: "Https",
+                    resource: "connection",
                 });
             });
         });
