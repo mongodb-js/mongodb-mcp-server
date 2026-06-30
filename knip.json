@@ -35,6 +35,9 @@
         "react-dom"
       ]
     },
+    "packages/mongodb-atlas-mcp-remote": {
+      "entry": ["src/cli.ts!", "scripts/**/*.ts"]
+    },
     "tests/browser": {
       "entry": [
         "tests/**/*.ts",
