@@ -23,7 +23,7 @@
   "scripts": {
     "compile": "tsc --project tsconfig.json",
     "test": "vitest --run",
-    "build:update-package-version": "tsx scripts/updatePackageVersion.ts"
+    "build:update-package-version": "node --experimental-strip-types scripts/updatePackageVersion.ts"
   },
   "dependencies": {
     "@cfworker/json-schema": "4.1.1",
@@ -33,7 +33,6 @@
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
-    "tsx": "^4.20.5",
     "typescript": "^5.9.2",
     "vitest": "^4.1.8"
   }
