@@ -39,8 +39,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Push eval to Braintrust
-        # TODO: uncomment after testing
-        # if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main'
         run: pnpm run eval:push
       - name: Start local MongoDB
         run: pnpm run eval:db-start
