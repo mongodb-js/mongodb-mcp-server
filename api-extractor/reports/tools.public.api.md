@@ -1176,8 +1176,6 @@ export class ListAlertsTool extends AtlasToolBase {
             OPEN: "OPEN";
             TRACKING: "TRACKING";
         }>;
-        pageNum: z.ZodNumber;
-        limit: z.ZodNumber;
         alerts: z.ZodArray<z.ZodObject<{
             id: z.ZodString;
             status: z.ZodString;

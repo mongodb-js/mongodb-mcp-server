@@ -109,8 +109,6 @@ describe("ListAlertsTool", () => {
         expect(result.structuredContent).toMatchObject({
             projectId: "proj1",
             status: "OPEN",
-            pageNum: 1,
-            limit: 100,
             alerts: [],
         });
     });
@@ -200,8 +198,6 @@ describe("ListAlertsTool", () => {
         expect(result.structuredContent).toMatchObject({
             projectId: "proj1",
             status: "OPEN",
-            pageNum: 1,
-            limit: 100,
             alerts: [],
         });
     });
@@ -235,7 +231,7 @@ describe("ListAlertsTool", () => {
     });
 
     describe("structuredContent", () => {
-        it("returns alerts and pagination fields on success", async () => {
+        it("returns alerts on success", async () => {
             mockApiClient.listAlerts!.mockResolvedValue({
                 results: [
                     {
@@ -255,8 +251,6 @@ describe("ListAlertsTool", () => {
             expect(result.structuredContent).toMatchObject({
                 projectId: "proj1",
                 status: "OPEN",
-                pageNum: 1,
-                limit: 100,
                 totalCount: 42,
                 alerts: [
                     {

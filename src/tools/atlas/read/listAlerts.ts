@@ -23,8 +23,6 @@ export const ListAlertsArgs = {
 const ListAlertsOutputSchema = {
     projectId: z.string(),
     status: AlertStatus,
-    pageNum: z.number(),
-    limit: z.number(),
     alerts: z.array(
         z.object({
             id: z.string(),
@@ -80,8 +78,6 @@ export class ListAlertsTool extends AtlasToolBase {
                 structuredContent: {
                     projectId,
                     status,
-                    pageNum,
-                    limit,
                     alerts: [],
                     ...(data?.totalCount !== undefined && { totalCount: data.totalCount }),
                 },
@@ -105,8 +101,6 @@ export class ListAlertsTool extends AtlasToolBase {
             structuredContent: {
                 projectId,
                 status,
-                pageNum,
-                limit,
                 alerts,
                 ...(data.totalCount !== undefined && { totalCount: data.totalCount }),
             },
