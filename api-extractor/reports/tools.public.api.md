@@ -1911,6 +1911,18 @@ export class StreamsTeardownTool extends StreamsToolBase {
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
+    outputSchema: {
+        resource: z.ZodEnum<{
+            processor: "processor";
+            connection: "connection";
+            workspace: "workspace";
+            privatelink: "privatelink";
+            peering: "peering";
+        }>;
+        processorsRemoved: z.ZodOptional<z.ZodNumber>;
+        connectionsRemoved: z.ZodOptional<z.ZodNumber>;
+    };
+    // (undocumented)
     static toolName: string;
 }
 
