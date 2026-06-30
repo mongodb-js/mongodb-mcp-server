@@ -106,6 +106,13 @@ describe("ListAlertsTool", () => {
 
         const text = (result.content[0] as { text: string }).text;
         expect(text).toContain('No alerts with status "OPEN"');
+        expect(result.structuredContent).toMatchObject({
+            projectId: "proj1",
+            status: "OPEN",
+            pageNum: 1,
+            limit: 100,
+            alerts: [],
+        });
     });
 
     it("should pass status to API", async () => {
@@ -190,6 +197,13 @@ describe("ListAlertsTool", () => {
 
         const text = (result.content[0] as { text: string }).text;
         expect(text).toContain("No alerts with status");
+        expect(result.structuredContent).toMatchObject({
+            projectId: "proj1",
+            status: "OPEN",
+            pageNum: 1,
+            limit: 100,
+            alerts: [],
+        });
     });
 
     it("description clarifies it returns triggered alerts, not configurations, and defaults to OPEN", () => {

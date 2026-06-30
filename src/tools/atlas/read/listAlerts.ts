@@ -35,7 +35,7 @@ const ListAlertsOutputSchema = {
             acknowledgementComment: z.string(),
         })
     ),
-    totalCount: z.number(),
+    totalCount: z.number().optional(),
 };
 
 export class ListAlertsTool extends AtlasToolBase {
@@ -83,7 +83,7 @@ export class ListAlertsTool extends AtlasToolBase {
                     pageNum,
                     limit,
                     alerts: [],
-                    totalCount: data?.totalCount ?? 0,
+                    ...(data?.totalCount !== undefined && { totalCount: data.totalCount }),
                 },
             };
         }
@@ -108,7 +108,7 @@ export class ListAlertsTool extends AtlasToolBase {
                 pageNum,
                 limit,
                 alerts,
-                totalCount: data.totalCount ?? alerts.length,
+                ...(data.totalCount !== undefined && { totalCount: data.totalCount }),
             },
         };
     }

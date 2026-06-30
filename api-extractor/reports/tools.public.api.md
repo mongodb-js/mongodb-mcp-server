@@ -1187,7 +1187,7 @@ export class ListAlertsTool extends AtlasToolBase {
             eventTypeName: z.ZodString;
             acknowledgementComment: z.ZodString;
         }, z.core.$strip>>;
-        totalCount: z.ZodNumber;
+        totalCount: z.ZodOptional<z.ZodNumber>;
     };
     // (undocumented)
     static toolName: string;
