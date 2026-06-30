@@ -1,3 +1,4 @@
+import { sleep } from "../../../../src/common/managedTimeout.js";
 import type { Session } from "../../../../src/common/session.js";
 import type { ConnectClusterOutput } from "../../../../src/tools/atlas/connect/connectCluster.js";
 import { expectDefined, getResponseContent } from "../../helpers.js";
@@ -8,7 +9,6 @@ import {
     randomId,
     deleteCluster,
     waitCluster,
-    sleep,
     assertApiClientIsAvailable,
 } from "./atlasHelpers.js";
 import { afterAll, beforeAll, describe, expect, it, vitest } from "vitest";
