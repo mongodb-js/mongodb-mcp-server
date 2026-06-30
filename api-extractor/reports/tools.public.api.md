@@ -1862,6 +1862,28 @@ export class StreamsManageTool extends StreamsToolBase {
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
+    outputSchema: {
+        processorState: z.ZodOptional<z.ZodEnum<{
+            FAILED: "FAILED";
+            STOPPED: "STOPPED";
+            STARTED: "STARTED";
+            CREATED: "CREATED";
+        }>>;
+        connectionState: z.ZodOptional<z.ZodEnum<{
+            DELETING: "DELETING";
+            FAILED: "FAILED";
+            PENDING: "PENDING";
+            READY: "READY";
+        }>>;
+        region: z.ZodOptional<z.ZodString>;
+        tier: z.ZodOptional<z.ZodString>;
+        maxTier: z.ZodOptional<z.ZodString>;
+        peeringState: z.ZodOptional<z.ZodEnum<{
+            ACCEPTED: "ACCEPTED";
+            REJECTED: "REJECTED";
+        }>>;
+    };
+    // (undocumented)
     static toolName: string;
 }
 

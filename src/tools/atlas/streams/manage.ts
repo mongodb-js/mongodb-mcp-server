@@ -17,6 +17,21 @@ const ManageAction = z.enum([
     "reject-peering",
 ]);
 
+const ProcessorState = z.enum(["STARTED", "STOPPED", "CREATED", "FAILED"]);
+const ConnectionState = z.enum(["PENDING", "READY", "DELETING", "FAILED"]);
+const PeeringState = z.enum(["ACCEPTED", "REJECTED"]);
+
+export const ManageOutputSchema = z.object({
+    processorState: ProcessorState.optional().describe("Processor state after a lifecycle action"),
+    connectionState: ConnectionState.optional().describe("Connection state after an update"),
+    region: z.string().optional().describe("Confirmed workspace region after an update"),
+    tier: z.string().optional().describe("Confirmed workspace tier after an update"),
+    maxTier: z.string().optional().describe("Confirmed workspace max tier after an update"),
+    peeringState: PeeringState.optional().describe("Outcome of a VPC peering accept or reject action"),
+});
+
+export type ManageOutput = z.infer<typeof ManageOutputSchema>;
+
 export class StreamsManageTool extends StreamsToolBase {
     static toolName = "atlas-streams-manage";
     static operationType: OperationType = "update";
@@ -123,6 +138,8 @@ export class StreamsManageTool extends StreamsToolBase {
             .describe("VPC ID of the peering requester. Required for 'accept-peering'."),
     };
 
+    public override outputSchema = ManageOutputSchema.shape;
+
     protected async execute(
         args: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
@@ -193,6 +210,26 @@ export class StreamsManageTool extends StreamsToolBase {
             throw new Error(`resourceName is required for '${context}'.`);
         }
         return resourceName;
+    }
+
+    private static mapUpdateWorkspaceStructuredContent(
+        updated: {
+            dataProcessRegion?: { cloudProvider?: string; region?: string };
+            streamConfig?: { tier?: string; maxTierSize?: string } | null;
+        },
+        options: { includeRegion: boolean; includeTier: boolean }
+    ): ManageOutput {
+        const structuredContent: ManageOutput = {};
+        if (options.includeRegion && updated.dataProcessRegion?.cloudProvider && updated.dataProcessRegion.region) {
+            structuredContent.region = `${updated.dataProcessRegion.cloudProvider}/${updated.dataProcessRegion.region}`;
+        }
+        if (options.includeTier && updated.streamConfig?.tier) {
+            structuredContent.tier = updated.streamConfig.tier;
+        }
+        if (options.includeTier && updated.streamConfig?.maxTierSize) {
+            structuredContent.maxTier = updated.streamConfig.maxTierSize;
+        }
+        return structuredContent;
     }
 
     private async startProcessor(
@@ -292,6 +329,7 @@ export class StreamsManageTool extends StreamsToolBase {
                         `Use \`atlas-streams-manage\` with action 'stop-processor' to stop billing.`,
                 },
             ],
+            structuredContent: { processorState: "STARTED" },
         };
     }
 
@@ -316,6 +354,7 @@ export class StreamsManageTool extends StreamsToolBase {
                             text: `Processor '${name}' is not running (state: ${processor.state}). No action needed.`,
                         },
                     ],
+                    structuredContent: { processorState: processor.state },
                 };
             }
         } catch (error: unknown) {
@@ -344,6 +383,7 @@ export class StreamsManageTool extends StreamsToolBase {
                         `Use action 'modify-processor' to change its pipeline, or action 'start-processor' to resume.`,
                 },
             ],
+            structuredContent: { processorState: "STOPPED" },
         };
     }
 
@@ -406,6 +446,7 @@ export class StreamsManageTool extends StreamsToolBase {
                         `Use action 'start-processor' to resume processing with the updated configuration.`,
                 },
             ],
+            structuredContent: { processorState: "STOPPED" },
         };
     }
 
@@ -492,6 +533,10 @@ export class StreamsManageTool extends StreamsToolBase {
                     text: `Workspace '${args.workspaceName}' updated. Use \`atlas-streams-discover\` with action 'inspect-workspace' to verify changes.`,
                 },
             ],
+            structuredContent: StreamsManageTool.mapUpdateWorkspaceStructuredContent(updated ?? {}, {
+                includeRegion: args.newRegion !== undefined,
+                includeTier: args.newTier !== undefined,
+            }),
         };
     }
 
@@ -505,25 +550,31 @@ export class StreamsManageTool extends StreamsToolBase {
             throw new Error("connectionConfig is required to update a connection.");
         }
 
-        const { type: connectionType } = (await this.apiClient.getStreamConnection(
+        const connection = (await this.apiClient.getStreamConnection(
             {
                 params: { path: { groupId: args.projectId, tenantName: args.workspaceName, connectionName: name } },
             },
             context
-        )) as { type?: string };
+        )) as { type?: string; state?: string };
 
         const normalizedConfig = ConnectionConfig.parse(args.connectionConfig);
-        await this.apiClient.updateStreamConnection(
+        const updated = (await this.apiClient.updateStreamConnection(
             {
                 params: { path: { groupId: args.projectId, tenantName: args.workspaceName, connectionName: name } },
                 body: {
                     ...normalizedConfig,
-                    ...(connectionType !== undefined ? { type: connectionType } : {}),
+                    ...(connection.type !== undefined ? { type: connection.type } : {}),
                     name,
                 } as never,
             },
             context
-        );
+        )) as { state?: string } | undefined;
+
+        const connectionState = updated?.state ?? connection.state;
+        const parsedConnectionState = ConnectionState.safeParse(connectionState);
+        const structuredContent: ManageOutput = parsedConnectionState.success
+            ? { connectionState: parsedConnectionState.data }
+            : {};
 
         return {
             content: [
@@ -532,6 +583,7 @@ export class StreamsManageTool extends StreamsToolBase {
                     text: `Connection '${name}' updated in workspace '${args.workspaceName}'.`,
                 },
             ],
+            structuredContent,
         };
     }
 
@@ -565,6 +617,7 @@ export class StreamsManageTool extends StreamsToolBase {
                     text: `VPC peering connection '${args.peeringId}' accepted. It may take a few minutes to become active.`,
                 },
             ],
+            structuredContent: { peeringState: "ACCEPTED" },
         };
     }
 
@@ -588,6 +641,7 @@ export class StreamsManageTool extends StreamsToolBase {
                     text: `VPC peering connection '${args.peeringId}' rejected.`,
                 },
             ],
+            structuredContent: { peeringState: "REJECTED" },
         };
     }
 }
