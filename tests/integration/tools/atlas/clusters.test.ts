@@ -58,8 +58,7 @@ describeWithAtlas("clusters", (integration) => {
 
                 expectDefined(response.structuredContent);
                 expect(response.structuredContent).toEqual({
-                    name: clusterName,
-                    region: "US_EAST_1",
+                    created: true,
                 });
 
                 assertApiClientIsAvailable(session);

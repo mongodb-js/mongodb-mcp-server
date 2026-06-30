@@ -76,6 +76,9 @@ describe("CreateFreeClusterTool", () => {
         const text = result.content.map((c) => (c as { text: string }).text).join("\n");
         expect(text).toContain('Cluster "free-cluster" has been created in region "US_EAST_1"');
         expect(text).toContain("Double check your access lists");
+        expect(result.structuredContent).toEqual({
+            created: true,
+        });
     });
 
     it("calls createCluster with M0 replication specs", async () => {
@@ -84,7 +87,7 @@ describe("CreateFreeClusterTool", () => {
         expect(mockApiClient.createCluster).toHaveBeenCalledOnce();
         const call = mockApiClient.createCluster?.mock.calls[0]?.[0] as { body: Record<string, unknown> };
         expect(call.body).toMatchObject({
-            name: baseArgs.name,
+            name: "free-cluster",
             clusterType: "REPLICASET",
             replicationSpecs: [
                 expect.objectContaining({
@@ -95,17 +98,6 @@ describe("CreateFreeClusterTool", () => {
                     ],
                 }),
             ],
-        });
-    });
-
-    describe("structuredContent", () => {
-        it("returns cluster metadata on success", async () => {
-            const result = await exec();
-
-            expect(result.structuredContent).toEqual({
-                name: baseArgs.name,
-                region: baseArgs.region,
-            });
         });
     });
 });

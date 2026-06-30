@@ -6,8 +6,7 @@ import { ensureCurrentIpInAccessList } from "../../../common/atlas/accessListUti
 import { AtlasArgs } from "../../args.js";
 
 const CreateFreeClusterOutputSchema = {
-    name: z.string(),
-    region: z.string(),
+    created: z.boolean().describe("Whether the cluster was created successfully"),
 };
 
 export class CreateFreeClusterTool extends AtlasToolBase {
@@ -66,8 +65,7 @@ export class CreateFreeClusterTool extends AtlasToolBase {
                 { type: "text", text: `Double check your access lists to enable your current IP.` },
             ],
             structuredContent: {
-                name,
-                region,
+                created: true,
             },
         };
     }

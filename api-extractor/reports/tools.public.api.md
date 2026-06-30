@@ -547,8 +547,7 @@ export class CreateFreeClusterTool extends AtlasToolBase {
     static operationType: OperationType;
     // (undocumented)
     outputSchema: {
-        name: z.ZodString;
-        region: z.ZodString;
+        created: z.ZodBoolean;
     };
     // (undocumented)
     static toolName: string;
