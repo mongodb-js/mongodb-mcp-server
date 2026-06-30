@@ -204,7 +204,7 @@ describeWithMongoDB("Connect tool", (integration) => {
             });
             const content = getResponseContent(response.content);
             expect(content).toContain("The configured connection string is not valid.");
-            expect(response.structuredContent).toEqual({ connected: false });
+            expect(response.structuredContent).toBeUndefined();
 
             // Should not suggest using the config connection string (because we don't have one)
             expect(content).not.toContain("Your config lists a different connection string");

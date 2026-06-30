@@ -1,8 +1,14 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { z } from "zod";
 import { AtlasLocalToolBase } from "../atlasLocalTool.js";
-import type { OperationType, ToolArgs } from "../../tool.js";
+import type { OperationType, ToolArgs, ToolResult } from "../../tool.js";
 import type { Client } from "@mongodb-js/atlas-local";
 import { CommonArgs } from "../../args.js";
+
+const DeleteDeploymentOutputSchema = {
+    deleted: z.boolean(),
+    deploymentName: z.string(),
+};
 
 export class DeleteDeploymentTool extends AtlasLocalToolBase {
     static toolName = "atlas-local-delete-deployment";
@@ -12,20 +18,23 @@ export class DeleteDeploymentTool extends AtlasLocalToolBase {
         deploymentName: CommonArgs.string().describe("Name of the deployment to delete"),
     };
 
+    public override outputSchema = DeleteDeploymentOutputSchema;
+
     protected async executeWithAtlasLocalClient(
         { deploymentName }: ToolArgs<typeof this.argsShape>,
         { client }: { client: Client }
-    ): Promise<CallToolResult> {
-        // Lookup telemetry metadata
-        // We need to lookup the telemetry metadata before deleting the deployment
-        // to ensure that the deployment ID is set in the result metadata
+    ): Promise<ToolResult<typeof DeleteDeploymentOutputSchema> & Pick<CallToolResult, "_meta">> {
+        // Resolve deployment ID for telemetry before the deployment is removed.
         const telemetryMetadata = await this.lookupTelemetryMetadata(client, deploymentName);
 
-        // Delete the deployment
         await client.deleteDeployment(deploymentName);
 
         return {
             content: [{ type: "text", text: `Deployment "${deploymentName}" deleted successfully.` }],
+            structuredContent: {
+                deleted: true,
+                deploymentName,
+            },
             _meta: {
                 ...telemetryMetadata,
             },
