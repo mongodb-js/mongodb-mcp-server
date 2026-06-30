@@ -1,7 +1,7 @@
 import type { FetchLike } from "@modelcontextprotocol/client";
 import type { CachedToken, TokenResponse } from "./common.js";
 import { packageInfo } from "./packageInfo.js";
-import { logger } from "./logger.js";
+import { logger, addSecret } from "./logger.js";
 import { LogId } from "./logging/index.js";
 
 const TOKEN_EXPIRY_BUFFER_MS = 10 * 60 * 1000; // 10 minutes
@@ -32,6 +32,12 @@ export class TokenManager {
 
     async getToken(): Promise<string> {
         if (this.cachedToken && Date.now() < this.cachedToken.expiresAt - TOKEN_EXPIRY_BUFFER_MS) {
+            logger.debug({
+                id: LogId.tokenReused,
+                context: "tokenManager",
+                message: "Reusing cached access token",
+                attributes: { expiresIn: `${Math.round((this.cachedToken.expiresAt - Date.now()) / 1000)}s` },
+            });
             return this.cachedToken.accessToken;
         }
 
@@ -98,6 +104,8 @@ export class TokenManager {
             accessToken: data.access_token,
             expiresAt: Date.now() + expiresInS * 1000,
         };
+
+        addSecret(token.accessToken);
 
         logger.debug({
             id: LogId.tokenAcquired,
