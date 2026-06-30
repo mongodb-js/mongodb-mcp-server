@@ -1,9 +1,7 @@
-import { LOG_LEVELS } from "./common.js";
-import type { AppConfig, LogLevel } from "./common.js";
+import type { AppConfig } from "./common.js";
 
 const DEFAULT_BASE_URL = "https://cloud.mongodb.com";
 const DEFAULT_TOKEN_TIMEOUT_MS = 10_000;
-const DEFAULT_LOG_LEVEL: LogLevel = "info";
 
 function loadPosIntEnvVar(name: string, defaultValue: number, errors: string[]): number {
     const value = process.env[name];
@@ -36,14 +34,6 @@ export function loadConfig(): AppConfig {
 
     const tokenTimeoutMs = loadPosIntEnvVar("MDB_MCP_TOKEN_TIMEOUT_MS", DEFAULT_TOKEN_TIMEOUT_MS, errors);
 
-    let logLevel: LogLevel = DEFAULT_LOG_LEVEL;
-    if (process.env.MDB_MCP_LOG_LEVEL) {
-        logLevel = process.env.MDB_MCP_LOG_LEVEL.toLowerCase() as LogLevel;
-        if (!LOG_LEVELS.includes(logLevel)) {
-            errors.push(`MDB_MCP_LOG_LEVEL must be one of: ${LOG_LEVELS.join(", ")}, got: ${logLevel}`);
-        }
-    }
-
     if (errors.length > 0) {
         throw new ConfigurationError(errors);
     }
@@ -54,7 +44,6 @@ export function loadConfig(): AppConfig {
         tokenUrl: new URL("/api/oauth/token", baseUrl).toString(),
         remoteUrl: new URL("/api/private/mcp", baseUrl).toString(), // TODO: Switch to https://mcp.mongodb.com/mcp once available across all environments.
         tokenTimeoutMs,
-        logLevel,
     };
 }
 

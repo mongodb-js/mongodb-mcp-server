@@ -7,7 +7,8 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import { StdioServerTransport } from "@modelcontextprotocol/server";
 import { loadConfig, ConfigurationError } from "./config.js";
 import { TokenManager, TokenError } from "./tokenManager.js";
-import { logger } from "./logger.js";
+import { logger, addSecret } from "./logger.js";
+import { LogId } from "./logging/index.js";
 
 async function main(): Promise<void> {
     let config;
@@ -22,12 +23,17 @@ async function main(): Promise<void> {
         throw error;
     }
 
-    logger.setLevel(config.logLevel);
+    addSecret(config.clientId);
+    addSecret(config.clientSecret);
 
     try {
         await systemCA();
     } catch (error) {
-        logger.warning(`Failed to load system CA certificates: ${String(error)}`);
+        logger.warning({
+            id: LogId.systemCaWarning,
+            context: "cli",
+            message: `Failed to load system CA certificates: ${String(error)}`,
+        });
     }
 
     const proxyFetch = createFetch({ useEnvironmentVariableProxies: true }) as unknown as FetchLike;
@@ -52,7 +58,11 @@ async function main(): Promise<void> {
         await tokenManager.getToken();
     } catch (error) {
         const message = error instanceof TokenError ? error.message : String(error);
-        logger.error(`Failed to acquire access token: ${message}`);
+        logger.error({
+            id: LogId.tokenFetchError,
+            context: "cli",
+            message: `Failed to acquire access token: ${message}`,
+        });
         process.exit(1);
     }
 
@@ -80,14 +90,19 @@ async function main(): Promise<void> {
         });
     };
     stdioTransport.onerror = (error: Error): void => {
-        logger.error("Stdio transport error", { error: String(error) });
+        logger.error({
+            id: LogId.stdioTransportError,
+            context: "cli",
+            message: "Stdio transport error",
+            attributes: { error: String(error) },
+        });
     };
     stdioTransport.onclose = (): void => {
         process.exit(0);
     };
 
     const shutdown = (): void => {
-        logger.info("Shutting down");
+        logger.info({ id: LogId.shutdown, context: "cli", message: "Shutting down" });
         void httpTransport.close();
         void stdioTransport.close();
         process.exit(0);
