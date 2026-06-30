@@ -77,7 +77,7 @@ export class CreateProjectTool extends AtlasToolBase {
             ],
             structuredContent: {
                 projectName,
-                organizationId: assumedOrg ? organizationId : undefined,
+                ...(assumedOrg && { organizationId }),
             },
         };
     }

@@ -66,7 +66,6 @@ describe("CreateProjectTool", () => {
         expect(mockApiClient.listOrgs).not.toHaveBeenCalled();
         expect(result.structuredContent).toEqual({
             projectName: "My Project",
-            organizationId: undefined,
         });
     });
 
