@@ -1,7 +1,7 @@
 import type { FetchLike } from "@modelcontextprotocol/client";
 import type { CachedToken, TokenResponse } from "./common.js";
 import { packageInfo } from "./packageInfo.js";
-import { logger, addSecret } from "./logger.js";
+import { logger, setAccessToken } from "./logger.js";
 import { LogId } from "./logging/index.js";
 
 const TOKEN_EXPIRY_BUFFER_MS = 10 * 60 * 1000; // 10 minutes
@@ -105,7 +105,7 @@ export class TokenManager {
             expiresAt: Date.now() + expiresInS * 1000,
         };
 
-        addSecret(token.accessToken);
+        setAccessToken(token.accessToken);
 
         logger.debug({
             id: LogId.tokenAcquired,
