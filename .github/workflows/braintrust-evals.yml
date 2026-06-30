@@ -24,7 +24,7 @@ jobs:
       EMBEDDING_PROVIDER_ENDPOINT: "https://api.voyageai.com/v1/embeddings"
       GIT_BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
       # Limits concurrent evals to avoid slowdowns from simultaneous database or text/vector index creation per eval case
-      EVAL_MAX_CONCURRENCY: 10
+      EVAL_MAX_CONCURRENCY: 25
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
       - uses: actions/checkout@v6
