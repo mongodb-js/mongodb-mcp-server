@@ -264,16 +264,21 @@ export class ConnectClusterTool extends AtlasToolBase {
 export class ConnectDeploymentTool extends AtlasLocalToolBase {
     // (undocumented)
     argsShape: {
-        deploymentName: ZodString;
+        deploymentName: z.ZodString;
     };
     // (undocumented)
     description: string;
     // (undocumented)
     protected executeWithAtlasLocalClient(input: ToolArgs<typeof ConnectDeploymentTool.argsShape>, input2: {
         client: Client;
-    }): Promise<CallToolResult>;
+    }): Promise<ToolResult<typeof ConnectDeploymentOutputSchema> & Pick<CallToolResult, "_meta">>;
     // (undocumented)
     static operationType: OperationType;
+    // (undocumented)
+    outputSchema: {
+        connected: z.ZodBoolean;
+        deploymentName: z.ZodString;
+    };
     // (undocumented)
     protected resolveTelemetryMetadata(args: ToolArgs<typeof ConnectDeploymentTool.argsShape>, input: {
         result: CallToolResult;
@@ -293,8 +298,6 @@ export class ConnectTool extends MongoDBToolBase {
     description: string;
     // (undocumented)
     protected execute(input: ToolArgs<typeof ConnectTool.argsShape>): Promise<ToolResult<typeof ConnectTool.outputSchema>>;
-    // (undocumented)
-    protected handleError(error: unknown, args: ToolArgs<typeof ConnectTool.argsShape>): Promise<CallToolResult>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -516,9 +519,16 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
     // (undocumented)
     protected executeWithAtlasLocalClient(input: ToolArgs<typeof CreateDeploymentTool.argsShape>, input2: {
         client: Client;
-    }): Promise<CallToolResult>;
+    }): Promise<ToolResult<typeof CreateDeploymentOutputSchema> & Pick<CallToolResult, "_meta">>;
     // (undocumented)
     static operationType: OperationType;
+    // (undocumented)
+    outputSchema: {
+        deploymentName: z.ZodString;
+        containerId: z.ZodString;
+        loadSampleData: z.ZodBoolean;
+        imageTag: z.ZodString;
+    };
     // (undocumented)
     static toolName: string;
 }
@@ -689,16 +699,21 @@ export class DbStatsTool extends MongoDBToolBase {
 export class DeleteDeploymentTool extends AtlasLocalToolBase {
     // (undocumented)
     argsShape: {
-        deploymentName: ZodString;
+        deploymentName: z.ZodString;
     };
     // (undocumented)
     description: string;
     // (undocumented)
     protected executeWithAtlasLocalClient(input: ToolArgs<typeof DeleteDeploymentTool.argsShape>, input2: {
         client: Client;
-    }): Promise<CallToolResult>;
+    }): Promise<ToolResult<typeof DeleteDeploymentOutputSchema> & Pick<CallToolResult, "_meta">>;
     // (undocumented)
     static operationType: OperationType;
+    // (undocumented)
+    outputSchema: {
+        deleted: z.ZodBoolean;
+        deploymentName: z.ZodString;
+    };
     // (undocumented)
     static toolName: string;
 }
@@ -1324,9 +1339,18 @@ export class ListDeploymentsTool extends AtlasLocalToolBase {
     // (undocumented)
     protected executeWithAtlasLocalClient(_args: ToolArgs<typeof ListDeploymentsTool.argsShape>, input: {
         client: Client;
-    }): Promise<CallToolResult>;
+    }): Promise<ToolResult<typeof ListDeploymentsOutputSchema>>;
     // (undocumented)
     static operationType: OperationType;
+    // (undocumented)
+    outputSchema: {
+        count: z.ZodNumber;
+        deployments: z.ZodArray<z.ZodObject<{
+            name: z.ZodOptional<z.ZodString>;
+            state: z.ZodString;
+            mongodbVersion: z.ZodString;
+        }, z.core.$strip>>;
+    };
     // (undocumented)
     static toolName: string;
 }

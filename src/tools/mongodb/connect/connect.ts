@@ -1,5 +1,4 @@
 import { z } from "zod";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolConstructorParams, ToolResult } from "../../tool.js";
 import type { Server } from "../../../server.js";
@@ -55,16 +54,5 @@ export class ConnectTool extends MongoDBToolBase {
             content: [{ type: "text", text: "Successfully connected to MongoDB." }],
             structuredContent: { connected: true },
         };
-    }
-
-    protected override async handleError(
-        error: unknown,
-        args: ToolArgs<typeof this.argsShape>
-    ): Promise<CallToolResult> {
-        const result = await super.handleError(error, args);
-        if (result.isError) {
-            return { ...result, structuredContent: { connected: false } };
-        }
-        return result;
     }
 }

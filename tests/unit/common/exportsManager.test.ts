@@ -8,10 +8,11 @@ import type { ExportsManagerConfig } from "../../../src/common/exportsManager.js
 import { ensureExtension, isExportExpired, ExportsManager } from "../../../src/common/exportsManager.js";
 import type { AvailableExport } from "../../../src/common/exportsManager.js";
 import { ROOT_DIR } from "../../accuracy/sdk/constants.js";
-import { defaultTestConfig, timeout } from "../../integration/helpers.js";
+import { defaultTestConfig } from "../../integration/helpers.js";
 import type { EJSONOptions } from "bson";
 import { EJSON, ObjectId } from "bson";
 import { CompositeLogger } from "../../../src/common/logging/index.js";
+import { sleep } from "../../../src/common/managedTimeout.js";
 
 const logger = new CompositeLogger();
 const exportsPath = path.join(ROOT_DIR, "tests", "tmp", `exports-${Date.now()}`);
@@ -75,7 +76,7 @@ function createDummyFindCursor(
     let notifyClose: () => Promise<void>;
     const cursorCloseNotification = new Promise<void>((resolve) => {
         notifyClose = async (): Promise<void> => {
-            await timeout(10);
+            await sleep(10);
             resolve();
         };
     });
@@ -98,7 +99,7 @@ function createDummyFindCursorWithDelay(
     dataArray: unknown[],
     delayMs: number
 ): { cursor: FindCursor; cursorCloseNotification: Promise<void> } {
-    return createDummyFindCursor(dataArray, () => timeout(delayMs));
+    return createDummyFindCursor(dataArray, () => sleep(delayMs));
 }
 
 async function fileExists(filePath: string): Promise<boolean> {
@@ -537,7 +538,7 @@ describe("ExportsManager unit test", () => {
             expect((manager as any).storedExports[exportName]?.exportStatus).toEqual("in-progress");
 
             // After clean up interval the export should still be there
-            await timeout(200);
+            await sleep(200);
             // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
             expect((manager as any).storedExports[exportName]?.exportStatus).toEqual("in-progress");
         });
@@ -568,7 +569,7 @@ describe("ExportsManager unit test", () => {
                 })
             );
             expect(await fileExists(exportPath)).toEqual(true);
-            await timeout(200);
+            await sleep(200);
             expect(manager.availableExports).toEqual([]);
             expect(await fileExists(exportPath)).toEqual(false);
         });
@@ -585,7 +586,7 @@ describe("ExportsManager unit test", () => {
                 jsonExportFormat: "relaxed",
             });
             // Give the pipeline a brief moment to start and create the file
-            await timeout(50);
+            await sleep(50);
 
             await manager.close();
 
