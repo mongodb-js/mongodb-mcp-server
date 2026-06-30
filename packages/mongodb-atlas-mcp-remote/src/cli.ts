@@ -111,9 +111,7 @@ async function main(): Promise<void> {
                     ...(code !== undefined ? { code } : {}),
                     ...(status !== undefined ? { status: String(status) } : {}),
                     // Only include the error text when there is no HTTP status (network/timeout errors carry no body).
-                    ...(status === undefined
-                        ? { error: error instanceof Error ? error.message : String(error) }
-                        : {}),
+                    ...(status === undefined ? { error: error instanceof Error ? error.message : String(error) } : {}),
                 },
             });
 
@@ -162,8 +160,8 @@ main().catch((error) => {
 // Builds redaction-safe log attributes from a JSON-RPC message: metadata only, no params/body.
 function messageAttributes(method: unknown, id: unknown): Record<string, string> {
     return {
-        ...(method !== undefined ? { method: String(method) } : {}),
-        ...(id !== undefined ? { id: String(id) } : {}),
+        ...(method !== undefined ? { method: String(method as string | number) } : {}),
+        ...(id !== undefined ? { id: String(id as string | number) } : {}),
     };
 }
 

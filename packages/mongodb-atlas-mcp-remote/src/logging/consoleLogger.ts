@@ -11,7 +11,6 @@ export class ConsoleLogger extends LoggerBase {
 
     protected logCore(level: LogLevel, payload: LogPayload): void {
         const { id, context, message } = payload;
-        // eslint-disable-next-line no-console
         console.error(
             `[${level.toUpperCase()}] ${id.__value} - ${context}: ${message}${this.serializeAttributes(payload.attributes)}`
         );
