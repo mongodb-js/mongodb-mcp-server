@@ -9,7 +9,6 @@ import {
     setupIntegrationTest,
     defaultTestConfig,
     getDataFromUntrustedContent,
-    timeout,
 } from "../../helpers.js";
 import type { UserConfig } from "../../../../src/common/config/userConfig.js";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -17,6 +16,7 @@ import { EJSON } from "bson";
 import { MongoDBClusterProcess } from "./mongodbClusterProcess.js";
 import type { MongoClusterConfiguration } from "./mongodbClusterProcess.js";
 import type { createMockElicitInput, MockClientCapabilities } from "../../../utils/elicitationMocks.js";
+import { sleep } from "../../../../src/common/managedTimeout.js";
 
 export const DEFAULT_WAIT_TIMEOUT = 1000;
 export const DEFAULT_RETRY_INTERVAL = 100;
@@ -146,7 +146,7 @@ export function describeWithMongoDB(
                         );
                     }
 
-                    await timeout(CONNECT_RETRY_INTERVAL);
+                    await sleep(CONNECT_RETRY_INTERVAL);
                 }
             },
         });

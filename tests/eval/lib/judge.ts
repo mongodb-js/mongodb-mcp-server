@@ -12,7 +12,7 @@ const DEFAULT_STEP_COUNT = 10;
 
 const FALLBACK: Verdict = {
     score: 0,
-    explanation: `Judge did not submit a score before the step limit (${DEFAULT_STEP_COUNT}).`,
+    explanation: `Judge finished without submitting a score (step limit ${DEFAULT_STEP_COUNT}).`,
 };
 
 /**
@@ -29,31 +29,56 @@ export async function judgeUsingLLM(params: {
     model: LanguageModel;
     tools: ToolSet;
     tempDbName: string;
-    criteria: string | string[];
+    criteria: string;
 }): Promise<Verdict> {
     const { model, tools, criteria, tempDbName } = params;
     const submitScoreTool = new SubmitScoreTool();
 
+    const judgeTools: ToolSet = {
+        ...tools,
+        [SubmitScoreTool.toolName]: submitScoreTool.getTool(),
+    };
+    const system = composeJudgeSystemPrompt(tempDbName);
+    const messages: untracedAi.ModelMessage[] = [
+        {
+            role: "user",
+            content: `Verify the following criteria:\n${criteria}`,
+        },
+    ];
+
     await traced(
         async () => {
-            await ai.generateText({
+            const result = await ai.generateText({
                 model,
-                system: composeJudgeSystemPrompt(criteria, tempDbName),
-                messages: [
-                    {
-                        role: "user" as const,
-                        content: `Verify the criteria, then call ${SubmitScoreTool.toolName} exactly once.`,
-                    },
-                ],
-                tools: {
-                    ...tools,
-                    [SubmitScoreTool.toolName]: submitScoreTool.getTool(),
-                },
+                system,
+                messages,
+                tools: judgeTools,
                 stopWhen: [
                     untracedAi.stepCountIs(DEFAULT_STEP_COUNT),
                     untracedAi.hasToolCall(SubmitScoreTool.toolName),
                 ],
             });
+
+            // The judge may end its turn with a plain-text verdict instead of calling submit_score (text responses stop
+            // generateText naturally, independent of stopWhen). If that happens, re-prompt once and
+            // force the submit_score call so a verdict is always captured.
+            if (submitScoreTool.getCapturedVerdict() === undefined) {
+                await ai.generateText({
+                    model,
+                    system,
+                    messages: [
+                        ...messages,
+                        ...result.response.messages,
+                        {
+                            role: "user",
+                            content: `You did not call ${SubmitScoreTool.toolName}. Call it now exactly once with your final score.`,
+                        },
+                    ],
+                    tools: judgeTools,
+                    toolChoice: { type: "tool", toolName: SubmitScoreTool.toolName },
+                    stopWhen: untracedAi.stepCountIs(1),
+                });
+            }
         },
         { name: "llm-judge" }
     );
@@ -61,22 +86,22 @@ export async function judgeUsingLLM(params: {
     return submitScoreTool.getCapturedVerdict() ?? FALLBACK;
 }
 
-function composeJudgeSystemPrompt(criteria: string | string[], tempDbName: string): string {
-    const list = Array.isArray(criteria) ? criteria : [criteria];
+function composeJudgeSystemPrompt(tempDbName: string): string {
     return [
         "You are evaluating a MongoDB AI assistant on behalf of a human tester.",
-        "Decide whether the criteria below are satisfied and produce a score from 0 to 1.",
+        "Decide whether the provided criteria are satisfied and produce a score from 0 to 1.",
         "",
-        "### Criteria",
-        ...list.map((c, i) => `${i + 1}. ${c}`),
+        "### Rules of Engagement",
+        `- You MUST conclude the iteration by passing your results to the ${SubmitScoreTool.toolName} tool exactly once.`,
         "",
         "### Tools",
         `- Use the MCP tools to inspect the current database state. Operate ONLY on the database named '${tempDbName}'.`,
         `- If a criterion references ${GetConversationTool.keyword}, call ${GetConversationTool.toolName} to read the assistant's transcript.`,
         `- If a criterion references ${GetResponseTool.keyword}, call ${GetResponseTool.toolName} to read the assistant's final response.`,
-        `- You MUST call ${SubmitScoreTool.toolName} exactly once with your score and a brief explanation. DO NOT STOP without calling it.`,
         "",
         "### Scoring",
-        "- 1.0 = every criterion fully satisfied; partial credit proportional to how many are satisfied; 0.0 = none.",
+        "If no scoring criteria are provided, score the assistant's response based on the following criteria:",
+        "- 1.0 = every criterion fully satisfied; partial credit proportional to how many are satisfied.",
+        "- 0.0 = none.",
     ].join("\n");
 }
