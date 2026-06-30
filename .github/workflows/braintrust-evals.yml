@@ -32,12 +32,15 @@ jobs:
       - uses: pnpm/action-setup@v5
       - uses: actions/setup-node@v6
         with:
-          node-version-file: package.json
+          # Braintrust push accepts Node 18–22 only
+          # https://www.braintrust.dev/docs/evaluate/remote-evals#2-register-your-sandbox
+          node-version: "22"
           cache: "pnpm"
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Push eval to Braintrust
-        if: github.ref == 'refs/heads/main'
+        # TODO: uncomment after testing
+        # if: github.ref == 'refs/heads/main'
         run: pnpm run eval:push
       - name: Start local MongoDB
         run: pnpm run eval:db-start
