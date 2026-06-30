@@ -57,7 +57,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          LATEST_TAG=$(gh release list --exclude-drafts --exclude-pre-releases --limit 1 --json tagName --jq '[.[] | select(.tagName | test("^v[0-9]"))] | .[0].tagName // empty')
+          LATEST_TAG=$(gh release list --exclude-drafts --exclude-pre-releases --limit 100 --json tagName --jq '[.[] | select(.tagName | test("^v[0-9]"))] | .[0].tagName // empty')
           if [[ -z "$LATEST_TAG" ]]; then
             exit 0
           fi
