@@ -120,7 +120,6 @@ describe("CreateDBUserTool", () => {
 
             expect(result.structuredContent).toEqual({
                 username: baseArgs.username,
-                password: undefined,
             });
         });
 
