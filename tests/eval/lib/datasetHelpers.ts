@@ -2,14 +2,17 @@ import type { Document } from "mongodb";
 import type { DbSeedEntry, SeedIndexSpec } from "./datasetTypes.js";
 import movies from "../dbSeed/mflix.movies.json" with { type: "json" };
 import moviesWithPlotEmbedding from "../dbSeed/mflix.movies-with-plot-embedding.json" with { type: "json" };
+import synonyms from "../dbSeed/mflix.synonyms.json" with { type: "json" };
+import { EJSON } from "bson";
 
 // ╭──────────────────────────────────────────────╮
 // │   ↘️ Seeding Documents                       │
 // ╰──────────────────────────────────────────────╯
 
 const SEED_DOCUMENTS: Record<string, Document[]> = {
-    movies: movies as Document[],
-    "movies-with-plot-embedding": moviesWithPlotEmbedding as Document[],
+    movies: EJSON.deserialize(movies) as Document[],
+    "movies-with-plot-embedding": EJSON.deserialize(moviesWithPlotEmbedding) as Document[],
+    synonyms: EJSON.deserialize(synonyms) as Document[],
 };
 
 /**

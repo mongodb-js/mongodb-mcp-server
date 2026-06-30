@@ -142,6 +142,11 @@ export async function teardown(): Promise<void> {
         await mcpClient.close();
     }
 
+    if (readOnlyMcpClientFactory) {
+        const readOnlyMcpClient = await readOnlyMcpClientFactory.singletonInstance();
+        await readOnlyMcpClient.close();
+    }
+
     if (mongoClientFactory) {
         const client = await mongoClientFactory.singletonInstance();
         for (const db of tempDbRegistry) {
@@ -157,4 +162,5 @@ export async function teardown(): Promise<void> {
 
     mongoClientFactory = null;
     mcpClientFactory = null;
+    readOnlyMcpClientFactory = null;
 }
