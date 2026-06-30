@@ -3,18 +3,31 @@
     "_id": "bf96c9f7-17be-467c-9f5e-3f19dc2e9ed4",
     "title": "Human sell",
     "release_year": 1993,
-    "genres": ["Sci-Fi"],
+    "genres": [
+      "Sci-Fi"
+    ],
     "director": "Christina Collins",
-    "cast": ["Jeremy Marks", "Matthew Moore", "Erica Miller", "Beth Morales"],
+    "cast": [
+      "Jeremy Marks",
+      "Matthew Moore",
+      "Erica Miller",
+      "Beth Morales"
+    ],
     "runtime": 139,
     "rating": 9.3,
-    "plot": "Invisible aliens in a tiny flying saucer come to Earth looking for heroin. They land on top of a New York apartment inhabited by a drug dealer and her female, androgynous, bisexual ..."
+    "plot": "Invisible aliens in a tiny flying saucer come to Earth looking for heroin. They land on top of a New York apartment inhabited by a drug dealer and her female, androgynous, bisexual ...",
+    "released": {
+      "$date": "1993-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "ab338dcb-c541-4d39-ba3d-58e4ebcac16c",
     "title": "Trial we much",
     "release_year": 2020,
-    "genres": ["Horror", "Comedy"],
+    "genres": [
+      "Horror",
+      "Comedy"
+    ],
     "director": "Steven Miles",
     "cast": [
       "Patrick Huynh",
@@ -24,13 +37,19 @@
     ],
     "runtime": 149,
     "rating": 5.0,
-    "plot": "A Shakespearean actor takes poetic revenge on the critics who denied him recognition."
+    "plot": "A Shakespearean actor takes poetic revenge on the critics who denied him recognition.",
+    "released": {
+      "$date": "2020-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "2bd3ed9f-cbeb-4c44-bec7-01d51c3dd7db",
     "title": "Someone",
     "release_year": 1996,
-    "genres": ["Action", "Horror"],
+    "genres": [
+      "Action",
+      "Horror"
+    ],
     "director": "Steven Miles",
     "cast": [
       "Carrie Cummings",
@@ -41,13 +60,18 @@
     ],
     "runtime": 153,
     "rating": 2.6,
-    "plot": "A routine military exercise turns into a nightmare in the Scotland wilderness."
+    "plot": "A routine military exercise turns into a nightmare in the Scotland wilderness.",
+    "released": {
+      "$date": "1996-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "fb35d6f3-bda5-450f-8873-56e035e76c42",
     "title": "Without our",
     "release_year": 2012,
-    "genres": ["Comedy"],
+    "genres": [
+      "Comedy"
+    ],
     "director": "Christina Collins",
     "cast": [
       "Rodney Gray",
@@ -58,24 +82,39 @@
     ],
     "runtime": 143,
     "rating": 9.1,
-    "plot": "A hillbilly inherits millions and goes to the city, leaving his village to live a rich man's life in post communist Czech Republic."
+    "plot": "A hillbilly inherits millions and goes to the city, leaving his village to live a rich man's life in post communist Czech Republic.",
+    "released": {
+      "$date": "2012-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "4b0d5f7a-c551-4995-aece-a5a585d238a7",
     "title": "Cost anything",
     "release_year": 2002,
-    "genres": ["Romance", "Action"],
+    "genres": [
+      "Romance",
+      "Action"
+    ],
     "director": "Bryan Andrews",
-    "cast": ["Gregory Mullins", "Jillian Arroyo", "Angela Reed"],
+    "cast": [
+      "Gregory Mullins",
+      "Jillian Arroyo",
+      "Angela Reed"
+    ],
     "runtime": 112,
     "rating": 3.8,
-    "plot": "Unemployed Aftab is into unlawful activities; one day he attempt to grab a consignment of arms and ammunitions that is being supplied to terrorists on the Indo-Pak border. When he find that..."
+    "plot": "Unemployed Aftab is into unlawful activities; one day he attempt to grab a consignment of arms and ammunitions that is being supplied to terrorists on the Indo-Pak border. When he find that...",
+    "released": {
+      "$date": "2002-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "797e4ee5-eff4-45f4-a0d7-40f62f7bd138",
     "title": "Hold green energy their",
     "release_year": 1989,
-    "genres": ["Horror"],
+    "genres": [
+      "Horror"
+    ],
     "director": "Christina Collins",
     "cast": [
       "Eduardo Carey",
@@ -85,13 +124,19 @@
     ],
     "runtime": 126,
     "rating": 7.4,
-    "plot": "Strangers looking for a woman's father arrive at a tropical island where a doctor desperately searches for the cause and cure of a recent epidemic of the undead."
+    "plot": "Strangers looking for a woman's father arrive at a tropical island where a doctor desperately searches for the cause and cure of a recent epidemic of the undead.",
+    "released": {
+      "$date": "1989-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "1b81c45b-1d09-47dc-871f-ace109107446",
     "title": "Choose ability start",
     "release_year": 1990,
-    "genres": ["Drama", "Comedy"],
+    "genres": [
+      "Drama",
+      "Comedy"
+    ],
     "director": "Bryan Andrews",
     "cast": [
       "Tyler Daniels",
@@ -101,35 +146,59 @@
     ],
     "runtime": 141,
     "rating": 5.6,
-    "plot": "In Manhattan, a mother of two preparing for her daughter's sixth birthday party has no idea of the challenges she's about to face in order to pull off the event."
+    "plot": "In Manhattan, a mother of two preparing for her daughter's sixth birthday party has no idea of the challenges she's about to face in order to pull off the event.",
+    "released": {
+      "$date": "1990-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "400a08be-f07b-416a-8cdc-46c9886b812b",
     "title": "Cover perhaps",
     "release_year": 2022,
-    "genres": ["Drama"],
+    "genres": [
+      "Drama"
+    ],
     "director": "Daniel Wallace",
-    "cast": ["Victoria Price", "Holly Ross", "Michele Jones"],
+    "cast": [
+      "Victoria Price",
+      "Holly Ross",
+      "Michele Jones"
+    ],
     "runtime": 173,
     "rating": 4.3,
-    "plot": "The beginings of the Algerian Revolution as seen through the eyes of a peasant."
+    "plot": "The beginings of the Algerian Revolution as seen through the eyes of a peasant.",
+    "released": {
+      "$date": "2022-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "4d4b5420-83e1-4ecd-9c86-238394a1fd0f",
     "title": "Policy particularly",
     "release_year": 2003,
-    "genres": ["Comedy"],
+    "genres": [
+      "Comedy"
+    ],
     "director": "Brittany Parker",
-    "cast": ["Emily Haynes", "Crystal Johnson", "Ernest Jones"],
+    "cast": [
+      "Emily Haynes",
+      "Crystal Johnson",
+      "Ernest Jones"
+    ],
     "runtime": 154,
     "rating": 6.6,
-    "plot": "An American couple and a foreign couple test the limits of friendship and love when they switch partners and get married for green cards."
+    "plot": "An American couple and a foreign couple test the limits of friendship and love when they switch partners and get married for green cards.",
+    "released": {
+      "$date": "2003-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "9a489559-ab9d-4dbb-b3e7-d65895b27704",
     "title": "Store care",
     "release_year": 2017,
-    "genres": ["Romance", "Sci-Fi"],
+    "genres": [
+      "Romance",
+      "Sci-Fi"
+    ],
     "director": "Sara Stewart",
     "cast": [
       "Katherine Matthews",
@@ -140,13 +209,19 @@
     ],
     "runtime": 168,
     "rating": 7.7,
-    "plot": "Krrish and his scientist father have to save the world and their own family from an evil man named Kaal and his team of human-animal mutants led by the ruthless Kaya. Will they succeed? How?"
+    "plot": "Krrish and his scientist father have to save the world and their own family from an evil man named Kaal and his team of human-animal mutants led by the ruthless Kaya. Will they succeed? How?",
+    "released": {
+      "$date": "2017-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "99e75e60-6466-4314-92c3-00c433a06600",
     "title": "Section close bad",
     "release_year": 2024,
-    "genres": ["Drama", "Comedy"],
+    "genres": [
+      "Drama",
+      "Comedy"
+    ],
     "director": "Bryan Andrews",
     "cast": [
       "Heather Marshall",
@@ -156,24 +231,40 @@
     ],
     "runtime": 180,
     "rating": 7.7,
-    "plot": "One of Luis Bunuel's most free-form and purely Surrealist films, consisting of a series of only vaguely related episodes - most famously, the dinner party scene where people sit on ..."
+    "plot": "One of Luis Bunuel's most free-form and purely Surrealist films, consisting of a series of only vaguely related episodes - most famously, the dinner party scene where people sit on ...",
+    "released": {
+      "$date": "2024-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "726d0c12-4bab-4684-b8e4-5ba795c88273",
     "title": "Become stand",
     "release_year": 2001,
-    "genres": ["Sci-Fi", "Thriller"],
+    "genres": [
+      "Sci-Fi",
+      "Thriller"
+    ],
     "director": "Brian Martinez",
-    "cast": ["Robert Ross", "Kimberly Williamson", "Pam Wyatt"],
+    "cast": [
+      "Robert Ross",
+      "Kimberly Williamson",
+      "Pam Wyatt"
+    ],
     "runtime": 162,
     "rating": 1.5,
-    "plot": "Inside a quarantined apartment building a man must protect his pregnant wife from his new neighbors."
+    "plot": "Inside a quarantined apartment building a man must protect his pregnant wife from his new neighbors.",
+    "released": {
+      "$date": "2001-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "aad23b4b-ddb9-48bd-9b48-b63da1874bb0",
     "title": "I case",
     "release_year": 2012,
-    "genres": ["Drama", "Comedy"],
+    "genres": [
+      "Drama",
+      "Comedy"
+    ],
     "director": "Brittany Parker",
     "cast": [
       "Justin Davis",
@@ -183,46 +274,78 @@
     ],
     "runtime": 122,
     "rating": 3.1,
-    "plot": "This consists of four short films by different directors. Rosselini's 'Chastity' ('Illibatezza') deals with an attractive air hostess who receives the unwelcome attentions of a middle aged ..."
+    "plot": "This consists of four short films by different directors. Rosselini's 'Chastity' ('Illibatezza') deals with an attractive air hostess who receives the unwelcome attentions of a middle aged ...",
+    "released": {
+      "$date": "2012-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "0d1ce099-18f1-4608-9c5b-5eb8b5870760",
     "title": "No organization style",
     "release_year": 2013,
-    "genres": ["Comedy"],
+    "genres": [
+      "Comedy"
+    ],
     "director": "Christina Collins",
-    "cast": ["Benjamin Whitney", "Joseph Bush", "Barbara Griffin"],
+    "cast": [
+      "Benjamin Whitney",
+      "Joseph Bush",
+      "Barbara Griffin"
+    ],
     "runtime": 167,
     "rating": 9.6,
-    "plot": "The bigamist captain of a ferry boat between the restricted British colony in Gibraltar and Spanish Morocco has a woman of differing appeal and temperament in each port."
+    "plot": "The bigamist captain of a ferry boat between the restricted British colony in Gibraltar and Spanish Morocco has a woman of differing appeal and temperament in each port.",
+    "released": {
+      "$date": "2013-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "15855c7b-ece2-4238-b995-57f6207509ea",
     "title": "Computer garden",
     "release_year": 2012,
-    "genres": ["Horror"],
+    "genres": [
+      "Horror"
+    ],
     "director": "Steven Miles",
-    "cast": ["Darlene Lee", "Tina Wang", "Nathan Mayo"],
+    "cast": [
+      "Darlene Lee",
+      "Tina Wang",
+      "Nathan Mayo"
+    ],
     "runtime": 146,
     "rating": 6.5,
-    "plot": "A bunch of Satanists in the American rural landscape have terrible powers which enable them to melt their victims. However one of the children of an earlier victim vows to destroy them."
+    "plot": "A bunch of Satanists in the American rural landscape have terrible powers which enable them to melt their victims. However one of the children of an earlier victim vows to destroy them.",
+    "released": {
+      "$date": "2012-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "e8a6ff98-1e7e-4481-a467-39ebbfc79f67",
     "title": "Trip information feel",
     "release_year": 2008,
-    "genres": ["Action", "Thriller"],
+    "genres": [
+      "Action",
+      "Thriller"
+    ],
     "director": "Brittany Parker",
-    "cast": ["Kelly Walsh", "Michael Rocha"],
+    "cast": [
+      "Kelly Walsh",
+      "Michael Rocha"
+    ],
     "runtime": 148,
     "rating": 9.8,
-    "plot": "An FBI agent takes on a plane full of deadly and poisonous snakes, deliberately released to kill a witness being flown from Honolulu to Los Angeles to testify against a mob boss."
+    "plot": "An FBI agent takes on a plane full of deadly and poisonous snakes, deliberately released to kill a witness being flown from Honolulu to Los Angeles to testify against a mob boss.",
+    "released": {
+      "$date": "2008-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "ef95e7a5-7f73-462e-bd03-c924a8876a7b",
     "title": "It project low part",
     "release_year": 1992,
-    "genres": ["Horror"],
+    "genres": [
+      "Horror"
+    ],
     "director": "Christina Collins",
     "cast": [
       "Sheena Murphy",
@@ -233,13 +356,18 @@
     ],
     "runtime": 161,
     "rating": 2.4,
-    "plot": "A vampire who works as a taxi driver meets and romances a young woman whom he turns into a fellow vamp, which prompts her jealous and estranged husband to try to kill both of them."
+    "plot": "A vampire who works as a taxi driver meets and romances a young woman whom he turns into a fellow vamp, which prompts her jealous and estranged husband to try to kill both of them.",
+    "released": {
+      "$date": "1992-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "efd2f4f4-1004-4b4e-8bc9-390466a6f77a",
     "title": "Near attorney discuss",
     "release_year": 1983,
-    "genres": ["Comedy"],
+    "genres": [
+      "Comedy"
+    ],
     "director": "Christina Collins",
     "cast": [
       "Chase Myers",
@@ -249,24 +377,40 @@
     ],
     "runtime": 174,
     "rating": 9.5,
-    "plot": "A calamity at Dante and Randall's shops sends them looking for new horizons - but they ultimately settle at Mooby's, a fictional Disney-McDonald's-style fast-food empire."
+    "plot": "A calamity at Dante and Randall's shops sends them looking for new horizons - but they ultimately settle at Mooby's, a fictional Disney-McDonald's-style fast-food empire.",
+    "released": {
+      "$date": "1983-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "07f2cb6e-819e-4ff4-b3ba-134d3d9af549",
     "title": "Whether know",
     "release_year": 2009,
-    "genres": ["Comedy", "Thriller"],
+    "genres": [
+      "Comedy",
+      "Thriller"
+    ],
     "director": "Bryan Andrews",
-    "cast": ["Amy Reed", "William Williams", "Steven Lawrence"],
+    "cast": [
+      "Amy Reed",
+      "William Williams",
+      "Steven Lawrence"
+    ],
     "runtime": 134,
     "rating": 9.6,
-    "plot": "On his birthday, a hitman reluctantly takes on the easy task of killing a writer, only to find the job a lot more difficult than expected."
+    "plot": "On his birthday, a hitman reluctantly takes on the easy task of killing a writer, only to find the job a lot more difficult than expected.",
+    "released": {
+      "$date": "2009-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "ab5948c9-088b-42d6-89d9-42c4603c8b19",
     "title": "Against place",
     "release_year": 2017,
-    "genres": ["Drama", "Romance"],
+    "genres": [
+      "Drama",
+      "Romance"
+    ],
     "director": "Daniel Wallace",
     "cast": [
       "Brittany Thompson",
@@ -277,24 +421,39 @@
     ],
     "runtime": 152,
     "rating": 5.0,
-    "plot": "Doctor John Abbott is a single parent who settles in the town of Westport, with his son Dick, trying to eke out a living for them. He also inherits, by way of his doorstep, an unwanted baby..."
+    "plot": "Doctor John Abbott is a single parent who settles in the town of Westport, with his son Dick, trying to eke out a living for them. He also inherits, by way of his doorstep, an unwanted baby...",
+    "released": {
+      "$date": "2017-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "ef7f63fa-b25f-4aea-98e2-d7bdecc26ef5",
     "title": "Return yard",
     "release_year": 1994,
-    "genres": ["Horror"],
+    "genres": [
+      "Horror"
+    ],
     "director": "Christina Collins",
-    "cast": ["Mason Lara", "Taylor Salinas", "Tim Foster", "Erin Sharp"],
+    "cast": [
+      "Mason Lara",
+      "Taylor Salinas",
+      "Tim Foster",
+      "Erin Sharp"
+    ],
     "runtime": 99,
     "rating": 8.8,
-    "plot": "In Italy, a woman becomes involved in a series of unauthorized exorcisms during her mission to discover what happened to her mother, who allegedly murdered three people during her own exorcism."
+    "plot": "In Italy, a woman becomes involved in a series of unauthorized exorcisms during her mission to discover what happened to her mother, who allegedly murdered three people during her own exorcism.",
+    "released": {
+      "$date": "1994-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "b532e3c8-6292-4f9d-879f-1f070b1a6992",
     "title": "Certain fish",
     "release_year": 2009,
-    "genres": ["Romance"],
+    "genres": [
+      "Romance"
+    ],
     "director": "Steven Miles",
     "cast": [
       "Jonathan King",
@@ -304,13 +463,18 @@
     ],
     "runtime": 130,
     "rating": 8.6,
-    "plot": "The lives of four art students change forever when gifted young artist Hagumi arrives at their school and befriends their group as each student experiences turbulence in love."
+    "plot": "The lives of four art students change forever when gifted young artist Hagumi arrives at their school and befriends their group as each student experiences turbulence in love.",
+    "released": {
+      "$date": "2009-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "c95e74b0-e47e-4d10-b847-8caa20b94b32",
     "title": "Agreement like program",
     "release_year": 2004,
-    "genres": ["Sci-Fi"],
+    "genres": [
+      "Sci-Fi"
+    ],
     "director": "Daniel Jackson",
     "cast": [
       "Ashley Green",
@@ -321,35 +485,59 @@
     ],
     "runtime": 110,
     "rating": 8.1,
-    "plot": "After a mysterious atmospheric event, a small group of people wake up to realize that their entire lives have been a lie. They are in fact aliens disguised as humans. Now they have to make ..."
+    "plot": "After a mysterious atmospheric event, a small group of people wake up to realize that their entire lives have been a lie. They are in fact aliens disguised as humans. Now they have to make ...",
+    "released": {
+      "$date": "2004-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "791688be-4358-45ab-956e-71fe3fd35d19",
     "title": "Floor seven then",
     "release_year": 2009,
-    "genres": ["Horror"],
+    "genres": [
+      "Horror"
+    ],
     "director": "Daniel Wallace",
-    "cast": ["Dustin Wright", "Crystal Young"],
+    "cast": [
+      "Dustin Wright",
+      "Crystal Young"
+    ],
     "runtime": 143,
     "rating": 4.8,
-    "plot": "A zoology student must try to out smart a murderous and super-intelligent orangutan."
+    "plot": "A zoology student must try to out smart a murderous and super-intelligent orangutan.",
+    "released": {
+      "$date": "2009-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "488fd79d-dde6-4462-9b90-339d1f3d7474",
     "title": "Like rather paper",
     "release_year": 2006,
-    "genres": ["Drama"],
+    "genres": [
+      "Drama"
+    ],
     "director": "Spencer Gillespie",
-    "cast": ["Sean Moyer", "James Edwards", "Tara Lee", "Robert Scott"],
+    "cast": [
+      "Sean Moyer",
+      "James Edwards",
+      "Tara Lee",
+      "Robert Scott"
+    ],
     "runtime": 175,
     "rating": 9.1,
-    "plot": "A compelling drama that explores the different meanings of being a parent through the gritty, realistic lives of the struggling, blue-collar Porters, and the privileged Campbell family. ..."
+    "plot": "A compelling drama that explores the different meanings of being a parent through the gritty, realistic lives of the struggling, blue-collar Porters, and the privileged Campbell family. ...",
+    "released": {
+      "$date": "2006-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "3da68e4d-ef14-4fab-9243-19075262e5ca",
     "title": "Argue hospital",
     "release_year": 1994,
-    "genres": ["Romance", "Sci-Fi"],
+    "genres": [
+      "Romance",
+      "Sci-Fi"
+    ],
     "director": "Amanda Young",
     "cast": [
       "Carolyn Williams",
@@ -360,79 +548,138 @@
     ],
     "runtime": 149,
     "rating": 9.5,
-    "plot": "A computer chip salesman dates a software designer in a virtual reality program."
+    "plot": "A computer chip salesman dates a software designer in a virtual reality program.",
+    "released": {
+      "$date": "1994-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "f5206a16-4dca-4c1e-b3aa-0d09f2082601",
     "title": "Become after card",
     "release_year": 1986,
-    "genres": ["Sci-Fi", "Horror"],
+    "genres": [
+      "Sci-Fi",
+      "Horror"
+    ],
     "director": "Brian Martinez",
-    "cast": ["Rhonda Ochoa", "Charlene Castillo"],
+    "cast": [
+      "Rhonda Ochoa",
+      "Charlene Castillo"
+    ],
     "runtime": 100,
     "rating": 8.5,
-    "plot": "Dr. Jekyll faces horrible consequences when he lets his dark side run wild with a potion that changes him into the animalistic Mr. Hyde."
+    "plot": "Dr. Jekyll faces horrible consequences when he lets his dark side run wild with a potion that changes him into the animalistic Mr. Hyde.",
+    "released": {
+      "$date": "1986-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "fbf30e42-ae6d-4775-bb3e-c5c127ddea06",
     "title": "Born authority attention",
     "release_year": 1994,
-    "genres": ["Romance"],
+    "genres": [
+      "Romance"
+    ],
     "director": "Brian Martinez",
-    "cast": ["Matthew Thomas", "Carly Perkins"],
+    "cast": [
+      "Matthew Thomas",
+      "Carly Perkins"
+    ],
     "runtime": 131,
     "rating": 4.9,
-    "plot": "Before he can marry his sweetheart, a wealthy city boy from England is challenged to prove his work ethic on a farm in rural India."
+    "plot": "Before he can marry his sweetheart, a wealthy city boy from England is challenged to prove his work ethic on a farm in rural India.",
+    "released": {
+      "$date": "1994-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "4b85a220-8a09-46a7-bea3-a2dad8130311",
     "title": "Local seven media",
     "release_year": 1998,
-    "genres": ["Sci-Fi", "Drama"],
+    "genres": [
+      "Sci-Fi",
+      "Drama"
+    ],
     "director": "Amanda Young",
-    "cast": ["Jessica Perez", "Larry Atkinson"],
+    "cast": [
+      "Jessica Perez",
+      "Larry Atkinson"
+    ],
     "runtime": 95,
     "rating": 2.0,
-    "plot": "Episodic, spiritual and existentialistic look at the state the Russia is in in 2017, exactly one hundred years after the communist-led Russian Revolution. The future looks gloomy, since the world is on the brink of yet another world war."
+    "plot": "Episodic, spiritual and existentialistic look at the state the Russia is in in 2017, exactly one hundred years after the communist-led Russian Revolution. The future looks gloomy, since the world is on the brink of yet another world war.",
+    "released": {
+      "$date": "1998-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "498597d2-3254-46ef-a800-f322a86fbd55",
     "title": "Keep employee",
     "release_year": 1981,
-    "genres": ["Horror"],
+    "genres": [
+      "Horror"
+    ],
     "director": "Christina Collins",
-    "cast": ["Alexis Carlson", "Andrew Stewart"],
+    "cast": [
+      "Alexis Carlson",
+      "Andrew Stewart"
+    ],
     "runtime": 161,
     "rating": 6.0,
-    "plot": "The Thirsting is a derivation of the Lilith myths taken from biblical texts. It centers around the story of a nun, Sister Katherine, who fled to the church seeking comfort from memories of ..."
+    "plot": "The Thirsting is a derivation of the Lilith myths taken from biblical texts. It centers around the story of a nun, Sister Katherine, who fled to the church seeking comfort from memories of ...",
+    "released": {
+      "$date": "1981-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "788d9343-6908-4762-88ee-b04aba1e58b5",
     "title": "American question generation",
     "release_year": 1986,
-    "genres": ["Romance"],
+    "genres": [
+      "Romance"
+    ],
     "director": "Daniel Jackson",
-    "cast": ["Troy Carter", "Peter Hernandez", "Christine Brown"],
+    "cast": [
+      "Troy Carter",
+      "Peter Hernandez",
+      "Christine Brown"
+    ],
     "runtime": 176,
     "rating": 8.0,
-    "plot": "To save himself from an unwanted marriage to a gangster's daughter, a man tells the story of reuniting with his childhood sweetheart in Switzerland."
+    "plot": "To save himself from an unwanted marriage to a gangster's daughter, a man tells the story of reuniting with his childhood sweetheart in Switzerland.",
+    "released": {
+      "$date": "1986-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "74bcf255-df91-40c0-85c0-d7b85ff84f9a",
     "title": "Maintain out",
     "release_year": 2000,
-    "genres": ["Sci-Fi", "Action"],
+    "genres": [
+      "Sci-Fi",
+      "Action"
+    ],
     "director": "Brian Martinez",
-    "cast": ["Nancy Evans", "Michael Gill", "Justin Carroll"],
+    "cast": [
+      "Nancy Evans",
+      "Michael Gill",
+      "Justin Carroll"
+    ],
     "runtime": 179,
     "rating": 10.0,
-    "plot": "Neo and the rebel leaders estimate that they have 72 hours until 250,000 probes discover Zion and destroy it and its inhabitants. During this, Neo must decide how he can save Trinity from a dark fate in his dreams."
+    "plot": "Neo and the rebel leaders estimate that they have 72 hours until 250,000 probes discover Zion and destroy it and its inhabitants. During this, Neo must decide how he can save Trinity from a dark fate in his dreams.",
+    "released": {
+      "$date": "2000-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "61ddf1d4-17b7-4c63-9bf4-5315e740dc7f",
     "title": "Ten box study",
     "release_year": 2011,
-    "genres": ["Horror", "Romance"],
+    "genres": [
+      "Horror",
+      "Romance"
+    ],
     "director": "Steven Miles",
     "cast": [
       "Mark Hicks",
@@ -442,24 +689,40 @@
     ],
     "runtime": 147,
     "rating": 2.5,
-    "plot": "Two horror tales based on short stories by Edgar Allan Poe directed by two famous horror directors, George A. Romero and Dario Argento."
+    "plot": "Two horror tales based on short stories by Edgar Allan Poe directed by two famous horror directors, George A. Romero and Dario Argento.",
+    "released": {
+      "$date": "2011-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "ab7d8067-f0ff-4955-bc0c-baca4e56e9a4",
     "title": "Production operation",
     "release_year": 2014,
-    "genres": ["Horror", "Romance"],
+    "genres": [
+      "Horror",
+      "Romance"
+    ],
     "director": "Sara Stewart",
-    "cast": ["Ashley Mata", "Mark Kelly", "John West", "Harold Day"],
+    "cast": [
+      "Ashley Mata",
+      "Mark Kelly",
+      "John West",
+      "Harold Day"
+    ],
     "runtime": 125,
     "rating": 4.1,
-    "plot": "The vampire comes to England to seduce a visitor's fianc\u00e8e and inflict havoc in the foreign land."
+    "plot": "The vampire comes to England to seduce a visitor's fianc\u00e8e and inflict havoc in the foreign land.",
+    "released": {
+      "$date": "2014-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "ccd27288-a496-447d-b01c-1f0b42edcc92",
     "title": "What language",
     "release_year": 2004,
-    "genres": ["Sci-Fi"],
+    "genres": [
+      "Sci-Fi"
+    ],
     "director": "Sara Stewart",
     "cast": [
       "Scott Mckenzie",
@@ -470,35 +733,61 @@
     ],
     "runtime": 177,
     "rating": 3.7,
-    "plot": "When a meteor crashes on Earth, a group of people seek shelter in a bunker. Ten years later, they need supplies and leave the bunker, discovering that the survivors have turned into mutants."
+    "plot": "When a meteor crashes on Earth, a group of people seek shelter in a bunker. Ten years later, they need supplies and leave the bunker, discovering that the survivors have turned into mutants.",
+    "released": {
+      "$date": "2004-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "b32dd176-938b-4ded-823a-311423fdc2ea",
     "title": "Up usually central",
     "release_year": 2011,
-    "genres": ["Sci-Fi", "Comedy"],
+    "genres": [
+      "Sci-Fi",
+      "Comedy"
+    ],
     "director": "Daniel Jackson",
-    "cast": ["Jennifer Carlson", "Jonathan Stewart DDS", "Amy Lester"],
+    "cast": [
+      "Jennifer Carlson",
+      "Jonathan Stewart DDS",
+      "Amy Lester"
+    ],
     "runtime": 159,
     "rating": 5.6,
-    "plot": "An eccentric man living alone in a decrepit house in Tokyo periodically transforms into a 100-foot tall giant in order to defend Japan against similarly sized monsters."
+    "plot": "An eccentric man living alone in a decrepit house in Tokyo periodically transforms into a 100-foot tall giant in order to defend Japan against similarly sized monsters.",
+    "released": {
+      "$date": "2011-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "4aa5f384-3a05-49ff-aa9d-a0e4256c422f",
     "title": "For boy only",
     "release_year": 1987,
-    "genres": ["Thriller", "Action"],
+    "genres": [
+      "Thriller",
+      "Action"
+    ],
     "director": "Sara Stewart",
-    "cast": ["Gene Smith", "Robert Osborne Jr.", "Laura Fox", "Alexis Lowe"],
+    "cast": [
+      "Gene Smith",
+      "Robert Osborne Jr.",
+      "Laura Fox",
+      "Alexis Lowe"
+    ],
     "runtime": 95,
     "rating": 3.6,
-    "plot": "In Istanbul, retired CIA operative Bryan Mills and his wife are taken hostage by the father of a kidnapper Mills killed while rescuing his daughter."
+    "plot": "In Istanbul, retired CIA operative Bryan Mills and his wife are taken hostage by the father of a kidnapper Mills killed while rescuing his daughter.",
+    "released": {
+      "$date": "1987-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "1c858ca4-d6e9-435c-8e25-d8b05a4e825c",
     "title": "Site win including your",
     "release_year": 2008,
-    "genres": ["Sci-Fi"],
+    "genres": [
+      "Sci-Fi"
+    ],
     "director": "Spencer Gillespie",
     "cast": [
       "John Williams",
@@ -509,28 +798,50 @@
     ],
     "runtime": 178,
     "rating": 6.2,
-    "plot": "Project Questor is brainchild of the genius Dr. Vaslovik: he developed plans to build an android super-human. Although he's disappeared and half of his programming tape was erased in the ..."
+    "plot": "Project Questor is brainchild of the genius Dr. Vaslovik: he developed plans to build an android super-human. Although he's disappeared and half of his programming tape was erased in the ...",
+    "released": {
+      "$date": "2008-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "bc5e5766-e998-4ec2-a40c-62ce5d39b972",
     "title": "Sell huge hair",
     "release_year": 1997,
-    "genres": ["Thriller", "Action"],
+    "genres": [
+      "Thriller",
+      "Action"
+    ],
     "director": "Bryan Andrews",
-    "cast": ["Thomas Johnson", "Ryan Morrow"],
+    "cast": [
+      "Thomas Johnson",
+      "Ryan Morrow"
+    ],
     "runtime": 157,
     "rating": 4.4,
-    "plot": "A former S.E.A.L., now cook, is the only person who can stop a gang of terrorists when they seize control of a U.S. Navy battleship."
+    "plot": "A former S.E.A.L., now cook, is the only person who can stop a gang of terrorists when they seize control of a U.S. Navy battleship.",
+    "released": {
+      "$date": "1997-06-15T00:00:00.000Z"
+    }
   },
   {
     "_id": "090215c8-29e8-4d38-ae9b-ceb78408b982",
     "title": "Guy rest",
     "release_year": 1997,
-    "genres": ["Sci-Fi", "Horror"],
+    "genres": [
+      "Sci-Fi",
+      "Horror"
+    ],
     "director": "Steven Miles",
-    "cast": ["Michael Fox", "Tyler Acosta", "Tracy Adams"],
+    "cast": [
+      "Michael Fox",
+      "Tyler Acosta",
+      "Tracy Adams"
+    ],
     "runtime": 122,
     "rating": 7.8,
-    "plot": "A group of scientists try to track down and trap a killer alien seductress before she successfully mates with a human."
+    "plot": "A group of scientists try to track down and trap a killer alien seductress before she successfully mates with a human.",
+    "released": {
+      "$date": "1997-06-15T00:00:00.000Z"
+    }
   }
 ]

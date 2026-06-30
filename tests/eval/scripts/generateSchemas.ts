@@ -9,20 +9,26 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
-import { RunEvalExpectedSchema, RunEvalInputSchema } from "../lib/datasetTypes.js";
+import { RunEvalExpectedSchema, RunEvalInputSchema, RunEvalMetadataSchema } from "../lib/datasetTypes.js";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const outDir = join(scriptDir, "..", "dist");
+const SCHEMA_ID_BASE = "https://github.com/mongodb-js/mongodb-mcp-server/tests/eval/schemas";
 
 const schemas = {
     "input.schema.json": RunEvalInputSchema,
     "expected.schema.json": RunEvalExpectedSchema,
+    "metadata.schema.json": RunEvalMetadataSchema,
 } as const;
 
 mkdirSync(outDir, { recursive: true });
 
 for (const [file, schema] of Object.entries(schemas)) {
     const outFile = join(outDir, file);
-    writeFileSync(outFile, JSON.stringify(z.toJSONSchema(schema), null, 4) + "\n");
+    const jsonSchema = {
+        $id: `${SCHEMA_ID_BASE}/${file}`,
+        ...z.toJSONSchema(schema),
+    };
+    writeFileSync(outFile, JSON.stringify(jsonSchema, null, 4) + "\n");
     console.log(`Wrote ${relative(process.cwd(), outFile)}`);
 }

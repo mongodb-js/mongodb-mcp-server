@@ -28,6 +28,9 @@ yalc.lock
 mcpb-build/
 dist-mcpb/
 
+# Eval CI report (sticky PR comment)
+.eval/
+
 # Braintrust
 .bt
 # Generated eval pre-bundle for Braintrust

@@ -2,10 +2,26 @@
 set -e
 
 CONTAINER_NAME=mcp-eval-db
-IMAGE=mongodb/mongodb-atlas-local:latest
+IMAGE=mongodb/mongodb-atlas-local
+IMAGE_TAG=preview
 
 start() {
-    docker run -d --rm --name="$CONTAINER_NAME" --publish=27017:27017 "$IMAGE"
+
+	if [ -z "$VOYAGE_API_KEY" ]; then
+		echo "⚠️ VOYAGE_API_KEY environment variable is not set"
+		echo "   without it, the local MongoDB instance will not be able to use auto-embed vector search."
+		echo "   You can get it from the Voyage AI dashboard"
+		echo "   https://www.mongodb.com/docs/voyageai/management/api-keys/"
+		echo "   "
+		echo "   @see https://hub.docker.com/r/mongodb/mongodb-atlas-local#current-experimental-features"
+	fi
+	
+    docker run -d \
+		--rm \
+		--name="$CONTAINER_NAME" \
+		--publish=27017:27017 \
+		--env VOYAGE_API_KEY="$VOYAGE_API_KEY" \
+		"$IMAGE:$IMAGE_TAG"
     docker logs -f "$CONTAINER_NAME" &
     LOG_PID=$!
     until [ "$(docker inspect -f '{{.State.Health.Status}}' "$CONTAINER_NAME")" = "healthy" ]; do
