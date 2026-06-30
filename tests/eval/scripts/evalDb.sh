@@ -8,6 +8,7 @@ IMAGE_TAG=preview
 start() {
 
 	if [ -z "$VOYAGE_API_KEY" ]; then
+		echo "⚠️ EMBEDDING_PROVIDER_ENDPOINT environment variable is not set using default value"
 		echo "⚠️ VOYAGE_API_KEY environment variable is not set"
 		echo "   without it, the local MongoDB instance will not be able to use auto-embed vector search."
 		echo "   You can get it from the Voyage AI dashboard"
@@ -21,6 +22,7 @@ start() {
 		--name="$CONTAINER_NAME" \
 		--publish=27017:27017 \
 		--env VOYAGE_API_KEY="$VOYAGE_API_KEY" \
+		--env EMBEDDING_PROVIDER_ENDPOINT="$EMBEDDING_PROVIDER_ENDPOINT" \
 		"$IMAGE:$IMAGE_TAG"
     docker logs -f "$CONTAINER_NAME" &
     LOG_PID=$!
