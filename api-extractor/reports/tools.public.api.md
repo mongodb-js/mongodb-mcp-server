@@ -1600,8 +1600,8 @@ export class StreamsBuildTool extends StreamsToolBase {
         projectId: z.ZodString;
         resource: z.ZodEnum<{
             processor: "processor";
-            connection: "connection";
             workspace: "workspace";
+            connection: "connection";
             privatelink: "privatelink";
         }>;
         workspaceName: z.ZodOptional<z.ZodString>;
@@ -1714,8 +1714,8 @@ export class StreamsBuildTool extends StreamsToolBase {
     outputSchema: {
         resource: z.ZodEnum<{
             processor: "processor";
-            connection: "connection";
             workspace: "workspace";
+            connection: "connection";
             privatelink: "privatelink";
         }>;
     };
@@ -1755,6 +1755,78 @@ export class StreamsDiscoverTool extends StreamsToolBase {
     protected execute(input: ToolArgs<typeof StreamsDiscoverTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)
     static operationType: OperationType;
+    // (undocumented)
+    outputSchema: {
+        workspaces: z.ZodOptional<z.ZodArray<z.ZodObject<{
+            name: z.ZodString;
+            region: z.ZodString;
+            tier: z.ZodString;
+            maxTier: z.ZodString;
+        }, z.core.$strip>>>;
+        connections: z.ZodOptional<z.ZodArray<z.ZodObject<{
+            name: z.ZodString;
+            type: z.ZodOptional<z.ZodString>;
+            state: z.ZodOptional<z.ZodString>;
+        }, z.core.$strip>>>;
+        processors: z.ZodOptional<z.ZodArray<z.ZodObject<{
+            name: z.ZodString;
+            state: z.ZodOptional<z.ZodString>;
+            tier: z.ZodOptional<z.ZodString>;
+        }, z.core.$strip>>>;
+        workspace: z.ZodOptional<z.ZodObject<{
+            name: z.ZodString;
+            region: z.ZodString;
+            tier: z.ZodString;
+            maxTier: z.ZodString;
+            connectionCount: z.ZodNumber;
+        }, z.core.$strip>>;
+        processorState: z.ZodOptional<z.ZodEnum<{
+            FAILED: "FAILED";
+            STARTED: "STARTED";
+            STOPPED: "STOPPED";
+            CREATED: "CREATED";
+        }>>;
+        tier: z.ZodOptional<z.ZodString>;
+        stats: z.ZodOptional<z.ZodObject<{
+            inputMessageCount: z.ZodOptional<z.ZodNumber>;
+            outputMessageCount: z.ZodOptional<z.ZodNumber>;
+            dlqMessageCount: z.ZodOptional<z.ZodNumber>;
+        }, z.core.$strip>>;
+        dlq: z.ZodOptional<z.ZodObject<{
+            connectionName: z.ZodOptional<z.ZodString>;
+            db: z.ZodOptional<z.ZodString>;
+            coll: z.ZodOptional<z.ZodString>;
+        }, z.core.$strip>>;
+        pipeline: z.ZodOptional<z.ZodArray<z.ZodRecord<z.ZodString, z.ZodUnknown>>>;
+        connectionHealth: z.ZodOptional<z.ZodArray<z.ZodObject<{
+            name: z.ZodString;
+            type: z.ZodOptional<z.ZodString>;
+            state: z.ZodOptional<z.ZodString>;
+        }, z.core.$strip>>>;
+        connection: z.ZodOptional<z.ZodObject<{
+            type: z.ZodOptional<z.ZodString>;
+            state: z.ZodOptional<z.ZodString>;
+            region: z.ZodOptional<z.ZodString>;
+            clusterName: z.ZodOptional<z.ZodString>;
+            bootstrapServers: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodArray<z.ZodString>]>>;
+        }, z.core.$strip>>;
+        privateLinks: z.ZodOptional<z.ZodArray<z.ZodObject<{
+            id: z.ZodString;
+            provider: z.ZodOptional<z.ZodString>;
+            region: z.ZodOptional<z.ZodString>;
+            state: z.ZodOptional<z.ZodString>;
+            vendor: z.ZodOptional<z.ZodString>;
+        }, z.core.$strip>>>;
+        accountDetails: z.ZodOptional<z.ZodObject<{
+            awsAccountId: z.ZodOptional<z.ZodString>;
+            azureSubscriptionId: z.ZodOptional<z.ZodString>;
+            gcpProjectId: z.ZodOptional<z.ZodString>;
+            cidrBlock: z.ZodOptional<z.ZodString>;
+            vpcId: z.ZodOptional<z.ZodString>;
+            virtualNetworkName: z.ZodOptional<z.ZodString>;
+            vpcNetworkName: z.ZodOptional<z.ZodString>;
+        }, z.core.$strip>>;
+    };
     // (undocumented)
     static toolName: string;
 }
@@ -1865,8 +1937,8 @@ export class StreamsManageTool extends StreamsToolBase {
     outputSchema: {
         processorState: z.ZodOptional<z.ZodEnum<{
             FAILED: "FAILED";
-            STOPPED: "STOPPED";
             STARTED: "STARTED";
+            STOPPED: "STOPPED";
             CREATED: "CREATED";
         }>>;
         connectionState: z.ZodOptional<z.ZodEnum<{
@@ -1894,8 +1966,8 @@ export class StreamsTeardownTool extends StreamsToolBase {
         projectId: z.ZodString;
         resource: z.ZodEnum<{
             processor: "processor";
-            connection: "connection";
             workspace: "workspace";
+            connection: "connection";
             privatelink: "privatelink";
             peering: "peering";
         }>;
@@ -1914,8 +1986,8 @@ export class StreamsTeardownTool extends StreamsToolBase {
     outputSchema: {
         resource: z.ZodEnum<{
             processor: "processor";
-            connection: "connection";
             workspace: "workspace";
+            connection: "connection";
             privatelink: "privatelink";
             peering: "peering";
         }>;
