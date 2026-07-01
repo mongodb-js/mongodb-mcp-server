@@ -7,7 +7,7 @@ import { sleep } from "../../../src/common/managedTimeout.js";
 // │   ↘️ Seeding Constants                       │
 // ╰──────────────────────────────────────────────╯
 
-const DEFAULT_INDEX_READY_TIMEOUT_MS = 120_000;
+const DEFAULT_INDEX_READY_TIMEOUT_MS = 300_000;
 const DEFAULT_INDEX_READY_INTERVAL_MS = 1_000;
 
 /**
