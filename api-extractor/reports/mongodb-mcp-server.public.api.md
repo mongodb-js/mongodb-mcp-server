@@ -603,6 +603,7 @@ export interface ISessionStore<T extends CloseableTransport = CloseableTransport
         sessionId: string;
         transport: T;
         logger: LoggerBase;
+        headers?: Record<string, unknown>;
     }): Promise<void>;
     // (undocumented)
     closeAllSessions(): Promise<void>;
@@ -988,6 +989,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         sessionId: string;
         transport: T;
         logger: LoggerBase;
+        headers?: Record<string, unknown>;
     }): Promise<void>;
     // (undocumented)
     closeAllSessions(): Promise<void>;
