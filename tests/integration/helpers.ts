@@ -392,10 +392,6 @@ function validateToolAnnotations(tool: ToolInfo, name: string, operationType: Op
     }
 }
 
-export function timeout(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 /**
  * Subscribes to the resources changed notification for the provided URI
  */
@@ -456,10 +452,6 @@ export function getDataFromUntrustedContent(content: string): string {
         throw new Error("Could not find untrusted user data in content");
     }
     return match.groups.data.trim();
-}
-
-export function sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export class InMemoryLogger extends LoggerBase {

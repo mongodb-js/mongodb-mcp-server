@@ -1,12 +1,13 @@
 import type { MongoClient } from "mongodb";
 import type { DbSeedEntry, SeedClassicIndex } from "./datasetTypes.js";
 import { getSeedDocuments, parseSeedEntry } from "./datasetHelpers.js";
+import { sleep } from "../../../src/common/managedTimeout.js";
 
 // ╭──────────────────────────────────────────────╮
 // │   ↘️ Seeding Constants                       │
 // ╰──────────────────────────────────────────────╯
 
-const DEFAULT_INDEX_READY_TIMEOUT_MS = 120_000;
+const DEFAULT_INDEX_READY_TIMEOUT_MS = 300_000;
 const DEFAULT_INDEX_READY_INTERVAL_MS = 1_000;
 
 /**
@@ -47,8 +48,11 @@ async function waitForIndexesQueryable(
             }
         }
 
-        if (pending.size === 0) return;
-        await new Promise((resolve) => setTimeout(resolve, intervalMs));
+        if (pending.size === 0) {
+            return;
+        }
+
+        await sleep(intervalMs);
     }
 
     throw new Error(

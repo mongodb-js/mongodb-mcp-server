@@ -10,6 +10,12 @@ export function mockCreateDeploymentResponse(name: string): () => CallToolResult
                 text: `Deployment with container ID "1FOO" and name "${name}" created.`,
             },
         ],
+        structuredContent: {
+            deploymentName: name,
+            containerId: "1FOO",
+            loadSampleData: false,
+            imageTag: "preview",
+        },
     });
 }
 
@@ -120,6 +126,10 @@ describeAccuracyTests([
                         text: "Deployment Name | State | MongoDB Version\n----------------|----------------|----------------\nexisting-database | Running | 6.0",
                     },
                 ],
+                structuredContent: {
+                    count: 1,
+                    deployments: [{ name: "existing-database", state: "Running", mongodbVersion: "6.0" }],
+                },
             }),
         },
         expectedToolCalls: [

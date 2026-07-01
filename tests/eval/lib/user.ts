@@ -41,9 +41,17 @@ export async function runTask(params: {
         tools,
         stopWhen: untracedAi.stepCountIs(stepLimit),
     });
+    const messages = [userMessage, ...(response.response.messages as ModelMessage[])];
+
+    if (response.finishReason !== "stop") {
+        return {
+            response: `The LLM model was stopped unexpectedly because of [${response.finishReason}] ${response.rawFinishReason}.\n${response.text}`,
+            messages,
+        };
+    }
 
     return {
         response: response.text,
-        messages: [userMessage, ...(response.response.messages as ModelMessage[])],
+        messages,
     };
 }

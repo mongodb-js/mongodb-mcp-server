@@ -162,6 +162,19 @@ describeWithAtlas("db users", (integration) => {
                 expect(elements[0]?.text).toContain("Found 1 database users in project");
                 expect(elements[1]?.text).toContain("<untrusted-user-data-");
                 expect(elements[1]?.text).toContain(userName);
+
+                expectDefined(response.structuredContent);
+                expect(response.structuredContent).toEqual({
+                    projectId,
+                    totalCount: 1,
+                    users: [
+                        {
+                            username: userName,
+                            roles: [{ roleName: "readWrite", databaseName: "admin" }],
+                            scopes: [],
+                        },
+                    ],
+                });
             });
         });
     });

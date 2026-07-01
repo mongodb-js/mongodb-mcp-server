@@ -1,6 +1,11 @@
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
-import { type OperationType, type ToolArgs, type ToolExecutionContext, formatUntrustedData } from "../../tool.js";
+import {
+    type OperationType,
+    type ToolArgs,
+    type ToolExecutionContext,
+    type ToolResult,
+    formatUntrustedData,
+} from "../../tool.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import { AtlasArgs } from "../../args.js";
 
@@ -15,6 +20,22 @@ export const ListAlertsArgs = {
     pageNum: z.number().int().min(1).default(1).describe("Page number."),
 };
 
+const ListAlertsOutputSchema = {
+    projectId: z.string(),
+    status: AlertStatus,
+    alerts: z.array(
+        z.object({
+            id: z.string(),
+            status: z.string(),
+            created: z.string(),
+            updated: z.string(),
+            eventTypeName: z.string(),
+            acknowledgementComment: z.string(),
+        })
+    ),
+    totalCount: z.number().optional(),
+};
+
 export class ListAlertsTool extends AtlasToolBase {
     static toolName = "atlas-list-alerts";
     public description =
@@ -23,11 +44,12 @@ export class ListAlertsTool extends AtlasToolBase {
     public argsShape = {
         ...ListAlertsArgs,
     };
+    public override outputSchema = ListAlertsOutputSchema;
 
     protected async execute(
         { projectId, status, limit, pageNum }: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
-    ): Promise<CallToolResult> {
+    ): Promise<ToolResult<typeof this.outputSchema>> {
         const data = await this.apiClient.listAlerts(
             {
                 params: {
@@ -53,6 +75,12 @@ export class ListAlertsTool extends AtlasToolBase {
                         text: `No alerts with status "${status}" found in your MongoDB Atlas project.`,
                     },
                 ],
+                structuredContent: {
+                    projectId,
+                    status,
+                    alerts: [],
+                    ...(data?.totalCount !== undefined && { totalCount: data.totalCount }),
+                },
             };
         }
 
@@ -67,9 +95,15 @@ export class ListAlertsTool extends AtlasToolBase {
 
         return {
             content: formatUntrustedData(
-                `Found ${alerts.length} alerts with status "${status}" in project ${projectId} (total: ${data.totalCount ?? alerts.length})`,
+                `Found ${alerts.length} alerts with status "${status}" in project ${projectId} ${data?.totalCount !== undefined && `(total: ${data.totalCount})`}`,
                 JSON.stringify(alerts)
             ),
+            structuredContent: {
+                projectId,
+                status,
+                alerts,
+                ...(data.totalCount !== undefined && { totalCount: data.totalCount }),
+            },
         };
     }
 }

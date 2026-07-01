@@ -12,16 +12,13 @@ import { getDefaultRoleFromConfig } from "../../../common/atlas/roles.js";
 import { AtlasArgs } from "../../args.js";
 import { SHARED_TIER_METRIC_NAMES } from "../../../telemetry/types.js";
 import type { ConnectionMetadata, SharedTierTier, SharedTierMetricName } from "../../../telemetry/types.js";
+import { sleep } from "../../../common/managedTimeout.js";
 
 const addedIpAccessListMessage =
     "Note: Your current IP address has been added to the Atlas project's IP access list to enable secure connection.";
 
 const createdUserMessage =
     "Note: A temporary user has been created to enable secure connection to the cluster. For more information, see https://dochub.mongodb.org/core/mongodb-mcp-server-tools-considerations\n\nNote to LLM Agent: it is important to include the following link in your response to the user in case they want to get more information about the temporary user created: https://dochub.mongodb.org/core/mongodb-mcp-server-tools-considerations";
-
-function sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 export const ConnectClusterArgs = {
     projectId: AtlasArgs.projectId().describe("Atlas project ID"),

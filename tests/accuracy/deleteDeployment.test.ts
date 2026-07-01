@@ -23,6 +23,10 @@ describeAccuracyTests([
                     "Found 1 deployments",
                     '[{"name":"my-instance","state":"Running","mongodbVersion":"6.0"}]'
                 ),
+                structuredContent: {
+                    count: 1,
+                    deployments: [{ name: "my-instance", state: "Running", mongodbVersion: "6.0" }],
+                },
             }),
         },
         expectedToolCalls: [
@@ -47,6 +51,13 @@ describeAccuracyTests([
                     "Found 2 deployments",
                     '[{"name":"local-mflix","state":"Running","mongodbVersion":"6.0"},{"name":"local-comics","state":"Running","mongodbVersion":"6.0"}]'
                 ),
+                structuredContent: {
+                    count: 2,
+                    deployments: [
+                        { name: "local-mflix", state: "Running", mongodbVersion: "6.0" },
+                        { name: "local-comics", state: "Running", mongodbVersion: "6.0" },
+                    ],
+                },
             }),
         },
         expectedToolCalls: [
@@ -76,6 +87,10 @@ describeAccuracyTests([
                     "Found 1 deployments",
                     '[{"name":"local-mflix","state":"Running","mongodbVersion":"6.0"}]'
                 ),
+                structuredContent: {
+                    count: 1,
+                    deployments: [{ name: "local-mflix", state: "Running", mongodbVersion: "6.0" }],
+                },
             }),
         },
         expectedToolCalls: [

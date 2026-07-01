@@ -5,6 +5,7 @@ import { MockMetrics } from "../mocks/metrics.js";
 import { Keychain } from "../../../src/common/keychain.js";
 import type { ISessionStore } from "../../../src/common/sessionStore.js";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import type { Server } from "../../../src/server.js";
 
 const INIT_BODY = JSON.stringify({
     jsonrpc: "2.0",
@@ -30,6 +31,22 @@ function makeSessionStore(
     };
 }
 
+function makeFakeServer(): Server {
+    return {
+        session: {
+            logger: {
+                setAttribute: vi.fn(),
+                debug: vi.fn(),
+                warning: vi.fn(),
+                info: vi.fn(),
+                error: vi.fn(),
+            },
+        },
+        connect: vi.fn().mockResolvedValue(undefined),
+        close: vi.fn().mockResolvedValue(undefined),
+    } as unknown as Server;
+}
+
 describe("MCPHttpServer x-request-id logging", () => {
     let server: MCPHttpServer;
     let logger: InMemoryLogger;
@@ -38,11 +55,14 @@ describe("MCPHttpServer x-request-id logging", () => {
         await server?.stop();
     });
 
-    async function startServer(sessionStore: ISessionStore<StreamableHTTPServerTransport>): Promise<void> {
+    async function startServer(
+        sessionStore: ISessionStore<StreamableHTTPServerTransport>,
+        createServerForRequest: () => Promise<Server> = vi.fn()
+    ): Promise<void> {
         logger = new InMemoryLogger(Keychain.root);
         server = new MCPHttpServer({
             userConfig: { ...defaultTestConfig, httpPort: 0 },
-            createServerForRequest: vi.fn(),
+            createServerForRequest,
             logger,
             metrics: new MockMetrics(),
             sessionStore,
@@ -93,6 +113,23 @@ describe("MCPHttpServer x-request-id logging", () => {
             (m) => m.level === "debug" && m.payload.message.includes("externallyManagedSessions")
         );
         expect(log?.payload.attributes).toEqual(expect.objectContaining({ "x-request-id": "req-ext-sessions" }));
+    });
+
+    it("forwards the incoming request headers to sessionStore.addSession", async () => {
+        const addSession = vi.fn().mockResolvedValue(undefined);
+        const sessionStore: ISessionStore<StreamableHTTPServerTransport> = {
+            ...makeSessionStore(() => Promise.resolve(null)),
+            addSession,
+        };
+        await startServer(sessionStore, () => Promise.resolve(makeFakeServer()));
+
+        await post("/mcp", INIT_BODY, {
+            "x-request-id": "req-add-session",
+        });
+
+        expect(addSession).toHaveBeenCalledTimes(1);
+        const call = addSession.mock.calls[0]?.[0] as { headers?: Record<string, unknown> };
+        expect(call.headers).toEqual(expect.objectContaining({ "x-request-id": "req-add-session" }));
     });
 
     it("includes x-request-id in error log when handler throws", async () => {

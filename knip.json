@@ -43,6 +43,9 @@
         "vitest.config.ts",
         "setup.ts"
       ]
+    },
+    "packages/mongodb-atlas-mcp-remote": {
+      "entry": ["src/cli.ts!", "src/**/*.test.ts", "src/testHelpers/**/*.ts"]
     }
   },
   "ignoreExportsUsedInFile": true
