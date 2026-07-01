@@ -95,7 +95,7 @@ export class ListAlertsTool extends AtlasToolBase {
 
         return {
             content: formatUntrustedData(
-                `Found ${alerts.length} alerts with status "${status}" in project ${projectId} ${data.totalCount && `(total: ${data.totalCount})`}`,
+                `Found ${alerts.length} alerts with status "${status}" in project ${projectId} ${data?.totalCount !== undefined && `(total: ${data.totalCount})`}`,
                 JSON.stringify(alerts)
             ),
             structuredContent: {
