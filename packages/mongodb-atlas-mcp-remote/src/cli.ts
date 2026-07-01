@@ -91,13 +91,6 @@ async function main(): Promise<void> {
         const method = "method" in message ? message.method : undefined;
         const messageId = "id" in message ? message.id : undefined;
 
-        logger.debug({
-            id: LogId.messageForwarded,
-            context: "cli",
-            message: "Forwarding message to remote MCP server",
-            attributes: messageAttributes(method, messageId),
-        });
-
         // Catch errors at the send call so we can log the request context (method/id) and reply with the id.
         void httpTransport.send(message).catch((error: unknown) => {
             const { code, status } = extractSdkError(error);
@@ -116,10 +109,18 @@ async function main(): Promise<void> {
             });
 
             if (messageId !== undefined) {
+                // Mirror the log sanitization: when the SDK provides an HTTP status, error.message
+                // carries the raw (possibly large/sensitive) response body, so return status/code instead.
+                const clientMessage =
+                    status !== undefined
+                        ? `Remote request failed with status ${status}${code !== undefined ? ` (${code})` : ""}`
+                        : error instanceof Error
+                          ? error.message
+                          : String(error);
                 void stdioTransport.send({
                     jsonrpc: "2.0",
                     id: messageId,
-                    error: { code: -32603, message: error instanceof Error ? error.message : String(error) },
+                    error: { code: -32603, message: clientMessage },
                 });
             }
         });

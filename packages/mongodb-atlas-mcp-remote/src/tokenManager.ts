@@ -32,12 +32,6 @@ export class TokenManager {
 
     async getToken(): Promise<string> {
         if (this.cachedToken && Date.now() < this.cachedToken.expiresAt - TOKEN_EXPIRY_BUFFER_MS) {
-            logger.debug({
-                id: LogId.tokenReused,
-                context: "tokenManager",
-                message: "Reusing cached access token",
-                attributes: { expiresIn: `${Math.round((this.cachedToken.expiresAt - Date.now()) / 1000)}s` },
-            });
             return this.cachedToken.accessToken;
         }
 
