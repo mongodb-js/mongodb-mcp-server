@@ -9,6 +9,7 @@ import { MockRemote } from "./testHelpers/mockRemote.js";
  *
  * Each test runs an MCP Client that starts dist/cli.js as a child process.
  * Tests run fully offline, the remote MCP server and Atlas token endpoint are mocked using testHelpers/mockRemote.ts.
+ * Tests run sequentially - they share the same mock server instance.
  */
 
 const CLI_PATH = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "dist", "cli.js");
@@ -90,7 +91,7 @@ describe("mongodb-atlas-mcp-remote integration tests", () => {
     });
 
     it("fails fast when the token endpoint rejects at startup", async () => {
-        remote.failTokenRequests();
+        remote.failNextTokenRequest();
         let stderrOutput = "";
         await expect(
             createTestClient(remote, (t) => t.stderr?.on("data", (s) => (stderrOutput += s)))
@@ -100,7 +101,7 @@ describe("mongodb-atlas-mcp-remote integration tests", () => {
 
     it("refreshes the token and retries on 401 from tool calls", async () => {
         client = await createTestClient(remote);
-        remote.failNextMCPCallWith401();
+        remote.invalidateToken(); // Server fails the first tool call since the initial token is no longer valid.
         const result = await callTool("mock-project-tool", { projectId: "proj-1" });
         expect(result.isError).toBeFalsy();
         expect(remote.getTokenRequestCount()).toBe(2);

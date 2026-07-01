@@ -11,8 +11,8 @@ export class MockRemote {
 
     private responseMode: "sse" | "json" = "sse";
     private tokenRequestCount = 0;
+    private currentToken = "";
     private shouldFailNextTokenCall = false;
-    private shouldFailNextMCPCall = false;
 
     private constructor(url: string, server: Server) {
         this.url = url;
@@ -36,19 +36,19 @@ export class MockRemote {
         this.responseMode = mode;
     }
 
-    failNextMCPCallWith401(): void {
-        this.shouldFailNextMCPCall = true;
+    invalidateToken(): void {
+        this.currentToken = "";
     }
 
-    failTokenRequests(): void {
+    failNextTokenRequest(): void {
         this.shouldFailNextTokenCall = true;
     }
 
     reset(): void {
         this.responseMode = "sse";
         this.tokenRequestCount = 0;
+        this.currentToken = "";
         this.shouldFailNextTokenCall = false;
-        this.shouldFailNextMCPCall = false;
     }
 
     close(): Promise<void> {
@@ -63,7 +63,8 @@ export class MockRemote {
                 this.sendJson(res, 401, { error: "unauthorized" });
                 return;
             }
-            this.sendJson(res, 200, { access_token: "mock-token-123", expires_in: 3600, token_type: "Bearer" });
+            this.currentToken = `token-${this.tokenRequestCount}`;
+            this.sendJson(res, 200, { access_token: this.currentToken, expires_in: 3600, token_type: "Bearer" });
             return;
         }
 
@@ -78,7 +79,7 @@ export class MockRemote {
                 : {};
 
             const auth = req.headers["authorization"];
-            if (auth !== "Bearer mock-token-123") {
+            if (auth !== `Bearer ${this.currentToken}`) {
                 this.sendJson(res, 401, { error: "unauthorized" });
                 return;
             }
@@ -87,12 +88,6 @@ export class MockRemote {
             if (id === undefined) {
                 res.writeHead(202);
                 res.end();
-                return;
-            }
-
-            if (this.shouldFailNextMCPCall) {
-                this.shouldFailNextMCPCall = false;
-                this.sendJson(res, 401, { error: "unauthorized" });
                 return;
             }
 
