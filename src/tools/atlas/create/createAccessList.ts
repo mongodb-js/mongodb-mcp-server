@@ -1,6 +1,5 @@
 import { z } from "zod";
-import { type OperationType, type ToolArgs, type ToolExecutionContext } from "../../tool.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { type OperationType, type ToolArgs, type ToolExecutionContext, type ToolResult } from "../../tool.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import { makeCurrentIpAccessListEntry, DEFAULT_ACCESS_LIST_COMMENT } from "../../../common/atlas/accessListUtils.js";
 import { AtlasArgs, CommonArgs } from "../../args.js";
@@ -16,6 +15,10 @@ export const CreateAccessListArgs = {
         .optional(),
 };
 
+const CreateAccessListOutputSchema = {
+    projectId: z.string(),
+};
+
 export class CreateAccessListTool extends AtlasToolBase {
     static toolName = "atlas-create-access-list";
     public description = "Allow Ip/CIDR ranges to access your MongoDB Atlas clusters.";
@@ -23,11 +26,12 @@ export class CreateAccessListTool extends AtlasToolBase {
     public argsShape = {
         ...CreateAccessListArgs,
     };
+    public override outputSchema = CreateAccessListOutputSchema;
 
     protected async execute(
         { projectId, ipAddresses, cidrBlocks, comment, currentIpAddress }: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
-    ): Promise<CallToolResult> {
+    ): Promise<ToolResult<typeof this.outputSchema>> {
         if (!ipAddresses?.length && !cidrBlocks?.length && !currentIpAddress) {
             throw new Error("One of  ipAddresses, cidrBlocks, currentIpAddress must be provided.");
         }
@@ -74,6 +78,9 @@ export class CreateAccessListTool extends AtlasToolBase {
                     text: `IP/CIDR ranges added to access list for project ${projectId}.`,
                 },
             ],
+            structuredContent: {
+                projectId,
+            },
         };
     }
 

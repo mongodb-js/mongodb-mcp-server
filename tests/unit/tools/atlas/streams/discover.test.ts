@@ -93,6 +93,16 @@ describe("StreamsDiscoverTool", () => {
             expect(result.content).toBeDefined();
             const text = (result.content[0] as { text: string }).text;
             expect(text).toContain("1 workspace(s)");
+            expect(result.structuredContent).toEqual({
+                workspaces: [
+                    {
+                        name: "ws1",
+                        region: "AWS/VIRGINIA_USA",
+                        tier: "SP10",
+                        maxTier: "SP50",
+                    },
+                ],
+            });
         });
 
         it("should return empty message when no workspaces", async () => {
@@ -101,6 +111,7 @@ describe("StreamsDiscoverTool", () => {
             const result = await exec({ ...baseArgs, action: "list-workspaces" });
 
             expect((result.content[0] as { text: string }).text).toContain("No Stream Processing workspaces");
+            expect(result.structuredContent).toEqual({ workspaces: [] });
         });
 
         it("should pass limit and pageNum to API", async () => {
@@ -114,6 +125,32 @@ describe("StreamsDiscoverTool", () => {
                 },
                 expect.anything()
             );
+        });
+
+        it("should return concise workspaces in structuredContent when responseFormat is detailed", async () => {
+            mockApiClient.listStreamWorkspaces!.mockResolvedValue({
+                results: [
+                    {
+                        name: "ws1",
+                        dataProcessRegion: { cloudProvider: "AWS", region: "VIRGINIA_USA" },
+                        streamConfig: { tier: "SP10", maxTierSize: "SP50" },
+                    },
+                ],
+                totalCount: 1,
+            });
+
+            const result = await exec({ ...baseArgs, action: "list-workspaces", responseFormat: "detailed" });
+
+            expect(result.structuredContent).toEqual({
+                workspaces: [
+                    {
+                        name: "ws1",
+                        region: "AWS/VIRGINIA_USA",
+                        tier: "SP10",
+                        maxTier: "SP50",
+                    },
+                ],
+            });
         });
     });
 
@@ -140,6 +177,41 @@ describe("StreamsDiscoverTool", () => {
 
             const text = (result.content[0] as { text: string }).text;
             expect(text).toContain("ws1");
+            expect(result.structuredContent).toEqual({
+                workspace: {
+                    name: "ws1",
+                    region: "AWS/VIRGINIA_USA",
+                    tier: "SP10",
+                    maxTier: "unknown",
+                    connectionCount: 1,
+                },
+            });
+        });
+
+        it("should return the same concise workspace in structuredContent when responseFormat is concise", async () => {
+            mockApiClient.getStreamWorkspace!.mockResolvedValue({
+                name: "ws1",
+                dataProcessRegion: { cloudProvider: "AWS", region: "VIRGINIA_USA" },
+                streamConfig: { tier: "SP10", maxTierSize: "SP50" },
+                connections: [{ name: "c1" }, { name: "c2" }],
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                action: "inspect-workspace",
+                workspaceName: "ws1",
+                responseFormat: "concise",
+            });
+
+            expect(result.structuredContent).toEqual({
+                workspace: {
+                    name: "ws1",
+                    region: "AWS/VIRGINIA_USA",
+                    tier: "SP10",
+                    maxTier: "SP50",
+                    connectionCount: 2,
+                },
+            });
         });
     });
 
@@ -173,6 +245,16 @@ describe("StreamsDiscoverTool", () => {
             expect(text).toContain("STARTED");
             expect(text).toContain("Connection Health");
             expect(text).toContain("Dead Letter Queue");
+            expect(result.structuredContent).toEqual({
+                processorState: "STARTED",
+                tier: "SP10",
+                stats: { inputMessageCount: 100, outputMessageCount: 90, dlqMessageCount: 10 },
+                dlq: { connectionName: "cluster", db: "mydb", coll: "dlq" },
+                connectionHealth: [
+                    { name: "kafka-in", type: "Kafka", state: "ACTIVE" },
+                    { name: "cluster", type: "Cluster", state: "ACTIVE" },
+                ],
+            });
         });
 
         it("should throw when resourceName is not provided", async () => {
@@ -205,6 +287,11 @@ describe("StreamsDiscoverTool", () => {
             const text = result.content.map((c) => (c as { text: string }).text).join("\n");
             expect(text).toContain("All 100 input messages went to DLQ");
             expect(text).toContain("Health Warning");
+            expect(result.structuredContent).toEqual({
+                processorState: "STARTED",
+                tier: "SP10",
+                stats: { inputMessageCount: 100, outputMessageCount: 0, dlqMessageCount: 100 },
+            });
         });
 
         it("should show high-DLQ-ratio warning when over 50% fail", async () => {
@@ -227,6 +314,11 @@ describe("StreamsDiscoverTool", () => {
             const text = result.content.map((c) => (c as { text: string }).text).join("\n");
             expect(text).toContain("70% of messages going to DLQ");
             expect(text).toContain("Health Warning");
+            expect(result.structuredContent).toEqual({
+                processorState: "STARTED",
+                tier: "SP10",
+                stats: { inputMessageCount: 100, outputMessageCount: 30, dlqMessageCount: 70 },
+            });
         });
 
         it("should skip health analysis when stats are empty", async () => {
@@ -249,6 +341,10 @@ describe("StreamsDiscoverTool", () => {
             const text = result.content.map((c) => (c as { text: string }).text).join("\n");
             expect(text).toContain("Processor State");
             expect(text).not.toContain("Processor Stats");
+            expect(result.structuredContent).toEqual({
+                processorState: "STARTED",
+                tier: "SP10",
+            });
         });
 
         it("should handle processor fetch failure gracefully", async () => {
@@ -264,6 +360,7 @@ describe("StreamsDiscoverTool", () => {
 
             const text = result.content.map((c) => (c as { text: string }).text).join("\n");
             expect(text).toContain("Error fetching processor");
+            expect(result.structuredContent).toBeUndefined();
         });
     });
 
@@ -284,6 +381,12 @@ describe("StreamsDiscoverTool", () => {
 
             const text = (result.content[0] as { text: string }).text;
             expect(text).toContain("2 connection(s)");
+            expect(result.structuredContent).toEqual({
+                connections: [
+                    { name: "kafka-in", type: "Kafka", state: "ACTIVE" },
+                    { name: "cluster-out", type: "Cluster", state: "ACTIVE" },
+                ],
+            });
         });
 
         it("should return empty message when no connections", async () => {
@@ -296,6 +399,7 @@ describe("StreamsDiscoverTool", () => {
             });
 
             expect((result.content[0] as { text: string }).text).toContain("No connections found");
+            expect(result.structuredContent).toEqual({ connections: [] });
         });
 
         it("should pass limit and pageNum to API", async () => {
@@ -345,6 +449,9 @@ describe("StreamsDiscoverTool", () => {
             const text = result.content.map((c) => (c as { text: string }).text).join("\n");
             expect(text).toContain("kafka-in");
             expect(text).toContain("ws1");
+            expect(result.structuredContent).toEqual({
+                connection: { type: "Kafka", bootstrapServers: "broker:9092" },
+            });
         });
 
         it("should add note when Cluster connection name differs from clusterName", async () => {
@@ -365,6 +472,9 @@ describe("StreamsDiscoverTool", () => {
             expect(text).toContain("Note");
             expect(text).toContain("my-conn");
             expect(text).toContain("actual-cluster");
+            expect(result.structuredContent).toEqual({
+                connection: { type: "Cluster", clusterName: "actual-cluster" },
+            });
         });
 
         it("should throw when resourceName is missing", async () => {
@@ -391,6 +501,12 @@ describe("StreamsDiscoverTool", () => {
 
             const text = (result.content[0] as { text: string }).text;
             expect(text).toContain("2 processor(s)");
+            expect(result.structuredContent).toEqual({
+                processors: [
+                    { name: "proc1", state: "STARTED", tier: "SP10" },
+                    { name: "proc2", state: "STOPPED", tier: "SP30" },
+                ],
+            });
         });
 
         it("should return empty message when no processors", async () => {
@@ -403,6 +519,7 @@ describe("StreamsDiscoverTool", () => {
             });
 
             expect((result.content[0] as { text: string }).text).toContain("No processors found");
+            expect(result.structuredContent).toEqual({ processors: [] });
         });
 
         it("should throw when workspaceName is missing", async () => {
@@ -429,6 +546,11 @@ describe("StreamsDiscoverTool", () => {
             const text = result.content.map((c) => (c as { text: string }).text).join("\n");
             expect(text).toContain("proc1");
             expect(text).toContain("ws1");
+            expect(result.structuredContent).toEqual({
+                processorState: "STARTED",
+                tier: "SP10",
+                pipeline: [{ $source: { connectionName: "kafka-in" } }],
+            });
         });
 
         it("should throw when resourceName is missing", async () => {
@@ -452,6 +574,9 @@ describe("StreamsDiscoverTool", () => {
             const text = result.content.map((c) => (c as { text: string }).text).join("\n");
             expect(text).toContain("PrivateLink");
             expect(text).toContain("pl-1");
+            expect(result.structuredContent).toEqual({
+                privateLinks: [{ id: "pl-1", provider: "AWS", region: "us-east-1", state: "AVAILABLE", vendor: "AWS" }],
+            });
         });
 
         it("should include errorMessage when present", async () => {
@@ -476,6 +601,11 @@ describe("StreamsDiscoverTool", () => {
             const text = result.content.map((c) => (c as { text: string }).text).join("\n");
             expect(text).toContain("FAILED");
             expect(text).toContain("VPC endpoint rejected");
+            expect(result.structuredContent).toEqual({
+                privateLinks: [
+                    { id: "pl-fail", provider: "AWS", region: "us-east-1", state: "FAILED", vendor: "CONFLUENT" },
+                ],
+            });
         });
 
         it("should include account details when cloudProvider and region are provided", async () => {
@@ -492,6 +622,10 @@ describe("StreamsDiscoverTool", () => {
             const text = result.content.map((c) => (c as { text: string }).text).join("\n");
             expect(text).toContain("Account Details");
             expect(text).toContain("123456789");
+            expect(result.structuredContent).toEqual({
+                privateLinks: [],
+                accountDetails: { awsAccountId: "123456789" },
+            });
         });
 
         it("should handle empty networking results", async () => {
@@ -504,6 +638,7 @@ describe("StreamsDiscoverTool", () => {
 
             const text = result.content.map((c) => (c as { text: string }).text).join("\n");
             expect(text).toContain("No PrivateLink connections found");
+            expect(result.structuredContent).toEqual({ privateLinks: [] });
         });
     });
 
@@ -516,6 +651,7 @@ describe("StreamsDiscoverTool", () => {
 
             expect(result.isError).toBe(true);
             expect((result.content[0] as { text: string }).text).toContain("Unknown action");
+            expect(result.structuredContent).toBeUndefined();
         });
     });
 });

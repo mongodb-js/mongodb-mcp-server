@@ -50,6 +50,7 @@ describeWithStreams("atlas-streams-teardown", (integration) => {
                 const content = getResponseContent(response.content);
                 expect(response.isError, `Unexpected error: ${content}`).toBeFalsy();
                 expect(content).toContain("deletion initiated");
+                expect(response.structuredContent).toEqual({ resource: "connection" });
             }, 30_000);
         });
 
