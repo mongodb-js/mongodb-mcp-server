@@ -23,6 +23,7 @@
   },
   "scripts": {
     "compile": "tsc --project tsconfig.json",
+    "pretest": "pnpm compile",
     "test": "vitest --run"
   },
   "dependencies": {
