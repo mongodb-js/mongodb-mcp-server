@@ -15,7 +15,12 @@ export type { CloseableTransport, SessionCloseReason };
  */
 export interface ISessionStore<T extends CloseableTransport = CloseableTransport> {
     getSession(sessionId: string): Promise<T | undefined>;
-    addSession(params: { sessionId: string; transport: T; logger: LoggerBase }): Promise<void>;
+    addSession(params: {
+        sessionId: string;
+        transport: T;
+        logger: LoggerBase;
+        headers?: Record<string, unknown>;
+    }): Promise<void>;
     closeSession(params: { sessionId: string; reason?: SessionCloseReason }): Promise<void>;
     closeAllSessions(): Promise<void>;
 }
@@ -90,7 +95,12 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         });
     }
 
-    async addSession(params: { sessionId: string; transport: T; logger: LoggerBase }): Promise<void> {
+    async addSession(params: {
+        sessionId: string;
+        transport: T;
+        logger: LoggerBase;
+        headers?: Record<string, unknown>;
+    }): Promise<void> {
         const { sessionId, transport, logger } = params;
         const session = this.sessions[sessionId];
         if (session) {
