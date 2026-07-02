@@ -1,19 +1,18 @@
 import { EventEmitter } from "events";
 import { redact } from "mongodb-redact";
-import type { Keychain } from "../keychain.js";
-import type { DefaultEventMap, EventMap, LoggerType, LogLevel, LogPayload } from "./loggingTypes.js";
+import type { Secret } from "mongodb-redact";
+import type { LoggerType, LogLevel, LogPayload, EventMap, DefaultEventMap } from "./loggingTypes.js";
 
 export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extends EventEmitter<T> {
-    constructor(private readonly keychain: Keychain | undefined) {
+    private readonly defaultUnredactedLogger: LoggerType = "mcp";
+
+    constructor(private readonly getSecrets?: () => Secret[]) {
         super();
     }
 
     public log(level: LogLevel, payload: LogPayload): void {
-        // Redact by default for every logger. Skipping redaction must be an explicit,
-        // per-call opt-out via `noRedaction` — never a default. This matters most for the
-        // MCP logger, whose messages are sent to the (untrusted) MCP client and downstream
-        // agent/LLM toolchain, so secrets must never be emitted there unless explicitly allowed.
-        const noRedaction = payload.noRedaction !== undefined ? payload.noRedaction : false;
+        // If no explicit value is supplied for unredacted loggers, default to "mcp"
+        const noRedaction = payload.noRedaction !== undefined ? payload.noRedaction : this.defaultUnredactedLogger;
 
         this.logCore(level, {
             ...payload,
@@ -42,14 +41,10 @@ export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extend
 
     private redactIfNecessary(message: string, noRedaction: LogPayload["noRedaction"]): string {
         if (typeof noRedaction === "boolean" && noRedaction) {
-            // If the consumer has supplied noRedaction: true, we don't redact the log message
-            // regardless of the logger type
             return message;
         }
 
         if (typeof noRedaction === "string" && noRedaction === this.type) {
-            // If the consumer has supplied noRedaction: logger-type, we skip redacting if
-            // our logger type is the same as what the consumer requested
             return message;
         }
 
@@ -59,12 +54,10 @@ export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extend
             this.type &&
             noRedaction.indexOf(this.type) !== -1
         ) {
-            // If the consumer has supplied noRedaction: array, we skip redacting if our logger
-            // type is included in that array
             return message;
         }
 
-        return redact(message, this.keychain?.allSecrets ?? []);
+        return redact(message, this.getSecrets?.() ?? []);
     }
 
     public info(payload: LogPayload): void {
@@ -74,6 +67,7 @@ export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extend
     public error(payload: LogPayload): void {
         this.log("error", payload);
     }
+
     public debug(payload: LogPayload): void {
         this.log("debug", payload);
     }

@@ -9,14 +9,10 @@ export interface CachedToken {
     expiresAt: number;
 }
 
-export const LOG_LEVELS = ["debug", "info", "notice", "warning", "error", "critical", "alert", "emergency"] as const;
-export type LogLevel = (typeof LOG_LEVELS)[number];
-
 export interface AppConfig {
     remoteUrl: string;
     tokenUrl: string;
     clientId: string;
     clientSecret: string;
     tokenTimeoutMs: number;
-    logLevel: LogLevel;
 }
