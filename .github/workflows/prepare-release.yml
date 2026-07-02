@@ -40,7 +40,7 @@ jobs:
           set -euo pipefail
           npm version "$INPUTS_VERSION" --no-git-tag-version --allow-same-version
           NEW_VERSION=$(npm pkg get version | tr -d '"')
-          pnpm -r --filter './packages/*' --filter '!mongodb-atlas-mcp-remote' exec npm version "$NEW_VERSION" --no-git-tag-version --allow-same-version
+          pnpm -r --filter '@mongodb-js/mcp-*' exec npm version "$NEW_VERSION" --no-git-tag-version --allow-same-version
           pnpm run build:update-package-version
           echo "NEW_VERSION=v${NEW_VERSION}" >> "$GITHUB_OUTPUT"
 

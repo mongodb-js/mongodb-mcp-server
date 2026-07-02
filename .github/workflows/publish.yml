@@ -147,7 +147,7 @@ jobs:
       - name: Publish to NPM
         run: |
           pnpm publish --tag ${{ needs.check.outputs.RELEASE_CHANNEL }} --no-git-checks
-          pnpm -r --filter './packages/*' --filter '!mongodb-atlas-mcp-remote' publish --tag ${{ needs.check.outputs.RELEASE_CHANNEL }} --no-git-checks
+          pnpm -r --filter '@mongodb-js/mcp-*' publish --tag ${{ needs.check.outputs.RELEASE_CHANNEL }} --no-git-checks
 
       - name: Generate AI release summary
         id: ai-summary
