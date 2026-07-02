@@ -115,9 +115,12 @@ describe("ListClustersTool", () => {
             const result = await exec();
 
             const text = result.content.map((c) => (c as { text: string }).text).join("\n");
-            expect(text).toContain('Found 2 clusters in project "My Project"');
-            expect(text).toContain(projectId);
+            expect(text).toContain(`Found 2 clusters in project ${projectId}`);
             expect(text).toContain("<untrusted-user-data-");
+            // The untrusted project name is wrapped inside the untrusted-data block, not the description.
+            const [description, untrusted] = result.content.map((c) => (c as { text: string }).text);
+            expect(description).not.toContain("My Project");
+            expect(untrusted).toContain("My Project");
         });
 
         it("calls getGroup, listClusters, and listFlexClusters", async () => {

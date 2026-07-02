@@ -168,8 +168,8 @@ export class ListClustersTool extends AtlasToolBase {
 
         return {
             content: formatUntrustedData(
-                `Found ${allClusters.length} clusters in project "${project.name}" (${project.id}):`,
-                JSON.stringify(allClusters)
+                `Found ${allClusters.length} clusters in project ${project.id}:`,
+                JSON.stringify({ projectName: project.name, clusters: allClusters })
             ),
             structuredContent: {
                 projectId: project.id,
