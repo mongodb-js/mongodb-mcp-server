@@ -4,6 +4,7 @@ import { Readable } from "node:stream";
 import { createFetch, systemCA } from "@mongodb-js/devtools-proxy-support";
 import type { AuthProvider, FetchLike, JSONRPCMessage } from "@modelcontextprotocol/client";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
+import { HttpTransportWithSessionRecovery } from "./httpTransportWithSessionRecovery.js";
 import { StdioServerTransport } from "@modelcontextprotocol/server";
 import { loadConfig, ConfigurationError } from "./config.js";
 import { TokenManager, TokenError } from "./tokenManager.js";
@@ -65,27 +66,18 @@ async function main(): Promise<void> {
         process.exit(1);
     }
 
-    const httpTransport = new StreamableHTTPClientTransport(new URL(config.remoteUrl), {
-        authProvider,
-        fetch: toWebStreamFetch(proxyFetch),
-    });
-
     const stdioTransport = new StdioServerTransport();
 
-    let sessionLogged = false;
-    httpTransport.onmessage = (message: JSONRPCMessage): void => {
-        // The remote assigns the session id on the initialize response; log it once for correlation.
-        if (!sessionLogged && httpTransport.sessionId !== undefined) {
-            sessionLogged = true;
-            logger.debug({
-                id: LogId.sessionInfo,
-                context: "cli",
-                message: "Remote MCP session established",
-                attributes: { sessionId: httpTransport.sessionId },
-            });
+    const httpTransport = new HttpTransportWithSessionRecovery(
+        () =>
+            new StreamableHTTPClientTransport(new URL(config.remoteUrl), {
+                authProvider,
+                fetch: toWebStreamFetch(proxyFetch),
+            }),
+        (message: JSONRPCMessage): void => {
+            void stdioTransport.send(message);
         }
-        void stdioTransport.send(message);
-    };
+    );
 
     stdioTransport.onmessage = (message: JSONRPCMessage): void => {
         const method = "method" in message ? message.method : undefined;
