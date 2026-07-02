@@ -454,7 +454,7 @@ describe("StreamsDiscoverTool", () => {
             });
         });
 
-        it("should add note when Cluster connection name differs from clusterName", async () => {
+        it("should add a generic note when Cluster connection name differs from clusterName", async () => {
             mockApiClient.getStreamConnection!.mockResolvedValue({
                 name: "my-conn",
                 type: "Cluster",
@@ -468,10 +468,10 @@ describe("StreamsDiscoverTool", () => {
                 resourceName: "my-conn",
             });
 
-            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
-            expect(text).toContain("Note");
-            expect(text).toContain("my-conn");
-            expect(text).toContain("actual-cluster");
+            const [description, untrusted] = result.content.map((c) => (c as { text: string }).text);
+            expect(description).toContain("Note");
+            expect(description).not.toContain("actual-cluster");
+            expect(untrusted).toContain("actual-cluster");
             expect(result.structuredContent).toEqual({
                 connection: { type: "Cluster", clusterName: "actual-cluster" },
             });

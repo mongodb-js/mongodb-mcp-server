@@ -482,8 +482,8 @@ export class StreamsDiscoverTool extends StreamsToolBase {
 
         if (data.type === "Cluster" && typeof data.clusterName === "string" && data.clusterName !== data.name) {
             header +=
-                `\n\nNote: This connection is named '${String(data.name)}' but targets cluster '${data.clusterName}'. ` +
-                `Use the connection name '${String(data.name)}' (not the cluster name) when referencing it in pipeline stages.`;
+                "\n\nNote: This connection's name differs from its target cluster name. " +
+                "Use the connection name (not the cluster name) when referencing it in pipeline stages.";
         }
 
         const connection = toConnectionInspect(data);
