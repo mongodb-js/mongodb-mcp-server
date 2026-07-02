@@ -38,6 +38,7 @@ export const ListClusterItemOutputSchema = z.union([ClusterSummaryOutputSchema, 
 
 const ListClustersOutputSchema = {
     projectId: z.string().optional(),
+    projectName: z.string().optional(),
     clusters: z.array(ListClusterItemOutputSchema),
     totalCount: z.number(),
 };
@@ -157,6 +158,7 @@ export class ListClustersTool extends AtlasToolBase {
                 content: [{ type: "text", text: "No clusters found." }],
                 structuredContent: {
                     projectId: project.id,
+                    projectName: project.name,
                     clusters: [],
                     totalCount: 0,
                 },
@@ -173,6 +175,7 @@ export class ListClustersTool extends AtlasToolBase {
             ),
             structuredContent: {
                 projectId: project.id,
+                projectName: project.name,
                 clusters: allClusters,
                 totalCount: allClusters.length,
             },

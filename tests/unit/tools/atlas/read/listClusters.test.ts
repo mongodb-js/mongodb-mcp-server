@@ -193,6 +193,7 @@ describe("ListClustersTool", () => {
 
                 expect(result.structuredContent).toEqual({
                     projectId,
+                    projectName: "My Project",
                     clusters: [
                         {
                             name: "free-cluster",
@@ -219,6 +220,7 @@ describe("ListClustersTool", () => {
 
                 expect(result.structuredContent).toEqual({
                     projectId,
+                    projectName: "My Project",
                     clusters: [],
                     totalCount: 0,
                 });
@@ -242,6 +244,11 @@ describe("ListClustersTool", () => {
 
             const text = result.content.map((c) => (c as { text: string }).text).join("\n");
             expect(text).toContain("Found 1 clusters across all projects");
+            // The (untrusted) project name is included inside the untrusted-data block, not the description.
+            const [description, untrusted] = result.content.map((c) => (c as { text: string }).text);
+            expect(description).not.toContain("Project A");
+            expect(untrusted).toContain("<untrusted-user-data-");
+            expect(untrusted).toContain("Project A");
             expect(mockApiClient.listClusterDetails).toHaveBeenCalledWith(undefined, expect.anything());
             expect(mockApiClient.getGroup).not.toHaveBeenCalled();
         });

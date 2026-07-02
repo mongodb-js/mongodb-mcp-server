@@ -1205,6 +1205,7 @@ export class ListClustersTool extends AtlasToolBase {
     // (undocumented)
     outputSchema: {
         projectId: z.ZodOptional<z.ZodString>;
+        projectName: z.ZodOptional<z.ZodString>;
         clusters: z.ZodArray<z.ZodUnion<readonly [z.ZodObject<{
             clusterName: z.ZodOptional<z.ZodString>;
             projectId: z.ZodOptional<z.ZodString>;
