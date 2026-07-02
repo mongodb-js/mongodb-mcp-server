@@ -65,6 +65,55 @@ async function findPrevTag(newVersion: string): Promise<SemVer | null> {
     return allTags.find((tag) => semver.lt(tag, versionStr)) ?? null;
 }
 
+/** GitHub author associations whose merged PRs are trusted to feed the AI summary.
+ * Content from anyone else is excluded because a PR's title and body can be edited after merge. */
+const TRUSTED_ASSOCIATIONS = new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
+
+const SEARCH_MERGED_PRS_QUERY = `
+query ($q: String!, $cursor: String) {
+  search(query: $q, type: ISSUE, first: 100, after: $cursor) {
+    nodes {
+      ... on PullRequest {
+        authorAssociation
+        mergeCommit { oid }
+      }
+    }
+    pageInfo { hasNextPage endCursor }
+  }
+}`;
+
+type PrSearchResponse = {
+    data: {
+        search: {
+            nodes: { authorAssociation: string; mergeCommit: { oid: string } | null }[];
+            pageInfo: { hasNextPage: boolean; endCursor: string | null };
+        };
+    };
+};
+
+/** Returns the merge-commit SHAs of PRs merged in the range whose author is a trusted association. */
+function fetchTrustedMergeShas(prevTagDate: string, targetCommitDate: string): string[] {
+    const q = `repo:mongodb-js/mongodb-mcp-server is:pr is:merged base:main merged:>${prevTagDate} merged:<=${targetCommitDate}`;
+    const shas: string[] = [];
+    let cursor: string | null = null;
+
+    do {
+        const args = ["api", "graphql", "-f", `query=${SEARCH_MERGED_PRS_QUERY}`, "-f", `q=${q}`];
+        if (cursor) {
+            args.push("-f", `cursor=${cursor}`);
+        }
+        const { data } = JSON.parse(execFileSync("gh", args, { encoding: "utf-8" })) as PrSearchResponse;
+        for (const node of data.search.nodes) {
+            if (node.mergeCommit && TRUSTED_ASSOCIATIONS.has(node.authorAssociation)) {
+                shas.push(node.mergeCommit.oid);
+            }
+        }
+        cursor = data.search.pageInfo.hasNextPage ? data.search.pageInfo.endCursor : null;
+    } while (cursor);
+
+    return shas;
+}
+
 /** Returns an AI-generated summary of the release, or null if generation fails or there are no relevant PRs. */
 async function generateAiSummary(prevTagDate: string, targetCommitDate: string): Promise<string | null> {
     if (!GROVE_API_KEY) {
@@ -72,43 +121,22 @@ async function generateAiSummary(prevTagDate: string, targetCommitDate: string):
         return null;
     }
 
-    // Fetch feat/fix PR titles and bodies merged within the release range
-    type PrItem = { title: string; body: string | null };
-    const prListJson = execFileSync(
-        "gh",
-        [
-            "pr",
-            "list",
-            "--state",
-            "merged",
-            "--base",
-            "main",
-            "--search",
-            `merged:>${prevTagDate} merged:<=${targetCommitDate}`,
-            "--json",
-            "title,body",
-            "--limit",
-            "500",
-        ],
-        { encoding: "utf-8" }
-    ).trim();
-    const prList = JSON.parse(prListJson) as PrItem[];
-    const featFixPrs = prList.filter((pr) => /^(feat|fix)(\(|!|:)/.test(pr.title));
-
-    if (!featFixPrs.length) {
+    const trustedShas = fetchTrustedMergeShas(prevTagDate, targetCommitDate);
+    if (!trustedShas.length) {
         return null;
     }
 
-    // Truncate bodies to avoid sending excessive content to the model
-    const MAX_BODY_CHARS = 1000;
-    const prSummaries = featFixPrs
-        .map((pr) => {
-            const body = pr.body?.trim();
-            if (!body) return `- ${pr.title}`;
-            const truncated = body.length > MAX_BODY_CHARS ? body.slice(0, MAX_BODY_CHARS) + "…" : body;
-            return `- ${pr.title}\n${truncated}`;
-        })
-        .join("\n\n");
+    // Summarize from the frozen commit subjects as those are immutable and cannot be edited after merge.
+    const featFixTitles = execFileSync("git", ["show", "-s", "--format=%s", ...trustedShas], { encoding: "utf-8" })
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => /^(feat|fix)(\(|!|:)/.test(line));
+
+    if (!featFixTitles.length) {
+        return null;
+    }
+
+    const prSummaries = featFixTitles.map((title) => `- ${title}`).join("\n");
 
     const anthropic = createAnthropic({
         baseURL: "https://grove-gateway-prod.azure-api.net/grove-foundry-prod/anthropic/v1",
