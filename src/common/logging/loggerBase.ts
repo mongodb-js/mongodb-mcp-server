@@ -4,15 +4,16 @@ import type { Keychain } from "../keychain.js";
 import type { DefaultEventMap, EventMap, LoggerType, LogLevel, LogPayload } from "./loggingTypes.js";
 
 export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extends EventEmitter<T> {
-    private readonly defaultUnredactedLogger: LoggerType = "mcp";
-
     constructor(private readonly keychain: Keychain | undefined) {
         super();
     }
 
     public log(level: LogLevel, payload: LogPayload): void {
-        // If no explicit value is supplied for unredacted loggers, default to "mcp"
-        const noRedaction = payload.noRedaction !== undefined ? payload.noRedaction : this.defaultUnredactedLogger;
+        // Redact by default for every logger. Skipping redaction must be an explicit,
+        // per-call opt-out via `noRedaction` — never a default. This matters most for the
+        // MCP logger, whose messages are sent to the (untrusted) MCP client and downstream
+        // agent/LLM toolchain, so secrets must never be emitted there unless explicitly allowed.
+        const noRedaction = payload.noRedaction !== undefined ? payload.noRedaction : false;
 
         this.logCore(level, {
             ...payload,
