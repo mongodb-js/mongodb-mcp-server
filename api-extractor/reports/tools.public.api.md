@@ -481,7 +481,18 @@ export class CreateDBUserTool extends AtlasToolBase {
         username: z.ZodString;
         password: z.ZodOptional<z.ZodString>;
         roles: z.ZodArray<z.ZodObject<{
-            roleName: z.ZodString;
+            roleName: z.ZodUnion<readonly [z.ZodEnum<{
+                atlasAdmin: "atlasAdmin";
+                backup: "backup";
+                clusterMonitor: "clusterMonitor";
+                dbAdmin: "dbAdmin";
+                dbAdminAnyDatabase: "dbAdminAnyDatabase";
+                enableSharding: "enableSharding";
+                read: "read";
+                readAnyDatabase: "readAnyDatabase";
+                readWrite: "readWrite";
+                readWriteAnyDatabase: "readWriteAnyDatabase";
+            }>, z.ZodString]>;
             databaseName: z.ZodDefault<z.ZodString>;
             collectionName: z.ZodOptional<z.ZodString>;
         }, z.core.$strip>>;
