@@ -3,7 +3,11 @@ export function requestIdAttr(headers: Record<string, unknown> | undefined): Rec
     if (!headers) {
         return {};
     }
-    const key = Object.keys(headers).find((k) => k.toLowerCase() === "x-request-id");
-    const id = key !== undefined ? headers[key] : undefined;
-    return typeof id === "string" ? { "x-request-id": id } : {};
+    for (const key in headers) {
+        if (key.toLowerCase() === "x-request-id") {
+            const id = headers[key];
+            return typeof id === "string" ? { "x-request-id": id } : {};
+        }
+    }
+    return {};
 }
