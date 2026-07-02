@@ -147,6 +147,8 @@ jobs:
       - name: Publish to NPM
         run: |
           pnpm publish --tag ${{ needs.check.outputs.RELEASE_CHANNEL }} --no-git-checks
+          # Only publish the scoped @mongodb-js/mcp-* packages alongside the server.
+          # mongodb-atlas-mcp-remote is intentionally unscoped so it's excluded here and released via publish-atlas-mcp-remote.
           pnpm -r --filter '@mongodb-js/mcp-*' publish --tag ${{ needs.check.outputs.RELEASE_CHANNEL }} --no-git-checks
 
       - name: Generate AI release summary
