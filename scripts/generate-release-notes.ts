@@ -66,7 +66,7 @@ async function findPrevTag(newVersion: string): Promise<SemVer | null> {
 }
 
 /** GitHub author associations whose merged PRs are trusted to feed the AI summary.
- * Content from anyone else is excluded because a PR's title and body can be edited after merge. */
+ * PRs authored by external contributors are excluded so untrusted text never reaches the LLM prompt. */
 const TRUSTED_ASSOCIATIONS = new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
 
 const SEARCH_MERGED_PRS_QUERY = `
@@ -121,39 +121,51 @@ async function generateAiSummary(prevTagDate: string, targetCommitDate: string):
         return null;
     }
 
-    const trustedShas = fetchTrustedMergeShas(prevTagDate, targetCommitDate);
-    if (!trustedShas.length) {
-        return null;
-    }
-
-    // Summarize from the frozen commit subjects as those are immutable and cannot be edited after merge.
-    const featFixTitles = execFileSync("git", ["show", "-s", "--format=%s", ...trustedShas], { encoding: "utf-8" })
-        .split("\n")
-        .map((line) => line.trim())
-        .filter((line) => /^(feat|fix)(\(|!|:)/.test(line));
-
-    if (!featFixTitles.length) {
-        return null;
-    }
-
-    const prSummaries = featFixTitles.map((title) => `- ${title}`).join("\n");
-
-    const anthropic = createAnthropic({
-        baseURL: "https://grove-gateway-prod.azure-api.net/grove-foundry-prod/anthropic/v1",
-        apiKey: GROVE_API_KEY,
-        headers: { "api-key": GROVE_API_KEY },
-    });
-
-    const prompt = [
-        "You are writing release notes for MongoDB MCP Server, a tool that lets AI assistants interact with MongoDB databases and MongoDB Atlas.",
-        "Given these merged PR titles, write 2-3 sentences for end-users describing what's new in plain English.",
-        "Be concrete and avoid internal jargon. Only describe user-visible changes.",
-        "Focus primarily on new features (feat: titles) — mention bug fixes only if they address something particularly significant.",
-        "Respond with the release notes summary only, without any introductory text or formatting.",
-        `PRs:\n${prSummaries}`,
-    ].join(" ");
-
     try {
+        const trustedShas = fetchTrustedMergeShas(prevTagDate, targetCommitDate);
+        if (!trustedShas.length) {
+            return null;
+        }
+
+        // Summarize from the frozen commit subjects as those are immutable and cannot be edited after merge.
+        // Fetch in batches so the git argument list stays within OS command-line length limits.
+        const BATCH_SIZE = 200;
+        const featFixTitles: string[] = [];
+        for (let i = 0; i < trustedShas.length; i += BATCH_SIZE) {
+            const subjects = execFileSync(
+                "git",
+                ["show", "-s", "--format=%s", ...trustedShas.slice(i, i + BATCH_SIZE)],
+                {
+                    encoding: "utf-8",
+                }
+            )
+                .split("\n")
+                .map((line) => line.trim())
+                .filter((line) => /^(feat|fix)(\(|!|:)/.test(line));
+            featFixTitles.push(...subjects);
+        }
+
+        if (!featFixTitles.length) {
+            return null;
+        }
+
+        const changeSummaries = featFixTitles.map((title) => `- ${title}`).join("\n");
+
+        const anthropic = createAnthropic({
+            baseURL: "https://grove-gateway-prod.azure-api.net/grove-foundry-prod/anthropic/v1",
+            apiKey: GROVE_API_KEY,
+            headers: { "api-key": GROVE_API_KEY },
+        });
+
+        const prompt = [
+            "You are writing release notes for MongoDB MCP Server, a tool that lets AI assistants interact with MongoDB databases and MongoDB Atlas.",
+            "Given these merged commit titles, write 2-3 sentences for end-users describing what's new in plain English.",
+            "Be concrete and avoid internal jargon. Only describe user-visible changes.",
+            "Focus primarily on new features (feat: titles) — mention bug fixes only if they address something particularly significant.",
+            "Respond with the release notes summary only, without any introductory text or formatting.",
+            `Commits:\n${changeSummaries}`,
+        ].join(" ");
+
         const { text } = await generateText({
             model: anthropic("claude-sonnet-4-6"),
             messages: [{ role: "user", content: prompt }],
