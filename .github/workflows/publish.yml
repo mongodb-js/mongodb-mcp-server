@@ -136,6 +136,11 @@ jobs:
       - check
     if: needs.check.outputs.VERSION_EXISTS == 'false'
     steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
       - uses: ./.github/actions/setup-node-pnpm
 
       - name: Build
@@ -254,6 +259,11 @@ jobs:
     # published to npm manually, see https://jira.mongodb.org/browse/MCP-493
     if: needs.check.outputs.REMOTE_VERSION_EXISTS == 'false' && needs.check.outputs.REMOTE_PACKAGE_EXISTS_ON_NPM == 'true' && needs.check.outputs.REMOTE_NPM_VERSION != '0.0.0'
     steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
       - uses: ./.github/actions/setup-node-pnpm
 
       - name: Build
