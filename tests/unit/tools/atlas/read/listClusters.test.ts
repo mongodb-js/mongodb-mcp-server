@@ -115,9 +115,12 @@ describe("ListClustersTool", () => {
             const result = await exec();
 
             const text = result.content.map((c) => (c as { text: string }).text).join("\n");
-            expect(text).toContain('Found 2 clusters in project "My Project"');
-            expect(text).toContain(projectId);
+            expect(text).toContain(`Found 2 clusters in project ${projectId}`);
             expect(text).toContain("<untrusted-user-data-");
+            // The untrusted project name is wrapped inside the untrusted-data block, not the description.
+            const [description, untrusted] = result.content.map((c) => (c as { text: string }).text);
+            expect(description).not.toContain("My Project");
+            expect(untrusted).toContain("My Project");
         });
 
         it("calls getGroup, listClusters, and listFlexClusters", async () => {
@@ -190,6 +193,7 @@ describe("ListClustersTool", () => {
 
                 expect(result.structuredContent).toEqual({
                     projectId,
+                    projectName: "My Project",
                     clusters: [
                         {
                             name: "free-cluster",
@@ -216,6 +220,7 @@ describe("ListClustersTool", () => {
 
                 expect(result.structuredContent).toEqual({
                     projectId,
+                    projectName: "My Project",
                     clusters: [],
                     totalCount: 0,
                 });
@@ -239,6 +244,11 @@ describe("ListClustersTool", () => {
 
             const text = result.content.map((c) => (c as { text: string }).text).join("\n");
             expect(text).toContain("Found 1 clusters across all projects");
+            // The (untrusted) project name is included inside the untrusted-data block, not the description.
+            const [description, untrusted] = result.content.map((c) => (c as { text: string }).text);
+            expect(description).not.toContain("Project A");
+            expect(untrusted).toContain("<untrusted-user-data-");
+            expect(untrusted).toContain("Project A");
             expect(mockApiClient.listClusterDetails).toHaveBeenCalledWith(undefined, expect.anything());
             expect(mockApiClient.getGroup).not.toHaveBeenCalled();
         });
