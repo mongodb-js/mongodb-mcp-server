@@ -1,5 +1,6 @@
 import type { LoggerBase } from "./logging/index.js";
 import { LogId } from "./logging/index.js";
+import type { Session } from "./session.js";
 import type { ManagedTimeout } from "./managedTimeout.js";
 import { setManagedTimeout } from "./managedTimeout.js";
 import type { Metrics, DefaultMetrics } from "@mongodb-js/mcp-metrics";
@@ -14,11 +15,12 @@ export type { CloseableTransport, SessionCloseReason };
  * management (e.g. database-based session storage).
  */
 export interface ISessionStore<T extends CloseableTransport = CloseableTransport> {
-    getSession(sessionId: string): Promise<T | undefined>;
+    getSession(sessionId: string, headers?: Record<string, unknown>): Promise<T | undefined>;
     addSession(params: {
         sessionId: string;
         transport: T;
         logger: LoggerBase;
+        session: Session;
         headers?: Record<string, unknown>;
     }): Promise<void>;
     closeSession(params: { sessionId: string; reason?: SessionCloseReason }): Promise<void>;
@@ -62,7 +64,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         }
     }
 
-    async getSession(sessionId: string): Promise<T | undefined> {
+    async getSession(sessionId: string, _headers?: Record<string, unknown>): Promise<T | undefined> {
         this.resetTimeout(sessionId);
         return Promise.resolve(this.sessions[sessionId]?.transport);
     }
@@ -99,6 +101,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         sessionId: string;
         transport: T;
         logger: LoggerBase;
+        session: Session;
         headers?: Record<string, unknown>;
     }): Promise<void> {
         const { sessionId, transport, logger } = params;

@@ -196,7 +196,7 @@ export class MCPHttpServer<
         const requestIdAttrs = requestIdAttr(req.headers);
 
         // Check if session already exists
-        if (await this.sessionStore.getSession(sessionId)) {
+        if (await this.sessionStore.getSession(sessionId, req.headers)) {
             return sessionId;
         }
 
@@ -287,6 +287,7 @@ export class MCPHttpServer<
                 sessionId,
                 transport,
                 logger: server.session.logger,
+                session: server.session,
                 // Pass the incoming request headers to the session store so
                 // that we can trace the x-request-id and other headers in the
                 // resulting logs and downstream requests.
@@ -348,7 +349,7 @@ export class MCPHttpServer<
 
             const requestIdAttrs = requestIdAttr(req.headers);
 
-            let transport = await this.sessionStore.getSession(sessionId);
+            let transport = await this.sessionStore.getSession(sessionId, req.headers);
             if (!transport) {
                 if (!this.userConfig.externallyManagedSessions) {
                     this.logger.debug({
@@ -366,7 +367,7 @@ export class MCPHttpServer<
                     sessionId,
                     isImplicitInitialization: true,
                 });
-                transport = await this.sessionStore.getSession(resolvedSessionId);
+                transport = await this.sessionStore.getSession(resolvedSessionId, req.headers);
                 if (!transport) {
                     return this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND);
                 }
@@ -400,7 +401,7 @@ export class MCPHttpServer<
                         sessionId,
                         isImplicitInitialization: false,
                     });
-                    const transport = await this.sessionStore.getSession(resolvedSessionId);
+                    const transport = await this.sessionStore.getSession(resolvedSessionId, req.headers);
                     if (!transport) {
                         return this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND);
                     }

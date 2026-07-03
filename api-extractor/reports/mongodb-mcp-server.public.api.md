@@ -603,6 +603,7 @@ export interface ISessionStore<T extends CloseableTransport = CloseableTransport
         sessionId: string;
         transport: T;
         logger: LoggerBase;
+        session: Session;
         headers?: Record<string, unknown>;
     }): Promise<void>;
     // (undocumented)
@@ -613,7 +614,7 @@ export interface ISessionStore<T extends CloseableTransport = CloseableTransport
         reason?: SessionCloseReason;
     }): Promise<void>;
     // (undocumented)
-    getSession(sessionId: string): Promise<T | undefined>;
+    getSession(sessionId: string, headers?: Record<string, unknown>): Promise<T | undefined>;
 }
 
 // @public
@@ -989,6 +990,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         sessionId: string;
         transport: T;
         logger: LoggerBase;
+        session: Session;
         headers?: Record<string, unknown>;
     }): Promise<void>;
     // (undocumented)
@@ -999,7 +1001,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         reason?: SessionCloseReason;
     }): Promise<void>;
     // (undocumented)
-    getSession(sessionId: string): Promise<T | undefined>;
+    getSession(sessionId: string, _headers?: Record<string, unknown>): Promise<T | undefined>;
 }
 
 // @public
