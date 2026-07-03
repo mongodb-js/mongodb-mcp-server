@@ -23,11 +23,12 @@ if (process.env.SKIP_ATLAS_LOCAL_TESTS === "true") {
 export default defineConfig({
     test: {
         environment: "node",
-        pool: "threads",
         testTimeout: 3600000,
         hookTimeout: 3600000,
         setupFiles: ["./packages/test-utils/src/setup.ts"],
         coverage: {
+            // Coverage is disabled on Windows as we only report it from the ubuntu job
+            enabled: process.platform !== "win32",
             exclude: [
                 // Required: import.meta.glob() in src/ui creates Vite virtual modules (\0 prefixed paths)
                 // that crash Istanbul reporters. See: https://github.com/vitest-dev/vitest/issues/5101

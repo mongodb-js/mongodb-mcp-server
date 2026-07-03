@@ -23,7 +23,7 @@ describe("connectionInfo", () => {
 
             const result = getHostType(localConnectionString);
 
-            expect(result).toBe("unknown");
+            expect(result).toBe("local");
         });
 
         it("should return 'unknown' for empty connection string", () => {
@@ -96,7 +96,7 @@ describe("connectionInfo", () => {
 
             const result = getHostType(localhostConnectionString);
 
-            expect(result).toBe("unknown");
+            expect(result).toBe("local");
         });
 
         it("should handle connection strings with IP addresses", () => {
@@ -230,7 +230,7 @@ describe("connectionInfo", () => {
 
             expect(result).toEqual({
                 authType: "scram",
-                hostType: "unknown",
+                hostType: "local",
             });
         });
 
@@ -266,7 +266,7 @@ describe("connectionInfo", () => {
 
             expect(result).toEqual({
                 authType: "scram",
-                hostType: "unknown",
+                hostType: "local",
             });
         });
 
@@ -312,7 +312,7 @@ describe("connectionInfo", () => {
 
             expect(result).toEqual({
                 authType: "ldap",
-                hostType: "unknown",
+                hostType: "local",
             });
         });
 

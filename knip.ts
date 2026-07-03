@@ -12,6 +12,11 @@ const config: KnipConfig = {
             entry: [
                 "eslint-rules/*.js", // Root-local ESLint custom rules
             ],
+            ignore: [
+                // Fixture scripts run externally, not part of the TS graph
+                "tests/eval/scripts/bundleEval/osDnsNativeStub.cjs",
+                "tests/eval/scripts/bundleEval/stub.mjs",
+            ],
             ignoreDependencies: [
                 // Listed in root vitest.config ui project environment; package lives in packages/ui
                 "happy-dom",
@@ -41,6 +46,9 @@ const config: KnipConfig = {
                 // Provides the mcpb CLI binary; not imported as a module
                 "@anthropic-ai/mcpb",
             ],
+        },
+        "packages/mongodb-atlas-mcp-remote": {
+            entry: ["src/cli.ts!", "src/**/*.test.ts", "src/testHelpers/**/*.ts"],
         },
         "packages/test-utils": {
             entry: ["src/index.ts", "src/setup.ts"],

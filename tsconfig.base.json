@@ -19,6 +19,12 @@
     "declarationMap": true,
     "erasableSyntaxOnly": true,
     "composite": true,
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "paths": {
+      "ts-levenshtein": ["./node_modules/ts-levenshtein/dist/index.d.mts"],
+      "openapi-typescript-helpers": [
+        "./node_modules/openapi-typescript-helpers/index.d.ts"
+      ]
+    }
   }
 }

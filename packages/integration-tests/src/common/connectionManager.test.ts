@@ -126,7 +126,7 @@ describeWithMongoDB("Connection Manager", (integration) => {
                     connectedAtlasCluster: undefined,
                     connectionStringInfo: {
                         authType: "scram",
-                        hostType: "unknown",
+                        hostType: "local",
                     },
                     errorReason: "Unable to parse localhost:xxxxx with URL",
                 });

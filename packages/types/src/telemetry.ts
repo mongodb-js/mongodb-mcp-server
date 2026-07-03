@@ -92,7 +92,16 @@ export type StreamsToolMetadata = AtlasMetadata & {
     resource?: string;
 };
 
-export type TelemetryToolMetadata = AtlasMetadata | ConnectionMetadata | PerfAdvisorToolMetadata | StreamsToolMetadata;
+export type IndexMetadata = ConnectionMetadata & {
+    index_type: "classic" | "vectorSearch" | "search";
+};
+
+export type TelemetryToolMetadata =
+    | AtlasMetadata
+    | ConnectionMetadata
+    | PerfAdvisorToolMetadata
+    | StreamsToolMetadata
+    | IndexMetadata;
 
 export type ToolEventProperties = {
     command: string;

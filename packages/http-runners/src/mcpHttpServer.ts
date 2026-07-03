@@ -10,6 +10,7 @@ import type {
     ISessionStore,
     HttpServerOptions,
     SessionManagementOptions,
+    SessionServer,
 } from "@mongodb-js/mcp-types";
 import {
     LogId,
@@ -21,10 +22,11 @@ import {
     JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
     UserFacingError,
     getRandomUUID,
+    SessionRejectedError,
+    requestIdAttr,
 } from "@mongodb-js/mcp-core";
 import { ExpressBasedHttpServer } from "./expressBasedHttpServer.js";
 import { sleep } from "./utils.js";
-import type { SessionServer } from "@mongodb-js/mcp-types";
 
 /**
  * Options for creating an MCPHttpServer instance.
@@ -201,8 +203,10 @@ export abstract class MCPHttpServer<
         isImplicitInitialization: boolean;
     }): Promise<string> {
         const sessionId = providedSessionId ?? getRandomUUID();
+        const requestIdAttrs = requestIdAttr(req.headers);
 
-        if (await this.sessionStore.getSession(sessionId)) {
+        // Check if session already exists
+        if (await this.sessionStore.getSession(sessionId, req.headers)) {
             return sessionId;
         }
 
@@ -213,6 +217,7 @@ export abstract class MCPHttpServer<
                 id: LogId.streamableHttpTransportSessionNotFound,
                 context: "streamableHttpTransport",
                 message: `Session with ID ${sessionId} is already being initialized, waiting`,
+                attributes: { ...requestIdAttrs },
             });
             try {
                 await pendingInit;
@@ -226,6 +231,9 @@ export abstract class MCPHttpServer<
             id: LogId.streamableHttpTransportSessionNotFound,
             context: "streamableHttpTransport",
             message: `Session with ID ${sessionId} not found, initializing new session`,
+            attributes: {
+                ...requestIdAttrs,
+            },
         });
 
         const initPromise = (async (): Promise<void> => {
@@ -290,6 +298,11 @@ export abstract class MCPHttpServer<
                 sessionId,
                 transport,
                 logger: server.session?.logger ?? this.logger,
+                session: server.session,
+                // Pass the incoming request headers to the session store so
+                // that we can trace the x-request-id and other headers in the
+                // resulting logs and downstream requests.
+                headers: req.headers,
             });
         })();
 
@@ -301,6 +314,7 @@ export abstract class MCPHttpServer<
                 id: LogId.streamableHttpTransportRequestFailure,
                 context: "streamableHttpTransport",
                 message: `Failed to initialize session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
+                attributes: { ...requestIdAttrs },
             });
             // Remove the partially initialized session on failure so that
             // subsequent requests don't see a broken session and can retry
@@ -348,13 +362,16 @@ export abstract class MCPHttpServer<
                 return this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_ID_INVALID);
             }
 
-            let transport = await this.sessionStore.getSession(sessionId);
+            const requestIdAttrs = requestIdAttr(req.headers);
+
+            let transport = await this.sessionStore.getSession(sessionId, req.headers);
             if (!transport) {
                 if (!this.sessionOptions.externallyManagedSessions) {
                     this.logger.debug({
                         id: LogId.streamableHttpTransportSessionNotFound,
                         context: "streamableHttpTransport",
                         message: `Session with ID ${sessionId} not found`,
+                        attributes: { ...requestIdAttrs },
                     });
                     return this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND);
                 }
@@ -364,7 +381,7 @@ export abstract class MCPHttpServer<
                     sessionId,
                     isImplicitInitialization: true,
                 });
-                transport = await this.sessionStore.getSession(resolvedSessionId);
+                transport = await this.sessionStore.getSession(resolvedSessionId, req.headers);
                 if (!transport) {
                     return this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND);
                 }
@@ -387,6 +404,7 @@ export abstract class MCPHttpServer<
                             id: LogId.streamableHttpTransportDisallowedExternalSessionError,
                             context: "streamableHttpTransport",
                             message: `Client provided session ID ${sessionId}, but externallyManagedSessions is disabled`,
+                            attributes: requestIdAttr(req.headers),
                         });
                         return this.reportSessionError(res, JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION);
                     }
@@ -396,7 +414,7 @@ export abstract class MCPHttpServer<
                         sessionId,
                         isImplicitInitialization: false,
                     });
-                    const transport = await this.sessionStore.getSession(resolvedSessionId);
+                    const transport = await this.sessionStore.getSession(resolvedSessionId, req.headers);
                     if (!transport) {
                         return this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND);
                     }
@@ -436,7 +454,15 @@ export abstract class MCPHttpServer<
                     id: LogId.streamableHttpTransportRequestFailure,
                     context: "streamableHttpTransport",
                     message: `Error handling request: ${errorMessage}`,
+                    attributes: requestIdAttr(req.headers),
                 });
+
+                if (error instanceof SessionRejectedError) {
+                    // Respond exactly as if the session doesn't exist so that
+                    // callers can't probe whether a session id is valid; the
+                    // rejection reason is only visible in the log above.
+                    return this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND);
+                }
 
                 // Only propagate error messages for user-facing errors
                 const message = error instanceof UserFacingError ? error.message : `failed to handle request`;

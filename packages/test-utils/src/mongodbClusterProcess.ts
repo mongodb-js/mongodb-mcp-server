@@ -7,6 +7,7 @@ import { MongoCluster } from "mongodb-runner";
 import { MongoClient } from "mongodb";
 import { ConnectionString } from "mongodb-connection-string-url";
 import { ShellWaitStrategy } from "testcontainers/build/wait-strategies/shell-wait-strategy.js";
+import { sleep } from "../../../../src/common/managedTimeout.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -75,7 +76,16 @@ export class MongoDBClusterProcess {
             const runningContainer = await new GenericContainer(config.image ?? DEFAULT_LOCAL_IMAGE)
                 .withExposedPorts(27017)
                 .withCommand(["/usr/local/bin/runner", "server"])
-                .withWaitStrategy(new ShellWaitStrategy(`mongosh --eval 'db.test.getSearchIndexes()'`))
+                // Require an elected, writable primary *and* search readiness before
+                // declaring the container ready. `getSearchIndexes()` is a read that
+                // succeeds before the single-node replica set finishes electing a
+                // primary, so gating on it alone lets the first connect/write race the
+                // election (manifesting as a flaky "not connected"/"not primary" error).
+                .withWaitStrategy(
+                    new ShellWaitStrategy(
+                        `mongosh --quiet --eval 'db.hello().isWritablePrimary || quit(1); db.test.getSearchIndexes()'`
+                    )
+                )
                 .start();
 
             return new MongoDBClusterProcess(
@@ -160,7 +170,7 @@ export class MongoDBClusterProcess {
                         // Just wait a little bit and retry
                         // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
                         console.error(`Failed to start cluster in ${dbsDir}, attempt ${i}: ${err}`);
-                        await new Promise((resolve) => setTimeout(resolve, 1000));
+                        await sleep(1000);
                     } else {
                         // If we still fail after 5 seconds, try another db dir
                         console.error(

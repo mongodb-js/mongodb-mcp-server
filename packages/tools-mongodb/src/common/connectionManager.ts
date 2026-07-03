@@ -341,6 +341,8 @@ export class MCPConnectionManager extends ConnectionManager {
                   }
                 : generateConnectionInfoFromCliArgs({
                       ...defaultDriverOptions,
+                      /** TODO: Currently we're passing the entire user config to make it apply the mongosh CLI commands that were passed in. We should consider seperating the fields in the future. */
+                      ...this.userConfig,
                       connectionSpecifier: settings.connectionString,
                   });
 

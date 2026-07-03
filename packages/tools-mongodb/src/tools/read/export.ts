@@ -69,6 +69,7 @@ export class ExportTool extends MongoDBToolBase {
         let cursor: FindCursor | AggregationCursor;
         if (exportTarget.name === "find") {
             const { filter, projection, sort, limit } = exportTarget.arguments;
+            this.assertMqlIsAllowed(filter);
             cursor = provider.find(database, collection, filter ?? {}, {
                 projection,
                 sort,
@@ -79,6 +80,7 @@ export class ExportTool extends MongoDBToolBase {
             });
         } else {
             const { pipeline } = exportTarget.arguments;
+            this.assertMqlIsAllowed(pipeline);
             cursor = provider.aggregate(database, collection, pipeline, {
                 promoteValues: false,
                 bsonRegExp: true,

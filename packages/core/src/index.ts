@@ -25,10 +25,16 @@ export { TRANSPORT_PAYLOAD_LIMITS } from "./transportConstants.js";
 export { CommonArgs, ASCII_ONLY_NON_CC_ERROR } from "./args.js";
 export { LogId } from "./logId.js";
 export { setManagedTimeout, type ManagedTimeout } from "./managedTimeout.js";
+export { requestIdAttr } from "./helpers/requestIdAttr.js";
 
 // Web-friendly transports
 export { InMemoryTransport } from "./inMemoryTransport.js";
-export { SessionStore, type ISessionStore, type SessionStoreConstructorArgs } from "./sessionStore.js";
+export {
+    SessionStore,
+    SessionRejectedError,
+    type ISessionStore,
+    type SessionStoreConstructorArgs,
+} from "./sessionStore.js";
 export { StdioRunner } from "./runners/stdioRunner.js";
 
 export { NoopMetrics } from "./metrics/noopMetrics.js";

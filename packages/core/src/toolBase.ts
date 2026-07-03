@@ -20,6 +20,9 @@ import type {
     IToolConfig,
 } from "@mongodb-js/mcp-types";
 import { createUIResource, type UIResource } from "@mcp-ui/server";
+import { TRANSPORT_PAYLOAD_LIMITS } from "./transportConstants.js";
+import { getRandomUUID } from "@mongodb-js/mcp-core";
+import { requestIdAttr } from "./helpers/requestIdAttr.js";
 
 const LogId = {
     toolExecute: { __value: 1_003_001 },
@@ -27,8 +30,7 @@ const LogId = {
     toolDisabled: { __value: 1_003_003 },
     toolMetadataChange: { __value: 1_003_004 },
 } as const;
-import { TRANSPORT_PAYLOAD_LIMITS } from "./transportConstants.js";
-import { getRandomUUID } from "@mongodb-js/mcp-core";
+
 import { redact } from "mongodb-redact";
 
 export type ToolArgs<T extends ZodRawShape> = {
@@ -37,10 +39,10 @@ export type ToolArgs<T extends ZodRawShape> = {
 
 export type ToolResult<OutputSchema extends ZodRawShape | undefined = undefined> = OutputSchema extends ZodRawShape
     ? StructuredToolResult<OutputSchema>
-    : { content: { type: "text"; text: string }[]; isError?: boolean };
+    : { content: CallToolResult["content"]; isError?: boolean };
 
 type StructuredToolResult<OutputSchema extends ZodRawShape> = {
-    content: { type: "text"; text: string }[];
+    content: CallToolResult["content"];
     isError?: boolean;
     structuredContent: z.infer<z.ZodObject<OutputSchema>>;
 };
@@ -446,6 +448,7 @@ export abstract class ToolBase<
                         context: "tool",
                         message: `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`,
                         noRedaction: true,
+                        attributes: { ...requestIdAttr(context.requestInfo?.headers) },
                     });
                     return {
                         content: [
@@ -467,6 +470,7 @@ export abstract class ToolBase<
                 context: "tool",
                 message: `Executing tool ${this.name}`,
                 noRedaction: true,
+                attributes: { ...requestIdAttr(context.requestInfo?.headers) },
             });
 
             const toolCallResult = await this.execute(args, context);
@@ -491,6 +495,7 @@ export abstract class ToolBase<
                 context: "tool",
                 message: `Executed tool ${this.name}`,
                 noRedaction: true,
+                attributes: { ...requestIdAttr(context.requestInfo?.headers) },
             });
             return result;
         } catch (error: unknown) {
@@ -498,6 +503,7 @@ export abstract class ToolBase<
                 id: LogId.toolExecuteFailure,
                 context: "tool",
                 message: `Error executing ${this.name}: ${error as string}`,
+                attributes: { ...requestIdAttr(context.requestInfo?.headers) },
             });
             const toolResult = await this.handleError(error, args);
             this.emitToolEvent(args, { startTime, result: toolResult });

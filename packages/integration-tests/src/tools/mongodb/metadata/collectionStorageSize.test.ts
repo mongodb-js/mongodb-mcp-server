@@ -31,7 +31,7 @@ describeWithMongoDB("collectionStorageSize tool", (integration) => {
             });
             const content = getResponseContent(response.content);
             expect(content).toEqual(
-                `The size of "${integration.randomDbName()}.foo" cannot be determined because the collection does not exist.`
+                `The size of the requested namespace cannot be determined because the collection does not exist.`
             );
 
             // For error case, structured content is not required (isError: true)
@@ -68,7 +68,7 @@ describeWithMongoDB("collectionStorageSize tool", (integration) => {
                     arguments: { database: integration.randomDbName(), collection: "foo" },
                 });
                 const content = getResponseContent(response.content);
-                expect(content).toContain(`The size of "${integration.randomDbName()}.foo" is`);
+                expect(content).toContain(`The size of the requested namespace is`);
                 const size = /is `(\d+\.\d+) ([a-zA-Z]*)`/.exec(content);
 
                 expectDefined(size?.[1]);
@@ -93,7 +93,7 @@ describeWithMongoDB("collectionStorageSize tool", (integration) => {
                 database: integration.randomDbName(),
                 collection: "foo",
             },
-            expectedResponse: `The size of "${integration.randomDbName()}.foo" cannot be determined because the collection does not exist.`,
+            expectedResponse: `The size of the requested namespace cannot be determined because the collection does not exist.`,
         };
     });
 });

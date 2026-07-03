@@ -20,6 +20,7 @@ describeWithAtlasLocal("atlas-local-delete-deployment", (integration) => {
         expect(deleteDeployment.inputSchema.type).toBe("object");
         expectDefined(deleteDeployment.inputSchema.properties);
         expect(deleteDeployment.inputSchema.properties).toHaveProperty("deploymentName");
+        expect(deleteDeployment).toHaveProperty("outputSchema");
     });
 
     it("should return 'no such container' error when deployment to delete does not exist", async () => {
@@ -34,6 +35,7 @@ describeWithAtlasLocal("atlas-local-delete-deployment", (integration) => {
         expect(elements[0]?.text).toContain(
             `The Atlas Local deployment "${deploymentName}" was not found. Please check the deployment name or use "atlas-local-list-deployments" to see available deployments.`
         );
+        expect(response.structuredContent).toBeUndefined();
     });
 
     it("should delete a deployment when calling the tool", async () => {
@@ -51,9 +53,13 @@ describeWithAtlasLocal("atlas-local-delete-deployment", (integration) => {
         expect(beforeElements[1]?.text ?? "").toContain(deploymentName);
 
         // Delete the deployment
-        await integration.mcpClient().callTool({
+        const deleteResponse = await integration.mcpClient().callTool({
             name: "atlas-local-delete-deployment",
             arguments: { deploymentName },
+        });
+        expect(deleteResponse.structuredContent).toEqual({
+            deleted: true,
+            deploymentName,
         });
 
         // Check that deployment doesn't exist after deletion

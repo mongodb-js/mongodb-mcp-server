@@ -13,6 +13,22 @@ import { setManagedTimeout, type ManagedTimeout } from "./managedTimeout.js";
 export type { ISessionStore, SessionStoreConstructorArgs };
 
 /**
+ * Error that `ISessionStore` implementations can throw from `getSession` to
+ * reject a request (e.g. when identity validation against the request headers
+ * fails). Unlike returning `undefined`, which means the session does not exist
+ * and may trigger implicit session initialization, throwing this error fails
+ * the request without creating a session. To avoid leaking whether the
+ * session exists, the response is indistinguishable from "session not found";
+ * the error message is only logged server-side.
+ */
+export class SessionRejectedError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "SessionRejectedError";
+    }
+}
+
+/**
  * Default in-memory session store implementation.
  */
 export class SessionStore<T extends CloseableTransport = CloseableTransport> implements ISessionStore<T> {
@@ -48,9 +64,22 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         }
     }
 
-    async getSession(sessionId: string): Promise<T | undefined> {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    async getSession(sessionId: string, _headers?: Record<string, unknown>): Promise<T | undefined> {
         this.resetTimeout(sessionId);
         return Promise.resolve(this.sessions[sessionId]?.transport);
+    }
+
+    /**
+     * Returns whether a session with the given id exists in this store.
+     *
+     * Unlike `getSession`, this does not reset the session's idle
+     * timeout, so it is safe to call when probing on behalf of requests that
+     * may not be served (e.g. authorization checks) without extending the
+     * session's lifetime.
+     */
+    hasSession(sessionId: string): boolean {
+        return this.sessions[sessionId] !== undefined;
     }
 
     private resetTimeout(sessionId: string): void {
@@ -79,10 +108,15 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         });
     }
 
-    async addSession(params: { sessionId: string; transport: T; logger: ILogger }): Promise<void> {
+    async addSession(params: {
+        sessionId: string;
+        transport: T;
+        logger: ILogger;
+        session?: ISession;
+        headers?: Record<string, unknown>;
+    }): Promise<void> {
         const { sessionId, transport, logger } = params;
-        const session = this.sessions[sessionId];
-        if (session) {
+        if (this.sessions[sessionId]) {
             throw new Error(`Session ${sessionId} already exists`);
         }
         const abortTimeout = setManagedTimeout(async () => {

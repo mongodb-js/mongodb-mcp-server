@@ -91,6 +91,7 @@ Please ensure that your payment method for your organization has been set up and
 For more information on setting up payment, visit: https://www.mongodb.com/docs/atlas/billing/`,
                         },
                     ],
+                    isError: true,
                 };
             }
 

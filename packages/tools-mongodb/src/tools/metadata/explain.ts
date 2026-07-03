@@ -8,10 +8,12 @@ import { AggregateArgs } from "../read/aggregate.js";
 import { FindArgs } from "../read/find.js";
 import { CountArgs } from "../read/count.js";
 
+const verbosityEnum = z.enum(["queryPlanner", "queryPlannerExtended", "executionStats", "allPlansExecution"]);
+
 const ExplainOutputSchema = {
     explainResult: z.record(z.string(), z.unknown()),
-    method: z.string(),
-    verbosity: z.string(),
+    method: z.enum(["aggregate", "find", "count"]),
+    verbosity: verbosityEnum,
 };
 
 export type ExplainOutput = z.infer<z.ZodObject<typeof ExplainOutputSchema>>;
@@ -47,8 +49,7 @@ export class ExplainTool extends MongoDBToolBase {
                 ])
             )
             .describe("The method and its arguments to run"),
-        verbosity: z
-            .enum(["queryPlanner", "queryPlannerExtended", "executionStats", "allPlansExecution"])
+        verbosity: verbosityEnum
             .optional()
             .default("queryPlanner")
             .describe(
@@ -74,6 +75,7 @@ export class ExplainTool extends MongoDBToolBase {
         switch (method.name) {
             case "aggregate": {
                 const { pipeline } = method.arguments;
+                this.assertMqlIsAllowed(pipeline);
                 result = await provider
                     .aggregate(
                         database,
@@ -91,6 +93,7 @@ export class ExplainTool extends MongoDBToolBase {
             }
             case "find": {
                 const { filter, ...rest } = method.arguments;
+                this.assertMqlIsAllowed(filter);
                 result = await provider
                     .find(database, collection, filter, {
                         ...rest,
@@ -101,6 +104,7 @@ export class ExplainTool extends MongoDBToolBase {
             }
             case "count": {
                 const { query } = method.arguments;
+                this.assertMqlIsAllowed(query);
                 result = await provider.runCommandWithCheck(
                     database,
                     {
@@ -120,8 +124,8 @@ export class ExplainTool extends MongoDBToolBase {
 
         return {
             content: formatUntrustedData(
-                `Here is some information about the winning plan chosen by the query optimizer for running the given \`${method.name}\` operation in "${database}.${collection}". The execution plan was run with the following verbosity: "${verbosity}". This information can be used to understand how the query was executed and to optimize the query performance.`,
-                JSON.stringify(result)
+                `Here is some information about the winning plan chosen by the query optimizer for running the given \`${method.name}\` operation on the requested namespace. The execution plan was run with the following verbosity: "${verbosity}". This information can be used to understand how the query was executed and to optimize the query performance.`,
+                JSON.stringify({ database, collection, plan: result })
             ),
             structuredContent: {
                 explainResult: result,

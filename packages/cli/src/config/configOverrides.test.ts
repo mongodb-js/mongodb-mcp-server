@@ -282,6 +282,7 @@ describe("configOverrides", () => {
                     "mcpClientLogLevel",
                     "readOnly",
                     "indexCheck",
+                    "disableServerSideJs",
                     "idleTimeoutMs",
                     "notificationTimeoutMs",
                     "exportTimeoutMs",

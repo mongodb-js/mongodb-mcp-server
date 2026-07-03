@@ -9,3 +9,4 @@ packages/ui/src/lib/loaders.ts
 .github/workflows/*.lock.yml
 **/packaging/mcpb/manifest.json
 pnpm-lock.yaml
+tests/eval/dbSeed

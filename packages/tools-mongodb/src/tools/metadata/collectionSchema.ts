@@ -60,7 +60,7 @@ export class CollectionSchemaTool extends MongoDBToolBase {
             return {
                 content: [
                     {
-                        text: `Could not deduce the schema for "${database}.${collection}". This may be because it doesn't exist or is empty.`,
+                        text: "Could not deduce the schema for the requested namespace. This may be because it doesn't exist or is empty.",
                         type: "text",
                     },
                 ],
@@ -72,10 +72,10 @@ export class CollectionSchemaTool extends MongoDBToolBase {
         }
 
         const fieldsCount = Object.keys(schema).length;
-        const header = `Found ${fieldsCount} fields in the schema for "${database}.${collection}". Note that this schema is inferred from a sample and may not represent the full schema of the collection.`;
+        const header = `Found ${fieldsCount} fields in the sampled schema. Note that this schema is inferred from a sample and may not represent the full schema of the collection.`;
 
         return {
-            content: formatUntrustedData(`${header}`, JSON.stringify(schema)),
+            content: formatUntrustedData(header, JSON.stringify({ database, collection, schema })),
             structuredContent: {
                 schema,
                 fieldsCount,

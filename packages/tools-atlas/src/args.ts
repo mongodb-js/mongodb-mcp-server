@@ -7,10 +7,13 @@ const ALLOWED_USERNAME_CHARACTERS_REGEX = /^[a-zA-Z0-9._-]+$/;
 export const ALLOWED_USERNAME_CHARACTERS_ERROR =
     "Username can only contain letters, numbers, dots, hyphens, and underscores";
 
-const ALLOWED_REGION_CHARACTERS_REGEX = /^[a-zA-Z0-9_-]+$/;
+// Generic pattern for identifiers that permit only ASCII letters, numbers, hyphens, and underscores.
+export const ALPHANUMERIC_DASH_UNDERSCORE_REGEX = /^[a-zA-Z0-9_-]+$/;
+
+const ALLOWED_REGION_CHARACTERS_REGEX = ALPHANUMERIC_DASH_UNDERSCORE_REGEX;
 export const ALLOWED_REGION_CHARACTERS_ERROR = "Region can only contain letters, numbers, hyphens, and underscores";
 
-const ALLOWED_CLUSTER_NAME_CHARACTERS_REGEX = /^[a-zA-Z0-9_-]+$/;
+const ALLOWED_CLUSTER_NAME_CHARACTERS_REGEX = ALPHANUMERIC_DASH_UNDERSCORE_REGEX;
 export const ALLOWED_CLUSTER_NAME_CHARACTERS_ERROR =
     "Cluster names can only contain ASCII letters, numbers, and hyphens.";
 

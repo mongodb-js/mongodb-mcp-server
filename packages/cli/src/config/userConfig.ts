@@ -115,6 +115,15 @@ const ServerConfigSchema = z.object({
         .register(configRegistry, {
             overrideBehavior: oneWayOverride(true),
         }),
+    disableServerSideJs: z
+        .preprocess(parseBoolean, z.boolean())
+        .default(true)
+        .describe(
+            "When set to true, disallows the use of server-side JavaScript operators (such as $where, $function, and $accumulator) in query filters and aggregation pipelines."
+        )
+        .register(configRegistry, {
+            overrideBehavior: oneWayOverride(true),
+        }),
     telemetry: z
         .enum(["enabled", "disabled"])
         .default("enabled")

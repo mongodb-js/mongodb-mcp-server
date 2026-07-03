@@ -262,7 +262,7 @@ describe("drop-index tool", () => {
                     {
                         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                         message: expect.stringContaining(
-                            "You are about to drop the index named `year_1` from the `mflix.movies` namespace"
+                            "You are about to drop the index named **year\\_1** from the **mflix.movies** namespace"
                         ),
                         mode: "form",
                         requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
@@ -289,7 +289,7 @@ describe("drop-index tool", () => {
                     {
                         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                         message: expect.stringContaining(
-                            "You are about to drop the index named `year_1` from the `mflix.movies` namespace"
+                            "You are about to drop the index named **year\\_1** from the **mflix.movies** namespace"
                         ),
                         mode: "form",
                         requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
@@ -515,7 +515,7 @@ describe("drop-index tool", () => {
                         {
                             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                             message: expect.stringContaining(
-                                "You are about to drop the search index named `searchIdx` from the `mflix.movies` namespace"
+                                "You are about to drop the search index named **searchIdx** from the **mflix.movies** namespace"
                             ),
                             mode: "form",
                             requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
@@ -542,7 +542,7 @@ describe("drop-index tool", () => {
                         {
                             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                             message: expect.stringContaining(
-                                "You are about to drop the search index named `searchIdx` from the `mflix.movies` namespace"
+                                "You are about to drop the search index named **searchIdx** from the **mflix.movies** namespace"
                             ),
                             mode: "form",
                             requestedSchema: Elicitation.CONFIRMATION_SCHEMA,

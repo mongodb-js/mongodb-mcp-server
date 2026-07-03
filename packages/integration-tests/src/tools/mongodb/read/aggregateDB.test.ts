@@ -14,6 +14,47 @@ import {
 } from "../../../mongodbHelpers.js";
 import { expect, it, afterEach } from "vitest";
 import type { Client } from "@modelcontextprotocol/sdk/client";
+import type { CursorLimitKey } from "../../../../../src/helpers/constants.js";
+import { bsonToJson } from "../../../../../src/helpers/bsonToJson.js";
+
+type AggregateDBToolResponse = Awaited<ReturnType<Client["callTool"]>>;
+
+function getDocsFromUntrustedContentWhenPresent(content: string): unknown[] {
+    try {
+        return getDocsFromUntrustedContent(content);
+    } catch {
+        return [];
+    }
+}
+
+function expectAggregateDBStructuredContent(
+    response: AggregateDBToolResponse,
+    content: string,
+    expected: {
+        aggResultsCount?: number;
+        omitAggResultsCount?: boolean;
+        appliedLimits?: CursorLimitKey[];
+    }
+): void {
+    const contentDocs = getDocsFromUntrustedContentWhenPresent(content);
+    const expectedStructuredContent: Record<string, unknown> = {
+        documents: contentDocs.length > 0 ? bsonToJson(contentDocs) : [],
+    };
+
+    if (!expected.omitAggResultsCount && expected.aggResultsCount !== undefined) {
+        expectedStructuredContent.aggResultsCount = expected.aggResultsCount;
+    }
+
+    if (expected.appliedLimits !== undefined) {
+        expectedStructuredContent.appliedLimits = expected.appliedLimits;
+    }
+
+    expect(response.structuredContent).toMatchObject(expectedStructuredContent);
+
+    if (expected.omitAggResultsCount) {
+        expect(response.structuredContent).not.toHaveProperty("aggResultsCount");
+    }
+}
 
 describeWithMongoDB("aggregate-db tool", (integration) => {
     afterEach(() => {
@@ -55,6 +96,7 @@ describeWithMongoDB("aggregate-db tool", (integration) => {
         expect(result.isError).toBe(true);
         const message = getResponseContent(result.content);
         expect(message).toContain("first stage of the pipeline must be a database-level aggregation stage");
+        expect(result.structuredContent).toBeUndefined();
     });
 
     it("can run aggregation-db on an existing database", async () => {
@@ -79,6 +121,10 @@ describeWithMongoDB("aggregate-db tool", (integration) => {
         const docs = getDocsFromUntrustedContent(content);
         expect(docs[0]).toEqual({ name: "test1", value: 1 });
         expect(docs[1]).toEqual({ name: "test2", value: 2 });
+        expectAggregateDBStructuredContent(response, content, {
+            aggResultsCount: 2,
+            appliedLimits: [],
+        });
     });
 
     it("can run aggregation-db on the admin database", async () => {
@@ -110,6 +156,7 @@ describeWithMongoDB("aggregate-db tool", (integration) => {
         expect(content).toEqual(
             "Error running aggregate-db: In readOnly mode you can not run pipelines with $out or $merge stages."
         );
+        expect(response.structuredContent).toBeUndefined();
     });
 
     it("can not run $merge stages in readOnly mode", async () => {
@@ -127,6 +174,7 @@ describeWithMongoDB("aggregate-db tool", (integration) => {
         expect(content).toEqual(
             "Error running aggregate-db: In readOnly mode you can not run pipelines with $out or $merge stages."
         );
+        expect(response.structuredContent).toBeUndefined();
     });
 
     it("can run $out stages in non-readonly mode", async () => {
@@ -141,6 +189,10 @@ describeWithMongoDB("aggregate-db tool", (integration) => {
         });
         const content = getResponseContent(response);
         expect(content).toEqual("The aggregation pipeline executed successfully.");
+        expectAggregateDBStructuredContent(response, content, {
+            omitAggResultsCount: true,
+            appliedLimits: [],
+        });
 
         const copiedDocs = await mongoClient.db(integration.randomDbName()).collection("outpeople").find().toArray();
         expect(copiedDocs).toHaveLength(1);
@@ -160,6 +212,10 @@ describeWithMongoDB("aggregate-db tool", (integration) => {
         });
         const content = getResponseContent(response);
         expect(content).toEqual("The aggregation pipeline executed successfully.");
+        expectAggregateDBStructuredContent(response, content, {
+            omitAggResultsCount: true,
+            appliedLimits: [],
+        });
 
         const mergedDocs = await mongoClient.db(integration.randomDbName()).collection("mergedpeople").find().toArray();
         expect(mergedDocs).toHaveLength(1);
@@ -254,6 +310,10 @@ describeWithMongoDB(
             );
             const docs = getDocsFromUntrustedContent(content);
             validateDocs(docs, 20);
+            expectAggregateDBStructuredContent(response, content, {
+                aggResultsCount: 100,
+                appliedLimits: ["config.maxDocumentsPerQuery"],
+            });
         });
 
         it("should return documents limited to the configured limit with $limit stage larger than the configured", async () => {
@@ -273,6 +333,10 @@ describeWithMongoDB(
             );
             const docs = getDocsFromUntrustedContent(content);
             validateDocs(docs, 20);
+            expectAggregateDBStructuredContent(response, content, {
+                aggResultsCount: 50,
+                appliedLimits: ["config.maxDocumentsPerQuery"],
+            });
         });
 
         it("should return documents limited to the $limit stage when smaller than the configured limit", async () => {
@@ -290,6 +354,10 @@ describeWithMongoDB(
 
             const docs = getDocsFromUntrustedContent(content);
             validateDocs(docs, 5);
+            expectAggregateDBStructuredContent(response, content, {
+                aggResultsCount: 5,
+                appliedLimits: [],
+            });
         });
     },
     {
@@ -321,6 +389,10 @@ describeWithMongoDB(
             expect(content).toContain(
                 `Returning 5 documents while respecting the applied limits of server's configured - maxDocumentsPerQuery, server's configured - maxBytesPerQuery.`
             );
+            expectAggregateDBStructuredContent(response, content, {
+                aggResultsCount: 1000,
+                appliedLimits: ["config.maxDocumentsPerQuery", "config.maxBytesPerQuery"],
+            });
         });
 
         it("should return only the documents that could fit in responseBytesLimit", async () => {
@@ -339,6 +411,10 @@ describeWithMongoDB(
             expect(content).toContain(
                 `Returning 2 documents while respecting the applied limits of server's configured - maxDocumentsPerQuery, tool's parameter - responseBytesLimit.`
             );
+            expectAggregateDBStructuredContent(response, content, {
+                aggResultsCount: 1000,
+                appliedLimits: ["config.maxDocumentsPerQuery", "tool.responseBytesLimit"],
+            });
         });
     },
     {
@@ -368,6 +444,10 @@ describeWithMongoDB(
 
             const content = getResponseContent(response);
             expect(content).toContain("The aggregation resulted in 1000 documents");
+            expectAggregateDBStructuredContent(response, content, {
+                aggResultsCount: 1000,
+                appliedLimits: [],
+            });
         });
     },
     {
@@ -518,3 +598,45 @@ describeWithMongoDB(
         }),
     }
 );
+
+describeWithMongoDB("aggregate-db tool with server-side JavaScript operators", (integration) => {
+    afterEach(() => {
+        integration.mcpServer().userConfig.disableServerSideJs = true;
+    });
+
+    const jsPipeline = [
+        { $documents: [{ age: 5 }, { age: 10 }] },
+        {
+            $project: {
+                doubled: {
+                    $function: {
+                        body: "function(age) { return age * 2; }",
+                        args: ["$age"],
+                        lang: "js",
+                    },
+                },
+            },
+        },
+    ];
+
+    for (const jsDisabled of [true, false]) {
+        it(`${jsDisabled ? "rejects" : "allows"} pipelines using $function when disableServerSideJs is ${jsDisabled}`, async () => {
+            integration.mcpServer().userConfig.disableServerSideJs = jsDisabled;
+            await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "aggregate-db",
+                arguments: {
+                    database: integration.randomDbName(),
+                    pipeline: jsPipeline,
+                },
+            });
+            const content = getResponseContent(response);
+            if (jsDisabled) {
+                expect(content).toContain(`The "$function" operator is not allowed.`);
+            } else {
+                expect(content).not.toContain("server-side JavaScript operators");
+                expect(content).toContain("The aggregation resulted in");
+            }
+        });
+    }
+});

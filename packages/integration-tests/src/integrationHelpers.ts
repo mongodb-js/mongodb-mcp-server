@@ -354,7 +354,7 @@ export function getResponseElements(content: unknown): ResponseElement[] {
 export async function connect(client: Client, connectionString: string): Promise<void> {
     await client.callTool({
         name: "connect",
-        arguments: { connectionStringOrClusterName: connectionString },
+        arguments: { connectionString },
     });
 }
 
@@ -489,10 +489,6 @@ function validateToolAnnotations(tool: ToolInfo, name: string, operationType: Op
     }
 }
 
-export function timeout(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 /**
  * Subscribes to the resources changed notification for the provided URI
  */
@@ -538,6 +534,13 @@ export function waitUntil<T extends ConnectionState>(
                     return resolve(status as T);
                 }
             }
+
+            // If we're waiting for a non-errored state but the connection has entered the
+            // terminal `errored` state, fail fast with the real reason instead of spinning
+            // until the test times out.
+            if (tag !== "errored" && status.tag === "errored") {
+                return reject(new Error(`Connection errored while waiting for "${tag}": ${status.errorReason}`));
+            }
         }, 100);
     }).finally(() => {
         if (ts !== undefined) {
@@ -553,10 +556,6 @@ export function getDataFromUntrustedContent(content: string): string {
         throw new Error("Could not find untrusted user data in content");
     }
     return match.groups.data.trim();
-}
-
-export function sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export class InMemoryLogger extends LoggerBase {

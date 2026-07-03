@@ -43,7 +43,7 @@ export class CollectionStorageSizeTool extends MongoDBToolBase {
         return {
             content: [
                 {
-                    text: `The size of "${database}.${collection}" is \`${scaledValue.toFixed(2)} ${units}\``,
+                    text: `The size of the requested namespace is \`${scaledValue.toFixed(2)} ${units}\``,
                     type: "text",
                 },
             ],
@@ -59,7 +59,7 @@ export class CollectionStorageSizeTool extends MongoDBToolBase {
             return {
                 content: [
                     {
-                        text: `The size of "${args.database}.${args.collection}" cannot be determined because the collection does not exist.`,
+                        text: "The size of the requested namespace cannot be determined because the collection does not exist.",
                         type: "text",
                     },
                 ],

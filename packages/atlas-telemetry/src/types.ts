@@ -32,7 +32,29 @@ export type UpgradeClusterMetadata = AtlasMetadata & {
     region?: string;
 };
 
-export type TelemetryToolMetadata = TelemetryToolMetadataFromCore | UpgradeClusterMetadata;
+export type PauseResumeClusterMetadata = AtlasMetadata & {
+    cluster_id?: string;
+    action?: "PAUSE" | "RESUME";
+};
+
+export type CreateClusterMetadata = AtlasMetadata & {
+    cluster_id?: string;
+    provider?: string;
+    region?: string;
+    instance_size?: string;
+    cluster_type?: "REPLICASET" | "SHARDED";
+    backup?: "OFF" | "SNAPSHOT" | "CONTINUOUS";
+    compute_auto_scaling?: TelemetryBoolSet;
+    termination_protection?: TelemetryBoolSet;
+    disk_size_gb?: number;
+    mongodb_version?: string;
+};
+
+export type TelemetryToolMetadata =
+    | TelemetryToolMetadataFromCore
+    | UpgradeClusterMetadata
+    | PauseResumeClusterMetadata
+    | CreateClusterMetadata;
 
 export type TelemetryToolEventProperties = {
     command: string;

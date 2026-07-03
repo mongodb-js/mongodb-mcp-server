@@ -32,6 +32,36 @@ export interface ApiClientOptions {
     authProvider: AuthProvider | undefined;
 }
 
+export type RequestContext = {
+    headers?: Record<string, string | string[] | undefined>;
+};
+
+/**
+ * Per-request context passed to the auto-generated Atlas API methods, mirroring
+ * `ToolExecutionContext.requestInfo`. When provided, its headers (e.g. the
+ * `x-request-id` forwarded from the incoming MCP request) are merged into the
+ * outgoing Atlas API request.
+ */
+export type ApiClientRequestContext = {
+    requestInfo?: {
+        headers?: Record<string, unknown>;
+    };
+};
+
+/**
+ * Allowlist of incoming MCP request header names that may be forwarded to outgoing
+ * Atlas API requests. Kept intentionally minimal to avoid propagating hop-by-hop
+ * headers (e.g. `host`, `content-length`), cookies, or other sensitive/irrelevant
+ * headers. Comparison is case-insensitive, so entries must be lowercase.
+ */
+const FORWARDABLE_REQUEST_HEADERS: ReadonlySet<string> = new Set(["x-request-id"]);
+
+export type ApiClientFactoryFn = (options: ApiClientOptions, logger: LoggerBase) => ApiClient;
+
+export const defaultCreateApiClient: ApiClientFactoryFn = (options, logger) => {
+    return new ApiClient(options, logger);
+};
+
 export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonProperties>[]> {
     private readonly options: {
         baseUrl: string;
@@ -120,6 +150,36 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
 
     public async close(): Promise<void> {
         await this.authProvider?.revoke();
+    }
+
+    /**
+     * Merges allowlisted headers from an optional `ApiClientRequestContext` into the
+     * provided request options. Only headers in `FORWARDABLE_REQUEST_HEADERS` with a
+     * string value are forwarded (e.g. `x-request-id`); all other incoming headers are
+     * ignored. Headers already present in `options` take precedence over those coming
+     * from the context. Used by the auto-generated Atlas API methods.
+     */
+    private applyRequestContext<Options>(options: Options, context?: ApiClientRequestContext): Options {
+        const contextHeaders = context?.requestInfo?.headers;
+        if (!contextHeaders) {
+            return options;
+        }
+
+        const forwardedHeaders: Record<string, string> = {};
+        for (const [name, value] of Object.entries(contextHeaders)) {
+            if (typeof value === "string" && FORWARDABLE_REQUEST_HEADERS.has(name.toLowerCase())) {
+                forwardedHeaders[name] = value;
+            }
+        }
+        if (Object.keys(forwardedHeaders).length === 0) {
+            return options;
+        }
+
+        const existingHeaders = (options as { headers?: Record<string, unknown> } | undefined)?.headers;
+        return {
+            ...(options as object),
+            headers: { ...forwardedHeaders, ...existingHeaders },
+        } as Options;
     }
 
     public async getIpInfo(): Promise<{
@@ -226,9 +286,13 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     // DO NOT EDIT. This is auto-generated code.
     /* eslint-disable @typescript-eslint/no-unsafe-assignment */
     async listClusterDetails(
-        options?: FetchOptions<operations["listClusterDetails"]>
+        options?: FetchOptions<operations["listClusterDetails"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["PaginatedOrgGroupView"]> {
-        const { data, error, response } = await this.client.GET("/api/atlas/v2/clusters", options);
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/clusters",
+            this.applyRequestContext(options, context)
+        );
         if (error) {
             throw ApiClientError.fromError({ response, error });
         }
@@ -236,17 +300,27 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     async listGroups(
-        options?: FetchOptions<operations["listGroups"]>
+        options?: FetchOptions<operations["listGroups"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["PaginatedAtlasGroupView"]> {
-        const { data, error, response } = await this.client.GET("/api/atlas/v2/groups", options);
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups",
+            this.applyRequestContext(options, context)
+        );
         if (error) {
             throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
 
-    async createGroup(options: FetchOptions<operations["createGroup"]>): Promise<components["schemas"]["Group"]> {
-        const { data, error, response } = await this.client.POST("/api/atlas/v2/groups", options);
+    async createGroup(
+        options: FetchOptions<operations["createGroup"]>,
+        context?: ApiClientRequestContext
+    ): Promise<components["schemas"]["Group"]> {
+        const { data, error, response } = await this.client.POST(
+            "/api/atlas/v2/groups",
+            this.applyRequestContext(options, context)
+        );
         if (error) {
             throw ApiClientError.fromError({ response, error });
         }
@@ -254,15 +328,24 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async deleteGroup(options: FetchOptions<operations["deleteGroup"]>) {
-        const { error, response } = await this.client.DELETE("/api/atlas/v2/groups/{groupId}", options);
+    async deleteGroup(options: FetchOptions<operations["deleteGroup"]>, context?: ApiClientRequestContext) {
+        const { error, response } = await this.client.DELETE(
+            "/api/atlas/v2/groups/{groupId}",
+            this.applyRequestContext(options, context)
+        );
         if (error) {
             throw ApiClientError.fromError({ response, error });
         }
     }
 
-    async getGroup(options: FetchOptions<operations["getGroup"]>): Promise<components["schemas"]["Group"]> {
-        const { data, error, response } = await this.client.GET("/api/atlas/v2/groups/{groupId}", options);
+    async getGroup(
+        options: FetchOptions<operations["getGroup"]>,
+        context?: ApiClientRequestContext
+    ): Promise<components["schemas"]["Group"]> {
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}",
+            this.applyRequestContext(options, context)
+        );
         if (error) {
             throw ApiClientError.fromError({ response, error });
         }
@@ -270,9 +353,13 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     async listAccessListEntries(
-        options: FetchOptions<operations["listGroupAccessListEntries"]>
+        options: FetchOptions<operations["listGroupAccessListEntries"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["PaginatedNetworkAccessView"]> {
-        const { data, error, response } = await this.client.GET("/api/atlas/v2/groups/{groupId}/accessList", options);
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/accessList",
+            this.applyRequestContext(options, context)
+        );
         if (error) {
             throw ApiClientError.fromError({ response, error });
         }
@@ -280,9 +367,13 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     async createAccessListEntry(
-        options: FetchOptions<operations["createGroupAccessListEntry"]>
+        options: FetchOptions<operations["createGroupAccessListEntry"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["PaginatedNetworkAccessView"]> {
-        const { data, error, response } = await this.client.POST("/api/atlas/v2/groups/{groupId}/accessList", options);
+        const { data, error, response } = await this.client.POST(
+            "/api/atlas/v2/groups/{groupId}/accessList",
+            this.applyRequestContext(options, context)
+        );
         if (error) {
             throw ApiClientError.fromError({ response, error });
         }
@@ -290,10 +381,13 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async deleteAccessListEntry(options: FetchOptions<operations["deleteGroupAccessListEntry"]>) {
+    async deleteAccessListEntry(
+        options: FetchOptions<operations["deleteGroupAccessListEntry"]>,
+        context?: ApiClientRequestContext
+    ) {
         const { error, response } = await this.client.DELETE(
             "/api/atlas/v2/groups/{groupId}/accessList/{entryValue}",
-            options
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -301,9 +395,13 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     async listAlerts(
-        options: FetchOptions<operations["listGroupAlerts"]>
+        options: FetchOptions<operations["listGroupAlerts"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["PaginatedAlertView"]> {
-        const { data, error, response } = await this.client.GET("/api/atlas/v2/groups/{groupId}/alerts", options);
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/alerts",
+            this.applyRequestContext(options, context)
+        );
         if (error) {
             throw ApiClientError.fromError({ response, error });
         }
@@ -311,9 +409,13 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     async listClusters(
-        options: FetchOptions<operations["listGroupClusters"]>
+        options: FetchOptions<operations["listGroupClusters"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["PaginatedClusterDescription20240805"]> {
-        const { data, error, response } = await this.client.GET("/api/atlas/v2/groups/{groupId}/clusters", options);
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/clusters",
+            this.applyRequestContext(options, context)
+        );
         if (error) {
             throw ApiClientError.fromError({ response, error });
         }
@@ -321,9 +423,13 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     async createCluster(
-        options: FetchOptions<operations["createGroupCluster"]>
+        options: FetchOptions<operations["createGroupCluster"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["ClusterDescription20240805"]> {
-        const { data, error, response } = await this.client.POST("/api/atlas/v2/groups/{groupId}/clusters", options);
+        const { data, error, response } = await this.client.POST(
+            "/api/atlas/v2/groups/{groupId}/clusters",
+            this.applyRequestContext(options, context)
+        );
         if (error) {
             throw ApiClientError.fromError({ response, error });
         }
@@ -331,11 +437,15 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     async upgradeTenantUpgrade(
-        options: FetchOptions<operations["upgradeGroupClusterTenantUpgrade"]>
+        options: FetchOptions<operations["upgradeGroupClusterTenantUpgrade"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["LegacyAtlasCluster"]> {
         const { data, error, response } = await this.client.POST(
             "/api/atlas/v2/groups/{groupId}/clusters/tenantUpgrade",
-            { ...options, headers: { Accept: "application/vnd.atlas.2023-01-01+json", ...options?.headers } }
+            this.applyRequestContext(
+                { ...options, headers: { Accept: "application/vnd.atlas.2023-01-01+json", ...options?.headers } },
+                context
+            )
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -344,10 +454,10 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async deleteCluster(options: FetchOptions<operations["deleteGroupCluster"]>) {
+    async deleteCluster(options: FetchOptions<operations["deleteGroupCluster"]>, context?: ApiClientRequestContext) {
         const { error, response } = await this.client.DELETE(
             "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}",
-            options
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -355,11 +465,26 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     async getCluster(
-        options: FetchOptions<operations["getGroupCluster"]>
+        options: FetchOptions<operations["getGroupCluster"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["ClusterDescription20240805"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}",
-            options
+            this.applyRequestContext(options, context)
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    async updateCluster(
+        options: FetchOptions<operations["updateGroupCluster"]>,
+        context?: ApiClientRequestContext
+    ): Promise<components["schemas"]["ClusterDescription20240805"]> {
+        const { data, error, response } = await this.client.PATCH(
+            "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}",
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -368,11 +493,12 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     async listDropIndexSuggestions(
-        options: FetchOptions<operations["listGroupClusterPerformanceAdvisorDropIndexSuggestions"]>
+        options: FetchOptions<operations["listGroupClusterPerformanceAdvisorDropIndexSuggestions"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["DropIndexSuggestionsResponse"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}/performanceAdvisor/dropIndexSuggestions",
-            options
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -381,11 +507,12 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     async listSchemaAdvice(
-        options: FetchOptions<operations["listGroupClusterPerformanceAdvisorSchemaAdvice"]>
+        options: FetchOptions<operations["listGroupClusterPerformanceAdvisorSchemaAdvice"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["SchemaAdvisorResponse"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}/performanceAdvisor/schemaAdvice",
-            options
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -394,11 +521,12 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     async listClusterSuggestedIndexes(
-        options: FetchOptions<operations["listGroupClusterPerformanceAdvisorSuggestedIndexes"]>
+        options: FetchOptions<operations["listGroupClusterPerformanceAdvisorSuggestedIndexes"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["PerformanceAdvisorResponse"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}/performanceAdvisor/suggestedIndexes",
-            options
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -407,11 +535,12 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     async listDatabaseUsers(
-        options: FetchOptions<operations["listGroupDatabaseUsers"]>
+        options: FetchOptions<operations["listGroupDatabaseUsers"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["PaginatedApiAtlasDatabaseUserView"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/databaseUsers",
-            options
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -420,11 +549,12 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     async createDatabaseUser(
-        options: FetchOptions<operations["createGroupDatabaseUser"]>
+        options: FetchOptions<operations["createGroupDatabaseUser"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["CloudDatabaseUser"]> {
         const { data, error, response } = await this.client.POST(
             "/api/atlas/v2/groups/{groupId}/databaseUsers",
-            options
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -433,10 +563,13 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async deleteDatabaseUser(options: FetchOptions<operations["deleteGroupDatabaseUser"]>) {
+    async deleteDatabaseUser(
+        options: FetchOptions<operations["deleteGroupDatabaseUser"]>,
+        context?: ApiClientRequestContext
+    ) {
         const { error, response } = await this.client.DELETE(
             "/api/atlas/v2/groups/{groupId}/databaseUsers/{databaseName}/{username}",
-            options
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -444,9 +577,13 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     async listFlexClusters(
-        options: FetchOptions<operations["listGroupFlexClusters"]>
+        options: FetchOptions<operations["listGroupFlexClusters"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["PaginatedFlexClusters20241113"]> {
-        const { data, error, response } = await this.client.GET("/api/atlas/v2/groups/{groupId}/flexClusters", options);
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/flexClusters",
+            this.applyRequestContext(options, context)
+        );
         if (error) {
             throw ApiClientError.fromError({ response, error });
         }
@@ -454,11 +591,12 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     async createFlexCluster(
-        options: FetchOptions<operations["createGroupFlexCluster"]>
+        options: FetchOptions<operations["createGroupFlexCluster"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["FlexClusterDescription20241113"]> {
         const { data, error, response } = await this.client.POST(
             "/api/atlas/v2/groups/{groupId}/flexClusters",
-            options
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -467,10 +605,13 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async deleteFlexCluster(options: FetchOptions<operations["deleteGroupFlexCluster"]>) {
+    async deleteFlexCluster(
+        options: FetchOptions<operations["deleteGroupFlexCluster"]>,
+        context?: ApiClientRequestContext
+    ) {
         const { error, response } = await this.client.DELETE(
             "/api/atlas/v2/groups/{groupId}/flexClusters/{name}",
-            options
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -478,11 +619,12 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     async getFlexCluster(
-        options: FetchOptions<operations["getGroupFlexCluster"]>
+        options: FetchOptions<operations["getGroupFlexCluster"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["FlexClusterDescription20241113"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/flexClusters/{name}",
-            options
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -491,11 +633,12 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     async tenantUpgrade(
-        options: FetchOptions<operations["tenantGroupFlexClusterUpgrade"]>
+        options: FetchOptions<operations["tenantGroupFlexClusterUpgrade"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["FlexClusterDescription20241113"]> {
         const { data, error, response } = await this.client.POST(
             "/api/atlas/v2/groups/{groupId}/flexClusters:tenantUpgrade",
-            options
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -504,11 +647,40 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     async listSlowQueryLogs(
-        options: FetchOptions<operations["listGroupProcessPerformanceAdvisorSlowQueryLogs"]>
+        options: FetchOptions<operations["listGroupProcessPerformanceAdvisorSlowQueryLogs"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["PerformanceAdvisorSlowQueryList"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/processes/{processId}/performanceAdvisor/slowQueryLogs",
-            options
+            this.applyRequestContext(options, context)
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    async requestSampleDatasetLoad(
+        options: FetchOptions<operations["requestGroupSampleDatasetLoad"]>,
+        context?: ApiClientRequestContext
+    ): Promise<components["schemas"]["SampleDatasetStatus"]> {
+        const { data, error, response } = await this.client.POST(
+            "/api/atlas/v2/groups/{groupId}/sampleDatasetLoad/{name}",
+            this.applyRequestContext(options, context)
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    async getSampleDatasetLoad(
+        options: FetchOptions<operations["getGroupSampleDatasetLoad"]>,
+        context?: ApiClientRequestContext
+    ): Promise<components["schemas"]["SampleDatasetStatus"]> {
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/sampleDatasetLoad/{sampleDatasetId}",
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -517,9 +689,13 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     async listStreamWorkspaces(
-        options: FetchOptions<operations["listGroupStreamWorkspaces"]>
+        options: FetchOptions<operations["listGroupStreamWorkspaces"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["PaginatedApiStreamsTenantView"]> {
-        const { data, error, response } = await this.client.GET("/api/atlas/v2/groups/{groupId}/streams", options);
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/streams",
+            this.applyRequestContext(options, context)
+        );
         if (error) {
             throw ApiClientError.fromError({ response, error });
         }
@@ -527,9 +703,13 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     async createStreamWorkspace(
-        options: FetchOptions<operations["createGroupStreamWorkspace"]>
+        options: FetchOptions<operations["createGroupStreamWorkspace"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["StreamsTenant"]> {
-        const { data, error, response } = await this.client.POST("/api/atlas/v2/groups/{groupId}/streams", options);
+        const { data, error, response } = await this.client.POST(
+            "/api/atlas/v2/groups/{groupId}/streams",
+            this.applyRequestContext(options, context)
+        );
         if (error) {
             throw ApiClientError.fromError({ response, error });
         }
@@ -537,11 +717,12 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     async getAccountDetails(
-        options: FetchOptions<operations["getGroupStreamAccountDetails"]>
+        options: FetchOptions<operations["getGroupStreamAccountDetails"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["AccountDetails"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/streams/accountDetails",
-            options
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -550,11 +731,12 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     async listPrivateLinkConnections(
-        options: FetchOptions<operations["listGroupStreamPrivateLinkConnections"]>
+        options: FetchOptions<operations["listGroupStreamPrivateLinkConnections"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["PaginatedApiStreamsPrivateLinkView"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/streams/privateLinkConnections",
-            options
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -563,11 +745,12 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     async createPrivateLinkConnection(
-        options: FetchOptions<operations["createGroupStreamPrivateLinkConnection"]>
+        options: FetchOptions<operations["createGroupStreamPrivateLinkConnection"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["StreamsPrivateLinkConnection"]> {
         const { data, error, response } = await this.client.POST(
             "/api/atlas/v2/groups/{groupId}/streams/privateLinkConnections",
-            options
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -576,10 +759,13 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async deletePrivateLinkConnection(options: FetchOptions<operations["deleteGroupStreamPrivateLinkConnection"]>) {
+    async deletePrivateLinkConnection(
+        options: FetchOptions<operations["deleteGroupStreamPrivateLinkConnection"]>,
+        context?: ApiClientRequestContext
+    ) {
         const { error, response } = await this.client.DELETE(
             "/api/atlas/v2/groups/{groupId}/streams/privateLinkConnections/{connectionId}",
-            options
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -587,11 +773,12 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     async getPrivateLinkConnection(
-        options: FetchOptions<operations["getGroupStreamPrivateLinkConnection"]>
+        options: FetchOptions<operations["getGroupStreamPrivateLinkConnection"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["StreamsPrivateLinkConnection"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/streams/privateLinkConnections/{connectionId}",
-            options
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -600,10 +787,13 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async deleteVpcPeeringConnection(options: FetchOptions<operations["deleteGroupStreamVpcPeeringConnection"]>) {
+    async deleteVpcPeeringConnection(
+        options: FetchOptions<operations["deleteGroupStreamVpcPeeringConnection"]>,
+        context?: ApiClientRequestContext
+    ) {
         const { error, response } = await this.client.DELETE(
             "/api/atlas/v2/groups/{groupId}/streams/vpcPeeringConnections/{id}",
-            options
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -611,10 +801,13 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async acceptVpcPeeringConnection(options: FetchOptions<operations["acceptGroupStreamVpcPeeringConnection"]>) {
+    async acceptVpcPeeringConnection(
+        options: FetchOptions<operations["acceptGroupStreamVpcPeeringConnection"]>,
+        context?: ApiClientRequestContext
+    ) {
         const { error, response } = await this.client.POST(
             "/api/atlas/v2/groups/{groupId}/streams/vpcPeeringConnections/{id}:accept",
-            options
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -622,10 +815,13 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async rejectVpcPeeringConnection(options: FetchOptions<operations["rejectGroupStreamVpcPeeringConnection"]>) {
+    async rejectVpcPeeringConnection(
+        options: FetchOptions<operations["rejectGroupStreamVpcPeeringConnection"]>,
+        context?: ApiClientRequestContext
+    ) {
         const { error, response } = await this.client.POST(
             "/api/atlas/v2/groups/{groupId}/streams/vpcPeeringConnections/{id}:reject",
-            options
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -633,10 +829,13 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async deleteStreamWorkspace(options: FetchOptions<operations["deleteGroupStreamWorkspace"]>) {
+    async deleteStreamWorkspace(
+        options: FetchOptions<operations["deleteGroupStreamWorkspace"]>,
+        context?: ApiClientRequestContext
+    ) {
         const { error, response } = await this.client.DELETE(
             "/api/atlas/v2/groups/{groupId}/streams/{tenantName}",
-            options
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -644,11 +843,12 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     async getStreamWorkspace(
-        options: FetchOptions<operations["getGroupStreamWorkspace"]>
+        options: FetchOptions<operations["getGroupStreamWorkspace"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["StreamsTenant"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/streams/{tenantName}",
-            options
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -657,11 +857,12 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     async updateStreamWorkspace(
-        options: FetchOptions<operations["updateGroupStreamWorkspace"]>
+        options: FetchOptions<operations["updateGroupStreamWorkspace"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["StreamsTenant"]> {
         const { data, error, response } = await this.client.PATCH(
             "/api/atlas/v2/groups/{groupId}/streams/{tenantName}",
-            options
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -670,10 +871,16 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async downloadAuditLogs(options: FetchOptions<operations["downloadGroupStreamAuditLogs"]>) {
+    async downloadAuditLogs(
+        options: FetchOptions<operations["downloadGroupStreamAuditLogs"]>,
+        context?: ApiClientRequestContext
+    ) {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/auditLogs",
-            { ...options, headers: { Accept: "application/vnd.atlas.2023-02-01+gzip", ...options?.headers } }
+            this.applyRequestContext(
+                { ...options, headers: { Accept: "application/vnd.atlas.2023-02-01+gzip", ...options?.headers } },
+                context
+            )
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -682,11 +889,12 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     async listStreamConnections(
-        options: FetchOptions<operations["listGroupStreamConnections"]>
+        options: FetchOptions<operations["listGroupStreamConnections"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["PaginatedApiStreamsConnectionView"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/connections",
-            options
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -695,11 +903,12 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     async createStreamConnection(
-        options: FetchOptions<operations["createGroupStreamConnection"]>
+        options: FetchOptions<operations["createGroupStreamConnection"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["StreamsConnection"]> {
         const { data, error, response } = await this.client.POST(
             "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/connections",
-            options
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -708,10 +917,13 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async deleteStreamConnection(options: FetchOptions<operations["deleteGroupStreamConnection"]>) {
+    async deleteStreamConnection(
+        options: FetchOptions<operations["deleteGroupStreamConnection"]>,
+        context?: ApiClientRequestContext
+    ) {
         const { error, response } = await this.client.DELETE(
             "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/connections/{connectionName}",
-            options
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -719,11 +931,12 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     async getStreamConnection(
-        options: FetchOptions<operations["getGroupStreamConnection"]>
+        options: FetchOptions<operations["getGroupStreamConnection"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["StreamsConnection"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/connections/{connectionName}",
-            options
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -732,11 +945,12 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     async updateStreamConnection(
-        options: FetchOptions<operations["updateGroupStreamConnection"]>
+        options: FetchOptions<operations["updateGroupStreamConnection"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["StreamsConnection"]> {
         const { data, error, response } = await this.client.PATCH(
             "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/connections/{connectionName}",
-            options
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -745,11 +959,12 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     async createStreamProcessor(
-        options: FetchOptions<operations["createGroupStreamProcessor"]>
+        options: FetchOptions<operations["createGroupStreamProcessor"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["StreamsProcessor"]> {
         const { data, error, response } = await this.client.POST(
             "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/processor",
-            options
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -758,10 +973,13 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async deleteStreamProcessor(options: FetchOptions<operations["deleteGroupStreamProcessor"]>) {
+    async deleteStreamProcessor(
+        options: FetchOptions<operations["deleteGroupStreamProcessor"]>,
+        context?: ApiClientRequestContext
+    ) {
         const { error, response } = await this.client.DELETE(
             "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/processor/{processorName}",
-            options
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -769,11 +987,12 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     async getStreamProcessor(
-        options: FetchOptions<operations["getGroupStreamProcessor"]>
+        options: FetchOptions<operations["getGroupStreamProcessor"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["StreamsProcessorWithStats"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/processor/{processorName}",
-            options
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -782,11 +1001,12 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     async updateStreamProcessor(
-        options: FetchOptions<operations["updateGroupStreamProcessor"]>
+        options: FetchOptions<operations["updateGroupStreamProcessor"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["StreamsProcessorWithStats"]> {
         const { data, error, response } = await this.client.PATCH(
             "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/processor/{processorName}",
-            options
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -795,10 +1015,13 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async startStreamProcessor(options: FetchOptions<operations["startGroupStreamProcessor"]>) {
+    async startStreamProcessor(
+        options: FetchOptions<operations["startGroupStreamProcessor"]>,
+        context?: ApiClientRequestContext
+    ) {
         const { error, response } = await this.client.POST(
             "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/processor/{processorName}:start",
-            options
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -806,10 +1029,13 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async startStreamProcessorWith(options: FetchOptions<operations["startGroupStreamProcessorWith"]>) {
+    async startStreamProcessorWith(
+        options: FetchOptions<operations["startGroupStreamProcessorWith"]>,
+        context?: ApiClientRequestContext
+    ) {
         const { error, response } = await this.client.POST(
             "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/processor/{processorName}:startWith",
-            options
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -817,10 +1043,13 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async stopStreamProcessor(options: FetchOptions<operations["stopGroupStreamProcessor"]>) {
+    async stopStreamProcessor(
+        options: FetchOptions<operations["stopGroupStreamProcessor"]>,
+        context?: ApiClientRequestContext
+    ) {
         const { error, response } = await this.client.POST(
             "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/processor/{processorName}:stop",
-            options
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -828,11 +1057,12 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     async getStreamProcessors(
-        options: FetchOptions<operations["getGroupStreamProcessors"]>
+        options: FetchOptions<operations["getGroupStreamProcessors"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["PaginatedApiStreamsStreamProcessorWithStatsView"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/processors",
-            options
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -841,10 +1071,16 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async downloadOperationalLogs(options: FetchOptions<operations["downloadGroupStreamOperationalLogs"]>) {
+    async downloadOperationalLogs(
+        options: FetchOptions<operations["downloadGroupStreamOperationalLogs"]>,
+        context?: ApiClientRequestContext
+    ) {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/streams/{tenantName}:downloadOperationalLogs",
-            { ...options, headers: { Accept: "application/vnd.atlas.2025-03-12+gzip", ...options?.headers } }
+            this.applyRequestContext(
+                { ...options, headers: { Accept: "application/vnd.atlas.2025-03-12+gzip", ...options?.headers } },
+                context
+            )
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -853,11 +1089,12 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     async withStreamSampleConnections(
-        options: FetchOptions<operations["withGroupStreamSampleConnections"]>
+        options: FetchOptions<operations["withGroupStreamSampleConnections"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["StreamsTenant"]> {
         const { data, error, response } = await this.client.POST(
             "/api/atlas/v2/groups/{groupId}/streams:withSampleConnections",
-            options
+            this.applyRequestContext(options, context)
         );
         if (error) {
             throw ApiClientError.fromError({ response, error });
@@ -866,9 +1103,13 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     async listOrgs(
-        options?: FetchOptions<operations["listOrgs"]>
+        options?: FetchOptions<operations["listOrgs"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["PaginatedOrganizationView"]> {
-        const { data, error, response } = await this.client.GET("/api/atlas/v2/orgs", options);
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/orgs",
+            this.applyRequestContext(options, context)
+        );
         if (error) {
             throw ApiClientError.fromError({ response, error });
         }
@@ -876,9 +1117,13 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     async getOrgGroups(
-        options: FetchOptions<operations["getOrgGroups"]>
+        options: FetchOptions<operations["getOrgGroups"]>,
+        context?: ApiClientRequestContext
     ): Promise<components["schemas"]["PaginatedAtlasGroupView"]> {
-        const { data, error, response } = await this.client.GET("/api/atlas/v2/orgs/{orgId}/groups", options);
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/orgs/{orgId}/groups",
+            this.applyRequestContext(options, context)
+        );
         if (error) {
             throw ApiClientError.fromError({ response, error });
         }

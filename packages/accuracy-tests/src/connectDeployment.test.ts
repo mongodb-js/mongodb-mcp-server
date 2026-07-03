@@ -35,6 +35,10 @@ describeAccuracyTests([
                     "Found 1 deployments",
                     '[{"name":"local-mflix","state":"Running","mongodbVersion":"6.0"}]'
                 ),
+                structuredContent: {
+                    count: 1,
+                    deployments: [{ name: "local-mflix", state: "Running", mongodbVersion: "6.0" }],
+                },
             }),
         },
         expectedToolCalls: [

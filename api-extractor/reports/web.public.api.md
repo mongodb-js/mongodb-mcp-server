@@ -5,20 +5,30 @@
 ```ts
 
 import type { AggregationCursor } from 'mongodb';
-import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { Client } from '@mongodb-js/atlas-local';
+import type { components } from './openapi.js';
 import { ConnectionInfo } from '@mongosh/arg-parser';
-import { Counter } from 'prom-client';
+import { createDefaultMetrics } from '@mongodb-js/mcp-metrics';
+import { DefaultMetrics } from '@mongodb-js/mcp-metrics';
 import type { ElicitRequestFormParams } from '@modelcontextprotocol/sdk/types.js';
 import { EventEmitter } from 'events';
 import type { FetchOptions } from 'openapi-fetch';
 import type { FindCursor } from 'mongodb';
-import { Histogram } from 'prom-client';
+import type { IDeviceId } from '@mongodb-js/mcp-types';
+import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
 import type { LoggingMessageNotification } from '@modelcontextprotocol/sdk/types.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { MetricDefinitions } from '@mongodb-js/mcp-metrics';
+import { Metrics } from '@mongodb-js/mcp-metrics';
+import type { MongoLogId } from 'mongodb-log-writer';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
+import type { operations } from './openapi.js';
 import { Secret } from 'mongodb-redact';
+import type { TelemetryEvents } from '@mongodb-js/mcp-types';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
+import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
+import type { TransportRequestContext } from '@mongodb-js/mcp-types';
 import { z } from 'zod';
 import type { ZodRawShape } from 'zod';
 
@@ -26,215 +36,186 @@ import type { ZodRawShape } from 'zod';
 export type AnyConnectionState = ConnectionStateConnected | ConnectionStateConnecting | ConnectionStateDisconnected | ConnectionStateErrored;
 
 // @public (undocumented)
-export type AnyToolBase = ToolBase<any>;
+export type AnyToolBase = ToolBase<any, any, any>;
 
 // @public (undocumented)
-export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonProperties>[]> {
-    constructor(input: ApiClientOptions);
+export type AnyToolClass = ToolClass<any, any, any>;
+
+// @public (undocumented)
+export class ApiClient {
+    constructor(options: ApiClientOptions, logger: LoggerBase, authProvider?: AuthProvider | undefined);
     // (undocumented)
-    acceptVpcPeeringConnection(options: FetchOptions<operations["acceptGroupStreamVpcPeeringConnection"]>): Promise<void>;
+    acceptVpcPeeringConnection(options: FetchOptions<operations["acceptGroupStreamVpcPeeringConnection"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    readonly authProvider?: AuthProvider;
+    readonly authProvider?: AuthProvider | undefined;
     // (undocumented)
     close(): Promise<void>;
     // (undocumented)
-    createAccessListEntry(options: FetchOptions<operations["createGroupAccessListEntry"]>): Promise<components["schemas"]["PaginatedNetworkAccessView"]>;
+    createAccessListEntry(options: FetchOptions<operations["createGroupAccessListEntry"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedNetworkAccessView"]>;
     // (undocumented)
-    createCluster(options: FetchOptions<operations["createGroupCluster"]>): Promise<components["schemas"]["ClusterDescription20240805"]>;
+    createCluster(options: FetchOptions<operations["createGroupCluster"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["ClusterDescription20240805"]>;
     // (undocumented)
-    createDatabaseUser(options: FetchOptions<operations["createGroupDatabaseUser"]>): Promise<components["schemas"]["CloudDatabaseUser"]>;
+    createDatabaseUser(options: FetchOptions<operations["createGroupDatabaseUser"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["CloudDatabaseUser"]>;
     // (undocumented)
-    createFlexCluster(options: FetchOptions<operations["createGroupFlexCluster"]>): Promise<components["schemas"]["FlexClusterDescription20241113"]>;
+    createFlexCluster(options: FetchOptions<operations["createGroupFlexCluster"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["FlexClusterDescription20241113"]>;
     // (undocumented)
-    createGroup(options: FetchOptions<operations["createGroup"]>): Promise<components["schemas"]["Group"]>;
+    createGroup(options: FetchOptions<operations["createGroup"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["Group"]>;
     // (undocumented)
-    createPrivateLinkConnection(options: FetchOptions<operations["createGroupStreamPrivateLinkConnection"]>): Promise<components["schemas"]["StreamsPrivateLinkConnection"]>;
+    createPrivateLinkConnection(options: FetchOptions<operations["createGroupStreamPrivateLinkConnection"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsPrivateLinkConnection"]>;
     // (undocumented)
-    createStreamConnection(options: FetchOptions<operations["createGroupStreamConnection"]>): Promise<components["schemas"]["StreamsConnection"]>;
+    createStreamConnection(options: FetchOptions<operations["createGroupStreamConnection"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsConnection"]>;
     // (undocumented)
-    createStreamProcessor(options: FetchOptions<operations["createGroupStreamProcessor"]>): Promise<components["schemas"]["StreamsProcessor"]>;
+    createStreamProcessor(options: FetchOptions<operations["createGroupStreamProcessor"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsProcessor"]>;
     // (undocumented)
-    createStreamWorkspace(options: FetchOptions<operations["createGroupStreamWorkspace"]>): Promise<components["schemas"]["StreamsTenant"]>;
+    createStreamWorkspace(options: FetchOptions<operations["createGroupStreamWorkspace"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsTenant"]>;
     // (undocumented)
-    deleteAccessListEntry(options: FetchOptions<operations["deleteGroupAccessListEntry"]>): Promise<void>;
+    deleteAccessListEntry(options: FetchOptions<operations["deleteGroupAccessListEntry"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    deleteCluster(options: FetchOptions<operations["deleteGroupCluster"]>): Promise<void>;
+    deleteCluster(options: FetchOptions<operations["deleteGroupCluster"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    deleteDatabaseUser(options: FetchOptions<operations["deleteGroupDatabaseUser"]>): Promise<void>;
+    deleteDatabaseUser(options: FetchOptions<operations["deleteGroupDatabaseUser"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    deleteFlexCluster(options: FetchOptions<operations["deleteGroupFlexCluster"]>): Promise<void>;
+    deleteFlexCluster(options: FetchOptions<operations["deleteGroupFlexCluster"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    deleteGroup(options: FetchOptions<operations["deleteGroup"]>): Promise<void>;
+    deleteGroup(options: FetchOptions<operations["deleteGroup"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    deletePrivateLinkConnection(options: FetchOptions<operations["deleteGroupStreamPrivateLinkConnection"]>): Promise<void>;
+    deletePrivateLinkConnection(options: FetchOptions<operations["deleteGroupStreamPrivateLinkConnection"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    deleteStreamConnection(options: FetchOptions<operations["deleteGroupStreamConnection"]>): Promise<void>;
+    deleteStreamConnection(options: FetchOptions<operations["deleteGroupStreamConnection"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    deleteStreamProcessor(options: FetchOptions<operations["deleteGroupStreamProcessor"]>): Promise<void>;
+    deleteStreamProcessor(options: FetchOptions<operations["deleteGroupStreamProcessor"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    deleteStreamWorkspace(options: FetchOptions<operations["deleteGroupStreamWorkspace"]>): Promise<void>;
+    deleteStreamWorkspace(options: FetchOptions<operations["deleteGroupStreamWorkspace"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    deleteVpcPeeringConnection(options: FetchOptions<operations["deleteGroupStreamVpcPeeringConnection"]>): Promise<void>;
+    deleteVpcPeeringConnection(options: FetchOptions<operations["deleteGroupStreamVpcPeeringConnection"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    downloadAuditLogs(options: FetchOptions<operations["downloadGroupStreamAuditLogs"]>): Promise<string>;
+    downloadAuditLogs(options: FetchOptions<operations["downloadGroupStreamAuditLogs"]>, context?: ApiClientRequestContext): Promise<string>;
     // (undocumented)
-    downloadOperationalLogs(options: FetchOptions<operations["downloadGroupStreamOperationalLogs"]>): Promise<string>;
+    downloadOperationalLogs(options: FetchOptions<operations["downloadGroupStreamOperationalLogs"]>, context?: ApiClientRequestContext): Promise<string>;
     // (undocumented)
-    getAccountDetails(options: FetchOptions<operations["getGroupStreamAccountDetails"]>): Promise<components["schemas"]["AccountDetails"]>;
+    getAccountDetails(options: FetchOptions<operations["getGroupStreamAccountDetails"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["AccountDetails"]>;
     // (undocumented)
-    getCluster(options: FetchOptions<operations["getGroupCluster"]>): Promise<components["schemas"]["ClusterDescription20240805"]>;
+    getCluster(options: FetchOptions<operations["getGroupCluster"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["ClusterDescription20240805"]>;
     // (undocumented)
-    getFlexCluster(options: FetchOptions<operations["getGroupFlexCluster"]>): Promise<components["schemas"]["FlexClusterDescription20241113"]>;
+    getFlexCluster(options: FetchOptions<operations["getGroupFlexCluster"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["FlexClusterDescription20241113"]>;
     // (undocumented)
-    getGroup(options: FetchOptions<operations["getGroup"]>): Promise<components["schemas"]["Group"]>;
+    getGroup(options: FetchOptions<operations["getGroup"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["Group"]>;
     // (undocumented)
     getIpInfo(): Promise<{
         currentIpv4Address: string;
     }>;
     // (undocumented)
-    getOrgGroups(options: FetchOptions<operations["getOrgGroups"]>): Promise<components["schemas"]["PaginatedAtlasGroupView"]>;
+    getOrgGroups(options: FetchOptions<operations["getOrgGroups"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedAtlasGroupView"]>;
     // (undocumented)
-    getPrivateLinkConnection(options: FetchOptions<operations["getGroupStreamPrivateLinkConnection"]>): Promise<components["schemas"]["StreamsPrivateLinkConnection"]>;
+    getPrivateLinkConnection(options: FetchOptions<operations["getGroupStreamPrivateLinkConnection"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsPrivateLinkConnection"]>;
     // (undocumented)
-    getStreamConnection(options: FetchOptions<operations["getGroupStreamConnection"]>): Promise<components["schemas"]["StreamsConnection"]>;
+    getSampleDatasetLoad(options: FetchOptions<operations["getGroupSampleDatasetLoad"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["SampleDatasetStatus"]>;
     // (undocumented)
-    getStreamProcessor(options: FetchOptions<operations["getGroupStreamProcessor"]>): Promise<components["schemas"]["StreamsProcessorWithStats"]>;
+    getStreamConnection(options: FetchOptions<operations["getGroupStreamConnection"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsConnection"]>;
     // (undocumented)
-    getStreamProcessors(options: FetchOptions<operations["getGroupStreamProcessors"]>): Promise<components["schemas"]["PaginatedApiStreamsStreamProcessorWithStatsView"]>;
+    getStreamProcessor(options: FetchOptions<operations["getGroupStreamProcessor"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsProcessorWithStats"]>;
     // (undocumented)
-    getStreamWorkspace(options: FetchOptions<operations["getGroupStreamWorkspace"]>): Promise<components["schemas"]["StreamsTenant"]>;
+    getStreamProcessors(options: FetchOptions<operations["getGroupStreamProcessors"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedApiStreamsStreamProcessorWithStatsView"]>;
+    // (undocumented)
+    getStreamWorkspace(options: FetchOptions<operations["getGroupStreamWorkspace"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsTenant"]>;
     // (undocumented)
     isAuthConfigured(): boolean;
     // (undocumented)
-    listAccessListEntries(options: FetchOptions<operations["listGroupAccessListEntries"]>): Promise<components["schemas"]["PaginatedNetworkAccessView"]>;
+    listAccessListEntries(options: FetchOptions<operations["listGroupAccessListEntries"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedNetworkAccessView"]>;
     // (undocumented)
-    listAlerts(options: FetchOptions<operations["listGroupAlerts"]>): Promise<components["schemas"]["PaginatedAlertView"]>;
+    listAlerts(options: FetchOptions<operations["listGroupAlerts"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedAlertView"]>;
     // (undocumented)
-    listClusterDetails(options?: FetchOptions<operations["listClusterDetails"]>): Promise<components["schemas"]["PaginatedOrgGroupView"]>;
+    listClusterDetails(options?: FetchOptions<operations["listClusterDetails"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedOrgGroupView"]>;
     // (undocumented)
-    listClusters(options: FetchOptions<operations["listGroupClusters"]>): Promise<components["schemas"]["PaginatedClusterDescription20240805"]>;
+    listClusters(options: FetchOptions<operations["listGroupClusters"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedClusterDescription20240805"]>;
     // (undocumented)
-    listClusterSuggestedIndexes(options: FetchOptions<operations["listGroupClusterPerformanceAdvisorSuggestedIndexes"]>): Promise<components["schemas"]["PerformanceAdvisorResponse"]>;
+    listClusterSuggestedIndexes(options: FetchOptions<operations["listGroupClusterPerformanceAdvisorSuggestedIndexes"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PerformanceAdvisorResponse"]>;
     // (undocumented)
-    listDatabaseUsers(options: FetchOptions<operations["listGroupDatabaseUsers"]>): Promise<components["schemas"]["PaginatedApiAtlasDatabaseUserView"]>;
+    listDatabaseUsers(options: FetchOptions<operations["listGroupDatabaseUsers"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedApiAtlasDatabaseUserView"]>;
     // (undocumented)
-    listDropIndexSuggestions(options: FetchOptions<operations["listGroupClusterPerformanceAdvisorDropIndexSuggestions"]>): Promise<components["schemas"]["DropIndexSuggestionsResponse"]>;
+    listDropIndexSuggestions(options: FetchOptions<operations["listGroupClusterPerformanceAdvisorDropIndexSuggestions"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["DropIndexSuggestionsResponse"]>;
     // (undocumented)
-    listFlexClusters(options: FetchOptions<operations["listGroupFlexClusters"]>): Promise<components["schemas"]["PaginatedFlexClusters20241113"]>;
+    listFlexClusters(options: FetchOptions<operations["listGroupFlexClusters"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedFlexClusters20241113"]>;
     // (undocumented)
-    listGroups(options?: FetchOptions<operations["listGroups"]>): Promise<components["schemas"]["PaginatedAtlasGroupView"]>;
+    listGroups(options?: FetchOptions<operations["listGroups"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedAtlasGroupView"]>;
     // (undocumented)
-    listOrgs(options?: FetchOptions<operations["listOrgs"]>): Promise<components["schemas"]["PaginatedOrganizationView"]>;
+    listOrgs(options?: FetchOptions<operations["listOrgs"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedOrganizationView"]>;
     // (undocumented)
-    listPrivateLinkConnections(options: FetchOptions<operations["listGroupStreamPrivateLinkConnections"]>): Promise<components["schemas"]["PaginatedApiStreamsPrivateLinkView"]>;
+    listPrivateLinkConnections(options: FetchOptions<operations["listGroupStreamPrivateLinkConnections"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedApiStreamsPrivateLinkView"]>;
     // (undocumented)
-    listSchemaAdvice(options: FetchOptions<operations["listGroupClusterPerformanceAdvisorSchemaAdvice"]>): Promise<components["schemas"]["SchemaAdvisorResponse"]>;
+    listSchemaAdvice(options: FetchOptions<operations["listGroupClusterPerformanceAdvisorSchemaAdvice"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["SchemaAdvisorResponse"]>;
     // (undocumented)
-    listSlowQueryLogs(options: FetchOptions<operations["listGroupProcessPerformanceAdvisorSlowQueryLogs"]>): Promise<components["schemas"]["PerformanceAdvisorSlowQueryList"]>;
+    listSlowQueryLogs(options: FetchOptions<operations["listGroupProcessPerformanceAdvisorSlowQueryLogs"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PerformanceAdvisorSlowQueryList"]>;
     // (undocumented)
-    listStreamConnections(options: FetchOptions<operations["listGroupStreamConnections"]>): Promise<components["schemas"]["PaginatedApiStreamsConnectionView"]>;
+    listStreamConnections(options: FetchOptions<operations["listGroupStreamConnections"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedApiStreamsConnectionView"]>;
     // (undocumented)
-    listStreamWorkspaces(options: FetchOptions<operations["listGroupStreamWorkspaces"]>): Promise<components["schemas"]["PaginatedApiStreamsTenantView"]>;
+    listStreamWorkspaces(options: FetchOptions<operations["listGroupStreamWorkspaces"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedApiStreamsTenantView"]>;
     // (undocumented)
     readonly logger: LoggerBase;
     // (undocumented)
-    rejectVpcPeeringConnection(options: FetchOptions<operations["rejectGroupStreamVpcPeeringConnection"]>): Promise<void>;
+    rejectVpcPeeringConnection(options: FetchOptions<operations["rejectGroupStreamVpcPeeringConnection"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    sendEvents(input?: {
-        events: TelemetryEvent<TelemetryCommonProperties>[];
+    requestSampleDatasetLoad(options: FetchOptions<operations["requestGroupSampleDatasetLoad"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["SampleDatasetStatus"]>;
+    // (undocumented)
+    sendEvents(events: TelemetryEvent<CommonProperties>[], input?: {
         signal?: AbortSignal;
     }): Promise<void>;
     // (undocumented)
-    startStreamProcessor(options: FetchOptions<operations["startGroupStreamProcessor"]>): Promise<void>;
+    startStreamProcessor(options: FetchOptions<operations["startGroupStreamProcessor"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    startStreamProcessorWith(options: FetchOptions<operations["startGroupStreamProcessorWith"]>): Promise<void>;
+    startStreamProcessorWith(options: FetchOptions<operations["startGroupStreamProcessorWith"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    stopStreamProcessor(options: FetchOptions<operations["stopGroupStreamProcessor"]>): Promise<void>;
+    stopStreamProcessor(options: FetchOptions<operations["stopGroupStreamProcessor"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    tenantUpgrade(options: FetchOptions<operations["tenantGroupFlexClusterUpgrade"]>): Promise<components["schemas"]["FlexClusterDescription20241113"]>;
+    tenantUpgrade(options: FetchOptions<operations["tenantGroupFlexClusterUpgrade"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["FlexClusterDescription20241113"]>;
     // (undocumented)
-    updateStreamConnection(options: FetchOptions<operations["updateGroupStreamConnection"]>): Promise<components["schemas"]["StreamsConnection"]>;
+    updateCluster(options: FetchOptions<operations["updateGroupCluster"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["ClusterDescription20240805"]>;
     // (undocumented)
-    updateStreamProcessor(options: FetchOptions<operations["updateGroupStreamProcessor"]>): Promise<components["schemas"]["StreamsProcessorWithStats"]>;
+    updateStreamConnection(options: FetchOptions<operations["updateGroupStreamConnection"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsConnection"]>;
     // (undocumented)
-    updateStreamWorkspace(options: FetchOptions<operations["updateGroupStreamWorkspace"]>): Promise<components["schemas"]["StreamsTenant"]>;
+    updateStreamProcessor(options: FetchOptions<operations["updateGroupStreamProcessor"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsProcessorWithStats"]>;
     // (undocumented)
-    upgradeFlexToDedicated(options: {
-        groupId: string;
-        body: {
-            name: string;
-            clusterType: "REPLICASET";
-            replicationSpecs: Array<{
-                regionConfigs: Array<{
-                    providerName?: string;
-                    regionName?: string;
-                    priority: number;
-                    electableSpecs: {
-                        instanceSize: string;
-                        nodeCount: number;
-                    };
-                }>;
-            }>;
-            autoScaling: {
-                compute: {
-                    enabled: boolean;
-                    scaleDownEnabled: boolean;
-                    minInstanceSize: string;
-                    maxInstanceSize: string;
-                };
-                diskGBEnabled: boolean;
-            };
-        };
-    }): Promise<{
-        id?: string;
-    }>;
+    updateStreamWorkspace(options: FetchOptions<operations["updateGroupStreamWorkspace"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsTenant"]>;
     // (undocumented)
-    upgradeSharedTierCluster(options: {
-        groupId: string;
-        body: {
-            name: string;
-            providerSettings: {
-                providerName?: string;
-                instanceSizeName: "FLEX" | "M10";
-                backingProviderName?: string;
-                regionName?: string;
-            };
-        };
-    }): Promise<{
-        id?: string;
-    }>;
-    // (undocumented)
-    upgradeTenantUpgrade(options: FetchOptions<operations["upgradeGroupClusterTenantUpgrade"]>): Promise<components["schemas"]["LegacyAtlasCluster"]>;
+    upgradeTenantUpgrade(options: FetchOptions<operations["upgradeGroupClusterTenantUpgrade"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["LegacyAtlasCluster"]>;
     // (undocumented)
     validateAuthConfig(): Promise<void>;
     // (undocumented)
-    withStreamSampleConnections(options: FetchOptions<operations["withGroupStreamSampleConnections"]>): Promise<components["schemas"]["StreamsTenant"]>;
+    withStreamSampleConnections(options: FetchOptions<operations["withGroupStreamSampleConnections"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsTenant"]>;
 }
+
+// @public (undocumented)
+export type ApiClientFactoryFn = (options: ApiClientOptions, logger: LoggerBase) => ApiClient;
 
 // @public (undocumented)
 export interface ApiClientOptions {
     // (undocumented)
-    authProvider: AuthProvider | undefined;
+    baseUrl: string;
     // (undocumented)
-    logger: LoggerBase;
+    credentials?: Credentials;
     // (undocumented)
-    options: {
-        baseUrl: string;
-    };
+    requestContext?: RequestContext;
     // (undocumented)
-    serverMetadata: ServerMetadata;
+    userAgent?: string;
 }
 
 // @public
-export type AtlasClusterConnectionInfo = {
-    username: string;
-    projectId: string;
+export interface AtlasClusterConnectionInfo {
+    // (undocumented)
     clusterName: string;
-    instanceType: "FREE" | "FLEX" | "DEDICATED";
-    provider?: string;
-    region?: string;
+    // (undocumented)
     expiryDate: Date;
-};
+    // (undocumented)
+    instanceType: "FREE" | "FLEX" | "DEDICATED";
+    // (undocumented)
+    projectId: string;
+    // (undocumented)
+    provider?: string;
+    // (undocumented)
+    region?: string;
+    // (undocumented)
+    username: string;
+}
 
 // @public (undocumented)
 export type AtlasLocalClientFactoryFn = (input: {
@@ -243,12 +224,12 @@ export type AtlasLocalClientFactoryFn = (input: {
 }) => Promise<Client | undefined>;
 
 // @public (undocumented)
-export type AtlasLocalToolMetadata = TelemetryToolMetadataBase & {
+export type AtlasLocalToolMetadata = {
     atlas_local_deployment_id?: string;
 };
 
 // @public (undocumented)
-export type AtlasMetadata = TelemetryToolMetadataBase & {
+export type AtlasMetadata = {
     project_id?: string;
     org_id?: string;
 };
@@ -267,15 +248,7 @@ export interface AuthProvider {
 export type AvailableExport = Pick<StoredExport, "exportName" | "exportTitle" | "exportURI" | "exportPath">;
 
 // @public (undocumented)
-export class ClientCredentialsAuthProvider implements AuthProvider {
-    constructor(input: ClientCredentialsAuthProviderParams);
-    // (undocumented)
-    getAuthHeaders(): Promise<Record<string, string> | undefined>;
-    // (undocumented)
-    revoke(): Promise<void>;
-    // (undocumented)
-    validate(): Promise<boolean>;
-}
+export type BaseEvent = TelemetryEvent<unknown>;
 
 // @public (undocumented)
 export interface CommonExportData {
@@ -289,16 +262,35 @@ export interface CommonExportData {
     exportURI: string;
 }
 
+// @public
+export type CommonProperties = {
+    device_id?: string;
+    is_container_env?: TelemetryBoolSet;
+    mcp_client_version?: string;
+    mcp_client_name?: string;
+    transport?: "stdio" | "http";
+    config_atlas_auth?: TelemetryBoolSet;
+    config_connection_string?: TelemetryBoolSet;
+    session_id?: string;
+    hosting_mode?: string;
+    has_docker?: TelemetryBoolSet;
+} & CommonStaticProperties;
+
+// @public
+export type CommonStaticProperties = {
+    mcp_server_version: string;
+    mcp_server_name: string;
+    platform: string;
+    arch: string;
+    os_type: string;
+    os_version?: string;
+};
+
 // @public (undocumented)
 export class CompositeLogger extends LoggerBase {
-    constructor(input?: {
-        keychain?: IKeychain;
-        loggers: LoggerBase[];
-    });
+    constructor(...loggers: LoggerBase[]);
     // (undocumented)
     addLogger(logger: LoggerBase): void;
-    // (undocumented)
-    flush(): Promise<PromiseSettledResult<void>[]>;
     // (undocumented)
     log(level: LogLevel, payload: LogPayload): void;
     // (undocumented)
@@ -316,7 +308,7 @@ export type ConnectionErrorHandled = {
 };
 
 // @public (undocumented)
-export type ConnectionErrorHandler = (error: MongoDBError<NotConnectedToMongoDBErrorCode | MisconfiguredConnectionStringErrorCode>, additionalContext: ConnectionErrorHandlerContext) => ConnectionErrorUnhandled | ConnectionErrorHandled | Promise<ConnectionErrorUnhandled | ConnectionErrorHandled>;
+export type ConnectionErrorHandler = (error: MongoDBError<ErrorCodes.NotConnectedToMongoDB | ErrorCodes.MisconfiguredConnectionString>, additionalContext: ConnectionErrorHandlerContext) => ConnectionErrorUnhandled | ConnectionErrorHandled | Promise<ConnectionErrorUnhandled | ConnectionErrorHandled>;
 
 // @public (undocumented)
 export type ConnectionErrorHandlerContext = {
@@ -328,6 +320,9 @@ export type ConnectionErrorHandlerContext = {
 export type ConnectionErrorUnhandled = {
     errorHandled: false;
 };
+
+// @public (undocumented)
+export type ConnectionInfoOIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
 
 // @public (undocumented)
 export abstract class ConnectionManager {
@@ -368,16 +363,12 @@ export interface ConnectionManagerEvents {
     close: [AnyConnectionState];
 }
 
-// @public (undocumented)
-export type ConnectionManagerFactoryFn = (params: ConnectionManagerFactoryOptions) => Promise<ConnectionManager>;
-
 // @public
-export type ConnectionManagerFactoryOptions = {
+export type ConnectionManagerFactoryFn = (createParams: {
     logger: LoggerBase;
     deviceId: DeviceId;
-    serverMetadata: ServerMetadata;
-    connectionInfo: ConnectionInfo_2;
-};
+    userConfig: UserConfig;
+}) => Promise<ConnectionManager>;
 
 // @public (undocumented)
 export type ConnectionMetadata = AtlasMetadata & AtlasLocalToolMetadata & {
@@ -408,15 +399,11 @@ export interface ConnectionState {
 
 // @public (undocumented)
 export class ConnectionStateConnected implements ConnectionState {
-    constructor(input: {
-        serviceProvider: NodeDriverServiceProvider;
-        connectionStringInfo?: ConnectionStringInfo;
-        connectedAtlasCluster?: AtlasClusterConnectionInfo;
-    });
+    constructor(serviceProvider: NodeDriverServiceProvider, connectionStringInfo?: ConnectionStringInfo | undefined, connectedAtlasCluster?: AtlasClusterConnectionInfo | undefined);
     // (undocumented)
-    connectedAtlasCluster?: AtlasClusterConnectionInfo;
+    connectedAtlasCluster?: AtlasClusterConnectionInfo | undefined;
     // (undocumented)
-    connectionStringInfo?: ConnectionStringInfo;
+    connectionStringInfo?: ConnectionStringInfo | undefined;
     // (undocumented)
     isSearchSupported(logger: LoggerBase): Promise<boolean>;
     // (undocumented)
@@ -453,6 +440,12 @@ export interface ConnectionStateErrored extends ConnectionState {
     tag: "errored";
 }
 
+// @public (undocumented)
+export type ConnectionStringAuthType = "scram" | "ldap" | "kerberos" | ConnectionInfoOIDCConnectionAuthType | "x.509";
+
+// @public
+export type ConnectionStringHostType = "local" | "atlas" | "atlas_local" | "unknown";
+
 // @public
 export interface ConnectionStringInfo {
     // (undocumented)
@@ -464,25 +457,34 @@ export interface ConnectionStringInfo {
 // @public (undocumented)
 export type ConnectionTag = "connected" | "connecting" | "disconnected" | "errored";
 
+export { createDefaultMetrics }
+
 // @public
-export function createDefaultMetrics(): {
-    readonly toolExecutionDuration: Histogram<"tool_name" | "category" | "status" | "operation_type" | "error_type">;
-    readonly sessionCreated: Counter<string>;
-    readonly sessionClosed: Counter<"reason">;
+export type CreateSessionConfigFn<TUserConfig extends UserConfig = UserConfig> = (context: {
+    userConfig: TUserConfig;
+    request?: TransportRequestContext;
+}) => Promise<TUserConfig> | TUserConfig;
+
+// @public (undocumented)
+export interface Credentials {
+    // (undocumented)
+    clientId?: string;
+    // (undocumented)
+    clientSecret?: string;
+}
+
+// @public (undocumented)
+export type CustomizableServerOptions<TUserConfig extends UserConfig = UserConfig, TContext = unknown> = Partial<Pick<ServerOptions<TUserConfig, TContext>, "uiRegistry" | "tools" | "toolContext" | "elicitation">> & {
+    telemetryProperties?: Partial<CommonProperties>;
 };
+
+// @public (undocumented)
+export type CustomizableSessionOptions<TUserConfig extends UserConfig = UserConfig> = Partial<Pick<SessionOptions<TUserConfig>, "userConfig" | "apiClient" | "atlasLocalClient" | "connectionManager" | "connectionErrorHandler">>;
 
 // @public (undocumented)
 export type DefaultEventMap = Record<string, never[]>;
 
-// @public
-export type DefaultMetricDefinitions = {
-    sessionCreated: ICounter;
-    sessionClosed: ICounter;
-    toolExecutionDuration: IObservable;
-};
-
-// @public (undocumented)
-export type DefaultPrometheusMetricDefinitions = ReturnType<typeof createDefaultMetrics>;
+export { DefaultMetrics }
 
 // @public (undocumented)
 export class DeviceId implements IDeviceId {
@@ -524,16 +526,38 @@ export type ElicitedInputResult = {
     fields?: undefined;
 };
 
+// @public (undocumented)
+export enum ErrorCodes {
+    // (undocumented)
+    AtlasSearchNotSupported = 1000004,
+    // (undocumented)
+    AtlasVectorSearchIndexNotFound = 1000006,
+    // (undocumented)
+    AtlasVectorSearchInvalidQuery = 1000007,
+    // (undocumented)
+    ForbiddenCollscan = 1000002,
+    // (undocumented)
+    ForbiddenServerSideJS = 1000009,
+    // (undocumented)
+    ForbiddenWriteOperation = 1000003,
+    // (undocumented)
+    InvalidPipeline = 1000008,
+    // (undocumented)
+    MisconfiguredConnectionString = 1000001,
+    // (undocumented)
+    NotConnectedToMongoDB = 1000000
+}
+
 // @public
 export class EventCache {
     constructor();
-    appendEvents(events: TelemetryBaseEvent[]): void;
+    appendEvents(events: BaseEvent[]): void;
     getEvents(): {
         id: number;
-        event: TelemetryBaseEvent;
+        event: BaseEvent;
     }[];
     static getInstance(): EventCache;
-    processOldestBatch<T>(batchSize: number, processor: (events: TelemetryBaseEvent[]) => Promise<{
+    processOldestBatch<T>(batchSize: number, processor: (events: BaseEvent[]) => Promise<{
         removeProcessed: boolean;
         result: T;
     }>): Promise<T | undefined>;
@@ -551,15 +575,16 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
     // (undocumented)
     close(): Promise<void>;
     // (undocumented)
-    createJSONExport(input: CreateJSONExportParams): Promise<AvailableExport>;
+    createJSONExport(input: {
+        input: FindCursor | AggregationCursor;
+        exportName: string;
+        exportTitle: string;
+        jsonExportFormat: JSONExportFormat;
+    }): Promise<AvailableExport>;
     // (undocumented)
     protected init(): void;
     // (undocumented)
-    static init(input: {
-        options: Omit<ExportsManagerOptions, "exportsDirectoryPath">;
-        logger: LoggerBase;
-        sessionId?: string;
-    }): ExportsManager;
+    static init(config: ExportsManagerConfig, logger: LoggerBase, sessionId?: string): ExportsManager;
     // (undocumented)
     readExport(exportName: string): Promise<{
         content: string;
@@ -568,18 +593,13 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
 }
 
 // @public (undocumented)
+export type ExportsManagerConfig = Pick<UserConfig, "exportsPath" | "exportTimeoutMs" | "exportCleanupIntervalMs">;
+
+// @public (undocumented)
 export type ExportsManagerEvents = {
     closed: [];
     "export-expired": [string];
     "export-available": [string];
-};
-
-// @public
-export type ExportsManagerOptions = {
-    exportsPath: string;
-    exportsDirectoryPath: string;
-    exportTimeoutMs: number;
-    exportCleanupIntervalMs: number;
 };
 
 // @public
@@ -592,17 +612,6 @@ export interface InProgressExport extends CommonExportData {
 }
 
 // @public (undocumented)
-export interface ITransportRunner {
-    // (undocumented)
-    close(): Promise<void>;
-    // (undocumented)
-    start(options: {
-        serverOptions?: unknown;
-        sessionOptions?: unknown;
-    }): Promise<void>;
-}
-
-// @public (undocumented)
 export type JSONExportFormat = z.infer<typeof jsonExportFormat>;
 
 // @public (undocumented)
@@ -612,7 +621,7 @@ export const jsonExportFormat: z.ZodEnum<{
 }>;
 
 // @public
-export class Keychain implements IKeychain {
+export class Keychain {
     constructor();
     // (undocumented)
     get allSecrets(): Secret[];
@@ -631,8 +640,8 @@ export interface LibraryLoader {
 }
 
 // @public (undocumented)
-export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extends EventEmitter<T> implements ILogger {
-    constructor(options: LoggerConfig);
+export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extends EventEmitter<T> {
+    constructor(keychain: Keychain | undefined);
     // (undocumented)
     alert(payload: LogPayload): void;
     // (undocumented)
@@ -644,13 +653,13 @@ export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extend
     // (undocumented)
     error(payload: LogPayload): void;
     // (undocumented)
-    flush(): Promise<PromiseSettledResult<void>[]>;
-    // (undocumented)
     info(payload: LogPayload): void;
     // (undocumented)
     log(level: LogLevel, payload: LogPayload): void;
     // (undocumented)
     protected abstract logCore(level: LogLevel, payload: LogPayload): void;
+    // (undocumented)
+    protected mapToMongoDBLogLevel(level: LogLevel): "info" | "warn" | "error" | "debug" | "fatal";
     // (undocumented)
     notice(payload: LogPayload): void;
     // (undocumented)
@@ -666,13 +675,29 @@ export type LoggerType = "console" | "disk" | "mcp";
 export type LogLevel = LoggingMessageNotification["params"]["level"];
 
 // @public (undocumented)
-export type LogPayload = {
-    id: MongoLogId;
-    context: string;
-    message: string;
-    noRedaction?: boolean | LoggerType | LoggerType[];
+export interface LogPayload {
+    // (undocumented)
     attributes?: Record<string, string>;
-};
+    // (undocumented)
+    context: string;
+    // (undocumented)
+    id: MongoLogId;
+    // (undocumented)
+    message: string;
+    // (undocumented)
+    noRedaction?: boolean | LoggerType | LoggerType[];
+}
+
+export { MetricDefinitions }
+
+export { Metrics }
+
+// @public (undocumented)
+export class MongoDBError<ErrorCode extends ErrorCodes = ErrorCodes> extends Error {
+    constructor(code: ErrorCode, message: string);
+    // (undocumented)
+    code: ErrorCode;
+}
 
 // @public (undocumented)
 export type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
@@ -701,15 +726,150 @@ export interface ReadyExport extends CommonExportData {
     exportStatus: "ready";
 }
 
+// @public (undocumented)
+export type RequestContext = {
+    headers?: Record<string, string | string[] | undefined>;
+};
+
 export { Secret }
+
+// @public (undocumented)
+export class Server<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> {
+    constructor(input: ServerOptions<TUserConfig, TContext, TMetrics>);
+    // (undocumented)
+    close(): Promise<void>;
+    // (undocumented)
+    connect(transport: Transport): Promise<void>;
+    // (undocumented)
+    readonly connectionErrorHandler: ConnectionErrorHandler;
+    // (undocumented)
+    readonly elicitation: Elicitation;
+    // (undocumented)
+    isToolCategoryAvailable(name: ToolCategory): boolean;
+    // (undocumented)
+    get mcpLogLevel(): LogLevel;
+    // (undocumented)
+    readonly mcpServer: McpServer;
+    // (undocumented)
+    readonly metrics: Metrics<TMetrics>;
+    // (undocumented)
+    registerResources(): void;
+    // (undocumented)
+    registerTools(): void;
+    // (undocumented)
+    sendResourceListChanged(): void;
+    // (undocumented)
+    sendResourceUpdated(uri: string): void;
+    // (undocumented)
+    readonly session: Session;
+    // (undocumented)
+    readonly toolContext?: TContext;
+    // (undocumented)
+    readonly tools: AnyToolBase[];
+    // (undocumented)
+    readonly uiRegistry?: UIRegistry;
+    // (undocumented)
+    readonly userConfig: TUserConfig;
+}
+
+// @public (undocumented)
+export interface ServerOptions<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> {
+    // @deprecated (undocumented)
+    connectionErrorHandler: ConnectionErrorHandler;
+    // (undocumented)
+    elicitation: Elicitation;
+    // (undocumented)
+    mcpServer: McpServer;
+    // (undocumented)
+    metrics: Metrics<TMetrics>;
+    // (undocumented)
+    session: Session;
+    // (undocumented)
+    telemetry: Telemetry;
+    toolContext?: TContext;
+    tools?: AnyToolClass[];
+    // (undocumented)
+    uiRegistry?: UIRegistry;
+    // (undocumented)
+    userConfig: TUserConfig;
+}
+
+// @public (undocumented)
+export class Session extends EventEmitter<SessionEvents> {
+    constructor(input: SessionOptions<UserConfig>);
+    // (undocumented)
+    readonly apiClient: ApiClient;
+    // (undocumented)
+    assertSearchSupported(): Promise<void>;
+    // (undocumented)
+    readonly atlasLocalClient?: Client;
+    // (undocumented)
+    close(): Promise<void>;
+    // (undocumented)
+    get connectedAtlasCluster(): AtlasClusterConnectionInfo | undefined;
+    // (undocumented)
+    readonly connectionErrorHandler: ConnectionErrorHandler;
+    // (undocumented)
+    readonly connectionManager: ConnectionManager;
+    // (undocumented)
+    get connectionStringInfo(): ConnectionStringInfo | undefined;
+    // (undocumented)
+    connectToConfiguredConnection(): Promise<void>;
+    // (undocumented)
+    connectToMongoDB(settings: ConnectionSettings): Promise<void>;
+    // (undocumented)
+    disconnect(): Promise<void>;
+    // (undocumented)
+    readonly exportsManager: ExportsManager;
+    // (undocumented)
+    get isConnectedToMongoDB(): boolean;
+    // (undocumented)
+    isSearchSupported(): Promise<boolean>;
+    // (undocumented)
+    readonly keychain: Keychain;
+    // (undocumented)
+    readonly logger: CompositeLogger;
+    // (undocumented)
+    mcpClient?: {
+        name?: string;
+        version?: string;
+        title?: string;
+    };
+    // (undocumented)
+    get serviceProvider(): NodeDriverServiceProvider;
+    // (undocumented)
+    readonly sessionId: string;
+    // (undocumented)
+    setMcpClient(mcpClient: Implementation | undefined): void;
+}
 
 // @public (undocumented)
 export type SessionEvents = {
     connect: [];
     close: [];
     disconnect: [];
-    "connection-error": [unknown];
+    "connection-error": [ConnectionStateErrored];
 };
+
+// @public (undocumented)
+export interface SessionOptions<TUserConfig extends UserConfig = UserConfig> {
+    // (undocumented)
+    apiClient: ApiClient;
+    // (undocumented)
+    atlasLocalClient?: Client;
+    // (undocumented)
+    connectionErrorHandler: ConnectionErrorHandler;
+    // (undocumented)
+    connectionManager: ConnectionManager;
+    // (undocumented)
+    exportsManager: ExportsManager;
+    // (undocumented)
+    keychain: Keychain;
+    // (undocumented)
+    logger: CompositeLogger;
+    // (undocumented)
+    userConfig: TUserConfig;
+}
 
 // @public (undocumented)
 export type StoredExport = ReadyExport | InProgressExport;
@@ -721,67 +881,39 @@ export type StreamsToolMetadata = AtlasMetadata & {
 };
 
 // @public (undocumented)
-export class Telemetry implements ITelemetry {
-    protected constructor(config: TelemetryConfig);
+export class Telemetry {
     // (undocumented)
     close(): Promise<void>;
+    // @deprecated (undocumented)
+    static create(session: Session, userConfig: UserConfig, deviceId: DeviceId, options?: {
+        commonProperties?: Partial<CommonProperties>;
+        eventCache?: EventCache;
+    }): Telemetry;
     // (undocumented)
-    static create(this: typeof Telemetry, config: TelemetryConfig): Telemetry;
-    protected detectContainerEnv(): Promise<boolean>;
-    emitEvents(events: TelemetryBaseEvent[]): void;
+    static create(config: TelemetryConfig): Telemetry;
+    emitEvents(events: BaseEvent[]): void;
     // (undocumented)
     readonly events: EventEmitter<TelemetryEvents>;
-    getCommonProperties(): TelemetryCommonProperties;
+    getCommonProperties(): CommonProperties;
     isTelemetryEnabled(): boolean;
-    // (undocumented)
-    protected readonly serverMetadata: ServerMetadata;
-    // (undocumented)
-    protected setup(): Promise<void>;
     setupPromise: Promise<[string, boolean]> | undefined;
 }
 
 // @public (undocumented)
-export type TelemetryBaseEvent = TelemetryEvent<unknown>;
-
-// @public (undocumented)
 export type TelemetryBoolSet = "true" | "false";
 
-// @public (undocumented)
-export type TelemetryCommonProperties = {
-    device_id?: string;
-    is_container_env?: TelemetryBoolSet;
-    mcp_client_version?: string;
-    mcp_client_name?: string;
-    transport?: "stdio" | "http";
-    config_atlas_auth?: TelemetryBoolSet;
-    config_connection_string?: TelemetryBoolSet;
-    session_id?: string;
-    hosting_mode?: string;
-    has_docker?: TelemetryBoolSet;
-} & TelemetryCommonStaticProperties;
-
-// @public (undocumented)
-export type TelemetryCommonStaticProperties = {
-    mcp_server_version: string;
-    mcp_server_name: string;
-    platform: string;
-    arch: string;
-    os_type: string;
-    os_version?: string;
-};
+// @public
+export interface TelemetryConfig {
+    apiClient: ApiClient;
+    deviceId: DeviceId;
+    enabled: boolean;
+    eventCache?: EventCache;
+    getCommonProperties?: () => Partial<CommonProperties>;
+    keychain?: Keychain;
+    logger: LoggerBase;
+}
 
 // @public
-export type TelemetryConfig = {
-    logger: LoggerBase;
-    deviceId: IDeviceId;
-    apiClient: ApiClient;
-    keychain: IKeychain;
-    enabled: boolean;
-    serverMetadata: ServerMetadata;
-    eventCache?: EventCache;
-};
-
-// @public (undocumented)
 export type TelemetryEvent<T> = {
     timestamp: string;
     source: "mdbmcp";
@@ -793,18 +925,13 @@ export type TelemetryEvent<T> = {
     } & Record<string, string | number | string[]>;
 };
 
-// @public (undocumented)
-export type TelemetryEvents = {
-    "events-emitted": [];
-    "events-send-failed": [];
-    "events-skipped": [];
-};
+export { TelemetryEvents }
 
-// @public (undocumented)
+// @public
 export type TelemetryResult = "success" | "failure";
 
-// @public (undocumented)
-export type TelemetryToolMetadata = TelemetryToolMetadata_2 | UpgradeClusterMetadata;
+// @public
+export type TelemetryToolMetadata = AtlasMetadata | ConnectionMetadata | PerfAdvisorToolMetadata | StreamsToolMetadata | UpgradeClusterMetadata | CreateClusterMetadata | IndexMetadata | PauseResumeClusterMetadata;
 
 // @public (undocumented)
 export type ToolArgs<T extends ZodRawShape> = {
@@ -812,16 +939,18 @@ export type ToolArgs<T extends ZodRawShape> = {
 };
 
 // @public
-export abstract class ToolBase<TSession extends ISession = ISession, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
-    constructor(input: ToolConstructorParams<TSession, TMetricsDefinitions>);
+export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> {
+    constructor(input: ToolConstructorParams<TUserConfig, TContext, TMetrics>);
     // (undocumented)
     get annotations(): ToolAnnotations;
     abstract argsShape: ZodRawShape;
     readonly category: ToolCategory;
+    protected readonly config: TUserConfig;
+    protected readonly context?: TContext;
     abstract description: string;
     // (undocumented)
     disable(): void;
-    protected readonly elicitation: IElicitation;
+    protected readonly elicitation: Elicitation;
     // (undocumented)
     enable(): void;
     protected abstract execute(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
@@ -833,21 +962,19 @@ export abstract class ToolBase<TSession extends ISession = ISession, TMetricsDef
     // (undocumented)
     isEnabled(): boolean;
     // (undocumented)
-    protected isFeatureEnabled(feature: PreviewFeature_2): boolean;
-    protected readonly metrics: IMetrics<TMetricsDefinitions>;
+    protected isFeatureEnabled(feature: PreviewFeature): boolean;
+    protected readonly metrics: Metrics<TMetrics>;
     readonly name: string;
     readonly operationType: OperationType;
     outputSchema?: ZodRawShape;
     // (undocumented)
-    register(server: {
-        mcpServer: McpServer;
-    }): boolean;
+    register(server: Server<TUserConfig, TContext, TMetrics>): boolean;
     requiresConfirmation(): boolean;
     protected abstract resolveTelemetryMetadata(args: ToolArgs<typeof ToolBase.argsShape>, input: {
         result: CallToolResult;
-    }): TelemetryToolMetadata_2;
-    protected readonly session: TSession;
-    protected readonly telemetry: ITelemetry;
+    }): TelemetryToolMetadata;
+    protected readonly session: Session;
+    protected readonly telemetry: Telemetry;
     protected get toolMeta(): Record<string, unknown>;
     // (undocumented)
     protected verifyAllowed(): boolean;
@@ -855,45 +982,110 @@ export abstract class ToolBase<TSession extends ISession = ISession, TMetricsDef
 }
 
 // @public
-export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant" | "custom";
+export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant";
 
 // @public
-export type ToolClass<TSession extends ISession = ISession, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
-    new (args: ToolConstructorParams<TSession, TMetricsDefinitions>): ToolBase<TSession, TMetricsDefinitions>;
+export type ToolClass<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> = {
+    new (params: ToolConstructorParams<TUserConfig, TContext, TMetrics>): ToolBase<TUserConfig, TContext, TMetrics>;
     toolName: string;
     category: ToolCategory;
     operationType: OperationType;
 };
 
 // @public
-export type ToolConstructorParams<TSession extends ISession<IToolConfig> = ISession<IToolConfig>, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
+export type ToolConstructorParams<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> = {
     name: string;
     category: ToolCategory;
     operationType: OperationType;
-    session: TSession;
-    telemetry: ITelemetry;
-    elicitation: IElicitation;
-    metrics: IMetrics<TMetricsDefinitions>;
-    uiRegistry?: IUIRegistry;
-};
-
-// @public
-export type ToolExecutionContext = {
-    signal: AbortSignal;
-    requestInfo?: {
-        headers?: Record<string, unknown>;
-    };
+    session: Session;
+    config: TUserConfig;
+    telemetry: Telemetry;
+    elicitation: Elicitation;
+    metrics: Metrics<TMetrics>;
+    uiRegistry?: UIRegistry;
+    context?: TContext;
 };
 
 // @public (undocumented)
-export type TransportRequestContext = {
-    headers?: Record<string, string | string[] | undefined>;
-    query?: Record<string, string | string[] | undefined>;
+export interface ToolExecutionContext {
+    requestInfo?: {
+        headers?: Record<string, unknown>;
+    };
+    // (undocumented)
+    signal: AbortSignal;
+}
+
+export { TransportRequestContext }
+
+// @public @deprecated (undocumented)
+export type TransportRequestContextDeprecated = TransportRequestContext;
+
+// @public (undocumented)
+export abstract class TransportRunnerBase<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> {
+    protected constructor(input: TransportRunnerConfig<TUserConfig, TMetrics>);
+    // (undocumented)
+    close(): Promise<void>;
+    // (undocumented)
+    abstract closeTransport(): Promise<void>;
+    // @deprecated (undocumented)
+    protected readonly connectionErrorHandler: ConnectionErrorHandler;
+    // @deprecated (undocumented)
+    protected readonly createApiClient: ApiClientFactoryFn;
+    // @deprecated (undocumented)
+    protected readonly createAtlasLocalClient: AtlasLocalClientFactoryFn;
+    // @deprecated (undocumented)
+    protected readonly createConnectionManager: ConnectionManagerFactoryFn;
+    protected createServer(input?: {
+        userConfig?: TUserConfig;
+        logger?: CompositeLogger;
+        serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
+        sessionOptions?: CustomizableSessionOptions<TUserConfig>;
+    }): Promise<Server<TUserConfig, TContext>>;
+    // @deprecated (undocumented)
+    protected readonly createSessionConfig?: CreateSessionConfigFn<TUserConfig>;
+    // (undocumented)
+    deviceId: DeviceId;
+    // (undocumented)
+    protected static getInstructions(config: UserConfig): string;
+    // (undocumented)
+    logger: LoggerBase;
+    // (undocumented)
+    metrics: Metrics<TMetrics>;
+    // @deprecated (undocumented)
+    protected setupServer(request?: TransportRequestContextDeprecated, input?: {
+        serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
+    }): Promise<Server<TUserConfig, TContext>>;
+    // (undocumented)
+    abstract start(input: {
+        serverOptions?: ServerOptions<TUserConfig, TContext>;
+        sessionOptions?: SessionOptions<TUserConfig>;
+    }): Promise<void>;
+    // @deprecated (undocumented)
+    protected readonly telemetryProperties: Partial<CommonProperties>;
+    // @deprecated (undocumented)
+    protected readonly tools?: AnyToolClass[];
+    protected readonly userConfig: TUserConfig;
+}
+
+// @public
+export type TransportRunnerConfig<TUserConfig extends UserConfig = UserConfig, TMetrics extends DefaultMetrics = DefaultMetrics> = {
+    userConfig: TUserConfig;
+    createConnectionManager?: ConnectionManagerFactoryFn;
+    connectionErrorHandler?: ConnectionErrorHandler;
+    createAtlasLocalClient?: AtlasLocalClientFactoryFn;
+    additionalLoggers?: LoggerBase[];
+    metrics?: Metrics<TMetrics>;
+    telemetryProperties?: Partial<CommonProperties>;
+    tools?: AnyToolClass[];
+    createSessionConfig?: CreateSessionConfigFn<TUserConfig>;
+    createApiClient?: ApiClientFactoryFn;
 };
 
 // @public
-export class UIRegistry implements IUIRegistry {
-    constructor(options?: UIRegistryOptions);
+export class UIRegistry {
+    constructor(options?: {
+        customUIs?: (toolName: string) => string | null | Promise<string | null>;
+    });
     get(toolName: string): Promise<string | null>;
 }
 
@@ -901,11 +1093,163 @@ export class UIRegistry implements IUIRegistry {
 export type UpgradeClusterMetadata = AtlasMetadata & {
     original_tier?: "free" | "flex";
     target_tier?: "flex" | "m10";
-    original_cluster_id?: string;
-    target_cluster_id?: string;
+    cluster_id?: string;
     provider?: string;
     region?: string;
 };
+
+// @public (undocumented)
+export type UserConfig = z.infer<typeof UserConfigSchema>;
+
+// @public (undocumented)
+export const UserConfigSchema: z.ZodObject<{
+    apiBaseUrl: z.ZodDefault<z.ZodString>;
+    assistantBaseUrl: z.ZodDefault<z.ZodString>;
+    apiClientId: z.ZodOptional<z.ZodString>;
+    apiClientSecret: z.ZodOptional<z.ZodString>;
+    connectionString: z.ZodOptional<z.ZodString>;
+    loggers: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodEnum<{
+        disk: "disk";
+        mcp: "mcp";
+        stderr: "stderr";
+    }>>>>;
+    logPath: z.ZodDefault<z.ZodString>;
+    mcpClientLogLevel: z.ZodDefault<z.ZodEnum<{
+        error: "error";
+        debug: "debug";
+        info: "info";
+        notice: "notice";
+        warning: "warning";
+        critical: "critical";
+        alert: "alert";
+        emergency: "emergency";
+    }>>;
+    disabledTools: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodString>>>;
+    confirmationRequiredTools: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodString>>>;
+    readOnly: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
+    indexCheck: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
+    disableServerSideJs: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
+    telemetry: z.ZodDefault<z.ZodEnum<{
+        enabled: "enabled";
+        disabled: "disabled";
+    }>>;
+    transport: z.ZodDefault<z.ZodEnum<{
+        stdio: "stdio";
+        http: "http";
+    }>>;
+    httpPort: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    httpHost: z.ZodDefault<z.ZodString>;
+    httpHeaders: z.ZodDefault<z.ZodObject<{}, z.core.$loose>>;
+    httpBodyLimit: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    idleTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    notificationTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    maxBytesPerQuery: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    maxDocumentsPerQuery: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    maxTimeMS: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
+    exportsPath: z.ZodDefault<z.ZodString>;
+    exportTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    exportCleanupIntervalMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    atlasTemporaryDatabaseUserLifetimeMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    voyageApiKey: z.ZodDefault<z.ZodString>;
+    previewFeatures: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodEnum<{
+        mcpUI: "mcpUI";
+    }>>>>;
+    allowRequestOverrides: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
+    dryRun: z.ZodDefault<z.ZodBoolean>;
+    externallyManagedSessions: z.ZodDefault<z.ZodBoolean>;
+    httpResponseType: z.ZodDefault<z.ZodEnum<{
+        json: "json";
+        sse: "sse";
+    }>>;
+    healthCheckPort: z.ZodOptional<z.ZodNumber>;
+    healthCheckHost: z.ZodOptional<z.ZodString>;
+    monitoringServerPort: z.ZodOptional<z.ZodNumber>;
+    monitoringServerHost: z.ZodOptional<z.ZodString>;
+    monitoringServerFeatures: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodEnum<{
+        metrics: "metrics";
+        "health-check": "health-check";
+    }>>>>;
+    gssapiHostName: z.ZodOptional<z.ZodString>;
+    sslFIPSMode: z.ZodOptional<z.ZodBoolean>;
+    ssl: z.ZodOptional<z.ZodBoolean>;
+    sslAllowInvalidCertificates: z.ZodOptional<z.ZodBoolean>;
+    sslAllowInvalidHostnames: z.ZodOptional<z.ZodBoolean>;
+    sslPEMKeyFile: z.ZodOptional<z.ZodString>;
+    sslPEMKeyPassword: z.ZodOptional<z.ZodString>;
+    sslCAFile: z.ZodOptional<z.ZodString>;
+    sslCertificateSelector: z.ZodOptional<z.ZodString>;
+    sslCRLFile: z.ZodOptional<z.ZodString>;
+    sslDisabledProtocols: z.ZodOptional<z.ZodString>;
+    apiVersion: z.ZodOptional<z.ZodString>;
+    authenticationDatabase: z.ZodOptional<z.ZodString>;
+    authenticationMechanism: z.ZodOptional<z.ZodString>;
+    awsAccessKeyId: z.ZodOptional<z.ZodString>;
+    awsIamSessionToken: z.ZodOptional<z.ZodString>;
+    awsSecretAccessKey: z.ZodOptional<z.ZodString>;
+    awsSessionToken: z.ZodOptional<z.ZodString>;
+    csfleLibraryPath: z.ZodOptional<z.ZodString>;
+    cryptSharedLibPath: z.ZodOptional<z.ZodString>;
+    deepInspect: z.ZodOptional<z.ZodDefault<z.ZodBoolean>>;
+    db: z.ZodOptional<z.ZodString>;
+    gssapiServiceName: z.ZodOptional<z.ZodString>;
+    sspiHostnameCanonicalization: z.ZodOptional<z.ZodString>;
+    sspiRealmOverride: z.ZodOptional<z.ZodString>;
+    jsContext: z.ZodOptional<z.ZodEnum<{
+        repl: "repl";
+        "plain-vm": "plain-vm";
+        auto: "auto";
+    }>>;
+    host: z.ZodOptional<z.ZodString>;
+    keyVaultNamespace: z.ZodOptional<z.ZodString>;
+    kmsURL: z.ZodOptional<z.ZodString>;
+    locale: z.ZodOptional<z.ZodString>;
+    oidcFlows: z.ZodOptional<z.ZodString>;
+    oidcRedirectUri: z.ZodOptional<z.ZodString>;
+    password: z.ZodOptional<z.ZodString>;
+    port: z.ZodOptional<z.ZodString>;
+    username: z.ZodOptional<z.ZodString>;
+    tlsCAFile: z.ZodOptional<z.ZodString>;
+    tlsCertificateKeyFile: z.ZodOptional<z.ZodString>;
+    tlsCertificateKeyFilePassword: z.ZodOptional<z.ZodString>;
+    tlsCertificateSelector: z.ZodOptional<z.ZodString>;
+    tlsCRLFile: z.ZodOptional<z.ZodString>;
+    tlsDisabledProtocols: z.ZodOptional<z.ZodString>;
+    apiDeprecationErrors: z.ZodOptional<z.ZodBoolean>;
+    apiStrict: z.ZodOptional<z.ZodBoolean>;
+    buildInfo: z.ZodOptional<z.ZodBoolean>;
+    exposeAsyncRewriter: z.ZodOptional<z.ZodBoolean>;
+    help: z.ZodOptional<z.ZodBoolean>;
+    ipv6: z.ZodOptional<z.ZodBoolean>;
+    nodb: z.ZodOptional<z.ZodBoolean>;
+    norc: z.ZodOptional<z.ZodBoolean>;
+    oidcTrustedEndpoint: z.ZodOptional<z.ZodBoolean>;
+    oidcIdTokenAsAccessToken: z.ZodOptional<z.ZodBoolean>;
+    oidcNoNonce: z.ZodOptional<z.ZodBoolean>;
+    quiet: z.ZodOptional<z.ZodBoolean>;
+    retryWrites: z.ZodOptional<z.ZodBoolean>;
+    shell: z.ZodOptional<z.ZodBoolean>;
+    skipStartupWarnings: z.ZodOptional<z.ZodBoolean>;
+    verbose: z.ZodOptional<z.ZodBoolean>;
+    version: z.ZodOptional<z.ZodBoolean>;
+    smokeTests: z.ZodOptional<z.ZodBoolean>;
+    perfTests: z.ZodOptional<z.ZodBoolean>;
+    tls: z.ZodOptional<z.ZodBoolean>;
+    tlsAllowInvalidCertificates: z.ZodOptional<z.ZodBoolean>;
+    tlsAllowInvalidHostnames: z.ZodOptional<z.ZodBoolean>;
+    tlsFIPSMode: z.ZodOptional<z.ZodBoolean>;
+    tlsUseSystemCA: z.ZodOptional<z.ZodBoolean>;
+    eval: z.ZodOptional<z.ZodArray<z.ZodString>>;
+    file: z.ZodOptional<z.ZodArray<z.ZodString>>;
+    json: z.ZodOptional<z.ZodUnion<readonly [z.ZodBoolean, z.ZodEnum<{
+        relaxed: "relaxed";
+        canonical: "canonical";
+    }>]>>;
+    oidcDumpTokens: z.ZodOptional<z.ZodUnion<readonly [z.ZodBoolean, z.ZodEnum<{
+        redacted: "redacted";
+        "include-secrets": "include-secrets";
+    }>]>>;
+    browser: z.ZodOptional<z.ZodUnion<readonly [z.ZodLiteral<false>, z.ZodString]>>;
+}, z.core.$strip>;
 
 // (No @packageDocumentation comment for this package)
 

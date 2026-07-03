@@ -37,7 +37,7 @@ export class ListCollectionsTool extends MongoDBToolBase {
                 content: [
                     {
                         type: "text",
-                        text: `Found 0 collections for database "${database}". To create a collection, use the "create-collection" tool.`,
+                        text: `Found 0 collections for the requested database. To create a collection, use the "create-collection" tool.`,
                     },
                 ],
                 structuredContent: {
@@ -49,8 +49,8 @@ export class ListCollectionsTool extends MongoDBToolBase {
 
         return {
             content: formatUntrustedData(
-                `Found ${collections.length} collections for database "${database}".`,
-                JSON.stringify(collections)
+                `Found ${collections.length} collections in the requested database.`,
+                JSON.stringify({ database, collections })
             ),
             structuredContent: {
                 collections,

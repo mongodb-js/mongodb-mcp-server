@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
 import { type ToolArgs, type ToolResult } from "@mongodb-js/mcp-core";
-import type { OperationType } from "@mongodb-js/mcp-types";
+import type { OperationType, IndexMetadata } from "@mongodb-js/mcp-types";
 import { IndexDirectionSchema, modelsSupportingAutoEmbedIndexes } from "../../mongodbSchemas.js";
 
 const CreateIndexOutputSchema = {
@@ -300,6 +300,16 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
                 indexName: indexes[0] ?? "",
                 indexType: definition.type,
             },
+        };
+    }
+
+    protected override resolveTelemetryMetadata(
+        args: ToolArgs<typeof this.argsShape>,
+        { result }: { result: ToolResult<typeof CreateIndexOutputSchema> }
+    ): IndexMetadata {
+        return {
+            ...super.resolveTelemetryMetadata(args, { result }),
+            index_type: result.structuredContent?.indexType,
         };
     }
 }

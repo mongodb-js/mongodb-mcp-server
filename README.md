@@ -32,16 +32,13 @@ A Model Context Protocol server for interacting with MongoDB Databases and Mongo
 
 ## Prerequisites
 
+> [!NOTE]
+> Node 20.x support is deprecated and will be removed in a future release. Please upgrade to Node 22.13 or later. See https://nodejs.org/en/blog/migrations/v20-to-v22 for migration details.
+
 - Node.js
-  - At least 20.19.0
-  - When using v22 then at least v22.12.0
-  - Otherwise any version 23+
+  - At least v22.13.0. Check with `node -v`.
 
-```shell
-node -v
-```
-
-- A MongoDB connection string or Atlas API credentials, **_the Server will not start unless configured_**.
+- A MongoDB connection string or Atlas API credentials.
   - **_Service Accounts Atlas API credentials_** are required to use the Atlas tools. You can create a service account in MongoDB Atlas and use its credentials for authentication. See [Atlas API Access](#atlas-api-access) for more details.
   - If you have a MongoDB connection string, you can use it directly to connect to your MongoDB instance.
 
@@ -363,17 +360,20 @@ For more information about configuring OpenCode as an MCP client, including the 
 
 - `atlas-connect-cluster` - Connect to MongoDB Atlas cluster
 - `atlas-create-access-list` - Allow Ip/CIDR ranges to access your MongoDB Atlas clusters.
+- `atlas-create-cluster` - Create a MongoDB Atlas cluster (M10–M80, replica set or single shard). Compute autoscaling is enabled by default: min instance size is set to the selected instance size, max is set two tiers above. Disk autoscaling is always enabled. The tool returns immediately, use the atlas-inspect-cluster tool to poll the cluster state for readiness (state: IDLE). Connection strings are unavailable until the cluster reaches IDLE state.
 - `atlas-create-db-user` - Create an MongoDB Atlas database user
 - `atlas-create-free-cluster` - Create a free MongoDB Atlas cluster
 - `atlas-create-project` - Create a MongoDB Atlas project
 - `atlas-get-performance-advisor` - Get MongoDB Atlas performance advisor recommendations and suggestions, which includes the operations: suggested indexes, drop index suggestions, schema suggestions, and a sample of the most recent (max 50) slow query logs
 - `atlas-inspect-access-list` - Inspect Ip/CIDR ranges with access to your MongoDB Atlas clusters.
 - `atlas-inspect-cluster` - Inspect metadata of a MongoDB Atlas cluster
-- `atlas-list-alerts` - List MongoDB Atlas alerts
+- `atlas-list-alerts` - List triggered alerts for a MongoDB Atlas project. These are alerts Atlas has raised, not the alert configurations that define them. Defaults to OPEN alerts; set status to TRACKING or CLOSED to see others.
 - `atlas-list-clusters` - List MongoDB Atlas clusters
 - `atlas-list-db-users` - List MongoDB Atlas database users
 - `atlas-list-orgs` - List MongoDB Atlas organizations
 - `atlas-list-projects` - List MongoDB Atlas projects
+- `atlas-load-sample-dataset` - Load a MongoDB sample dataset into an Atlas cluster, or check the status of a previously-initiated load. To start a new load, provide `clusterName` — the load runs asynchronously and the response includes a `jobId` and initial state. To check progress, call this tool again with `jobId` (sample dataset loads typically take 1–5 minutes). State can be WORKING, COMPLETED, or FAILED.
+- `atlas-pause-resume-cluster` - Pause or resume a dedicated (M10+) MongoDB Atlas cluster.
 - `atlas-streams-build` - Create Atlas Stream Processing resources. Use this tool for 'set up a Kafka pipeline', 'create a workspace', 'add a connection', or 'deploy a processor'. Use resource='workspace' to create a new workspace (specify cloud provider, region, and tier). Use resource='connection' to add a data source or sink to an existing workspace. Use resource='processor' to deploy a stream processor with a pipeline. Use resource='privatelink' to set up private networking. Typical workflow: create workspace → add connections → deploy processor.
 - `atlas-streams-discover` - Discover and inspect Atlas Stream Processing resources. Also use for 'why is my processor failing', 'what workspaces do I have', 'show processor stats', or 'check processor health'. Use 'list-workspaces' to see all workspaces in a project. Use inspect actions for details on a specific resource. Use 'diagnose-processor' for a combined health report including state, stats, connection health, and recent errors. Use 'get-networking' for PrivateLink and account details.
 - `atlas-streams-manage` - Manage Atlas Stream Processing resources: start/stop processors, modify pipelines, update configurations. Also use for 'change the pipeline', 'scale up my processor', or 'update my workspace tier'. Common workflow: action='stop-processor' → action='modify-processor' → action='start-processor'. Use `atlas-streams-discover` with action 'inspect-processor' to check state before managing.
@@ -425,6 +425,7 @@ The MongoDB MCP Server can be configured using multiple methods, with the follow
 | `MDB_MCP_ATLAS_TEMPORARY_DATABASE_USER_LIFETIME_MS` / `--atlasTemporaryDatabaseUserLifetimeMs` | `14400000`                                                                                                                                         | Time in milliseconds that temporary database users created when connecting to MongoDB Atlas clusters will remain active before being automatically deleted.                                              |
 | `MDB_MCP_CONFIRMATION_REQUIRED_TOOLS` / `--confirmationRequiredTools`                          | `"atlas-create-access-list,atlas-create-db-user,drop-database,drop-collection,delete-many,drop-index,atlas-streams-manage,atlas-streams-teardown"` | Comma separated values of tool names that require user confirmation before execution. Requires the client to support elicitation.                                                                        |
 | `MDB_MCP_CONNECTION_STRING` / `--connectionString`                                             | `<not set>`                                                                                                                                        | MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data.                                              |
+| `MDB_MCP_DISABLE_SERVER_SIDE_JS` / `--disableServerSideJs`                                     | `true`                                                                                                                                             | When set to true, disallows the use of server-side JavaScript operators (such as $where, $function, and $accumulator) in query filters and aggregation pipelines.                                        |
 | `MDB_MCP_DISABLED_TOOLS` / `--disabledTools`                                                   | `""`                                                                                                                                               | Comma separated values of tool names, operation types, and/or categories of tools that will be disabled.                                                                                                 |
 | `MDB_MCP_DRY_RUN` / `--dryRun`                                                                 | `false`                                                                                                                                            | When true, runs the server in dry mode: dumps configuration and enabled tools, then exits without starting the server.                                                                                   |
 | `MDB_MCP_EXPORT_CLEANUP_INTERVAL_MS` / `--exportCleanupIntervalMs`                             | `120000`                                                                                                                                           | Time in milliseconds between export cleanup cycles that remove expired export files.                                                                                                                     |
@@ -836,10 +837,47 @@ npx -y mongodb-mcp-server@latest --logPath=/path/to/logs --readOnly --indexCheck
 
 ### Proxy Support
 
-The MCP Server will detect typical PROXY environment variables and use them for
-connecting to the Atlas API, your MongoDB Cluster, or any other external calls
-to third-party services like OID Providers. The behaviour is the same as what
-`mongosh` does, so the same settings will work in the MCP Server.
+The MCP Server detects standard proxy environment variables and uses them for supported
+outbound connections, including the Atlas Administration API, MongoDB cluster connections,
+OIDC identity providers, and the MongoDB Assistant. The behaviour matches `mongosh`
+(both rely on [`@mongodb-js/devtools-proxy-support`](https://www.npmjs.com/package/@mongodb-js/devtools-proxy-support)),
+so any proxy configuration that works with `mongosh` also works here.
+
+#### Environment variables
+
+Set the relevant variable before starting the server. The conventional `*_PROXY`
+variables are honored:
+
+| Variable      | Purpose                                                     |
+| ------------- | ----------------------------------------------------------- |
+| `HTTPS_PROXY` | Proxy used for HTTPS requests (Atlas API, OIDC, Assistant)  |
+| `HTTP_PROXY`  | Proxy used for plain HTTP requests                          |
+| `ALL_PROXY`   | Fallback proxy used for all protocols                       |
+| `NO_PROXY`    | Comma-separated list of hosts/domains that bypass the proxy |
+
+```shell
+# Route outbound traffic through a corporate proxy, except internal hosts
+export HTTPS_PROXY="http://proxy.example.com:8080"
+export NO_PROXY="localhost,127.0.0.1,*.internal.example.com"
+```
+
+#### Proxy in the connection string
+
+For the MongoDB cluster connection specifically, you can configure a SOCKS5 proxy
+directly in the connection string instead of using environment variables:
+
+```
+mongodb+srv://<host>/?proxyHost=127.0.0.1&proxyPort=1080&proxyUsername=user&proxyPassword=pass
+```
+
+Supported parameters: `proxyHost`, `proxyPort`, `proxyUsername`, `proxyPassword`.
+
+#### Certificate authorities
+
+For the HTTP(S) requests handled by `@mongodb-js/devtools-proxy-support` (the Atlas API,
+OIDC, and the MongoDB Assistant), the operating system's certificate store is trusted in
+addition to the bundled CAs — the same way `mongosh` does — so corporate root certificates
+installed at the OS level are picked up automatically.
 
 ## 🚀Deploy on Public Clouds
 

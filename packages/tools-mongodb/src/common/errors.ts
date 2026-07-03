@@ -7,6 +7,7 @@ export const ErrorCodes = {
     AtlasVectorSearchIndexNotFound: 1_000_006,
     AtlasVectorSearchInvalidQuery: 1_000_007,
     InvalidPipeline: 1_000_008,
+    ForbiddenServerSideJS: 1_000_009,
 } as const;
 
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

@@ -7,10 +7,7 @@ import {
 import { ConsoleLogger } from "@mongodb-js/mcp-logging";
 import { Keychain } from "@mongodb-js/mcp-core";
 import { describe, it } from "vitest";
-
-function sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
+import { sleep } from "../src/common/managedTimeout.js";
 
 function isOlderThanTwoHours(date: string): boolean {
     const twoHoursInMs = 2 * 60 * 60 * 1000;

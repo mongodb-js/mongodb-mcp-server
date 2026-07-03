@@ -251,7 +251,7 @@ describe("createSessionConfig (via createServerForRequest override)", () => {
         it("should successfully initialize server with modified config and serve requests", async () => {
             const result = await createConfigModifyingRunner(defaultTestConfig, async (config) => {
                 // Simulate async config modification
-                await new Promise((resolve) => setTimeout(resolve, 10));
+                await sleep(10);
                 return {
                     ...config,
                     readOnly: true, // Enable read-only mode

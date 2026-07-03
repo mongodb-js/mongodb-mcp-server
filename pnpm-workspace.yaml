@@ -1,2 +1,18 @@
 packages:
   - "packages/*"
+  - "tests/browser"
+allowBuilds:
+  "@modelcontextprotocol/ext-apps": false
+  braintrust: true
+  core-js: false
+  cpu-features: true
+  esbuild: true
+  kerberos: true
+  macos-export-certificate-and-key: true
+  mongodb-client-encryption: true
+  os-dns-native: true
+  protobufjs: true
+  ssh2: true
+  win-export-certificate-and-key: true
+minimumReleaseAgeExclude:
+  - mongodb-runner@6.7.13

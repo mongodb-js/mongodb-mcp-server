@@ -77,7 +77,7 @@ export type { Secret } from "mongodb-redact";
 export { Elicitation } from "@mongodb-js/mcp-core";
 export { applyConfigOverrides, ConfigOverrideError, getConfigMeta, nameToConfigKey } from "@mongodb-js/mcp-cli";
 export { onlyStricterLogLevelOverride } from "@mongodb-js/mcp-cli";
-export { SessionStore, type ISessionStore, type SessionStoreConstructorArgs } from "@mongodb-js/mcp-core";
+export { SessionStore, SessionRejectedError, type ISessionStore, type SessionStoreConstructorArgs } from "@mongodb-js/mcp-core";
 export type { CloseableTransport, SessionCloseReason } from "@mongodb-js/mcp-types";
 export { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 export { DeviceId } from "@mongodb-js/mcp-tools-mongodb";

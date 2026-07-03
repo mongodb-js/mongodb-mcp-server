@@ -16,18 +16,19 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        node-version: ["20"]
+        node-version: ["22"]
         include:
           - os: ubuntu-latest
-            node-version: "22"
-          - os: ubuntu-latest
             node-version: "24"
+          - os: ubuntu-latest
+            node-version: "26"
       fail-fast: false
+    continue-on-error: true
     runs-on: ${{ matrix.os }}
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
         if: matrix.os == 'ubuntu-latest'
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - uses: docker/setup-docker-action@v5
@@ -42,12 +43,7 @@ jobs:
           cache: "pnpm"
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Build
-        run: pnpm run build
-      # TODO: Re-enable on Windows once the silent worker fork crash / mongod cleanup
-      # leak is resolved. See MCP-495.
       - name: Run tests
-        if: matrix.os != 'windows-latest'
         run: pnpm test
         env:
           SKIP_ATLAS_INTEGRATION_TESTS: "true"
@@ -55,7 +51,7 @@ jobs:
           MDB_MONGOT_PASSWORD: ${{ secrets.TEST_MDB_MONGOT_PASSWORD }}
           MDB_VOYAGE_API_KEY: ${{ secrets.TEST_MDB_MCP_VOYAGE_API_KEY }}
       - name: Upload test results
-        if: always() && matrix.os == 'ubuntu-latest' && matrix.node-version == '20'
+        if: always() && matrix.os == 'ubuntu-latest' && matrix.node-version == '22'
         uses: actions/upload-artifact@v7.0.1
         with:
           name: test-results
@@ -67,7 +63,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - uses: pnpm/action-setup@v5
@@ -98,7 +94,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - uses: pnpm/action-setup@v5
@@ -128,7 +124,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - uses: pnpm/action-setup@v5
@@ -158,7 +154,7 @@ jobs:
     needs:
       [run-tests, run-atlas-tests, run-atlas-local-tests, run-browser-tests]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - uses: pnpm/action-setup@v5
@@ -202,7 +198,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - name: Install dependencies

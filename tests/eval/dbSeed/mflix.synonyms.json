@@ -1,0 +1,26 @@
+[
+  {
+    "mappingType": "equivalent",
+    "synonyms": [
+      "doctor",
+      "physician",
+      "scientist"
+    ]
+  },
+  {
+    "mappingType": "equivalent",
+    "synonyms": [
+      "war",
+      "battle",
+      "conflict"
+    ]
+  },
+  {
+    "mappingType": "equivalent",
+    "synonyms": [
+      "experiment",
+      "trial",
+      "test"
+    ]
+  }
+]

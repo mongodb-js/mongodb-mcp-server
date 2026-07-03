@@ -73,7 +73,8 @@ describe("StreamsBuildTool", () => {
 
     const baseArgs = { projectId: "proj1", workspaceName: "ws1" };
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    const exec = (args: Record<string, unknown>) => tool["execute"](args as never);
+    const exec = (args: Record<string, unknown>) =>
+        tool["execute"](args as never, { signal: new AbortController().signal } as never);
 
     describe("createWorkspace", () => {
         it("should create workspace with correct provider/region/tier", async () => {
@@ -85,14 +86,17 @@ describe("StreamsBuildTool", () => {
                 tier: "SP30",
             });
 
-            expect(mockApiClient.withStreamSampleConnections).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1" } },
-                body: {
-                    name: "ws1",
-                    dataProcessRegion: { cloudProvider: "AWS", region: "VIRGINIA_USA" },
-                    streamConfig: { tier: "SP30" },
+            expect(mockApiClient.withStreamSampleConnections).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1" } },
+                    body: {
+                        name: "ws1",
+                        dataProcessRegion: { cloudProvider: "AWS", region: "VIRGINIA_USA" },
+                        streamConfig: { tier: "SP30" },
+                    },
                 },
-            });
+                expect.anything()
+            );
             expect((result.content[0] as { text: string }).text).toContain("ws1");
             expect((result.content[0] as { text: string }).text).toContain("AWS/VIRGINIA_USA");
         });
@@ -110,7 +114,8 @@ describe("StreamsBuildTool", () => {
                     body: expect.objectContaining({
                         streamConfig: { tier: "SP10" },
                     }),
-                })
+                }),
+                expect.anything()
             );
         });
 
@@ -166,15 +171,21 @@ describe("StreamsBuildTool", () => {
                 dlq: { connectionName: "sink", db: "db1", coll: "dlq" },
             });
 
-            expect(mockApiClient.createStreamProcessor).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1", tenantName: "ws1" } },
-                body: {
-                    name: "proc1",
-                    pipeline,
-                    options: { dlq: { connectionName: "sink", db: "db1", coll: "dlq" } },
+            expect(mockApiClient.createStreamProcessor).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1", tenantName: "ws1" } },
+                    body: {
+                        name: "proc1",
+                        pipeline,
+                        options: { dlq: { connectionName: "sink", db: "db1", coll: "dlq" } },
+                    },
                 },
-            });
+                expect.anything()
+            );
             expect((result.content[0] as { text: string }).text).toContain("proc1");
+            expect(result.structuredContent).toEqual({
+                resource: "processor",
+            });
         });
 
         it("should throw when processorName is missing", async () => {
@@ -218,6 +229,9 @@ describe("StreamsBuildTool", () => {
             expect(text).toContain("created and started");
             expect(text).toContain("Billing");
             expect(text).toContain("stop-processor");
+            expect(result.structuredContent).toEqual({
+                resource: "processor",
+            });
         });
     });
 
@@ -242,7 +256,8 @@ describe("StreamsBuildTool", () => {
                         name: "kafka1",
                         type: "Kafka",
                     }),
-                })
+                }),
+                expect.anything()
             );
         });
 
@@ -263,7 +278,8 @@ describe("StreamsBuildTool", () => {
                         clusterName: "my-cluster",
                         dbRoleToExecute: { role: "readWriteAnyDatabase", type: "BUILT_IN" },
                     }),
-                })
+                }),
+                expect.anything()
             );
         });
 
@@ -284,7 +300,8 @@ describe("StreamsBuildTool", () => {
                         aws: expect.objectContaining({ roleArn: "arn:aws:iam::123456789:role/my-role" }),
                         type: "S3",
                     }),
-                })
+                }),
+                expect.anything()
             );
         });
 
@@ -363,6 +380,9 @@ describe("StreamsBuildTool", () => {
             const text = (result.content[0] as { text: string }).text;
             expect(text).toContain("PENDING");
             expect(text).toContain("PrivateLink");
+            expect(result.structuredContent).toEqual({
+                resource: "connection",
+            });
         });
     });
 
@@ -378,7 +398,8 @@ describe("StreamsBuildTool", () => {
             expect(mockApiClient.createStreamConnection).toHaveBeenCalledWith(
                 expect.objectContaining({
                     body: expect.objectContaining({ name: "sample1", type: "Sample" }),
-                })
+                }),
+                expect.anything()
             );
         });
     });
@@ -400,7 +421,8 @@ describe("StreamsBuildTool", () => {
                         name: "https1",
                         type: "Https",
                     }),
-                })
+                }),
+                expect.anything()
             );
         });
 
@@ -439,7 +461,8 @@ describe("StreamsBuildTool", () => {
                         aws: expect.objectContaining({ roleArn: "arn:aws:iam::123:role/my-role" }),
                         type: "AWSKinesisDataStreams",
                     }),
-                })
+                }),
+                expect.anything()
             );
         });
 
@@ -478,7 +501,8 @@ describe("StreamsBuildTool", () => {
                         aws: expect.objectContaining({ roleArn: "arn:aws:iam::456:role/lambda-role" }),
                         type: "AWSLambda",
                     }),
-                })
+                }),
+                expect.anything()
             );
         });
     });
@@ -507,7 +531,8 @@ describe("StreamsBuildTool", () => {
                         provider: "CONFLUENT",
                         schemaRegistryUrls: ["https://sr.example.com"],
                     }),
-                })
+                }),
+                expect.anything()
             );
         });
 
@@ -532,7 +557,8 @@ describe("StreamsBuildTool", () => {
                     body: expect.objectContaining({
                         schemaRegistryUrls: ["https://sr.example.com"],
                     }),
-                })
+                }),
+                expect.anything()
             );
         });
 
@@ -559,7 +585,8 @@ describe("StreamsBuildTool", () => {
                             password: "pass",
                         }),
                     }),
-                })
+                }),
+                expect.anything()
             );
         });
 
@@ -585,7 +612,8 @@ describe("StreamsBuildTool", () => {
                             type: "SASL_INHERIT",
                         }),
                     }),
-                })
+                }),
+                expect.anything()
             );
             expect(mockElicitation.requestInput).not.toHaveBeenCalled();
         });
@@ -807,7 +835,7 @@ describe("StreamsBuildTool", () => {
 
     describe("createPrivateLink", () => {
         it("should create AWS CONFLUENT PrivateLink with correct params", async () => {
-            await exec({
+            const result = await exec({
                 ...baseArgs,
                 resource: "privatelink",
                 privateLinkConfig: {
@@ -820,16 +848,22 @@ describe("StreamsBuildTool", () => {
                 },
             });
 
-            expect(mockApiClient.createPrivateLinkConnection).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1" } },
-                body: {
-                    provider: "AWS",
-                    region: "us-east-1",
-                    vendor: "CONFLUENT",
-                    serviceEndpointId: "com.amazonaws.vpce.us-east-1.vpce-svc-abc123",
-                    dnsDomain: "example.com",
-                    dnsSubDomain: ["sub"],
+            expect(mockApiClient.createPrivateLinkConnection).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1" } },
+                    body: {
+                        provider: "AWS",
+                        region: "us-east-1",
+                        vendor: "CONFLUENT",
+                        serviceEndpointId: "com.amazonaws.vpce.us-east-1.vpce-svc-abc123",
+                        dnsDomain: "example.com",
+                        dnsSubDomain: ["sub"],
+                    },
                 },
+                expect.anything()
+            );
+            expect(result.structuredContent).toEqual({
+                resource: "privatelink",
             });
         });
 
@@ -845,15 +879,18 @@ describe("StreamsBuildTool", () => {
                 },
             });
 
-            expect(mockApiClient.createPrivateLinkConnection).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1" } },
-                body: {
-                    provider: "AWS",
-                    region: "us-east-1",
-                    vendor: "S3",
-                    serviceEndpointId: "com.amazonaws.us-east-1.s3",
+            expect(mockApiClient.createPrivateLinkConnection).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1" } },
+                    body: {
+                        provider: "AWS",
+                        region: "us-east-1",
+                        vendor: "S3",
+                        serviceEndpointId: "com.amazonaws.us-east-1.s3",
+                    },
                 },
-            });
+                expect.anything()
+            );
         });
 
         it("should create AWS MSK PrivateLink", async () => {
@@ -867,14 +904,17 @@ describe("StreamsBuildTool", () => {
                 },
             });
 
-            expect(mockApiClient.createPrivateLinkConnection).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1" } },
-                body: {
-                    provider: "AWS",
-                    vendor: "MSK",
-                    arn: "arn:aws:kafka:us-east-1:123456789012:cluster/my-msk/abc-123",
+            expect(mockApiClient.createPrivateLinkConnection).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1" } },
+                    body: {
+                        provider: "AWS",
+                        vendor: "MSK",
+                        arn: "arn:aws:kafka:us-east-1:123456789012:cluster/my-msk/abc-123",
+                    },
                 },
-            });
+                expect.anything()
+            );
         });
 
         it("should create AWS KINESIS PrivateLink", async () => {
@@ -889,15 +929,18 @@ describe("StreamsBuildTool", () => {
                 },
             });
 
-            expect(mockApiClient.createPrivateLinkConnection).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1" } },
-                body: {
-                    provider: "AWS",
-                    region: "us-east-1",
-                    vendor: "KINESIS",
-                    serviceEndpointId: "com.amazonaws.vpce.us-east-1.vpce-svc-abc123",
+            expect(mockApiClient.createPrivateLinkConnection).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1" } },
+                    body: {
+                        provider: "AWS",
+                        region: "us-east-1",
+                        vendor: "KINESIS",
+                        serviceEndpointId: "com.amazonaws.vpce.us-east-1.vpce-svc-abc123",
+                    },
                 },
-            });
+                expect.anything()
+            );
         });
 
         it("should create AZURE EVENTHUB PrivateLink", async () => {
@@ -914,17 +957,20 @@ describe("StreamsBuildTool", () => {
                 },
             });
 
-            expect(mockApiClient.createPrivateLinkConnection).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1" } },
-                body: {
-                    provider: "AZURE",
-                    vendor: "EVENTHUB",
-                    region: "eastus2",
-                    dnsDomain: "mynamespace.servicebus.windows.net",
-                    serviceEndpointId:
-                        "/subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.EventHub/namespaces/mynamespace",
+            expect(mockApiClient.createPrivateLinkConnection).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1" } },
+                    body: {
+                        provider: "AZURE",
+                        vendor: "EVENTHUB",
+                        region: "eastus2",
+                        dnsDomain: "mynamespace.servicebus.windows.net",
+                        serviceEndpointId:
+                            "/subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.EventHub/namespaces/mynamespace",
+                    },
                 },
-            });
+                expect.anything()
+            );
         });
 
         it("should create AZURE CONFLUENT PrivateLink", async () => {
@@ -940,16 +986,19 @@ describe("StreamsBuildTool", () => {
                 },
             });
 
-            expect(mockApiClient.createPrivateLinkConnection).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1" } },
-                body: {
-                    provider: "AZURE",
-                    vendor: "CONFLUENT",
-                    region: "eastus2",
-                    dnsDomain: "pkc-abc123.eastus2.azure.confluent.cloud",
-                    azureResourceIds: ["/subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.Confluent/abc"],
+            expect(mockApiClient.createPrivateLinkConnection).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1" } },
+                    body: {
+                        provider: "AZURE",
+                        vendor: "CONFLUENT",
+                        region: "eastus2",
+                        dnsDomain: "pkc-abc123.eastus2.azure.confluent.cloud",
+                        azureResourceIds: ["/subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.Confluent/abc"],
+                    },
                 },
-            });
+                expect.anything()
+            );
         });
 
         it("should create GCP CONFLUENT PrivateLink", async () => {
@@ -965,16 +1014,19 @@ describe("StreamsBuildTool", () => {
                 },
             });
 
-            expect(mockApiClient.createPrivateLinkConnection).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1" } },
-                body: {
-                    provider: "GCP",
-                    vendor: "CONFLUENT",
-                    region: "us-central1",
-                    dnsDomain: "pkc-abc123.us-central1.gcp.confluent.cloud",
-                    gcpServiceAttachmentUris: ["projects/p1/regions/us-central1/serviceAttachments/att-1"],
+            expect(mockApiClient.createPrivateLinkConnection).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1" } },
+                    body: {
+                        provider: "GCP",
+                        vendor: "CONFLUENT",
+                        region: "us-central1",
+                        dnsDomain: "pkc-abc123.us-central1.gcp.confluent.cloud",
+                        gcpServiceAttachmentUris: ["projects/p1/regions/us-central1/serviceAttachments/att-1"],
+                    },
                 },
-            });
+                expect.anything()
+            );
         });
 
         it("should throw when privateLinkConfig is missing", async () => {
@@ -1008,15 +1060,18 @@ describe("StreamsBuildTool", () => {
                 },
             });
 
-            expect(mockApiClient.createPrivateLinkConnection).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1" } },
-                body: {
-                    provider: "AWS",
-                    region: "us-east-1",
-                    vendor: "S3",
-                    serviceEndpointId: "com.amazonaws.us-east-1.s3",
+            expect(mockApiClient.createPrivateLinkConnection).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1" } },
+                    body: {
+                        provider: "AWS",
+                        region: "us-east-1",
+                        vendor: "S3",
+                        serviceEndpointId: "com.amazonaws.us-east-1.s3",
+                    },
                 },
-            });
+                expect.anything()
+            );
         });
     });
 
@@ -1055,6 +1110,43 @@ describe("StreamsBuildTool", () => {
                     ],
                 })
             ).rejects.toThrow("workspaceName is required");
+        });
+    });
+
+    describe("structuredContent", () => {
+        it("returns workspace step outcome when a workspace is created", async () => {
+            const result = await exec({
+                ...baseArgs,
+                resource: "workspace",
+                cloudProvider: "AWS",
+                region: "VIRGINIA_USA",
+                tier: "SP30",
+            });
+
+            expect(result.structuredContent).toEqual({
+                resource: "workspace",
+            });
+        });
+
+        it("returns processor step outcome when a processor is deployed with autoStart", async () => {
+            mockApiClient.listStreamConnections!.mockResolvedValue({
+                results: [{ name: "src" }, { name: "sink" }],
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                resource: "processor",
+                processorName: "proc1",
+                autoStart: true,
+                pipeline: [
+                    { $source: { connectionName: "src" } },
+                    { $merge: { into: { connectionName: "sink", db: "db1", coll: "c1" } } },
+                ],
+            });
+
+            expect(result.structuredContent).toEqual({
+                resource: "processor",
+            });
         });
     });
 });

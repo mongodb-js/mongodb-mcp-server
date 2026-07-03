@@ -26,6 +26,7 @@ const expectedDefaults = {
     telemetry: "enabled",
     readOnly: false,
     indexCheck: false,
+    disableServerSideJs: true,
     deepInspect: true,
     confirmationRequiredTools: [
         "atlas-create-access-list",
