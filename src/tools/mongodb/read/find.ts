@@ -65,7 +65,7 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
         try {
             const provider = await this.ensureConnected();
 
-            this.assertMqlIsAllowed(filter);
+            this.assertMqlIsAllowed(filter, projection);
 
             // Check if find operation uses an index if enabled
             if (this.config.indexCheck) {
