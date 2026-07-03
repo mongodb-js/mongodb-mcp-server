@@ -56,12 +56,12 @@ export class CollectionIndexesTool extends MongoDBToolBase {
         return {
             content: [
                 ...formatUntrustedData(
-                    `Found ${classicIndexes.length} classic indexes in the collection "${collection}":`,
+                    `Found ${classicIndexes.length} classic indexes in the requested collection:`,
                     JSON.stringify(classicIndexes)
                 ),
                 ...(searchIndexes.length > 0
                     ? formatUntrustedData(
-                          `Found ${searchIndexes.length} search and vector search indexes in the collection "${collection}":`,
+                          `Found ${searchIndexes.length} search and vector search indexes in the requested collection:`,
                           JSON.stringify(searchIndexes)
                       )
                     : []),
@@ -80,7 +80,7 @@ export class CollectionIndexesTool extends MongoDBToolBase {
             return {
                 content: [
                     {
-                        text: `The indexes for "${args.database}.${args.collection}" cannot be determined because the collection does not exist.`,
+                        text: "The indexes for the requested namespace cannot be determined because the collection does not exist.",
                         type: "text",
                     },
                 ],

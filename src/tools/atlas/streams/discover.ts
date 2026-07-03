@@ -417,7 +417,7 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         const output = format === "concise" ? conciseWorkspace : data;
 
         return {
-            content: formatUntrustedData(`Workspace '${workspaceName}' details:`, JSON.stringify(output, null, 2)),
+            content: formatUntrustedData("Details for the requested workspace:", JSON.stringify(output, null, 2)),
             structuredContent: { workspace: conciseWorkspace },
         };
     }
@@ -458,7 +458,7 @@ export class StreamsDiscoverTool extends StreamsToolBase {
 
         return {
             content: formatUntrustedData(
-                `Found ${data.results.length} connection(s) in workspace '${workspaceName}':`,
+                `Found ${data.results.length} connection(s) in the requested workspace:`,
                 JSON.stringify(connections, null, 2)
             ),
             structuredContent: { connections: conciseConnections },
@@ -478,12 +478,12 @@ export class StreamsDiscoverTool extends StreamsToolBase {
             context
         )) as Record<string, unknown>;
 
-        let header = `Connection '${connectionName}' in workspace '${workspaceName}':`;
+        let header = "Details for the requested connection:";
 
         if (data.type === "Cluster" && typeof data.clusterName === "string" && data.clusterName !== data.name) {
             header +=
-                `\n\nNote: This connection is named '${String(data.name)}' but targets cluster '${data.clusterName}'. ` +
-                `Use the connection name '${String(data.name)}' (not the cluster name) when referencing it in pipeline stages.`;
+                "\n\nNote: This connection's name differs from its target cluster name. " +
+                "Use the connection name (not the cluster name) when referencing it in pipeline stages.";
         }
 
         const connection = toConnectionInspect(data);
@@ -534,7 +534,7 @@ export class StreamsDiscoverTool extends StreamsToolBase {
 
         return {
             content: formatUntrustedData(
-                `Found ${data.results.length} processor(s) in workspace '${workspaceName}':`,
+                `Found ${data.results.length} processor(s) in the requested workspace:`,
                 JSON.stringify(processors, null, 2)
             ),
             structuredContent: { processors: conciseProcessors },
@@ -556,10 +556,7 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         const structuredContent = buildProcessorStructuredContent(data, { includePipeline: true });
 
         return {
-            content: formatUntrustedData(
-                `Processor '${processorName}' in workspace '${workspaceName}':`,
-                JSON.stringify(data, null, 2)
-            ),
+            content: formatUntrustedData("Details for the requested processor:", JSON.stringify(data, null, 2)),
             ...(Object.keys(structuredContent).length > 0 && { structuredContent }),
         };
     }
@@ -664,10 +661,7 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         }
 
         return {
-            content: formatUntrustedData(
-                `Diagnostic report for processor '${processorName}' in workspace '${workspaceName}':`,
-                sections.join("\n\n")
-            ),
+            content: formatUntrustedData("Diagnostic report for the requested processor:", sections.join("\n\n")),
             ...(Object.keys(structuredContent).length > 0 && { structuredContent }),
         };
     }
