@@ -185,3 +185,61 @@ describe("SessionStore metrics", () => {
         expect(values.find((v) => v.labels.reason === "server_stop")?.value).toBe(1);
     });
 });
+
+describe("SessionStore.hasSession", () => {
+    let store: SessionStore;
+
+    beforeEach(() => {
+        store = new SessionStore({
+            options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000 },
+            logger: createMockLogger(),
+            metrics: new MockMetrics(),
+        });
+    });
+
+    it("returns whether the session exists", async () => {
+        expect(store.hasSession("s1")).toBe(false);
+
+        await store.addSession({
+            sessionId: "s1",
+            transport: createMockTransport(),
+            logger: createMockLogger(),
+            session: createMockSession(),
+        });
+
+        expect(store.hasSession("s1")).toBe(true);
+
+        await store.closeSession({ sessionId: "s1" });
+        expect(store.hasSession("s1")).toBe(false);
+    });
+
+    it("does not reset the idle timeout, unlike getSession", async () => {
+        vi.useFakeTimers();
+        try {
+            await store.addSession({
+                sessionId: "probed",
+                transport: createMockTransport(),
+                logger: createMockLogger(),
+                session: createMockSession(),
+            });
+            await store.addSession({
+                sessionId: "accessed",
+                transport: createMockTransport(),
+                logger: createMockLogger(),
+                session: createMockSession(),
+            });
+
+            await vi.advanceTimersByTimeAsync(30_000);
+            store.hasSession("probed");
+            await store.getSession("accessed");
+            await vi.advanceTimersByTimeAsync(30_001);
+
+            // "probed" idled out 60s after creation; "accessed" got a fresh
+            // 60s window when getSession reset its timeout.
+            expect(store.hasSession("probed")).toBe(false);
+            expect(store.hasSession("accessed")).toBe(true);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+});

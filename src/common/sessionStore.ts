@@ -108,6 +108,18 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         return Promise.resolve(this.sessions[sessionId]?.transport);
     }
 
+    /**
+     * Returns whether a session with the given id exists in this store.
+     *
+     * Unlike `getSession`, this does not reset the session's idle
+     * timeout, so it is safe to call when probing on behalf of requests that
+     * may not be served (e.g. authorization checks) without extending the
+     * session's lifetime.
+     */
+    hasSession(sessionId: string): boolean {
+        return this.sessions[sessionId] !== undefined;
+    }
+
     private resetTimeout(sessionId: string): void {
         const session = this.sessions[sessionId];
         if (!session) {

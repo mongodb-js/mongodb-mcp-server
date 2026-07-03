@@ -1005,6 +1005,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
     }): Promise<void>;
     // (undocumented)
     getSession(sessionId: string, _headers?: Record<string, unknown>): Promise<T | undefined>;
+    hasSession(sessionId: string): boolean;
 }
 
 // @public
