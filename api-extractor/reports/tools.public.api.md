@@ -652,7 +652,7 @@ export class CreateProjectTool extends AtlasToolBase {
     // (undocumented)
     argsShape: {
         projectName: z.ZodOptional<z.ZodString>;
-        organizationId: z.ZodOptional<z.ZodString>;
+        orgId: z.ZodOptional<z.ZodString>;
     };
     // (undocumented)
     description: string;
@@ -663,7 +663,7 @@ export class CreateProjectTool extends AtlasToolBase {
     // (undocumented)
     outputSchema: {
         projectName: z.ZodString;
-        organizationId: z.ZodOptional<z.ZodString>;
+        orgId: z.ZodOptional<z.ZodString>;
     };
     // (undocumented)
     static toolName: string;
