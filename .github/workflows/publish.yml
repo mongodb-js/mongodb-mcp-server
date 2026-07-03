@@ -79,7 +79,7 @@ jobs:
           set -e
 
           REMOTE_NPM_VERSION=$(npm pkg get version --prefix packages/mongodb-atlas-mcp-remote | tr -d '"')
-          REMOTE_GIT_TAG_VERSION="atlas-mcp-remote-v${REMOTE_NPM_VERSION}"
+          REMOTE_GIT_TAG_VERSION="mongodb-atlas-mcp-remote/v${REMOTE_NPM_VERSION}"
           echo "REMOTE_NPM_VERSION=${REMOTE_NPM_VERSION}" >> "$GITHUB_OUTPUT"
           echo "REMOTE_GIT_TAG_VERSION=${REMOTE_GIT_TAG_VERSION}" >> "$GITHUB_OUTPUT"
       - name: Check if atlas-mcp-remote version already exists
