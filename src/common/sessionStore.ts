@@ -9,16 +9,54 @@ import type { CloseableTransport, SessionCloseReason } from "@mongodb-js/mcp-typ
 export type { CloseableTransport, SessionCloseReason };
 
 /**
+ * Error that `ISessionStore` implementations can throw from `getSession` to
+ * reject a request (e.g. when identity validation against the request headers
+ * fails). Unlike returning `undefined`, which means the session does not exist
+ * and may trigger implicit session initialization, throwing this error fails
+ * the request without creating a session. To avoid leaking whether the
+ * session exists, the response is indistinguishable from "session not found";
+ * the error message is only logged server-side.
+ */
+export class SessionRejectedError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "SessionRejectedError";
+    }
+}
+
+/**
  * Interface for managing MCP transport sessions.
  *
  * Implement this interface to provide custom session storage and lifecycle
  * management (e.g. database-based session storage).
  */
 export interface ISessionStore<T extends CloseableTransport = CloseableTransport> {
+    /**
+     * Returns the transport for the given session id or `undefined` if the
+     * session does not exist.
+     *
+     * @param headers The headers of the incoming request. Implementations can
+     * use them to validate the caller's identity before returning the session.
+     * To reject a request for an existing session, throw a
+     * {@link SessionRejectedError} rather than returning `undefined` — the
+     * latter is treated as "session not found" and may trigger implicit
+     * session initialization.
+     */
     getSession(sessionId: string, headers?: Record<string, unknown>): Promise<T | undefined>;
+    /**
+     * Stores a newly initialized session.
+     *
+     * @param params.session The server session, exposing session-level state
+     * (e.g. the logger or the connection manager) to implementations that
+     * need it.
+     * @param params.headers The headers of the request that initiated the
+     * session (e.g. for tracing the x-request-id in logs and downstream
+     * requests).
+     */
     addSession(params: {
         sessionId: string;
         transport: T;
+        /** TODO: Remove in v2 — redundant with `session.logger`. */
         logger: LoggerBase;
         session: Session;
         headers?: Record<string, unknown>;
@@ -64,6 +102,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         }
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     async getSession(sessionId: string, _headers?: Record<string, unknown>): Promise<T | undefined> {
         this.resetTimeout(sessionId);
         return Promise.resolve(this.sessions[sessionId]?.transport);
@@ -100,13 +139,13 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
     async addSession(params: {
         sessionId: string;
         transport: T;
+        /** TODO: Remove in v2 — redundant with `session.logger`. */
         logger: LoggerBase;
         session: Session;
         headers?: Record<string, unknown>;
     }): Promise<void> {
         const { sessionId, transport, logger } = params;
-        const session = this.sessions[sessionId];
-        if (session) {
+        if (this.sessions[sessionId]) {
             throw new Error(`Session ${sessionId} already exists`);
         }
         const abortTimeout = setManagedTimeout(async () => {

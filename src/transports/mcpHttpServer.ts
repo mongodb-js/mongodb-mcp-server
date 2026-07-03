@@ -12,6 +12,7 @@ import {
     type LoggerBase,
 } from "../lib.js";
 import { ConfigOverrideError } from "../common/config/configOverrides.js";
+import { SessionRejectedError } from "../common/sessionStore.js";
 import type { CustomizableServerOptions, CustomizableSessionOptions, TransportRequestContext } from "./base.js";
 import { ExpressBasedHttpServer } from "./expressBasedHttpServer.js";
 import { requestIdAttr } from "../helpers/requestIdAttr.js";
@@ -442,6 +443,13 @@ export class MCPHttpServer<
                     message: `Error handling request: ${error instanceof Error ? error.message : String(error)}`,
                     attributes: requestIdAttr(req.headers),
                 });
+
+                if (error instanceof SessionRejectedError) {
+                    // Respond exactly as if the session doesn't exist so that
+                    // callers can't probe whether a session id is valid; the
+                    // rejection reason is only visible in the log above.
+                    return this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND);
+                }
 
                 const message = error instanceof ConfigOverrideError ? error.message : `failed to handle request`;
 

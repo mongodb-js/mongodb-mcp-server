@@ -37,22 +37,42 @@ describe("SessionStore metrics", () => {
     });
 
     it("increments sessionCreated when a session is added", async () => {
-        await store.addSession({ sessionId: "s1", transport: createMockTransport(), logger: createMockLogger(), session: createMockSession() });
+        await store.addSession({
+            sessionId: "s1",
+            transport: createMockTransport(),
+            logger: createMockLogger(),
+            session: createMockSession(),
+        });
 
         const { values } = await metrics.get("sessionCreated").get();
         expect(values[0]?.value).toBe(1);
     });
 
     it("increments sessionCreated for each new session", async () => {
-        await store.addSession({ sessionId: "s1", transport: createMockTransport(), logger: createMockLogger(), session: createMockSession() });
-        await store.addSession({ sessionId: "s2", transport: createMockTransport(), logger: createMockLogger(), session: createMockSession() });
+        await store.addSession({
+            sessionId: "s1",
+            transport: createMockTransport(),
+            logger: createMockLogger(),
+            session: createMockSession(),
+        });
+        await store.addSession({
+            sessionId: "s2",
+            transport: createMockTransport(),
+            logger: createMockLogger(),
+            session: createMockSession(),
+        });
 
         const { values } = await metrics.get("sessionCreated").get();
         expect(values[0]?.value).toBe(2);
     });
 
     it("increments sessionClosed with reason when a session is closed", async () => {
-        await store.addSession({ sessionId: "s1", transport: createMockTransport(), logger: createMockLogger(), session: createMockSession() });
+        await store.addSession({
+            sessionId: "s1",
+            transport: createMockTransport(),
+            logger: createMockLogger(),
+            session: createMockSession(),
+        });
         await store.closeSession({ sessionId: "s1", reason: "transport_closed" });
 
         const { values } = await metrics.get("sessionClosed").get();
@@ -61,8 +81,18 @@ describe("SessionStore metrics", () => {
     });
 
     it("records reason 'server_stop' when closeAllSessions is called", async () => {
-        await store.addSession({ sessionId: "s1", transport: createMockTransport(), logger: createMockLogger(), session: createMockSession() });
-        await store.addSession({ sessionId: "s2", transport: createMockTransport(), logger: createMockLogger(), session: createMockSession() });
+        await store.addSession({
+            sessionId: "s1",
+            transport: createMockTransport(),
+            logger: createMockLogger(),
+            session: createMockSession(),
+        });
+        await store.addSession({
+            sessionId: "s2",
+            transport: createMockTransport(),
+            logger: createMockLogger(),
+            session: createMockSession(),
+        });
         await store.closeAllSessions();
 
         const { values } = await metrics.get("sessionClosed").get();
@@ -73,7 +103,12 @@ describe("SessionStore metrics", () => {
     it("records reason 'idle_timeout' when session times out", async () => {
         vi.useFakeTimers();
         try {
-            await store.addSession({ sessionId: "s1", transport: createMockTransport(), logger: createMockLogger(), session: createMockSession() });
+            await store.addSession({
+                sessionId: "s1",
+                transport: createMockTransport(),
+                logger: createMockLogger(),
+                session: createMockSession(),
+            });
 
             await vi.advanceTimersByTimeAsync(60_001);
 
@@ -87,7 +122,12 @@ describe("SessionStore metrics", () => {
 
     it("does not call transport.close() when reason is transport_closed", async () => {
         const closeFn = vi.fn().mockResolvedValue(undefined);
-        await store.addSession({ sessionId: "s1", transport: { close: closeFn }, logger: createMockLogger(), session: createMockSession() });
+        await store.addSession({
+            sessionId: "s1",
+            transport: { close: closeFn },
+            logger: createMockLogger(),
+            session: createMockSession(),
+        });
         await store.closeSession({ sessionId: "s1", reason: "transport_closed" });
 
         expect(closeFn).not.toHaveBeenCalled();
@@ -96,8 +136,18 @@ describe("SessionStore metrics", () => {
     it("calls transport.close() for server-initiated close reasons", async () => {
         const closeFn1 = vi.fn().mockResolvedValue(undefined);
         const closeFn2 = vi.fn().mockResolvedValue(undefined);
-        await store.addSession({ sessionId: "s1", transport: { close: closeFn1 }, logger: createMockLogger(), session: createMockSession() });
-        await store.addSession({ sessionId: "s2", transport: { close: closeFn2 }, logger: createMockLogger(), session: createMockSession() });
+        await store.addSession({
+            sessionId: "s1",
+            transport: { close: closeFn1 },
+            logger: createMockLogger(),
+            session: createMockSession(),
+        });
+        await store.addSession({
+            sessionId: "s2",
+            transport: { close: closeFn2 },
+            logger: createMockLogger(),
+            session: createMockSession(),
+        });
 
         await store.closeSession({ sessionId: "s1", reason: "server_stop" });
         await store.closeSession({ sessionId: "s2", reason: "idle_timeout" });
@@ -107,9 +157,24 @@ describe("SessionStore metrics", () => {
     });
 
     it("tracks separate reasons independently", async () => {
-        await store.addSession({ sessionId: "s1", transport: createMockTransport(), logger: createMockLogger(), session: createMockSession() });
-        await store.addSession({ sessionId: "s2", transport: createMockTransport(), logger: createMockLogger(), session: createMockSession() });
-        await store.addSession({ sessionId: "s3", transport: createMockTransport(), logger: createMockLogger(), session: createMockSession() });
+        await store.addSession({
+            sessionId: "s1",
+            transport: createMockTransport(),
+            logger: createMockLogger(),
+            session: createMockSession(),
+        });
+        await store.addSession({
+            sessionId: "s2",
+            transport: createMockTransport(),
+            logger: createMockLogger(),
+            session: createMockSession(),
+        });
+        await store.addSession({
+            sessionId: "s3",
+            transport: createMockTransport(),
+            logger: createMockLogger(),
+            session: createMockSession(),
+        });
 
         await store.closeSession({ sessionId: "s1", reason: "transport_closed" });
         await store.closeSession({ sessionId: "s2", reason: "transport_closed" });

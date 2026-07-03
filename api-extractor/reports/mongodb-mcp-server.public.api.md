@@ -598,7 +598,6 @@ export { Histogram }
 
 // @public
 export interface ISessionStore<T extends CloseableTransport = CloseableTransport> {
-    // (undocumented)
     addSession(params: {
         sessionId: string;
         transport: T;
@@ -613,7 +612,6 @@ export interface ISessionStore<T extends CloseableTransport = CloseableTransport
         sessionId: string;
         reason?: SessionCloseReason;
     }): Promise<void>;
-    // (undocumented)
     getSession(sessionId: string, headers?: Record<string, unknown>): Promise<T | undefined>;
 }
 
@@ -973,6 +971,11 @@ export interface SessionOptions<TUserConfig extends UserConfig = UserConfig> {
     logger: CompositeLogger;
     // (undocumented)
     userConfig: TUserConfig;
+}
+
+// @public
+export class SessionRejectedError extends Error {
+    constructor(message: string);
 }
 
 // @public (undocumented)
