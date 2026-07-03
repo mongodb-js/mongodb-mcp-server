@@ -45,7 +45,7 @@ describeWithMongoDB("collectionIndexes tool", (integration) => {
         const elements = getResponseElements(response.content);
         expect(elements).toHaveLength(1);
         expect(elements[0]?.text).toEqual(
-            'The indexes for the requested namespace cannot be determined because the collection does not exist.'
+            "The indexes for the requested namespace cannot be determined because the collection does not exist."
         );
     });
 
@@ -168,7 +168,7 @@ describeWithMongoDB(
                 });
                 const responseContent = getResponseContent(response.content);
                 expect(responseContent).toContain(
-                    'The indexes for the requested namespace cannot be determined because the collection does not exist.'
+                    "The indexes for the requested namespace cannot be determined because the collection does not exist."
                 );
 
                 expect(response.structuredContent).toBeUndefined();
