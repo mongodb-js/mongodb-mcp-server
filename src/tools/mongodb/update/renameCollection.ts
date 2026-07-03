@@ -48,7 +48,7 @@ export class RenameCollectionTool extends MongoDBToolBase {
         return {
             content: [
                 {
-                    text: `Collection "${collection}" renamed to "${result.collectionName}" in database "${database}".`,
+                    text: "The collection was renamed successfully in the requested database.",
                     type: "text",
                 },
             ],
@@ -71,7 +71,7 @@ export class RenameCollectionTool extends MongoDBToolBase {
                     return {
                         content: [
                             {
-                                text: `Cannot rename "${args.database}.${args.collection}" because it doesn't exist.`,
+                                text: "Cannot rename the requested collection because it doesn't exist.",
                                 type: "text",
                             },
                         ],
@@ -87,7 +87,7 @@ export class RenameCollectionTool extends MongoDBToolBase {
                     return {
                         content: [
                             {
-                                text: `Cannot rename "${args.database}.${args.collection}" to "${args.newName}" because the target collection already exists. If you want to overwrite it, set the "dropTarget" argument to true.`,
+                                text: 'Cannot rename the requested collection because the target collection already exists. If you want to overwrite it, set the "dropTarget" argument to true.',
                                 type: "text",
                             },
                         ],

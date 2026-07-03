@@ -80,7 +80,7 @@ export class CollectionIndexesTool extends MongoDBToolBase {
             return {
                 content: [
                     {
-                        text: `The indexes for "${args.database}.${args.collection}" cannot be determined because the collection does not exist.`,
+                        text: "The indexes for the requested namespace cannot be determined because the collection does not exist.",
                         type: "text",
                     },
                 ],
