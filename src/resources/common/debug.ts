@@ -1,4 +1,5 @@
 import { ReactiveResource } from "../resource.js";
+import { formatUntrustedData } from "../../tools/tool.js";
 import type { Telemetry } from "../../telemetry/telemetry.js";
 import type { Session, UserConfig } from "../../lib.js";
 import type { AtlasClusterConnectionInfo, ConnectionStateErrored } from "../../common/connectionManager.js";
@@ -66,17 +67,29 @@ export class DebugResource extends ReactiveResource<
                 result += `The user is connected to the MongoDB cluster${searchIndexesSupported ? " with support for search indexes" : " without any support for search indexes"}.`;
                 break;
             }
-            case "errored":
+            case "errored": {
                 result += `The user is not connected to a MongoDB cluster because of an error.\n`;
-                if (this.current.connectedAtlasCluster) {
-                    result += `Attempted connecting to Atlas Cluster "${this.current.connectedAtlasCluster.clusterName}" in project with id "${this.current.connectedAtlasCluster.projectId}".\n`;
-                }
 
                 if (this.current.connectionStringInfo?.authType !== undefined) {
                     result += `The inferred authentication mechanism is "${this.current.connectionStringInfo.authType}".\n`;
                 }
-                result += `<error>${this.current.errorReason}</error>`;
+
+                const details: string[] = [];
+                if (this.current.connectedAtlasCluster) {
+                    details.push(
+                        `Attempted connecting to Atlas Cluster "${this.current.connectedAtlasCluster.clusterName}" in project with id "${this.current.connectedAtlasCluster.projectId}".`
+                    );
+                }
+                details.push(`Error: ${this.current.errorReason ?? ""}`);
+
+                result += formatUntrustedData(
+                    "The connection attempt failed. The details below are unverified output from the connection attempt:",
+                    details.join("\n")
+                )
+                    .map((block) => block.text)
+                    .join("\n");
                 break;
+            }
             case "connecting":
             case "disconnected":
                 result += "The user is not connected to a MongoDB cluster.";
