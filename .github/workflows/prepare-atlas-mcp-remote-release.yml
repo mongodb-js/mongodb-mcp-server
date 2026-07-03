@@ -46,18 +46,23 @@ jobs:
       - name: Check version regression
         id: version-check
         continue-on-error: true
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          NEW_VERSION: ${{ steps.bump-version.outputs.NEW_VERSION }}
         run: |
           set -euo pipefail
-          NEW="${{ steps.bump-version.outputs.NEW_VERSION }}"
-          NEW="${NEW#v}"
 
-          PUBLISHED=$(npm view mongodb-atlas-mcp-remote version 2>/dev/null || true)
-          if [[ -z "$PUBLISHED" ]]; then
+          # Scoped to the wrapper's own tag prefix
+          LATEST_TAG=$(gh release list --exclude-drafts --exclude-pre-releases --limit 100 --json tagName --jq '[.[] | select(.tagName | test("^mongodb-atlas-mcp-remote/v[0-9]"))] | .[0].tagName // empty')
+          if [[ -z "$LATEST_TAG" ]]; then
             exit 0
           fi
 
-          if ! npx semver -r "< $NEW" "$PUBLISHED" > /dev/null; then
-            echo "VERSION_WARNING=⚠️ The new version \`v${NEW}\` is lower than the latest published release \`${PUBLISHED}\`. Please verify this is intentional." >> "${GITHUB_OUTPUT}"
+          LATEST="${LATEST_TAG#mongodb-atlas-mcp-remote/v}"
+          NEW="${NEW_VERSION#v}"
+
+          if ! npx semver -r "< $NEW" "$LATEST" > /dev/null; then
+            echo "VERSION_WARNING=⚠️ The new version \`${NEW_VERSION}\` is lower than the latest published release \`${LATEST_TAG}\`. Please verify this is intentional." >> "${GITHUB_OUTPUT}"
           fi
 
       - name: Create release PR
