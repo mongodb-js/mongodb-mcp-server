@@ -47,6 +47,12 @@ describeWithAtlas("projects", (integration) => {
             const elements = getResponseElements(response);
             expect(elements).toHaveLength(1);
             expect(elements[0]?.text).toContain(projName);
+
+            expectDefined(response.structuredContent);
+            expect(response.structuredContent).toMatchObject({
+                projectName: projName,
+            });
+            expect(response.structuredContent).toHaveProperty("organizationId");
         });
     });
 

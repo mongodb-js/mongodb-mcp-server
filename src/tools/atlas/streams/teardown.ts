@@ -9,6 +9,24 @@ import { LogId } from "../../../common/logging/index.js";
 
 const TeardownResource = z.enum(["processor", "connection", "workspace", "privatelink", "peering"]);
 
+export const TeardownOutputSchema = z.object({
+    resource: TeardownResource.describe("Which resource deletion completed or was initiated"),
+    processorsRemoved: z
+        .number()
+        .int()
+        .nonnegative()
+        .optional()
+        .describe("Processors removed as part of workspace deletion (when inventory was available)"),
+    connectionsRemoved: z
+        .number()
+        .int()
+        .nonnegative()
+        .optional()
+        .describe("Connections removed as part of workspace deletion (when inventory was available)"),
+});
+
+export type TeardownOutput = z.infer<typeof TeardownOutputSchema>;
+
 export class StreamsTeardownTool extends StreamsToolBase {
     static toolName = "atlas-streams-teardown";
     static operationType: OperationType = "delete";
@@ -33,6 +51,8 @@ export class StreamsTeardownTool extends StreamsToolBase {
             .describe("Workspace name. Required for workspace, connection, and processor deletion."),
         resourceName: z.string().optional().describe("Name or ID of the specific resource to delete."),
     };
+
+    public override outputSchema = TeardownOutputSchema.shape;
 
     protected override getConfirmationMessage(args: ToolArgs<typeof this.argsShape>): string {
         switch (args.resource) {
@@ -155,6 +175,7 @@ export class StreamsTeardownTool extends StreamsToolBase {
                     text: `Processor '${name}' deleted from workspace '${workspace}'. All state and checkpoints have been permanently removed.`,
                 },
             ],
+            structuredContent: { resource: "processor" },
         };
     }
 
@@ -215,6 +236,7 @@ export class StreamsTeardownTool extends StreamsToolBase {
                         `Use \`atlas-streams-discover\` with action 'list-connections' to confirm when deletion is complete.`,
                 },
             ],
+            structuredContent: { resource: "connection" },
         };
     }
 
@@ -226,6 +248,7 @@ export class StreamsTeardownTool extends StreamsToolBase {
 
         // Safety: summarize what will be deleted
         let impactNote = "";
+        const structuredContent: TeardownOutput = { resource: "workspace" };
         try {
             const [connectionsResult, processorsResult] = await Promise.allSettled([
                 this.apiClient.listStreamConnections(
@@ -246,6 +269,13 @@ export class StreamsTeardownTool extends StreamsToolBase {
                 connectionsResult.status === "fulfilled" ? (connectionsResult.value?.results?.length ?? 0) : 0;
             const processorCount =
                 processorsResult.status === "fulfilled" ? (processorsResult.value?.results?.length ?? 0) : 0;
+
+            if (connectionsResult.status === "fulfilled") {
+                structuredContent.connectionsRemoved = connectionCount;
+            }
+            if (processorsResult.status === "fulfilled") {
+                structuredContent.processorsRemoved = processorCount;
+            }
 
             if (connectionCount > 0 || processorCount > 0) {
                 impactNote = ` This will also remove ${processorCount} processor(s) and ${connectionCount} connection(s).`;
@@ -270,6 +300,7 @@ export class StreamsTeardownTool extends StreamsToolBase {
                         `Use \`atlas-streams-discover\` with action 'list-workspaces' to confirm when deletion is complete.`,
                 },
             ],
+            structuredContent,
         };
     }
 
@@ -294,6 +325,7 @@ export class StreamsTeardownTool extends StreamsToolBase {
                         `Use \`atlas-streams-discover\` with action 'get-networking' to confirm when deletion is complete.`,
                 },
             ],
+            structuredContent: { resource: "privatelink" },
         };
     }
 
@@ -316,6 +348,7 @@ export class StreamsTeardownTool extends StreamsToolBase {
                     text: `VPC peering connection '${id}' deletion initiated.`,
                 },
             ],
+            structuredContent: { resource: "peering" },
         };
     }
 }

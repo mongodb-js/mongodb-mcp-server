@@ -23,13 +23,16 @@
   "scripts": {
     "compile": "tsc --project tsconfig.json",
     "test": "vitest --run",
-    "build:update-package-version": "node scripts/updatePackageVersion.ts"
+    "build:update-package-version": "node scripts/updatePackageVersion.ts",
+    "pretest": "pnpm compile"
   },
   "dependencies": {
     "@cfworker/json-schema": "4.1.1",
     "@modelcontextprotocol/client": "2.0.0-alpha.2",
     "@modelcontextprotocol/server": "2.0.0-alpha.2",
-    "@mongodb-js/devtools-proxy-support": "^0.7.14"
+    "@mongodb-js/devtools-proxy-support": "^0.7.14",
+    "mongodb-log-writer": "^2.5.13",
+    "mongodb-redact": "^1.4.6"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",

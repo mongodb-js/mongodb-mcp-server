@@ -1,8 +1,13 @@
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { type OperationType, type ToolArgs, type ToolExecutionContext } from "../../tool.js";
+import { z } from "zod";
+import { type OperationType, type ToolArgs, type ToolExecutionContext, type ToolResult } from "../../tool.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import type { Group } from "../../../common/atlas/openapi.js";
 import { AtlasArgs } from "../../args.js";
+
+const CreateProjectOutputSchema = {
+    projectName: z.string(),
+    organizationId: z.string().optional(),
+};
 
 export class CreateProjectTool extends AtlasToolBase {
     static toolName = "atlas-create-project";
@@ -12,11 +17,12 @@ export class CreateProjectTool extends AtlasToolBase {
         projectName: AtlasArgs.projectName().optional().describe("Name for the new project"),
         organizationId: AtlasArgs.organizationId().optional().describe("Organization ID for the new project"),
     };
+    public override outputSchema = CreateProjectOutputSchema;
 
     protected async execute(
         { projectName, organizationId }: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
-    ): Promise<CallToolResult> {
+    ): Promise<ToolResult<typeof this.outputSchema>> {
         let assumedOrg = false;
 
         if (!projectName) {
@@ -69,6 +75,10 @@ export class CreateProjectTool extends AtlasToolBase {
                     text: `Project "${projectName}" created successfully${assumedOrg ? ` (using organizationId ${organizationId}).` : ""}.`,
                 },
             ],
+            structuredContent: {
+                projectName,
+                ...(assumedOrg && { organizationId }),
+            },
         };
     }
 }

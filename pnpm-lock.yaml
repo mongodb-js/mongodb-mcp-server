@@ -317,6 +317,12 @@ importers:
       '@mongodb-js/devtools-proxy-support':
         specifier: ^0.7.14
         version: 0.7.14
+      mongodb-log-writer:
+        specifier: ^2.5.13
+        version: 2.5.13(bson@7.3.0)
+      mongodb-redact:
+        specifier: ^1.4.6
+        version: 1.4.7
     devDependencies:
       '@types/node':
         specifier: ^25.6.0

@@ -283,7 +283,15 @@ export class MCPHttpServer<
 
             await server.connect(transport);
 
-            await this.sessionStore.addSession({ sessionId, transport, logger: server.session.logger });
+            await this.sessionStore.addSession({
+                sessionId,
+                transport,
+                logger: server.session.logger,
+                // Pass the incoming request headers to the session store so
+                // that we can trace the x-request-id and other headers in the
+                // resulting logs and downstream requests.
+                headers: req.headers,
+            });
         })();
 
         this.pendingInitializations.set(sessionId, initPromise);

@@ -184,6 +184,9 @@ describe("StreamsBuildTool", () => {
                 expect.anything()
             );
             expect((result.content[0] as { text: string }).text).toContain("proc1");
+            expect(result.structuredContent).toEqual({
+                resource: "processor",
+            });
         });
 
         it("should throw when processorName is missing", async () => {
@@ -227,6 +230,9 @@ describe("StreamsBuildTool", () => {
             expect(text).toContain("created and started");
             expect(text).toContain("Billing");
             expect(text).toContain("stop-processor");
+            expect(result.structuredContent).toEqual({
+                resource: "processor",
+            });
         });
     });
 
@@ -375,6 +381,9 @@ describe("StreamsBuildTool", () => {
             const text = (result.content[0] as { text: string }).text;
             expect(text).toContain("PENDING");
             expect(text).toContain("PrivateLink");
+            expect(result.structuredContent).toEqual({
+                resource: "connection",
+            });
         });
     });
 
@@ -827,7 +836,7 @@ describe("StreamsBuildTool", () => {
 
     describe("createPrivateLink", () => {
         it("should create AWS CONFLUENT PrivateLink with correct params", async () => {
-            await exec({
+            const result = await exec({
                 ...baseArgs,
                 resource: "privatelink",
                 privateLinkConfig: {
@@ -854,6 +863,9 @@ describe("StreamsBuildTool", () => {
                 },
                 expect.anything()
             );
+            expect(result.structuredContent).toEqual({
+                resource: "privatelink",
+            });
         });
 
         it("should create AWS S3 PrivateLink", async () => {
@@ -1099,6 +1111,43 @@ describe("StreamsBuildTool", () => {
                     ],
                 })
             ).rejects.toThrow("workspaceName is required");
+        });
+    });
+
+    describe("structuredContent", () => {
+        it("returns workspace step outcome when a workspace is created", async () => {
+            const result = await exec({
+                ...baseArgs,
+                resource: "workspace",
+                cloudProvider: "AWS",
+                region: "VIRGINIA_USA",
+                tier: "SP30",
+            });
+
+            expect(result.structuredContent).toEqual({
+                resource: "workspace",
+            });
+        });
+
+        it("returns processor step outcome when a processor is deployed with autoStart", async () => {
+            mockApiClient.listStreamConnections!.mockResolvedValue({
+                results: [{ name: "src" }, { name: "sink" }],
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                resource: "processor",
+                processorName: "proc1",
+                autoStart: true,
+                pipeline: [
+                    { $source: { connectionName: "src" } },
+                    { $merge: { into: { connectionName: "sink", db: "db1", coll: "c1" } } },
+                ],
+            });
+
+            expect(result.structuredContent).toEqual({
+                resource: "processor",
+            });
         });
     });
 });
