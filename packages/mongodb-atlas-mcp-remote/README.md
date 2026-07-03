@@ -2,7 +2,7 @@
 
 `mongodb-atlas-mcp-remote` lets your MCP client connect to the **MongoDB Atlas Remote MCP server** using your Atlas service account credentials.
 
-It is a small local bridge for MCP clients — such as Claude Code, Cursor, and Codex — that don't yet natively support service-account (OAuth client-credentials) authentication. You configure your credentials once, and the wrapper takes care of obtaining and refreshing access tokens for you.
+Use this for MCP clients that don't yet natively support service-account (OAuth client-credentials) authentication.
 
 ## Prerequisites
 
