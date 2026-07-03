@@ -20,7 +20,7 @@ plot: "Pre-historic creatures come to life in this epic thrilling drama" \
                         content: [
                             {
                                 type: "text",
-                                text: 'Found 1 search and vector search indexes in the collection "movies"',
+                                text: "Found 1 search and vector search indexes in the requested collection",
                             },
                             {
                                 type: "text",

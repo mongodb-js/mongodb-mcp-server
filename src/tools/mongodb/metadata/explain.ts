@@ -123,8 +123,8 @@ export class ExplainTool extends MongoDBToolBase {
 
         return {
             content: formatUntrustedData(
-                `Here is some information about the winning plan chosen by the query optimizer for running the given \`${method.name}\` operation in "${database}.${collection}". The execution plan was run with the following verbosity: "${verbosity}". This information can be used to understand how the query was executed and to optimize the query performance.`,
-                JSON.stringify(result)
+                `Here is some information about the winning plan chosen by the query optimizer for running the given \`${method.name}\` operation on the requested namespace. The execution plan was run with the following verbosity: "${verbosity}". This information can be used to understand how the query was executed and to optimize the query performance.`,
+                JSON.stringify({ database, collection, plan: result })
             ),
             structuredContent: {
                 explainResult: result,
