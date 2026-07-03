@@ -136,8 +136,8 @@ jobs:
       - check
     if: needs.check.outputs.VERSION_EXISTS == 'false'
     steps:
-      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
-      - uses: actions/checkout@v7
+      - uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           persist-credentials: false
           fetch-depth: 0
@@ -259,8 +259,8 @@ jobs:
     # published to npm manually, see https://jira.mongodb.org/browse/MCP-493
     if: needs.check.outputs.REMOTE_VERSION_EXISTS == 'false' && needs.check.outputs.REMOTE_PACKAGE_EXISTS_ON_NPM == 'true' && needs.check.outputs.REMOTE_NPM_VERSION != '0.0.0'
     steps:
-      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
-      - uses: actions/checkout@v7
+      - uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           persist-credentials: false
           fetch-depth: 0
