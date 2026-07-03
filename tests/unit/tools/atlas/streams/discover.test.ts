@@ -175,8 +175,9 @@ describe("StreamsDiscoverTool", () => {
                 workspaceName: "ws1",
             });
 
-            const text = (result.content[0] as { text: string }).text;
-            expect(text).toContain("ws1");
+            const [description, untrusted] = result.content.map((c) => (c as { text: string }).text);
+            expect(description).not.toContain("ws1");
+            expect(untrusted).toContain("ws1");
             expect(result.structuredContent).toEqual({
                 workspace: {
                     name: "ws1",
@@ -446,9 +447,9 @@ describe("StreamsDiscoverTool", () => {
                 resourceName: "kafka-in",
             });
 
-            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
-            expect(text).toContain("kafka-in");
-            expect(text).toContain("ws1");
+            const [description, untrusted] = result.content.map((c) => (c as { text: string }).text);
+            expect(description).not.toContain("kafka-in");
+            expect(untrusted).toContain("kafka-in");
             expect(result.structuredContent).toEqual({
                 connection: { type: "Kafka", bootstrapServers: "broker:9092" },
             });
@@ -543,9 +544,9 @@ describe("StreamsDiscoverTool", () => {
                 resourceName: "proc1",
             });
 
-            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
-            expect(text).toContain("proc1");
-            expect(text).toContain("ws1");
+            const [description, untrusted] = result.content.map((c) => (c as { text: string }).text);
+            expect(description).not.toContain("proc1");
+            expect(untrusted).toContain("proc1");
             expect(result.structuredContent).toEqual({
                 processorState: "STARTED",
                 tier: "SP10",
