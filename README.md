@@ -325,29 +325,11 @@ Create or edit your OpenCode config file (`~/.config/opencode/opencode.json` or 
 
 For more information about configuring OpenCode as an MCP client, including the expected syntax and options, see the [OpenCode MCP servers documentation](https://opencode.ai/docs/mcp-servers/).
 
-#### Option 8: Remote MCP via `mongodb-atlas-mcp-remote`
+#### Option 8: Connect to the Remote MCP Server
 
-> [!NOTE]
-> This package is work in progress.
+To connect to the hosted MongoDB Atlas Remote MCP server, use the [`mongodb-atlas-mcp-remote`](packages/mongodb-atlas-mcp-remote/README.md) package with your Atlas service account credentials.
 
-If you want the MongoDB Atlas tools without running the full server locally, use the [`mongodb-atlas-mcp-remote`](packages/mongodb-atlas-mcp-remote/README.md) package. It is a lightweight stdio proxy that authenticates with your Atlas service account credentials (via OAuth2 client credentials) and forwards MCP traffic to the hosted MongoDB Atlas Remote MCP server.
-
-```json
-{
-  "mcpServers": {
-    "MongoDB": {
-      "command": "npx",
-      "args": ["-y", "mongodb-atlas-mcp-remote@latest"],
-      "env": {
-        "MDB_MCP_API_CLIENT_ID": "your-atlas-service-account-client-id",
-        "MDB_MCP_API_CLIENT_SECRET": "your-atlas-service-account-client-secret"
-      }
-    }
-  }
-}
-```
-
-See the [package README](packages/mongodb-atlas-mcp-remote/README.md) for installation, configuration, and environment variable details. To obtain the required service account credentials, follow [Atlas API Access](#atlas-api-access).
+See the [package README](packages/mongodb-atlas-mcp-remote/README.md) for setup and client-specific configuration examples.
 
 ## 🛠️ Supported Tools
 

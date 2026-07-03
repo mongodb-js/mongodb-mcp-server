@@ -6,16 +6,6 @@ Thank you for your interest in contributing to the MongoDB MCP Server project! T
 
 This project implements a Model Context Protocol (MCP) server for MongoDB and MongoDB Atlas, enabling AI assistants to interact with MongoDB Atlas resources through natural language.
 
-### Repository Layout
-
-The repository is a pnpm monorepo. The main MongoDB MCP Server lives at the repository root, and additional packages live under `packages/`:
-
-- `packages/mongodb-atlas-mcp-remote` — a lightweight stdio proxy (published as [`mongodb-atlas-mcp-remote`](https://www.npmjs.com/package/mongodb-atlas-mcp-remote)) that authenticates with Atlas using OAuth2 client credentials and forwards MCP traffic to the hosted MongoDB Atlas Remote MCP server. See its [README](packages/mongodb-atlas-mcp-remote/README.md) for usage.
-- `packages/types` — shared TypeScript types.
-- `packages/metrics` — metrics utilities.
-
-When working on a specific package, run its scripts from within that package directory (for example, `pnpm --filter mongodb-atlas-mcp-remote test`).
-
 ## Development Setup
 
 ### Prerequisites
