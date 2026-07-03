@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { z } from "zod";
 import type { ToolConstructorParams } from "../../../../../src/tools/tool.js";
-import { CreateDBUserTool } from "../../../../../src/tools/atlas/create/createDBUser.js";
+import { CreateDBUserTool, CreateDBUserArgs } from "../../../../../src/tools/atlas/create/createDBUser.js";
 import type { Session } from "../../../../../src/common/session.js";
 import type { UserConfig } from "../../../../../src/common/config/userConfig.js";
 import type { Telemetry } from "../../../../../src/telemetry/telemetry.js";
@@ -108,6 +109,39 @@ describe("CreateDBUserTool", () => {
                 { type: "CLUSTER", name: "cluster-a" },
                 { type: "CLUSTER", name: "cluster-b" },
             ],
+        });
+    });
+
+    describe("roleName validation", () => {
+        const rolesSchema = z.object(CreateDBUserArgs).shape.roles;
+
+        it.each(["atlasAdmin", "readWrite", "readAnyDatabase"])("accepts the built-in role %s", (roleName) => {
+            expect(rolesSchema.safeParse([{ roleName, databaseName: "admin" }]).success).toBe(true);
+        });
+
+        it("accepts an alphanumeric custom role name", () => {
+            expect(rolesSchema.safeParse([{ roleName: "my_custom-role1", databaseName: "admin" }]).success).toBe(true);
+        });
+
+        it.each(["atlasAdmin`<!--", "read*write*", "admin|role", "<b>read</b>", "role name"])(
+            "rejects a role name containing markdown/HTML metacharacters: %j",
+            (roleName) => {
+                expect(rolesSchema.safeParse([{ roleName, databaseName: "admin" }]).success).toBe(false);
+            }
+        );
+    });
+
+    describe("getConfirmationMessage", () => {
+        it("escapes markdown metacharacters in role database and collection names", () => {
+            const message = tool["getConfirmationMessage"]({
+                ...baseArgs,
+                roles: [{ roleName: "readWrite", databaseName: "db<!--hidden", collectionName: "col*bold*" }],
+            } as never);
+
+            expect(message).not.toContain("db<!--hidden");
+            expect(message).not.toContain("col*bold*");
+            expect(message).toContain("db\\<\\!\\-\\-hidden");
+            expect(message).toContain("col\\*bold\\*");
         });
     });
 

@@ -37,7 +37,7 @@ describe("Elicitation Integration Tests", () => {
                     expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
                     expect(mockElicitInput.mock).toHaveBeenCalledWith(
                         {
-                            message: expect.stringContaining("You are about to drop the `test-db` database"),
+                            message: expect.stringContaining("You are about to drop the **test\\-db** database"),
                             requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
                             mode: "form",
                         },
@@ -85,12 +85,30 @@ describe("Elicitation Integration Tests", () => {
                     expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
                     expect(mockElicitInput.mock).toHaveBeenCalledWith(
                         {
-                            message: expect.stringContaining("You are about to drop the `test-collection` collection"),
+                            message: expect.stringContaining(
+                                "You are about to drop the **test\\-collection** collection"
+                            ),
                             requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
                             mode: "form",
                         },
                         { timeout: 300000 }
                     );
+                });
+
+                it("escapes markdown special characters in drop-collection names", async () => {
+                    mockElicitInput.confirmYes();
+
+                    await integration.mcpClient().callTool({
+                        name: "drop-collection",
+                        arguments: { database: "test-db", collection: "orders`v2" },
+                    });
+
+                    const [firstCallArg] = (mockElicitInput.mock.mock.calls[0] ?? []) as unknown as [
+                        { message: string },
+                    ];
+                    const message = firstCallArg.message;
+                    expect(message).not.toContain("orders`v2");
+                    expect(message).toContain("orders\\`v2");
                 });
 
                 it("should request confirmation for delete-many tool", async () => {

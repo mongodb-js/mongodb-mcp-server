@@ -3,8 +3,10 @@ import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "
 import { AtlasToolBase } from "../atlasTool.js";
 import type { CloudDatabaseUser, DatabaseUserRole } from "../../../common/atlas/openapi.js";
 import { generateSecurePassword } from "../../../helpers/generatePassword.js";
+import { escapeMarkdown } from "../../../helpers/escapeMarkdown.js";
 import { ensureCurrentIpInAccessList } from "../../../common/atlas/accessListUtils.js";
-import { AtlasArgs, CommonArgs } from "../../args.js";
+import { ALPHANUMERIC_DASH_UNDERSCORE_REGEX, AtlasArgs, CommonArgs } from "../../args.js";
+import { BUILT_IN_DB_USER_ROLES } from "../../../common/atlas/roles.js";
 
 export const CreateDBUserArgs = {
     projectId: AtlasArgs.projectId().describe("Atlas project ID"),
@@ -20,7 +22,17 @@ export const CreateDBUserArgs = {
     roles: z
         .array(
             z.object({
-                roleName: CommonArgs.string().describe("Role name"),
+                roleName: z
+                    .union([
+                        z.enum(BUILT_IN_DB_USER_ROLES),
+                        z
+                            .string()
+                            .regex(
+                                ALPHANUMERIC_DASH_UNDERSCORE_REGEX,
+                                "Custom role names can only contain letters, numbers, hyphens, and underscores"
+                            ),
+                    ])
+                    .describe("Role name"),
                 databaseName: CommonArgs.string().describe("Database name").default("admin"),
                 collectionName: CommonArgs.string().describe("Collection name").optional(),
             })
@@ -116,7 +128,14 @@ export class CreateDBUserTool extends AtlasToolBase {
             `You are about to create a database user in Atlas project \`${projectId}\`:\n\n` +
             `**Username**: \`${username}\`\n\n` +
             `**Password**: ${password ? "(User-provided password)" : "(Auto-generated secure password)"}\n\n` +
-            `**Roles**: ${roles.map((role) => `${role.roleName}${role.collectionName ? ` on ${role.databaseName}.${role.collectionName}` : ` on ${role.databaseName}`}`).join(", ")}\n\n` +
+            `**Roles**: ${roles
+                .map((role) => {
+                    const target = role.collectionName
+                        ? `${escapeMarkdown(role.databaseName)}.${escapeMarkdown(role.collectionName)}`
+                        : escapeMarkdown(role.databaseName);
+                    return `${escapeMarkdown(role.roleName)} on ${target}`;
+                })
+                .join(", ")}\n\n` +
             `**Cluster Access**: ${clusters?.length ? clusters.join(", ") : "All clusters in the project"}\n\n` +
             "This will create a new database user with the specified permissions. " +
             "**Do you confirm the execution of the action?**"
