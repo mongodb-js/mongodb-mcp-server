@@ -60,7 +60,7 @@ describe("CreateProjectTool", () => {
     it("creates a project with explicit organizationId", async () => {
         mockApiClient.createGroup!.mockResolvedValue({ id: "proj-123", name: "My Project", orgId: "org-1" });
 
-        const result = await exec({ projectName: "My Project", organizationId: "org-1" });
+        const result = await exec({ projectName: "My Project", orgId: "org-1" });
 
         expect((result.content[0] as { text: string }).text).toContain('Project "My Project" created successfully');
         expect(mockApiClient.listOrgs).not.toHaveBeenCalled();
@@ -76,10 +76,10 @@ describe("CreateProjectTool", () => {
         const result = await exec();
 
         expect(mockApiClient.listOrgs).toHaveBeenCalled();
-        expect((result.content[0] as { text: string }).text).toContain("using organizationId org-first");
+        expect((result.content[0] as { text: string }).text).toContain("using orgId org-first");
         expect(result.structuredContent).toEqual({
             projectName: "Atlas Project",
-            organizationId: "org-first",
+            orgId: "org-first",
         });
     });
 
@@ -87,7 +87,7 @@ describe("CreateProjectTool", () => {
         mockApiClient.listOrgs!.mockResolvedValue({ results: [{ id: "org-1", name: "Org" }] });
         mockApiClient.createGroup!.mockResolvedValue({ id: "proj-789", name: "Atlas Project", orgId: "org-1" });
 
-        const result = await exec({ organizationId: "org-1" });
+        const result = await exec({ orgId: "org-1" });
 
         expect(result.structuredContent?.projectName).toBe("Atlas Project");
     });
@@ -95,8 +95,6 @@ describe("CreateProjectTool", () => {
     it("throws when createGroup returns no id", async () => {
         mockApiClient.createGroup!.mockResolvedValue({});
 
-        await expect(exec({ projectName: "My Project", organizationId: "org-1" })).rejects.toThrow(
-            "Failed to create project"
-        );
+        await expect(exec({ projectName: "My Project", orgId: "org-1" })).rejects.toThrow("Failed to create project");
     });
 });
