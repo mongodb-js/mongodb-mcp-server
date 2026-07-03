@@ -63,7 +63,7 @@ describeWithMongoDB("collectionIndexes tool", (integration) => {
 
         const elements = getResponseElements(response.content);
         expect(elements).toHaveLength(2);
-        expect(elements[0]?.text).toEqual('Found 1 classic indexes in the collection "people":');
+        expect(elements[0]?.text).toEqual("Found 1 classic indexes in the requested collection:");
         const indexDefinitions = getIndexesFromContent(elements[1]?.text);
         expect(indexDefinitions).toEqual([{ name: "_id_", key: { _id: 1 } }]);
         // Validate structured content matches
@@ -101,7 +101,9 @@ describeWithMongoDB("collectionIndexes tool", (integration) => {
         const elements = getResponseElements(response.content);
         expect(elements).toHaveLength(2);
 
-        expect(elements[0]?.text).toEqual(`Found ${indexTypes.length + 1} classic indexes in the collection "people":`);
+        expect(elements[0]?.text).toEqual(
+            `Found ${indexTypes.length + 1} classic indexes in the requested collection:`
+        );
         const indexDefinitions = getIndexesFromContent(elements[1]?.text);
         expect(indexDefinitions).toContainEqual({ name: "_id_", key: { _id: 1 } });
 
@@ -187,7 +189,7 @@ describeWithMongoDB(
                 const responseElements = getResponseElements(response.content);
                 expect(responseElements).toHaveLength(2);
                 // Expect 2 indexes - _id_ and foo_1
-                expect(responseElements[0]?.text).toContain('Found 2 classic indexes in the collection "foo"');
+                expect(responseElements[0]?.text).toContain("Found 2 classic indexes in the requested collection");
 
                 const responseContent = getResponseContent(response.content);
                 expect(responseContent).not.toContain("search and vector search indexes");
@@ -246,9 +248,9 @@ describeWithMongoDB(
                 expect(elements).toHaveLength(4);
 
                 // Expect 1 regular index - _id_
-                expect(elements[0]?.text).toContain(`Found 1 classic indexes in the collection "foo":`);
+                expect(elements[0]?.text).toContain(`Found 1 classic indexes in the requested collection:`);
                 expect(elements[2]?.text).toContain(
-                    `Found 2 search and vector search indexes in the collection "foo":`
+                    `Found 2 search and vector search indexes in the requested collection:`
                 );
 
                 const indexDefinitions = getIndexesFromContent(elements[3]?.text) as {
@@ -344,9 +346,9 @@ describeWithMongoDB(
                 const elements = getResponseElements(response.content);
                 expect(elements).toHaveLength(4);
                 // Expect 1 regular index - _id_
-                expect(elements[0]?.text).toContain(`Found 1 classic indexes in the collection "foo":`);
+                expect(elements[0]?.text).toContain(`Found 1 classic indexes in the requested collection:`);
                 expect(elements[2]?.text).toContain(
-                    `Found 1 search and vector search indexes in the collection "foo":`
+                    `Found 1 search and vector search indexes in the requested collection:`
                 );
 
                 const indexDefinitions = getIndexesFromContent(elements[3]?.text) as {
@@ -423,8 +425,10 @@ describeWithMongoDB(
             expect(elements).toHaveLength(4);
 
             // Expect 1 regular index - _id_
-            expect(elements[0]?.text).toContain(`Found 1 classic indexes in the collection "foo":`);
-            expect(elements[2]?.text).toContain(`Found 2 search and vector search indexes in the collection "foo":`);
+            expect(elements[0]?.text).toContain(`Found 1 classic indexes in the requested collection:`);
+            expect(elements[2]?.text).toContain(
+                `Found 2 search and vector search indexes in the requested collection:`
+            );
 
             const indexDefinitions = getIndexesFromContent(elements[3]?.text) as {
                 name: string;
@@ -499,8 +503,8 @@ describeWithMongoDB(
             const elements = getResponseElements(response.content);
             expect(elements).toHaveLength(4);
             // Expect 1 regular index - _id_
-            expect(elements[0]?.text).toContain(`Found 1 classic indexes in the collection "foo"`);
-            expect(elements[2]?.text).toContain(`Found 1 search and vector search indexes in the collection "foo"`);
+            expect(elements[0]?.text).toContain(`Found 1 classic indexes in the requested collection`);
+            expect(elements[2]?.text).toContain(`Found 1 search and vector search indexes in the requested collection`);
         });
     },
     {
