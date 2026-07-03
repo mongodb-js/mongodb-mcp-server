@@ -4,8 +4,6 @@
 
 It is a small local bridge for MCP clients — such as Claude Code, Cursor, and Codex — that don't yet natively support service-account (OAuth client-credentials) authentication. You configure your credentials once, and the wrapper takes care of obtaining and refreshing access tokens for you.
 
-> This is a temporary bridge. As MCP clients add native support for connecting to the Remote MCP server, you will be able to connect directly without this package.
-
 ## Prerequisites
 
 - Node.js v20.19.0 or newer.
