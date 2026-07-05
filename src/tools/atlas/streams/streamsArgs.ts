@@ -166,4 +166,21 @@ export const StreamsArgs = {
             .min(1, "Connection name is required")
             .max(64, "Connection name must be 64 characters or less")
             .regex(ALLOWED_STREAMS_NAME_REGEX, ALLOWED_STREAMS_NAME_ERROR),
+
+    // Used where resourceName refers to a processor, connection, PrivateLink connection ID, or peering ID
+    // depending on the calling tool's action/resource — all of these are path-safe alphanumeric identifiers,
+    // and must be constrained here since the value is substituted directly into Atlas Admin API URL paths.
+    resourceName: (): z.ZodString =>
+        z
+            .string()
+            .min(1, "Resource name is required")
+            .max(64, "Resource name must be 64 characters or less")
+            .regex(ALLOWED_STREAMS_NAME_REGEX, ALLOWED_STREAMS_NAME_ERROR),
+
+    peeringId: (): z.ZodString =>
+        z
+            .string()
+            .min(1, "Peering ID is required")
+            .max(64, "Peering ID must be 64 characters or less")
+            .regex(ALLOWED_STREAMS_NAME_REGEX, ALLOWED_STREAMS_NAME_ERROR),
 };
