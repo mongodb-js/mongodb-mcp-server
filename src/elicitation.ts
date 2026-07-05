@@ -24,12 +24,19 @@ export class Elicitation {
 
     /**
      * Requests a boolean confirmation from the user.
+     *
+     * Fails closed: if the client does not support elicitation, there is no way to ask a human
+     * for confirmation, so the action is treated as not confirmed rather than auto-approved. This
+     * matches `requestInput`'s behavior and avoids letting a non-interactive client silently skip
+     * the only safeguard on confirmation-required tools.
+     *
      * @param message - The message to display to the user.
-     * @returns True if the user confirms the action or the client does not support elicitation, false otherwise.
+     * @returns True only if the user explicitly confirms the action; false if the client does not
+     * support elicitation, the user declines, cancels, or the request errors out in an unaccepted state.
      */
     public async requestConfirmation(message: string): Promise<boolean> {
         if (!this.supportsElicitation()) {
-            return true;
+            return false;
         }
 
         const result = await this.server.elicitInput(

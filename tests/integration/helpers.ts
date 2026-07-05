@@ -15,7 +15,8 @@ import { DeviceId } from "../../src/helpers/deviceId.js";
 import { connectionErrorHandler } from "../../src/common/connectionErrorHandler.js";
 import { Keychain } from "../../src/common/keychain.js";
 import { Elicitation } from "../../src/elicitation.js";
-import type { MockClientCapabilities, createMockElicitInput } from "../utils/elicitationMocks.js";
+import { createMockElicitInput } from "../utils/elicitationMocks.js";
+import type { MockClientCapabilities } from "../utils/elicitationMocks.js";
 import { defaultCreateAtlasLocalClient } from "../../src/common/atlasLocal.js";
 import { UserConfigSchema } from "../../src/common/config/userConfig.js";
 import type { OperationType } from "../../src/tools/tool.js";
@@ -73,7 +74,16 @@ export function setupIntegrationTest(
 
     beforeAll(async () => {
         const userConfig = getUserConfig();
-        const clientCapabilities = getClientCapabilities?.() ?? (elicitInput ? { elicitation: {} } : {});
+        // Tests that aren't exercising confirmation gating shouldn't have to opt into
+        // elicitation support just to let confirmation-required tools run. Default to
+        // an elicitation-capable client that auto-confirms, unless the test explicitly
+        // configures capabilities or its own elicitInput mock (e.g. to exercise the
+        // "client doesn't support elicitation" fail-closed path, or custom confirm/decline
+        // behavior).
+        const defaultElicitInput = !getClientCapabilities && !elicitInput ? createMockElicitInput() : undefined;
+        defaultElicitInput?.confirmYes();
+        const effectiveElicitInput = elicitInput ?? defaultElicitInput;
+        const clientCapabilities = getClientCapabilities?.() ?? (effectiveElicitInput ? { elicitation: {} } : {});
 
         const clientTransport = new InMemoryTransport();
         const serverTransport = new InMemoryTransport();
@@ -148,8 +158,8 @@ export function setupIntegrationTest(
         });
 
         // Mock elicitation if provided
-        if (elicitInput) {
-            Object.assign(mcpServerInstance.server, { elicitInput: elicitInput.mock });
+        if (effectiveElicitInput) {
+            Object.assign(mcpServerInstance.server, { elicitInput: effectiveElicitInput.mock });
         }
 
         const elicitation = new Elicitation({ server: mcpServerInstance.server });

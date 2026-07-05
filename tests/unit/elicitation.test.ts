@@ -60,12 +60,12 @@ describe("Elicitation", () => {
     describe("requestConfirmation", () => {
         const testMessage = "Are you sure you want to proceed?";
 
-        it("should return true when client does not support elicitation", async () => {
+        it("should return false (fail closed) when client does not support elicitation", async () => {
             mockGetClientCapabilities.mockReturnValue({});
 
             const result = await elicitation.requestConfirmation(testMessage);
 
-            expect(result).toBe(true);
+            expect(result).toBe(false);
             expect(mockGetClientCapabilities).toHaveBeenCalledTimes(1);
             expect(mockElicitInput.mock).not.toHaveBeenCalled();
         });

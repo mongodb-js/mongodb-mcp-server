@@ -218,20 +218,20 @@ describe("Elicitation Integration Tests", () => {
     describeWithMongoDB(
         "without elicitation support",
         (integration) => {
-            it("should proceed without confirmation for default confirmation-required tools when client lacks elicitation support", async () => {
+            it("should fail closed for default confirmation-required tools when client lacks elicitation support, instead of proceeding unconfirmed", async () => {
                 const result = await integration.mcpClient().callTool({
                     name: "drop-database",
                     arguments: { database: "test-db" },
                 });
 
-                // Note: No mock assertions needed since elicitation is disabled
-                // Should fail with connection error since we're not connected, but confirms flow bypassed confirmation
+                // With no way to ask a human for confirmation, the tool must not run rather than
+                // silently proceeding as if confirmed.
                 expect(result.isError).toBe(true);
                 expect(result.content).toEqual(
                     expect.arrayContaining([
                         expect.objectContaining({
                             type: "text",
-                            text: expect.stringContaining("You need to connect to a MongoDB instance"),
+                            text: expect.stringContaining("does not support"),
                         }),
                     ])
                 );

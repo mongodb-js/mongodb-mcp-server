@@ -491,10 +491,14 @@ export abstract class ToolBase<
         try {
             if (this.requiresConfirmation()) {
                 if (!(await this.verifyConfirmed(args))) {
+                    const unsupportedClient = !this.elicitation.supportsElicitation();
+                    const message = unsupportedClient
+                        ? `The \`${this.name}\` tool requires human confirmation before it can run, but the connected client does not support MCP elicitation, so no confirmation could be requested. The operation was not performed. Use a client that supports elicitation to run this tool.`
+                        : `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`;
                     this.session.logger.debug({
                         id: LogId.toolExecute,
                         context: "tool",
-                        message: `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`,
+                        message,
                         noRedaction: true,
                         attributes: { ...requestIdAttr(context.requestInfo?.headers) },
                     });
@@ -502,7 +506,7 @@ export abstract class ToolBase<
                         content: [
                             {
                                 type: "text",
-                                text: `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`,
+                                text: message,
                             },
                         ],
                         isError: true,
