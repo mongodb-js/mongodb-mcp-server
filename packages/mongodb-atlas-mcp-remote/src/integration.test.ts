@@ -109,7 +109,7 @@ describe("mongodb-atlas-mcp-remote integration tests", () => {
 
     it("re-initializes and retries when the remote session expires", async () => {
         client = await createTestClient(remote);
-        remote.expireSession(); // Server discards the session, next tool call gets a 404.
+        remote.currentSessionId = undefined; // Server discards the session, next tool call gets a 404.
         const result = await callTool("mock-project-tool", { projectId: "proj-1" });
         expect(result.isError).toBeFalsy();
         expect(result.content).toMatchObject([{ type: "text", text: "Mock result for mock-project-tool" }]);

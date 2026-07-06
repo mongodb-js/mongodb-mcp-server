@@ -1,8 +1,7 @@
-import type { JSONRPCMessage, RequestId } from "@modelcontextprotocol/client";
+import type { JSONRPCMessage, RequestId, Transport } from "@modelcontextprotocol/client";
 import { SdkError } from "@modelcontextprotocol/client";
 import { logger } from "./logger.js";
 import { LogId } from "./logging/index.js";
-import type { HttpTransport } from "./common.js";
 
 const LOG_CONTEXT = "httpTransportWithSessionRecovery";
 
@@ -14,14 +13,12 @@ const LOG_CONTEXT = "httpTransportWithSessionRecovery";
  * This wrapper caches the initial "initialize" message and re-sends it to transparently establish a new session.
  */
 export class HttpTransportWithSessionRecovery {
-    private transport: HttpTransport;
+    private transport: Transport;
     private cachedInitializeMessage: JSONRPCMessage | null = null;
     private reinitPromise: Promise<void> | null = null;
-    // Id of the cached initialize request while it's being replayed during recovery so we can swallow its response.
-    private suppressResponseId: RequestId | null = null;
 
     constructor(
-        private readonly createTransport: () => HttpTransport,
+        private readonly createTransport: () => Transport,
         private readonly onmessage: (message: JSONRPCMessage) => void
     ) {
         this.transport = this.createWiredTransport();
@@ -85,12 +82,14 @@ export class HttpTransportWithSessionRecovery {
         }
 
         await this.transport.close();
-        this.transport = this.createWiredTransport();
+
+        const swallowResponseId =
+            "id" in this.cachedInitializeMessage && this.cachedInitializeMessage.id !== undefined
+                ? this.cachedInitializeMessage.id
+                : undefined;
+        this.transport = this.createWiredTransport({ swallowResponseId });
         await this.transport.start();
 
-        if ("id" in this.cachedInitializeMessage && this.cachedInitializeMessage.id !== undefined) {
-            this.suppressResponseId = this.cachedInitializeMessage.id;
-        }
         // Re-send the cached initialize message to establish a new session.
         await this.transport.send(this.cachedInitializeMessage);
 
@@ -105,12 +104,12 @@ export class HttpTransportWithSessionRecovery {
         });
     }
 
-    private createWiredTransport(): HttpTransport {
+    private createWiredTransport({ swallowResponseId }: { swallowResponseId?: RequestId } = {}): Transport {
         const transport = this.createTransport();
+        let swallowed = swallowResponseId === undefined;
         transport.onmessage = (message: JSONRPCMessage): void => {
-            // Swallow re-initialize responses.
-            if (this.suppressResponseId !== null && "id" in message && message.id === this.suppressResponseId) {
-                this.suppressResponseId = null;
+            if (!swallowed && "id" in message && message.id === swallowResponseId) {
+                swallowed = true;
                 return;
             }
             this.onmessage(message);

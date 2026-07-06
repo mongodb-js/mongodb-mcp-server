@@ -13,8 +13,8 @@ export class MockRemote {
     private tokenRequestCount = 0;
     private currentToken = "";
     private shouldFailNextTokenCall = false;
-    private currentSessionId: string | undefined = undefined;
     private initializeCount = 0;
+    public currentSessionId: string | undefined = undefined;
 
     private constructor(url: string, server: Server) {
         this.url = url;
@@ -44,10 +44,6 @@ export class MockRemote {
 
     failNextTokenRequest(): void {
         this.shouldFailNextTokenCall = true;
-    }
-
-    expireSession(): void {
-        this.currentSessionId = undefined;
     }
 
     getInitializeCount(): number {
