@@ -138,7 +138,7 @@
     "@types/semver": "^7.7.0",
     "@types/yargs-parser": "^21.0.3",
     "@typescript-eslint/parser": "^8.61.0",
-    "@vitejs/plugin-react": "^6.0.1",
+    "@vitejs/plugin-react": "^6.0.3",
     "@vitest/coverage-v8": "^4.1.9",
     "@vitest/eslint-plugin": "^1.6.20",
     "ai": "^6.0.175",
