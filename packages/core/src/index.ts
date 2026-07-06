@@ -24,7 +24,7 @@ export { getRandomUUID } from "./getRandomUUID.js";
 export { TRANSPORT_PAYLOAD_LIMITS } from "./transportConstants.js";
 export { CommonArgs, ASCII_ONLY_NON_CC_ERROR } from "./args.js";
 export { LogId } from "./logId.js";
-export { setManagedTimeout, type ManagedTimeout } from "./managedTimeout.js";
+export { setManagedTimeout, type ManagedTimeout, sleep } from "./managedTimeout.js";
 export { requestIdAttr } from "./helpers/requestIdAttr.js";
 
 // Web-friendly transports

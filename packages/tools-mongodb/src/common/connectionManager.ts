@@ -16,8 +16,7 @@ import type { ServerMetadata } from "@mongodb-js/mcp-types";
 
 export type { ConnectionStringInfo, ConnectionStringAuthType, AtlasClusterConnectionInfo } from "./connectionInfo.js";
 
-export interface ConnectionSettings extends Omit<MongoshConnectionInfo, "driverOptions"> {
-    driverOptions?: MongoshConnectionInfo["driverOptions"];
+export interface ConnectionSettings extends MongoshConnectionInfo {
     atlas?: AtlasClusterConnectionInfo;
 }
 
@@ -334,17 +333,10 @@ export class MCPConnectionManager extends ConnectionManager {
                 components: appNameComponents,
             });
 
-            const mongoshConnectionInfo: MongoshConnectionInfo = settings.driverOptions
-                ? {
-                      connectionString: settings.connectionString,
-                      driverOptions: settings.driverOptions,
-                  }
-                : generateConnectionInfoFromCliArgs({
-                      ...defaultDriverOptions,
-                      /** TODO: Currently we're passing the entire user config to make it apply the mongosh CLI commands that were passed in. We should consider seperating the fields in the future. */
-                      ...this.userConfig,
-                      connectionSpecifier: settings.connectionString,
-                  });
+            const mongoshConnectionInfo: MongoshConnectionInfo = {
+                connectionString: settings.connectionString,
+                driverOptions: settings.driverOptions,
+            };
 
             if (mongoshConnectionInfo.driverOptions.oidc) {
                 mongoshConnectionInfo.driverOptions.oidc.allowedFlows ??= ["auth-code"];

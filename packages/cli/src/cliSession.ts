@@ -145,8 +145,12 @@ export class CliSession extends EventEmitter<SessionEvents> implements McpSessio
         await this.connectToMongoDB(connectionInfo);
     }
 
-    async connectToMongoDB(settings: ConnectionSettings): Promise<void> {
-        await this.connectionManager.connect({ ...settings });
+    async connectToMongoDB(settings: { connectionString: string; atlas?: AtlasClusterConnectionInfo }): Promise<void> {
+        const connectionInfo = generateConnectionInfoFromCliArgs({
+            ...this.config,
+            connectionSpecifier: settings.connectionString,
+        });
+        await this.connectionManager.connect({ ...connectionInfo, atlas: settings.atlas });
     }
 
     get isConnectedToMongoDB(): boolean {

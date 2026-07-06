@@ -56,10 +56,10 @@ export type ApiClientRequestContext = {
  */
 const FORWARDABLE_REQUEST_HEADERS: ReadonlySet<string> = new Set(["x-request-id"]);
 
-export type ApiClientFactoryFn = (options: ApiClientOptions, logger: LoggerBase) => ApiClient;
+export type ApiClientFactoryFn = (options: ApiClientOptions) => ApiClient;
 
-export const defaultCreateApiClient: ApiClientFactoryFn = (options, logger) => {
-    return new ApiClient(options, logger);
+export const defaultCreateApiClient: ApiClientFactoryFn = (options) => {
+    return new ApiClient(options);
 };
 
 export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonProperties>[]> {
@@ -473,7 +473,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -655,7 +655,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -669,7 +669,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }

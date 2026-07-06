@@ -6,6 +6,7 @@ import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-d
 import type { CallToolResult, ISession, IToolConfig } from "@mongodb-js/mcp-types";
 import { LogId } from "@mongodb-js/mcp-core";
 import { ErrorCodes, MongoDBError } from "./common/errors.js";
+import { assertNoServerSideJS } from "./helpers/mqlGuards.js";
 import type { ConnectionMetadata } from "@mongodb-js/mcp-types";
 import type { AvailableExport, CreateJSONExportParams } from "./common/exportsManager.js";
 
@@ -13,6 +14,7 @@ import type { AvailableExport, CreateJSONExportParams } from "./common/exportsMa
 export type IMongoDBConfig = IToolConfig & {
     connectionString: string | undefined;
     indexCheck: boolean;
+    disableServerSideJs: boolean;
     maxTimeMS: number | undefined;
     maxDocumentsPerQuery: number;
     maxBytesPerQuery: number;
@@ -130,6 +132,16 @@ export abstract class MongoDBToolBase extends ToolBase<IMongoDBSession> {
             ...(signal && { signal }),
             ...(this.config.maxTimeMS !== undefined && { maxTimeMS: this.config.maxTimeMS }),
         };
+    }
+
+    /**
+     * Throws when the provided MQL value contains server-side JavaScript operators
+     * and `disableServerSideJs` is enabled in the configuration.
+     */
+    protected assertMqlIsAllowed(value: unknown): void {
+        if (this.config.disableServerSideJs) {
+            assertNoServerSideJS(value);
+        }
     }
 
     protected async handleError(error: unknown, args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {

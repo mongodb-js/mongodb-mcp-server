@@ -35,6 +35,8 @@ export {
     ConnectClusterTool,
     ConnectClusterArgs,
     type ConnectClusterOutput,
+    LoadSampleDatasetTool,
+    type LoadSampleDatasetOutput,
     StreamsDiscoverTool,
     StreamsBuildTool,
     StreamsManageTool,

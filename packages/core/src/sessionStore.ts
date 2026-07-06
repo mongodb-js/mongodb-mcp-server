@@ -1,5 +1,6 @@
 import type {
     ILogger,
+    ICompositeLogger,
     IMetrics,
     CloseableTransport,
     SessionCloseReason,
@@ -112,7 +113,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         sessionId: string;
         transport: T;
         logger: ILogger;
-        session?: ISession;
+        session?: { logger: ICompositeLogger };
         headers?: Record<string, unknown>;
     }): Promise<void> {
         const { sessionId, transport, logger } = params;

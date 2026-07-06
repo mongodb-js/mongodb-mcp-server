@@ -72,20 +72,6 @@
     "typescript-eslint": "^8.58.2",
     "vitest": "^4.1.8"
   },
-  "pnpm": {
-    "overrides": {
-      "mongodb": "^7.1.1",
-      "kerberos": "^7.0.0",
-      "bson": "^7.2.0",
-      "zod": "^4.4.2"
-    }
-  },
-  "overrides": {
-    "mongodb": "^7.1.1",
-    "kerberos": "^7.0.0",
-    "bson": "^7.2.0",
-    "zod": "^4.4.2"
-  },
   "engines": {
     "node": "^20.19.0 || ^22.13.0 || >= 24.0.0"
   }

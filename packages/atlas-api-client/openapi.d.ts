@@ -213,7 +213,11 @@ export interface paths {
         delete: operations["deleteGroupCluster"];
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Update One Cluster in One Project
+         * @description Updates the details for one cluster in the specified project. Clusters contain a group of hosts that maintain the same data set. This resource can update clusters with asymmetrically-sized shards. To update a cluster's termination protection, the requesting Service Account or API Key must have the Project Owner role. For all other updates, the requesting Service Account or API Key must have the Project Cluster Manager role or the Project Replica Set Manager role. You can't modify a paused cluster (`paused : true`). You must call this endpoint to set `paused : false`. After this endpoint responds with `paused : false`, you can call it again with the changes you want to make to the cluster. This feature is not available for serverless clusters. Deprecated versions: v2-{2024-08-05}, v2-{2023-02-01}, v2-{2023-01-01}
+         */
+        patch: operations["updateGroupCluster"];
         trace?: never;
     };
     "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}/performanceAdvisor/dropIndexSuggestions": {
@@ -400,6 +404,46 @@ export interface paths {
          * @description Returns log lines for slow queries that the Performance Advisor and Query Profiler identified. The Performance Advisor monitors queries that MongoDB considers slow and suggests new indexes to improve query performance. MongoDB Cloud bases the threshold for slow queries on the average time of operations on your cluster. This enables workload-relevant recommendations.
          */
         get: operations["listGroupProcessPerformanceAdvisorSlowQueryLogs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/atlas/v2/groups/{groupId}/sampleDatasetLoad/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Load Sample Dataset into One Cluster
+         * @description Requests loading the MongoDB sample dataset into the specified cluster.
+         */
+        post: operations["requestGroupSampleDatasetLoad"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/atlas/v2/groups/{groupId}/sampleDatasetLoad/{sampleDatasetId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Return Status of Sample Dataset Load for One Cluster
+         * @description Checks the progress of loading the sample dataset into one cluster.
+         */
+        get: operations["getGroupSampleDatasetLoad"];
         put?: never;
         post?: never;
         delete?: never;
@@ -777,7 +821,7 @@ export interface paths {
         };
         /**
          * Return All Stream Processors in One Stream Workspace
-         * @description Returns all Stream Processors within the specified stream workspace.
+         * @description Returns all Stream Processors within the specified stream workspace, including information on which processors are failover-eligible.
          */
         get: operations["getGroupStreamProcessors"];
         put?: never;
@@ -1086,10 +1130,10 @@ export interface components {
                 | "MX_CENTRAL_1"
                 | "GLOBAL";
             /**
-             * @description Disk Input/Output Operations per Second (IOPS) setting for Amazon Web Services (AWS) storage that you configure only for AWS. Specify whether Disk Input/Output Operations per Second (IOPS) must not exceed the default Input/Output Operations per Second (IOPS) rate for the selected volume size (`STANDARD`), or must fall within the allowable Input/Output Operations per Second (IOPS) range for the selected volume size (`PROVISIONED`). You must set this value to (`PROVISIONED`) for NVMe clusters.
+             * @description Disk Input/Output Operations per Second (IOPS) setting for Amazon Web Services (AWS) storage that you configure only for AWS. Specify whether Disk Input/Output Operations per Second (IOPS) must not exceed the default Input/Output Operations per Second (IOPS) rate for the selected volume size (`STANDARD`), or must fall within the allowable Input/Output Operations per Second (IOPS) range for the selected volume size (`PROVISIONED` or `HIGH_PERFORMANCE`). NVMe clusters require either `PROVISIONED` or `HIGH_PERFORMANCE`.
              * @enum {string}
              */
-            volumeType?: "STANDARD" | "PROVISIONED";
+            volumeType?: "STANDARD" | "PROVISIONED" | "HIGH_PERFORMANCE";
         } & {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -1315,11 +1359,15 @@ export interface components {
              *
              *     - `STANDARD` volume types can't exceed the default input/output operations per second (IOPS) rate for the selected volume size.
              *
-             *     - `PROVISIONED` volume types must fall within the allowable IOPS range for the selected volume size. You must set this value to (`PROVISIONED`) for NVMe clusters.
+             *     - `PROVISIONED` volume types must fall within the allowable IOPS range for the selected volume size.
+             *
+             *     - `HIGH_PERFORMANCE` volume types use IO2 EBS volumes and must fall within the allowable IOPS range for the selected volume size.
+             *
+             *     NVMe clusters require either `PROVISIONED` or `HIGH_PERFORMANCE`.
              * @default STANDARD
              * @enum {string}
              */
-            ebsVolumeType: "STANDARD" | "PROVISIONED";
+            ebsVolumeType: "STANDARD" | "PROVISIONED" | "HIGH_PERFORMANCE";
             /**
              * AWS Instance Sizes
              * @description Hardware specification for the instance sizes in this region in this shard. Each instance size has a default storage and memory capacity. Electable nodes and read-only nodes (known as "base nodes") within a single shard must use the same instance size. Analytics nodes can scale independently from base nodes within a shard. Both base nodes and analytics nodes can scale independently from their equivalents in other shards.
@@ -1447,12 +1495,12 @@ export interface components {
         ApiAtlasCloudProviderAccessFeatureUsageFeatureIdView: Record<string, never> | null;
         /** @description Group of settings that configures a subset of the advanced configuration details. */
         ApiAtlasClusterAdvancedConfigurationView: {
-            /** @description The custom OpenSSL cipher suite list for TLS 1.2. This field is only valid when `tlsCipherConfigMode` is set to `CUSTOM`. */
+            /** @description The custom OpenSSL cipher suite list for TLS 1.2. Requires `tlsCipherConfigMode` = `CUSTOM`; when `tlsCipherConfigMode` is omitted, supplying a non-empty list infers `CUSTOM`. */
             customOpensslCipherConfigTls12?: (
                 | "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
                 | "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
             )[];
-            /** @description The custom OpenSSL cipher suite list for TLS 1.3. This field is only valid when `tlsCipherConfigMode` is set to `CUSTOM`. */
+            /** @description The custom OpenSSL cipher suite list for TLS 1.3. Requires `tlsCipherConfigMode` = `CUSTOM`; when `tlsCipherConfigMode` is omitted, supplying a non-empty list infers `CUSTOM`. */
             customOpensslCipherConfigTls13?: (
                 | "TLS_AES_256_GCM_SHA384"
                 | "TLS_CHACHA20_POLY1305_SHA256"
@@ -1578,7 +1626,8 @@ export interface components {
             | "MONTREAL_CAN"
             | "TOKYO_JPN"
             | "SINGAPORE_SGP"
-            | "PARIS_FRA";
+            | "PARIS_FRA"
+            | "SEOUL_KOR";
         /**
          * @description Atlas Streams Azure Regions.
          * @enum {string}
@@ -1773,7 +1822,7 @@ export interface components {
              * @default FULLY_WARMED
              * @enum {string}
              */
-            diskWarmingMode: "FULLY_WARMED" | "VISIBLE_EARLIER";
+            diskWarmingMode: "FULLY_WARMED" | "VISIBLE_EARLIER" | "ENHANCED_FULLY_WARMED";
             /** @description List of settings that represent the actual cluster state. This is read-only and always returned in the response. It reflects the current cluster configuration, which may differ from `replicationSpecs` due to system-managed changes. */
             readonly effectiveReplicationSpecs?: components["schemas"]["ReplicationSpec20240805"][];
             /**
@@ -3473,6 +3522,7 @@ export interface components {
             /** @description Public connection string that you can use to connect to this cluster. This connection string uses the `mongodb+srv://` protocol. */
             readonly standardSrv?: string;
         };
+        /** @description Configuration of a MongoDB Atlas cluster, including its replication topology, instance sizing, storage, and operational settings. */
         ClusterDescription20240805: {
             /**
              * Format: date-time
@@ -3518,7 +3568,7 @@ export interface components {
              * @default FULLY_WARMED
              * @enum {string}
              */
-            diskWarmingMode: "FULLY_WARMED" | "VISIBLE_EARLIER";
+            diskWarmingMode: "FULLY_WARMED" | "VISIBLE_EARLIER" | "ENHANCED_FULLY_WARMED";
             /** @description List of settings that represent the actual cluster state. This is read-only and always returned in the response. It reflects the current cluster configuration, which may differ from `replicationSpecs` due to system-managed changes. */
             readonly effectiveReplicationSpecs?: components["schemas"]["ReplicationSpec20240805"][];
             /**
@@ -4964,6 +5014,8 @@ export interface components {
                       | "NETWORK_PERMISSION_ENTRY_UPDATED"
                       | "CLUSTER_BLOCK_WRITE"
                       | "CLUSTER_UNBLOCK_WRITE"
+                      | "LOG_STREAMING_EXPORT_FAILED_NONRETRYABLE"
+                      | "LOG_STREAMING_EXPORT_FAILED_RETRIES_EXHAUSTED"
                   )
                 | (
                       | "MAINTENANCE_IN_ADVANCED"
@@ -6562,7 +6614,7 @@ export interface components {
              * @default FULLY_WARMED
              * @enum {string}
              */
-            diskWarmingMode: "FULLY_WARMED" | "VISIBLE_EARLIER";
+            diskWarmingMode: "FULLY_WARMED" | "VISIBLE_EARLIER" | "ENHANCED_FULLY_WARMED";
             /**
              * @description Cloud service provider that manages your customer keys to provide an additional layer of encryption at rest for the cluster. To enable customer key management for encryption at rest, the cluster `replicationSpecs[n].regionConfigs[m].{type}Specs.instanceSize` setting must be `M10` or higher and `"backupEnabled" : false` or omitted entirely.
              * @enum {string}
@@ -6791,7 +6843,7 @@ export interface components {
              * @default FULLY_WARMED
              * @enum {string}
              */
-            diskWarmingMode: "FULLY_WARMED" | "VISIBLE_EARLIER";
+            diskWarmingMode: "FULLY_WARMED" | "VISIBLE_EARLIER" | "ENHANCED_FULLY_WARMED";
             /**
              * @description Cloud service provider that manages your customer keys to provide an additional layer of encryption at rest for the cluster. To enable customer key management for encryption at rest, the cluster `replicationSpecs[n].regionConfigs[m].{type}Specs.instanceSize` setting must be `M10` or higher and `"backupEnabled" : false` or omitted entirely.
              * @enum {string}
@@ -8148,6 +8200,32 @@ export interface components {
              */
             type: "S3_LOG_EXPORT";
         };
+        SampleDatasetStatus: {
+            /**
+             * @description Unique 24-hexadecimal character string that identifies this sample dataset.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            readonly _id?: string;
+            /** @description Human-readable label that identifies the cluster into which you loaded the sample dataset. */
+            readonly clusterName?: string;
+            /**
+             * Format: date-time
+             * @description Date and time when the sample dataset load job completed. MongoDB Cloud represents this timestamp in ISO 8601 format in UTC.
+             */
+            readonly completeDate?: string;
+            /**
+             * Format: date-time
+             * @description Date and time when you started the sample dataset load job. MongoDB Cloud represents this timestamp in ISO 8601 format in UTC.
+             */
+            readonly createDate?: string;
+            /** @description Details of the error returned when MongoDB Cloud loads the sample dataset. This endpoint returns null if state has a value other than FAILED. */
+            readonly errorMessage?: string;
+            /**
+             * @description Status of the sample dataset load job.
+             * @enum {string}
+             */
+            readonly state?: "WORKING" | "FAILED" | "COMPLETED";
+        };
         SchemaAdvisorItemRecommendation: {
             /** @description List that contains the namespaces and information on why those namespaces triggered the recommendation. */
             readonly affectedNamespaces?: components["schemas"]["SchemaAdvisorNamespaceTriggers"][];
@@ -9096,6 +9174,8 @@ export interface components {
         };
         /** @description A request to modify an existing stream processor. */
         StreamsModifyStreamProcessor: {
+            /** @description Flag that enables or disables failover for the stream processor. */
+            failoverEnabled?: boolean;
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
             /** @description New name for the stream processor. */
@@ -9186,6 +9266,8 @@ export interface components {
              * @example 32b6e34b3d91647abb20e7b8
              */
             readonly _id?: string;
+            /** @description Flag that enables or disables failover for the stream processor. */
+            failoverEnabled?: boolean;
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
             /** @description Human-readable name of the stream processor. */
@@ -9200,6 +9282,23 @@ export interface components {
              */
             tier?: "SP50" | "SP30" | "SP10" | "SP5" | "SP2";
         };
+        /** @description Desired status change to apply to a tenant's stream processors. */
+        StreamsProcessorStatus: {
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            /**
+             * @description Strategy for the processor: GRACEFUL - attempt to stop the processor, error if processor cannot be stopped. if stop was successful, start the processor in the new region with the latest checkpoint.  FORCED - attempt to stop the processor, proceed to starting the processor in the new region with checkpoints disabled regardless of whether or not the stop succeeds.
+             * @enum {string}
+             */
+            mode?: "GRACEFUL" | "FORCED";
+            /** @description Name of the region against which to apply the status change. Required when `status` is `FAILED_OVER`; optional otherwise. */
+            region?: string;
+            /**
+             * @description Represents the desired action to apply to stream processors within a workspace, such as starting all processors, stopping all processors, or performing a bulk regional failover.
+             * @enum {string}
+             */
+            status: "STARTED" | "STOPPED" | "FAILED_OVER";
+        };
         /** @description An atlas stream processor with optional stats. */
         StreamsProcessorWithStats: {
             /**
@@ -9207,6 +9306,10 @@ export interface components {
              * @example 32b6e34b3d91647abb20e7b8
              */
             readonly _id: string;
+            /** @description Flag that indicates whether the stream processor is eligible for failover. */
+            readonly eligibleForFailover?: boolean;
+            /** @description Flag that enables or disables failover for the stream processor. */
+            readonly failoverEnabled?: boolean;
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
             /** @description Human-readable name of the stream processor. */
@@ -9314,8 +9417,24 @@ export interface components {
              */
             type: "SchemaRegistry";
         };
+        /** @description Failover options for starting a stream processor. */
+        StreamsStartProcessorFailover: {
+            /** @description If true, simulates the operation without making any changes. */
+            dryRun?: boolean;
+            /**
+             * @description Strategy for the processor: GRACEFUL - attempt to stop the processor, error if processor cannot be stopped. if stop was successful, start the processor in the new region with the latest checkpoint.  FORCED - attempt to stop the processor, proceed to starting the processor in the new region with checkpoints disabled regardless of whether or not the stop succeeds.
+             * @enum {string}
+             */
+            mode?: "GRACEFUL" | "FORCED";
+            /**
+             * @description Cloud provider region where the stream processor should be started in failover mode. The region must be a valid region for the stream processor's cloud provider and must be included in the tenant's configured failover regions, or it may be the tenant's default (primary) region.
+             * @example VIRGINIA_USA
+             */
+            region: string;
+        };
         /** @description A request to start a stream processor. */
         StreamsStartStreamProcessorWith: {
+            failover?: components["schemas"]["StreamsStartProcessorFailover"];
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
             /** @description When true or not specified, the stream processor resumes from its last checkpoint. When false, the stream processor starts fresh. */
@@ -9341,6 +9460,8 @@ export interface components {
             /** @description List of connections configured in the stream workspace. */
             readonly connections?: components["schemas"]["StreamsConnection"][];
             dataProcessRegion?: components["schemas"]["StreamsDataProcessRegion"];
+            /** @description List of failover regions configured for the stream workspace. */
+            failoverRegions?: components["schemas"]["StreamsDataProcessRegion"][];
             /**
              * @description Unique 24-hexadecimal character string that identifies the project.
              * @example 32b6e34b3d91647abb20e7b8
@@ -9355,15 +9476,18 @@ export interface components {
             sampleConnections?: components["schemas"]["StreamsSampleConnections"];
             streamConfig?: components["schemas"]["StreamConfig"];
         };
-        /** @description Details to update a stream tenant. */
+        /** @description Details to update a stream tenant, optionally accompanied by a processor status change (for example, triggering bulk regional failover). */
         StreamsTenantUpdateRequest: {
             /**
              * @description Human-readable label that identifies the cloud provider.
              * @enum {string}
              */
             cloudProvider?: "AWS" | "GCP" | "AZURE" | "TENANT" | "SERVERLESS";
+            /** @description Failover regions for the stream workspace. */
+            failoverRegions?: components["schemas"]["StreamsDataProcessRegion"][];
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
+            processorStatus?: components["schemas"]["StreamsProcessorStatus"];
             region?: components["schemas"]["BaseStreamsRegion"];
             streamConfig?: components["schemas"]["StreamConfig"];
         };
@@ -10971,6 +11095,7 @@ export type ReplicationSpec20240805 = components["schemas"]["ReplicationSpec2024
 export type ResourceTag = components["schemas"]["ResourceTag"];
 export type S3LogIntegrationRequest = components["schemas"]["S3LogIntegrationRequest"];
 export type S3LogIntegrationResponse = components["schemas"]["S3LogIntegrationResponse"];
+export type SampleDatasetStatus = components["schemas"]["SampleDatasetStatus"];
 export type SchemaAdvisorItemRecommendation = components["schemas"]["SchemaAdvisorItemRecommendation"];
 export type SchemaAdvisorNamespaceTriggers = components["schemas"]["SchemaAdvisorNamespaceTriggers"];
 export type SchemaAdvisorResponse = components["schemas"]["SchemaAdvisorResponse"];
@@ -11015,6 +11140,7 @@ export type StreamsModifyStreamProcessorOptions = components["schemas"]["Streams
 export type StreamsOptions = components["schemas"]["StreamsOptions"];
 export type StreamsPrivateLinkConnection = components["schemas"]["StreamsPrivateLinkConnection"];
 export type StreamsProcessor = components["schemas"]["StreamsProcessor"];
+export type StreamsProcessorStatus = components["schemas"]["StreamsProcessorStatus"];
 export type StreamsProcessorWithStats = components["schemas"]["StreamsProcessorWithStats"];
 export type StreamsPublicPrivateLinkNetworking = components["schemas"]["StreamsPublicPrivateLinkNetworking"];
 export type StreamsPublicPrivateLinkNetworkingAccess =
@@ -11023,6 +11149,7 @@ export type StreamsS3Connection = components["schemas"]["StreamsS3Connection"];
 export type StreamsSampleConnection = components["schemas"]["StreamsSampleConnection"];
 export type StreamsSampleConnections = components["schemas"]["StreamsSampleConnections"];
 export type StreamsSchemaRegistryConnection = components["schemas"]["StreamsSchemaRegistryConnection"];
+export type StreamsStartProcessorFailover = components["schemas"]["StreamsStartProcessorFailover"];
 export type StreamsStartStreamProcessorWith = components["schemas"]["StreamsStartStreamProcessorWith"];
 export type StreamsTenant = components["schemas"]["StreamsTenant"];
 export type StreamsTenantUpdateRequest = components["schemas"]["StreamsTenantUpdateRequest"];
@@ -11280,7 +11407,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description This endpoint does not return a response body. */
+            /** @description No Content */
             204: {
                 headers: {
                     "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
@@ -11425,7 +11552,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description This endpoint does not return a response body. */
+            /** @description No Content */
             204: {
                 headers: {
                     "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
@@ -11732,6 +11859,59 @@ export interface operations {
             500: components["responses"]["internalServerError"];
         };
     };
+    updateGroupCluster: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description Flag that indicates whether the response body should be in the prettyprint format. */
+                pretty?: components["parameters"]["pretty"];
+            };
+            header?: {
+                /** @description Controls how hardware specification fields are returned in the response after cluster updates. When set to true, returns the original client-specified values and provides separate effective fields showing current operational values. When false (default), hardware specification fields show current operational values directly. Note: When using this header with autoscaling enabled, MongoDB ignores `replicationSpecs` changes during updates. To intentionally override the `replicationSpecs`, disable this header. */
+                "Use-Effective-Instance-Fields"?: boolean;
+                /** @description Controls how `replicationSpecs` fields are returned in the response. When set to `true`, stores the client's view of `replicationSpecs` and returns it in `replicationSpecs`, while the actual cluster state (including auto-scaled hardware and auto-added shards) is returned in `effectiveReplicationSpecs`. When `false` (default), `replicationSpecs` contains the actual cluster state. */
+                "Use-Effective-Fields-Replication-Specs"?: boolean;
+            };
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+                /** @description Human-readable label that identifies the cluster. */
+                clusterName: string;
+            };
+            cookie?: never;
+        };
+        /** @description Cluster to update in the specified project. */
+        requestBody: {
+            content: {
+                "application/vnd.atlas.2024-10-23+json": components["schemas"]["ClusterDescription20240805"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2024-10-23+json": components["schemas"]["ClusterDescription20240805"];
+                };
+            };
+            400: components["responses"]["badRequest"];
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            409: components["responses"]["conflict"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
     listGroupClusterPerformanceAdvisorDropIndexSuggestions: {
         parameters: {
             query?: never;
@@ -11992,7 +12172,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description This endpoint does not return a response body. */
+            /** @description No Content */
             204: {
                 headers: {
                     "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
@@ -12169,7 +12349,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description This endpoint does not return a response body. */
+            /** @description No Content */
             204: {
                 headers: {
                     "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
@@ -12292,6 +12472,86 @@ export interface operations {
                 };
                 content: {
                     "application/vnd.atlas.2023-01-01+json": components["schemas"]["PerformanceAdvisorSlowQueryList"];
+                };
+            };
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    requestGroupSampleDatasetLoad: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+                /** @description Human-readable label that identifies the cluster into which you load the sample dataset. */
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2023-01-01+json": components["schemas"]["SampleDatasetStatus"];
+                };
+            };
+            400: components["responses"]["badRequest"];
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            409: components["responses"]["conflict"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    getGroupSampleDatasetLoad: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+                /** @description Unique 24-hexadecimal digit string that identifies the loaded sample dataset. */
+                sampleDatasetId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2023-01-01+json": components["schemas"]["SampleDatasetStatus"];
                 };
             };
             401: components["responses"]["unauthorized"];
@@ -13243,7 +13503,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description This endpoint does not return a response body. */
+            /** @description No Content */
             204: {
                 headers: {
                     "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];

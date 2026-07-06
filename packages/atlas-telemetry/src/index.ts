@@ -29,4 +29,6 @@ export type {
     AtlasMetadata,
     AtlasLocalToolMetadata,
     UpgradeClusterMetadata,
+    PauseResumeClusterMetadata,
+    CreateClusterMetadata,
 } from "./types.js";

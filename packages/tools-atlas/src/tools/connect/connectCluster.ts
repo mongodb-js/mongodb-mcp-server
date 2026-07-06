@@ -1,6 +1,13 @@
 import { z } from "zod";
 import { type ToolArgs, type ToolResult, LogId, requestIdAttr, sleep } from "@mongodb-js/mcp-core";
-import type { OperationType, ConnectionMetadata, AtlasClusterConnectionInfo, SharedTierTier, SharedTierMetricName } from "@mongodb-js/mcp-types";
+import type {
+    OperationType,
+    ConnectionMetadata,
+    AtlasClusterConnectionInfo,
+    SharedTierTier,
+    SharedTierMetricName,
+    ToolExecutionContext,
+} from "@mongodb-js/mcp-types";
 import { SHARED_TIER_METRIC_NAMES } from "@mongodb-js/mcp-types";
 import { AtlasToolBase } from "../../atlasTool.js";
 import { generateSecurePassword } from "../../helpers/generatePassword.js";
@@ -88,7 +95,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         connectionType: "standard" | "private" | "privateEndpoint" | undefined = "standard",
         context: ToolExecutionContext
     ): Promise<{ connectionString: string; atlas: AtlasClusterConnectionInfo }> {
-        const cluster = await inspectCluster(this.apiClient, projectId, clusterName, context);
+        const cluster = await inspectCluster(this.apiClient, projectId, clusterName);
 
         if (cluster.connectionStrings === undefined) {
             throw new Error("Connection strings not available");
@@ -399,7 +406,6 @@ export class ConnectClusterTool extends AtlasToolBase {
             instanceType: atlas.instanceType,
             apiClient: this.apiClient,
             logger: this.session.logger,
-            context,
         });
         if (hookResult !== undefined) {
             content.push({ type: "text", text: hookResult.recommendationText });

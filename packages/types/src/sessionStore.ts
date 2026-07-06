@@ -1,6 +1,5 @@
-import type { ILogger } from "./logging.js";
+import type { ILogger, ICompositeLogger } from "./logging.js";
 import type { IMetrics, DefaultMetricDefinitions } from "./metrics.js";
-import type { ISession } from "./session.js";
 
 export type CloseableTransport = {
     close(): Promise<void>;
@@ -35,7 +34,7 @@ export interface ISessionStore<T extends CloseableTransport = CloseableTransport
         sessionId: string;
         transport: T;
         logger: ILogger;
-        session?: ISession;
+        session?: { logger: ICompositeLogger };
         headers?: Record<string, unknown>;
     }): Promise<void>;
     closeSession(params: { sessionId: string; reason?: SessionCloseReason }): Promise<void>;
