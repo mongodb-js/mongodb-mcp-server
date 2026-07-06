@@ -1,20 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { z } from "zod";
-import type { ToolConstructorParams } from "../../../../../src/tools/tool.js";
-import {
-    LoadSampleDatasetTool,
-    LoadSampleDatasetArgs,
-} from "../../../../../src/tools/atlas/create/loadSampleDataset.js";
-import type { Session } from "../../../../../src/common/session.js";
-import type { UserConfig } from "../../../../../src/common/config/userConfig.js";
-import type { Telemetry } from "../../../../../src/telemetry/telemetry.js";
-import type { Elicitation } from "../../../../../src/elicitation.js";
-import type { CompositeLogger } from "../../../../../src/common/logging/index.js";
-import type { ApiClient } from "../../../../../src/common/atlas/apiClient.js";
-import type { SampleDatasetStatus } from "../../../../../src/common/atlas/openapi.js";
-import { UIRegistry } from "../../../../../src/ui/registry/index.js";
-import { MockMetrics } from "../../../mocks/metrics.js";
-import type { Keychain } from "../../../../../src/lib.js";
+import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
+import { LoadSampleDatasetTool, LoadSampleDatasetArgs } from "./loadSampleDataset.js";
+import type { IAtlasSession, IAtlasConfig } from "../../atlasTool.js";
+import type { ITelemetry, IElicitation, ICompositeLogger } from "@mongodb-js/mcp-types";
+import type { ApiClient, SampleDatasetStatus } from "@mongodb-js/mcp-atlas-api-client";
+import { MockMetrics } from "../../mockMetrics.js";
+import { Keychain } from "@mongodb-js/mcp-core";
 
 const PROJECT_ID = "651b1d2a3a3f3a0001a1b2c3";
 const CLUSTER_NAME = "MyCluster";
@@ -59,41 +51,45 @@ describe("LoadSampleDatasetTool", () => {
             debug: vi.fn(),
             warning: vi.fn(),
             error: vi.fn(),
-        } as unknown as CompositeLogger;
+            setAttribute: vi.fn(),
+            addLogger: vi.fn(),
+        } as unknown as ICompositeLogger;
 
         const mockSession = {
+            sessionId: "test-session",
             logger: mockLogger,
             apiClient: mockApiClient as unknown as ApiClient,
-            keychain: { allSecrets: [] } as unknown as Keychain,
-        } as unknown as Session;
-
-        const mockConfig = {
-            confirmationRequiredTools: [],
-            previewFeatures: [],
-            disabledTools: [],
-            apiClientId: "test-id",
-            apiClientSecret: "test-secret",
-        } as unknown as UserConfig;
+            connectedAtlasCluster: undefined,
+            connectToMongoDB: vi.fn().mockResolvedValue(undefined),
+            keychain: new Keychain(),
+            config: {
+                apiClientId: "test-id",
+                apiClientSecret: "test-secret",
+            } as unknown as IAtlasConfig,
+            disconnect: vi.fn().mockResolvedValue(undefined),
+            close: vi.fn().mockResolvedValue(undefined),
+            isConnectedToMongoDB: false,
+            on: vi.fn(),
+            setMcpClient: vi.fn(),
+        } as unknown as IAtlasSession;
 
         const mockTelemetry = {
             isTelemetryEnabled: () => true,
             emitEvents: vi.fn(),
-        } as unknown as Telemetry;
+        } as unknown as ITelemetry;
 
         const mockElicitation = {
             requestConfirmation: vi.fn(),
-        } as unknown as Elicitation;
+        } as unknown as IElicitation;
 
-        const params: ToolConstructorParams = {
+        const params: ToolConstructorParams<IAtlasSession> = {
             name: LoadSampleDatasetTool.toolName,
             category: "atlas",
             operationType: LoadSampleDatasetTool.operationType,
             session: mockSession,
-            config: mockConfig,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
             metrics: new MockMetrics(),
-            uiRegistry: new UIRegistry(),
         };
 
         return new LoadSampleDatasetTool(params);
@@ -101,7 +97,10 @@ describe("LoadSampleDatasetTool", () => {
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
-        tool["invoke"](z.object(LoadSampleDatasetArgs).parse(args) as never, {} as never);
+        tool["execute"](
+            z.object(LoadSampleDatasetArgs).parse(args) as never,
+            { signal: new AbortController().signal } as never
+        );
 
     function getStructuredContent(result: { structuredContent?: unknown }): Record<string, unknown> {
         expect(result.structuredContent).toBeDefined();
@@ -245,27 +244,17 @@ describe("LoadSampleDatasetTool", () => {
     });
 
     describe("argument validation", () => {
-        it("returns an error and calls no API when both clusterName and jobId are provided", async () => {
-            const result = await exec({ projectId: PROJECT_ID, clusterName: CLUSTER_NAME, jobId: JOB_ID });
-
-            expect(result.isError).toBe(true);
-            const text = getTextContent(result, 0);
-            expect(text).toContain("Provide exactly one of");
-            expect(text).toContain("clusterName");
-            expect(text).toContain("jobId");
+        it("throws and calls no API when both clusterName and jobId are provided", async () => {
+            await expect(exec({ projectId: PROJECT_ID, clusterName: CLUSTER_NAME, jobId: JOB_ID })).rejects.toThrow(
+                "Provide exactly one of"
+            );
 
             expect(mockApiClient.requestSampleDatasetLoad).not.toHaveBeenCalled();
             expect(mockApiClient.getSampleDatasetLoad).not.toHaveBeenCalled();
         });
 
-        it("returns an error and calls no API when neither clusterName nor jobId is provided", async () => {
-            const result = await exec({ projectId: PROJECT_ID });
-
-            expect(result.isError).toBe(true);
-            const text = getTextContent(result, 0);
-            expect(text).toContain("Provide exactly one of");
-            expect(text).toContain("clusterName");
-            expect(text).toContain("jobId");
+        it("throws and calls no API when neither clusterName nor jobId is provided", async () => {
+            await expect(exec({ projectId: PROJECT_ID })).rejects.toThrow("Provide exactly one of");
 
             expect(mockApiClient.requestSampleDatasetLoad).not.toHaveBeenCalled();
             expect(mockApiClient.getSampleDatasetLoad).not.toHaveBeenCalled();
@@ -273,22 +262,16 @@ describe("LoadSampleDatasetTool", () => {
     });
 
     describe("API failure handling", () => {
-        it("returns isError when requestSampleDatasetLoad throws", async () => {
+        it("throws when requestSampleDatasetLoad throws", async () => {
             mockApiClient.requestSampleDatasetLoad!.mockRejectedValue(new Error("Atlas is down"));
 
-            const result = await exec({ projectId: PROJECT_ID, clusterName: CLUSTER_NAME });
-
-            expect(result.isError).toBe(true);
-            expect(getTextContent(result, 0)).toContain("Atlas is down");
+            await expect(exec({ projectId: PROJECT_ID, clusterName: CLUSTER_NAME })).rejects.toThrow("Atlas is down");
         });
 
-        it("returns isError when getSampleDatasetLoad throws", async () => {
+        it("throws when getSampleDatasetLoad throws", async () => {
             mockApiClient.getSampleDatasetLoad!.mockRejectedValue(new Error("Job not found"));
 
-            const result = await exec({ projectId: PROJECT_ID, jobId: JOB_ID });
-
-            expect(result.isError).toBe(true);
-            expect(getTextContent(result, 0)).toContain("Job not found");
+            await expect(exec({ projectId: PROJECT_ID, jobId: JOB_ID })).rejects.toThrow("Job not found");
         });
     });
 });

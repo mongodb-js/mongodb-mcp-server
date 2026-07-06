@@ -1,16 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ToolConstructorParams } from "../../../../../src/tools/tool.js";
-import { CreateClusterTool, CreateClusterArgsShape } from "../../../../../src/tools/atlas/create/createCluster.js";
+import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
+import { CreateClusterTool, CreateClusterArgsShape } from "./createCluster.js";
 import { z } from "zod";
-import type { Session } from "../../../../../src/common/session.js";
-import type { UserConfig } from "../../../../../src/common/config/userConfig.js";
-import type { Telemetry } from "../../../../../src/telemetry/telemetry.js";
-import type { Elicitation } from "../../../../../src/elicitation.js";
-import type { CompositeLogger } from "../../../../../src/common/logging/index.js";
-import type { ApiClient } from "../../../../../src/common/atlas/apiClient.js";
-import { UIRegistry } from "../../../../../src/ui/registry/index.js";
-import { MockMetrics } from "../../../mocks/metrics.js";
-import type { Keychain } from "../../../../../src/lib.js";
+import type { IAtlasSession, IAtlasConfig } from "../../atlasTool.js";
+import type { ITelemetry, IElicitation, ICompositeLogger } from "@mongodb-js/mcp-types";
+import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { MockMetrics } from "../../mockMetrics.js";
+import { Keychain } from "@mongodb-js/mcp-core";
 
 const BASE_ARGS = {
     projectId: "507f1f77bcf86cd799439011",
@@ -23,56 +19,59 @@ const CREATE_RESULT = { id: "new-cluster-id" };
 
 describe("CreateClusterTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
-    let mockSession: Partial<Session>;
+    let mockSession: Partial<IAtlasSession>;
     let tool: CreateClusterTool;
 
     function buildTool(): CreateClusterTool {
-        mockApiClient = {
-            listClusters: vi.fn().mockResolvedValue({ results: [] }),
-            createCluster: vi.fn().mockResolvedValue(CREATE_RESULT),
-        };
-
         const mockLogger = {
             info: vi.fn(),
             debug: vi.fn(),
             warning: vi.fn(),
             error: vi.fn(),
-        } as unknown as CompositeLogger;
+            setAttribute: vi.fn(),
+            addLogger: vi.fn(),
+        } as unknown as ICompositeLogger;
+
+        mockApiClient = {
+            listClusters: vi.fn().mockResolvedValue({ results: [] }),
+            createCluster: vi.fn().mockResolvedValue(CREATE_RESULT),
+        };
 
         mockSession = {
+            sessionId: "test-session",
             logger: mockLogger,
             apiClient: mockApiClient as unknown as ApiClient,
             connectedAtlasCluster: undefined,
-            keychain: { allSecrets: [] } as unknown as Keychain,
+            connectToMongoDB: vi.fn().mockResolvedValue(undefined),
+            keychain: new Keychain(),
+            config: {
+                apiClientId: "test-id",
+                apiClientSecret: "test-secret",
+            } as unknown as IAtlasConfig,
+            disconnect: vi.fn().mockResolvedValue(undefined),
+            close: vi.fn().mockResolvedValue(undefined),
+            isConnectedToMongoDB: false,
+            on: vi.fn(),
+            setMcpClient: vi.fn(),
         };
-
-        const mockConfig = {
-            confirmationRequiredTools: [],
-            previewFeatures: [],
-            disabledTools: [],
-            apiClientId: "test-id",
-            apiClientSecret: "test-secret",
-        } as unknown as UserConfig;
 
         const mockTelemetry = {
             isTelemetryEnabled: () => true,
             emitEvents: vi.fn(),
-        } as unknown as Telemetry;
+        } as unknown as ITelemetry;
 
         const mockElicitation = {
             requestConfirmation: vi.fn(),
-        } as unknown as Elicitation;
+        } as unknown as IElicitation;
 
-        const params: ToolConstructorParams = {
+        const params: ToolConstructorParams<IAtlasSession> = {
             name: CreateClusterTool.toolName,
             category: "atlas",
             operationType: CreateClusterTool.operationType,
-            session: mockSession as Session,
-            config: mockConfig,
+            session: mockSession as IAtlasSession,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
             metrics: new MockMetrics(),
-            uiRegistry: new UIRegistry(),
         };
 
         return new CreateClusterTool(params);
@@ -80,7 +79,10 @@ describe("CreateClusterTool", () => {
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
-        tool["invoke"](z.object(CreateClusterArgsShape).parse(args) as never, {} as never);
+        tool["execute"](
+            z.object(CreateClusterArgsShape).parse(args) as never,
+            { signal: new AbortController().signal } as never
+        );
 
     beforeEach(() => {
         tool = buildTool();
@@ -180,7 +182,7 @@ describe("CreateClusterTool", () => {
             ["M10", 0],
             ["M10", 1],
             ["M30", 2],
-        ] as const)("defaults to %s when project has %i existing clusters", async (expected, count) => {
+        ] as const)("defaults to %s when project has %i existing clusters", async (expected: string, count: number) => {
             mockApiClient.listClusters!.mockResolvedValue({ results: Array(count).fill({}) });
 
             const result = await exec(BASE_ARGS);
@@ -219,23 +221,26 @@ describe("CreateClusterTool", () => {
             ["GCP", "M80", "M200"],
             ["AZURE", "M60", "M200"],
             ["AZURE", "M80", "M200"],
-        ] as const)("provider=%s, instanceSize=%s → max=%s", async (provider, instanceSize, expectedMax) => {
-            await exec({ ...BASE_ARGS, provider, instanceSize });
+        ] as const)(
+            "provider=%s, instanceSize=%s → max=%s",
+            async (provider: string, instanceSize: string, expectedMax: string) => {
+                await exec({ ...BASE_ARGS, provider, instanceSize });
 
-            const call = mockApiClient.createCluster!.mock.calls[0]![0] as {
-                body: {
-                    replicationSpecs: Array<{
-                        regionConfigs: Array<{
-                            autoScaling: { compute: { minInstanceSize: string; maxInstanceSize: string } };
+                const call = mockApiClient.createCluster!.mock.calls[0]![0] as {
+                    body: {
+                        replicationSpecs: Array<{
+                            regionConfigs: Array<{
+                                autoScaling: { compute: { minInstanceSize: string; maxInstanceSize: string } };
+                            }>;
                         }>;
-                    }>;
+                    };
                 };
-            };
-            expect(call.body.replicationSpecs[0]!.regionConfigs[0]!.autoScaling.compute).toMatchObject({
-                minInstanceSize: instanceSize,
-                maxInstanceSize: expectedMax,
-            });
-        });
+                expect(call.body.replicationSpecs[0]!.regionConfigs[0]!.autoScaling.compute).toMatchObject({
+                    minInstanceSize: instanceSize,
+                    maxInstanceSize: expectedMax,
+                });
+            }
+        );
 
         it("disables compute autoscaling when computeAutoScaling is false", async () => {
             await exec({ ...BASE_ARGS, instanceSize: "M10", computeAutoScaling: false });
@@ -335,30 +340,23 @@ describe("CreateClusterTool", () => {
     describe("error cases", () => {
         it.each(["M10", "M20"] as const)(
             "returns error for SHARDED with instance size %s (requires M30+)",
-            async (instanceSize) => {
-                const result = await exec({ ...BASE_ARGS, clusterType: "SHARDED", instanceSize });
-
-                expect(result.isError).toBe(true);
-                expect((result.content[0] as { text: string }).text).toContain(
-                    "SHARDED clusters require M30 or higher"
+            async (instanceSize: string) => {
+                await expect(exec({ ...BASE_ARGS, clusterType: "SHARDED", instanceSize })).rejects.toThrow(
+                    "SHARDED clusters require M30 or higher instance size."
                 );
             }
         );
 
-        it("returns error when createCluster API call fails", async () => {
+        it("throws when createCluster API call fails", async () => {
             mockApiClient.createCluster!.mockRejectedValue(new Error("network error"));
 
-            const result = await exec({ ...BASE_ARGS, instanceSize: "M30" });
-
-            expect(result.isError).toBe(true);
+            await expect(exec({ ...BASE_ARGS, instanceSize: "M30" })).rejects.toThrow("network error");
         });
 
-        it("returns error when listClusters API call fails", async () => {
+        it("throws when listClusters API call fails", async () => {
             mockApiClient.listClusters!.mockRejectedValue(new Error("network error"));
 
-            const result = await exec(BASE_ARGS);
-
-            expect(result.isError).toBe(true);
+            await expect(exec(BASE_ARGS)).rejects.toThrow("network error");
         });
     });
 });
