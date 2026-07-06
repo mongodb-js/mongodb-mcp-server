@@ -56,9 +56,20 @@ describe("MonitoringServer", () => {
 
             const response = await fetch(`${server.serverAddress}/health`);
             expect(response.status).toBe(200);
-
-            const body = await response.json();
-            expect(body).toEqual({ status: "ok" });
+            expect(response.headers.get("cache-control")).toBe("no-store");
+            const body = (await response.json()) as {
+                status: string;
+                version: string;
+                uptimeSeconds: number;
+                timestamp: string;
+            };
+            // status remains "ok" for backward compatibility with existing probes
+            expect(body.status).toBe("ok");
+            expect(typeof body.version).toBe("string");
+            expect(typeof body.uptimeSeconds).toBe("number");
+            expect(body.uptimeSeconds).toBeGreaterThanOrEqual(0);
+            // timestamp is a valid ISO date string
+            expect(Number.isNaN(Date.parse(body.timestamp))).toBe(false);
         });
 
         it("does not expose health endpoint when health-check feature is disabled", async () => {

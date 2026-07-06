@@ -1,7 +1,7 @@
 {
   "name": "mongodb-atlas-mcp-remote",
   "description": "MCP stdio proxy that forwards requests to the MongoDB Remote MCP server with OAuth2 client credentials authentication",
-  "version": "1.14.0-prerelease.1",
+  "version": "1.14.0-prerelease.2",
   "private": true,
   "type": "module",
   "license": "Apache-2.0",
@@ -37,6 +37,6 @@
   "devDependencies": {
     "@types/node": "^25.6.0",
     "typescript": "^5.9.2",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.9"
   }
 }

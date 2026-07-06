@@ -102,6 +102,13 @@ function createStreamableHttpRunnerFromConfig(options: {
     });
 }
 
+const expectedHealthData: Record<string, unknown> = {
+    status: "ok",
+    version: expect.any(String) as unknown,
+    uptimeSeconds: expect.any(Number) as unknown,
+    timestamp: expect.any(String) as unknown,
+};
+
 describe("StreamableHttpRunner", () => {
     describe("monitoring server initialization", () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -143,7 +150,7 @@ describe("StreamableHttpRunner", () => {
 
                 // Verify the custom server is actually serving requests
                 const address = customServer.serverAddress;
-                expect(await fetch(`${address}/health`).then((res) => res.json())).toEqual({ status: "ok" });
+                expect(await fetch(`${address}/health`).then((res) => res.json())).toEqual(expectedHealthData);
             });
 
             it("supports extending MonitoringServer with custom routes", async () => {
@@ -185,7 +192,7 @@ describe("StreamableHttpRunner", () => {
                 });
 
                 // Verify default routes from parent class still work
-                expect(await fetch(`${address}/health`).then((res) => res.json())).toEqual({ status: "ok" });
+                expect(await fetch(`${address}/health`).then((res) => res.json())).toEqual(expectedHealthData);
                 const metricsResponse = await fetch(`${address}/metrics`);
                 expect(metricsResponse.status).toBe(200);
             });
