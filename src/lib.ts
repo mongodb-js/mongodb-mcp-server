@@ -92,6 +92,7 @@ export { Elicitation } from "./elicitation.js";
 export { applyConfigOverrides, ConfigOverrideError } from "./common/config/configOverrides.js";
 export {
     SessionStore,
+    SessionRejectedError,
     createDefaultSessionStore,
     type ISessionStore,
     type CloseableTransport,
