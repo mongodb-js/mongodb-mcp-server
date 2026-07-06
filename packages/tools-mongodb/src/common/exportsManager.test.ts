@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ExportsManagerOptions } from "@mongodb-js/mcp-tools-mongodb";
 import { ensureExtension, isExportExpired, ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import type { AvailableExport } from "@mongodb-js/mcp-tools-mongodb";
-import { timeout } from "@mongodb-js/mcp-test-utils";
+import { sleep } from "@mongodb-js/mcp-test-utils";
 
 const DEFAULT_EXPORT_TIMEOUT_MS = 5 * 60 * 1000;
 const DEFAULT_EXPORT_CLEANUP_INTERVAL_MS = 2 * 60 * 1000;
@@ -77,7 +77,7 @@ function createDummyFindCursor(
     let notifyClose: () => Promise<void>;
     const cursorCloseNotification = new Promise<void>((resolve) => {
         notifyClose = async (): Promise<void> => {
-            await timeout(10);
+            await sleep(10);
             resolve();
         };
     });
@@ -100,7 +100,7 @@ function createDummyFindCursorWithDelay(
     dataArray: unknown[],
     delayMs: number
 ): { cursor: FindCursor; cursorCloseNotification: Promise<void> } {
-    return createDummyFindCursor(dataArray, () => timeout(delayMs));
+    return createDummyFindCursor(dataArray, () => sleep(delayMs));
 }
 
 async function fileExists(filePath: string): Promise<boolean> {
@@ -539,7 +539,7 @@ describe("ExportsManager unit test", () => {
             expect((manager as any).storedExports[exportName]?.exportStatus).toEqual("in-progress");
 
             // After clean up interval the export should still be there
-            await timeout(200);
+            await sleep(200);
             // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
             expect((manager as any).storedExports[exportName]?.exportStatus).toEqual("in-progress");
         });
@@ -570,7 +570,7 @@ describe("ExportsManager unit test", () => {
                 })
             );
             expect(await fileExists(exportPath)).toEqual(true);
-            await timeout(200);
+            await sleep(200);
             expect(manager.availableExports).toEqual([]);
             expect(await fileExists(exportPath)).toEqual(false);
         });
@@ -587,7 +587,7 @@ describe("ExportsManager unit test", () => {
                 jsonExportFormat: "relaxed",
             });
             // Give the pipeline a brief moment to start and create the file
-            await timeout(50);
+            await sleep(50);
 
             await manager.close();
 

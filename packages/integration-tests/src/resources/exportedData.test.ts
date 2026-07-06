@@ -3,7 +3,7 @@ import fs from "fs/promises";
 import { EJSON, Long, ObjectId } from "bson";
 import { describe, expect, it, beforeEach, afterAll } from "vitest";
 import type { CallToolResult } from "@mongodb-js/mcp-types";
-import { defaultTestConfig, getDataFromUntrustedContent, resourceChangedNotification, timeout } from "../integrationHelpers.js";
+import { defaultTestConfig, getDataFromUntrustedContent, resourceChangedNotification, sleep } from "../integrationHelpers.js";
 import { describeWithMongoDB } from "../mongodbHelpers.js";
 import { contentWithResourceURILink } from "../tools/mongodb/read/export.test.js";
 import type { UserConfig } from "mongodb-mcp-server";
@@ -84,7 +84,7 @@ describeWithMongoDB(
 
                 // wait for export expired
                 for (let tries = 0; tries < 10; tries++) {
-                    await timeout(300);
+                    await sleep(300);
                     const response = await integration.mcpClient().readResource({
                         uri: exportedResourceURI as string,
                     });

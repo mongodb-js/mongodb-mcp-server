@@ -50,6 +50,7 @@ describeWithMongoDB("Connection Manager", (integration) => {
 
             await connectionManager().connect({
                 connectionString: integration.connectionString(),
+                driverOptions: {},
             });
         });
 
@@ -89,6 +90,7 @@ describeWithMongoDB("Connection Manager", (integration) => {
             beforeEach(async () => {
                 await connectionManager().connect({
                     connectionString: integration.connectionString(),
+                    driverOptions: {},
                 });
             });
 
@@ -110,6 +112,7 @@ describeWithMongoDB("Connection Manager", (integration) => {
                 try {
                     await connectionManager().connect({
                         connectionString: "mongodb://localhost:xxxxx",
+                        driverOptions: {},
                     });
                 } catch (_error: unknown) {
                     void _error;
@@ -151,6 +154,7 @@ describeWithMongoDB("Connection Manager", (integration) => {
                     await connectionManager().connect({
                         connectionString: "mongodb://localhost:xxxxx",
                         atlas,
+                        driverOptions: {},
                     });
                 } catch (_error: unknown) {
                     void _error;

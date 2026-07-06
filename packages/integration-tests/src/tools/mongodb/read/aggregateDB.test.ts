@@ -14,8 +14,8 @@ import {
 } from "../../../mongodbHelpers.js";
 import { expect, it, afterEach } from "vitest";
 import type { Client } from "@modelcontextprotocol/sdk/client";
-import type { CursorLimitKey } from "../../../../../src/helpers/constants.js";
-import { bsonToJson } from "../../../../../src/helpers/bsonToJson.js";
+import type { CursorLimitKey } from "@mongodb-js/mcp-tools-mongodb";
+import { bsonToJson } from "@mongodb-js/mcp-tools-mongodb";
 
 type AggregateDBToolResponse = Awaited<ReturnType<Client["callTool"]>>;
 

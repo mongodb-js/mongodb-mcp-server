@@ -575,8 +575,7 @@ describe("ToolBase", () => {
                 category: ErrorTool.category,
                 operationType: ErrorTool.operationType,
                 session: mockSession,
-                config: mockConfig,
-                telemetry: mockTelemetry,
+                telemetry: mockAtlasTelemetry,
                 elicitation: mockElicitation,
                 metrics: mockMetrics,
             });

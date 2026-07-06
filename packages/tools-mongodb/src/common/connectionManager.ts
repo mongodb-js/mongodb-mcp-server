@@ -1,7 +1,7 @@
 import { EventEmitter } from "events";
 import { MongoServerError } from "mongodb";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { generateConnectionInfoFromCliArgs, type ConnectionInfo as MongoshConnectionInfo } from "@mongosh/arg-parser";
+import { type ConnectionInfo as MongoshConnectionInfo } from "@mongosh/arg-parser";
 import type { DeviceId } from "../helpers/deviceId.js";
 import { MongoDBError, ErrorCodes } from "./errors.js";
 import { type LoggerBase, LogId } from "@mongodb-js/mcp-core";

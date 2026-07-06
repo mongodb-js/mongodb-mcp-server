@@ -62,6 +62,7 @@ export {
 } from "./connectionErrorHandler.js";
 export { DeviceId } from "./helpers/deviceId.js";
 export { isObjectEmpty } from "./helpers/isObjectEmpty.js";
+export { bsonToJson } from "./helpers/bsonToJson.js";
 export { setAppNameParamIfMissing, type AppNameComponents } from "./helpers/connectionOptions.js";
 export { usesIndex, getIndexCheckErrorMessage, checkIndexUsage } from "./helpers/indexCheck.js";
 export { collectCursorUntilMaxBytesLimit, getResponseBytesLimit } from "./helpers/collectCursorUntilMaxBytes.js";
@@ -76,6 +77,7 @@ export {
     AGG_COUNT_MAX_TIME_MS_CAP,
     ONE_MB,
     CURSOR_LIMITS_TO_LLM_TEXT,
+    type CursorLimitKey,
 } from "./helpers/constants.js";
 export { pipelineDescriptionWithVectorSearch } from "./tools/read/aggregate.js";
 export { IndexDirectionSchema, SortDirectionSchema } from "./mongodbSchemas.js";

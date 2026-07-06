@@ -28,6 +28,7 @@
     "@ai-sdk/azure": "^3.0.62",
     "@ai-sdk/openai": "^3.0.61",
     "@ai-sdk/mcp": "^1.0.40",
+    "@ai-sdk/anthropic": "^3.0.71",
     "ai": "^6.0.175",
     "proper-lockfile": "^4.1.2",
     "@types/proper-lockfile": "^4.1.4",

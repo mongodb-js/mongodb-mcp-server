@@ -20,7 +20,8 @@ import { createAtlasLocalClient } from "mongodb-mcp-server";
 import type { AnyToolClass } from "@mongodb-js/mcp-core";
 import type { AnyResourceClass, OperationType, ServerMetadata } from "@mongodb-js/mcp-types";
 import { ApiClient, ClientCredentialsAuthProvider } from "@mongodb-js/mcp-atlas-api-client";
-import { MockMetrics } from "@mongodb-js/mcp-test-utils";
+import { MockMetrics, sleep } from "@mongodb-js/mcp-test-utils";
+export { sleep };
 export { CliSession } from "@mongodb-js/mcp-cli";
 import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 export const defaultTestConfig: UserConfig = {
@@ -81,6 +82,7 @@ export interface IntegrationTest {
     mcpClient: () => Client;
     mcpServer: () => CliServer & {
         session: CliSession;
+        userConfig: UserConfig;
         getApiClient: () => ApiClient;
     };
 }
@@ -120,7 +122,7 @@ export async function resetSessionAfterIntegrationTest(
 
     await Promise.race([
         session.connectionManager.disconnect(),
-        timeout(INTEGRATION_TEST_DISCONNECT_TIMEOUT_MS).then(() => {
+        sleep(INTEGRATION_TEST_DISCONNECT_TIMEOUT_MS).then(() => {
             throw new Error(
                 `Timed out after ${INTEGRATION_TEST_DISCONNECT_TIMEOUT_MS}ms while disconnecting MongoDB in test teardown (connection state: ${tag})`
             );
@@ -301,19 +303,27 @@ export function setupIntegrationTest(
         return mcpClient;
     };
 
-    const getMcpServer = (): CliServer & { session: CliSession; getApiClient: () => ApiClient } => {
+    const getMcpServer = (): CliServer & {
+        session: CliSession;
+        userConfig: UserConfig;
+        getApiClient: () => ApiClient;
+    } => {
         if (!mcpServer) {
             throw new Error("beforeEach() hook not ran yet");
         }
 
-        return Object.assign(mcpServer as CliServer & { session: CliSession; getApiClient: () => ApiClient }, {
-            getApiClient: (): ApiClient => {
-                if (!mcpServer?.session.apiClient) {
-                    throw new Error("apiClient not available");
-                }
-                return (mcpServer.session as CliSession).apiClient;
-            },
-        });
+        return Object.assign(
+            mcpServer as CliServer & { session: CliSession; userConfig: UserConfig; getApiClient: () => ApiClient },
+            {
+                userConfig: (mcpServer.session as CliSession).config,
+                getApiClient: (): ApiClient => {
+                    if (!mcpServer?.session.apiClient) {
+                        throw new Error("apiClient not available");
+                    }
+                    return (mcpServer.session as CliSession).apiClient;
+                },
+            }
+        );
     };
 
     return {
@@ -502,7 +512,7 @@ export function resourceChangedNotification(client: Client, uri: string): Promis
                 }
             });
         }),
-        timeout(RESOURCE_CHANGED_NOTIFICATION_TIMEOUT_MS).then(() => {
+        sleep(RESOURCE_CHANGED_NOTIFICATION_TIMEOUT_MS).then(() => {
             throw new Error(
                 `Timed out after ${RESOURCE_CHANGED_NOTIFICATION_TIMEOUT_MS}ms waiting for resource update notification for ${uri}`
             );

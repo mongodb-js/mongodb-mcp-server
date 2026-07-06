@@ -13,7 +13,7 @@ import type { SessionCloseReason } from "@mongodb-js/mcp-types";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
-import { defaultTestConfig, InMemoryLogger, timeout } from "../integrationHelpers.js";
+import { defaultTestConfig, InMemoryLogger, sleep } from "../integrationHelpers.js";
 import {
     type UserConfig,
     type OperationType,
@@ -652,7 +652,7 @@ describe("StreamableHttpRunner", () => {
 
                         const sessionBefore = await getSessionFromStore(sessionId);
                         expect(sessionBefore).toBeDefined();
-                        await timeout(1100);
+                        await sleep(1100);
 
                         const sessionAfter = await getSessionFromStore(sessionId);
                         expect(sessionAfter).toBeUndefined();

@@ -215,13 +215,14 @@ export class ConnectClusterTool extends AtlasToolBase {
                 session.connectedAtlasCluster?.clusterName === atlas.clusterName &&
                 session.connectedAtlasCluster?.username
             ) {
+                const { username, projectId: connectedProjectId } = session.connectedAtlasCluster;
                 void this.apiClient
                     .deleteDatabaseUser(
                         {
                             params: {
                                 path: {
-                                    groupId: this.session.connectedAtlasCluster.projectId,
-                                    username: this.session.connectedAtlasCluster.username,
+                                    groupId: connectedProjectId,
+                                    username,
                                     databaseName: "admin",
                                 },
                             },
@@ -254,7 +255,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         { projectId, clusterName, connectionType }: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        const ipAccessListUpdated = await ensureCurrentIpInAccessList(this.apiClient, projectId, context);
+        const ipAccessListUpdated = await ensureCurrentIpInAccessList(this.apiClient, projectId);
         let createdUser = false;
 
         const state = this.queryConnection(projectId, clusterName);
@@ -323,11 +324,7 @@ export class ConnectClusterTool extends AtlasToolBase {
                         ...(createdUser && { temporaryUserClarification: createdUserMessage }),
                     };
 
-                    const sharedTierFields = await this.runSharedTierHook(
-                        this.session.connectedAtlasCluster,
-                        content,
-                        context
-                    );
+                    const sharedTierFields = await this.runSharedTierHook(this.session.connectedAtlasCluster, content);
                     return { content, structuredContent: { ...baseStructuredContent, ...sharedTierFields } };
                 }
                 case "connecting":
@@ -367,7 +364,7 @@ export class ConnectClusterTool extends AtlasToolBase {
             });
         }
 
-        const sharedTierFields = await this.runSharedTierHook(this.session.connectedAtlasCluster, content, context);
+        const sharedTierFields = await this.runSharedTierHook(this.session.connectedAtlasCluster, content);
         return {
             content,
             structuredContent: {
@@ -382,8 +379,7 @@ export class ConnectClusterTool extends AtlasToolBase {
 
     private async runSharedTierHook(
         atlas: AtlasClusterConnectionInfo | undefined,
-        content: ToolResult<typeof ConnectClusterOutputSchema>["content"],
-        context: ToolExecutionContext
+        content: ToolResult<typeof ConnectClusterOutputSchema>["content"]
     ): Promise<{
         sharedTierAlertsDetected?: boolean;
         sharedTierTier?: SharedTierTier;

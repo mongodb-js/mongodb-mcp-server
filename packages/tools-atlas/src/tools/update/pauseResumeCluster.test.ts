@@ -1,12 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
-import {
-    PauseResumeClusterTool,
-    PauseResumeClusterArgsShape,
-} from "./pauseResumeCluster.js";
+import { PauseResumeClusterTool, PauseResumeClusterArgsShape } from "./pauseResumeCluster.js";
 import { z } from "zod";
 import type { ISession } from "@mongodb-js/mcp-types";
-import type { UserConfig } from "@mongodb-js/mcp-cli";
 import type { ITelemetry } from "@mongodb-js/mcp-types";
 import type { Elicitation } from "@mongodb-js/mcp-core";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
@@ -47,14 +43,6 @@ describe("PauseResumeClusterTool", () => {
             disconnect: mockDisconnect as unknown as () => Promise<void>,
             keychain: { allSecrets: [] } as unknown as Keychain,
         };
-
-        const mockConfig = {
-            confirmationRequiredTools: [],
-            previewFeatures: [],
-            disabledTools: [],
-            apiClientId: "test-id",
-            apiClientSecret: "test-secret",
-        } as unknown as UserConfig;
 
         const mockTelemetry = {
             isTelemetryEnabled: () => true,

@@ -77,6 +77,9 @@ importers:
 
   packages/accuracy-tests:
     devDependencies:
+      '@ai-sdk/anthropic':
+        specifier: ^3.0.71
+        version: 3.0.71(zod@4.4.3)
       '@ai-sdk/azure':
         specifier: ^3.0.62
         version: 3.0.62(zod@4.4.3)
@@ -805,6 +808,9 @@ importers:
 
   packages/test-utils:
     dependencies:
+      '@mongodb-js/mcp-core':
+        specifier: workspace:*
+        version: link:../core
       '@mongodb-js/mcp-metrics':
         specifier: workspace:*
         version: link:../metrics

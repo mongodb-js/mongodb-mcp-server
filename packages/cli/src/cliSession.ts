@@ -6,7 +6,6 @@ import EventEmitter from "events";
 import type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-types";
 import type {
     ConnectionManager,
-    ConnectionSettings,
     ConnectionStateConnected,
     ConnectionStateErrored,
 } from "@mongodb-js/mcp-tools-mongodb";

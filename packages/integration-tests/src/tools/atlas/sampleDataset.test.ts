@@ -1,5 +1,5 @@
 import { describeWithAtlas, withCluster } from "./atlasHelpers.js";
-import { expectDefined, getResponseContent, getResponseElements } from "../../helpers.js";
+import { expectDefined, getResponseContent, getResponseElements } from "../../integrationHelpers.js";
 import type { LoadSampleDatasetOutput } from "@mongodb-js/mcp-tools-atlas";
 import { describe, expect, it } from "vitest";
 
