@@ -18,10 +18,9 @@ jobs:
       REMOTE_NPM_VERSION: ${{ steps.get-remote-version.outputs.REMOTE_NPM_VERSION }}
       REMOTE_GIT_TAG_VERSION: ${{ steps.get-remote-version.outputs.REMOTE_GIT_TAG_VERSION }}
       REMOTE_RELEASE_CHANNEL: ${{ steps.remote-npm-tag.outputs.REMOTE_RELEASE_CHANNEL }}
-      REMOTE_PACKAGE_EXISTS_ON_NPM: ${{ steps.check-remote-npm.outputs.REMOTE_PACKAGE_EXISTS_ON_NPM }}
     steps:
-      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
-      - uses: actions/checkout@v7
+      - uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           fetch-depth: 0
       - name: Get version
@@ -114,15 +113,6 @@ jobs:
           fi
 
           echo "REMOTE_RELEASE_CHANNEL=${REMOTE_RELEASE_CHANNEL}" >> "$GITHUB_OUTPUT"
-      - name: Check if atlas-mcp-remote package exists on npm
-        id: check-remote-npm
-        shell: bash
-        run: |
-          if npm view mongodb-atlas-mcp-remote version >/dev/null 2>&1; then
-            echo "REMOTE_PACKAGE_EXISTS_ON_NPM=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "REMOTE_PACKAGE_EXISTS_ON_NPM=false" >> "$GITHUB_OUTPUT"
-          fi
       - name: Output atlas-mcp-remote deployment info
         run: echo "::notice title=atlas-mcp-remote Deployment Info::Deploying version ${{ steps.get-remote-version.outputs.REMOTE_GIT_TAG_VERSION }} to channel ${{ steps.remote-npm-tag.outputs.REMOTE_RELEASE_CHANNEL }}"
 
@@ -150,11 +140,7 @@ jobs:
       - name: Build .mcpb
         run: pnpm run build:mcpb
       - name: Publish to NPM
-        run: |
-          pnpm publish --tag ${{ needs.check.outputs.RELEASE_CHANNEL }} --no-git-checks
-          # Only publish the scoped @mongodb-js/mcp-* packages alongside the server.
-          # mongodb-atlas-mcp-remote is intentionally unscoped so it's excluded here and released via publish-atlas-mcp-remote.
-          pnpm -r --filter '@mongodb-js/mcp-*' publish --tag ${{ needs.check.outputs.RELEASE_CHANNEL }} --no-git-checks
+        run: pnpm -r publish --tag ${{ needs.check.outputs.RELEASE_CHANNEL }} --no-git-checks
 
       - name: Generate AI release summary
         id: ai-summary
@@ -255,9 +241,10 @@ jobs:
       id-token: write
     needs:
       - check
-    # below condition can be removed once the first version of this package has been
-    # published to npm manually, see https://jira.mongodb.org/browse/MCP-493
-    if: needs.check.outputs.REMOTE_VERSION_EXISTS == 'false' && needs.check.outputs.REMOTE_PACKAGE_EXISTS_ON_NPM == 'true' && needs.check.outputs.REMOTE_NPM_VERSION != '0.0.0'
+    # The `!= '0.0.0'` guard skips the placeholder version. `private: true` already makes the npm
+    # publish a no-op, but it does not stop this job from creating a bogus 0.0.0 GitHub release —
+    # hence the version guard. Both can be dropped after the first manual release, see https://jira.mongodb.org/browse/MCP-493
+    if: needs.check.outputs.REMOTE_VERSION_EXISTS == 'false' && needs.check.outputs.REMOTE_NPM_VERSION != '0.0.0'
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
