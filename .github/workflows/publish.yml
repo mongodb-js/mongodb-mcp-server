@@ -241,9 +241,8 @@ jobs:
       id-token: write
     needs:
       - check
-    # The `!= '0.0.0'` guard skips the placeholder version. `private: true` already makes the npm
-    # publish a no-op, but it does not stop this job from creating a bogus 0.0.0 GitHub release —
-    # hence the version guard. Both can be dropped after the first manual release, see https://jira.mongodb.org/browse/MCP-493
+    # The `!= '0.0.0'` guard skips creating github release forthe placeholder version. `private: true` already makes the npm
+    # publish a no-op. Both can be dropped after the first manual release, see https://jira.mongodb.org/browse/MCP-493
     if: needs.check.outputs.REMOTE_VERSION_EXISTS == 'false' && needs.check.outputs.REMOTE_NPM_VERSION != '0.0.0'
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1
