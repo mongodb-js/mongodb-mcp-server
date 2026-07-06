@@ -1,5 +1,6 @@
 import type express from "express";
 import { LogId } from "../common/logging/loggingDefinitions.js";
+import { packageInfo } from "../common/packageInfo.js";
 import type {
     DefaultMetrics,
     MonitoringServerFeature,
@@ -53,7 +54,14 @@ export class MonitoringServer<TMetrics extends DefaultMetrics = DefaultMetrics> 
     protected override setupRoutes(): Promise<void> {
         if (this.features.includes("health-check")) {
             this.app.get("/health", (_req: express.Request, res: express.Response) => {
-                res.json({ status: "ok" });
+                // Health responses should never be cached by proxies or load balancers.
+                res.set("Cache-Control", "no-store");
+                res.json({
+                    status: "ok",
+                    version: packageInfo.version,
+                    uptimeSeconds: Math.floor(process.uptime()),
+                    timestamp: new Date().toISOString(),
+                });
             });
         }
 

@@ -31,7 +31,7 @@ const DEFAULT_CONFIG: AppConfig = {
     clientId: TEST_CLIENT_ID,
     clientSecret: TEST_CLIENT_SECRET,
     tokenUrl: "https://cloud.mongodb.com/api/oauth/token",
-    remoteUrl: "https://cloud.mongodb.com/api/private/mcp",
+    remoteUrl: "https://mcp.mongodb.com",
     tokenTimeoutMs: 10_000,
 };
 
@@ -59,7 +59,7 @@ describe("loadConfig", () => {
             expect(loadConfig()).toEqual({
                 ...DEFAULT_CONFIG,
                 tokenUrl: "https://test.mongodb.com/api/oauth/token",
-                remoteUrl: "https://test.mongodb.com/api/private/mcp",
+                remoteUrl: "https://test.mongodb.com",
             });
         });
 
