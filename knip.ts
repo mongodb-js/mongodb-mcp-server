@@ -12,14 +12,17 @@ const config: KnipConfig = {
             entry: [
                 "eslint-rules/*.js", // Root-local ESLint custom rules
             ],
-            ignore: [
-                // Fixture scripts run externally, not part of the TS graph
-                "tests/eval/scripts/bundleEval/osDnsNativeStub.cjs",
-                "tests/eval/scripts/bundleEval/stub.mjs",
-            ],
             ignoreDependencies: [
                 // Listed in root vitest.config ui project environment; package lives in packages/ui
                 "happy-dom",
+            ],
+        },
+        "packages/eval-tests": {
+            entry: ["src/mongodb.eval.ts", "src/scripts/**/*.ts"],
+            ignore: [
+                // Fixture scripts run externally, not part of the TS graph
+                "src/scripts/bundleEval/osDnsNativeStub.cjs",
+                "src/scripts/bundleEval/stub.mjs",
             ],
         },
         "packages/mongodb-mcp-server": {

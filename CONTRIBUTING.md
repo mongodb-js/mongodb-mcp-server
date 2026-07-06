@@ -82,7 +82,7 @@ If you use [colima](https://github.com/abiosoft/colima) to run Docker on Mac, yo
 
 ## Running Braintrust Evals
 
-The Braintrust eval suite (found in `tests/eval/`) evaluates how well an LLM, when connected to the MongoDB MCP server, can understand and fulfill user requests given in natural language. Each evaluation is scored by an LLM judge, and the results are tracked over time in [Braintrust](https://www.braintrust.dev/). To run the Braintrust evals, you will need both access to a MongoDB instance (either running locally or in the cloud) and a Braintrust API key.
+The Braintrust eval suite (found in `packages/eval-tests/`) evaluates how well an LLM, when connected to the MongoDB MCP server, can understand and fulfill user requests given in natural language. Each evaluation is scored by an LLM judge, and the results are tracked over time in [Braintrust](https://www.braintrust.dev/). To run the Braintrust evals, you will need both access to a MongoDB instance (either running locally or in the cloud) and a Braintrust API key.
 
 ### Prerequisites
 

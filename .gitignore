@@ -42,4 +42,7 @@ CLAUDE.local.md
 # Braintrust
 .bt
 # Generated eval pre-bundle for Braintrust
-tests/eval/dist
+packages/eval-tests/dist
+
+# pnpm store
+.pnpm-store

@@ -26,7 +26,8 @@
     "zod": "^4.4.2",
     "@mongodb-js/mcp-cli": "workspace:*",
     "@mongodb-js/mcp-core": "workspace:*",
-    "mongodb-mcp-server": "workspace:*"
+    "mongodb-mcp-server": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.29.0"
   },
   "devDependencies": {
     "@braintrust/api": "^0.5.0",
