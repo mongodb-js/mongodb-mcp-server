@@ -20,6 +20,7 @@ describe.skipIf(shouldSkip)("mongodb-atlas-mcp-remote wrapper e2e tests", () => 
             args: [CLI_PATH],
             stderr: "pipe",
             env: {
+                ...process.env,
                 MDB_MCP_API_CLIENT_ID: process.env.REMOTE_MCP_E2E_CLIENT_ID ?? "",
                 MDB_MCP_API_CLIENT_SECRET: process.env.REMOTE_MCP_E2E_CLIENT_SECRET ?? "",
                 MDB_MCP_API_BASE_URL: process.env.REMOTE_MCP_E2E_BASE_URL ?? "",
