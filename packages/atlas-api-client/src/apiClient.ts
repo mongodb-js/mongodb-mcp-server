@@ -32,6 +32,7 @@ export interface ApiClientOptions {
     authProvider: AuthProvider | undefined;
 }
 
+/** @public */
 export type RequestContext = {
     headers?: Record<string, string | string[] | undefined>;
 };
@@ -58,6 +59,7 @@ const FORWARDABLE_REQUEST_HEADERS: ReadonlySet<string> = new Set(["x-request-id"
 
 export type ApiClientFactoryFn = (options: ApiClientOptions) => ApiClient;
 
+/** @public */
 export const defaultCreateApiClient: ApiClientFactoryFn = (options) => {
     return new ApiClient(options);
 };

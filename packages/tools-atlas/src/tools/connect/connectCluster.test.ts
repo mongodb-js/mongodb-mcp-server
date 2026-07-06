@@ -19,6 +19,11 @@ describe("ConnectClusterTool", () => {
     let mockLogger: Record<string, ReturnType<typeof vi.fn>>;
     let mockSession: Partial<IAtlasSession>;
     let tool: ConnectClusterTool;
+    let connectToCluster: (
+        connectionString: string,
+        atlas: AtlasClusterConnectionInfo,
+        context: ToolExecutionContext
+    ) => Promise<void>;
 
     beforeEach(() => {
         mockLogger = {
@@ -68,6 +73,11 @@ describe("ConnectClusterTool", () => {
         };
 
         tool = new ConnectClusterTool(params);
+        connectToCluster = tool["connectToCluster"] as (
+            connectionString: string,
+            atlas: AtlasClusterConnectionInfo,
+            context: ToolExecutionContext
+        ) => Promise<void>;
     });
 
     describe("connectToCluster request ID logging", () => {
@@ -77,17 +87,21 @@ describe("ConnectClusterTool", () => {
                 requestInfo: { headers: { "x-request-id": "req-connect-abc" } },
             };
 
-            await tool["connectToCluster"]("mongodb://localhost", ATLAS_INFO, context);
+            await connectToCluster("mongodb://localhost", ATLAS_INFO, context);
 
             expect(mockLogger.debug).toHaveBeenCalledWith(
                 expect.objectContaining({
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                     message: expect.stringContaining("attempting to connect"),
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                     attributes: expect.objectContaining({ "x-request-id": "req-connect-abc" }),
                 })
             );
             expect(mockLogger.debug).toHaveBeenCalledWith(
                 expect.objectContaining({
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                     message: expect.stringContaining("connected to cluster"),
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                     attributes: expect.objectContaining({ "x-request-id": "req-connect-abc" }),
                 })
             );
@@ -98,7 +112,7 @@ describe("ConnectClusterTool", () => {
                 signal: new AbortController().signal,
             };
 
-            await tool["connectToCluster"]("mongodb://localhost", ATLAS_INFO, context);
+            await connectToCluster("mongodb://localhost", ATLAS_INFO, context);
 
             for (const [payload] of (mockLogger.debug as ReturnType<typeof vi.fn>).mock.calls) {
                 expect((payload as { attributes?: Record<string, string> }).attributes).not.toHaveProperty(

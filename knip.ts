@@ -4,6 +4,7 @@ const config: KnipConfig = {
     ignoreBinaries: [
         "printf", // Used in mongodb-mcp-server check:api failure message script
         "semver", // Used in .github/workflows/prepare-release.yml, not imported in TS
+        "gh", // Used by packages/scripts/src/generate-release-notes.ts to fetch release notes
     ],
     // Root vitest.config.ts ui project sets setupFiles: ["./src/test-setup.ts"] relative to packages/ui
     ignoreUnresolved: ["./src/test-setup.ts"],

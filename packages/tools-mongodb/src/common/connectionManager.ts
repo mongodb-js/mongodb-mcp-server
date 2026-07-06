@@ -34,6 +34,7 @@ const SEARCH_PROBE_COLLECTION_NAME = "test";
 /** See https://github.com/mongodb/mongo/blob/master/src/mongo/base/error_codes.yml (SearchNotEnabled). */
 const MONGODB_SEARCH_NOT_ENABLED_ERROR_CODE = 31082;
 
+/** @public */
 export const defaultDriverOptions: MongoshConnectionInfo["driverOptions"] = {
     readConcern: {
         level: "local",
