@@ -1,5 +1,7 @@
-import { defaultTestConfig, setupIntegrationTest, type IntegrationTest } from "../../helpers.js";
-import type { UserConfig } from "../../../../src/common/config/userConfig.js";
+import { defaultTestConfig, setupIntegrationTest, type IntegrationTest } from "../../integrationHelpers.js";
+import type { UserConfig } from "mongodb-mcp-server";
+import { AtlasLocalTools } from "@mongodb-js/mcp-tools-atlas-local";
+import { MongoDBTools } from "@mongodb-js/mcp-tools-mongodb";
 import { describe } from "vitest";
 import type { Client } from "@modelcontextprotocol/sdk/client";
 
@@ -52,7 +54,9 @@ export function describeWithAtlasLocal(
 ): void {
     describe.skipIf(isMacOSInGitHubActions)(name, () => {
         const config = options?.config ?? defaultTestConfig;
-        const integration = setupIntegrationTest(() => config);
+        const integration = setupIntegrationTest(() => config, {
+            tools: [...AtlasLocalTools, ...MongoDBTools],
+        });
         fn(integration);
     });
 }
@@ -68,7 +72,7 @@ export function describeWithAtlasLocalDisabled(
 ): void {
     describe.skipIf(!isMacOSInGitHubActions)(name, () => {
         const config = options?.config ?? defaultTestConfig;
-        const integration = setupIntegrationTest(() => config);
+        const integration = setupIntegrationTest(() => config, { tools: AtlasLocalTools });
         fn(integration);
     });
 }

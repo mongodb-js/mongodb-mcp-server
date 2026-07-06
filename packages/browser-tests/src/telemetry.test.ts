@@ -1,18 +1,21 @@
 import type { MockInstance } from "vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-    ApiClient,
-    CompositeLogger,
-    Keychain,
-    Telemetry,
-    type DeviceId,
-    type Session,
-    UserConfigSchema,
-} from "mongodb-mcp-server/web";
+import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
+import { AtlasTelemetry as Telemetry } from "@mongodb-js/mcp-atlas-telemetry";
+import type { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
+
+type MockTelemetrySession = {
+    apiClient: ApiClient;
+    sessionId: string;
+    mcpClient: { name: string; version: string };
+    logger: CompositeLogger;
+    keychain: Keychain;
+};
 
 /**
- * Browser regression test: the MCP server ships a `mongodb-mcp-server/web`
- * entrypoint that must be usable from a browser bundle. Historically the
+ * Browser regression test: web-compatible Atlas telemetry and API client code
+ * must be usable from a browser bundle. Historically the
  * `ApiClient` constructor and the telemetry auth provider both called
  * `createFetch` from `@mongodb-js/devtools-proxy-support` — a node-fetch /
  * Node-only helper that throws in the browser polyfill. This test verifies
@@ -33,14 +36,14 @@ describe("Telemetry in browser environment", () => {
         get: vi.fn().mockResolvedValue("test-device-id"),
     } as unknown as DeviceId;
 
-    function createMockSession(apiClient: ApiClient): Session {
+    function createMockSession(apiClient: ApiClient): MockTelemetrySession {
         return {
             apiClient,
             sessionId: "browser-session-id",
             mcpClient: { name: "browser-test-client", version: "1.0.0" },
             logger: new CompositeLogger(),
             keychain: new Keychain(),
-        } as unknown as Session;
+        };
     }
 
     beforeEach(() => {
@@ -52,21 +55,42 @@ describe("Telemetry in browser environment", () => {
         vi.clearAllMocks();
     });
 
+    const browserTestServerMetadata = { mcpServerName: "browser-test-agent", version: "1.0.0" };
+
     it("can construct an ApiClient without throwing due to node-fetch / createFetch", () => {
         expect(
-            () => new ApiClient({ baseUrl: API_BASE, userAgent: "browser-test-agent" }, new CompositeLogger())
+            () =>
+                new ApiClient({
+                    options: {
+                        baseUrl: API_BASE,
+                    },
+                    serverMetadata: browserTestServerMetadata,
+                    logger: new CompositeLogger(),
+                    authProvider: undefined,
+                })
         ).not.toThrow();
     });
 
     it("initializes Telemetry and sends events via the browser fetch without throwing", async () => {
-        const apiClient = new ApiClient({ baseUrl: API_BASE, userAgent: "browser-test-agent" }, new CompositeLogger());
+        const apiClient = new ApiClient({
+            options: {
+                baseUrl: API_BASE,
+            },
+            serverMetadata: browserTestServerMetadata,
+            logger: new CompositeLogger(),
+            authProvider: undefined,
+        });
         expect(apiClient.isAuthConfigured()).toBe(false);
 
-        const telemetry = Telemetry.create(
-            createMockSession(apiClient),
-            UserConfigSchema.parse({ telemetry: "enabled" }),
-            mockDeviceId
-        );
+        const session = createMockSession(apiClient);
+        const telemetry = Telemetry.create({
+            logger: session.logger,
+            deviceId: mockDeviceId,
+            apiClient,
+            keychain: session.keychain,
+            enabled: true,
+            serverMetadata: { mcpServerName: "browser-test-server", version: "1.0.0" },
+        });
 
         await expect(telemetry.setupPromise).resolves.toBeDefined();
 
@@ -96,6 +120,6 @@ describe("Telemetry in browser environment", () => {
         });
 
         expect(telemetryCall, "expected a POST to the unauth telemetry endpoint").toBeDefined();
-        expect(telemetryCall![1]?.method).toBe("POST");
+        expect(telemetryCall?.[1]?.method).toBe("POST");
     });
 });

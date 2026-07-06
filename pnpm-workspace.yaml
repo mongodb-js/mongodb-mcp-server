@@ -1,7 +1,11 @@
 packages:
-  - "."
   - "packages/*"
   - "tests/browser"
+overrides:
+  "mongodb": "^7.1.1"
+  "kerberos": "^7.0.0"
+  "bson": "^7.2.0"
+  "zod": "^4.4.2"
 allowBuilds:
   "@modelcontextprotocol/ext-apps": false
   braintrust: true

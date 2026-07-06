@@ -1,11 +1,13 @@
 {
-  "extends": "../../tsconfig.build.json",
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "rootDir": ".",
-    "noEmit": true,
-    "paths": {
-      "ts-levenshtein": ["../node_modules/ts-levenshtein/dist/index.d.mts"]
-    }
+    "baseUrl": ".",
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "erasableSyntaxOnly": false
   },
-  "include": ["**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
 }

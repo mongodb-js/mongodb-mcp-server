@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import { type ToolArgs, type OperationType, type ToolResult } from "../../tool.js";
-import { IndexDirectionSchema, modelsSupportingAutoEmbedIndexes } from "../mongodbSchemas.js";
-import type { IndexMetadata } from "../../../telemetry/types.js";
+import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
+import { type ToolArgs, type ToolResult } from "@mongodb-js/mcp-core";
+import type { OperationType, IndexMetadata } from "@mongodb-js/mcp-types";
+import { IndexDirectionSchema, modelsSupportingAutoEmbedIndexes } from "../../mongodbSchemas.js";
 
 const CreateIndexOutputSchema = {
     database: z.string(),

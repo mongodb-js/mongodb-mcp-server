@@ -1,35 +1,63 @@
-import type { Server } from "../../server.js";
-import type { UserConfig } from "../config/userConfig.js";
-import type { Keychain } from "../keychain.js";
-import { type LoggerType, type LogLevel, type LogPayload, MCP_LOG_LEVELS } from "./loggingTypes.js";
-import { LoggerBase } from "./loggerBase.js";
+import type { McpServer, LoggerConfig, LoggerType, LogLevel, LogPayload } from "@mongodb-js/mcp-types";
+import { MCP_LOG_LEVELS, LoggerBase } from "@mongodb-js/mcp-core";
 
-export class McpLogger<TUserConfig extends UserConfig = UserConfig, TContext = unknown> extends LoggerBase {
-    public constructor(
-        private readonly server: Server<TUserConfig, TContext>,
-        keychain: Keychain
-    ) {
-        super(keychain);
+export class McpLogger extends LoggerBase {
+    private readonly server: McpServer;
+    private readonly logLevel: LogLevel;
+    private readonly pendingSends = new Set<Promise<void>>();
+
+    public constructor({
+        server,
+        options,
+        ...loggerConfig
+    }: {
+        server: McpServer;
+        options: {
+            logLevel: LogLevel;
+        };
+    } & LoggerConfig) {
+        super(loggerConfig);
+        this.server = server;
+        this.logLevel = options.logLevel;
+    }
+
+    protected getMcpLogLevel(): LogLevel {
+        return this.logLevel;
     }
 
     protected readonly type: LoggerType = "mcp";
 
     protected logCore(level: LogLevel, payload: LogPayload): void {
-        // Only log if the server is connected
-        if (!this.server.mcpServer.isConnected()) {
+        if (!this.server.isConnected()) {
             return;
         }
 
-        const minimumLevel = MCP_LOG_LEVELS.indexOf(this.server.mcpLogLevel);
+        const minimumLevel = MCP_LOG_LEVELS.indexOf(this.getMcpLogLevel());
         const currentLevel = MCP_LOG_LEVELS.indexOf(level);
         if (minimumLevel > currentLevel) {
-            // Don't log if the requested level is lower than the minimum level
             return;
         }
 
-        void this.server.mcpServer.server.sendLoggingMessage({
+        void this.dispatchLoggingMessage(level, payload);
+    }
+
+    /** Dispatches the logging message to the MCP client and keeps track of pending sends */
+    private async dispatchLoggingMessage(level: LogLevel, payload: LogPayload): Promise<void> {
+        const promise: Promise<void> = this.server.sendLoggingMessage({
             level,
             data: `[${payload.context}]: ${payload.message}`,
         });
+        this.pendingSends.add(promise);
+        try {
+            await promise;
+        } catch {
+            // Swallow send failures — same as the original fire-and-forget behavior
+        } finally {
+            this.pendingSends.delete(promise);
+        }
+    }
+
+    public override async flush(): Promise<PromiseSettledResult<void>[]> {
+        return Promise.allSettled([...this.pendingSends]);
     }
 }

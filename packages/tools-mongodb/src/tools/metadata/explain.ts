@@ -1,6 +1,7 @@
-import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
-import { formatUntrustedData } from "../../tool.js";
+import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
+import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
+import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
+import { formatUntrustedData } from "@mongodb-js/mcp-core";
 import { z } from "zod";
 import type { Document } from "mongodb";
 import { AggregateArgs } from "../read/aggregate.js";
@@ -94,7 +95,7 @@ export class ExplainTool extends MongoDBToolBase {
                 const { filter, ...rest } = method.arguments;
                 this.assertMqlIsAllowed(filter);
                 result = await provider
-                    .find(database, collection, filter as Document, {
+                    .find(database, collection, filter, {
                         ...rest,
                         ...this.getOperationOptions(signal),
                     })

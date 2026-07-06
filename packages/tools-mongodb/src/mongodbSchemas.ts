@@ -1,5 +1,5 @@
-import z from "zod";
-import { zEJSON } from "../args.js";
+import { z } from "zod";
+import { zEJSON } from "./args.js";
 
 export const AnyAggregateStage = zEJSON();
 

@@ -1,4 +1,4 @@
-import z from "zod";
+import { z } from "zod";
 import path from "path";
 import fs from "fs/promises";
 import EventEmitter from "events";
@@ -8,14 +8,26 @@ import type { EJSONOptions } from "bson";
 import { EJSON, ObjectId } from "bson";
 import { Transform } from "stream";
 import { pipeline } from "stream/promises";
-import type { MongoLogId } from "mongodb-log-writer";
+import { LogId, type LoggerBase } from "@mongodb-js/mcp-core";
+import type { MongoLogId } from "@mongodb-js/mcp-types";
 
-import type { UserConfig } from "./config/userConfig.js";
-import type { LoggerBase } from "./logging/index.js";
-import { LogId } from "./logging/index.js";
+/** Options for `ExportsManager`, including the resolved per-session export directory. */
+export type ExportsManagerOptions = {
+    exportsPath: string;
+    exportsDirectoryPath: string;
+    exportTimeoutMs: number;
+    exportCleanupIntervalMs: number;
+};
 
 export const jsonExportFormat = z.enum(["relaxed", "canonical"]);
 export type JSONExportFormat = z.infer<typeof jsonExportFormat>;
+
+export type CreateJSONExportParams = {
+    input: FindCursor | AggregationCursor;
+    exportName: string;
+    exportTitle: string;
+    jsonExportFormat: JSONExportFormat;
+};
 
 export interface CommonExportData {
     exportName: string;
@@ -59,8 +71,6 @@ export type StoredExport = ReadyExport | InProgressExport;
  * JIRA: https://jira.mongodb.org/browse/MCP-104 */
 export type AvailableExport = Pick<StoredExport, "exportName" | "exportTitle" | "exportURI" | "exportPath">;
 
-export type ExportsManagerConfig = Pick<UserConfig, "exportsPath" | "exportTimeoutMs" | "exportCleanupIntervalMs">;
-
 export type ExportsManagerEvents = {
     closed: [];
     "export-expired": [string];
@@ -73,12 +83,13 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
     private exportsCleanupInterval?: NodeJS.Timeout;
     private readonly shutdownController: AbortController = new AbortController();
 
-    private constructor(
-        private readonly exportsDirectoryPath: string,
-        private readonly config: ExportsManagerConfig,
-        private readonly logger: LoggerBase
-    ) {
+    private readonly options: ExportsManagerOptions;
+    private readonly logger: LoggerBase;
+
+    private constructor({ options, logger }: { options: ExportsManagerOptions; logger: LoggerBase }) {
         super();
+        this.options = options;
+        this.logger = logger;
     }
 
     public get availableExports(): AvailableExport[] {
@@ -87,7 +98,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
             .filter((storedExport) => {
                 return (
                     storedExport.exportStatus === "ready" &&
-                    !isExportExpired(storedExport.exportCreatedAt, this.config.exportTimeoutMs)
+                    !isExportExpired(storedExport.exportCreatedAt, this.options.exportTimeoutMs)
                 );
             })
             .map(({ exportName, exportTitle, exportURI, exportPath }) => ({
@@ -102,7 +113,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
         if (!this.exportsCleanupInterval) {
             this.exportsCleanupInterval = setInterval(
                 () => void this.cleanupExpiredExports(),
-                this.config.exportCleanupIntervalMs
+                this.options.exportCleanupIntervalMs
             );
         }
     }
@@ -114,7 +125,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
         try {
             clearInterval(this.exportsCleanupInterval);
             this.shutdownController.abort();
-            await fs.rm(this.exportsDirectoryPath, { force: true, recursive: true });
+            await fs.rm(this.options.exportsDirectoryPath, { force: true, recursive: true });
             this.emit("closed");
         } catch (error) {
             this.logger.error({
@@ -159,12 +170,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
         exportName,
         exportTitle,
         jsonExportFormat,
-    }: {
-        input: FindCursor | AggregationCursor;
-        exportName: string;
-        exportTitle: string;
-        jsonExportFormat: JSONExportFormat;
-    }): Promise<AvailableExport> {
+    }: CreateJSONExportParams): Promise<AvailableExport> {
         try {
             this.assertIsNotShuttingDown();
             const exportNameWithExtension = decodeAndNormalize(ensureExtension(exportName, "json"));
@@ -174,7 +180,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
                 );
             }
             const exportURI = `exported-data://${encodeURIComponent(exportNameWithExtension)}`;
-            const exportFilePath = path.join(this.exportsDirectoryPath, exportNameWithExtension);
+            const exportFilePath = path.join(this.options.exportsDirectoryPath, exportNameWithExtension);
             const inProgressExport: InProgressExport = (this.storedExports[exportNameWithExtension] = {
                 exportName: exportNameWithExtension,
                 exportTitle,
@@ -208,7 +214,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
             let pipeSuccessful = false;
             let docsTransformed = 0;
             try {
-                await fs.mkdir(this.exportsDirectoryPath, { recursive: true });
+                await fs.mkdir(this.options.exportsDirectoryPath, { recursive: true });
                 const outputStream = createWriteStream(inProgressExport.exportPath);
                 const ejsonTransform = this.docToEJSONStream(this.getEJSONOptionsForFormat(jsonExportFormat));
                 await pipeline([input.stream(), ejsonTransform, outputStream], {
@@ -306,7 +312,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
             for (const expiredExport of Object.values(this.storedExports)) {
                 if (
                     expiredExport.exportStatus === "ready" &&
-                    isExportExpired(expiredExport.exportCreatedAt, this.config.exportTimeoutMs)
+                    isExportExpired(expiredExport.exportCreatedAt, this.options.exportTimeoutMs)
                 ) {
                     exportsForCleanup.push(expiredExport);
                     delete this.storedExports[expiredExport.exportName];
@@ -360,13 +366,20 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
         }
     }
 
-    static init(
-        config: ExportsManagerConfig,
-        logger: LoggerBase,
-        sessionId = new ObjectId().toString()
-    ): ExportsManager {
-        const exportsDirectoryPath = path.join(config.exportsPath, sessionId);
-        const exportsManager = new ExportsManager(exportsDirectoryPath, config, logger);
+    static init({
+        options,
+        logger,
+        sessionId = new ObjectId().toString(),
+    }: {
+        options: Omit<ExportsManagerOptions, "exportsDirectoryPath">;
+        logger: LoggerBase;
+        sessionId?: string;
+    }): ExportsManager {
+        const exportsManagerOptions: ExportsManagerOptions = {
+            ...options,
+            exportsDirectoryPath: path.join(options.exportsPath, sessionId),
+        };
+        const exportsManager = new ExportsManager({ options: exportsManagerOptions, logger });
         exportsManager.init();
         return exportsManager;
     }

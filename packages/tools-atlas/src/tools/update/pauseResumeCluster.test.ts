@@ -1,20 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ToolConstructorParams } from "../../../../../src/tools/tool.js";
-import {
-    PauseResumeClusterTool,
-    PauseResumeClusterArgsShape,
-} from "../../../../../src/tools/atlas/update/pauseResumeCluster.js";
+import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
+import { PauseResumeClusterTool, PauseResumeClusterArgsShape } from "./pauseResumeCluster.js";
 import { z } from "zod";
-import type { Session } from "../../../../../src/common/session.js";
-import type { UserConfig } from "../../../../../src/common/config/userConfig.js";
-import type { Telemetry } from "../../../../../src/telemetry/telemetry.js";
-import type { Elicitation } from "../../../../../src/elicitation.js";
-import type { CompositeLogger } from "../../../../../src/common/logging/index.js";
-import type { ApiClient } from "../../../../../src/common/atlas/apiClient.js";
-import type { AtlasClusterConnectionInfo } from "../../../../../src/common/connectionInfo.js";
-import { UIRegistry } from "../../../../../src/ui/registry/index.js";
-import { MockMetrics } from "../../../mocks/metrics.js";
-import type { Keychain } from "../../../../../src/lib.js";
+import type { ISession } from "@mongodb-js/mcp-types";
+import type { ITelemetry } from "@mongodb-js/mcp-types";
+import type { Elicitation } from "@mongodb-js/mcp-core";
+import type { CompositeLogger } from "@mongodb-js/mcp-core";
+import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-types";
+import { UIRegistry } from "@mongodb-js/mcp-ui";
+import { MockMetrics } from "@mongodb-js/mcp-test-utils";
+import type { Keychain } from "@mongodb-js/mcp-core";
 
 const PROJECT_ID = "507f1f77bcf86cd799439011";
 const CLUSTER_NAME = "my-cluster";
@@ -40,7 +36,7 @@ describe("PauseResumeClusterTool", () => {
             error: vi.fn(),
         } as unknown as CompositeLogger;
 
-        const mockSession: Partial<Session> = {
+        const mockSession: Partial<ISession> = {
             logger: mockLogger,
             apiClient: mockApiClient as unknown as ApiClient,
             connectedAtlasCluster: connectedCluster,
@@ -48,18 +44,10 @@ describe("PauseResumeClusterTool", () => {
             keychain: { allSecrets: [] } as unknown as Keychain,
         };
 
-        const mockConfig = {
-            confirmationRequiredTools: [],
-            previewFeatures: [],
-            disabledTools: [],
-            apiClientId: "test-id",
-            apiClientSecret: "test-secret",
-        } as unknown as UserConfig;
-
         const mockTelemetry = {
             isTelemetryEnabled: () => true,
             emitEvents: vi.fn(),
-        } as unknown as Telemetry;
+        } as unknown as ITelemetry;
 
         const mockElicitation = {
             requestConfirmation: vi.fn(),
@@ -69,8 +57,7 @@ describe("PauseResumeClusterTool", () => {
             name: PauseResumeClusterTool.toolName,
             category: "atlas",
             operationType: PauseResumeClusterTool.operationType,
-            session: mockSession as Session,
-            config: mockConfig,
+            session: mockSession as ISession,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
             metrics: new MockMetrics(),

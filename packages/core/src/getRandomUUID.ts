@@ -1,4 +1,5 @@
 import { UUID } from "bson";
+
 /**
  * Generates a random UUID that works in both Node.js and browser environments.
  * Attempts to use Node.js crypto first, then falls back to Web Crypto API.

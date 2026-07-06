@@ -1,11 +1,104 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js";
-import { defaultTestConfig } from "../helpers.js";
-import type { UIRegistry } from "../../../src/ui/registry/index.js";
-import type { Server } from "../../../src/server.js";
+import { defaultTestConfig } from "../integrationHelpers.js";
+import { UIRegistry } from "@mongodb-js/mcp-ui";
+import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
+import type { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
+import { CliServer, CliSession, Elicitation, connectionErrorHandler } from "mongodb-mcp-server";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { CompositeLogger, Keychain, NoopTelemetry } from "@mongodb-js/mcp-core";
+import { MCPConnectionManager, ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
+import { createTestApiClient } from "../integrationHelpers.js";
+import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
+import { packageInfo } from "mongodb-mcp-server";
+import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
+import type { UserConfig } from "mongodb-mcp-server";
 
-describe("TransportRunnerBase", () => {
-    let server: Server | undefined;
+// Helper to create a Server instance for testing UIRegistry
+type CreateServerOptions = {
+    config: UserConfig;
+    uiRegistry?: UIRegistry;
+};
+
+async function createTestServer({ config, uiRegistry }: CreateServerOptions): Promise<CliServer> {
+    const logger = new CompositeLogger({ loggers: [] });
+    const keychain = Keychain.root;
+
+    const exportsManager = ExportsManager.init({
+        options: {
+            exportsPath: config.exportsPath,
+            exportTimeoutMs: config.exportTimeoutMs,
+            exportCleanupIntervalMs: config.exportCleanupIntervalMs,
+        },
+        logger,
+    });
+
+    const connectionManager = new MCPConnectionManager({
+        logger,
+        deviceId: {} as unknown as DeviceId,
+        serverMetadata: packageInfo,
+        connectionInfo: { transport: "http", httpHost: "localhost" },
+    });
+
+    const apiClient = createTestApiClient({
+        baseUrl: config.apiBaseUrl,
+        serverMetadata: packageInfo,
+        logger,
+        clientId: "test-client-id",
+        clientSecret: "test-client-secret",
+    });
+
+    // Mock the API client methods for tests
+    vi.spyOn(apiClient, "validateAuthConfig").mockResolvedValue(undefined);
+    vi.spyOn(apiClient, "close").mockResolvedValue(undefined);
+
+    const atlasLocalClient = await createAtlasLocalClient({ logger });
+
+    const mcpServer = new McpServer({
+        name: "test-server",
+        version: packageInfo.version,
+    });
+
+    const elicitation = new Elicitation({ server: mcpServer.server });
+
+    const session = new CliSession({
+        userConfig: config,
+        logger,
+        exportsManager,
+        connectionManager,
+        keychain,
+        apiClient,
+        connectionErrorHandler,
+        atlasLocalClient,
+    });
+
+    const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
+
+    if (!uiRegistry && config.previewFeatures.includes("mcpUI")) {
+        uiRegistry = new UIRegistry();
+    }
+
+    const server = new CliServer({
+        session,
+        mcpServer,
+        telemetry: new NoopTelemetry() as unknown as AtlasTelemetry,
+        connectionErrorHandler,
+        elicitation,
+        metrics,
+        uiRegistry,
+        serverMetadata: {
+            mcpServerName: "test-server",
+            version: "1.0",
+            engines: {
+                node: "20.0.0",
+            },
+        },
+    });
+
+    return server;
+}
+
+describe("CliServer UIRegistry", () => {
+    let server: CliServer | undefined;
 
     afterEach(async () => {
         if (server) {
@@ -16,29 +109,23 @@ describe("TransportRunnerBase", () => {
 
     describe("UIRegistry conditional import", () => {
         it("should not set UIRegistry when mcpUI preview feature is not enabled", async () => {
-            const runner = new StreamableHttpRunner({
-                userConfig: {
+            server = await createTestServer({
+                config: {
                     ...defaultTestConfig,
-                    httpPort: 0,
                     previewFeatures: [], // mcpUI not included
                 },
             });
-
-            server = await runner["setupServer"]();
 
             expect(server.uiRegistry).toBeUndefined();
         });
 
         it("should set UIRegistry when mcpUI preview feature is enabled", async () => {
-            const runner = new StreamableHttpRunner({
-                userConfig: {
+            server = await createTestServer({
+                config: {
                     ...defaultTestConfig,
-                    httpPort: 0,
                     previewFeatures: ["mcpUI"],
                 },
             });
-
-            server = await runner["setupServer"]();
 
             expect(server.uiRegistry).toBeDefined();
             expect(server.uiRegistry).toHaveProperty("get");
@@ -46,20 +133,16 @@ describe("TransportRunnerBase", () => {
         });
 
         it("should use provided UIRegistry from serverOptions when available", async () => {
-            const runner = new StreamableHttpRunner({
-                userConfig: {
-                    ...defaultTestConfig,
-                    httpPort: 0,
-                    previewFeatures: ["mcpUI"], // mcpUI enabled but should be ignored
-                },
-            });
-
             const mockUIRegistry: UIRegistry = {
                 get: vi.fn(),
             } as unknown as UIRegistry;
 
-            server = await runner["setupServer"](undefined, {
-                serverOptions: { uiRegistry: mockUIRegistry },
+            server = await createTestServer({
+                config: {
+                    ...defaultTestConfig,
+                    previewFeatures: ["mcpUI"], // mcpUI enabled but should be ignored
+                },
+                uiRegistry: mockUIRegistry,
             });
 
             // Should use the provided UIRegistry, not create a new one
@@ -67,20 +150,16 @@ describe("TransportRunnerBase", () => {
         });
 
         it("should not import UIRegistry when serverOptions provides one, even if mcpUI is disabled", async () => {
-            const runner = new StreamableHttpRunner({
-                userConfig: {
-                    ...defaultTestConfig,
-                    httpPort: 0,
-                    previewFeatures: [], // mcpUI not enabled
-                },
-            });
-
             const mockUIRegistry: UIRegistry = {
                 get: vi.fn(),
             } as unknown as UIRegistry;
 
-            server = await runner["setupServer"](undefined, {
-                serverOptions: { uiRegistry: mockUIRegistry },
+            server = await createTestServer({
+                config: {
+                    ...defaultTestConfig,
+                    previewFeatures: [], // mcpUI not enabled
+                },
+                uiRegistry: mockUIRegistry,
             });
 
             // Should use the provided UIRegistry
@@ -88,15 +167,12 @@ describe("TransportRunnerBase", () => {
         });
 
         it("should handle multiple preview features with mcpUI included", async () => {
-            const runner = new StreamableHttpRunner({
-                userConfig: {
+            server = await createTestServer({
+                config: {
                     ...defaultTestConfig,
-                    httpPort: 0,
                     previewFeatures: ["mcpUI"],
                 },
             });
-
-            server = await runner["setupServer"]();
 
             expect(server.uiRegistry).toBeDefined();
             expect(server.uiRegistry).toHaveProperty("get");

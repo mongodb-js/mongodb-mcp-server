@@ -1,31 +1,14 @@
-import { z } from "zod";
-import {
-    type OperationType,
-    type ToolArgs,
-    type ToolExecutionContext,
-    type ToolResult,
-    formatUntrustedData,
-} from "../../tool.js";
-import { AtlasToolBase } from "../atlasTool.js";
-import type { Cluster } from "../../../common/atlas/cluster.js";
-import { inspectCluster } from "../../../common/atlas/cluster.js";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
+import { type ToolArgs, formatUntrustedData } from "@mongodb-js/mcp-core";
+import type { OperationType } from "@mongodb-js/mcp-types";
+import { AtlasToolBase } from "../../atlasTool.js";
+import type { Cluster } from "../../helpers/cluster.js";
+import { inspectCluster } from "../../helpers/cluster.js";
 import { AtlasArgs } from "../../args.js";
 
 export const InspectClusterArgs = {
     projectId: AtlasArgs.projectId().describe("Atlas project ID"),
     clusterName: AtlasArgs.clusterName().describe("Atlas cluster name"),
-};
-
-const InspectClusterOutputSchema = {
-    name: z.string(),
-    instanceType: z.enum(["FREE", "DEDICATED", "FLEX"]),
-    instanceSize: z.string(),
-    provider: z.string().optional(),
-    region: z.string().optional(),
-    paused: z.boolean(),
-    state: z.string(),
-    mongoDBVersion: z.string(),
-    connectionStrings: z.record(z.string(), z.unknown()),
 };
 
 export class InspectClusterTool extends AtlasToolBase {
@@ -35,33 +18,25 @@ export class InspectClusterTool extends AtlasToolBase {
     public argsShape = {
         ...InspectClusterArgs,
     };
-    public override outputSchema = InspectClusterOutputSchema;
 
-    protected async execute(
-        { projectId, clusterName }: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
-        const cluster = await inspectCluster(this.apiClient, projectId, clusterName, context);
+    protected async execute({ projectId, clusterName }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+        const cluster = await inspectCluster(this.apiClient, projectId, clusterName);
 
         return this.formatOutput(cluster);
     }
 
-    private formatOutput(formattedCluster: Cluster): ToolResult<typeof InspectClusterOutputSchema> {
-        const structuredContent = {
+    private formatOutput(formattedCluster: Cluster): CallToolResult {
+        const clusterDetails = {
             name: formattedCluster.name || "Unknown",
             instanceType: formattedCluster.instanceType,
             instanceSize: formattedCluster.instanceSize || "N/A",
-            provider: formattedCluster.provider,
-            region: formattedCluster.region,
-            paused: formattedCluster.paused,
             state: formattedCluster.state || "UNKNOWN",
             mongoDBVersion: formattedCluster.mongoDBVersion || "N/A",
             connectionStrings: formattedCluster.connectionStrings || {},
         };
 
         return {
-            content: formatUntrustedData("Cluster details:", JSON.stringify(structuredContent)),
-            structuredContent,
+            content: formatUntrustedData("Cluster details:", JSON.stringify(clusterDetails)),
         };
     }
 }

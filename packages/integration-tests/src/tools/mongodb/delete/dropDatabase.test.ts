@@ -1,4 +1,3 @@
-import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 import { expect, it } from "vitest";
 
 import {
@@ -8,8 +7,9 @@ import {
     databaseParameters,
     databaseInvalidArgs,
     expectDefined,
-} from "../../../helpers.js";
-import type { DropDatabaseOutput } from "../../../../../src/tools/mongodb/delete/dropDatabase.js";
+} from "../../../integrationHelpers.js";
+import { describeWithMongoDB, validateAutoConnectBehavior } from "../../../mongodbHelpers.js";
+import type { DropDatabaseOutput } from "@mongodb-js/mcp-tools-mongodb";
 
 describeWithMongoDB("dropDatabase tool", (integration) => {
     validateToolMetadata(

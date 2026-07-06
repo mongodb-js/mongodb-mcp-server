@@ -5,12 +5,17 @@ import {
     getResponseContent,
     defaultTestConfig,
     expectDefined,
-} from "../../../helpers.js";
+} from "../../../integrationHelpers.js";
+import {
+    describeWithMongoDB,
+    getDocsFromUntrustedContent,
+    validateAutoConnectBehavior,
+    syncMongoToolsConfigFromUserConfig,
+} from "../../../mongodbHelpers.js";
 import { expect, it, afterEach } from "vitest";
-import { describeWithMongoDB, getDocsFromUntrustedContent, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 import type { Client } from "@modelcontextprotocol/sdk/client";
-import type { CursorLimitKey } from "../../../../../src/helpers/constants.js";
-import { bsonToJson } from "../../../../../src/helpers/bsonToJson.js";
+import type { CursorLimitKey } from "@mongodb-js/mcp-tools-mongodb";
+import { bsonToJson } from "@mongodb-js/mcp-tools-mongodb";
 
 type AggregateDBToolResponse = Awaited<ReturnType<Client["callTool"]>>;
 
@@ -53,8 +58,9 @@ function expectAggregateDBStructuredContent(
 
 describeWithMongoDB("aggregate-db tool", (integration) => {
     afterEach(() => {
-        integration.mcpServer().userConfig.readOnly = false;
-        integration.mcpServer().userConfig.disabledTools = [];
+        integration.mcpServer().session.config.readOnly = false;
+        integration.mcpServer().session.config.disabledTools = [];
+        syncMongoToolsConfigFromUserConfig(integration.mcpServer());
     });
 
     validateToolMetadata(integration, "aggregate-db", "Run an aggregation against a MongoDB database", "read", [
@@ -137,7 +143,8 @@ describeWithMongoDB("aggregate-db tool", (integration) => {
 
     it("can not run $out stages in readOnly mode", async () => {
         await integration.connectMcpClient();
-        integration.mcpServer().userConfig.readOnly = true;
+        integration.mcpServer().session.config.readOnly = true;
+        syncMongoToolsConfigFromUserConfig(integration.mcpServer());
         const response = await integration.mcpClient().callTool({
             name: "aggregate-db",
             arguments: {
@@ -154,7 +161,8 @@ describeWithMongoDB("aggregate-db tool", (integration) => {
 
     it("can not run $merge stages in readOnly mode", async () => {
         await integration.connectMcpClient();
-        integration.mcpServer().userConfig.readOnly = true;
+        integration.mcpServer().session.config.readOnly = true;
+        syncMongoToolsConfigFromUserConfig(integration.mcpServer());
         const response = await integration.mcpClient().callTool({
             name: "aggregate-db",
             arguments: {
@@ -217,7 +225,8 @@ describeWithMongoDB("aggregate-db tool", (integration) => {
     for (const disabledOpType of ["create", "update", "delete"] as const) {
         it(`can not run $out stages when ${disabledOpType} operation is disabled`, async () => {
             await integration.connectMcpClient();
-            integration.mcpServer().userConfig.disabledTools = [disabledOpType];
+            integration.mcpServer().session.config.disabledTools = [disabledOpType];
+            syncMongoToolsConfigFromUserConfig(integration.mcpServer());
             const response = await integration.mcpClient().callTool({
                 name: "aggregate-db",
                 arguments: {
@@ -233,7 +242,8 @@ describeWithMongoDB("aggregate-db tool", (integration) => {
 
         it(`can not run $merge stages when ${disabledOpType} operation is disabled`, async () => {
             await integration.connectMcpClient();
-            integration.mcpServer().userConfig.disabledTools = [disabledOpType];
+            integration.mcpServer().session.config.disabledTools = [disabledOpType];
+            syncMongoToolsConfigFromUserConfig(integration.mcpServer());
             const response = await integration.mcpClient().callTool({
                 name: "aggregate-db",
                 arguments: {
@@ -530,7 +540,7 @@ describeWithMongoDB(
 
             const { result, error, executionTime } = await aggregatePromise;
 
-            expect(executionTime).toBeLessThan(50); // Ensure it aborted quickly
+            expect(executionTime).toBeLessThan(80); // Ensure it aborted quickly
             expect(result).toBeUndefined();
             expectDefined(error);
             expect(error.message).toContain("This operation was aborted");

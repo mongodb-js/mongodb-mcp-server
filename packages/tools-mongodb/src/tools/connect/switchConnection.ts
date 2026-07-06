@@ -1,14 +1,9 @@
-import z from "zod";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { z } from "zod";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
 
-import { MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolConstructorParams, ToolResult } from "../../tool.js";
-import type { Server } from "../../../server.js";
-
-const SwitchConnectionOutputSchema = {
-    connected: z.boolean(),
-};
-
+import { MongoDBToolBase, type IMongoDBSession, type MongoDBToolRegistrationServer } from "../../mongodbTool.js";
+import { type ToolArgs, type ToolConstructorParams } from "@mongodb-js/mcp-core";
+import type { OperationType } from "@mongodb-js/mcp-types";
 export class SwitchConnectionTool extends MongoDBToolBase {
     static toolName = "switch-connection";
     public override description =
@@ -25,20 +20,18 @@ export class SwitchConnectionTool extends MongoDBToolBase {
 
     static operationType: OperationType = "connect";
 
-    public override outputSchema = SwitchConnectionOutputSchema;
-
-    constructor(params: ToolConstructorParams) {
+    constructor(params: ToolConstructorParams<IMongoDBSession>) {
         super(params);
-        params.session.on("connect", () => {
+        this.session.on("connect", () => {
             this.enable();
         });
 
-        params.session.on("disconnect", () => {
+        this.session.on("disconnect", () => {
             this.disable();
         });
     }
 
-    public override register(server: Server): boolean {
+    public override register(server: MongoDBToolRegistrationServer): boolean {
         const registrationSuccessful = super.register(server);
         /**
          * When connected to mongodb we want to swap connect with
@@ -50,9 +43,7 @@ export class SwitchConnectionTool extends MongoDBToolBase {
         return registrationSuccessful;
     }
 
-    protected override async execute({
-        connectionString,
-    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
+    protected override async execute({ connectionString }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         if (typeof connectionString !== "string") {
             await this.session.connectToConfiguredConnection();
         } else {
@@ -61,18 +52,6 @@ export class SwitchConnectionTool extends MongoDBToolBase {
 
         return {
             content: [{ type: "text", text: "Successfully connected to MongoDB." }],
-            structuredContent: { connected: true },
         };
-    }
-
-    protected override async handleError(
-        error: unknown,
-        args: ToolArgs<typeof this.argsShape>
-    ): Promise<CallToolResult> {
-        const result = await super.handleError(error, args);
-        if (result.isError) {
-            return { ...result, structuredContent: { connected: false } };
-        }
-        return result;
     }
 }

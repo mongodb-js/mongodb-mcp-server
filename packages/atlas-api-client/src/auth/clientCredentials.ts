@@ -1,25 +1,33 @@
 import * as oauth from "oauth4webapi";
-import type { LoggerBase } from "../../logging/index.js";
-import { LogId } from "../../logging/index.js";
+import { LogId, type LoggerBase } from "@mongodb-js/mcp-core";
+import type { ServerMetadata } from "@mongodb-js/mcp-types";
 import { createFetch } from "@mongodb-js/devtools-proxy-support";
 import type { AccessToken, AuthProvider } from "./authProvider.js";
+import { userAgentFromServerMetadata } from "../userAgentFromServerMetadata.js";
 
 export interface ClientCredentialsAuthOptions {
     clientId: string;
     clientSecret: string;
     baseUrl: string;
-    userAgent: string;
 }
+
+export type ClientCredentialsAuthProviderParams = {
+    options: ClientCredentialsAuthOptions;
+    serverMetadata: ServerMetadata;
+    logger: LoggerBase;
+};
 
 export class ClientCredentialsAuthProvider implements AuthProvider {
     private oauth2Issuer?: oauth.AuthorizationServer;
     private accessToken?: AccessToken;
     private readonly options: ClientCredentialsAuthOptions;
+    private readonly userAgent: string;
     private readonly logger: LoggerBase;
     private customFetch: typeof fetch;
 
-    constructor(options: ClientCredentialsAuthOptions, logger: LoggerBase) {
+    constructor({ options, serverMetadata, logger }: ClientCredentialsAuthProviderParams) {
         this.options = options;
+        this.userAgent = userAgentFromServerMetadata(serverMetadata);
         this.logger = logger;
 
         this.oauth2Issuer = {
@@ -83,7 +91,7 @@ export class ClientCredentialsAuthProvider implements AuthProvider {
                     {
                         [oauth.customFetch]: this.customFetch,
                         headers: {
-                            "User-Agent": this.options.userAgent,
+                            "User-Agent": this.userAgent,
                         },
                     }
                 );

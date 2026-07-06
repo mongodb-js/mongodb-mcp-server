@@ -1,6 +1,7 @@
 import type { Document } from "mongodb";
 import { ErrorCodes, MongoDBError } from "../common/errors.js";
-import { LogId, type LoggerBase } from "../common/logging/index.js";
+import { LogId } from "@mongodb-js/mcp-core";
+import type { ICompositeLogger } from "@mongodb-js/mcp-types";
 
 /**
  * Check if the query plan uses an index
@@ -66,7 +67,7 @@ export async function checkIndexUsage({
     collection: string;
     operation: string;
     explainCallback: () => Promise<Document>;
-    logger: LoggerBase;
+    logger: ICompositeLogger;
 }): Promise<void> {
     try {
         const explainResult = await explainCallback();

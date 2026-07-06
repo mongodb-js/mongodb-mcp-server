@@ -43,7 +43,7 @@ There are two main approaches to customize how the MongoDB MCP Server is created
 
 1. **Override `createServerForRequest`**: When using HTTP transport, extend `StreamableHttpRunner` and override the `createServerForRequest` method. This allows you to customize the server creation for each incoming request, enabling per-session configuration based on request headers, query parameters, or authentication context.
 
-2. **Use `start({ serverOptions, sessionOptions })` with options**: Call the `start` method with `serverOptions` (for tools, error handlers, UI registry, etc.) and `sessionOptions` (for connection manager, API client, Atlas local client). This is useful for static customization that applies to all sessions.
+2. **Extend `MCPHttpServer`**: Create a subclass of `MCPHttpServer` and implement `createServerForRequest` to customize server creation with your own dependencies and configuration.
 
 ### Exported Modules
 
@@ -60,7 +60,6 @@ import {
   parseUserConfig,
   StreamableHttpRunner,
   StdioRunner,
-  TransportRunnerBase,
   LoggerBase,
   Telemetry,
   Keychain,
@@ -68,23 +67,20 @@ import {
   MongoDBError,
   ErrorCodes,
   connectionErrorHandler,
-  defaultCreateConnectionManager,
   applyConfigOverrides,
   // ... and more
 } from "mongodb-mcp-server";
+import type { ITransportRunner } from "@mongodb-js/mcp-types";
 ```
 
-**Tools (`mongodb-mcp-server/tools`):**
+**Tools:**
 
 ```typescript
-import {
-  ToolBase,
-  AllTools,
-  MongoDbTools,
-  AtlasTools,
-  AtlasLocalTools,
-  type ToolClass,
-} from "mongodb-mcp-server/tools";
+import { AllTools } from "mongodb-mcp-server";
+import { MongoDBTools } from "@mongodb-js/mcp-tools-mongodb";
+import { AtlasTools } from "@mongodb-js/mcp-tools-atlas";
+import { AtlasLocalTools } from "@mongodb-js/mcp-tools-atlas-local";
+import { ToolBase, type ToolClass } from "@mongodb-js/mcp-core";
 ```
 
 For detailed documentation of these exports and their usage, see the [API Reference](#api-reference) section.
@@ -94,7 +90,7 @@ For detailed documentation of these exports and their usage, see the [API Refere
 The MongoDB MCP Server library follows a modular architecture:
 
 - **Transport Runners**: `StdioRunner` and `StreamableHttpRunner` manage the MCP transport layer
-  - For HTTP transport, extend `StreamableHttpRunner` and override `createServerForRequest` to customize server creation per request or use `start({ serverOptions, sessionOptions })` with options to customize server behavior
+  - For HTTP transport, extend `StreamableHttpRunner` and override `createServerForRequest` to customize server creation per request
 - **Server**: Core server that wraps the MCP Server and registers tools and resources
 - **Session**: Per-client (MCP Client) connection and configuration state
 - **Tools**: Individual capabilities exposed to the MCP client
@@ -168,7 +164,7 @@ Customize configuration for each MCP client session, enabling user-specific perm
 
 ```typescript
 import { UserConfigSchema, StreamableHttpRunner } from "mongodb-mcp-server";
-import type { OperationType } from "mongodb-mcp-server/tools";
+import type { OperationType } from "@mongodb-js/mcp-core";
 import type { Server, UserConfig } from "mongodb-mcp-server";
 import type { RequestContext } from "mongodb-mcp-server";
 
@@ -463,7 +459,7 @@ import {
   ToolBase,
   type ToolCategory,
   type OperationType,
-} from "mongodb-mcp-server/tools";
+} from "@mongodb-js/mcp-core";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
 // Define available connections
@@ -640,12 +636,12 @@ This example shows how to selectively enable only specific MongoDB tools (`aggre
 ```typescript
 import { z } from "zod";
 import { StreamableHttpRunner, UserConfigSchema } from "mongodb-mcp-server";
+import { AllTools } from "mongodb-mcp-server";
 import {
+  ToolBase,
   type ToolCategory,
   type OperationType,
-  AllTools,
-  ToolBase,
-} from "mongodb-mcp-server/tools";
+} from "@mongodb-js/mcp-core";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
 // Custom tool to fetch ticket details from your application
@@ -755,19 +751,19 @@ This approach is useful when you want to:
 
 ## API Reference
 
-### TransportRunnerConfig
+### ITransportRunner
 
-Configuration options for initializing transport runners (`StdioRunner`, `StreamableHttpRunner`).
+Interface for transport runners (`StdioRunner`, `StreamableHttpRunner`).
 
-See the TypeScript definition in [`src/transports/base.ts`](./src/transports/base.ts) for detailed documentation of all available options.
+See the TypeScript definition in [`packages/types/src/transport.ts`](./packages/types/src/transport.ts) for detailed documentation.
 
-**Note:** Several properties in `TransportRunnerConfig` are deprecated. For customizing server creation, prefer extending `StreamableHttpRunner` and overriding the `createServerForRequest` method, or using `createServer` with appropriate `serverOptions` and `sessionOptions`.
+**Note:** For customizing server creation, prefer extending `MCPHttpServer` and implementing the `createServerForRequest` method.
 
 ### ToolBase
 
 Base class for implementing custom MCP tools.
 
-See the TypeScript documentation in [`src/tools/tool.ts`](./src/tools/tool.ts) for:
+See the TypeScript documentation in [`packages/core/src/toolBase.ts`](./packages/core/src/toolBase.ts) for:
 
 - Detailed explanation of `ToolBase` abstract class
 - Documentation of all available protected members
@@ -789,14 +785,15 @@ This type enforces that tool classes have:
 
 The static properties are automatically injected as instance properties during tool construction by the server.
 
-See the TypeScript documentation in [`src/tools/tool.ts`](./src/tools/tool.ts) for complete details and examples.
+See the TypeScript documentation in [`packages/core/src/toolBase.ts`](./packages/core/src/toolBase.ts) for complete details and examples.
 
 ### Tool Collections
 
 The library exports collections of internal tool classes that can be used for selective tool registration or extension.
 
 ```typescript
-import { AllTools, AggregateTool, FindTool } from "mongodb-mcp-server/tools";
+import { AllTools } from "mongodb-mcp-server";
+import { AggregateTool, FindTool } from "@mongodb-js/mcp-tools-mongodb";
 
 // Use all internal tools
 // An array containing all internal tool constructors (MongoDB, Atlas, and Atlas Local tools combined).
@@ -897,14 +894,14 @@ See "Example: Integration with Request Overrides" for further details on how to 
 
 You can provide a custom connection manager to control how the MongoDB MCP server connects to a MongoDB instance. The main use case for this is if connection handling is done differently in your application. For example, the [MongoDB extension for VS Code](https://github.com/mongodb-js/vscode/blob/f45a4c774ffc01e9aed38f6ef00224bf921d9784/src/mcp/mcpConnectionManager.ts#L30) provides its own implementation of ConnectionManager because the connection handling is done by the extension itself.
 
-The default connection manager factory (`defaultCreateConnectionManager`) is also exported if you need to use the default implementation.
+When using `MCPConnectionManager`, pass **`options`**: an object with **`connectionInfo`** (transport / browser hints for OIDC inference—the parsed `UserConfig` satisfies this), **`displayName`** (product title), and **`version`** (product version string). Those labels are combined into the MongoDB driver `appName` when not already set on the URI. The core server fills them from `userConfig` + `serverMetadata` when it builds the manager for you.
 
 ```typescript
 import {
   ConnectionManager,
+  MCPConnectionManager,
   StreamableHttpRunner,
   UserConfigSchema,
-  defaultCreateConnectionManager,
 } from "mongodb-mcp-server";
 import type { Server } from "mongodb-mcp-server";
 import type { RequestContext } from "mongodb-mcp-server";
@@ -918,18 +915,22 @@ class CustomStreamableHttpRunner extends StreamableHttpRunner {
   }): Promise<Server> {
     // Create a custom connection manager instance
     // This example uses the default, but you can provide your own implementation
-    const customConnectionManager = await defaultCreateConnectionManager({
+    const customConnectionManager = new MCPConnectionManager({
       logger: this.logger,
-      userConfig: this.userConfig,
       deviceId: this.deviceId,
+      options: {
+        connectionInfo: this.userConfig,
+        displayName: "My MCP Host",
+        version: "1.0.0",
+      },
     });
 
-    // Create the server with the custom connection manager
-    return this.createServer({
+    // Create and return the server with the custom connection manager
+    return new Server({
       userConfig: this.userConfig,
-      sessionOptions: {
-        connectionManager: customConnectionManager,
-      },
+      logger: this.baseLogger,
+      connectionManager: customConnectionManager,
+      // ... other options
     });
   }
 }
@@ -1016,12 +1017,12 @@ class CustomStreamableHttpRunner extends StreamableHttpRunner {
   }: {
     request: RequestContext;
   }): Promise<Server> {
-    // Create the server with the custom error handler
-    return this.createServer({
+    // Create and return the server with the custom error handler
+    return new Server({
       userConfig: this.userConfig,
-      serverOptions: {
-        connectionErrorHandler: customErrorHandler,
-      },
+      logger: this.baseLogger,
+      connectionErrorHandler: customErrorHandler,
+      // ... other options
     });
   }
 }
@@ -1055,7 +1056,7 @@ class CustomLogger extends LoggerBase {
   constructor() {
     // Pass keychain for automatic secret redaction
     // Use Keychain.root for the global keychain or create your own
-    super(Keychain.root);
+    super({ keychain: Keychain.root });
   }
 
   // Required: implement the core logging method

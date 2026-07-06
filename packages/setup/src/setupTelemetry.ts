@@ -1,17 +1,18 @@
 import { randomUUID } from "crypto";
-import { ApiClient } from "../common/atlas/apiClient.js";
-import type { Keychain } from "../common/keychain.js";
-import { NullLogger } from "../common/logging/index.js";
-import { DeviceId } from "../helpers/deviceId.js";
-import { Telemetry } from "../telemetry/telemetry.js";
+import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import type { Keychain } from "@mongodb-js/mcp-core";
+import { NoopLogger } from "@mongodb-js/mcp-core";
+import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
+import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
+import type { ITelemetry, ServerMetadata } from "@mongodb-js/mcp-types";
 import type { SkillsInstallOutcome } from "./installSkills.js";
 import type {
-    SetupStage,
-    SetupEvent,
-    SetupEventProperties,
+    TelemetrySetupStage,
+    TelemetrySetupEvent,
+    TelemetrySetupEventProperties,
     TelemetryBoolSet,
     TelemetryResult,
-} from "../telemetry/types.js";
+} from "@mongodb-js/mcp-atlas-telemetry";
 
 /**
  * Context accumulated as the user progresses through the setup wizard. Each
@@ -19,7 +20,7 @@ import type {
  * event is independently queryable downstream.
  */
 export type SetupTelemetryContext = Omit<
-    SetupEventProperties,
+    TelemetrySetupEventProperties,
     "stage" | "setup_session_id" | "last_step" | "error_type" | "total_duration_ms"
 >;
 
@@ -44,40 +45,56 @@ export class SetupTelemetry {
     private readonly setupSessionId: string = randomUUID();
     private readonly startedAt: number = Date.now();
     private stepStartedAt: number = this.startedAt;
-    private lastStep: SetupStage | undefined;
+    private lastStep: TelemetrySetupStage | undefined;
     private context: SetupTelemetryContext = {};
 
     /**
      * Builds a fully-wired {@link SetupTelemetry} for the setup CLI: a silent
      * logger (so telemetry's internal logging doesn't leak into the
      * interactive wizard), a fresh {@link DeviceId}, an unauthenticated
-     * {@link ApiClient}, and a {@link Telemetry} instance.
+     * {@link ApiClient}, and an {@link AtlasTelemetry} instance.
      */
-    public static create(
-        config: { apiBaseUrl: string; telemetry: "enabled" | "disabled" },
-        keychain: Keychain
-    ): SetupTelemetry {
-        const logger = new NullLogger();
+    public static create({
+        config,
+        keychain,
+        serverMetadata,
+    }: {
+        config: { apiBaseUrl: string; telemetry: "enabled" | "disabled" };
+        keychain: Keychain;
+        serverMetadata: ServerMetadata;
+    }): SetupTelemetry {
+        const logger = new NoopLogger();
         const deviceId = DeviceId.create(logger);
-        const apiClient = new ApiClient({ baseUrl: config.apiBaseUrl }, logger);
-        const telemetry = Telemetry.create({
+        const apiClient = new ApiClient({
+            options: {
+                baseUrl: config.apiBaseUrl,
+            },
+            serverMetadata,
+            logger,
+            authProvider: undefined,
+        });
+        const telemetry = AtlasTelemetry.create({
             logger,
             deviceId,
             apiClient,
             keychain,
             enabled: config.telemetry === "enabled",
+            serverMetadata,
         });
-        return new SetupTelemetry(telemetry, deviceId);
+        return new SetupTelemetry({ telemetry, deviceId });
     }
+
+    private readonly telemetry: ITelemetry;
+    private readonly deviceId: DeviceId;
 
     /**
      * Direct construction is primarily for tests that want to inject a mock
      * telemetry pipeline. Production code should use {@link SetupTelemetry.create}.
      */
-    public constructor(
-        private readonly telemetry: Telemetry,
-        private readonly deviceId: DeviceId
-    ) {}
+    public constructor({ telemetry, deviceId }: { telemetry: ITelemetry; deviceId: DeviceId }) {
+        this.telemetry = telemetry;
+        this.deviceId = deviceId;
+    }
 
     /**
      * Merges new context values into the accumulated context. Subsequent
@@ -94,12 +111,12 @@ export class SetupTelemetry {
      * own code path failed (e.g. writing the editor config threw).
      */
     private emit(
-        stage: SetupStage,
-        extra: Partial<SetupEventProperties> = {},
+        stage: TelemetrySetupStage,
+        extra: Partial<TelemetrySetupEventProperties> = {},
         result: TelemetryResult = "success"
     ): void {
         const now = Date.now();
-        const event: SetupEvent = {
+        const event: TelemetrySetupEvent = {
             timestamp: new Date(now).toISOString(),
             source: "mdbmcp",
             properties: {
@@ -186,7 +203,7 @@ export class SetupTelemetry {
     }
 
     public emitSkillsInstallPrompted(outcome: SkillsInstallOutcome): void {
-        const patch: Partial<SetupEventProperties> = { skills_install_status: outcome.status };
+        const patch: Partial<TelemetrySetupEventProperties> = { skills_install_status: outcome.status };
         if (outcome.status === "skipped") {
             patch.skills_skip_reason = outcome.reason;
         } else if (outcome.status === "failed") {

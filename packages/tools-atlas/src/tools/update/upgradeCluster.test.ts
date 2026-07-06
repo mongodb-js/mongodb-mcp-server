@@ -1,27 +1,30 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ToolConstructorParams } from "../../../../../src/tools/tool.js";
-import { UpgradeClusterTool } from "../../../../../src/tools/atlas/update/upgradeCluster.js";
-import type { Session } from "../../../../../src/common/session.js";
-import type { UserConfig } from "../../../../../src/common/config/userConfig.js";
-import type { Telemetry } from "../../../../../src/telemetry/telemetry.js";
-import type { Elicitation } from "../../../../../src/elicitation.js";
-import type { CompositeLogger } from "../../../../../src/common/logging/index.js";
-import type { ApiClient } from "../../../../../src/common/atlas/apiClient.js";
-import { ApiClientError } from "../../../../../src/common/atlas/apiClientError.js";
-import type { AtlasClusterConnectionInfo } from "../../../../../src/common/connectionInfo.js";
-import { UIRegistry } from "../../../../../src/ui/registry/index.js";
-import { MockMetrics } from "../../../mocks/metrics.js";
-import type { Keychain } from "../../../../../src/lib.js";
+import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
+import type { IAtlasConfig, IAtlasSession } from "@mongodb-js/mcp-tools-atlas";
+import type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-types";
+import { UpgradeClusterTool } from "./upgradeCluster.js";
+import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
+import type { Elicitation } from "@mongodb-js/mcp-core";
+import { Keychain } from "@mongodb-js/mcp-core";
+import type { CompositeLogger } from "@mongodb-js/mcp-core";
+import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
+import { UIRegistry } from "@mongodb-js/mcp-ui";
+import { MockMetrics } from "@mongodb-js/mcp-test-utils";
+import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
 
 function notFoundError(): ApiClientError {
-    return ApiClientError.fromError(new Response(null, { status: 404, statusText: "Not Found" }), "cluster not found");
+    return ApiClientError.fromError({
+        response: new Response(null, { status: 404, statusText: "Not Found" }),
+        error: "cluster not found",
+    });
 }
 
 function flexOnRegularApiError(): ApiClientError {
-    return ApiClientError.fromError(
-        new Response(null, { status: 400, statusText: "Bad Request" }),
-        "Flex cluster cannot be used in the Cluster API"
-    );
+    return ApiClientError.fromError({
+        response: new Response(null, { status: 400, statusText: "Bad Request" }),
+        error: "Flex cluster cannot be used in the Cluster API",
+    });
 }
 
 const FREE_CLUSTER_RAW = {
@@ -66,15 +69,14 @@ const UPGRADE_RESULT = { id: "upgraded-cluster-id" };
 
 describe("UpgradeClusterTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
-    let mockSession: Partial<Session>;
     let tool: UpgradeClusterTool;
 
     function buildTool(connectedCluster?: AtlasClusterConnectionInfo): UpgradeClusterTool {
         mockApiClient = {
             getCluster: vi.fn(),
             getFlexCluster: vi.fn(),
-            upgradeTenantUpgrade: vi.fn().mockResolvedValue(UPGRADE_RESULT),
-            tenantUpgrade: vi.fn().mockResolvedValue(UPGRADE_RESULT),
+            upgradeSharedTierCluster: vi.fn().mockResolvedValue(UPGRADE_RESULT),
+            upgradeFlexToDedicated: vi.fn().mockResolvedValue(UPGRADE_RESULT),
         };
 
         const mockLogger = {
@@ -84,36 +86,35 @@ describe("UpgradeClusterTool", () => {
             error: vi.fn(),
         } as unknown as CompositeLogger;
 
-        mockSession = {
+        const mockSession = {
             logger: mockLogger,
             apiClient: mockApiClient as unknown as ApiClient,
             connectedAtlasCluster: connectedCluster,
-            keychain: { allSecrets: [] } as unknown as Keychain,
-        };
-
-        const mockConfig = {
-            confirmationRequiredTools: [],
-            previewFeatures: [],
-            disabledTools: [],
-            apiClientId: "test-id",
-            apiClientSecret: "test-secret",
-        } as unknown as UserConfig;
+            keychain: new Keychain(),
+            config: {
+                confirmationRequiredTools: [],
+                previewFeatures: [],
+                disabledTools: [],
+                apiClientId: "test-id",
+                apiClientSecret: "test-secret",
+                atlasTemporaryDatabaseUserLifetimeMs: 3600000,
+            } as unknown as IAtlasConfig,
+        } as unknown as IAtlasSession;
 
         const mockTelemetry = {
             isTelemetryEnabled: () => true,
             emitEvents: vi.fn(),
-        } as unknown as Telemetry;
+        } as unknown as AtlasTelemetry;
 
         const mockElicitation = {
             requestConfirmation: vi.fn(),
         } as unknown as Elicitation;
 
-        const params: ToolConstructorParams = {
+        const params: ToolConstructorParams<IAtlasSession, DefaultPrometheusMetricDefinitions> = {
             name: UpgradeClusterTool.toolName,
             category: "atlas",
             operationType: UpgradeClusterTool.operationType,
-            session: mockSession as Session,
-            config: mockConfig,
+            session: mockSession,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
             metrics: new MockMetrics(),
@@ -219,7 +220,7 @@ describe("UpgradeClusterTool", () => {
 
             expect(result.isError).toBeFalsy();
             const text = (result.content[0] as { text: string }).text;
-            expect(text).toContain("FREE to FLEX");
+            expect(text).toContain("Free to Flex");
 
             expect(mockApiClient.upgradeTenantUpgrade).toHaveBeenCalledWith(
                 {
@@ -243,7 +244,7 @@ describe("UpgradeClusterTool", () => {
 
             expect(result.isError).toBeFalsy();
             const text = (result.content[0] as { text: string }).text;
-            expect(text).toContain("FREE to M10");
+            expect(text).toContain("Free to M10");
 
             expect(mockApiClient.upgradeTenantUpgrade).toHaveBeenCalledWith(
                 {
@@ -330,7 +331,7 @@ describe("UpgradeClusterTool", () => {
 
             await exec({ projectId: "proj1", clusterName: "MyCluster" });
 
-            const call = mockApiClient.upgradeTenantUpgrade!.mock.calls[0]![0] as {
+            const call = mockApiClient.upgradeSharedTierCluster!.mock.calls[0]![0] as {
                 body: { providerSettings: { regionName?: string } };
             };
             expect(call.body.providerSettings.regionName).toBeUndefined();
@@ -354,7 +355,7 @@ describe("UpgradeClusterTool", () => {
 
             expect(result.isError).toBeFalsy();
             const text = (result.content[0] as { text: string }).text;
-            expect(text).toContain("FLEX to M10");
+            expect(text).toContain("Flex to M10");
 
             expect(mockApiClient.tenantUpgrade).toHaveBeenCalledWith(
                 {
@@ -398,7 +399,7 @@ describe("UpgradeClusterTool", () => {
             });
 
             expect(result.isError).toBeFalsy();
-            const call = mockApiClient.tenantUpgrade!.mock.calls[0]![0] as {
+            const call = mockApiClient.upgradeFlexToDedicated!.mock.calls[0]![0] as {
                 body: {
                     replicationSpecs: Array<{ regionConfigs: Array<{ providerName?: string; regionName?: string }> }>;
                 };
@@ -412,7 +413,7 @@ describe("UpgradeClusterTool", () => {
 
             await exec({ projectId: "proj1", clusterName: "MyCluster" });
 
-            const call = mockApiClient.tenantUpgrade!.mock.calls[0]![0] as {
+            const call = mockApiClient.upgradeFlexToDedicated!.mock.calls[0]![0] as {
                 body: { replicationSpecs: Array<{ regionConfigs: Array<Record<string, unknown>> }> };
             };
             expect(call.body.replicationSpecs[0]!.regionConfigs[0]!["providerName"]).toBeUndefined();
@@ -439,10 +440,10 @@ describe("UpgradeClusterTool", () => {
 
     describe("API failure handling", () => {
         it("returns error for non-404 getCluster failure without falling through to getFlexCluster", async () => {
-            const serverError = ApiClientError.fromError(
-                new Response(null, { status: 500, statusText: "Internal Server Error" }),
-                "internal server error"
-            );
+            const serverError = ApiClientError.fromError({
+                response: new Response(null, { status: 500, statusText: "Internal Server Error" }),
+                error: "internal server error",
+            });
             mockApiClient.getCluster!.mockRejectedValue(serverError);
 
             const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
@@ -458,26 +459,26 @@ describe("UpgradeClusterTool", () => {
             expect(mockApiClient.getFlexCluster).not.toHaveBeenCalled();
         });
 
-        it("returns error when upgradeTenantUpgrade throws (FREE to FLEX)", async () => {
+        it("returns error when upgradeSharedTierCluster throws (FREE to FLEX)", async () => {
             mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
-            mockApiClient.upgradeTenantUpgrade!.mockRejectedValue(new Error("upgrade quota exceeded"));
+            mockApiClient.upgradeSharedTierCluster!.mockRejectedValue(new Error("upgrade quota exceeded"));
 
             const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
             expect(result.isError).toBe(true);
         });
 
-        it("returns error when upgradeTenantUpgrade throws (FREE to M10)", async () => {
+        it("returns error when upgradeSharedTierCluster throws (FREE to M10)", async () => {
             mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
-            mockApiClient.upgradeTenantUpgrade!.mockRejectedValue(new Error("upgrade quota exceeded"));
+            mockApiClient.upgradeSharedTierCluster!.mockRejectedValue(new Error("upgrade quota exceeded"));
 
             const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M10" });
             expect(result.isError).toBe(true);
         });
 
-        it("returns error when tenantUpgrade throws", async () => {
+        it("returns error when upgradeFlexToDedicated throws", async () => {
             mockApiClient.getCluster!.mockRejectedValue(notFoundError());
             mockApiClient.getFlexCluster!.mockResolvedValue(FLEX_CLUSTER_RAW);
-            mockApiClient.tenantUpgrade!.mockRejectedValue(new Error("upgrade quota exceeded"));
+            mockApiClient.upgradeFlexToDedicated!.mockRejectedValue(new Error("upgrade quota exceeded"));
 
             const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
             expect(result.isError).toBe(true);
@@ -504,7 +505,7 @@ describe("UpgradeClusterTool", () => {
 
             expect(result.isError).toBeFalsy();
             const text = (result.content[0] as { text: string }).text;
-            expect(text).toContain("FREE to FLEX");
+            expect(text).toContain("Free to Flex");
 
             expect(mockApiClient.getCluster).not.toHaveBeenCalled();
             expect(mockApiClient.getFlexCluster).not.toHaveBeenCalled();
@@ -531,13 +532,13 @@ describe("UpgradeClusterTool", () => {
             expect(result.isError).toBeFalsy();
             expect(mockApiClient.getCluster).not.toHaveBeenCalled();
             const text = (result.content[0] as { text: string }).text;
-            expect(text).toContain("FREE to M10");
+            expect(text).toContain("Free to M10");
         });
 
         it("uses session provider as default when no provider arg is given", async () => {
             await exec({ projectId: "proj1", clusterName: "MyCluster" });
 
-            const call = mockApiClient.upgradeTenantUpgrade!.mock.calls[0]![0] as {
+            const call = mockApiClient.upgradeSharedTierCluster!.mock.calls[0]![0] as {
                 body: { providerSettings: { backingProviderName: string } };
             };
             expect(call.body.providerSettings.backingProviderName).toBe("AWS");
@@ -552,7 +553,7 @@ describe("UpgradeClusterTool", () => {
 
             await exec({ projectId: "proj1", clusterName: "MyCluster" });
 
-            const call = mockApiClient.upgradeTenantUpgrade!.mock.calls[0]![0] as {
+            const call = mockApiClient.upgradeSharedTierCluster!.mock.calls[0]![0] as {
                 body: { providerSettings: { backingProviderName?: string } };
             };
             expect(call.body.providerSettings.backingProviderName).toBeUndefined();
@@ -589,15 +590,15 @@ describe("UpgradeClusterTool", () => {
 
             expect(result.isError).toBeFalsy();
             const text = (result.content[0] as { text: string }).text;
-            expect(text).toContain("FLEX to M10");
+            expect(text).toContain("Flex to M10");
 
             expect(mockApiClient.getCluster).not.toHaveBeenCalled();
             expect(mockApiClient.getFlexCluster).not.toHaveBeenCalled();
-            const call = mockApiClient.tenantUpgrade!.mock.calls[0]![0] as {
-                params: { path: { groupId: string } };
+            const call = mockApiClient.upgradeFlexToDedicated!.mock.calls[0]![0] as {
+                groupId: string;
                 body: { name: string; clusterType: string };
             };
-            expect(call.params.path.groupId).toBe("proj1");
+            expect(call.groupId).toBe("proj1");
             expect(call.body.name).toBe("MyCluster");
             expect(call.body.clusterType).toBe("REPLICASET");
         });
@@ -605,7 +606,7 @@ describe("UpgradeClusterTool", () => {
         it("uses session provider and region when no args provided", async () => {
             await exec({ projectId: "proj1", clusterName: "MyCluster" });
 
-            const call = mockApiClient.tenantUpgrade!.mock.calls[0]![0] as {
+            const call = mockApiClient.upgradeFlexToDedicated!.mock.calls[0]![0] as {
                 body: {
                     replicationSpecs: Array<{ regionConfigs: Array<{ providerName?: string; regionName?: string }> }>;
                 };
@@ -617,7 +618,7 @@ describe("UpgradeClusterTool", () => {
         it("arg provider and region override session values", async () => {
             await exec({ projectId: "proj1", clusterName: "MyCluster", provider: "GCP", region: "CENTRAL_US" });
 
-            const call = mockApiClient.tenantUpgrade!.mock.calls[0]![0] as {
+            const call = mockApiClient.upgradeFlexToDedicated!.mock.calls[0]![0] as {
                 body: {
                     replicationSpecs: Array<{ regionConfigs: Array<{ providerName?: string; regionName?: string }> }>;
                 };
@@ -676,16 +677,26 @@ describe("UpgradeClusterTool", () => {
             mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
 
             const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
+            const metadata = tool["resolveTelemetryMetadata"](
+                { projectId: "proj1", clusterName: "MyCluster" } as never,
+                { result: result as never }
+            );
 
-            expect(result.structuredContent).toMatchObject({ originalTier: "FREE", targetTier: "FLEX" });
+            expect(metadata.original_tier).toBe("free");
+            expect(metadata.target_tier).toBe("flex");
         });
 
         it("returns originalTier=FREE and targetTier=M10 for FREE to M10 upgrade", async () => {
             mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
 
             const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M10" });
+            const metadata = tool["resolveTelemetryMetadata"](
+                { projectId: "proj1", clusterName: "MyCluster", targetTier: "M10" } as never,
+                { result: result as never }
+            );
 
-            expect(result.structuredContent).toMatchObject({ originalTier: "FREE", targetTier: "M10" });
+            expect(metadata.original_tier).toBe("free");
+            expect(metadata.target_tier).toBe("m10");
         });
 
         it("returns originalTier=FLEX and targetTier=M10 for FLEX to M10 upgrade", async () => {
@@ -693,8 +704,13 @@ describe("UpgradeClusterTool", () => {
             mockApiClient.getFlexCluster!.mockResolvedValue(FLEX_CLUSTER_RAW);
 
             const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
+            const metadata = tool["resolveTelemetryMetadata"](
+                { projectId: "proj1", clusterName: "MyCluster" } as never,
+                { result: result as never }
+            );
 
-            expect(result.structuredContent).toMatchObject({ originalTier: "FLEX", targetTier: "M10" });
+            expect(metadata.original_tier).toBe("flex");
+            expect(metadata.target_tier).toBe("m10");
         });
 
         it("includes provider and region when provided as args", async () => {
@@ -706,16 +722,26 @@ describe("UpgradeClusterTool", () => {
                 provider: "GCP",
                 region: "CENTRAL_US",
             });
+            const metadata = tool["resolveTelemetryMetadata"](
+                { projectId: "proj1", clusterName: "MyCluster", provider: "GCP", region: "CENTRAL_US" } as never,
+                { result: result as never }
+            );
 
-            expect(result.structuredContent).toMatchObject({ resolvedProvider: "GCP", resolvedRegion: "CENTRAL_US" });
+            expect(metadata.provider).toBe("GCP");
+            expect(metadata.region).toBe("CENTRAL_US");
         });
 
         it("includes provider and region from cluster fetch when not provided as args", async () => {
             mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
 
             const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
+            const metadata = tool["resolveTelemetryMetadata"](
+                { projectId: "proj1", clusterName: "MyCluster" } as never,
+                { result: result as never }
+            );
 
-            expect(result.structuredContent).toMatchObject({ resolvedProvider: "AWS", resolvedRegion: "US_EAST_1" });
+            expect(metadata.provider).toBe("AWS");
+            expect(metadata.region).toBe("US_EAST_1");
         });
 
         it("omits provider and region when cluster has no provider data", async () => {
@@ -725,30 +751,44 @@ describe("UpgradeClusterTool", () => {
             });
 
             const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
+            const metadata = tool["resolveTelemetryMetadata"](
+                { projectId: "proj1", clusterName: "MyCluster" } as never,
+                { result: result as never }
+            );
 
-            expect((result.structuredContent as Record<string, unknown>)["resolvedProvider"]).toBeUndefined();
-            expect((result.structuredContent as Record<string, unknown>)["resolvedRegion"]).toBeUndefined();
+            expect(metadata.provider).toBeUndefined();
+            expect(metadata.region).toBeUndefined();
         });
 
         it("includes clusterId from the upgrade response", async () => {
             mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
 
             const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
+            const metadata = tool["resolveTelemetryMetadata"](
+                { projectId: "proj1", clusterName: "MyCluster" } as never,
+                { result: result as never }
+            );
 
-            expect(result.structuredContent).toMatchObject({
-                clusterId: "upgraded-cluster-id",
-            });
+            expect(metadata.target_cluster_id).toBe("upgraded-cluster-id");
         });
 
         it("successive calls return independent structuredContent", async () => {
             mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
             const firstResult = await exec({ projectId: "proj1", clusterName: "MyCluster" });
-            expect(firstResult.structuredContent).toMatchObject({ originalTier: "FREE" });
+            expect(
+                tool["resolveTelemetryMetadata"]({ projectId: "proj1", clusterName: "MyCluster" } as never, {
+                    result: firstResult as never,
+                }).original_tier
+            ).toBe("free");
 
             mockApiClient.getCluster!.mockRejectedValue(notFoundError());
             mockApiClient.getFlexCluster!.mockResolvedValue(FLEX_CLUSTER_RAW);
             const secondResult = await exec({ projectId: "proj1", clusterName: "MyCluster" });
-            expect(secondResult.structuredContent).toMatchObject({ originalTier: "FLEX" });
+            expect(
+                tool["resolveTelemetryMetadata"]({ projectId: "proj1", clusterName: "MyCluster" } as never, {
+                    result: secondResult as never,
+                }).original_tier
+            ).toBe("flex");
         });
     });
 
@@ -763,7 +803,7 @@ describe("UpgradeClusterTool", () => {
             );
             expect(metadata.original_tier).toBe("free");
             expect(metadata.target_tier).toBe("flex");
-            expect(metadata.cluster_id).toBe("upgraded-cluster-id");
+            expect(metadata.target_cluster_id).toBe("upgraded-cluster-id");
         });
 
         it("resolves provider and region from structuredContent", async () => {

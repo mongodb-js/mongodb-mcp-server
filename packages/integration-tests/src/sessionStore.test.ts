@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { SessionStore, type CloseableTransport } from "../../src/common/sessionStore.js";
-import type { LoggerBase } from "../../src/common/logging/index.js";
-import type { Session } from "../../src/common/session.js";
-import { MockMetrics } from "./mocks/metrics.js";
+import { SessionStore } from "@mongodb-js/mcp-core";
+import type { LoggerBase } from "@mongodb-js/mcp-core";
+import type { CloseableTransport, ISession } from "@mongodb-js/mcp-types";
+import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 
 function createMockTransport(): CloseableTransport {
     return { close: vi.fn().mockResolvedValue(undefined) };
@@ -17,8 +17,8 @@ function createMockLogger(): LoggerBase {
     } as unknown as LoggerBase;
 }
 
-function createMockSession(): Session {
-    return { logger: createMockLogger() } as unknown as Session;
+function createMockSession(): ISession {
+    return { logger: createMockLogger() } as unknown as ISession;
 }
 
 describe("SessionStore metrics", () => {
@@ -32,7 +32,7 @@ describe("SessionStore metrics", () => {
         store = new SessionStore({
             options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000 },
             logger,
-            metrics,
+            metrics: metrics,
         });
     });
 

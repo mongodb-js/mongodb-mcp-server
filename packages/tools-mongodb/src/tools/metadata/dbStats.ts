@@ -1,8 +1,9 @@
-import { DBOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
-import { formatUntrustedData } from "../../tool.js";
+import { DBOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
+import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
+import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
+import { formatUntrustedData } from "@mongodb-js/mcp-core";
+import { EJSON } from "bson";
 import { z } from "zod";
-import { bsonToJson } from "../../../helpers/bsonToJson.js";
 
 const DbStatsOutputSchema = {
     stats: z.record(z.string(), z.unknown()),
@@ -33,12 +34,10 @@ export class DbStatsTool extends MongoDBToolBase {
             { signal }
         );
 
-        const stats = bsonToJson(result);
-
         return {
-            content: formatUntrustedData("Statistics for database:", JSON.stringify({ database, stats })),
+            content: formatUntrustedData(`Statistics for database ${database}`, EJSON.stringify(result)),
             structuredContent: {
-                stats,
+                stats: result,
             },
         };
     }

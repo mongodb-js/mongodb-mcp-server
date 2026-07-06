@@ -1,22 +1,18 @@
 import { z } from "zod";
-import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
-import { formatUntrustedData } from "../../tool.js";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
+import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
+import type { ToolArgs } from "@mongodb-js/mcp-core";
+import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
+import { formatUntrustedData } from "@mongodb-js/mcp-core";
 import type { FindCursor } from "mongodb";
-import { checkIndexUsage } from "../../../helpers/indexCheck.js";
-import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorUntilMaxBytes.js";
-import { operationWithFallback } from "../../../helpers/operationWithFallback.js";
-import {
-    ONE_MB,
-    QUERY_COUNT_MAX_TIME_MS_CAP,
-    CURSOR_LIMITS_TO_LLM_TEXT,
-    CURSOR_LIMIT_KEYS,
-    type CursorLimitKey,
-} from "../../../helpers/constants.js";
+import { checkIndexUsage } from "../../helpers/indexCheck.js";
+import { EJSON } from "bson";
+import { collectCursorUntilMaxBytesLimit } from "../../helpers/collectCursorUntilMaxBytes.js";
+import { operationWithFallback } from "../../helpers/operationWithFallback.js";
+import { ONE_MB, CURSOR_LIMITS_TO_LLM_TEXT } from "../../helpers/constants.js";
+import { LogId } from "@mongodb-js/mcp-core";
 import { zEJSON } from "../../args.js";
-import { LogId } from "../../../common/logging/index.js";
-import { SortDirectionSchema } from "../mongodbSchemas.js";
-import { bsonToJson } from "../../../helpers/bsonToJson.js";
+import { SortDirectionSchema } from "../../mongodbSchemas.js";
 
 export const FindArgs = {
     filter: zEJSON()
@@ -36,12 +32,6 @@ export const FindArgs = {
         ),
 };
 
-export const FindOutputSchema = {
-    documents: z.array(z.unknown()).describe("The documents returned by the find query"),
-    queryResultsCount: z.number().optional().describe("The total number of documents returned by the find query"),
-    appliedLimits: z.array(CURSOR_LIMIT_KEYS).describe("The limits applied to the find query"),
-};
-
 export class FindTool extends MongoDBToolBase {
     static toolName = "find";
     public description = "Run a find query against a MongoDB collection";
@@ -55,17 +45,13 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
     };
     static operationType: OperationType = "read";
 
-    public override outputSchema = FindOutputSchema;
-
     protected async execute(
         { database, collection, filter, projection, limit, sort, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+    ): Promise<CallToolResult> {
         let findCursor: FindCursor<unknown> | undefined = undefined;
         try {
             const provider = await this.ensureConnected();
-
-            this.assertMqlIsAllowed(filter);
 
             // Check if find operation uses an index if enabled
             if (this.config.indexCheck) {
@@ -104,10 +90,7 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
                             // query would have yielded which is why we don't
                             // use `limitOnFindCursor` calculated above, and
                             // we don't use the limit provided to the tool either.
-                            maxTimeMS:
-                                this.config.maxTimeMS !== undefined
-                                    ? Math.min(this.config.maxTimeMS, QUERY_COUNT_MAX_TIME_MS_CAP)
-                                    : QUERY_COUNT_MAX_TIME_MS_CAP,
+                            maxTimeMS: this.getFindCountDocumentsMaxTimeMS(),
                             signal,
                         }),
                     undefined
@@ -120,26 +103,16 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
                 }),
             ]);
 
-            const serializedDocuments = bsonToJson(cursorResults.documents);
-            const appliedLimits = [limitOnFindCursor.cappedBy, cursorResults.cappedBy].filter(
-                (limit): limit is CursorLimitKey => !!limit
-            );
-
             return {
                 content: formatUntrustedData(
                     this.generateMessage({
                         collection,
                         queryResultsCount,
-                        documents: serializedDocuments,
-                        appliedLimits,
+                        documents: cursorResults.documents,
+                        appliedLimits: [limitOnFindCursor.cappedBy, cursorResults.cappedBy].filter((limit) => !!limit),
                     }),
-                    ...(serializedDocuments.length > 0 ? [JSON.stringify(serializedDocuments)] : [])
+                    ...(cursorResults.documents.length > 0 ? [EJSON.stringify(cursorResults.documents)] : [])
                 ),
-                structuredContent: {
-                    documents: serializedDocuments,
-                    ...(queryResultsCount !== undefined ? { queryResultsCount } : {}),
-                    appliedLimits,
-                },
             };
         } finally {
             if (findCursor) {
@@ -169,7 +142,7 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
         collection: string;
         queryResultsCount: number | undefined;
         documents: unknown[];
-        appliedLimits: CursorLimitKey[];
+        appliedLimits: (keyof typeof CURSOR_LIMITS_TO_LLM_TEXT)[];
     }): string {
         const appliedLimitsText = appliedLimits.length
             ? `\
@@ -188,12 +161,9 @@ Returning ${documents.length} documents${appliedLimitsText ? ` ${appliedLimitsTe
         cappedBy: "config.maxDocumentsPerQuery" | undefined;
         limit: number | undefined;
     } {
-        const configuredLimit: number = parseInt(String(this.config.maxDocumentsPerQuery), 10);
+        const configuredLimit = this.config.maxDocumentsPerQuery;
 
-        // Setting configured maxDocumentsPerQuery to negative, zero or nullish
-        // is equivalent to disabling the max limit applied on documents
-        const configuredLimitIsNotApplicable = Number.isNaN(configuredLimit) || configuredLimit <= 0;
-        if (configuredLimitIsNotApplicable) {
+        if (Number.isNaN(configuredLimit) || !Number.isFinite(configuredLimit) || configuredLimit <= 0) {
             return { cappedBy: undefined, limit: providedLimit ?? undefined };
         }
 

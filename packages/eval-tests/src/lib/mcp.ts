@@ -1,14 +1,8 @@
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { experimental_createMCPClient } from "@ai-sdk/mcp";
 import { tool as createTool, type Tool } from "ai";
-import {
-    type CloseableTransport,
-    StdioRunner,
-    type TransportRunnerConfig,
-    type UserConfig,
-    UserConfigSchema,
-} from "../../../src/lib.js";
+import { createServicesFromConfig, Resources, UserConfigSchema, type UserConfig } from "@mongodb-js/mcp-cli";
+import { AllTools, packageInfo } from "mongodb-mcp-server";
 
 type InternalMcpClient = Awaited<ReturnType<typeof experimental_createMCPClient>>;
 
@@ -35,15 +29,20 @@ export class InMemoryMcpConnection {
     static async create(userConfig: Partial<UserConfig> & { connectionString: string }): Promise<McpClient> {
         const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
 
-        const runner = new InMemoryMcpRunner({
-            userConfig: UserConfigSchema.parse({
-                telemetry: "disabled",
-                loggers: ["mcp"],
-                ...userConfig,
-            }),
+        const config = UserConfigSchema.parse({
+            telemetry: "disabled",
+            loggers: ["mcp"],
+            ...userConfig,
         });
 
-        await runner.connect(serverTransport);
+        const { server } = await createServicesFromConfig({
+            config,
+            serverMetadata: packageInfo,
+            tools: AllTools,
+            resources: Resources,
+        });
+
+        await server.connect(serverTransport);
 
         const client = await experimental_createMCPClient({
             transport: clientTransport,
@@ -51,7 +50,7 @@ export class InMemoryMcpConnection {
 
         return new InMemoryMcpConnection(client, async () => {
             await clientTransport.close();
-            await runner.disconnect();
+            await server.close();
         });
     }
 
@@ -84,30 +83,5 @@ export class InMemoryMcpConnection {
     async close(): Promise<void> {
         await this.mcpClient?.close();
         await this.shutdown();
-    }
-}
-
-/**
- * This class creates an MCP runner that uses an in-memory transport instead of stdio or HTTP.
- *
- * This enables the MCP server to run embedded within a Braintrust Eval, which is necessary
- * since Docker-based sandboxed evals are not currently supported on Braintrust.
- */
-class InMemoryMcpRunner extends StdioRunner {
-    #server?: CloseableTransport;
-
-    constructor(config: TransportRunnerConfig) {
-        super(config);
-    }
-
-    async connect(serverTransport: Transport): Promise<void> {
-        const server = await this.createServer({});
-        this.#server = server;
-        await server.connect(serverTransport);
-    }
-
-    async disconnect(): Promise<void> {
-        await this.#server?.close();
-        this.#server = undefined;
     }
 }

@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
 import { Matcher } from "./sdk/matcher.js";
 import type { VercelAgentPromptResult } from "./sdk/agent.js";
@@ -14,12 +14,12 @@ const atlasConnectClusterWithAlerts: CallToolResult = {
             type: "text",
             text:
                 `Note: Atlas reports open shared-tier threshold alerts for cluster "acc-test-free-cluster" affecting: CONNECTIONS_PERCENT, FLEX_DATA_SIZE_TOTAL. ` +
-                `You may be near connection or storage limits on this Free/Flex deployment. ` +
-                `Consider upgrading capacity (for example moving to Flex or a paid tier such as M10 or larger) if you need more headroom.`,
+                `You may be near connection or storage limits on this Free tier deployment. ` +
+                `Consider upgrading to a paid tier for more headroom — use the atlas-upgrade-cluster tool to upgrade "acc-test-free-cluster".`,
         },
     ],
     structuredContent: {
-        connected: true,
+        state: "connected",
         addedCurrentIp: false,
         createdTemporaryUser: true,
         sharedTierAlertsDetected: true,

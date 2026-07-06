@@ -1,10 +1,12 @@
 import { z } from "zod";
-import { type ApiClient, type ApiClientRequestContext } from "./apiClient.js";
-import { requestIdAttr } from "../../helpers/requestIdAttr.js";
-import type { LoggerBase } from "../logging/loggerBase.js";
-import { LogId } from "../logging/index.js";
-import { SHARED_TIER_METRIC_NAMES } from "../../telemetry/types.js";
-import type { SharedTierMetricName, SharedTierTier } from "../../telemetry/types.js";
+import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { LogId } from "@mongodb-js/mcp-core";
+import {
+    SHARED_TIER_METRIC_NAMES,
+    type ILogger,
+    type SharedTierMetricName,
+    type SharedTierTier,
+} from "@mongodb-js/mcp-types";
 
 /** One page of OPEN alerts (same defaults as atlas-list-alerts); sufficient for shared-tier MVP. */
 const LIST_ALERTS_PAGE_SIZE = 100;
@@ -19,14 +21,13 @@ const SharedTierAlertSchema = z.object({
     updated: z.string().optional(),
 });
 
-export interface RunSharedTierAlertsHookParams {
+export type RunSharedTierAlertsHookParams = {
     projectId: string;
     clusterName: string;
     instanceType: "FREE" | "FLEX" | "DEDICATED";
     apiClient: ApiClient;
-    logger: LoggerBase;
-    context?: ApiClientRequestContext;
-}
+    logger: ILogger;
+};
 
 function buildRecommendationParagraph(
     clusterName: string,
@@ -51,7 +52,6 @@ export async function runSharedTierAlertsHook({
     instanceType,
     apiClient,
     logger,
-    context,
 }: RunSharedTierAlertsHookParams): Promise<
     { recommendationText: string; tier: SharedTierTier; alertTypes: SharedTierMetricName[] } | undefined
 > {
@@ -61,27 +61,23 @@ export async function runSharedTierAlertsHook({
 
     let data;
     try {
-        data = await apiClient.listAlerts(
-            {
-                params: {
-                    path: { groupId: projectId },
-                    query: {
-                        status: "OPEN",
-                        itemsPerPage: LIST_ALERTS_PAGE_SIZE,
-                        pageNum: 1,
-                        includeCount: false,
-                    },
+        data = await apiClient.listAlerts({
+            params: {
+                path: { groupId: projectId },
+                query: {
+                    status: "OPEN",
+                    itemsPerPage: LIST_ALERTS_PAGE_SIZE,
+                    pageNum: 1,
+                    includeCount: false,
                 },
             },
-            context
-        );
+        });
     } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);
         logger.warning({
             id: LogId.atlasSharedTierAlertsHookWarning,
             context: "shared-tier-alerts-hook",
             message: `Failed to list Atlas alerts for shared-tier hook: ${message}`,
-            attributes: { ...requestIdAttr(context?.requestInfo?.headers) },
         });
         return undefined;
     }

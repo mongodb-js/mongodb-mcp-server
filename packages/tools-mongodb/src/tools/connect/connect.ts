@@ -1,12 +1,8 @@
 import { z } from "zod";
-import { MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolConstructorParams, ToolResult } from "../../tool.js";
-import type { Server } from "../../../server.js";
-
-const ConnectOutputSchema = {
-    connected: z.boolean(),
-};
-
+import type { CallToolResult } from "@mongodb-js/mcp-types";
+import { MongoDBToolBase, type IMongoDBSession, type MongoDBToolRegistrationServer } from "../../mongodbTool.js";
+import type { ToolArgs, ToolConstructorParams } from "@mongodb-js/mcp-core";
+import type { OperationType } from "@mongodb-js/mcp-types";
 export class ConnectTool extends MongoDBToolBase {
     static toolName = "connect";
     public override description =
@@ -20,20 +16,18 @@ export class ConnectTool extends MongoDBToolBase {
 
     static operationType: OperationType = "connect";
 
-    public override outputSchema = ConnectOutputSchema;
-
-    constructor(params: ToolConstructorParams) {
+    constructor(params: ToolConstructorParams<IMongoDBSession>) {
         super(params);
-        params.session.on("connect", () => {
+        this.session.on("connect", () => {
             this.disable();
         });
 
-        params.session.on("disconnect", () => {
+        this.session.on("disconnect", () => {
             this.enable();
         });
     }
 
-    public override register(server: Server): boolean {
+    public override register(server: MongoDBToolRegistrationServer): boolean {
         const registrationSuccessful = super.register(server);
         /**
          * When connected to mongodb we want to swap connect with
@@ -45,14 +39,11 @@ export class ConnectTool extends MongoDBToolBase {
         return registrationSuccessful;
     }
 
-    protected override async execute({
-        connectionString,
-    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
+    protected override async execute({ connectionString }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         await this.session.connectToMongoDB({ connectionString });
 
         return {
             content: [{ type: "text", text: "Successfully connected to MongoDB." }],
-            structuredContent: { connected: true },
         };
     }
 }

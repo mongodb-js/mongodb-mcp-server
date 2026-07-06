@@ -1,5 +1,5 @@
 import os from "os";
-import { Keychain } from "../common/keychain.js";
+import { Keychain } from "@mongodb-js/mcp-core";
 import { redact } from "mongodb-redact";
 
 export type Platform = "mac" | "windows" | "linux";

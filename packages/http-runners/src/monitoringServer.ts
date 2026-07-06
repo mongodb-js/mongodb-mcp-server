@@ -1,54 +1,43 @@
 import type express from "express";
-import { LogId } from "../common/logging/loggingDefinitions.js";
-import { packageInfo } from "../common/packageInfo.js";
-import type {
-    DefaultMetrics,
-    MonitoringServerFeature,
-    Metrics,
-    LoggerBase,
-    UserConfig,
-    MonitoringServerConstructorArgs,
-} from "../lib.js";
+import type { DefaultMetricDefinitions, ILogger, IMetrics } from "@mongodb-js/mcp-types";
+import { LogId } from "@mongodb-js/mcp-core";
 import { ExpressBasedHttpServer } from "./expressBasedHttpServer.js";
+import packageJson from "../package.json" with { type: "json" };
 
-export class MonitoringServer<TMetrics extends DefaultMetrics = DefaultMetrics> extends ExpressBasedHttpServer {
-    private readonly features: MonitoringServerFeature[];
-    private readonly metrics: Metrics<TMetrics>;
+/**
+ * HTTP server that provides monitoring endpoints like health checks and metrics.
+ *
+ * To customize behavior, extend this class and override methods:
+ *
+ * @example
+ * ```typescript
+ * class MyMonitoringServer extends MonitoringServer {
+ *   protected override async setupRoutes(): Promise<void> {
+ *     // Add custom routes
+ *     this.app.get("/custom", (req, res) => res.json({ custom: true }));
+ *     await super.setupRoutes();
+ *   }
+ * }
+ * ```
+ */
+export class MonitoringServer<
+    TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions,
+> extends ExpressBasedHttpServer {
+    protected readonly features: MonitoringServerFeature[];
+    protected readonly metrics: IMetrics<TMetrics>;
+    protected readonly version: string;
 
-    constructor({
-        host,
-        port,
-        features,
-        logger,
-        metrics,
-    }: {
-        host: string;
-        port: number;
-        features: MonitoringServerFeature[];
-        logger: LoggerBase;
-        metrics: Metrics<TMetrics>;
-    }) {
-        super({ port, hostname: host, logger, logContext: "monitoringServer" });
-        this.features = features;
+    constructor({ options, logger, metrics }: MonitoringServerOptions<TMetrics>) {
+        super({
+            options: {
+                logContext: "monitoringServer",
+                http: { port: options.http.port, host: options.http.host },
+            },
+            logger,
+        });
+        this.features = options.features;
         this.metrics = metrics;
-    }
-
-    static fromConfig<TMetrics extends DefaultMetrics = DefaultMetrics>({
-        userConfig,
-        logger,
-        metrics,
-    }: {
-        userConfig: UserConfig;
-        logger: LoggerBase;
-        metrics: Metrics<TMetrics>;
-    }): MonitoringServer<TMetrics> | undefined {
-        const host = userConfig.monitoringServerHost ?? userConfig.healthCheckHost;
-        const port = userConfig.monitoringServerPort ?? userConfig.healthCheckPort;
-        if (host === undefined || port === undefined) {
-            return undefined;
-        }
-
-        return new MonitoringServer({ host, port, features: userConfig.monitoringServerFeatures, logger, metrics });
+        this.version = options.version ?? packageJson.version;
     }
 
     protected override setupRoutes(): Promise<void> {
@@ -58,18 +47,17 @@ export class MonitoringServer<TMetrics extends DefaultMetrics = DefaultMetrics> 
                 res.set("Cache-Control", "no-store");
                 res.json({
                     status: "ok",
-                    version: packageInfo.version,
+                    version: this.version,
                     uptimeSeconds: Math.floor(process.uptime()),
                     timestamp: new Date().toISOString(),
                 });
             });
         }
 
-        if (this.features.includes("metrics") && this.metrics?.getMetrics) {
-            const getMetrics = this.metrics.getMetrics.bind(this.metrics);
+        if (this.features.includes("metrics")) {
             this.app.get("/metrics", async (_req: express.Request, res: express.Response) => {
                 try {
-                    const output = await getMetrics();
+                    const output = await this.metrics.getMetrics();
                     res.set("Content-Type", "text/plain");
                     res.send(output);
                 } catch (error: unknown) {
@@ -88,18 +76,30 @@ export class MonitoringServer<TMetrics extends DefaultMetrics = DefaultMetrics> 
 }
 
 /**
- * A function to create a custom MonitoringServer instance.
- * When provided, the runner will use this function instead of the default MonitoringServer constructor.
+ * Complete constructor params for creating a MonitoringServer instance.
  */
-export type CreateMonitoringServerFn<TMetrics extends DefaultMetrics = DefaultMetrics> = (
-    args: MonitoringServerConstructorArgs<TMetrics>
-) => MonitoringServer<TMetrics> | undefined;
+export type MonitoringServerOptions<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
+    /** Options for configuring the monitoring server */
+    options: {
+        /** HTTP configuration */
+        http: {
+            /** Host to bind the monitoring server to */
+            host: string;
+            /** Port to bind the monitoring server to */
+            port: number;
+        };
+        /** Features to enable on the monitoring server */
+        features: MonitoringServerFeature[];
+        /**
+         * Version to expose in the health endpoint.
+         * Defaults to the package version.
+         */
+        version?: string;
+    };
+    /** Logger for the server */
+    logger: ILogger;
+    /** Metrics instance */
+    metrics: IMetrics<TMetrics>;
+};
 
-/**
- * Creates a default MonitoringServer instance from the provided constructor arguments.
- */
-export const createDefaultMonitoringServer: <TMetrics extends DefaultMetrics = DefaultMetrics>(
-    args: MonitoringServerConstructorArgs<TMetrics>
-) => MonitoringServer<TMetrics> = <TMetrics extends DefaultMetrics = DefaultMetrics>(
-    args: MonitoringServerConstructorArgs<TMetrics>
-) => new MonitoringServer<TMetrics>(args);
+export type MonitoringServerFeature = "health-check" | "metrics";

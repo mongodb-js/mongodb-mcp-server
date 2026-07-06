@@ -1,7 +1,7 @@
 import { assertApiClientIsAvailable, describeWithAtlas, withProject } from "./atlasHelpers.js";
-import { expectDefined, getDataFromUntrustedContent, getResponseElements } from "../../helpers.js";
+import { expectDefined, getResponseElements } from "../../integrationHelpers.js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { ensureCurrentIpInAccessList } from "../../../../src/common/atlas/accessListUtils.js";
+import { ensureCurrentIpInAccessList } from "@mongodb-js/mcp-tools-atlas";
 
 function generateRandomIp(): string {
     const randomIp: number[] = [192];
@@ -75,11 +75,6 @@ describeWithAtlas("ip access lists", (integration) => {
                 const elements = getResponseElements(response.content);
                 expect(elements).toHaveLength(1);
                 expect(elements[0]?.text).toContain("IP/CIDR ranges added to access list");
-
-                expectDefined(response.structuredContent);
-                expect(response.structuredContent).toEqual({
-                    projectId,
-                });
             });
         });
 
@@ -106,21 +101,6 @@ describeWithAtlas("ip access lists", (integration) => {
                 for (const value of values) {
                     expect(elements[1]?.text).toContain(value);
                 }
-
-                const contentEntries = JSON.parse(getDataFromUntrustedContent(elements[1]?.text ?? "")) as {
-                    ipAddress?: string;
-                    cidrBlock?: string;
-                    comment?: string;
-                }[];
-
-                expectDefined(response.structuredContent);
-                expect(response.structuredContent).toEqual({
-                    projectId,
-                    entries: contentEntries,
-                    totalCount: contentEntries.length,
-                });
-                expect(contentEntries.length).toBeGreaterThanOrEqual(values.length);
-                expect(elements[0]?.text).toBe(`Found ${contentEntries.length} access list entries`);
             });
         });
 

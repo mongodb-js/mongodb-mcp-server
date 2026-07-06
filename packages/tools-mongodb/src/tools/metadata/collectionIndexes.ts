@@ -1,8 +1,9 @@
-import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolResult } from "../../tool.js";
-import { formatUntrustedData } from "../../tool.js";
+import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
+import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
+import type { OperationType } from "@mongodb-js/mcp-types";
+import { formatUntrustedData } from "@mongodb-js/mcp-core";
 import { z } from "zod";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
 
 const CollectionIndexesOutputSchema = {
     classicIndexes: z.array(

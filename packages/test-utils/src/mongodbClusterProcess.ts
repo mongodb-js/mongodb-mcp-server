@@ -1,12 +1,16 @@
 import fs from "fs/promises";
 import path from "path";
+import { fileURLToPath } from "url";
 import type { MongoClusterOptions, MongoDBUserDoc } from "mongodb-runner";
 import { DockerComposeEnvironment, GenericContainer, Wait } from "testcontainers";
 import { MongoCluster } from "mongodb-runner";
 import { MongoClient } from "mongodb";
 import { ConnectionString } from "mongodb-connection-string-url";
 import { ShellWaitStrategy } from "testcontainers/build/wait-strategies/shell-wait-strategy.js";
-import { sleep } from "../../../../src/common/managedTimeout.js";
+import { sleep } from "@mongodb-js/mcp-core";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export type MongoRunnerConfiguration = {
     runner: true;
@@ -183,10 +187,13 @@ export class MongoDBClusterProcess {
         }
     }
 
-    private constructor(
-        private readonly tearDownFunction: () => Promise<unknown>,
-        private readonly connectionStringFunction: () => string
-    ) {}
+    private readonly tearDownFunction: () => Promise<unknown>;
+    private readonly connectionStringFunction: () => string;
+
+    private constructor(tearDownFunction: () => Promise<unknown>, connectionStringFunction: () => string) {
+        this.tearDownFunction = tearDownFunction;
+        this.connectionStringFunction = connectionStringFunction;
+    }
 
     connectionString(): string {
         return this.connectionStringFunction();

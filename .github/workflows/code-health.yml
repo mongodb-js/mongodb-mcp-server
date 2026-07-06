@@ -73,12 +73,14 @@ jobs:
           cache: "pnpm"
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm run build
       - name: Run tests
         env:
           MDB_MCP_API_CLIENT_ID: ${{ secrets.TEST_ATLAS_CLIENT_ID }}
           MDB_MCP_API_CLIENT_SECRET: ${{ secrets.TEST_ATLAS_CLIENT_SECRET }}
           MDB_MCP_API_BASE_URL: ${{ vars.TEST_ATLAS_BASE_URL }}
-        run: pnpm test tests/integration/tools/atlas/
+        run: pnpm test packages/integration-tests/src/tools/atlas/
       - name: Upload test results
         uses: actions/upload-artifact@v7.0.1
         if: always()
@@ -108,7 +110,7 @@ jobs:
           docker pull mongodb/mongodb-atlas-local:latest &
           wait
       - name: Run tests
-        run: pnpm test tests/integration/tools/atlas-local/
+        run: pnpm test packages/integration-tests/src/tools/atlas-local/
       - name: Upload test results
         uses: actions/upload-artifact@v7.0.1
         if: always()
@@ -132,8 +134,10 @@ jobs:
           cache: "pnpm"
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm run build
       - name: Install Playwright Chromium
-        run: pnpm --filter browser run install:browser
+        run: pnpm --filter @mongodb-js/mcp-browser-tests run install:browser
       - name: Run browser tests
         run: pnpm run test:browser
       - name: Upload test results
@@ -141,7 +145,7 @@ jobs:
         uses: actions/upload-artifact@v7.0.1
         with:
           name: browser-test-results
-          path: coverage/tests/browser/lcov.info
+          path: coverage/packages/browser-tests/lcov.info
 
   coverage:
     name: Report Coverage

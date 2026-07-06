@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import select from "@inquirer/select";
 import { input, confirm, password } from "@inquirer/prompts";
 import path from "path";
@@ -9,15 +8,15 @@ import type { AIToolType } from "./aiTool.js";
 import { AI_TOOL_REGISTRY, openConfigSettings, TOOLS_WITHOUT_EDITORS } from "./aiTool.js";
 import type { Platform } from "./setupAiToolsUtils.js";
 import { formatError, getPlatform } from "./setupAiToolsUtils.js";
-import { packageInfo } from "../common/packageInfo.js";
-import { getAuthType } from "../common/connectionInfo.js";
-import { type UserConfig } from "../common/config/userConfig.js";
-import { defaultCreateAtlasLocalClient } from "../common/atlasLocal.js";
-import { NullLogger } from "../common/logging/index.js";
-import type { TelemetryResult } from "../telemetry/types.js";
+import { getAuthType } from "@mongodb-js/mcp-tools-mongodb";
+import type { ServerMetadata } from "@mongodb-js/mcp-types";
+import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
+import { NoopLogger } from "@mongodb-js/mcp-core";
+import type { TelemetryResult } from "@mongodb-js/mcp-atlas-telemetry";
 import { SetupTelemetry } from "./setupTelemetry.js";
-import { Keychain, registerGlobalSecretToRedact } from "../common/keychain.js";
+import { Keychain, registerGlobalSecretToRedact } from "@mongodb-js/mcp-core";
 import { promptAndInstallSkills, type SkillsInstallOutcome } from "./installSkills.js";
+import type { SetupConfig } from "./types.js";
 
 const buildEnvObject = (
     connectionString: string,
@@ -148,9 +147,12 @@ const printLogo = (): void => {
     printNewLine();
 };
 
-const validateNodeVersion = (): boolean => {
+const validateNodeVersion = (serverMetadata: ServerMetadata): boolean => {
     const nodeVersion = process.versions.node;
-    const requiredNodeRange = packageInfo.engines.node;
+    const requiredNodeRange = serverMetadata.engines?.node;
+    if (!requiredNodeRange) {
+        return true;
+    }
     if (!nodeVersion || !semver.satisfies(nodeVersion, requiredNodeRange)) {
         console.log(
             chalk.red(
@@ -164,7 +166,7 @@ const validateNodeVersion = (): boolean => {
 };
 
 const validateDocker = async (): Promise<boolean> => {
-    const client = await defaultCreateAtlasLocalClient({ logger: new NullLogger() });
+    const client = await createAtlasLocalClient({ logger: new NoopLogger() });
     if (client) {
         try {
             // Use the client to confirm docker is available and running
@@ -207,7 +209,7 @@ const promptForReadonly = async (): Promise<boolean> => {
 };
 
 const promptForConnectionString = async (
-    config: UserConfig
+    config: SetupConfig
 ): Promise<{
     connectionString: string;
     provided: boolean;
@@ -407,8 +409,14 @@ class UnsupportedPlatformError extends Error {
  * logical step emits a telemetry event so we can track both overall completion
  * rates and per-step drop-off.
  */
-export const runSetup = async (config: UserConfig): Promise<never> => {
-    const setupTelemetry = SetupTelemetry.create(config, Keychain.root);
+export const runSetup = async ({
+    config,
+    serverMetadata,
+}: {
+    config: SetupConfig;
+    serverMetadata: ServerMetadata;
+}): Promise<never> => {
+    const setupTelemetry = SetupTelemetry.create({ config, keychain: Keychain.root, serverMetadata });
 
     // Ensure hard cancellations (SIGINT/SIGTERM outside of an Inquirer prompt)
     // are still captured. Inquirer itself converts Ctrl+C during prompts into
@@ -435,7 +443,7 @@ export const runSetup = async (config: UserConfig): Promise<never> => {
         printLogo();
         setupTelemetry.emitStarted();
 
-        const nodeVersionOk = validateNodeVersion();
+        const nodeVersionOk = validateNodeVersion(serverMetadata);
         const platform = getPlatform();
         const platformSupported = platform !== null;
         if (!platformSupported) {

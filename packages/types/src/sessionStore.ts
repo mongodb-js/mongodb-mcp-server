@@ -1,6 +1,5 @@
-import type { ILoggerBase } from "./logging.js";
-import type { IMetrics, MetricDefinitions } from "./metrics.js";
-import type { ISession } from "./session.js";
+import type { ILogger, ICompositeLogger } from "./logging.js";
+import type { IMetrics, DefaultMetricDefinitions } from "./metrics.js";
 
 export type CloseableTransport = {
     close(): Promise<void>;
@@ -34,22 +33,16 @@ export interface ISessionStore<T extends CloseableTransport = CloseableTransport
     addSession(params: {
         sessionId: string;
         transport: T;
-        /** TODO: Remove in v2 — redundant with `session.logger`. */
-        logger: ILoggerBase;
-        session: ISession;
+        logger: ILogger;
+        session?: { logger: ICompositeLogger };
         headers?: Record<string, unknown>;
     }): Promise<void>;
     closeSession(params: { sessionId: string; reason?: SessionCloseReason }): Promise<void>;
     closeAllSessions(): Promise<void>;
 }
 
-export type SessionStoreConstructorArgs<TMetrics extends MetricDefinitions = MetricDefinitions> = {
+export type SessionStoreConstructorArgs<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
     options: { idleTimeoutMS: number; notificationTimeoutMS: number };
-    logger: ILoggerBase;
+    logger: ILogger;
     metrics: IMetrics<TMetrics>;
 };
-
-export type CreateSessionStoreFn<
-    TTransport extends CloseableTransport = CloseableTransport,
-    TMetrics extends MetricDefinitions = MetricDefinitions,
-> = (args: SessionStoreConstructorArgs<TMetrics>) => ISessionStore<TTransport>;

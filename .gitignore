@@ -1,5 +1,6 @@
 dist
 node_modules
+.eslintcache
 
 .idea
 .vscode/mcp.json
@@ -11,13 +12,13 @@ node_modules
 # Sensitive
 state.json
 
-tests/tmp
+**/tmp
 coverage
 
 # Generated assets by accuracy runs
 .accuracy
 
-temp
+**/temp
 .DS_Store
 
 # Development tool files
@@ -28,13 +29,20 @@ yalc.lock
 mcpb-build/
 dist-mcpb/
 
+# Personal agent configs
+.claude
+CLAUDE.md
+CLAUDE.local.md
+
+**/*.tsbuildinfo
+
 # Eval CI report (sticky PR comment)
 .eval/
 
 # Braintrust
 .bt
 # Generated eval pre-bundle for Braintrust
-tests/eval/dist
+packages/eval-tests/dist
 
-# Personal agent configs
-CLAUDE.local.md
+# pnpm store
+.pnpm-store

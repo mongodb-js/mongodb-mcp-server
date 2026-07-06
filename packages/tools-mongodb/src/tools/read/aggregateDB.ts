@@ -1,33 +1,18 @@
 import { z } from "zod";
 import type { AggregationCursor } from "mongodb";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { DBOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
-import { formatUntrustedData } from "../../tool.js";
-import { type Document } from "bson";
-import { ErrorCodes, MongoDBError } from "../../../common/errors.js";
-import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorUntilMaxBytes.js";
-import { operationWithFallback } from "../../../helpers/operationWithFallback.js";
-import { isWriteStage } from "../../../helpers/mqlGuards.js";
-import {
-    AGG_COUNT_MAX_TIME_MS_CAP,
-    ONE_MB,
-    CURSOR_LIMITS_TO_LLM_TEXT,
-    CURSOR_LIMIT_KEYS,
-    type CursorLimitKey,
-} from "../../../helpers/constants.js";
-import { LogId } from "../../../common/logging/index.js";
-import { AnyAggregateStage, DB_AGGREGATE_STAGE_OPERATORS } from "../mongodbSchemas.js";
-import { bsonToJson } from "../../../helpers/bsonToJson.js";
-
-const AggregateDBOutputSchema = {
-    documents: z.array(z.unknown()).describe("The documents returned by the aggregation pipeline"),
-    aggResultsCount: z
-        .number()
-        .optional()
-        .describe("The total number of documents returned by the aggregation pipeline"),
-    appliedLimits: z.array(CURSOR_LIMIT_KEYS).describe("The limits applied to the aggregation pipeline"),
-};
+import { DBOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
+import type { ToolArgs } from "@mongodb-js/mcp-core";
+import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
+import { formatUntrustedData } from "@mongodb-js/mcp-core";
+import { type Document, EJSON } from "bson";
+import { ErrorCodes, MongoDBError } from "../../common/errors.js";
+import { collectCursorUntilMaxBytesLimit } from "../../helpers/collectCursorUntilMaxBytes.js";
+import { operationWithFallback } from "../../helpers/operationWithFallback.js";
+import { LogId } from "@mongodb-js/mcp-core";
+import { ONE_MB, CURSOR_LIMITS_TO_LLM_TEXT } from "../../helpers/constants.js";
+import { AnyAggregateStage, DB_AGGREGATE_STAGE_OPERATORS } from "../../mongodbSchemas.js";
 
 export const AggregateArgs = {
     pipeline: z
@@ -49,12 +34,10 @@ The maximum number of bytes to return in the response. This value is capped by t
     };
     static operationType: OperationType = "read";
 
-    public override outputSchema = AggregateDBOutputSchema;
-
     protected async execute(
         { database, pipeline, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+    ): Promise<CallToolResult> {
         let aggregationCursor: AggregationCursor | undefined = undefined;
         try {
             const provider = await this.ensureConnected();
@@ -62,10 +45,7 @@ The maximum number of bytes to return in the response. This value is capped by t
 
             let successMessage: string;
             let documents: unknown[];
-            let aggResultsCount: number | undefined;
-            let appliedLimits: CursorLimitKey[] = [];
-
-            if (pipeline.some((stage) => isWriteStage(stage))) {
+            if (pipeline.some((stage) => this.isWriteStage(stage))) {
                 // This is a write pipeline, so special-case it and don't attempt to apply limits or caps
                 aggregationCursor = provider.aggregateDb(database, pipeline, {
                     ...this.getOperationOptions(signal),
@@ -106,29 +86,22 @@ The maximum number of bytes to return in the response. This value is capped by t
                     !!totalDocuments &&
                     totalDocuments > this.config.maxDocumentsPerQuery;
 
-                documents = bsonToJson(cursorResults.documents);
-                aggResultsCount = totalDocuments;
-                appliedLimits = [
-                    aggregationResultsCappedByMaxDocumentsLimit ? "config.maxDocumentsPerQuery" : undefined,
-                    cursorResults.cappedBy,
-                ].filter((limit): limit is CursorLimitKey => !!limit);
+                documents = cursorResults.documents;
                 successMessage = this.generateMessage({
-                    aggResultsCount,
-                    documents,
-                    appliedLimits,
+                    aggResultsCount: totalDocuments,
+                    documents: cursorResults.documents,
+                    appliedLimits: [
+                        aggregationResultsCappedByMaxDocumentsLimit ? "config.maxDocumentsPerQuery" : undefined,
+                        cursorResults.cappedBy,
+                    ].filter((limit): limit is keyof typeof CURSOR_LIMITS_TO_LLM_TEXT => !!limit),
                 });
             }
 
             return {
                 content: formatUntrustedData(
                     successMessage,
-                    ...(documents.length > 0 ? [JSON.stringify(documents)] : [])
+                    ...(documents.length > 0 ? [EJSON.stringify(documents)] : [])
                 ),
-                structuredContent: {
-                    documents,
-                    ...(aggResultsCount !== undefined ? { aggResultsCount } : {}),
-                    appliedLimits,
-                },
             };
         } finally {
             if (aggregationCursor) {
@@ -158,7 +131,24 @@ The maximum number of bytes to return in the response. This value is capped by t
             );
         }
 
-        this.assertMqlIsAllowed(pipeline);
+        const writeOperations: OperationType[] = ["update", "create", "delete"];
+        let writeStageForbiddenError = "";
+
+        if (this.config.readOnly) {
+            writeStageForbiddenError = "In readOnly mode you can not run pipelines with $out or $merge stages.";
+        } else if (this.config.disabledTools.some((t: string) => writeOperations.includes(t as OperationType))) {
+            writeStageForbiddenError =
+                "When 'create', 'update', or 'delete' operations are disabled, you can not run pipelines with $out or $merge stages.";
+        }
+
+        for (const stage of pipeline) {
+            // This validates that in readOnly mode or "write" operations are disabled, we can't use $out or $merge.
+            // This is really important because aggregates are the only "multi-faceted" tool in the MQL, where you
+            // can both read and write.
+            if (this.isWriteStage(stage) && writeStageForbiddenError) {
+                throw new MongoDBError(ErrorCodes.ForbiddenWriteOperation, writeStageForbiddenError);
+            }
+        }
     }
 
     private async countAggregationResultDocuments({
@@ -178,11 +168,7 @@ The maximum number of bytes to return in the response. This value is capped by t
                 .aggregateDb(database, resultsCountAggregation, {
                     signal: abortSignal,
                 })
-                .maxTimeMS(
-                    this.config.maxTimeMS !== undefined
-                        ? Math.min(this.config.maxTimeMS, AGG_COUNT_MAX_TIME_MS_CAP)
-                        : AGG_COUNT_MAX_TIME_MS_CAP
-                )
+                .maxTimeMS(this.getAggregationCountDocumentsMaxTimeMS())
                 .toArray();
 
             const documentWithCount: unknown = aggregationResults.length === 1 ? aggregationResults[0] : undefined;
@@ -205,7 +191,7 @@ The maximum number of bytes to return in the response. This value is capped by t
     }: {
         aggResultsCount: number | undefined;
         documents: unknown[];
-        appliedLimits: CursorLimitKey[];
+        appliedLimits: (keyof typeof CURSOR_LIMITS_TO_LLM_TEXT)[];
     }): string {
         let message = `The aggregation resulted in ${aggResultsCount === undefined ? "indeterminable number of" : aggResultsCount} documents.`;
 
@@ -223,5 +209,9 @@ The maximum number of bytes to return in the response. This value is capped by t
         }
 
         return message;
+    }
+
+    private isWriteStage(stage: Record<string, unknown>): boolean {
+        return "$out" in stage || "$merge" in stage;
     }
 }

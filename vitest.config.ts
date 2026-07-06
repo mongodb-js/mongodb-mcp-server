@@ -10,7 +10,7 @@ const vitestDefaultExcludes = [
     "**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build,eslint,prettier}.config.*",
 ];
 
-const longRunningTests = ["tests/integration/tools/atlas/performanceAdvisor.test.ts"];
+const longRunningTests = ["packages/integration-tests/src/tools/atlas/performanceAdvisor.test.ts"];
 
 if (process.env.SKIP_ATLAS_INTEGRATION_TESTS === "true") {
     vitestDefaultExcludes.push("**/integration/**/atlas/**");
@@ -25,7 +25,7 @@ export default defineConfig({
         environment: "node",
         testTimeout: 3600000,
         hookTimeout: 3600000,
-        setupFiles: ["./tests/setup.ts"],
+        setupFiles: ["./packages/test-utils/src/setup.ts"],
         coverage: {
             // Coverage is disabled on Windows as we only report it from the ubuntu job
             enabled: process.platform !== "win32",
@@ -34,12 +34,10 @@ export default defineConfig({
                 // that crash Istanbul reporters. See: https://github.com/vitest-dev/vitest/issues/5101
                 ...coverageConfigDefaults.exclude,
                 "node_modules",
-                "tests",
                 "dist",
                 "vitest.config.ts",
-                "vite.ui.config.ts",
-                "scripts",
-                "src/ui/lib",
+                "packages/scripts/src",
+                "packages/mongodb-mcp-server/dist",
             ],
             reporter: ["lcov"],
         },
@@ -48,12 +46,12 @@ export default defineConfig({
                 extends: true,
                 test: {
                     name: "unit-and-integration",
-                    include: ["**/*.test.ts"],
+                    include: ["packages/**/*.test.ts"],
                     exclude: [
                         ...vitestDefaultExcludes,
-                        "scripts/**",
-                        "tests/accuracy/**",
-                        "tests/browser/**",
+                        "packages/scripts/**",
+                        "packages/accuracy-tests/**",
+                        "packages/browser-tests/**",
                         ...longRunningTests,
                     ],
                 },
@@ -62,7 +60,8 @@ export default defineConfig({
                 extends: true,
                 test: {
                     name: "accuracy",
-                    include: ["**/accuracy/*.test.ts"],
+                    root: "./packages/accuracy-tests",
+                    include: ["src/**/*.test.ts"],
                 },
             },
             {
@@ -76,14 +75,7 @@ export default defineConfig({
                 extends: true,
                 test: {
                     name: "atlas-cleanup",
-                    include: ["scripts/cleanupAtlasTestLeftovers.test.ts"],
-                },
-            },
-            {
-                extends: true,
-                test: {
-                    name: "mcpb-build-script",
-                    include: ["scripts/createMcpb.test.ts"],
+                    include: ["packages/scripts/src/cleanupAtlasTestLeftovers.test.ts"],
                 },
             },
             {
@@ -96,12 +88,12 @@ export default defineConfig({
                 },
             },
             {
-                extends: true,
                 test: {
-                    name: "ui-components",
-                    include: ["tests/unit/ui/**/*.test.tsx"],
+                    name: "ui",
+                    root: "./packages/ui",
                     environment: "happy-dom",
-                    setupFiles: ["./tests/setup.ts", "./tests/setupReact.ts"],
+                    setupFiles: ["./src/test-setup.ts"],
+                    include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
                 },
             },
         ],

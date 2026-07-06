@@ -1,60 +1,49 @@
-import fs from "fs/promises";
-import { type MongoLogWriter, MongoLogManager } from "mongodb-log-writer";
-import type { Keychain } from "../keychain.js";
-import type { LogLevel, LogPayload, LoggerType } from "./index.js";
-import { LoggerBase } from "./loggerBase.js";
+import { LoggerBase } from "@mongodb-js/mcp-core";
+import type { LogLevel, LogPayload, LoggerType, LogWriter, LoggerConfig } from "@mongodb-js/mcp-types";
 
-export class DiskLogger extends LoggerBase<{ initialized: [] }> {
-    private bufferedMessages: { level: LogLevel; payload: LogPayload }[] = [];
-    private logWriter?: MongoLogWriter;
+export type DiskLoggerOptions = {
+    logWriter: LogWriter;
+} & LoggerConfig;
 
-    public constructor(logPath: string, onError: (error: Error) => void, keychain: Keychain) {
-        super(keychain);
+export class DiskLogger extends LoggerBase {
+    private readonly logWriter: LogWriter;
 
-        void this.initialize(logPath, onError);
+    public constructor(options: DiskLoggerOptions) {
+        const { logWriter, ...loggerOptions } = options;
+        super(loggerOptions);
+        this.logWriter = logWriter;
     }
 
-    private async initialize(logPath: string, onError: (error: Error) => void): Promise<void> {
-        try {
-            await fs.mkdir(logPath, { recursive: true });
-
-            const manager = new MongoLogManager({
-                directory: logPath,
-                retentionDays: 30,
-                // eslint-disable-next-line no-console
-                onwarn: console.warn,
-                // eslint-disable-next-line no-console
-                onerror: console.error,
-                gzip: false,
-                retentionGB: 1,
-            });
-
-            await manager.cleanupOldLogFiles();
-
-            this.logWriter = await manager.createLogWriter();
-
-            for (const message of this.bufferedMessages) {
-                this.logCore(message.level, message.payload);
-            }
-            this.bufferedMessages = [];
-            this.emit("initialized");
-        } catch (error: unknown) {
-            onError(error as Error);
-        }
-    }
-
-    protected type: LoggerType = "disk";
+    protected readonly type: LoggerType = "disk";
 
     protected logCore(level: LogLevel, payload: LogPayload): void {
-        if (!this.logWriter) {
-            // If the log writer is not initialized, buffer the message
-            this.bufferedMessages.push({ level, payload });
-            return;
-        }
-
         const { id, context, message } = payload;
         const mongoDBLevel = this.mapToMongoDBLogLevel(level);
 
         this.logWriter[mongoDBLevel]("MONGODB-MCP", id, context, message, payload.attributes);
+    }
+
+    public override async flush(): Promise<PromiseSettledResult<void>[]> {
+        return Promise.allSettled([this.logWriter.flush()]);
+    }
+
+    protected mapToMongoDBLogLevel(level: LogLevel): "info" | "warn" | "error" | "debug" | "fatal" {
+        switch (level) {
+            case "info":
+                return "info";
+            case "warning":
+                return "warn";
+            case "error":
+                return "error";
+            case "notice":
+            case "debug":
+                return "debug";
+            case "critical":
+            case "alert":
+            case "emergency":
+                return "fatal";
+            default:
+                return "info";
+        }
     }
 }

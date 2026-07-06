@@ -1,18 +1,18 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { type UserConfig, UserConfigSchema } from "../../../src/common/config/userConfig.js";
-import { parseUserConfig, defaultParserOptions } from "../../../src/common/config/parseUserConfig.js";
+import { type UserConfig, UserConfigSchema } from "@mongodb-js/mcp-cli";
+import { parseUserConfig, defaultParserOptions } from "@mongodb-js/mcp-cli";
 import {
     getLogPath,
     getExportsPath,
     onlyLowerThanBaseValueOverride,
     onlySubsetOfBaseValueOverride,
-} from "../../../src/common/config/configUtils.js";
-import { Keychain } from "../../../src/common/keychain.js";
-import type { Secret } from "../../../src/common/keychain.js";
-import { createEnvironment } from "../../utils/index.js";
+} from "@mongodb-js/mcp-cli";
+import { Keychain } from "@mongodb-js/mcp-core";
+import type { Secret } from "@mongodb-js/mcp-core";
+import { createEnvironment, useClearEnvironment } from "@mongodb-js/mcp-test-utils";
 import path from "path";
-import { TRANSPORT_PAYLOAD_LIMITS } from "../../../src/transports/constants.js";
-import { getConfigMeta } from "../../../src/common/config/configOverrides.js";
+import { TRANSPORT_PAYLOAD_LIMITS } from "@mongodb-js/mcp-cli";
+import { getConfigMeta } from "@mongodb-js/mcp-cli";
 
 // Expected hardcoded values (what we had before)
 const expectedDefaults = {
@@ -57,41 +57,47 @@ const expectedDefaults = {
     externallyManagedSessions: false,
     httpResponseType: "sse",
     monitoringServerFeatures: ["health-check"],
+    queryCountMaxTimeMsCap: 10000,
+    aggregationCountMaxTimeMsCap: 60000,
 };
 
 const CONFIG_FIXTURES = {
-    VALID: path.resolve(import.meta.dirname, "..", "..", "fixtures", "valid-config.json"),
-    WITH_INVALID_VALUE: path.resolve(import.meta.dirname, "..", "..", "fixtures", "config-with-invalid-value.json"),
+    VALID: path.resolve(import.meta.dirname, "fixtures", "valid-config.json"),
+    WITH_INVALID_VALUE: path.resolve(import.meta.dirname, "fixtures", "config-with-invalid-value.json"),
 };
 
 describe("config", () => {
-    it("should generate defaults from UserConfigSchema that match expected values", () => {
-        expect(UserConfigSchema.parse({})).toStrictEqual(expectedDefaults);
-    });
+    describe("defaults", () => {
+        useClearEnvironment("MDB_MCP_");
 
-    it("should generate defaults when no config sources are populated", () => {
-        expect(parseUserConfig({ args: [] })).toStrictEqual({
-            parsed: expectedDefaults,
-            warnings: [],
-            error: undefined,
+        it("should generate defaults from UserConfigSchema that match expected values", () => {
+            expect(UserConfigSchema.parse({})).toStrictEqual(expectedDefaults);
         });
-    });
 
-    it("can override defaults in the schema and those are populated instead", () => {
-        expect(
-            parseUserConfig({
-                args: [],
-                overrides: {
-                    exportTimeoutMs: UserConfigSchema.shape.exportTimeoutMs.default(123),
+        it("should generate defaults when no config sources are populated", () => {
+            expect(parseUserConfig({ args: [] })).toStrictEqual({
+                parsed: expectedDefaults,
+                warnings: [],
+                error: undefined,
+            });
+        });
+
+        it("can override defaults in the schema and those are populated instead", () => {
+            expect(
+                parseUserConfig({
+                    args: [],
+                    overrides: {
+                        exportTimeoutMs: UserConfigSchema.shape.exportTimeoutMs.default(123),
+                    },
+                })
+            ).toStrictEqual({
+                parsed: {
+                    ...expectedDefaults,
+                    exportTimeoutMs: 123,
                 },
-            })
-        ).toStrictEqual({
-            parsed: {
-                ...expectedDefaults,
-                exportTimeoutMs: 123,
-            },
-            warnings: [],
-            error: undefined,
+                warnings: [],
+                error: undefined,
+            });
         });
     });
 
@@ -861,6 +867,8 @@ describe("config", () => {
 });
 
 describe("keychain management", () => {
+    useClearEnvironment("MDB_MCP_");
+
     type TestCase = { readonly cliArg: keyof UserConfig; secretKind: Secret["kind"] };
     const testCases = [
         { cliArg: "apiClientId", secretKind: "user" },

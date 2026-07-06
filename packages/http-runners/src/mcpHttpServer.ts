@@ -1,80 +1,82 @@
-import { type StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import express from "express";
-import { LogId } from "../common/logging/loggingDefinitions.js";
-import { getRandomUUID } from "../helpers/getRandomUUID.js";
+import type {
+    ICompositeLogger,
+    ILogger,
+    IMetrics,
+    DefaultMetricDefinitions,
+    TransportRequestContext,
+    ISessionStore,
+    HttpServerOptions,
+    SessionManagementOptions,
+    SessionServer,
+} from "@mongodb-js/mcp-types";
 import {
-    type UserConfig,
-    type ISessionStore,
-    type Metrics,
-    type DefaultMetrics,
-    type Server,
-    type LoggerBase,
-} from "../lib.js";
-import { ConfigOverrideError } from "../common/config/configOverrides.js";
-import { SessionRejectedError } from "../common/sessionStore.js";
-import type { CustomizableServerOptions, CustomizableSessionOptions, TransportRequestContext } from "./base.js";
-import { ExpressBasedHttpServer } from "./expressBasedHttpServer.js";
-import { requestIdAttr } from "../helpers/requestIdAttr.js";
-import {
+    LogId,
     JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED,
     JSON_RPC_ERROR_CODE_SESSION_ID_INVALID,
     JSON_RPC_ERROR_CODE_INVALID_REQUEST,
     JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND,
     JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION,
     JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
-} from "./jsonRpcErrorCodes.js";
+    UserFacingError,
+    getRandomUUID,
+    SessionRejectedError,
+    requestIdAttr,
+} from "@mongodb-js/mcp-core";
+import { ExpressBasedHttpServer } from "./expressBasedHttpServer.js";
+import { sleep } from "./utils.js";
 
-export type MCPHttpServerConstructorArgs<TUserConfig extends UserConfig = UserConfig, TContext = unknown> = {
-    userConfig: TUserConfig;
-    createServerForRequest: (createParams: {
-        request: TransportRequestContext;
-        serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
-        sessionOptions?: CustomizableSessionOptions<TUserConfig>;
-    }) => Promise<Server<TUserConfig, TContext>>;
-    logger: LoggerBase;
-    serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
-    sessionOptions?: CustomizableSessionOptions<TUserConfig>;
-    metrics: Metrics<DefaultMetrics>;
+/**
+ * Options for creating an MCPHttpServer instance.
+ */
+export type MCPHttpServerOptions<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
+    options: {
+        /** HTTP server options */
+        http: HttpServerOptions;
+        /** Session management options */
+        session: SessionManagementOptions;
+    };
+    /** Logger for the server */
+    logger: ICompositeLogger;
+    /** Metrics instance */
+    metrics: IMetrics<TMetrics>;
+    /** Session store for managing transports */
     sessionStore: ISessionStore<StreamableHTTPServerTransport>;
 };
 
-export class MCPHttpServer<
-    TUserConfig extends UserConfig = UserConfig,
-    TContext = unknown,
+/**
+ * HTTP server that handles MCP requests over HTTP using the Streamable HTTP transport.
+ *
+ *
+ * @example
+ * ```typescript
+ * class MyMCPHttpServer extends MCPHttpServer {
+ *   protected override async createServerForRequest(request: TransportRequestContext): Promise<MyServer> {
+ *     return new MyServer({ ... });
+ *   }
+ * }
+ * ```
+ */
+export abstract class MCPHttpServer<
+    TServer extends SessionServer = SessionServer,
+    TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions,
 > extends ExpressBasedHttpServer {
-    protected readonly sessionStore: ISessionStore<StreamableHTTPServerTransport>;
-    private readonly serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
-    private readonly sessionOptions?: CustomizableSessionOptions<TUserConfig>;
-    protected readonly userConfig: TUserConfig;
-    private readonly metrics: Metrics<DefaultMetrics>;
+    private readonly sessionStore: ISessionStore<StreamableHTTPServerTransport>;
+    public readonly sessionOptions: SessionManagementOptions;
+    protected readonly metrics: IMetrics<TMetrics>;
     private readonly pendingInitializations = new Map<string, Promise<void>>();
 
-    private createServerForRequest: (createParams: {
-        request: TransportRequestContext;
-        serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
-        sessionOptions?: CustomizableSessionOptions<TUserConfig>;
-    }) => Promise<Server<TUserConfig, TContext>>;
-
-    constructor({
-        userConfig,
-        createServerForRequest,
-        serverOptions,
-        sessionOptions,
-        logger,
-        metrics,
-        sessionStore,
-    }: MCPHttpServerConstructorArgs<TUserConfig, TContext>) {
+    constructor({ options, logger, metrics, sessionStore }: MCPHttpServerOptions<TMetrics>) {
         super({
-            port: userConfig.httpPort,
-            hostname: userConfig.httpHost,
+            options: {
+                logContext: "mcpHttpServer",
+                http: options.http,
+            },
             logger,
-            logContext: "mcpHttpServer",
         });
-        this.serverOptions = serverOptions;
-        this.sessionOptions = sessionOptions;
-        this.createServerForRequest = createServerForRequest;
-        this.userConfig = userConfig;
+        this.sessionOptions = options.session;
         this.metrics = metrics;
         this.sessionStore = sessionStore;
     }
@@ -82,6 +84,12 @@ export class MCPHttpServer<
     public async stop(): Promise<void> {
         await Promise.all([this.sessionStore.closeAllSessions(), super.stop()]);
     }
+
+    /**
+     * Creates a server instance for a specific request. Override this method
+     * in subclasses to customize per-request server creation.
+     */
+    protected abstract createServerForRequest(request: TransportRequestContext): Promise<TServer>;
 
     private reportSessionError(res: express.Response, errorCode: number): void {
         let message: string;
@@ -117,20 +125,25 @@ export class MCPHttpServer<
         });
     }
 
-    private startKeepAliveLoop(
-        transport: StreamableHTTPServerTransport,
-        server: Server<TUserConfig, TContext>
-    ): NodeJS.Timeout | undefined {
-        if (this.userConfig.httpResponseType === "json") {
+    private async startKeepAliveLoop({
+        transport,
+        logger,
+        signal,
+    }: {
+        transport: StreamableHTTPServerTransport;
+        logger: ILogger;
+        signal: AbortSignal;
+    }): Promise<void> {
+        if (this.httpOptions.responseType === "json") {
             // Don't start the ping loop for JSON response type since the connection is short-lived and pings aren't needed
-            return undefined;
+            return;
         }
 
         let failedPings = 0;
-        // eslint-disable-next-line @typescript-eslint/no-misused-promises
-        const keepAliveLoop = setInterval(async () => {
+
+        while (!signal.aborted) {
             try {
-                server.session.logger.debug({
+                logger.debug({
                     id: LogId.streamableHttpTransportKeepAlive,
                     context: "streamableHttpTransport",
                     message: "Sending ping",
@@ -144,24 +157,23 @@ export class MCPHttpServer<
             } catch (err) {
                 try {
                     failedPings++;
-                    server.session.logger.warning({
+                    logger.warning({
                         id: LogId.streamableHttpTransportKeepAliveFailure,
                         context: "streamableHttpTransport",
                         message: `Error sending ping (attempt #${failedPings}): ${err instanceof Error ? err.message : String(err)}`,
                     });
 
                     if (failedPings > 3) {
-                        clearInterval(keepAliveLoop);
                         await transport.close();
+                        return;
                     }
                 } catch {
-                    // Ignore the error of the transport close as there's nothing else
-                    // we can do at this point.
+                    // Ignore the error of the transport close
                 }
             }
-        }, 30_000);
 
-        return keepAliveLoop;
+            await sleep(30_000, { signal });
+        }
     }
 
     /**
@@ -190,9 +202,6 @@ export class MCPHttpServer<
         sessionId?: string;
         isImplicitInitialization: boolean;
     }): Promise<string> {
-        /** StreamableHTTPTransport needs to be imported dynamically as it uses Node-specific APIs */
-        const { StreamableHTTPServerTransport } = await import("@modelcontextprotocol/sdk/server/streamableHttp.js");
-
         const sessionId = providedSessionId ?? getRandomUUID();
         const requestIdAttrs = requestIdAttr(req.headers);
 
@@ -213,8 +222,7 @@ export class MCPHttpServer<
             try {
                 await pendingInit;
             } catch {
-                // The initializer handles its own error; we just need to
-                // let the caller re-check the store.
+                // The initializer handles its own error
             }
             return sessionId;
         }
@@ -230,24 +238,21 @@ export class MCPHttpServer<
 
         const initPromise = (async (): Promise<void> => {
             const request: TransportRequestContext = {
-                headers: req.headers as Record<string, string | string[] | undefined>,
+                headers: req.headers,
                 query: req.query as Record<string, string | string[] | undefined>,
             };
-            const server = await this.createServerForRequest({
-                request,
-                serverOptions: this.serverOptions,
-                sessionOptions: this.sessionOptions,
-            });
+
+            const server = await this.createServerForRequest(request);
 
             const transport = new StreamableHTTPServerTransport({
                 sessionIdGenerator: (): string => sessionId,
-                enableJsonResponse: this.userConfig.httpResponseType === "json",
+                enableJsonResponse: this.httpOptions.responseType === "json",
                 onsessionclosed: async (sessionId): Promise<void> => {
                     try {
                         await this.sessionStore.closeSession({ sessionId, reason: "transport_closed" });
                     } catch (error) {
                         this.logger.error({
-                            id: LogId.streamableHttpTransportSessionCloseFailure,
+                            id: LogId.sessionCloseFailure,
                             context: "streamableHttpTransport",
                             message: `Error closing session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
                         });
@@ -267,13 +272,18 @@ export class MCPHttpServer<
                 internalTransport.sessionId = sessionId;
             }
 
-            server.session.logger.setAttribute("sessionId", sessionId);
+            server.session?.logger.setAttribute("sessionId", sessionId);
 
-            const keepAliveLoop = this.startKeepAliveLoop(transport, server);
+            const keepAliveController = new AbortController();
+            void this.startKeepAliveLoop({
+                transport,
+                logger: server.session?.logger ?? this.logger,
+                signal: keepAliveController.signal,
+            });
             transport.onclose = (): void => {
-                clearInterval(keepAliveLoop);
+                keepAliveController.abort();
 
-                server.close().catch((error) => {
+                server.close().catch((error: unknown) => {
                     this.logger.error({
                         id: LogId.streamableHttpTransportCloseFailure,
                         context: "streamableHttpTransport",
@@ -287,7 +297,7 @@ export class MCPHttpServer<
             await this.sessionStore.addSession({
                 sessionId,
                 transport,
-                logger: server.session.logger,
+                logger: server.session?.logger ?? this.logger,
                 session: server.session,
                 // Pass the incoming request headers to the session store so
                 // that we can trace the x-request-id and other headers in the
@@ -321,23 +331,27 @@ export class MCPHttpServer<
     }
 
     protected setupMiddlewares(): void {
-        this.app.use(express.json({ limit: this.userConfig.httpBodyLimit }));
-        this.app.use((req, res, next) => {
-            for (const [key, value] of Object.entries(this.userConfig.httpHeaders)) {
-                const header = req.headers[key.toLowerCase()];
-                if (!header || header !== value) {
-                    res.status(403).json({ error: `Invalid value for header "${key}"` });
-                    return;
-                }
-            }
+        this.app.use(express.json({ limit: this.httpOptions.bodyLimit ?? 1024 * 1024 }));
 
-            next();
-        });
+        const headers = this.httpOptions.headers;
+        if (headers && Object.keys(headers).length > 0) {
+            this.app.use((req, res, next) => {
+                for (const [key, value] of Object.entries(headers)) {
+                    const header = req.headers[key.toLowerCase()];
+                    if (!header || header !== value) {
+                        res.status(403).json({ error: `Invalid value for header "${key}"` });
+                        return;
+                    }
+                }
+                next();
+            });
+        }
     }
 
-    // eslint-disable-next-line @typescript-eslint/require-await
+    // eslint-disable-next-line @typescript-eslint/require-await -- Required for override signature
     protected override async setupRoutes(): Promise<void> {
         this.setupMiddlewares();
+
         const handleSessionRequest = async (req: express.Request, res: express.Response): Promise<void> => {
             const sessionId = req.headers["mcp-session-id"];
             if (!sessionId) {
@@ -352,14 +366,13 @@ export class MCPHttpServer<
 
             let transport = await this.sessionStore.getSession(sessionId, req.headers);
             if (!transport) {
-                if (!this.userConfig.externallyManagedSessions) {
+                if (!this.sessionOptions.externallyManagedSessions) {
                     this.logger.debug({
                         id: LogId.streamableHttpTransportSessionNotFound,
                         context: "streamableHttpTransport",
                         message: `Session with ID ${sessionId} not found`,
                         attributes: { ...requestIdAttrs },
                     });
-
                     return this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND);
                 }
 
@@ -386,14 +399,13 @@ export class MCPHttpServer<
                 }
 
                 if (isInitializeRequest(req.body)) {
-                    if (sessionId && !this.userConfig.externallyManagedSessions) {
+                    if (sessionId && !this.sessionOptions.externallyManagedSessions) {
                         this.logger.debug({
                             id: LogId.streamableHttpTransportDisallowedExternalSessionError,
                             context: "streamableHttpTransport",
                             message: `Client provided session ID ${sessionId}, but externallyManagedSessions is disabled`,
                             attributes: requestIdAttr(req.headers),
                         });
-
                         return this.reportSessionError(res, JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION);
                     }
 
@@ -421,14 +433,14 @@ export class MCPHttpServer<
         this.app.get(
             "/mcp",
             this.withErrorHandling(async (req, res): Promise<void> => {
-                if (this.userConfig.httpResponseType === "sse") {
+                if (this.httpOptions.responseType === "sse") {
                     await handleSessionRequest(req, res);
                 } else {
-                    // Don't allow SSE upgrades if the response type is JSON
                     res.status(405).set("Allow", ["POST", "DELETE"]).send("Method Not Allowed");
                 }
             })
         );
+
         this.app.delete("/mcp", this.withErrorHandling(handleSessionRequest));
     }
 
@@ -437,10 +449,11 @@ export class MCPHttpServer<
     ) {
         return (req: express.Request, res: express.Response, next: express.NextFunction): void => {
             fn(req, res, next).catch((error) => {
+                const errorMessage = error instanceof Error ? error.message : String(error);
                 this.logger.error({
                     id: LogId.streamableHttpTransportRequestFailure,
                     context: "streamableHttpTransport",
-                    message: `Error handling request: ${error instanceof Error ? error.message : String(error)}`,
+                    message: `Error handling request: ${errorMessage}`,
                     attributes: requestIdAttr(req.headers),
                 });
 
@@ -451,7 +464,8 @@ export class MCPHttpServer<
                     return this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND);
                 }
 
-                const message = error instanceof ConfigOverrideError ? error.message : `failed to handle request`;
+                // Only propagate error messages for user-facing errors
+                const message = error instanceof UserFacingError ? error.message : `failed to handle request`;
 
                 res.status(400).json({
                     jsonrpc: "2.0",
@@ -464,18 +478,3 @@ export class MCPHttpServer<
         };
     }
 }
-
-/**
- * A function to create a custom MCPHttpServer instance.
- * When provided, the runner will use this function instead of the default MCPHttpServer constructor.
- */
-export type CreateMcpHttpServerFn<TUserConfig extends UserConfig = UserConfig, TContext = unknown> = (
-    args: MCPHttpServerConstructorArgs<TUserConfig, TContext>
-) => MCPHttpServer<TUserConfig, TContext>;
-
-/**
- * Creates a default MCPHttpServer instance from the provided constructor arguments.
- */
-export const createDefaultMcpHttpServer = <TUserConfig extends UserConfig = UserConfig, TContext = unknown>(
-    args: MCPHttpServerConstructorArgs<TUserConfig, TContext>
-): MCPHttpServer<TUserConfig, TContext> => new MCPHttpServer<TUserConfig, TContext>(args);

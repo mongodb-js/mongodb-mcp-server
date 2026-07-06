@@ -1,4 +1,4 @@
-import { expectDefined, getResponseContent } from "../../../helpers.js";
+import { getResponseContent } from "../../../integrationHelpers.js";
 import { describeWithStreams, withWorkspace, randomId, assertApiClientIsAvailable } from "../atlasHelpers.js";
 import { afterAll, describe, expect, it } from "vitest";
 
@@ -55,11 +55,6 @@ describeWithStreams("atlas-streams-build", (integration) => {
                 expect(response.isError, `Unexpected error: ${content}`).toBeFalsy();
                 expect(content).toContain(connectionName);
                 expect(content).toContain("Https");
-
-                expectDefined(response.structuredContent);
-                expect(response.structuredContent).toEqual({
-                    resource: "connection",
-                });
             });
         });
 

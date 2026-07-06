@@ -22,7 +22,7 @@
     "node": "^20.19.0 || ^22.13.0 || >= 24.0.0"
   },
   "scripts": {
-    "compile": "tsc --project tsconfig.json",
+    "compile": "tsc --project tsconfig.build.json",
     "pretest": "pnpm compile",
     "test": "vitest --run"
   },

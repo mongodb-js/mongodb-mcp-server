@@ -1,15 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ToolConstructorParams } from "../../../../../src/tools/tool.js";
-import { CreateAccessListTool } from "../../../../../src/tools/atlas/create/createAccessList.js";
-import { DEFAULT_ACCESS_LIST_COMMENT } from "../../../../../src/common/atlas/accessListUtils.js";
-import type { Session } from "../../../../../src/common/session.js";
-import type { UserConfig } from "../../../../../src/common/config/userConfig.js";
-import type { Telemetry } from "../../../../../src/telemetry/telemetry.js";
-import type { Elicitation } from "../../../../../src/elicitation.js";
-import type { CompositeLogger } from "../../../../../src/common/logging/index.js";
-import type { ApiClient } from "../../../../../src/common/atlas/apiClient.js";
-import { UIRegistry } from "../../../../../src/ui/registry/index.js";
-import { MockMetrics } from "../../../mocks/metrics.js";
+import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
+import { CreateAccessListTool } from "./createAccessList.js";
+import { DEFAULT_ACCESS_LIST_COMMENT } from "../../helpers/accessListUtils.js";
+import type { IAtlasSession, IAtlasConfig } from "../../atlasTool.js";
+import type { ITelemetry, IElicitation, ICompositeLogger } from "@mongodb-js/mcp-types";
+import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { MockMetrics } from "../../mockMetrics.js";
+import { Keychain } from "@mongodb-js/mcp-core";
 
 const projectId = "507f1f77bcf86cd799439011";
 const currentIpAddress = "203.0.113.10";
@@ -29,29 +26,36 @@ describe("CreateAccessListTool", () => {
             debug: vi.fn(),
             warning: vi.fn(),
             error: vi.fn(),
-        } as unknown as CompositeLogger;
+            setAttribute: vi.fn(),
+            addLogger: vi.fn(),
+        } as unknown as ICompositeLogger;
 
         const mockSession = {
+            sessionId: "test-session",
             logger: mockLogger,
             apiClient: mockApiClient as unknown as ApiClient,
-        } as unknown as Session;
+            connectedAtlasCluster: undefined,
+            connectToMongoDB: vi.fn().mockResolvedValue(undefined),
+            keychain: new Keychain(),
+            config: {
+                apiClientId: "test-id",
+                apiClientSecret: "test-secret",
+            } as unknown as IAtlasConfig,
+            disconnect: vi.fn().mockResolvedValue(undefined),
+            close: vi.fn().mockResolvedValue(undefined),
+            isConnectedToMongoDB: false,
+            on: vi.fn(),
+            setMcpClient: vi.fn(),
+        } as unknown as IAtlasSession;
 
-        const params: ToolConstructorParams = {
+        const params: ToolConstructorParams<IAtlasSession> = {
             name: CreateAccessListTool.toolName,
             category: "atlas",
             operationType: CreateAccessListTool.operationType,
             session: mockSession,
-            config: {
-                confirmationRequiredTools: [],
-                previewFeatures: [],
-                disabledTools: [],
-                apiClientId: "test-id",
-                apiClientSecret: "test-secret",
-            } as unknown as UserConfig,
-            telemetry: { isTelemetryEnabled: () => false, emitEvents: vi.fn() } as unknown as Telemetry,
-            elicitation: { requestConfirmation: vi.fn() } as unknown as Elicitation,
+            telemetry: { isTelemetryEnabled: () => false, emitEvents: vi.fn() } as unknown as ITelemetry,
+            elicitation: { requestConfirmation: vi.fn() } as unknown as IElicitation,
             metrics: new MockMetrics(),
-            uiRegistry: new UIRegistry(),
         };
 
         tool = new CreateAccessListTool(params);
@@ -71,34 +75,26 @@ describe("CreateAccessListTool", () => {
         expect((result.content[0] as { text: string }).text).toContain(
             `IP/CIDR ranges added to access list for project ${projectId}`
         );
-        expect(mockApiClient.createAccessListEntry).toHaveBeenCalledWith(
-            {
-                params: { path: { groupId: projectId } },
-                body: [
-                    { groupId: projectId, ipAddress: "192.168.1.1", comment: DEFAULT_ACCESS_LIST_COMMENT },
-                    { groupId: projectId, cidrBlock: "10.0.0.0/24", comment: DEFAULT_ACCESS_LIST_COMMENT },
-                ],
-            },
-            expect.anything()
-        );
-        expect(result.structuredContent).toEqual({ projectId });
+        expect(mockApiClient.createAccessListEntry).toHaveBeenCalledWith({
+            params: { path: { groupId: projectId } },
+            body: [
+                { groupId: projectId, ipAddress: "192.168.1.1", comment: DEFAULT_ACCESS_LIST_COMMENT },
+                { groupId: projectId, cidrBlock: "10.0.0.0/24", comment: DEFAULT_ACCESS_LIST_COMMENT },
+            ],
+        });
     });
 
     it("includes current IP when currentIpAddress is true", async () => {
-        const result = await exec({
+        await exec({
             projectId,
             currentIpAddress: true,
         });
 
         expect(mockApiClient.getIpInfo).toHaveBeenCalled();
-        expect(mockApiClient.createAccessListEntry).toHaveBeenCalledWith(
-            {
-                params: { path: { groupId: projectId } },
-                body: [{ groupId: projectId, ipAddress: currentIpAddress, comment: DEFAULT_ACCESS_LIST_COMMENT }],
-            },
-            expect.anything()
-        );
-        expect(result.structuredContent).toEqual({ projectId });
+        expect(mockApiClient.createAccessListEntry).toHaveBeenCalledWith({
+            params: { path: { groupId: projectId } },
+            body: [{ groupId: projectId, ipAddress: currentIpAddress, comment: DEFAULT_ACCESS_LIST_COMMENT }],
+        });
     });
 
     it("throws when no inputs are provided", async () => {
@@ -114,12 +110,9 @@ describe("CreateAccessListTool", () => {
             comment: "office network",
         });
 
-        expect(mockApiClient.createAccessListEntry).toHaveBeenCalledWith(
-            {
-                params: { path: { groupId: projectId } },
-                body: [{ groupId: projectId, ipAddress: "192.168.1.1", comment: "office network" }],
-            },
-            expect.anything()
-        );
+        expect(mockApiClient.createAccessListEntry).toHaveBeenCalledWith({
+            params: { path: { groupId: projectId } },
+            body: [{ groupId: projectId, ipAddress: "192.168.1.1", comment: "office network" }],
+        });
     });
 });

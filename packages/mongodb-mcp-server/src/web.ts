@@ -1,45 +1,38 @@
-export {
-    TransportRunnerBase,
-    type TransportRunnerConfig,
-    type CreateSessionConfigFn,
-    type RequestContext as TransportRequestContextDeprecated,
-} from "./transports/base.js";
-export { UserConfigSchema, type UserConfig } from "./common/config/userConfig.js";
-export { createDefaultMetrics, type DefaultMetrics } from "@mongodb-js/mcp-metrics";
-export { Server, type ServerOptions, type AnyToolClass, type ToolCategory } from "./server.js";
-export { DeviceId } from "./helpers/deviceId.js";
-export { LoggerBase, CompositeLogger, type EventMap, type DefaultEventMap } from "./common/logging/index.js";
-export type { Metrics, MetricDefinitions } from "@mongodb-js/mcp-metrics";
-export type { TransportRequestContext } from "./transports/base.js";
+/** This file is temporarily used for generating API reports against the v1 API for comparison purposes. */
+export { type ITransportRunner, type TransportRequestContext } from "@mongodb-js/mcp-types";
+export { createDefaultMetrics, type DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
+export type { ToolCategory } from "@mongodb-js/mcp-types";
+export { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
+export { LoggerBase, CompositeLogger } from "@mongodb-js/mcp-core";
+export { type LogLevel, type LogPayload, type LoggerType } from "@mongodb-js/mcp-types";
+export { type EventMap, type DefaultEventMap } from "@mongodb-js/mcp-types";
+export type { DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
 export type {
-    CommonProperties,
+    TelemetryCommonProperties,
     TelemetryBoolSet,
-    CommonStaticProperties,
+    TelemetryCommonStaticProperties,
     TelemetryResult,
     TelemetryToolMetadata,
-    ConnectionMetadata,
     AtlasMetadata,
     AtlasLocalToolMetadata,
-    PerfAdvisorToolMetadata,
-    StreamsToolMetadata,
     UpgradeClusterMetadata,
-} from "./telemetry/types.js";
-export { Session, type SessionOptions, type SessionEvents } from "./common/session.js";
-export type { CustomizableServerOptions, CustomizableSessionOptions } from "./transports/base.js";
-export type { LogLevel, LogPayload, LoggerType } from "./common/logging/loggingTypes.js";
-export { Keychain } from "./common/keychain.js";
-export type { Secret } from "./common/keychain.js";
+} from "@mongodb-js/mcp-atlas-telemetry";
+export type { ConnectionMetadata, PerfAdvisorToolMetadata, StreamsToolMetadata } from "@mongodb-js/mcp-types";
+export type { SessionEvents } from "@mongodb-js/mcp-types";
+export { Keychain } from "@mongodb-js/mcp-core";
+export type { Secret } from "mongodb-redact";
 export type {
     ConnectionErrorHandler,
     ConnectionErrorHandled,
     ConnectionErrorUnhandled,
     ConnectionErrorHandlerContext,
-} from "./common/connectionErrorHandler.js";
-export { Elicitation, type ElicitedInputResult } from "./elicitation.js";
+} from "@mongodb-js/mcp-tools-mongodb";
+export { Elicitation, type ElicitedInputResult } from "@mongodb-js/mcp-core";
 export type {
     ConnectionStateConnecting,
     ConnectionSettings,
     ConnectionManagerFactoryFn,
+    ConnectionManagerFactoryOptions,
     AtlasClusterConnectionInfo,
     ConnectionStringInfo,
     AnyConnectionState,
@@ -49,12 +42,12 @@ export type {
     ConnectionState,
     OIDCConnectionAuthType,
     ConnectionTag,
-} from "./common/connectionManager.js";
-export { ConnectionManager, ConnectionStateConnected } from "./common/connectionManager.js";
+} from "@mongodb-js/mcp-tools-mongodb";
+export type { ConnectionManager, ConnectionStateConnected } from "@mongodb-js/mcp-tools-mongodb";
 export {
     ExportsManager,
     type AvailableExport,
-    type ExportsManagerConfig,
+    type ExportsManagerOptions,
     type JSONExportFormat,
     type StoredExport,
     type ExportsManagerEvents,
@@ -62,34 +55,27 @@ export {
     type InProgressExport,
     type CommonExportData,
     jsonExportFormat,
-} from "./common/exportsManager.js";
-export {
-    ApiClient,
-    type ApiClientOptions,
-    type ApiClientFactoryFn,
-    type RequestContext,
-} from "./common/atlas/apiClient.js";
-export type { AtlasLocalClientFactoryFn, LibraryLoader } from "./common/atlasLocal.js";
-export { UIRegistry } from "./ui/registry/registry.js";
+} from "@mongodb-js/mcp-tools-mongodb";
+export { ApiClient, type ApiClientOptions } from "@mongodb-js/mcp-atlas-api-client";
+export type { AtlasLocalClientFactoryFn, LibraryLoader } from "@mongodb-js/mcp-tools-atlas-local";
+export { UIRegistry } from "@mongodb-js/mcp-ui";
 export {
     ToolBase,
     type AnyToolBase,
     type ToolClass,
     type ToolConstructorParams,
-    type OperationType,
     type ToolArgs,
-    type ToolExecutionContext,
-} from "./tools/tool.js";
-export { Telemetry } from "./telemetry/telemetry.js";
-export type { TelemetryEvents, TelemetryConfig } from "./telemetry/telemetry.js";
-export type { TelemetryEvent, BaseEvent } from "./telemetry/types.js";
-export { EventCache } from "./telemetry/eventCache.js";
-export { ErrorCodes, MongoDBError } from "./common/errors.js";
-export { getRandomUUID } from "./helpers/getRandomUUID.js";
-export type { AuthProvider, Credentials } from "./common/atlas/auth/authProvider.js";
+} from "@mongodb-js/mcp-core";
+export { type OperationType } from "@mongodb-js/mcp-types";
+export { type ToolExecutionContext } from "@mongodb-js/mcp-types";
+export { AtlasTelemetry as Telemetry, EventCache } from "@mongodb-js/mcp-atlas-telemetry";
 export type {
-    ConnectionStringAuthType,
-    ConnectionStringHostType,
-    OIDCConnectionAuthType as ConnectionInfoOIDCConnectionAuthType,
-} from "./common/connectionInfo.js";
-export type { PreviewFeature, previewFeatureValues } from "./common/schemas.js";
+    TelemetryEvents,
+    TelemetryConfig,
+    TelemetryEvent,
+    TelemetryBaseEvent,
+} from "@mongodb-js/mcp-atlas-telemetry";
+export { getRandomUUID } from "@mongodb-js/mcp-core";
+export type { AuthProvider } from "@mongodb-js/mcp-atlas-api-client";
+export { ClientCredentialsAuthProvider } from "@mongodb-js/mcp-atlas-api-client";
+export type { PreviewFeature, previewFeatureValues } from "@mongodb-js/mcp-tools-mongodb";

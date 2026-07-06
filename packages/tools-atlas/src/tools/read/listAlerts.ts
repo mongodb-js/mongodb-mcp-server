@@ -1,12 +1,8 @@
+import type { CallToolResult } from "@mongodb-js/mcp-types";
 import { z } from "zod";
-import {
-    type OperationType,
-    type ToolArgs,
-    type ToolExecutionContext,
-    type ToolResult,
-    formatUntrustedData,
-} from "../../tool.js";
-import { AtlasToolBase } from "../atlasTool.js";
+import { type ToolArgs, formatUntrustedData } from "@mongodb-js/mcp-core";
+import type { OperationType } from "@mongodb-js/mcp-types";
+import { AtlasToolBase } from "../../atlasTool.js";
 import { AtlasArgs } from "../../args.js";
 
 const AlertStatus = z.enum(["OPEN", "TRACKING", "CLOSED"]);
@@ -20,52 +16,33 @@ export const ListAlertsArgs = {
     pageNum: z.number().int().min(1).default(1).describe("Page number."),
 };
 
-const ListAlertsOutputSchema = {
-    projectId: z.string(),
-    status: AlertStatus,
-    alerts: z.array(
-        z.object({
-            id: z.string(),
-            status: z.string(),
-            created: z.string(),
-            updated: z.string(),
-            eventTypeName: z.string(),
-            acknowledgementComment: z.string(),
-        })
-    ),
-    totalCount: z.number().optional(),
-};
-
 export class ListAlertsTool extends AtlasToolBase {
     static toolName = "atlas-list-alerts";
-    public description =
-        "List triggered alerts for a MongoDB Atlas project. These are alerts Atlas has raised, not the alert configurations that define them. Defaults to OPEN alerts; set status to TRACKING or CLOSED to see others.";
+    public description = "List MongoDB Atlas alerts";
     static operationType: OperationType = "read";
     public argsShape = {
         ...ListAlertsArgs,
     };
-    public override outputSchema = ListAlertsOutputSchema;
 
-    protected async execute(
-        { projectId, status, limit, pageNum }: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
-        const data = await this.apiClient.listAlerts(
-            {
-                params: {
-                    path: {
-                        groupId: projectId,
-                    },
-                    query: {
-                        status,
-                        itemsPerPage: limit,
-                        pageNum: pageNum,
-                        includeCount: true,
-                    },
+    protected async execute({
+        projectId,
+        status,
+        limit,
+        pageNum,
+    }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+        const data = await this.apiClient.listAlerts({
+            params: {
+                path: {
+                    groupId: projectId,
+                },
+                query: {
+                    status,
+                    itemsPerPage: limit,
+                    pageNum: pageNum,
+                    includeCount: true,
                 },
             },
-            context
-        );
+        });
 
         if (!data?.results?.length) {
             return {
@@ -75,12 +52,6 @@ export class ListAlertsTool extends AtlasToolBase {
                         text: `No alerts with status "${status}" found in your MongoDB Atlas project.`,
                     },
                 ],
-                structuredContent: {
-                    projectId,
-                    status,
-                    alerts: [],
-                    ...(data?.totalCount !== undefined && { totalCount: data.totalCount }),
-                },
             };
         }
 
@@ -95,15 +66,9 @@ export class ListAlertsTool extends AtlasToolBase {
 
         return {
             content: formatUntrustedData(
-                `Found ${alerts.length} alerts with status "${status}" in project ${projectId} ${data?.totalCount !== undefined && `(total: ${data.totalCount})`}`,
+                `Found ${alerts.length} alerts with status "${status}" in project ${projectId} (total: ${data.totalCount ?? alerts.length})`,
                 JSON.stringify(alerts)
             ),
-            structuredContent: {
-                projectId,
-                status,
-                alerts,
-                ...(data.totalCount !== undefined && { totalCount: data.totalCount }),
-            },
         };
     }
 }

@@ -1,5 +1,3 @@
-import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
-
 import {
     getResponseElements,
     getResponseContent,
@@ -8,11 +6,12 @@ import {
     validateThrowsForInvalidArguments,
     databaseCollectionInvalidArgs,
     getDataFromUntrustedContent,
-} from "../../../helpers.js";
+} from "../../../integrationHelpers.js";
+import { describeWithMongoDB, validateAutoConnectBehavior } from "../../../mongodbHelpers.js";
 import type { Document } from "bson";
 import type { OptionalId } from "mongodb";
 import type { SimplifiedSchema } from "mongodb-schema";
-import type { CollectionSchemaOutput } from "../../../../../src/tools/mongodb/metadata/collectionSchema.js";
+import type { CollectionSchemaOutput } from "@mongodb-js/mcp-tools-mongodb";
 import { describe, expect, it } from "vitest";
 
 describeWithMongoDB("collectionSchema tool", (integration) => {

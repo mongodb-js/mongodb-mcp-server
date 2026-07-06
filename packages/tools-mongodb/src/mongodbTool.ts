@@ -1,13 +1,45 @@
 import { z } from "zod";
-import type { OperationType, ToolArgs, ToolCategory } from "../tool.js";
-import { ToolBase } from "../tool.js";
+import type { ToolArgs, ToolConstructorParams } from "@mongodb-js/mcp-core";
+import type { McpServer, ToolCategory } from "@mongodb-js/mcp-types";
+import { ToolBase } from "@mongodb-js/mcp-core";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { ErrorCodes, MongoDBError } from "../../common/errors.js";
-import { LogId } from "../../common/logging/index.js";
-import type { Server } from "../../server.js";
-import type { ConnectionMetadata } from "../../telemetry/types.js";
-import { assertNoServerSideJS, isWriteStage } from "../../helpers/mqlGuards.js";
+import type { CallToolResult, ISession, IToolConfig } from "@mongodb-js/mcp-types";
+import { LogId } from "@mongodb-js/mcp-core";
+import { ErrorCodes, MongoDBError } from "./common/errors.js";
+import { assertNoServerSideJS } from "./helpers/mqlGuards.js";
+import type { ConnectionMetadata } from "@mongodb-js/mcp-types";
+import type { AvailableExport, CreateJSONExportParams } from "./common/exportsManager.js";
+
+/** MongoDB tool subset of server config. */
+export type IMongoDBConfig = IToolConfig & {
+    connectionString: string | undefined;
+    indexCheck: boolean;
+    disableServerSideJs: boolean;
+    maxTimeMS: number | undefined;
+    maxDocumentsPerQuery: number;
+    maxBytesPerQuery: number;
+    httpHost: string;
+    queryCountMaxTimeMsCap: number;
+    aggregationCountMaxTimeMsCap: number;
+};
+
+export interface IMongoDBSession extends ISession {
+    config: IMongoDBConfig;
+    isConnectedToMongoDB: boolean;
+    connectedAtlasCluster?: { clusterName: string; projectId: string };
+    serviceProvider: NodeDriverServiceProvider;
+    connectToConfiguredConnection(): Promise<void>;
+    connectToMongoDB(settings: { connectionString: string }): Promise<void>;
+    connectionErrorHandler(
+        error: MongoDBError,
+        context: { availableTools: unknown[]; connectionState: unknown }
+    ): Promise<{ errorHandled: boolean; result: CallToolResult }>;
+    connectionManager: { currentConnectionState: unknown };
+    exportsManager: { createJSONExport: (params: CreateJSONExportParams) => Promise<AvailableExport> };
+    assertSearchSupported(): Promise<void>;
+    isSearchSupported(): Promise<boolean>;
+    on(event: "connect" | "disconnect", listener: () => void): void;
+}
 
 export const DBOperationArgs = {
     database: z.string().describe("Database name"),
@@ -18,9 +50,48 @@ export const CollOperationArgs = {
     collection: z.string().describe("Collection name"),
 };
 
-export abstract class MongoDBToolBase extends ToolBase {
-    protected server?: Server;
+/**
+ * MCP registration payload for MongoDB tools. Matches `{ mcpServer }` from {@link ToolBase.register}
+ * plus optional host context used when rendering connection errors.
+ */
+export type MongoDBToolRegistrationServer = {
+    mcpServer: McpServer;
+    readonly tools?: readonly unknown[];
+    isToolCategoryAvailable(name: ToolCategory): boolean;
+};
+
+export abstract class MongoDBToolBase extends ToolBase<IMongoDBSession> {
+    declare protected readonly session: IMongoDBSession;
     static category: ToolCategory = "mongodb";
+
+    /** Host MCP server instance set in {@link MongoDBToolBase.register} (same object passed from {@link Server.registerTools}). */
+    protected server?: MongoDBToolRegistrationServer;
+
+    /** Access to the MongoDB-specific configuration. */
+    protected get config(): IMongoDBConfig {
+        return this.session.config;
+    }
+
+    constructor(params: ToolConstructorParams<IMongoDBSession>) {
+        super(params);
+    }
+
+    /** Effective maxTimeMS for find countDocuments. */
+    protected getFindCountDocumentsMaxTimeMS(): number {
+        const cap = this.config.queryCountMaxTimeMsCap;
+        return this.config.maxTimeMS !== undefined ? Math.min(this.config.maxTimeMS, cap) : cap;
+    }
+
+    /** Effective maxTimeMS for aggregation preliminary $count. */
+    protected getAggregationCountDocumentsMaxTimeMS(): number {
+        const cap = this.config.aggregationCountMaxTimeMsCap;
+        return this.config.maxTimeMS !== undefined ? Math.min(this.config.maxTimeMS, cap) : cap;
+    }
+
+    public override register(server: MongoDBToolRegistrationServer): boolean {
+        this.server = server;
+        return super.register(server);
+    }
 
     protected async ensureConnected(): Promise<NodeDriverServiceProvider> {
         if (!this.session.isConnectedToMongoDB) {
@@ -64,53 +135,13 @@ export abstract class MongoDBToolBase extends ToolBase {
     }
 
     /**
-     * Rejects the operation when the provided MQL input is not permitted by the
-     * current configuration:
-     *  - server-side JavaScript operators (such as $where, $function, or
-     *    $accumulator) are rejected when the `disableServerSideJs` configuration
-     *    option is enabled. This applies to both query filters and aggregation
-     *    pipelines.
-     *  - aggregation pipelines containing a write stage ($out or $merge) are
-     *    rejected in readOnly mode or when create/update/delete operations are
-     *    disabled. This prevents read-oriented tools such as aggregate and
-     *    export from being used to circumvent those restrictions.
-     *
-     * Write stages only exist in aggregation pipelines, which are passed as an
-     * array, so that check is skipped for plain query filters.
+     * Throws when the provided MQL value contains server-side JavaScript operators
+     * and `disableServerSideJs` is enabled in the configuration.
      */
-    protected assertMqlIsAllowed(value: Record<string, unknown> | Record<string, unknown>[] | undefined): void {
+    protected assertMqlIsAllowed(value: unknown): void {
         if (this.config.disableServerSideJs) {
             assertNoServerSideJS(value);
         }
-
-        if (Array.isArray(value)) {
-            // Only check for forbidden write stages when the value is an array, which indicates it's an
-            // aggregation pipeline. Query filters are objects, so they won't be checked for write stages,
-            // which is correct since they can't contain them.
-            const writeOperations: OperationType[] = ["update", "create", "delete"];
-
-            let writeStageForbiddenErrorMessage = "";
-            if (this.config.readOnly) {
-                writeStageForbiddenErrorMessage =
-                    "In readOnly mode you can not run pipelines with $out or $merge stages.";
-            } else if (this.config.disabledTools.some((t) => writeOperations.includes(t as OperationType))) {
-                writeStageForbiddenErrorMessage =
-                    "When 'create', 'update', or 'delete' operations are disabled, you can not run pipelines with $out or $merge stages.";
-            }
-
-            if (writeStageForbiddenErrorMessage) {
-                for (const stage of value) {
-                    if (isWriteStage(stage)) {
-                        throw new MongoDBError(ErrorCodes.ForbiddenWriteOperation, writeStageForbiddenErrorMessage);
-                    }
-                }
-            }
-        }
-    }
-
-    public register(server: Server): boolean {
-        this.server = server;
-        return super.register(server);
     }
 
     protected async handleError(error: unknown, args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
@@ -118,11 +149,9 @@ export abstract class MongoDBToolBase extends ToolBase {
             switch (error.code) {
                 case ErrorCodes.NotConnectedToMongoDB:
                 case ErrorCodes.MisconfiguredConnectionString: {
-                    const connectionError = error as MongoDBError<
-                        ErrorCodes.NotConnectedToMongoDB | ErrorCodes.MisconfiguredConnectionString
-                    >;
+                    const connectionError = error as MongoDBError;
                     const outcome = await this.session.connectionErrorHandler(connectionError, {
-                        availableTools: this.server?.tools ?? [],
+                        availableTools: [...(this.server?.tools ?? [])],
                         connectionState: this.session.connectionManager.currentConnectionState,
                     });
                     if (outcome.errorHandled) {
@@ -142,7 +171,7 @@ export abstract class MongoDBToolBase extends ToolBase {
                         isError: true,
                     };
                 case ErrorCodes.AtlasSearchNotSupported: {
-                    const CTA = this.server?.isToolCategoryAvailable("atlas-local" as unknown as ToolCategory)
+                    const CTA = this.server?.isToolCategoryAvailable("atlas-local")
                         ? "`atlas-local` tools"
                         : "Atlas CLI";
                     return {

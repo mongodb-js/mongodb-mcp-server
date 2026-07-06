@@ -1,27 +1,26 @@
 import { ObjectId } from "bson";
-import type { ApiClient } from "./atlas/apiClient.js";
+import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import type { Implementation } from "@modelcontextprotocol/sdk/types.js";
-import type { CompositeLogger } from "./logging/index.js";
-import { LogId } from "./logging/index.js";
+import { LogId, type CompositeLogger } from "@mongodb-js/mcp-core";
 import EventEmitter from "events";
+import type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-types";
 import type {
-    AtlasClusterConnectionInfo,
     ConnectionManager,
-    ConnectionSettings,
     ConnectionStateConnected,
     ConnectionStateErrored,
-} from "./connectionManager.js";
-import type { ConnectionStringInfo } from "./connectionInfo.js";
+} from "@mongodb-js/mcp-tools-mongodb";
+import type { ConnectionStringInfo } from "@mongodb-js/mcp-tools-mongodb";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { ErrorCodes, MongoDBError } from "./errors.js";
-import type { ExportsManager } from "./exportsManager.js";
+import { ErrorCodes, MongoDBError } from "@mongodb-js/mcp-tools-mongodb";
+import type { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import type { Client } from "@mongodb-js/atlas-local";
-import type { Keychain } from "./keychain.js";
+import type { Keychain } from "@mongodb-js/mcp-core";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
-import { type UserConfig } from "../common/config/userConfig.js";
-import { type ConnectionErrorHandler } from "./connectionErrorHandler.js";
+import type { UserConfig } from "./config/userConfig.js";
+import type { McpSession } from "./cliServer.js";
+import { type ConnectionErrorHandler } from "@mongodb-js/mcp-tools-mongodb";
 
-export interface SessionOptions<TUserConfig extends UserConfig = UserConfig> {
+export interface CliSessionOptions<TUserConfig extends UserConfig = UserConfig> {
     userConfig: TUserConfig;
     logger: CompositeLogger;
     exportsManager: ExportsManager;
@@ -39,15 +38,15 @@ export type SessionEvents = {
     "connection-error": [ConnectionStateErrored];
 };
 
-export class Session extends EventEmitter<SessionEvents> {
-    private readonly userConfig: UserConfig;
-    readonly sessionId: string = new ObjectId().toString();
-    readonly exportsManager: ExportsManager;
-    readonly connectionManager: ConnectionManager;
-    readonly apiClient: ApiClient;
-    readonly atlasLocalClient?: Client;
-    readonly keychain: Keychain;
-    readonly connectionErrorHandler: ConnectionErrorHandler;
+export class CliSession extends EventEmitter<SessionEvents> implements McpSession {
+    public readonly config: UserConfig;
+    public readonly sessionId: string = new ObjectId().toString();
+    public readonly exportsManager: ExportsManager;
+    public readonly connectionManager: ConnectionManager;
+    public readonly apiClient: ApiClient;
+    public readonly atlasLocalClient?: Client;
+    public readonly connectionErrorHandler: ConnectionErrorHandler;
+    public readonly keychain: Keychain;
 
     mcpClient?: {
         name?: string;
@@ -66,10 +65,10 @@ export class Session extends EventEmitter<SessionEvents> {
         atlasLocalClient,
         connectionErrorHandler,
         apiClient,
-    }: SessionOptions<UserConfig>) {
+    }: CliSessionOptions<UserConfig>) {
         super();
 
-        this.userConfig = userConfig;
+        this.config = userConfig;
         this.keychain = keychain;
         this.logger = logger;
         this.apiClient = apiClient;
@@ -132,21 +131,25 @@ export class Session extends EventEmitter<SessionEvents> {
 
     async close(): Promise<void> {
         await this.disconnect();
-        await this.apiClient?.close();
+        await this.apiClient.close();
         await this.exportsManager.close();
         this.emit("close");
     }
 
     async connectToConfiguredConnection(): Promise<void> {
         const connectionInfo = generateConnectionInfoFromCliArgs({
-            ...this.userConfig,
-            connectionSpecifier: this.userConfig.connectionString,
+            ...this.config,
+            connectionSpecifier: this.config.connectionString,
         });
         await this.connectToMongoDB(connectionInfo);
     }
 
-    async connectToMongoDB(settings: ConnectionSettings): Promise<void> {
-        await this.connectionManager.connect({ ...settings });
+    async connectToMongoDB(settings: { connectionString: string; atlas?: AtlasClusterConnectionInfo }): Promise<void> {
+        const connectionInfo = generateConnectionInfoFromCliArgs({
+            ...this.config,
+            connectionSpecifier: settings.connectionString,
+        });
+        await this.connectionManager.connect({ ...connectionInfo, atlas: settings.atlas });
     }
 
     get isConnectedToMongoDB(): boolean {

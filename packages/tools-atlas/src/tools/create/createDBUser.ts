@@ -1,12 +1,13 @@
 import { z } from "zod";
-import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
-import { AtlasToolBase } from "../atlasTool.js";
-import type { CloudDatabaseUser, DatabaseUserRole } from "../../../common/atlas/openapi.js";
-import { generateSecurePassword } from "../../../helpers/generatePassword.js";
-import { escapeMarkdown } from "../../../helpers/escapeMarkdown.js";
-import { ensureCurrentIpInAccessList } from "../../../common/atlas/accessListUtils.js";
+import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
+import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
+import { AtlasToolBase } from "../../atlasTool.js";
+import type { CloudDatabaseUser, DatabaseUserRole } from "@mongodb-js/mcp-atlas-api-client";
+import { generateSecurePassword } from "../../helpers/generatePassword.js";
+import { escapeMarkdown } from "../../helpers/escapeMarkdown.js";
+import { ensureCurrentIpInAccessList } from "../../helpers/accessListUtils.js";
 import { ALPHANUMERIC_DASH_UNDERSCORE_REGEX, AtlasArgs, CommonArgs } from "../../args.js";
-import { BUILT_IN_DB_USER_ROLES } from "../../../common/atlas/roles.js";
+import { BUILT_IN_DB_USER_ROLES } from "../../helpers/roles.js";
 
 export const CreateDBUserArgs = {
     projectId: AtlasArgs.projectId().describe("Atlas project ID"),
@@ -33,8 +34,8 @@ export const CreateDBUserArgs = {
                             ),
                     ])
                     .describe("Role name"),
-                databaseName: CommonArgs.string().describe("Database name").default("admin"),
-                collectionName: CommonArgs.string().describe("Collection name").optional(),
+                databaseName: CommonArgs.asciiOnlyString().describe("Database name").default("admin"),
+                collectionName: CommonArgs.asciiOnlyString().describe("Collection name").optional(),
             })
         )
         .describe("Roles for the new user"),
@@ -62,7 +63,7 @@ export class CreateDBUserTool extends AtlasToolBase {
         { projectId, username, password, roles, clusters }: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        await ensureCurrentIpInAccessList(this.apiClient, projectId, context);
+        await ensureCurrentIpInAccessList(this.apiClient, projectId);
         const shouldGeneratePassword = !password;
         if (shouldGeneratePassword) {
             password = await generateSecurePassword();

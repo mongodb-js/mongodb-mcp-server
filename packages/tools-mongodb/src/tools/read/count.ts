@@ -1,8 +1,9 @@
-import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
-import { checkIndexUsage } from "../../../helpers/indexCheck.js";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
+import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
+import type { ToolArgs } from "@mongodb-js/mcp-core";
+import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
+import { checkIndexUsage } from "../../helpers/indexCheck.js";
 import { zEJSON } from "../../args.js";
-import { z } from "zod";
 
 export const CountArgs = {
     query: zEJSON()
@@ -10,10 +11,6 @@ export const CountArgs = {
         .describe(
             "A filter/query parameter. Allows users to filter the documents to count. Matches the syntax of the filter argument of db.collection.count()."
         ),
-};
-
-const CountOutputSchema = {
-    count: z.number().describe("The number of documents in the collection"),
 };
 
 export class CountTool extends MongoDBToolBase {
@@ -27,15 +24,11 @@ export class CountTool extends MongoDBToolBase {
 
     static operationType: OperationType = "read";
 
-    public override outputSchema = CountOutputSchema;
-
     protected async execute(
         { database, collection, query }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+    ): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
-
-        this.assertMqlIsAllowed(query);
 
         // Check if count operation uses an index if enabled
         if (this.config.indexCheck) {
@@ -74,9 +67,6 @@ export class CountTool extends MongoDBToolBase {
                     type: "text",
                 },
             ],
-            structuredContent: {
-                count,
-            },
         };
     }
 }

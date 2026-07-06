@@ -1,18 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { z } from "zod";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { OperationType, ToolArgs, ToolConstructorParams } from "../../../../../src/tools/tool.js";
-import { StreamsToolBase } from "../../../../../src/tools/atlas/streams/streamsToolBase.js";
-import { ApiClientError } from "../../../../../src/common/atlas/apiClientError.js";
-import type { Session } from "../../../../../src/common/session.js";
-import type { UserConfig } from "../../../../../src/common/config/userConfig.js";
-import type { Telemetry } from "../../../../../src/telemetry/telemetry.js";
-import type { Elicitation } from "../../../../../src/elicitation.js";
-import type { CompositeLogger } from "../../../../../src/common/logging/index.js";
-import type { TelemetryToolMetadata } from "../../../../../src/telemetry/types.js";
-import { UIRegistry } from "../../../../../src/ui/registry/index.js";
-import { MockMetrics } from "../../../mocks/metrics.js";
-import { Keychain } from "../../../../../src/common/keychain.js";
+import type { ToolConstructorParams, ToolArgs } from "@mongodb-js/mcp-core";
+import type { OperationType, CallToolResult } from "@mongodb-js/mcp-types";
+import { StreamsToolBase } from "@mongodb-js/mcp-tools-atlas";
+import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
+import type { AtlasTelemetry, TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
+import type { Elicitation } from "@mongodb-js/mcp-core";
+import type { CompositeLogger } from "@mongodb-js/mcp-core";
+import { UIRegistry } from "@mongodb-js/mcp-ui";
+import { MockMetrics } from "@mongodb-js/mcp-test-utils";
+import { Keychain } from "@mongodb-js/mcp-core";
+import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
+import type { IAtlasConfig, IAtlasSession } from "@mongodb-js/mcp-tools-atlas";
 
 class TestStreamsTool extends StreamsToolBase {
     static toolName = "test-streams-tool";
@@ -57,13 +56,12 @@ class TestStreamsTool extends StreamsToolBase {
 
 function createApiClientError(status: number, message: string): ApiClientError {
     const response = new Response(null, { status, statusText: "Error" });
-    return ApiClientError.fromError(response, { reason: message, error: status, errorCode: `${status}` });
+    return ApiClientError.fromError({ response, error: { reason: message, error: status, errorCode: `${status}` } });
 }
 
 describe("StreamsToolBase", () => {
-    let mockSession: Session;
-    let mockConfig: UserConfig;
-    let mockTelemetry: Telemetry;
+    let mockSession: IAtlasSession;
+    let mockTelemetry: AtlasTelemetry;
     let mockElicitation: Elicitation;
     let tool: TestStreamsTool;
 
@@ -79,31 +77,30 @@ describe("StreamsToolBase", () => {
             logger: mockLogger,
             apiClient: {},
             keychain: new Keychain(),
-        } as unknown as Session;
-
-        mockConfig = {
-            confirmationRequiredTools: [],
-            previewFeatures: [],
-            disabledTools: [],
-            apiClientId: "test-id",
-            apiClientSecret: "test-secret",
-        } as unknown as UserConfig;
+            config: {
+                confirmationRequiredTools: [],
+                previewFeatures: [],
+                disabledTools: [],
+                apiClientId: "test-id",
+                apiClientSecret: "test-secret",
+                atlasTemporaryDatabaseUserLifetimeMs: 3600000,
+            } as unknown as IAtlasConfig,
+        } as unknown as IAtlasSession;
 
         mockTelemetry = {
             isTelemetryEnabled: () => true,
             emitEvents: vi.fn(),
-        } as unknown as Telemetry;
+        } as unknown as AtlasTelemetry;
 
         mockElicitation = {
             requestConfirmation: vi.fn(),
         } as unknown as Elicitation;
 
-        const params: ToolConstructorParams = {
+        const params: ToolConstructorParams<IAtlasSession, DefaultPrometheusMetricDefinitions> = {
             name: TestStreamsTool.toolName,
             category: "atlas",
             operationType: TestStreamsTool.operationType,
             session: mockSession,
-            config: mockConfig,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
             metrics: new MockMetrics(),

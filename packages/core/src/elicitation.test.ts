@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { Elicitation } from "../../src/elicitation.js";
+import { Elicitation } from "./elicitation.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { createMockElicitInput, createMockGetClientCapabilities } from "../utils/elicitationMocks.js";
+import { createMockElicitInput, createMockGetClientCapabilities } from "@mongodb-js/mcp-test-utils";
 
 describe("Elicitation", () => {
     let elicitation: Elicitation;

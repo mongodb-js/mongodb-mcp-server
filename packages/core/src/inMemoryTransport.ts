@@ -1,13 +1,21 @@
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import type { JSONRPCMessage } from "@modelcontextprotocol/sdk/types.js";
 
+/**
+ * An in-memory transport implementation for testing and dry-run modes.
+ * Messages are passed directly without network I/O.
+ */
 export class InMemoryTransport implements Transport {
     private outputController: ReadableStreamDefaultController<JSONRPCMessage> | undefined;
-
     private startPromise: Promise<unknown>;
 
     public output: ReadableStream<JSONRPCMessage>;
     public input: WritableStream<JSONRPCMessage>;
+
+    onclose?: (() => void) | undefined;
+    onerror?: ((error: Error) => void) | undefined;
+    onmessage?: ((message: JSONRPCMessage) => void) | undefined;
+    sessionId?: string | undefined;
 
     constructor() {
         const [inputReady, inputResolve] = InMemoryTransport.getPromise();
@@ -44,10 +52,6 @@ export class InMemoryTransport implements Transport {
         this.outputController?.close();
         this.onclose?.();
     }
-    onclose?: (() => void) | undefined;
-    onerror?: ((error: Error) => void) | undefined;
-    onmessage?: ((message: JSONRPCMessage) => void) | undefined;
-    sessionId?: string | undefined;
 
     private static getPromise(): [Promise<void>, resolve: () => void] {
         let resolve: () => void = () => {};

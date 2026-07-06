@@ -1,11 +1,55 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { MCPHttpServer } from "../../../src/transports/mcpHttpServer.js";
-import { defaultTestConfig, InMemoryLogger } from "../../integration/helpers.js";
-import { MockMetrics } from "../mocks/metrics.js";
-import { Keychain } from "../../../src/common/keychain.js";
-import { SessionRejectedError, type ISessionStore } from "../../../src/common/sessionStore.js";
+import { MCPHttpServer } from "./mcpHttpServer.js";
+import { SessionRejectedError, LoggerBase, Keychain } from "@mongodb-js/mcp-core";
+import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
+import type {
+    DefaultMetricDefinitions,
+    IMetrics,
+    ICompositeLogger,
+    ISessionStore,
+    SessionServer,
+    TransportRequestContext,
+    HttpServerOptions,
+    SessionManagementOptions,
+    LogLevel,
+    LogPayload,
+    LoggerType,
+    ILogger,
+} from "@mongodb-js/mcp-types";
+import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import type { Server } from "../../../src/server.js";
+
+class MockMetrics
+    extends PrometheusMetrics<DefaultPrometheusMetricDefinitions>
+    implements IMetrics<DefaultMetricDefinitions>
+{
+    constructor() {
+        super({ definitions: createDefaultMetrics() });
+    }
+}
+
+class InMemoryLogger extends LoggerBase implements ICompositeLogger {
+    protected type: LoggerType = "console";
+    public messages: { level: LogLevel; payload: LogPayload }[] = [];
+    public attributes: Record<string, string> = {};
+
+    constructor() {
+        super({ keychain: Keychain.root });
+    }
+
+    protected logCore(level: LogLevel, payload: LogPayload): void {
+        this.messages.push({ level, payload });
+    }
+
+    public setAttribute(key: string, value: string): void {
+        this.attributes[key] = value;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    public addLogger(_: ILogger): void {
+        // No-op for testing
+    }
+}
 
 const INIT_BODY = JSON.stringify({
     jsonrpc: "2.0",
@@ -20,35 +64,66 @@ const INIT_BODY = JSON.stringify({
 
 const NON_INIT_BODY = JSON.stringify({ jsonrpc: "2.0", method: "tools/list", id: 1 });
 
+const httpOptions: HttpServerOptions = {
+    host: "127.0.0.1",
+    port: 0,
+    responseType: "json",
+};
+
+const sessionOptions: SessionManagementOptions = {
+    idleTimeoutMs: 30_000,
+    notificationTimeoutMs: 30_000,
+    externallyManagedSessions: false,
+};
+
 function makeSessionStore(
-    getSessionImpl: () => Promise<StreamableHTTPServerTransport | null>
+    getSessionImpl: (
+        sessionId: string,
+        headers?: Record<string, unknown>
+    ) => Promise<StreamableHTTPServerTransport | null>
 ): ISessionStore<StreamableHTTPServerTransport> {
     return {
         getSession: vi.fn().mockImplementation(getSessionImpl),
-        addSession: vi.fn(),
+        addSession: vi.fn().mockResolvedValue(undefined),
         closeSession: vi.fn().mockResolvedValue(undefined),
         closeAllSessions: vi.fn().mockResolvedValue(undefined),
     };
 }
 
-function makeFakeServer(): Server {
+function makeFakeServer(): SessionServer {
     return {
         session: {
-            logger: {
-                setAttribute: vi.fn(),
-                debug: vi.fn(),
-                warning: vi.fn(),
-                info: vi.fn(),
-                error: vi.fn(),
-            },
+            logger: new InMemoryLogger(),
         },
         connect: vi.fn().mockResolvedValue(undefined),
         close: vi.fn().mockResolvedValue(undefined),
-    } as unknown as Server;
+    } as unknown as SessionServer;
+}
+
+class TestMCPHttpServer extends MCPHttpServer {
+    constructor({
+        logger,
+        sessionStore,
+    }: {
+        logger: InMemoryLogger;
+        sessionStore: ISessionStore<StreamableHTTPServerTransport>;
+    }) {
+        super({
+            options: { http: httpOptions, session: sessionOptions },
+            logger,
+            metrics: new MockMetrics(),
+            sessionStore,
+        });
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    protected override createServerForRequest(_: TransportRequestContext): Promise<SessionServer> {
+        return Promise.resolve(makeFakeServer());
+    }
 }
 
 describe("MCPHttpServer x-request-id logging", () => {
-    let server: MCPHttpServer;
+    let server: TestMCPHttpServer;
     let logger: InMemoryLogger;
 
     afterEach(async () => {
@@ -57,16 +132,23 @@ describe("MCPHttpServer x-request-id logging", () => {
 
     async function startServer(
         sessionStore: ISessionStore<StreamableHTTPServerTransport>,
-        createServerForRequest: () => Promise<Server> = vi.fn()
+        createServerForRequest?: () => Promise<SessionServer>
     ): Promise<void> {
-        logger = new InMemoryLogger(Keychain.root);
-        server = new MCPHttpServer({
-            userConfig: { ...defaultTestConfig, httpPort: 0 },
-            createServerForRequest,
-            logger,
-            metrics: new MockMetrics(),
-            sessionStore,
-        });
+        logger = new InMemoryLogger();
+
+        if (createServerForRequest) {
+            const createServer = createServerForRequest;
+            class CustomTestMCPHttpServer extends TestMCPHttpServer {
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                protected override createServerForRequest(_: TransportRequestContext): Promise<SessionServer> {
+                    return createServer();
+                }
+            }
+            server = new CustomTestMCPHttpServer({ logger, sessionStore });
+        } else {
+            server = new TestMCPHttpServer({ logger, sessionStore });
+        }
+
         await server.start();
     }
 
@@ -121,7 +203,7 @@ describe("MCPHttpServer x-request-id logging", () => {
             ...makeSessionStore(() => Promise.resolve(null)),
             addSession,
         };
-        await startServer(sessionStore, () => Promise.resolve(makeFakeServer()));
+        await startServer(sessionStore);
 
         await post("/mcp", INIT_BODY, {
             "x-request-id": "req-add-session",

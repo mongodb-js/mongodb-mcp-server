@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { type OperationType, type ToolArgs, type ToolResult, type ToolExecutionContext } from "../../tool.js";
-import { AtlasToolBase } from "../atlasTool.js";
-import type { ClusterDescription20240805 } from "../../../common/atlas/openapi.js";
+import { type ToolArgs, type ToolResult } from "@mongodb-js/mcp-core";
+import type { OperationType, ToolExecutionContext, CallToolResult } from "@mongodb-js/mcp-types";
+import { AtlasToolBase } from "../../atlasTool.js";
+import type { ClusterDescription20240805 } from "@mongodb-js/mcp-atlas-api-client";
 import { AtlasArgs } from "../../args.js";
-import type { CreateClusterMetadata } from "../../../telemetry/types.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CreateClusterMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 
 /** @public */
 export const ATLAS_CREATE_CLUSTER_README_DESCRIPTION =

@@ -1,11 +1,9 @@
 import { z } from "zod";
-import { StreamsToolBase } from "./streamsToolBase.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { type OperationType, type ToolArgs, type ToolExecutionContext } from "../../tool.js";
-import { requestIdAttr } from "../../../helpers/requestIdAttr.js";
+import { StreamsToolBase } from "../../streams/streamsToolBase.js";
+import type { CallToolResult, OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
+import { LogId, requestIdAttr, type ToolArgs } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
-import { ConnectionConfig, StreamsArgs } from "./streamsArgs.js";
-import { LogId } from "../../../common/logging/index.js";
+import { ConnectionConfig, StreamsArgs } from "../../streams/streamsArgs.js";
 
 const ManageAction = z.enum([
     "start-processor",

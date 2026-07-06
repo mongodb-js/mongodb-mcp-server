@@ -44,6 +44,8 @@ jobs:
           cache: "pnpm"
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm run build
       - name: Run accuracy tests
         run: pnpm run test:accuracy
       - name: Upload accuracy test summary

@@ -1,0 +1,33 @@
+{
+  "name": "@mongodb-js/mcp-atlas-telemetry",
+  "version": "1.11.0-prerelease.1",
+  "type": "module",
+  "description": "Atlas telemetry pipeline for MongoDB MCP server packages",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc --build tsconfig.build.json",
+    "check": "tsc --build tsconfig.build.json --noEmit"
+  },
+  "dependencies": {
+    "@mongodb-js/mcp-atlas-api-client": "workspace:*",
+    "@mongodb-js/mcp-core": "workspace:*",
+    "@mongodb-js/mcp-types": "workspace:*",
+    "lru-cache": "^11.2.6",
+    "mongodb-redact": "^1.4.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "typescript": "^5.9.2",
+    "vitest": "^4.1.4"
+  }
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { UIRegistry } from "../../../../src/ui/registry/registry.js";
+import { UIRegistry } from "./registry.js";
 
 describe("UIRegistry", () => {
     beforeEach(() => {
@@ -46,7 +46,6 @@ describe("UIRegistry", () => {
             };
             const registry = new UIRegistry({ customUIs });
 
-            // Custom should be returned without attempting to load bundled
             expect(await registry.get("any-tool")).toBe("<html>custom version</html>");
         });
 
@@ -59,9 +58,7 @@ describe("UIRegistry", () => {
             };
             const registry = new UIRegistry({ customUIs });
 
-            // First call
             const first = await registry.get("cached-tool");
-            // Second call should return same result
             const second = await registry.get("cached-tool");
 
             expect(first).toBe(second);

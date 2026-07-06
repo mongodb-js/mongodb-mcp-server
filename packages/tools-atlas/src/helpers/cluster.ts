@@ -2,10 +2,9 @@ import type {
     ClusterConnectionStrings,
     ClusterDescription20240805,
     FlexClusterDescription20241113,
-} from "./openapi.js";
-import { type ApiClient, type ApiClientRequestContext } from "./apiClient.js";
-import { requestIdAttr } from "../../helpers/requestIdAttr.js";
-import { LogId } from "../logging/index.js";
+    ApiClient,
+} from "@mongodb-js/mcp-atlas-api-client";
+import { LogId } from "@mongodb-js/mcp-core";
 import { ConnectionString } from "mongodb-connection-string-url";
 
 type AtlasProcessId = `${string}:${number}`;
@@ -17,13 +16,13 @@ function extractProcessIds(connectionString: string): Array<AtlasProcessId> {
     const connectionStringUrl = new ConnectionString(connectionString);
     return connectionStringUrl.hosts as Array<AtlasProcessId>;
 }
+
 export interface Cluster {
     name?: string;
     instanceType: "FREE" | "DEDICATED" | "FLEX";
     instanceSize?: string;
     provider?: string;
     region?: string;
-    paused: boolean;
     state?: "IDLE" | "CREATING" | "UPDATING" | "DELETING" | "REPAIRING";
     mongoDBVersion?: string;
     connectionStrings?: ClusterConnectionStrings;
@@ -37,7 +36,6 @@ export function formatFlexCluster(cluster: FlexClusterDescription20241113): Clus
         instanceSize: undefined,
         provider: cluster.providerSettings?.backingProviderName,
         region: cluster.providerSettings?.regionName,
-        paused: false,
         state: cluster.stateName,
         mongoDBVersion: cluster.mongoDBVersion,
         connectionStrings: cluster.connectionStrings,
@@ -89,7 +87,6 @@ export function formatCluster(cluster: ClusterDescription20240805): Cluster {
         instanceSize: clusterInstanceType === "DEDICATED" ? instanceSize : undefined,
         provider,
         region,
-        paused: cluster.paused ?? false,
         state: cluster.stateName,
         mongoDBVersion: cluster.mongoDBVersion,
         connectionStrings: cluster.connectionStrings,
@@ -97,38 +94,27 @@ export function formatCluster(cluster: ClusterDescription20240805): Cluster {
     };
 }
 
-export async function inspectCluster(
-    apiClient: ApiClient,
-    projectId: string,
-    clusterName: string,
-    context?: ApiClientRequestContext
-): Promise<Cluster> {
+export async function inspectCluster(apiClient: ApiClient, projectId: string, clusterName: string): Promise<Cluster> {
     try {
-        const cluster = await apiClient.getCluster(
-            {
-                params: {
-                    path: {
-                        groupId: projectId,
-                        clusterName,
-                    },
+        const cluster = await apiClient.getCluster({
+            params: {
+                path: {
+                    groupId: projectId,
+                    clusterName,
                 },
             },
-            context
-        );
+        });
         return formatCluster(cluster);
     } catch (error) {
         try {
-            const cluster = await apiClient.getFlexCluster(
-                {
-                    params: {
-                        path: {
-                            groupId: projectId,
-                            name: clusterName,
-                        },
+            const cluster = await apiClient.getFlexCluster({
+                params: {
+                    path: {
+                        groupId: projectId,
+                        name: clusterName,
                     },
                 },
-                context
-            );
+            });
             return formatFlexCluster(cluster);
         } catch (flexError) {
             const err = flexError instanceof Error ? flexError : new Error(String(flexError));
@@ -136,7 +122,6 @@ export async function inspectCluster(
                 id: LogId.atlasInspectFailure,
                 context: "inspect-cluster",
                 message: `error inspecting cluster: ${err.message}`,
-                attributes: { ...requestIdAttr(context?.requestInfo?.headers) },
             });
             throw error;
         }
@@ -167,11 +152,10 @@ export function getConnectionString(
 export async function getProcessIdsFromCluster(
     apiClient: ApiClient,
     projectId: string,
-    clusterName: string,
-    context?: ApiClientRequestContext
+    clusterName: string
 ): Promise<Array<string>> {
     try {
-        const cluster = await inspectCluster(apiClient, projectId, clusterName, context);
+        const cluster = await inspectCluster(apiClient, projectId, clusterName);
         return cluster.processIds || [];
     } catch (error) {
         throw new Error(

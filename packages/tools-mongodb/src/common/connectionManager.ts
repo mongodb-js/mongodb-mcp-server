@@ -1,23 +1,22 @@
 import { EventEmitter } from "events";
 import { MongoServerError } from "mongodb";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { generateConnectionInfoFromCliArgs, type ConnectionInfo } from "@mongosh/arg-parser";
+import { type ConnectionInfo as MongoshConnectionInfo } from "@mongosh/arg-parser";
 import type { DeviceId } from "../helpers/deviceId.js";
-import { type UserConfig } from "./config/userConfig.js";
 import { MongoDBError, ErrorCodes } from "./errors.js";
-import { type LoggerBase, LogId } from "./logging/index.js";
-import { packageInfo } from "./packageInfo.js";
+import { type LoggerBase, LogId } from "@mongodb-js/mcp-core";
 import { type AppNameComponents, setAppNameParamIfMissing } from "../helpers/connectionOptions.js";
 import {
     getConnectionStringInfo,
     type ConnectionStringInfo,
     type AtlasClusterConnectionInfo,
+    type ConnectionInfo,
 } from "./connectionInfo.js";
+import type { ServerMetadata } from "@mongodb-js/mcp-types";
 
 export type { ConnectionStringInfo, ConnectionStringAuthType, AtlasClusterConnectionInfo } from "./connectionInfo.js";
 
-export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"> {
-    driverOptions?: ConnectionInfo["driverOptions"];
+export interface ConnectionSettings extends MongoshConnectionInfo {
     atlas?: AtlasClusterConnectionInfo;
 }
 
@@ -35,7 +34,8 @@ const SEARCH_PROBE_COLLECTION_NAME = "test";
 /** See https://github.com/mongodb/mongo/blob/master/src/mongo/base/error_codes.yml (SearchNotEnabled). */
 const MONGODB_SEARCH_NOT_ENABLED_ERROR_CODE = 31082;
 
-export const defaultDriverOptions: ConnectionInfo["driverOptions"] = {
+/** @public */
+export const defaultDriverOptions: MongoshConnectionInfo["driverOptions"] = {
     readConcern: {
         level: "local",
     },
@@ -51,11 +51,23 @@ export const defaultDriverOptions: ConnectionInfo["driverOptions"] = {
 export class ConnectionStateConnected implements ConnectionState {
     public tag = "connected" as const;
 
-    constructor(
-        public serviceProvider: NodeDriverServiceProvider,
-        public connectionStringInfo?: ConnectionStringInfo,
-        public connectedAtlasCluster?: AtlasClusterConnectionInfo
-    ) {}
+    public serviceProvider: NodeDriverServiceProvider;
+    public connectionStringInfo?: ConnectionStringInfo;
+    public connectedAtlasCluster?: AtlasClusterConnectionInfo;
+
+    constructor({
+        serviceProvider,
+        connectionStringInfo,
+        connectedAtlasCluster,
+    }: {
+        serviceProvider: NodeDriverServiceProvider;
+        connectionStringInfo?: ConnectionStringInfo;
+        connectedAtlasCluster?: AtlasClusterConnectionInfo;
+    }) {
+        this.serviceProvider = serviceProvider;
+        this.connectionStringInfo = connectionStringInfo;
+        this.connectedAtlasCluster = connectedAtlasCluster;
+    }
 
     private _isSearchSupported?: boolean;
 
@@ -229,6 +241,22 @@ export abstract class ConnectionManager {
 }
 
 /**
+ * Configuration options for creating an {@link MCPConnectionManager}.
+ */
+export type ConnectionManagerOptions = {
+    /** Logger used for OIDC and disconnect diagnostics. */
+    logger: LoggerBase;
+    /** Provider of the stable device identifier embedded in the connection's `appName`. */
+    deviceId: DeviceId;
+    /** Product name and version merged into MongoDB driver `appName` when not already set on the URI. */
+    serverMetadata: ServerMetadata;
+    /** Transport / browser hints for OIDC auth inference. */
+    connectionInfo: ConnectionInfo;
+    /** Optional event emitter shared with the OIDC plugin to receive `mongodb-oidc-plugin:auth-*` notifications. */
+    bus?: EventEmitter;
+};
+
+/**
  * Default {@link ConnectionManager} implementation used by the MongoDB MCP
  * server.
  *
@@ -248,23 +276,23 @@ export class MCPConnectionManager extends ConnectionManager {
     private deviceId: DeviceId;
     private bus: EventEmitter;
 
+    private readonly serverMetadata: ServerMetadata;
+    private readonly connectionInfo: ConnectionInfo;
+    private logger: LoggerBase;
+
     /**
-     * @param userConfig - Active user configuration; used when classifying the
-     * connection string (e.g. Atlas vs. local).
-     * @param logger - Logger used for OIDC and disconnect diagnostics.
-     * @param deviceId - Provider of the stable device identifier embedded in
+     * @param options.logger - Logger used for OIDC and disconnect diagnostics.
+     * @param options.deviceId - Provider of the stable device identifier embedded in
      * the connection's `appName`.
-     * @param bus - Optional event emitter shared with the OIDC plugin to
-     * receive `mongodb-oidc-plugin:auth-*` notifications. A fresh emitter is
-     * created when omitted.
+     * @param options.serverMetadata - Product name and version for MongoDB driver `appName`.
+     * @param options.connectionInfo - Transport / browser hints for OIDC auth inference.
+     * @param options.bus - Optional event emitter shared with the OIDC plugin.
      */
-    constructor(
-        private userConfig: UserConfig,
-        private logger: LoggerBase,
-        deviceId: DeviceId,
-        bus?: EventEmitter
-    ) {
+    constructor({ logger, deviceId, bus, serverMetadata, connectionInfo }: ConnectionManagerOptions) {
         super();
+        this.serverMetadata = serverMetadata;
+        this.connectionInfo = connectionInfo;
+        this.logger = logger;
         this.bus = bus ?? new EventEmitter();
         this.bus.on("mongodb-oidc-plugin:auth-failed", this.onOidcAuthFailed.bind(this));
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
@@ -296,7 +324,7 @@ export class MCPConnectionManager extends ConnectionManager {
         try {
             settings = { ...settings };
             const appNameComponents: AppNameComponents = {
-                appName: `${packageInfo.mcpServerName} ${packageInfo.version}`,
+                appName: `${this.serverMetadata.mcpServerName} ${this.serverMetadata.version}`,
                 deviceId: this.deviceId.get(),
                 clientName: this.clientName,
             };
@@ -306,38 +334,31 @@ export class MCPConnectionManager extends ConnectionManager {
                 components: appNameComponents,
             });
 
-            const connectionInfo: ConnectionInfo = settings.driverOptions
-                ? {
-                      connectionString: settings.connectionString,
-                      driverOptions: settings.driverOptions,
-                  }
-                : generateConnectionInfoFromCliArgs({
-                      ...defaultDriverOptions,
-                      /** TODO: Currently we're passing the entire user config to make it apply the mongosh CLI commands that were passed in. We should consider seperating the fields in the future. */
-                      ...this.userConfig,
-                      connectionSpecifier: settings.connectionString,
-                  });
+            const mongoshConnectionInfo: MongoshConnectionInfo = {
+                connectionString: settings.connectionString,
+                driverOptions: settings.driverOptions,
+            };
 
-            if (connectionInfo.driverOptions.oidc) {
-                connectionInfo.driverOptions.oidc.allowedFlows ??= ["auth-code"];
-                connectionInfo.driverOptions.oidc.notifyDeviceFlow ??= this.onOidcNotifyDeviceFlow.bind(this);
+            if (mongoshConnectionInfo.driverOptions.oidc) {
+                mongoshConnectionInfo.driverOptions.oidc.allowedFlows ??= ["auth-code"];
+                mongoshConnectionInfo.driverOptions.oidc.notifyDeviceFlow ??= this.onOidcNotifyDeviceFlow.bind(this);
             }
 
-            connectionInfo.driverOptions.proxy ??= { useEnvironmentVariableProxies: true };
-            connectionInfo.driverOptions.applyProxyToOIDC ??= true;
+            mongoshConnectionInfo.driverOptions.proxy ??= { useEnvironmentVariableProxies: true };
+            mongoshConnectionInfo.driverOptions.applyProxyToOIDC ??= true;
 
             connectionStringInfo = getConnectionStringInfo(
-                connectionInfo.connectionString,
-                this.userConfig,
+                mongoshConnectionInfo.connectionString,
+                this.connectionInfo,
                 settings.atlas
             );
 
             serviceProvider = NodeDriverServiceProvider.connect(
-                connectionInfo.connectionString,
+                mongoshConnectionInfo.connectionString,
                 {
                     productDocsLink: "https://github.com/mongodb-js/mongodb-mcp-server/",
                     productName: "MongoDB MCP",
-                    ...connectionInfo.driverOptions,
+                    ...mongoshConnectionInfo.driverOptions,
                 },
                 undefined,
                 this.bus
@@ -366,7 +387,11 @@ export class MCPConnectionManager extends ConnectionManager {
 
             return this.changeState(
                 "connection-success",
-                new ConnectionStateConnected(await serviceProvider, connectionStringInfo, settings.atlas)
+                new ConnectionStateConnected({
+                    serviceProvider: await serviceProvider,
+                    connectionStringInfo,
+                    connectedAtlasCluster: settings.atlas,
+                })
             );
         } catch (error: unknown) {
             const errorReason = error instanceof Error ? error.message : `${error as string}`;
@@ -446,11 +471,11 @@ export class MCPConnectionManager extends ConnectionManager {
         ) {
             this.changeState(
                 "connection-success",
-                new ConnectionStateConnected(
-                    await this.currentConnectionState.serviceProvider,
-                    this.currentConnectionState.connectionStringInfo,
-                    this.currentConnectionState.connectedAtlasCluster
-                )
+                new ConnectionStateConnected({
+                    serviceProvider: await this.currentConnectionState.serviceProvider,
+                    connectionStringInfo: this.currentConnectionState.connectionStringInfo,
+                    connectedAtlasCluster: this.currentConnectionState.connectedAtlasCluster,
+                })
             );
         }
 
@@ -505,12 +530,11 @@ export class MCPConnectionManager extends ConnectionManager {
  * management if they need to. To support that, we enable injecting connection
  * manager implementation through a factory function.
  */
-export type ConnectionManagerFactoryFn = (createParams: {
+export type ConnectionManagerFactoryOptions = {
     logger: LoggerBase;
     deviceId: DeviceId;
-    userConfig: UserConfig;
-}) => Promise<ConnectionManager>;
-
-export const defaultCreateConnectionManager: ConnectionManagerFactoryFn = ({ logger, deviceId, userConfig }) => {
-    return Promise.resolve(new MCPConnectionManager(userConfig, logger, deviceId));
+    serverMetadata: ServerMetadata;
+    connectionInfo: ConnectionInfo;
 };
+
+export type ConnectionManagerFactoryFn = (params: ConnectionManagerFactoryOptions) => Promise<ConnectionManager>;

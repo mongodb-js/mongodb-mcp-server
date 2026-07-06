@@ -1,4 +1,4 @@
-import { Keychain, registerGlobalSecretToRedact } from "../../../src/common/keychain.js";
+import { Keychain, registerGlobalSecretToRedact } from "./keychain.js";
 import { describe, beforeEach, afterEach, it, expect } from "vitest";
 
 describe("Keychain", () => {

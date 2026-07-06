@@ -139,10 +139,8 @@ export const RunEvalOutputSchema = z
 // │   ↘️ Inferred Types                          │
 // ╰──────────────────────────────────────────────╯
 
-export type SeedSearchIndex = z.infer<typeof SeedSearchIndexSchema>;
 export type SeedClassicIndex = z.infer<typeof SeedClassicIndexSchema>;
 export type SeedIndexSpec = z.infer<typeof SeedIndexSpecSchema>;
-export type SeedSetup = z.infer<typeof SeedSetupSchema>;
 export type DbSeedEntry = z.infer<typeof DbSeedEntrySchema>;
 export type RunEvalInput = z.infer<typeof RunEvalInputSchema>;
 export type RunEvalExpected = z.infer<typeof RunEvalExpectedSchema>;

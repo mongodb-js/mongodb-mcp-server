@@ -5,18 +5,16 @@ import { describe, it, expect } from "vitest";
 // Current directory where the test file is located
 const currentDir = import.meta.dirname;
 
-// Get project root (go up from tests/integration to project root)
-const projectRoot = path.resolve(currentDir, "../..");
+// Get project root (go up from packages/integration-tests/src to project root)
+const projectRoot = path.resolve(currentDir, "../../..");
 
-const esmPath = path.resolve(projectRoot, "dist/esm/lib.js");
-const cjsPath = path.resolve(projectRoot, "dist/cjs/lib.js");
-
-const esmToolsPath = path.resolve(projectRoot, "dist/esm/tools/index.js");
-const cjsToolsPath = path.resolve(projectRoot, "dist/cjs/tools/index.js");
+const esmPath = path.resolve(projectRoot, "packages/mongodb-mcp-server/dist/esm/lib.js");
+const cjsPath = path.resolve(projectRoot, "packages/mongodb-mcp-server/dist/cjs/lib.js");
 
 describe("Build Test", () => {
     it("should successfully require CommonJS module", () => {
-        const require = createRequire(__filename);
+        // Use the CJS directory path for createRequire to ensure proper module context
+        const require = createRequire(cjsPath);
 
         const cjsModule = require(cjsPath) as Record<string, unknown>;
 
@@ -33,7 +31,8 @@ describe("Build Test", () => {
 
     it("should have matching exports between CommonJS and ESM modules", async () => {
         // Import CommonJS module
-        const require = createRequire(__filename);
+        // Use the CJS directory path for createRequire to ensure proper module context
+        const require = createRequire(cjsPath);
         const cjsModule = require(cjsPath) as Record<string, unknown>;
 
         // Import ESM module
@@ -48,29 +47,12 @@ describe("Build Test", () => {
             expect.arrayContaining([
                 "ConnectionManager",
                 "LoggerBase",
-                "Server",
-                "Session",
+                "CliServer",
+                "CliSession",
                 "StreamableHttpRunner",
-                "Telemetry",
+                "AtlasTelemetry",
                 "Elicitation",
             ])
         );
-    });
-
-    it("should have matching exports between CommonJS and ESM tools modules", async () => {
-        // Import CommonJS module
-        const require = createRequire(__filename);
-        const cjsModule = require(cjsToolsPath) as Record<string, unknown>;
-
-        // Import ESM module
-        const esmModule = (await import(esmToolsPath)) as Record<string, unknown>;
-
-        // Compare exports
-        const cjsKeys = Object.keys(cjsModule).sort();
-        const esmKeys = Object.keys(esmModule).sort();
-
-        expect(cjsKeys).toEqual(esmKeys);
-        // There are more tools but we will only check for a few.
-        expect(cjsKeys).toEqual(expect.arrayContaining(["AllTools", "AggregateTool", "FindTool"]));
     });
 });

@@ -6,19 +6,12 @@ import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended"
 import vitestPlugin from "@vitest/eslint-plugin";
 import enforceZodV4 from "./eslint-rules/enforce-zod-v4.js";
 
-const testFiles = [
-    "tests/**/*.test.ts",
-    "tests/**/*.test.tsx",
-    "tests/**/*.ts",
-    "tests/**/*.tsx",
-    "packages/**/*.test.ts",
-];
-
-const files = [...testFiles, "src/**/*.ts", "src/**/*.tsx", "scripts/**/*.ts", "packages/**/*.ts"];
+const sourceFiles = ["knip.ts", "packages/**/*.ts", "packages/**/*.tsx"];
+const testFiles = ["packages/**/*.test.ts", "packages/**/*.test.tsx"];
 
 export default defineConfig([
-    { files, plugins: { js }, extends: ["js/recommended"] },
-    { files, languageOptions: { globals: globals.node } },
+    { files: sourceFiles, plugins: { js }, extends: ["js/recommended"] },
+    { files: sourceFiles, languageOptions: { globals: globals.node } },
     {
         files: testFiles,
         plugins: {
@@ -43,17 +36,17 @@ export default defineConfig([
         },
     },
     {
-        files,
+        files: sourceFiles,
         extends: [tseslint.configs.recommendedTypeChecked],
         languageOptions: {
             parserOptions: {
-                project: "./tsconfig.json",
+                projectService: true,
                 tsconfigRootDir: import.meta.dirname,
             },
         },
     },
     {
-        files,
+        files: sourceFiles,
         rules: {
             "@typescript-eslint/switch-exhaustiveness-check": ["error", { considerDefaultExhaustiveForUnions: true }],
             "@typescript-eslint/no-non-null-assertion": "error",
@@ -72,7 +65,7 @@ export default defineConfig([
         },
     },
     {
-        files: ["src/**/*.ts"],
+        files: ["packages/mongodb-mcp-server/src/**/*.ts"],
         plugins: {
             "enforce-zod-v4": {
                 rules: {
@@ -109,31 +102,26 @@ export default defineConfig([
             "@typescript-eslint/no-non-null-assertion": "off",
         },
     },
-    {
-        files: ["tests/browser/**/*.ts"],
-        languageOptions: {
-            parserOptions: {
-                project: "./tests/browser/tsconfig.json",
-                tsconfigRootDir: import.meta.dirname,
-            },
-        },
-    },
     globalIgnores([
         "node_modules",
         "**/dist/**",
-        "packages/*/dist/**",
-        "src/common/atlas/openapi.d.ts",
-        "src/ui/lib",
+        "packages/atlas-api-client/openapi.d.ts",
+        ".claude/**",
+        "packages/ui/src/lib/**",
         "coverage",
         "global.d.ts",
         "eslint.config.js",
-        "vitest.config.ts",
-        "vite.ui.config.ts",
-        "src/types/*.d.ts",
-        "tests/integration/fixtures/",
-        "tests/browser/polyfills/**",
+        "**/vitest.config.ts",
+        "**/vite*.config.ts",
+        "**/temp/**",
+        "**/*.tsbuildinfo",
+        "packages/browser-tests/polyfills/**",
         "eslint-rules",
         ".yalc",
+        "**/vitest.config.d.ts",
+        "**/vitest.config.js",
+        "**/vitest.config.js.map",
+        "**/vitest.config.d.ts.map",
     ]),
     eslintPluginPrettierRecommended,
 ]);

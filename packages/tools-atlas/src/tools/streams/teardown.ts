@@ -1,31 +1,13 @@
 import { z } from "zod";
-import { StreamsToolBase } from "./streamsToolBase.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { type OperationType, type ToolArgs, type ToolExecutionContext } from "../../tool.js";
-import { requestIdAttr } from "../../../helpers/requestIdAttr.js";
+import { StreamsToolBase } from "../../streams/streamsToolBase.js";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
+import type { ToolArgs } from "@mongodb-js/mcp-core";
+import type { OperationType } from "@mongodb-js/mcp-types";
 import { AtlasArgs } from "../../args.js";
-import { StreamsArgs } from "./streamsArgs.js";
-import { LogId } from "../../../common/logging/index.js";
+import { LogId } from "@mongodb-js/mcp-core";
+import { StreamsArgs } from "../../streams/streamsArgs.js";
 
 const TeardownResource = z.enum(["processor", "connection", "workspace", "privatelink", "peering"]);
-
-export const TeardownOutputSchema = z.object({
-    resource: TeardownResource.describe("Which resource deletion completed or was initiated"),
-    processorsRemoved: z
-        .number()
-        .int()
-        .nonnegative()
-        .optional()
-        .describe("Processors removed as part of workspace deletion (when inventory was available)"),
-    connectionsRemoved: z
-        .number()
-        .int()
-        .nonnegative()
-        .optional()
-        .describe("Connections removed as part of workspace deletion (when inventory was available)"),
-});
-
-export type TeardownOutput = z.infer<typeof TeardownOutputSchema>;
 
 export class StreamsTeardownTool extends StreamsToolBase {
     static toolName = "atlas-streams-teardown";
@@ -51,8 +33,6 @@ export class StreamsTeardownTool extends StreamsToolBase {
             .describe("Workspace name. Required for workspace, connection, and processor deletion."),
         resourceName: z.string().optional().describe("Name or ID of the specific resource to delete."),
     };
-
-    public override outputSchema = TeardownOutputSchema.shape;
 
     protected override getConfirmationMessage(args: ToolArgs<typeof this.argsShape>): string {
         switch (args.resource) {
@@ -92,21 +72,18 @@ export class StreamsTeardownTool extends StreamsToolBase {
         }
     }
 
-    protected async execute(
-        args: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
-    ): Promise<CallToolResult> {
+    protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         switch (args.resource) {
             case "processor":
-                return this.deleteProcessor(args, context);
+                return this.deleteProcessor(args);
             case "connection":
-                return this.deleteConnection(args, context);
+                return this.deleteConnection(args);
             case "workspace":
-                return this.deleteWorkspace(args, context);
+                return this.deleteWorkspace(args);
             case "privatelink":
-                return this.deletePrivateLink(args, context);
+                return this.deletePrivateLink(args);
             case "peering":
-                return this.deletePeering(args, context);
+                return this.deletePeering(args);
             default:
                 return {
                     content: [{ type: "text", text: `Unknown resource type: ${args.resource as string}` }],
@@ -129,27 +106,18 @@ export class StreamsTeardownTool extends StreamsToolBase {
         return args.resourceName;
     }
 
-    private async deleteProcessor(
-        args: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
-    ): Promise<CallToolResult> {
+    private async deleteProcessor(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const workspace = this.requireWorkspaceName(args);
         const name = this.requireResourceName(args);
 
         try {
-            const processor = await this.apiClient.getStreamProcessor(
-                {
-                    params: { path: { groupId: args.projectId, tenantName: workspace, processorName: name } },
-                },
-                context
-            );
+            const processor = await this.apiClient.getStreamProcessor({
+                params: { path: { groupId: args.projectId, tenantName: workspace, processorName: name } },
+            });
             if (processor?.state === "STARTED") {
-                await this.apiClient.stopStreamProcessor(
-                    {
-                        params: { path: { groupId: args.projectId, tenantName: workspace, processorName: name } },
-                    },
-                    context
-                );
+                await this.apiClient.stopStreamProcessor({
+                    params: { path: { groupId: args.projectId, tenantName: workspace, processorName: name } },
+                });
             }
         } catch (error: unknown) {
             // Processor may be in error state — proceed with delete attempt
@@ -157,16 +125,12 @@ export class StreamsTeardownTool extends StreamsToolBase {
                 id: LogId.streamsProcessorStateLookupFailure,
                 context: "streams-teardown",
                 message: `Failed to get processor state before delete: ${error instanceof Error ? error.message : String(error)}`,
-                attributes: { ...requestIdAttr(context.requestInfo?.headers) },
             });
         }
 
-        await this.apiClient.deleteStreamProcessor(
-            {
-                params: { path: { groupId: args.projectId, tenantName: workspace, processorName: name } },
-            },
-            context
-        );
+        await this.apiClient.deleteStreamProcessor({
+            params: { path: { groupId: args.projectId, tenantName: workspace, processorName: name } },
+        });
 
         return {
             content: [
@@ -175,25 +139,18 @@ export class StreamsTeardownTool extends StreamsToolBase {
                     text: `Processor '${name}' deleted from workspace '${workspace}'. All state and checkpoints have been permanently removed.`,
                 },
             ],
-            structuredContent: { resource: "processor" },
         };
     }
 
-    private async deleteConnection(
-        args: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
-    ): Promise<CallToolResult> {
+    private async deleteConnection(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const workspace = this.requireWorkspaceName(args);
         const name = this.requireResourceName(args);
 
         // Safety: check if any processor references this connection
         try {
-            const processors = await this.apiClient.getStreamProcessors(
-                {
-                    params: { path: { groupId: args.projectId, tenantName: workspace } },
-                },
-                context
-            );
+            const processors = await this.apiClient.getStreamProcessors({
+                params: { path: { groupId: args.projectId, tenantName: workspace } },
+            });
             const referencingProcessors = (processors?.results ?? []).filter((p) => {
                 const referencedNames = StreamsToolBase.extractConnectionNames(p.pipeline ?? []);
                 return referencedNames.has(name);
@@ -220,12 +177,9 @@ export class StreamsTeardownTool extends StreamsToolBase {
             // If we can't check processors, proceed with deletion anyway
         }
 
-        await this.apiClient.deleteStreamConnection(
-            {
-                params: { path: { groupId: args.projectId, tenantName: workspace, connectionName: name } },
-            },
-            context
-        );
+        await this.apiClient.deleteStreamConnection({
+            params: { path: { groupId: args.projectId, tenantName: workspace, connectionName: name } },
+        });
 
         return {
             content: [
@@ -236,46 +190,28 @@ export class StreamsTeardownTool extends StreamsToolBase {
                         `Use \`atlas-streams-discover\` with action 'list-connections' to confirm when deletion is complete.`,
                 },
             ],
-            structuredContent: { resource: "connection" },
         };
     }
 
-    private async deleteWorkspace(
-        args: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
-    ): Promise<CallToolResult> {
+    private async deleteWorkspace(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const workspace = this.requireWorkspaceName(args);
 
         // Safety: summarize what will be deleted
         let impactNote = "";
-        const structuredContent: TeardownOutput = { resource: "workspace" };
         try {
             const [connectionsResult, processorsResult] = await Promise.allSettled([
-                this.apiClient.listStreamConnections(
-                    {
-                        params: { path: { groupId: args.projectId, tenantName: workspace } },
-                    },
-                    context
-                ),
-                this.apiClient.getStreamProcessors(
-                    {
-                        params: { path: { groupId: args.projectId, tenantName: workspace } },
-                    },
-                    context
-                ),
+                this.apiClient.listStreamConnections({
+                    params: { path: { groupId: args.projectId, tenantName: workspace } },
+                }),
+                this.apiClient.getStreamProcessors({
+                    params: { path: { groupId: args.projectId, tenantName: workspace } },
+                }),
             ]);
 
             const connectionCount =
                 connectionsResult.status === "fulfilled" ? (connectionsResult.value?.results?.length ?? 0) : 0;
             const processorCount =
                 processorsResult.status === "fulfilled" ? (processorsResult.value?.results?.length ?? 0) : 0;
-
-            if (connectionsResult.status === "fulfilled") {
-                structuredContent.connectionsRemoved = connectionCount;
-            }
-            if (processorsResult.status === "fulfilled") {
-                structuredContent.processorsRemoved = processorCount;
-            }
 
             if (connectionCount > 0 || processorCount > 0) {
                 impactNote = ` This will also remove ${processorCount} processor(s) and ${connectionCount} connection(s).`;
@@ -284,12 +220,9 @@ export class StreamsTeardownTool extends StreamsToolBase {
             // If we can't get counts, proceed anyway
         }
 
-        await this.apiClient.deleteStreamWorkspace(
-            {
-                params: { path: { groupId: args.projectId, tenantName: workspace } },
-            },
-            context
-        );
+        await this.apiClient.deleteStreamWorkspace({
+            params: { path: { groupId: args.projectId, tenantName: workspace } },
+        });
 
         return {
             content: [
@@ -300,21 +233,14 @@ export class StreamsTeardownTool extends StreamsToolBase {
                         `Use \`atlas-streams-discover\` with action 'list-workspaces' to confirm when deletion is complete.`,
                 },
             ],
-            structuredContent,
         };
     }
 
-    private async deletePrivateLink(
-        args: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
-    ): Promise<CallToolResult> {
+    private async deletePrivateLink(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const id = this.requireResourceName(args);
-        await this.apiClient.deletePrivateLinkConnection(
-            {
-                params: { path: { groupId: args.projectId, connectionId: id } },
-            },
-            context
-        );
+        await this.apiClient.deletePrivateLinkConnection({
+            params: { path: { groupId: args.projectId, connectionId: id } },
+        });
 
         return {
             content: [
@@ -325,21 +251,14 @@ export class StreamsTeardownTool extends StreamsToolBase {
                         `Use \`atlas-streams-discover\` with action 'get-networking' to confirm when deletion is complete.`,
                 },
             ],
-            structuredContent: { resource: "privatelink" },
         };
     }
 
-    private async deletePeering(
-        args: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
-    ): Promise<CallToolResult> {
+    private async deletePeering(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const id = this.requireResourceName(args);
-        await this.apiClient.deleteVpcPeeringConnection(
-            {
-                params: { path: { groupId: args.projectId, id: id } },
-            },
-            context
-        );
+        await this.apiClient.deleteVpcPeeringConnection({
+            params: { path: { groupId: args.projectId, id: id } },
+        });
 
         return {
             content: [
@@ -348,7 +267,6 @@ export class StreamsTeardownTool extends StreamsToolBase {
                     text: `VPC peering connection '${id}' deletion initiated.`,
                 },
             ],
-            structuredContent: { resource: "peering" },
         };
     }
 }
