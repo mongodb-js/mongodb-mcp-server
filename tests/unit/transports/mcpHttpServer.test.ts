@@ -3,7 +3,7 @@ import { MCPHttpServer } from "../../../src/transports/mcpHttpServer.js";
 import { defaultTestConfig, InMemoryLogger } from "../../integration/helpers.js";
 import { MockMetrics } from "../mocks/metrics.js";
 import { Keychain } from "../../../src/common/keychain.js";
-import type { ISessionStore } from "../../../src/common/sessionStore.js";
+import { SessionRejectedError, type ISessionStore } from "../../../src/common/sessionStore.js";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { Server } from "../../../src/server.js";
 
@@ -130,6 +130,49 @@ describe("MCPHttpServer x-request-id logging", () => {
         expect(addSession).toHaveBeenCalledTimes(1);
         const call = addSession.mock.calls[0]?.[0] as { headers?: Record<string, unknown> };
         expect(call.headers).toEqual(expect.objectContaining({ "x-request-id": "req-add-session" }));
+    });
+
+    it("passes the server session to sessionStore.addSession", async () => {
+        const addSession = vi.fn().mockResolvedValue(undefined);
+        const sessionStore: ISessionStore<StreamableHTTPServerTransport> = {
+            ...makeSessionStore(() => Promise.resolve(null)),
+            addSession,
+        };
+        const fakeServer = makeFakeServer();
+        await startServer(sessionStore, () => Promise.resolve(fakeServer));
+
+        await post("/mcp", INIT_BODY, {});
+
+        expect(addSession).toHaveBeenCalledTimes(1);
+        const call = addSession.mock.calls[0]?.[0] as { session?: unknown };
+        expect(call.session).toBe(fakeServer.session);
+    });
+
+    it("responds as session-not-found when sessionStore.getSession throws SessionRejectedError", async () => {
+        await startServer(makeSessionStore(() => Promise.reject(new SessionRejectedError("identity mismatch"))));
+
+        const rejectedRes = await post("/mcp", NON_INIT_BODY, { "mcp-session-id": "sess-rejected" });
+        const rejectedBody = (await rejectedRes.json()) as unknown;
+
+        await server.stop();
+        await startServer(makeSessionStore(() => Promise.resolve(null)));
+
+        const notFoundRes = await post("/mcp", NON_INIT_BODY, { "mcp-session-id": "sess-missing" });
+        const notFoundBody = (await notFoundRes.json()) as unknown;
+
+        // The rejected response must be indistinguishable from session-not-found
+        // so that callers can't probe whether a session id is valid.
+        expect(rejectedRes.status).toBe(notFoundRes.status);
+        expect(rejectedBody).toEqual(notFoundBody);
+    });
+
+    it("logs the SessionRejectedError reason server-side", async () => {
+        await startServer(makeSessionStore(() => Promise.reject(new SessionRejectedError("identity mismatch"))));
+
+        await post("/mcp", NON_INIT_BODY, { "mcp-session-id": "sess-rejected" });
+
+        const log = logger.messages.find((m) => m.level === "error" && m.payload.message.includes("identity mismatch"));
+        expect(log).toBeDefined();
     });
 
     it("includes x-request-id in error log when handler throws", async () => {

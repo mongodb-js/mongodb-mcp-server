@@ -598,11 +598,11 @@ export { Histogram }
 
 // @public
 export interface ISessionStore<T extends CloseableTransport = CloseableTransport> {
-    // (undocumented)
     addSession(params: {
         sessionId: string;
         transport: T;
         logger: LoggerBase;
+        session: Session;
         headers?: Record<string, unknown>;
     }): Promise<void>;
     // (undocumented)
@@ -612,8 +612,7 @@ export interface ISessionStore<T extends CloseableTransport = CloseableTransport
         sessionId: string;
         reason?: SessionCloseReason;
     }): Promise<void>;
-    // (undocumented)
-    getSession(sessionId: string): Promise<T | undefined>;
+    getSession(sessionId: string, headers?: Record<string, unknown>): Promise<T | undefined>;
 }
 
 // @public
@@ -974,6 +973,11 @@ export interface SessionOptions<TUserConfig extends UserConfig = UserConfig> {
     userConfig: TUserConfig;
 }
 
+// @public
+export class SessionRejectedError extends Error {
+    constructor(message: string);
+}
+
 // @public (undocumented)
 export class SessionStore<T extends CloseableTransport = CloseableTransport> implements ISessionStore<T> {
     constructor(params: {
@@ -989,6 +993,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         sessionId: string;
         transport: T;
         logger: LoggerBase;
+        session: Session;
         headers?: Record<string, unknown>;
     }): Promise<void>;
     // (undocumented)
@@ -999,7 +1004,8 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         reason?: SessionCloseReason;
     }): Promise<void>;
     // (undocumented)
-    getSession(sessionId: string): Promise<T | undefined>;
+    getSession(sessionId: string, _headers?: Record<string, unknown>): Promise<T | undefined>;
+    hasSession(sessionId: string): boolean;
 }
 
 // @public
