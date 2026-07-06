@@ -87,12 +87,24 @@ describe("Logger", () => {
             expectLogMessageRedaction(getLastConsoleMessage(), true);
         });
 
-        it("does not redact sensitive information for mcp logger by default", () => {
+        it("redacts sensitive information for mcp logger by default", () => {
             mcpLogger.info(mockSensitivePayload);
 
             expect(mcpLoggerSpy).toHaveBeenCalledOnce();
 
-            expectLogMessageRedaction(getLastMcpLogMessage(), false);
+            expectLogMessageRedaction(getLastMcpLogMessage(), true);
+        });
+
+        it("redacts keychain secrets from mcp logger by default", () => {
+            keychain.register("SuperSecretPass123", "password");
+            mcpLogger.error({
+                id: LogId.serverInitialized,
+                context: "test",
+                message: 'Failed to connect: "mongodb://admin:SuperSecretPass123@/db"',
+            });
+
+            expect(mcpLoggerSpy).toHaveBeenCalledOnce();
+            expect(getLastMcpLogMessage()).not.toContain("SuperSecretPass123");
         });
 
         it("redacts sensitive information from the keychain", () => {

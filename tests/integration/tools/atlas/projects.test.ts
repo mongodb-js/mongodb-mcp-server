@@ -32,7 +32,7 @@ describeWithAtlas("projects", (integration) => {
             expect(createProject.inputSchema.type).toBe("object");
             expectDefined(createProject.inputSchema.properties);
             expect(createProject.inputSchema.properties).toHaveProperty("projectName");
-            expect(createProject.inputSchema.properties).toHaveProperty("organizationId");
+            expect(createProject.inputSchema.properties).toHaveProperty("orgId");
         });
 
         it("should create a project", async () => {
@@ -52,7 +52,7 @@ describeWithAtlas("projects", (integration) => {
             expect(response.structuredContent).toMatchObject({
                 projectName: projName,
             });
-            expect(response.structuredContent).toHaveProperty("organizationId");
+            expect(response.structuredContent).toHaveProperty("orgId");
         });
     });
 
@@ -71,7 +71,7 @@ describeWithAtlas("projects", (integration) => {
 
             await integration.mcpClient().callTool({
                 name: "atlas-create-project",
-                arguments: { projectName: projName, organizationId: orgId },
+                arguments: { projectName: projName, orgId: orgId },
             });
         });
 

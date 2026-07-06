@@ -80,7 +80,7 @@ export class MockRemote {
             return;
         }
 
-        if (req.url === "/api/private/mcp") {
+        if (req.url === "/") {
             const body = await this.readBody(req);
             const { id, method, params } = body
                 ? (JSON.parse(body) as {

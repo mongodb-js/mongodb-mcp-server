@@ -12,6 +12,7 @@ import {
     type LoggerBase,
 } from "../lib.js";
 import { ConfigOverrideError } from "../common/config/configOverrides.js";
+import { SessionRejectedError } from "../common/sessionStore.js";
 import type { CustomizableServerOptions, CustomizableSessionOptions, TransportRequestContext } from "./base.js";
 import { ExpressBasedHttpServer } from "./expressBasedHttpServer.js";
 import { requestIdAttr } from "../helpers/requestIdAttr.js";
@@ -196,7 +197,7 @@ export class MCPHttpServer<
         const requestIdAttrs = requestIdAttr(req.headers);
 
         // Check if session already exists
-        if (await this.sessionStore.getSession(sessionId)) {
+        if (await this.sessionStore.getSession(sessionId, req.headers)) {
             return sessionId;
         }
 
@@ -287,6 +288,7 @@ export class MCPHttpServer<
                 sessionId,
                 transport,
                 logger: server.session.logger,
+                session: server.session,
                 // Pass the incoming request headers to the session store so
                 // that we can trace the x-request-id and other headers in the
                 // resulting logs and downstream requests.
@@ -348,7 +350,7 @@ export class MCPHttpServer<
 
             const requestIdAttrs = requestIdAttr(req.headers);
 
-            let transport = await this.sessionStore.getSession(sessionId);
+            let transport = await this.sessionStore.getSession(sessionId, req.headers);
             if (!transport) {
                 if (!this.userConfig.externallyManagedSessions) {
                     this.logger.debug({
@@ -366,7 +368,7 @@ export class MCPHttpServer<
                     sessionId,
                     isImplicitInitialization: true,
                 });
-                transport = await this.sessionStore.getSession(resolvedSessionId);
+                transport = await this.sessionStore.getSession(resolvedSessionId, req.headers);
                 if (!transport) {
                     return this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND);
                 }
@@ -400,7 +402,7 @@ export class MCPHttpServer<
                         sessionId,
                         isImplicitInitialization: false,
                     });
-                    const transport = await this.sessionStore.getSession(resolvedSessionId);
+                    const transport = await this.sessionStore.getSession(resolvedSessionId, req.headers);
                     if (!transport) {
                         return this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND);
                     }
@@ -441,6 +443,13 @@ export class MCPHttpServer<
                     message: `Error handling request: ${error instanceof Error ? error.message : String(error)}`,
                     attributes: requestIdAttr(req.headers),
                 });
+
+                if (error instanceof SessionRejectedError) {
+                    // Respond exactly as if the session doesn't exist so that
+                    // callers can't probe whether a session id is valid; the
+                    // rejection reason is only visible in the log above.
+                    return this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND);
+                }
 
                 const message = error instanceof ConfigOverrideError ? error.message : `failed to handle request`;
 

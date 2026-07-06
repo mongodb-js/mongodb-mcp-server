@@ -9,6 +9,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import { LogId, type LoggerBase } from "../../../src/common/logging/index.js";
+import type { Session } from "../../../src/common/session.js";
 import { defaultCreateConnectionManager } from "../../../src/common/connectionManager.js";
 import { Keychain } from "../../../src/common/keychain.js";
 import { defaultTestConfig, InMemoryLogger } from "../helpers.js";
@@ -23,6 +24,13 @@ import type { AnyToolClass, Server } from "../../../src/lib.js";
 import type { IncomingMessage } from "node:http";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { sleep } from "../../../src/common/managedTimeout.js";
+
+const expectedHealthData: Record<string, unknown> = {
+    status: "ok",
+    version: expect.any(String) as unknown,
+    uptimeSeconds: expect.any(Number) as unknown,
+    timestamp: expect.any(String) as unknown,
+};
 
 describe("StreamableHttpRunner", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -597,6 +605,7 @@ describe("StreamableHttpRunner", () => {
                         sessionId: string;
                         transport: StreamableHTTPServerTransport;
                         logger: LoggerBase;
+                        session: Session;
                     }): Promise<void> {
                         await this.inner.addSession(params);
                         const caller = ownerStorage.getStore();
@@ -886,7 +895,7 @@ describe("StreamableHttpRunner", () => {
                 const healthResponse = await fetch("http://localhost:3001/health");
                 expect(healthResponse.status).toBe(200);
                 const healthData = (await healthResponse.json()) as unknown;
-                expect(healthData).toEqual({ status: "ok" });
+                expect(healthData).toEqual(expectedHealthData);
             });
 
             it("does not start the monitoring server when not configured", async () => {
@@ -929,7 +938,7 @@ describe("StreamableHttpRunner", () => {
                 const healthResponse = await fetch(`${runner["monitoringServer"]!.serverAddress}/health`);
                 expect(healthResponse.status).toBe(200);
                 const healthData = (await healthResponse.json()) as unknown;
-                expect(healthData).toEqual({ status: "ok" });
+                expect(healthData).toEqual(expectedHealthData);
             });
         });
 
@@ -952,7 +961,7 @@ describe("StreamableHttpRunner", () => {
                 const healthResponse = await fetch("http://localhost:3001/health");
                 expect(healthResponse.status).toBe(200);
                 const healthData = (await healthResponse.json()) as unknown;
-                expect(healthData).toEqual({ status: "ok" });
+                expect(healthData).toEqual(expectedHealthData);
             });
 
             it("does not start the monitoring server when not configured", async () => {

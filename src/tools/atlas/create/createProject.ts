@@ -6,7 +6,7 @@ import { AtlasArgs } from "../../args.js";
 
 const CreateProjectOutputSchema = {
     projectName: z.string(),
-    organizationId: z.string().optional(),
+    orgId: z.string().optional(),
 };
 
 export class CreateProjectTool extends AtlasToolBase {
@@ -15,12 +15,12 @@ export class CreateProjectTool extends AtlasToolBase {
     static operationType: OperationType = "create";
     public argsShape = {
         projectName: AtlasArgs.projectName().optional().describe("Name for the new project"),
-        organizationId: AtlasArgs.organizationId().optional().describe("Organization ID for the new project"),
+        orgId: AtlasArgs.organizationId().optional().describe("Organization ID for the new project"),
     };
     public override outputSchema = CreateProjectOutputSchema;
 
     protected async execute(
-        { projectName, organizationId }: ToolArgs<typeof this.argsShape>,
+        { projectName, orgId }: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
         let assumedOrg = false;
@@ -29,7 +29,7 @@ export class CreateProjectTool extends AtlasToolBase {
             projectName = "Atlas Project";
         }
 
-        if (!organizationId) {
+        if (!orgId) {
             try {
                 const organizations = await this.apiClient.listOrgs(undefined, context);
                 if (!organizations?.results?.length) {
@@ -43,7 +43,7 @@ export class CreateProjectTool extends AtlasToolBase {
                         "The first organization found does not have an ID. Please check your Atlas account."
                     );
                 }
-                organizationId = firstOrg.id;
+                orgId = firstOrg.id;
                 assumedOrg = true;
             } catch {
                 throw new Error(
@@ -54,7 +54,7 @@ export class CreateProjectTool extends AtlasToolBase {
 
         const input = {
             name: projectName,
-            orgId: organizationId,
+            orgId: orgId,
         } as Group;
 
         const group = await this.apiClient.createGroup(
@@ -72,12 +72,12 @@ export class CreateProjectTool extends AtlasToolBase {
             content: [
                 {
                     type: "text",
-                    text: `Project "${projectName}" created successfully${assumedOrg ? ` (using organizationId ${organizationId}).` : ""}.`,
+                    text: `Project "${projectName}" created successfully${assumedOrg ? ` (using orgId ${orgId}).` : ""}.`,
                 },
             ],
             structuredContent: {
                 projectName,
-                ...(assumedOrg && { organizationId }),
+                ...(assumedOrg && { orgId }),
             },
         };
     }
