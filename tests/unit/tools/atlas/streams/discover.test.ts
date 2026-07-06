@@ -175,8 +175,9 @@ describe("StreamsDiscoverTool", () => {
                 workspaceName: "ws1",
             });
 
-            const text = (result.content[0] as { text: string }).text;
-            expect(text).toContain("ws1");
+            const [description, untrusted] = result.content.map((c) => (c as { text: string }).text);
+            expect(description).not.toContain("ws1");
+            expect(untrusted).toContain("ws1");
             expect(result.structuredContent).toEqual({
                 workspace: {
                     name: "ws1",
@@ -446,15 +447,15 @@ describe("StreamsDiscoverTool", () => {
                 resourceName: "kafka-in",
             });
 
-            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
-            expect(text).toContain("kafka-in");
-            expect(text).toContain("ws1");
+            const [description, untrusted] = result.content.map((c) => (c as { text: string }).text);
+            expect(description).not.toContain("kafka-in");
+            expect(untrusted).toContain("kafka-in");
             expect(result.structuredContent).toEqual({
                 connection: { type: "Kafka", bootstrapServers: "broker:9092" },
             });
         });
 
-        it("should add note when Cluster connection name differs from clusterName", async () => {
+        it("should add a generic note when Cluster connection name differs from clusterName", async () => {
             mockApiClient.getStreamConnection!.mockResolvedValue({
                 name: "my-conn",
                 type: "Cluster",
@@ -468,10 +469,10 @@ describe("StreamsDiscoverTool", () => {
                 resourceName: "my-conn",
             });
 
-            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
-            expect(text).toContain("Note");
-            expect(text).toContain("my-conn");
-            expect(text).toContain("actual-cluster");
+            const [description, untrusted] = result.content.map((c) => (c as { text: string }).text);
+            expect(description).toContain("Note");
+            expect(description).not.toContain("actual-cluster");
+            expect(untrusted).toContain("actual-cluster");
             expect(result.structuredContent).toEqual({
                 connection: { type: "Cluster", clusterName: "actual-cluster" },
             });
@@ -543,9 +544,9 @@ describe("StreamsDiscoverTool", () => {
                 resourceName: "proc1",
             });
 
-            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
-            expect(text).toContain("proc1");
-            expect(text).toContain("ws1");
+            const [description, untrusted] = result.content.map((c) => (c as { text: string }).text);
+            expect(description).not.toContain("proc1");
+            expect(untrusted).toContain("proc1");
             expect(result.structuredContent).toEqual({
                 processorState: "STARTED",
                 tier: "SP10",

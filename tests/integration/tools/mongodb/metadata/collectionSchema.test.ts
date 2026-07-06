@@ -43,7 +43,7 @@ describeWithMongoDB("collectionSchema tool", (integration) => {
             });
             const content = getResponseContent(response.content);
             expect(content).toEqual(
-                `Could not deduce the schema for "non-existent.foo". This may be because it doesn't exist or is empty.`
+                `Could not deduce the schema for the requested namespace. This may be because it doesn't exist or is empty.`
             );
 
             // Structured content should have empty schema for empty collection
@@ -150,10 +150,12 @@ describeWithMongoDB("collectionSchema tool", (integration) => {
 
                 // Expect to find _id, name, age
                 expect(items[0]?.text).toEqual(
-                    `Found ${Object.entries(testCase.expectedSchema).length} fields in the schema for "${integration.randomDbName()}.foo". Note that this schema is inferred from a sample and may not represent the full schema of the collection.`
+                    `Found ${Object.entries(testCase.expectedSchema).length} fields in the sampled schema. Note that this schema is inferred from a sample and may not represent the full schema of the collection.`
                 );
 
-                const schema = JSON.parse(getDataFromUntrustedContent(items[1]?.text ?? "{}")) as SimplifiedSchema;
+                const { schema } = JSON.parse(getDataFromUntrustedContent(items[1]?.text ?? "{}")) as {
+                    schema: SimplifiedSchema;
+                };
                 expect(schema).toEqual(testCase.expectedSchema);
 
                 // Validate structured content matches
@@ -162,6 +164,26 @@ describeWithMongoDB("collectionSchema tool", (integration) => {
                 expect(structuredContent.fieldsCount).toBe(Object.entries(testCase.expectedSchema).length);
             });
         }
+
+        it("returns the collection name only inside the untrusted-data block, not the description", async () => {
+            const collectionName = "my sentences collection";
+            const mongoClient = integration.mongoClient();
+            await mongoClient.db(integration.randomDbName()).collection(collectionName).insertOne({ a: 1 });
+
+            await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "collection-schema",
+                arguments: { database: integration.randomDbName(), collection: collectionName },
+            });
+            const items = getResponseElements(response.content);
+            expect(items).toHaveLength(2);
+
+            // The description is a static header and does not echo the collection name...
+            expect(items[0]?.text).not.toContain(collectionName);
+            // ...the name is surfaced within the untrusted-data section instead.
+            expect(items[1]?.text).toContain("<untrusted-user-data-");
+            expect(items[1]?.text).toContain(collectionName);
+        });
     });
 
     validateAutoConnectBehavior(integration, "collection-schema", () => {
@@ -170,7 +192,7 @@ describeWithMongoDB("collectionSchema tool", (integration) => {
                 database: integration.randomDbName(),
                 collection: "new-collection",
             },
-            expectedResponse: `Could not deduce the schema for "${integration.randomDbName()}.new-collection". This may be because it doesn't exist or is empty.`,
+            expectedResponse: `Could not deduce the schema for the requested namespace. This may be because it doesn't exist or is empty.`,
         };
     });
 });
