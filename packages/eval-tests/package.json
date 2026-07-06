@@ -1,0 +1,38 @@
+{
+  "name": "@mongodb-js/mcp-eval-tests",
+  "version": "1.11.0-prerelease.1",
+  "private": true,
+  "type": "module",
+  "description": "Braintrust eval harness for the MongoDB MCP server",
+  "scripts": {
+    "check": "tsc --noEmit --project tsconfig.json",
+    "eval:db-start": "sh scripts/evalDb.sh start",
+    "eval:db-stop": "sh scripts/evalDb.sh stop",
+    "eval:run": "bt eval src/mongodb.eval.ts",
+    "eval:debug": "tsx src/mongodb.eval.ts",
+    "eval:ci:run": "BRAINTRUST_API_KEY_OVERRIDE=$BRAINTRUST_API_KEY tsx src/scripts/reportCi.ts -- bt eval --jsonl src/mongodb.eval.ts",
+    "eval:generate-schemas": "tsx src/scripts/generateSchemas.ts",
+    "eval:bundle": "tsx src/scripts/bundleEval.ts",
+    "eval:serve": "BRAINTRUST_API_KEY_OVERRIDE=$BRAINTRUST_API_KEY bt eval --dev src/mongodb.eval.ts",
+    "eval:push": "pnpm run eval:bundle && braintrust push dist/mongodb.eval.cjs --if-exists replace"
+  },
+  "dependencies": {
+    "braintrust": "^3.20.0",
+    "@ai-sdk/openai": "^3.0.61",
+    "@ai-sdk/mcp": "^1.0.40",
+    "ai": "^6.0.175",
+    "mongodb": "^7.1.1",
+    "bson": "^7.2.0",
+    "zod": "^4.4.2",
+    "@mongodb-js/mcp-cli": "workspace:*",
+    "@mongodb-js/mcp-core": "workspace:*",
+    "mongodb-mcp-server": "workspace:*"
+  },
+  "devDependencies": {
+    "@braintrust/api": "^0.5.0",
+    "@types/node": "^25.6.0",
+    "esbuild": "^0.28.1",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  }
+}
