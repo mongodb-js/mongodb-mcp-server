@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { describe, it, expect, afterEach } from "vitest";
 import { MonitoringServer } from "@mongodb-js/mcp-http-runners";
 import { NoopLogger } from "@mongodb-js/mcp-core";

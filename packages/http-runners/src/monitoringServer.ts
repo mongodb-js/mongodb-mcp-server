@@ -2,6 +2,7 @@ import type express from "express";
 import type { DefaultMetricDefinitions, ILogger, IMetrics } from "@mongodb-js/mcp-types";
 import { LogId } from "@mongodb-js/mcp-core";
 import { ExpressBasedHttpServer } from "./expressBasedHttpServer.js";
+import packageJson from "../package.json" with { type: "json" };
 
 /**
  * HTTP server that provides monitoring endpoints like health checks and metrics.
@@ -24,6 +25,7 @@ export class MonitoringServer<
 > extends ExpressBasedHttpServer {
     protected readonly features: MonitoringServerFeature[];
     protected readonly metrics: IMetrics<TMetrics>;
+    protected readonly version: string;
 
     constructor({ options, logger, metrics }: MonitoringServerOptions<TMetrics>) {
         super({
@@ -35,12 +37,20 @@ export class MonitoringServer<
         });
         this.features = options.features;
         this.metrics = metrics;
+        this.version = options.version ?? packageJson.version;
     }
 
     protected override setupRoutes(): Promise<void> {
         if (this.features.includes("health-check")) {
             this.app.get("/health", (_req: express.Request, res: express.Response) => {
-                res.json({ status: "ok" });
+                // Health responses should never be cached by proxies or load balancers.
+                res.set("Cache-Control", "no-store");
+                res.json({
+                    status: "ok",
+                    version: this.version,
+                    uptimeSeconds: Math.floor(process.uptime()),
+                    timestamp: new Date().toISOString(),
+                });
             });
         }
 
@@ -80,6 +90,11 @@ export type MonitoringServerOptions<TMetrics extends DefaultMetricDefinitions = 
         };
         /** Features to enable on the monitoring server */
         features: MonitoringServerFeature[];
+        /**
+         * Version to expose in the health endpoint.
+         * Defaults to the package version.
+         */
+        version?: string;
     };
     /** Logger for the server */
     logger: ILogger;

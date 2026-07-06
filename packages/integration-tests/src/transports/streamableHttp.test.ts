@@ -1,5 +1,5 @@
 import type express from "express";
-import { StreamableHttpRunner, MCPHttpServer } from "@mongodb-js/mcp-http-runners";
+import { StreamableHttpRunner, MCPHttpServer, MonitoringServer } from "@mongodb-js/mcp-http-runners";
 import {
     SessionStore,
     type ISessionStore,
@@ -213,10 +213,28 @@ function createStreamableHttpRunner(
         tools: options.tools ?? AllTools,
     });
 
+    const monitoringHost = config.monitoringServerHost ?? config.healthCheckHost;
+    const monitoringPort = config.monitoringServerPort ?? config.healthCheckPort;
+    let monitoringServer: MonitoringServer | undefined;
+    if (monitoringHost !== undefined && monitoringPort !== undefined) {
+        monitoringServer = new MonitoringServer({
+            options: {
+                http: {
+                    host: monitoringHost,
+                    port: monitoringPort,
+                },
+                features: config.monitoringServerFeatures,
+            },
+            logger,
+            metrics,
+        });
+    }
+
     return Promise.resolve(
         new StreamableHttpRunner<CliServer>({
             logger,
             mcpHttpServer,
+            monitoringServer,
         })
     );
 }
@@ -1166,7 +1184,7 @@ describe("StreamableHttpRunner", () => {
             });
 
             it("starts the monitoring server when configured", async () => {
-                runner = new StreamableHttpRunner({ userConfig: config });
+                runner = await createStreamableHttpRunner(config);
                 await runner.start();
 
                 expect(runner["monitoringServer"]).toBeDefined();
@@ -1180,7 +1198,7 @@ describe("StreamableHttpRunner", () => {
             it("does not start the monitoring server when not configured", async () => {
                 config.healthCheckHost = undefined;
                 config.healthCheckPort = undefined;
-                runner = new StreamableHttpRunner({ userConfig: config });
+                runner = await createStreamableHttpRunner(config);
                 await runner.start();
 
                 expect(runner["monitoringServer"]).toBeUndefined();
@@ -1188,14 +1206,14 @@ describe("StreamableHttpRunner", () => {
 
             it("errors out when healthCheck port is missing but host is provided", async () => {
                 config.healthCheckPort = undefined;
-                runner = new StreamableHttpRunner({ userConfig: config });
+                runner = await createStreamableHttpRunner(config);
 
                 await expect(runner.start()).rejects.toThrowError();
             });
 
             it("errors out when healthCheck host is missing but port is provided", async () => {
                 config.healthCheckHost = undefined;
-                runner = new StreamableHttpRunner({ userConfig: config });
+                runner = await createStreamableHttpRunner(config);
 
                 await expect(runner.start()).rejects.toThrowError();
             });
@@ -1203,14 +1221,14 @@ describe("StreamableHttpRunner", () => {
             it("errors out when healthcheck port is equal to MCP server port", async () => {
                 config.healthCheckPort = 3000;
                 config.httpPort = 3000;
-                runner = new StreamableHttpRunner({ userConfig: config });
+                runner = await createStreamableHttpRunner(config);
                 await expect(runner.start()).rejects.toThrowError();
             });
 
             it("handles correctly when healthCheckPort is set to 0", async () => {
                 config.httpPort = 3000;
                 config.healthCheckPort = 0;
-                runner = new StreamableHttpRunner({ userConfig: config });
+                runner = await createStreamableHttpRunner(config);
                 await runner.start();
 
                 expect(runner["monitoringServer"]).toBeDefined();
@@ -1232,7 +1250,7 @@ describe("StreamableHttpRunner", () => {
             });
 
             it("starts the monitoring server and exposes /health by default", async () => {
-                runner = new StreamableHttpRunner({ userConfig: config });
+                runner = await createStreamableHttpRunner(config);
                 await runner.start();
 
                 expect(runner["monitoringServer"]).toBeDefined();
@@ -1246,7 +1264,7 @@ describe("StreamableHttpRunner", () => {
             it("does not start the monitoring server when not configured", async () => {
                 config.monitoringServerHost = undefined;
                 config.monitoringServerPort = undefined;
-                runner = new StreamableHttpRunner({ userConfig: config });
+                runner = await createStreamableHttpRunner(config);
                 await runner.start();
 
                 expect(runner["monitoringServer"]).toBeUndefined();
@@ -1254,14 +1272,14 @@ describe("StreamableHttpRunner", () => {
 
             it("errors out when monitoringServerPort is missing but host is provided", async () => {
                 config.monitoringServerPort = undefined;
-                runner = new StreamableHttpRunner({ userConfig: config });
+                runner = await createStreamableHttpRunner(config);
 
                 await expect(runner.start()).rejects.toThrowError();
             });
 
             it("errors out when monitoringServerHost is missing but port is provided", async () => {
                 config.monitoringServerHost = undefined;
-                runner = new StreamableHttpRunner({ userConfig: config });
+                runner = await createStreamableHttpRunner(config);
 
                 await expect(runner.start()).rejects.toThrowError();
             });
@@ -1269,13 +1287,13 @@ describe("StreamableHttpRunner", () => {
             it("errors out when monitoringServerPort is equal to MCP server port", async () => {
                 config.monitoringServerPort = 3000;
                 config.httpPort = 3000;
-                runner = new StreamableHttpRunner({ userConfig: config });
+                runner = await createStreamableHttpRunner(config);
                 await expect(runner.start()).rejects.toThrowError();
             });
 
             it("does not expose /metrics when features does not include 'metrics'", async () => {
                 config.monitoringServerFeatures = ["health-check"];
-                runner = new StreamableHttpRunner({ userConfig: config });
+                runner = await createStreamableHttpRunner(config);
                 await runner.start();
 
                 const metricsResponse = await fetch("http://localhost:3001/metrics");
@@ -1284,7 +1302,7 @@ describe("StreamableHttpRunner", () => {
 
             it("exposes /metrics when features includes 'metrics'", async () => {
                 config.monitoringServerFeatures = ["health-check", "metrics"];
-                runner = new StreamableHttpRunner({ userConfig: config });
+                runner = await createStreamableHttpRunner(config);
                 await runner.start();
 
                 const metricsResponse = await fetch("http://localhost:3001/metrics");
