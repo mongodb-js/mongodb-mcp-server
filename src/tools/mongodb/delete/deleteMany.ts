@@ -67,7 +67,7 @@ export class DeleteManyTool extends MongoDBToolBase {
         return {
             content: [
                 {
-                    text: `Deleted \`${result.deletedCount}\` document(s) from collection "${collection}"`,
+                    text: `Deleted \`${result.deletedCount}\` document(s) from the requested collection.`,
                     type: "text",
                 },
             ],

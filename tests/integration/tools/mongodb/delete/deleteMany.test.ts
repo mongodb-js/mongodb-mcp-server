@@ -49,7 +49,7 @@ describeWithMongoDB("deleteMany tool", (integration) => {
         });
 
         const content = getResponseContent(response.content);
-        expect(content).toContain('Deleted `0` document(s) from collection "coll1"');
+        expect(content).toContain("Deleted `0` document(s) from the requested collection.");
 
         const collections = await integration.mongoClient().db(integration.randomDbName()).listCollections().toArray();
         expect(collections).toHaveLength(0);
@@ -95,7 +95,7 @@ describeWithMongoDB("deleteMany tool", (integration) => {
             },
         });
         const content = getResponseContent(response.content);
-        expect(content).toContain('Deleted `2` document(s) from collection "coll1"');
+        expect(content).toContain("Deleted `2` document(s) from the requested collection.");
 
         const structuredContent = response.structuredContent as DeleteManyOutput;
         expect(structuredContent.database).toBe(integration.randomDbName());
@@ -121,7 +121,7 @@ describeWithMongoDB("deleteMany tool", (integration) => {
         });
 
         const content = getResponseContent(response.content);
-        expect(content).toContain('Deleted `0` document(s) from collection "coll1"');
+        expect(content).toContain("Deleted `0` document(s) from the requested collection.");
 
         await validateDocuments([
             { age: 10, name: "Peter" },
@@ -144,7 +144,7 @@ describeWithMongoDB("deleteMany tool", (integration) => {
         });
 
         const content = getResponseContent(response.content);
-        expect(content).toContain('Deleted `4` document(s) from collection "coll1"');
+        expect(content).toContain("Deleted `4` document(s) from the requested collection.");
 
         await validateDocuments([]);
     });
@@ -156,7 +156,7 @@ describeWithMongoDB("deleteMany tool", (integration) => {
                 collection: "coll1",
                 filter: {},
             },
-            expectedResponse: 'Deleted `0` document(s) from collection "coll1"',
+            expectedResponse: "Deleted `0` document(s) from the requested collection.",
         };
     });
 });
@@ -194,7 +194,7 @@ describeWithMongoDB("deleteMany tool with server-side JavaScript operators", (in
                 expect(content).toContain(`The "$where" operator is not allowed.`);
             } else {
                 expect(content).not.toContain("server-side JavaScript operators");
-                expect(content).toContain('Deleted `1` document(s) from collection "people"');
+                expect(content).toContain("Deleted `1` document(s) from the requested collection.");
             }
         });
     }
