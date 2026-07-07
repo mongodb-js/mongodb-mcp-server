@@ -13,6 +13,8 @@ export class MockRemote {
     private tokenRequestCount = 0;
     private currentToken = "";
     private shouldFailNextTokenCall = false;
+    private initializeCount = 0;
+    public currentSessionId: string | undefined = undefined;
 
     private constructor(url: string, server: Server) {
         this.url = url;
@@ -44,11 +46,17 @@ export class MockRemote {
         this.shouldFailNextTokenCall = true;
     }
 
+    getInitializeCount(): number {
+        return this.initializeCount;
+    }
+
     reset(): void {
         this.responseMode = "sse";
         this.tokenRequestCount = 0;
         this.currentToken = "";
         this.shouldFailNextTokenCall = false;
+        this.currentSessionId = undefined;
+        this.initializeCount = 0;
     }
 
     close(): Promise<void> {
@@ -84,6 +92,16 @@ export class MockRemote {
                 return;
             }
 
+            // All non-initialize requests must carry the current session ID.
+            if (method !== "initialize") {
+                const incomingSessionId = req.headers["mcp-session-id"] as string | undefined;
+                if (incomingSessionId !== this.currentSessionId) {
+                    res.writeHead(404, { "Content-Type": "text/plain" });
+                    res.end("Session not found");
+                    return;
+                }
+            }
+
             // Notifications
             if (id === undefined) {
                 res.writeHead(202);
@@ -92,7 +110,9 @@ export class MockRemote {
             }
 
             if (method === "initialize") {
-                res.setHeader("Mcp-Session-Id", "mock-session-1");
+                this.initializeCount++;
+                this.currentSessionId = `mock-session-${this.initializeCount}`;
+                res.setHeader("Mcp-Session-Id", this.currentSessionId);
                 this.sendRpc(res, {
                     jsonrpc: "2.0",
                     id,
