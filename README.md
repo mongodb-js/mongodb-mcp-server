@@ -327,7 +327,7 @@ For more information about configuring OpenCode as an MCP client, including the 
 
 #### Option 8: Connect to the Remote MCP Server
 
-To connect to the hosted MongoDB Atlas Remote MCP server, use the [`mongodb-atlas-mcp-remote`](packages/mongodb-atlas-mcp-remote/README.md) package with your Atlas service account credentials.
+To connect to the hosted MongoDB Atlas Remote MCP server, use the [`mongodb-atlas-mcp-remote`](packages/mongodb-atlas-mcp-remote/README.md) package.
 
 See the [package README](packages/mongodb-atlas-mcp-remote/README.md) for setup and client-specific configuration examples.
 
