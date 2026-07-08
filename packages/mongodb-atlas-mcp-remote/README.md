@@ -1,13 +1,15 @@
 # mongodb-atlas-mcp-remote
 
-`mongodb-atlas-mcp-remote` lets your MCP client connect to the **MongoDB Atlas Remote MCP server** using your Atlas service account credentials.
+`mongodb-atlas-mcp-remote` lets your MCP client connect to the **MongoDB Atlas Remote MCP server** using credentials from your Atlas MCP configuration.
 
 Use this for MCP clients that don't yet natively support service-account (OAuth client-credentials) authentication.
 
 ## Prerequisites
 
-- Node.js v20.19.0 or newer.
-- An Atlas service account **Client ID** and **Client Secret**. See [Atlas API Access](../../README.md#atlas-api-access) in the main README for how to create a service account and assign the minimum required permissions.
+- Node.js 20.19+, 22.13+, or 24+.
+- A **Client ID** and **Client Secret** from a MongoDB Atlas **MCP configuration**. Creating an MCP configuration in Atlas provisions a dedicated Client ID and Client Secret that is used to authenticate to the Remote MCP server. Creating one requires the **Organization Owner** or **Project Owner** role.
+
+  > **Note:** These credentials are generated specifically for the Remote MCP server and are **different** from the standard Atlas API service-account credentials used by the local [`mongodb-mcp-server`](../../README.md) package.
 
 ## Configuration
 
@@ -15,8 +17,8 @@ The wrapper is configured with two environment variables:
 
 | Variable                    | Description                               |
 | --------------------------- | ----------------------------------------- |
-| `MDB_MCP_API_CLIENT_ID`     | Your Atlas service account Client ID.     |
-| `MDB_MCP_API_CLIENT_SECRET` | Your Atlas service account Client Secret. |
+| `MDB_MCP_API_CLIENT_ID`     | The Client ID from your Atlas MCP configuration.     |
+| `MDB_MCP_API_CLIENT_SECRET` | The Client Secret from your Atlas MCP configuration. |
 
 > **🔒 Tip:** Provide credentials via environment variables rather than inline command-line arguments, since command-line arguments can be visible in process lists and logs.
 
@@ -31,12 +33,12 @@ Add to `.mcp.json`:
 ```json
 {
   "mcpServers": {
-    "mongodb": {
+    "MongoDB": {
       "command": "npx",
       "args": ["-y", "mongodb-atlas-mcp-remote@latest"],
       "env": {
-        "MDB_MCP_API_CLIENT_ID": "your-atlas-service-account-client-id",
-        "MDB_MCP_API_CLIENT_SECRET": "your-atlas-service-account-client-secret"
+        "MDB_MCP_API_CLIENT_ID": "your-client-id",
+        "MDB_MCP_API_CLIENT_SECRET": "your-client-secret"
       }
     }
   }
@@ -50,12 +52,12 @@ Add to `.cursor/mcp.json`:
 ```json
 {
   "mcpServers": {
-    "mongodb": {
+    "MongoDB": {
       "command": "npx",
       "args": ["-y", "mongodb-atlas-mcp-remote@latest"],
       "env": {
-        "MDB_MCP_API_CLIENT_ID": "your-atlas-service-account-client-id",
-        "MDB_MCP_API_CLIENT_SECRET": "your-atlas-service-account-client-secret"
+        "MDB_MCP_API_CLIENT_ID": "your-client-id",
+        "MDB_MCP_API_CLIENT_SECRET": "your-client-secret"
       }
     }
   }
@@ -67,13 +69,13 @@ Add to `.cursor/mcp.json`:
 Add to `~/.codex/config.toml`:
 
 ```toml
-[mcp_servers.mongodb]
+[mcp_servers.MongoDB]
 command = "npx"
 args = ["-y", "mongodb-atlas-mcp-remote@latest"]
 
-[mcp_servers.mongodb.env]
-MDB_MCP_API_CLIENT_ID = "your-atlas-service-account-client-id"
-MDB_MCP_API_CLIENT_SECRET = "your-atlas-service-account-client-secret"
+[mcp_servers.MongoDB.env]
+MDB_MCP_API_CLIENT_ID = "your-client-id"
+MDB_MCP_API_CLIENT_SECRET = "your-client-secret"
 ```
 
 ## Contributing
