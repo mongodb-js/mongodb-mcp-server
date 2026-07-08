@@ -62,7 +62,7 @@ fusion over a \`$unionWith\` + \`$group\` workaround** — the workaround averag
 incompatible score scales and produces wrong rankings.
 
 **Which stage to use:**
-- `$rankFusion` (MongoDB 8.0+) — Reciprocal Rank Fusion. The recommended default.
+- \`$rankFusion\` (MongoDB 8.0+) — Reciprocal Rank Fusion. The recommended default.
   Normalizes scores across incompatible scales automatically. No score tuning needed.
 - \`$scoreFusion\` (MongoDB 8.2+) — Score-based fusion. Use when the user needs explicit
   per-pipeline weights, score normalisation (sigmoid / minMaxScaler), or a custom
