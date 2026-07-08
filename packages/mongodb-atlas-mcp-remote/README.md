@@ -20,7 +20,6 @@ The wrapper is configured with two environment variables:
 | `MDB_MCP_API_CLIENT_ID`     | The Client ID from your Atlas MCP configuration.     |
 | `MDB_MCP_API_CLIENT_SECRET` | The Client Secret from your Atlas MCP configuration. |
 
-> **🔒 Tip:** Provide credentials via environment variables rather than inline command-line arguments, since command-line arguments can be visible in process lists and logs.
 
 ## Usage
 
