@@ -35,6 +35,14 @@
         "react-dom"
       ]
     },
+    "packages/mongodb-atlas-mcp-remote": {
+      "entry": [
+        "src/cli.ts!",
+        "scripts/**/*.ts",
+        "src/**/*.test.ts",
+        "src/testHelpers/**/*.ts"
+      ]
+    },
     "tests/browser": {
       "entry": [
         "tests/**/*.ts",
@@ -43,9 +51,6 @@
         "vitest.config.ts",
         "setup.ts"
       ]
-    },
-    "packages/mongodb-atlas-mcp-remote": {
-      "entry": ["src/cli.ts!", "src/**/*.test.ts", "src/testHelpers/**/*.ts"]
     }
   },
   "ignoreExportsUsedInFile": true

@@ -6,6 +6,11 @@ describe("requestIdAttr", () => {
         expect(requestIdAttr({ "x-request-id": "abc-123" })).toEqual({ "x-request-id": "abc-123" });
     });
 
+    it("matches the header case-insensitively", () => {
+        expect(requestIdAttr({ "X-Request-ID": "abc-123" })).toEqual({ "x-request-id": "abc-123" });
+        expect(requestIdAttr({ "X-REQUEST-ID": "abc-123" })).toEqual({ "x-request-id": "abc-123" });
+    });
+
     it("returns empty object when headers are undefined", () => {
         expect(requestIdAttr(undefined)).toEqual({});
     });

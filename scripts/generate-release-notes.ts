@@ -65,6 +65,55 @@ async function findPrevTag(newVersion: string): Promise<SemVer | null> {
     return allTags.find((tag) => semver.lt(tag, versionStr)) ?? null;
 }
 
+/** GitHub author associations whose merged PRs are trusted to feed the AI summary.
+ * PRs authored by external contributors are excluded so untrusted text never reaches the LLM prompt. */
+const TRUSTED_ASSOCIATIONS = new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
+
+const SEARCH_MERGED_PRS_QUERY = `
+query ($q: String!, $cursor: String) {
+  search(query: $q, type: ISSUE, first: 100, after: $cursor) {
+    nodes {
+      ... on PullRequest {
+        authorAssociation
+        mergeCommit { oid }
+      }
+    }
+    pageInfo { hasNextPage endCursor }
+  }
+}`;
+
+type PrSearchResponse = {
+    data: {
+        search: {
+            nodes: { authorAssociation: string; mergeCommit: { oid: string } | null }[];
+            pageInfo: { hasNextPage: boolean; endCursor: string | null };
+        };
+    };
+};
+
+/** Returns the merge-commit SHAs of PRs merged in the range whose author is a trusted association. */
+function fetchTrustedMergeShas(prevTagDate: string, targetCommitDate: string): string[] {
+    const q = `repo:mongodb-js/mongodb-mcp-server is:pr is:merged base:main merged:>${prevTagDate} merged:<=${targetCommitDate}`;
+    const shas: string[] = [];
+    let cursor: string | null = null;
+
+    do {
+        const args = ["api", "graphql", "-f", `query=${SEARCH_MERGED_PRS_QUERY}`, "-f", `q=${q}`];
+        if (cursor) {
+            args.push("-f", `cursor=${cursor}`);
+        }
+        const { data } = JSON.parse(execFileSync("gh", args, { encoding: "utf-8" })) as PrSearchResponse;
+        for (const node of data.search.nodes) {
+            if (node.mergeCommit && TRUSTED_ASSOCIATIONS.has(node.authorAssociation)) {
+                shas.push(node.mergeCommit.oid);
+            }
+        }
+        cursor = data.search.pageInfo.hasNextPage ? data.search.pageInfo.endCursor : null;
+    } while (cursor);
+
+    return shas;
+}
+
 /** Returns an AI-generated summary of the release, or null if generation fails or there are no relevant PRs. */
 async function generateAiSummary(prevTagDate: string, targetCommitDate: string): Promise<string | null> {
     if (!GROVE_API_KEY) {
@@ -72,60 +121,51 @@ async function generateAiSummary(prevTagDate: string, targetCommitDate: string):
         return null;
     }
 
-    // Fetch feat/fix PR titles and bodies merged within the release range
-    type PrItem = { title: string; body: string | null };
-    const prListJson = execFileSync(
-        "gh",
-        [
-            "pr",
-            "list",
-            "--state",
-            "merged",
-            "--base",
-            "main",
-            "--search",
-            `merged:>${prevTagDate} merged:<=${targetCommitDate}`,
-            "--json",
-            "title,body",
-            "--limit",
-            "500",
-        ],
-        { encoding: "utf-8" }
-    ).trim();
-    const prList = JSON.parse(prListJson) as PrItem[];
-    const featFixPrs = prList.filter((pr) => /^(feat|fix)(\(|!|:)/.test(pr.title));
-
-    if (!featFixPrs.length) {
-        return null;
-    }
-
-    // Truncate bodies to avoid sending excessive content to the model
-    const MAX_BODY_CHARS = 1000;
-    const prSummaries = featFixPrs
-        .map((pr) => {
-            const body = pr.body?.trim();
-            if (!body) return `- ${pr.title}`;
-            const truncated = body.length > MAX_BODY_CHARS ? body.slice(0, MAX_BODY_CHARS) + "…" : body;
-            return `- ${pr.title}\n${truncated}`;
-        })
-        .join("\n\n");
-
-    const anthropic = createAnthropic({
-        baseURL: "https://grove-gateway-prod.azure-api.net/grove-foundry-prod/anthropic/v1",
-        apiKey: GROVE_API_KEY,
-        headers: { "api-key": GROVE_API_KEY },
-    });
-
-    const prompt = [
-        "You are writing release notes for MongoDB MCP Server, a tool that lets AI assistants interact with MongoDB databases and MongoDB Atlas.",
-        "Given these merged PR titles, write 2-3 sentences for end-users describing what's new in plain English.",
-        "Be concrete and avoid internal jargon. Only describe user-visible changes.",
-        "Focus primarily on new features (feat: titles) — mention bug fixes only if they address something particularly significant.",
-        "Respond with the release notes summary only, without any introductory text or formatting.",
-        `PRs:\n${prSummaries}`,
-    ].join(" ");
-
     try {
+        const trustedShas = fetchTrustedMergeShas(prevTagDate, targetCommitDate);
+        if (!trustedShas.length) {
+            return null;
+        }
+
+        // Summarize from the frozen commit subjects as those are immutable and cannot be edited after merge.
+        // Fetch in batches so the git argument list stays within OS command-line length limits.
+        const BATCH_SIZE = 200;
+        const featFixTitles: string[] = [];
+        for (let i = 0; i < trustedShas.length; i += BATCH_SIZE) {
+            const subjects = execFileSync(
+                "git",
+                ["show", "-s", "--format=%s", ...trustedShas.slice(i, i + BATCH_SIZE)],
+                {
+                    encoding: "utf-8",
+                }
+            )
+                .split("\n")
+                .map((line) => line.trim())
+                .filter((line) => /^(feat|fix)(\(|!|:)/.test(line));
+            featFixTitles.push(...subjects);
+        }
+
+        if (!featFixTitles.length) {
+            return null;
+        }
+
+        const changeSummaries = featFixTitles.map((title) => `- ${title}`).join("\n");
+
+        const anthropic = createAnthropic({
+            baseURL: "https://grove-gateway-prod.azure-api.net/grove-foundry-prod/anthropic/v1",
+            apiKey: GROVE_API_KEY,
+            headers: { "api-key": GROVE_API_KEY },
+        });
+
+        const prompt = [
+            "You are writing release notes for MongoDB MCP Server, a tool that lets AI assistants interact with MongoDB databases and MongoDB Atlas.",
+            "Given these merged commit titles, write 2-3 sentences for end-users describing what's new in plain English.",
+            "Be concrete and avoid internal jargon. Only describe user-visible changes.",
+            "Focus primarily on new features (feat: titles) — mention bug fixes only if they address something particularly significant.",
+            "Respond with the release notes summary only, without any introductory text or formatting.",
+            `Commits:\n${changeSummaries}`,
+        ].join(" ");
+
         const { text } = await generateText({
             model: anthropic("claude-sonnet-4-6"),
             messages: [{ role: "user", content: prompt }],

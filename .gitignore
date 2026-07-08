@@ -35,3 +35,6 @@ dist-mcpb/
 .bt
 # Generated eval pre-bundle for Braintrust
 tests/eval/dist
+
+# Personal agent configs
+CLAUDE.local.md

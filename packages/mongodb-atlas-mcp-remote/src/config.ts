@@ -1,9 +1,13 @@
-import { LOG_LEVELS } from "./common.js";
-import type { AppConfig, LogLevel } from "./common.js";
+import type { AppConfig } from "./common.js";
 
-const DEFAULT_BASE_URL = "https://cloud.mongodb.com";
+const DEFAULT_MCP_BASE_URL = "https://mcp.mongodb.com";
 const DEFAULT_TOKEN_TIMEOUT_MS = 10_000;
-const DEFAULT_LOG_LEVEL: LogLevel = "info";
+
+const MCP_BASE_URL_TO_OAUTH_BASE: Readonly<Record<string, string>> = {
+    "https://mcp.mongodb.com": "https://cloud.mongodb.com",
+    "https://mcp-dev.mongodb.com": "https://cloud-dev.mongodb.com",
+    "https://mcp-qa.mongodb.com": "https://cloud-qa.mongodb.com",
+};
 
 function loadPosIntEnvVar(name: string, defaultValue: number, errors: string[]): number {
     const value = process.env[name];
@@ -30,19 +34,13 @@ export function loadConfig(): AppConfig {
         errors.push("MDB_MCP_API_CLIENT_SECRET is required");
     }
 
-    const baseUrl = process.env.MDB_MCP_API_BASE_URL
+    const mcpBaseUrl = process.env.MDB_MCP_API_BASE_URL
         ? process.env.MDB_MCP_API_BASE_URL.replace(/\/+$/, "")
-        : DEFAULT_BASE_URL;
+        : DEFAULT_MCP_BASE_URL;
+
+    const oauthBaseUrl = MCP_BASE_URL_TO_OAUTH_BASE[mcpBaseUrl] ?? mcpBaseUrl;
 
     const tokenTimeoutMs = loadPosIntEnvVar("MDB_MCP_TOKEN_TIMEOUT_MS", DEFAULT_TOKEN_TIMEOUT_MS, errors);
-
-    let logLevel: LogLevel = DEFAULT_LOG_LEVEL;
-    if (process.env.MDB_MCP_LOG_LEVEL) {
-        logLevel = process.env.MDB_MCP_LOG_LEVEL.toLowerCase() as LogLevel;
-        if (!LOG_LEVELS.includes(logLevel)) {
-            errors.push(`MDB_MCP_LOG_LEVEL must be one of: ${LOG_LEVELS.join(", ")}, got: ${logLevel}`);
-        }
-    }
 
     if (errors.length > 0) {
         throw new ConfigurationError(errors);
@@ -51,10 +49,9 @@ export function loadConfig(): AppConfig {
     return {
         clientId: clientId ?? "",
         clientSecret: clientSecret ?? "",
-        tokenUrl: new URL("/api/oauth/token", baseUrl).toString(),
-        remoteUrl: new URL("/api/private/mcp", baseUrl).toString(), // TODO: Switch to https://mcp.mongodb.com/mcp once available across all environments.
+        tokenUrl: new URL("/api/oauth/token", oauthBaseUrl).toString(),
+        remoteUrl: mcpBaseUrl,
         tokenTimeoutMs,
-        logLevel,
     };
 }
 

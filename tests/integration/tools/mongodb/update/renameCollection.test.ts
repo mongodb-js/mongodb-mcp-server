@@ -43,7 +43,7 @@ describeWithMongoDB("renameCollection tool", (integration) => {
                 arguments: { database: "non-existent", collection: "foos", newName: "bar" },
             });
             const content = getResponseContent(response.content);
-            expect(content).toEqual(`Cannot rename "non-existent.foos" because it doesn't exist.`);
+            expect(content).toEqual(`Cannot rename the requested collection because it doesn't exist.`);
         });
     });
 
@@ -57,9 +57,7 @@ describeWithMongoDB("renameCollection tool", (integration) => {
                 arguments: { database: integration.randomDbName(), collection: "non-existent", newName: "foo" },
             });
             const content = getResponseContent(response.content);
-            expect(content).toEqual(
-                `Cannot rename "${integration.randomDbName()}.non-existent" because it doesn't exist.`
-            );
+            expect(content).toEqual(`Cannot rename the requested collection because it doesn't exist.`);
         });
     });
 
@@ -77,9 +75,7 @@ describeWithMongoDB("renameCollection tool", (integration) => {
                 arguments: { database: integration.randomDbName(), collection: "before", newName: "after" },
             });
             const content = getResponseContent(response.content);
-            expect(content).toEqual(
-                `Collection "before" renamed to "after" in database "${integration.randomDbName()}".`
-            );
+            expect(content).toEqual(`The collection was renamed successfully in the requested database.`);
 
             const structuredContent = response.structuredContent as RenameCollectionOutput;
             expect(structuredContent.database).toBe(integration.randomDbName());
@@ -120,7 +116,7 @@ describeWithMongoDB("renameCollection tool", (integration) => {
             });
             const content = getResponseContent(response.content);
             expect(content).toEqual(
-                `Cannot rename "${integration.randomDbName()}.before" to "after" because the target collection already exists. If you want to overwrite it, set the "dropTarget" argument to true.`
+                `Cannot rename the requested collection because the target collection already exists. If you want to overwrite it, set the "dropTarget" argument to true.`
             );
 
             const structuredContent = response.structuredContent as RenameCollectionOutput;
@@ -168,9 +164,7 @@ describeWithMongoDB("renameCollection tool", (integration) => {
                 },
             });
             const content = getResponseContent(response.content);
-            expect(content).toEqual(
-                `Collection "before" renamed to "after" in database "${integration.randomDbName()}".`
-            );
+            expect(content).toEqual(`The collection was renamed successfully in the requested database.`);
 
             // Ensure the data was moved
             const docsInBefore = await integration
@@ -259,9 +253,7 @@ describeWithMongoDB("renameCollection tool", (integration) => {
                 },
             });
             const content = getResponseContent(response.content);
-            expect(content).toEqual(
-                `Collection "before" renamed to "after" in database "${integration.randomDbName()}".`
-            );
+            expect(content).toEqual(`The collection was renamed successfully in the requested database.`);
         });
     });
 
@@ -271,7 +263,7 @@ describeWithMongoDB("renameCollection tool", (integration) => {
         () => {
             return {
                 args: { database: integration.randomDbName(), collection: "coll1", newName: "coll2" },
-                expectedResponse: `Collection "coll1" renamed to "coll2" in database "${integration.randomDbName()}".`,
+                expectedResponse: `The collection was renamed successfully in the requested database.`,
             };
         },
         async () => {

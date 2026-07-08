@@ -1,7 +1,8 @@
 import type { FetchLike } from "@modelcontextprotocol/client";
 import type { CachedToken, TokenResponse } from "./common.js";
 import { packageInfo } from "./packageInfo.js";
-import { logger } from "./logger.js";
+import { logger, setAccessToken } from "./logger.js";
+import { LogId } from "./logging/index.js";
 
 const TOKEN_EXPIRY_BUFFER_MS = 10 * 60 * 1000; // 10 minutes
 
@@ -57,7 +58,7 @@ export class TokenManager {
     }
 
     private async fetchToken(): Promise<CachedToken> {
-        logger.debug("Fetching new access token");
+        logger.debug({ id: LogId.tokenFetch, context: "tokenManager", message: "Fetching new access token" });
 
         const credentials = Buffer.from(`${this.clientId}:${this.clientSecret}`).toString("base64");
 
@@ -98,7 +99,14 @@ export class TokenManager {
             expiresAt: Date.now() + expiresInS * 1000,
         };
 
-        logger.debug(`Token acquired, expires in ${expiresInS}s`);
+        setAccessToken(token.accessToken);
+
+        logger.debug({
+            id: LogId.tokenAcquired,
+            context: "tokenManager",
+            message: "Token acquired",
+            attributes: { expiresIn: `${expiresInS}s` },
+        });
         return token;
     }
 }

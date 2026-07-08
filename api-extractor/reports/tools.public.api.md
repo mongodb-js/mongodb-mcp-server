@@ -481,7 +481,18 @@ export class CreateDBUserTool extends AtlasToolBase {
         username: z.ZodString;
         password: z.ZodOptional<z.ZodString>;
         roles: z.ZodArray<z.ZodObject<{
-            roleName: z.ZodString;
+            roleName: z.ZodUnion<readonly [z.ZodEnum<{
+                atlasAdmin: "atlasAdmin";
+                backup: "backup";
+                clusterMonitor: "clusterMonitor";
+                dbAdmin: "dbAdmin";
+                dbAdminAnyDatabase: "dbAdminAnyDatabase";
+                enableSharding: "enableSharding";
+                read: "read";
+                readAnyDatabase: "readAnyDatabase";
+                readWrite: "readWrite";
+                readWriteAnyDatabase: "readWriteAnyDatabase";
+            }>, z.ZodString]>;
             databaseName: z.ZodDefault<z.ZodString>;
             collectionName: z.ZodOptional<z.ZodString>;
         }, z.core.$strip>>;
@@ -652,7 +663,7 @@ export class CreateProjectTool extends AtlasToolBase {
     // (undocumented)
     argsShape: {
         projectName: z.ZodOptional<z.ZodString>;
-        organizationId: z.ZodOptional<z.ZodString>;
+        orgId: z.ZodOptional<z.ZodString>;
     };
     // (undocumented)
     description: string;
@@ -663,7 +674,7 @@ export class CreateProjectTool extends AtlasToolBase {
     // (undocumented)
     outputSchema: {
         projectName: z.ZodString;
-        organizationId: z.ZodOptional<z.ZodString>;
+        orgId: z.ZodOptional<z.ZodString>;
     };
     // (undocumented)
     static toolName: string;
@@ -1205,6 +1216,7 @@ export class ListClustersTool extends AtlasToolBase {
     // (undocumented)
     outputSchema: {
         projectId: z.ZodOptional<z.ZodString>;
+        projectName: z.ZodOptional<z.ZodString>;
         clusters: z.ZodArray<z.ZodUnion<readonly [z.ZodObject<{
             clusterName: z.ZodOptional<z.ZodString>;
             projectId: z.ZodOptional<z.ZodString>;

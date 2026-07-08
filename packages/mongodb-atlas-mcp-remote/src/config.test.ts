@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { loadConfig, ConfigurationError } from "./config.js";
-import { LOG_LEVELS } from "./common.js";
 import type { AppConfig } from "./common.js";
 
 const TEST_CLIENT_ID = "client-id";
@@ -10,7 +9,6 @@ const CONFIG_ENV_VARS = [
     "MDB_MCP_API_CLIENT_ID",
     "MDB_MCP_API_CLIENT_SECRET",
     "MDB_MCP_API_BASE_URL",
-    "MDB_MCP_LOG_LEVEL",
     "MDB_MCP_TOKEN_TIMEOUT_MS",
 ] as const;
 
@@ -33,8 +31,7 @@ const DEFAULT_CONFIG: AppConfig = {
     clientId: TEST_CLIENT_ID,
     clientSecret: TEST_CLIENT_SECRET,
     tokenUrl: "https://cloud.mongodb.com/api/oauth/token",
-    remoteUrl: "https://cloud.mongodb.com/api/private/mcp",
-    logLevel: "info",
+    remoteUrl: "https://mcp.mongodb.com",
     tokenTimeoutMs: 10_000,
 };
 
@@ -56,21 +53,13 @@ describe("loadConfig", () => {
             expect(loadConfig()).toEqual(DEFAULT_CONFIG);
         });
 
-        it("accepts all valid log levels", () => {
-            stubSA();
-            for (const level of LOG_LEVELS) {
-                vi.stubEnv("MDB_MCP_LOG_LEVEL", level);
-                expect(loadConfig()).toEqual({ ...DEFAULT_CONFIG, logLevel: level });
-            }
-        });
-
         it("accepts MDB_MCP_API_BASE_URL", () => {
             stubSA();
             vi.stubEnv("MDB_MCP_API_BASE_URL", "https://test.mongodb.com");
             expect(loadConfig()).toEqual({
                 ...DEFAULT_CONFIG,
                 tokenUrl: "https://test.mongodb.com/api/oauth/token",
-                remoteUrl: "https://test.mongodb.com/api/private/mcp",
+                remoteUrl: "https://test.mongodb.com",
             });
         });
 
@@ -100,15 +89,6 @@ describe("loadConfig", () => {
 
             const error = loadConfigExpectConfigurationError();
             expect(error.errors).toContain("MDB_MCP_API_CLIENT_SECRET is required");
-        });
-
-        it("throws ConfigurationError for invalid log levels", () => {
-            stubSA();
-            vi.stubEnv("MDB_MCP_LOG_LEVEL", "invalid");
-
-            const error = loadConfigExpectConfigurationError();
-            expect(error.errors[0]).toContain("MDB_MCP_LOG_LEVEL must be one of");
-            expect(error.errors[0]).toContain("got: invalid");
         });
 
         it("throws ConfigurationError for invalid token timeouts", () => {

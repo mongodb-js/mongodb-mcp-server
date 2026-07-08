@@ -1,7 +1,7 @@
 {
   "name": "mongodb-mcp-server",
   "description": "MongoDB Model Context Protocol Server",
-  "version": "1.14.0-prerelease.1",
+  "version": "1.14.0-prerelease.2",
   "type": "module",
   "packageManager": "pnpm@11.5.1",
   "mcpName": "io.github.mongodb-js/mongodb-mcp-server",
@@ -126,7 +126,7 @@
     "@lg-mcp/embeddable-uis": "^0.1.0",
     "@lg-mcp/hooks": "^0.2.0",
     "@microsoft/api-extractor": "^7.58.7",
-    "@modelcontextprotocol/inspector": "^0.21.2",
+    "@modelcontextprotocol/inspector": "^0.22.0",
     "@mongodb-js/oidc-mock-provider": "^0.13.7",
     "@redocly/cli": "^2.29.0",
     "@testing-library/jest-dom": "^6.9.1",
@@ -138,9 +138,9 @@
     "@types/semver": "^7.7.0",
     "@types/yargs-parser": "^21.0.3",
     "@typescript-eslint/parser": "^8.61.0",
-    "@vitejs/plugin-react": "^6.0.1",
-    "@vitest/coverage-v8": "^4.1.8",
-    "@vitest/eslint-plugin": "^1.6.19",
+    "@vitejs/plugin-react": "^6.0.3",
+    "@vitest/coverage-v8": "^4.1.9",
+    "@vitest/eslint-plugin": "^1.6.20",
     "ai": "^6.0.175",
     "braintrust": "^3.20.0",
     "concurrently": "^9.2.1",
@@ -164,7 +164,7 @@
     "react-dom": "^18.3.0",
     "semver": "^7.7.4",
     "simple-git": "^3.36.0",
-    "testcontainers": "^11.14.0",
+    "testcontainers": "^12.0.3",
     "tsx": "^4.20.5",
     "type-fest": "^5.6.0",
     "typescript": "^5.9.2",
@@ -173,7 +173,7 @@
     "vite": "^8.0.16",
     "vite-plugin-node-polyfills": "^0.26.0",
     "vite-plugin-singlefile": "^2.3.3",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.9"
   },
   "dependencies": {
     "@inquirer/prompts": "^8.0.2",

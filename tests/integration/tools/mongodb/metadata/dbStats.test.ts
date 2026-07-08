@@ -32,13 +32,15 @@ describeWithMongoDB("dbStats tool", (integration) => {
             });
             const elements = getResponseElements(response.content);
             expect(elements).toHaveLength(2);
-            expect(elements[0]?.text).toBe(`Statistics for database ${integration.randomDbName()}`);
+            expect(elements[0]?.text).toBe(`Statistics for database:`);
 
             const json = getDataFromUntrustedContent(elements[1]?.text ?? "{}");
-            const stats = JSON.parse(json) as {
-                db: string;
-                collections: unknown;
-                storageSize: unknown;
+            const { stats } = JSON.parse(json) as {
+                stats: {
+                    db: string;
+                    collections: unknown;
+                    storageSize: unknown;
+                };
             };
             expect(stats.db).toBe(integration.randomDbName());
             expectIdiomaticNumber(stats.collections, 0);
@@ -84,13 +86,15 @@ describeWithMongoDB("dbStats tool", (integration) => {
                 });
                 const elements = getResponseElements(response.content);
                 expect(elements).toHaveLength(2);
-                expect(elements[0]?.text).toBe(`Statistics for database ${integration.randomDbName()}`);
+                expect(elements[0]?.text).toBe(`Statistics for database:`);
 
-                const stats = JSON.parse(getDataFromUntrustedContent(elements[1]?.text ?? "{}")) as {
-                    db: string;
-                    collections: unknown;
-                    storageSize: unknown;
-                    objects: unknown;
+                const { stats } = JSON.parse(getDataFromUntrustedContent(elements[1]?.text ?? "{}")) as {
+                    stats: {
+                        db: string;
+                        collections: unknown;
+                        storageSize: unknown;
+                        objects: unknown;
+                    };
                 };
                 expect(stats.db).toBe(integration.randomDbName());
                 expectIdiomaticNumber(stats.collections, Object.entries(test.collections).length);
@@ -113,7 +117,7 @@ describeWithMongoDB("dbStats tool", (integration) => {
                 database: integration.randomDbName(),
                 collection: "foo",
             },
-            expectedResponse: `Statistics for database ${integration.randomDbName()}`,
+            expectedResponse: `Statistics for database:`,
         };
     });
 
