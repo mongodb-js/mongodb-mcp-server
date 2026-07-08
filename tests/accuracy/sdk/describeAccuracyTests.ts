@@ -63,7 +63,13 @@ export function describeAccuracyTests(
     {
         userConfig: partialUserConfig,
         clusterConfig,
-    }: { userConfig?: Partial<{ [k in keyof UserConfig]: string }>; clusterConfig?: MongoClusterConfiguration } = {}
+        suiteLabel,
+    }: {
+        userConfig?: Partial<{ [k in keyof UserConfig]: string }>;
+        clusterConfig?: MongoClusterConfiguration;
+        /** Labels this suite in vitest output and prefixes stored prompt keys so A/B runs don't merge results. */
+        suiteLabel?: string;
+    } = {}
 ): void {
     if (!process.env.MDB_ACCURACY_RUN_ID) {
         throw new Error("MDB_ACCURACY_RUN_ID env variable is required for accuracy test runs!");
@@ -74,94 +80,106 @@ export function describeAccuracyTests(
         throw new Error("No models available to test. Ensure that the API keys are properly setup!");
     }
 
-    const shouldSkip = clusterConfig && !MongoDBClusterProcess.isConfigurationSupportedInCurrentEnv(clusterConfig);
+    const registerTests = (): void => {
+        const shouldSkip = clusterConfig && !MongoDBClusterProcess.isConfigurationSupportedInCurrentEnv(clusterConfig);
 
-    const eachModel = describe.skipIf(shouldSkip).each(models);
+        const eachModel = describe.skipIf(shouldSkip).each(models);
 
-    eachModel(`$displayName`, function (model) {
-        const configsWithDescriptions = getConfigsWithDescriptions(accuracyTestConfigs);
-        const accuracyRunId = `${process.env.MDB_ACCURACY_RUN_ID}`;
-        const mdbIntegration = setupMongoDBIntegrationTest(clusterConfig);
-        const { populateTestData, cleanupTestDatabases } = prepareTestData(mdbIntegration);
+        eachModel(`$displayName`, function (model) {
+            const configsWithDescriptions = getConfigsWithDescriptions(accuracyTestConfigs);
+            const accuracyRunId = `${process.env.MDB_ACCURACY_RUN_ID}`;
+            const mdbIntegration = setupMongoDBIntegrationTest(clusterConfig);
+            const { populateTestData, cleanupTestDatabases } = prepareTestData(mdbIntegration);
 
-        const userConfig: Partial<{ [k in keyof UserConfig]: string }> = {
-            apiClientId: process.env.MDB_API_CLIENT_ID,
-            apiClientSecret: process.env.MDB_API_CLIENT_SECRET,
-            ...partialUserConfig,
-        };
+            const userConfig: Partial<{ [k in keyof UserConfig]: string }> = {
+                apiClientId: process.env.MDB_API_CLIENT_ID,
+                apiClientSecret: process.env.MDB_API_CLIENT_SECRET,
+                ...partialUserConfig,
+            };
 
-        let commitSHA: string;
-        let accuracyResultStorage: AccuracyResultStorage;
-        let testMCPClient: AccuracyTestingClient;
-        let agent: VercelAgent;
+            let commitSHA: string;
+            let accuracyResultStorage: AccuracyResultStorage;
+            let testMCPClient: AccuracyTestingClient;
+            let agent: VercelAgent;
 
-        beforeAll(async () => {
-            const retrievedCommitSHA = await getCommitSHA();
-            if (!retrievedCommitSHA) {
-                throw new Error("Could not derive commitSHA, exiting accuracy tests!");
-            }
-            commitSHA = retrievedCommitSHA;
+            beforeAll(async () => {
+                const retrievedCommitSHA = await getCommitSHA();
+                if (!retrievedCommitSHA) {
+                    throw new Error("Could not derive commitSHA, exiting accuracy tests!");
+                }
+                commitSHA = retrievedCommitSHA;
 
-            accuracyResultStorage = getAccuracyResultStorage();
-            testMCPClient = await AccuracyTestingClient.initializeClient(mdbIntegration.connectionString(), userConfig);
-            agent = getVercelToolCallingAgent();
-        });
-
-        beforeEach(async () => {
-            await cleanupTestDatabases();
-            await populateTestData();
-            testMCPClient.resetForTests();
-        });
-
-        afterAll(async () => {
-            await accuracyResultStorage?.close();
-            await testMCPClient?.close();
-        });
-
-        const eachTest = it.each(configsWithDescriptions);
-
-        eachTest("$description", async function (testConfig) {
-            testMCPClient.mockTools(testConfig.mockedTools ?? {});
-            const toolsForModel = await testMCPClient.vercelTools();
-
-            const timeBeforePrompt = Date.now();
-            const result = await agent.prompt(testConfig.prompt, model, toolsForModel, testConfig.systemPrompt);
-            const timeAfterPrompt = Date.now();
-
-            const llmToolCalls = testMCPClient.getLLMToolCalls();
-            let toolCallingAccuracy = calculateToolCallingAccuracy(testConfig.expectedToolCalls, llmToolCalls);
-            if (testConfig.customScorer) {
-                toolCallingAccuracy = await testConfig.customScorer(
-                    toolCallingAccuracy,
-                    llmToolCalls,
-                    mdbIntegration.mongoClient()
+                accuracyResultStorage = getAccuracyResultStorage();
+                testMCPClient = await AccuracyTestingClient.initializeClient(
+                    mdbIntegration.connectionString(),
+                    userConfig
                 );
-            }
+                agent = getVercelToolCallingAgent();
+            });
 
-            if (testConfig.validateAgentResult) {
-                await testConfig.validateAgentResult(result);
-            }
+            beforeEach(async () => {
+                await cleanupTestDatabases();
+                await populateTestData();
+                testMCPClient.resetForTests();
+            });
 
-            const responseTime = timeAfterPrompt - timeBeforePrompt;
-            await accuracyResultStorage.saveModelResponseForPrompt({
-                commitSHA,
-                runId: accuracyRunId,
-                prompt: testConfig.description,
-                expectedToolCalls: testConfig.expectedToolCalls,
-                modelResponse: {
-                    provider: model.provider,
-                    requestedModel: model.modelName,
-                    respondingModel: result.respondingModel,
-                    llmResponseTime: responseTime,
-                    toolCallingAccuracy: toolCallingAccuracy,
-                    llmToolCalls: llmToolCalls,
-                    tokensUsed: result.tokensUsage,
-                    text: result.text,
-                    messages: result.messages,
-                },
+            afterAll(async () => {
+                await accuracyResultStorage?.close();
+                await testMCPClient?.close();
+            });
+
+            const eachTest = it.each(configsWithDescriptions);
+
+            eachTest("$description", async function (testConfig) {
+                testMCPClient.mockTools(testConfig.mockedTools ?? {});
+                const toolsForModel = await testMCPClient.vercelTools();
+
+                const timeBeforePrompt = Date.now();
+                const result = await agent.prompt(testConfig.prompt, model, toolsForModel, testConfig.systemPrompt);
+                const timeAfterPrompt = Date.now();
+
+                const llmToolCalls = testMCPClient.getLLMToolCalls();
+                let toolCallingAccuracy = calculateToolCallingAccuracy(testConfig.expectedToolCalls, llmToolCalls);
+                if (testConfig.customScorer) {
+                    toolCallingAccuracy = await testConfig.customScorer(
+                        toolCallingAccuracy,
+                        llmToolCalls,
+                        mdbIntegration.mongoClient()
+                    );
+                }
+
+                if (testConfig.validateAgentResult) {
+                    await testConfig.validateAgentResult(result);
+                }
+
+                const responseTime = timeAfterPrompt - timeBeforePrompt;
+                const storedPrompt = suiteLabel ? `[${suiteLabel}] ${testConfig.description}` : testConfig.description;
+                await accuracyResultStorage.saveModelResponseForPrompt({
+                    commitSHA,
+                    runId: accuracyRunId,
+                    prompt: storedPrompt,
+                    expectedToolCalls: testConfig.expectedToolCalls,
+                    modelResponse: {
+                        provider: model.provider,
+                        requestedModel: model.modelName,
+                        respondingModel: result.respondingModel,
+                        llmResponseTime: responseTime,
+                        toolCallingAccuracy: toolCallingAccuracy,
+                        llmToolCalls: llmToolCalls,
+                        tokensUsed: result.tokensUsage,
+                        text: result.text,
+                        messages: result.messages,
+                    },
+                });
             });
         });
-    });
+    };
+
+    if (suiteLabel) {
+        describe(suiteLabel, registerTests);
+    } else {
+        registerTests();
+    }
 }
 
 function getConfigsWithDescriptions(configs: AccuracyTestConfig[]): (AccuracyTestConfig & { description: string })[] {

@@ -123,10 +123,13 @@ export class GroveAnthropicModel implements Model {
 const ALL_TESTABLE_MODELS: Model[] = [
     new AzureOpenAIModel("gpt-4o"),
     new GroveOpenAICompatibleModel("gpt-4o", "OpenAI"),
-    //new GroveOpenAICompatibleModel("DeepSeek-V4-Pro", "DeepSeek"),
-    //new GroveOpenAICompatibleModel("Kimi-K2.6", "Kimi"),
-    //new GroveOpenAICompatibleModel("grok-4-20-reasoning", "Grok"),
+    new GroveOpenAICompatibleModel("gpt-5.4", "OpenAI"),
+    //new GroveOpenAICompatibleModel("DeepSeek-V4-Pro", "DeepSeek"), // Currently down
+    new GroveOpenAICompatibleModel("Kimi-K2.6", "Kimi"),
+    new GroveOpenAICompatibleModel("grok-4-20-reasoning", "Grok"),
+    new GroveAnthropicModel("claude-opus-4-7"),
     new GroveAnthropicModel("claude-sonnet-4-6"),
+    new GroveAnthropicModel("claude-haiku-4-5"),
 ];
 
 export function getAvailableModels(): Model[] {

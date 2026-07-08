@@ -1,3 +1,4 @@
+export { GetRegionsTool } from "./read/getRegions.js";
 export { ListClustersTool } from "./read/listClusters.js";
 export { ListProjectsTool } from "./read/listProjects.js";
 export { InspectClusterTool } from "./read/inspectCluster.js";

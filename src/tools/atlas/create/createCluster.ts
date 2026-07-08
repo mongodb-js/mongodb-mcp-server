@@ -5,6 +5,8 @@ import type { ClusterDescription20240805 } from "../../../common/atlas/openapi.j
 import { AtlasArgs } from "../../args.js";
 import type { CreateClusterMetadata } from "../../../telemetry/types.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { getCreateClusterRegionGuidance, getRegionArgDescription } from "../../../common/atlas/regionGuidance.js";
+import type { ToolConstructorParams } from "../../tool.js";
 
 /** @public */
 export const ATLAS_CREATE_CLUSTER_README_DESCRIPTION =
@@ -13,15 +15,12 @@ export const ATLAS_CREATE_CLUSTER_README_DESCRIPTION =
     "Disk autoscaling is always enabled. The tool returns immediately, use the atlas-inspect-cluster tool to poll the cluster state for readiness (state: IDLE). " +
     "Connection strings are unavailable until the cluster reaches IDLE state.";
 
-// Keeping this region recommendation string and the one for atlas-upgrade-cluster independent in the short term. The current effort is intentionally limited to additive changes only.
-// Differences include the mention of "non-exhaustive" and a nudge to respect user-specified regions when not in the mapping.
-const REGION_RECOMMENDATIONS = `Common, non-exhaustive region default mappings by provider:
-AWS: "East Coast"/"Virginia"/"US East" → US_EAST_1, "Ohio" → US_EAST_2, "California"/"West Coast" → US_WEST_2, "Southeast Asia"/"APAC"/"Singapore" → AP_SOUTHEAST_1, "Europe"/"EU"/"Ireland" → EU_WEST_1.
-GCP: "Central US" → CENTRAL_US, "Western US" → WESTERN_US, "Southeast Asia"/"APAC" → SOUTHEASTERN_ASIA_PACIFIC, "Europe"/"EU" → WESTERN_EUROPE.
-AZURE: "East US" → US_EAST_2, "West US" → US_WEST_2, "Europe North" → EUROPE_NORTH, "Europe West" → EUROPE_WEST.
-Default recommendation: AWS US_EAST_1.
-User-specified regions not present in the mapping MUST be respected, rely on the tool to surface errors if a region is not supported.
-`;
+const CREATE_CLUSTER_BASE_DESCRIPTION =
+    "Create a MongoDB Atlas cluster (M10–M80, replica set or single shard). " +
+    "Compute autoscaling is enabled by default: min instance size is set to the selected instance size, max is set two tiers above. " +
+    "Disk autoscaling is always enabled. The tool returns immediately, use the atlas-inspect-cluster tool to poll the cluster state for readiness (state: IDLE). " +
+    "Connection strings are unavailable until the cluster reaches IDLE state. " +
+    "Note to LLM: Omit instance size unless specified by the user. If provider and region are not already known, ask for both together in a single question before calling this tool. ";
 
 const instanceSizeEnum = z.enum(["M10", "M20", "M30", "M40", "M50", "M60", "M80"]);
 const cloudProviderEnum = z.enum(["AWS", "GCP", "AZURE"]);
@@ -201,15 +200,18 @@ const CreateClusterOutputSchema = {
 export class CreateClusterTool extends AtlasToolBase {
     static toolName = "atlas-create-cluster";
     static operationType: OperationType = "create";
-    public description =
-        "Create a MongoDB Atlas cluster (M10–M80, replica set or single shard). " +
-        "Compute autoscaling is enabled by default: min instance size is set to the selected instance size, max is set two tiers above. " +
-        "Disk autoscaling is always enabled. The tool returns immediately, use the atlas-inspect-cluster tool to poll the cluster state for readiness (state: IDLE). " +
-        "Connection strings are unavailable until the cluster reaches IDLE state. " +
-        "Note to LLM: Omit instance size unless specified by the user. If provider and region are not already known, ask for both together in a single question before calling this tool. " +
-        REGION_RECOMMENDATIONS;
+    public description: string;
     public override outputSchema = CreateClusterOutputSchema;
-    public argsShape = CreateClusterArgsShape;
+    public argsShape: typeof CreateClusterArgsShape;
+
+    constructor(params: ToolConstructorParams) {
+        super(params);
+        this.description = CREATE_CLUSTER_BASE_DESCRIPTION + getCreateClusterRegionGuidance(params.config);
+        this.argsShape = {
+            ...CreateClusterArgsShape,
+            region: AtlasArgs.region().describe(getRegionArgDescription(params.config)),
+        };
+    }
 
     protected async execute(
         args: ToolArgs<typeof this.argsShape>,

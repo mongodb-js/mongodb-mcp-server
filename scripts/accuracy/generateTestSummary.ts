@@ -10,9 +10,9 @@ import type {
 } from "../../tests/accuracy/sdk/accuracyResultStorage/resultStorage.js";
 import { getCommitSHA } from "../../tests/accuracy/sdk/gitInfo.js";
 import {
-    HTML_TEST_SUMMARY_FILE,
+    getHtmlTestSummaryFile,
+    getMarkdownTestBriefFile,
     HTML_TESTS_SUMMARY_TEMPLATE,
-    MARKDOWN_TEST_BRIEF_FILE,
 } from "../../tests/accuracy/sdk/constants.js";
 
 type ComparableAccuracyResult = Omit<AccuracyResult, "promptResults"> & {
@@ -208,7 +208,8 @@ async function generateHtmlReport(
 function generateMarkdownBrief(
     comparableResult: ComparableAccuracyResult,
     testSummary: TestSummary,
-    baselineInfo: BaselineRunInfo | null
+    baselineInfo: BaselineRunInfo | null,
+    htmlReportPath: string
 ): string {
     const markdownTexts = [
         "# 📊 Accuracy Test Results",
@@ -251,7 +252,7 @@ function generateMarkdownBrief(
 
     const reportLinkText = githubRunUrl
         ? `📎 **[Download Full HTML Report](${githubRunUrl})** - Look for the \`accuracy-test-summary\` artifact for detailed results.`
-        : `📎 **Full HTML Report**: \`${HTML_TEST_SUMMARY_FILE}\``;
+        : `📎 **Full HTML Report**: \`${htmlReportPath}\``;
 
     markdownTexts.push(...["---", reportLinkText, "", `*Report generated on: ${testSummary.reportGeneratedOn}*`]);
 
@@ -316,18 +317,21 @@ async function generateTestSummary(): Promise<void> {
         };
 
         // Ensure that our writable path actually exist.
-        await mkdir(path.dirname(HTML_TEST_SUMMARY_FILE), { recursive: true });
+        const summaryLabel = process.env.MDB_ACCURACY_SUMMARY_LABEL;
+        const htmlTestSummaryFile = getHtmlTestSummaryFile(summaryLabel);
+        const markdownTestBriefFile = getMarkdownTestBriefFile(summaryLabel);
+        await mkdir(path.dirname(htmlTestSummaryFile), { recursive: true });
 
-        console.log(`\n📊 Generating test summary for accuracy run: ${accuracyRunId}\n`);
+        console.log(`\n📊 Generating test summary for accuracy run: ${accuracyRunId}${summaryLabel ? ` (label: ${summaryLabel})` : ""}\n`);
         const testSummary = getTestSummary(comparableAccuracyResult);
 
         const htmlReport = await generateHtmlReport(comparableAccuracyResult, testSummary, baselineInfo);
-        await writeFile(HTML_TEST_SUMMARY_FILE, htmlReport, "utf8");
-        console.log(`✅ HTML report generated: ${HTML_TEST_SUMMARY_FILE}`);
+        await writeFile(htmlTestSummaryFile, htmlReport, "utf8");
+        console.log(`✅ HTML report generated: ${htmlTestSummaryFile}`);
 
-        const markdownBrief = generateMarkdownBrief(comparableAccuracyResult, testSummary, baselineInfo);
-        await writeFile(MARKDOWN_TEST_BRIEF_FILE, markdownBrief, "utf8");
-        console.log(`✅ Markdown brief generated: ${MARKDOWN_TEST_BRIEF_FILE}`);
+        const markdownBrief = generateMarkdownBrief(comparableAccuracyResult, testSummary, baselineInfo, htmlTestSummaryFile);
+        await writeFile(markdownTestBriefFile, markdownBrief, "utf8");
+        console.log(`✅ Markdown brief generated: ${markdownTestBriefFile}`);
 
         console.log(`\n📈 Summary:`);
         console.log(`   Total prompts evaluated: ${testSummary.totalPrompts}`);
