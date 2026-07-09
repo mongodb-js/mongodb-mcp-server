@@ -7,9 +7,8 @@ import { Keychain, redactValues } from "../../common/keychain.js";
 
 /**
  * Removes secret material from the driver options before exposing them via the config resource.
- * The mongosh arg-mapper places KMS credentials under `autoEncryption.kmsProviders` (e.g. the AWS
- * access key / secret / session token), so the whole `autoEncryption` block is replaced with a
- * non-sensitive summary rather than emitted verbatim.
+ * The `autoEncryption` block can carry a variety of sensitive values, so the whole block is
+ * replaced with a non-sensitive summary rather than emitted verbatim.
  */
 function redactDriverOptions(driverOptions: Record<string, unknown>): Record<string, unknown> {
     const { autoEncryption, ...rest } = driverOptions;
