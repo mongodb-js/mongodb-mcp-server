@@ -127,6 +127,9 @@ const ALL_TESTABLE_MODELS: Model[] = [
     //new GroveOpenAICompatibleModel("Kimi-K2.6", "Kimi"),
     //new GroveOpenAICompatibleModel("grok-4-20-reasoning", "Grok"),
     new GroveAnthropicModel("claude-sonnet-4-6"),
+    new GroveAnthropicModel("claude-opus-4-1"),     
+    new GroveAnthropicModel("claude-haiku-4-5"),     
+    new GroveOpenAICompatibleModel("gpt-5", "OpenAI"),
 ];
 
 export function getAvailableModels(): Model[] {

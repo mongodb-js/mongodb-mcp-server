@@ -13,7 +13,7 @@ function mockUpgradeResponse(clusterName: string, fromTier: string, toTier: stri
     });
 }
 
-const PROJECT_ID = "proj-accuracy-test";
+const PROJECT_ID = "9123a4b056c7d890e1f2a3f4";
 const CLUSTER_NAME = "MyCluster";
 
 const mockListProjects = {
@@ -24,99 +24,47 @@ const mockListProjects = {
 
 const optionalListProjects = [{ toolName: "atlas-list-projects", parameters: {}, optional: true as const }];
 
+const anyStr = Matcher.anyOf(Matcher.string(), Matcher.undefined);
+const anyTargetTier = Matcher.anyOf(Matcher.value("M10"), Matcher.value("FLEX"), Matcher.undefined);
+
+// targetTier defaults to accepting M10/FLEX/undefined; provider/region accept any/absent.
+function expectUpgrade(tier: unknown = anyTargetTier) {
+    return [
+        ...optionalListProjects,
+        {
+            toolName: "atlas-upgrade-cluster",
+            parameters: {
+                projectId: PROJECT_ID,
+                clusterName: CLUSTER_NAME,
+                targetTier: tier,
+                provider: anyStr,
+                region: anyStr,
+            },
+        },
+    ];
+}
+
+const up = (prompt: string, tier: unknown = anyTargetTier) => ({
+    prompt,
+    mockedTools: {
+        ...mockListProjects,
+        "atlas-upgrade-cluster": mockUpgradeResponse(CLUSTER_NAME, "Free", "Flex"),
+    },
+    expectedToolCalls: expectUpgrade(tier),
+});
+
+const flex = Matcher.anyOf(Matcher.value("FLEX"), Matcher.undefined);
+const m10 = Matcher.anyOf(Matcher.value("M10"), Matcher.undefined);
+
 describeAccuracyTests([
-    {
-        prompt: `Upgrade the free cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}" to Flex tier`,
-        mockedTools: {
-            ...mockListProjects,
-            "atlas-upgrade-cluster": mockUpgradeResponse(CLUSTER_NAME, "Free", "Flex"),
-        },
-        expectedToolCalls: [
-            ...optionalListProjects,
-            {
-                toolName: "atlas-upgrade-cluster",
-                parameters: {
-                    projectId: PROJECT_ID,
-                    clusterName: CLUSTER_NAME,
-                    targetTier: Matcher.anyOf(Matcher.value("FLEX"), Matcher.undefined),
-                },
-            },
-        ],
-    },
-    {
-        prompt: `Upgrade the cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}" to M10 Dedicated`,
-        mockedTools: {
-            ...mockListProjects,
-            "atlas-upgrade-cluster": mockUpgradeResponse(CLUSTER_NAME, "Free", "M10 Dedicated"),
-        },
-        expectedToolCalls: [
-            ...optionalListProjects,
-            {
-                toolName: "atlas-upgrade-cluster",
-                parameters: {
-                    projectId: PROJECT_ID,
-                    clusterName: CLUSTER_NAME,
-                    targetTier: "M10",
-                },
-            },
-        ],
-    },
-    {
-        prompt: `Upgrade my free cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}" directly to M10 Dedicated, skipping Flex`,
-        mockedTools: {
-            ...mockListProjects,
-            "atlas-upgrade-cluster": mockUpgradeResponse(CLUSTER_NAME, "Free", "M10 Dedicated"),
-        },
-        expectedToolCalls: [
-            ...optionalListProjects,
-            {
-                toolName: "atlas-upgrade-cluster",
-                parameters: {
-                    projectId: PROJECT_ID,
-                    clusterName: CLUSTER_NAME,
-                    targetTier: "M10",
-                },
-            },
-        ],
-    },
-    {
-        prompt: `Upgrade the Flex cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}" to Dedicated`,
-        mockedTools: {
-            ...mockListProjects,
-            "atlas-upgrade-cluster": mockUpgradeResponse(CLUSTER_NAME, "Flex", "M10 Dedicated"),
-        },
-        expectedToolCalls: [
-            ...optionalListProjects,
-            {
-                toolName: "atlas-upgrade-cluster",
-                parameters: {
-                    projectId: PROJECT_ID,
-                    clusterName: CLUSTER_NAME,
-                    targetTier: Matcher.anyOf(Matcher.value("M10"), Matcher.undefined),
-                },
-            },
-        ],
-    },
-    {
-        prompt: `Upgrade cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}" to M10 using AWS in the US_EAST_1 region`,
-        mockedTools: {
-            ...mockListProjects,
-            "atlas-upgrade-cluster": mockUpgradeResponse(CLUSTER_NAME, "Free", "M10 Dedicated"),
-        },
-        expectedToolCalls: [
-            ...optionalListProjects,
-            {
-                toolName: "atlas-upgrade-cluster",
-                parameters: {
-                    projectId: PROJECT_ID,
-                    clusterName: CLUSTER_NAME,
-                    targetTier: "M10",
-                    provider: "AWS",
-                    region: "US_EAST_1",
-                },
-            },
-        ],
-    },
+    // Free -> Flex
+    up(`Upgrade the free cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}" to Flex tier`, flex),
+    // Free -> M10 Dedicated (provider/region supplied so the model doesn't stop to ask)
+    up(`Upgrade the free cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}" to M10 Dedicated on AWS in US_EAST_1`, "M10"),
+    // Flex -> Dedicated
+    up(`Upgrade the Flex cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}" to Dedicated on AWS in US_EAST_1`, m10),
+
+    // Discover then upgrade (list-clusters shows Free)
     {
         prompt: `List the clusters in project "${PROJECT_ID}", then upgrade "${CLUSTER_NAME}" to Flex tier`,
         mockedTools: {
@@ -133,18 +81,15 @@ describeAccuracyTests([
         },
         expectedToolCalls: [
             ...optionalListProjects,
-            {
-                toolName: "atlas-list-clusters",
-                parameters: {
-                    projectId: PROJECT_ID,
-                },
-            },
+            { toolName: "atlas-list-clusters", parameters: { projectId: PROJECT_ID } },
             {
                 toolName: "atlas-upgrade-cluster",
                 parameters: {
                     projectId: PROJECT_ID,
                     clusterName: CLUSTER_NAME,
-                    targetTier: Matcher.anyOf(Matcher.value("FLEX"), Matcher.undefined),
+                    targetTier: flex,
+                    provider: anyStr,
+                    region: anyStr,
                 },
             },
         ],

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "MongoDB": {
+      "command": "node",
+      "args": ["/Users/layla.abdelmaksoud/mongodb-mcp-server/dist/esm/index.js"]
+    }
+  }
+}
