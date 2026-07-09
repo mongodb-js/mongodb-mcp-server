@@ -19,14 +19,14 @@ jobs:
     name: Generate SBOM and vulnerability report
     runs-on: ubuntu-latest
     steps:
-      - uses: mongodb-js/devtools-shared/actions/setup-bot-token@main
+      - uses: mongodb-js/devtools-shared/actions/setup-bot-token@04e390e1e6157b3edbc120f3d9359d3fb47ab839 # main
         id: app-token
         with:
           app-id: ${{ vars.DEVTOOLS_BOT_APP_ID }}
           private-key: ${{ secrets.DEVTOOLS_BOT_PRIVATE_KEY }}
 
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           token: ${{ steps.app-token.outputs.token }}
           persist-credentials: true
@@ -37,8 +37,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # This repository is public, so workflow logs are visible to anyone. We redirect
+      # all command output (stdout and stderr) so nothing about specific findings -
+      # including counts - reaches the public log; only a generic pass/fail signal is
+      # surfaced here. Review results directly at https://app.snyk.io if this fails.
       - name: Generate vulnerability report
-        run: pnpm run generate-vulnerability-report
+        run: |
+          pnpm run generate-vulnerability-report > /dev/null 2>&1 \
+            || { echo "::error::Vulnerability check failed: known high/critical severity vulnerabilities need remediation. Review results privately via https://app.snyk.io."; exit 1; }
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
@@ -48,13 +54,21 @@ jobs:
 
       - name: Upload SBOM artifacts
         if: always()
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v7.0.1
         with:
           name: sbom
-          path: .sbom/
+          # This repository is public, so uploaded artifacts are downloadable by anyone.
+          # Exclude the vulnerability report and raw Snyk results, which can disclose
+          # exploitable, unpatched vulnerabilities.
+          path: |
+            .sbom/
+            !.sbom/vulnerability-report.md
+            !.sbom/snyk-test-result.json
 
       - name: Commit and push updated third-party notices
-        if: always()
+        # Pull request runs check out a detached, unmergeable ref, so there is no
+        # branch to push updates to; only commit and push on schedule/dispatch runs.
+        if: always() && github.event_name != 'pull_request'
         env:
           GIT_AUTHOR_NAME: "${{ steps.app-token.outputs.app-slug}}[bot]"
           GIT_AUTHOR_EMAIL: "${{ steps.app-token.outputs.app-email }}"
