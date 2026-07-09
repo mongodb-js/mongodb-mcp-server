@@ -3,8 +3,7 @@ import type { UserConfig } from "../../common/config/userConfig.js";
 import type { Telemetry } from "../../telemetry/telemetry.js";
 import type { Session } from "../../lib.js";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
-import { redact } from "mongodb-redact";
-import { Keychain } from "../../common/keychain.js";
+import { Keychain, redactValues } from "../../common/keychain.js";
 
 /**
  * Removes secret material from the driver options before exposing them via the config resource.
@@ -63,8 +62,8 @@ export class ConfigResource extends ReactiveResource<UserConfig, readonly []> {
         };
 
         // Backstop: redact any remaining registered secrets (keychain) before egress, matching
-        // the redaction applied on every logging path. Prefer session secrets, fall back to root.
+        // the redaction applied on every logging path. Redact per-value so JSON stays valid.
         const secrets = [...this.session.keychain.allSecrets, ...Keychain.root.allSecrets];
-        return redact(JSON.stringify(result), secrets);
+        return JSON.stringify(redactValues(result, secrets));
     }
 }
