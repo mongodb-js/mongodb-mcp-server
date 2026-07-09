@@ -9,5 +9,7 @@ export const LogId = {
     shutdown: mongoLogId(1_014_006),
     httpSendError: mongoLogId(1_014_007),
     sessionInfo: mongoLogId(1_014_008),
+    sessionExpired: mongoLogId(1_014_009),
+    sessionReinitialized: mongoLogId(1_014_010),
     configError: mongoLogId(1_014_011),
 } as const;

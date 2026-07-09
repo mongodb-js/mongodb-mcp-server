@@ -1,0 +1,35 @@
+name: Wait for npm package availability
+description: Polls npm until the specified package version becomes available.
+
+inputs:
+  package-name:
+    description: npm package name (e.g. mongodb-mcp-server)
+    required: true
+  package-version:
+    description: npm package version to wait for (e.g. 1.2.3)
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Wait for package to be available on npm
+      shell: bash
+      run: |
+        PACKAGE_NAME="${{ inputs.package-name }}"
+        NPM_VERSION="${{ inputs.package-version }}"
+        MAX_ATTEMPTS=30
+        SLEEP_SECONDS=10
+
+        echo "Waiting for ${PACKAGE_NAME}@${NPM_VERSION} to be available on npm..."
+
+        for i in $(seq 1 $MAX_ATTEMPTS); do
+          if npm view "${PACKAGE_NAME}@${NPM_VERSION}" version >/dev/null 2>&1; then
+            echo "✓ Package ${PACKAGE_NAME}@${NPM_VERSION} is now available on npm"
+            exit 0
+          fi
+          echo "Attempt $i/$MAX_ATTEMPTS: Package not yet available, waiting ${SLEEP_SECONDS}s..."
+          sleep $SLEEP_SECONDS
+        done
+
+        echo "::error::Package ${PACKAGE_NAME}@${NPM_VERSION} did not become available after $((MAX_ATTEMPTS * SLEEP_SECONDS)) seconds"
+        exit 1

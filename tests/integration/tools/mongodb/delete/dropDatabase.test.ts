@@ -36,7 +36,7 @@ describeWithMongoDB("dropDatabase tool", (integration) => {
         });
 
         const content = getResponseContent(response.content);
-        expect(content).toContain(`Successfully dropped database "${integration.randomDbName()}"`);
+        expect(content).toContain(`Successfully dropped the requested database.`);
 
         ({ databases } = await integration.mongoClient().db("").admin().listDatabases());
 
@@ -58,7 +58,7 @@ describeWithMongoDB("dropDatabase tool", (integration) => {
             },
         });
         const content = getResponseContent(response.content);
-        expect(content).toContain(`Successfully dropped database "${integration.randomDbName()}"`);
+        expect(content).toContain(`Successfully dropped the requested database.`);
 
         const structuredContent = response.structuredContent as DropDatabaseOutput;
         expect(structuredContent.database).toBe(integration.randomDbName());
@@ -77,7 +77,7 @@ describeWithMongoDB("dropDatabase tool", (integration) => {
         () => {
             return {
                 args: { database: integration.randomDbName() },
-                expectedResponse: `Successfully dropped database "${integration.randomDbName()}"`,
+                expectedResponse: `Successfully dropped the requested database.`,
             };
         },
         async () => {
