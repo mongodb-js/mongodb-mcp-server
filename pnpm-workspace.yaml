@@ -13,6 +13,7 @@ allowBuilds:
   mongodb-client-encryption: true
   os-dns-native: true
   protobufjs: true
+  snyk: true
   ssh2: true
   win-export-certificate-and-key: true
 minimumReleaseAgeExclude:
