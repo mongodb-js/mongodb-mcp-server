@@ -1,5 +1,5 @@
 ---
-name: SBOM
+name: Dependency Health
 
 on:
   schedule:
@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   generate:
-    name: Generate SBOM and vulnerability report
+    name: Scan dependencies and update notices
     runs-on: ubuntu-latest
     steps:
       - uses: mongodb-js/devtools-shared/actions/setup-bot-token@04e390e1e6157b3edbc120f3d9359d3fb47ab839 # main
@@ -37,32 +37,43 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # This repository is public, so workflow logs are visible to anyone. We redirect
-      # all command output (stdout and stderr) so nothing about specific findings -
-      # including counts - reaches the public log; only a generic pass/fail signal is
-      # surfaced here. Review results directly at https://app.snyk.io if this fails.
-      - name: Generate vulnerability report
+      - name: Generate dependency SBOM
+        run: pnpm run create-dependency-sbom-lists
+
+      - name: Run Snyk scan
+        id: snyk
         run: |
-          pnpm run generate-vuilnerability-report > /dev/null 2>&1
+          pnpm run snyk-test
+
+          # Extracted so a failure can link to the Snyk dashboard without printing
+          # any vulnerability specifics to the (public) log.
+          ORG=$(jq -r 'if type == "array" then .[0].org else .org end // empty' .sbom/snyk-test-result.json 2>/dev/null || true)
+          echo "org=${ORG}" >> "$GITHUB_OUTPUT"
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      - name: Generate vulnerability report
+        run: |
+          set +e
+          pnpm run generate-vulnerability-report > /dev/null 2>&1
+          status=$?
+          set -e
+          if [ "$status" -ne 0 ]; then
+            org="${{ steps.snyk.outputs.org }}"
+            link="https://app.snyk.io${org:+/org/${org}}/projects"
+            echo "::error title=Vulnerabilities found::High-or-higher severity vulnerabilities were found. Review at ${link}."
+            exit "$status"
+          fi
+        env:
+          JIRA_BASE_URL: https://jira.mongodb.org
+          JIRA_PROJECT: MCP
+          JIRA_API_TOKEN: ${{ github.event_name != 'pull_request' && secrets.JIRA_API_TOKEN || '' }}
+          # Rendered verbatim into the Jira ticket body (Jira wiki markup, not markdown).
+          JIRA_VULNERABILITY_BUILD_INFO: "Detected by the [Dependency Health workflow run|${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}]."
 
       - name: Update third-party notices
         if: always()
         run: pnpm run update-third-party-notices
-
-      - name: Upload SBOM artifacts
-        if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v7.0.1
-        with:
-          name: sbom
-          # This repository is public, so uploaded artifacts are downloadable by anyone.
-          # Exclude the vulnerability report and raw Snyk results, which can disclose
-          # exploitable, unpatched vulnerabilities.
-          path: |
-            .sbom/
-            !.sbom/vulnerability-report.md
-            !.sbom/snyk-test-result.json
 
       - name: Commit and push updated third-party notices
         # Pull request runs check out a detached, unmergeable ref, so there is no
