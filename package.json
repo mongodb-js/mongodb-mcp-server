@@ -110,7 +110,13 @@
     "eval:generate-schemas": "tsx tests/eval/scripts/generateSchemas.ts",
     "eval:bundle": "tsx tests/eval/scripts/bundleEval.ts",
     "eval:serve": "BRAINTRUST_API_KEY_OVERRIDE=$BRAINTRUST_API_KEY bt eval --dev tests/eval/mongodb.eval.ts",
-    "eval:push": "pnpm run eval:bundle && braintrust push tests/eval/dist/mongodb.eval.cjs --if-exists replace"
+    "eval:push": "pnpm run eval:bundle && braintrust push tests/eval/dist/mongodb.eval.cjs --if-exists replace",
+    "create-dependency-sbom-lists": "mkdir -p .sbom && pnpm sbom --sbom-format cyclonedx > .sbom/dependencies.json && pnpm sbom --sbom-format cyclonedx --prod > .sbom/dependencies-prod.json && tsx scripts/sbomReport/index.ts",
+    "snyk-test": "mkdir -p .sbom && (snyk test --all-projects --json > .sbom/snyk-test-result.json || true)",
+    "pregenerate-vulnerability-report": "pnpm run create-dependency-sbom-lists && pnpm run snyk-test",
+    "generate-vulnerability-report": "mongodb-sbom-tools generate-vulnerability-report --dependencies=.sbom/dependencies-list.json --snyk-reports=.sbom/snyk-test-result.json --fail-on=high > .sbom/vulnerability-report.md",
+    "preupdate-third-party-notices": "pnpm run create-dependency-sbom-lists",
+    "update-third-party-notices": "mongodb-sbom-tools generate-3rd-party-notices --product=\"MongoDB MCP Server\" --dependencies=.sbom/dependencies-with-licenses-prod.json --config=licenses.json > THIRD_PARTY_NOTICES.md"
   },
   "license": "Apache-2.0",
   "devDependencies": {
@@ -128,6 +134,7 @@
     "@microsoft/api-extractor": "^7.58.7",
     "@modelcontextprotocol/inspector": "^0.22.0",
     "@mongodb-js/oidc-mock-provider": "^0.13.7",
+    "@mongodb-js/sbom-tools": "^0.10.5",
     "@redocly/cli": "^2.29.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -164,6 +171,7 @@
     "react-dom": "^18.3.0",
     "semver": "^7.7.4",
     "simple-git": "^3.36.0",
+    "snyk": "^1.1306.0",
     "testcontainers": "^12.0.3",
     "tsx": "^4.20.5",
     "type-fest": "^5.6.0",
