@@ -43,7 +43,7 @@ jobs:
       # surfaced here. Review results directly at https://app.snyk.io if this fails.
       - name: Generate vulnerability report
         run: |
-          pnpm run generate-vuilnerability-report > /dev/null 2>&1 || true
+          pnpm run generate-vuilnerability-report > /dev/null 2>&1
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
