@@ -41,14 +41,7 @@ jobs:
         run: pnpm run create-dependency-sbom-lists
 
       - name: Run Snyk scan
-        id: snyk
-        run: |
-          pnpm run snyk-test
-
-          # Extracted so a failure can link to the Snyk dashboard without printing
-          # any vulnerability specifics to the (public) log.
-          ORG=$(jq -r 'if type == "array" then .[0].org else .org end // empty' .sbom/snyk-test-result.json 2>/dev/null || true)
-          echo "org=${ORG}" >> "$GITHUB_OUTPUT"
+        run: pnpm run snyk-test
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
@@ -59,9 +52,8 @@ jobs:
           status=$?
           set -e
           if [ "$status" -ne 0 ]; then
-            org="${{ steps.snyk.outputs.org }}"
-            link="https://app.snyk.io${org:+/org/${org}}/projects"
-            echo "::error title=Vulnerabilities found::High-or-higher severity vulnerabilities were found. Review at ${link}."
+            run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            echo "::error title=Vulnerabilities found::High-or-higher severity vulnerabilities were found. See the vulnerability-report artifact on ${run_url}."
             exit "$status"
           fi
         env:
@@ -70,6 +62,14 @@ jobs:
           JIRA_API_TOKEN: ${{ github.event_name != 'pull_request' && secrets.JIRA_API_TOKEN || '' }}
           # Rendered verbatim into the Jira ticket body (Jira wiki markup, not markdown).
           JIRA_VULNERABILITY_BUILD_INFO: "Detected by the [Dependency Health workflow run|${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}]."
+
+      - name: Upload vulnerability report
+        if: always()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v7.0.1
+        with:
+          name: vulnerability-report
+          path: .sbom/vulnerability-report.md
+          retention-days: 1
 
       - name: Update third-party notices
         if: always()
