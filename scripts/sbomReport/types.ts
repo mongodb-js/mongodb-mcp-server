@@ -18,17 +18,14 @@ export type CycloneDxBom = {
     components?: CycloneDxComponent[];
 };
 
-export type Dependency = {
-    name: string;
-    version: string;
-};
-
 export type LicenseFile = {
     filename: string;
     content: string;
 };
 
-export type DependencyWithLicense = Dependency & {
+export type DependencyWithLicense = {
+    name: string;
+    version: string;
     license?: string;
     licenses?: string[];
     path?: string;
@@ -36,7 +33,6 @@ export type DependencyWithLicense = Dependency & {
 };
 
 export type Conversion = {
-    sbomPath: string;
+    prod: boolean;
     outputPath: string;
-    enrichedOutputPath: string;
 };
