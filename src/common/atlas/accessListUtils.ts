@@ -16,10 +16,19 @@ export const ACCESS_LIST_ADDED_NOTE =
  * Note appended to tool results when automatic IP access list setup was skipped
  * because the deployment cannot determine the caller's public IP address.
  */
-export const ACCESS_LIST_NOT_MODIFIED_NOTE =
+export const ACCESS_LIST_SKIPPED_NOTE =
     "No IP access list changes were made because this server cannot determine your public IP address. " +
     "To connect from your own machine, add its public IP address to the project's IP access list — " +
     "for example with the atlas-create-access-list tool or through the Atlas UI.";
+
+/**
+ * Note appended to tool results when the attempt to add the current public IP
+ * to the project's IP access list failed (IP lookup or entry creation error).
+ */
+export const ACCESS_LIST_FAILED_NOTE =
+    "No IP access list changes were made because the attempt to add your current IP address " +
+    "to the project's IP access list did not succeed. To connect from your own machine, " +
+    "retry with the atlas-create-access-list tool or add your IP through the Atlas UI.";
 
 /**
  * Maps an {@link EnsureCurrentIpResult} to the note a tool should append to its
@@ -33,8 +42,9 @@ export function getAccessListNote(result: EnsureCurrentIpResult): string | undef
         case "already-present":
             return undefined;
         case "skipped":
+            return ACCESS_LIST_SKIPPED_NOTE;
         case "failed":
-            return ACCESS_LIST_NOT_MODIFIED_NOTE;
+            return ACCESS_LIST_FAILED_NOTE;
     }
 }
 

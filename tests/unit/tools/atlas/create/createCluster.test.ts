@@ -333,6 +333,7 @@ describe("CreateClusterTool", () => {
             expect(mockApiClient.createCluster).toHaveBeenCalledOnce();
             const text = result.content.map((c) => (c as { text: string }).text).join("\n");
             expect(text).toContain("No IP access list changes were made");
+            expect(text).toContain("did not succeed");
         });
     });
 

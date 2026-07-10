@@ -108,6 +108,7 @@ describe("CreateFreeClusterTool", () => {
         const text = result.content.map((c) => (c as { text: string }).text).join("\n");
         expect(text).toContain('Cluster "free-cluster" has been created in region "US_EAST_1"');
         expect(text).toContain("No IP access list changes were made");
+        expect(text).toContain("cannot determine your public IP address");
         expect(text).not.toContain("Your current IP address has been added");
     });
 
@@ -119,7 +120,8 @@ describe("CreateFreeClusterTool", () => {
         expect(mockApiClient.createCluster).toHaveBeenCalledOnce();
         const text = result.content.map((c) => (c as { text: string }).text).join("\n");
         expect(text).toContain("No IP access list changes were made");
-        expect(text).not.toContain("Your current IP address has been added");
+        expect(text).toContain("did not succeed");
+        expect(text).not.toContain("cannot determine your public IP address");
     });
 
     it("calls createCluster with M0 replication specs", async () => {

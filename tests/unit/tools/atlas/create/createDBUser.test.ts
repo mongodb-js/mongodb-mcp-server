@@ -101,18 +101,28 @@ describe("CreateDBUserTool", () => {
         });
     });
 
-    it.each(["skipped", "failed"] as const)(
-        "notes that no access list changes were made when the current IP setup result is %s",
-        async (ensureResult) => {
-            vi.mocked(ensureCurrentIpInAccessList).mockResolvedValue(ensureResult);
+    it("explains that the current IP cannot be determined when the IP setup is skipped", async () => {
+        vi.mocked(ensureCurrentIpInAccessList).mockResolvedValue("skipped");
 
-            const result = await exec({ ...baseArgs, password: "user-password" });
+        const result = await exec({ ...baseArgs, password: "user-password" });
 
-            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
-            expect(text).toContain('User "test-user" created successfully');
-            expect(text).toContain("No IP access list changes were made");
-        }
-    );
+        const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+        expect(text).toContain('User "test-user" created successfully');
+        expect(text).toContain("No IP access list changes were made");
+        expect(text).toContain("cannot determine your public IP address");
+    });
+
+    it("explains that adding the current IP did not succeed when the IP setup fails", async () => {
+        vi.mocked(ensureCurrentIpInAccessList).mockResolvedValue("failed");
+
+        const result = await exec({ ...baseArgs, password: "user-password" });
+
+        const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+        expect(text).toContain('User "test-user" created successfully');
+        expect(text).toContain("No IP access list changes were made");
+        expect(text).toContain("did not succeed");
+        expect(text).not.toContain("cannot determine your public IP address");
+    });
 
     it("discloses that the current IP was added to the access list", async () => {
         vi.mocked(ensureCurrentIpInAccessList).mockResolvedValue("added");
