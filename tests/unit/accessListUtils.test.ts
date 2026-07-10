@@ -8,11 +8,12 @@ import type { LoggerBase } from "../../src/common/logging/loggerBase.js";
 describe("accessListUtils", () => {
     it("should add the current IP to the access list", async () => {
         const apiClient = {
+            supportsCurrentIpLookup: true,
             getIpInfo: vi.fn().mockResolvedValue({ currentIpv4Address: "127.0.0.1" } as never),
             createAccessListEntry: vi.fn().mockResolvedValue(undefined as never),
             logger: new NullLogger(),
         } as unknown as ApiClient;
-        await ensureCurrentIpInAccessList(apiClient, "projectId");
+        await expect(ensureCurrentIpInAccessList(apiClient, "projectId")).resolves.toBe("added");
         // eslint-disable-next-line @typescript-eslint/unbound-method
         expect(apiClient.createAccessListEntry).toHaveBeenCalledWith(
             {
@@ -25,6 +26,7 @@ describe("accessListUtils", () => {
 
     it("should not fail if the current IP is already in the access list", async () => {
         const apiClient = {
+            supportsCurrentIpLookup: true,
             getIpInfo: vi.fn().mockResolvedValue({ currentIpv4Address: "127.0.0.1" } as never),
             createAccessListEntry: vi
                 .fn()
@@ -36,7 +38,7 @@ describe("accessListUtils", () => {
                 ),
             logger: new NullLogger(),
         } as unknown as ApiClient;
-        await ensureCurrentIpInAccessList(apiClient, "projectId");
+        await expect(ensureCurrentIpInAccessList(apiClient, "projectId")).resolves.toBe("already-present");
         // eslint-disable-next-line @typescript-eslint/unbound-method
         expect(apiClient.createAccessListEntry).toHaveBeenCalledWith(
             {
@@ -45,6 +47,41 @@ describe("accessListUtils", () => {
             },
             undefined
         );
+    });
+
+    it("does not fail when the current IP cannot be determined", async () => {
+        const logger = { debug: vi.fn(), warning: vi.fn() } as unknown as LoggerBase;
+        const apiClient = {
+            supportsCurrentIpLookup: true,
+            getIpInfo: vi
+                .fn()
+                .mockRejectedValue(
+                    ApiClientError.fromError(
+                        { status: 404, statusText: "Not Found" } as Response,
+                        { message: "Not Found" } as never
+                    ) as never
+                ),
+            createAccessListEntry: vi.fn(),
+            logger,
+        } as unknown as ApiClient;
+        await expect(ensureCurrentIpInAccessList(apiClient, "projectId")).resolves.toBe("failed");
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(apiClient.createAccessListEntry).not.toHaveBeenCalled();
+        expect((logger as unknown as { warning: ReturnType<typeof vi.fn> }).warning).toHaveBeenCalled();
+    });
+
+    it("skips the IP lookup entirely when the api client does not support it", async () => {
+        const apiClient = {
+            supportsCurrentIpLookup: false,
+            getIpInfo: vi.fn(),
+            createAccessListEntry: vi.fn(),
+            logger: new NullLogger(),
+        } as unknown as ApiClient;
+        await expect(ensureCurrentIpInAccessList(apiClient, "projectId")).resolves.toBe("skipped");
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(apiClient.getIpInfo).not.toHaveBeenCalled();
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(apiClient.createAccessListEntry).not.toHaveBeenCalled();
     });
 
     const context = { requestInfo: { headers: { "x-request-id": "req-access-1" } } };
@@ -69,6 +106,7 @@ describe("accessListUtils", () => {
             createMock = vi.fn().mockRejectedValue(new Error("network error"));
         }
         return {
+            supportsCurrentIpLookup: true,
             getIpInfo: vi.fn().mockResolvedValue({ currentIpv4Address: "1.2.3.4" }),
             createAccessListEntry: createMock,
             logger,

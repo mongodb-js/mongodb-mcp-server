@@ -11,10 +11,11 @@ import type { ApiClient } from "../../../../../src/common/atlas/apiClient.js";
 import { UIRegistry } from "../../../../../src/ui/registry/index.js";
 import { MockMetrics } from "../../../mocks/metrics.js";
 import type { Keychain } from "../../../../../src/lib.js";
+import { ensureCurrentIpInAccessList } from "../../../../../src/common/atlas/accessListUtils.js";
 
-vi.mock("../../../../../src/common/atlas/accessListUtils.js", () => ({
-    ensureCurrentIpInAccessList: vi.fn().mockResolvedValue(false),
-    DEFAULT_ACCESS_LIST_COMMENT: "Added by MongoDB MCP Server to enable tool access",
+vi.mock("../../../../../src/common/atlas/accessListUtils.js", async (importOriginal) => ({
+    ...(await importOriginal<Record<string, unknown>>()),
+    ensureCurrentIpInAccessList: vi.fn(),
 }));
 
 vi.mock("../../../../../src/helpers/generatePassword.js", () => ({
@@ -33,6 +34,7 @@ describe("CreateDBUserTool", () => {
     };
 
     beforeEach(() => {
+        vi.mocked(ensureCurrentIpInAccessList).mockResolvedValue("added");
         register = vi.fn();
         mockApiClient = {
             createDatabaseUser: vi.fn().mockResolvedValue({}),
@@ -97,6 +99,37 @@ describe("CreateDBUserTool", () => {
             username: baseArgs.username,
             password: "generated-password",
         });
+    });
+
+    it.each(["skipped", "failed"] as const)(
+        "notes that no access list changes were made when the current IP setup result is %s",
+        async (ensureResult) => {
+            vi.mocked(ensureCurrentIpInAccessList).mockResolvedValue(ensureResult);
+
+            const result = await exec({ ...baseArgs, password: "user-password" });
+
+            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+            expect(text).toContain('User "test-user" created successfully');
+            expect(text).toContain("No IP access list changes were made");
+        }
+    );
+
+    it("discloses that the current IP was added to the access list", async () => {
+        vi.mocked(ensureCurrentIpInAccessList).mockResolvedValue("added");
+
+        const result = await exec({ ...baseArgs, password: "user-password" });
+
+        const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+        expect(text).toContain("Your current IP address has been added");
+    });
+
+    it("does not mention the access list when the current IP is already present", async () => {
+        vi.mocked(ensureCurrentIpInAccessList).mockResolvedValue("already-present");
+
+        const result = await exec({ ...baseArgs, password: "user-password" });
+
+        const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+        expect(text).not.toContain("access list");
     });
 
     it("passes cluster scopes to the API when clusters are provided", async () => {

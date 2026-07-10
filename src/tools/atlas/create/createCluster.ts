@@ -5,6 +5,7 @@ import type { ClusterDescription20240805 } from "../../../common/atlas/openapi.j
 import { AtlasArgs } from "../../args.js";
 import type { CreateClusterMetadata } from "../../../telemetry/types.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { ensureCurrentIpInAccessList, getAccessListNote } from "../../../common/atlas/accessListUtils.js";
 
 /** @public */
 export const ATLAS_CREATE_CLUSTER_README_DESCRIPTION =
@@ -246,6 +247,8 @@ export class CreateClusterTool extends AtlasToolBase {
             ...versionConfig,
         } as unknown as ClusterDescription20240805;
 
+        const ipAccessListResult = await ensureCurrentIpInAccessList(this.apiClient, projectId, context);
+
         const result = await this.apiClient.createCluster(
             {
                 params: { path: { groupId: projectId } },
@@ -253,6 +256,8 @@ export class CreateClusterTool extends AtlasToolBase {
             },
             context
         );
+
+        const ipAccessListNote = getAccessListNote(ipAccessListResult);
 
         return {
             content: [
@@ -263,6 +268,7 @@ export class CreateClusterTool extends AtlasToolBase {
                         `Use the atlas-inspect-cluster tool with projectId "${projectId}" and clusterName "${clusterName}" to poll for readiness. ` +
                         `The cluster is ready when its state is IDLE, connection strings are unavailable until then.`,
                 },
+                ...(ipAccessListNote ? [{ type: "text" as const, text: ipAccessListNote }] : []),
             ],
             structuredContent: {
                 clusterId: result.id,

@@ -9,9 +9,11 @@ import type { CompositeLogger } from "../../../../../src/common/logging/index.js
 import type { ApiClient } from "../../../../../src/common/atlas/apiClient.js";
 import { UIRegistry } from "../../../../../src/ui/registry/index.js";
 import { MockMetrics } from "../../../mocks/metrics.js";
+import { ApiClientError } from "../../../../../src/common/atlas/apiClientError.js";
 
 describe("CreateFreeClusterTool", () => {
     let mockApiClient: {
+        supportsCurrentIpLookup: boolean;
         createCluster: ReturnType<typeof vi.fn>;
         getIpInfo: ReturnType<typeof vi.fn>;
         createAccessListEntry: ReturnType<typeof vi.fn>;
@@ -34,6 +36,7 @@ describe("CreateFreeClusterTool", () => {
         } as unknown as CompositeLogger;
 
         mockApiClient = {
+            supportsCurrentIpLookup: true,
             createCluster: vi.fn().mockResolvedValue({}),
             getIpInfo: vi.fn().mockResolvedValue({ currentIpv4Address: "127.0.0.1" }),
             createAccessListEntry: vi.fn().mockResolvedValue({}),
@@ -70,15 +73,53 @@ describe("CreateFreeClusterTool", () => {
     const exec = (args: Record<string, unknown> = baseArgs) =>
         tool["execute"](args as never, { signal: new AbortController().signal } as never);
 
-    it("creates a free cluster and returns success content", async () => {
+    it("creates a free cluster and notes that the current IP was added to the access list", async () => {
         const result = await exec();
 
         const text = result.content.map((c) => (c as { text: string }).text).join("\n");
         expect(text).toContain('Cluster "free-cluster" has been created in region "US_EAST_1"');
-        expect(text).toContain("Double check your access lists");
+        expect(text).toContain("Your current IP address has been added");
         expect(result.structuredContent).toEqual({
             created: true,
         });
+    });
+
+    it("does not mention the access list when the current IP is already present", async () => {
+        mockApiClient.createAccessListEntry.mockRejectedValue(
+            ApiClientError.fromError(
+                { status: 409, statusText: "Conflict" } as Response,
+                { message: "Conflict" } as never
+            )
+        );
+
+        const result = await exec();
+
+        const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+        expect(text).toContain('Cluster "free-cluster" has been created in region "US_EAST_1"');
+        expect(text).not.toContain("access list");
+    });
+
+    it("skips the IP lookup and explains that no access list changes were made when current IP lookup is not supported", async () => {
+        Object.assign(mockApiClient, { supportsCurrentIpLookup: false });
+
+        const result = await exec();
+
+        expect(mockApiClient.getIpInfo).not.toHaveBeenCalled();
+        const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+        expect(text).toContain('Cluster "free-cluster" has been created in region "US_EAST_1"');
+        expect(text).toContain("No IP access list changes were made");
+        expect(text).not.toContain("Your current IP address has been added");
+    });
+
+    it("still creates the cluster and notes that no access list changes were made when the IP lookup fails", async () => {
+        mockApiClient.getIpInfo.mockRejectedValue(new Error("ipinfo unavailable"));
+
+        const result = await exec();
+
+        expect(mockApiClient.createCluster).toHaveBeenCalledOnce();
+        const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+        expect(text).toContain("No IP access list changes were made");
+        expect(text).not.toContain("Your current IP address has been added");
     });
 
     it("calls createCluster with M0 replication specs", async () => {
