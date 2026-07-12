@@ -7,6 +7,7 @@ import { Session } from "../../../src/common/session.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Server } from "../../../src/server.js";
 import { MCPConnectionManager } from "../../../src/common/connectionManager.js";
+import { ConnectionRegistry, resolveDefaultConnectionName } from "../../../src/common/connectionRegistry.js";
 import { DeviceId } from "../../../src/helpers/deviceId.js";
 import { connectionErrorHandler } from "../../../src/common/connectionErrorHandler.js";
 import { Keychain } from "../../../src/common/keychain.js";
@@ -173,6 +174,14 @@ describe("mcpUI feature with custom UIs", () => {
         const logger = new CompositeLogger();
         const deviceId = DeviceId.create(logger);
         const connectionManager = new MCPConnectionManager(userConfig, logger, deviceId);
+        const connectionRegistry = new ConnectionRegistry({
+            userConfig,
+            deviceId,
+            logger,
+            getClientName: () => connectionManager.clientName,
+            connections: userConfig.connections,
+            defaultConnectionName: resolveDefaultConnectionName(userConfig),
+        });
         const exportsManager = ExportsManager.init(userConfig, logger);
 
         const session = new Session({
@@ -180,6 +189,7 @@ describe("mcpUI feature with custom UIs", () => {
             logger,
             exportsManager,
             connectionManager,
+            connectionRegistry,
             keychain: Keychain.root,
             connectionErrorHandler,
             atlasLocalClient: await defaultCreateAtlasLocalClient({ logger }),

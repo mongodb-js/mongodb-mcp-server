@@ -77,6 +77,47 @@ export function commaSeparatedToArray<T extends string[]>(str: string | string[]
 }
 
 /**
+ * Preprocessor for the `connections` config field (env var
+ * `MDB_MCP_CONNECTIONS`). The value arrives as a JSON string mapping connection
+ * names to targets, e.g. `{"analytics":"mongodb://...","reporting":{"connectionString":"mongodb://..."}}`.
+ *
+ * Normalises each target into the `{ connectionString }` object shape and,
+ * mirroring {@link commaSeparatedToArray}, never throws: a malformed JSON blob
+ * is returned unchanged so the downstream Zod `record` schema rejects it and the
+ * error surfaces through the normal config-parsing channel.
+ */
+export function parseNamedConnections(val: unknown): unknown {
+    if (val === undefined || val === null) {
+        return undefined;
+    }
+
+    let raw: unknown = val;
+    if (typeof val === "string") {
+        const trimmed = val.trim();
+        if (trimmed.length === 0) {
+            return undefined;
+        }
+        try {
+            raw = JSON.parse(trimmed);
+        } catch {
+            // Leave the raw string in place; the record schema will reject it
+            // with a validation error surfaced by parseUserConfig.
+            return val;
+        }
+    }
+
+    if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+        return raw;
+    }
+
+    const normalized: Record<string, unknown> = {};
+    for (const [name, target] of Object.entries(raw as Record<string, unknown>)) {
+        normalized[name] = typeof target === "string" ? { connectionString: target } : target;
+    }
+    return normalized;
+}
+
+/**
  * Preprocessor for boolean values that handles string "false"/"0" correctly.
  * Zod's coerce.boolean() treats any non-empty string as true, which is not what we want.
  */

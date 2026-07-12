@@ -10,6 +10,7 @@ import { ExportsManager } from "../common/exportsManager.js";
 import { DeviceId } from "../helpers/deviceId.js";
 import { Keychain } from "../common/keychain.js";
 import { defaultCreateConnectionManager, type ConnectionManagerFactoryFn } from "../common/connectionManager.js";
+import { ConnectionRegistry, resolveDefaultConnectionName } from "../common/connectionRegistry.js";
 import {
     type ConnectionErrorHandler,
     connectionErrorHandler as defaultConnectionErrorHandler,
@@ -302,6 +303,19 @@ export abstract class TransportRunnerBase<
             sessionOptions?.connectionManager ??
             (await this.createConnectionManager({ logger: logger, deviceId: this.deviceId, userConfig }));
 
+        // One registry per Session, so named-connection pools are isolated per
+        // `mcp-session-id` just like the single-slot connection manager. The
+        // client name is read lazily from the connection manager (set once the
+        // MCP client initialises the session).
+        const connectionRegistry = new ConnectionRegistry({
+            userConfig,
+            deviceId: this.deviceId,
+            logger,
+            getClientName: () => connectionManager.clientName,
+            connections: userConfig.connections,
+            defaultConnectionName: resolveDefaultConnectionName(userConfig),
+        });
+
         const { apiClientId, apiClientSecret } = userConfig;
         const apiClientOptions: ApiClientOptions = {
             baseUrl: userConfig.apiBaseUrl,
@@ -323,6 +337,7 @@ export abstract class TransportRunnerBase<
             connectionErrorHandler: sessionOptions?.connectionErrorHandler ?? this.connectionErrorHandler,
             exportsManager,
             connectionManager,
+            connectionRegistry,
             keychain: Keychain.root,
             apiClient: sessionOptions?.apiClient ?? apiClient,
         });

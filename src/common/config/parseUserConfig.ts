@@ -87,12 +87,76 @@ export function parseUserConfig({
     // TODO: Separate correctly parsed user config from all other valid
     // arguments relevant to mongosh's args-parser.
     const userConfig: UserConfig = { ...parsed, ...configParseResult.data };
+
+    // Fold the legacy connection string into the named-connection registry as
+    // the reserved "default" entry before validating and registering secrets.
+    const foldWarning = foldLegacyConnectionIntoRegistry(userConfig);
+    if (foldWarning) {
+        warnings.push(foldWarning);
+    }
+
+    const namedConnectionError = validateNamedConnections(userConfig);
+    if (namedConnectionError) {
+        return { error: namedConnectionError, warnings, parsed: undefined };
+    }
+
     registerKnownSecretsInRootKeychain(userConfig);
     return {
         parsed: userConfig,
         warnings,
         error: undefined,
     };
+}
+
+/**
+ * Folds the legacy `connectionString` into `connections` under the reserved
+ * `"default"` name so the registry and the session-default share one source of
+ * truth. The legacy connection string always wins the `"default"` slot; a
+ * warning is returned when it displaces an explicit `"default"` entry.
+ */
+function foldLegacyConnectionIntoRegistry(userConfig: UserConfig): string | undefined {
+    if (!userConfig.connectionString) {
+        return undefined;
+    }
+
+    const existing = userConfig.connections ?? {};
+    const hadDefault = Object.prototype.hasOwnProperty.call(existing, "default");
+    userConfig.connections = {
+        ...existing,
+        default: { connectionString: userConfig.connectionString },
+    };
+
+    if (hadDefault) {
+        return 'Warning: Both MDB_MCP_CONNECTION_STRING and a "default" entry in MDB_MCP_CONNECTIONS were provided. The legacy connection string takes precedence for the "default" connection.';
+    }
+
+    return undefined;
+}
+
+/**
+ * Validates the named-connection configuration: connection names must be
+ * non-empty and `defaultConnection`, when set, must reference an existing entry.
+ */
+function validateNamedConnections(userConfig: UserConfig): string | undefined {
+    const connections = userConfig.connections ?? {};
+
+    for (const name of Object.keys(connections)) {
+        if (name.trim().length === 0) {
+            return "Invalid configuration: connection names in MDB_MCP_CONNECTIONS must not be empty.";
+        }
+    }
+
+    if (
+        userConfig.defaultConnection &&
+        !Object.prototype.hasOwnProperty.call(connections, userConfig.defaultConnection)
+    ) {
+        const available = Object.keys(connections)
+            .map((name) => `"${name}"`)
+            .join(", ");
+        return `Invalid configuration: defaultConnection "${userConfig.defaultConnection}" does not reference a configured connection. Available connections: ${available || "none"}.`;
+    }
+
+    return undefined;
 }
 
 function parseUserConfigSources<T extends typeof UserConfigSchema>({
@@ -177,6 +241,14 @@ function registerKnownSecretsInRootKeychain(userConfig: Partial<UserConfig>): vo
     maybeRegister(userConfig.username, "user");
     maybeRegister(userConfig.voyageApiKey, "password");
     maybeRegister(userConfig.connectionString, "mongodb uri");
+
+    // The named-connection map arrives as a single secret env blob, so each
+    // parsed connection string must be registered individually to stay redacted.
+    if (userConfig.connections) {
+        for (const target of Object.values(userConfig.connections)) {
+            maybeRegister(target?.connectionString, "mongodb uri");
+        }
+    }
 }
 
 function matchingConfigKey(key: string): string | undefined {

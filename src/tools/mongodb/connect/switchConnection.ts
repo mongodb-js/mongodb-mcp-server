@@ -4,6 +4,7 @@ import { type CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { MongoDBToolBase } from "../mongodbTool.js";
 import { type ToolArgs, type OperationType, type ToolConstructorParams } from "../../tool.js";
 import type { Server } from "../../../server.js";
+import { ErrorCodes, MongoDBError } from "../../../common/errors.js";
 
 export class SwitchConnectionTool extends MongoDBToolBase {
     static toolName = "switch-connection";
@@ -16,6 +17,12 @@ export class SwitchConnectionTool extends MongoDBToolBase {
             .optional()
             .describe(
                 "MongoDB connection string to switch to (in the mongodb:// or mongodb+srv:// format). If a connection string is not provided, the connection string from the config will be used."
+            ),
+        connection: z
+            .string()
+            .optional()
+            .describe(
+                "Name of a pre-configured connection (see the list-connections tool) to switch the session default to. Takes precedence over connectionString when both are provided."
             ),
     };
 
@@ -44,11 +51,28 @@ export class SwitchConnectionTool extends MongoDBToolBase {
         return registrationSuccessful;
     }
 
-    protected override async execute({ connectionString }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
-        if (typeof connectionString !== "string") {
-            await this.session.connectToConfiguredConnection();
-        } else {
+    protected override async execute({
+        connectionString,
+        connection,
+    }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+        if (typeof connection === "string") {
+            // Point the session-default slot at a named connection's settings.
+            const settings = this.session.connectionRegistry.getSettings(connection);
+            if (!settings) {
+                const available = this.session.connectionRegistry
+                    .names()
+                    .map((name) => `"${name}"`)
+                    .join(", ");
+                throw new MongoDBError(
+                    ErrorCodes.NamedConnectionNotFound,
+                    `Connection "${connection}" is not configured. Available connections: ${available || "none"}.`
+                );
+            }
+            await this.session.connectToMongoDB(settings);
+        } else if (typeof connectionString === "string") {
             await this.session.connectToMongoDB({ connectionString });
+        } else {
+            await this.session.connectToConfiguredConnection();
         }
 
         return {

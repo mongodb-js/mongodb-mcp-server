@@ -17,6 +17,7 @@ import { ErrorCodes, MongoDBError } from "./errors.js";
 import type { ExportsManager } from "./exportsManager.js";
 import type { Client } from "@mongodb-js/atlas-local";
 import type { Keychain } from "./keychain.js";
+import type { ConnectionRegistry } from "./connectionRegistry.js";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import { type UserConfig } from "../common/config/userConfig.js";
 import { type ConnectionErrorHandler } from "./connectionErrorHandler.js";
@@ -26,6 +27,7 @@ export interface SessionOptions<TUserConfig extends UserConfig = UserConfig> {
     logger: CompositeLogger;
     exportsManager: ExportsManager;
     connectionManager: ConnectionManager;
+    connectionRegistry: ConnectionRegistry;
     keychain: Keychain;
     atlasLocalClient?: Client;
     connectionErrorHandler: ConnectionErrorHandler;
@@ -44,6 +46,7 @@ export class Session extends EventEmitter<SessionEvents> {
     readonly sessionId: string = new ObjectId().toString();
     readonly exportsManager: ExportsManager;
     readonly connectionManager: ConnectionManager;
+    readonly connectionRegistry: ConnectionRegistry;
     readonly apiClient: ApiClient;
     readonly atlasLocalClient?: Client;
     readonly keychain: Keychain;
@@ -61,6 +64,7 @@ export class Session extends EventEmitter<SessionEvents> {
         userConfig,
         logger,
         connectionManager,
+        connectionRegistry,
         exportsManager,
         keychain,
         atlasLocalClient,
@@ -76,6 +80,7 @@ export class Session extends EventEmitter<SessionEvents> {
         this.atlasLocalClient = atlasLocalClient;
         this.exportsManager = exportsManager;
         this.connectionManager = connectionManager;
+        this.connectionRegistry = connectionRegistry;
         this.connectionErrorHandler = connectionErrorHandler;
         this.connectionManager.events.on("connection-success", () => this.emit("connect"));
         this.connectionManager.events.on("connection-time-out", (error) => this.emit("connection-error", error));
@@ -132,12 +137,35 @@ export class Session extends EventEmitter<SessionEvents> {
 
     async close(): Promise<void> {
         await this.disconnect();
+        await this.connectionRegistry.close();
         await this.apiClient?.close();
         await this.exportsManager.close();
         this.emit("close");
     }
 
     async connectToConfiguredConnection(): Promise<void> {
+        // Prefer the legacy connection string for byte-for-byte backward
+        // compatibility when it is set.
+        if (this.userConfig.connectionString) {
+            const connectionInfo = generateConnectionInfoFromCliArgs({
+                ...this.userConfig,
+                connectionSpecifier: this.userConfig.connectionString,
+            });
+            await this.connectToMongoDB(connectionInfo);
+            return;
+        }
+
+        // Otherwise source the session-default from the registry's default entry.
+        const defaultName = this.connectionRegistry.defaultName;
+        if (defaultName) {
+            const settings = this.connectionRegistry.getSettings(defaultName);
+            if (settings) {
+                await this.connectToMongoDB(settings);
+                return;
+            }
+        }
+
+        // Nothing configured: preserve the legacy behavior (and its error).
         const connectionInfo = generateConnectionInfoFromCliArgs({
             ...this.userConfig,
             connectionSpecifier: this.userConfig.connectionString,

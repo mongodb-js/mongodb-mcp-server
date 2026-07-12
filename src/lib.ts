@@ -63,6 +63,7 @@ export {
     ConnectionManager,
     MCPConnectionManager,
     ConnectionStateConnected,
+    buildServiceProvider,
     type AnyConnectionState,
     type ConnectionState,
     type ConnectionStateConnecting,
@@ -73,7 +74,15 @@ export {
     type ConnectionManagerEvents,
     type ConnectionTag,
     type OIDCConnectionAuthType,
+    type BuildServiceProviderDeps,
+    type BuiltServiceProvider,
 } from "./common/connectionManager.js";
+export {
+    ConnectionRegistry,
+    resolveDefaultConnectionName,
+    type ConnectionRegistryOptions,
+    type ConnectionRegistryEntryStatus,
+} from "./common/connectionRegistry.js";
 export {
     connectionErrorHandler,
     type ConnectionErrorHandler,

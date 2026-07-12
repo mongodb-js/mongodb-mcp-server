@@ -11,6 +11,7 @@ import { ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/typ
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { ConnectionManager, ConnectionState } from "../../src/common/connectionManager.js";
 import { MCPConnectionManager } from "../../src/common/connectionManager.js";
+import { ConnectionRegistry, resolveDefaultConnectionName } from "../../src/common/connectionRegistry.js";
 import { DeviceId } from "../../src/helpers/deviceId.js";
 import { connectionErrorHandler } from "../../src/common/connectionErrorHandler.js";
 import { Keychain } from "../../src/common/keychain.js";
@@ -99,12 +100,21 @@ export function setupIntegrationTest(
 
         deviceId = DeviceId.create(logger);
         const connectionManager = new MCPConnectionManager(userConfig, logger, deviceId);
+        const connectionRegistry = new ConnectionRegistry({
+            userConfig,
+            deviceId,
+            logger,
+            getClientName: () => connectionManager.clientName,
+            connections: userConfig.connections,
+            defaultConnectionName: resolveDefaultConnectionName(userConfig),
+        });
 
         const session = new Session({
             userConfig,
             logger,
             exportsManager,
             connectionManager,
+            connectionRegistry,
             keychain: new Keychain(),
             connectionErrorHandler,
             atlasLocalClient: await defaultCreateAtlasLocalClient({ logger }),

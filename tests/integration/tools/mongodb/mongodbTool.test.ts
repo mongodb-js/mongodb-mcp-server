@@ -6,6 +6,7 @@ import { MongoDBToolBase } from "../../../../src/tools/mongodb/mongodbTool.js";
 import { type OperationType, type ToolClass } from "../../../../src/tools/tool.js";
 import { type UserConfig } from "../../../../src/common/config/userConfig.js";
 import { MCPConnectionManager } from "../../../../src/common/connectionManager.js";
+import { ConnectionRegistry, resolveDefaultConnectionName } from "../../../../src/common/connectionRegistry.js";
 import { Session } from "../../../../src/common/session.js";
 import { CompositeLogger } from "../../../../src/common/logging/index.js";
 import { DeviceId } from "../../../../src/helpers/deviceId.js";
@@ -98,11 +99,20 @@ describe("MongoDBTool implementations", () => {
         const exportsManager = ExportsManager.init(userConfig, logger);
         deviceId = DeviceId.create(logger);
         const connectionManager = new MCPConnectionManager(userConfig, logger, deviceId);
+        const connectionRegistry = new ConnectionRegistry({
+            userConfig,
+            deviceId,
+            logger,
+            getClientName: () => connectionManager.clientName,
+            connections: userConfig.connections,
+            defaultConnectionName: resolveDefaultConnectionName(userConfig),
+        });
         const session = new Session({
             userConfig,
             logger,
             exportsManager,
             connectionManager,
+            connectionRegistry,
             keychain: new Keychain(),
             connectionErrorHandler: errorHandler,
             apiClient: defaultCreateApiClient(

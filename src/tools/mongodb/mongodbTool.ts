@@ -1,5 +1,6 @@
+import { AsyncLocalStorage } from "async_hooks";
 import { z } from "zod";
-import type { OperationType, ToolArgs, ToolCategory } from "../tool.js";
+import type { OperationType, ToolArgs, ToolCategory, ToolExecutionContext } from "../tool.js";
 import { ToolBase } from "../tool.js";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
@@ -11,6 +12,12 @@ import { assertNoServerSideJS, isWriteStage } from "../../helpers/mqlGuards.js";
 
 export const DBOperationArgs = {
     database: z.string().describe("Database name"),
+    connection: z
+        .string()
+        .optional()
+        .describe(
+            "Name of a pre-configured connection (see the list-connections tool) to run this operation against. When omitted, the active/default connection is used."
+        ),
 };
 
 export const CollOperationArgs = {
@@ -18,11 +25,56 @@ export const CollOperationArgs = {
     collection: z.string().describe("Collection name"),
 };
 
+/**
+ * Per-call storage for the requested named `connection`. Threaded through
+ * {@link AsyncLocalStorage} rather than instance state because tool instances
+ * are per-session singletons reused across concurrent, pipelined calls — so the
+ * requested name must not be stashed on `this`. ALS propagates across every
+ * `await` within a single call chain while staying isolated per async call.
+ */
+interface ConnectionArgStore {
+    connectionName?: string;
+}
+
+const connectionArgStore = new AsyncLocalStorage<ConnectionArgStore>();
+
+function extractConnectionName(args: unknown): string | undefined {
+    if (args && typeof args === "object" && "connection" in args) {
+        const value = (args as { connection?: unknown }).connection;
+        if (typeof value === "string" && value.length > 0) {
+            return value;
+        }
+    }
+    return undefined;
+}
+
 export abstract class MongoDBToolBase extends ToolBase {
     protected server?: Server;
     static category: ToolCategory = "mongodb";
 
+    /**
+     * Wraps the base tool invocation so the per-call `connection` argument is
+     * available (via {@link AsyncLocalStorage}) to {@link ensureConnected}
+     * throughout the entire async call chain, without stashing it on `this`.
+     */
+    public override invoke(
+        args: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<CallToolResult> {
+        const connectionName = extractConnectionName(args);
+        return connectionArgStore.run({ connectionName }, () => super.invoke(args, context));
+    }
+
     protected async ensureConnected(): Promise<NodeDriverServiceProvider> {
+        // When a named connection is supplied, resolve it from the registry on
+        // its own dedicated provider without ever touching the session-default
+        // slot. Failures here throw NamedConnection* errors, which deliberately
+        // bypass the session-default connection recovery handler.
+        const connectionName = connectionArgStore.getStore()?.connectionName;
+        if (connectionName) {
+            return this.session.connectionRegistry.resolve(connectionName);
+        }
+
         if (!this.session.isConnectedToMongoDB) {
             if (this.session.connectedAtlasCluster) {
                 throw new MongoDBError(

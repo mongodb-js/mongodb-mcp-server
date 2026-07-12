@@ -48,6 +48,103 @@ export const defaultDriverOptions: ConnectionInfo["driverOptions"] = {
     applyProxyToOIDC: true,
 };
 
+/**
+ * Dependencies required to assemble a {@link NodeDriverServiceProvider} from a
+ * set of {@link ConnectionSettings}.
+ */
+export interface BuildServiceProviderDeps {
+    /** Active user configuration; drives the mongosh CLI-derived driver options. */
+    userConfig: UserConfig;
+    /** Provider of the stable device identifier embedded in the connection's `appName`. */
+    deviceId: DeviceId;
+    /** MCP client name embedded in the connection's `appName`. */
+    clientName: string;
+    /** Optional event emitter shared with the OIDC plugin. */
+    bus?: EventEmitter;
+    /** Optional callback invoked when the OIDC device flow surfaces a verification URL and user code. */
+    onNotifyDeviceFlow?: (flowInfo: { verificationUrl: string; userCode: string }) => void;
+}
+
+export interface BuiltServiceProvider {
+    /**
+     * The (possibly still pending) service provider. For non-OIDC connections
+     * awaiting this resolves once the driver is connected; for OIDC flows it
+     * resolves once the plugin reports auth success.
+     */
+    serviceProvider: Promise<NodeDriverServiceProvider>;
+    connectionStringInfo: ConnectionStringInfo;
+}
+
+/**
+ * Assembles a {@link NodeDriverServiceProvider} from the supplied
+ * {@link ConnectionSettings}, applying the MCP-specific `appName` and driver
+ * options (read/write concerns, proxy and OIDC defaults).
+ *
+ * This is the shared, side-effect-free connection-assembly primitive used by
+ * both the single-slot {@link MCPConnectionManager} (which drives the
+ * session-default connection and its OIDC state machine) and the keyed
+ * `ConnectionRegistry` (which lazily pools named connections). It intentionally
+ * does NOT touch any connection state, emit events, or perform teardown.
+ */
+export async function buildServiceProvider(
+    settings: ConnectionSettings,
+    { userConfig, deviceId, clientName, bus, onNotifyDeviceFlow }: BuildServiceProviderDeps
+): Promise<BuiltServiceProvider> {
+    const resolvedSettings: ConnectionSettings = { ...settings };
+
+    const appNameComponents: AppNameComponents = {
+        appName: `${packageInfo.mcpServerName} ${packageInfo.version}`,
+        deviceId: deviceId.get(),
+        clientName,
+    };
+
+    resolvedSettings.connectionString = await setAppNameParamIfMissing({
+        connectionString: resolvedSettings.connectionString,
+        components: appNameComponents,
+    });
+
+    const connectionInfo: ConnectionInfo = resolvedSettings.driverOptions
+        ? {
+              connectionString: resolvedSettings.connectionString,
+              driverOptions: resolvedSettings.driverOptions,
+          }
+        : generateConnectionInfoFromCliArgs({
+              ...defaultDriverOptions,
+              /** TODO: Currently we're passing the entire user config to make it apply the mongosh CLI commands that were passed in. We should consider seperating the fields in the future. */
+              ...userConfig,
+              connectionSpecifier: resolvedSettings.connectionString,
+          });
+
+    if (connectionInfo.driverOptions.oidc) {
+        connectionInfo.driverOptions.oidc.allowedFlows ??= ["auth-code"];
+        if (onNotifyDeviceFlow) {
+            connectionInfo.driverOptions.oidc.notifyDeviceFlow ??= onNotifyDeviceFlow;
+        }
+    }
+
+    connectionInfo.driverOptions.proxy ??= { useEnvironmentVariableProxies: true };
+    connectionInfo.driverOptions.applyProxyToOIDC ??= true;
+
+    const connectionStringInfo = getConnectionStringInfo(
+        connectionInfo.connectionString,
+        userConfig,
+        resolvedSettings.atlas
+    );
+
+    const serviceProvider = NodeDriverServiceProvider.connect(
+        connectionInfo.connectionString,
+        {
+            productDocsLink: "https://github.com/mongodb-js/mongodb-mcp-server/",
+            productName: "MongoDB MCP",
+            ...connectionInfo.driverOptions,
+        },
+        undefined,
+        bus
+    );
+
+    return { serviceProvider, connectionStringInfo };
+}
+
 export class ConnectionStateConnected implements ConnectionState {
     public tag = "connected" as const;
 
@@ -294,54 +391,15 @@ export class MCPConnectionManager extends ConnectionManager {
         let connectionStringInfo: ConnectionStringInfo = { authType: "scram", hostType: "unknown" };
 
         try {
-            settings = { ...settings };
-            const appNameComponents: AppNameComponents = {
-                appName: `${packageInfo.mcpServerName} ${packageInfo.version}`,
-                deviceId: this.deviceId.get(),
+            const built = await buildServiceProvider(settings, {
+                userConfig: this.userConfig,
+                deviceId: this.deviceId,
                 clientName: this.clientName,
-            };
-
-            settings.connectionString = await setAppNameParamIfMissing({
-                connectionString: settings.connectionString,
-                components: appNameComponents,
+                bus: this.bus,
+                onNotifyDeviceFlow: this.onOidcNotifyDeviceFlow.bind(this),
             });
-
-            const connectionInfo: ConnectionInfo = settings.driverOptions
-                ? {
-                      connectionString: settings.connectionString,
-                      driverOptions: settings.driverOptions,
-                  }
-                : generateConnectionInfoFromCliArgs({
-                      ...defaultDriverOptions,
-                      /** TODO: Currently we're passing the entire user config to make it apply the mongosh CLI commands that were passed in. We should consider seperating the fields in the future. */
-                      ...this.userConfig,
-                      connectionSpecifier: settings.connectionString,
-                  });
-
-            if (connectionInfo.driverOptions.oidc) {
-                connectionInfo.driverOptions.oidc.allowedFlows ??= ["auth-code"];
-                connectionInfo.driverOptions.oidc.notifyDeviceFlow ??= this.onOidcNotifyDeviceFlow.bind(this);
-            }
-
-            connectionInfo.driverOptions.proxy ??= { useEnvironmentVariableProxies: true };
-            connectionInfo.driverOptions.applyProxyToOIDC ??= true;
-
-            connectionStringInfo = getConnectionStringInfo(
-                connectionInfo.connectionString,
-                this.userConfig,
-                settings.atlas
-            );
-
-            serviceProvider = NodeDriverServiceProvider.connect(
-                connectionInfo.connectionString,
-                {
-                    productDocsLink: "https://github.com/mongodb-js/mongodb-mcp-server/",
-                    productName: "MongoDB MCP",
-                    ...connectionInfo.driverOptions,
-                },
-                undefined,
-                this.bus
-            );
+            serviceProvider = built.serviceProvider;
+            connectionStringInfo = built.connectionStringInfo;
         } catch (error: unknown) {
             const errorReason = error instanceof Error ? error.message : `${error as string}`;
             this.changeState("connection-error", {

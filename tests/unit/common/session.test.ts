@@ -5,6 +5,7 @@ import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver
 import { Session } from "../../../src/common/session.js";
 import { CompositeLogger } from "../../../src/common/logging/index.js";
 import { MCPConnectionManager } from "../../../src/common/connectionManager.js";
+import { ConnectionRegistry, resolveDefaultConnectionName } from "../../../src/common/connectionRegistry.js";
 import { ExportsManager } from "../../../src/common/exportsManager.js";
 import { DeviceId } from "../../../src/helpers/deviceId.js";
 import { Keychain } from "../../../src/common/keychain.js";
@@ -27,6 +28,14 @@ describe("Session", () => {
 
         mockDeviceId = MockDeviceId;
         const connectionManager = new MCPConnectionManager(defaultTestConfig, logger, mockDeviceId);
+        const connectionRegistry = new ConnectionRegistry({
+            userConfig: defaultTestConfig,
+            deviceId: mockDeviceId,
+            logger,
+            getClientName: () => connectionManager.clientName,
+            connections: defaultTestConfig.connections,
+            defaultConnectionName: resolveDefaultConnectionName(defaultTestConfig),
+        });
 
         session = new Session({
             userConfig: {
@@ -37,6 +46,7 @@ describe("Session", () => {
             logger,
             exportsManager: ExportsManager.init(defaultTestConfig, logger),
             connectionManager: connectionManager,
+            connectionRegistry,
             keychain: new Keychain(),
             apiClient: defaultCreateApiClient(
                 {

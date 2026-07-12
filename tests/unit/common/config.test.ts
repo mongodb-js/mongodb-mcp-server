@@ -51,6 +51,7 @@ const expectedDefaults = {
     maxBytesPerQuery: 16 * 1024 * 1024, // ~16 mb
     atlasTemporaryDatabaseUserLifetimeMs: 4 * 60 * 60 * 1000, // 4 hours
     voyageApiKey: "",
+    connections: {},
     previewFeatures: [],
     dryRun: false,
     allowRequestOverrides: false,
@@ -220,7 +221,12 @@ describe("config", () => {
                 },
                 {
                     cli: ["--connectionString", "mongodb://localhost"],
-                    expected: { connectionString: "mongodb://localhost" },
+                    // A legacy connectionString is folded into the named-connection
+                    // map as the reserved "default" entry (see parseUserConfig).
+                    expected: {
+                        connectionString: "mongodb://localhost",
+                        connections: { default: { connectionString: "mongodb://localhost" } },
+                    },
                 },
                 {
                     cli: ["--httpHost", "mongodb://localhost"],
@@ -907,7 +913,12 @@ describe("keychain management", () => {
 
     const secretsFromSchema = Object.keys(UserConfigSchema.shape).filter((key) => {
         const meta = getConfigMeta(key as keyof UserConfig);
-        return meta?.isSecret === true;
+        // `connections` is a JSON-object secret: its secret values are the nested
+        // connection strings (registered individually), not the field's raw
+        // scalar value, and its input must be valid JSON. It therefore can't be
+        // exercised by the "pass the field name as the value" loop below and has
+        // a dedicated test instead.
+        return meta?.isSecret === true && key !== "connections";
     });
 
     for (const secretKey of secretsFromSchema) {
@@ -918,6 +929,14 @@ describe("keychain management", () => {
             expect(registeredSecret).toBeDefined();
         });
     }
+
+    it("should register each connection string in MDB_MCP_CONNECTIONS as a secret in the root keychain", () => {
+        parseUserConfig({ args: ["--connections", '{"analytics":"mongodb://sekret-host/db"}'] });
+
+        const registeredSecret = keychain.allSecrets.find((s) => s.value === "mongodb://sekret-host/db");
+        expect(registeredSecret).toBeDefined();
+        expect(registeredSecret?.kind).toBe("mongodb uri");
+    });
 });
 
 describe("custom override logic functions", () => {

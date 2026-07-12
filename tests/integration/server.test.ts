@@ -1,4 +1,5 @@
 import { MCPConnectionManager } from "../../src/common/connectionManager.js";
+import { ConnectionRegistry, resolveDefaultConnectionName } from "../../src/common/connectionRegistry.js";
 import { ExportsManager } from "../../src/common/exportsManager.js";
 import { CompositeLogger } from "../../src/common/logging/index.js";
 import { DeviceId } from "../../src/helpers/deviceId.js";
@@ -179,12 +180,21 @@ describe("Server integration test", () => {
         const logger = new CompositeLogger(...loggers);
         const deviceId = DeviceId.create(logger);
         const connectionManager = new MCPConnectionManager(config, logger, deviceId);
+        const connectionRegistry = new ConnectionRegistry({
+            userConfig: config,
+            deviceId,
+            logger,
+            getClientName: () => connectionManager.clientName,
+            connections: config.connections,
+            defaultConnectionName: resolveDefaultConnectionName(config),
+        });
         const exportsManager = ExportsManager.init(config, logger);
         const session = new Session({
             userConfig: config,
             logger,
             exportsManager,
             connectionManager,
+            connectionRegistry,
             keychain: Keychain.root,
             connectionErrorHandler,
             atlasLocalClient: await defaultCreateAtlasLocalClient({ logger }),

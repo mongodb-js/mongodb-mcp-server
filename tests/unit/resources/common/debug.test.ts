@@ -3,6 +3,7 @@ import { DebugResource } from "../../../../src/resources/common/debug.js";
 import { Session } from "../../../../src/common/session.js";
 import { CompositeLogger } from "../../../../src/common/logging/index.js";
 import { MCPConnectionManager } from "../../../../src/common/connectionManager.js";
+import { ConnectionRegistry, resolveDefaultConnectionName } from "../../../../src/common/connectionRegistry.js";
 import { ExportsManager } from "../../../../src/common/exportsManager.js";
 import { DeviceId } from "../../../../src/helpers/deviceId.js";
 import { Keychain } from "../../../../src/common/keychain.js";
@@ -14,6 +15,14 @@ describe("debug resource", () => {
     const logger = new CompositeLogger();
     const deviceId = DeviceId.create(logger);
     const connectionManager = new MCPConnectionManager(defaultTestConfig, logger, deviceId);
+    const connectionRegistry = new ConnectionRegistry({
+        userConfig: defaultTestConfig,
+        deviceId,
+        logger,
+        getClientName: () => connectionManager.clientName,
+        connections: defaultTestConfig.connections,
+        defaultConnectionName: resolveDefaultConnectionName(defaultTestConfig),
+    });
 
     const session = vi.mocked(
         new Session({
@@ -21,6 +30,7 @@ describe("debug resource", () => {
             logger,
             exportsManager: ExportsManager.init(defaultTestConfig, logger),
             connectionManager,
+            connectionRegistry,
             keychain: new Keychain(),
             connectionErrorHandler,
             apiClient: defaultCreateApiClient(

@@ -9,6 +9,7 @@ import {
     onlyStricterLogLevelOverride,
     onlySubsetOfBaseValueOverride,
     parseBoolean,
+    parseNamedConnections,
 } from "./configUtils.js";
 import { MCP_LOG_LEVELS } from "../logging/loggingTypes.js";
 import { monitoringServerFeatureValues, previewFeatureValues } from "../schemas.js";
@@ -44,6 +45,34 @@ const ServerConfigSchema = z.object({
             "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data."
         )
         .register(configRegistry, { isSecret: true, overrideBehavior: "not-allowed" }),
+    connections: z
+        .preprocess(
+            (val: unknown) => parseNamedConnections(val),
+            // A catchall object (rather than z.record) so the mongosh arg-parser,
+            // which introspects this schema to build CLI/env options, recognises
+            // it as a JSON-object field (handled like httpHeaders via coerceObject)
+            // instead of throwing "Unknown field type: ZodRecord". The per-entry
+            // preprocess keeps the "name":"mongodb://..." string shorthand working
+            // on the arg-parser's coerce path, where parseNamedConnections is bypassed.
+            z.object({}).catchall(
+                z.preprocess(
+                    (target: unknown) => (typeof target === "string" ? { connectionString: target } : target),
+                    z.object({ connectionString: z.string().min(1, "connectionString must not be empty") })
+                )
+            )
+        )
+        .default({})
+        .describe(
+            'A JSON object mapping connection names to targets, e.g. \'{"analytics":"mongodb://...","reporting":{"connectionString":"mongodb://..."}}\'. Supplied via the MDB_MCP_CONNECTIONS environment variable. Enables per-tool-call connection selection through the optional "connection" argument on data tools. The legacy MDB_MCP_CONNECTION_STRING, when set, is folded in as the reserved "default" entry.'
+        )
+        .register(configRegistry, { isSecret: true, overrideBehavior: "not-allowed" }),
+    defaultConnection: z
+        .string()
+        .optional()
+        .describe(
+            'Name of the connection (from "connections") to use as the session default when no MDB_MCP_CONNECTION_STRING is set. Ignored when MDB_MCP_CONNECTION_STRING is provided (that always becomes the "default").'
+        )
+        .register(configRegistry, { overrideBehavior: "override" }),
     loggers: z
         .preprocess(
             (val: string | string[] | undefined) => commaSeparatedToArray(val),
