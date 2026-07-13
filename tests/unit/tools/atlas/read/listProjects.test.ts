@@ -88,7 +88,7 @@ describe("ListProjectsTool", () => {
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown> = {}) =>
         tool["execute"](
-            { limit: 100, pageNum: 1, ...args } as never,
+            { limit: 10, pageNum: 1, ...args } as never,
             {
                 signal: new AbortController().signal,
             } as never
@@ -116,7 +116,7 @@ describe("ListProjectsTool", () => {
         expect(text).toContain("Found 1 projects");
         expect(mockApiClient.getOrgGroups).not.toHaveBeenCalled();
         expect(mockApiClient.listGroups).toHaveBeenCalledWith(
-            { params: { query: { itemsPerPage: 100, pageNum: 1, includeCount: true } } },
+            { params: { query: { itemsPerPage: 10, pageNum: 1, includeCount: true } } },
             expect.anything()
         );
     });
@@ -131,7 +131,7 @@ describe("ListProjectsTool", () => {
             {
                 params: {
                     path: { orgId },
-                    query: { itemsPerPage: 100, pageNum: 1, includeCount: true },
+                    query: { itemsPerPage: 10, pageNum: 1, includeCount: true },
                 },
             },
             expect.anything()

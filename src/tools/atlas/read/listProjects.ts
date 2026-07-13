@@ -12,7 +12,7 @@ export const ListProjectsArgs = {
     orgId: AtlasArgs.organizationId()
         .describe("Atlas organization ID to filter projects. If not provided, projects for all orgs are returned.")
         .optional(),
-    limit: z.number().int().min(1).max(500).default(100).describe("Max number of projects to return per page."),
+    limit: z.number().int().min(1).max(500).default(10).describe("Max number of projects to return per page."),
     pageNum: z.number().int().min(1).default(1).describe("Page number of projects to return."),
 };
 

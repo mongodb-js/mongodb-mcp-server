@@ -64,7 +64,7 @@ describe("ListOrganizationsTool", () => {
     });
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    const exec = (args: Record<string, unknown> = { limit: 100, pageNum: 1 }) =>
+    const exec = (args: Record<string, unknown> = { limit: 10, pageNum: 1 }) =>
         tool["execute"](args as never, { signal: new AbortController().signal } as never);
 
     it("returns organizations when they exist", async () => {
@@ -100,7 +100,7 @@ describe("ListOrganizationsTool", () => {
         await exec();
 
         expect(mockApiClient.listOrgs).toHaveBeenCalledWith(
-            { params: { query: { itemsPerPage: 100, pageNum: 1, includeCount: true } } },
+            { params: { query: { itemsPerPage: 10, pageNum: 1, includeCount: true } } },
             expect.anything()
         );
     });

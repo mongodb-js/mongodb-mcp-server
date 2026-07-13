@@ -4,7 +4,7 @@ import type { OperationType, ToolArgs, ToolExecutionContext, ToolResult } from "
 import { formatUntrustedData } from "../../tool.js";
 
 export const ListOrganizationsArgs = {
-    limit: z.number().int().min(1).max(500).default(100).describe("Max number of organizations to return per page."),
+    limit: z.number().int().min(1).max(500).default(10).describe("Max number of organizations to return per page."),
     pageNum: z.number().int().min(1).default(1).describe("Page number of organizations to return."),
 };
 
