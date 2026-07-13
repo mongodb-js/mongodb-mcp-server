@@ -3,6 +3,11 @@ import { AtlasToolBase } from "../atlasTool.js";
 import type { OperationType, ToolArgs, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 
+export const ListOrganizationsArgs = {
+    limit: z.number().int().min(1).max(500).default(100).describe("Max number of organizations to return per page."),
+    pageNum: z.number().int().min(1).default(1).describe("Page number of organizations to return."),
+};
+
 const ListOrganizationsOutputSchema = {
     organizations: z.array(
         z.object({
@@ -10,28 +15,41 @@ const ListOrganizationsOutputSchema = {
             id: z.string().optional(),
         })
     ),
-    totalCount: z.number(),
+    totalCount: z.number().optional(),
 };
 
 export class ListOrganizationsTool extends AtlasToolBase {
     static toolName = "atlas-list-orgs";
     public description = "List MongoDB Atlas organizations";
     static operationType: OperationType = "read";
-    public argsShape = {};
+    public argsShape = {
+        ...ListOrganizationsArgs,
+    };
     public override outputSchema = ListOrganizationsOutputSchema;
 
     protected async execute(
-        _args: ToolArgs<typeof this.argsShape>,
+        { limit, pageNum }: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        const data = await this.apiClient.listOrgs(undefined, context);
+        const data = await this.apiClient.listOrgs(
+            {
+                params: {
+                    query: {
+                        itemsPerPage: limit,
+                        pageNum,
+                        includeCount: true,
+                    },
+                },
+            },
+            context
+        );
 
         if (!data?.results?.length) {
             return {
                 content: [{ type: "text", text: "No organizations found in your MongoDB Atlas account." }],
                 structuredContent: {
                     organizations: [],
-                    totalCount: 0,
+                    ...(data?.totalCount !== undefined && { totalCount: data.totalCount }),
                 },
             };
         }
@@ -43,12 +61,14 @@ export class ListOrganizationsTool extends AtlasToolBase {
 
         return {
             content: formatUntrustedData(
-                `Found ${data.results.length} organizations in your MongoDB Atlas account.`,
+                `Found ${data.results.length} organizations in your MongoDB Atlas account${
+                    data.totalCount !== undefined ? ` (total: ${data.totalCount})` : ""
+                }.`,
                 JSON.stringify(orgs)
             ),
             structuredContent: {
                 organizations: orgs,
-                totalCount: orgs.length,
+                ...(data.totalCount !== undefined && { totalCount: data.totalCount }),
             },
         };
     }

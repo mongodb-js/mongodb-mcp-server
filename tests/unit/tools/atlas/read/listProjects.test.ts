@@ -87,7 +87,12 @@ describe("ListProjectsTool", () => {
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown> = {}) =>
-        tool["execute"](args as never, { signal: new AbortController().signal } as never);
+        tool["execute"](
+            { limit: 100, pageNum: 1, ...args } as never,
+            {
+                signal: new AbortController().signal,
+            } as never
+        );
 
     it("returns projects when orgId filter is provided", async () => {
         mockApiClient.listOrgs!.mockResolvedValue(orgsResponse);
@@ -111,7 +116,7 @@ describe("ListProjectsTool", () => {
         expect(text).toContain("Found 1 projects");
         expect(mockApiClient.getOrgGroups).not.toHaveBeenCalled();
         expect(mockApiClient.listGroups).toHaveBeenCalledWith(
-            { params: { query: { itemsPerPage: 500 } } },
+            { params: { query: { itemsPerPage: 100, pageNum: 1, includeCount: true } } },
             expect.anything()
         );
     });
@@ -126,9 +131,50 @@ describe("ListProjectsTool", () => {
             {
                 params: {
                     path: { orgId },
-                    query: { itemsPerPage: 500 },
+                    query: { itemsPerPage: 100, pageNum: 1, includeCount: true },
                 },
             },
+            expect.anything()
+        );
+    });
+
+    it("bounds the internal orgId->name lookup call to the Atlas max page size", async () => {
+        mockApiClient.listOrgs!.mockResolvedValue(orgsResponse);
+        mockApiClient.listGroups!.mockResolvedValue({ results: [projectApiResponse] });
+
+        await exec();
+
+        expect(mockApiClient.listOrgs).toHaveBeenCalledWith(
+            { params: { query: { itemsPerPage: 500 } } },
+            expect.anything()
+        );
+    });
+
+    it("passes limit and pageNum to getOrgGroups", async () => {
+        mockApiClient.listOrgs!.mockResolvedValue(orgsResponse);
+        mockApiClient.getOrgGroups!.mockResolvedValue({ results: [], totalCount: 0 });
+
+        await exec({ orgId, limit: 25, pageNum: 2 });
+
+        expect(mockApiClient.getOrgGroups).toHaveBeenCalledWith(
+            {
+                params: {
+                    path: { orgId },
+                    query: { itemsPerPage: 25, pageNum: 2, includeCount: true },
+                },
+            },
+            expect.anything()
+        );
+    });
+
+    it("passes limit and pageNum to listGroups", async () => {
+        mockApiClient.listOrgs!.mockResolvedValue(orgsResponse);
+        mockApiClient.listGroups!.mockResolvedValue({ results: [], totalCount: 0 });
+
+        await exec({ limit: 25, pageNum: 2 });
+
+        expect(mockApiClient.listGroups).toHaveBeenCalledWith(
+            { params: { query: { itemsPerPage: 25, pageNum: 2, includeCount: true } } },
             expect.anything()
         );
     });
@@ -145,7 +191,7 @@ describe("ListProjectsTool", () => {
 
     it("returns empty message when org has no projects", async () => {
         mockApiClient.listOrgs!.mockResolvedValue(orgsResponse);
-        mockApiClient.getOrgGroups!.mockResolvedValue({ results: [] });
+        mockApiClient.getOrgGroups!.mockResolvedValue({ results: [], totalCount: 0 });
 
         const result = await exec({ orgId });
 
@@ -173,28 +219,28 @@ describe("ListProjectsTool", () => {
     });
 
     describe("structuredContent", () => {
-        it("returns projects with orgId filter", async () => {
+        it("returns the real API totalCount with orgId filter, not the page length", async () => {
             mockApiClient.listOrgs!.mockResolvedValue(orgsResponse);
-            mockApiClient.getOrgGroups!.mockResolvedValue({ results: [projectApiResponse] });
+            mockApiClient.getOrgGroups!.mockResolvedValue({ results: [projectApiResponse], totalCount: 42 });
 
             const result = await exec({ orgId });
 
             expect(result.structuredContent).toEqual({
                 orgId,
                 projects: [formattedProject],
-                totalCount: 1,
+                totalCount: 42,
             });
         });
 
-        it("returns projects without orgId in structuredContent when unfiltered", async () => {
+        it("returns the real API totalCount when unfiltered, not the page length", async () => {
             mockApiClient.listOrgs!.mockResolvedValue(orgsResponse);
-            mockApiClient.listGroups!.mockResolvedValue({ results: [projectApiResponse] });
+            mockApiClient.listGroups!.mockResolvedValue({ results: [projectApiResponse], totalCount: 42 });
 
             const result = await exec();
 
             expect(result.structuredContent).toEqual({
                 projects: [formattedProject],
-                totalCount: 1,
+                totalCount: 42,
             });
             expect(result.structuredContent).not.toHaveProperty("orgId");
         });
@@ -213,7 +259,7 @@ describe("ListProjectsTool", () => {
 
         it("returns empty projects when org has no projects", async () => {
             mockApiClient.listOrgs!.mockResolvedValue(orgsResponse);
-            mockApiClient.getOrgGroups!.mockResolvedValue({ results: [] });
+            mockApiClient.getOrgGroups!.mockResolvedValue({ results: [], totalCount: 0 });
 
             const result = await exec({ orgId });
 

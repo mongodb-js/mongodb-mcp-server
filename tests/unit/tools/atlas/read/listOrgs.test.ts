@@ -64,7 +64,8 @@ describe("ListOrganizationsTool", () => {
     });
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    const exec = () => tool["execute"]({} as never, { signal: new AbortController().signal } as never);
+    const exec = (args: Record<string, unknown> = { limit: 100, pageNum: 1 }) =>
+        tool["execute"](args as never, { signal: new AbortController().signal } as never);
 
     it("returns organizations when they exist", async () => {
         mockApiClient.listOrgs!.mockResolvedValue({
@@ -98,7 +99,21 @@ describe("ListOrganizationsTool", () => {
 
         await exec();
 
-        expect(mockApiClient.listOrgs).toHaveBeenCalledWith(undefined, expect.anything());
+        expect(mockApiClient.listOrgs).toHaveBeenCalledWith(
+            { params: { query: { itemsPerPage: 100, pageNum: 1, includeCount: true } } },
+            expect.anything()
+        );
+    });
+
+    it("passes limit and pageNum to the API", async () => {
+        mockApiClient.listOrgs!.mockResolvedValue({ results: [], totalCount: 0 });
+
+        await exec({ limit: 10, pageNum: 3 });
+
+        expect(mockApiClient.listOrgs).toHaveBeenCalledWith(
+            { params: { query: { itemsPerPage: 10, pageNum: 3, includeCount: true } } },
+            expect.anything()
+        );
     });
 
     it("handles null results gracefully", async () => {
@@ -112,12 +127,13 @@ describe("ListOrganizationsTool", () => {
     });
 
     describe("structuredContent", () => {
-        it("returns organizations and totalCount on success", async () => {
+        it("returns the real API totalCount, not the page length", async () => {
             mockApiClient.listOrgs!.mockResolvedValue({
                 results: [
                     { name: "Org A", id: "org-a" },
                     { name: "Org B", id: "org-b" },
                 ],
+                totalCount: 57,
             });
 
             const result = await exec();
@@ -127,12 +143,25 @@ describe("ListOrganizationsTool", () => {
                     { name: "Org A", id: "org-a" },
                     { name: "Org B", id: "org-b" },
                 ],
-                totalCount: 2,
+                totalCount: 57,
             });
         });
 
+        it("omits totalCount when the API doesn't return it", async () => {
+            mockApiClient.listOrgs!.mockResolvedValue({
+                results: [{ name: "Org A", id: "org-a" }],
+            });
+
+            const result = await exec();
+
+            expect(result.structuredContent).toEqual({
+                organizations: [{ name: "Org A", id: "org-a" }],
+            });
+            expect(result.structuredContent).not.toHaveProperty("totalCount");
+        });
+
         it("returns empty organizations when no results", async () => {
-            mockApiClient.listOrgs!.mockResolvedValue({ results: [] });
+            mockApiClient.listOrgs!.mockResolvedValue({ results: [], totalCount: 0 });
 
             const result = await exec();
 

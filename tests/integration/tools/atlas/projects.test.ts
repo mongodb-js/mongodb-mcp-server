@@ -105,7 +105,7 @@ describeWithAtlas("projects", (integration) => {
                 expect(data.every((proj) => proj.orgId === orgId)).toBe(true);
                 expect(data.find((proj) => proj.name === projName)).toBeDefined();
 
-                expect(elements[0]?.text).toBe(`Found ${data.length} projects`);
+                expect(elements[0]?.text).toContain(`Found ${data.length} projects`);
             });
         });
 
@@ -127,7 +127,7 @@ describeWithAtlas("projects", (integration) => {
                 expect(data.length).toBeGreaterThan(0);
                 expect(data.find((proj) => proj.name === projName && proj.orgId === orgId)).toBeDefined();
 
-                expect(elements[0]?.text).toBe(`Found ${data.length} projects`);
+                expect(elements[0]?.text).toContain(`Found ${data.length} projects`);
             });
         });
     });

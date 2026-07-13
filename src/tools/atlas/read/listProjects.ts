@@ -4,6 +4,18 @@ import type { OperationType, ToolArgs, ToolExecutionContext, ToolResult } from "
 import { formatUntrustedData } from "../../tool.js";
 import { AtlasArgs } from "../../args.js";
 
+// Atlas's max page size; used only to bound the internal orgId -> orgName lookup call below.
+// Not user-facing pagination — see ListProjectsArgs.limit/pageNum for that.
+const ORG_LOOKUP_ITEMS_PER_PAGE = 500;
+
+export const ListProjectsArgs = {
+    orgId: AtlasArgs.organizationId()
+        .describe("Atlas organization ID to filter projects. If not provided, projects for all orgs are returned.")
+        .optional(),
+    limit: z.number().int().min(1).max(500).default(100).describe("Max number of projects to return per page."),
+    pageNum: z.number().int().min(1).default(1).describe("Page number of projects to return."),
+};
+
 const ListProjectsOutputSchema = {
     orgId: z.string().optional(),
     projects: z.array(
@@ -15,7 +27,7 @@ const ListProjectsOutputSchema = {
             created: z.string(),
         })
     ),
-    totalCount: z.number(),
+    totalCount: z.number().optional(),
 };
 
 export class ListProjectsTool extends AtlasToolBase {
@@ -23,17 +35,24 @@ export class ListProjectsTool extends AtlasToolBase {
     public description = "List MongoDB Atlas projects";
     static operationType: OperationType = "read";
     public argsShape = {
-        orgId: AtlasArgs.organizationId()
-            .describe("Atlas organization ID to filter projects. If not provided, projects for all orgs are returned.")
-            .optional(),
+        ...ListProjectsArgs,
     };
     public override outputSchema = ListProjectsOutputSchema;
 
     protected async execute(
-        { orgId }: ToolArgs<typeof this.argsShape>,
+        { orgId, limit, pageNum }: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        const orgData = await this.apiClient.listOrgs(undefined, context);
+        const orgData = await this.apiClient.listOrgs(
+            {
+                params: {
+                    query: {
+                        itemsPerPage: ORG_LOOKUP_ITEMS_PER_PAGE,
+                    },
+                },
+            },
+            context
+        );
 
         if (!orgData?.results?.length) {
             return {
@@ -59,7 +78,9 @@ export class ListProjectsTool extends AtlasToolBase {
                               orgId,
                           },
                           query: {
-                              itemsPerPage: 500,
+                              itemsPerPage: limit,
+                              pageNum,
+                              includeCount: true,
                           },
                       },
                   },
@@ -69,7 +90,9 @@ export class ListProjectsTool extends AtlasToolBase {
                   {
                       params: {
                           query: {
-                              itemsPerPage: 500,
+                              itemsPerPage: limit,
+                              pageNum,
+                              includeCount: true,
                           },
                       },
                   },
@@ -82,7 +105,7 @@ export class ListProjectsTool extends AtlasToolBase {
                 structuredContent: {
                     ...(orgId !== undefined && { orgId }),
                     projects: [],
-                    totalCount: 0,
+                    ...(data?.totalCount !== undefined && { totalCount: data.totalCount }),
                 },
             };
         }
@@ -96,11 +119,16 @@ export class ListProjectsTool extends AtlasToolBase {
         }));
 
         return {
-            content: formatUntrustedData(`Found ${data.results.length} projects`, JSON.stringify(projects, null, 2)),
+            content: formatUntrustedData(
+                `Found ${data.results.length} projects${
+                    data.totalCount !== undefined ? ` (total: ${data.totalCount})` : ""
+                }`,
+                JSON.stringify(projects, null, 2)
+            ),
             structuredContent: {
                 ...(orgId !== undefined && { orgId }),
                 projects,
-                totalCount: projects.length,
+                ...(data.totalCount !== undefined && { totalCount: data.totalCount }),
             },
         };
     }
