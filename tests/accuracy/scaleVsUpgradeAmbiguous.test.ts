@@ -12,7 +12,7 @@ import { Matcher } from "./sdk/matcher.js";
  * prompt) is the only reliable signal.
  *
  *   FREE/FLEX  -> atlas-upgrade-cluster        (regression guard)
- *   DEDICATED  -> atlas-scale-cluster    (only meaningful when scale tool exists)
+ *   DEDICATED  -> atlas-scale-cluster-instance    (only meaningful when scale tool exists)
  */
 
 function mockScaleResponse(clusterName: string, targetInstanceSize: string): () => CallToolResult {
@@ -42,7 +42,7 @@ const optionalListProjects = [{ toolName: "atlas-list-projects", parameters: {},
 
 const bothToolsMocked = (scaleTarget: string): Record<string, () => CallToolResult> => ({
     ...mockListProjects,
-    "atlas-scale-cluster": mockScaleResponse(CLUSTER_NAME, scaleTarget),
+    "atlas-scale-cluster-instance": mockScaleResponse(CLUSTER_NAME, scaleTarget),
     "atlas-upgrade-cluster": mockUpgradeResponse(CLUSTER_NAME),
 });
 
@@ -67,7 +67,7 @@ const expectUpgrade = [
 const expectScale = (target: string) => [
     ...optionalListProjects,
     {
-        toolName: "atlas-scale-cluster",
+        toolName: "atlas-scale-cluster-instance",
         parameters: { projectId: PROJECT_ID, clusterName: CLUSTER_NAME, targetInstanceSize: target },
     },
 ];
@@ -124,7 +124,7 @@ const discoverThenTool = (
     ],
 });
 const scaleFinal = (target: string) => ({
-    toolName: "atlas-scale-cluster",
+    toolName: "atlas-scale-cluster-instance",
     parameters: { projectId: PROJECT_ID, clusterName: CLUSTER_NAME, targetInstanceSize: target },
 });
 const upgradeFinal = {

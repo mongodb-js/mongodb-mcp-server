@@ -2,7 +2,7 @@ import { z } from "zod";
 import { type OperationType, type ToolArgs, type ToolResult, type ToolExecutionContext } from "../../tool.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import { AtlasArgs } from "../../args.js";
-import type { ScaleClusterMetadata } from "../../../telemetry/types.js";
+import type { ScaleClusterInstanceMetadata } from "../../../telemetry/types.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
 // Dedicated instance sizes that a paid cluster can be scaled between.
@@ -10,7 +10,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 // tier *upgrade* and is handled by the atlas-upgrade-cluster tool, not this one.
 const DEDICATED_INSTANCE_SIZES = ["M10", "M20", "M30", "M40", "M50", "M60", "M80", "M140", "M200", "M300"] as const;
 
-export const ScaleClusterOutputSchema = {
+export const ScaleClusterInstanceOutputSchema = {
     clusterName: z.string(),
     targetInstanceSize: z.enum(DEDICATED_INSTANCE_SIZES),
     clusterId: z.string().optional(),
@@ -24,11 +24,11 @@ export const ScaleClusterOutputSchema = {
  * atlas-upgrade-cluster?). It intentionally contains NO Atlas API logic yet — see
  * the scale-vs-upgrade recommendation doc for the plan to wire this up.
  */
-export class ScaleClusterTool extends AtlasToolBase {
-    static toolName = "atlas-scale-cluster";
+export class ScaleClusterInstanceTool extends AtlasToolBase {
+    static toolName = "atlas-scale-cluster-instance";
     public description = `Scale a dedicated (paid, M10 or higher) MongoDB Atlas cluster to a different dedicated instance size, either up (e.g. M10 → M30) or down (e.g. M40 → M20). Use this ONLY for clusters that are already at a dedicated tier (M10+). DO NOT use this tool for Free (M0) or Flex clusters — moving those to a higher tier is a tier upgrade; use the atlas-upgrade-cluster tool instead.`;
     static operationType: OperationType = "update";
-    public override outputSchema = ScaleClusterOutputSchema;
+    public override outputSchema = ScaleClusterInstanceOutputSchema;
     public argsShape = {
         projectId: AtlasArgs.projectId()
             .optional()
@@ -73,10 +73,10 @@ export class ScaleClusterTool extends AtlasToolBase {
     protected override resolveTelemetryMetadata(
         args: ToolArgs<typeof this.argsShape>,
         context: { result: CallToolResult }
-    ): ScaleClusterMetadata {
+    ): ScaleClusterInstanceMetadata {
         const parentMetadata = super.resolveTelemetryMetadata(args, context);
-        type ScaleClusterOutput = z.infer<z.ZodObject<typeof ScaleClusterOutputSchema>>;
-        const sc = context.result.structuredContent as ScaleClusterOutput | undefined;
+        type ScaleClusterInstanceOutput = z.infer<z.ZodObject<typeof ScaleClusterInstanceOutputSchema>>;
+        const sc = context.result.structuredContent as ScaleClusterInstanceOutput | undefined;
 
         return {
             ...parentMetadata,
