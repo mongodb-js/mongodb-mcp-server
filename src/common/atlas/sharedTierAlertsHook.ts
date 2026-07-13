@@ -37,7 +37,7 @@ function buildRecommendationParagraph(
     return (
         `Note: Atlas reports open shared-tier threshold alerts for cluster "${clusterName}" affecting: ${metricsList}. ` +
         `You may be near connection or storage limits on this ${tier} tier deployment. ` +
-        `Consider upgrading to a paid tier for more headroom — use the atlas-upgrade-cluster tool to upgrade "${clusterName}".`
+        `Consider upgrading to a paid tier for more headroom — use the atlas-upgrade-free-cluster tool to upgrade "${clusterName}".`
     );
 }
 

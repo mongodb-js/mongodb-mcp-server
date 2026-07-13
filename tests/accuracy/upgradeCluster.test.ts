@@ -32,7 +32,7 @@ function expectUpgrade(tier: unknown = anyTargetTier) {
     return [
         ...optionalListProjects,
         {
-            toolName: "atlas-upgrade-cluster",
+            toolName: "atlas-upgrade-free-cluster",
             parameters: {
                 projectId: PROJECT_ID,
                 clusterName: CLUSTER_NAME,
@@ -48,7 +48,7 @@ const up = (prompt: string, tier: unknown = anyTargetTier) => ({
     prompt,
     mockedTools: {
         ...mockListProjects,
-        "atlas-upgrade-cluster": mockUpgradeResponse(CLUSTER_NAME, "Free", "Flex"),
+        "atlas-upgrade-free-cluster": mockUpgradeResponse(CLUSTER_NAME, "Free", "Flex"),
     },
     expectedToolCalls: expectUpgrade(tier),
 });
@@ -77,13 +77,13 @@ describeAccuracyTests([
                     },
                 ],
             }),
-            "atlas-upgrade-cluster": mockUpgradeResponse(CLUSTER_NAME, "Free", "Flex"),
+            "atlas-upgrade-free-cluster": mockUpgradeResponse(CLUSTER_NAME, "Free", "Flex"),
         },
         expectedToolCalls: [
             ...optionalListProjects,
             { toolName: "atlas-list-clusters", parameters: { projectId: PROJECT_ID } },
             {
-                toolName: "atlas-upgrade-cluster",
+                toolName: "atlas-upgrade-free-cluster",
                 parameters: {
                     projectId: PROJECT_ID,
                     clusterName: CLUSTER_NAME,

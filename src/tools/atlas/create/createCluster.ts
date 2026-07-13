@@ -13,7 +13,7 @@ export const ATLAS_CREATE_CLUSTER_README_DESCRIPTION =
     "Disk autoscaling is always enabled. The tool returns immediately, use the atlas-inspect-cluster tool to poll the cluster state for readiness (state: IDLE). " +
     "Connection strings are unavailable until the cluster reaches IDLE state.";
 
-// Keeping this region recommendation string and the one for atlas-upgrade-cluster independent in the short term. The current effort is intentionally limited to additive changes only.
+// Keeping this region recommendation string and the one for atlas-upgrade-free-cluster independent in the short term. The current effort is intentionally limited to additive changes only.
 // Differences include the mention of "non-exhaustive" and a nudge to respect user-specified regions when not in the mapping.
 const REGION_RECOMMENDATIONS = `Common, non-exhaustive region default mappings by provider:
 AWS: "East Coast"/"Virginia"/"US East" → US_EAST_1, "Ohio" → US_EAST_2, "California"/"West Coast" → US_WEST_2, "Southeast Asia"/"APAC"/"Singapore" → AP_SOUTHEAST_1, "Europe"/"EU"/"Ireland" → EU_WEST_1.

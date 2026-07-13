@@ -238,7 +238,7 @@ export type TelemetryToolMetadata =
     | ConnectionMetadata
     | PerfAdvisorToolMetadata
     | StreamsToolMetadata
-    | UpgradeClusterMetadata
+    | UpgradeFreeClusterMetadata
     | ScaleClusterInstanceMetadata
     | CreateClusterMetadata
     | IndexMetadata
@@ -280,7 +280,7 @@ export type StreamsToolMetadata = AtlasMetadata & {
     resource?: string;
 };
 
-export type UpgradeClusterMetadata = AtlasMetadata & {
+export type UpgradeFreeClusterMetadata = AtlasMetadata & {
     original_tier?: "free" | "flex";
     target_tier?: "flex" | "m10";
     cluster_id?: string;

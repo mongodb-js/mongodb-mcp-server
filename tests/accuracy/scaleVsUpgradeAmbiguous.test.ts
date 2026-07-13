@@ -11,7 +11,7 @@ import { Matcher } from "./sdk/matcher.js";
  * clusters so the verb alone never disambiguates — the current tier (stated in the
  * prompt) is the only reliable signal.
  *
- *   FREE/FLEX  -> atlas-upgrade-cluster        (regression guard)
+ *   FREE/FLEX  -> atlas-upgrade-free-cluster        (regression guard)
  *   DEDICATED  -> atlas-scale-cluster-instance    (only meaningful when scale tool exists)
  */
 
@@ -43,7 +43,7 @@ const optionalListProjects = [{ toolName: "atlas-list-projects", parameters: {},
 const bothToolsMocked = (scaleTarget: string): Record<string, () => CallToolResult> => ({
     ...mockListProjects,
     "atlas-scale-cluster-instance": mockScaleResponse(CLUSTER_NAME, scaleTarget),
-    "atlas-upgrade-cluster": mockUpgradeResponse(CLUSTER_NAME),
+    "atlas-upgrade-free-cluster": mockUpgradeResponse(CLUSTER_NAME),
 });
 
 // We only care about routing + core params, so provider/region (which the model may
@@ -53,7 +53,7 @@ const anyStr = Matcher.anyOf(Matcher.string(), Matcher.undefined);
 const expectUpgrade = [
     ...optionalListProjects,
     {
-        toolName: "atlas-upgrade-cluster",
+        toolName: "atlas-upgrade-free-cluster",
         parameters: {
             projectId: PROJECT_ID,
             clusterName: CLUSTER_NAME,
@@ -128,7 +128,7 @@ const scaleFinal = (target: string) => ({
     parameters: { projectId: PROJECT_ID, clusterName: CLUSTER_NAME, targetInstanceSize: target },
 });
 const upgradeFinal = {
-    toolName: "atlas-upgrade-cluster",
+    toolName: "atlas-upgrade-free-cluster",
     parameters: {
         projectId: PROJECT_ID,
         clusterName: CLUSTER_NAME,

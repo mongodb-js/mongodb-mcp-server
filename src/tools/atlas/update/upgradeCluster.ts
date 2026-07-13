@@ -5,7 +5,7 @@ import { formatCluster } from "../../../common/atlas/cluster.js";
 import type { ApiClient } from "../../../common/atlas/apiClient.js";
 import { ApiClientError } from "../../../common/atlas/apiClientError.js";
 import { AtlasArgs } from "../../args.js";
-import type { UpgradeClusterMetadata } from "../../../telemetry/types.js";
+import type { UpgradeFreeClusterMetadata } from "../../../telemetry/types.js";
 import type { AtlasClusterConnectionInfo } from "../../../common/connectionInfo.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
@@ -144,9 +144,9 @@ async function resolveClusterInfo(
     }
 }
 
-class UpgradeClusterError extends Error {}
+class UpgradeFreeClusterError extends Error {}
 
-export const UpgradeClusterOutputSchema = {
+export const UpgradeFreeClusterOutputSchema = {
     originalTier: z.enum(["FREE", "FLEX"]),
     targetTier: z.enum(["FLEX", "M10"]),
     resolvedProvider: z.string().optional(),
@@ -154,11 +154,11 @@ export const UpgradeClusterOutputSchema = {
     clusterId: z.string().optional(),
 };
 
-export class UpgradeClusterTool extends AtlasToolBase {
-    static toolName = "atlas-upgrade-cluster";
+export class UpgradeFreeClusterTool extends AtlasToolBase {
+    static toolName = "atlas-upgrade-free-cluster";
     public description = `Upgrade a MongoDB Atlas cluster tier. This tool is ONLY for upgrading Free (M0) to Flex or M10 Dedicated. DO NOT use this tool for clusters that are already Dedicated, use the atlas-scale-cluster-instance tool instead. The upgrade path is determined automatically from the current tier unless overridden with targetTier. Note to LLM: If provider and region are not already known, ask for both together in a single question before calling this tool. ${REGION_RECOMMENDATIONS}`;
     static operationType: OperationType = "update";
-    public override outputSchema = UpgradeClusterOutputSchema;
+    public override outputSchema = UpgradeFreeClusterOutputSchema;
     public argsShape = {
         projectId: AtlasArgs.projectId()
             .optional()
@@ -190,7 +190,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
         const clusterName = args.clusterName ?? this.session.connectedAtlasCluster?.clusterName;
 
         if (!projectId || !clusterName) {
-            throw new UpgradeClusterError("projectId and clusterName are required when not connected to a cluster.");
+            throw new UpgradeFreeClusterError("projectId and clusterName are required when not connected to a cluster.");
         }
 
         const clusterInfo = await resolveClusterInfo(
@@ -206,12 +206,12 @@ export class UpgradeClusterTool extends AtlasToolBase {
         let clusterId: string | undefined;
         switch (clusterInfo.instanceType) {
             case "DEDICATED":
-                throw new UpgradeClusterError(
+                throw new UpgradeFreeClusterError(
                     `Cluster "${clusterName}" is already at the Dedicated tier and cannot be upgraded further.`
                 );
             case "FLEX":
                 if (target === "FLEX") {
-                    throw new UpgradeClusterError(`Cluster "${clusterName}" is already a Flex cluster.`);
+                    throw new UpgradeFreeClusterError(`Cluster "${clusterName}" is already a Flex cluster.`);
                 }
 
                 // tenantUpgrade: upgrades Flex clusters to Dedicated (M10+)
@@ -253,7 +253,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
     }
 
     protected override handleError(error: unknown, args: ToolArgs<typeof this.argsShape>): CallToolResult {
-        if (error instanceof UpgradeClusterError) {
+        if (error instanceof UpgradeFreeClusterError) {
             return {
                 content: [{ type: "text", text: error.message }],
                 isError: true,
@@ -303,15 +303,15 @@ export class UpgradeClusterTool extends AtlasToolBase {
     protected override resolveTelemetryMetadata(
         args: ToolArgs<typeof this.argsShape>,
         context: { result: CallToolResult }
-    ): UpgradeClusterMetadata {
+    ): UpgradeFreeClusterMetadata {
         const parentMetadata = super.resolveTelemetryMetadata(args, context);
-        type UpgradeClusterOutput = z.infer<z.ZodObject<typeof UpgradeClusterOutputSchema>>;
-        const sc = context.result.structuredContent as UpgradeClusterOutput | undefined;
+        type UpgradeFreeClusterOutput = z.infer<z.ZodObject<typeof UpgradeFreeClusterOutputSchema>>;
+        const sc = context.result.structuredContent as UpgradeFreeClusterOutput | undefined;
 
         return {
             ...parentMetadata,
-            original_tier: UpgradeClusterTool.toLowerCase(sc?.originalTier),
-            target_tier: UpgradeClusterTool.toLowerCase(sc?.targetTier),
+            original_tier: UpgradeFreeClusterTool.toLowerCase(sc?.originalTier),
+            target_tier: UpgradeFreeClusterTool.toLowerCase(sc?.targetTier),
             cluster_id: sc?.clusterId,
             provider: sc?.resolvedProvider,
             region: sc?.resolvedRegion,

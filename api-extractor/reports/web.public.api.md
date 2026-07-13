@@ -931,7 +931,7 @@ export { TelemetryEvents }
 export type TelemetryResult = "success" | "failure";
 
 // @public
-export type TelemetryToolMetadata = AtlasMetadata | ConnectionMetadata | PerfAdvisorToolMetadata | StreamsToolMetadata | UpgradeClusterMetadata | CreateClusterMetadata | IndexMetadata | PauseResumeClusterMetadata;
+export type TelemetryToolMetadata = AtlasMetadata | ConnectionMetadata | PerfAdvisorToolMetadata | StreamsToolMetadata | UpgradeFreeClusterMetadata | CreateClusterMetadata | IndexMetadata | PauseResumeClusterMetadata;
 
 // @public (undocumented)
 export type ToolArgs<T extends ZodRawShape> = {
@@ -1090,7 +1090,7 @@ export class UIRegistry {
 }
 
 // @public (undocumented)
-export type UpgradeClusterMetadata = AtlasMetadata & {
+export type UpgradeFreeClusterMetadata = AtlasMetadata & {
     original_tier?: "free" | "flex";
     target_tier?: "flex" | "m10";
     cluster_id?: string;

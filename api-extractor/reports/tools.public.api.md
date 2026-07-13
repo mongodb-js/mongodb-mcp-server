@@ -2156,7 +2156,7 @@ export class UpdateManyTool extends MongoDBToolBase {
 }
 
 // @public (undocumented)
-export class UpgradeClusterTool extends AtlasToolBase {
+export class UpgradeFreeClusterTool extends AtlasToolBase {
     // (undocumented)
     argsShape: {
         projectId: z.ZodOptional<z.ZodString>;
@@ -2171,9 +2171,9 @@ export class UpgradeClusterTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof UpgradeClusterTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof UpgradeClusterTool.outputSchema>>;
+    protected execute(args: ToolArgs<typeof UpgradeFreeClusterTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof UpgradeFreeClusterTool.outputSchema>>;
     // (undocumented)
-    protected handleError(error: unknown, args: ToolArgs<typeof UpgradeClusterTool.argsShape>): CallToolResult;
+    protected handleError(error: unknown, args: ToolArgs<typeof UpgradeFreeClusterTool.argsShape>): CallToolResult;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -2191,9 +2191,9 @@ export class UpgradeClusterTool extends AtlasToolBase {
         clusterId: z.ZodOptional<z.ZodString>;
     };
     // (undocumented)
-    protected resolveTelemetryMetadata(args: ToolArgs<typeof UpgradeClusterTool.argsShape>, context: {
+    protected resolveTelemetryMetadata(args: ToolArgs<typeof UpgradeFreeClusterTool.argsShape>, context: {
         result: CallToolResult;
-    }): UpgradeClusterMetadata;
+    }): UpgradeFreeClusterMetadata;
     // (undocumented)
     static toolName: string;
 }

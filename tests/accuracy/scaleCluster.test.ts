@@ -4,10 +4,10 @@ import { Matcher } from "./sdk/matcher.js";
 
 /**
  * Tool-selection accuracy for `atlas-scale-cluster-instance` (scaffold) vs the existing
- * `atlas-upgrade-cluster`. Both tools are mocked; the model must route on wording +
+ * `atlas-upgrade-free-cluster`. Both tools are mocked; the model must route on wording +
  * tool descriptions alone.
  *   DEDICATED (M10+) resize up/down  -> atlas-scale-cluster-instance
- *   FREE / FLEX tier change          -> atlas-upgrade-cluster
+ *   FREE / FLEX tier change          -> atlas-upgrade-free-cluster
  */
 
 function mockScaleResponse(clusterName: string, targetInstanceSize: string): () => CallToolResult {
@@ -59,7 +59,7 @@ const anyStr = Matcher.anyOf(Matcher.string(), Matcher.undefined);
 const bothToolsMocked = (scaleTarget: string): Record<string, () => CallToolResult> => ({
     ...mockListProjects,
     "atlas-scale-cluster-instance": mockScaleResponse(CLUSTER_NAME, scaleTarget),
-    "atlas-upgrade-cluster": mockUpgradeResponse(CLUSTER_NAME),
+    "atlas-upgrade-free-cluster": mockUpgradeResponse(CLUSTER_NAME),
 });
 
 const expectScale = (target: string) => [
@@ -73,7 +73,7 @@ const expectScale = (target: string) => [
 const expectUpgrade = [
     ...optionalListProjects,
     {
-        toolName: "atlas-upgrade-cluster",
+        toolName: "atlas-upgrade-free-cluster",
         parameters: {
             projectId: PROJECT_ID,
             clusterName: CLUSTER_NAME,
@@ -144,7 +144,7 @@ describeAccuracyTests([
                 optional: true as const,
             },
             {
-                toolName: "atlas-upgrade-cluster",
+                toolName: "atlas-upgrade-free-cluster",
                 parameters: {
                     projectId: PROJECT_ID,
                     clusterName: CLUSTER_NAME,

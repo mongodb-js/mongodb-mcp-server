@@ -13,7 +13,7 @@ export { ListOrganizationsTool } from "./read/listOrgs.js";
 export { ConnectClusterTool, type ConnectClusterOutput } from "./connect/connectCluster.js";
 export { ListAlertsTool } from "./read/listAlerts.js";
 export { GetPerformanceAdvisorTool } from "./read/getPerformanceAdvisor.js";
-export { UpgradeClusterTool } from "./update/upgradeCluster.js";
+export { UpgradeFreeClusterTool } from "./update/upgradeCluster.js";
 export { ScaleClusterInstanceTool } from "./update/scaleCluster.js";
 export { PauseResumeClusterTool } from "./update/pauseResumeCluster.js";
 export { StreamsDiscoverTool } from "./streams/discover.js";

@@ -389,35 +389,35 @@ describeWithAtlas("clusters", (integration) => {
                 });
             });
         });
-        describe("atlas-upgrade-cluster", () => {
+        describe("atlas-upgrade-free-cluster", () => {
             it("should have correct metadata", async () => {
                 const { tools } = await integration.mcpClient().listTools();
-                const upgradeCluster = tools.find((tool) => tool.name === "atlas-upgrade-cluster");
+                const upgradeFreeCluster = tools.find((tool) => tool.name === "atlas-upgrade-free-cluster");
 
-                expectDefined(upgradeCluster);
-                expect(upgradeCluster.inputSchema.type).toBe("object");
-                expectDefined(upgradeCluster.inputSchema.properties);
-                expect(upgradeCluster.inputSchema.properties).toHaveProperty("projectId");
-                expect(upgradeCluster.inputSchema.properties).toHaveProperty("clusterName");
-                expect(upgradeCluster.inputSchema.properties).toHaveProperty("targetTier");
-                expect(upgradeCluster.inputSchema.properties).toHaveProperty("provider");
-                expect(upgradeCluster.inputSchema.properties).toHaveProperty("region");
+                expectDefined(upgradeFreeCluster);
+                expect(upgradeFreeCluster.inputSchema.type).toBe("object");
+                expectDefined(upgradeFreeCluster.inputSchema.properties);
+                expect(upgradeFreeCluster.inputSchema.properties).toHaveProperty("projectId");
+                expect(upgradeFreeCluster.inputSchema.properties).toHaveProperty("clusterName");
+                expect(upgradeFreeCluster.inputSchema.properties).toHaveProperty("targetTier");
+                expect(upgradeFreeCluster.inputSchema.properties).toHaveProperty("provider");
+                expect(upgradeFreeCluster.inputSchema.properties).toHaveProperty("region");
             });
 
-            withCluster(integration, ({ getProjectId: getUpgradeProjectId, getClusterName: getUpgradeClusterName }) => {
+            withCluster(integration, ({ getProjectId: getUpgradeProjectId, getClusterName: getUpgradeFreeClusterName }) => {
                 // This withCluster creates a dedicated FREE cluster for the upgrade test.
                 // The test makes a real upgrade API call; withCluster's cleanup handles teardown regardless of tier.
                 describe("when not connected to the cluster being upgraded", () => {
                     it("upgrades FREE cluster to FLEX with explicit projectId and clusterName", async () => {
                         const response = await integration.mcpClient().callTool({
-                            name: "atlas-upgrade-cluster",
+                            name: "atlas-upgrade-free-cluster",
                             arguments: {
                                 projectId: getUpgradeProjectId(),
-                                clusterName: getUpgradeClusterName(),
+                                clusterName: getUpgradeFreeClusterName(),
                             },
                         });
                         const content = getResponseContent(response.content);
-                        expect(content).toContain(getUpgradeClusterName());
+                        expect(content).toContain(getUpgradeFreeClusterName());
                         expect(content).toContain("being upgraded");
                     });
                 });
@@ -450,7 +450,7 @@ describeWithAtlas("clusters", (integration) => {
 
                 it("upgrades FREE cluster to FLEX using session state without explicit params", async () => {
                     const response = await integration.mcpClient().callTool({
-                        name: "atlas-upgrade-cluster",
+                        name: "atlas-upgrade-free-cluster",
                         arguments: {},
                     });
                     const content = getResponseContent(response.content);

@@ -7,7 +7,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
 // Dedicated instance sizes that a paid cluster can be scaled between.
 // M0 (Free) and Flex are intentionally excluded: moving up from those tiers is a
-// tier *upgrade* and is handled by the atlas-upgrade-cluster tool, not this one.
+// tier *upgrade* and is handled by the atlas-upgrade-free-cluster tool, not this one.
 const DEDICATED_INSTANCE_SIZES = ["M10", "M20", "M30", "M40", "M50", "M60", "M80", "M140", "M200", "M300"] as const;
 
 export const ScaleClusterInstanceOutputSchema = {
@@ -21,12 +21,12 @@ export const ScaleClusterInstanceOutputSchema = {
  *
  * This tool defines the description, input schema and a hardcoded response so we can
  * evaluate tool-selection accuracy (does an LLM route "scale my cluster" here vs.
- * atlas-upgrade-cluster?). It intentionally contains NO Atlas API logic yet — see
+ * atlas-upgrade-free-cluster?). It intentionally contains NO Atlas API logic yet — see
  * the scale-vs-upgrade recommendation doc for the plan to wire this up.
  */
 export class ScaleClusterInstanceTool extends AtlasToolBase {
     static toolName = "atlas-scale-cluster-instance";
-    public description = `Scale a dedicated (paid, M10 or higher) MongoDB Atlas cluster to a different dedicated instance size, either up (e.g. M10 → M30) or down (e.g. M40 → M20). Use this ONLY for clusters that are already at a dedicated tier (M10+). DO NOT use this tool for Free (M0) or Flex clusters — moving those to a higher tier is a tier upgrade; use the atlas-upgrade-cluster tool instead.`;
+    public description = `Scale a dedicated (paid, M10 or higher) MongoDB Atlas cluster to a different dedicated instance size, either up (e.g. M10 → M30) or down (e.g. M40 → M20). Use this ONLY for clusters that are already at a dedicated tier (M10+). DO NOT use this tool for Free (M0) or Flex clusters — moving those to a higher tier is a tier upgrade; use the atlas-upgrade-free-cluster tool instead.`;
     static operationType: OperationType = "update";
     public override outputSchema = ScaleClusterInstanceOutputSchema;
     public argsShape = {

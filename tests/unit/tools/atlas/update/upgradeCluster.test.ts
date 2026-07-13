@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ToolConstructorParams } from "../../../../../src/tools/tool.js";
-import { UpgradeClusterTool } from "../../../../../src/tools/atlas/update/upgradeCluster.js";
+import { UpgradeFreeClusterTool } from "../../../../../src/tools/atlas/update/upgradeFreeCluster.js";
 import type { Session } from "../../../../../src/common/session.js";
 import type { UserConfig } from "../../../../../src/common/config/userConfig.js";
 import type { Telemetry } from "../../../../../src/telemetry/telemetry.js";
@@ -64,12 +64,12 @@ const FLEX_CLUSTER_RAW = {
 
 const UPGRADE_RESULT = { id: "upgraded-cluster-id" };
 
-describe("UpgradeClusterTool", () => {
+describe("UpgradeFreeClusterTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
     let mockSession: Partial<Session>;
-    let tool: UpgradeClusterTool;
+    let tool: UpgradeFreeClusterTool;
 
-    function buildTool(connectedCluster?: AtlasClusterConnectionInfo): UpgradeClusterTool {
+    function buildTool(connectedCluster?: AtlasClusterConnectionInfo): UpgradeFreeClusterTool {
         mockApiClient = {
             getCluster: vi.fn(),
             getFlexCluster: vi.fn(),
@@ -109,9 +109,9 @@ describe("UpgradeClusterTool", () => {
         } as unknown as Elicitation;
 
         const params: ToolConstructorParams = {
-            name: UpgradeClusterTool.toolName,
+            name: UpgradeFreeClusterTool.toolName,
             category: "atlas",
-            operationType: UpgradeClusterTool.operationType,
+            operationType: UpgradeFreeClusterTool.operationType,
             session: mockSession as Session,
             config: mockConfig,
             telemetry: mockTelemetry,
@@ -120,7 +120,7 @@ describe("UpgradeClusterTool", () => {
             uiRegistry: new UIRegistry(),
         };
 
-        return new UpgradeClusterTool(params);
+        return new UpgradeFreeClusterTool(params);
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
