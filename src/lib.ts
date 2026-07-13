@@ -93,6 +93,7 @@ export { applyConfigOverrides, ConfigOverrideError } from "./common/config/confi
 export {
     SessionStore,
     SessionRejectedError,
+    SessionLimitExceededError,
     createDefaultSessionStore,
     type ISessionStore,
     type CloseableTransport,
@@ -131,4 +132,5 @@ export {
     JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND,
     JSON_RPC_ERROR_CODE_INVALID_REQUEST,
     JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION,
+    JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED,
 } from "./transports/jsonRpcErrorCodes.js";

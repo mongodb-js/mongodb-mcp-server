@@ -323,6 +323,47 @@ describe("StreamableHttpRunner", () => {
         return await sessionStore.getSession(sessionId);
     };
 
+    describe("with maxSessions configuration", () => {
+        beforeEach(async () => {
+            config.maxSessions = 2;
+            runner = new StreamableHttpRunner({ userConfig: config });
+            await runner.start();
+        });
+
+        it("allows sessions up to the configured limit", async () => {
+            await expect(connectClient({})).resolves.toBeDefined();
+            await expect(connectClient({})).resolves.toBeDefined();
+        });
+
+        it("rejects a new session once the limit is reached", async () => {
+            await connectClient({});
+            await connectClient({});
+
+            const response = await sendHttpRequest("initialize");
+            expect(response.status).toBe(503);
+            const body = (await response.json()) as { error?: { code: number } };
+            expect(body.error?.code).toBe(-32006); // JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED
+        });
+
+        it("allows a new session once an existing one is closed", async () => {
+            // `client.close()` only tears down the client-side connection, it doesn't
+            // terminate the server-side session (see the "even after closing" test
+            // above) — so we free the slot with an explicit DELETE instead.
+            const first = await sendHttpRequest("initialize");
+            const sessionId = first.headers.get("mcp-session-id");
+            expect(sessionId).toBeTruthy();
+            await sendHttpRequest("initialize");
+
+            await fetch(`${runner["mcpServer"]!.serverAddress}/mcp`, {
+                method: "DELETE",
+                headers: { "mcp-session-id": sessionId ?? "" },
+            });
+
+            const third = await sendHttpRequest("initialize");
+            expect(third.ok).toBe(true);
+        });
+    });
+
     describe("with externallyManagedSessions enabled", () => {
         beforeEach(async () => {
             config.externallyManagedSessions = true;

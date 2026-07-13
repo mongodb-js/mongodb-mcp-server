@@ -11,7 +11,7 @@ import { Keychain } from "../../../src/common/keychain.js";
 import type { Secret } from "../../../src/common/keychain.js";
 import { createEnvironment } from "../../utils/index.js";
 import path from "path";
-import { TRANSPORT_PAYLOAD_LIMITS } from "../../../src/transports/constants.js";
+import { TRANSPORT_PAYLOAD_LIMITS, DEFAULT_MAX_SESSIONS } from "../../../src/transports/constants.js";
 import { getConfigMeta } from "../../../src/common/config/configOverrides.js";
 
 // Expected hardcoded values (what we had before)
@@ -45,6 +45,7 @@ const expectedDefaults = {
     loggers: ["disk", "mcp"],
     idleTimeoutMs: 10 * 60 * 1000, // 10 minutes
     notificationTimeoutMs: 9 * 60 * 1000, // 9 minutes
+    maxSessions: DEFAULT_MAX_SESSIONS,
     httpHeaders: {},
     httpBodyLimit: TRANSPORT_PAYLOAD_LIMITS.http,
     maxDocumentsPerQuery: 100,
