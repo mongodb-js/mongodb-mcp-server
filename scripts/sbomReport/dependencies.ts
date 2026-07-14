@@ -5,8 +5,8 @@ import { findLicenseFiles, findPackagePath, getLicenses } from "./licenses.js";
 import type { Conversion, CycloneDxBom, CycloneDxComponent, DependencyWithLicense } from "./types.js";
 
 export const CONVERSIONS: Conversion[] = [
-    { prod: false, outputPath: ".sbom/dependencies.json" },
-    { prod: true, outputPath: ".sbom/dependencies-prod.json" },
+    { prod: false, outputPath: ".sbom/dependencies.json", rawOutputPath: ".sbom/sbom.cyclonedx.json" },
+    { prod: true, outputPath: ".sbom/dependencies-prod.json", rawOutputPath: ".sbom/sbom-prod.cyclonedx.json" },
 ];
 
 function dependencyKey(dependency: DependencyWithLicense): string {
@@ -52,6 +52,10 @@ function generateSbom(prod: boolean): CycloneDxBom {
 
 export function convertSbomToDependencyList(conversion: Conversion): void {
     const sbom = generateSbom(conversion.prod);
+
+    fs.mkdirSync(path.dirname(conversion.rawOutputPath), { recursive: true });
+    fs.writeFileSync(conversion.rawOutputPath, JSON.stringify(sbom, null, 2));
+
     const components = (sbom.components ?? []).filter((component) => component.name && component.version);
 
     const enrichedDependencies = dedupeAndSort(components.map(enrichComponent));

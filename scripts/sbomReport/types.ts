@@ -12,6 +12,7 @@ export type CycloneDxComponent = {
     group?: string;
     type?: string;
     licenses?: CycloneDxLicense[];
+    purl?: string;
 };
 
 export type CycloneDxBom = {
@@ -35,4 +36,5 @@ export type DependencyWithLicense = {
 export type Conversion = {
     prod: boolean;
     outputPath: string;
+    rawOutputPath: string;
 };
