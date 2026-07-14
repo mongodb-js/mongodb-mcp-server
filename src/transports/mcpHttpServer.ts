@@ -26,6 +26,20 @@ import {
     JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED,
 } from "./jsonRpcErrorCodes.js";
 
+type KeepAliveLoop = {
+    /**
+     * Starts the ping loop on behalf of the given standalone SSE stream. No-op when the loop is
+     * already running for another stream.
+     */
+    start: (streamOwner: object) => void;
+    /**
+     * Stops the ping loop. When a stream owner is given, only stops the loop if that owner
+     * started it — a rejected concurrent GET must not stop the loop belonging to the stream
+     * that is actually open. Called without an owner, stops unconditionally.
+     */
+    stop: (streamOwner?: object) => void;
+};
+
 export type MCPHttpServerConstructorArgs<TUserConfig extends UserConfig = UserConfig, TContext = unknown> = {
     userConfig: TUserConfig;
     createServerForRequest: (createParams: {
@@ -50,6 +64,7 @@ export class MCPHttpServer<
     protected readonly userConfig: TUserConfig;
     private readonly metrics: Metrics<DefaultMetrics>;
     private readonly pendingInitializations = new Map<string, Promise<void>>();
+    private readonly keepAliveLoops = new Map<string, KeepAliveLoop>();
 
     private createServerForRequest: (createParams: {
         request: TransportRequestContext;
@@ -122,51 +137,81 @@ export class MCPHttpServer<
         });
     }
 
-    private startKeepAliveLoop(
+    /**
+     * Creates the keepalive ping loop for a session. The loop is not started here: pings ride
+     * the standalone SSE stream (GET), so the caller starts the loop only while such a stream
+     * is established and stops it when the stream closes. Without an established stream the
+     * transport silently drops server-initiated messages, so pinging would be pure overhead —
+     * and worse, if dropping ever turned into an error, the failed-ping handling would tear
+     * down perfectly healthy sessions.
+     */
+    private createKeepAliveLoop(
         transport: StreamableHTTPServerTransport,
         server: Server<TUserConfig, TContext>
-    ): NodeJS.Timeout | undefined {
+    ): KeepAliveLoop | undefined {
         if (this.userConfig.httpResponseType === "json") {
-            // Don't start the ping loop for JSON response type since the connection is short-lived and pings aren't needed
+            // Don't create the ping loop for JSON response type since GET is rejected with 405
+            // and a standalone SSE stream can never be established.
             return undefined;
         }
 
+        let interval: NodeJS.Timeout | undefined;
+        let owner: object | undefined;
         let failedPings = 0;
-        // eslint-disable-next-line @typescript-eslint/no-misused-promises
-        const keepAliveLoop = setInterval(async () => {
-            try {
-                server.session.logger.debug({
-                    id: LogId.streamableHttpTransportKeepAlive,
-                    context: "streamableHttpTransport",
-                    message: "Sending ping",
-                });
 
-                await transport.send({
-                    jsonrpc: "2.0",
-                    method: "ping",
-                });
-                failedPings = 0;
-            } catch (err) {
+        const stop = (streamOwner?: object): void => {
+            if (streamOwner !== undefined && streamOwner !== owner) {
+                return;
+            }
+            if (interval !== undefined) {
+                clearInterval(interval);
+                interval = undefined;
+            }
+            owner = undefined;
+        };
+
+        const start = (streamOwner: object): void => {
+            if (interval !== undefined) {
+                return;
+            }
+            owner = streamOwner;
+            failedPings = 0;
+            // eslint-disable-next-line @typescript-eslint/no-misused-promises
+            interval = setInterval(async () => {
                 try {
-                    failedPings++;
-                    server.session.logger.warning({
-                        id: LogId.streamableHttpTransportKeepAliveFailure,
+                    server.session.logger.debug({
+                        id: LogId.streamableHttpTransportKeepAlive,
                         context: "streamableHttpTransport",
-                        message: `Error sending ping (attempt #${failedPings}): ${err instanceof Error ? err.message : String(err)}`,
+                        message: "Sending ping",
                     });
 
-                    if (failedPings > 3) {
-                        clearInterval(keepAliveLoop);
-                        await transport.close();
-                    }
-                } catch {
-                    // Ignore the error of the transport close as there's nothing else
-                    // we can do at this point.
-                }
-            }
-        }, 30_000);
+                    await transport.send({
+                        jsonrpc: "2.0",
+                        method: "ping",
+                    });
+                    failedPings = 0;
+                } catch (err) {
+                    try {
+                        failedPings++;
+                        server.session.logger.warning({
+                            id: LogId.streamableHttpTransportKeepAliveFailure,
+                            context: "streamableHttpTransport",
+                            message: `Error sending ping (attempt #${failedPings}): ${err instanceof Error ? err.message : String(err)}`,
+                        });
 
-        return keepAliveLoop;
+                        if (failedPings > 3) {
+                            stop();
+                            await transport.close();
+                        }
+                    } catch {
+                        // Ignore the error of the transport close as there's nothing else
+                        // we can do at this point.
+                    }
+                }
+            }, 30_000);
+        };
+
+        return { start, stop };
     }
 
     /**
@@ -274,9 +319,13 @@ export class MCPHttpServer<
 
             server.session.logger.setAttribute("sessionId", sessionId);
 
-            const keepAliveLoop = this.startKeepAliveLoop(transport, server);
+            const keepAliveLoop = this.createKeepAliveLoop(transport, server);
+            if (keepAliveLoop) {
+                this.keepAliveLoops.set(sessionId, keepAliveLoop);
+            }
             transport.onclose = (): void => {
-                clearInterval(keepAliveLoop);
+                this.keepAliveLoops.get(sessionId)?.stop();
+                this.keepAliveLoops.delete(sessionId);
 
                 server.close().catch((error) => {
                     this.logger.error({
@@ -458,6 +507,19 @@ export class MCPHttpServer<
                 transport = await this.sessionStore.getSession(resolvedSessionId, req.headers);
                 if (!transport) {
                     return this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND);
+                }
+            }
+
+            if (req.method === "GET") {
+                // The standalone SSE stream (GET) is the only channel keepalive pings can ride,
+                // so the loop runs only while this stream is established and stops when the
+                // response closes. `res` is passed as the stream owner so that the teardown of a
+                // rejected concurrent GET (only one standalone stream is allowed per session)
+                // cannot stop the loop belonging to the stream that is actually open.
+                const keepAliveLoop = this.keepAliveLoops.get(sessionId);
+                if (keepAliveLoop) {
+                    keepAliveLoop.start(res);
+                    res.once("close", () => keepAliveLoop.stop(res));
                 }
             }
 

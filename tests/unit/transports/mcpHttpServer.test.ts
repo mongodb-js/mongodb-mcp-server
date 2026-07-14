@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach, vi } from "vitest";
+import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
 import { MCPHttpServer } from "../../../src/transports/mcpHttpServer.js";
 import { defaultTestConfig, InMemoryLogger } from "../../integration/helpers.js";
 import { MockMetrics } from "../mocks/metrics.js";
@@ -220,5 +220,171 @@ describe("MCPHttpServer x-request-id logging", () => {
             (m) => m.level === "error" && m.payload.message.includes("Error handling request")
         );
         expect(log?.payload.attributes).toEqual(expect.objectContaining({ "x-request-id": "req-throw" }));
+    });
+});
+
+describe("MCPHttpServer keepalive pings", () => {
+    const KEEP_ALIVE_INTERVAL_MS = 30_000;
+    const SESSION_ID = "11111111111111111111111111111111";
+
+    let server: MCPHttpServer;
+    let capturedTransports: Map<string, StreamableHTTPServerTransport>;
+    let sessionStore: ISessionStore<StreamableHTTPServerTransport>;
+    let openStreams: AbortController[];
+
+    beforeEach(() => {
+        // Fake only interval scheduling so real HTTP requests keep working while
+        // the keepalive ticks are driven deterministically from the tests.
+        vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+        openStreams = [];
+        capturedTransports = new Map();
+        sessionStore = {
+            getSession: vi
+                .fn()
+                .mockImplementation((sessionId: string) => Promise.resolve(capturedTransports.get(sessionId) ?? null)),
+            addSession: vi
+                .fn()
+                .mockImplementation(
+                    ({
+                        sessionId,
+                        transport,
+                    }: {
+                        sessionId: string;
+                        transport: StreamableHTTPServerTransport;
+                    }): Promise<void> => {
+                        capturedTransports.set(sessionId, transport);
+                        return Promise.resolve();
+                    }
+                ),
+            closeSession: vi.fn().mockResolvedValue(undefined),
+            closeAllSessions: vi.fn().mockResolvedValue(undefined),
+        };
+    });
+
+    afterEach(async () => {
+        for (const controller of openStreams) {
+            controller.abort();
+        }
+        await server?.stop();
+        vi.useRealTimers();
+    });
+
+    async function startServer(): Promise<void> {
+        server = new MCPHttpServer({
+            userConfig: {
+                ...defaultTestConfig,
+                httpPort: 0,
+                httpResponseType: "sse",
+                externallyManagedSessions: true,
+            },
+            createServerForRequest: (): Promise<Server> => Promise.resolve(makeFakeServer()),
+            logger: new InMemoryLogger(Keychain.root),
+            metrics: new MockMetrics(),
+            sessionStore,
+        });
+        await server.start();
+    }
+
+    /** Opens the standalone SSE stream (GET) for the given session, implicitly initializing it. */
+    async function openStandaloneStream(sessionId: string): Promise<Response> {
+        const controller = new AbortController();
+        openStreams.push(controller);
+        return fetch(`${server.serverAddress}/mcp`, {
+            method: "GET",
+            headers: { accept: "text/event-stream", "mcp-session-id": sessionId },
+            signal: controller.signal,
+        });
+    }
+
+    function countPings(calls: unknown[][]): number {
+        return calls.filter((call) => (call[0] as { method?: string } | undefined)?.method === "ping").length;
+    }
+
+    /** Lets in-flight socket events (e.g. a client abort) reach the server before continuing. */
+    async function settleRealIo(): Promise<void> {
+        // setTimeout is intentionally not faked, so this waits real time.
+        await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+
+    it("does not ping sessions that never open a standalone SSE stream", async () => {
+        await startServer();
+
+        // Create a session via initialize without ever opening the GET stream — the
+        // situation of every client when the standalone stream is not offered (e.g.
+        // deployments that reject GET upstream). Pings have nowhere to go and must not
+        // be attempted, and the transport must not be closed as a consequence.
+        const initRes = await fetch(`${server.serverAddress}/mcp`, {
+            method: "POST",
+            headers: { "content-type": "application/json", accept: "application/json, text/event-stream" },
+            body: INIT_BODY,
+        });
+        expect(initRes.status).toBe(200);
+        await initRes.body?.cancel();
+
+        const transport = [...capturedTransports.values()][0];
+        expect(transport).toBeDefined();
+        const sendSpy = vi.spyOn(transport as StreamableHTTPServerTransport, "send");
+        const closeSpy = vi.spyOn(transport as StreamableHTTPServerTransport, "close");
+
+        await vi.advanceTimersByTimeAsync(5 * KEEP_ALIVE_INTERVAL_MS);
+
+        expect(countPings(sendSpy.mock.calls)).toBe(0);
+        expect(closeSpy).not.toHaveBeenCalled();
+    });
+
+    it("pings while a standalone SSE stream is open and stops when it closes", async () => {
+        await startServer();
+
+        const streamRes = await openStandaloneStream(SESSION_ID);
+        expect(streamRes.status).toBe(200);
+        const transport = capturedTransports.get(SESSION_ID);
+        expect(transport).toBeDefined();
+        const sendSpy = vi.spyOn(transport as StreamableHTTPServerTransport, "send");
+
+        await vi.advanceTimersByTimeAsync(2 * KEEP_ALIVE_INTERVAL_MS);
+        expect(countPings(sendSpy.mock.calls)).toBe(2);
+
+        // Client drops the stream; the loop must stop instead of pinging into the void.
+        openStreams.shift()?.abort();
+        await settleRealIo();
+
+        sendSpy.mockClear();
+        await vi.advanceTimersByTimeAsync(2 * KEEP_ALIVE_INTERVAL_MS);
+        expect(countPings(sendSpy.mock.calls)).toBe(0);
+    });
+
+    it("keeps pinging the active stream when a concurrent GET is rejected", async () => {
+        await startServer();
+
+        const first = await openStandaloneStream(SESSION_ID);
+        expect(first.status).toBe(200);
+        const transport = capturedTransports.get(SESSION_ID);
+        const sendSpy = vi.spyOn(transport as StreamableHTTPServerTransport, "send");
+
+        // Only one standalone stream is allowed per session; the second GET is rejected
+        // and its teardown must not stop the loop belonging to the active stream.
+        const second = await openStandaloneStream(SESSION_ID);
+        expect(second.status).toBe(409);
+        await settleRealIo();
+
+        await vi.advanceTimersByTimeAsync(KEEP_ALIVE_INTERVAL_MS);
+        expect(countPings(sendSpy.mock.calls)).toBe(1);
+    });
+
+    it("closes the transport after more than 3 consecutive failed pings", async () => {
+        await startServer();
+
+        const streamRes = await openStandaloneStream(SESSION_ID);
+        expect(streamRes.status).toBe(200);
+        const transport = capturedTransports.get(SESSION_ID);
+        const sendSpy = vi
+            .spyOn(transport as StreamableHTTPServerTransport, "send")
+            .mockRejectedValue(new Error("stream broken"));
+        const closeSpy = vi.spyOn(transport as StreamableHTTPServerTransport, "close");
+
+        await vi.advanceTimersByTimeAsync(4 * KEEP_ALIVE_INTERVAL_MS);
+
+        expect(sendSpy).toHaveBeenCalledTimes(4);
+        expect(closeSpy).toHaveBeenCalledTimes(1);
     });
 });
