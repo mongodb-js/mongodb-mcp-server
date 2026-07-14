@@ -90,8 +90,6 @@ jobs:
           git push
 
       - name: Generate SBOM and upload to Kondukto via SilkBomb
-        # Pull request runs do not have access to the Kondukto/Artifactory
-        # secrets, so the SilkBomb upload only runs on schedule/dispatch runs.
         if: always() && github.event_name != 'pull_request'
         env:
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
@@ -106,11 +104,6 @@ jobs:
 
           docker pull artifactory.corp.mongodb.com/release-tools-container-registry-public-local/silkbomb:2.0
 
-          if [ ! -s .sbom/purls.txt ]; then
-            echo "::warning::No PURLs found at .sbom/purls.txt; skipping Kondukto SBOM upload."
-            exit 0
-          fi
-
           docker run --rm -v "$PWD":/pwd \
             artifactory.corp.mongodb.com/release-tools-container-registry-public-local/silkbomb:2.0 \
             update --purls /pwd/.sbom/purls.txt --sbom-out /pwd/.sbom/sbom-lite.json
@@ -124,9 +117,6 @@ jobs:
             --sbom-out /pwd/.sbom/sbom.json
 
       - name: Upload SBOM artifact
-        # Retains the Kondukto-enriched SBOM and PURLs list, mirroring mongosh's
-        # `upload_sbom` S3 step which publishes the augmented `dist/.sbom.json`
-        # (and `purls.txt`) as a public release artifact.
         if: always() && github.event_name != 'pull_request'
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v7.0.1
         with:
