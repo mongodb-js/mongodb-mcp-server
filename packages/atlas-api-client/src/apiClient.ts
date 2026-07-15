@@ -30,6 +30,15 @@ export interface ApiClientOptions {
     serverMetadata: ServerMetadata;
     logger: LoggerBase;
     authProvider: AuthProvider | undefined;
+    /**
+     * Whether this deployment can determine the caller's public IP address via the
+     * `api/private/ipinfo` endpoint. Embedders whose network position makes the
+     * lookup unavailable or meaningless (e.g. the Atlas-hosted MCP server, where the
+     * "current IP" would be the server pod's egress IP rather than the end user's
+     * machine) should set this to `false` so tools skip automatic IP access list
+     * setup and direct users to provide IP addresses explicitly.
+     */
+    supportsCurrentIpLookup?: boolean;
 }
 
 /** @public */
@@ -68,6 +77,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     private readonly options: {
         baseUrl: string;
         userAgent: string;
+        supportsCurrentIpLookup: boolean;
     };
 
     private customFetch: typeof fetch;
@@ -81,7 +91,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     readonly logger: LoggerBase;
     readonly authProvider?: AuthProvider;
 
-    constructor({ logger, authProvider, options, serverMetadata }: ApiClientOptions) {
+    constructor({ logger, authProvider, options, serverMetadata, supportsCurrentIpLookup }: ApiClientOptions) {
         this.logger = logger;
         this.authProvider = authProvider;
         // In Node we use `createFetch` from devtools-proxy-support to pick up
@@ -105,6 +115,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
         this.options = {
             baseUrl: options.baseUrl,
             userAgent: userAgentFromServerMetadata(serverMetadata),
+            supportsCurrentIpLookup: supportsCurrentIpLookup ?? true,
         };
 
         this.client = createClient<paths>({
@@ -184,9 +195,19 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
         } as Options;
     }
 
+    public get supportsCurrentIpLookup(): boolean {
+        return this.options.supportsCurrentIpLookup;
+    }
+
     public async getIpInfo(): Promise<{
         currentIpv4Address: string;
     }> {
+        if (!this.supportsCurrentIpLookup) {
+            throw new Error(
+                "This deployment does not support current IP detection. Provide the IP addresses to allow explicitly."
+            );
+        }
+
         const authHeaders = (await this.authProvider?.getAuthHeaders()) ?? {};
 
         const endpoint = "api/private/ipinfo";

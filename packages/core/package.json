@@ -32,11 +32,10 @@
     "mongodb-redact": "^1.1.6",
     "zod": "^4.0.0"
   },
-  "devDependencies": {
-    "@mongodb-js/mcp-types": "workspace:*",
-    "@mongodb-js/mcp-test-utils": "workspace:*",
-    "@types/node": "^25.6.0",
-    "typescript": "^5.9.2",
-    "vitest": "^4.1.4"
-  }
+    "devDependencies": {
+        "@mongodb-js/mcp-types": "workspace:*",
+        "@types/node": "^25.6.0",
+        "typescript": "^5.9.2",
+        "vitest": "^4.1.4"
+    }
 }

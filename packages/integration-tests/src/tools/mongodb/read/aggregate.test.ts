@@ -16,7 +16,7 @@ import {
     waitUntilSearchIsReady,
 } from "../../../mongodbHelpers.js";
 import { beforeEach, describe, expect, it, vi, afterEach } from "vitest";
-import { freshInsertDocuments } from "./find.test.js";
+import { freshInsertDocuments } from "./helpers.js";
 import { BSON } from "bson";
 import { DOCUMENT_EMBEDDINGS } from "./vyai/embeddings.js";
 import type { TelemetryToolEvent as ToolEvent } from "@mongodb-js/mcp-atlas-telemetry";

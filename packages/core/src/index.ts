@@ -32,8 +32,11 @@ export { InMemoryTransport } from "./inMemoryTransport.js";
 export {
     SessionStore,
     SessionRejectedError,
+    SessionLimitExceededError,
+    createDefaultSessionStore,
     type ISessionStore,
     type SessionStoreConstructorArgs,
+    type CreateSessionStoreFn,
 } from "./sessionStore.js";
 export { StdioRunner } from "./runners/stdioRunner.js";
 
@@ -47,6 +50,7 @@ export {
     JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND,
     JSON_RPC_ERROR_CODE_INVALID_REQUEST,
     JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION,
+    JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED,
 } from "./jsonRpcErrorCodes.js";
 export const MCP_LOG_LEVELS: readonly LogLevel[] = [
     "debug",

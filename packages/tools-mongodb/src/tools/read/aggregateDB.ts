@@ -12,6 +12,7 @@ import { collectCursorUntilMaxBytesLimit } from "../../helpers/collectCursorUnti
 import { operationWithFallback } from "../../helpers/operationWithFallback.js";
 import { LogId } from "@mongodb-js/mcp-core";
 import { ONE_MB, CURSOR_LIMITS_TO_LLM_TEXT } from "../../helpers/constants.js";
+import { bsonToJson } from "../../helpers/bsonToJson.js";
 import { AnyAggregateStage, DB_AGGREGATE_STAGE_OPERATORS } from "../../mongodbSchemas.js";
 
 export const AggregateArgs = {
@@ -39,12 +40,15 @@ The maximum number of bytes to return in the response. This value is capped by t
         { signal }: ToolExecutionContext
     ): Promise<CallToolResult> {
         let aggregationCursor: AggregationCursor | undefined = undefined;
+        let documents: unknown[] = [];
+        let aggResultsCount: number | undefined;
+        let appliedLimits: (keyof typeof CURSOR_LIMITS_TO_LLM_TEXT)[] = [];
+        let successMessage: string;
+
         try {
             const provider = await this.ensureConnected();
             this.assertOnlyUsesPermittedStages(pipeline);
 
-            let successMessage: string;
-            let documents: unknown[];
             if (pipeline.some((stage) => this.isWriteStage(stage))) {
                 // This is a write pipeline, so special-case it and don't attempt to apply limits or caps
                 aggregationCursor = provider.aggregateDb(database, pipeline, {
@@ -87,13 +91,16 @@ The maximum number of bytes to return in the response. This value is capped by t
                     totalDocuments > this.config.maxDocumentsPerQuery;
 
                 documents = cursorResults.documents;
+                aggResultsCount = totalDocuments;
+                appliedLimits = [
+                    aggregationResultsCappedByMaxDocumentsLimit ? "config.maxDocumentsPerQuery" : undefined,
+                    cursorResults.cappedBy,
+                ].filter((limit): limit is keyof typeof CURSOR_LIMITS_TO_LLM_TEXT => !!limit);
+
                 successMessage = this.generateMessage({
                     aggResultsCount: totalDocuments,
                     documents: cursorResults.documents,
-                    appliedLimits: [
-                        aggregationResultsCappedByMaxDocumentsLimit ? "config.maxDocumentsPerQuery" : undefined,
-                        cursorResults.cappedBy,
-                    ].filter((limit): limit is keyof typeof CURSOR_LIMITS_TO_LLM_TEXT => !!limit),
+                    appliedLimits,
                 });
             }
 
@@ -102,6 +109,11 @@ The maximum number of bytes to return in the response. This value is capped by t
                     successMessage,
                     ...(documents.length > 0 ? [EJSON.stringify(documents)] : [])
                 ),
+                structuredContent: {
+                    documents: bsonToJson(documents),
+                    ...(aggResultsCount !== undefined ? { aggResultsCount } : {}),
+                    appliedLimits,
+                },
             };
         } finally {
             if (aggregationCursor) {
@@ -131,24 +143,7 @@ The maximum number of bytes to return in the response. This value is capped by t
             );
         }
 
-        const writeOperations: OperationType[] = ["update", "create", "delete"];
-        let writeStageForbiddenError = "";
-
-        if (this.config.readOnly) {
-            writeStageForbiddenError = "In readOnly mode you can not run pipelines with $out or $merge stages.";
-        } else if (this.config.disabledTools.some((t: string) => writeOperations.includes(t as OperationType))) {
-            writeStageForbiddenError =
-                "When 'create', 'update', or 'delete' operations are disabled, you can not run pipelines with $out or $merge stages.";
-        }
-
-        for (const stage of pipeline) {
-            // This validates that in readOnly mode or "write" operations are disabled, we can't use $out or $merge.
-            // This is really important because aggregates are the only "multi-faceted" tool in the MQL, where you
-            // can both read and write.
-            if (this.isWriteStage(stage) && writeStageForbiddenError) {
-                throw new MongoDBError(ErrorCodes.ForbiddenWriteOperation, writeStageForbiddenError);
-            }
-        }
+        this.assertMqlIsAllowed(pipeline);
     }
 
     private async countAggregationResultDocuments({

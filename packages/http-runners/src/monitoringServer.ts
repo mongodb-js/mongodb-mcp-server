@@ -54,10 +54,11 @@ export class MonitoringServer<
             });
         }
 
-        if (this.features.includes("metrics")) {
+        if (this.features.includes("metrics") && this.metrics?.getMetrics) {
+            const getMetrics = this.metrics.getMetrics.bind(this.metrics);
             this.app.get("/metrics", async (_req: express.Request, res: express.Response) => {
                 try {
-                    const output = await this.metrics.getMetrics();
+                    const output = await getMetrics();
                     res.set("Content-Type", "text/plain");
                     res.send(output);
                 } catch (error: unknown) {

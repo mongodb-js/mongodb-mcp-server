@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { Document, Collection } from "mongodb";
 import {
     getResponseContent,
     databaseCollectionParameters,
@@ -15,20 +14,7 @@ import {
 } from "../../../mongodbHelpers.js";
 import { AGG_COUNT_MAX_TIME_MS_CAP } from "@mongodb-js/mcp-tools-mongodb";
 import type { Client } from "@modelcontextprotocol/sdk/client";
-
-export async function freshInsertDocuments({
-    collection,
-    count,
-    documentMapper = (index): Document => ({ value: index }),
-}: {
-    collection: Collection<Document>;
-    count: number;
-    documentMapper?: (index: number) => Document;
-}): Promise<void> {
-    await collection.drop();
-    const documents = Array.from({ length: count }).map((_, idx) => documentMapper(idx));
-    await collection.insertMany(documents);
-}
+import { freshInsertDocuments } from "./helpers.js";
 
 describeWithMongoDB("find tool with default configuration", (integration) => {
     validateToolMetadata(integration, "find", "Run a find query against a MongoDB collection", "read", [
@@ -469,18 +455,20 @@ describeWithMongoDB(
     }
 );
 
-describeWithMongoDB("find tool with abort signal", (integration) => {
-    beforeEach(async () => {
-        // Insert many documents with complex data to simulate a slow query
-        await freshInsertDocuments({
-            collection: integration.mongoClient().db(integration.randomDbName()).collection("abort_collection"),
-            count: 10,
-            documentMapper: (index) => ({
-                _id: index,
-                description: `Document ${index}`,
-            }),
+describeWithMongoDB(
+    "find tool with abort signal",
+    (integration) => {
+        beforeEach(async () => {
+            // Insert many documents with complex data to simulate a slow query
+            await freshInsertDocuments({
+                collection: integration.mongoClient().db(integration.randomDbName()).collection("abort_collection"),
+                count: 10,
+                documentMapper: (index) => ({
+                    _id: index,
+                    description: `Document ${index}`,
+                }),
+            });
         });
-    });
 
     const runSlowFind = async (
         signal?: AbortSignal
@@ -566,7 +554,11 @@ describeWithMongoDB("find tool with abort signal", (integration) => {
         const content = getResponseContent(result);
         expect(content).toContain('Query on collection "abort_collection"');
     }, 15000);
-});
+    },
+    {
+        getUserConfig: () => ({ ...defaultTestConfig, disableServerSideJs: false }),
+    }
+);
 
 describeWithMongoDB(
     "find tool with configured maxTimeMS",
@@ -628,6 +620,6 @@ describeWithMongoDB(
         }, 10000);
     },
     {
-        getUserConfig: () => ({ ...defaultTestConfig, maxTimeMS: 100 }),
+        getUserConfig: () => ({ ...defaultTestConfig, maxTimeMS: 100, disableServerSideJs: false }),
     }
 );

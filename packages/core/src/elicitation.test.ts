@@ -1,7 +1,58 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { Elicitation } from "./elicitation.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { createMockElicitInput, createMockGetClientCapabilities } from "@mongodb-js/mcp-test-utils";
+import type { MockedFunction } from "vitest";
+
+type MockElicitResult = {
+    action: string;
+    content?: Record<string, unknown>;
+};
+
+type MockClientCapabilities = {
+    elicitation?: Record<string, unknown>;
+};
+
+function createMockElicitInput(): {
+    mock: MockedFunction<() => Promise<MockElicitResult>>;
+    confirmYes: () => void;
+    confirmNo: () => void;
+    acceptWith: (content: Record<string, unknown> | undefined) => void;
+    cancel: () => void;
+    rejectWith: (error: Error) => void;
+    clear: () => void;
+} {
+    const mockFn = vi.fn();
+
+    return {
+        mock: mockFn as MockedFunction<() => Promise<MockElicitResult>>,
+        confirmYes: () =>
+            mockFn.mockResolvedValue({
+                action: "accept",
+                content: { confirmation: "Yes" },
+            }),
+        confirmNo: () =>
+            mockFn.mockResolvedValue({
+                action: "accept",
+                content: { confirmation: "No" },
+            }),
+        acceptWith: (content: Record<string, unknown> | undefined) =>
+            mockFn.mockResolvedValue({
+                action: "accept",
+                content,
+            }),
+        cancel: () =>
+            mockFn.mockResolvedValue({
+                action: "cancel",
+                content: undefined,
+            }),
+        rejectWith: (error: Error) => mockFn.mockRejectedValue(error),
+        clear: () => mockFn.mockClear(),
+    };
+}
+
+function createMockGetClientCapabilities(): MockedFunction<() => MockClientCapabilities | undefined> {
+    return vi.fn();
+}
 
 describe("Elicitation", () => {
     let elicitation: Elicitation;

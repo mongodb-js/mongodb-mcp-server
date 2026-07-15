@@ -35,6 +35,8 @@ export class DeleteManyTool extends MongoDBToolBase {
     }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
         const provider = await this.ensureConnected();
 
+        this.assertMqlIsAllowed(filter);
+
         // Check if delete operation uses an index if enabled
         if (this.config.indexCheck) {
             await checkIndexUsage({

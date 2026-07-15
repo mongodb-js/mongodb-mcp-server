@@ -2,15 +2,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import { PauseResumeClusterTool, PauseResumeClusterArgsShape } from "./pauseResumeCluster.js";
 import { z } from "zod";
-import type { ISession } from "@mongodb-js/mcp-types";
-import type { ITelemetry } from "@mongodb-js/mcp-types";
-import type { Elicitation } from "@mongodb-js/mcp-core";
-import type { CompositeLogger } from "@mongodb-js/mcp-core";
+import type { ISession, ITelemetry } from "@mongodb-js/mcp-types";
+import type { Elicitation, CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-types";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 import type { Keychain } from "@mongodb-js/mcp-core";
+import type { IAtlasConfig } from "../../atlasTool.js";
 
 const PROJECT_ID = "507f1f77bcf86cd799439011";
 const CLUSTER_NAME = "my-cluster";
@@ -42,6 +41,13 @@ describe("PauseResumeClusterTool", () => {
             connectedAtlasCluster: connectedCluster,
             disconnect: mockDisconnect as unknown as () => Promise<void>,
             keychain: { allSecrets: [] } as unknown as Keychain,
+            config: {
+                transport: "stdio",
+                readOnly: false,
+                disabledTools: [],
+                confirmationRequiredTools: [],
+                previewFeatures: [],
+            } as unknown as IAtlasConfig,
         };
 
         const mockTelemetry = {

@@ -1,6 +1,7 @@
 import { DBOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType } from "@mongodb-js/mcp-types";
+import { escapeMarkdown } from "../../helpers/escapeMarkdown.js";
 import { z } from "zod";
 
 const DropDatabaseOutputSchema = {
@@ -39,7 +40,7 @@ export class DropDatabaseTool extends MongoDBToolBase {
 
     protected getConfirmationMessage({ database }: ToolArgs<typeof this.argsShape>): string {
         return (
-            `You are about to drop the \`${database}\` database:\n\n` +
+            `You are about to drop the **${escapeMarkdown(database)}** database:\n\n` +
             "This operation will permanently remove the database and ALL its collections, documents, and indexes.\n\n" +
             "**Do you confirm the execution of the action?**"
         );

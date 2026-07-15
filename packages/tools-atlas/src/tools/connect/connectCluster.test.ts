@@ -73,7 +73,7 @@ describe("ConnectClusterTool", () => {
         };
 
         tool = new ConnectClusterTool(params);
-        connectToCluster = tool["connectToCluster"] as (
+        connectToCluster = tool["connectToCluster"].bind(tool) as (
             connectionString: string,
             atlas: AtlasClusterConnectionInfo,
             context: ToolExecutionContext

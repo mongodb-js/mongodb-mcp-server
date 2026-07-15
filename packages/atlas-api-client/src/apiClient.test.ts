@@ -84,14 +84,15 @@ describe("ApiClient", () => {
         });
 
         it("makes getIpInfo reject without a network call when disabled", async () => {
-            const client = new ApiClient(
-                {
+            const client = new ApiClient({
+                options: {
                     baseUrl: "https://api.test.com",
-                    userAgent: "test-user-agent",
-                    supportsCurrentIpLookup: false,
                 },
-                new NullLogger()
-            );
+                serverMetadata: testServerMetadata,
+                logger: new NoopLogger(),
+                authProvider: undefined,
+                supportsCurrentIpLookup: false,
+            });
 
             expect(client.supportsCurrentIpLookup).toBe(false);
             await expect(client.getIpInfo()).rejects.toThrow("does not support current IP detection");

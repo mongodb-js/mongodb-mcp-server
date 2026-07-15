@@ -38,6 +38,7 @@ export async function startServer({
             options: {
                 idleTimeoutMS: config.idleTimeoutMs,
                 notificationTimeoutMS: config.notificationTimeoutMs,
+                maxSessions: config.maxSessions,
             },
             logger,
             metrics,

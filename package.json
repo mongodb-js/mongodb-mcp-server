@@ -30,7 +30,6 @@
     "generate:api": "pnpm --filter @mongodb-js/mcp-scripts generate:api",
     "generate:arguments": "pnpm --filter @mongodb-js/mcp-scripts generate",
     "generate:release-notes": "pnpm --filter @mongodb-js/mcp-scripts generate:release-notes",
-    "pretest": "pnpm run build",
     "test": "vitest --project eslint-rules --project unit-and-integration --coverage --run",
     "test:accuracy": "pnpm --filter @mongodb-js/mcp-accuracy-tests test",
     "test:browser": "pnpm --filter @mongodb-js/mcp-browser-tests test",

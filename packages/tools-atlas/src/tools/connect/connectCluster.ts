@@ -95,7 +95,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         connectionType: "standard" | "private" | "privateEndpoint" | undefined = "standard",
         context: ToolExecutionContext
     ): Promise<{ connectionString: string; atlas: AtlasClusterConnectionInfo }> {
-        const cluster = await inspectCluster(this.apiClient, projectId, clusterName);
+        const cluster = await inspectCluster(this.apiClient, projectId, clusterName, context);
 
         if (cluster.connectionStrings === undefined) {
             throw new Error("Connection strings not available");
@@ -324,7 +324,11 @@ export class ConnectClusterTool extends AtlasToolBase {
                         ...(createdUser && { temporaryUserClarification: createdUserMessage }),
                     };
 
-                    const sharedTierFields = await this.runSharedTierHook(this.session.connectedAtlasCluster, content);
+                    const sharedTierFields = await this.runSharedTierHook(
+                        this.session.connectedAtlasCluster,
+                        content,
+                        context
+                    );
                     return { content, structuredContent: { ...baseStructuredContent, ...sharedTierFields } };
                 }
                 case "connecting":
@@ -364,7 +368,7 @@ export class ConnectClusterTool extends AtlasToolBase {
             });
         }
 
-        const sharedTierFields = await this.runSharedTierHook(this.session.connectedAtlasCluster, content);
+        const sharedTierFields = await this.runSharedTierHook(this.session.connectedAtlasCluster, content, context);
         return {
             content,
             structuredContent: {
@@ -379,7 +383,8 @@ export class ConnectClusterTool extends AtlasToolBase {
 
     private async runSharedTierHook(
         atlas: AtlasClusterConnectionInfo | undefined,
-        content: ToolResult<typeof ConnectClusterOutputSchema>["content"]
+        content: ToolResult<typeof ConnectClusterOutputSchema>["content"],
+        context: ToolExecutionContext
     ): Promise<{
         sharedTierAlertsDetected?: boolean;
         sharedTierTier?: SharedTierTier;
@@ -402,6 +407,7 @@ export class ConnectClusterTool extends AtlasToolBase {
             instanceType: atlas.instanceType,
             apiClient: this.apiClient,
             logger: this.session.logger,
+            context,
         });
         if (hookResult !== undefined) {
             content.push({ type: "text", text: hookResult.recommendationText });

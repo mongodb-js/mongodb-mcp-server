@@ -30,7 +30,7 @@ describe("SessionStore metrics", () => {
         metrics = new MockMetrics();
         logger = createMockLogger();
         store = new SessionStore({
-            options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000 },
+            options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000, maxSessions: 1000 },
             logger,
             metrics: metrics,
         });
@@ -191,7 +191,7 @@ describe("SessionStore.hasSession", () => {
 
     beforeEach(() => {
         store = new SessionStore({
-            options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000 },
+            options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000, maxSessions: 1000 },
             logger: createMockLogger(),
             metrics: new MockMetrics(),
         });

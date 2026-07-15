@@ -1,8 +1,13 @@
 import { z } from "zod";
 import type { CallToolResult } from "@mongodb-js/mcp-types";
 import { MongoDBToolBase, type IMongoDBSession, type MongoDBToolRegistrationServer } from "../../mongodbTool.js";
-import type { ToolArgs, ToolConstructorParams } from "@mongodb-js/mcp-core";
+import type { ToolArgs, ToolConstructorParams, ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType } from "@mongodb-js/mcp-types";
+
+const ConnectOutputSchema = {
+    connected: z.boolean(),
+};
+
 export class ConnectTool extends MongoDBToolBase {
     static toolName = "connect";
     public override description =
@@ -15,6 +20,8 @@ export class ConnectTool extends MongoDBToolBase {
     };
 
     static operationType: OperationType = "connect";
+
+    public override outputSchema = ConnectOutputSchema;
 
     constructor(params: ToolConstructorParams<IMongoDBSession>) {
         super(params);
@@ -39,11 +46,12 @@ export class ConnectTool extends MongoDBToolBase {
         return registrationSuccessful;
     }
 
-    protected override async execute({ connectionString }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected override async execute({ connectionString }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
         await this.session.connectToMongoDB({ connectionString });
 
         return {
             content: [{ type: "text", text: "Successfully connected to MongoDB." }],
+            structuredContent: { connected: true },
         };
     }
 }

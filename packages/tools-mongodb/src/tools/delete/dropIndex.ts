@@ -3,6 +3,7 @@ import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-d
 import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
 import { type ToolArgs, formatUntrustedData, type ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType } from "@mongodb-js/mcp-types";
+import { escapeMarkdown } from "../../helpers/escapeMarkdown.js";
 const DropIndexOutputSchema = {
     database: z.string(),
     collection: z.string(),
@@ -111,7 +112,7 @@ export class DropIndexTool extends MongoDBToolBase {
         type,
     }: ToolArgs<typeof this.argsShape>): string {
         return (
-            `You are about to drop the ${type === "search" ? "search index" : "index"} named \`${indexName}\` from the \`${database}.${collection}\` namespace:\n\n` +
+            `You are about to drop the ${type === "search" ? "search index" : "index"} named **${escapeMarkdown(indexName)}** from the **${escapeMarkdown(database)}.${escapeMarkdown(collection)}** namespace:\n\n` +
             "This operation will permanently remove the index and might affect the performance of queries relying on this index.\n\n" +
             "**Do you confirm the execution of the action?**"
         );

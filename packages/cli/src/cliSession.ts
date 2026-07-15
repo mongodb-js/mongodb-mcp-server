@@ -137,18 +137,26 @@ export class CliSession extends EventEmitter<SessionEvents> implements McpSessio
     }
 
     async connectToConfiguredConnection(): Promise<void> {
-        const connectionInfo = generateConnectionInfoFromCliArgs({
-            ...this.config,
-            connectionSpecifier: this.config.connectionString,
-        });
-        await this.connectToMongoDB(connectionInfo);
+        if (typeof this.config.connectionString !== "string") {
+            throw new MongoDBError(
+                ErrorCodes.MisconfiguredConnectionString,
+                "No connection string is configured."
+            );
+        }
+        await this.connectToMongoDB({ connectionString: this.config.connectionString });
     }
 
     async connectToMongoDB(settings: { connectionString: string; atlas?: AtlasClusterConnectionInfo }): Promise<void> {
-        const connectionInfo = generateConnectionInfoFromCliArgs({
-            ...this.config,
-            connectionSpecifier: settings.connectionString,
-        });
+        let connectionInfo: ReturnType<typeof generateConnectionInfoFromCliArgs>;
+        try {
+            connectionInfo = generateConnectionInfoFromCliArgs({
+                ...this.config,
+                connectionSpecifier: settings.connectionString,
+            });
+        } catch (error: unknown) {
+            const errorReason = error instanceof Error ? error.message : String(error);
+            throw new MongoDBError(ErrorCodes.MisconfiguredConnectionString, errorReason);
+        }
         await this.connectionManager.connect({ ...connectionInfo, atlas: settings.atlas });
     }
 

@@ -1,6 +1,12 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { MCPHttpServer } from "./mcpHttpServer.js";
-import { SessionRejectedError, LoggerBase, Keychain } from "@mongodb-js/mcp-core";
+import {
+    SessionRejectedError,
+    SessionLimitExceededError,
+    JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED,
+    LoggerBase,
+    Keychain,
+} from "@mongodb-js/mcp-core";
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
 import type {
     DefaultMetricDefinitions,
@@ -255,6 +261,23 @@ describe("MCPHttpServer x-request-id logging", () => {
 
         const log = logger.messages.find((m) => m.level === "error" && m.payload.message.includes("identity mismatch"));
         expect(log).toBeDefined();
+    });
+
+    it("responds with 503 when sessionStore.addSession throws SessionLimitExceededError", async () => {
+        const addSession = vi
+            .fn()
+            .mockRejectedValue(new SessionLimitExceededError("Session limit of 1 concurrent sessions reached"));
+        const sessionStore: ISessionStore<StreamableHTTPServerTransport> = {
+            ...makeSessionStore(() => Promise.resolve(null)),
+            addSession,
+        };
+        await startServer(sessionStore, () => Promise.resolve(makeFakeServer()));
+
+        const res = await post("/mcp", INIT_BODY, {});
+        const body = (await res.json()) as { error: { code: number } };
+
+        expect(res.status).toBe(503);
+        expect(body.error.code).toBe(JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED);
     });
 
     it("includes x-request-id in error log when handler throws", async () => {

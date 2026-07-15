@@ -49,6 +49,7 @@ function createStreamableHttpRunnerFromConfig(options: {
             options: {
                 idleTimeoutMS: userConfig.idleTimeoutMs,
                 notificationTimeoutMS: userConfig.notificationTimeoutMs,
+                maxSessions: userConfig.maxSessions,
             },
             logger,
             metrics,

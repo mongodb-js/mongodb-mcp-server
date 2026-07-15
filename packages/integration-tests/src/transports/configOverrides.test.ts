@@ -155,6 +155,7 @@ function createConfigOverrideRunner(baseConfig: UserConfig): Promise<{
         options: {
             idleTimeoutMS: baseConfig.idleTimeoutMs,
             notificationTimeoutMS: baseConfig.notificationTimeoutMs,
+            maxSessions: baseConfig.maxSessions,
         },
         logger,
         metrics: metrics,

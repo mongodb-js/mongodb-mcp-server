@@ -2,8 +2,8 @@ import { describe, it, expect, vi } from "vitest";
 import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import { FindTool } from "../tools/read/find.js";
 import type { IMongoDBSession, IMongoDBConfig } from "../mongodbTool.js";
-import type { ITelemetry, IElicitation, ICompositeLogger } from "@mongodb-js/mcp-types";
-import { UIRegistry } from "@mongodb-js/mcp-ui";
+import type { ITelemetry, IElicitation } from "@mongodb-js/mcp-types";
+import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 
 // assertMqlIsAllowed only reads config, so a minimally-constructed MongoDB tool is enough to exercise it.
@@ -13,25 +13,29 @@ function makeTool(config: Partial<IMongoDBConfig>): (...values: unknown[]) => vo
         debug: vi.fn(),
         warning: vi.fn(),
         error: vi.fn(),
-    } as unknown as ICompositeLogger;
+    } as unknown as CompositeLogger;
 
     const params: ToolConstructorParams<IMongoDBSession> = {
         name: FindTool.toolName,
         category: "mongodb",
         operationType: FindTool.operationType,
-        session: { logger: mockLogger } as unknown as IMongoDBSession,
-        config: {
-            disableServerSideJs: true,
-            readOnly: false,
-            disabledTools: [],
-            confirmationRequiredTools: [],
-            previewFeatures: [],
-            ...config,
-        } as unknown as IMongoDBConfig,
+        session: {
+            logger: mockLogger,
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            config: {
+                disableServerSideJs: true,
+                readOnly: false,
+                disabledTools: [],
+                confirmationRequiredTools: [],
+                previewFeatures: [],
+                ...config,
+            } as unknown as IMongoDBSession["config"],
+        } as unknown as IMongoDBSession,
         telemetry: { isTelemetryEnabled: () => false, emitEvents: vi.fn() } as unknown as ITelemetry,
         elicitation: { requestConfirmation: vi.fn() } as unknown as IElicitation,
         metrics: new MockMetrics(),
-        uiRegistry: new UIRegistry(),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+        uiRegistry: { get: vi.fn().mockResolvedValue(null) } as unknown as import("@mongodb-js/mcp-types").IUIRegistry,
     };
 
     const tool = new FindTool(params) as unknown as { assertMqlIsAllowed: (...values: unknown[]) => void };

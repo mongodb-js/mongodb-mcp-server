@@ -8,7 +8,7 @@ import {
 import { describeWithMongoDB, validateAutoConnectBehavior } from "../../../mongodbHelpers.js";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { Client } from "@modelcontextprotocol/sdk/client";
-import { freshInsertDocuments } from "./find.test.js";
+import { freshInsertDocuments } from "./helpers.js";
 
 describeWithMongoDB("count tool", (integration) => {
     validateToolMetadata(

@@ -47,6 +47,7 @@ import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createTestApiClient } from "../integrationHelpers.js";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
+import { createMonitoringServerFromConfig } from "@mongodb-js/mcp-cli";
 
 // Helper to create a full Server instance for tests
 async function createTestServer(
@@ -186,6 +187,7 @@ function createStreamableHttpRunner(
         options: {
             idleTimeoutMS: config.idleTimeoutMs,
             notificationTimeoutMS: config.notificationTimeoutMs,
+            maxSessions: config.maxSessions,
         },
         logger,
         metrics: metrics,
@@ -213,22 +215,11 @@ function createStreamableHttpRunner(
         tools: options.tools ?? AllTools,
     });
 
-    const monitoringHost = config.monitoringServerHost ?? config.healthCheckHost;
-    const monitoringPort = config.monitoringServerPort ?? config.healthCheckPort;
-    let monitoringServer: MonitoringServer | undefined;
-    if (monitoringHost !== undefined && monitoringPort !== undefined) {
-        monitoringServer = new MonitoringServer({
-            options: {
-                http: {
-                    host: monitoringHost,
-                    port: monitoringPort,
-                },
-                features: config.monitoringServerFeatures,
-            },
-            logger,
-            metrics,
-        });
-    }
+    const monitoringServer = createMonitoringServerFromConfig({
+        config,
+        logger,
+        metrics,
+    });
 
     return Promise.resolve(
         new StreamableHttpRunner<CliServer>({
@@ -517,7 +508,7 @@ describe("StreamableHttpRunner", () => {
     describe("with maxSessions configuration", () => {
         beforeEach(async () => {
             config.maxSessions = 2;
-            runner = new StreamableHttpRunner({ userConfig: config });
+            runner = await createStreamableHttpRunner(config);
             await runner.start();
         });
 
@@ -545,7 +536,7 @@ describe("StreamableHttpRunner", () => {
             expect(sessionId).toBeTruthy();
             await sendHttpRequest("initialize");
 
-            await fetch(`${runner["mcpServer"]!.serverAddress}/mcp`, {
+            await fetch(`${runner["mcpHttpServer"].serverAddress}/mcp`, {
                 method: "DELETE",
                 headers: { "mcp-session-id": sessionId ?? "" },
             });
@@ -881,6 +872,7 @@ describe("StreamableHttpRunner", () => {
                         options: {
                             idleTimeoutMS: config.idleTimeoutMs,
                             notificationTimeoutMS: config.notificationTimeoutMs,
+                            maxSessions: config.maxSessions,
                         },
                         logger,
                         metrics: metrics,
@@ -1093,6 +1085,7 @@ describe("StreamableHttpRunner", () => {
                 options: {
                     idleTimeoutMS: config.idleTimeoutMs,
                     notificationTimeoutMS: config.notificationTimeoutMs,
+                    maxSessions: config.maxSessions,
                 },
                 logger,
                 metrics: metrics,
@@ -1151,6 +1144,7 @@ describe("StreamableHttpRunner", () => {
                 options: {
                     idleTimeoutMS: config.idleTimeoutMs,
                     notificationTimeoutMS: config.notificationTimeoutMs,
+                    maxSessions: config.maxSessions,
                 },
                 logger,
                 metrics: metrics,

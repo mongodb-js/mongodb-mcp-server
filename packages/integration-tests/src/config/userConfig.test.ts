@@ -59,6 +59,7 @@ const expectedDefaults = {
     monitoringServerFeatures: ["health-check"],
     queryCountMaxTimeMsCap: 10000,
     aggregationCountMaxTimeMsCap: 60000,
+    maxSessions: 1000,
 };
 
 const CONFIG_FIXTURES = {
@@ -141,6 +142,7 @@ describe("config", () => {
                 { envVar: "MDB_MCP_HTTP_BODY_LIMIT", property: "httpBodyLimit", value: 10 * 1024 * 1024 },
                 { envVar: "MDB_MCP_IDLE_TIMEOUT_MS", property: "idleTimeoutMs", value: 5000 },
                 { envVar: "MDB_MCP_NOTIFICATION_TIMEOUT_MS", property: "notificationTimeoutMs", value: 5000 },
+                { envVar: "MDB_MCP_MAX_SESSIONS", property: "maxSessions", value: 500 },
                 {
                     envVar: "MDB_MCP_ATLAS_TEMPORARY_DATABASE_USER_LIFETIME_MS",
                     property: "atlasTemporaryDatabaseUserLifetimeMs",
@@ -193,6 +195,8 @@ describe("config", () => {
     });
 
     describe("cli parsing", () => {
+        useClearEnvironment("MDB_MCP_");
+
         it("should not try to parse a multiple-host urls", () => {
             const { parsed: actual } = parseUserConfig({
                 args: ["--connectionString", "mongodb://user:password@host1,host2,host3/"],
@@ -251,6 +255,10 @@ describe("config", () => {
                 {
                     cli: ["--notificationTimeoutMs", "42"],
                     expected: { notificationTimeoutMs: 42 },
+                },
+                {
+                    cli: ["--maxSessions", "42"],
+                    expected: { maxSessions: 42 },
                 },
                 {
                     cli: ["--atlasTemporaryDatabaseUserLifetimeMs", "12345"],
@@ -586,6 +594,8 @@ describe("config", () => {
     });
 
     describe("loading a config file", () => {
+        useClearEnvironment("MDB_MCP_");
+
         describe("through env variable MDB_MCP_CONFIG", () => {
             const { setVariable, clearVariables } = createEnvironment();
             afterEach(() => {
@@ -633,6 +643,7 @@ describe("config", () => {
     });
 
     describe("precedence rules", () => {
+        useClearEnvironment("MDB_MCP_");
         const { setVariable, clearVariables } = createEnvironment();
 
         afterEach(() => {

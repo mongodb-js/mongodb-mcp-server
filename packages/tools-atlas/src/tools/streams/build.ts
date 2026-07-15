@@ -1,9 +1,8 @@
 import { z } from "zod";
 import { StreamsToolBase } from "../../streams/streamsToolBase.js";
-import type { CallToolResult } from "@mongodb-js/mcp-types";
+import type { CallToolResult, OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import type { ElicitRequestFormParams } from "@modelcontextprotocol/sdk/types.js";
 import type { ToolArgs } from "@mongodb-js/mcp-core";
-import type { OperationType } from "@mongodb-js/mcp-types";
 import { AtlasArgs } from "../../args.js";
 import { ConnectionConfig, PrivateLinkConfig, StreamsArgs } from "../../streams/streamsArgs.js";
 
@@ -90,6 +89,10 @@ const HTTPS_FIELDS = {
         description: "HTTPS endpoint URL (e.g. 'https://api.example.com/webhook')",
     },
 } as const satisfies Record<string, FieldSchema>;
+
+const BuildOutputSchema = {
+    resource: BuildResource.describe("Which build step completed"),
+};
 
 export class StreamsBuildTool extends StreamsToolBase {
     static toolName = "atlas-streams-build";
@@ -209,16 +212,21 @@ export class StreamsBuildTool extends StreamsToolBase {
         ),
     };
 
-    protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    public override outputSchema = BuildOutputSchema;
+
+    protected async execute(
+        args: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<CallToolResult> {
         switch (args.resource) {
             case "workspace":
-                return this.createWorkspace(args);
+                return this.createWorkspace(args, context);
             case "connection":
-                return this.createConnection(args);
+                return this.createConnection(args, context);
             case "processor":
-                return this.createProcessor(args);
+                return this.createProcessor(args, context);
             case "privatelink":
-                return this.createPrivateLink(args);
+                return this.createPrivateLink(args, context);
             default:
                 return {
                     content: [{ type: "text", text: `Unknown resource type: ${args.resource as string}` }],
@@ -234,7 +242,10 @@ export class StreamsBuildTool extends StreamsToolBase {
         return args.workspaceName;
     }
 
-    private async createWorkspace(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    private async createWorkspace(
+        args: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<CallToolResult> {
         const workspaceName = this.requireWorkspaceName(args);
         if (!args.cloudProvider) {
             throw new Error("cloudProvider is required when creating a workspace. Choose from: AWS, AZURE, GCP.");
@@ -258,15 +269,21 @@ export class StreamsBuildTool extends StreamsToolBase {
 
         const useSample = args.includeSampleData !== false;
         if (useSample) {
-            await this.apiClient.withStreamSampleConnections({
-                params: { path: { groupId: args.projectId } },
-                body: body as never,
-            });
+            await this.apiClient.withStreamSampleConnections(
+                {
+                    params: { path: { groupId: args.projectId } },
+                    body: body as never,
+                },
+                context
+            );
         } else {
-            await this.apiClient.createStreamWorkspace({
-                params: { path: { groupId: args.projectId } },
-                body: body as never,
-            });
+            await this.apiClient.createStreamWorkspace(
+                {
+                    params: { path: { groupId: args.projectId } },
+                    body: body as never,
+                },
+                context
+            );
         }
 
         const sampleNote = useSample ? " Includes sample_stream_solar connection for testing." : "";
@@ -281,10 +298,14 @@ export class StreamsBuildTool extends StreamsToolBase {
                         `then deploy a processor with resource='processor'.`,
                 },
             ],
+            structuredContent: { resource: "workspace" },
         };
     }
 
-    private async createConnection(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    private async createConnection(
+        args: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<CallToolResult> {
         const workspaceName = this.requireWorkspaceName(args);
         if (!args.connectionName) {
             throw new Error("connectionName is required when adding a connection.");
@@ -308,10 +329,13 @@ export class StreamsBuildTool extends StreamsToolBase {
             type: args.connectionType,
         };
 
-        await this.apiClient.createStreamConnection({
-            params: { path: { groupId: args.projectId, tenantName: workspaceName } },
-            body: body as never,
-        });
+        await this.apiClient.createStreamConnection(
+            {
+                params: { path: { groupId: args.projectId, tenantName: workspaceName } },
+                body: body as never,
+            },
+            context
+        );
 
         const privateLinkWarning =
             config?.networking?.access?.type === "PRIVATE_LINK"
@@ -328,6 +352,7 @@ export class StreamsBuildTool extends StreamsToolBase {
                         `Reference this connection as '${args.connectionName}' in your processor pipeline's $source, $merge, or $emit stages.`,
                 },
             ],
+            structuredContent: { resource: "connection" },
         };
     }
 
@@ -667,6 +692,7 @@ export class StreamsBuildTool extends StreamsToolBase {
         projectId: string,
         workspaceName: string,
         pipeline: Record<string, unknown>[],
+        context: ToolExecutionContext,
         dlq?: { connectionName: string; db: string; coll: string }
     ): Promise<CallToolResult | null> {
         const referencedNames = StreamsToolBase.extractConnectionNames(pipeline);
@@ -675,12 +701,15 @@ export class StreamsBuildTool extends StreamsToolBase {
 
         let availableNames: Set<string>;
         try {
-            const data = await this.apiClient.listStreamConnections({
-                params: {
-                    path: { groupId: projectId, tenantName: workspaceName },
-                    query: { itemsPerPage: 100, pageNum: 1 },
+            const data = await this.apiClient.listStreamConnections(
+                {
+                    params: {
+                        path: { groupId: projectId, tenantName: workspaceName },
+                        query: { itemsPerPage: 100, pageNum: 1 },
+                    },
                 },
-            });
+                context
+            );
             availableNames = new Set((data?.results ?? []).map((c) => String((c as Record<string, unknown>).name)));
         } catch {
             return null; // Soft check — skip if we can't list connections
@@ -709,7 +738,10 @@ export class StreamsBuildTool extends StreamsToolBase {
         };
     }
 
-    private async createProcessor(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    private async createProcessor(
+        args: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<CallToolResult> {
         const workspaceName = this.requireWorkspaceName(args);
         if (!args.processorName) {
             throw new Error("processorName is required when deploying a processor.");
@@ -727,6 +759,7 @@ export class StreamsBuildTool extends StreamsToolBase {
             args.projectId,
             workspaceName,
             args.pipeline,
+            context,
             args.dlq
         );
         if (connectionError) return connectionError;
@@ -737,22 +770,28 @@ export class StreamsBuildTool extends StreamsToolBase {
             options: args.dlq ? { dlq: args.dlq } : undefined,
         };
 
-        await this.apiClient.createStreamProcessor({
-            params: { path: { groupId: args.projectId, tenantName: workspaceName } },
-            body: body as never,
-        });
+        await this.apiClient.createStreamProcessor(
+            {
+                params: { path: { groupId: args.projectId, tenantName: workspaceName } },
+                body: body as never,
+            },
+            context
+        );
 
         let startMessage = "Processor created in CREATED state.";
         if (args.autoStart) {
-            await this.apiClient.startStreamProcessor({
-                params: {
-                    path: {
-                        groupId: args.projectId,
-                        tenantName: workspaceName,
-                        processorName: args.processorName,
+            await this.apiClient.startStreamProcessor(
+                {
+                    params: {
+                        path: {
+                            groupId: args.projectId,
+                            tenantName: workspaceName,
+                            processorName: args.processorName,
+                        },
                     },
                 },
-            });
+                context
+            );
             startMessage = "Processor created and started.";
         }
 
@@ -777,10 +816,14 @@ export class StreamsBuildTool extends StreamsToolBase {
                         billingNote,
                 },
             ],
+            structuredContent: { resource: "processor" },
         };
     }
 
-    private async createPrivateLink(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    private async createPrivateLink(
+        args: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<CallToolResult> {
         if (!args.privateLinkConfig) {
             throw new Error(
                 "privateLinkConfig is required. Provide provider and vendor-specific fields:\n" +
@@ -801,10 +844,13 @@ export class StreamsBuildTool extends StreamsToolBase {
             ...args.privateLinkConfig,
         };
 
-        await this.apiClient.createPrivateLinkConnection({
-            params: { path: { groupId: args.projectId } },
-            body: body as never,
-        });
+        await this.apiClient.createPrivateLinkConnection(
+            {
+                params: { path: { groupId: args.projectId } },
+                body: body as never,
+            },
+            context
+        );
 
         return {
             content: [
@@ -817,6 +863,7 @@ export class StreamsBuildTool extends StreamsToolBase {
                         `Once active, create connections with networking.access.type='PRIVATE_LINK' to use it.`,
                 },
             ],
+            structuredContent: { resource: "privatelink" },
         };
     }
 }

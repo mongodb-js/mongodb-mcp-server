@@ -20,9 +20,11 @@ import {
     JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND,
     JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION,
     JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
+    JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED,
     UserFacingError,
     getRandomUUID,
     SessionRejectedError,
+    SessionLimitExceededError,
     requestIdAttr,
 } from "@mongodb-js/mcp-core";
 import { ExpressBasedHttpServer } from "./expressBasedHttpServer.js";
@@ -111,6 +113,10 @@ export abstract class MCPHttpServer<
                 break;
             case JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION:
                 message = "cannot provide sessionId when externally managed sessions are disabled";
+                break;
+            case JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED:
+                message = "server has reached the maximum number of concurrent sessions, try again later";
+                statusCode = 503;
                 break;
             default:
                 message = "unknown error";
@@ -462,6 +468,10 @@ export abstract class MCPHttpServer<
                     // callers can't probe whether a session id is valid; the
                     // rejection reason is only visible in the log above.
                     return this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND);
+                }
+
+                if (error instanceof SessionLimitExceededError) {
+                    return this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED);
                 }
 
                 // Only propagate error messages for user-facing errors

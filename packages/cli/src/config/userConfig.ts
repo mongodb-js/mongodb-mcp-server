@@ -18,7 +18,7 @@ import {
     AGG_COUNT_MAX_TIME_MS_CAP,
 } from "@mongodb-js/mcp-tools-mongodb";
 import { argMetadata, CliOptionsSchema as MongoshCliOptionsSchema } from "@mongosh/arg-parser/arg-parser";
-import { TRANSPORT_PAYLOAD_LIMITS } from "../transports/constants.js";
+import { TRANSPORT_PAYLOAD_LIMITS, DEFAULT_MAX_SESSIONS } from "../transports/constants.js";
 
 export const configRegistry = z.registry<ConfigFieldMeta>();
 
@@ -177,6 +177,15 @@ const ServerConfigSchema = z.object({
         .default(540_000)
         .describe("Notification timeout for a client to be aware of disconnect (only applies to http transport).")
         .register(configRegistry, { overrideBehavior: onlyLowerThanBaseValueOverride() }),
+    maxSessions: z.coerce
+        .number()
+        .int()
+        .min(1, "Invalid maxSessions: must be at least 1")
+        .default(DEFAULT_MAX_SESSIONS)
+        .describe(
+            "Maximum number of concurrent sessions the HTTP transport will hold in memory (only used when transport is 'http'). Each session holds a full server instance, transport, and timers, so choose a value based on your deployment's available memory; the default is a conservative safety net rather than a recommended production value."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
     maxBytesPerQuery: z.coerce
         .number()
         .default(16_777_216)

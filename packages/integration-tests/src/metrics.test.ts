@@ -180,6 +180,7 @@ function createMetricsTestRunner(
         options: {
             idleTimeoutMS: config.idleTimeoutMs,
             notificationTimeoutMS: config.notificationTimeoutMs,
+            maxSessions: config.maxSessions,
         },
         logger,
         metrics: metrics,

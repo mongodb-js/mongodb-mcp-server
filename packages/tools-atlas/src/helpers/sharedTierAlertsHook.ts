@@ -1,6 +1,6 @@
 import { z } from "zod";
-import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
-import { LogId } from "@mongodb-js/mcp-core";
+import type { ApiClient, ApiClientRequestContext } from "@mongodb-js/mcp-atlas-api-client";
+import { LogId, requestIdAttr } from "@mongodb-js/mcp-core";
 import {
     SHARED_TIER_METRIC_NAMES,
     type ILogger,
@@ -27,6 +27,7 @@ export type RunSharedTierAlertsHookParams = {
     instanceType: "FREE" | "FLEX" | "DEDICATED";
     apiClient: ApiClient;
     logger: ILogger;
+    context?: ApiClientRequestContext;
 };
 
 function buildRecommendationParagraph(
@@ -52,6 +53,7 @@ export async function runSharedTierAlertsHook({
     instanceType,
     apiClient,
     logger,
+    context,
 }: RunSharedTierAlertsHookParams): Promise<
     { recommendationText: string; tier: SharedTierTier; alertTypes: SharedTierMetricName[] } | undefined
 > {
@@ -61,23 +63,27 @@ export async function runSharedTierAlertsHook({
 
     let data;
     try {
-        data = await apiClient.listAlerts({
-            params: {
-                path: { groupId: projectId },
-                query: {
-                    status: "OPEN",
-                    itemsPerPage: LIST_ALERTS_PAGE_SIZE,
-                    pageNum: 1,
-                    includeCount: false,
+        data = await apiClient.listAlerts(
+            {
+                params: {
+                    path: { groupId: projectId },
+                    query: {
+                        status: "OPEN",
+                        itemsPerPage: LIST_ALERTS_PAGE_SIZE,
+                        pageNum: 1,
+                        includeCount: false,
+                    },
                 },
             },
-        });
+            context
+        );
     } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);
         logger.warning({
             id: LogId.atlasSharedTierAlertsHookWarning,
             context: "shared-tier-alerts-hook",
             message: `Failed to list Atlas alerts for shared-tier hook: ${message}`,
+            attributes: { ...requestIdAttr(context?.requestInfo?.headers) },
         });
         return undefined;
     }

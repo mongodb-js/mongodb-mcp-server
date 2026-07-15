@@ -9,20 +9,37 @@ export type CreateMonitoringServerFromConfigOptions = {
     metrics: IMetrics<DefaultMetricDefinitions>;
 };
 
+export function validateMonitoringServerConfig(config: UserConfig): void {
+    if ((config.monitoringServerHost === undefined) !== (config.monitoringServerPort === undefined)) {
+        throw new Error(
+            "Both monitoringServerHost and monitoringServerPort must be defined to enable the monitoring server."
+        );
+    }
+
+    if ((config.healthCheckHost === undefined) !== (config.healthCheckPort === undefined)) {
+        throw new Error("Both healthCheckHost and healthCheckPort must be defined to enable health checks.");
+    }
+}
+
 export function createMonitoringServerFromConfig({
     config,
     logger,
     metrics,
 }: CreateMonitoringServerFromConfigOptions): MonitoringServer | undefined {
-    if (!config.monitoringServerHost || !config.monitoringServerPort) {
+    validateMonitoringServerConfig(config);
+
+    const host = config.monitoringServerHost ?? config.healthCheckHost;
+    const port = config.monitoringServerPort ?? config.healthCheckPort;
+
+    if (host === undefined || port === undefined) {
         return undefined;
     }
 
     return new MonitoringServer({
         options: {
             http: {
-                host: config.monitoringServerHost,
-                port: config.monitoringServerPort,
+                host,
+                port,
             },
             features: config.monitoringServerFeatures,
         },

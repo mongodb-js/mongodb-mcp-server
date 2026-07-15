@@ -4,6 +4,7 @@ import type {
     FlexClusterDescription20241113,
     ApiClient,
 } from "@mongodb-js/mcp-atlas-api-client";
+import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { LogId } from "@mongodb-js/mcp-core";
 import { ConnectionString } from "mongodb-connection-string-url";
 
@@ -23,6 +24,7 @@ export interface Cluster {
     instanceSize?: string;
     provider?: string;
     region?: string;
+    paused?: boolean;
     state?: "IDLE" | "CREATING" | "UPDATING" | "DELETING" | "REPAIRING";
     mongoDBVersion?: string;
     connectionStrings?: ClusterConnectionStrings;
@@ -36,6 +38,7 @@ export function formatFlexCluster(cluster: FlexClusterDescription20241113): Clus
         instanceSize: undefined,
         provider: cluster.providerSettings?.backingProviderName,
         region: cluster.providerSettings?.regionName,
+        paused: (cluster as { paused?: boolean }).paused ?? false,
         state: cluster.stateName,
         mongoDBVersion: cluster.mongoDBVersion,
         connectionStrings: cluster.connectionStrings,
@@ -87,6 +90,7 @@ export function formatCluster(cluster: ClusterDescription20240805): Cluster {
         instanceSize: clusterInstanceType === "DEDICATED" ? instanceSize : undefined,
         provider,
         region,
+        paused: (cluster as { paused?: boolean }).paused ?? false,
         state: cluster.stateName,
         mongoDBVersion: cluster.mongoDBVersion,
         connectionStrings: cluster.connectionStrings,
@@ -94,27 +98,38 @@ export function formatCluster(cluster: ClusterDescription20240805): Cluster {
     };
 }
 
-export async function inspectCluster(apiClient: ApiClient, projectId: string, clusterName: string): Promise<Cluster> {
+export async function inspectCluster(
+    apiClient: ApiClient,
+    projectId: string,
+    clusterName: string,
+    context?: ToolExecutionContext
+): Promise<Cluster> {
     try {
-        const cluster = await apiClient.getCluster({
-            params: {
-                path: {
-                    groupId: projectId,
-                    clusterName,
-                },
-            },
-        });
-        return formatCluster(cluster);
-    } catch (error) {
-        try {
-            const cluster = await apiClient.getFlexCluster({
+        const cluster = await apiClient.getCluster(
+            {
                 params: {
                     path: {
                         groupId: projectId,
-                        name: clusterName,
+                        clusterName,
                     },
                 },
-            });
+            },
+            context
+        );
+        return formatCluster(cluster);
+    } catch (error) {
+        try {
+            const cluster = await apiClient.getFlexCluster(
+                {
+                    params: {
+                        path: {
+                            groupId: projectId,
+                            name: clusterName,
+                        },
+                    },
+                },
+                context
+            );
             return formatFlexCluster(cluster);
         } catch (flexError) {
             const err = flexError instanceof Error ? flexError : new Error(String(flexError));

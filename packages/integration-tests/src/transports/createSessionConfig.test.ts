@@ -150,6 +150,7 @@ function createConfigModifyingRunner(
         options: {
             idleTimeoutMS: baseConfig.idleTimeoutMs,
             notificationTimeoutMS: baseConfig.notificationTimeoutMs,
+            maxSessions: baseConfig.maxSessions,
         },
         logger,
         metrics: metrics,

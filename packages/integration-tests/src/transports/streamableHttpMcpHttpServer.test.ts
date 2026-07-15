@@ -298,6 +298,7 @@ describe("MCPHttpServer (streamable HTTP)", () => {
                 options: {
                     idleTimeoutMS: config.idleTimeoutMs,
                     notificationTimeoutMS: config.notificationTimeoutMs,
+                    maxSessions: config.maxSessions,
                 },
                 logger,
                 metrics,
@@ -531,6 +532,7 @@ describe("MCPHttpServer (streamable HTTP)", () => {
                 options: {
                     idleTimeoutMS: config.idleTimeoutMs,
                     notificationTimeoutMS: config.notificationTimeoutMs,
+                    maxSessions: config.maxSessions,
                 },
                 logger,
                 metrics,
@@ -602,6 +604,7 @@ describe("MCPHttpServer (streamable HTTP)", () => {
                 options: {
                     idleTimeoutMS: config.idleTimeoutMs,
                     notificationTimeoutMS: config.notificationTimeoutMs,
+                    maxSessions: config.maxSessions,
                 },
                 logger,
                 metrics,
