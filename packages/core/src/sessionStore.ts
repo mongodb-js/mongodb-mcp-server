@@ -30,6 +30,19 @@ export class SessionRejectedError extends Error {
 }
 
 /**
+ * Error thrown from `addSession` when the store has already reached its
+ * configured `maxSessions` limit. Callers should surface this distinctly
+ * from a generic failure so clients can be told to retry later rather than
+ * treating it as a permanent request error.
+ */
+export class SessionLimitExceededError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "SessionLimitExceededError";
+    }
+}
+
+/**
  * Default in-memory session store implementation.
  */
 export class SessionStore<T extends CloseableTransport = CloseableTransport> implements ISessionStore<T> {
@@ -44,6 +57,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
 
     private readonly idleTimeoutMS: number;
     private readonly notificationTimeoutMS: number;
+    private readonly maxSessions: number;
     private readonly logger: ILogger;
     private readonly metrics: IMetrics<DefaultMetricDefinitions>;
 
@@ -51,6 +65,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         const { options, logger, metrics } = params;
         this.idleTimeoutMS = options.idleTimeoutMS;
         this.notificationTimeoutMS = options.notificationTimeoutMS;
+        this.maxSessions = options.maxSessions;
         this.logger = logger;
         this.metrics = metrics;
 
@@ -62,6 +77,9 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         }
         if (this.idleTimeoutMS <= this.notificationTimeoutMS) {
             throw new Error("idleTimeoutMS must be greater than notificationTimeoutMS");
+        }
+        if (this.maxSessions < 1) {
+            throw new Error("maxSessions must be at least 1");
         }
     }
 
@@ -119,6 +137,14 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         const { sessionId, transport, logger } = params;
         if (this.sessions[sessionId]) {
             throw new Error(`Session ${sessionId} already exists`);
+        }
+        if (Object.keys(this.sessions).length >= this.maxSessions) {
+            this.logger.warning({
+                id: LogId.streamableHttpTransportSessionLimitExceeded,
+                context: "sessionStore",
+                message: `Refusing to create session ${sessionId}: maxSessions limit of ${this.maxSessions} reached`,
+            });
+            throw new SessionLimitExceededError(`Session limit of ${this.maxSessions} concurrent sessions reached`);
         }
         const abortTimeout = setManagedTimeout(async () => {
             if (this.sessions[sessionId]) {
@@ -187,4 +213,23 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
             Object.keys(this.sessions).map((sessionId) => this.closeSession({ sessionId, reason: "server_stop" }))
         );
     }
+}
+
+/**
+ * A function to create a custom SessionStore instance.
+ * When provided, the runner will use this function instead of the default SessionStore constructor.
+ */
+export type CreateSessionStoreFn<
+    TTransport extends CloseableTransport = CloseableTransport,
+    TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions,
+> = (args: SessionStoreConstructorArgs<TMetrics>) => ISessionStore<TTransport>;
+
+/**
+ * Creates a default SessionStore instance from the provided constructor arguments.
+ */
+export function createDefaultSessionStore<
+    TTransport extends CloseableTransport = CloseableTransport,
+    TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions,
+>(params: SessionStoreConstructorArgs<TMetrics>): SessionStore<TTransport> {
+    return new SessionStore(params);
 }

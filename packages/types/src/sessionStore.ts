@@ -42,7 +42,7 @@ export interface ISessionStore<T extends CloseableTransport = CloseableTransport
 }
 
 export type SessionStoreConstructorArgs<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
-    options: { idleTimeoutMS: number; notificationTimeoutMS: number };
+    options: { idleTimeoutMS: number; notificationTimeoutMS: number; maxSessions: number };
     logger: ILogger;
     metrics: IMetrics<TMetrics>;
 };

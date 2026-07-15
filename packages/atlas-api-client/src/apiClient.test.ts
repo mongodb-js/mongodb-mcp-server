@@ -78,6 +78,26 @@ describe("ApiClient", () => {
         });
     });
 
+    describe("supportsCurrentIpLookup", () => {
+        it("is enabled by default", () => {
+            expect(apiClient.supportsCurrentIpLookup).toBe(true);
+        });
+
+        it("makes getIpInfo reject without a network call when disabled", async () => {
+            const client = new ApiClient(
+                {
+                    baseUrl: "https://api.test.com",
+                    userAgent: "test-user-agent",
+                    supportsCurrentIpLookup: false,
+                },
+                new NullLogger()
+            );
+
+            expect(client.supportsCurrentIpLookup).toBe(false);
+            await expect(client.getIpInfo()).rejects.toThrow("does not support current IP detection");
+        });
+    });
+
     describe("User-Agent", () => {
         it("should derive userAgent from serverMetadata", async () => {
             const mockFetch = vi.spyOn(global, "fetch");

@@ -69,7 +69,7 @@ export class ExportTool extends MongoDBToolBase {
         let cursor: FindCursor | AggregationCursor;
         if (exportTarget.name === "find") {
             const { filter, projection, sort, limit } = exportTarget.arguments;
-            this.assertMqlIsAllowed(filter);
+            this.assertMqlIsAllowed(filter, projection);
             cursor = provider.find(database, collection, filter ?? {}, {
                 projection,
                 sort,

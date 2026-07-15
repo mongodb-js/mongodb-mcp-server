@@ -81,7 +81,9 @@ describeWithAtlas("db users", (integration) => {
             it("should create a database user with supplied password", async () => {
                 const response = await createUserWithMCP("testpassword");
 
-                const elements = getResponseElements(response);
+                // The tool may append an IP access list note depending on whether the
+                // runner's IP was already present in the project's access list.
+                const elements = getResponseElements(response).filter((e) => !e.text.includes("IP access list"));
                 expect(elements).toHaveLength(1);
                 expect(elements[0]?.text).toContain("created successfully");
                 expect(elements[0]?.text).toContain(userName);
@@ -100,7 +102,9 @@ describeWithAtlas("db users", (integration) => {
 
             it("should create a database user with generated password", async () => {
                 const response = await createUserWithMCP();
-                const elements = getResponseElements(response);
+                // The tool may append an IP access list note depending on whether the
+                // runner's IP was already present in the project's access list.
+                const elements = getResponseElements(response).filter((e) => !e.text.includes("IP access list"));
                 expect(elements).toHaveLength(1);
                 expect(elements[0]?.text).toContain("created successfully");
                 expect(elements[0]?.text).toContain(userName);

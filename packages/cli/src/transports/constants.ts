@@ -31,3 +31,13 @@ export const TRANSPORT_PAYLOAD_LIMITS: Record<TransportType, number> = {
     /** Enforced limit for HTTP transport configured in Express middleware) */
     http: 100 * 1024,
 } as const;
+
+/**
+ * Default cap on concurrent HTTP sessions (`maxSessions`), applied when the
+ * operator hasn't configured one explicitly. Each session holds a full
+ * server instance, transport, and timers in memory, so this is a
+ * conservative safety net rather than a recommended production value -
+ * deployments expecting more concurrent clients should set `maxSessions`
+ * explicitly based on their available memory.
+ */
+export const DEFAULT_MAX_SESSIONS = 1000;

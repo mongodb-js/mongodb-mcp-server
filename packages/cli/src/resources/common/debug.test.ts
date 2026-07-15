@@ -105,7 +105,8 @@ describe("debug resource", () => {
         const output = await debugResource.toOutput();
 
         expect(output).toContain(`The user is not connected to a MongoDB cluster because of an error.`);
-        expect(output).toContain(`<error>Error message from the server</error>`);
+        expect(output).toContain("<untrusted-user-data-");
+        expect(output).toContain(`Error: Error message from the server`);
     });
 
     it("should show the inferred authentication type", async () => {
@@ -122,7 +123,8 @@ describe("debug resource", () => {
 
         expect(output).toContain(`The user is not connected to a MongoDB cluster because of an error.`);
         expect(output).toContain(`The inferred authentication mechanism is "scram".`);
-        expect(output).toContain(`<error>Error message from the server</error>`);
+        expect(output).toContain("<untrusted-user-data-");
+        expect(output).toContain(`Error: Error message from the server`);
     });
 
     it("should show the atlas cluster information when provided", async () => {
@@ -149,7 +151,8 @@ describe("debug resource", () => {
             `Attempted connecting to Atlas Cluster "My Test Cluster" in project with id "COFFEEFABADA".`
         );
         expect(output).toContain(`The inferred authentication mechanism is "scram".`);
-        expect(output).toContain(`<error>Error message from the server</error>`);
+        expect(output).toContain("<untrusted-user-data-");
+        expect(output).toContain(`Error: Error message from the server`);
     });
 
     it("should notify if a cluster supports search indexes", async () => {

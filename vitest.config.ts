@@ -7,6 +7,9 @@ const vitestDefaultExcludes = [
     "**/dist/**",
     "**/cypress/**",
     "**/.{idea,git,cache,output,temp}/**",
+    // Agent worktrees contain full repo copies whose tests would otherwise be
+    // picked up by the unanchored include globs and race over fixed ports.
+    "**/.claude/**",
     "**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build,eslint,prettier}.config.*",
 ];
 

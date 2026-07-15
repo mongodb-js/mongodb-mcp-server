@@ -1,5 +1,8 @@
+import { redact } from "mongodb-redact";
 import type { Secret } from "mongodb-redact";
 import type { IKeychain } from "@mongodb-js/mcp-types";
+
+export type { Secret } from "mongodb-redact";
 
 /**
  * This class holds the secrets of a single server. Ideally, we might want to have a keychain
@@ -37,4 +40,22 @@ export class Keychain implements IKeychain {
 
 export function registerGlobalSecretToRedact(value: Secret["value"], kind: Secret["kind"]): void {
     Keychain.root.register(value, kind);
+}
+
+/**
+ * Recursively redacts registered secrets from every string value of a value, leaving the structure
+ * intact. Redaction is applied per-value (not on serialized JSON) so it can never corrupt the
+ * resulting JSON, regardless of what the redactor substitutes.
+ */
+export function redactValues(value: unknown, secrets: Secret[]): unknown {
+    if (typeof value === "string") {
+        return redact(value, secrets);
+    }
+    if (Array.isArray(value)) {
+        return value.map((item) => redactValues(item, secrets));
+    }
+    if (value && typeof value === "object") {
+        return Object.fromEntries(Object.entries(value).map(([key, val]) => [key, redactValues(val, secrets)]));
+    }
+    return value;
 }
