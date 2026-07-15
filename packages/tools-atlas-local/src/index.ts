@@ -5,6 +5,7 @@ export {
     type IAtlasLocalSession,
     AtlasLocalToolMetadataDeploymentIdKey,
 } from "./atlasLocalTool.js";
+export type { Deployment } from "@mongodb-js/atlas-local";
 export * from "./tools/tools.js";
 
 import type { IAtlasLocalSession } from "./atlasLocalTool.js";

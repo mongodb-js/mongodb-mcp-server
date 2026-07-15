@@ -1,4 +1,4 @@
-import { getResponseContent } from "../../../integrationHelpers.js";
+import { expectDefined, getResponseContent } from "../../../integrationHelpers.js";
 import { describeWithStreams, withWorkspace, randomId } from "../atlasHelpers.js";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -59,6 +59,8 @@ describeWithStreams("atlas-streams-manage", (integration) => {
                 });
                 const content = getResponseContent(response.content);
                 expect(content).toContain("started");
+                expectDefined(response.structuredContent);
+                expect(response.structuredContent).toEqual({ processorState: "STARTED" });
             }, 30_000);
 
             it("stop-processor — stops successfully", async () => {
@@ -73,6 +75,8 @@ describeWithStreams("atlas-streams-manage", (integration) => {
                 });
                 const content = getResponseContent(response.content);
                 expect(content).toContain("stopped");
+                expectDefined(response.structuredContent);
+                expect(response.structuredContent).toEqual({ processorState: "STOPPED" });
             }, 30_000);
 
             it("modify-processor — changes pipeline", async () => {
@@ -101,6 +105,8 @@ describeWithStreams("atlas-streams-manage", (integration) => {
                 const content = getResponseContent(response.content);
                 expect(response.isError, `Unexpected error: ${content}`).toBeFalsy();
                 expect(content).toContain("modified");
+                expectDefined(response.structuredContent);
+                expect(response.structuredContent).toEqual({ processorState: "STOPPED" });
             }, 30_000);
 
             it("update-workspace — changes tier to SP30", async () => {
