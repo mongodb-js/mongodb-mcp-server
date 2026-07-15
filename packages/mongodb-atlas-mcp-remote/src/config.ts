@@ -7,6 +7,7 @@ const MCP_BASE_URL_TO_OAUTH_BASE: Readonly<Record<string, string>> = {
     "https://mcp.mongodb.com": "https://cloud.mongodb.com",
     "https://mcp-dev.mongodb.com": "https://cloud-dev.mongodb.com",
     "https://mcp-qa.mongodb.com": "https://cloud-qa.mongodb.com",
+    "https://mcp-staging.mongodb.com": "https://authorize-staging.mongodb.com",
 };
 
 function loadPosIntEnvVar(name: string, defaultValue: number, errors: string[]): number {

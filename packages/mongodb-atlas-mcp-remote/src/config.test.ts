@@ -63,6 +63,31 @@ describe("loadConfig", () => {
             });
         });
 
+        it.each([
+            ["https://mcp.mongodb.com", "https://cloud.mongodb.com"],
+            ["https://mcp-dev.mongodb.com", "https://cloud-dev.mongodb.com"],
+            ["https://mcp-qa.mongodb.com", "https://cloud-qa.mongodb.com"],
+            ["https://mcp-staging.mongodb.com", "https://authorize-staging.mongodb.com"],
+        ])("maps known MCP base URL %s to its OAuth base URL %s", (mcpBaseUrl, oauthBaseUrl) => {
+            stubSA();
+            vi.stubEnv("MDB_MCP_API_BASE_URL", mcpBaseUrl);
+            expect(loadConfig()).toEqual({
+                ...DEFAULT_CONFIG,
+                tokenUrl: `${oauthBaseUrl}/api/oauth/token`,
+                remoteUrl: mcpBaseUrl,
+            });
+        });
+
+        it("strips a trailing slash from MDB_MCP_API_BASE_URL before matching known OAuth mappings", () => {
+            stubSA();
+            vi.stubEnv("MDB_MCP_API_BASE_URL", "https://mcp-staging.mongodb.com/");
+            expect(loadConfig()).toEqual({
+                ...DEFAULT_CONFIG,
+                tokenUrl: "https://authorize-staging.mongodb.com/api/oauth/token",
+                remoteUrl: "https://mcp-staging.mongodb.com",
+            });
+        });
+
         it("accepts valid MDB_MCP_TOKEN_TIMEOUT_MS", () => {
             stubSA();
             vi.stubEnv("MDB_MCP_TOKEN_TIMEOUT_MS", "5000");
