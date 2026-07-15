@@ -164,6 +164,7 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
                         .object({
                             name: z
                                 .string()
+                                .min(1)
                                 .regex(
                                     /^(?!lucene\.|mongodb\.|builtin\.)/,
                                     "Custom analyzer names may not start with 'lucene.', 'mongodb.' or 'builtin.'"
@@ -247,7 +248,7 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
             synonyms: z
                 .array(
                     z.object({
-                        name: z.string().describe("Unique name for this synonym mapping."),
+                        name: z.string().min(1).describe("Unique name for this synonym mapping."),
                         source: z
                             .object({
                                 collection: z
@@ -271,6 +272,7 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
                     z.object({
                         name: z
                             .string()
+                            .min(1)
                             .describe("Unique name for this type set, referenced from `mappings.dynamic.typeSet`."),
                         types: z
                             .array(
@@ -288,6 +290,7 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
                                     ]),
                                 })
                             )
+                            .min(1)
                             .describe("The field types that this type set allows dynamic mapping to index."),
                     })
                 )
@@ -351,10 +354,13 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
                     z.boolean(),
                     z
                         .object({
-                            include: z.array(z.string()).optional(),
-                            exclude: z.array(z.string()).optional(),
+                            include: z.array(z.string()).min(1).optional(),
+                            exclude: z.array(z.string()).min(1).optional(),
                         })
-                        .strict(),
+                        .strict()
+                        .refine((data) => !!data.include || !!data.exclude, {
+                            message: "`storedSource` must specify a non-empty `include` or `exclude` array",
+                        }),
                 ])
                 .optional()
                 .describe(
