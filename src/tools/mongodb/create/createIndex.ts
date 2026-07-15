@@ -122,6 +122,32 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
         })
         .describe("Definition for a Vector Search index.");
 
+    private searchFieldDefinitionSchema = z
+        .object({
+            type: z
+                .enum([
+                    "autocomplete",
+                    "boolean",
+                    "date",
+                    "dateFacet",
+                    "document",
+                    "embeddedDocuments",
+                    "geo",
+                    "number",
+                    "numberFacet",
+                    "objectId",
+                    "string",
+                    "stringFacet",
+                    "token",
+                    "uuid",
+                ])
+                .describe("The field type"),
+        })
+        .passthrough()
+        .describe(
+            "The field index definition. It must contain the field type, as well as any additional options for that field type."
+        );
+
     private atlasSearchIndexDefinition = z
         .object({
             type: z.literal("search"),
@@ -130,39 +156,176 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
                 .optional()
                 .default("lucene.standard")
                 .describe(
-                    "The analyzer to use for the index. Can be one of the built-in lucene analyzers (`lucene.standard`, `lucene.simple`, `lucene.whitespace`, `lucene.keyword`), a language-specific analyzer, such as `lucene.cjk` or `lucene.czech`, or a custom analyzer defined in the Atlas UI."
+                    "The analyzer to use for the index. Can be one of the built-in lucene analyzers (`lucene.standard`, `lucene.simple`, `lucene.whitespace`, `lucene.keyword`), a language-specific analyzer, such as `lucene.cjk` or `lucene.czech`, or a custom analyzer defined by name in `analyzers`."
+                ),
+            analyzers: z
+                .array(
+                    z
+                        .object({
+                            name: z
+                                .string()
+                                .regex(
+                                    /^(?!lucene\.|mongodb\.|builtin\.)/,
+                                    "Custom analyzer names may not start with 'lucene.', 'mongodb.' or 'builtin.'"
+                                )
+                                .describe(
+                                    "Unique name for this custom analyzer. Reference it by name from a field's `analyzer` or `searchAnalyzer` option."
+                                ),
+                            charFilters: z
+                                .array(
+                                    z
+                                        .object({
+                                            type: z.enum(["htmlStrip", "icuNormalize", "mapping", "persian"]),
+                                        })
+                                        .passthrough()
+                                )
+                                .optional()
+                                .describe(
+                                    "Character filters applied to the text before tokenization, e.g. `{ type: 'htmlStrip' }` or `{ type: 'mapping', mappings: {...} }`."
+                                ),
+                            tokenizer: z
+                                .object({
+                                    type: z.enum([
+                                        "edgeGram",
+                                        "keyword",
+                                        "nGram",
+                                        "regexCaptureGroup",
+                                        "regexSplit",
+                                        "standard",
+                                        "uaxUrlEmail",
+                                        "whitespace",
+                                    ]),
+                                })
+                                .passthrough()
+                                .describe(
+                                    "Splits text into tokens, e.g. `{ type: 'standard' }`, `{ type: 'whitespace' }`, `{ type: 'keyword' }`, or `{ type: 'nGram', minGram: 2, maxGram: 3 }`."
+                                ),
+                            tokenFilters: z
+                                .array(
+                                    z
+                                        .object({
+                                            type: z.enum([
+                                                "asciiFolding",
+                                                "daitchMokotoffSoundex",
+                                                "edgeGram",
+                                                "englishMinimalStemming",
+                                                "englishPossessive",
+                                                "flattenGraph",
+                                                "icuFolding",
+                                                "icuNormalizer",
+                                                "keywordRepeat",
+                                                "kStemming",
+                                                "length",
+                                                "lowercase",
+                                                "nGram",
+                                                "porterStemming",
+                                                "regex",
+                                                "removeDuplicates",
+                                                "reverse",
+                                                "shingle",
+                                                "snowballStemming",
+                                                "spanishPluralStemming",
+                                                "stempel",
+                                                "stopword",
+                                                "trim",
+                                                "wordDelimiterGraph",
+                                            ]),
+                                        })
+                                        .passthrough()
+                                )
+                                .optional()
+                                .describe(
+                                    "Filters applied to tokens after tokenization, e.g. `{ type: 'lowercase' }`, `{ type: 'stopword' }`, or `{ type: 'snowballStemming', stemmerName: 'english' }`."
+                                ),
+                        })
+                        .describe("A custom analyzer definition.")
+                )
+                .optional()
+                .describe(
+                    "Custom analyzer definitions for this index. Define one here and reference it by `name` from a field's `analyzer`/`searchAnalyzer` option, instead of a built-in `lucene.*` analyzer."
+                ),
+            synonyms: z
+                .array(
+                    z.object({
+                        name: z.string().describe("Unique name for this synonym mapping."),
+                        source: z
+                            .object({
+                                collection: z
+                                    .string()
+                                    .describe(
+                                        "Name of the collection (in the same database) containing the synonym documents."
+                                    ),
+                            })
+                            .describe("Source of the synonym documents."),
+                        analyzer: z
+                            .string()
+                            .describe(
+                                "Analyzer applied to synonym entries. Should match the analyzer used on the field(s) being searched."
+                            ),
+                    })
+                )
+                .optional()
+                .describe("Synonym mappings for this index, each sourced from a collection of synonym documents."),
+            typeSets: z
+                .array(
+                    z.object({
+                        name: z
+                            .string()
+                            .describe("Unique name for this type set, referenced from `mappings.dynamic.typeSet`."),
+                        types: z
+                            .array(
+                                z.object({
+                                    type: z.enum([
+                                        "autocomplete",
+                                        "boolean",
+                                        "date",
+                                        "geo",
+                                        "number",
+                                        "objectId",
+                                        "string",
+                                        "token",
+                                        "uuid",
+                                    ]),
+                                })
+                            )
+                            .describe("The field types that this type set allows dynamic mapping to index."),
+                    })
+                )
+                .optional()
+                .describe(
+                    "Named sets of field types for use with `mappings.dynamic.typeSet`, to restrict dynamic mapping to only the listed types instead of every dynamically indexable type."
                 ),
             mappings: z
                 .object({
                     dynamic: z
-                        .boolean()
+                        .union([
+                            z.boolean(),
+                            z
+                                .object({
+                                    typeSet: z
+                                        .string()
+                                        .describe("Name of a type set defined in this index's `typeSets`."),
+                                })
+                                .strict(),
+                        ])
                         .optional()
                         .default(false)
                         .describe(
-                            "Enables or disables dynamic mapping of fields for this index. If set to true, Atlas Search recursively indexes all dynamically indexable fields. If set to false, you must specify individual fields to index using mappings.fields."
+                            "Enables or disables dynamic mapping of fields for this index. If set to true, Atlas Search recursively indexes all dynamically indexable fields. If set to false, you must specify individual fields to index using mappings.fields. If set to `{ typeSet: '<name>' }`, dynamic mapping is restricted to only the field types listed in that named entry of `typeSets`."
                         ),
                     fields: z
                         .record(
                             z.string().describe("The field name"),
                             z
-                                .object({
-                                    type: z
-                                        .enum([
-                                            "autocomplete",
-                                            "boolean",
-                                            "date",
-                                            "document",
-                                            "embeddedDocuments",
-                                            "geo",
-                                            "number",
-                                            "objectId",
-                                            "string",
-                                            "token",
-                                            "uuid",
-                                        ])
-                                        .describe("The field type"),
-                                })
-                                .passthrough()
+                                .union([
+                                    this.searchFieldDefinitionSchema,
+                                    z
+                                        .array(this.searchFieldDefinitionSchema)
+                                        .min(1)
+                                        .describe(
+                                            "Multiple field definitions to index the same field as multiple types, e.g. both `string` and `autocomplete`."
+                                        ),
+                                ])
                                 .describe(
                                     "The field index definition. It must contain the field type, as well as any additional options for that field type."
                                 )
@@ -170,12 +333,32 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
                         .optional()
                         .describe("The field mapping definitions. If `dynamic` is set to `false`, this is required."),
                 })
-                .refine((data) => data.dynamic !== !!(data.fields && Object.keys(data.fields).length > 0), {
-                    message:
-                        "Either `dynamic` must be `true` and `fields` empty or `dynamic` must be `false` and at least one field must be defined in `fields`",
-                })
+                .refine(
+                    (data) => {
+                        const dynamicEnabled = typeof data.dynamic === "boolean" ? data.dynamic : true;
+                        return dynamicEnabled !== !!(data.fields && Object.keys(data.fields).length > 0);
+                    },
+                    {
+                        message:
+                            "Either `dynamic` must be `true` (or a typeSet object) and `fields` empty, or `dynamic` must be `false` and at least one field must be defined in `fields`",
+                    }
+                )
                 .describe(
-                    "Document describing the index to create. Either `dynamic` must be `true` and `fields` empty or `dynamic` must be `false` and at least one field must be defined in the `fields` document."
+                    "Document describing the index to create. Either `dynamic` must be `true` (or a typeSet object) and `fields` empty, or `dynamic` must be `false` and at least one field must be defined in the `fields` document."
+                ),
+            storedSource: z
+                .union([
+                    z.boolean(),
+                    z
+                        .object({
+                            include: z.array(z.string()).optional(),
+                            exclude: z.array(z.string()).optional(),
+                        })
+                        .strict(),
+                ])
+                .optional()
+                .describe(
+                    "Controls which fields are stored on search nodes for fast retrieval without a round trip to the database. `true` stores all fields, `false` (default) stores none, `{ include: [...] }` stores only the listed fields, `{ exclude: [...] }` stores all except the listed fields."
                 ),
             numPartitions: z
                 .union([z.literal("1"), z.literal("2"), z.literal("4")])
@@ -274,6 +457,10 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
                             definition: {
                                 mappings: definition.mappings,
                                 analyzer: definition.analyzer,
+                                analyzers: definition.analyzers,
+                                synonyms: definition.synonyms,
+                                storedSource: definition.storedSource,
+                                typeSets: definition.typeSets,
                                 numPartitions: definition.numPartitions,
                             },
                             type: "search",
