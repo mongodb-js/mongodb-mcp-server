@@ -1,6 +1,7 @@
+import { z } from "zod";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ToolConstructorParams } from "../../../../../src/tools/tool.js";
-import { ListOrganizationsTool } from "../../../../../src/tools/atlas/read/listOrgs.js";
+import { ListOrganizationsTool, ListOrganizationsArgs } from "../../../../../src/tools/atlas/read/listOrgs.js";
 import type { Session } from "../../../../../src/common/session.js";
 import type { UserConfig } from "../../../../../src/common/config/userConfig.js";
 import type { Telemetry } from "../../../../../src/telemetry/telemetry.js";
@@ -98,6 +99,21 @@ describe("ListOrganizationsTool", () => {
         mockApiClient.listOrgs!.mockResolvedValue({ results: [] });
 
         await exec();
+
+        expect(mockApiClient.listOrgs).toHaveBeenCalledWith(
+            { params: { query: { itemsPerPage: 10, pageNum: 1, includeCount: true } } },
+            expect.anything()
+        );
+    });
+
+    it("defaults limit/pageNum to 10/1 when the caller passes no args, same as the real MCP client path", async () => {
+        mockApiClient.listOrgs!.mockResolvedValue({ results: [], totalCount: 0 });
+
+        // The real invocation path parses incoming args against argsShape (applying zod
+        // defaults) before execute() ever runs; exec() here calls execute() directly, so
+        // we replicate that parsing step to prove the defaults are actually 10/1.
+        const parsedArgs = z.object(ListOrganizationsArgs).parse({});
+        await exec(parsedArgs);
 
         expect(mockApiClient.listOrgs).toHaveBeenCalledWith(
             { params: { query: { itemsPerPage: 10, pageNum: 1, includeCount: true } } },
