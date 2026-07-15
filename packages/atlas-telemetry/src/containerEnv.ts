@@ -9,7 +9,7 @@ export async function detectContainerEnv(): Promise<boolean> {
 
     const detect = async function (): Promise<boolean> {
         if (process.platform !== "linux") {
-            return false;
+            return false; // we only support linux containers for now
         }
 
         if (process.env.container) {
