@@ -23,6 +23,7 @@
   },
   "dependencies": {},
   "devDependencies": {
+    "@mongodb-js/mcp-tools-mongodb": "workspace:*",
     "@mongodb-js/mcp-types": "workspace:*",
     "@microsoft/api-extractor": "^7.58.5",
     "@lg-mcp/embeddable-uis": "^0.1.0",

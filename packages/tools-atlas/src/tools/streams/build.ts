@@ -567,10 +567,10 @@ export class StreamsBuildTool extends StreamsToolBase {
     ): Promise<CallToolResult | null> {
         const schema = StreamsBuildTool.buildElicitationSchema(connectionType, missingFields);
 
-        const elicited = await this.elicitation.requestInput(
-            `The following information is required to create the ${connectionType} connection.`,
-            schema
-        );
+        const elicited = await this.elicitation.requestInput({
+            message: `The following information is required to create the ${connectionType} connection.`,
+            schema,
+        });
 
         if (elicited.accepted) {
             applyFields(elicited.fields, config);

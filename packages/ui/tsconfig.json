@@ -15,5 +15,5 @@
     "src/build/mount.tsx"
   ],
   "exclude": ["dist", "node_modules"],
-  "references": [{ "path": "../types" }]
+  "references": [{ "path": "../types" }, { "path": "../tools-mongodb" }]
 }

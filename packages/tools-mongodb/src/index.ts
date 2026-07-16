@@ -63,6 +63,7 @@ export {
 export { DeviceId } from "./helpers/deviceId.js";
 export { isObjectEmpty } from "./helpers/isObjectEmpty.js";
 export { bsonToJson } from "./helpers/bsonToJson.js";
+export type { ListDatabasesOutput } from "./tools/metadata/listDatabases.js";
 export { setAppNameParamIfMissing, type AppNameComponents } from "./helpers/connectionOptions.js";
 export { usesIndex, getIndexCheckErrorMessage, checkIndexUsage } from "./helpers/indexCheck.js";
 export { collectCursorUntilMaxBytesLimit, getResponseBytesLimit } from "./helpers/collectCursorUntilMaxBytes.js";

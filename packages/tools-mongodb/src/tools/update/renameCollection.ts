@@ -1,7 +1,8 @@
 import { z } from "zod";
-import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolResult } from "../../tool.js";
-import { ErrorCodes, MongoDBError } from "../../../common/errors.js";
+import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
+import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
+import type { OperationType } from "@mongodb-js/mcp-types";
+import { ErrorCodes, MongoDBError } from "../../common/errors.js";
 
 const RenameCollectionOutputSchema = {
     database: z.string(),

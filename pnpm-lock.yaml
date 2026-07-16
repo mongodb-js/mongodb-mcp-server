@@ -1057,6 +1057,9 @@ importers:
       '@microsoft/api-extractor':
         specifier: ^7.58.5
         version: 7.58.7(@types/node@25.6.0)
+      '@mongodb-js/mcp-tools-mongodb':
+        specifier: workspace:*
+        version: link:../tools-mongodb
       '@mongodb-js/mcp-types':
         specifier: workspace:*
         version: link:../types

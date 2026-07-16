@@ -1,22 +1,23 @@
 import { z } from "zod";
-import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
-import { formatUntrustedData } from "../../tool.js";
+import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
+import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
+import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
+import { formatUntrustedData } from "@mongodb-js/mcp-core";
 import type { FindCursor } from "mongodb";
-import { checkIndexUsage } from "../../../helpers/indexCheck.js";
-import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorUntilMaxBytes.js";
-import { operationWithFallback } from "../../../helpers/operationWithFallback.js";
+import { checkIndexUsage } from "../../helpers/indexCheck.js";
+import { collectCursorUntilMaxBytesLimit } from "../../helpers/collectCursorUntilMaxBytes.js";
+import { operationWithFallback } from "../../helpers/operationWithFallback.js";
 import {
     ONE_MB,
     QUERY_COUNT_MAX_TIME_MS_CAP,
     CURSOR_LIMITS_TO_LLM_TEXT,
     CURSOR_LIMIT_KEYS,
     type CursorLimitKey,
-} from "../../../helpers/constants.js";
+} from "../../helpers/constants.js";
 import { zEJSON } from "../../args.js";
-import { LogId } from "../../../common/logging/index.js";
-import { SortDirectionSchema } from "../mongodbSchemas.js";
-import { bsonToJson } from "../../../helpers/bsonToJson.js";
+import { LogId } from "@mongodb-js/mcp-core";
+import { SortDirectionSchema } from "../../mongodbSchemas.js";
+import { bsonToJson } from "../../helpers/bsonToJson.js";
 
 export const FindArgs = {
     filter: zEJSON()

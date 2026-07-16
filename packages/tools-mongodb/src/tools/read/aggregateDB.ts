@@ -1,24 +1,25 @@
 import { z } from "zod";
 import type { AggregationCursor } from "mongodb";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { DBOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
-import { formatUntrustedData } from "../../tool.js";
+import { DBOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
+import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
+import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
+import { formatUntrustedData } from "@mongodb-js/mcp-core";
 import { type Document } from "bson";
-import { ErrorCodes, MongoDBError } from "../../../common/errors.js";
-import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorUntilMaxBytes.js";
-import { operationWithFallback } from "../../../helpers/operationWithFallback.js";
-import { isWriteStage } from "../../../helpers/mqlGuards.js";
+import { ErrorCodes, MongoDBError } from "../../common/errors.js";
+import { collectCursorUntilMaxBytesLimit } from "../../helpers/collectCursorUntilMaxBytes.js";
+import { operationWithFallback } from "../../helpers/operationWithFallback.js";
+import { isWriteStage } from "../../helpers/mqlGuards.js";
 import {
     AGG_COUNT_MAX_TIME_MS_CAP,
     ONE_MB,
     CURSOR_LIMITS_TO_LLM_TEXT,
     CURSOR_LIMIT_KEYS,
     type CursorLimitKey,
-} from "../../../helpers/constants.js";
-import { LogId } from "../../../common/logging/index.js";
-import { AnyAggregateStage, DB_AGGREGATE_STAGE_OPERATORS } from "../mongodbSchemas.js";
-import { bsonToJson } from "../../../helpers/bsonToJson.js";
+} from "../../helpers/constants.js";
+import { LogId } from "@mongodb-js/mcp-core";
+import { AnyAggregateStage, DB_AGGREGATE_STAGE_OPERATORS } from "../../mongodbSchemas.js";
+import { bsonToJson } from "../../helpers/bsonToJson.js";
 
 const AggregateDBOutputSchema = {
     documents: z.array(z.unknown()).describe("The documents returned by the aggregation pipeline"),
