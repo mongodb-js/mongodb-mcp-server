@@ -81,7 +81,6 @@ describe("Session", () => {
     describe("close", () => {
         it("closes the api client and the exports manager and emits the close event", async () => {
             const exportsManagerCloseSpy = vi.spyOn(exportsManager, "close");
-            const registryCloseAllSpy = vi.spyOn(connectionRegistry, "closeAll");
             const closeListener = vi.fn();
             session.on("close", closeListener);
 
@@ -90,13 +89,11 @@ describe("Session", () => {
             expect(apiClientCloseMock).toHaveBeenCalledOnce();
             expect(exportsManagerCloseSpy).toHaveBeenCalledOnce();
             expect(closeListener).toHaveBeenCalledOnce();
-            // Registry lifecycle is not the session's by default.
-            expect(registryCloseAllSpy).not.toHaveBeenCalled();
         });
 
-        it("closes the connection registry before the api client when it owns the registry", async () => {
+        it("closes the connection registry before the api client", async () => {
             const callOrder: string[] = [];
-            const registryCloseAllSpy = vi.spyOn(connectionRegistry, "closeAll").mockImplementation(() => {
+            const registryCloseSpy = vi.spyOn(connectionRegistry, "close").mockImplementation(() => {
                 callOrder.push("registry");
                 return Promise.resolve();
             });
@@ -105,19 +102,9 @@ describe("Session", () => {
                 return Promise.resolve();
             });
 
-            const owningSession = new Session({
-                logger: session.logger,
-                exportsManager,
-                connectionRegistry,
-                keychain: new Keychain(),
-                connectionErrorHandler,
-                apiClient: { close: apiClientCloseMock } as unknown as ApiClient,
-                ownsConnectionRegistry: true,
-            });
+            await session.close();
 
-            await owningSession.close();
-
-            expect(registryCloseAllSpy).toHaveBeenCalledOnce();
+            expect(registryCloseSpy).toHaveBeenCalledOnce();
             // Revoking Atlas entries deletes their temp users through the API
             // client, so connections must close while the client still works.
             expect(callOrder).toEqual(["registry", "apiClient"]);

@@ -87,8 +87,9 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
         let aggregationCursor: AggregationCursor | undefined = undefined;
         try {
             const provider = await this.resolveConnection(connectionId);
-            await this.assertOnlyUsesPermittedStages(connectionId, pipeline);
-            if (await this.isSearchSupported(connectionId)) {
+            const isSearchSupported = await this.isSearchSupported(connectionId);
+            this.assertOnlyUsesPermittedStages({ isSearchSupported }, pipeline);
+            if (isSearchSupported) {
                 let searchIndexes: SearchIndex[] | undefined;
                 try {
                     searchIndexes = (await provider.getSearchIndexes(database, collection)) as SearchIndex[];
@@ -110,11 +111,14 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
 
             // Check if aggregate operation uses an index if enabled
             if (this.config.indexCheck) {
-                const [usesVectorSearchIndex, indexName] = await this.isVectorSearchIndexUsed(connectionId, {
-                    database,
-                    collection,
-                    pipeline,
-                });
+                const [usesVectorSearchIndex, indexName] = await this.isVectorSearchIndexUsed(
+                    { isSearchSupported, provider },
+                    {
+                        database,
+                        collection,
+                        pipeline,
+                    }
+                );
                 switch (usesVectorSearchIndex) {
                     case "not-vector-search-query":
                         await checkIndexUsage({
@@ -240,12 +244,10 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
         }
     }
 
-    private async assertOnlyUsesPermittedStages(
-        connectionId: string,
+    private assertOnlyUsesPermittedStages(
+        { isSearchSupported }: { isSearchSupported: boolean },
         pipeline: Record<string, unknown>[]
-    ): Promise<void> {
-        const isSearchSupported = await this.isSearchSupported(connectionId);
-
+    ): void {
         this.assertMqlIsAllowed(pipeline);
 
         for (const stage of pipeline) {
@@ -300,7 +302,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
     }
 
     private async isVectorSearchIndexUsed(
-        connectionId: string,
+        { isSearchSupported, provider }: { isSearchSupported: boolean; provider: NodeDriverServiceProvider },
         {
             database,
             collection,
@@ -328,10 +330,8 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
             return ["not-vector-search-query"];
         }
 
-        const isSearchSupported = await this.isSearchSupported(connectionId);
         let indexExists = false;
         if (isSearchSupported) {
-            const provider = await this.resolveConnection(connectionId);
             try {
                 const indexes = await provider.getSearchIndexes(database, collection, indexName);
                 indexExists = indexes.length >= 1;

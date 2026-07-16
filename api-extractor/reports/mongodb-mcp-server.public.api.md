@@ -370,7 +370,7 @@ export type ConnectionManagerFactoryFn = (createParams: {
 
 // @public
 export interface ConnectionRegistry {
-    closeAll(): Promise<void>;
+    close(): Promise<void>;
     connect(opts: CreateConnectionOptions): Promise<ConnectionEntry>;
     createEntry(opts: CreateConnectionEntryOptions): Promise<ConnectionEntry>;
     disconnect(connectionId: string): Promise<void>;
@@ -787,7 +787,10 @@ export class MCPConnectionManager extends ConnectionManager {
 export class MCPConnectionStore {
     constructor(options: ConnectionStoreOptions);
     closeAll(): Promise<void>;
-    view(scope?: string): ConnectionRegistry;
+    view(input?: {
+        scope?: string;
+        owned?: boolean;
+    }): ConnectionRegistry;
 }
 
 // @public (undocumented)
@@ -1043,7 +1046,6 @@ export interface SessionOptions {
     keychain: Keychain;
     // (undocumented)
     logger: CompositeLogger;
-    ownsConnectionRegistry?: boolean;
 }
 
 // @public

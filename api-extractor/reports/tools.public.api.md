@@ -41,7 +41,7 @@ export class AggregateDBTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof AggregateDBTool.argsShape>, input: ToolExecutionContext): Promise<ToolResult<typeof AggregateDBTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof AggregateDBTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof AggregateDBTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -97,7 +97,7 @@ export class AggregateTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof AggregateTool.argsShape>, input: ToolExecutionContext): Promise<ToolResult<typeof AggregateTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof AggregateTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof AggregateTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -131,7 +131,7 @@ export class CollectionIndexesTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof CollectionIndexesTool.argsShape>): Promise<ToolResult<typeof CollectionIndexesTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof CollectionIndexesTool.argsShape>): Promise<ToolResult<typeof CollectionIndexesTool.outputSchema>>;
     protected extractSearchIndexDetails(indexes: Record<string, unknown>[]): SearchIndexStatus[];
     // (undocumented)
     protected handleError(error: unknown, args: ToolArgs<typeof CollectionIndexesTool.argsShape>): Promise<CallToolResult>;
@@ -173,7 +173,7 @@ export class CollectionSchemaTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof CollectionSchemaTool.argsShape>, input: ToolExecutionContext): Promise<ToolResult<typeof CollectionSchemaTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof CollectionSchemaTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof CollectionSchemaTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -199,7 +199,7 @@ export class CollectionStorageSizeTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof CollectionStorageSizeTool.argsShape>, input: ToolExecutionContext): Promise<ToolResult<typeof CollectionStorageSizeTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof CollectionStorageSizeTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof CollectionStorageSizeTool.outputSchema>>;
     // (undocumented)
     protected handleError(error: unknown, args: ToolArgs<typeof CollectionStorageSizeTool.argsShape>): Promise<CallToolResult>;
     // (undocumented)
@@ -329,7 +329,7 @@ export class CountTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof CountTool.argsShape>, input: ToolExecutionContext): Promise<ToolResult<typeof CountTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof CountTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof CountTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -465,7 +465,7 @@ export class CreateCollectionTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof CreateCollectionTool.argsShape>): Promise<ToolResult<typeof CreateCollectionTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof CreateCollectionTool.argsShape>): Promise<ToolResult<typeof CreateCollectionTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -642,7 +642,7 @@ export class CreateIndexTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof CreateIndexTool.argsShape>): Promise<ToolResult<typeof CreateIndexTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof CreateIndexTool.argsShape>): Promise<ToolResult<typeof CreateIndexTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -699,7 +699,7 @@ export class DbStatsTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof DbStatsTool.argsShape>, input: ToolExecutionContext): Promise<ToolResult<typeof DbStatsTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof DbStatsTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof DbStatsTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -748,7 +748,7 @@ export class DeleteManyTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof DeleteManyTool.argsShape>): Promise<ToolResult<typeof DeleteManyTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof DeleteManyTool.argsShape>): Promise<ToolResult<typeof DeleteManyTool.outputSchema>>;
     // (undocumented)
     protected getConfirmationMessage(input: ToolArgs<typeof DeleteManyTool.argsShape>): string;
     // (undocumented)
@@ -800,7 +800,7 @@ export class DropCollectionTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof DropCollectionTool.argsShape>): Promise<ToolResult<typeof DropCollectionTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof DropCollectionTool.argsShape>): Promise<ToolResult<typeof DropCollectionTool.outputSchema>>;
     // (undocumented)
     protected getConfirmationMessage(input: ToolArgs<typeof DropCollectionTool.argsShape>): string;
     // (undocumented)
@@ -828,7 +828,7 @@ export class DropDatabaseTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof DropDatabaseTool.argsShape>): Promise<ToolResult<typeof DropDatabaseTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof DropDatabaseTool.argsShape>): Promise<ToolResult<typeof DropDatabaseTool.outputSchema>>;
     // (undocumented)
     protected getConfirmationMessage(input: ToolArgs<typeof DropDatabaseTool.argsShape>): string;
     // (undocumented)
@@ -944,7 +944,7 @@ export class ExplainTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof ExplainTool.argsShape>, input: ToolExecutionContext): Promise<ToolResult<typeof ExplainTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof ExplainTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof ExplainTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -1024,7 +1024,7 @@ export class ExportTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof ExportTool.argsShape>, input: ToolExecutionContext): Promise<CallToolResult>;
+    protected execute(input: ToolArgs<typeof ExportTool.argsShape>, input2: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -1049,7 +1049,7 @@ export class FindTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof FindTool.argsShape>, input: ToolExecutionContext): Promise<ToolResult<typeof FindTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof FindTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof FindTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -1125,7 +1125,7 @@ export class InsertManyTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof InsertManyTool.argsShape>): Promise<ToolResult<typeof InsertManyTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof InsertManyTool.argsShape>): Promise<ToolResult<typeof InsertManyTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -1300,7 +1300,7 @@ export class ListCollectionsTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof ListCollectionsTool.argsShape>, input: ToolExecutionContext): Promise<ToolResult<typeof ListCollectionsTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof ListCollectionsTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof ListCollectionsTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -1361,7 +1361,7 @@ export class ListDatabasesTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof ListDatabasesTool.argsShape>): Promise<ToolResult<typeof ListDatabasesTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof ListDatabasesTool.argsShape>): Promise<ToolResult<typeof ListDatabasesTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -1555,7 +1555,7 @@ export class LogsTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof LogsTool.argsShape>, input: ToolExecutionContext): Promise<ToolResult<typeof LogsTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof LogsTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof LogsTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -1572,7 +1572,7 @@ export class LogsTool extends MongoDBToolBase {
 export abstract class MongoDBToolBase extends ToolBase {
     protected assertMqlIsAllowed(...values: (Record<string, unknown> | Record<string, unknown>[] | undefined)[]): void;
     // (undocumented)
-    protected assertSearchSupported(args: ToolArgs<typeof MongoDBToolBase.argsShape>): Promise<void>;
+    protected assertSearchSupported(connectionId: string): Promise<void>;
     // (undocumented)
     static category: ToolCategory;
     protected getOperationOptions(signal?: AbortSignal): {
@@ -1582,11 +1582,11 @@ export abstract class MongoDBToolBase extends ToolBase {
     // (undocumented)
     protected handleError(error: unknown, args: ToolArgs<typeof MongoDBToolBase.argsShape>): Promise<CallToolResult>;
     // (undocumented)
-    protected isSearchSupported(args: ToolArgs<typeof MongoDBToolBase.argsShape>): Promise<boolean>;
+    protected isSearchSupported(connectionId: string): Promise<boolean>;
     protected peekConnection(args: ToolArgs<typeof MongoDBToolBase.argsShape>): Promise<ConnectionEntry | undefined>;
     // (undocumented)
     register(server: Server): boolean;
-    protected resolveConnection(args: ToolArgs<typeof MongoDBToolBase.argsShape>): Promise<NodeDriverServiceProvider>;
+    protected resolveConnection(connectionId: string): Promise<NodeDriverServiceProvider>;
     protected resolveTelemetryMetadata(args: ToolArgs<typeof MongoDBToolBase.argsShape>, input: {
         result: CallToolResult;
     }): Promise<ConnectionMetadata>;
@@ -1648,7 +1648,7 @@ export class RenameCollectionTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof RenameCollectionTool.argsShape>): Promise<ToolResult<typeof RenameCollectionTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof RenameCollectionTool.argsShape>): Promise<ToolResult<typeof RenameCollectionTool.outputSchema>>;
     // (undocumented)
     protected handleError(error: unknown, args: ToolArgs<typeof RenameCollectionTool.argsShape>): Promise<ToolResult<typeof RenameCollectionTool.outputSchema>>;
     // (undocumented)
@@ -2197,7 +2197,7 @@ export class UpdateManyTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof UpdateManyTool.argsShape>): Promise<ToolResult<typeof UpdateManyTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof UpdateManyTool.argsShape>): Promise<ToolResult<typeof UpdateManyTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)

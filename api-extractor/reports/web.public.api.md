@@ -415,7 +415,7 @@ export type ConnectionMetadata = AtlasMetadata & AtlasLocalToolMetadata & {
 
 // @public
 export interface ConnectionRegistry {
-    closeAll(): Promise<void>;
+    close(): Promise<void>;
     connect(opts: CreateConnectionOptions): Promise<ConnectionEntry>;
     createEntry(opts: CreateConnectionEntryOptions): Promise<ConnectionEntry>;
     disconnect(connectionId: string): Promise<void>;
@@ -770,7 +770,10 @@ export interface LogPayload {
 export class MCPConnectionStore {
     constructor(options: ConnectionStoreOptions);
     closeAll(): Promise<void>;
-    view(scope?: string): ConnectionRegistry;
+    view(input?: {
+        scope?: string;
+        owned?: boolean;
+    }): ConnectionRegistry;
 }
 
 export { MetricDefinitions }
@@ -934,7 +937,6 @@ export interface SessionOptions {
     keychain: Keychain;
     // (undocumented)
     logger: CompositeLogger;
-    ownsConnectionRegistry?: boolean;
 }
 
 // @public (undocumented)

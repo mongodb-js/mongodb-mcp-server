@@ -100,8 +100,13 @@ export interface ConnectionRegistry {
      * for absent handles, like {@link ConnectionRegistry.resolve}.
      */
     disconnect(connectionId: string): Promise<void>;
-    /** Disconnects every entry reachable through this registry object. */
-    closeAll(): Promise<void>;
+    /**
+     * Releases the connections this registry object owns. Called when the
+     * session holding the registry closes; implementations whose connections
+     * outlive a session (shared or durable registries) should make this a
+     * no-op.
+     */
+    close(): Promise<void>;
 }
 
 type ConnectionEntryOptions = {
@@ -277,11 +282,14 @@ export class MCPConnectionStore {
      * handles behave exactly like absent ones. When `scope` is omitted, the
      * registry sees every entry and creates shared ones.
      *
-     * `closeAll()` on the returned registry disconnects only the entries it
-     * can reach; the preconfigured entry is closed-but-kept per its usual
-     * disconnect semantics.
+     * `owned` controls what {@link ConnectionRegistry.close} does: an owned
+     * registry disconnects every entry it can reach (the preconfigured entry
+     * is closed-but-kept per its usual disconnect semantics), an unowned one
+     * does nothing. It defaults to whether the view is scoped: scoped entries
+     * are unreachable once their scope holder is gone, while an unbound view's
+     * entries are shared and must outlive it.
      */
-    view(scope?: string): ConnectionRegistry {
+    view({ scope, owned = scope !== undefined }: { scope?: string; owned?: boolean } = {}): ConnectionRegistry {
         const visible = (stored: StoredConnection | undefined): stored is StoredConnection =>
             stored !== undefined && (scope === undefined || stored.scope === undefined || stored.scope === scope);
 
@@ -362,7 +370,10 @@ export class MCPConnectionStore {
 
             disconnect,
 
-            closeAll: async (): Promise<void> => {
+            close: async (): Promise<void> => {
+                if (!owned) {
+                    return;
+                }
                 const reachable = [...this.entries.values()].filter((stored) =>
                     scope === undefined ? true : stored.scope === scope
                 );

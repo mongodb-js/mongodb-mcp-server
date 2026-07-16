@@ -315,24 +315,23 @@ export abstract class TransportRunnerBase<
         // Scoping policy: an embedder-supplied registry wins (it brings its own
         // scoping); otherwise the session gets a view of the shared store —
         // bound to a fresh scope key under the default "session" scope, or
-        // unbound (seeing every entry) under "global". Sessions whose handles
-        // become unreachable when the session closes (session-scoped views,
-        // per-session stores) own their registry so `Session.close` reaps the
-        // connections.
+        // unbound (seeing every entry) under "global". Registries whose
+        // connections become unreachable when the session closes (session-scoped
+        // views, per-session stores) are minted as owned, so `Session.close`
+        // reaps them via `registry.close()`.
         const sessionScope = userConfig.connectionScope === "session" ? getRandomUUID() : undefined;
         let connectionRegistry = sessionOptions?.connectionRegistry;
-        let ownsConnectionRegistry = false;
         if (!connectionRegistry) {
             if (userConfig.connectionString !== this.userConfig.connectionString) {
                 // The session's resolved config carries a different connection
                 // string than the runner's, so the shared store's preconfigured
                 // entry would not match what this session's instructions and
                 // config resource describe. Give it a private store instead.
-                connectionRegistry = new MCPConnectionStore({ userConfig, logger, deviceId: this.deviceId }).view();
-                ownsConnectionRegistry = true;
+                connectionRegistry = new MCPConnectionStore({ userConfig, logger, deviceId: this.deviceId }).view({
+                    owned: true,
+                });
             } else {
-                connectionRegistry = this.getConnectionStore().view(sessionScope);
-                ownsConnectionRegistry = sessionScope !== undefined;
+                connectionRegistry = this.getConnectionStore().view({ scope: sessionScope });
             }
         }
 
@@ -343,7 +342,6 @@ export abstract class TransportRunnerBase<
             connectionErrorHandler: sessionOptions?.connectionErrorHandler ?? this.connectionErrorHandler,
             exportsManager,
             connectionRegistry,
-            ownsConnectionRegistry,
             keychain: Keychain.root,
             apiClient: sessionOptions?.apiClient ?? apiClient,
         });

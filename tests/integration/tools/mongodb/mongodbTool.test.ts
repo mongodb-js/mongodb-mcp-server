@@ -167,7 +167,7 @@ describe("MongoDBTool implementations", () => {
     }
 
     async function cleanup(): Promise<void> {
-        await mcpServer?.session.connectionRegistry.closeAll();
+        await mcpServer?.session.connectionRegistry.close();
         await mcpClient?.close();
         mcpClient = undefined;
 
@@ -185,7 +185,7 @@ describe("MongoDBTool implementations", () => {
     afterEach(async () => {
         vi.clearAllMocks();
         if (mcpServer) {
-            await mcpServer.session.connectionRegistry.closeAll();
+            await mcpServer.session.connectionRegistry.close();
         }
     });
 

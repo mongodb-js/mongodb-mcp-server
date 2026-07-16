@@ -18,13 +18,6 @@ export interface SessionOptions {
     atlasLocalClient?: Client;
     connectionErrorHandler: ConnectionErrorHandler;
     apiClient: ApiClient;
-    /**
-     * When true, `close()` closes every connection reachable through
-     * `connectionRegistry`. Transports set this for registries whose handles
-     * become unreachable once the session is gone (session-scoped views and
-     * per-session stores).
-     */
-    ownsConnectionRegistry?: boolean;
 }
 
 export type SessionEvents = {
@@ -37,7 +30,7 @@ export type SessionEvents = {
  * MongoDB connection state is deliberately NOT session-scoped — it lives in the
  * app-level {@link ConnectionRegistry} (shared across sessions) and is addressed
  * by the `connectionId` tool argument. The registry reference here is dependency
- * plumbing, not state. See `docs/proposals/2026-07-14-connection-handles.md`.
+ * plumbing, not state.
  */
 export class Session extends EventEmitter<SessionEvents> {
     readonly sessionId: string = new ObjectId().toString();
@@ -47,7 +40,6 @@ export class Session extends EventEmitter<SessionEvents> {
     readonly atlasLocalClient?: Client;
     readonly keychain: Keychain;
     readonly connectionErrorHandler: ConnectionErrorHandler;
-    private readonly ownsConnectionRegistry: boolean;
 
     mcpClient?: {
         name?: string;
@@ -65,7 +57,6 @@ export class Session extends EventEmitter<SessionEvents> {
         atlasLocalClient,
         connectionErrorHandler,
         apiClient,
-        ownsConnectionRegistry,
     }: SessionOptions) {
         super();
 
@@ -76,7 +67,6 @@ export class Session extends EventEmitter<SessionEvents> {
         this.exportsManager = exportsManager;
         this.connectionRegistry = connectionRegistry;
         this.connectionErrorHandler = connectionErrorHandler;
-        this.ownsConnectionRegistry = ownsConnectionRegistry ?? false;
     }
 
     setMcpClient(mcpClient: Implementation | undefined): void {
@@ -96,11 +86,9 @@ export class Session extends EventEmitter<SessionEvents> {
     }
 
     async close(): Promise<void> {
-        if (this.ownsConnectionRegistry) {
-            // Connections close before the API client: revoking Atlas entries
-            // deletes their temporary database users through it.
-            await this.connectionRegistry.closeAll().catch(() => undefined);
-        }
+        // Close the registry before the API client: revoking
+        // Atlas entries deletes their temporary database users through it.
+        await this.connectionRegistry.close().catch(() => undefined);
         await this.apiClient?.close();
         await this.exportsManager.close();
         this.emit("close");

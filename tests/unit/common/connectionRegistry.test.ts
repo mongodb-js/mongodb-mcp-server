@@ -193,8 +193,8 @@ describe("ConnectionRegistry", () => {
 
         it("enforces the limit per scope, so one scope cannot evict another's entries", async () => {
             const store = makeStore({ userConfig: { ...defaultTestConfig, maxActiveConnections: 1 } });
-            const viewA = store.view("scope-a");
-            const viewB = store.view("scope-b");
+            const viewA = store.view({ scope: "scope-a" });
+            const viewB = store.view({ scope: "scope-b" });
 
             const bEntry = await viewB.connect({ settings: { connectionString: "mongodb://b-host:27017" } });
             vi.advanceTimersByTime(10);
@@ -215,8 +215,8 @@ describe("ConnectionRegistry", () => {
 
         it("hides entries created through one view from other views", async () => {
             const store = makeStore();
-            const viewA = store.view("scope-a");
-            const viewB = store.view("scope-b");
+            const viewA = store.view({ scope: "scope-a" });
+            const viewB = store.view({ scope: "scope-b" });
 
             const entry = await viewA.connect({ settings: { connectionString: "mongodb://localhost:27017" } });
 
@@ -244,8 +244,8 @@ describe("ConnectionRegistry", () => {
 
         it("shows the preconfigured entry through every view", async () => {
             const store = makeStore({ userConfig: scopedConfig });
-            const viewA = store.view("scope-a");
-            const viewB = store.view("scope-b");
+            const viewA = store.view({ scope: "scope-a" });
+            const viewB = store.view({ scope: "scope-b" });
 
             expect((await viewA.find(() => true)).map((e) => e.connectionId)).toContain(PRECONFIGURED_CONNECTION_ID);
             expect((await viewB.find(() => true)).map((e) => e.connectionId)).toContain(PRECONFIGURED_CONNECTION_ID);
@@ -253,22 +253,44 @@ describe("ConnectionRegistry", () => {
             await expect(viewB.resolve(PRECONFIGURED_CONNECTION_ID)).resolves.toEqual({ fake: true });
         });
 
-        it("closeAll revokes only the view's own entries", async () => {
+        it("close revokes only the view's own entries (scoped views are owned by default)", async () => {
             const store = makeStore({ userConfig: scopedConfig });
-            const viewA = store.view("scope-a");
-            const viewB = store.view("scope-b");
+            const viewA = store.view({ scope: "scope-a" });
+            const viewB = store.view({ scope: "scope-b" });
 
             const aFirst = await viewA.connect({ settings: { connectionString: "mongodb://a-first:27017" } });
             const aSecond = await viewA.connect({ settings: { connectionString: "mongodb://a-second:27017" } });
             const bEntry = await viewB.connect({ settings: { connectionString: "mongodb://b-host:27017" } });
 
-            await viewA.closeAll();
+            await viewA.close();
 
             const ids = (await store.view().find(() => true)).map((entry) => entry.connectionId);
             expect(ids).not.toContain(aFirst.connectionId);
             expect(ids).not.toContain(aSecond.connectionId);
             expect(ids).toContain(bEntry.connectionId);
             expect(ids).toContain(PRECONFIGURED_CONNECTION_ID);
+        });
+
+        it("close is a no-op on an unowned view", async () => {
+            const store = makeStore();
+            const unowned = store.view();
+            const entry = await unowned.connect({ settings: { connectionString: "mongodb://host:27017" } });
+
+            await unowned.close();
+
+            await expect(unowned.peek(entry.connectionId)).resolves.toBe(entry);
+            expect(managers[0]?.closed).toBe(false);
+        });
+
+        it("close revokes everything reachable through an owned unbound view", async () => {
+            const store = makeStore();
+            const owned = store.view({ owned: true });
+            const entry = await owned.connect({ settings: { connectionString: "mongodb://host:27017" } });
+
+            await owned.close();
+
+            await expect(owned.peek(entry.connectionId)).resolves.toBeUndefined();
+            expect(managers[0]?.closed).toBe(true);
         });
     });
 
@@ -277,7 +299,7 @@ describe("ConnectionRegistry", () => {
             const store = makeStore({
                 userConfig: { ...defaultTestConfig, connectionString: "mongodb://localhost:27017" },
             });
-            const scoped = store.view("scope-a");
+            const scoped = store.view({ scope: "scope-a" });
             const unbound = store.view();
 
             const scopedEntry = await scoped.connect({ settings: { connectionString: "mongodb://a-host:27017" } });

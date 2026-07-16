@@ -945,7 +945,7 @@ const runner = new CustomStreamableHttpRunner({
 await runner.start();
 ```
 
-**Full ownership.** Implement the `ConnectionRegistry` interface yourself and supply an instance per session via `sessionOptions.connectionRegistry`. This is for embedders that scope connections by their own tenant key (e.g. an authenticated principal) or back them with durable storage. A registry is always fully bound to the connections it can see, so any scoping happens inside your implementation — the server code never passes caller identity to it.
+**Full ownership.** Implement the `ConnectionRegistry` interface yourself and supply an instance per session via `sessionOptions.connectionRegistry`. This is for embedders that scope connections by their own tenant key (e.g. an authenticated principal) or back them with durable storage. A registry is always fully bound to the connections it can see, so any scoping happens inside your implementation — the server code never passes caller identity to it. The session calls `registry.close()` when it closes: implement it as a no-op if your connections outlive the session, or use it to release per-session resources.
 
 ### Custom Error Handling
 
