@@ -13,7 +13,7 @@ import type { OIDCMockProviderConfig } from "@mongodb-js/oidc-mock-provider";
 import { OIDCMockProvider } from "@mongodb-js/oidc-mock-provider";
 import type { TestConnectionManager } from "../testConnectionManager.js";
 
-const DEFAULT_TIMEOUT = 60_000;
+const DEFAULT_TIMEOUT = 120_000;
 const DEFAULT_RETRIES = 5;
 // Long-lived token for tests that only need a successful connection. A short (1s) lifetime
 // races the OIDC handshake under CI load and intermittently produces server-side
