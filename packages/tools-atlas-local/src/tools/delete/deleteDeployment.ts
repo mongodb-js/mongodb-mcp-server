@@ -4,6 +4,12 @@ import type { ToolArgs } from "@mongodb-js/mcp-core";
 import type { OperationType } from "@mongodb-js/mcp-types";
 import type { Client } from "@mongodb-js/atlas-local";
 import { CommonArgs } from "@mongodb-js/mcp-core";
+import { z } from "zod";
+
+const DeleteDeploymentOutputSchema = {
+    deleted: z.boolean(),
+    deploymentName: z.string(),
+};
 
 export class DeleteDeploymentTool extends AtlasLocalToolBase {
     static toolName = "atlas-local-delete-deployment";
@@ -12,6 +18,7 @@ export class DeleteDeploymentTool extends AtlasLocalToolBase {
     public argsShape = {
         deploymentName: CommonArgs.asciiOnlyString().describe("Name of the deployment to delete"),
     };
+    public override outputSchema = DeleteDeploymentOutputSchema;
 
     protected async executeWithAtlasLocalClient(
         { deploymentName }: ToolArgs<typeof this.argsShape>,
@@ -27,6 +34,10 @@ export class DeleteDeploymentTool extends AtlasLocalToolBase {
 
         return {
             content: [{ type: "text", text: `Deployment "${deploymentName}" deleted successfully.` }],
+            structuredContent: {
+                deleted: true,
+                deploymentName,
+            },
             _meta: {
                 ...telemetryMetadata,
             },

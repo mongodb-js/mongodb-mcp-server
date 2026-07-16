@@ -6,6 +6,12 @@ import type { Client, CreateDeploymentOptions } from "@mongodb-js/atlas-local";
 import { CommonArgs } from "@mongodb-js/mcp-core";
 import z from "zod";
 
+const CreateDeploymentOutputSchema = {
+    deploymentName: z.string().optional(),
+    imageTag: z.string(),
+    loadSampleData: z.boolean(),
+};
+
 export class CreateDeploymentTool extends AtlasLocalToolBase {
     static toolName = "atlas-local-create-deployment";
     public description =
@@ -20,6 +26,7 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
             .optional()
             .default("preview"),
     };
+    public override outputSchema = CreateDeploymentOutputSchema;
 
     protected async executeWithAtlasLocalClient(
         { deploymentName, loadSampleData, imageTag }: ToolArgs<typeof this.argsShape>,
@@ -46,6 +53,11 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
                     text: `Deployment with container ID "${deployment.containerId}" and name "${deployment.name}" created (imageTag: ${imageTag}).`,
                 },
             ],
+            structuredContent: {
+                deploymentName: deployment.name,
+                imageTag,
+                loadSampleData,
+            },
             _meta: {
                 ...(await this.lookupTelemetryMetadata(client, deployment.containerId)),
             },

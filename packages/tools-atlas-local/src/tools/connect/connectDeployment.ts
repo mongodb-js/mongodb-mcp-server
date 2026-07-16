@@ -6,6 +6,12 @@ import type { Client } from "@mongodb-js/atlas-local";
 import { CommonArgs } from "@mongodb-js/mcp-core";
 import type { ConnectionMetadata } from "@mongodb-js/mcp-types";
 import { waitForConnectionString } from "../../connectionString.js";
+import { z } from "zod";
+
+const ConnectDeploymentOutputSchema = {
+    connected: z.boolean(),
+    deploymentName: z.string(),
+};
 
 export class ConnectDeploymentTool extends AtlasLocalToolBase {
     static toolName = "atlas-local-connect-deployment";
@@ -14,6 +20,7 @@ export class ConnectDeploymentTool extends AtlasLocalToolBase {
     public argsShape = {
         deploymentName: CommonArgs.asciiOnlyString().describe("Name of the deployment to connect to"),
     };
+    public override outputSchema = ConnectDeploymentOutputSchema;
 
     protected async executeWithAtlasLocalClient(
         { deploymentName }: ToolArgs<typeof this.argsShape>,
@@ -34,6 +41,10 @@ export class ConnectDeploymentTool extends AtlasLocalToolBase {
                     text: `Successfully connected to Atlas Local deployment "${deploymentName}".`,
                 },
             ],
+            structuredContent: {
+                connected: true,
+                deploymentName,
+            },
             _meta: {
                 ...(await this.lookupTelemetryMetadata(client, deploymentName)),
             },
