@@ -1,12 +1,11 @@
-import { z } from "zod";
+import z from "zod";
 import { ObjectId } from "bson";
 import type { AggregationCursor, FindCursor } from "mongodb";
-import type { CallToolResult } from "@mongodb-js/mcp-types";
-import type { ToolArgs } from "@mongodb-js/mcp-core";
-import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
-import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { OperationType, ToolArgs, ToolExecutionContext } from "../../tool.js";
+import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { FindArgs } from "./find.js";
-import { jsonExportFormat } from "../../common/exportsManager.js";
+import { jsonExportFormat } from "../../../common/exportsManager.js";
 import { AggregateArgs } from "./aggregate.js";
 
 export class ExportTool extends MongoDBToolBase {
@@ -91,7 +90,7 @@ export class ExportTool extends MongoDBToolBase {
 
         const exportName = `${new ObjectId().toString()}.json`;
 
-        const exportResult = await this.session.exportsManager.createJSONExport({
+        const { exportURI, exportPath } = await this.session.exportsManager.createJSONExport({
             input: cursor,
             exportName,
             exportTitle:
@@ -99,7 +98,6 @@ export class ExportTool extends MongoDBToolBase {
                 `Export for namespace ${database}.${collection} requested on ${new Date().toLocaleString()}`,
             jsonExportFormat,
         });
-        const { exportURI, exportPath } = exportResult;
         const toolCallContent: CallToolResult["content"] = [
             // Not all the clients as of this commit understands how to
             // parse a resource_link so we provide a text result for them to

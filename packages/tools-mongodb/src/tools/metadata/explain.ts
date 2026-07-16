@@ -1,7 +1,6 @@
-import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
-import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
-import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
-import { formatUntrustedData } from "@mongodb-js/mcp-core";
+import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
+import { formatUntrustedData } from "../../tool.js";
 import { z } from "zod";
 import type { Document } from "mongodb";
 import { AggregateArgs } from "../read/aggregate.js";
@@ -95,7 +94,7 @@ export class ExplainTool extends MongoDBToolBase {
                 const { filter, ...rest } = method.arguments;
                 this.assertMqlIsAllowed(filter, rest.projection);
                 result = await provider
-                    .find(database, collection, filter, {
+                    .find(database, collection, filter as Document, {
                         ...rest,
                         ...this.getOperationOptions(signal),
                     })
@@ -124,7 +123,7 @@ export class ExplainTool extends MongoDBToolBase {
 
         return {
             content: formatUntrustedData(
-                `Here is some information about the winning plan chosen by the query optimizer for running the given \`${method.name}\` operation in "${database}.${collection}". The execution plan was run with the following verbosity: "${verbosity}". This information can be used to understand how the query was executed and to optimize the query performance.`,
+                `Here is some information about the winning plan chosen by the query optimizer for running the given \`${method.name}\` operation on the requested namespace. The execution plan was run with the following verbosity: "${verbosity}". This information can be used to understand how the query was executed and to optimize the query performance.`,
                 JSON.stringify({ database, collection, plan: result })
             ),
             structuredContent: {

@@ -1,7 +1,8 @@
 import { z } from "zod";
-import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
-import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
-import type { OperationType } from "@mongodb-js/mcp-types";
+import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import type { ToolArgs, OperationType, ToolResult } from "../../tool.js";
+import { ErrorCodes, MongoDBError } from "../../../common/errors.js";
+
 const RenameCollectionOutputSchema = {
     database: z.string(),
     oldCollection: z.string(),
@@ -28,6 +29,17 @@ export class RenameCollectionTool extends MongoDBToolBase {
         newName,
         dropTarget,
     }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
+        if (dropTarget && this.config.disabledTools.includes("delete")) {
+            // Renaming with `dropTarget: true` drops the existing target collection, which is a
+            // destructive delete operation. Since this tool's operation type is `update`, it remains
+            // available even when delete operations are disabled, so reject `dropTarget` in that case
+            // to prevent it from being used to drop a collection through the back door.
+            throw new MongoDBError(
+                ErrorCodes.ForbiddenWriteOperation,
+                "When 'delete' operations are disabled, you can not rename a collection with 'dropTarget' set to true, as it would drop the target collection."
+            );
+        }
+
         const provider = await this.ensureConnected();
         const result = await provider.renameCollection(database, collection, newName, {
             dropTarget,
@@ -36,7 +48,7 @@ export class RenameCollectionTool extends MongoDBToolBase {
         return {
             content: [
                 {
-                    text: `Collection "${collection}" renamed to "${result.collectionName}" in database "${database}".`,
+                    text: "The collection was renamed successfully in the requested database.",
                     type: "text",
                 },
             ],
@@ -56,10 +68,10 @@ export class RenameCollectionTool extends MongoDBToolBase {
         if (error instanceof Error && "codeName" in error) {
             switch (error.codeName) {
                 case "NamespaceNotFound":
-                    return Promise.resolve({
+                    return {
                         content: [
                             {
-                                text: `Cannot rename "${args.database}.${args.collection}" because it doesn't exist.`,
+                                text: "Cannot rename the requested collection because it doesn't exist.",
                                 type: "text",
                             },
                         ],
@@ -70,12 +82,12 @@ export class RenameCollectionTool extends MongoDBToolBase {
                             renamed: false,
                         },
                         isError: true,
-                    });
+                    };
                 case "NamespaceExists":
-                    return Promise.resolve({
+                    return {
                         content: [
                             {
-                                text: `Cannot rename "${args.database}.${args.collection}" to "${args.newName}" because the target collection already exists. If you want to overwrite it, set the "dropTarget" argument to true.`,
+                                text: 'Cannot rename the requested collection because the target collection already exists. If you want to overwrite it, set the "dropTarget" argument to true.',
                                 type: "text",
                             },
                         ],
@@ -86,14 +98,13 @@ export class RenameCollectionTool extends MongoDBToolBase {
                             renamed: false,
                         },
                         isError: true,
-                    });
+                    };
             }
         }
 
-        // For other errors, call parent but add structured content
         const parentResult = await super.handleError(error, args);
         return {
-            content: parentResult.content,
+            content: parentResult.content ?? [],
             isError: parentResult.isError,
             structuredContent: {
                 database: args.database,
@@ -101,6 +112,6 @@ export class RenameCollectionTool extends MongoDBToolBase {
                 newCollection: args.newName,
                 renamed: false,
             },
-        } as ToolResult<typeof this.outputSchema>;
+        };
     }
 }

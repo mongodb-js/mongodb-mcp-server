@@ -1,14 +1,15 @@
 import { type ReactElement } from "react";
 import { ListDatabases as LGListDatabases } from "@lg-mcp/embeddable-uis";
 import { useRenderData } from "@lg-mcp/hooks";
+import type { ListDatabasesOutput } from "../../../tools/mongodb/metadata/listDatabases.js";
 
-export interface ListDatabasesData {
-    databases: Array<{ name: string; size: number }>;
-    totalCount: number;
-}
+/**
+ * @internal
+ */
+export type Database = ListDatabasesOutput["databases"][number];
 
 export const ListDatabases = (): ReactElement | null => {
-    const { data, isLoading, error, darkMode } = useRenderData<ListDatabasesData>();
+    const { data, isLoading, error, darkMode } = useRenderData<ListDatabasesOutput>();
 
     if (isLoading) {
         return <div>Loading...</div>;
