@@ -43,6 +43,8 @@ jobs:
           cache: "pnpm"
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm run build
       - name: Run tests
         run: pnpm test
         env:
@@ -127,6 +129,8 @@ jobs:
           cache: "pnpm"
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm run build
       - name: Pre-pull Atlas Local images
         run: |
           docker pull mongodb/mongodb-atlas-local:preview &
