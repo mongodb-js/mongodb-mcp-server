@@ -60,23 +60,23 @@ describe("CreateProjectTool", () => {
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown> = {}) => tool["execute"](args as never);
 
-    it("creates a project with explicit organizationId", async () => {
-        mockApiClient.createGroup!.mockResolvedValue({ id: "proj-123", name: "My Project", organizationId: "org-1" });
+    it("creates a project with explicit orgId", async () => {
+        mockApiClient.createGroup!.mockResolvedValue({ id: "proj-123", name: "My Project", orgId: "org-1" });
 
-        const result = await exec({ projectName: "My Project", organizationId: "org-1" });
+        const result = await exec({ projectName: "My Project", orgId: "org-1" });
 
         expect((result.content[0] as { text: string }).text).toContain('Project "My Project" created successfully');
         expect(mockApiClient.listOrgs).not.toHaveBeenCalled();
     });
 
-    it("assumes first organization when organizationId is omitted", async () => {
+    it("assumes first organization when orgId is omitted", async () => {
         mockApiClient.listOrgs!.mockResolvedValue({ results: [{ id: "org-first", name: "First Org" }] });
         mockApiClient.createGroup!.mockResolvedValue({ id: "proj-456", name: "Atlas Project", orgId: "org-first" });
 
         const result = await exec();
 
         expect(mockApiClient.listOrgs).toHaveBeenCalled();
-        expect((result.content[0] as { text: string }).text).toContain("using organizationId org-first");
+        expect((result.content[0] as { text: string }).text).toContain("using orgId org-first");
     });
 
     it("uses default project name when projectName is omitted", async () => {
@@ -84,10 +84,10 @@ describe("CreateProjectTool", () => {
         mockApiClient.createGroup!.mockResolvedValue({
             id: "proj-789",
             name: "Atlas Project",
-            organizationId: "org-1",
+            orgId: "org-1",
         });
 
-        await exec({ organizationId: "org-1" });
+        await exec({ orgId: "org-1" });
 
         expect(mockApiClient.createGroup).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -99,8 +99,6 @@ describe("CreateProjectTool", () => {
     it("throws when createGroup returns no id", async () => {
         mockApiClient.createGroup!.mockResolvedValue({});
 
-        await expect(exec({ projectName: "My Project", organizationId: "org-1" })).rejects.toThrow(
-            "Failed to create project"
-        );
+        await expect(exec({ projectName: "My Project", orgId: "org-1" })).rejects.toThrow("Failed to create project");
     });
 });

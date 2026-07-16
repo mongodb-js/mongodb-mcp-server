@@ -68,7 +68,7 @@ export class CreateProjectTool extends AtlasToolBase {
             content: [
                 {
                     type: "text",
-                    text: `Project "${projectName}" created successfully${assumedOrg ? ` (using orgId ${orgId}).` : ""}.`,
+                    text: `Project "${projectName}" created successfully${assumedOrg ? ` (using orgId ${orgId})` : ""}.`,
                 },
             ],
             structuredContent: {

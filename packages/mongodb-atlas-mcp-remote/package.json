@@ -23,6 +23,7 @@
   },
   "scripts": {
     "compile": "tsc --project tsconfig.build.json",
+    "build": "pnpm compile",
     "pretest": "pnpm compile",
     "test": "vitest --run",
     "build:update-package-version": "node scripts/updatePackageVersion.ts"
