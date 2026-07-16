@@ -130,6 +130,30 @@ describe("ConnectClusterTool", () => {
             const entry = await connectionRegistry.peek(connectionId);
             expect(entry?.name).toMatch(/^cluster1-[0-9a-f]{4}$/);
         });
+
+        it("reuses the existing entry when called again for the same cluster", async () => {
+            const first = await tool["execute"](args, { signal: new AbortController().signal });
+            const second = await tool["execute"](args, { signal: new AbortController().signal });
+
+            expect(second.structuredContent?.connectionId).toBe(first.structuredContent?.connectionId);
+            expect(first.structuredContent?.createdTemporaryUser).toBe(true);
+            expect(second.structuredContent?.createdTemporaryUser).toBe(false);
+            // The repeat call must not provision another temporary user.
+            expect(mockApiClient.createDatabaseUser).toHaveBeenCalledTimes(1);
+            await expect(connectionRegistry.find(() => true)).resolves.toHaveLength(1);
+        });
+
+        it("creates a separate entry for a different cluster", async () => {
+            const first = await tool["execute"](args, { signal: new AbortController().signal });
+            mockApiClient.getCluster?.mockResolvedValue({ ...CLUSTER_DESCRIPTION, name: "cluster2" });
+            const second = await tool["execute"](
+                { ...args, clusterName: "cluster2" },
+                { signal: new AbortController().signal }
+            );
+
+            expect(second.structuredContent?.connectionId).not.toBe(first.structuredContent?.connectionId);
+            expect(mockApiClient.createDatabaseUser).toHaveBeenCalledTimes(2);
+        });
     });
 
     describe("connectToCluster request ID logging", () => {

@@ -277,18 +277,22 @@ describeWithAtlas("clusters", (integration) => {
                     });
 
                     const content = getResponseContent(response.content);
-                    expect(content).toContain("Connected to cluster");
                     expect(content).toContain(clusterName);
                     const structuredContent = response.structuredContent as ConnectClusterOutput;
                     if (content.includes(`Connected to cluster "${clusterName}"`)) {
                         connected = true;
 
+                        // Repeat calls reuse the in-flight entry, so however many
+                        // polls it took, exactly one temporary user exists.
                         expect(createDatabaseUserSpy).toHaveBeenCalledTimes(1);
 
-                        // assert that some of the element s have the message
-                        expect(content).toContain(
-                            "Note: A temporary user has been created to enable secure connection to the cluster. For more information, see https://dochub.mongodb.org/core/mongodb-mcp-server-tools-considerations"
-                        );
+                        // The temporary-user note is attached by the call that
+                        // provisioned the user — the first one.
+                        if (structuredContent.createdTemporaryUser) {
+                            expect(content).toContain(
+                                "Note: A temporary user has been created to enable secure connection to the cluster. For more information, see https://dochub.mongodb.org/core/mongodb-mcp-server-tools-considerations"
+                            );
+                        }
 
                         // structuredContent must mirror content
                         expect(structuredContent.state).toBe("connected");

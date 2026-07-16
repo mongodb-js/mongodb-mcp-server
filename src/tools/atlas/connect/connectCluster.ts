@@ -217,36 +217,51 @@ export class ConnectClusterTool extends AtlasToolBase {
     ): Promise<ToolResult<typeof this.outputSchema>> {
         const ipAccessListUpdated = (await ensureCurrentIpInAccessList(this.apiClient, projectId, context)) === "added";
 
-        const { connectionString, atlas } = await this.prepareClusterConnection(
-            projectId,
-            clusterName,
-            connectionType,
-            context
-        );
+        // Models are expected to poll this tool while a dial is in progress, so
+        // a repeat call for a cluster that is already connecting or connected
+        // reuses the in-flight entry: every sibling entry would provision
+        // another temporary user and start another background dial loop.
+        let entry = (
+            await this.session.connectionRegistry.find(
+                (candidate) =>
+                    (candidate.state.tag === "connected" || candidate.state.tag === "connecting") &&
+                    candidate.state.connectedAtlasCluster?.projectId === projectId &&
+                    candidate.state.connectedAtlasCluster?.clusterName === clusterName
+            )
+        )[0];
+        let atlas = entry?.state.connectedAtlasCluster;
+        const createdTemporaryUser = !entry;
 
-        // Cluster names are only unique within a project, so the slug includes
-        // the project name for disambiguation. Best-effort: a failed lookup
-        // falls back to the cluster name alone rather than failing the connect.
-        const projectName = await this.apiClient
-            .getGroup({ params: { path: { groupId: projectId } } }, context)
-            .then((group) => group.name)
-            .catch(() => undefined);
+        if (!entry) {
+            const prepared = await this.prepareClusterConnection(projectId, clusterName, connectionType, context);
+            atlas = prepared.atlas;
 
-        const entry = await this.session.connectionRegistry.createEntry({
-            name: atlasClusterSlug(projectName, clusterName),
-            clientName: this.session.mcpClient?.name,
-            onRevoke: (): Promise<void> => this.deleteTemporaryUser(atlas),
-        });
+            // Cluster names are only unique within a project, so the slug includes
+            // the project name for disambiguation. Best-effort: a failed lookup
+            // falls back to the cluster name alone rather than failing the connect.
+            const projectName = await this.apiClient
+                .getGroup({ params: { path: { groupId: projectId } } }, context)
+                .then((group) => group.name)
+                .catch(() => undefined);
 
-        // try to connect for about 5 minutes asynchronously
-        void this.connectToCluster(entry, connectionString, atlas, context).catch((err: unknown) => {
-            const error = err instanceof Error ? err : new Error(String(err));
-            this.session.logger.error({
-                id: LogId.atlasConnectFailure,
-                context: "atlas-connect-cluster",
-                message: `error connecting to cluster: ${error.message}`,
+            entry = await this.session.connectionRegistry.createEntry({
+                name: atlasClusterSlug(projectName, clusterName),
+                clientName: this.session.mcpClient?.name,
+                onRevoke: (): Promise<void> => this.deleteTemporaryUser(prepared.atlas),
             });
-        });
+
+            // try to connect for about 5 minutes asynchronously
+            void this.connectToCluster(entry, prepared.connectionString, prepared.atlas, context).catch(
+                (err: unknown) => {
+                    const error = err instanceof Error ? err : new Error(String(err));
+                    this.session.logger.error({
+                        id: LogId.atlasConnectFailure,
+                        context: "atlas-connect-cluster",
+                        message: `error connecting to cluster: ${error.message}`,
+                    });
+                }
+            );
+        }
 
         for (let i = 0; i < 60; i++) {
             if (entry.state.tag === "connected") {
@@ -264,17 +279,19 @@ export class ConnectClusterTool extends AtlasToolBase {
                     });
                 }
 
-                content.push({
-                    type: "text" as const,
-                    text: createdUserMessage,
-                });
+                if (createdTemporaryUser) {
+                    content.push({
+                        type: "text" as const,
+                        text: createdUserMessage,
+                    });
+                }
 
                 const baseStructuredContent = {
                     connectionId: entry.connectionId,
                     state: "connected" as const,
                     addedCurrentIp: ipAccessListUpdated,
-                    createdTemporaryUser: true,
-                    temporaryUserClarification: createdUserMessage,
+                    createdTemporaryUser,
+                    ...(createdTemporaryUser && { temporaryUserClarification: createdUserMessage }),
                 };
 
                 const sharedTierFields = await this.runSharedTierHook(atlas, content, context);
@@ -302,10 +319,12 @@ export class ConnectClusterTool extends AtlasToolBase {
             });
         }
 
-        content.push({
-            type: "text" as const,
-            text: createdUserMessage,
-        });
+        if (createdTemporaryUser) {
+            content.push({
+                type: "text" as const,
+                text: createdUserMessage,
+            });
+        }
 
         const sharedTierFields = await this.runSharedTierHook(atlas, content, context);
         return {
@@ -314,8 +333,8 @@ export class ConnectClusterTool extends AtlasToolBase {
                 connectionId: entry.connectionId,
                 state: "connecting",
                 addedCurrentIp: ipAccessListUpdated,
-                createdTemporaryUser: true,
-                temporaryUserClarification: createdUserMessage,
+                createdTemporaryUser,
+                ...(createdTemporaryUser && { temporaryUserClarification: createdUserMessage }),
                 ...sharedTierFields,
             },
         };
