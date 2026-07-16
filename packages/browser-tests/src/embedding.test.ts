@@ -1,18 +1,11 @@
 import { describe, beforeAll, afterAll, it, expect } from "vitest";
-import { UserConfigSchema } from "mongodb-mcp-server/web";
 import { BrowserTestRunner } from "../utils/utils.js";
 
 describe("MongoDB MCP Server in Browser", () => {
     let runner: BrowserTestRunner;
 
     beforeAll(async () => {
-        const userConfig = UserConfigSchema.parse({
-            telemetry: "disabled",
-            readOnly: true,
-            loggers: ["stderr"],
-        });
-
-        runner = new BrowserTestRunner({ userConfig });
+        runner = new BrowserTestRunner();
         await runner.start();
     });
 
@@ -24,17 +17,7 @@ describe("MongoDB MCP Server in Browser", () => {
         // Verify runner is initialized
         expect(runner).toBeDefined();
 
-        const client = runner.getClient();
+        const client = runner.client;
         expect(client).toBeDefined();
-    });
-
-    it("should use proper end-user imports from mongodb-mcp-server package", () => {
-        const userConfig = UserConfigSchema.parse({
-            readOnly: true,
-            telemetry: "disabled",
-        });
-
-        expect(userConfig).toBeDefined();
-        expect(userConfig.readOnly).toBe(true);
     });
 });

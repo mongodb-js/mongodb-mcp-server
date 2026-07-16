@@ -1,27 +1,26 @@
-import { ApiClient } from "../../src/common/atlas/apiClient.js";
-import { ApiClientError } from "../../src/common/atlas/apiClientError.js";
+import { ApiClient, ApiClientError, ClientCredentialsAuthProvider } from "@mongodb-js/mcp-atlas-api-client";
 import {
-    Telemetry,
+    AtlasTelemetry,
     nextBackoffMs,
     BATCH_SIZE,
     SEND_INTERVAL_MS,
     INITIAL_BACKOFF_MS,
     MAX_BACKOFF_MS,
     type TelemetryConfig,
-} from "../../src/telemetry/telemetry.js";
-import type { BaseEvent, CommonProperties, TelemetryEvent, TelemetryResult } from "../../src/telemetry/types.js";
-import { EventCache } from "../../src/telemetry/eventCache.js";
+} from "./atlasTelemetry.js";
+import type { TelemetryBaseEvent, TelemetryCommonProperties, TelemetryEvent, TelemetryResult } from "./types.js";
+import { EventCache } from "./eventCache.js";
 import { afterAll, afterEach, beforeEach, describe, it, vi, expect } from "vitest";
-import { NullLogger } from "../../src/common/logging/nullLogger.js";
+import { NoopLogger, Keychain } from "@mongodb-js/mcp-core";
 import type { MockedFunction, MockInstance } from "vitest";
-import type { DeviceId } from "../../src/helpers/deviceId.js";
-import { expectDefined } from "../integration/helpers.js";
-import { Keychain } from "../../src/common/keychain.js";
+import type { IDeviceId } from "@mongodb-js/mcp-types";
 
-// Mock container detection to avoid file I/O in tests
-vi.mock("../../src/helpers/container.js", () => ({
-    detectContainerEnv: vi.fn().mockResolvedValue(false),
-}));
+function expectDefined<T>(arg: T): asserts arg is Exclude<T, undefined | null> {
+    expect(arg).toBeDefined();
+    expect(arg).not.toBeNull();
+}
+
+const TEST_SERVER_METADATA = { mcpServerName: "test-server", version: "1.0.0" };
 
 // Restore any spies installed by individual describe blocks so tests in
 // different blocks don't interfere with each other.
@@ -41,51 +40,86 @@ describe("nextBackoffMs", () => {
     });
 });
 
-describe("Telemetry", () => {
+describe("AtlasTelemetry", () => {
     let mockApiClient: {
-        sendEvents: MockedFunction<(events: BaseEvent[], options?: { signal?: AbortSignal }) => Promise<void>>;
+        sendEvents: MockedFunction<(options: { events: unknown[]; signal?: AbortSignal }) => Promise<void>>;
         validateAuthConfig: MockedFunction<() => Promise<void>>;
         isAuthConfigured: MockedFunction<() => boolean>;
     };
     let mockEventCache: {
         size: number;
-        getEvents: MockedFunction<() => { id: number; event: BaseEvent }[]>;
+        getEvents: MockedFunction<() => { id: number; event: TelemetryBaseEvent }[]>;
         removeEvents: MockedFunction<(ids: number[]) => void>;
-        appendEvents: MockedFunction<(events: BaseEvent[]) => void>;
+        appendEvents: MockedFunction<(events: TelemetryBaseEvent[]) => void>;
         processOldestBatch: MockedFunction<
             <T>(
                 batchSize: number,
-                processor: (events: BaseEvent[]) => Promise<{ removeProcessed: boolean; result: T }>
+                processor: (events: TelemetryBaseEvent[]) => Promise<{ removeProcessed: boolean; result: T }>
             ) => Promise<T | undefined>
         >;
     };
     let keychain: Keychain;
-    let telemetry: Telemetry;
-    let mockDeviceId: DeviceId;
+    let telemetry: AtlasTelemetry;
+    let mockDeviceId: IDeviceId;
     const sessionId = "test-session-id";
     const mcpClient = { name: "test-agent", version: "1.0.0" };
 
-    function createTelemetry(overrides: Partial<TelemetryConfig> = {}): Telemetry {
-        return Telemetry.create({
-            logger: new NullLogger(),
-            deviceId: mockDeviceId,
-            apiClient: mockApiClient as unknown as ApiClient,
-            keychain,
-            enabled: true,
-            getCommonProperties: () => ({
+    type TestAtlasTelemetryOptions = {
+        commonPropertiesOverride?: () => Partial<TelemetryCommonProperties>;
+    };
+
+    class TestAtlasTelemetry extends AtlasTelemetry {
+        private readonly commonPropertiesOverride?: () => Partial<TelemetryCommonProperties>;
+
+        constructor(config: TelemetryConfig, options: TestAtlasTelemetryOptions = {}) {
+            super(config);
+            this.commonPropertiesOverride = options.commonPropertiesOverride;
+        }
+
+        public override getCommonProperties(): TelemetryCommonProperties {
+            return {
+                ...super.getCommonProperties(),
                 transport: "stdio",
                 mcp_client_version: mcpClient.version,
                 mcp_client_name: mcpClient.name,
                 session_id: sessionId,
                 config_atlas_auth: mockApiClient.isAuthConfigured() ? "true" : "false",
                 config_connection_string: "false",
-            }),
-            ...overrides,
-        });
+                ...this.commonPropertiesOverride?.(),
+            };
+        }
+
+        static createForTest(config: TelemetryConfig, options: TestAtlasTelemetryOptions = {}): TestAtlasTelemetry {
+            const instance = new TestAtlasTelemetry(config, options);
+            void instance.setup();
+            return instance;
+        }
+    }
+
+    function createAtlasTelemetry(
+        overrides: Partial<TelemetryConfig> & TestAtlasTelemetryOptions = {}
+    ): AtlasTelemetry {
+        const { commonPropertiesOverride, ...configOverrides } = overrides;
+        const serverMetadata = configOverrides.serverMetadata ?? TEST_SERVER_METADATA;
+
+        vi.spyOn(AtlasTelemetry.prototype, "detectContainerEnv").mockResolvedValue(false);
+
+        return TestAtlasTelemetry.createForTest(
+            {
+                logger: new NoopLogger(),
+                deviceId: mockDeviceId,
+                apiClient: mockApiClient as unknown as ApiClient,
+                keychain,
+                enabled: true,
+                serverMetadata,
+                ...configOverrides,
+            },
+            { commonPropertiesOverride }
+        );
     }
 
     // In-memory store backing the stateful mock EventCache
-    let _cachedEvents: BaseEvent[] = [];
+    let _cachedEvents: TelemetryBaseEvent[] = [];
 
     function createTestEvent(options?: {
         result?: TelemetryResult;
@@ -93,7 +127,7 @@ describe("Telemetry", () => {
         category?: string;
         command?: string;
         duration_ms?: number;
-    }): Omit<BaseEvent, "properties"> & {
+    }): Omit<TelemetryBaseEvent, "properties"> & {
         properties: {
             component: string;
             duration_ms: number;
@@ -119,7 +153,7 @@ describe("Telemetry", () => {
      * Emits events and advances fake timers to trigger the send timer.
      * Returns once the telemetry emits an outcome event.
      */
-    async function emitEventsForTest(events: BaseEvent[]): Promise<void> {
+    async function emitEventsForTest(events: TelemetryBaseEvent[]): Promise<void> {
         const eventFired = new Promise<void>((resolve) => {
             telemetry.events.once("events-emitted", resolve);
             telemetry.events.once("events-send-failed", resolve);
@@ -132,10 +166,10 @@ describe("Telemetry", () => {
     }
 
     function createRateLimitedError(): ApiClientError {
-        return ApiClientError.fromError(
-            { status: 429, statusText: "Too Many Requests" } as Response,
-            "Too Many Requests"
-        );
+        return ApiClientError.fromError({
+            response: { status: 429, statusText: "Too Many Requests" } as Response,
+            error: "Too Many Requests",
+        });
     }
 
     beforeEach(() => {
@@ -158,7 +192,7 @@ describe("Telemetry", () => {
             removeEvents: vi.fn().mockImplementation((ids: number[]) => {
                 _cachedEvents = _cachedEvents.filter((_, i) => !ids.includes(i));
             }),
-            appendEvents: vi.fn().mockImplementation((events: BaseEvent[]) => {
+            appendEvents: vi.fn().mockImplementation((events: TelemetryBaseEvent[]) => {
                 _cachedEvents.push(...events);
             }),
             processOldestBatch: vi
@@ -166,7 +200,7 @@ describe("Telemetry", () => {
                 .mockImplementation(
                     async <T>(
                         batchSize: number,
-                        processor: (events: BaseEvent[]) => Promise<{ removeProcessed: boolean; result: T }>
+                        processor: (events: TelemetryBaseEvent[]) => Promise<{ removeProcessed: boolean; result: T }>
                     ): Promise<T | undefined> => {
                         const allEvents = mockEventCache.getEvents();
                         const batch = allEvents.slice(0, batchSize);
@@ -184,10 +218,11 @@ describe("Telemetry", () => {
 
         mockDeviceId = {
             get: vi.fn().mockResolvedValue("test-device-id"),
-        } as unknown as DeviceId;
+            close: vi.fn(),
+        } as unknown as IDeviceId;
 
         keychain = new Keychain();
-        telemetry = createTelemetry({
+        telemetry = createAtlasTelemetry({
             enabled: true,
         });
     });
@@ -246,7 +281,7 @@ describe("Telemetry", () => {
             await emitEventsForTest([newEvent]);
 
             expect(mockApiClient.sendEvents).toHaveBeenCalledTimes(1);
-            const sentEvents = mockApiClient.sendEvents.mock.calls[0]?.[0];
+            const sentEvents = mockApiClient.sendEvents.mock.calls[0]?.[0]?.events;
             expect(sentEvents).toHaveLength(2);
         });
 
@@ -262,7 +297,7 @@ describe("Telemetry", () => {
             await vi.advanceTimersByTimeAsync(SEND_INTERVAL_MS);
             await eventFired;
 
-            const sentEvents = mockApiClient.sendEvents.mock.calls[0]?.[0];
+            const sentEvents = mockApiClient.sendEvents.mock.calls[0]?.[0]?.events;
             expect(sentEvents).toHaveLength(BATCH_SIZE);
             expect(_cachedEvents).toHaveLength(5);
         });
@@ -283,8 +318,8 @@ describe("Telemetry", () => {
 
         it("should add hostingMode to events if set", async () => {
             vi.clearAllTimers();
-            telemetry = createTelemetry({
-                getCommonProperties: () => ({ hosting_mode: "vscode-extension" }),
+            telemetry = createAtlasTelemetry({
+                commonPropertiesOverride: () => ({ hosting_mode: "vscode-extension" }),
             });
             await telemetry.setupPromise;
 
@@ -294,9 +329,11 @@ describe("Telemetry", () => {
 
             const calls = mockApiClient.sendEvents.mock.calls;
             expect(calls).toHaveLength(1);
-            const event = calls[0]?.[0][0];
+            const event = calls[0]?.[0]?.events[0];
             expectDefined(event);
-            expect((event as TelemetryEvent<CommonProperties>).properties.hosting_mode).toBe("vscode-extension");
+            expect((event as TelemetryEvent<TelemetryCommonProperties>).properties.hosting_mode).toBe(
+                "vscode-extension"
+            );
         });
 
         describe("device ID resolution", () => {
@@ -310,8 +347,11 @@ describe("Telemetry", () => {
 
             it("should successfully resolve the device ID", async () => {
                 vi.clearAllTimers();
-                const devId = { get: vi.fn().mockResolvedValue("test-device-id") } as unknown as DeviceId;
-                telemetry = createTelemetry({ deviceId: devId });
+                const devId = {
+                    get: vi.fn().mockResolvedValue("test-device-id"),
+                    close: vi.fn(),
+                } as unknown as IDeviceId;
+                telemetry = createAtlasTelemetry({ deviceId: devId });
 
                 expect(telemetry.getCommonProperties().device_id).toBe(undefined);
 
@@ -322,8 +362,8 @@ describe("Telemetry", () => {
 
             it("should handle device ID resolution failure gracefully", async () => {
                 vi.clearAllTimers();
-                const devId = { get: vi.fn().mockResolvedValue("unknown") } as unknown as DeviceId;
-                telemetry = createTelemetry({ deviceId: devId });
+                const devId = { get: vi.fn().mockResolvedValue("unknown"), close: vi.fn() } as unknown as IDeviceId;
+                telemetry = createAtlasTelemetry({ deviceId: devId });
 
                 await telemetry.setupPromise;
 
@@ -332,8 +372,8 @@ describe("Telemetry", () => {
 
             it("should handle device ID timeout gracefully", async () => {
                 vi.clearAllTimers();
-                const devId = { get: vi.fn().mockResolvedValue("unknown") } as unknown as DeviceId;
-                telemetry = createTelemetry({ deviceId: devId });
+                const devId = { get: vi.fn().mockResolvedValue("unknown"), close: vi.fn() } as unknown as IDeviceId;
+                telemetry = createAtlasTelemetry({ deviceId: devId });
 
                 await telemetry.setupPromise;
 
@@ -421,7 +461,7 @@ describe("Telemetry", () => {
     describe("when telemetry is disabled", () => {
         beforeEach(() => {
             vi.clearAllTimers();
-            telemetry = createTelemetry({
+            telemetry = createAtlasTelemetry({
                 enabled: false,
             });
         });
@@ -482,7 +522,7 @@ describe("Telemetry", () => {
                 };
 
                 vi.clearAllTimers();
-                telemetry = createTelemetry({ getCommonProperties: () => sensitiveStaticProps });
+                telemetry = createAtlasTelemetry({ commonPropertiesOverride: () => sensitiveStaticProps });
                 await telemetry.setupPromise;
 
                 await emitEventsForTest([createTestEvent()]);
@@ -490,7 +530,7 @@ describe("Telemetry", () => {
                 const calls = mockApiClient.sendEvents.mock.calls;
                 expect(calls).toHaveLength(1);
 
-                const sentEvent = calls[0]?.[0][0] as { properties: Record<string, unknown> };
+                const sentEvent = calls[0]?.[0]?.events[0] as { properties: Record<string, unknown> };
                 expectDefined(sentEvent);
 
                 const eventProps = sentEvent.properties;
@@ -512,7 +552,7 @@ describe("Telemetry", () => {
                 const calls = mockApiClient.sendEvents.mock.calls;
                 expect(calls).toHaveLength(1);
 
-                const sentEvent = calls[0]?.[0][0] as { properties: Record<string, unknown> };
+                const sentEvent = calls[0]?.[0]?.events[0] as { properties: Record<string, unknown> };
                 expectDefined(sentEvent);
 
                 expect(sentEvent.properties.device_id).toBe("<password>");
@@ -530,7 +570,7 @@ describe("Telemetry", () => {
                 const calls = mockApiClient.sendEvents.mock.calls;
                 expect(calls).toHaveLength(1);
 
-                const sentEvent = calls[0]?.[0][0] as { properties: Record<string, unknown> };
+                const sentEvent = calls[0]?.[0]?.events[0] as { properties: Record<string, unknown> };
                 expectDefined(sentEvent);
 
                 expect(sentEvent.properties.device_id).toBe("<password>");
@@ -556,7 +596,7 @@ describe("Telemetry", () => {
             _cachedEvents.push(createTestEvent());
 
             let receivedSignal: AbortSignal | undefined;
-            mockApiClient.sendEvents.mockImplementation((_events, options) => {
+            mockApiClient.sendEvents.mockImplementation((options) => {
                 receivedSignal = options?.signal;
                 return Promise.resolve();
             });
@@ -582,16 +622,16 @@ describe("Telemetry", () => {
             mockApiClient.sendEvents.mockResolvedValue(undefined);
 
             vi.clearAllTimers();
-            // Route the Telemetry instance to the real cache via the mocked getInstance.
+            // Route the AtlasTelemetry instance to the real cache via the mocked getInstance.
             vi.spyOn(EventCache, "getInstance").mockReturnValue(eventCache);
-            const raceTelemetry = createTelemetry();
-            await raceTelemetry.setupPromise;
+            const raceAtlasTelemetry = createAtlasTelemetry();
+            await raceAtlasTelemetry.setupPromise;
 
-            await Promise.all([raceTelemetry["sendBatch"](), raceTelemetry["sendBatch"]()]);
+            await Promise.all([raceAtlasTelemetry["sendBatch"](), raceAtlasTelemetry["sendBatch"]()]);
 
             let cachedEventSendCount = 0;
             for (const call of mockApiClient.sendEvents.mock.calls) {
-                const events = call[0] as Array<{ properties?: { command?: string } }>;
+                const events = call[0].events as Array<{ properties?: { command?: string } }>;
                 for (const e of events) {
                     if (e.properties?.command === CACHED_MARKER) cachedEventSendCount++;
                 }
@@ -603,19 +643,21 @@ describe("Telemetry", () => {
 
 /**
  * Regression tests for telemetry dispatch when Atlas credentials are / are not
- * configured. Telemetry must be emitted in both cases:
+ * configured. AtlasTelemetry must be emitted in both cases:
  *   - with credentials    -> POST to `api/private/v1.0/telemetry/events` (auth)
  *   - without credentials -> POST to `api/private/unauth/telemetry/events`
  */
-describe("Telemetry credentials handling", () => {
+describe("AtlasTelemetry credentials handling", () => {
     const API_BASE = "https://api.test.com";
-    const USER_AGENT = "test-user-agent";
+    const TEST_SERVER_METADATA = { mcpServerName: "test-user-agent", version: "1.0.0" };
+    const USER_AGENT = "test-user-agent/1.0.0";
 
     let fetchSpy: MockInstance<typeof fetch>;
 
     const mockDeviceId = {
         get: vi.fn().mockResolvedValue("test-device-id"),
-    } as unknown as DeviceId;
+        close: vi.fn(),
+    } as unknown as IDeviceId;
 
     beforeEach(() => {
         vi.useFakeTimers();
@@ -633,42 +675,60 @@ describe("Telemetry credentials handling", () => {
     it.each([
         {
             label: "with atlas credentials",
-            credentials: { clientId: "cid", clientSecret: "csec" },
+            clientId: "cid",
+            clientSecret: "csec",
             expectedPath: "/api/private/v1.0/telemetry/events",
             expectAuthHeader: true,
         },
         {
             label: "without atlas credentials",
-            credentials: {},
+            clientId: undefined,
+            clientSecret: undefined,
             expectedPath: "/api/private/unauth/telemetry/events",
             expectAuthHeader: false,
         },
-    ])("sends telemetry events $label", async ({ credentials, expectedPath, expectAuthHeader }) => {
-        const apiClient = new ApiClient(
-            {
+    ])("sends telemetry events $label", async ({ clientId, clientSecret, expectedPath, expectAuthHeader }) => {
+        const logger = new NoopLogger();
+        const authProvider =
+            clientId && clientSecret
+                ? new ClientCredentialsAuthProvider({
+                      options: {
+                          baseUrl: API_BASE,
+                          clientId,
+                          clientSecret,
+                      },
+                      serverMetadata: TEST_SERVER_METADATA,
+                      logger,
+                  })
+                : undefined;
+        const apiClient = new ApiClient({
+            options: {
                 baseUrl: API_BASE,
-                credentials,
-                userAgent: USER_AGENT,
             },
-            new NullLogger()
-        );
+            serverMetadata: TEST_SERVER_METADATA,
+            logger,
+            authProvider,
+        });
 
         // When credentials are present, short-circuit the OAuth token fetch
         // so the test stays focused on the telemetry dispatch rather than the
         // auth flow (which is covered elsewhere).
-        if (credentials.clientId) {
+        if (clientId) {
             expect(apiClient.isAuthConfigured()).toBe(true);
             apiClient.authProvider!.getAuthHeaders = vi.fn().mockResolvedValue({ Authorization: "Bearer mockToken" });
         } else {
             expect(apiClient.isAuthConfigured()).toBe(false);
         }
 
-        const telemetry = Telemetry.create({
-            logger: new NullLogger(),
+        vi.spyOn(AtlasTelemetry.prototype, "detectContainerEnv").mockResolvedValue(false);
+
+        const telemetry = AtlasTelemetry.create({
+            logger: new NoopLogger(),
             deviceId: mockDeviceId,
             apiClient,
             keychain: new Keychain(),
             enabled: true,
+            serverMetadata: TEST_SERVER_METADATA,
         });
         await telemetry.setupPromise;
 
@@ -684,7 +744,7 @@ describe("Telemetry credentials handling", () => {
                 properties: {
                     component: "test-component",
                     duration_ms: 0,
-                    result: "success" as TelemetryResult,
+                    result: "success" as const,
                     category: "test",
                     command: "test-command",
                 },

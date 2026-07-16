@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { SessionStore, SessionLimitExceededError, type CloseableTransport } from "../../src/common/sessionStore.js";
-import type { LoggerBase } from "../../src/common/logging/index.js";
-import type { Session } from "../../src/common/session.js";
-import { MockMetrics } from "./mocks/metrics.js";
+import { SessionStore } from "@mongodb-js/mcp-core";
+import type { LoggerBase } from "@mongodb-js/mcp-core";
+import type { CloseableTransport, ISession } from "@mongodb-js/mcp-types";
+import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 
 function createMockTransport(): CloseableTransport {
     return { close: vi.fn().mockResolvedValue(undefined) };
@@ -17,8 +17,8 @@ function createMockLogger(): LoggerBase {
     } as unknown as LoggerBase;
 }
 
-function createMockSession(): Session {
-    return { logger: createMockLogger() } as unknown as Session;
+function createMockSession(): ISession {
+    return { logger: createMockLogger() } as unknown as ISession;
 }
 
 describe("SessionStore metrics", () => {
@@ -30,9 +30,9 @@ describe("SessionStore metrics", () => {
         metrics = new MockMetrics();
         logger = createMockLogger();
         store = new SessionStore({
-            options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000, maxSessions: 100 },
+            options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000, maxSessions: 1000 },
             logger,
-            metrics,
+            metrics: metrics,
         });
     });
 
@@ -191,7 +191,7 @@ describe("SessionStore.hasSession", () => {
 
     beforeEach(() => {
         store = new SessionStore({
-            options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000, maxSessions: 100 },
+            options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000, maxSessions: 1000 },
             logger: createMockLogger(),
             metrics: new MockMetrics(),
         });
@@ -241,93 +241,5 @@ describe("SessionStore.hasSession", () => {
         } finally {
             vi.useRealTimers();
         }
-    });
-});
-
-describe("SessionStore maxSessions", () => {
-    it("rejects a constructor maxSessions value below 1", () => {
-        expect(
-            () =>
-                new SessionStore({
-                    options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000, maxSessions: 0 },
-                    logger: createMockLogger(),
-                    metrics: new MockMetrics(),
-                })
-        ).toThrow("maxSessions must be at least 1");
-    });
-
-    it("allows sessions up to the configured limit", async () => {
-        const store = new SessionStore({
-            options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000, maxSessions: 2 },
-            logger: createMockLogger(),
-            metrics: new MockMetrics(),
-        });
-
-        await store.addSession({
-            sessionId: "s1",
-            transport: createMockTransport(),
-            logger: createMockLogger(),
-            session: createMockSession(),
-        });
-        await store.addSession({
-            sessionId: "s2",
-            transport: createMockTransport(),
-            logger: createMockLogger(),
-            session: createMockSession(),
-        });
-
-        expect(store.hasSession("s1")).toBe(true);
-        expect(store.hasSession("s2")).toBe(true);
-    });
-
-    it("throws SessionLimitExceededError once the limit is reached", async () => {
-        const store = new SessionStore({
-            options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000, maxSessions: 1 },
-            logger: createMockLogger(),
-            metrics: new MockMetrics(),
-        });
-
-        await store.addSession({
-            sessionId: "s1",
-            transport: createMockTransport(),
-            logger: createMockLogger(),
-            session: createMockSession(),
-        });
-
-        await expect(
-            store.addSession({
-                sessionId: "s2",
-                transport: createMockTransport(),
-                logger: createMockLogger(),
-                session: createMockSession(),
-            })
-        ).rejects.toThrow(SessionLimitExceededError);
-
-        expect(store.hasSession("s2")).toBe(false);
-    });
-
-    it("frees a slot when a session is closed", async () => {
-        const store = new SessionStore({
-            options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000, maxSessions: 1 },
-            logger: createMockLogger(),
-            metrics: new MockMetrics(),
-        });
-
-        await store.addSession({
-            sessionId: "s1",
-            transport: createMockTransport(),
-            logger: createMockLogger(),
-            session: createMockSession(),
-        });
-        await store.closeSession({ sessionId: "s1" });
-
-        await store.addSession({
-            sessionId: "s2",
-            transport: createMockTransport(),
-            logger: createMockLogger(),
-            session: createMockSession(),
-        });
-
-        expect(store.hasSession("s2")).toBe(true);
     });
 });

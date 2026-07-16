@@ -1,14 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ToolConstructorParams } from "../../../../../src/tools/tool.js";
-import { InspectClusterTool } from "../../../../../src/tools/atlas/read/inspectCluster.js";
-import type { Session } from "../../../../../src/common/session.js";
-import type { UserConfig } from "../../../../../src/common/config/userConfig.js";
-import type { Telemetry } from "../../../../../src/telemetry/telemetry.js";
-import type { Elicitation } from "../../../../../src/elicitation.js";
-import type { CompositeLogger } from "../../../../../src/common/logging/index.js";
-import type { ApiClient } from "../../../../../src/common/atlas/apiClient.js";
-import { UIRegistry } from "../../../../../src/ui/registry/index.js";
-import { MockMetrics } from "../../../mocks/metrics.js";
+import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
+import { InspectClusterTool } from "./inspectCluster.js";
+import type { ISession } from "@mongodb-js/mcp-types";
+import type { ITelemetry } from "@mongodb-js/mcp-types";
+import type { Elicitation } from "@mongodb-js/mcp-core";
+import type { CompositeLogger } from "@mongodb-js/mcp-core";
+import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { UIRegistry } from "@mongodb-js/mcp-ui";
+import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 
 const freeClusterApiResponse = {
     name: "my-cluster",
@@ -70,20 +69,12 @@ describe("InspectClusterTool", () => {
         const mockSession = {
             logger: mockLogger,
             apiClient: { ...mockApiClient, logger: mockLogger } as unknown as ApiClient,
-        } as unknown as Session;
-
-        const mockConfig = {
-            confirmationRequiredTools: [],
-            previewFeatures: [],
-            disabledTools: [],
-            apiClientId: "test-id",
-            apiClientSecret: "test-secret",
-        } as unknown as UserConfig;
+        } as unknown as ISession;
 
         const mockTelemetry = {
             isTelemetryEnabled: () => true,
             emitEvents: vi.fn(),
-        } as unknown as Telemetry;
+        } as unknown as ITelemetry;
 
         const mockElicitation = {
             requestConfirmation: vi.fn(),
@@ -94,7 +85,6 @@ describe("InspectClusterTool", () => {
             category: "atlas",
             operationType: InspectClusterTool.operationType,
             session: mockSession,
-            config: mockConfig,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
             metrics: new MockMetrics(),

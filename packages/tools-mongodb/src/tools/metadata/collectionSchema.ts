@@ -1,11 +1,12 @@
-import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
-import { formatUntrustedData } from "../../tool.js";
+import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
+import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
+import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
+import { formatUntrustedData } from "@mongodb-js/mcp-core";
 import { getSimplifiedSchema } from "mongodb-schema";
-import z from "zod";
-import { ONE_MB } from "../../../helpers/constants.js";
-import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorUntilMaxBytes.js";
-import { isObjectEmpty } from "../../../helpers/isObjectEmpty.js";
+import { z } from "zod";
+import { ONE_MB } from "../../helpers/constants.js";
+import { collectCursorUntilMaxBytesLimit } from "../../helpers/collectCursorUntilMaxBytes.js";
+import { isObjectEmpty } from "../../helpers/isObjectEmpty.js";
 
 const MAXIMUM_SAMPLE_SIZE_HARD_LIMIT = 50_000;
 

@@ -1,5 +1,5 @@
-import type { Deployment } from "@mongodb-js/atlas-local";
-import { expectDefined, getResponseElements } from "../../helpers.js";
+import type { Deployment } from "@mongodb-js/mcp-tools-atlas-local";
+import { expectDefined, getResponseElements } from "../../integrationHelpers.js";
 import { expect, it, vi } from "vitest";
 import { describeWithAtlasLocal, describeWithAtlasLocalDisabled } from "./atlasLocalHelpers.js";
 

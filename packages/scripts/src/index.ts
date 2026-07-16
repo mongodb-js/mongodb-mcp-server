@@ -4,6 +4,7 @@
  * Main script that generates all documentation and configuration files:
  * - CLI arguments and configuration tables
  * - Tool documentation
+ * - UI modules
  */
 
 import { generateArguments } from "./generateArguments.js";

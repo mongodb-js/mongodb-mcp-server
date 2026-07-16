@@ -1,48 +1,44 @@
-import type { BaseEvent, CommonProperties } from "./types.js";
-import type { LoggerBase } from "../common/logging/index.js";
-import { LogId } from "../common/logging/index.js";
-import type { ApiClient } from "../common/atlas/apiClient.js";
-import { ApiClientError } from "../common/atlas/apiClientError.js";
-import { MACHINE_METADATA } from "./constants.js";
+import type { TelemetryBaseEvent, TelemetryCommonProperties } from "./types.js";
+import { LogId } from "@mongodb-js/mcp-core";
+import { detectContainerEnv as detectContainerEnvImpl } from "./containerEnv.js";
+import type { LoggerBase } from "@mongodb-js/mcp-core";
+import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import { EventCache } from "./eventCache.js";
-import { detectContainerEnv } from "../helpers/container.js";
-import type { DeviceId } from "../helpers/deviceId.js";
-import type { Keychain } from "../common/keychain.js";
-import type { Session } from "../common/session.js";
-import type { UserConfig } from "../common/config/userConfig.js";
+import type { IDeviceId, IKeychain, ITelemetry, ServerMetadata } from "@mongodb-js/mcp-types";
 import { EventEmitter } from "events";
 import { redact } from "mongodb-redact";
 import { Timer } from "./timer.js";
+
+import type { TelemetryEvents } from "@mongodb-js/mcp-types";
+
+export type { TelemetryEvents };
 
 type SendResult = {
     status: "success" | "rate-limited" | "error" | "empty";
     error?: Error;
 };
 
-import type { TelemetryEvents } from "@mongodb-js/mcp-types";
-
-export type { TelemetryEvents };
-
 /**
  * Configuration for the {@link Telemetry} pipeline.
  */
-export interface TelemetryConfig {
+export type TelemetryConfig = {
     /** Logger used by the telemetry pipeline for its own diagnostics. */
     logger: LoggerBase;
 
     /** Device id source, resolved asynchronously during setup. */
-    deviceId: DeviceId;
+    deviceId: IDeviceId;
 
     /**
      * API client used to send events. Always required — the pipeline would
      * otherwise buffer events in the cache forever. When no Atlas credentials
      * are configured, callers should still pass an unauthenticated
-     * {@link ApiClient}; it will route telemetry through the unauth endpoint.
+     * `ApiClient`; it will route telemetry through the unauth endpoint.
      */
     apiClient: ApiClient;
 
     /** Secrets source used when redacting events prior to sending. */
-    keychain?: Keychain;
+    keychain: IKeychain;
 
     /**
      * The user's telemetry preference. When set to `false`, no events are
@@ -52,16 +48,12 @@ export interface TelemetryConfig {
     enabled: boolean;
 
     /**
-     * Returns the host-supplied common properties merged onto every event
-     * (e.g. hosting mode, MCP client identity, transport). Invoked on every
-     * send so values resolved after construction — like the client name/
-     * version exchanged during handshake — are captured. Static properties
-     * can simply be returned as constants from this callback.
-     *
-     * Machine metadata, device id, and container environment are provided by
-     * the pipeline itself and don't need to be returned here.
+     * Server name/version and related metadata. The default
+     * {@link AtlasTelemetry.getCommonProperties} implementation maps this to
+     * telemetry fields; extend the class and override that method (calling
+     * `super`) to add host-specific properties.
      */
-    getCommonProperties?: () => Partial<CommonProperties>;
+    serverMetadata: ServerMetadata;
 
     /**
      * Optional override for the underlying event cache. Defaults to the
@@ -69,7 +61,7 @@ export interface TelemetryConfig {
      * Mostly useful for tests or callers that need to isolate caching.
      */
     eventCache?: EventCache;
-}
+};
 
 /** The timeout for individual send requests in milliseconds. */
 const SEND_TIMEOUT_MS = 5_000;
@@ -96,81 +88,53 @@ export function nextBackoffMs(currentMs: number): number {
     return Math.min(currentMs * 2, MAX_BACKOFF_MS);
 }
 
-export class Telemetry {
+export class AtlasTelemetry implements ITelemetry {
     /** Resolves when the setup is complete or a timeout occurs */
     public setupPromise: Promise<[string, boolean]> | undefined;
     public readonly events: EventEmitter<TelemetryEvents> = new EventEmitter();
 
     private readonly logger: LoggerBase;
     private readonly apiClient: ApiClient;
-    private readonly keychain?: Keychain;
+    private readonly keychain: IKeychain;
     private readonly enabled: boolean;
-    private readonly getHostCommonProperties: () => Partial<CommonProperties>;
+    protected readonly serverMetadata: ServerMetadata;
     /**
-     * Machine metadata plus device_id / is_container_env, which the pipeline
-     * resolves itself during setup. Host-supplied properties are merged on
-     * top of this at send time.
+     * device_id and is_container_env, resolved during setup. Subclass overrides
+     * of {@link getCommonProperties} should call `super` to include these.
      */
-    private readonly pipelineCommonProperties: CommonProperties;
+    private readonly pipelineCommonProperties: Partial<TelemetryCommonProperties>;
     private readonly eventCache: EventCache;
-    private readonly deviceId: DeviceId;
+    private readonly deviceId: IDeviceId;
     private backoffMs: number = INITIAL_BACKOFF_MS;
     private readonly timer = new Timer();
 
-    private constructor(config: TelemetryConfig) {
+    protected constructor(config: TelemetryConfig) {
         this.logger = config.logger;
         this.apiClient = config.apiClient;
         this.keychain = config.keychain;
         this.enabled = config.enabled;
-        this.getHostCommonProperties = config.getCommonProperties ?? ((): Partial<CommonProperties> => ({}));
+        this.serverMetadata = config.serverMetadata;
         this.eventCache = config.eventCache ?? EventCache.getInstance();
         this.deviceId = config.deviceId;
-        this.pipelineCommonProperties = {
-            ...MACHINE_METADATA,
-        };
+        this.pipelineCommonProperties = {};
     }
 
-    /**
-     * @deprecated Pass a {@link TelemetryConfig} object instead. This
-     * positional-argument overload is preserved for backward compatibility
-     * and will be removed in the next major version.
-     */
-    static create(
-        session: Session,
-        userConfig: UserConfig,
-        deviceId: DeviceId,
-        options?: {
-            commonProperties?: Partial<CommonProperties>;
-            eventCache?: EventCache;
-        }
-    ): Telemetry;
-    static create(config: TelemetryConfig): Telemetry;
-    static create(
-        sessionOrConfig: Session | TelemetryConfig,
-        userConfig?: UserConfig,
-        deviceId?: DeviceId,
-        {
-            commonProperties = {},
-            eventCache = EventCache.getInstance(),
-        }: {
-            commonProperties?: Partial<CommonProperties>;
-            eventCache?: EventCache;
-        } = {}
-    ): Telemetry {
-        const config: TelemetryConfig =
-            userConfig === undefined || deviceId === undefined
-                ? (sessionOrConfig as TelemetryConfig)
-                : legacyConfigFromSession(sessionOrConfig as Session, userConfig, deviceId, {
-                      commonProperties,
-                      eventCache,
-                  });
-
-        const instance = new Telemetry(config);
+    static create(this: typeof AtlasTelemetry, config: TelemetryConfig): AtlasTelemetry {
+        const instance = new this(config);
         void instance.setup();
         return instance;
     }
 
-    private async setup(): Promise<void> {
+    /**
+     * Detects whether the process is running inside a container. Override in a
+     * subclass for non-Node runtimes or custom detection. Defaults to
+     * inspecting `/proc` and environment variables on Linux.
+     */
+    protected detectContainerEnv(): Promise<boolean> {
+        return detectContainerEnvImpl();
+    }
+
+    protected async setup(): Promise<void> {
         if (!this.isTelemetryEnabled()) {
             this.logger.info({
                 id: LogId.telemetryEmitFailure,
@@ -181,7 +145,7 @@ export class Telemetry {
             return;
         }
 
-        this.setupPromise = Promise.all([this.deviceId.get(), detectContainerEnv()]);
+        this.setupPromise = Promise.all([this.deviceId.get(), this.detectContainerEnv()]);
         const [deviceIdValue, containerEnv] = await this.setupPromise;
 
         this.pipelineCommonProperties.device_id = deviceIdValue;
@@ -206,7 +170,7 @@ export class Telemetry {
     /**
      * Caches events for sending via the background timer.
      */
-    public emitEvents(events: BaseEvent[]): void {
+    public emitEvents(events: TelemetryBaseEvent[]): void {
         if (!this.isTelemetryEnabled()) {
             this.events.emit("events-skipped");
             return;
@@ -215,12 +179,21 @@ export class Telemetry {
     }
 
     /**
-     * Gets the common properties for events
+     * Returns common properties merged onto every event. Invoked on every send
+     * so values resolved after construction — like MCP client identity — are
+     * captured. Defaults to server/platform metadata plus pipeline-resolved
+     * `device_id` and `is_container_env`. Extend {@link AtlasTelemetry} and
+     * override this method (calling `super`) to add host-specific properties.
      */
-    public getCommonProperties(): CommonProperties {
+    public getCommonProperties(): TelemetryCommonProperties {
         return {
             ...this.pipelineCommonProperties,
-            ...this.getHostCommonProperties(),
+            mcp_server_version: this.serverMetadata.version,
+            mcp_server_name: this.serverMetadata.mcpServerName,
+            platform: (typeof process !== "undefined" && process.platform) || "browser",
+            arch: (typeof process !== "undefined" && process.arch) || "unknown",
+            os_type: (typeof process !== "undefined" && process.platform) || "unknown",
+            os_version: (typeof process !== "undefined" && process.version) || "unknown",
         };
     }
 
@@ -306,7 +279,7 @@ export class Telemetry {
                 message: `Attempting to send ${events.length} events`,
             });
 
-            const sendResult = await this.sendEvents(this.apiClient, events, signal);
+            const sendResult = await this.sendEvents({ client: this.apiClient, events, signal });
 
             if (sendResult.status !== "success") {
                 if (sendResult.status !== "rate-limited") {
@@ -336,20 +309,28 @@ export class Telemetry {
     /**
      * Sends events through the API client after redacting sensitive data.
      */
-    private async sendEvents(client: ApiClient, events: BaseEvent[], signal?: AbortSignal): Promise<SendResult> {
+    private async sendEvents({
+        client,
+        events,
+        signal,
+    }: {
+        client: ApiClient;
+        events: TelemetryBaseEvent[];
+        signal?: AbortSignal;
+    }): Promise<SendResult> {
         try {
             const effectiveSignal = signal ?? AbortSignal.timeout(SEND_TIMEOUT_MS);
             const secrets = this.keychain?.allSecrets ?? [];
-            await client.sendEvents(
-                events.map((event) => ({
+            await client.sendEvents({
+                events: events.map((event) => ({
                     ...event,
                     properties: {
                         ...redact(this.getCommonProperties(), secrets),
                         ...redact(event.properties, secrets),
                     },
                 })),
-                { signal: effectiveSignal }
-            );
+                signal: effectiveSignal,
+            });
             return { status: "success" };
         } catch (error) {
             if (error instanceof ApiClientError && error.response.status === 429) {
@@ -361,40 +342,4 @@ export class Telemetry {
             };
         }
     }
-}
-
-/**
- * Translates the legacy (session, userConfig, deviceId, options) inputs
- * accepted by the deprecated {@link Telemetry.create} overload into a
- * {@link TelemetryConfig}.
- */
-function legacyConfigFromSession(
-    session: Session,
-    userConfig: UserConfig,
-    deviceId: DeviceId,
-    {
-        commonProperties,
-        eventCache,
-    }: {
-        commonProperties: Partial<CommonProperties>;
-        eventCache: EventCache;
-    }
-): TelemetryConfig {
-    return {
-        logger: session.logger,
-        deviceId,
-        apiClient: session.apiClient,
-        keychain: session.keychain,
-        enabled: userConfig.telemetry === "enabled",
-        eventCache,
-        getCommonProperties: () => ({
-            ...commonProperties,
-            transport: userConfig.transport,
-            mcp_client_version: session.mcpClient?.version,
-            mcp_client_name: session.mcpClient?.name,
-            session_id: session.sessionId,
-            config_atlas_auth: session.apiClient?.isAuthConfigured() ? "true" : "false",
-            config_connection_string: userConfig.connectionString ? "true" : "false",
-        }),
-    };
 }

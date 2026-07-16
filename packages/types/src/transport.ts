@@ -5,7 +5,6 @@ export type TransportRequestContext = {
 
 export interface ITransportRunner {
     start(options: { serverOptions?: unknown; sessionOptions?: unknown }): Promise<void>;
-    closeTransport(): Promise<void>;
     close(): Promise<void>;
 }
 

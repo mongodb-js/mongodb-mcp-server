@@ -10,10 +10,15 @@ import {
     onlySubsetOfBaseValueOverride,
     parseBoolean,
 } from "./configUtils.js";
-import { MCP_LOG_LEVELS } from "../logging/loggingTypes.js";
-import { monitoringServerFeatureValues, previewFeatureValues } from "../schemas.js";
+import { MCP_LOG_LEVELS } from "@mongodb-js/mcp-core";
+import {
+    monitoringServerFeatureValues,
+    previewFeatureValues,
+    QUERY_COUNT_MAX_TIME_MS_CAP,
+    AGG_COUNT_MAX_TIME_MS_CAP,
+} from "@mongodb-js/mcp-tools-mongodb";
 import { argMetadata, CliOptionsSchema as MongoshCliOptionsSchema } from "@mongosh/arg-parser/arg-parser";
-import { TRANSPORT_PAYLOAD_LIMITS, DEFAULT_MAX_SESSIONS } from "../../transports/constants.js";
+import { TRANSPORT_PAYLOAD_LIMITS, DEFAULT_MAX_SESSIONS } from "../transports/constants.js";
 
 export const configRegistry = z.registry<ConfigFieldMeta>();
 
@@ -144,7 +149,7 @@ const ServerConfigSchema = z.object({
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
     httpHeaders: z
         .object({})
-        .loose()
+        .catchall(z.string())
         .default({})
         .describe(
             "Header that the HTTP server will validate when making requests (only used when transport is 'http')."
@@ -202,6 +207,24 @@ const ServerConfigSchema = z.object({
         .optional()
         .describe(
             "The maximum time in milliseconds that operations are allowed to run on the MongoDB server. When set, this value is passed as the maxTimeMS option to read operations such as find, aggregate, and count."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    queryCountMaxTimeMsCap: z.coerce
+        .number()
+        .int()
+        .min(0, "queryCountMaxTimeMsCap must be non-negative")
+        .default(QUERY_COUNT_MAX_TIME_MS_CAP)
+        .describe(
+            "The maximum time in milliseconds for the count phase of find operations. This is used to limit the time spent counting documents when determining if results were capped."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    aggregationCountMaxTimeMsCap: z.coerce
+        .number()
+        .int()
+        .min(0, "aggregationCountMaxTimeMsCap must be non-negative")
+        .default(AGG_COUNT_MAX_TIME_MS_CAP)
+        .describe(
+            "The maximum time in milliseconds for the count phase of aggregation operations. This is used to limit the time spent counting documents when determining if results were capped."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
     exportsPath: z

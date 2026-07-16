@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { type OperationType, type ToolArgs, type ToolResult, type ToolExecutionContext } from "../../tool.js";
-import { AtlasToolBase } from "../atlasTool.js";
+import { type ToolArgs, type ToolResult } from "@mongodb-js/mcp-core";
+import type { OperationType, ToolExecutionContext, CallToolResult } from "@mongodb-js/mcp-types";
+import { AtlasToolBase } from "../../atlasTool.js";
 import { AtlasArgs } from "../../args.js";
-import type { PauseResumeClusterMetadata } from "../../../telemetry/types.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { ClusterDescription20240805 } from "../../../common/atlas/openapi.js";
+import type { PauseResumeClusterMetadata } from "@mongodb-js/mcp-atlas-telemetry";
+import type { ClusterDescription20240805 } from "@mongodb-js/mcp-atlas-api-client";
 
 /** @public */
 export const ATLAS_PAUSE_RESUME_CLUSTER_README_DESCRIPTION =
@@ -46,7 +46,9 @@ export class PauseResumeClusterTool extends AtlasToolBase {
         args: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        const { projectId, clusterName, action } = args;
+        const projectId = args.projectId;
+        const clusterName = args.clusterName;
+        const action = args.action;
         const isPause = action === "PAUSE";
 
         const result = await this.apiClient.updateCluster(

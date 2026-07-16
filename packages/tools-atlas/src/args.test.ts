@@ -6,49 +6,49 @@ import {
     ALLOWED_USERNAME_CHARACTERS_ERROR,
     ALLOWED_REGION_CHARACTERS_ERROR,
     ALLOWED_CLUSTER_NAME_CHARACTERS_ERROR,
-    NO_UNICODE_ERROR,
-} from "../../src/tools/args.js";
+    ASCII_ONLY_NON_CC_ERROR,
+} from "@mongodb-js/mcp-tools-atlas";
 
 describe("Tool args", () => {
     describe("CommonArgs", () => {
-        describe("string", () => {
+        describe("asciiOnlyString", () => {
             it("should return a ZodString schema", () => {
-                const schema = CommonArgs.string();
+                const schema = CommonArgs.asciiOnlyString();
                 expect(schema).toBeDefined();
                 expect(schema.parse("test")).toBe("test");
             });
 
             it("should accept any string value", () => {
-                const schema = CommonArgs.string();
+                const schema = CommonArgs.asciiOnlyString();
                 expect(schema.parse("hello")).toBe("hello");
                 expect(schema.parse("123")).toBe("123");
                 expect(schema.parse("test@#$%")).toBe("test@#$%");
             });
 
             it("should not allow special characters and unicode symbols", () => {
-                const schema = CommonArgs.string();
+                const schema = CommonArgs.asciiOnlyString();
 
                 // Unicode characters
-                expect(() => schema.parse("héllo")).toThrow(NO_UNICODE_ERROR);
-                expect(() => schema.parse("测试")).toThrow(NO_UNICODE_ERROR);
-                expect(() => schema.parse("café")).toThrow(NO_UNICODE_ERROR);
+                expect(() => schema.parse("héllo")).toThrow(ASCII_ONLY_NON_CC_ERROR);
+                expect(() => schema.parse("测试")).toThrow(ASCII_ONLY_NON_CC_ERROR);
+                expect(() => schema.parse("café")).toThrow(ASCII_ONLY_NON_CC_ERROR);
 
                 // Emojis
-                expect(() => schema.parse("🚀")).toThrow(NO_UNICODE_ERROR);
-                expect(() => schema.parse("hello😀")).toThrow(NO_UNICODE_ERROR);
+                expect(() => schema.parse("🚀")).toThrow(ASCII_ONLY_NON_CC_ERROR);
+                expect(() => schema.parse("hello😀")).toThrow(ASCII_ONLY_NON_CC_ERROR);
 
                 // Control characters (below ASCII 32)
-                expect(() => schema.parse("hello\nworld")).toThrow(NO_UNICODE_ERROR);
-                expect(() => schema.parse("hello\tworld")).toThrow(NO_UNICODE_ERROR);
-                expect(() => schema.parse("hello\0world")).toThrow(NO_UNICODE_ERROR);
+                expect(() => schema.parse("hello\nworld")).toThrow(ASCII_ONLY_NON_CC_ERROR);
+                expect(() => schema.parse("hello\tworld")).toThrow(ASCII_ONLY_NON_CC_ERROR);
+                expect(() => schema.parse("hello\0world")).toThrow(ASCII_ONLY_NON_CC_ERROR);
 
                 // Extended ASCII characters (above ASCII 126)
-                expect(() => schema.parse("hello\x80")).toThrow(NO_UNICODE_ERROR);
-                expect(() => schema.parse("hello\xFF")).toThrow(NO_UNICODE_ERROR);
+                expect(() => schema.parse("hello\x80")).toThrow(ASCII_ONLY_NON_CC_ERROR);
+                expect(() => schema.parse("hello\xFF")).toThrow(ASCII_ONLY_NON_CC_ERROR);
             });
 
             it("should reject non-string values", () => {
-                const schema = CommonArgs.string();
+                const schema = CommonArgs.asciiOnlyString();
                 expect(() => schema.parse(123)).toThrow();
                 expect(() => schema.parse(null)).toThrow();
                 expect(() => schema.parse(undefined)).toThrow();
@@ -353,7 +353,7 @@ describe("Tool args", () => {
 
     describe("Edge Cases and Security", () => {
         it("should handle empty strings appropriately", () => {
-            const schema = CommonArgs.string();
+            const schema = CommonArgs.asciiOnlyString();
             expect(schema.parse("")).toBe("");
 
             // But AtlasArgs validators should reject empty strings
@@ -362,7 +362,7 @@ describe("Tool args", () => {
         });
 
         it("should handle very long strings", () => {
-            const schema = CommonArgs.string();
+            const schema = CommonArgs.asciiOnlyString();
             const longString = "a".repeat(10000);
             expect(schema.parse(longString)).toBe(longString);
 
@@ -372,7 +372,7 @@ describe("Tool args", () => {
         });
 
         it("should handle null and undefined values", () => {
-            const schema = CommonArgs.string();
+            const schema = CommonArgs.asciiOnlyString();
             expect(() => schema.parse(null)).toThrow();
             expect(() => schema.parse(undefined)).toThrow();
         });

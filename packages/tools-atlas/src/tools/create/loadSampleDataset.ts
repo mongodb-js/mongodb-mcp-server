@@ -1,8 +1,9 @@
-import { type ToolArgs, type ToolResult, type OperationType, type ToolExecutionContext } from "../../tool.js";
-import { AtlasToolBase } from "../atlasTool.js";
-import { AtlasArgs, CommonArgs } from "../../args.js";
-import type { SampleDatasetStatus } from "../../../common/atlas/openapi.js";
 import { z } from "zod";
+import { type ToolArgs, type ToolResult } from "@mongodb-js/mcp-core";
+import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
+import { AtlasToolBase } from "../../atlasTool.js";
+import { AtlasArgs, CommonArgs } from "../../args.js";
+import type { SampleDatasetStatus } from "@mongodb-js/mcp-atlas-api-client";
 
 export const LoadSampleDatasetArgs = {
     projectId: AtlasArgs.projectId().describe("Atlas project ID that owns the cluster"),

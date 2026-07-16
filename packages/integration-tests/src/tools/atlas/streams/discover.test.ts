@@ -1,4 +1,4 @@
-import { expectDefined, getResponseContent } from "../../../helpers.js";
+import { expectDefined, getResponseContent } from "../../../integrationHelpers.js";
 import { describeWithStreams, withWorkspace } from "../atlasHelpers.js";
 import { describe, expect, it } from "vitest";
 

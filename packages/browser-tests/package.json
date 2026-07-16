@@ -1,16 +1,21 @@
 {
-  "name": "browser",
+  "name": "@mongodb-js/mcp-browser-tests",
   "version": "0.0.0-dev.0",
   "private": true,
   "type": "module",
   "scripts": {
+    "check": "tsc --noEmit --project tsconfig.json",
     "test": "vitest run --coverage",
     "test:watch": "vitest watch",
     "install:browser": "pnpm exec playwright install chromium"
   },
   "devDependencies": {
-    "mongodb-mcp-server": "workspace:*",
+    "@mongodb-js/mcp-atlas-api-client": "workspace:*",
+    "@mongodb-js/mcp-core": "workspace:*",
+    "@mongodb-js/mcp-tools-mongodb": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "@mongodb-js/mcp-atlas-telemetry": "workspace:*",
+    "@mongodb-js/mcp-types": "workspace:*",
     "@types/node": "^25.6.0",
     "@vitest/browser": "^4.1.9",
     "@vitest/browser-playwright": "^4.1.9",

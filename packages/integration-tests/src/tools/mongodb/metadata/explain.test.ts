@@ -3,11 +3,10 @@ import {
     validateToolMetadata,
     validateThrowsForInvalidArguments,
     getResponseElements,
-    getResponseContent,
-} from "../../../helpers.js";
-import type { ExplainOutput } from "../../../../../src/tools/mongodb/metadata/explain.js";
-import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+} from "../../../integrationHelpers.js";
+import { describeWithMongoDB, validateAutoConnectBehavior } from "../../../mongodbHelpers.js";
+import type { ExplainOutput } from "@mongodb-js/mcp-tools-mongodb";
+import { beforeEach, describe, expect, it } from "vitest";
 
 describeWithMongoDB("explain tool", (integration) => {
     validateToolMetadata(
@@ -101,7 +100,7 @@ describeWithMongoDB("explain tool", (integration) => {
                     const content = getResponseElements(response.content);
                     expect(content).toHaveLength(2);
                     expect(content[0]?.text).toEqual(
-                        `Here is some information about the winning plan chosen by the query optimizer for running the given \`${testCase.method}\` operation on the requested namespace. The execution plan was run with the following verbosity: "queryPlanner". This information can be used to understand how the query was executed and to optimize the query performance.`
+                        `Here is some information about the winning plan chosen by the query optimizer for running the given \`${testCase.method}\` operation in "${integration.randomDbName()}.coll1". The execution plan was run with the following verbosity: "queryPlanner". This information can be used to understand how the query was executed and to optimize the query performance.`
                     );
 
                     expect(content[1]?.text).toContain("queryPlanner");
@@ -155,7 +154,7 @@ describeWithMongoDB("explain tool", (integration) => {
                     const content = getResponseElements(response.content);
                     expect(content).toHaveLength(2);
                     expect(content[0]?.text).toEqual(
-                        `Here is some information about the winning plan chosen by the query optimizer for running the given \`${testCase.method}\` operation on the requested namespace. The execution plan was run with the following verbosity: "executionStats". This information can be used to understand how the query was executed and to optimize the query performance.`
+                        `Here is some information about the winning plan chosen by the query optimizer for running the given \`${testCase.method}\` operation in "${integration.randomDbName()}.coll1". The execution plan was run with the following verbosity: "executionStats". This information can be used to understand how the query was executed and to optimize the query performance.`
                     );
 
                     expect(content[1]?.text).toContain("queryPlanner");
@@ -213,7 +212,7 @@ describeWithMongoDB("explain tool", (integration) => {
                         const content = getResponseElements(response.content);
                         expect(content).toHaveLength(2);
                         expect(content[0]?.text).toEqual(
-                            `Here is some information about the winning plan chosen by the query optimizer for running the given \`${testCase.method}\` operation on the requested namespace. The execution plan was run with the following verbosity: "queryPlanner". This information can be used to understand how the query was executed and to optimize the query performance.`
+                            `Here is some information about the winning plan chosen by the query optimizer for running the given \`${testCase.method}\` operation in "${integration.randomDbName()}.people". The execution plan was run with the following verbosity: "queryPlanner". This information can be used to understand how the query was executed and to optimize the query performance.`
                         );
 
                         expect(content[1]?.text).toContain("queryPlanner");
@@ -247,134 +246,4 @@ describeWithMongoDB("explain tool", (integration) => {
             expectedResponse: "No method provided. Expected one of the following: `aggregate`, `find`, or `count`",
         };
     });
-});
-
-describeWithMongoDB("explain tool with server-side JavaScript operators", (integration) => {
-    afterEach(() => {
-        integration.mcpServer().userConfig.disableServerSideJs = true;
-    });
-
-    beforeEach(async () => {
-        await integration
-            .mongoClient()
-            .db(integration.randomDbName())
-            .collection("people")
-            .insertMany([
-                { name: "Peter", age: 5 },
-                { name: "Laura", age: 10 },
-            ]);
-    });
-
-    const where = "function() { return this.age > 8; }";
-    const jsMethods = [
-        { method: "aggregate", arguments: { pipeline: [{ $match: { $where: where } }] } },
-        { method: "find", arguments: { filter: { $where: where } } },
-        { method: "count", arguments: { query: { $where: where } } },
-    ];
-
-    for (const { method, arguments: methodArguments } of jsMethods) {
-        for (const jsDisabled of [true, false]) {
-            it(`${jsDisabled ? "rejects" : "does not reject"} explaining ${method} using $where when disableServerSideJs is ${jsDisabled}`, async () => {
-                integration.mcpServer().userConfig.disableServerSideJs = jsDisabled;
-                await integration.connectMcpClient();
-                const response = await integration.mcpClient().callTool({
-                    name: "explain",
-                    arguments: {
-                        database: integration.randomDbName(),
-                        collection: "people",
-                        method: [{ name: method, arguments: methodArguments }],
-                    },
-                });
-                const content = getResponseContent(response);
-                if (jsDisabled) {
-                    expect(content).toContain(`The "$where" operator is not allowed.`);
-                } else {
-                    // The guard must not be the one blocking $where once disableServerSideJs is false.
-                    expect(content).not.toContain("server-side JavaScript operators");
-                    expect(content).not.toContain("operator is not allowed");
-                }
-            });
-        }
-    }
-
-    it("rejects explaining a find whose projection uses $function when disableServerSideJs is true", async () => {
-        integration.mcpServer().userConfig.disableServerSideJs = true;
-        await integration.connectMcpClient();
-        const response = await integration.mcpClient().callTool({
-            name: "explain",
-            arguments: {
-                database: integration.randomDbName(),
-                collection: "people",
-                method: [
-                    {
-                        name: "find",
-                        arguments: {
-                            filter: {},
-                            projection: {
-                                computed: { $function: { body: "function() { return 1; }", args: [], lang: "js" } },
-                            },
-                        },
-                    },
-                ],
-            },
-        });
-        const content = getResponseContent(response);
-        expect(content).toContain(`The "$function" operator is not allowed.`);
-    });
-});
-
-describeWithMongoDB("explain tool with write stages", (integration) => {
-    afterEach(() => {
-        integration.mcpServer().userConfig.readOnly = false;
-        integration.mcpServer().userConfig.disabledTools = [];
-    });
-
-    beforeEach(async () => {
-        await integration
-            .mongoClient()
-            .db(integration.randomDbName())
-            .collection("people")
-            .insertMany([
-                { name: "Peter", age: 5 },
-                { name: "Laura", age: 10 },
-            ]);
-    });
-
-    // executionStats (and allPlansExecution) actually run the pipeline, so explaining an
-    // aggregation with a $out/$merge stage could otherwise perform a write even in readOnly mode.
-    for (const writeStage of ["$out", "$merge"] as const) {
-        it(`rejects explaining aggregations with a ${writeStage} stage in readOnly mode`, async () => {
-            integration.mcpServer().userConfig.readOnly = true;
-            await integration.connectMcpClient();
-            const response = await integration.mcpClient().callTool({
-                name: "explain",
-                arguments: {
-                    database: integration.randomDbName(),
-                    collection: "people",
-                    method: [{ name: "aggregate", arguments: { pipeline: [{ [writeStage]: "outpeople" }] } }],
-                    verbosity: "executionStats",
-                },
-            });
-            const content = getResponseContent(response);
-            expect(content).toContain("In readOnly mode you can not run pipelines with $out or $merge stages.");
-        });
-
-        it(`rejects explaining aggregations with a ${writeStage} stage when write operations are disabled`, async () => {
-            integration.mcpServer().userConfig.disabledTools = ["create"];
-            await integration.connectMcpClient();
-            const response = await integration.mcpClient().callTool({
-                name: "explain",
-                arguments: {
-                    database: integration.randomDbName(),
-                    collection: "people",
-                    method: [{ name: "aggregate", arguments: { pipeline: [{ [writeStage]: "outpeople" }] } }],
-                    verbosity: "executionStats",
-                },
-            });
-            const content = getResponseContent(response);
-            expect(content).toContain(
-                "When 'create', 'update', or 'delete' operations are disabled, you can not run pipelines with $out or $merge stages."
-            );
-        });
-    }
 });

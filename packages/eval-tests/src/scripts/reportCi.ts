@@ -21,15 +21,15 @@ const SCORE_NAME = "llm_judge";
 /** Git branch name used when querying Braintrust experiment history for the chart. */
 const HISTORY_BRANCH = "main";
 const scriptDir = dirname(fileURLToPath(import.meta.url));
-const REPORT_PATH = join(scriptDir, "..", "..", "..", ".eval", "ci-report.md");
+const REPORT_PATH = join(scriptDir, "..", "..", "..", "..", ".eval", "ci-report.md");
 
 /** Return argv tokens after the first `--` (the eval command to spawn). Exits with usage if missing. */
 function parseArgsAfterDashDash(): string[] {
     const idx = process.argv.indexOf("--");
     if (idx === -1 || idx === process.argv.length - 1) {
         console.error(
-            "Usage: tsx tests/eval/scripts/reportCi.ts -- <command> [args...]\n" +
-                "Example: tsx tests/eval/scripts/reportCi.ts -- bt eval --jsonl tests/eval/mongodb.eval.ts"
+            "Usage: tsx src/scripts/reportCi.ts -- <command> [args...]\n" +
+                "Example: tsx src/scripts/reportCi.ts -- bt eval --jsonl src/mongodb.eval.ts"
         );
         process.exit(2);
     }

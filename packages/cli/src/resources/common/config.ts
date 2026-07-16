@@ -1,9 +1,8 @@
-import { ReactiveResource } from "../resource.js";
-import type { UserConfig } from "../../common/config/userConfig.js";
-import type { Telemetry } from "../../telemetry/telemetry.js";
-import type { Session } from "../../lib.js";
+import { ReactiveResource, Keychain, redactValues } from "@mongodb-js/mcp-core";
+import type { ResourceConstructorParams } from "@mongodb-js/mcp-types";
+import type { UserConfig } from "@mongodb-js/mcp-cli";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
-import { Keychain, redactValues } from "../../common/keychain.js";
+import type { CliSession } from "@mongodb-js/mcp-cli";
 
 /**
  * Removes secret material from the driver options before exposing them via the config resource.
@@ -18,30 +17,31 @@ function redactDriverOptions(driverOptions: Record<string, unknown>): Record<str
     return { ...rest, autoEncryption: "set; client-side field level encryption is configured" };
 }
 
-export class ConfigResource extends ReactiveResource<UserConfig, readonly []> {
-    constructor(session: Session, config: UserConfig, telemetry: Telemetry) {
+export class ConfigResource extends ReactiveResource<
+    UserConfig,
+    readonly [],
+    CliSession
+> {
+    constructor({ session, ...rest }: ResourceConstructorParams<CliSession>) {
         super({
-            resourceConfiguration: {
-                name: "config",
-                uri: "config://config",
-                config: {
-                    description:
-                        "Server configuration, supplied by the user either as environment variables or as startup arguments",
-                },
-            },
             options: {
-                initial: { ...config },
+                resource: {
+                    name: "config",
+                    uri: "config://config",
+                    config: {
+                        description:
+                            "Server configuration, supplied by the user either as environment variables or as startup arguments",
+                    },
+                },
+                initial: { ...session.config },
                 events: [],
             },
             session,
-            config,
-            telemetry,
+            ...rest,
         });
     }
-    reduce(eventName: undefined, event: undefined): UserConfig {
-        void eventName;
-        void event;
 
+    reduce(): UserConfig {
         return this.current;
     }
 

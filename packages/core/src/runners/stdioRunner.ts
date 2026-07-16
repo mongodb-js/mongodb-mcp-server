@@ -1,36 +1,57 @@
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import type { Server } from "../server.js";
-import type { CustomizableServerOptions } from "./base.js";
-import type { CustomizableSessionOptions } from "./base.js";
-import { TransportRunnerBase, type TransportRunnerConfig } from "./base.js";
-import type { UserConfig } from "../lib.js";
-import type { DefaultMetrics } from "@mongodb-js/mcp-metrics";
+import type { ITransportRunner } from "@mongodb-js/mcp-types";
+import type { CompositeLogger } from "../logging/compositeLogger.js";
+import { LogId } from "../logId.js";
 
+/**
+ * Transport runner for stdio (standard input/output) transport.
+ * This is the default transport for MCP servers.
+ *
+ * @example
+ * ```typescript
+ * const runner = new StdioRunner({
+ *   logger: compositeLogger,
+ *   server: myServer,
+ * });
+ * await runner.start();
+ * ```
+ */
 export class StdioRunner<
-    TUserConfig extends UserConfig = UserConfig,
-    TContext = unknown,
-    TMetrics extends DefaultMetrics = DefaultMetrics,
-> extends TransportRunnerBase<TUserConfig, TContext, TMetrics> {
-    private server: Server<TUserConfig, TContext> | undefined;
+    TServer extends {
+        connect(transport: StdioServerTransport): Promise<void>;
+        close(): Promise<void>;
+    } = {
+        connect(transport: StdioServerTransport): Promise<void>;
+        close(): Promise<void>;
+    },
+> implements ITransportRunner {
+    protected readonly server: TServer;
+    protected readonly logger: CompositeLogger;
 
-    constructor(config: TransportRunnerConfig<TUserConfig, TMetrics>) {
-        super(config);
+    constructor({ logger, server }: { logger: CompositeLogger; server: TServer }) {
+        this.logger = logger;
+        this.server = server;
     }
 
-    async start({
-        serverOptions,
-        sessionOptions,
-    }: {
-        serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
-        sessionOptions?: CustomizableSessionOptions<TUserConfig>;
-    } = {}): Promise<void> {
-        this.server = await this.createServer({ serverOptions, sessionOptions });
-        const transport = new StdioServerTransport();
-
-        await this.server.connect(transport);
+    async start(): Promise<void> {
+        try {
+            const transport = new StdioServerTransport();
+            await this.server.connect(transport);
+        } catch (error: unknown) {
+            this.logger.emergency({
+                id: LogId.serverStartFailure,
+                context: "server",
+                message: `Fatal error running server: ${error as string}`,
+            });
+            process.exit(1);
+        }
     }
 
-    async closeTransport(): Promise<void> {
-        await this.server?.close();
+    /**
+     * Stops the stdio transport runner.
+     * This closes the server connection.
+     */
+    async close(): Promise<void> {
+        await this.server.close();
     }
 }

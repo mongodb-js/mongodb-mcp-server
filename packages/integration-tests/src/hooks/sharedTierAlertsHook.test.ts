@@ -1,6 +1,6 @@
 import { expect, it, vi } from "vitest";
 import { describeWithAtlas, withProject } from "../tools/atlas/atlasHelpers.js";
-import { runSharedTierAlertsHook } from "../../../src/common/atlas/sharedTierAlertsHook.js";
+import { runSharedTierAlertsHook } from "@mongodb-js/mcp-tools-atlas";
 
 describeWithAtlas("shared-tier-alerts-hook integration", (integration) => {
     withProject(integration, ({ getProjectId }) => {
@@ -40,7 +40,7 @@ describeWithAtlas("shared-tier-alerts-hook integration", (integration) => {
             expect(firstListAlertsArg?.params.query.status).toBe("OPEN");
             expect(firstListAlertsArg?.params.query.itemsPerPage).toBe(100);
             expect(firstListAlertsArg?.params.query.pageNum).toBe(1);
-            expect(firstListAlertsArg?.params.query.includeCount).toBe(true);
+            expect(firstListAlertsArg?.params.query.includeCount).toBe(false);
 
             listSpy.mockRestore();
         });

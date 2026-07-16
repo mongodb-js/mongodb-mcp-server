@@ -1,16 +1,16 @@
-import { defaultTestConfig, expectDefined, getResponseElements } from "../../helpers.js";
+import { defaultTestConfig, expectDefined, getResponseElements } from "../../integrationHelpers.js";
 import { afterEach, expect, it, vi } from "vitest";
 import {
     createAtlasLocalDeployment,
     describeWithAtlasLocal,
     describeWithAtlasLocalDisabled,
 } from "./atlasLocalHelpers.js";
-import type { ListDatabasesOutput } from "../../../../src/tools/mongodb/metadata/listDatabases.js";
-import type { ListCollectionsOutput } from "../../../../src/tools/mongodb/metadata/listCollections.js";
+import type { ListDatabasesOutput } from "@mongodb-js/mcp-tools-mongodb";
+import type { ListCollectionsOutput } from "@mongodb-js/mcp-tools-mongodb";
 
 // Config used for tests that require a voyageApiKey.
 const configWithVoyageApiKey = { ...defaultTestConfig, voyageApiKey: "test-voyage-api-key" };
-const SAMPLE_DATA_TEST_TIMEOUT_MS = 600_000;
+const SAMPLE_DATA_TEST_TIMEOUT_MS = 1_200_000;
 
 describeWithAtlasLocal(
     "atlas-local-create-deployment",

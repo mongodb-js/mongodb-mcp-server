@@ -1,7 +1,7 @@
 import { type ReactElement } from "react";
 import { ListDatabases as LGListDatabases } from "@lg-mcp/embeddable-uis";
 import { useRenderData } from "@lg-mcp/hooks";
-import type { ListDatabasesOutput } from "../../../tools/mongodb/metadata/listDatabases.js";
+import type { ListDatabasesOutput } from "@mongodb-js/mcp-tools-mongodb";
 
 /**
  * @internal

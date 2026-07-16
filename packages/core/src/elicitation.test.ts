@@ -1,7 +1,58 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { Elicitation } from "../../src/elicitation.js";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { Elicitation } from "./elicitation.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { createMockElicitInput, createMockGetClientCapabilities } from "../utils/elicitationMocks.js";
+import type { MockedFunction } from "vitest";
+
+type MockElicitResult = {
+    action: string;
+    content?: Record<string, unknown>;
+};
+
+type MockClientCapabilities = {
+    elicitation?: Record<string, unknown>;
+};
+
+function createMockElicitInput(): {
+    mock: MockedFunction<() => Promise<MockElicitResult>>;
+    confirmYes: () => void;
+    confirmNo: () => void;
+    acceptWith: (content: Record<string, unknown> | undefined) => void;
+    cancel: () => void;
+    rejectWith: (error: Error) => void;
+    clear: () => void;
+} {
+    const mockFn = vi.fn();
+
+    return {
+        mock: mockFn as MockedFunction<() => Promise<MockElicitResult>>,
+        confirmYes: () =>
+            mockFn.mockResolvedValue({
+                action: "accept",
+                content: { confirmation: "Yes" },
+            }),
+        confirmNo: () =>
+            mockFn.mockResolvedValue({
+                action: "accept",
+                content: { confirmation: "No" },
+            }),
+        acceptWith: (content: Record<string, unknown> | undefined) =>
+            mockFn.mockResolvedValue({
+                action: "accept",
+                content,
+            }),
+        cancel: () =>
+            mockFn.mockResolvedValue({
+                action: "cancel",
+                content: undefined,
+            }),
+        rejectWith: (error: Error) => mockFn.mockRejectedValue(error),
+        clear: () => mockFn.mockClear(),
+    };
+}
+
+function createMockGetClientCapabilities(): MockedFunction<() => MockClientCapabilities | undefined> {
+    return vi.fn();
+}
 
 describe("Elicitation", () => {
     let elicitation: Elicitation;
@@ -153,7 +204,7 @@ describe("Elicitation", () => {
         it("should return accepted:false when client does not support elicitation", async () => {
             mockGetClientCapabilities.mockReturnValue({});
 
-            const result = await elicitation.requestInput(testMessage, testSchema);
+            const result = await elicitation.requestInput({ message: testMessage, schema: testSchema });
 
             expect(result).toEqual({ accepted: false });
             expect(mockElicitInput.mock).not.toHaveBeenCalled();
@@ -163,7 +214,7 @@ describe("Elicitation", () => {
             mockGetClientCapabilities.mockReturnValue({ elicitation: {} });
             mockElicitInput.acceptWith({ username: "admin", password: "secret" });
 
-            const result = await elicitation.requestInput(testMessage, testSchema);
+            const result = await elicitation.requestInput({ message: testMessage, schema: testSchema });
 
             expect(result).toEqual({ accepted: true, fields: { username: "admin", password: "secret" } });
             expect(mockElicitInput.mock).toHaveBeenCalledWith(
@@ -176,7 +227,7 @@ describe("Elicitation", () => {
             mockGetClientCapabilities.mockReturnValue({ elicitation: {} });
             mockElicitInput.cancel();
 
-            const result = await elicitation.requestInput(testMessage, testSchema);
+            const result = await elicitation.requestInput({ message: testMessage, schema: testSchema });
 
             expect(result).toEqual({ accepted: false });
         });
@@ -185,7 +236,7 @@ describe("Elicitation", () => {
             mockGetClientCapabilities.mockReturnValue({ elicitation: {} });
             mockElicitInput.mock.mockResolvedValue({ action: "decline", content: undefined });
 
-            const result = await elicitation.requestInput(testMessage, testSchema);
+            const result = await elicitation.requestInput({ message: testMessage, schema: testSchema });
 
             expect(result).toEqual({ accepted: false });
         });
@@ -194,7 +245,7 @@ describe("Elicitation", () => {
             mockGetClientCapabilities.mockReturnValue({ elicitation: {} });
             mockElicitInput.acceptWith(undefined);
 
-            const result = await elicitation.requestInput(testMessage, testSchema);
+            const result = await elicitation.requestInput({ message: testMessage, schema: testSchema });
 
             expect(result).toEqual({ accepted: false });
         });
@@ -203,7 +254,7 @@ describe("Elicitation", () => {
             mockGetClientCapabilities.mockReturnValue({ elicitation: {} });
             mockElicitInput.acceptWith({ username: "admin", count: 42, flag: true });
 
-            const result = await elicitation.requestInput(testMessage, testSchema);
+            const result = await elicitation.requestInput({ message: testMessage, schema: testSchema });
 
             expect(result).toEqual({ accepted: true, fields: { username: "admin" } });
         });
@@ -213,7 +264,9 @@ describe("Elicitation", () => {
             const error = new Error("Input failed");
             mockElicitInput.rejectWith(error);
 
-            await expect(elicitation.requestInput(testMessage, testSchema)).rejects.toThrow("Input failed");
+            await expect(elicitation.requestInput({ message: testMessage, schema: testSchema })).rejects.toThrow(
+                "Input failed"
+            );
         });
     });
 });

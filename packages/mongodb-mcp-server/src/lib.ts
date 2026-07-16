@@ -1,124 +1,105 @@
-export { Server, type ServerOptions, type AnyToolClass, type ToolCategory } from "./server.js";
-export { Session, type SessionOptions, type SessionEvents } from "./common/session.js";
-export { type UserConfig, UserConfigSchema } from "./common/config/userConfig.js";
-export { parseUserConfig, defaultParserOptions, type ParserOptions } from "./common/config/parseUserConfig.js";
-
-import { parseUserConfig } from "./common/config/parseUserConfig.js";
-import type { UserConfig } from "./common/config/userConfig.js";
-
-/** @deprecated Use `parseUserConfig` instead. */
-export function parseArgsWithCliOptions(cliArguments: string[]): {
-    warnings: string[];
-    parsed: UserConfig | undefined;
-    error: string | undefined;
-} {
-    return parseUserConfig({
-        args: cliArguments,
-    });
-}
-
-import { defaultCreateConnectionManager } from "./common/connectionManager.js";
-/** @deprecated Use `defaultCreateConnectionManager` instead. */
-const createMCPConnectionManager = defaultCreateConnectionManager;
-export { createMCPConnectionManager, defaultCreateConnectionManager };
-
-export { defaultCreateApiClient } from "./common/atlas/apiClient.js";
-export { defaultCreateAtlasLocalClient } from "./common/atlasLocal.js";
-
+/** This file is temporarily used for generating API reports against the v1 API for comparison purposes. */
 export {
-    LoggerBase,
-    type LogPayload,
-    type LoggerType,
-    type LogLevel,
-    CompositeLogger,
-    ConsoleLogger,
-    NullLogger,
-    type EventMap,
-    type DefaultEventMap,
-} from "./common/logging/index.js";
+    CliServer,
+    type CliServerOptions,
+    CliSession,
+    type McpSession,
+    type CliSessionOptions,
+} from "@mongodb-js/mcp-cli";
+export type { SessionEvents } from "@mongodb-js/mcp-types";
+export { type UserConfig, UserConfigSchema, configRegistry } from "@mongodb-js/mcp-cli";
+export { parseUserConfig, defaultParserOptions, type ParserOptions } from "@mongodb-js/mcp-cli";
+
+export { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
+export { AllTools } from "./allTools.js";
+export { packageInfo } from "./common/packageInfo.js";
+export { ExportedData } from "@mongodb-js/mcp-cli";
+
+export { LoggerBase, CompositeLogger, NoopLogger } from "@mongodb-js/mcp-core";
+export { type LogLevel, type LogPayload, type LoggerType } from "@mongodb-js/mcp-types";
+export { type EventMap, type DefaultEventMap } from "@mongodb-js/mcp-types";
+export { McpLogger } from "@mongodb-js/mcp-logging";
+export { ConsoleLogger } from "@mongodb-js/mcp-logging";
+export { StdioRunner } from "@mongodb-js/mcp-core";
+
+// HTTP-specific transports
 export {
     StreamableHttpRunner,
     MCPHttpServer,
-    createDefaultMcpHttpServer,
-    type MCPHttpServerConstructorArgs,
-    type CreateMcpHttpServerFn,
     MonitoringServer,
-    createDefaultMonitoringServer,
-    type StreamableHttpTransportRunnerConfig,
-    type CreateMonitoringServerFn,
-    type MonitoringServerConstructorArgs,
-    type MonitoringServerConfig,
-} from "./transports/streamableHttp.js";
+    type StreamableHttpRunnerOptions,
+    type MCPHttpServerOptions,
+    type MonitoringServerOptions,
+} from "@mongodb-js/mcp-http-runners";
 export type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-export { StdioRunner } from "./transports/stdio.js";
-export {
-    TransportRunnerBase,
-    type TransportRunnerConfig,
-    type CustomizableServerOptions,
-    type CustomizableSessionOptions,
-    type CreateSessionConfigFn,
-    type TransportRequestContext,
-} from "./transports/base.js";
+
+// Web-friendly transports (from core)
+export { type ITransportRunner, type TransportRequestContext } from "@mongodb-js/mcp-types";
 export {
     ConnectionManager,
     MCPConnectionManager,
-    ConnectionStateConnected,
+    type ConnectionStateConnected,
     type AnyConnectionState,
     type ConnectionState,
     type ConnectionStateConnecting,
     type ConnectionStateDisconnected,
     type ConnectionStateErrored,
     type ConnectionManagerFactoryFn,
+    type ConnectionManagerFactoryOptions,
     type ConnectionSettings,
     type ConnectionManagerEvents,
     type ConnectionTag,
     type OIDCConnectionAuthType,
-} from "./common/connectionManager.js";
+} from "@mongodb-js/mcp-tools-mongodb";
 export {
     connectionErrorHandler,
     type ConnectionErrorHandler,
     type ConnectionErrorHandled,
     type ConnectionErrorUnhandled,
     type ConnectionErrorHandlerContext,
-} from "./common/connectionErrorHandler.js";
-export { ErrorCodes, MongoDBError } from "./common/errors.js";
-export { Telemetry } from "./telemetry/telemetry.js";
-export { type TelemetryEvent, type CommonProperties, type BaseEvent } from "./telemetry/types.js";
-export type { TelemetryEvents, TelemetryConfig } from "./telemetry/telemetry.js";
-export { EventCache } from "./telemetry/eventCache.js";
-export { Keychain, registerGlobalSecretToRedact } from "./common/keychain.js";
-export type { Secret } from "./common/keychain.js";
-export { Elicitation } from "./elicitation.js";
-export { applyConfigOverrides, ConfigOverrideError } from "./common/config/configOverrides.js";
+} from "@mongodb-js/mcp-tools-mongodb";
+export {
+    ErrorCodes,
+    MongoDBError,
+    QUERY_COUNT_MAX_TIME_MS_CAP,
+    AGG_COUNT_MAX_TIME_MS_CAP,
+} from "@mongodb-js/mcp-tools-mongodb";
+export { AtlasTelemetry, EventCache } from "@mongodb-js/mcp-atlas-telemetry";
+export type {
+    TelemetryEvent,
+    TelemetryCommonProperties,
+    TelemetryBaseEvent,
+    TelemetryEvents,
+    TelemetryConfig,
+} from "@mongodb-js/mcp-atlas-telemetry";
+export { Keychain, registerGlobalSecretToRedact } from "@mongodb-js/mcp-core";
+export type { Secret } from "mongodb-redact";
+export { Elicitation } from "@mongodb-js/mcp-core";
+export { applyConfigOverrides, ConfigOverrideError, getConfigMeta, nameToConfigKey } from "@mongodb-js/mcp-cli";
+export { onlyStricterLogLevelOverride } from "@mongodb-js/mcp-cli";
 export {
     SessionStore,
     SessionRejectedError,
-    SessionLimitExceededError,
-    createDefaultSessionStore,
     type ISessionStore,
-    type CloseableTransport,
-    type SessionCloseReason,
-    type CreateSessionStoreFn,
     type SessionStoreConstructorArgs,
-} from "./common/sessionStore.js";
-export { ExportsManager } from "./common/exportsManager.js";
-export { DeviceId } from "./helpers/deviceId.js";
-export type { MonitoringServerFeature } from "./common/schemas.js";
-export {
-    ApiClient,
-    type ApiClientOptions,
-    type ApiClientFactoryFn,
-    type RequestContext,
-} from "./common/atlas/apiClient.js";
-export type { AuthProvider, Credentials } from "./common/atlas/auth/authProvider.js";
-export { type UIRegistryOptions, UIRegistry } from "./ui/registry/registry.js";
-export { type ToolExecutionContext, type AnyToolBase } from "./tools/tool.js";
+} from "@mongodb-js/mcp-core";
+export type { CloseableTransport, SessionCloseReason } from "@mongodb-js/mcp-types";
+export { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
+export { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
+export type { MonitoringServerFeature } from "@mongodb-js/mcp-tools-mongodb";
+export { ApiClient, type ApiClientOptions } from "@mongodb-js/mcp-atlas-api-client";
+export type { AuthProvider } from "@mongodb-js/mcp-atlas-api-client";
+export { ClientCredentialsAuthProvider } from "@mongodb-js/mcp-atlas-api-client";
+export { UIRegistry } from "@mongodb-js/mcp-ui";
+export { ToolBase, type AnyToolClass, type AnyToolBase, type ToolClass, type ToolArgs } from "@mongodb-js/mcp-core";
+export { type ToolExecutionContext } from "@mongodb-js/mcp-types";
+export { type OperationType } from "@mongodb-js/mcp-types";
+export { type ToolCategory } from "@mongodb-js/mcp-types";
+export { TRANSPORT_PAYLOAD_LIMITS, type TransportType } from "@mongodb-js/mcp-cli";
 export {
     PrometheusMetrics,
     createDefaultMetrics,
-    type DefaultMetrics,
-    type Metrics,
-    type MetricDefinitions,
+    type DefaultPrometheusMetricDefinitions,
     type PrometheusMetricsOptions,
     Registry,
     Gauge,
@@ -132,5 +113,4 @@ export {
     JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND,
     JSON_RPC_ERROR_CODE_INVALID_REQUEST,
     JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION,
-    JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED,
-} from "./transports/jsonRpcErrorCodes.js";
+} from "@mongodb-js/mcp-core";

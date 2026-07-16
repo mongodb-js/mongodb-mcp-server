@@ -1,22 +1,17 @@
 import { z } from "zod";
-import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
-import { formatUntrustedData } from "../../tool.js";
+import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
+import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
+import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
+import { formatUntrustedData } from "@mongodb-js/mcp-core";
 import type { FindCursor } from "mongodb";
-import { checkIndexUsage } from "../../../helpers/indexCheck.js";
-import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorUntilMaxBytes.js";
-import { operationWithFallback } from "../../../helpers/operationWithFallback.js";
-import {
-    ONE_MB,
-    QUERY_COUNT_MAX_TIME_MS_CAP,
-    CURSOR_LIMITS_TO_LLM_TEXT,
-    CURSOR_LIMIT_KEYS,
-    type CursorLimitKey,
-} from "../../../helpers/constants.js";
+import { checkIndexUsage } from "../../helpers/indexCheck.js";
+import { collectCursorUntilMaxBytesLimit } from "../../helpers/collectCursorUntilMaxBytes.js";
+import { operationWithFallback } from "../../helpers/operationWithFallback.js";
+import { ONE_MB, CURSOR_LIMITS_TO_LLM_TEXT, CURSOR_LIMIT_KEYS, type CursorLimitKey } from "../../helpers/constants.js";
 import { zEJSON } from "../../args.js";
-import { LogId } from "../../../common/logging/index.js";
-import { SortDirectionSchema } from "../mongodbSchemas.js";
-import { bsonToJson } from "../../../helpers/bsonToJson.js";
+import { LogId } from "@mongodb-js/mcp-core";
+import { SortDirectionSchema } from "../../mongodbSchemas.js";
+import { bsonToJson } from "../../helpers/bsonToJson.js";
 
 export const FindArgs = {
     filter: zEJSON()
@@ -104,10 +99,7 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
                             // query would have yielded which is why we don't
                             // use `limitOnFindCursor` calculated above, and
                             // we don't use the limit provided to the tool either.
-                            maxTimeMS:
-                                this.config.maxTimeMS !== undefined
-                                    ? Math.min(this.config.maxTimeMS, QUERY_COUNT_MAX_TIME_MS_CAP)
-                                    : QUERY_COUNT_MAX_TIME_MS_CAP,
+                            maxTimeMS: this.getFindCountDocumentsMaxTimeMS(),
                             signal,
                         }),
                     undefined

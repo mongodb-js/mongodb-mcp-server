@@ -1,14 +1,15 @@
+import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
+import { AtlasToolBase } from "../../atlasTool.js";
+import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
+import { formatUntrustedData } from "@mongodb-js/mcp-core";
 import { z } from "zod";
-import { AtlasToolBase } from "../atlasTool.js";
-import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
-import { formatUntrustedData } from "../../tool.js";
 import type {
     PaginatedClusterDescription20240805,
     PaginatedOrgGroupView,
     Group,
     PaginatedFlexClusters20241113,
-} from "../../../common/atlas/openapi.js";
-import { formatCluster, formatFlexCluster } from "../../../common/atlas/cluster.js";
+} from "@mongodb-js/mcp-atlas-api-client";
+import { formatCluster, formatFlexCluster } from "../../helpers/cluster.js";
 import { AtlasArgs } from "../../args.js";
 
 export const ListClustersArgs = {
@@ -76,7 +77,7 @@ export class ListClustersTool extends AtlasToolBase {
                 throw new Error(`Project with ID "${projectId}" not found.`);
             }
 
-            const [clustersResult, flexClustersResult] = await Promise.allSettled([
+            const settledResults = await Promise.allSettled([
                 this.apiClient.listClusters(
                     {
                         params: {
@@ -99,8 +100,8 @@ export class ListClustersTool extends AtlasToolBase {
                 ),
             ]);
 
-            const clusters = clustersResult.status === "fulfilled" ? clustersResult.value : undefined;
-            const flexClusters = flexClustersResult.status === "fulfilled" ? flexClustersResult.value : undefined;
+            const clusters = settledResults[0].status === "fulfilled" ? settledResults[0].value : undefined;
+            const flexClusters = settledResults[1].status === "fulfilled" ? settledResults[1].value : undefined;
 
             return this.formatClustersTable(project, clusters, flexClusters);
         }

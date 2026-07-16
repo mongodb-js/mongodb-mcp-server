@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Run with: node scripts/createMcpb.ts [--validate-only]
+// Run with: pnpm --filter mongodb-mcp-server build:mcpb [--validate-only]
 // Erasable TS only: no enum/namespace/parameter-properties/decorators.
 
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -7,9 +7,9 @@ import { dirname, resolve } from "node:path";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { cp, mkdir, rm, stat, writeFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
-import type { PackageJson as LoosePackageJson, SetRequired } from "type-fest";
+import type { PackageJson as LoosePackageJson, SetRequired, JsonValue } from "type-fest";
 
-type PackageJson = SetRequired<LoosePackageJson, "name" | "version" | "dependencies">;
+export type PackageJson = SetRequired<LoosePackageJson, "name" | "version" | "dependencies">;
 
 function spawnAsync(cmd: string, args: string[], cwd: string): Promise<void> {
     return new Promise((resolvePromise, rejectPromise) => {
@@ -31,15 +31,16 @@ function spawnAsync(cmd: string, args: string[], cwd: string): Promise<void> {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const repoRoot = resolve(__dirname, "..");
+const packageDir = resolve(__dirname, "..");
+const repoRoot = resolve(__dirname, "../../..");
 
 type Mode = "build" | "validate-only";
 
 const paths = {
     repoRoot,
-    distEsm: resolve(repoRoot, "dist", "esm"),
+    distEsm: resolve(packageDir, "dist", "esm"),
     rootPackageJson: resolve(repoRoot, "package.json"),
-    packagingDir: resolve(repoRoot, "packaging", "mcpb"),
+    packagingDir: resolve(packageDir, "packaging", "mcpb"),
     stagingDir: resolve(repoRoot, "mcpb-build"),
     outputDir: resolve(repoRoot, "dist-mcpb"),
 } as const;
@@ -89,7 +90,9 @@ function expandGlob(globPattern: string): string[] {
 
 function discoverWorkspacePackages(rootPkg: PackageJson): WorkspacePackage[] {
     // Collect names of root deps that use `workspace:*` (or any `workspace:` protocol).
-    const all = { ...(rootPkg.dependencies ?? {}), ...(rootPkg.optionalDependencies ?? {}) };
+    const deps = (rootPkg.dependencies ?? {}) as Record<string, string>;
+    const optDeps = (rootPkg.optionalDependencies ?? {}) as Record<string, string>;
+    const all = { ...deps, ...optDeps };
     const workspaceNames = new Set(
         Object.entries(all)
             .filter(([, v]) => typeof v === "string" && v.startsWith("workspace:"))
@@ -162,7 +165,7 @@ export function buildStagingPackageJson(rootPkg: PackageJson): PackageJson {
         // Carry the root's pnpm.overrides into the staging package so transitive resolution
         // stays aligned with what the root install (and CI) tested against. Without this,
         // pnpm's lockfile rewrite drops the overrides during the staging install.
-        pnpm: rootPkg.pnpm ?? {},
+        pnpm: (rootPkg as { pnpm?: Record<string, JsonValue> }).pnpm ?? {},
     };
 }
 
@@ -194,7 +197,9 @@ async function rmIfPlatformSpecific(pkgDir: string): Promise<void> {
     const pkgJsonPath = resolve(pkgDir, "package.json");
     if (existsSync(pkgJsonPath)) {
         const pkgJson = JSON.parse(readFileSync(pkgJsonPath, "utf8")) as PackageJson;
-        if (pkgJson.cpu?.length || pkgJson.os?.length) {
+        const cpu = (pkgJson as { cpu?: string[] }).cpu;
+        const os = (pkgJson as { os?: string[] }).os;
+        if (cpu?.length || os?.length) {
             await rm(pkgDir, { recursive: true, force: true });
         }
     }
@@ -208,11 +213,13 @@ async function stageDependencies(rootPkg: PackageJson): Promise<void> {
     // package's own package.json for transitives and install them.
     for (const ws of workspacePkgs) {
         const fileSpec = pathToFileURL(ws.dir).href;
-        if (stagingPkg.dependencies && ws.name in stagingPkg.dependencies) {
-            stagingPkg.dependencies[ws.name] = fileSpec;
+        const deps = stagingPkg.dependencies as Record<string, string> | undefined;
+        const optDeps = stagingPkg.optionalDependencies as Record<string, string> | undefined;
+        if (deps && ws.name in deps) {
+            deps[ws.name] = fileSpec;
         }
-        if (stagingPkg.optionalDependencies && ws.name in stagingPkg.optionalDependencies) {
-            stagingPkg.optionalDependencies[ws.name] = fileSpec;
+        if (optDeps && ws.name in optDeps) {
+            optDeps[ws.name] = fileSpec;
         }
     }
 
@@ -337,7 +344,11 @@ async function main(): Promise<void> {
     console.log("mcpb: build complete.");
 }
 
-main().catch((err) => {
-    console.error(err);
-    process.exit(1);
-});
+// Only run main when this file is executed directly (not when imported as a module)
+const isMainModule = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isMainModule) {
+    main().catch((err) => {
+        console.error(err);
+        process.exit(1);
+    });
+}

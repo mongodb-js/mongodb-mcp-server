@@ -1,22 +1,21 @@
 import {
-    describeWithMongoDB,
-    validateAutoConnectBehavior,
-    createVectorSearchIndexAndWait,
-    waitUntilSearchIsReady,
-} from "../mongodbHelpers.js";
-
-import {
     getResponseContent,
     databaseCollectionParameters,
     validateToolMetadata,
     validateThrowsForInvalidArguments,
     expectDefined,
-} from "../../../helpers.js";
-import type { InsertManyOutput } from "../../../../../src/tools/mongodb/create/insertMany.js";
+} from "../../../integrationHelpers.js";
+import {
+    describeWithMongoDB,
+    validateAutoConnectBehavior,
+    createVectorSearchIndexAndWait,
+    waitUntilSearchIsReady,
+} from "../../../mongodbHelpers.js";
+import type { InsertManyOutput } from "@mongodb-js/mcp-tools-mongodb";
 import { beforeEach, afterEach, expect, it, vi } from "vitest";
 import { ObjectId } from "bson";
 import type { Collection } from "mongodb";
-import type { ToolEvent } from "../../../../../src/telemetry/types.js";
+import type { TelemetryToolEvent as ToolEvent } from "@mongodb-js/mcp-atlas-telemetry";
 
 describeWithMongoDB("insertMany tool when search is disabled", (integration) => {
     validateToolMetadata(
@@ -126,7 +125,7 @@ describeWithMongoDB("insertMany tool when search is disabled", (integration) => 
         expect(content).toContain("Documents were inserted successfully.");
 
         expect(mockEmitEvents).toHaveBeenCalled();
-        const emittedEvent = mockEmitEvents.mock.lastCall?.[0][0] as ToolEvent;
+        const emittedEvent = (mockEmitEvents.mock.lastCall?.[0] as ToolEvent[] | undefined)?.[0];
         expectDefined(emittedEvent);
         expect(emittedEvent.properties.embeddingsGeneratedBy).toBeUndefined();
     });

@@ -1,29 +1,23 @@
 import { z } from "zod";
 import type { AggregationCursor } from "mongodb";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
-import { formatUntrustedData } from "../../tool.js";
-import { checkIndexUsage } from "../../../helpers/indexCheck.js";
-import { type Document } from "bson";
-import { ErrorCodes, MongoDBError } from "../../../common/errors.js";
-import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorUntilMaxBytes.js";
-import { operationWithFallback } from "../../../helpers/operationWithFallback.js";
-import {
-    AGG_COUNT_MAX_TIME_MS_CAP,
-    ONE_MB,
-    CURSOR_LIMITS_TO_LLM_TEXT,
-    CURSOR_LIMIT_KEYS,
-    type CursorLimitKey,
-} from "../../../helpers/constants.js";
-import { LogId } from "../../../common/logging/index.js";
-import { AnyAggregateStage, VectorSearchStage } from "../mongodbSchemas.js";
+import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
+import type { ToolArgs } from "@mongodb-js/mcp-core";
+import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
+import { formatUntrustedData } from "@mongodb-js/mcp-core";
+import { checkIndexUsage } from "../../helpers/indexCheck.js";
+import { type Document, EJSON } from "bson";
+import { ErrorCodes, MongoDBError } from "../../common/errors.js";
+import { collectCursorUntilMaxBytesLimit } from "../../helpers/collectCursorUntilMaxBytes.js";
+import { operationWithFallback } from "../../helpers/operationWithFallback.js";
+import { LogId } from "@mongodb-js/mcp-core";
+import { ONE_MB, CURSOR_LIMITS_TO_LLM_TEXT } from "../../helpers/constants.js";
+import { AnyAggregateStage, VectorSearchStage } from "../../mongodbSchemas.js";
 import {
     assertVectorSearchFilterFieldsAreIndexed,
     type SearchIndex,
-} from "../../../helpers/assertVectorSearchFilterFieldsAreIndexed.js";
-import { isWriteStage } from "../../../helpers/mqlGuards.js";
-import { bsonToJson } from "../../../helpers/bsonToJson.js";
+} from "../../helpers/assertVectorSearchFilterFieldsAreIndexed.js";
 
 export const pipelineDescriptionWithVectorSearch = `\
 An array of aggregation stages to execute.
@@ -51,15 +45,6 @@ If the user has asked for lexical/Atlas search, use \`$search\` instead of \`$te
 - The \`$search\` stage supports multiple operators, such as 'autocomplete', 'text', 'geoWithin', and others. Choose the approprate operator based on the user's query. If unsure of the exact syntax, consult the MongoDB Atlas Search documentation, which can be found here: https://www.mongodb.com/docs/atlas/atlas-search/operators-and-collectors/
 `;
 
-const AggregateOutputSchema = {
-    documents: z.array(z.unknown()).describe("The documents returned by the aggregation pipeline"),
-    count: z
-        .number()
-        .or(z.literal("indeterminate"))
-        .describe("The total number of documents returned by the aggregation pipeline"),
-    appliedLimits: z.array(CURSOR_LIMIT_KEYS).describe("The limits applied to the aggregation pipeline"),
-};
-
 export const AggregateArgs = {
     pipeline: z.array(z.union([VectorSearchStage, AnyAggregateStage])).describe(pipelineDescriptionWithVectorSearch),
 };
@@ -77,12 +62,10 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
     };
     static operationType: OperationType = "read";
 
-    public override outputSchema = AggregateOutputSchema;
-
     protected async execute(
         { database, collection, pipeline, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+    ): Promise<CallToolResult> {
         let aggregationCursor: AggregationCursor | undefined = undefined;
         try {
             const provider = await this.ensureConnected();
@@ -149,10 +132,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
 
             let successMessage: string;
             let documents: unknown[];
-            let count: number | undefined;
-            let appliedLimits: CursorLimitKey[] = [];
-
-            if (pipeline.some((stage) => isWriteStage(stage))) {
+            if (pipeline.some((stage) => this.isWriteStage(stage))) {
                 // This is a write pipeline, so special-case it and don't attempt to apply limits or caps
                 aggregationCursor = provider.aggregate(database, collection, pipeline, {
                     signal,
@@ -195,30 +175,21 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                     totalDocuments > this.config.maxDocumentsPerQuery;
 
                 documents = cursorResults.documents;
-                count = totalDocuments;
-                appliedLimits = [
-                    aggregationResultsCappedByMaxDocumentsLimit ? "config.maxDocumentsPerQuery" : undefined,
-                    cursorResults.cappedBy,
-                ].filter((limit): limit is CursorLimitKey => !!limit);
                 successMessage = this.generateMessage({
-                    count,
-                    documents,
-                    appliedLimits,
+                    aggResultsCount: totalDocuments,
+                    documents: cursorResults.documents,
+                    appliedLimits: [
+                        aggregationResultsCappedByMaxDocumentsLimit ? "config.maxDocumentsPerQuery" : undefined,
+                        cursorResults.cappedBy,
+                    ].filter((limit): limit is keyof typeof CURSOR_LIMITS_TO_LLM_TEXT => !!limit),
                 });
             }
-
-            documents = bsonToJson(documents);
 
             return {
                 content: formatUntrustedData(
                     successMessage,
-                    ...(documents.length > 0 ? [JSON.stringify(documents)] : [])
+                    ...(documents.length > 0 ? [EJSON.stringify(documents)] : [])
                 ),
-                structuredContent: {
-                    documents,
-                    count: count ?? "indeterminate",
-                    appliedLimits,
-                },
             };
         } finally {
             if (aggregationCursor) {
@@ -240,11 +211,26 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
     }
 
     private async assertOnlyUsesPermittedStages(pipeline: Record<string, unknown>[]): Promise<void> {
+        const writeOperations: OperationType[] = ["update", "create", "delete"];
         const isSearchSupported = await this.session.isSearchSupported();
 
-        this.assertMqlIsAllowed(pipeline);
+        let writeStageForbiddenError = "";
+
+        if (this.config.readOnly) {
+            writeStageForbiddenError = "In readOnly mode you can not run pipelines with $out or $merge stages.";
+        } else if (this.config.disabledTools.some((t: string) => writeOperations.includes(t as OperationType))) {
+            writeStageForbiddenError =
+                "When 'create', 'update', or 'delete' operations are disabled, you can not run pipelines with $out or $merge stages.";
+        }
 
         for (const stage of pipeline) {
+            // This validates that in readOnly mode or "write" operations are disabled, we can't use $out or $merge.
+            // This is really important because aggregates are the only "multi-faceted" tool in the MQL, where you
+            // can both read and write.
+            if (this.isWriteStage(stage) && writeStageForbiddenError) {
+                throw new MongoDBError(ErrorCodes.ForbiddenWriteOperation, writeStageForbiddenError);
+            }
+
             // This ensure that you can't use $search if the cluster does not support MongoDB Search
             // either in Atlas or in a local cluster.
             if (this.isSearchStage(stage) && !isSearchSupported) {
@@ -275,11 +261,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                 .aggregate(database, collection, resultsCountAggregation, {
                     signal: abortSignal,
                 })
-                .maxTimeMS(
-                    this.config.maxTimeMS !== undefined
-                        ? Math.min(this.config.maxTimeMS, AGG_COUNT_MAX_TIME_MS_CAP)
-                        : AGG_COUNT_MAX_TIME_MS_CAP
-                )
+                .maxTimeMS(this.getAggregationCountDocumentsMaxTimeMS())
                 .toArray();
 
             const documentWithCount: unknown = aggregationResults.length === 1 ? aggregationResults[0] : undefined;
@@ -342,19 +324,19 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
     }
 
     private generateMessage({
-        count,
+        aggResultsCount,
         documents,
         appliedLimits,
     }: {
-        count: number | undefined;
+        aggResultsCount: number | undefined;
         documents: unknown[];
-        appliedLimits: CursorLimitKey[];
+        appliedLimits: (keyof typeof CURSOR_LIMITS_TO_LLM_TEXT)[];
     }): string {
-        let message = `The aggregation resulted in ${count === undefined ? "indeterminable number of" : count} documents.`;
+        let message = `The aggregation resulted in ${aggResultsCount === undefined ? "indeterminable number of" : aggResultsCount} documents.`;
 
         // If we applied a limit or the count is different from the aggregation result count,
         // communicate what is the actual number of returned documents
-        if (documents.length !== count || appliedLimits.length) {
+        if (documents.length !== aggResultsCount || appliedLimits.length) {
             message += ` Returning ${documents.length} documents`;
             if (appliedLimits.length) {
                 message += ` while respecting the applied limits of ${appliedLimits
@@ -372,5 +354,9 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
 
     private isSearchStage(stage: Record<string, unknown>): boolean {
         return "$vectorSearch" in stage || "$search" in stage || "$searchMeta" in stage;
+    }
+
+    private isWriteStage(stage: Record<string, unknown>): boolean {
+        return "$out" in stage || "$merge" in stage;
     }
 }

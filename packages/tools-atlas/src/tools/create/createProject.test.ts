@@ -1,14 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ToolConstructorParams } from "../../../../../src/tools/tool.js";
-import { CreateProjectTool } from "../../../../../src/tools/atlas/create/createProject.js";
-import type { Session } from "../../../../../src/common/session.js";
-import type { UserConfig } from "../../../../../src/common/config/userConfig.js";
-import type { Telemetry } from "../../../../../src/telemetry/telemetry.js";
-import type { Elicitation } from "../../../../../src/elicitation.js";
-import type { CompositeLogger } from "../../../../../src/common/logging/index.js";
-import type { ApiClient } from "../../../../../src/common/atlas/apiClient.js";
-import { UIRegistry } from "../../../../../src/ui/registry/index.js";
-import { MockMetrics } from "../../../mocks/metrics.js";
+import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
+import { CreateProjectTool } from "./createProject.js";
+import type { IAtlasSession, IAtlasConfig } from "../../atlasTool.js";
+import type { ITelemetry, IElicitation, ICompositeLogger } from "@mongodb-js/mcp-types";
+import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { MockMetrics } from "../../mockMetrics.js";
+import { Keychain } from "@mongodb-js/mcp-core";
 
 describe("CreateProjectTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
@@ -25,51 +22,54 @@ describe("CreateProjectTool", () => {
             debug: vi.fn(),
             warning: vi.fn(),
             error: vi.fn(),
-        } as unknown as CompositeLogger;
+            setAttribute: vi.fn(),
+            addLogger: vi.fn(),
+        } as unknown as ICompositeLogger;
 
         const mockSession = {
+            sessionId: "test-session",
             logger: mockLogger,
             apiClient: mockApiClient as unknown as ApiClient,
-        } as unknown as Session;
+            connectedAtlasCluster: undefined,
+            connectToMongoDB: vi.fn().mockResolvedValue(undefined),
+            keychain: new Keychain(),
+            config: {
+                apiClientId: "test-id",
+                apiClientSecret: "test-secret",
+            } as unknown as IAtlasConfig,
+            disconnect: vi.fn().mockResolvedValue(undefined),
+            close: vi.fn().mockResolvedValue(undefined),
+            isConnectedToMongoDB: false,
+            on: vi.fn(),
+            setMcpClient: vi.fn(),
+        } as unknown as IAtlasSession;
 
-        const params: ToolConstructorParams = {
+        const params: ToolConstructorParams<IAtlasSession> = {
             name: CreateProjectTool.toolName,
             category: "atlas",
             operationType: CreateProjectTool.operationType,
             session: mockSession,
-            config: {
-                confirmationRequiredTools: [],
-                previewFeatures: [],
-                disabledTools: [],
-                apiClientId: "test-id",
-                apiClientSecret: "test-secret",
-            } as unknown as UserConfig,
-            telemetry: { isTelemetryEnabled: () => false, emitEvents: vi.fn() } as unknown as Telemetry,
-            elicitation: { requestConfirmation: vi.fn() } as unknown as Elicitation,
+            telemetry: { isTelemetryEnabled: () => false, emitEvents: vi.fn() } as unknown as ITelemetry,
+            elicitation: { requestConfirmation: vi.fn() } as unknown as IElicitation,
             metrics: new MockMetrics(),
-            uiRegistry: new UIRegistry(),
         };
 
         tool = new CreateProjectTool(params);
     });
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    const exec = (args: Record<string, unknown> = {}) =>
-        tool["execute"](args as never, { signal: new AbortController().signal } as never);
+    const exec = (args: Record<string, unknown> = {}) => tool["execute"](args as never);
 
-    it("creates a project with explicit organizationId", async () => {
+    it("creates a project with explicit orgId", async () => {
         mockApiClient.createGroup!.mockResolvedValue({ id: "proj-123", name: "My Project", orgId: "org-1" });
 
         const result = await exec({ projectName: "My Project", orgId: "org-1" });
 
         expect((result.content[0] as { text: string }).text).toContain('Project "My Project" created successfully');
         expect(mockApiClient.listOrgs).not.toHaveBeenCalled();
-        expect(result.structuredContent).toEqual({
-            projectName: "My Project",
-        });
     });
 
-    it("assumes first organization when organizationId is omitted", async () => {
+    it("assumes first organization when orgId is omitted", async () => {
         mockApiClient.listOrgs!.mockResolvedValue({ results: [{ id: "org-first", name: "First Org" }] });
         mockApiClient.createGroup!.mockResolvedValue({ id: "proj-456", name: "Atlas Project", orgId: "org-first" });
 
@@ -77,19 +77,23 @@ describe("CreateProjectTool", () => {
 
         expect(mockApiClient.listOrgs).toHaveBeenCalled();
         expect((result.content[0] as { text: string }).text).toContain("using orgId org-first");
-        expect(result.structuredContent).toEqual({
-            projectName: "Atlas Project",
-            orgId: "org-first",
-        });
     });
 
     it("uses default project name when projectName is omitted", async () => {
         mockApiClient.listOrgs!.mockResolvedValue({ results: [{ id: "org-1", name: "Org" }] });
-        mockApiClient.createGroup!.mockResolvedValue({ id: "proj-789", name: "Atlas Project", orgId: "org-1" });
+        mockApiClient.createGroup!.mockResolvedValue({
+            id: "proj-789",
+            name: "Atlas Project",
+            orgId: "org-1",
+        });
 
-        const result = await exec({ orgId: "org-1" });
+        await exec({ orgId: "org-1" });
 
-        expect(result.structuredContent?.projectName).toBe("Atlas Project");
+        expect(mockApiClient.createGroup).toHaveBeenCalledWith(
+            expect.objectContaining({
+                body: expect.objectContaining({ name: "Atlas Project" }), // eslint-disable-line @typescript-eslint/no-unsafe-assignment
+            })
+        );
     });
 
     it("throws when createGroup returns no id", async () => {

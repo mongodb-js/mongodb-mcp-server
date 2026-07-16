@@ -1,5 +1,5 @@
 import { LRUCache } from "lru-cache";
-import type { BaseEvent } from "./types.js";
+import type { TelemetryBaseEvent } from "./types.js";
 
 /**
  * Singleton class for in-memory telemetry event caching
@@ -10,7 +10,7 @@ export class EventCache {
     private static instance: EventCache;
     private static readonly MAX_EVENTS = 1000;
 
-    private cache: LRUCache<number, BaseEvent>;
+    private cache: LRUCache<number, TelemetryBaseEvent>;
     private nextId = 0;
     /** Current exclusive operation, if any. The next caller awaits this before starting. */
     private currentOperation: { promise: Promise<void>; resolve: () => void } | undefined;
@@ -74,7 +74,7 @@ export class EventCache {
      */
     public async processOldestBatch<T>(
         batchSize: number,
-        processor: (events: BaseEvent[]) => Promise<{ removeProcessed: boolean; result: T }>
+        processor: (events: TelemetryBaseEvent[]) => Promise<{ removeProcessed: boolean; result: T }>
     ): Promise<T | undefined> {
         return this.runExclusive(async () => {
             const allEvents = this.getEvents();
@@ -98,7 +98,7 @@ export class EventCache {
      * Gets a copy of the currently cached events along with their ids
      * @returns Array of cached BaseEvent objects
      */
-    public getEvents(): { id: number; event: BaseEvent }[] {
+    public getEvents(): { id: number; event: TelemetryBaseEvent }[] {
         return Array.from(this.cache.entries()).map(([id, event]) => ({ id, event }));
     }
 
@@ -106,7 +106,7 @@ export class EventCache {
      * Appends new events to the cache.
      * LRU cache automatically handles dropping oldest events when limit is exceeded.
      */
-    public appendEvents(events: BaseEvent[]): void {
+    public appendEvents(events: TelemetryBaseEvent[]): void {
         for (const event of events) {
             this.cache.set(this.nextId++, event);
         }

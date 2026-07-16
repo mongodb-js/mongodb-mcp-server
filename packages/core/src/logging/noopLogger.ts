@@ -1,14 +1,18 @@
-import type { LoggerType } from "./loggingTypes.js";
+import type { IKeychain, LoggerType } from "@mongodb-js/mcp-types";
 import { LoggerBase } from "./loggerBase.js";
 
-export class NullLogger extends LoggerBase {
-    protected type?: LoggerType;
+const noopKeychain: IKeychain = {
+    register(): void {},
+    clearAllSecrets(): void {},
+    allSecrets: [],
+};
+
+export class NoopLogger extends LoggerBase {
+    protected readonly type?: LoggerType;
 
     constructor() {
-        super(undefined);
+        super({ keychain: noopKeychain });
     }
 
-    protected logCore(): void {
-        // No-op logger, does not log anything
-    }
+    protected logCore(): void {}
 }

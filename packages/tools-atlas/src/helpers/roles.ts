@@ -1,5 +1,5 @@
-import type { UserConfig } from "../config/userConfig.js";
-import type { DatabaseUserRole } from "./openapi.js";
+import type { DatabaseUserRole } from "@mongodb-js/mcp-atlas-api-client";
+import type { IAtlasConfig } from "../atlasTool.js";
 
 /**
  * The built-in Atlas database user roles, per the Atlas Admin API
@@ -18,7 +18,7 @@ export const BUILT_IN_DB_USER_ROLES = [
     "readAnyDatabase",
     "readWrite",
     "readWriteAnyDatabase",
-] as const;
+];
 
 const readWriteRole: DatabaseUserRole = {
     roleName: "readWriteAnyDatabase",
@@ -34,7 +34,7 @@ const readOnlyRole: DatabaseUserRole = {
  * Get the default role name for the database user based on the Atlas Admin API
  * https://www.mongodb.com/docs/atlas/mongodb-users-roles-and-privileges/
  */
-export function getDefaultRoleFromConfig(config: UserConfig): DatabaseUserRole {
+export function getDefaultRoleFromConfig(config: IAtlasConfig): DatabaseUserRole {
     if (config.readOnly) {
         return readOnlyRole;
     }

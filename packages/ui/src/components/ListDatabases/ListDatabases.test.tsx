@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, waitFor, act, cleanup, within } from "@testing-library/react";
-import { ListDatabases } from "../../../../../src/ui/components/ListDatabases/ListDatabases.js";
+import { ListDatabases } from "./ListDatabases.js";
 
 /**
  * Helper to simulate the parent window sending render data via postMessage

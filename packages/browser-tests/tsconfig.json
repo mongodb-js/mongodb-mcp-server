@@ -1,5 +1,5 @@
 {
-  "extends": "../../tsconfig.json",
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "types": ["node"],
     "lib": ["ES2022", "DOM"],
@@ -8,11 +8,13 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "skipLibCheck": true,
+    "rootDir": ".",
     "paths": {
-      "mongodb-mcp-server": ["../../src/lib"],
-      "mongodb-mcp-server/web": ["../../src/web"],
-      "ts-levenshtein": ["../../node_modules/ts-levenshtein/dist/index.d.mts"]
+      "@mongodb-js/devtools-proxy-support/proxy-options": [
+        "./polyfills/empty.ts"
+      ]
     }
   },
-  "include": ["**/*.ts"]
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules"]
 }

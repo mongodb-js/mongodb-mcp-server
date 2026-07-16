@@ -1,9 +1,10 @@
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { z } from "zod";
-import { AtlasLocalToolBase } from "../atlasLocalTool.js";
-import type { OperationType, ToolArgs, ToolResult } from "../../tool.js";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
+import { AtlasLocalToolBase } from "../../atlasLocalTool.js";
+import type { ToolArgs } from "@mongodb-js/mcp-core";
+import type { OperationType } from "@mongodb-js/mcp-types";
 import type { Client } from "@mongodb-js/atlas-local";
-import { CommonArgs } from "../../args.js";
+import { CommonArgs } from "@mongodb-js/mcp-core";
+import { z } from "zod";
 
 const DeleteDeploymentOutputSchema = {
     deleted: z.boolean(),
@@ -15,18 +16,20 @@ export class DeleteDeploymentTool extends AtlasLocalToolBase {
     public description = "Delete a MongoDB Atlas local deployment";
     static operationType: OperationType = "delete";
     public argsShape = {
-        deploymentName: CommonArgs.string().describe("Name of the deployment to delete"),
+        deploymentName: CommonArgs.asciiOnlyString().describe("Name of the deployment to delete"),
     };
-
     public override outputSchema = DeleteDeploymentOutputSchema;
 
     protected async executeWithAtlasLocalClient(
         { deploymentName }: ToolArgs<typeof this.argsShape>,
         { client }: { client: Client }
-    ): Promise<ToolResult<typeof DeleteDeploymentOutputSchema> & Pick<CallToolResult, "_meta">> {
-        // Resolve deployment ID for telemetry before the deployment is removed.
+    ): Promise<CallToolResult> {
+        // Lookup telemetry metadata
+        // We need to lookup the telemetry metadata before deleting the deployment
+        // to ensure that the deployment ID is set in the result metadata
         const telemetryMetadata = await this.lookupTelemetryMetadata(client, deploymentName);
 
+        // Delete the deployment
         await client.deleteDeployment(deploymentName);
 
         return {

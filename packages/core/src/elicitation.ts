@@ -48,14 +48,18 @@ export class Elicitation {
      * Returns the accepted fields, or { accepted: false } if the client doesn't
      * support elicitation or the user declined.
      *
-     * @param message - The message/title to display in the form.
-     * @param schema - A JSON Schema describing the fields to collect.
+     * @param options - The elicitation options.
+     * @param options.message - The message/title to display in the form.
+     * @param options.schema - A JSON Schema describing the fields to collect.
      * @returns The user-provided values keyed by field name, or null if declined/unsupported.
      */
-    public async requestInput(
-        message: string,
-        schema: ElicitRequestFormParams["requestedSchema"]
-    ): Promise<ElicitedInputResult> {
+    public async requestInput({
+        message,
+        schema,
+    }: {
+        message: string;
+        schema: ElicitRequestFormParams["requestedSchema"];
+    }): Promise<ElicitedInputResult> {
         if (!this.supportsElicitation()) {
             return { accepted: false };
         }

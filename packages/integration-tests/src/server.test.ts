@@ -1,25 +1,33 @@
-import { MCPConnectionManager } from "../../src/common/connectionManager.js";
-import { ExportsManager } from "../../src/common/exportsManager.js";
-import { CompositeLogger } from "../../src/common/logging/index.js";
-import { DeviceId } from "../../src/helpers/deviceId.js";
-import { Session } from "../../src/common/session.js";
-import { defaultTestConfig, expectDefined, InMemoryLogger } from "./helpers.js";
-import { describeWithMongoDB } from "./tools/mongodb/mongodbHelpers.js";
+import { MCPConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
+import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
+import { CompositeLogger } from "@mongodb-js/mcp-core";
+import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
+import { CliSession } from "@mongodb-js/mcp-cli";
+import {
+    createTestApiClient,
+    defaultTestConfig,
+    expectDefined,
+    InMemoryLogger,
+    testServerMetadata,
+} from "./integrationHelpers.js";
+import { describeWithMongoDB } from "./mongodbHelpers.js";
 import { afterEach, describe, expect, it } from "vitest";
-import type { LoggerBase, UserConfig } from "../../src/lib.js";
-import { defaultCreateApiClient, Elicitation, Keychain } from "../../src/lib.js";
-import { defaultCreateAtlasLocalClient } from "../../src/common/atlasLocal.js";
+import type { LoggerBase } from "@mongodb-js/mcp-core";
+import type { UserConfig } from "mongodb-mcp-server";
+import { Elicitation } from "mongodb-mcp-server";
+import { Keychain } from "@mongodb-js/mcp-core";
+import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
+import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { Server } from "../../src/server.js";
-import { connectionErrorHandler } from "../../src/common/connectionErrorHandler.js";
-import { type OperationType, ToolBase, type ToolCategory, type ToolClass } from "../../src/tools/tool.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { TelemetryToolMetadata } from "../../src/telemetry/types.js";
-import { InMemoryTransport } from "../../src/transports/inMemoryTransport.js";
+import { CliServer } from "mongodb-mcp-server";
+import { connectionErrorHandler } from "mongodb-mcp-server";
+import { ToolBase, type ToolClass } from "@mongodb-js/mcp-core";
+import type { OperationType, ToolCategory, CallToolResult } from "@mongodb-js/mcp-types";
+import type { TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
+import { InMemoryTransport } from "@mongodb-js/mcp-core";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
-import { TRANSPORT_PAYLOAD_LIMITS } from "../../src/transports/constants.js";
-import { MockMetrics } from "../unit/mocks/metrics.js";
-import { Telemetry } from "../../src/telemetry/telemetry.js";
+import { TRANSPORT_PAYLOAD_LIMITS } from "@mongodb-js/mcp-core";
+import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 
 class TestToolOne extends ToolBase {
     static toolName = "test-tool-one";
@@ -63,7 +71,7 @@ class TestToolTwo extends ToolBase {
     }
 }
 
-describe("Server integration test", () => {
+describe("CliServer integration test", () => {
     describeWithMongoDB(
         "without atlas",
         (integration) => {
@@ -122,9 +130,9 @@ describe("Server integration test", () => {
                     const capabilities = integration.mcpClient().getServerCapabilities();
                     expectDefined(capabilities);
                     expectDefined(capabilities?.logging);
-                    expectDefined(capabilities?.completions);
                     expectDefined(capabilities?.tools);
                     expectDefined(capabilities?.resources);
+                    expect(capabilities.completions).toBeUndefined();
                     expect(capabilities.experimental).toBeUndefined();
                     expect(capabilities.prompts).toBeUndefined();
                 });
@@ -175,51 +183,63 @@ describe("Server integration test", () => {
         tools: ToolClass[],
         config: UserConfig = defaultTestConfig,
         loggers: LoggerBase[] = []
-    ): Promise<{ server: Server; transport: Transport }> => {
-        const logger = new CompositeLogger(...loggers);
+    ): Promise<{ server: CliServer; transport: Transport }> => {
+        const logger = new CompositeLogger({ loggers });
         const deviceId = DeviceId.create(logger);
-        const connectionManager = new MCPConnectionManager(config, logger, deviceId);
-        const exportsManager = ExportsManager.init(config, logger);
-        const session = new Session({
+        const connectionManager = new MCPConnectionManager({
+            logger,
+            deviceId,
+            serverMetadata: testServerMetadata,
+            connectionInfo: config,
+        });
+        const exportsManager = ExportsManager.init({ options: config, logger });
+        const session = new CliSession({
             userConfig: config,
             logger,
             exportsManager,
             connectionManager,
             keychain: Keychain.root,
             connectionErrorHandler,
-            atlasLocalClient: await defaultCreateAtlasLocalClient({ logger }),
-            apiClient: defaultCreateApiClient(
-                {
-                    baseUrl: config.apiBaseUrl,
-                    credentials: {
-                        clientId: config.apiClientId,
-                        clientSecret: config.apiClientSecret,
-                    },
-                },
-                logger
-            ),
+            atlasLocalClient: await createAtlasLocalClient({ logger }),
+            apiClient: createTestApiClient({
+                baseUrl: config.apiBaseUrl,
+                serverMetadata: { mcpServerName: "test", version: "1" },
+                logger,
+                clientId: config.apiClientId,
+                clientSecret: config.apiClientSecret,
+            }),
         });
 
-        const telemetry = Telemetry.create({
+        const telemetry = AtlasTelemetry.create({
             logger,
             deviceId,
             apiClient: session.apiClient,
             keychain: session.keychain,
             enabled: false,
+            serverMetadata: {
+                mcpServerName: "test-server",
+                version: "1.0",
+            },
         });
 
         const mcpServerInstance = new McpServer({ name: "test", version: "1.0" });
         const elicitation = new Elicitation({ server: mcpServerInstance.server });
 
-        const server = new Server({
+        const server = new CliServer({
             session,
-            userConfig: config,
             telemetry,
             mcpServer: mcpServerInstance,
             elicitation,
             connectionErrorHandler,
             tools: [...tools],
             metrics: new MockMetrics(),
+            serverMetadata: {
+                mcpServerName: "test-server",
+                version: "1.0",
+                engines: {
+                    node: "20.0.0",
+                },
+            },
         });
 
         const transport = new InMemoryTransport();
@@ -228,7 +248,7 @@ describe("Server integration test", () => {
     };
 
     describe("with additional tools", () => {
-        let server: Server | undefined;
+        let server: CliServer | undefined;
         let transport: Transport | undefined;
 
         afterEach(async () => {
@@ -254,7 +274,7 @@ describe("Server integration test", () => {
     });
 
     describe("config validation", () => {
-        let server: Server | undefined;
+        let server: CliServer | undefined;
         let transport: Transport | undefined;
 
         afterEach(async () => {
@@ -263,7 +283,7 @@ describe("Server integration test", () => {
         });
 
         it("should warn when not using https for apiBaseUrl", async () => {
-            const logger = new InMemoryLogger(Keychain.root);
+            const logger = new InMemoryLogger({ keychain: Keychain.root });
             const config: UserConfig = {
                 ...defaultTestConfig,
                 apiBaseUrl: "http://localhost:8080",
@@ -286,7 +306,7 @@ describe("Server integration test", () => {
     });
 
     describe("log level clamping", () => {
-        let server: Server | undefined;
+        let server: CliServer | undefined;
         let inMemoryTransport: InMemoryTransport | undefined;
 
         afterEach(async () => {

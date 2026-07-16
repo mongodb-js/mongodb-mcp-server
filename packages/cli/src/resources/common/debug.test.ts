@@ -1,53 +1,76 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DebugResource } from "../../../../src/resources/common/debug.js";
-import { Session } from "../../../../src/common/session.js";
-import { CompositeLogger } from "../../../../src/common/logging/index.js";
-import { MCPConnectionManager } from "../../../../src/common/connectionManager.js";
-import { ExportsManager } from "../../../../src/common/exportsManager.js";
-import { DeviceId } from "../../../../src/helpers/deviceId.js";
-import { Keychain } from "../../../../src/common/keychain.js";
-import { defaultTestConfig } from "../../../integration/helpers.js";
-import { connectionErrorHandler } from "../../../../src/common/connectionErrorHandler.js";
-import { defaultCreateApiClient, Telemetry } from "../../../../src/lib.js";
+import { DebugResource } from "./debug.js";
+import { CliSession } from "../../cliSession.js";
+import { UserConfigSchema, type UserConfig } from "../../config/userConfig.js";
+import { connectionErrorHandler } from "@mongodb-js/mcp-tools-mongodb";
+import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
+import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
+import { MCPConnectionManager, ExportsManager, DeviceId } from "@mongodb-js/mcp-tools-mongodb";
+
+const defaultTestConfig: UserConfig = {
+    ...UserConfigSchema.parse({}),
+    telemetry: "disabled",
+    loggers: ["stderr"],
+};
+
+const testServerMetadata = {
+    mcpServerName: "test-server",
+    version: "0.0.0",
+} as const;
 
 describe("debug resource", () => {
     const logger = new CompositeLogger();
     const deviceId = DeviceId.create(logger);
-    const connectionManager = new MCPConnectionManager(defaultTestConfig, logger, deviceId);
+    const connectionManager = new MCPConnectionManager({
+        logger,
+        deviceId,
+        serverMetadata: testServerMetadata,
+        connectionInfo: defaultTestConfig,
+    });
 
     const session = vi.mocked(
-        new Session({
+        new CliSession({
             userConfig: defaultTestConfig,
             logger,
-            exportsManager: ExportsManager.init(defaultTestConfig, logger),
+            exportsManager: ExportsManager.init({ options: defaultTestConfig, logger: logger }),
             connectionManager,
             keychain: new Keychain(),
             connectionErrorHandler,
-            apiClient: defaultCreateApiClient(
-                {
+            apiClient: new ApiClient({
+                options: {
                     baseUrl: defaultTestConfig.apiBaseUrl,
-                    credentials: {
-                        clientId: defaultTestConfig.apiClientId,
-                        clientSecret: defaultTestConfig.apiClientSecret,
-                    },
                 },
-                logger
-            ),
+                serverMetadata: testServerMetadata,
+                logger,
+                authProvider: undefined,
+            }),
         })
     );
 
-    const telemetry = Telemetry.create({
+    // Mock EventEmitter methods that ReactiveResource uses
+    // @ts-expect-error - CliSession is not a MockedObject
+    session.on = vi.fn();
+    // Mock isSearchSupported that DebugResource.toOutput() uses
+    session.isSearchSupported = vi.fn(() => Promise.resolve(false));
+
+    const telemetry = AtlasTelemetry.create({
         logger,
         deviceId,
         apiClient: session.apiClient,
         keychain: session.keychain,
         enabled: false,
+        serverMetadata: { mcpServerName: "test-server", version: "0.0.0" },
     });
 
-    let debugResource: DebugResource = new DebugResource(session, defaultTestConfig, telemetry);
+    let debugResource: DebugResource;
 
     beforeEach(() => {
-        debugResource = new DebugResource(session, defaultTestConfig, telemetry);
+        // Reset isSearchSupported mock before each test
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        vi.mocked(session.isSearchSupported).mockResolvedValue(false);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
+        debugResource = new DebugResource({ session: { ...session, config: defaultTestConfig }, telemetry } as any);
     });
 
     it("should be connected when a connected event happens", async () => {
@@ -133,7 +156,8 @@ describe("debug resource", () => {
     });
 
     it("should notify if a cluster supports search indexes", async () => {
-        vi.spyOn(session, "isSearchSupported").mockImplementation(() => Promise.resolve(true));
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        vi.mocked(session.isSearchSupported).mockResolvedValue(true);
         debugResource.reduceApply("connect", undefined);
         const output = await debugResource.toOutput();
 

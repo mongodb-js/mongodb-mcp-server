@@ -17,6 +17,13 @@
       },
       "environmentVariables": [
         {
+          "name": "MDB_MCP_AGGREGATION_COUNT_MAX_TIME_MS_CAP",
+          "description": "The maximum time in milliseconds for the count phase of aggregation operations. This is used to limit the time spent counting documents when determining if results were capped.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
           "name": "MDB_MCP_ALLOW_REQUEST_OVERRIDES",
           "description": "When set to true, allows configuration values to be overridden via request headers and query parameters.",
           "isRequired": false,
@@ -262,6 +269,13 @@
           "isSecret": false
         },
         {
+          "name": "MDB_MCP_QUERY_COUNT_MAX_TIME_MS_CAP",
+          "description": "The maximum time in milliseconds for the count phase of find operations. This is used to limit the time spent counting documents when determining if results were capped.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
           "name": "MDB_MCP_READ_ONLY",
           "description": "When set to true, only allows read, connect, and metadata operation types, disabling create/update/delete operations.",
           "isRequired": false,
@@ -291,6 +305,13 @@
         }
       ],
       "packageArguments": [
+        {
+          "type": "named",
+          "name": "--aggregationCountMaxTimeMsCap",
+          "description": "The maximum time in milliseconds for the count phase of aggregation operations. This is used to limit the time spent counting documents when determining if results were capped.",
+          "isRequired": false,
+          "format": "number"
+        },
         {
           "type": "named",
           "name": "--allowRequestOverrides",
@@ -518,6 +539,13 @@
           "name": "--previewFeatures",
           "description": "Comma separated values of preview features that are enabled.",
           "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--queryCountMaxTimeMsCap",
+          "description": "The maximum time in milliseconds for the count phase of find operations. This is used to limit the time spent counting documents when determining if results were capped.",
+          "isRequired": false,
+          "format": "number"
         },
         {
           "type": "named",
@@ -554,6 +582,13 @@
       },
       "environmentVariables": [
         {
+          "name": "MDB_MCP_AGGREGATION_COUNT_MAX_TIME_MS_CAP",
+          "description": "The maximum time in milliseconds for the count phase of aggregation operations. This is used to limit the time spent counting documents when determining if results were capped.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
           "name": "MDB_MCP_ALLOW_REQUEST_OVERRIDES",
           "description": "When set to true, allows configuration values to be overridden via request headers and query parameters.",
           "isRequired": false,
@@ -799,6 +834,13 @@
           "isSecret": false
         },
         {
+          "name": "MDB_MCP_QUERY_COUNT_MAX_TIME_MS_CAP",
+          "description": "The maximum time in milliseconds for the count phase of find operations. This is used to limit the time spent counting documents when determining if results were capped.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
           "name": "MDB_MCP_READ_ONLY",
           "description": "When set to true, only allows read, connect, and metadata operation types, disabling create/update/delete operations.",
           "isRequired": false,
@@ -828,6 +870,13 @@
         }
       ],
       "packageArguments": [
+        {
+          "type": "named",
+          "name": "--aggregationCountMaxTimeMsCap",
+          "description": "The maximum time in milliseconds for the count phase of aggregation operations. This is used to limit the time spent counting documents when determining if results were capped.",
+          "isRequired": false,
+          "format": "number"
+        },
         {
           "type": "named",
           "name": "--allowRequestOverrides",
@@ -1055,6 +1104,13 @@
           "name": "--previewFeatures",
           "description": "Comma separated values of preview features that are enabled.",
           "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--queryCountMaxTimeMsCap",
+          "description": "The maximum time in milliseconds for the count phase of find operations. This is used to limit the time spent counting documents when determining if results were capped.",
+          "isRequired": false,
+          "format": "number"
         },
         {
           "type": "named",

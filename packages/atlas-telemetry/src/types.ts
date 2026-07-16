@@ -1,30 +1,62 @@
-/**
- * Result type constants for telemetry events
- */
-export type TelemetryResult = "success" | "failure";
-export type ServerCommand = "start" | "stop";
-export type TelemetryBoolSet = "true" | "false";
+import type {
+    TelemetryBoolSet,
+    TelemetryCommonProperties,
+    TelemetryCommonStaticProperties,
+    TelemetryEvent,
+    TelemetryResult,
+    AtlasMetadata,
+    AtlasLocalToolMetadata,
+    TelemetryToolMetadata as TelemetryToolMetadataFromCore,
+} from "@mongodb-js/mcp-types";
 
-/**
- * Base interface for all events
- */
-export type TelemetryEvent<T> = {
-    timestamp: string;
-    source: "mdbmcp";
-    properties: T & {
-        component: string;
-        duration_ms: number;
-        result: TelemetryResult;
-        category: string;
-    } & Record<string, string | number | string[]>;
+export type {
+    TelemetryBoolSet,
+    TelemetryCommonProperties,
+    TelemetryCommonStaticProperties,
+    TelemetryEvent,
+    TelemetryResult,
+    AtlasMetadata,
+    AtlasLocalToolMetadata,
 };
 
-export type BaseEvent = TelemetryEvent<unknown>;
+export type TelemetryServerCommand = "start" | "stop";
 
-/**
- * Interface for tool events
- */
-export type ToolEventProperties = {
+export type TelemetryBaseEvent = TelemetryEvent<unknown>;
+
+export type UpgradeClusterMetadata = AtlasMetadata & {
+    original_tier?: "free" | "flex";
+    target_tier?: "flex" | "m10";
+    original_cluster_id?: string;
+    target_cluster_id?: string;
+    provider?: string;
+    region?: string;
+};
+
+export type PauseResumeClusterMetadata = AtlasMetadata & {
+    cluster_id?: string;
+    action?: "PAUSE" | "RESUME";
+};
+
+export type CreateClusterMetadata = AtlasMetadata & {
+    cluster_id?: string;
+    provider?: string;
+    region?: string;
+    instance_size?: string;
+    cluster_type?: "REPLICASET" | "SHARDED";
+    backup?: "OFF" | "SNAPSHOT" | "CONTINUOUS";
+    compute_auto_scaling?: TelemetryBoolSet;
+    termination_protection?: TelemetryBoolSet;
+    disk_size_gb?: number;
+    mongodb_version?: string;
+};
+
+export type TelemetryToolMetadata =
+    | TelemetryToolMetadataFromCore
+    | UpgradeClusterMetadata
+    | PauseResumeClusterMetadata
+    | CreateClusterMetadata;
+
+export type TelemetryToolEventProperties = {
     command: string;
     error_code?: string;
     error_type?: string;
@@ -32,13 +64,13 @@ export type ToolEventProperties = {
     is_atlas?: boolean;
 } & TelemetryToolMetadata;
 
-export type ToolEvent = TelemetryEvent<ToolEventProperties>;
+export type TelemetryToolEvent = TelemetryEvent<TelemetryToolEventProperties>;
 
 /**
  * Interface for server events
  */
-export type ServerEventProperties = {
-    command: ServerCommand;
+export type TelemetryServerEventProperties = {
+    command: TelemetryServerCommand;
     reason?: string;
     startup_time_ms?: number;
     runtime_duration_ms?: number;
@@ -48,14 +80,14 @@ export type ServerEventProperties = {
     previewFeatures?: string[];
 };
 
-export type ServerEvent = TelemetryEvent<ServerEventProperties>;
+export type TelemetryServerEvent = TelemetryEvent<TelemetryServerEventProperties>;
 
 /**
  * Commands emitted by the interactive setup CLI. Each command corresponds to
  * a single logical step of the wizard, so downstream analytics can reason
  * about drop-off between steps as well as overall completion rates.
  */
-export type SetupStage =
+export type TelemetrySetupStage =
     | "started"
     | "prerequisites_checked"
     | "ai_tool_selected"
@@ -76,8 +108,8 @@ export type SetupStage =
  * accumulated context known up to that point so each event is independently
  * queryable.
  */
-export type SetupEventProperties = {
-    stage: SetupStage;
+export type TelemetrySetupEventProperties = {
+    stage: TelemetrySetupStage;
 
     /**
      * Random id generated at the start of a setup run. All events emitted by
@@ -125,186 +157,13 @@ export type SetupEventProperties = {
     skills_install_exit_code?: number;
 
     /** On terminal events, the last completed step before terminating. */
-    last_stage?: SetupStage;
+    last_stage?: TelemetrySetupStage;
 
     /** Populated on failure events (and where a step failed with an error). */
     error_type?: string;
 
     /** Total wall-clock duration of the setup run, set on terminal events. */
     total_duration_ms?: number;
-} & Pick<CommonProperties, "has_docker">;
+} & Pick<TelemetryCommonProperties, "has_docker">;
 
-export type SetupEvent = TelemetryEvent<SetupEventProperties>;
-
-/**
- * Interface for static properties, they can be fetched once and reused.
- */
-export type CommonStaticProperties = {
-    /**
-     * The version of the MCP server (as read from package.json).
-     */
-    mcp_server_version: string;
-
-    /**
-     * The name of the MCP server (as read from package.json).
-     */
-    mcp_server_name: string;
-
-    /**
-     * The platform/OS the MCP server is running on.
-     */
-    platform: string;
-
-    /**
-     * The architecture of the OS the server is running on.
-     */
-    arch: string;
-
-    /**
-     * Same as platform.
-     */
-    os_type: string;
-
-    /**
-     * The version of the OS the server is running on.
-     */
-    os_version?: string;
-};
-
-/**
- * Common properties for all events that might change.
- */
-export type CommonProperties = {
-    /**
-     * The device id - will be populated with the machine id when it resolves.
-     */
-    device_id?: string;
-
-    /**
-     * A boolean indicating whether the server is running in a container environment.
-     */
-    is_container_env?: TelemetryBoolSet;
-
-    /**
-     * The version of the MCP client as reported by the client on session establishment.
-     */
-    mcp_client_version?: string;
-
-    /**
-     * The name of the MCP client as reported by the client on session establishment.
-     */
-    mcp_client_name?: string;
-
-    /**
-     * The transport protocol used by the MCP server.
-     */
-    transport?: "stdio" | "http";
-
-    /**
-     * A boolean indicating whether Atlas credentials are configured.
-     */
-    config_atlas_auth?: TelemetryBoolSet;
-
-    /**
-     * A boolean indicating whether a connection string is configured.
-     */
-    config_connection_string?: TelemetryBoolSet;
-
-    /**
-     * The randomly generated session id.
-     */
-    session_id?: string;
-
-    /**
-     * The way the MCP server is hosted - e.g. standalone for a server running independently or
-     * "vscode" if embedded in the VSCode extension. This field should be populated by the hosting
-     * application to differentiate events coming from an MCP server it's hosting.
-     */
-    hosting_mode?: string;
-
-    /**
-     * A boolean indicating whether a Docker daemon is available on the machine.
-     */
-    has_docker?: TelemetryBoolSet;
-} & CommonStaticProperties;
-
-/**
- * Telemetry metadata that can be provided by tools when emitting telemetry events.
- * For MongoDB tools, this is typically empty, while for Atlas tools, this should include
- * the project and organization IDs if available.
- */
-export type TelemetryToolMetadata =
-    | AtlasMetadata
-    | ConnectionMetadata
-    | PerfAdvisorToolMetadata
-    | StreamsToolMetadata
-    | UpgradeClusterMetadata
-    | CreateClusterMetadata
-    | IndexMetadata
-    | PauseResumeClusterMetadata;
-
-export type AtlasMetadata = {
-    project_id?: string;
-    org_id?: string;
-};
-
-export type AtlasLocalToolMetadata = {
-    atlas_local_deployment_id?: string;
-};
-
-export type SharedTierTier = "Free" | "Flex";
-export const SHARED_TIER_METRIC_NAMES = [
-    "CONNECTIONS_PERCENT",
-    "FLEX_CONNECTIONS_PERCENT",
-    "FLEX_DATA_SIZE_TOTAL",
-    "LOGICAL_SIZE",
-] as const;
-export type SharedTierMetricName = (typeof SHARED_TIER_METRIC_NAMES)[number];
-export type ConnectionMetadata = AtlasMetadata &
-    AtlasLocalToolMetadata & {
-        connection_auth_type?: string;
-        connection_host_type?: string;
-        shared_tier_alerts_detected?: TelemetryBoolSet;
-        shared_tier_tier?: SharedTierTier;
-        shared_tier_alerts?: SharedTierMetricName[];
-    };
-
-export type PerfAdvisorToolMetadata = AtlasMetadata &
-    ConnectionMetadata & {
-        operations: string[];
-    };
-
-export type StreamsToolMetadata = AtlasMetadata & {
-    action?: string;
-    resource?: string;
-};
-
-export type UpgradeClusterMetadata = AtlasMetadata & {
-    original_tier?: "free" | "flex";
-    target_tier?: "flex" | "m10";
-    cluster_id?: string;
-    provider?: string;
-    region?: string;
-};
-
-export type PauseResumeClusterMetadata = AtlasMetadata & {
-    cluster_id?: string;
-    action?: "PAUSE" | "RESUME";
-};
-
-export type CreateClusterMetadata = AtlasMetadata & {
-    cluster_id?: string;
-    provider?: string;
-    region?: string;
-    instance_size?: string;
-    cluster_type?: "REPLICASET" | "SHARDED";
-    backup?: "OFF" | "SNAPSHOT" | "CONTINUOUS";
-    compute_auto_scaling?: TelemetryBoolSet;
-    termination_protection?: TelemetryBoolSet;
-    disk_size_gb?: number;
-    mongodb_version?: string;
-};
-
-export type IndexMetadata = ConnectionMetadata & {
-    index_type: "classic" | "vectorSearch" | "search";
-};
+export type TelemetrySetupEvent = TelemetryEvent<TelemetrySetupEventProperties>;

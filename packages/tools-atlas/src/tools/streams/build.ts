@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { StreamsToolBase } from "./streamsToolBase.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { StreamsToolBase } from "../../streams/streamsToolBase.js";
+import type { CallToolResult, OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import type { ElicitRequestFormParams } from "@modelcontextprotocol/sdk/types.js";
-import type { OperationType, ToolArgs, ToolExecutionContext, ToolResult } from "../../tool.js";
+import type { ToolArgs } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
-import { ConnectionConfig, PrivateLinkConfig, StreamsArgs } from "./streamsArgs.js";
+import { ConnectionConfig, PrivateLinkConfig, StreamsArgs } from "../../streams/streamsArgs.js";
 
 const BuildResource = z.enum(["workspace", "connection", "processor", "privatelink"]);
 
@@ -217,7 +217,7 @@ export class StreamsBuildTool extends StreamsToolBase {
     protected async execute(
         args: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+    ): Promise<CallToolResult> {
         switch (args.resource) {
             case "workspace":
                 return this.createWorkspace(args, context);
@@ -231,21 +231,8 @@ export class StreamsBuildTool extends StreamsToolBase {
                 return {
                     content: [{ type: "text", text: `Unknown resource type: ${args.resource as string}` }],
                     isError: true,
-                } as ToolResult<typeof this.outputSchema>;
+                };
         }
-    }
-
-    private fromValidationError(error: CallToolResult): ToolResult<typeof this.outputSchema> {
-        return {
-            content: StreamsBuildTool.textContentFrom(error),
-            isError: error.isError ?? true,
-        } as ToolResult<typeof this.outputSchema>;
-    }
-
-    private static textContentFrom(error: CallToolResult): ToolResult<typeof BuildOutputSchema>["content"] {
-        return error.content.flatMap((block) =>
-            block.type === "text" ? [{ type: "text" as const, text: block.text }] : []
-        );
     }
 
     private requireWorkspaceName(args: ToolArgs<typeof this.argsShape>): string {
@@ -258,7 +245,7 @@ export class StreamsBuildTool extends StreamsToolBase {
     private async createWorkspace(
         args: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+    ): Promise<CallToolResult> {
         const workspaceName = this.requireWorkspaceName(args);
         if (!args.cloudProvider) {
             throw new Error("cloudProvider is required when creating a workspace. Choose from: AWS, AZURE, GCP.");
@@ -318,7 +305,7 @@ export class StreamsBuildTool extends StreamsToolBase {
     private async createConnection(
         args: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+    ): Promise<CallToolResult> {
         const workspaceName = this.requireWorkspaceName(args);
         if (!args.connectionName) {
             throw new Error("connectionName is required when adding a connection.");
@@ -333,7 +320,7 @@ export class StreamsBuildTool extends StreamsToolBase {
 
         const missingInfo = await this.normalizeAndValidateConnectionConfig(config, args.connectionType);
         if (missingInfo) {
-            return this.fromValidationError(missingInfo);
+            return missingInfo;
         }
 
         const body: Record<string, unknown> = {
@@ -580,10 +567,10 @@ export class StreamsBuildTool extends StreamsToolBase {
     ): Promise<CallToolResult | null> {
         const schema = StreamsBuildTool.buildElicitationSchema(connectionType, missingFields);
 
-        const elicited = await this.elicitation.requestInput(
-            `The following information is required to create the ${connectionType} connection.`,
-            schema
-        );
+        const elicited = await this.elicitation.requestInput({
+            message: `The following information is required to create the ${connectionType} connection.`,
+            schema,
+        });
 
         if (elicited.accepted) {
             applyFields(elicited.fields, config);
@@ -754,7 +741,7 @@ export class StreamsBuildTool extends StreamsToolBase {
     private async createProcessor(
         args: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+    ): Promise<CallToolResult> {
         const workspaceName = this.requireWorkspaceName(args);
         if (!args.processorName) {
             throw new Error("processorName is required when deploying a processor.");
@@ -766,7 +753,7 @@ export class StreamsBuildTool extends StreamsToolBase {
         }
 
         const structureError = StreamsBuildTool.validatePipelineStructure(args.pipeline);
-        if (structureError) return this.fromValidationError(structureError);
+        if (structureError) return structureError;
 
         const connectionError = await this.validatePipelineConnections(
             args.projectId,
@@ -775,7 +762,7 @@ export class StreamsBuildTool extends StreamsToolBase {
             context,
             args.dlq
         );
-        if (connectionError) return this.fromValidationError(connectionError);
+        if (connectionError) return connectionError;
 
         const body = {
             name: args.processorName,
@@ -836,7 +823,7 @@ export class StreamsBuildTool extends StreamsToolBase {
     private async createPrivateLink(
         args: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+    ): Promise<CallToolResult> {
         if (!args.privateLinkConfig) {
             throw new Error(
                 "privateLinkConfig is required. Provide provider and vendor-specific fields:\n" +

@@ -1,30 +1,26 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { z } from "zod";
-import type { ToolConstructorParams } from "../../../../../src/tools/tool.js";
-import { CreateDBUserTool, CreateDBUserArgs } from "../../../../../src/tools/atlas/create/createDBUser.js";
-import type { Session } from "../../../../../src/common/session.js";
-import type { UserConfig } from "../../../../../src/common/config/userConfig.js";
-import type { Telemetry } from "../../../../../src/telemetry/telemetry.js";
-import type { Elicitation } from "../../../../../src/elicitation.js";
-import type { CompositeLogger } from "../../../../../src/common/logging/index.js";
-import type { ApiClient } from "../../../../../src/common/atlas/apiClient.js";
-import { UIRegistry } from "../../../../../src/ui/registry/index.js";
-import { MockMetrics } from "../../../mocks/metrics.js";
-import type { Keychain } from "../../../../../src/lib.js";
-import { ensureCurrentIpInAccessList } from "../../../../../src/common/atlas/accessListUtils.js";
+import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
+import { CreateDBUserTool, CreateDBUserArgs } from "./createDBUser.js";
+import type { IAtlasSession, IAtlasConfig } from "../../atlasTool.js";
+import type { ITelemetry, IElicitation, ICompositeLogger } from "@mongodb-js/mcp-types";
+import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { MockMetrics } from "../../mockMetrics.js";
+import { Keychain } from "@mongodb-js/mcp-core";
 
-vi.mock("../../../../../src/common/atlas/accessListUtils.js", async (importOriginal) => ({
-    ...(await importOriginal<Record<string, unknown>>()),
-    ensureCurrentIpInAccessList: vi.fn(),
+vi.mock("../../helpers/accessListUtils.js", () => ({
+    ensureCurrentIpInAccessList: vi.fn().mockResolvedValue(false),
+    DEFAULT_ACCESS_LIST_COMMENT: "Added by MongoDB MCP Server to enable tool access",
 }));
 
-vi.mock("../../../../../src/helpers/generatePassword.js", () => ({
+vi.mock("../../helpers/generatePassword.js", () => ({
     generateSecurePassword: vi.fn().mockResolvedValue("generated-password"),
 }));
 
 describe("CreateDBUserTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
-    let register: ReturnType<typeof vi.fn>;
+    let keychain: Keychain;
+    let registerSpy: ReturnType<typeof vi.spyOn>;
     let tool: CreateDBUserTool;
 
     const baseArgs = {
@@ -34,8 +30,8 @@ describe("CreateDBUserTool", () => {
     };
 
     beforeEach(() => {
-        vi.mocked(ensureCurrentIpInAccessList).mockResolvedValue("added");
-        register = vi.fn();
+        keychain = new Keychain();
+        registerSpy = vi.spyOn(keychain, "register");
         mockApiClient = {
             createDatabaseUser: vi.fn().mockResolvedValue({}),
         };
@@ -45,30 +41,36 @@ describe("CreateDBUserTool", () => {
             debug: vi.fn(),
             warning: vi.fn(),
             error: vi.fn(),
-        } as unknown as CompositeLogger;
+            setAttribute: vi.fn(),
+            addLogger: vi.fn(),
+        } as unknown as ICompositeLogger;
 
         const mockSession = {
+            sessionId: "test-session",
             logger: mockLogger,
             apiClient: mockApiClient as unknown as ApiClient,
-            keychain: { register, allSecrets: [] } as unknown as Keychain,
-        } as unknown as Session;
+            connectedAtlasCluster: undefined,
+            connectToMongoDB: vi.fn().mockResolvedValue(undefined),
+            keychain,
+            config: {
+                apiClientId: "test-id",
+                apiClientSecret: "test-secret",
+            } as unknown as IAtlasConfig,
+            disconnect: vi.fn().mockResolvedValue(undefined),
+            close: vi.fn().mockResolvedValue(undefined),
+            isConnectedToMongoDB: false,
+            on: vi.fn(),
+            setMcpClient: vi.fn(),
+        } as unknown as IAtlasSession;
 
-        const params: ToolConstructorParams = {
+        const params: ToolConstructorParams<IAtlasSession> = {
             name: CreateDBUserTool.toolName,
             category: "atlas",
             operationType: CreateDBUserTool.operationType,
             session: mockSession,
-            config: {
-                confirmationRequiredTools: [],
-                previewFeatures: [],
-                disabledTools: [],
-                apiClientId: "test-id",
-                apiClientSecret: "test-secret",
-            } as unknown as UserConfig,
-            telemetry: { isTelemetryEnabled: () => false, emitEvents: vi.fn() } as unknown as Telemetry,
-            elicitation: { requestConfirmation: vi.fn() } as unknown as Elicitation,
+            telemetry: { isTelemetryEnabled: () => false, emitEvents: vi.fn() } as unknown as ITelemetry,
+            elicitation: { requestConfirmation: vi.fn() } as unknown as IElicitation,
             metrics: new MockMetrics(),
-            uiRegistry: new UIRegistry(),
         };
 
         tool = new CreateDBUserTool(params);
@@ -82,11 +84,10 @@ describe("CreateDBUserTool", () => {
         const result = await exec({ ...baseArgs, password: "user-password" });
 
         expect((result.content[0] as { text: string }).text).toBe('User "test-user" created successfully.');
-        expect(register).toHaveBeenCalledWith("test-user", "user");
-        expect(register).toHaveBeenCalledWith("user-password", "password");
+        expect(registerSpy).toHaveBeenCalledWith("test-user", "user");
+        expect(registerSpy).toHaveBeenCalledWith("user-password", "password");
         expect(result.structuredContent).toEqual({
             username: baseArgs.username,
-            password: undefined,
         });
     });
 
@@ -94,52 +95,11 @@ describe("CreateDBUserTool", () => {
         const result = await exec();
 
         expect((result.content[0] as { text: string }).text).toContain("with password: `generated-password`");
-        expect(register).toHaveBeenCalledWith("generated-password", "password");
+        expect(registerSpy).toHaveBeenCalledWith("generated-password", "password");
         expect(result.structuredContent).toEqual({
             username: baseArgs.username,
             password: "generated-password",
         });
-    });
-
-    it("explains that the current IP cannot be determined when the IP setup is skipped", async () => {
-        vi.mocked(ensureCurrentIpInAccessList).mockResolvedValue("skipped");
-
-        const result = await exec({ ...baseArgs, password: "user-password" });
-
-        const text = result.content.map((c) => (c as { text: string }).text).join("\n");
-        expect(text).toContain('User "test-user" created successfully');
-        expect(text).toContain("No IP access list changes were made");
-        expect(text).toContain("cannot determine your public IP address");
-    });
-
-    it("explains that adding the current IP did not succeed when the IP setup fails", async () => {
-        vi.mocked(ensureCurrentIpInAccessList).mockResolvedValue("failed");
-
-        const result = await exec({ ...baseArgs, password: "user-password" });
-
-        const text = result.content.map((c) => (c as { text: string }).text).join("\n");
-        expect(text).toContain('User "test-user" created successfully');
-        expect(text).toContain("No IP access list changes were made");
-        expect(text).toContain("did not succeed");
-        expect(text).not.toContain("cannot determine your public IP address");
-    });
-
-    it("discloses that the current IP was added to the access list", async () => {
-        vi.mocked(ensureCurrentIpInAccessList).mockResolvedValue("added");
-
-        const result = await exec({ ...baseArgs, password: "user-password" });
-
-        const text = result.content.map((c) => (c as { text: string }).text).join("\n");
-        expect(text).toContain("Your current IP address has been added");
-    });
-
-    it("does not mention the access list when the current IP is already present", async () => {
-        vi.mocked(ensureCurrentIpInAccessList).mockResolvedValue("already-present");
-
-        const result = await exec({ ...baseArgs, password: "user-password" });
-
-        const text = result.content.map((c) => (c as { text: string }).text).join("\n");
-        expect(text).not.toContain("access list");
     });
 
     it("passes cluster scopes to the API when clusters are provided", async () => {

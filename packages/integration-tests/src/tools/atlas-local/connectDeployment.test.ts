@@ -1,5 +1,5 @@
 import { expect, it, beforeAll, afterAll } from "vitest";
-import { expectDefined, getResponseElements, validateToolMetadata } from "../../helpers.js";
+import { expectDefined, getResponseElements, validateToolMetadata } from "../../integrationHelpers.js";
 import {
     createAtlasLocalDeployment,
     describeWithAtlasLocal,

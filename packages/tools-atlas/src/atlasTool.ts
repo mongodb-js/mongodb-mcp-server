@@ -1,13 +1,41 @@
-import type { AtlasMetadata } from "../../telemetry/types.js";
-import { ToolBase, type ToolArgs, type ToolCategory } from "../tool.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { LogId } from "../../common/logging/index.js";
+import type { CallToolResult, ISession, IToolConfig, AtlasMetadata } from "@mongodb-js/mcp-types";
+import { ToolBase } from "@mongodb-js/mcp-core";
+import type { ToolArgs } from "@mongodb-js/mcp-core";
+import type { ToolCategory } from "@mongodb-js/mcp-types";
+import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { LogId } from "@mongodb-js/mcp-core";
+import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import { z } from "zod";
-import { ApiClientError } from "../../common/atlas/apiClientError.js";
-import type { ApiClient } from "../../common/atlas/apiClient.js";
+import type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-types";
 
-export abstract class AtlasToolBase extends ToolBase {
-    public static category: ToolCategory = "atlas";
+export interface IAtlasConfig extends IToolConfig {
+    apiClientId?: string;
+    apiClientSecret?: string;
+    atlasTemporaryDatabaseUserLifetimeMs?: number;
+}
+
+export interface IAtlasSession extends ISession {
+    config: IAtlasConfig;
+    readonly apiClient?: ApiClient;
+    readonly connectedAtlasCluster?: AtlasClusterConnectionInfo;
+    readonly connectionManager?: {
+        currentConnectionState: {
+            tag: string;
+            errorReason?: string;
+        };
+    };
+    connectToMongoDB(settings: { connectionString: string; atlas?: AtlasClusterConnectionInfo }): Promise<void>;
+}
+
+export abstract class AtlasToolBase extends ToolBase<IAtlasSession> {
+    static category: ToolCategory = "atlas";
+
+    declare protected readonly session: IAtlasSession;
+
+    /** Access to the Atlas-specific configuration. */
+    protected get config(): IAtlasConfig {
+        return this.session.config;
+    }
 
     protected verifyAllowed(): boolean {
         if (!this.config.apiClientId || !this.config.apiClientSecret) {

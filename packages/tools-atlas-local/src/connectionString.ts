@@ -1,14 +1,17 @@
 import type { Client } from "@mongodb-js/atlas-local";
-import { sleep } from "../managedTimeout.js";
+import { sleep } from "@mongodb-js/mcp-core";
 
 /** Keep well under the MCP client's default ~60s request timeout. */
 export const DEFAULT_MAX_ATTEMPTS = 60;
 export const DEFAULT_INTERVAL_MS = 500;
 
 export class AtlasLocalDeploymentNotReadyError extends Error {
-    constructor(public readonly deploymentName: string) {
+    readonly deploymentName: string;
+
+    constructor(deploymentName: string) {
         super(`Atlas Local deployment "${deploymentName}" is still starting up`);
         this.name = "AtlasLocalDeploymentNotReadyError";
+        this.deploymentName = deploymentName;
     }
 }
 

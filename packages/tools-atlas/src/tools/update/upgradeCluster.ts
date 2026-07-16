@@ -1,13 +1,13 @@
+import type { CallToolResult, OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { z } from "zod";
-import { type OperationType, type ToolArgs, type ToolResult, type ToolExecutionContext } from "../../tool.js";
-import { AtlasToolBase } from "../atlasTool.js";
-import { formatCluster } from "../../../common/atlas/cluster.js";
-import type { ApiClient } from "../../../common/atlas/apiClient.js";
-import { ApiClientError } from "../../../common/atlas/apiClientError.js";
+import { type ToolArgs, type ToolResult } from "@mongodb-js/mcp-core";
+import { AtlasToolBase } from "../../atlasTool.js";
+import { formatCluster } from "../../helpers/cluster.js";
+import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import { AtlasArgs } from "../../args.js";
-import type { UpgradeClusterMetadata } from "../../../telemetry/types.js";
-import type { AtlasClusterConnectionInfo } from "../../../common/connectionInfo.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { UpgradeClusterMetadata } from "@mongodb-js/mcp-atlas-telemetry";
+import type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-types";
 
 const ALLOWED_PROVIDER_REGEX = /^[A-Z_]+$/;
 
@@ -19,13 +19,10 @@ AZURE: "East US" → US_EAST_2, "West US" → US_WEST_2, "Europe"/"EU" → EUROP
 // Hardcoded defaults for all dedicated (M10) upgrade paths.
 // provider and region are the only fields callers may override.
 const DEDICATED_CLUSTER_DEFAULTS = {
-    clusterType: "REPLICASET",
+    clusterType: "REPLICASET" as const,
     regionConfig: {
         priority: 7,
-        electableSpecs: {
-            instanceSize: "M10",
-            nodeCount: 3,
-        },
+        electableSpecs: { instanceSize: "M10", nodeCount: 3 },
     },
     autoScaling: {
         compute: { enabled: true, scaleDownEnabled: true, minInstanceSize: "M10", maxInstanceSize: "M30" },
@@ -92,6 +89,7 @@ type ResolvedClusterInfo = {
     instanceType: "FREE" | "FLEX" | "DEDICATED";
     provider?: string;
     region?: string;
+    originalClusterId?: string;
 };
 
 async function resolveClusterInfo(
@@ -125,6 +123,7 @@ async function resolveClusterInfo(
             instanceType: cluster.instanceType,
             provider: argOverrides.provider ?? firstRegionConfig?.backingProviderName,
             region: argOverrides.region ?? firstRegionConfig?.regionName,
+            originalClusterId: raw.id,
         };
     } catch (err) {
         // Atlas returns 400 for Flex clusters on the regular cluster endpoint ("cannot be used in the Cluster API")
@@ -140,6 +139,7 @@ async function resolveClusterInfo(
             instanceType: "FLEX",
             provider: argOverrides.provider ?? raw.providerSettings?.backingProviderName,
             region: argOverrides.region ?? raw.providerSettings?.regionName,
+            originalClusterId: raw.id,
         };
     }
 }
@@ -158,7 +158,6 @@ export class UpgradeClusterTool extends AtlasToolBase {
     static toolName = "atlas-upgrade-cluster";
     public description = `Upgrade a MongoDB Atlas cluster tier. Upgrades Free (M0) clusters to Flex or M10 Dedicated, or Flex clusters to M10 Dedicated. The upgrade path is determined automatically from the current tier unless overridden with targetTier. Note to LLM: If provider and region are not already known, ask for both together in a single question before calling this tool. ${REGION_RECOMMENDATIONS}`;
     static operationType: OperationType = "update";
-    public override outputSchema = UpgradeClusterOutputSchema;
     public argsShape = {
         projectId: AtlasArgs.projectId()
             .optional()
@@ -181,6 +180,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
                 "Cloud provider region in Atlas format using uppercase letters and underscores (e.g. US_EAST_1). If omitted, the existing value is preserved."
             ),
     };
+    public override outputSchema = UpgradeClusterOutputSchema;
 
     protected async execute(
         args: ToolArgs<typeof this.argsShape>,
@@ -204,6 +204,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
 
         const target = args.targetTier ?? (clusterInfo.instanceType === "FREE" ? "FLEX" : "M10");
         let clusterId: string | undefined;
+
         switch (clusterInfo.instanceType) {
             case "DEDICATED":
                 throw new UpgradeClusterError(
@@ -224,6 +225,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
                 ));
                 break;
             case "FREE":
+                // upgradeTenantUpgrade: upgrades Free (M0/shared) clusters to Flex or Dedicated (M10+)
                 ({ id: clusterId } = await this.upgradeFreeCluster(
                     projectId,
                     clusterName,
@@ -239,7 +241,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
             content: [
                 {
                     type: "text",
-                    text: `Cluster "${clusterName}" is being upgraded from ${clusterInfo.instanceType} to ${target} tier. This may take a few minutes.`,
+                    text: `Cluster "${clusterName}" is being upgraded from ${UpgradeClusterTool.formatTier(clusterInfo.instanceType)} to ${UpgradeClusterTool.formatTier(target)} tier. This may take a few minutes.`,
                 },
             ],
             structuredContent: {
@@ -250,6 +252,10 @@ export class UpgradeClusterTool extends AtlasToolBase {
                 clusterId,
             },
         };
+    }
+
+    private static formatTier(tier: "FREE" | "FLEX" | "M10" | "DEDICATED"): string {
+        return tier === "M10" ? "M10" : tier.charAt(0) + tier.slice(1).toLowerCase();
     }
 
     protected override handleError(error: unknown, args: ToolArgs<typeof this.argsShape>): CallToolResult {
@@ -271,7 +277,6 @@ export class UpgradeClusterTool extends AtlasToolBase {
         regionName: string | undefined,
         context: ToolExecutionContext
     ): Promise<{ id?: string }> {
-        // upgradeTenantUpgrade: upgrades Free (M0/shared) clusters to Flex or Dedicated (M10+)
         switch (target) {
             case "FLEX":
                 return await this.apiClient.upgradeTenantUpgrade(
@@ -302,17 +307,17 @@ export class UpgradeClusterTool extends AtlasToolBase {
 
     protected override resolveTelemetryMetadata(
         args: ToolArgs<typeof this.argsShape>,
-        context: { result: CallToolResult }
+        { result }: { result: CallToolResult }
     ): UpgradeClusterMetadata {
-        const parentMetadata = super.resolveTelemetryMetadata(args, context);
+        const parentMetadata = super.resolveTelemetryMetadata(args, { result });
         type UpgradeClusterOutput = z.infer<z.ZodObject<typeof UpgradeClusterOutputSchema>>;
-        const sc = context.result.structuredContent as UpgradeClusterOutput | undefined;
+        const sc = result.structuredContent as UpgradeClusterOutput | undefined;
 
         return {
             ...parentMetadata,
             original_tier: UpgradeClusterTool.toLowerCase(sc?.originalTier),
             target_tier: UpgradeClusterTool.toLowerCase(sc?.targetTier),
-            cluster_id: sc?.clusterId,
+            target_cluster_id: sc?.clusterId,
             provider: sc?.resolvedProvider,
             region: sc?.resolvedRegion,
         };

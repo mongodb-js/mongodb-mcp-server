@@ -12,7 +12,7 @@ vi.mock("@inquirer/prompts", () => ({
 
 import { spawn } from "node:child_process";
 import { confirm } from "@inquirer/prompts";
-import { buildSkillsAddArgs, installSkills, promptAndInstallSkills } from "../../../src/setup/installSkills.js";
+import { buildSkillsAddArgs, installSkills, promptAndInstallSkills } from "./installSkills.js";
 
 const spawnMock = vi.mocked(spawn);
 const confirmMock = vi.mocked(confirm);

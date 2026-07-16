@@ -1,11 +1,11 @@
-import type { ConnectionManagerEvents, ConnectionStateConnected } from "../../../src/common/connectionManager.js";
-import { getAuthType, type ConnectionStringAuthType } from "../../../src/common/connectionInfo.js";
-import type { UserConfig } from "../../../src/common/config/userConfig.js";
-import { describeWithMongoDB, waitUntilSearchIsReady } from "../tools/mongodb/mongodbHelpers.js";
+import type { ConnectionManagerEvents, ConnectionStateConnected } from "@mongodb-js/mcp-tools-mongodb";
+import { getAuthType, type ConnectionStringAuthType } from "@mongodb-js/mcp-tools-mongodb";
+import type { UserConfig } from "mongodb-mcp-server";
+import { describeWithMongoDB, waitUntilSearchIsReady } from "../mongodbHelpers.js";
 import { MongoServerError } from "mongodb";
 import { describe, beforeEach, expect, it, vi, afterEach } from "vitest";
 import type { MockInstance } from "vitest";
-import { type TestConnectionManager } from "../../utils/index.js";
+import type { TestConnectionManager } from "../testConnectionManager.js";
 
 describeWithMongoDB("Connection Manager", (integration) => {
     function connectionManager(): TestConnectionManager {
@@ -50,6 +50,7 @@ describeWithMongoDB("Connection Manager", (integration) => {
 
             await connectionManager().connect({
                 connectionString: integration.connectionString(),
+                driverOptions: {},
             });
         });
 
@@ -89,6 +90,7 @@ describeWithMongoDB("Connection Manager", (integration) => {
             beforeEach(async () => {
                 await connectionManager().connect({
                     connectionString: integration.connectionString(),
+                    driverOptions: {},
                 });
             });
 
@@ -110,6 +112,7 @@ describeWithMongoDB("Connection Manager", (integration) => {
                 try {
                     await connectionManager().connect({
                         connectionString: "mongodb://localhost:xxxxx",
+                        driverOptions: {},
                     });
                 } catch (_error: unknown) {
                     void _error;
@@ -151,6 +154,7 @@ describeWithMongoDB("Connection Manager", (integration) => {
                     await connectionManager().connect({
                         connectionString: "mongodb://localhost:xxxxx",
                         atlas,
+                        driverOptions: {},
                     });
                 } catch (_error: unknown) {
                     void _error;

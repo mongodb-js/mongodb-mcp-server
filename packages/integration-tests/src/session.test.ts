@@ -2,56 +2,57 @@ import type { Mocked, MockedFunction } from "vitest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MongoServerError } from "mongodb";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { Session } from "../../../src/common/session.js";
-import { CompositeLogger } from "../../../src/common/logging/index.js";
-import { MCPConnectionManager } from "../../../src/common/connectionManager.js";
-import { ExportsManager } from "../../../src/common/exportsManager.js";
-import { DeviceId } from "../../../src/helpers/deviceId.js";
-import { Keychain } from "../../../src/common/keychain.js";
-import { ErrorCodes, MongoDBError } from "../../../src/common/errors.js";
-import { defaultTestConfig } from "../../integration/helpers.js";
-import { connectionErrorHandler as defaultConnectionErrorHandler } from "../../../src/common/connectionErrorHandler.js";
-import { defaultCreateApiClient } from "../../../src/lib.js";
+import { CliSession } from "@mongodb-js/mcp-cli";
+import { CompositeLogger } from "@mongodb-js/mcp-core";
+import { MCPConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
+import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
+import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
+import { Keychain } from "@mongodb-js/mcp-core";
+import { ErrorCodes, MongoDBError } from "@mongodb-js/mcp-tools-mongodb";
+import { createTestApiClient, defaultTestConfig, testServerMetadata } from "./integrationHelpers.js";
+import { connectionErrorHandler as defaultConnectionErrorHandler } from "@mongodb-js/mcp-tools-mongodb";
 
 vi.mock("@mongosh/service-provider-node-driver");
 
 const MockNodeDriverServiceProvider = vi.mocked(NodeDriverServiceProvider);
 const MockDeviceId = vi.mocked(DeviceId.create(new CompositeLogger()));
 
-describe("Session", () => {
-    let session: Session;
+describe("CliSession", () => {
+    let session: CliSession;
     let mockDeviceId: Mocked<DeviceId>;
 
     beforeEach(() => {
         const logger = new CompositeLogger();
 
         mockDeviceId = MockDeviceId;
-        const connectionManager = new MCPConnectionManager(defaultTestConfig, logger, mockDeviceId);
+        const connectionManager = new MCPConnectionManager({
+            logger,
+            deviceId: mockDeviceId,
+            serverMetadata: testServerMetadata,
+            connectionInfo: defaultTestConfig,
+        });
 
-        session = new Session({
+        session = new CliSession({
             userConfig: {
                 ...defaultTestConfig,
                 apiClientId: "test-client-id",
                 apiBaseUrl: "https://api.test.com",
             },
             logger,
-            exportsManager: ExportsManager.init(defaultTestConfig, logger),
+            exportsManager: ExportsManager.init({ options: defaultTestConfig, logger: logger }),
             connectionManager: connectionManager,
             keychain: new Keychain(),
-            apiClient: defaultCreateApiClient(
-                {
-                    baseUrl: defaultTestConfig.apiBaseUrl,
-                    credentials: {
-                        clientId: defaultTestConfig.apiClientId,
-                        clientSecret: defaultTestConfig.apiClientSecret,
-                    },
-                },
-                logger
-            ),
+            apiClient: createTestApiClient({
+                baseUrl: defaultTestConfig.apiBaseUrl,
+                serverMetadata: { mcpServerName: "test", version: "1" },
+                logger,
+                clientId: defaultTestConfig.apiClientId,
+                clientSecret: defaultTestConfig.apiClientSecret,
+            }),
             connectionErrorHandler: defaultConnectionErrorHandler,
         });
 
-        MockNodeDriverServiceProvider.connect = vi.fn().mockResolvedValue({} as unknown as NodeDriverServiceProvider);
+        MockNodeDriverServiceProvider.connect = vi.fn().mockResolvedValue({});
         MockDeviceId.get = vi.fn().mockResolvedValue("test-device-id");
     });
 
@@ -157,7 +158,7 @@ describe("Session", () => {
                 insertOne: insertOneMock,
                 dropDatabase: vi.fn().mockResolvedValue({}),
                 listDatabases: listDatabasesMock,
-            } as unknown as NodeDriverServiceProvider);
+            });
         });
 
         it("should return 'available' if listing search indexes succeed and create search indexes succeed", async () => {
@@ -205,7 +206,7 @@ describe("Session", () => {
                 initialDb: "test",
                 getSearchIndexes: getSearchIndexesMock,
                 listDatabases: vi.fn().mockResolvedValue({ databases: [] }),
-            } as unknown as NodeDriverServiceProvider);
+            });
         });
 
         it("should not throw if it is available", async () => {

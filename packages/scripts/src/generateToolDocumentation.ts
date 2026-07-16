@@ -8,12 +8,12 @@
 import { readFileSync, writeFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { AllTools } from "../../src/tools/index.js";
-import { ATLAS_CREATE_CLUSTER_README_DESCRIPTION } from "../../src/tools/atlas/create/createCluster.js";
-import { ATLAS_PAUSE_RESUME_CLUSTER_README_DESCRIPTION } from "../../src/tools/atlas/update/pauseResumeCluster.js";
-import { UIRegistry } from "../../src/ui/registry/index.js";
-import { UserConfigSchema } from "../../src/lib.js";
+import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
+import { AllTools } from "mongodb-mcp-server";
+import { UIRegistry } from "@mongodb-js/mcp-ui";
+import { UserConfigSchema } from "mongodb-mcp-server";
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
+import type { DefaultMetricDefinitions, ISession, IToolConfig } from "@mongodb-js/mcp-types";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -28,8 +28,6 @@ interface ToolInfo {
 const overrides: Record<string, string> = {
     connect: "Connect to a MongoDB instance",
     "switch-connection": "Switch to a different MongoDB connection",
-    "atlas-create-cluster": ATLAS_CREATE_CLUSTER_README_DESCRIPTION,
-    "atlas-pause-resume-cluster": ATLAS_PAUSE_RESUME_CLUSTER_README_DESCRIPTION,
 };
 
 function extractToolInformation(): ToolInfo[] {
@@ -39,7 +37,7 @@ function extractToolInformation(): ToolInfo[] {
     for (const ToolClass of AllTools) {
         // Create a minimal instance to access instance properties
         // We need to provide dummy params since we only need name and description
-        const dummyParams = {
+        const dummyParams: ToolConstructorParams<ISession<IToolConfig>, DefaultMetricDefinitions> = {
             name: ToolClass.toolName,
             category: ToolClass.category,
             operationType: ToolClass.operationType,
@@ -48,8 +46,8 @@ function extractToolInformation(): ToolInfo[] {
                 off: () => {},
                 emit: () => false,
                 connectionManager: null,
+                config: UserConfigSchema.parse({}),
             } as never,
-            config: UserConfigSchema.parse({}),
             telemetry: {
                 emitEvents: () => {},
             } as never,
@@ -123,7 +121,7 @@ function generateReadmeToolsList(tools: ToolInfo[]): string {
         sections.push(`#### ${categoryTitles[category]}\n`);
 
         for (const tool of toolsByCategory[category]) {
-            sections.push(`- \`${tool.name}\` - ${tool.description.replace(/\n/g, "\n  ")}`);
+            sections.push(`- \`${tool.name}\` - ${tool.description}`);
         }
 
         // Add note for Atlas tools
@@ -140,7 +138,7 @@ function generateReadmeToolsList(tools: ToolInfo[]): string {
 }
 
 function updateReadmeToolsList(tools: ToolInfo[]): void {
-    const readmePath = join(__dirname, "..", "..", "README.md");
+    const readmePath = join(__dirname, "..", "..", "..", "README.md");
     let content = readFileSync(readmePath, "utf-8");
 
     const newToolsList = generateReadmeToolsList(tools);

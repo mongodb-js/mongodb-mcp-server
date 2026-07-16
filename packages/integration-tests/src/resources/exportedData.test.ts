@@ -2,12 +2,12 @@ import path from "path";
 import fs from "fs/promises";
 import { EJSON, Long, ObjectId } from "bson";
 import { describe, expect, it, beforeEach, afterAll } from "vitest";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { defaultTestConfig, getDataFromUntrustedContent, resourceChangedNotification } from "../helpers.js";
-import { describeWithMongoDB } from "../tools/mongodb/mongodbHelpers.js";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
+import { defaultTestConfig, getDataFromUntrustedContent, resourceChangedNotification, sleep } from "../integrationHelpers.js";
+import { describeWithMongoDB } from "../mongodbHelpers.js";
 import { contentWithResourceURILink } from "../tools/mongodb/read/export.test.js";
-import type { UserConfig } from "../../../src/lib.js";
-import { sleep } from "../../../src/common/managedTimeout.js";
+import type { UserConfig } from "mongodb-mcp-server";
+import { ExportedData } from "@mongodb-js/mcp-cli";
 
 const userConfig: UserConfig = {
     ...defaultTestConfig,
@@ -179,5 +179,6 @@ describeWithMongoDB(
     },
     {
         getUserConfig: () => userConfig,
+        serverOptions: { resources: [ExportedData] },
     }
 );

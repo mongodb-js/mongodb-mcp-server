@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolConstructorParams, ToolResult } from "../../tool.js";
-import type { Server } from "../../../server.js";
+import { MongoDBToolBase, type IMongoDBSession, type MongoDBToolRegistrationServer } from "../../mongodbTool.js";
+import type { ToolArgs, ToolConstructorParams, ToolResult } from "@mongodb-js/mcp-core";
+import type { OperationType } from "@mongodb-js/mcp-types";
 
 const ConnectOutputSchema = {
     connected: z.boolean(),
@@ -22,18 +22,18 @@ export class ConnectTool extends MongoDBToolBase {
 
     public override outputSchema = ConnectOutputSchema;
 
-    constructor(params: ToolConstructorParams) {
+    constructor(params: ToolConstructorParams<IMongoDBSession>) {
         super(params);
-        params.session.on("connect", () => {
+        this.session.on("connect", () => {
             this.disable();
         });
 
-        params.session.on("disconnect", () => {
+        this.session.on("disconnect", () => {
             this.enable();
         });
     }
 
-    public override register(server: Server): boolean {
+    public override register(server: MongoDBToolRegistrationServer): boolean {
         const registrationSuccessful = super.register(server);
         /**
          * When connected to mongodb we want to swap connect with

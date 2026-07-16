@@ -1,28 +1,34 @@
-import { DeviceId } from "../../src/helpers/deviceId.js";
+import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { describe, expect, it } from "vitest";
-import { CompositeLogger } from "../../src/common/logging/index.js";
-import { Keychain } from "../../src/common/keychain.js";
-import { defaultCreateApiClient } from "../../src/common/atlas/apiClient.js";
-import { Telemetry } from "../../src/telemetry/telemetry.js";
+import { CompositeLogger } from "@mongodb-js/mcp-core";
+import { Keychain } from "@mongodb-js/mcp-core";
+import { createTestApiClient } from "./integrationHelpers.js";
+import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 
-describe("Telemetry", () => {
+describe("AtlasTelemetry", () => {
     it("should resolve the actual device ID", async () => {
         const logger = new CompositeLogger();
 
         const deviceId = DeviceId.create(logger);
         const actualDeviceId = await deviceId.get();
 
-        const telemetry = Telemetry.create({
+        const telemetry = AtlasTelemetry.create({
             logger,
             deviceId,
-            apiClient: defaultCreateApiClient(
-                {
-                    baseUrl: "https://fake.address.com/",
+            apiClient: createTestApiClient({
+                baseUrl: "https://fake.address.com/",
+                serverMetadata: {
+                    mcpServerName: "test-server",
+                    version: "1.0.0",
                 },
-                logger
-            ),
+                logger,
+            }),
             keychain: new Keychain(),
             enabled: true,
+            serverMetadata: {
+                mcpServerName: "test-server",
+                version: "1.0.0",
+            },
         });
 
         expect(telemetry.getCommonProperties().device_id).toBe(undefined);

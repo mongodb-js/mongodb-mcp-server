@@ -37,8 +37,6 @@ helpful for validating judge criteria against the reference answer.`
     })
     .strict();
 
-export type EvalParameters = z3.infer<typeof EvalParametersSchema>;
-
 // ╭───────────────────────────────────────────────────────────────────────────────────╮
 // │   ↘️ Default Parameter Overrides through BT_EVAL_PARAMS_JSON environment variable │
 // ╰───────────────────────────────────────────────────────────────────────────────────╯
@@ -53,23 +51,23 @@ export const EvalParametersBtSchema = {
     connectionString: z3
         .string()
         .default(defaults.connectionString)
-        .describe(EvalParametersSchema.shape.connectionString.description!),
+        .describe(EvalParametersSchema.shape.connectionString.description ?? ""),
     model: {
         type: "model" as const,
         default: defaults.model,
-        description: EvalParametersSchema.shape.model.description!,
+        description: EvalParametersSchema.shape.model.description ?? "",
     },
     systemContext: z3
         .string()
         .default(defaults.systemContext)
-        .describe(EvalParametersSchema.shape.systemContext.description!),
+        .describe(EvalParametersSchema.shape.systemContext.description ?? ""),
     judgeModel: {
         type: "model" as const,
         default: defaults.judgeModel,
-        description: EvalParametersSchema.shape.judgeModel.description!,
+        description: EvalParametersSchema.shape.judgeModel.description ?? "",
     },
     validateReferenceAnswer: z3
         .boolean()
         .default(defaults.validateReferenceAnswer)
-        .describe(EvalParametersSchema.shape.validateReferenceAnswer.description!),
+        .describe(EvalParametersSchema.shape.validateReferenceAnswer.description ?? ""),
 } satisfies BraintrustEvalParameters;

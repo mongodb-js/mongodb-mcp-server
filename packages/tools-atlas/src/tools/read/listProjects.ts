@@ -1,8 +1,10 @@
 import { z } from "zod";
-import { AtlasToolBase } from "../atlasTool.js";
-import type { OperationType, ToolArgs, ToolExecutionContext, ToolResult } from "../../tool.js";
-import { formatUntrustedData } from "../../tool.js";
+import { AtlasToolBase } from "../../atlasTool.js";
+import type { OperationType } from "@mongodb-js/mcp-types";
+import { formatUntrustedData } from "@mongodb-js/mcp-core";
+import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
+import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
 
 const ListProjectsOutputSchema = {
     orgId: z.string().optional(),

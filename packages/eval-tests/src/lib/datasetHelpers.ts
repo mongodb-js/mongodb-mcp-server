@@ -51,15 +51,9 @@ export function parseSeedEntry(entry: DbSeedEntry): ParsedSeed {
         throw new Error(`Invalid db_seed entry, expected a single collection key but got: ${JSON.stringify(entry)}`);
     }
 
-    const collection = keys[0]!;
+    const collection = keys[0];
+    if (!collection) {
+        throw new Error(`Invalid db_seed entry, expected a single collection key but got: ${JSON.stringify(entry)}`);
+    }
     return { collection, indexes: entry[collection]?.indexes ?? [] };
-}
-
-/**
- * Get the collection names from a database seed.
- * @param dbSeed - The database seed.
- * @returns The collection names.
- */
-export function seedCollectionNames(dbSeed: DbSeedEntry[] = []): string[] {
-    return dbSeed.map((entry) => parseSeedEntry(entry).collection);
 }

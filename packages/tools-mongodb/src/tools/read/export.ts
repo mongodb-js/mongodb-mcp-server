@@ -1,11 +1,12 @@
-import z from "zod";
+import { z } from "zod";
 import { ObjectId } from "bson";
 import type { AggregationCursor, FindCursor } from "mongodb";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { OperationType, ToolArgs, ToolExecutionContext } from "../../tool.js";
-import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
+import type { ToolArgs } from "@mongodb-js/mcp-core";
+import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
+import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
 import { FindArgs } from "./find.js";
-import { jsonExportFormat } from "../../../common/exportsManager.js";
+import { jsonExportFormat } from "../../common/exportsManager.js";
 import { AggregateArgs } from "./aggregate.js";
 
 export class ExportTool extends MongoDBToolBase {

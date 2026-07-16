@@ -1,18 +1,24 @@
-import { type OperationType, type ToolArgs, type ToolResult, type ToolExecutionContext } from "../../tool.js";
-import { requestIdAttr } from "../../../helpers/requestIdAttr.js";
 import { z } from "zod";
-import { AtlasToolBase } from "../atlasTool.js";
-import { generateSecurePassword } from "../../../helpers/generatePassword.js";
-import { LogId } from "../../../common/logging/index.js";
-import { getConnectionString, inspectCluster } from "../../../common/atlas/cluster.js";
-import { ensureCurrentIpInAccessList, ACCESS_LIST_ADDED_NOTE } from "../../../common/atlas/accessListUtils.js";
-import { runSharedTierAlertsHook } from "../../../common/atlas/sharedTierAlertsHook.js";
-import type { AtlasClusterConnectionInfo } from "../../../common/connectionManager.js";
-import { getDefaultRoleFromConfig } from "../../../common/atlas/roles.js";
+import { type ToolArgs, type ToolResult, LogId, requestIdAttr, sleep } from "@mongodb-js/mcp-core";
+import type {
+    OperationType,
+    ConnectionMetadata,
+    AtlasClusterConnectionInfo,
+    SharedTierTier,
+    SharedTierMetricName,
+    ToolExecutionContext,
+} from "@mongodb-js/mcp-types";
+import { SHARED_TIER_METRIC_NAMES } from "@mongodb-js/mcp-types";
+import { AtlasToolBase } from "../../atlasTool.js";
+import { generateSecurePassword } from "../../helpers/generatePassword.js";
+import { getConnectionString, inspectCluster } from "../../helpers/cluster.js";
+import { ensureCurrentIpInAccessList } from "../../helpers/accessListUtils.js";
+import { getDefaultRoleFromConfig } from "../../helpers/roles.js";
+import { runSharedTierAlertsHook } from "../../helpers/sharedTierAlertsHook.js";
 import { AtlasArgs } from "../../args.js";
-import { SHARED_TIER_METRIC_NAMES } from "../../../telemetry/types.js";
-import type { ConnectionMetadata, SharedTierTier, SharedTierMetricName } from "../../../telemetry/types.js";
-import { sleep } from "../../../common/managedTimeout.js";
+
+const addedIpAccessListMessage =
+    "Note: Your current IP address has been added to the Atlas project's IP access list to enable secure connection.";
 
 const createdUserMessage =
     "Note: A temporary user has been created to enable secure connection to the cluster. For more information, see https://dochub.mongodb.org/core/mongodb-mcp-server-tools-considerations\n\nNote to LLM Agent: it is important to include the following link in your response to the user in case they want to get more information about the temporary user created: https://dochub.mongodb.org/core/mongodb-mcp-server-tools-considerations";
@@ -48,22 +54,24 @@ export class ConnectClusterTool extends AtlasToolBase {
         projectId: string,
         clusterName: string
     ): "connected" | "disconnected" | "connecting" | "connected-to-other-cluster" | "unknown" {
-        if (!this.session.connectedAtlasCluster) {
-            if (this.session.isConnectedToMongoDB) {
+        const session = this.session;
+        if (!session.connectedAtlasCluster) {
+            if (session.isConnectedToMongoDB) {
                 return "connected-to-other-cluster";
             }
             return "disconnected";
         }
 
-        const currentConectionState = this.session.connectionManager.currentConnectionState;
+        // Access the connection manager through session
+        const currentConectionState = session.connectionManager?.currentConnectionState;
         if (
-            this.session.connectedAtlasCluster.projectId !== projectId ||
-            this.session.connectedAtlasCluster.clusterName !== clusterName
+            session.connectedAtlasCluster.projectId !== projectId ||
+            session.connectedAtlasCluster.clusterName !== clusterName
         ) {
             return "connected-to-other-cluster";
         }
 
-        switch (currentConectionState.tag) {
+        switch (currentConectionState?.tag) {
             case "connecting":
             case "disconnected": // we might still be calling Atlas APIs and not attempted yet to connect to MongoDB, but we are still "connecting"
                 return "connecting";
@@ -75,6 +83,8 @@ export class ConnectClusterTool extends AtlasToolBase {
                     context: "atlas-connect-cluster",
                     message: `error querying cluster: ${currentConectionState.errorReason}`,
                 });
+                return "unknown";
+            default:
                 return "unknown";
         }
     }
@@ -100,7 +110,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         const username = `mcpUser${Math.floor(Math.random() * 100000)}`;
         const password = await generateSecurePassword();
 
-        const expiryDate = new Date(Date.now() + this.config.atlasTemporaryDatabaseUserLifetimeMs);
+        const expiryDate = new Date(Date.now() + (this.config.atlasTemporaryDatabaseUserLifetimeMs ?? 3600000));
         const role = getDefaultRoleFromConfig(this.config);
 
         await this.apiClient.createDatabaseUser(
@@ -170,6 +180,7 @@ export class ConnectClusterTool extends AtlasToolBase {
             try {
                 lastError = undefined;
 
+                // Connect to MongoDB via the session
                 await this.session.connectToMongoDB({ connectionString, atlas });
                 break;
             } catch (err: unknown) {
@@ -187,28 +198,32 @@ export class ConnectClusterTool extends AtlasToolBase {
                 await sleep(500); // wait for 500ms before retrying
             }
 
+            const session = this.session;
             if (
-                !this.session.connectedAtlasCluster ||
-                this.session.connectedAtlasCluster.projectId !== atlas.projectId ||
-                this.session.connectedAtlasCluster.clusterName !== atlas.clusterName
+                !session.connectedAtlasCluster ||
+                session.connectedAtlasCluster.projectId !== atlas.projectId ||
+                session.connectedAtlasCluster.clusterName !== atlas.clusterName
             ) {
                 throw new Error("Cluster connection aborted");
             }
         }
 
         if (lastError) {
+            const session = this.session;
             if (
-                this.session.connectedAtlasCluster?.projectId === atlas.projectId &&
-                this.session.connectedAtlasCluster?.clusterName === atlas.clusterName &&
-                this.session.connectedAtlasCluster?.username
+                session.connectedAtlasCluster?.projectId === atlas.projectId &&
+                session.connectedAtlasCluster?.clusterName === atlas.clusterName &&
+                session.connectedAtlasCluster?.username
             ) {
+                const username = session.connectedAtlasCluster.username;
+                const connectedProjectId = session.connectedAtlasCluster.projectId;
                 void this.apiClient
                     .deleteDatabaseUser(
                         {
                             params: {
                                 path: {
-                                    groupId: this.session.connectedAtlasCluster.projectId,
-                                    username: this.session.connectedAtlasCluster.username,
+                                    groupId: connectedProjectId,
+                                    username,
                                     databaseName: "admin",
                                 },
                             },
@@ -241,7 +256,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         { projectId, clusterName, connectionType }: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        const ipAccessListUpdated = (await ensureCurrentIpInAccessList(this.apiClient, projectId, context)) === "added";
+        const ipAccessListUpdated = await ensureCurrentIpInAccessList(this.apiClient, projectId);
         let createdUser = false;
 
         const state = this.queryConnection(projectId, clusterName);
@@ -250,7 +265,7 @@ export class ConnectClusterTool extends AtlasToolBase {
             case "disconnected": {
                 await this.session.disconnect();
 
-                const { connectionString, atlas } = await this.prepareClusterConnection(
+                const preparedConnection = await this.prepareClusterConnection(
                     projectId,
                     clusterName,
                     connectionType,
@@ -260,7 +275,11 @@ export class ConnectClusterTool extends AtlasToolBase {
                 createdUser = true;
 
                 // try to connect for about 5 minutes asynchronously
-                void this.connectToCluster(connectionString, atlas, context).catch((err: unknown) => {
+                void this.connectToCluster(
+                    preparedConnection.connectionString,
+                    preparedConnection.atlas,
+                    context
+                ).catch((err: unknown) => {
                     const error = err instanceof Error ? err : new Error(String(err));
                     this.session.logger.error({
                         id: LogId.atlasConnectFailure,
@@ -292,7 +311,7 @@ export class ConnectClusterTool extends AtlasToolBase {
                     if (ipAccessListUpdated) {
                         content.push({
                             type: "text" as const,
-                            text: ACCESS_LIST_ADDED_NOTE,
+                            text: addedIpAccessListMessage,
                         });
                     }
 
@@ -343,7 +362,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         if (ipAccessListUpdated) {
             content.push({
                 type: "text" as const,
-                text: ACCESS_LIST_ADDED_NOTE,
+                text: addedIpAccessListMessage,
             });
         }
 

@@ -8,16 +8,16 @@ import {
     getResponseContent,
     validateThrowsForInvalidArguments,
     validateToolMetadata,
-} from "../../../helpers.js";
+} from "../../../integrationHelpers.js";
 import {
     describeWithMongoDB,
     waitUntilSearchIndexIsListed,
     waitUntilSearchIsReady,
     type MongoDBIntegrationTestCase,
-} from "../mongodbHelpers.js";
-import { createMockElicitInput } from "../../../../utils/elicitationMocks.js";
-import { Elicitation } from "../../../../../src/elicitation.js";
-import type { DropIndexOutput } from "../../../../../src/tools/mongodb/delete/dropIndex.js";
+} from "../../../mongodbHelpers.js";
+import { createMockElicitInput } from "@mongodb-js/mcp-test-utils";
+import { Elicitation } from "mongodb-mcp-server";
+import type { DropIndexOutput } from "@mongodb-js/mcp-tools-mongodb";
 
 function setupForClassicIndexes(integration: MongoDBIntegrationTestCase): {
     getMoviesCollection: () => Collection;

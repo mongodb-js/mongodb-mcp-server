@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "erasableSyntaxOnly": true,
+    "composite": true,
+    "paths": {
+      "ts-levenshtein": ["./node_modules/ts-levenshtein/dist/index.d.mts"],
+      "@mongosh/arg-parser/arg-parser": [
+        "./node_modules/@mongosh/arg-parser/lib/arg-parser"
+      ]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["dist", "node_modules"]
+}

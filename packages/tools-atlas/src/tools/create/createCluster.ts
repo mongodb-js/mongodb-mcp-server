@@ -1,11 +1,10 @@
 import { z } from "zod";
-import { type OperationType, type ToolArgs, type ToolResult, type ToolExecutionContext } from "../../tool.js";
-import { AtlasToolBase } from "../atlasTool.js";
-import type { ClusterDescription20240805 } from "../../../common/atlas/openapi.js";
+import { type ToolArgs, type ToolResult } from "@mongodb-js/mcp-core";
+import type { OperationType, ToolExecutionContext, CallToolResult } from "@mongodb-js/mcp-types";
+import { AtlasToolBase } from "../../atlasTool.js";
+import type { ClusterDescription20240805 } from "@mongodb-js/mcp-atlas-api-client";
 import { AtlasArgs } from "../../args.js";
-import type { CreateClusterMetadata } from "../../../telemetry/types.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { ensureCurrentIpInAccessList, getAccessListNote } from "../../../common/atlas/accessListUtils.js";
+import type { CreateClusterMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 
 /** @public */
 export const ATLAS_CREATE_CLUSTER_README_DESCRIPTION =
@@ -216,7 +215,12 @@ export class CreateClusterTool extends AtlasToolBase {
         args: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        const { projectId, clusterName, provider, region, clusterType, terminationProtectionEnabled } = args;
+        const projectId = args.projectId;
+        const clusterName = args.clusterName;
+        const provider = args.provider;
+        const region = args.region;
+        const clusterType = args.clusterType;
+        const terminationProtectionEnabled = args.terminationProtectionEnabled;
 
         if (clusterType === "SHARDED" && (args.instanceSize === "M10" || args.instanceSize === "M20")) {
             throw new CreateClusterError("SHARDED clusters require M30 or higher instance size.");
@@ -247,8 +251,6 @@ export class CreateClusterTool extends AtlasToolBase {
             ...versionConfig,
         } as unknown as ClusterDescription20240805;
 
-        const ipAccessListResult = await ensureCurrentIpInAccessList(this.apiClient, projectId, context);
-
         const result = await this.apiClient.createCluster(
             {
                 params: { path: { groupId: projectId } },
@@ -256,8 +258,6 @@ export class CreateClusterTool extends AtlasToolBase {
             },
             context
         );
-
-        const ipAccessListNote = getAccessListNote(ipAccessListResult);
 
         return {
             content: [
@@ -268,7 +268,6 @@ export class CreateClusterTool extends AtlasToolBase {
                         `Use the atlas-inspect-cluster tool with projectId "${projectId}" and clusterName "${clusterName}" to poll for readiness. ` +
                         `The cluster is ready when its state is IDLE, connection strings are unavailable until then.`,
                 },
-                ...(ipAccessListNote ? [{ type: "text" as const, text: ipAccessListNote }] : []),
             ],
             structuredContent: {
                 clusterId: result.id,

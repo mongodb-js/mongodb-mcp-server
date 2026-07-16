@@ -1,5 +1,5 @@
 import type { Collection, IndexDirection } from "mongodb";
-import type { CollectionIndexesOutput } from "../../../../../src/tools/mongodb/metadata/collectionIndexes.js";
+import type { CollectionIndexesOutput } from "@mongodb-js/mcp-tools-mongodb";
 import {
     databaseCollectionParameters,
     validateToolMetadata,
@@ -9,13 +9,13 @@ import {
     getDataFromUntrustedContent,
     getResponseContent,
     expectDefined,
-} from "../../../helpers.js";
+} from "../../../integrationHelpers.js";
 import {
     describeWithMongoDB,
     validateAutoConnectBehavior,
     waitUntilSearchIndexIsQueryable,
     waitUntilSearchIsReady,
-} from "../mongodbHelpers.js";
+} from "../../../mongodbHelpers.js";
 import { beforeEach, describe, expect, it } from "vitest";
 
 const getIndexesFromContent = (content?: string): Array<unknown> => {

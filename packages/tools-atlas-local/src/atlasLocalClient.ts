@@ -1,5 +1,5 @@
 import type { Client } from "@mongodb-js/atlas-local";
-import { LogId, type LoggerBase } from "./logging/index.js";
+import { LogId, type LoggerBase } from "@mongodb-js/mcp-core";
 
 export type AtlasLocalClientFactoryFn = ({
     logger,
@@ -46,7 +46,7 @@ class DefaultLibraryLoader implements LibraryLoader {
     }
 }
 
-export const defaultCreateAtlasLocalClient: AtlasLocalClientFactoryFn = async ({ logger, loader }) => {
+export const createAtlasLocalClient: AtlasLocalClientFactoryFn = async ({ logger, loader }) => {
     const libraryLoader = loader ?? DefaultLibraryLoader.instance;
     const client = await libraryLoader.loadAtlasLocalClient(logger);
 

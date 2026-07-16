@@ -2,15 +2,15 @@ import createClient from "openapi-fetch";
 import type { ClientOptions, FetchOptions, Client, Middleware } from "openapi-fetch";
 import { ApiClientError } from "./apiClientError.js";
 import type { components, paths, operations } from "./openapi.js";
-import type { CommonProperties, TelemetryEvent } from "../../telemetry/types.js";
-import { packageInfo } from "../packageInfo.js";
-import type { LoggerBase } from "../logging/index.js";
+import type { LoggerBase } from "@mongodb-js/mcp-core";
+import type { IApiClient, ServerMetadata, TelemetryCommonProperties, TelemetryEvent } from "@mongodb-js/mcp-types";
 import { createFetch } from "@mongodb-js/devtools-proxy-support";
 import { Request as NodeFetchRequest } from "node-fetch";
-import type { Credentials, AuthProvider } from "./auth/authProvider.js";
-import { AuthProviderFactory } from "./auth/authProvider.js";
+import type { AuthProvider } from "./auth/authProvider.js";
+import { userAgentFromServerMetadata } from "./userAgentFromServerMetadata.js";
 
 const ATLAS_API_VERSION = "2025-03-12";
+const LEGACY_ATLAS_API_VERSION = "2023-01-01";
 const DEFAULT_SEND_TIMEOUT_MS = 5_000;
 
 /**
@@ -24,10 +24,12 @@ function isNodeRuntime(): boolean {
 }
 
 export interface ApiClientOptions {
-    baseUrl: string;
-    userAgent?: string;
-    credentials?: Credentials;
-    requestContext?: RequestContext;
+    options: {
+        baseUrl: string;
+    };
+    serverMetadata: ServerMetadata;
+    logger: LoggerBase;
+    authProvider: AuthProvider | undefined;
     /**
      * Whether this deployment can determine the caller's public IP address via the
      * `api/private/ipinfo` endpoint. Embedders whose network position makes the
@@ -39,6 +41,7 @@ export interface ApiClientOptions {
     supportsCurrentIpLookup?: boolean;
 }
 
+/** @public */
 export type RequestContext = {
     headers?: Record<string, string | string[] | undefined>;
 };
@@ -63,13 +66,14 @@ export type ApiClientRequestContext = {
  */
 const FORWARDABLE_REQUEST_HEADERS: ReadonlySet<string> = new Set(["x-request-id"]);
 
-export type ApiClientFactoryFn = (options: ApiClientOptions, logger: LoggerBase) => ApiClient;
+export type ApiClientFactoryFn = (options: ApiClientOptions) => ApiClient;
 
-export const defaultCreateApiClient: ApiClientFactoryFn = (options, logger) => {
-    return new ApiClient(options, logger);
+/** @public */
+export const defaultCreateApiClient: ApiClientFactoryFn = (options) => {
+    return new ApiClient(options);
 };
 
-export class ApiClient {
+export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonProperties>[]> {
     private readonly options: {
         baseUrl: string;
         userAgent: string;
@@ -84,11 +88,12 @@ export class ApiClient {
         return !!this.authProvider;
     }
 
-    constructor(
-        options: ApiClientOptions,
-        public readonly logger: LoggerBase,
-        public readonly authProvider?: AuthProvider
-    ) {
+    readonly logger: LoggerBase;
+    readonly authProvider?: AuthProvider;
+
+    constructor({ logger, authProvider, options, serverMetadata, supportsCurrentIpLookup }: ApiClientOptions) {
+        this.logger = logger;
+        this.authProvider = authProvider;
         // In Node we use `createFetch` from devtools-proxy-support to pick up
         // environment-variable proxy configuration and system CA trust, and we
         // use node-fetch's Request since its interface is a superset of the
@@ -108,23 +113,10 @@ export class ApiClient {
             this.customFetch = globalThis.fetch.bind(globalThis);
         }
         this.options = {
-            ...options,
-            userAgent:
-                options.userAgent ??
-                `AtlasMCP/${packageInfo.version} (${isNodeRuntime() ? `${process.platform}; ${process.arch}` : "browser"})`,
-            supportsCurrentIpLookup: options.supportsCurrentIpLookup ?? true,
+            baseUrl: options.baseUrl,
+            userAgent: userAgentFromServerMetadata(serverMetadata),
+            supportsCurrentIpLookup: supportsCurrentIpLookup ?? true,
         };
-
-        this.authProvider =
-            authProvider ??
-            AuthProviderFactory.create(
-                {
-                    apiBaseUrl: this.options.baseUrl,
-                    userAgent: this.options.userAgent,
-                    credentials: options.credentials ?? {},
-                },
-                logger
-            );
 
         this.client = createClient<paths>({
             baseUrl: this.options.baseUrl,
@@ -239,8 +231,10 @@ export class ApiClient {
     }
 
     public async sendEvents(
-        events: TelemetryEvent<CommonProperties>[],
-        { signal = AbortSignal.timeout(DEFAULT_SEND_TIMEOUT_MS) }: { signal?: AbortSignal } = {}
+        {
+            events,
+            signal = AbortSignal.timeout(DEFAULT_SEND_TIMEOUT_MS),
+        }: { events: TelemetryEvent<TelemetryCommonProperties>[]; signal?: AbortSignal } = { events: [] }
     ): Promise<void> {
         if (!this.authProvider) {
             await this.sendUnauthEvents(events, signal);
@@ -263,7 +257,10 @@ export class ApiClient {
         }
     }
 
-    private async sendAuthEvents(events: TelemetryEvent<CommonProperties>[], signal?: AbortSignal): Promise<void> {
+    private async sendAuthEvents(
+        events: TelemetryEvent<TelemetryCommonProperties>[],
+        signal?: AbortSignal
+    ): Promise<void> {
         const authHeaders = await this.authProvider?.getAuthHeaders();
         if (!authHeaders) {
             throw new Error("No access token available");
@@ -286,7 +283,10 @@ export class ApiClient {
         }
     }
 
-    private async sendUnauthEvents(events: TelemetryEvent<CommonProperties>[], signal?: AbortSignal): Promise<void> {
+    private async sendUnauthEvents(
+        events: TelemetryEvent<TelemetryCommonProperties>[],
+        signal?: AbortSignal
+    ): Promise<void> {
         const headers: Record<string, string> = {
             Accept: "application/json",
             "Content-Type": "application/json",
@@ -317,7 +317,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -331,7 +331,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -345,7 +345,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -357,7 +357,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -370,7 +370,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -384,7 +384,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -398,7 +398,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -413,7 +413,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -426,7 +426,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -440,7 +440,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -454,7 +454,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -471,7 +471,7 @@ export class ApiClient {
             )
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -483,7 +483,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -496,7 +496,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -510,7 +510,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -524,7 +524,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -538,7 +538,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -552,7 +552,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -566,7 +566,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -580,7 +580,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -595,7 +595,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -608,7 +608,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -622,7 +622,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -637,7 +637,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -650,7 +650,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -664,7 +664,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -678,7 +678,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -692,7 +692,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -706,7 +706,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -720,7 +720,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -734,7 +734,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -748,7 +748,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -762,7 +762,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -776,7 +776,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -791,7 +791,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -804,7 +804,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -819,7 +819,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -833,7 +833,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -847,7 +847,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -861,7 +861,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -874,7 +874,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -888,7 +888,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -906,7 +906,7 @@ export class ApiClient {
             )
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -920,7 +920,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -934,7 +934,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -949,7 +949,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -962,7 +962,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -976,7 +976,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -990,7 +990,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -1005,7 +1005,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -1018,7 +1018,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -1032,7 +1032,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -1047,7 +1047,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -1061,7 +1061,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -1075,7 +1075,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -1088,7 +1088,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -1106,7 +1106,7 @@ export class ApiClient {
             )
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -1120,7 +1120,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -1134,7 +1134,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -1148,10 +1148,84 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
     /* eslint-enable @typescript-eslint/no-unsafe-assignment */
     // DO NOT EDIT. This is auto-generated code.
+
+    async upgradeSharedTierCluster(options: {
+        groupId: string;
+        body: {
+            name: string;
+            providerSettings: {
+                providerName?: string;
+                instanceSizeName: "FLEX" | "M10";
+                backingProviderName?: string;
+                regionName?: string;
+            };
+        };
+    }): Promise<{ id?: string }> {
+        const authHeaders = (await this.authProvider?.getAuthHeaders()) ?? {};
+        const url = new URL(`api/atlas/v2/groups/${options.groupId}/clusters/tenantUpgrade`, this.options.baseUrl);
+        const response = await this.customFetch(url.toString(), {
+            method: "POST",
+            signal: AbortSignal.timeout(DEFAULT_SEND_TIMEOUT_MS),
+            headers: {
+                ...authHeaders,
+                "Content-Type": `application/vnd.atlas.${LEGACY_ATLAS_API_VERSION}+json`,
+                Accept: `application/vnd.atlas.${LEGACY_ATLAS_API_VERSION}+json`,
+                "User-Agent": this.options.userAgent,
+            },
+            body: JSON.stringify(options.body),
+        });
+        if (!response.ok) {
+            throw await ApiClientError.fromResponse(response);
+        }
+        return (await response.json()) as { id?: string };
+    }
+
+    async upgradeFlexToDedicated(options: {
+        groupId: string;
+        body: {
+            name: string;
+            clusterType: "REPLICASET";
+            replicationSpecs: Array<{
+                regionConfigs: Array<{
+                    providerName?: string;
+                    regionName?: string;
+                    priority: number;
+                    electableSpecs: { instanceSize: string; nodeCount: number };
+                }>;
+            }>;
+            autoScaling: {
+                compute: {
+                    enabled: boolean;
+                    scaleDownEnabled: boolean;
+                    minInstanceSize: string;
+                    maxInstanceSize: string;
+                };
+                diskGBEnabled: boolean;
+            };
+        };
+    }): Promise<{ id?: string }> {
+        const authHeaders = (await this.authProvider?.getAuthHeaders()) ?? {};
+        const url = new URL(`api/atlas/v2/groups/${options.groupId}/flexClusters:tenantUpgrade`, this.options.baseUrl);
+        const response = await this.customFetch(url.toString(), {
+            method: "POST",
+            signal: AbortSignal.timeout(DEFAULT_SEND_TIMEOUT_MS),
+            headers: {
+                ...authHeaders,
+                "Content-Type": `application/vnd.atlas.${ATLAS_API_VERSION}+json`,
+                Accept: `application/vnd.atlas.${ATLAS_API_VERSION}+json`,
+                "User-Agent": this.options.userAgent,
+            },
+            body: JSON.stringify(options.body),
+        });
+        if (!response.ok) {
+            throw await ApiClientError.fromResponse(response);
+        }
+        return (await response.json()) as { id?: string };
+    }
 }

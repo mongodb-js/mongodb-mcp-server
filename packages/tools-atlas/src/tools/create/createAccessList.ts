@@ -1,7 +1,9 @@
 import { z } from "zod";
-import { type OperationType, type ToolArgs, type ToolExecutionContext, type ToolResult } from "../../tool.js";
-import { AtlasToolBase } from "../atlasTool.js";
-import { makeCurrentIpAccessListEntry, DEFAULT_ACCESS_LIST_COMMENT } from "../../../common/atlas/accessListUtils.js";
+import { type ToolArgs } from "@mongodb-js/mcp-core";
+import type { OperationType } from "@mongodb-js/mcp-types";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
+import { AtlasToolBase } from "../../atlasTool.js";
+import { makeCurrentIpAccessListEntry, DEFAULT_ACCESS_LIST_COMMENT } from "../../helpers/accessListUtils.js";
 import { AtlasArgs, CommonArgs } from "../../args.js";
 
 export const CreateAccessListArgs = {
@@ -9,45 +11,29 @@ export const CreateAccessListArgs = {
     ipAddresses: z.array(AtlasArgs.ipAddress()).describe("IP addresses to allow access from").optional(),
     cidrBlocks: z.array(AtlasArgs.cidrBlock()).describe("CIDR blocks to allow access from").optional(),
     currentIpAddress: z.boolean().describe("Add the current IP address").default(false),
-    comment: CommonArgs.string()
+    comment: CommonArgs.asciiOnlyString()
         .describe("Comment for the access list entries")
         .default(DEFAULT_ACCESS_LIST_COMMENT)
         .optional(),
-};
-
-const CreateAccessListOutputSchema = {
-    projectId: z.string(),
 };
 
 export class CreateAccessListTool extends AtlasToolBase {
     static toolName = "atlas-create-access-list";
     public description = "Allow Ip/CIDR ranges to access your MongoDB Atlas clusters.";
     static operationType: OperationType = "create";
-    // The currentIpAddress arg is omitted on deployments that can't determine the
-    // caller's public IP (e.g. the Atlas-hosted MCP server), so models are never
-    // offered an option that cannot work there. Typed as the full shape because
-    // execute() still receives currentIpAddress as optional either way.
-    public get argsShape(): typeof CreateAccessListArgs {
-        if (this.session.apiClient?.supportsCurrentIpLookup === false) {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { currentIpAddress, ...rest } = CreateAccessListArgs;
-            return rest as typeof CreateAccessListArgs;
-        }
+    public argsShape = {
+        ...CreateAccessListArgs,
+    };
 
-        return CreateAccessListArgs;
-    }
-    public override outputSchema = CreateAccessListOutputSchema;
-
-    protected async execute(
-        { projectId, ipAddresses, cidrBlocks, comment, currentIpAddress }: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+    protected async execute({
+        projectId,
+        ipAddresses,
+        cidrBlocks,
+        comment,
+        currentIpAddress,
+    }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         if (!ipAddresses?.length && !cidrBlocks?.length && !currentIpAddress) {
-            if (!this.apiClient.supportsCurrentIpLookup) {
-                throw new Error("Either ipAddresses or cidrBlocks must be provided.");
-            }
-
-            throw new Error("One of ipAddresses, cidrBlocks, currentIpAddress must be provided.");
+            throw new Error("One of  ipAddresses, cidrBlocks, currentIpAddress must be provided.");
         }
 
         const ipInputs = (ipAddresses || []).map((ipAddress) => ({
@@ -73,17 +59,14 @@ export class CreateAccessListTool extends AtlasToolBase {
 
         const inputs = [...ipInputs, ...cidrInputs];
 
-        await this.apiClient.createAccessListEntry(
-            {
-                params: {
-                    path: {
-                        groupId: projectId,
-                    },
+        await this.apiClient.createAccessListEntry({
+            params: {
+                path: {
+                    groupId: projectId,
                 },
-                body: inputs,
             },
-            context
-        );
+            body: inputs,
+        });
 
         return {
             content: [

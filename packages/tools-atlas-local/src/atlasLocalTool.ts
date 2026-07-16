@@ -1,14 +1,27 @@
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { ToolArgs, ToolCategory, ToolExecutionContext } from "../tool.js";
-import { ToolBase } from "../tool.js";
+import type { CallToolResult, ISession, IToolConfig, ConnectionMetadata } from "@mongodb-js/mcp-types";
+import type { ToolArgs } from "@mongodb-js/mcp-core";
+import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
+import { ToolBase } from "@mongodb-js/mcp-core";
+import { LogId } from "@mongodb-js/mcp-core";
 import type { Client } from "@mongodb-js/atlas-local";
-import { LogId } from "../../common/logging/index.js";
-import type { ConnectionMetadata } from "../../telemetry/types.js";
+import type { ToolCategory } from "@mongodb-js/mcp-types";
+
+export interface IAtlasLocalConfig extends IToolConfig {
+    voyageApiKey?: string;
+}
+
+export interface IAtlasLocalSession extends ISession {
+    config: IAtlasLocalConfig;
+    readonly atlasLocalClient?: Client;
+    connectToMongoDB(settings: { connectionString: string }): Promise<void>;
+}
 
 export const AtlasLocalToolMetadataDeploymentIdKey = "deploymentId";
 
-export abstract class AtlasLocalToolBase extends ToolBase {
+export abstract class AtlasLocalToolBase extends ToolBase<IAtlasLocalSession> {
     static category: ToolCategory = "atlas-local";
+
+    declare protected readonly session: IAtlasLocalSession;
 
     protected verifyAllowed(): boolean {
         return this.session.atlasLocalClient !== undefined && super.verifyAllowed();

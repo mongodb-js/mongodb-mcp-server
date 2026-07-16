@@ -2,14 +2,15 @@
 // The timeouts for the beforeAll/afterAll hooks have been modified to account for longer running tests.
 
 import { ObjectId } from "bson";
-import type { Session } from "../../../../src/common/session.js";
+import type { CliSession } from "mongodb-mcp-server";
 import {
     DEFAULT_LONG_RUNNING_TEST_WAIT_TIMEOUT_MS,
     defaultTestConfig,
     expectDefined,
     getResponseElements,
     setupIntegrationTest,
-} from "../../helpers.js";
+} from "../../integrationHelpers.js";
+import { AtlasTools } from "@mongodb-js/mcp-tools-atlas";
 import {
     describeWithAtlas,
     withProject,
@@ -20,7 +21,7 @@ import {
 } from "./atlasHelpers.js";
 import type { Mock, MockInstance } from "vitest";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { BaseEvent, ToolEvent } from "../../../../src/telemetry/types.js";
+import type { TelemetryBaseEvent as BaseEvent, TelemetryToolEvent as ToolEvent } from "@mongodb-js/mcp-atlas-telemetry";
 
 describeWithAtlas("performanceAdvisor", (integration) => {
     withProject(integration, ({ getProjectId }) => {
@@ -29,7 +30,7 @@ describeWithAtlas("performanceAdvisor", (integration) => {
         afterAll(async () => {
             const projectId = getProjectId();
             if (projectId) {
-                const session: Session = integration.mcpServer().session;
+                const session: CliSession = integration.mcpServer().session;
                 await deleteCluster(session, projectId, clusterName);
             }
         }, DEFAULT_LONG_RUNNING_TEST_WAIT_TIMEOUT_MS);
@@ -139,12 +140,15 @@ describeWithAtlas("performanceAdvisor", (integration) => {
 });
 
 describe("mocked atlas-get-performance-advisor", () => {
-    const integration = setupIntegrationTest(() => ({
-        ...defaultTestConfig,
-        apiClientId: process.env.MDB_MCP_API_CLIENT_ID || "test-client",
-        apiClientSecret: process.env.MDB_MCP_API_CLIENT_SECRET || "test-secret",
-        apiBaseUrl: process.env.MDB_MCP_API_BASE_URL ?? "https://cloud-dev.mongodb.com",
-    }));
+    const integration = setupIntegrationTest(
+        () => ({
+            ...defaultTestConfig,
+            apiClientId: process.env.MDB_MCP_API_CLIENT_ID || "test-client",
+            apiClientSecret: process.env.MDB_MCP_API_CLIENT_SECRET || "test-secret",
+            apiBaseUrl: process.env.MDB_MCP_API_BASE_URL ?? "https://cloud-dev.mongodb.com",
+        }),
+        { tools: AtlasTools }
+    );
 
     let mockEmitEvents: MockInstance<(events: BaseEvent[]) => void>;
     let projectId: string;

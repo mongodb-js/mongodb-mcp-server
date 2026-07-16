@@ -1,11 +1,18 @@
 import { z } from "zod";
-import { StreamsToolBase } from "./streamsToolBase.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { OperationType, ToolArgs, ToolExecutionContext } from "../../tool.js";
-import { formatUntrustedData } from "../../tool.js";
+import { StreamsToolBase } from "../../streams/streamsToolBase.js";
+import type { CallToolResult, OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
+import { formatUntrustedData, type ToolArgs } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
-import { StreamsArgs } from "./streamsArgs.js";
-import type { StreamsProcessorWithStats } from "../../../common/atlas/openapi.js";
+import { StreamsArgs } from "../../streams/streamsArgs.js";
+
+type StreamsProcessorWithStats = {
+    name?: string;
+    state?: string;
+    tier?: string;
+    stats?: Record<string, unknown>;
+    options?: { dlq?: { connectionName?: string; db?: string; coll?: string } };
+    pipeline?: Record<string, unknown>[];
+};
 
 const DiscoverAction = z.enum([
     "list-workspaces",
@@ -567,7 +574,7 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         processorName: string,
         context: ToolExecutionContext
     ): Promise<CallToolResult> {
-        const [processorResult, connectionsResult] = await Promise.allSettled([
+        const settledResults = await Promise.allSettled([
             this.apiClient.getStreamProcessor(
                 {
                     params: { path: { groupId: projectId, tenantName: workspaceName, processorName } },
@@ -586,8 +593,8 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         const structuredContent: DiscoverOutput = {};
 
         // Processor state and stats
-        if (processorResult.status === "fulfilled" && processorResult.value) {
-            const proc = processorResult.value;
+        if (settledResults[0].status === "fulfilled" && settledResults[0].value) {
+            const proc = settledResults[0].value;
             Object.assign(structuredContent, buildProcessorStructuredContent(proc));
 
             sections.push(
@@ -628,13 +635,13 @@ export class StreamsDiscoverTool extends StreamsToolBase {
             }
         } else {
             const processorError =
-                processorResult.status === "rejected" ? String(processorResult.reason) : "No data returned";
+                settledResults[0].status === "rejected" ? String(settledResults[0].reason) : "No data returned";
             sections.push(`## Processor State\nError fetching processor: ${processorError}`);
         }
 
         // Connection health
-        if (connectionsResult.status === "fulfilled" && connectionsResult.value?.results?.length) {
-            const connections = connectionsResult.value.results;
+        if (settledResults[1].status === "fulfilled" && settledResults[1].value?.results?.length) {
+            const connections = settledResults[1].value.results;
             structuredContent.connectionHealth = connections.map(toConnectionSummary);
             const summary = connections
                 .map((c) => {
@@ -646,7 +653,7 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         }
 
         // Actionable guidance
-        const proc = processorResult.status === "fulfilled" ? processorResult.value : undefined;
+        const proc = settledResults[0].status === "fulfilled" ? settledResults[0].value : undefined;
         if (proc?.state === "FAILED") {
             sections.push(
                 "## Recommended Actions\n" +
@@ -672,7 +679,7 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         region: string | undefined,
         context: ToolExecutionContext
     ): Promise<CallToolResult> {
-        const [privateLinkResult] = await Promise.allSettled([
+        const settledResults = await Promise.allSettled([
             this.apiClient.listPrivateLinkConnections(
                 {
                     params: { path: { groupId: projectId } },
@@ -707,8 +714,8 @@ export class StreamsDiscoverTool extends StreamsToolBase {
             }
         }
 
-        if (privateLinkResult.status === "fulfilled" && privateLinkResult.value?.results?.length) {
-            const results = privateLinkResult.value.results;
+        if (settledResults[0].status === "fulfilled" && settledResults[0].value?.results?.length) {
+            const results = settledResults[0].value.results;
             structuredContent.privateLinks = results
                 .map(toPrivateLinkSummary)
                 .filter((pl): pl is PrivateLinkSummary => pl !== undefined);

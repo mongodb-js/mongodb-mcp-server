@@ -1,24 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { SetupTelemetry } from "../../../src/setup/setupTelemetry.js";
-import type { Telemetry } from "../../../src/telemetry/telemetry.js";
-import type { BaseEvent, SetupEventProperties } from "../../../src/telemetry/types.js";
-import type { DeviceId } from "../../../src/helpers/deviceId.js";
-
-type EmittedEvent = BaseEvent & { properties: SetupEventProperties };
+import { SetupTelemetry } from "./setupTelemetry.js";
+import type { ITelemetry } from "@mongodb-js/mcp-types";
+import type { TelemetrySetupEvent } from "@mongodb-js/mcp-atlas-telemetry";
+import type { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 
 function createMockTelemetry(): {
-    telemetry: Telemetry;
-    emitted: EmittedEvent[];
+    telemetry: ITelemetry;
+    emitted: TelemetrySetupEvent[];
     closeMock: ReturnType<typeof vi.fn>;
 } {
-    const emitted: EmittedEvent[] = [];
+    const emitted: TelemetrySetupEvent[] = [];
     const closeMock = vi.fn().mockResolvedValue(undefined);
-    const telemetry = {
-        emitEvents: vi.fn().mockImplementation((events: EmittedEvent[]) => {
+    const telemetry: ITelemetry = {
+        emitEvents: vi.fn().mockImplementation((events: TelemetrySetupEvent[]) => {
             emitted.push(...events);
         }),
         close: closeMock,
-    } as unknown as Telemetry;
+        isTelemetryEnabled: vi.fn().mockReturnValue(true),
+    };
     return { telemetry, emitted, closeMock };
 }
 
@@ -28,10 +27,13 @@ describe("SetupTelemetry", () => {
 
     beforeEach(() => {
         mock = createMockTelemetry();
-        setupTelemetry = new SetupTelemetry(mock.telemetry, {
-            get: vi.fn().mockResolvedValue("test-device-id"),
-            close: vi.fn().mockResolvedValue(undefined),
-        } as unknown as DeviceId);
+        setupTelemetry = new SetupTelemetry({
+            telemetry: mock.telemetry,
+            deviceId: {
+                get: vi.fn().mockResolvedValue("test-device-id"),
+                close: vi.fn().mockResolvedValue(undefined),
+            } as unknown as DeviceId,
+        });
     });
 
     it("should emit events with component=setup and category=setup", () => {

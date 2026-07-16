@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { EventCache } from "../../src/telemetry/eventCache.js";
-import type { BaseEvent } from "../../src/telemetry/types.js";
+import { EventCache } from "./eventCache.js";
+import type { TelemetryBaseEvent } from "./types.js";
 
-function createEvent(command: string): BaseEvent {
+function createEvent(command: string): TelemetryBaseEvent {
     return {
         timestamp: new Date().toISOString(),
         source: "mdbmcp",

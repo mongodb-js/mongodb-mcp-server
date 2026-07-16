@@ -1,0 +1,41 @@
+{
+  "name": "@mongodb-js/mcp-http-runners",
+  "description": "HTTP transport runners and servers for MongoDB MCP servers",
+  "version": "1.11.0-prerelease.1",
+  "type": "module",
+  "license": "Apache-2.0",
+  "author": "MongoDB <info@mongodb.com>",
+  "repository": {
+    "url": "https://github.com/mongodb-js/mongodb-mcp-server.git",
+    "directory": "packages/http-runners"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc --build tsconfig.build.json",
+    "test": "vitest --run",
+    "check": "tsc --build tsconfig.build.json --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@mongodb-js/mcp-core": "workspace:*",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "@mongodb-js/mcp-types": "workspace:*",
+    "@mongodb-js/mcp-metrics": "workspace:*",
+    "@types/express": "^5.0.3",
+    "@types/node": "^25.6.0",
+    "typescript": "^5.9.2",
+    "vitest": "^4.1.4"
+  }
+}

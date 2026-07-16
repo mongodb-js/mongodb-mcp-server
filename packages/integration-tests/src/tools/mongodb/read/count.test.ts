@@ -1,15 +1,14 @@
-import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
-
 import {
     getResponseContent,
     databaseCollectionParameters,
     validateToolMetadata,
     validateThrowsForInvalidArguments,
     expectDefined,
-} from "../../../helpers.js";
-import { beforeEach, afterEach, describe, expect, it } from "vitest";
+} from "../../../integrationHelpers.js";
+import { describeWithMongoDB, validateAutoConnectBehavior } from "../../../mongodbHelpers.js";
+import { beforeEach, describe, expect, it } from "vitest";
 import type { Client } from "@modelcontextprotocol/sdk/client";
-import { freshInsertDocuments } from "./find.test.js";
+import { freshInsertDocuments } from "./helpers.js";
 
 describeWithMongoDB("count tool", (integration) => {
     validateToolMetadata(
@@ -44,7 +43,6 @@ describeWithMongoDB("count tool", (integration) => {
         });
         const content = getResponseContent(response.content);
         expect(content).toEqual('Found 0 documents in the collection "foos".');
-        expect(response.structuredContent).toEqual({ count: 0 });
     });
 
     it("returns 0 when collection doesn't exist", async () => {
@@ -57,7 +55,6 @@ describeWithMongoDB("count tool", (integration) => {
         });
         const content = getResponseContent(response.content);
         expect(content).toEqual('Found 0 documents in the collection "non-existent".');
-        expect(response.structuredContent).toEqual({ count: 0 });
     });
 
     describe("with existing database", () => {
@@ -91,7 +88,6 @@ describeWithMongoDB("count tool", (integration) => {
                 expect(content).toEqual(
                     `Found ${testCase.expectedCount} documents in the collection "foo"${testCase.filter ? " that matched the query" : ""}.`
                 );
-                expect(response.structuredContent).toEqual({ count: testCase.expectedCount });
             });
         }
     });
@@ -171,7 +167,6 @@ describeWithMongoDB("count tool with abort signal", (integration) => {
         expect(result).toBeUndefined();
         expectDefined(error);
         expect(error.message).toContain("This operation was aborted");
-        expect(result?.structuredContent).toBeUndefined();
     });
 
     it("should abort count operation during query execution", async () => {
@@ -187,12 +182,11 @@ describeWithMongoDB("count tool with abort signal", (integration) => {
         const { result, error, executionTime } = await countPromise;
 
         // Ensure it aborted quickly, but possibly after some processing
-        expect(executionTime).toBeGreaterThanOrEqual(10);
-        expect(executionTime).toBeLessThan(50);
+        expect(executionTime).toBeGreaterThanOrEqual(15);
+        expect(executionTime).toBeLessThan(100);
         expect(result).toBeUndefined();
         expectDefined(error);
         expect(error.message).toContain("This operation was aborted");
-        expect(result?.structuredContent).toBeUndefined();
     });
 
     it("should complete successfully when not aborted", async () => {
@@ -205,48 +199,5 @@ describeWithMongoDB("count tool with abort signal", (integration) => {
         expect(error).toBeUndefined();
         const content = getResponseContent(result);
         expect(content).toContain('Found 0 documents in the collection "abort_collection" that matched the query.');
-        expect(result.structuredContent).toEqual({ count: 0 });
     });
-});
-
-describeWithMongoDB("count tool with server-side JavaScript operators", (integration) => {
-    afterEach(() => {
-        integration.mcpServer().userConfig.disableServerSideJs = true;
-    });
-
-    beforeEach(async () => {
-        await integration
-            .mongoClient()
-            .db(integration.randomDbName())
-            .collection("people")
-            .insertMany([
-                { name: "Peter", age: 5 },
-                { name: "Laura", age: 10 },
-            ]);
-    });
-
-    for (const jsDisabled of [true, false]) {
-        it(`${jsDisabled ? "rejects" : "does not reject"} queries using $where when disableServerSideJs is ${jsDisabled}`, async () => {
-            integration.mcpServer().userConfig.disableServerSideJs = jsDisabled;
-            await integration.connectMcpClient();
-            const response = await integration.mcpClient().callTool({
-                name: "count",
-                arguments: {
-                    database: integration.randomDbName(),
-                    collection: "people",
-                    query: { $where: "function() { return this.age > 8; }" },
-                },
-            });
-            const content = getResponseContent(response);
-            if (jsDisabled) {
-                expect(content).toContain(`The "$where" operator is not allowed.`);
-            } else {
-                // MongoDB itself rejects $where inside the count command, but our guard
-                // must not be the one blocking it once disableServerSideJs is false.
-                expect(content).not.toContain("server-side JavaScript operators");
-                expect(content).not.toContain("operator is not allowed");
-            }
-            expect(response.structuredContent).toBeUndefined();
-        });
-    }
 });

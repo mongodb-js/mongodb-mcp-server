@@ -1,18 +1,18 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { type UserConfig, UserConfigSchema } from "../../../src/common/config/userConfig.js";
-import { parseUserConfig, defaultParserOptions } from "../../../src/common/config/parseUserConfig.js";
+import { type UserConfig, UserConfigSchema } from "@mongodb-js/mcp-cli";
+import { parseUserConfig, defaultParserOptions } from "@mongodb-js/mcp-cli";
 import {
     getLogPath,
     getExportsPath,
     onlyLowerThanBaseValueOverride,
     onlySubsetOfBaseValueOverride,
-} from "../../../src/common/config/configUtils.js";
-import { Keychain } from "../../../src/common/keychain.js";
-import type { Secret } from "../../../src/common/keychain.js";
-import { createEnvironment } from "../../utils/index.js";
+} from "@mongodb-js/mcp-cli";
+import { Keychain } from "@mongodb-js/mcp-core";
+import type { Secret } from "@mongodb-js/mcp-core";
+import { createEnvironment, useClearEnvironment } from "@mongodb-js/mcp-test-utils";
 import path from "path";
-import { TRANSPORT_PAYLOAD_LIMITS, DEFAULT_MAX_SESSIONS } from "../../../src/transports/constants.js";
-import { getConfigMeta } from "../../../src/common/config/configOverrides.js";
+import { TRANSPORT_PAYLOAD_LIMITS } from "@mongodb-js/mcp-cli";
+import { getConfigMeta } from "@mongodb-js/mcp-cli";
 
 // Expected hardcoded values (what we had before)
 const expectedDefaults = {
@@ -45,7 +45,6 @@ const expectedDefaults = {
     loggers: ["disk", "mcp"],
     idleTimeoutMs: 10 * 60 * 1000, // 10 minutes
     notificationTimeoutMs: 9 * 60 * 1000, // 9 minutes
-    maxSessions: DEFAULT_MAX_SESSIONS,
     httpHeaders: {},
     httpBodyLimit: TRANSPORT_PAYLOAD_LIMITS.http,
     maxDocumentsPerQuery: 100,
@@ -58,41 +57,48 @@ const expectedDefaults = {
     externallyManagedSessions: false,
     httpResponseType: "sse",
     monitoringServerFeatures: ["health-check"],
+    queryCountMaxTimeMsCap: 10000,
+    aggregationCountMaxTimeMsCap: 60000,
+    maxSessions: 1000,
 };
 
 const CONFIG_FIXTURES = {
-    VALID: path.resolve(import.meta.dirname, "..", "..", "fixtures", "valid-config.json"),
-    WITH_INVALID_VALUE: path.resolve(import.meta.dirname, "..", "..", "fixtures", "config-with-invalid-value.json"),
+    VALID: path.resolve(import.meta.dirname, "fixtures", "valid-config.json"),
+    WITH_INVALID_VALUE: path.resolve(import.meta.dirname, "fixtures", "config-with-invalid-value.json"),
 };
 
 describe("config", () => {
-    it("should generate defaults from UserConfigSchema that match expected values", () => {
-        expect(UserConfigSchema.parse({})).toStrictEqual(expectedDefaults);
-    });
+    describe("defaults", () => {
+        useClearEnvironment("MDB_MCP_");
 
-    it("should generate defaults when no config sources are populated", () => {
-        expect(parseUserConfig({ args: [] })).toStrictEqual({
-            parsed: expectedDefaults,
-            warnings: [],
-            error: undefined,
+        it("should generate defaults from UserConfigSchema that match expected values", () => {
+            expect(UserConfigSchema.parse({})).toStrictEqual(expectedDefaults);
         });
-    });
 
-    it("can override defaults in the schema and those are populated instead", () => {
-        expect(
-            parseUserConfig({
-                args: [],
-                overrides: {
-                    exportTimeoutMs: UserConfigSchema.shape.exportTimeoutMs.default(123),
+        it("should generate defaults when no config sources are populated", () => {
+            expect(parseUserConfig({ args: [] })).toStrictEqual({
+                parsed: expectedDefaults,
+                warnings: [],
+                error: undefined,
+            });
+        });
+
+        it("can override defaults in the schema and those are populated instead", () => {
+            expect(
+                parseUserConfig({
+                    args: [],
+                    overrides: {
+                        exportTimeoutMs: UserConfigSchema.shape.exportTimeoutMs.default(123),
+                    },
+                })
+            ).toStrictEqual({
+                parsed: {
+                    ...expectedDefaults,
+                    exportTimeoutMs: 123,
                 },
-            })
-        ).toStrictEqual({
-            parsed: {
-                ...expectedDefaults,
-                exportTimeoutMs: 123,
-            },
-            warnings: [],
-            error: undefined,
+                warnings: [],
+                error: undefined,
+            });
         });
     });
 
@@ -136,6 +142,7 @@ describe("config", () => {
                 { envVar: "MDB_MCP_HTTP_BODY_LIMIT", property: "httpBodyLimit", value: 10 * 1024 * 1024 },
                 { envVar: "MDB_MCP_IDLE_TIMEOUT_MS", property: "idleTimeoutMs", value: 5000 },
                 { envVar: "MDB_MCP_NOTIFICATION_TIMEOUT_MS", property: "notificationTimeoutMs", value: 5000 },
+                { envVar: "MDB_MCP_MAX_SESSIONS", property: "maxSessions", value: 500 },
                 {
                     envVar: "MDB_MCP_ATLAS_TEMPORARY_DATABASE_USER_LIFETIME_MS",
                     property: "atlasTemporaryDatabaseUserLifetimeMs",
@@ -188,6 +195,8 @@ describe("config", () => {
     });
 
     describe("cli parsing", () => {
+        useClearEnvironment("MDB_MCP_");
+
         it("should not try to parse a multiple-host urls", () => {
             const { parsed: actual } = parseUserConfig({
                 args: ["--connectionString", "mongodb://user:password@host1,host2,host3/"],
@@ -246,6 +255,10 @@ describe("config", () => {
                 {
                     cli: ["--notificationTimeoutMs", "42"],
                     expected: { notificationTimeoutMs: 42 },
+                },
+                {
+                    cli: ["--maxSessions", "42"],
+                    expected: { maxSessions: 42 },
                 },
                 {
                     cli: ["--atlasTemporaryDatabaseUserLifetimeMs", "12345"],
@@ -581,6 +594,8 @@ describe("config", () => {
     });
 
     describe("loading a config file", () => {
+        useClearEnvironment("MDB_MCP_");
+
         describe("through env variable MDB_MCP_CONFIG", () => {
             const { setVariable, clearVariables } = createEnvironment();
             afterEach(() => {
@@ -628,6 +643,7 @@ describe("config", () => {
     });
 
     describe("precedence rules", () => {
+        useClearEnvironment("MDB_MCP_");
         const { setVariable, clearVariables } = createEnvironment();
 
         afterEach(() => {
@@ -862,6 +878,8 @@ describe("config", () => {
 });
 
 describe("keychain management", () => {
+    useClearEnvironment("MDB_MCP_");
+
     type TestCase = { readonly cliArg: keyof UserConfig; secretKind: Secret["kind"] };
     const testCases = [
         { cliArg: "apiClientId", secretKind: "user" },

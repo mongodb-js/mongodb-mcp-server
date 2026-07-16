@@ -1,14 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ToolConstructorParams, ToolExecutionContext } from "../../../../../src/tools/tool.js";
-import { ConnectClusterTool } from "../../../../../src/tools/atlas/connect/connectCluster.js";
-import type { Session } from "../../../../../src/common/session.js";
-import type { UserConfig } from "../../../../../src/common/config/userConfig.js";
-import type { Telemetry } from "../../../../../src/telemetry/telemetry.js";
-import type { Elicitation } from "../../../../../src/elicitation.js";
-import type { CompositeLogger } from "../../../../../src/common/logging/index.js";
-import type { ApiClient } from "../../../../../src/common/atlas/apiClient.js";
-import type { AtlasClusterConnectionInfo } from "../../../../../src/common/connectionInfo.js";
-import { MockMetrics } from "../../../mocks/metrics.js";
+import type { ToolConstructorParams, ToolExecutionContext } from "@mongodb-js/mcp-core";
+import { ConnectClusterTool } from "./connectCluster.js";
+import type { IAtlasSession, IAtlasConfig } from "../../atlasTool.js";
+import type { ITelemetry, IElicitation, ICompositeLogger } from "@mongodb-js/mcp-types";
+import type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-types";
+import { MockMetrics } from "../../mockMetrics.js";
+import { Keychain } from "@mongodb-js/mcp-core";
 
 const ATLAS_INFO: AtlasClusterConnectionInfo = {
     username: "user1",
@@ -20,8 +17,13 @@ const ATLAS_INFO: AtlasClusterConnectionInfo = {
 
 describe("ConnectClusterTool", () => {
     let mockLogger: Record<string, ReturnType<typeof vi.fn>>;
-    let mockSession: Partial<Session>;
+    let mockSession: Partial<IAtlasSession>;
     let tool: ConnectClusterTool;
+    let connectToCluster: (
+        connectionString: string,
+        atlas: AtlasClusterConnectionInfo,
+        context: ToolExecutionContext
+    ) => Promise<void>;
 
     beforeEach(() => {
         mockLogger = {
@@ -29,44 +31,53 @@ describe("ConnectClusterTool", () => {
             debug: vi.fn(),
             warning: vi.fn(),
             error: vi.fn(),
+            setAttribute: vi.fn(),
+            addLogger: vi.fn(),
         };
 
         mockSession = {
-            logger: mockLogger as unknown as CompositeLogger,
-            apiClient: {} as unknown as ApiClient,
+            sessionId: "test-session",
+            logger: mockLogger as unknown as ICompositeLogger,
+            apiClient: {} as never,
             connectedAtlasCluster: ATLAS_INFO,
             connectToMongoDB: vi.fn().mockResolvedValue(undefined),
+            disconnect: vi.fn().mockResolvedValue(undefined),
+            close: vi.fn().mockResolvedValue(undefined),
+            isConnectedToMongoDB: false,
+            on: vi.fn(),
+            setMcpClient: vi.fn(),
+            keychain: new Keychain(),
+            config: {
+                apiClientId: "test-id",
+                apiClientSecret: "test-secret",
+            } as unknown as IAtlasConfig,
         };
-
-        const mockConfig = {
-            confirmationRequiredTools: [],
-            previewFeatures: [],
-            disabledTools: [],
-            apiClientId: "test-id",
-            apiClientSecret: "test-secret",
-        } as unknown as UserConfig;
 
         const mockTelemetry = {
             isTelemetryEnabled: () => true,
             emitEvents: vi.fn(),
-        } as unknown as Telemetry;
+        } as unknown as ITelemetry;
 
         const mockElicitation = {
             requestConfirmation: vi.fn(),
-        } as unknown as Elicitation;
+        } as unknown as IElicitation;
 
-        const params: ToolConstructorParams = {
+        const params: ToolConstructorParams<IAtlasSession> = {
             name: ConnectClusterTool.toolName,
             category: "atlas",
             operationType: ConnectClusterTool.operationType,
-            session: mockSession as Session,
-            config: mockConfig,
+            session: mockSession as IAtlasSession,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
             metrics: new MockMetrics(),
         };
 
         tool = new ConnectClusterTool(params);
+        connectToCluster = tool["connectToCluster"].bind(tool) as (
+            connectionString: string,
+            atlas: AtlasClusterConnectionInfo,
+            context: ToolExecutionContext
+        ) => Promise<void>;
     });
 
     describe("connectToCluster request ID logging", () => {
@@ -76,7 +87,7 @@ describe("ConnectClusterTool", () => {
                 requestInfo: { headers: { "x-request-id": "req-connect-abc" } },
             };
 
-            await tool["connectToCluster"]("mongodb://localhost", ATLAS_INFO, context);
+            await connectToCluster("mongodb://localhost", ATLAS_INFO, context);
 
             expect(mockLogger.debug).toHaveBeenCalledWith(
                 expect.objectContaining({
@@ -101,7 +112,7 @@ describe("ConnectClusterTool", () => {
                 signal: new AbortController().signal,
             };
 
-            await tool["connectToCluster"]("mongodb://localhost", ATLAS_INFO, context);
+            await connectToCluster("mongodb://localhost", ATLAS_INFO, context);
 
             for (const [payload] of (mockLogger.debug as ReturnType<typeof vi.fn>).mock.calls) {
                 expect((payload as { attributes?: Record<string, string> }).attributes).not.toHaveProperty(

@@ -30,7 +30,9 @@ async function parallelMap<T, R>(items: T[], limit: number, fn: (item: T) => Pro
         while (true) {
             const idx = lock.next++;
             if (idx >= items.length) break;
-            results[idx] = await fn(items[idx]!);
+            const item = items[idx];
+            if (item === undefined) break;
+            results[idx] = await fn(item);
         }
     }
     const pool = Math.min(Math.max(1, items.length), limit);

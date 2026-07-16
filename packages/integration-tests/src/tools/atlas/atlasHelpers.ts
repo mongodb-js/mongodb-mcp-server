@@ -1,12 +1,12 @@
 import { ObjectId } from "mongodb";
-import type { ClusterDescription20240805, Group } from "../../../../src/common/atlas/openapi.js";
-import type { ApiClient } from "../../../../src/common/atlas/apiClient.js";
-import type { IntegrationTest } from "../../helpers.js";
-import { setupIntegrationTest, defaultTestConfig } from "../../helpers.js";
+import type { ApiClient, ClusterDescription20240805, Group } from "@mongodb-js/mcp-atlas-api-client";
+import type { IntegrationTest } from "../../integrationHelpers.js";
+import { setupIntegrationTest, defaultTestConfig } from "../../integrationHelpers.js";
 import type { SuiteCollector } from "vitest";
 import { afterAll, beforeAll, describe } from "vitest";
-import type { Session } from "../../../../src/common/session.js";
-import { sleep } from "../../../../src/common/managedTimeout.js";
+import type { McpSession } from "@mongodb-js/mcp-cli";
+import type { CliSession } from "mongodb-mcp-server";
+import { AllTools } from "mongodb-mcp-server";
 
 export type IntegrationTestFunction = (integration: IntegrationTest) => void;
 
@@ -16,12 +16,15 @@ export function describeWithAtlas(name: string, fn: IntegrationTestFunction): vo
             ? describe.skip
             : describe;
     describeFn(name, () => {
-        const integration = setupIntegrationTest(() => ({
-            ...defaultTestConfig,
-            apiClientId: process.env.MDB_MCP_API_CLIENT_ID || "test-client",
-            apiClientSecret: process.env.MDB_MCP_API_CLIENT_SECRET || "test-secret",
-            apiBaseUrl: process.env.MDB_MCP_API_BASE_URL ?? "https://cloud-dev.mongodb.com",
-        }));
+        const integration = setupIntegrationTest(
+            () => ({
+                ...defaultTestConfig,
+                apiClientId: process.env.MDB_MCP_API_CLIENT_ID || "test-client",
+                apiClientSecret: process.env.MDB_MCP_API_CLIENT_SECRET || "test-secret",
+                apiBaseUrl: process.env.MDB_MCP_API_BASE_URL ?? "https://cloud-dev.mongodb.com",
+            }),
+            { tools: AllTools }
+        );
         fn(integration);
     });
 }
@@ -32,13 +35,16 @@ export function describeWithStreams(name: string, fn: IntegrationTestFunction): 
             ? describe.skip
             : describe;
     describeFn(name, () => {
-        const integration = setupIntegrationTest(() => ({
-            ...defaultTestConfig,
-            apiClientId: process.env.MDB_MCP_API_CLIENT_ID || "test-client",
-            apiClientSecret: process.env.MDB_MCP_API_CLIENT_SECRET || "test-secret",
-            apiBaseUrl: process.env.MDB_MCP_API_BASE_URL ?? "https://cloud-dev.mongodb.com",
-            previewFeatures: [],
-        }));
+        const integration = setupIntegrationTest(
+            () => ({
+                ...defaultTestConfig,
+                apiClientId: process.env.MDB_MCP_API_CLIENT_ID || "test-client",
+                apiClientSecret: process.env.MDB_MCP_API_CLIENT_SECRET || "test-secret",
+                apiBaseUrl: process.env.MDB_MCP_API_BASE_URL ?? "https://cloud-dev.mongodb.com",
+                previewFeatures: [],
+            }),
+            { tools: AllTools }
+        );
         fn(integration);
     });
 }
@@ -178,8 +184,12 @@ async function createGroup(apiClient: ApiClient): Promise<Group & Required<Pick<
     return group as Group & Required<Pick<Group, "id">>;
 }
 
+export function sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export async function assertClusterIsAvailable(
-    session: Session,
+    session: CliSession,
     projectId: string,
     clusterName: string
 ): Promise<boolean> {
@@ -199,14 +209,16 @@ export async function assertClusterIsAvailable(
     }
 }
 
-export function assertApiClientIsAvailable(session: Session): asserts session is Session & { apiClient: ApiClient } {
+export function assertApiClientIsAvailable(
+    session: McpSession
+): asserts session is McpSession & { apiClient: ApiClient } {
     if (!session.apiClient) {
         throw new Error("apiClient not available");
     }
 }
 
 export async function deleteCluster(
-    session: Session,
+    session: CliSession,
     projectId: string,
     clusterName: string,
     shouldWaitTillClusterIsDeleted: boolean = false
@@ -243,7 +255,7 @@ export async function deleteCluster(
 }
 
 export async function waitCluster(
-    session: Session,
+    session: CliSession,
     projectId: string,
     clusterName: string,
     check: (cluster: ClusterDescription20240805) => boolean | Promise<boolean>,

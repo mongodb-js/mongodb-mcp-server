@@ -1,7 +1,9 @@
 import { z } from "zod";
-import { type OperationType, type ToolArgs, type ToolExecutionContext, type ToolResult } from "../../tool.js";
-import { AtlasToolBase } from "../atlasTool.js";
-import type { Group } from "../../../common/atlas/openapi.js";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
+import { type ToolArgs } from "@mongodb-js/mcp-core";
+import type { OperationType } from "@mongodb-js/mcp-types";
+import { AtlasToolBase } from "../../atlasTool.js";
+import type { Group } from "@mongodb-js/mcp-atlas-api-client";
 import { AtlasArgs } from "../../args.js";
 
 const CreateProjectOutputSchema = {
@@ -19,10 +21,7 @@ export class CreateProjectTool extends AtlasToolBase {
     };
     public override outputSchema = CreateProjectOutputSchema;
 
-    protected async execute(
-        { projectName, orgId }: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+    protected async execute({ projectName, orgId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         let assumedOrg = false;
 
         if (!projectName) {
@@ -31,7 +30,7 @@ export class CreateProjectTool extends AtlasToolBase {
 
         if (!orgId) {
             try {
-                const organizations = await this.apiClient.listOrgs(undefined, context);
+                const organizations = await this.apiClient.listOrgs();
                 if (!organizations?.results?.length) {
                     throw new Error(
                         "No organizations were found in your MongoDB Atlas account. Please create an organization first."
@@ -54,15 +53,12 @@ export class CreateProjectTool extends AtlasToolBase {
 
         const input = {
             name: projectName,
-            orgId: orgId,
+            orgId,
         } as Group;
 
-        const group = await this.apiClient.createGroup(
-            {
-                body: input,
-            },
-            context
-        );
+        const group = await this.apiClient.createGroup({
+            body: input,
+        });
 
         if (!group?.id) {
             throw new Error("Failed to create project");
@@ -72,12 +68,12 @@ export class CreateProjectTool extends AtlasToolBase {
             content: [
                 {
                     type: "text",
-                    text: `Project "${projectName}" created successfully${assumedOrg ? ` (using orgId ${orgId}).` : ""}.`,
+                    text: `Project "${projectName}" created successfully${assumedOrg ? ` (using orgId ${orgId})` : ""}.`,
                 },
             ],
             structuredContent: {
                 projectName,
-                ...(assumedOrg && { orgId }),
+                ...(assumedOrg ? { orgId } : {}),
             },
         };
     }

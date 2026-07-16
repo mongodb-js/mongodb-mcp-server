@@ -1,7 +1,13 @@
+import path from "path";
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { describeWithMongoDB } from "../tools/mongodb/mongodbHelpers.js";
+import { describeWithMongoDB } from "../mongodbHelpers.js";
+
+// Get absolute path to the built server entry point
+const currentDir = import.meta.dirname;
+const projectRoot = path.resolve(currentDir, "../../../..");
+const serverPath = path.resolve(projectRoot, "packages/mongodb-mcp-server/dist/esm/index.js");
 
 describeWithMongoDB("StdioRunner", (integration) => {
     describe("client connects successfully", () => {
@@ -10,7 +16,7 @@ describeWithMongoDB("StdioRunner", (integration) => {
         beforeAll(async () => {
             transport = new StdioClientTransport({
                 command: "node",
-                args: ["dist/index.js", "--disabledTools", "atlas-local"],
+                args: [serverPath, "--disabledTools", "atlas-local"],
                 env: {
                     MDB_MCP_TRANSPORT: "stdio",
                     MDB_MCP_CONNECTION_STRING: integration.connectionString(),
