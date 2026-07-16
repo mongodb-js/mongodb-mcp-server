@@ -138,10 +138,7 @@ export class CliSession extends EventEmitter<SessionEvents> implements McpSessio
 
     async connectToConfiguredConnection(): Promise<void> {
         if (typeof this.config.connectionString !== "string") {
-            throw new MongoDBError(
-                ErrorCodes.MisconfiguredConnectionString,
-                "No connection string is configured."
-            );
+            throw new MongoDBError(ErrorCodes.MisconfiguredConnectionString, "No connection string is configured.");
         }
         await this.connectToMongoDB({ connectionString: this.config.connectionString });
     }

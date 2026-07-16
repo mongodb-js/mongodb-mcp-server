@@ -1,8 +1,7 @@
 import { z } from "zod";
 import { StreamsToolBase } from "../../streams/streamsToolBase.js";
 import type { CallToolResult, OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
-import type { ToolArgs } from "@mongodb-js/mcp-core";
-import { LogId, requestIdAttr } from "@mongodb-js/mcp-core";
+import { LogId, requestIdAttr, type ToolArgs } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
 import { StreamsArgs } from "../../streams/streamsArgs.js";
 
@@ -249,7 +248,7 @@ export class StreamsTeardownTool extends StreamsToolBase {
         let impactNote = "";
         const structuredContent: TeardownOutput = { resource: "workspace" };
         try {
-            const [connectionsResult, processorsResult] = await Promise.allSettled([
+            const settledResults = await Promise.allSettled([
                 this.apiClient.listStreamConnections(
                     {
                         params: { path: { groupId: args.projectId, tenantName: workspace } },
@@ -265,14 +264,14 @@ export class StreamsTeardownTool extends StreamsToolBase {
             ]);
 
             const connectionCount =
-                connectionsResult.status === "fulfilled" ? (connectionsResult.value?.results?.length ?? 0) : 0;
+                settledResults[0].status === "fulfilled" ? (settledResults[0].value?.results?.length ?? 0) : 0;
             const processorCount =
-                processorsResult.status === "fulfilled" ? (processorsResult.value?.results?.length ?? 0) : 0;
+                settledResults[1].status === "fulfilled" ? (settledResults[1].value?.results?.length ?? 0) : 0;
 
-            if (connectionsResult.status === "fulfilled") {
+            if (settledResults[0].status === "fulfilled") {
                 structuredContent.connectionsRemoved = connectionCount;
             }
-            if (processorsResult.status === "fulfilled") {
+            if (settledResults[1].status === "fulfilled") {
                 structuredContent.processorsRemoved = processorCount;
             }
 

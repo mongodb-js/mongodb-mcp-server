@@ -46,7 +46,9 @@ export class PauseResumeClusterTool extends AtlasToolBase {
         args: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        const { projectId, clusterName, action } = args;
+        const projectId = args.projectId;
+        const clusterName = args.clusterName;
+        const action = args.action;
         const isPause = action === "PAUSE";
 
         const result = await this.apiClient.updateCluster(

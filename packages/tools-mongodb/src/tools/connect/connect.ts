@@ -1,5 +1,4 @@
 import { z } from "zod";
-import type { CallToolResult } from "@mongodb-js/mcp-types";
 import { MongoDBToolBase, type IMongoDBSession, type MongoDBToolRegistrationServer } from "../../mongodbTool.js";
 import type { ToolArgs, ToolConstructorParams, ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType } from "@mongodb-js/mcp-types";
@@ -46,7 +45,9 @@ export class ConnectTool extends MongoDBToolBase {
         return registrationSuccessful;
     }
 
-    protected override async execute({ connectionString }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
+    protected override async execute({
+        connectionString,
+    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
         await this.session.connectToMongoDB({ connectionString });
 
         return {

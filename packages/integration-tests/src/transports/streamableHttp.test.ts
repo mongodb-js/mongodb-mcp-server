@@ -1,5 +1,5 @@
 import type express from "express";
-import { StreamableHttpRunner, MCPHttpServer, MonitoringServer } from "@mongodb-js/mcp-http-runners";
+import { StreamableHttpRunner, MCPHttpServer } from "@mongodb-js/mcp-http-runners";
 import {
     SessionStore,
     type ISessionStore,

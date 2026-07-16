@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import { FindTool } from "../tools/read/find.js";
 import type { IMongoDBSession, IMongoDBConfig } from "../mongodbTool.js";
-import type { ITelemetry, IElicitation } from "@mongodb-js/mcp-types";
+import type { ITelemetry, IElicitation, IUIRegistry } from "@mongodb-js/mcp-types";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 
@@ -21,7 +21,7 @@ function makeTool(config: Partial<IMongoDBConfig>): (...values: unknown[]) => vo
         operationType: FindTool.operationType,
         session: {
             logger: mockLogger,
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
             config: {
                 disableServerSideJs: true,
                 readOnly: false,
@@ -34,8 +34,8 @@ function makeTool(config: Partial<IMongoDBConfig>): (...values: unknown[]) => vo
         telemetry: { isTelemetryEnabled: () => false, emitEvents: vi.fn() } as unknown as ITelemetry,
         elicitation: { requestConfirmation: vi.fn() } as unknown as IElicitation,
         metrics: new MockMetrics(),
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
-        uiRegistry: { get: vi.fn().mockResolvedValue(null) } as unknown as import("@mongodb-js/mcp-types").IUIRegistry,
+
+        uiRegistry: { get: vi.fn().mockResolvedValue(null) } as unknown as IUIRegistry,
     };
 
     const tool = new FindTool(params) as unknown as { assertMqlIsAllowed: (...values: unknown[]) => void };

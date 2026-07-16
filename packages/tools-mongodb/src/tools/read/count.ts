@@ -1,4 +1,3 @@
-import type { CallToolResult } from "@mongodb-js/mcp-types";
 import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";

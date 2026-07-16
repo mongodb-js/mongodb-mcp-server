@@ -24,7 +24,7 @@ export interface Cluster {
     instanceSize?: string;
     provider?: string;
     region?: string;
-    paused?: boolean;
+    paused: boolean;
     state?: "IDLE" | "CREATING" | "UPDATING" | "DELETING" | "REPAIRING";
     mongoDBVersion?: string;
     connectionStrings?: ClusterConnectionStrings;

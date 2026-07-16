@@ -215,7 +215,12 @@ export class CreateClusterTool extends AtlasToolBase {
         args: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        const { projectId, clusterName, provider, region, clusterType, terminationProtectionEnabled } = args;
+        const projectId = args.projectId;
+        const clusterName = args.clusterName;
+        const provider = args.provider;
+        const region = args.region;
+        const clusterType = args.clusterType;
+        const terminationProtectionEnabled = args.terminationProtectionEnabled;
 
         if (clusterType === "SHARDED" && (args.instanceSize === "M10" || args.instanceSize === "M20")) {
             throw new CreateClusterError("SHARDED clusters require M30 or higher instance size.");

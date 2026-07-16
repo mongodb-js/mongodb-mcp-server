@@ -86,4 +86,4 @@ export const AtlasTools: ToolClass<IAtlasSession>[] = [
     StreamsManageTool,
     StreamsTeardownTool,
     UpgradeClusterTool,
-] as const;
+];

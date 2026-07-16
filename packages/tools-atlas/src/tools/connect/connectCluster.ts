@@ -215,7 +215,8 @@ export class ConnectClusterTool extends AtlasToolBase {
                 session.connectedAtlasCluster?.clusterName === atlas.clusterName &&
                 session.connectedAtlasCluster?.username
             ) {
-                const { username, projectId: connectedProjectId } = session.connectedAtlasCluster;
+                const username = session.connectedAtlasCluster.username;
+                const connectedProjectId = session.connectedAtlasCluster.projectId;
                 void this.apiClient
                     .deleteDatabaseUser(
                         {
@@ -264,7 +265,7 @@ export class ConnectClusterTool extends AtlasToolBase {
             case "disconnected": {
                 await this.session.disconnect();
 
-                const { connectionString, atlas } = await this.prepareClusterConnection(
+                const preparedConnection = await this.prepareClusterConnection(
                     projectId,
                     clusterName,
                     connectionType,
@@ -274,7 +275,11 @@ export class ConnectClusterTool extends AtlasToolBase {
                 createdUser = true;
 
                 // try to connect for about 5 minutes asynchronously
-                void this.connectToCluster(connectionString, atlas, context).catch((err: unknown) => {
+                void this.connectToCluster(
+                    preparedConnection.connectionString,
+                    preparedConnection.atlas,
+                    context
+                ).catch((err: unknown) => {
                     const error = err instanceof Error ? err : new Error(String(err));
                     this.session.logger.error({
                         id: LogId.atlasConnectFailure,

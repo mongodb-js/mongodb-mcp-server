@@ -4,6 +4,12 @@ import type { CallToolResult } from "@mongodb-js/mcp-types";
 import type { ToolArgs } from "@mongodb-js/mcp-core";
 import type { OperationType } from "@mongodb-js/mcp-types";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
+import type {
+    SuggestedIndex,
+    DropIndexSuggestion,
+    SlowQueryLog,
+    SchemaRecommendation,
+} from "../../helpers/performanceAdvisorUtils.js";
 import {
     getSuggestedIndexes,
     getDropIndexSuggestions,
@@ -57,27 +63,42 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
         namespaces,
     }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         try {
-            const [suggestedIndexesResult, dropIndexSuggestionsResult, slowQueryLogsResult, schemaSuggestionsResult] =
-                await Promise.allSettled([
-                    operations.includes("suggestedIndexes")
-                        ? getSuggestedIndexes(this.apiClient, projectId, clusterName)
-                        : Promise.resolve(undefined),
-                    operations.includes("dropIndexSuggestions")
-                        ? getDropIndexSuggestions(this.apiClient, projectId, clusterName)
-                        : Promise.resolve(undefined),
-                    operations.includes("slowQueryLogs")
-                        ? getSlowQueries(
-                              this.apiClient,
-                              projectId,
-                              clusterName,
-                              since ? new Date(since) : undefined,
-                              namespaces
-                          )
-                        : Promise.resolve(undefined),
-                    operations.includes("schemaSuggestions")
-                        ? getSchemaAdvice(this.apiClient, projectId, clusterName)
-                        : Promise.resolve(undefined),
-                ]);
+            const settledResults = (await Promise.allSettled([
+                operations.includes("suggestedIndexes")
+                    ? getSuggestedIndexes(this.apiClient, projectId, clusterName)
+                    : Promise.resolve(undefined),
+                operations.includes("dropIndexSuggestions")
+                    ? getDropIndexSuggestions(this.apiClient, projectId, clusterName)
+                    : Promise.resolve(undefined),
+                operations.includes("slowQueryLogs")
+                    ? getSlowQueries(
+                          this.apiClient,
+                          projectId,
+                          clusterName,
+                          since ? new Date(since) : undefined,
+                          namespaces
+                      )
+                    : Promise.resolve(undefined),
+                operations.includes("schemaSuggestions")
+                    ? getSchemaAdvice(this.apiClient, projectId, clusterName)
+                    : Promise.resolve(undefined),
+            ])) as [
+                PromiseSettledResult<{ suggestedIndexes: SuggestedIndex[] } | undefined>,
+                PromiseSettledResult<
+                    | {
+                          hiddenIndexes: DropIndexSuggestion[];
+                          redundantIndexes: DropIndexSuggestion[];
+                          unusedIndexes: DropIndexSuggestion[];
+                      }
+                    | undefined
+                >,
+                PromiseSettledResult<{ slowQueryLogs: SlowQueryLog[] } | undefined>,
+                PromiseSettledResult<{ recommendations: SchemaRecommendation[] } | undefined>,
+            ];
+            const suggestedIndexesResult = settledResults[0];
+            const dropIndexSuggestionsResult = settledResults[1];
+            const slowQueryLogsResult = settledResults[2];
+            const schemaSuggestionsResult = settledResults[3];
 
             const hasSuggestedIndexes =
                 suggestedIndexesResult.status === "fulfilled" &&

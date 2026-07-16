@@ -50,7 +50,9 @@ export class SwitchConnectionTool extends MongoDBToolBase {
         return registrationSuccessful;
     }
 
-    protected override async execute({ connectionString }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
+    protected override async execute({
+        connectionString,
+    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
         if (typeof connectionString !== "string") {
             await this.session.connectToConfiguredConnection();
         } else {

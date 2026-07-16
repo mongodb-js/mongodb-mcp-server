@@ -155,6 +155,8 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     // (undocumented)
     stopStreamProcessor(options: FetchOptions<operations["stopGroupStreamProcessor"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
+    get supportsCurrentIpLookup(): boolean;
+    // (undocumented)
     tenantUpgrade(options: FetchOptions<operations["tenantGroupFlexClusterUpgrade"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["FlexClusterDescription20241113"]>;
     // (undocumented)
     updateCluster(options: FetchOptions<operations["updateGroupCluster"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["ClusterDescription20240805"]>;
@@ -229,6 +231,7 @@ export interface ApiClientOptions {
     };
     // (undocumented)
     serverMetadata: ServerMetadata;
+    supportsCurrentIpLookup?: boolean;
 }
 
 // @public
@@ -515,7 +518,10 @@ export class Elicitation {
         required: string[];
     };
     requestConfirmation(message: string): Promise<boolean>;
-    requestInput(message: string, schema: ElicitRequestFormParams["requestedSchema"]): Promise<ElicitedInputResult>;
+    requestInput(input: {
+        message: string;
+        schema: ElicitRequestFormParams["requestedSchema"];
+    }): Promise<ElicitedInputResult>;
     supportsElicitation(): boolean;
 }
 

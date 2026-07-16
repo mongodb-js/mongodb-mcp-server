@@ -9,7 +9,6 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "rootDir": ".",
-    "baseUrl": ".",
     "paths": {
       "@mongodb-js/devtools-proxy-support/proxy-options": ["polyfills/empty.ts"]
     }

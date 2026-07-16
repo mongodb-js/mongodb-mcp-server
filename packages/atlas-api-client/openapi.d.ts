@@ -1596,7 +1596,7 @@ export interface components {
         ApiError: {
             badRequestDetail?: components["schemas"]["BadRequestDetail"];
             /** @description Describes the specific conditions or reasons that cause each type of error. */
-            detail?: string;
+            detail?: string | null;
             /**
              * Format: int32
              * @description HTTP status code returned with this error.
@@ -1607,7 +1607,7 @@ export interface components {
             /** @description Parameters used to give more information about the error. */
             readonly parameters?: Record<string, never>[];
             /** @description Application error message returned with this error. */
-            readonly reason?: string;
+            readonly reason?: string | null;
         };
         /**
          * @description Atlas Streams AWS Regions.
@@ -2473,7 +2473,7 @@ export interface components {
         BadRequestDetail: {
             /** @description Describes all violations in a client request. */
             fields?: components["schemas"]["FieldViolation"][];
-        };
+        } | null;
         /** @description Instance size boundary to which your cluster can automatically scale. */
         BaseCloudProviderInstanceSize:
             | (
@@ -2570,6 +2570,20 @@ export interface components {
                   | "R300"
                   | "R400"
                   | "R600"
+                  | "M30_GEN_2"
+                  | "M40_GEN_2"
+                  | "M50_GEN_2"
+                  | "M60_GEN_2"
+                  | "M80_GEN_2"
+                  | "M140_GEN_2"
+                  | "M200_GEN_2"
+                  | "R40_GEN_2"
+                  | "R50_GEN_2"
+                  | "R60_GEN_2"
+                  | "R80_GEN_2"
+                  | "R200_GEN_2"
+                  | "R300_GEN_2"
+                  | "R400_GEN_2"
               );
         /** @description Name of the cloud provider region hosting Atlas Stream Processing. */
         BaseStreamsRegion:
@@ -2731,7 +2745,21 @@ export interface components {
                 | "R200"
                 | "R300"
                 | "R400"
-                | "R600";
+                | "R600"
+                | "M30_GEN_2"
+                | "M40_GEN_2"
+                | "M50_GEN_2"
+                | "M60_GEN_2"
+                | "M80_GEN_2"
+                | "M140_GEN_2"
+                | "M200_GEN_2"
+                | "R40_GEN_2"
+                | "R50_GEN_2"
+                | "R60_GEN_2"
+                | "R80_GEN_2"
+                | "R200_GEN_2"
+                | "R300_GEN_2"
+                | "R400_GEN_2";
             /**
              * GCP Regions
              * @description Google Compute Regions.
@@ -4056,7 +4084,7 @@ export interface components {
              * @enum {string}
              */
             type?: "BUILT_IN" | "CUSTOM";
-        };
+        } | null;
         /**
          * DLS Ingestion Destination
          * @description Atlas Data Lake Storage as the destination for a Data Lake Pipeline.
@@ -5000,6 +5028,7 @@ export interface components {
                       | "GROUP_SERVICE_ACCOUNT_SECRETS_EXPIRING"
                       | "GROUP_SERVICE_ACCOUNT_SECRETS_EXPIRED"
                       | "ACTIVE_LEGACY_TLS_CONNECTIONS"
+                      | "WEBHOOK_TEMPLATE_RENDER_FAILED"
                   )
                 | "MONGOTUNE_ALERT"
                 | (
@@ -5297,7 +5326,7 @@ export interface components {
             cloudProvider: "AWS" | "AZURE" | "GCP";
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
-        };
+        } | null;
         /** @description Disk backup snapshot Export Bucket. */
         DiskBackupSnapshotExportBucketResponse: {
             /**
@@ -5832,7 +5861,21 @@ export interface components {
                 | "R200"
                 | "R300"
                 | "R400"
-                | "R600";
+                | "R600"
+                | "M30_GEN_2"
+                | "M40_GEN_2"
+                | "M50_GEN_2"
+                | "M60_GEN_2"
+                | "M80_GEN_2"
+                | "M140_GEN_2"
+                | "M200_GEN_2"
+                | "R40_GEN_2"
+                | "R50_GEN_2"
+                | "R60_GEN_2"
+                | "R80_GEN_2"
+                | "R200_GEN_2"
+                | "R300_GEN_2"
+                | "R400_GEN_2";
             /**
              * GCP Instance Sizes
              * @description Minimum instance size to which your cluster can automatically scale.
@@ -5858,7 +5901,21 @@ export interface components {
                 | "R200"
                 | "R300"
                 | "R400"
-                | "R600";
+                | "R600"
+                | "M30_GEN_2"
+                | "M40_GEN_2"
+                | "M50_GEN_2"
+                | "M60_GEN_2"
+                | "M80_GEN_2"
+                | "M140_GEN_2"
+                | "M200_GEN_2"
+                | "R40_GEN_2"
+                | "R50_GEN_2"
+                | "R60_GEN_2"
+                | "R80_GEN_2"
+                | "R200_GEN_2"
+                | "R300_GEN_2"
+                | "R400_GEN_2";
         };
         GCPCreateDataProcessRegionView: Omit<components["schemas"]["CreateDataProcessRegionView"], "cloudProvider"> & {
             /**
@@ -5929,7 +5986,21 @@ export interface components {
                 | "R200"
                 | "R300"
                 | "R400"
-                | "R600";
+                | "R600"
+                | "M30_GEN_2"
+                | "M40_GEN_2"
+                | "M50_GEN_2"
+                | "M60_GEN_2"
+                | "M80_GEN_2"
+                | "M140_GEN_2"
+                | "M200_GEN_2"
+                | "R40_GEN_2"
+                | "R50_GEN_2"
+                | "R60_GEN_2"
+                | "R80_GEN_2"
+                | "R200_GEN_2"
+                | "R300_GEN_2"
+                | "R400_GEN_2";
             /**
              * Format: int32
              * @description Number of nodes of the given type for MongoDB Cloud to deploy to the region.
@@ -8946,7 +9017,7 @@ export interface components {
         };
         StreamsClusterConnection: Omit<components["schemas"]["StreamsConnection"], "type"> & {
             /** @description Unique 24-hexadecimal digit string that identifies the project that contains the configured cluster. Required if the ID does not match the project containing the streams workspace. You must first enable the organization setting. */
-            clusterGroupId?: string;
+            clusterGroupId?: string | null;
             /** @description Name of the cluster configured for this connection. */
             clusterName?: string;
             dbRoleToExecute?: components["schemas"]["DBRoleToExecute"];
@@ -9288,11 +9359,11 @@ export interface components {
             readonly links?: components["schemas"]["Link"][];
             /**
              * @description Strategy for the processor: GRACEFUL - attempt to stop the processor, error if processor cannot be stopped. if stop was successful, start the processor in the new region with the latest checkpoint.  FORCED - attempt to stop the processor, proceed to starting the processor in the new region with checkpoints disabled regardless of whether or not the stop succeeds.
-             * @enum {string}
+             * @enum {string|null}
              */
-            mode?: "GRACEFUL" | "FORCED";
+            mode?: "GRACEFUL" | "FORCED" | null;
             /** @description Name of the region against which to apply the status change. Required when `status` is `FAILED_OVER`; optional otherwise. */
-            region?: string;
+            region?: string | null;
             /**
              * @description Represents the desired action to apply to stream processors within a workspace, such as starting all processors, stopping all processors, or performing a bulk regional failover.
              * @enum {string}

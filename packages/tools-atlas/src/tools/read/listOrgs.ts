@@ -1,7 +1,7 @@
 import { z } from "zod";
-import type { OperationType } from "@mongodb-js/mcp-types";
+import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { AtlasToolBase } from "../../atlasTool.js";
-import { type ToolArgs, type ToolExecutionContext, type ToolResult, formatUntrustedData } from "@mongodb-js/mcp-core";
+import { type ToolArgs, type ToolResult, formatUntrustedData } from "@mongodb-js/mcp-core";
 
 const ListOrganizationsOutputSchema = {
     organizations: z.array(

@@ -143,12 +143,15 @@ export abstract class StreamsToolBase extends AtlasToolBase {
             }
         } else if (obj !== null && typeof obj === "object") {
             const record = obj as Record<string, unknown>;
-            for (const [key, value] of Object.entries(record)) {
-                if (key === "connectionName" && typeof value === "string") {
-                    names.add(value);
-                } else {
-                    for (const name of StreamsToolBase.extractConnectionNames(value)) {
-                        names.add(name);
+            for (const key in record) {
+                if (Object.prototype.hasOwnProperty.call(record, key)) {
+                    const value = record[key];
+                    if (key === "connectionName" && typeof value === "string") {
+                        names.add(value);
+                    } else {
+                        for (const name of StreamsToolBase.extractConnectionNames(value)) {
+                            names.add(name);
+                        }
                     }
                 }
             }

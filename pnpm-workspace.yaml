@@ -21,3 +21,8 @@ allowBuilds:
   win-export-certificate-and-key: true
 minimumReleaseAgeExclude:
   - mongodb-runner@6.7.13
+  - '@microsoft/api-extractor-model@7.33.9'
+  - '@microsoft/api-extractor@7.58.10'
+  - '@rushstack/node-core-library@5.23.2'
+  - '@rushstack/terminal@0.24.1'
+  - '@rushstack/ts-command-line@5.3.11'

@@ -9,10 +9,10 @@ export async function makeCurrentIpAccessListEntry(
     projectId: string,
     comment: string = DEFAULT_ACCESS_LIST_COMMENT
 ): Promise<{ groupId: string; ipAddress: string; comment: string }> {
-    const { currentIpv4Address } = await apiClient.getIpInfo();
+    const ipInfo = await apiClient.getIpInfo();
     return {
         groupId: projectId,
-        ipAddress: currentIpv4Address,
+        ipAddress: ipInfo.currentIpv4Address,
         comment,
     };
 }

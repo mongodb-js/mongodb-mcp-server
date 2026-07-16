@@ -7,4 +7,4 @@ export { ConfigResource } from "./common/config.js";
 export { DebugResource } from "./common/debug.js";
 export { ExportedData } from "./common/exportedData.js";
 
-export const Resources: readonly AnyResourceClass[] = [ConfigResource, DebugResource, ExportedData] as const;
+export const Resources: AnyResourceClass[] = [ConfigResource, DebugResource, ExportedData];
