@@ -67,7 +67,7 @@ describe("loadConfig", () => {
             ["https://mcp.mongodb.com", "https://cloud.mongodb.com"],
             ["https://mcp-dev.mongodb.com", "https://cloud-dev.mongodb.com"],
             ["https://mcp-qa.mongodb.com", "https://cloud-qa.mongodb.com"],
-            ["https://mcp-staging.mongodb.com", "https://authorize-staging.mongodb.com"],
+            ["https://mcp-staging.mongodb.com", "https://cloud-stage.mongodb.com"],
         ])("maps known MCP base URL %s to its OAuth base URL %s", (mcpBaseUrl, oauthBaseUrl) => {
             stubSA();
             vi.stubEnv("MDB_MCP_API_BASE_URL", mcpBaseUrl);
@@ -83,7 +83,7 @@ describe("loadConfig", () => {
             vi.stubEnv("MDB_MCP_API_BASE_URL", "https://mcp-staging.mongodb.com/");
             expect(loadConfig()).toEqual({
                 ...DEFAULT_CONFIG,
-                tokenUrl: "https://authorize-staging.mongodb.com/api/oauth/token",
+                tokenUrl: "https://cloud-stage.mongodb.com/api/oauth/token",
                 remoteUrl: "https://mcp-staging.mongodb.com",
             });
         });
