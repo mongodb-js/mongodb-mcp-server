@@ -77,8 +77,19 @@ export abstract class MongoDBToolBase extends ToolBase {
      *
      * Write stages only exist in aggregation pipelines, which are passed as an
      * array, so that check is skipped for plain query filters.
+     *
+     * Pass every operator-bearing fragment that reaches the server (e.g. filter
+     * and projection for a find), since each is validated independently.
      */
-    protected assertMqlIsAllowed(value: Record<string, unknown> | Record<string, unknown>[] | undefined): void {
+    protected assertMqlIsAllowed(...values: (Record<string, unknown> | Record<string, unknown>[] | undefined)[]): void {
+        for (const value of values) {
+            this.assertSingleMqlValueIsAllowed(value);
+        }
+    }
+
+    private assertSingleMqlValueIsAllowed(
+        value: Record<string, unknown> | Record<string, unknown>[] | undefined
+    ): void {
         if (this.config.disableServerSideJs) {
             assertNoServerSideJS(value);
         }

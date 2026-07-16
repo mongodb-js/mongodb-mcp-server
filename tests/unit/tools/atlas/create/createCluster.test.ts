@@ -11,6 +11,7 @@ import type { ApiClient } from "../../../../../src/common/atlas/apiClient.js";
 import { UIRegistry } from "../../../../../src/ui/registry/index.js";
 import { MockMetrics } from "../../../mocks/metrics.js";
 import type { Keychain } from "../../../../../src/lib.js";
+import { ApiClientError } from "../../../../../src/common/atlas/apiClientError.js";
 
 const BASE_ARGS = {
     projectId: "507f1f77bcf86cd799439011",
@@ -30,7 +31,10 @@ describe("CreateClusterTool", () => {
         mockApiClient = {
             listClusters: vi.fn().mockResolvedValue({ results: [] }),
             createCluster: vi.fn().mockResolvedValue(CREATE_RESULT),
+            getIpInfo: vi.fn().mockResolvedValue({ currentIpv4Address: "127.0.0.1" }),
+            createAccessListEntry: vi.fn().mockResolvedValue({}),
         };
+        Object.assign(mockApiClient, { supportsCurrentIpLookup: true });
 
         const mockLogger = {
             info: vi.fn(),
@@ -38,6 +42,7 @@ describe("CreateClusterTool", () => {
             warning: vi.fn(),
             error: vi.fn(),
         } as unknown as CompositeLogger;
+        Object.assign(mockApiClient, { logger: mockLogger });
 
         mockSession = {
             logger: mockLogger,
@@ -293,6 +298,42 @@ describe("CreateClusterTool", () => {
                 computeAutoScaling: true,
                 terminationProtectionEnabled: false,
             });
+        });
+    });
+
+    describe("IP access list", () => {
+        it("adds the current IP to the access list and discloses it", async () => {
+            const result = await exec(BASE_ARGS);
+
+            expect(mockApiClient.createAccessListEntry).toHaveBeenCalledOnce();
+            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+            expect(text).toContain("Your current IP address has been added");
+        });
+
+        it("does not mention the access list when the current IP is already present", async () => {
+            mockApiClient.createAccessListEntry?.mockRejectedValue(
+                ApiClientError.fromError(
+                    { status: 409, statusText: "Conflict" } as Response,
+                    { message: "Conflict" } as never
+                )
+            );
+
+            const result = await exec(BASE_ARGS);
+
+            expect(result.isError).toBeFalsy();
+            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+            expect(text).not.toContain("access list");
+        });
+
+        it("still creates the cluster and notes that no access list changes were made when the IP lookup fails", async () => {
+            mockApiClient.getIpInfo?.mockRejectedValue(new Error("ipinfo unavailable"));
+
+            const result = await exec(BASE_ARGS);
+
+            expect(mockApiClient.createCluster).toHaveBeenCalledOnce();
+            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+            expect(text).toContain("No IP access list changes were made");
+            expect(text).toContain("did not succeed");
         });
     });
 

@@ -3,9 +3,14 @@ import { MCPHttpServer } from "../../../src/transports/mcpHttpServer.js";
 import { defaultTestConfig, InMemoryLogger } from "../../integration/helpers.js";
 import { MockMetrics } from "../mocks/metrics.js";
 import { Keychain } from "../../../src/common/keychain.js";
-import { SessionRejectedError, type ISessionStore } from "../../../src/common/sessionStore.js";
+import {
+    SessionRejectedError,
+    SessionLimitExceededError,
+    type ISessionStore,
+} from "../../../src/common/sessionStore.js";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { Server } from "../../../src/server.js";
+import { JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED } from "../../../src/transports/jsonRpcErrorCodes.js";
 
 const INIT_BODY = JSON.stringify({
     jsonrpc: "2.0",
@@ -173,6 +178,23 @@ describe("MCPHttpServer x-request-id logging", () => {
 
         const log = logger.messages.find((m) => m.level === "error" && m.payload.message.includes("identity mismatch"));
         expect(log).toBeDefined();
+    });
+
+    it("responds with 503 when sessionStore.addSession throws SessionLimitExceededError", async () => {
+        const addSession = vi
+            .fn()
+            .mockRejectedValue(new SessionLimitExceededError("Session limit of 1 concurrent sessions reached"));
+        const sessionStore: ISessionStore<StreamableHTTPServerTransport> = {
+            ...makeSessionStore(() => Promise.resolve(null)),
+            addSession,
+        };
+        await startServer(sessionStore, () => Promise.resolve(makeFakeServer()));
+
+        const res = await post("/mcp", INIT_BODY, {});
+        const body = (await res.json()) as { error: { code: number } };
+
+        expect(res.status).toBe(503);
+        expect(body.error.code).toBe(JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED);
     });
 
     it("includes x-request-id in error log when handler throws", async () => {

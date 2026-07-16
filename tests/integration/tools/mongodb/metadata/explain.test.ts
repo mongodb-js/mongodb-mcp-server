@@ -296,6 +296,31 @@ describeWithMongoDB("explain tool with server-side JavaScript operators", (integ
             });
         }
     }
+
+    it("rejects explaining a find whose projection uses $function when disableServerSideJs is true", async () => {
+        integration.mcpServer().userConfig.disableServerSideJs = true;
+        await integration.connectMcpClient();
+        const response = await integration.mcpClient().callTool({
+            name: "explain",
+            arguments: {
+                database: integration.randomDbName(),
+                collection: "people",
+                method: [
+                    {
+                        name: "find",
+                        arguments: {
+                            filter: {},
+                            projection: {
+                                computed: { $function: { body: "function() { return 1; }", args: [], lang: "js" } },
+                            },
+                        },
+                    },
+                ],
+            },
+        });
+        const content = getResponseContent(response);
+        expect(content).toContain(`The "$function" operator is not allowed.`);
+    });
 });
 
 describeWithMongoDB("explain tool with write stages", (integration) => {

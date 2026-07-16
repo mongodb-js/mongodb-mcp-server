@@ -23,7 +23,12 @@ describe("CreateAccessListTool", () => {
             createAccessListEntry: vi.fn().mockResolvedValue({}),
             getIpInfo: vi.fn().mockResolvedValue({ currentIpv4Address: currentIpAddress }),
         };
+        Object.assign(mockApiClient, { supportsCurrentIpLookup: true });
 
+        tool = makeTool(mockApiClient);
+    });
+
+    function makeTool(apiClient: unknown): CreateAccessListTool {
         const mockLogger = {
             info: vi.fn(),
             debug: vi.fn(),
@@ -33,7 +38,7 @@ describe("CreateAccessListTool", () => {
 
         const mockSession = {
             logger: mockLogger,
-            apiClient: mockApiClient as unknown as ApiClient,
+            apiClient: apiClient as ApiClient,
         } as unknown as Session;
 
         const params: ToolConstructorParams = {
@@ -54,8 +59,8 @@ describe("CreateAccessListTool", () => {
             uiRegistry: new UIRegistry(),
         };
 
-        tool = new CreateAccessListTool(params);
-    });
+        return new CreateAccessListTool(params);
+    }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
@@ -103,8 +108,39 @@ describe("CreateAccessListTool", () => {
 
     it("throws when no inputs are provided", async () => {
         await expect(exec({ projectId })).rejects.toThrow(
-            "One of  ipAddresses, cidrBlocks, currentIpAddress must be provided."
+            "One of ipAddresses, cidrBlocks, currentIpAddress must be provided."
         );
+    });
+
+    it("includes the currentIpAddress arg when current IP lookup is supported", () => {
+        expect(Object.keys(tool.argsShape)).toContain("currentIpAddress");
+    });
+
+    describe("when current IP lookup is not supported", () => {
+        beforeEach(() => {
+            tool = makeTool({ ...mockApiClient, supportsCurrentIpLookup: false });
+        });
+
+        it("omits the currentIpAddress arg", () => {
+            expect(Object.keys(tool.argsShape)).not.toContain("currentIpAddress");
+        });
+
+        it("directs the user to provide explicit IPs when no inputs are provided", async () => {
+            await expect(exec({ projectId })).rejects.toThrow("Either ipAddresses or cidrBlocks must be provided.");
+        });
+
+        it("still creates entries for explicitly provided IPs", async () => {
+            await exec({ projectId, ipAddresses: ["192.168.1.1"] });
+
+            expect(mockApiClient.getIpInfo).not.toHaveBeenCalled();
+            expect(mockApiClient.createAccessListEntry).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: projectId } },
+                    body: [{ groupId: projectId, ipAddress: "192.168.1.1", comment: DEFAULT_ACCESS_LIST_COMMENT }],
+                },
+                expect.anything()
+            );
+        });
     });
 
     it("uses custom comment when provided", async () => {

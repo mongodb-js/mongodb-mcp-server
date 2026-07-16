@@ -663,4 +663,20 @@ describeWithMongoDB("find tool with server-side JavaScript operators", (integrat
             }
         });
     }
+
+    it("rejects a projection using $function when disableServerSideJs is true", async () => {
+        integration.mcpServer().userConfig.disableServerSideJs = true;
+        await integration.connectMcpClient();
+        const response = await integration.mcpClient().callTool({
+            name: "find",
+            arguments: {
+                database: integration.randomDbName(),
+                collection: "people",
+                filter: {},
+                projection: { computed: { $function: { body: "function() { return 1; }", args: [], lang: "js" } } },
+            },
+        });
+        const content = getResponseContent(response);
+        expect(content).toContain(`The "$function" operator is not allowed.`);
+    });
 });

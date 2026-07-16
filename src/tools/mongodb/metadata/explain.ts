@@ -92,7 +92,7 @@ export class ExplainTool extends MongoDBToolBase {
             }
             case "find": {
                 const { filter, ...rest } = method.arguments;
-                this.assertMqlIsAllowed(filter);
+                this.assertMqlIsAllowed(filter, rest.projection);
                 result = await provider
                     .find(database, collection, filter as Document, {
                         ...rest,

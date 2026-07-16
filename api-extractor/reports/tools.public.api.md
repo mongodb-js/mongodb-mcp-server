@@ -333,13 +333,7 @@ export class CountTool extends MongoDBToolBase {
 // @public (undocumented)
 export class CreateAccessListTool extends AtlasToolBase {
     // (undocumented)
-    argsShape: {
-        projectId: z.ZodString;
-        ipAddresses: z.ZodOptional<z.ZodArray<z.ZodString>>;
-        cidrBlocks: z.ZodOptional<z.ZodArray<z.ZodString>>;
-        currentIpAddress: z.ZodDefault<z.ZodBoolean>;
-        comment: z.ZodOptional<z.ZodDefault<z.ZodString>>;
-    };
+    get argsShape(): typeof CreateAccessListArgs;
     // (undocumented)
     description: string;
     // (undocumented)
@@ -1498,7 +1492,7 @@ export class LogsTool extends MongoDBToolBase {
 
 // @public (undocumented)
 export abstract class MongoDBToolBase extends ToolBase {
-    protected assertMqlIsAllowed(value: Record<string, unknown> | Record<string, unknown>[] | undefined): void;
+    protected assertMqlIsAllowed(...values: (Record<string, unknown> | Record<string, unknown>[] | undefined)[]): void;
     // (undocumented)
     static category: ToolCategory;
     // (undocumented)

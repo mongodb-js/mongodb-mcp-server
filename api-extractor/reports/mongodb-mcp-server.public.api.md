@@ -179,6 +179,8 @@ export class ApiClient {
     // (undocumented)
     stopStreamProcessor(options: FetchOptions<operations["stopGroupStreamProcessor"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
+    get supportsCurrentIpLookup(): boolean;
+    // (undocumented)
     tenantUpgrade(options: FetchOptions<operations["tenantGroupFlexClusterUpgrade"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["FlexClusterDescription20241113"]>;
     // (undocumented)
     updateCluster(options: FetchOptions<operations["updateGroupCluster"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["ClusterDescription20240805"]>;
@@ -207,6 +209,7 @@ export interface ApiClientOptions {
     credentials?: Credentials;
     // (undocumented)
     requestContext?: RequestContext;
+    supportsCurrentIpLookup?: boolean;
     // (undocumented)
     userAgent?: string;
 }
@@ -631,6 +634,9 @@ export const JSON_RPC_ERROR_CODE_SESSION_ID_INVALID = -32002;
 export const JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED = -32001;
 
 // @public
+export const JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED = -32006;
+
+// @public
 export const JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND = -32003;
 
 // @public
@@ -953,6 +959,11 @@ export type SessionEvents = {
     "connection-error": [ConnectionStateErrored];
 };
 
+// @public
+export class SessionLimitExceededError extends Error {
+    constructor(message: string);
+}
+
 // @public (undocumented)
 export interface SessionOptions<TUserConfig extends UserConfig = UserConfig> {
     // (undocumented)
@@ -984,6 +995,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         options: {
             idleTimeoutMS: number;
             notificationTimeoutMS: number;
+            maxSessions: number;
         };
         logger: LoggerBase;
         metrics: Metrics<DefaultMetrics>;
@@ -1013,6 +1025,7 @@ export type SessionStoreConstructorArgs<TMetrics extends DefaultMetrics = Defaul
     options: {
         idleTimeoutMS: number;
         notificationTimeoutMS: number;
+        maxSessions: number;
     };
     logger: LoggerBase;
     metrics: Metrics<TMetrics>;
@@ -1232,6 +1245,7 @@ export const UserConfigSchema: z.ZodObject<{
     httpBodyLimit: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     idleTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     notificationTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    maxSessions: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     maxBytesPerQuery: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     maxDocumentsPerQuery: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     maxTimeMS: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
