@@ -66,9 +66,10 @@ export type CreateConnectionOptions = {
 
 /**
  * A named collection of MongoDB connections addressed by opaque connection
- * ids ("handles"). Consumers establish connections via {@link connect} (or
- * {@link createEntry} when they drive the dialing themselves) and refer to
- * them everywhere else by the returned entry's id.
+ * ids ("handles"). Consumers establish connections via
+ * {@link ConnectionRegistry.connect} (or {@link ConnectionRegistry.createEntry}
+ * when they drive the dialing themselves) and refer to them everywhere else by
+ * the returned entry's id.
  *
  * A registry is always fully bound to the connections it can see: instances
  * are obtained from {@link MCPConnectionStore.view} (which fixes the
@@ -96,7 +97,7 @@ export interface ConnectionRegistry {
      * Closes the identified connection. Explicit entries are revoked — the
      * connectionId stops resolving; the preconfigured entry is closed but
      * remains available and re-dials on next use. Throws `UnknownConnectionId`
-     * for absent handles, like {@link resolve}.
+     * for absent handles, like {@link ConnectionRegistry.resolve}.
      */
     disconnect(connectionId: string): Promise<void>;
     /** Disconnects every entry reachable through this registry object. */
@@ -240,7 +241,7 @@ type StoredConnection = {
  * entry map, the preconfigured entry seeded from a configured connection
  * string, per-scope connection limits, and shutdown. Consumers never hold the
  * store directly — they access entries through {@link ConnectionRegistry}
- * views minted with {@link view}.
+ * views minted with {@link MCPConnectionStore.view}.
  */
 export class MCPConnectionStore {
     private readonly entries = new Map<string, StoredConnection>();
@@ -495,12 +496,15 @@ function buildEntryName(rawName: string): string {
  * no alphanumeric characters.
  */
 function slugify(value: string): string {
+    // After the collapsing replace, hyphens never repeat, so trimming a single
+    // leading/trailing hyphen is complete — and keeps the trim regexes free of
+    // quantifiers that backtrack polynomially on untrusted input.
     return value
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "")
+        .replace(/^-|-$/g, "")
         .slice(0, MAX_SLUG_LENGTH)
-        .replace(/-+$/g, "");
+        .replace(/-$/, "");
 }
 
 /** The first host of the connection string (without port), as a slug source for generated names. */
