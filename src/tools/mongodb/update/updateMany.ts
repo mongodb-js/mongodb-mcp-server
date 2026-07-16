@@ -38,9 +38,15 @@ export class UpdateManyTool extends MongoDBToolBase {
     };
     static operationType: OperationType = "update";
 
-    protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
-        const { database, collection, filter, update, upsert } = args;
-        const provider = await this.resolveConnection(args);
+    protected async execute({
+        connectionId,
+        database,
+        collection,
+        filter,
+        update,
+        upsert,
+    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
+        const provider = await this.resolveConnection(connectionId);
 
         this.assertMqlIsAllowed(filter);
 

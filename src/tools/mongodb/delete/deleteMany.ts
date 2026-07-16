@@ -29,9 +29,13 @@ export class DeleteManyTool extends MongoDBToolBase {
     public override outputSchema = DeleteManyOutputSchema;
     static operationType: OperationType = "delete";
 
-    protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
-        const { database, collection, filter } = args;
-        const provider = await this.resolveConnection(args);
+    protected async execute({
+        connectionId,
+        database,
+        collection,
+        filter,
+    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
+        const provider = await this.resolveConnection(connectionId);
 
         this.assertMqlIsAllowed(filter);
 

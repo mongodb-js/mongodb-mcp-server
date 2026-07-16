@@ -37,11 +37,10 @@ export class LogsTool extends MongoDBToolBase {
     static operationType: OperationType = "metadata";
 
     protected async execute(
-        args: ToolArgs<typeof this.argsShape>,
+        { connectionId, type, limit }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        const { type, limit } = args;
-        const provider = await this.resolveConnection(args);
+        const provider = await this.resolveConnection(connectionId);
 
         const result = await provider.runCommandWithCheck(
             "admin",

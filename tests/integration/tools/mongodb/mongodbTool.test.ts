@@ -61,7 +61,7 @@ class RandomTool extends MongoDBToolBase {
     public description = "This is a tool.";
     public argsShape = { ...ConnectionIdArgs };
     protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
-        await this.resolveConnection(args);
+        await this.resolveConnection(args.connectionId);
         return { content: [{ type: "text", text: "Something" }] };
     }
 }
@@ -77,7 +77,7 @@ class UnusableVoyageTool extends MongoDBToolBase {
     }
 
     protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
-        await this.resolveConnection(args);
+        await this.resolveConnection(args.connectionId);
         return { content: [{ type: "text", text: "Something" }] };
     }
 }

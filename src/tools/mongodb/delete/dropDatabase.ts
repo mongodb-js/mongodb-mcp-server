@@ -17,9 +17,11 @@ export class DropDatabaseTool extends MongoDBToolBase {
     public override outputSchema = DropDatabaseOutputSchema;
     static operationType: OperationType = "delete";
 
-    protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
-        const { database } = args;
-        const provider = await this.resolveConnection(args);
+    protected async execute({
+        connectionId,
+        database,
+    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
+        const provider = await this.resolveConnection(connectionId);
         const result = await provider.dropDatabase(database);
 
         return {

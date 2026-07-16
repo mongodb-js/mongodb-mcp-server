@@ -72,17 +72,22 @@ describe("debug resource", () => {
 
     it("should enumerate the connect tools when there are no connections", async () => {
         const fakeTools = [
-            { name: "connect", operationType: "connect", isEnabled: (): boolean => true },
-            { name: "disconnect", operationType: "connect", isEnabled: (): boolean => true },
-            { name: "atlas-connect-cluster", operationType: "connect", isEnabled: (): boolean => true },
-            { name: "find", operationType: "read", isEnabled: (): boolean => true },
+            { name: "connect", category: "mongodb", operationType: "connect", isEnabled: (): boolean => true },
+            { name: "disconnect", category: "mongodb", operationType: "connect", isEnabled: (): boolean => true },
+            {
+                name: "atlas-connect-cluster",
+                category: "atlas",
+                operationType: "connect",
+                isEnabled: (): boolean => true,
+            },
+            { name: "find", category: "mongodb", operationType: "read", isEnabled: (): boolean => true },
         ];
         debugResource["server"] = { tools: fakeTools } as never;
 
         const output = await debugResource.toOutput();
 
         expect(output).toContain(
-            'There are no MongoDB connections. Use one of the following tools to establish one and pass the returned connectionId to the MongoDB tools: "connect", "atlas-connect-cluster".'
+            'There are no MongoDB connections. Use one of the following tools to establish one and pass the returned connectionId to the MongoDB tools: "atlas-connect-cluster", "connect".'
         );
     });
 

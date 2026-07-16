@@ -224,9 +224,14 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
 
     static operationType: OperationType = "create";
 
-    protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
-        const { database, collection, name, definition: definitions } = args;
-        const provider = await this.resolveConnection(args);
+    protected async execute({
+        connectionId,
+        database,
+        collection,
+        name,
+        definition: definitions,
+    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
+        const provider = await this.resolveConnection(connectionId);
         let indexes: string[] = [];
         const definition = definitions[0];
         if (!definition) {
@@ -246,7 +251,7 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
                 break;
             case "vectorSearch":
                 {
-                    await this.assertSearchSupported(args);
+                    await this.assertSearchSupported(connectionId);
                     indexes = await provider.createSearchIndexes(database, collection, [
                         {
                             name,
@@ -264,7 +269,7 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
                 break;
             case "search":
                 {
-                    await this.assertSearchSupported(args);
+                    await this.assertSearchSupported(connectionId);
                     indexes = await provider.createSearchIndexes(database, collection, [
                         {
                             name,

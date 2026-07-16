@@ -29,19 +29,22 @@ export class DropIndexTool extends MongoDBToolBase {
     public override outputSchema = DropIndexOutputSchema;
     static operationType: OperationType = "delete";
 
-    protected async execute(toolArgs: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
-        const provider = await this.resolveConnection(toolArgs);
+    protected async execute({
+        connectionId,
+        ...toolArgs
+    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
+        const provider = await this.resolveConnection(connectionId);
         switch (toolArgs.type) {
             case "classic":
                 return this.dropClassicIndex(provider, toolArgs);
             case "search":
-                return this.dropSearchIndex(provider, toolArgs);
+                return this.dropSearchIndex(provider, connectionId, toolArgs);
         }
     }
 
     private async dropClassicIndex(
         provider: NodeDriverServiceProvider,
-        { database, collection, indexName }: ToolArgs<typeof this.argsShape>
+        { database, collection, indexName }: Omit<ToolArgs<typeof this.argsShape>, "connectionId">
     ): Promise<ToolResult<typeof this.outputSchema>> {
         const result = await provider.runCommand(database, {
             dropIndexes: collection,
@@ -68,10 +71,10 @@ export class DropIndexTool extends MongoDBToolBase {
 
     private async dropSearchIndex(
         provider: NodeDriverServiceProvider,
-        args: ToolArgs<typeof this.argsShape>
+        connectionId: string,
+        { database, collection, indexName }: Omit<ToolArgs<typeof this.argsShape>, "connectionId">
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        const { database, collection, indexName } = args;
-        await this.assertSearchSupported(args);
+        await this.assertSearchSupported(connectionId);
         const indexes = await provider.getSearchIndexes(database, collection, indexName);
         if (indexes.length === 0) {
             return {

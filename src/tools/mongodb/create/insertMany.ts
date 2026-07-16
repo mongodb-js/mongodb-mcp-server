@@ -29,9 +29,13 @@ export class InsertManyTool extends MongoDBToolBase {
     public override outputSchema = InsertManyOutputSchema;
     static operationType: OperationType = "create";
 
-    protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
-        const { database, collection, documents } = args;
-        const provider = await this.resolveConnection(args);
+    protected async execute({
+        connectionId,
+        database,
+        collection,
+        documents,
+    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
+        const provider = await this.resolveConnection(connectionId);
 
         const result = await provider.insertMany(database, collection, documents as Document[]);
         const insertedIds = Object.values(result.insertedIds);

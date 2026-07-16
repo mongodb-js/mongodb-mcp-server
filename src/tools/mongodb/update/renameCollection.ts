@@ -24,8 +24,13 @@ export class RenameCollectionTool extends MongoDBToolBase {
     };
     static operationType: OperationType = "update";
 
-    protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
-        const { database, collection, newName, dropTarget } = args;
+    protected async execute({
+        connectionId,
+        database,
+        collection,
+        newName,
+        dropTarget,
+    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
         if (dropTarget && this.config.disabledTools.includes("delete")) {
             // Renaming with `dropTarget: true` drops the existing target collection, which is a
             // destructive delete operation. Since this tool's operation type is `update`, it remains
@@ -37,7 +42,7 @@ export class RenameCollectionTool extends MongoDBToolBase {
             );
         }
 
-        const provider = await this.resolveConnection(args);
+        const provider = await this.resolveConnection(connectionId);
         const result = await provider.renameCollection(database, collection, newName, {
             dropTarget,
         });

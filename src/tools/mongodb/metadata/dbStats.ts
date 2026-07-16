@@ -19,11 +19,10 @@ export class DbStatsTool extends MongoDBToolBase {
     static operationType: OperationType = "metadata";
 
     protected async execute(
-        args: ToolArgs<typeof this.argsShape>,
+        { connectionId, database }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        const { database } = args;
-        const provider = await this.resolveConnection(args);
+        const provider = await this.resolveConnection(connectionId);
         const result = await provider.runCommandWithCheck(
             database,
             {

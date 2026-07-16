@@ -23,8 +23,10 @@ export class ListDatabasesTool extends MongoDBToolBase {
     public override outputSchema = ListDatabasesOutputSchema;
     static operationType: OperationType = "metadata";
 
-    protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
-        const provider = await this.resolveConnection(args);
+    protected async execute({
+        connectionId,
+    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
+        const provider = await this.resolveConnection(connectionId);
         const dbs = (await provider.listDatabases("")).databases as { name: string; sizeOnDisk: bson.Long }[];
         const databases = dbs.map((db) => ({
             name: db.name,

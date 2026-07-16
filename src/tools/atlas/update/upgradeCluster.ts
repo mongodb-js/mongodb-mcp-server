@@ -6,7 +6,6 @@ import type { ApiClient } from "../../../common/atlas/apiClient.js";
 import { ApiClientError } from "../../../common/atlas/apiClientError.js";
 import { AtlasArgs } from "../../args.js";
 import type { UpgradeClusterMetadata } from "../../../telemetry/types.js";
-import type { AtlasClusterConnectionInfo } from "../../../common/connectionInfo.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
 const ALLOWED_PROVIDER_REGEX = /^[A-Z_]+$/;
@@ -99,22 +98,8 @@ async function resolveClusterInfo(
     projectId: string,
     clusterName: string,
     argOverrides: { provider?: string; region?: string },
-    sessionCluster: AtlasClusterConnectionInfo | undefined,
     context: ToolExecutionContext
 ): Promise<ResolvedClusterInfo> {
-    const knownInstanceType =
-        sessionCluster?.projectId === projectId && sessionCluster?.clusterName === clusterName
-            ? sessionCluster.instanceType
-            : undefined;
-
-    if (knownInstanceType !== undefined) {
-        return {
-            instanceType: knownInstanceType,
-            provider: argOverrides.provider ?? sessionCluster?.provider,
-            region: argOverrides.region ?? sessionCluster?.region,
-        };
-    }
-
     try {
         const raw = await apiClient.getCluster({ params: { path: { groupId: projectId, clusterName } } }, context);
         const cluster = formatCluster(raw);
@@ -189,7 +174,6 @@ export class UpgradeClusterTool extends AtlasToolBase {
             projectId,
             clusterName,
             { provider: args.provider, region: args.region },
-            undefined,
             context
         );
 

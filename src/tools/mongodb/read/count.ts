@@ -31,11 +31,10 @@ export class CountTool extends MongoDBToolBase {
     public override outputSchema = CountOutputSchema;
 
     protected async execute(
-        args: ToolArgs<typeof this.argsShape>,
+        { connectionId, database, collection, query }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        const { database, collection, query } = args;
-        const provider = await this.resolveConnection(args);
+        const provider = await this.resolveConnection(connectionId);
 
         this.assertMqlIsAllowed(query);
 

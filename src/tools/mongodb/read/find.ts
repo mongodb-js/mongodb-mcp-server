@@ -59,13 +59,21 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
     public override outputSchema = FindOutputSchema;
 
     protected async execute(
-        args: ToolArgs<typeof this.argsShape>,
+        {
+            connectionId,
+            database,
+            collection,
+            filter,
+            projection,
+            limit,
+            sort,
+            responseBytesLimit,
+        }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        const { database, collection, filter, projection, limit, sort, responseBytesLimit } = args;
         let findCursor: FindCursor<unknown> | undefined = undefined;
         try {
-            const provider = await this.resolveConnection(args);
+            const provider = await this.resolveConnection(connectionId);
 
             this.assertMqlIsAllowed(filter, projection);
 

@@ -36,9 +36,12 @@ export class CollectionIndexesTool extends MongoDBToolBase {
     public override outputSchema = CollectionIndexesOutputSchema;
     static operationType: OperationType = "metadata";
 
-    protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
-        const { database, collection } = args;
-        const provider = await this.resolveConnection(args);
+    protected async execute({
+        connectionId,
+        database,
+        collection,
+    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
+        const provider = await this.resolveConnection(connectionId);
         const indexes = await provider.getIndexes(database, collection);
         const classicIndexes: IndexStatus[] = indexes.map((index) => ({
             name: index.name as string,
@@ -46,7 +49,7 @@ export class CollectionIndexesTool extends MongoDBToolBase {
         }));
 
         const searchIndexes: SearchIndexStatus[] = [];
-        if (await this.isSearchSupported(args)) {
+        if (await this.isSearchSupported(connectionId)) {
             const searchIndexDefinitions = await provider.getSearchIndexes(database, collection);
             searchIndexes.push(...this.extractSearchIndexDetails(searchIndexDefinitions));
         }

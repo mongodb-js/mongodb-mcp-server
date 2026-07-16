@@ -57,11 +57,17 @@ export class ExportTool extends MongoDBToolBase {
     static operationType: OperationType = "read";
 
     protected async execute(
-        args: ToolArgs<typeof this.argsShape>,
+        {
+            connectionId,
+            database,
+            collection,
+            jsonExportFormat,
+            exportTitle,
+            exportTarget: target,
+        }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
     ): Promise<CallToolResult> {
-        const { database, collection, jsonExportFormat, exportTitle, exportTarget: target } = args;
-        const provider = await this.resolveConnection(args);
+        const provider = await this.resolveConnection(connectionId);
         const exportTarget = target[0];
         if (!exportTarget) {
             throw new Error("Export target not provided. Expected one of the following: `aggregate`, `find`");

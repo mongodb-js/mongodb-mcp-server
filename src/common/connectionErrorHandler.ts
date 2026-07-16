@@ -16,16 +16,19 @@ export type ConnectionErrorUnhandled = { errorHandled: false };
 export type ConnectionErrorHandled = { errorHandled: true; result: CallToolResult };
 
 /**
- * The enabled tools that can establish a connection. The disconnect tool
- * shares the "connect" operation type but cannot establish one, so it is
- * excluded.
+ * The enabled tools that can establish a connection, sorted with Atlas tools
+ * before MongoDB tools so every listing surfaces them in the same order. The
+ * disconnect tool shares the "connect" operation type but cannot establish a
+ * connection, so it is excluded.
  */
 export function connectCapableTools(tools: AnyToolBase[]): AnyToolBase[] {
-    return tools.filter((t) => t.operationType === "connect" && t.name !== DisconnectTool.toolName && t.isEnabled());
+    return tools
+        .filter((t) => t.operationType === "connect" && t.name !== DisconnectTool.toolName && t.isEnabled())
+        .sort((a, b) => a.category.localeCompare(b.category));
 }
 
 export const connectionErrorHandler: ConnectionErrorHandler = (error, { availableTools, connectionState }) => {
-    const connectTools = connectCapableTools(availableTools).sort((a, b) => a.category.localeCompare(b.category)); // Sort Atlas tools before MongoDB tools
+    const connectTools = connectCapableTools(availableTools);
 
     // Find what Atlas connect tools are available and suggest when the LLM should to use each. If no Atlas tools are found, return a suggestion for the MongoDB connect tool.
     const atlasConnectTool = connectTools?.find((t) => t.category === "atlas");

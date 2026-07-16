@@ -22,9 +22,12 @@ export class DropCollectionTool extends MongoDBToolBase {
     public override outputSchema = DropCollectionOutputSchema;
     static operationType: OperationType = "delete";
 
-    protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
-        const { database, collection } = args;
-        const provider = await this.resolveConnection(args);
+    protected async execute({
+        connectionId,
+        database,
+        collection,
+    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
+        const provider = await this.resolveConnection(connectionId);
         const result = await provider.dropCollection(database, collection);
 
         return {

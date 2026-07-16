@@ -61,11 +61,10 @@ export class ExplainTool extends MongoDBToolBase {
     static operationType: OperationType = "metadata";
 
     protected async execute(
-        args: ToolArgs<typeof this.argsShape>,
+        { connectionId, database, collection, method: methods, verbosity }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        const { database, collection, method: methods, verbosity } = args;
-        const provider = await this.resolveConnection(args);
+        const provider = await this.resolveConnection(connectionId);
         const method = methods[0];
 
         if (!method) {

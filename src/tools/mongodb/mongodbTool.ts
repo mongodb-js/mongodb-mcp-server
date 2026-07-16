@@ -35,8 +35,7 @@ export abstract class MongoDBToolBase extends ToolBase {
      * via the app-level connection registry. There is deliberately no implicit
      * "current connection" fallback — see the connection-handles proposal.
      */
-    protected async resolveConnection(args: ToolArgs<typeof this.argsShape>): Promise<NodeDriverServiceProvider> {
-        const { connectionId } = args as { connectionId: string };
+    protected async resolveConnection(connectionId: string): Promise<NodeDriverServiceProvider> {
         return this.session.connectionRegistry.resolve(connectionId);
     }
 
@@ -46,13 +45,13 @@ export abstract class MongoDBToolBase extends ToolBase {
         return connectionId ? this.session.connectionRegistry.peek(connectionId) : undefined;
     }
 
-    protected async isSearchSupported(args: ToolArgs<typeof this.argsShape>): Promise<boolean> {
-        const entry = await this.peekConnection(args);
+    protected async isSearchSupported(connectionId: string): Promise<boolean> {
+        const entry = await this.session.connectionRegistry.peek(connectionId);
         return entry ? entry.isSearchSupported(this.session.logger) : false;
     }
 
-    protected async assertSearchSupported(args: ToolArgs<typeof this.argsShape>): Promise<void> {
-        if (!(await this.isSearchSupported(args))) {
+    protected async assertSearchSupported(connectionId: string): Promise<void> {
+        if (!(await this.isSearchSupported(connectionId))) {
             throw new MongoDBError(
                 ErrorCodes.AtlasSearchNotSupported,
                 "Atlas Search is not supported in the current cluster."

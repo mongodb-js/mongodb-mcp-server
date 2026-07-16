@@ -81,15 +81,14 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
     public override outputSchema = AggregateOutputSchema;
 
     protected async execute(
-        args: ToolArgs<typeof this.argsShape>,
+        { connectionId, database, collection, pipeline, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        const { database, collection, pipeline, responseBytesLimit } = args;
         let aggregationCursor: AggregationCursor | undefined = undefined;
         try {
-            const provider = await this.resolveConnection(args);
-            await this.assertOnlyUsesPermittedStages(args, pipeline);
-            if (await this.isSearchSupported(args)) {
+            const provider = await this.resolveConnection(connectionId);
+            await this.assertOnlyUsesPermittedStages(connectionId, pipeline);
+            if (await this.isSearchSupported(connectionId)) {
                 let searchIndexes: SearchIndex[] | undefined;
                 try {
                     searchIndexes = (await provider.getSearchIndexes(database, collection)) as SearchIndex[];
@@ -111,7 +110,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
 
             // Check if aggregate operation uses an index if enabled
             if (this.config.indexCheck) {
-                const [usesVectorSearchIndex, indexName] = await this.isVectorSearchIndexUsed(args, {
+                const [usesVectorSearchIndex, indexName] = await this.isVectorSearchIndexUsed(connectionId, {
                     database,
                     collection,
                     pipeline,
@@ -242,10 +241,10 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
     }
 
     private async assertOnlyUsesPermittedStages(
-        args: ToolArgs<typeof this.argsShape>,
+        connectionId: string,
         pipeline: Record<string, unknown>[]
     ): Promise<void> {
-        const isSearchSupported = await this.isSearchSupported(args);
+        const isSearchSupported = await this.isSearchSupported(connectionId);
 
         this.assertMqlIsAllowed(pipeline);
 
@@ -301,7 +300,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
     }
 
     private async isVectorSearchIndexUsed(
-        args: ToolArgs<typeof this.argsShape>,
+        connectionId: string,
         {
             database,
             collection,
@@ -329,10 +328,10 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
             return ["not-vector-search-query"];
         }
 
-        const isSearchSupported = await this.isSearchSupported(args);
+        const isSearchSupported = await this.isSearchSupported(connectionId);
         let indexExists = false;
         if (isSearchSupported) {
-            const provider = await this.resolveConnection(args);
+            const provider = await this.resolveConnection(connectionId);
             try {
                 const indexes = await provider.getSearchIndexes(database, collection, indexName);
                 indexExists = indexes.length >= 1;

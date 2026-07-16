@@ -53,13 +53,12 @@ The maximum number of bytes to return in the response. This value is capped by t
     public override outputSchema = AggregateDBOutputSchema;
 
     protected async execute(
-        args: ToolArgs<typeof this.argsShape>,
+        { connectionId, database, pipeline, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        const { database, pipeline, responseBytesLimit } = args;
         let aggregationCursor: AggregationCursor | undefined = undefined;
         try {
-            const provider = await this.resolveConnection(args);
+            const provider = await this.resolveConnection(connectionId);
             this.assertOnlyUsesPermittedStages(pipeline);
 
             let successMessage: string;

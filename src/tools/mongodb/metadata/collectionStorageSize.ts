@@ -19,11 +19,10 @@ export class CollectionStorageSizeTool extends MongoDBToolBase {
     static operationType: OperationType = "metadata";
 
     protected async execute(
-        args: ToolArgs<typeof this.argsShape>,
+        { connectionId, database, collection }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        const { database, collection } = args;
-        const provider = await this.resolveConnection(args);
+        const provider = await this.resolveConnection(connectionId);
         const [{ value }] = (await provider
             .aggregate(
                 database,

@@ -4,6 +4,7 @@ import type { Telemetry } from "../../telemetry/telemetry.js";
 import type { Session } from "../../lib.js";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import { Keychain, redactValues } from "../../common/keychain.js";
+import { connectCapableTools } from "../../common/connectionErrorHandler.js";
 
 /**
  * Removes secret material from the driver options before exposing them via the config resource.
@@ -52,7 +53,7 @@ export class ConfigResource extends ReactiveResource<UserConfig, readonly []> {
             logPath: this.current.logPath,
             connectionString: connectionInfo.connectionString
                 ? 'set; a connection with the connectionId "preconfigured" is available — pass it as the connectionId argument to the MongoDB tools'
-                : "not set; before using any MongoDB tool, call the connect tool with a connection string and pass the returned connectionId to the MongoDB tools, alternatively you can setup MongoDB Atlas access, more info at 'https://github.com/mongodb-js/mongodb-mcp-server'.",
+                : `not set; before using any MongoDB tool, ${this.connectToolsGuidance()}, alternatively you can setup MongoDB Atlas access, more info at 'https://github.com/mongodb-js/mongodb-mcp-server'.`,
             connectOptions: redactDriverOptions(connectionInfo.driverOptions),
             atlas:
                 this.current.apiClientId && this.current.apiClientSecret
@@ -64,5 +65,14 @@ export class ConfigResource extends ReactiveResource<UserConfig, readonly []> {
         // the redaction applied on every logging path. Redact per-value so JSON stays valid.
         const secrets = [...this.session.keychain.allSecrets, ...Keychain.root.allSecrets];
         return JSON.stringify(redactValues(result, secrets));
+    }
+
+    private connectToolsGuidance(): string {
+        const connectToolNames = connectCapableTools(this.server?.tools ?? [])
+            .map((tool) => `"${tool.name}"`)
+            .join(", ");
+        return connectToolNames
+            ? `establish a connection using one of the following tools and pass the returned connectionId to the MongoDB tools: ${connectToolNames}`
+            : "update the MCP server configuration to include a connection string";
     }
 }
