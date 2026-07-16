@@ -3,6 +3,7 @@ import { ErrorCodes, type MongoDBError } from "./errors.js";
 import type { AnyConnectionState } from "./connectionManager.js";
 import type { AnyToolBase } from "../tools/tool.js";
 import { DisconnectTool } from "../tools/mongodb/connect/disconnect.js";
+import { ListConnectionsTool } from "../tools/mongodb/connect/listConnections.js";
 
 export type ConnectionErrorHandler = (
     error: MongoDBError<
@@ -72,20 +73,28 @@ export const connectionErrorHandler: ConnectionErrorHandler = (error, { availabl
     }
 
     switch (error.code) {
-        case ErrorCodes.UnknownConnectionId:
+        case ErrorCodes.UnknownConnectionId: {
+            const listConnectionsAvailable = availableTools.some(
+                (t) => t.name === ListConnectionsTool.toolName && t.isEnabled()
+            );
             return {
                 errorHandled: true,
                 result: {
                     content: [
                         {
                             type: "text",
-                            text: `${error.message} Call the "list-connections" tool to see the active connections, or establish a new one and retry with the connectionId it returns.`,
+                            text: `${error.message} ${
+                                listConnectionsAvailable
+                                    ? `Call the "${ListConnectionsTool.toolName}" tool to see the active connections, or establish a new one and retry with the connectionId it returns.`
+                                    : "Establish a new connection using one of the connect tools and retry with the connectionId it returns."
+                            }`,
                         },
                         ...additionalPromptForConnectivity,
                     ],
                     isError: true,
                 },
             };
+        }
         case ErrorCodes.NotConnectedToMongoDB:
             return {
                 errorHandled: true,

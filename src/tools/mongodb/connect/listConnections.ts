@@ -1,45 +1,26 @@
 import { z } from "zod";
 import { MongoDBToolBase } from "../mongodbTool.js";
 import type { OperationType, ToolResult } from "../../tool.js";
-import { summarizeConnection } from "../../../common/connectionSummary.js";
+import { ConnectionSummarySchema, summarizeConnection } from "../../../common/connectionSummary.js";
 import { connectCapableTools } from "../../../common/connectionErrorHandler.js";
-
-const ConnectionSummarySchema = z.object({
-    connectionId: z.string(),
-    name: z.string(),
-    source: z.enum(["explicit", "preconfigured"]),
-    state: z.enum(["connected", "connecting", "disconnected", "errored"]).optional(),
-    description: z.string(),
-    lastError: z.string().optional(),
-    createdAt: z.string(),
-    lastUsedAt: z.string(),
-});
-
-const ListConnectionsOutputSchema = {
-    connections: z.array(ConnectionSummarySchema),
-};
 
 export class ListConnectionsTool extends MongoDBToolBase {
     static toolName = "list-connections";
-    public override description =
-        'List the active MongoDB connections and their connectionIds. Use this to discover the "preconfigured" connection (present when the server was started with a configured connection string) or to find a connectionId established earlier.';
+    public override description = this.config.connectionString
+        ? 'List the active MongoDB connections and their connectionIds. Use this to discover the "preconfigured" connection or to find a connectionId established earlier.'
+        : "List the active MongoDB connections and their connectionIds. Use this to find a connectionId established earlier.";
 
     public override argsShape = {};
 
     static operationType: OperationType = "metadata";
 
-    public override outputSchema = ListConnectionsOutputSchema;
+    public override outputSchema = {
+        connections: z.array(ConnectionSummarySchema),
+    };
 
     protected override async execute(): Promise<ToolResult<typeof this.outputSchema>> {
-        const entries = await this.session.connectionRegistry.find(() => true);
-        const connections = entries.map((entry) => {
-            const summary = summarizeConnection(entry);
-            return {
-                ...summary,
-                createdAt: summary.createdAt.toISOString(),
-                lastUsedAt: summary.lastUsedAt.toISOString(),
-            };
-        });
+        const entries = await this.session.connectionRegistry.find();
+        const connections = entries.map((entry) => summarizeConnection(entry));
 
         const text =
             connections.length === 0

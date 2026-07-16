@@ -18,12 +18,15 @@ export const CollOperationArgs = {
     collection: z.string().describe("Collection name"),
 };
 
+function connectionIdDescription({ hasPreconfiguredConnection }: { hasPreconfiguredConnection: boolean }): string {
+    const preconfigured = hasPreconfiguredConnection
+        ? ', or "preconfigured" to use the connection string the server was configured with'
+        : "";
+    return `The connection to run the operation against. Use the id returned by one of the connect tools${preconfigured}.`;
+}
+
 export const ConnectionIdArgs = {
-    connectionId: z
-        .string()
-        .describe(
-            'The connection to run the operation against. Use the id returned by one of the connect tools, found via the "list-connections" tool, or "preconfigured" when the server was started with a configured connection string.'
-        ),
+    connectionId: z.string().describe(connectionIdDescription({ hasPreconfiguredConnection: true })),
 };
 
 export abstract class MongoDBToolBase extends ToolBase {
@@ -39,9 +42,8 @@ export abstract class MongoDBToolBase extends ToolBase {
         return this.session.connectionRegistry.resolve(connectionId);
     }
 
-    /** The registry entry referenced by this call's `connectionId`, if it exists. Does not affect LRU ordering. */
-    protected async peekConnection(args: ToolArgs<typeof this.argsShape>): Promise<ConnectionEntry | undefined> {
-        const { connectionId } = args as { connectionId?: string };
+    /** The registry entry for the given connectionId, if it exists. Does not affect LRU ordering. */
+    protected async peekConnection(connectionId: string | undefined): Promise<ConnectionEntry | undefined> {
         return connectionId ? this.session.connectionRegistry.peek(connectionId) : undefined;
     }
 
@@ -128,6 +130,14 @@ export abstract class MongoDBToolBase extends ToolBase {
 
     public register(server: Server): boolean {
         this.server = server;
+        // The default connectionId description advertises the "preconfigured"
+        // handle; drop that mention when no connection string is configured.
+        if ("connectionId" in this.argsShape && !this.config.connectionString) {
+            this.argsShape = {
+                ...this.argsShape,
+                connectionId: z.string().describe(connectionIdDescription({ hasPreconfiguredConnection: false })),
+            };
+        }
         return super.register(server);
     }
 
@@ -144,7 +154,7 @@ export abstract class MongoDBToolBase extends ToolBase {
                     >;
                     const outcome = await this.session.connectionErrorHandler(connectionError, {
                         availableTools: this.server?.tools ?? [],
-                        connectionState: (await this.peekConnection(args))?.state,
+                        connectionState: (await this.peekConnection(args.connectionId as string | undefined))?.state,
                     });
                     if (outcome.errorHandled) {
                         return outcome.result;
@@ -199,7 +209,7 @@ export abstract class MongoDBToolBase extends ToolBase {
         const { connectionId } = args as { connectionId?: string };
         return {
             ...(connectionId && { connection_id: connectionId }),
-            ...this.getConnectionInfoMetadata((await this.peekConnection(args))?.state),
+            ...this.getConnectionInfoMetadata((await this.peekConnection(connectionId))?.state),
         };
     }
 }

@@ -1583,7 +1583,7 @@ export abstract class MongoDBToolBase extends ToolBase {
     protected handleError(error: unknown, args: ToolArgs<typeof MongoDBToolBase.argsShape>): Promise<CallToolResult>;
     // (undocumented)
     protected isSearchSupported(connectionId: string): Promise<boolean>;
-    protected peekConnection(args: ToolArgs<typeof MongoDBToolBase.argsShape>): Promise<ConnectionEntry | undefined>;
+    protected peekConnection(connectionId: string | undefined): Promise<ConnectionEntry | undefined>;
     // (undocumented)
     register(server: Server): boolean;
     protected resolveConnection(connectionId: string): Promise<NodeDriverServiceProvider>;
@@ -1622,7 +1622,7 @@ export class PauseResumeClusterTool extends AtlasToolBase {
             RESUME: "RESUME";
         }>;
         clusterId: z.ZodOptional<z.ZodString>;
-        disconnected: z.ZodBoolean;
+        disconnectedConnectionIds: z.ZodArray<z.ZodString>;
     };
     // (undocumented)
     protected resolveTelemetryMetadata(args: ToolArgs<typeof PauseResumeClusterTool.argsShape>, context: {
@@ -1823,9 +1823,9 @@ export class StreamsDiscoverTool extends StreamsToolBase {
     argsShape: {
         projectId: z.ZodString;
         action: z.ZodEnum<{
+            "list-connections": "list-connections";
             "list-workspaces": "list-workspaces";
             "inspect-workspace": "inspect-workspace";
-            "list-connections": "list-connections";
             "inspect-connection": "inspect-connection";
             "list-processors": "list-processors";
             "inspect-processor": "inspect-processor";

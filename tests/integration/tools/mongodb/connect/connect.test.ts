@@ -130,7 +130,7 @@ describeWithMongoDB("Connect tool", (integration) => {
     validateToolMetadata(
         integration,
         "connect",
-        'Connect to a MongoDB instance and get back a connectionId to pass to the other MongoDB tools. Each call establishes a new, independent connection — multiple connections can be active at the same time. If the server was started with a configured connection string, a connection with the id "preconfigured" already exists and there is no need to call this tool to use it.',
+        "Connect to a MongoDB instance and get back a connectionId to pass to the other MongoDB tools. Each call establishes a new, independent connection — multiple connections can be active at the same time.",
         "connect",
         [
             {
@@ -142,7 +142,7 @@ describeWithMongoDB("Connect tool", (integration) => {
             {
                 name: "connectionName",
                 description:
-                    'Optional short label for the connection (stored slugified with a short suffix, e.g. "staging" becomes staging-<suffix>). Shown by list-connections; helpful for telling multiple connections apart.',
+                    'Optional short label for the connection (stored slugified with a short suffix, e.g. "staging" becomes staging-<suffix>). Shown in connection listings; helpful for telling multiple connections apart.',
                 type: "string",
                 required: false,
             },

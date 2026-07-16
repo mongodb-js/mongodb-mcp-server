@@ -333,8 +333,7 @@ export const connectionIdParameters: ParameterInfo[] = [
     {
         name: "connectionId",
         type: "string",
-        description:
-            'The connection to run the operation against. Use the id returned by one of the connect tools, found via the "list-connections" tool, or "preconfigured" when the server was started with a configured connection string.',
+        description: "The connection to run the operation against. Use the id returned by one of the connect tools.",
         required: true,
     },
 ];

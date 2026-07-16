@@ -22,6 +22,10 @@ export type ToolArgs<T extends ZodRawShape> = {
     [K in keyof T]: z.infer<T[K]>;
 };
 
+export type ToolOutput<T extends ZodRawShape> = {
+    [K in keyof T]?: z.infer<T[K]>;
+};
+
 export interface ToolExecutionContext {
     signal: AbortSignal;
     /**

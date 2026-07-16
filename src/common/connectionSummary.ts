@@ -1,20 +1,18 @@
-import type { ConnectionTag } from "./connectionManager.js";
 import type { ConnectionEntry } from "./connectionRegistry.js";
+import { z } from "zod";
 
-/**
- * Presentation-oriented snapshot of a {@link ConnectionEntry}, tailored to the
- * needs of the list-connections tool and the debug resource. Deliberately not
- * part of the registry contract or the public API.
- */
-export type ConnectionSummary = Pick<
-    ConnectionEntry,
-    "connectionId" | "name" | "source" | "lastError" | "createdAt" | "lastUsedAt"
-> & {
-    state: ConnectionTag;
-    description: string;
-};
+export const ConnectionSummarySchema = z.object({
+    connectionId: z.string(),
+    name: z.string(),
+    source: z.enum(["explicit", "preconfigured"]),
+    state: z.enum(["connected", "connecting", "disconnected", "errored"]).optional(),
+    description: z.string(),
+    lastError: z.string().optional(),
+    createdAt: z.string(),
+    lastUsedAt: z.string(),
+});
 
-export function summarizeConnection(entry: ConnectionEntry): ConnectionSummary {
+export function summarizeConnection(entry: ConnectionEntry): z.infer<typeof ConnectionSummarySchema> {
     return {
         connectionId: entry.connectionId,
         name: entry.name,
@@ -22,8 +20,8 @@ export function summarizeConnection(entry: ConnectionEntry): ConnectionSummary {
         state: entry.state.tag,
         description: describeConnection(entry),
         lastError: entry.lastError,
-        createdAt: entry.createdAt,
-        lastUsedAt: entry.lastUsedAt,
+        createdAt: entry.createdAt.toISOString(),
+        lastUsedAt: entry.lastUsedAt.toISOString(),
     };
 }
 

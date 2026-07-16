@@ -389,6 +389,45 @@ describe("MongoDBTool implementations", () => {
         });
     });
 
+    describe("connectionId argument description", () => {
+        async function connectionIdDescription(): Promise<string | undefined> {
+            const tools = await mcpClient?.listTools();
+            const randomTool = tools?.tools.find((t) => t.name === "Random");
+            expectDefined(randomTool);
+            return (randomTool.inputSchema.properties?.connectionId as { description?: string })?.description;
+        }
+
+        it("mentions preconfigured when a connection string is configured", async () => {
+            await cleanupAndStartServer({ connectionString: mdbIntegration.connectionString() });
+            expect(await connectionIdDescription()).toContain('"preconfigured"');
+        });
+
+        it("does not mention preconfigured without a configured connection string", async () => {
+            await cleanupAndStartServer();
+            expect(await connectionIdDescription()).not.toContain("preconfigured");
+        });
+    });
+
+    describe("when the list-connections tool is not registered", () => {
+        beforeEach(async () => {
+            await cleanupAndStartServer(undefined, [
+                ...Object.values(MongoDbTools).filter((tool) => tool !== MongoDbTools.ListConnectionsTool),
+                RandomTool,
+            ]);
+        });
+
+        it("omits list-connections from the unknown connectionId error", async () => {
+            const toolResponse = await mcpClient?.callTool({
+                name: "Random",
+                arguments: { connectionId: "nonexistent-12345678" },
+            });
+            expect(toolResponse?.isError).toBe(true);
+            const text = JSON.stringify(toolResponse?.content);
+            expect(text).toContain("Establish a new connection");
+            expect(text).not.toContain("list-connections");
+        });
+    });
+
     describe("resolveTelemetryMetadata", () => {
         it("should return empty metadata when no connectionId is provided", async () => {
             await cleanupAndStartServer();

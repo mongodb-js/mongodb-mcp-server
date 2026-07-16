@@ -374,7 +374,7 @@ export interface ConnectionRegistry {
     connect(opts: CreateConnectionOptions): Promise<ConnectionEntry>;
     createEntry(opts: CreateConnectionEntryOptions): Promise<ConnectionEntry>;
     disconnect(connectionId: string): Promise<void>;
-    find(predicate: (entry: ConnectionEntry) => boolean): Promise<ConnectionEntry[]>;
+    find(predicate?: (entry: ConnectionEntry) => boolean): Promise<ConnectionEntry[]>;
     get(connectionId: string): Promise<ConnectionEntry | undefined>;
     peek(connectionId: string): Promise<ConnectionEntry | undefined>;
     resolve(connectionId: string): Promise<NodeDriverServiceProvider>;

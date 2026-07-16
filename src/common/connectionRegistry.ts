@@ -90,7 +90,7 @@ export interface ConnectionRegistry {
     /** Looks up an entry without affecting LRU ordering (telemetry, error handling). */
     peek(connectionId: string): Promise<ConnectionEntry | undefined>;
     /** Entries matching a predicate, without affecting LRU ordering. */
-    find(predicate: (entry: ConnectionEntry) => boolean): Promise<ConnectionEntry[]>;
+    find(predicate?: (entry: ConnectionEntry) => boolean): Promise<ConnectionEntry[]>;
     /** Resolves a handle to a live service provider; throws `UnknownConnectionId` for absent handles. */
     resolve(connectionId: string): Promise<NodeDriverServiceProvider>;
     /**
@@ -342,10 +342,10 @@ export class MCPConnectionStore {
             get,
             peek,
 
-            find: (predicate: (entry: ConnectionEntry) => boolean): Promise<ConnectionEntry[]> =>
+            find: (predicate?: (entry: ConnectionEntry) => boolean): Promise<ConnectionEntry[]> =>
                 Promise.resolve(
                     [...this.entries.values()]
-                        .filter((stored) => visible(stored) && predicate(stored.entry))
+                        .filter((stored) => visible(stored) && (predicate?.(stored.entry) ?? true))
                         .map((stored) => stored.entry)
                 ),
 
@@ -444,7 +444,7 @@ export class MCPConnectionStore {
      * (e.g. session) cannot evict another's handles.
      */
     private async enforceLimit(scope: string | undefined): Promise<void> {
-        for (;;) {
+        while (true) {
             const scoped = [...this.entries.values()].filter(
                 (stored) => stored.entry.source !== "preconfigured" && stored.scope === scope
             );
@@ -467,7 +467,12 @@ export class MCPConnectionStore {
 
     private async revoke(entry: ConnectionEntry): Promise<void> {
         this.entries.delete(entry.connectionId);
-        await entry.close().catch(() => undefined);
+        try {
+            await entry.close();
+        } catch {
+            // best-effort, don't throw on close failure, the entry is already removed from the store
+        }
+
         try {
             await entry.runRevokeCleanup();
         } catch (error: unknown) {
