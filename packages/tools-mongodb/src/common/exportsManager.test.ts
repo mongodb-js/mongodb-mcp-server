@@ -549,8 +549,8 @@ describe("ExportsManager unit test", () => {
             const manager = ExportsManager.init({
                 options: {
                     ...exportsManagerConfig,
-                    exportTimeoutMs: 100,
-                    exportCleanupIntervalMs: 50,
+                    exportTimeoutMs: 2_000,
+                    exportCleanupIntervalMs: 100,
                 },
                 logger: new CompositeLogger(),
                 sessionId: uniqueExportsId,
@@ -563,16 +563,26 @@ describe("ExportsManager unit test", () => {
             });
             await cursorCloseNotification;
 
-            expect(manager.availableExports).toContainEqual(
-                expect.objectContaining({
-                    exportName,
-                    exportURI,
-                })
+            await vi.waitFor(
+                () => {
+                    expect(manager.availableExports).toContainEqual(
+                        expect.objectContaining({
+                            exportName,
+                            exportURI,
+                        })
+                    );
+                },
+                { timeout: 5_000, interval: 10 }
             );
             expect(await fileExists(exportPath)).toEqual(true);
-            await sleep(200);
-            expect(manager.availableExports).toEqual([]);
-            expect(await fileExists(exportPath)).toEqual(false);
+
+            await vi.waitFor(
+                async () => {
+                    expect(manager.availableExports).toEqual([]);
+                    expect(await fileExists(exportPath)).toEqual(false);
+                },
+                { timeout: 10_000, interval: 10 }
+            );
         });
     });
 

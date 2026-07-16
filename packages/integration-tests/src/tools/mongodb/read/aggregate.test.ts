@@ -1135,11 +1135,12 @@ describeWithMongoDB(
             ]);
 
             // Auto-embed indexes take longer to build because they need to call the voyage API
-            // to generate embeddings for the documents. Using a longer timeout (120s).
-            await waitUntilSearchIndexIsQueryable(collection, "auto-embed-index", 120_000);
+            // to generate embeddings for the documents. Using a longer timeout (300s) to tolerate
+            // slower CI environments and transient Voyage API latency.
+            await waitUntilSearchIndexIsQueryable(collection, "auto-embed-index", 300_000);
         });
 
-        it("should be able to query autoEmbed text index", { timeout: 130_000 }, async () => {
+        it("should be able to query autoEmbed text index", { timeout: 320_000 }, async () => {
             const response = await integration.mcpClient().callTool({
                 name: "aggregate",
                 arguments: {
