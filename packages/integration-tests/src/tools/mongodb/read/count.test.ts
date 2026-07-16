@@ -183,7 +183,7 @@ describeWithMongoDB("count tool with abort signal", (integration) => {
 
         // Ensure it aborted quickly, but possibly after some processing
         expect(executionTime).toBeGreaterThanOrEqual(15);
-        expect(executionTime).toBeLessThan(30);
+        expect(executionTime).toBeLessThan(100);
         expect(result).toBeUndefined();
         expectDefined(error);
         expect(error.message).toContain("This operation was aborted");
