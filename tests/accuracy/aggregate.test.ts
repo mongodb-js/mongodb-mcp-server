@@ -1,6 +1,7 @@
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
 import { Matcher } from "./sdk/matcher.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { searchStageRules } from "../../src/tools/mongodb/reference/searchStageRules.js";
 
 function maybeDoesUnset(field: string): Matcher {
     return Matcher.anyOf(
@@ -56,6 +57,11 @@ describeAccuracyTests(
             prompt: "Run a vectorSearch query on musicfy.songs on path 'title_embeddings' using the index 'titles' with the model voyage-3-large to find all 'hammer of justice' songs.",
             expectedToolCalls: [
                 {
+                    toolName: "get-search-stage-rules",
+                    parameters: {},
+                    optional: true,
+                },
+                {
                     toolName: "collection-indexes",
                     parameters: {
                         database: "musicfy",
@@ -87,6 +93,16 @@ describeAccuracyTests(
                 },
             ],
             mockedTools: {
+                "get-search-stage-rules": (): CallToolResult => {
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: searchStageRules,
+                            },
+                        ],
+                    };
+                },
                 "collection-indexes": (): CallToolResult => {
                     return {
                         content: [
@@ -114,6 +130,11 @@ describeAccuracyTests(
         {
             prompt: "Run a vectorSearch query on musicfy.songs on path 'title_embeddings' using the index 'titles' with the model voyage-3-large to find all 'hammer of justice' songs. Keep the embedding field, do not remove it.",
             expectedToolCalls: [
+                {
+                    toolName: "get-search-stage-rules",
+                    parameters: {},
+                    optional: true,
+                },
                 {
                     toolName: "collection-indexes",
                     parameters: {
@@ -146,6 +167,16 @@ describeAccuracyTests(
                 },
             ],
             mockedTools: {
+                "get-search-stage-rules": (): CallToolResult => {
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: searchStageRules,
+                            },
+                        ],
+                    };
+                },
                 "collection-indexes": (): CallToolResult => {
                     return {
                         content: [
@@ -173,6 +204,11 @@ describeAccuracyTests(
         {
             prompt: "Run an exact vectorSearch query on musicfy.songs on path 'title_embeddings' using the index 'titles' with the model voyage-3-large to find 10 'hammer of justice' songs in any order.",
             expectedToolCalls: [
+                {
+                    toolName: "get-search-stage-rules",
+                    parameters: {},
+                    optional: true,
+                },
                 {
                     toolName: "collection-indexes",
                     parameters: {
@@ -205,6 +241,16 @@ describeAccuracyTests(
                 },
             ],
             mockedTools: {
+                "get-search-stage-rules": (): CallToolResult => {
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: searchStageRules,
+                            },
+                        ],
+                    };
+                },
                 "collection-indexes": (): CallToolResult => {
                     return {
                         content: [
@@ -232,6 +278,11 @@ describeAccuracyTests(
         {
             prompt: "Run an approximate vectorSearch query on mflix.movies on path 'plot_embeddings' with the model voyage-3-large to find all 'sci-fi' movies.",
             expectedToolCalls: [
+                {
+                    toolName: "get-search-stage-rules",
+                    parameters: {},
+                    optional: true,
+                },
                 {
                     toolName: "collection-indexes",
                     parameters: {
@@ -271,6 +322,16 @@ describeAccuracyTests(
                 },
             ],
             mockedTools: {
+                "get-search-stage-rules": (): CallToolResult => {
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: searchStageRules,
+                            },
+                        ],
+                    };
+                },
                 "collection-indexes": (): CallToolResult => {
                     return {
                         content: [
@@ -298,6 +359,11 @@ describeAccuracyTests(
         {
             prompt: "(Pre-filter) Run a vectorSearch query on mflix.movies on path 'plot_embeddings' with the model voyage-3-large to find all 'sci-fi' movies. I only want movies with the `released` after 1993 (included) and are published in catalan.",
             expectedToolCalls: [
+                {
+                    toolName: "get-search-stage-rules",
+                    parameters: {},
+                    optional: true,
+                },
                 {
                     toolName: "collection-indexes",
                     parameters: {
@@ -338,6 +404,16 @@ describeAccuracyTests(
                 },
             ],
             mockedTools: {
+                "get-search-stage-rules": (): CallToolResult => {
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: searchStageRules,
+                            },
+                        ],
+                    };
+                },
                 "collection-indexes": (): CallToolResult => {
                     return {
                         content: [
@@ -377,6 +453,11 @@ describeAccuracyTests(
         {
             prompt: "(No-prefilter) Run a vectorSearch query on mflix.movies on path 'plot_embeddings' with the model voyage-3-large to find all 'sci-fi' movies. I only want movies with `released` after 1993 (included) and are published in catalan.",
             expectedToolCalls: [
+                {
+                    toolName: "get-search-stage-rules",
+                    parameters: {},
+                    optional: true,
+                },
                 {
                     toolName: "collection-indexes",
                     parameters: {
@@ -419,6 +500,16 @@ describeAccuracyTests(
                 },
             ],
             mockedTools: {
+                "get-search-stage-rules": (): CallToolResult => {
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: searchStageRules,
+                            },
+                        ],
+                    };
+                },
                 "collection-indexes": (): CallToolResult => {
                     return {
                         content: [
@@ -450,6 +541,11 @@ describeAccuracyTests(
         {
             prompt: "Run a $search query on mflix.movies to find all movies that mention 'space travel' in the plot or title. Use the default search index.",
             expectedToolCalls: [
+                {
+                    toolName: "get-search-stage-rules",
+                    parameters: {},
+                    optional: true,
+                },
                 {
                     toolName: "aggregate",
                     parameters: {
@@ -503,6 +599,18 @@ describeAccuracyTests(
                     },
                 },
             ],
+            mockedTools: {
+                "get-search-stage-rules": (): CallToolResult => {
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: searchStageRules,
+                            },
+                        ],
+                    };
+                },
+            },
         },
     ],
     {
