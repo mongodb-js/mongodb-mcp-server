@@ -46,6 +46,8 @@ const expectedDefaults = {
     idleTimeoutMs: 10 * 60 * 1000, // 10 minutes
     notificationTimeoutMs: 9 * 60 * 1000, // 9 minutes
     maxSessions: DEFAULT_MAX_SESSIONS,
+    maxActiveConnections: 10,
+    connectionScope: "session",
     httpHeaders: {},
     httpBodyLimit: TRANSPORT_PAYLOAD_LIMITS.http,
     maxDocumentsPerQuery: 100,

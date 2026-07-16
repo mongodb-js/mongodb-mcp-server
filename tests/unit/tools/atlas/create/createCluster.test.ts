@@ -341,7 +341,7 @@ describe("CreateClusterTool", () => {
             const args = { ...BASE_ARGS, instanceSize: "M30", diskSizeGB: 20 };
             const result = await exec(args);
 
-            const metadata = tool["resolveTelemetryMetadata"](args as never, { result: result as never });
+            const metadata = await tool["resolveTelemetryMetadata"](args as never, { result: result as never });
             expect(metadata.cluster_id).toBe("new-cluster-id");
             expect(metadata.provider).toBe("AWS");
             expect(metadata.region).toBe("US_EAST_1");
@@ -354,8 +354,8 @@ describe("CreateClusterTool", () => {
             expect(metadata.mongodb_version).toBe("LATEST");
         });
 
-        it("returns empty metadata fields when result has no structuredContent (error path)", () => {
-            const metadata = tool["resolveTelemetryMetadata"](BASE_ARGS as never, {
+        it("returns empty metadata fields when result has no structuredContent (error path)", async () => {
+            const metadata = await tool["resolveTelemetryMetadata"](BASE_ARGS as never, {
                 result: { content: [] } as never,
             });
 

@@ -4,6 +4,7 @@ import type { ZodRawShape } from "zod";
 import type { ToolConstructorParams, ToolExecutionContext } from "../../src/tools/tool.js";
 import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { Session } from "../../src/common/session.js";
+import type { AtlasClusterConnectionInfo } from "../../src/common/connectionInfo.js";
 import type { UserConfig } from "../../src/common/config/userConfig.js";
 import type { Telemetry } from "../../src/telemetry/telemetry.js";
 import type { Elicitation } from "../../src/elicitation.js";
@@ -188,10 +189,15 @@ describe("ToolBase", () => {
     });
 
     describe("getConnectionInfoMetadata", () => {
-        it("should return empty metadata when neither connectedAtlasCluster nor connectionStringInfo are set", () => {
-            (mockSession as { connectedAtlasCluster?: unknown }).connectedAtlasCluster = undefined;
-            (mockSession as { connectionStringInfo?: unknown }).connectionStringInfo = undefined;
+        const atlasCluster: AtlasClusterConnectionInfo = {
+            projectId: "test-project-id",
+            username: "test-user",
+            clusterName: "test-cluster",
+            instanceType: "FREE",
+            expiryDate: new Date(),
+        };
 
+        it("should return empty metadata when no connection state is provided", () => {
             const metadata = testTool["getConnectionInfoMetadata"]();
 
             expect(metadata).toEqual({});
@@ -201,15 +207,10 @@ describe("ToolBase", () => {
         });
 
         it("should return metadata with project_id when connectedAtlasCluster.projectId is set", () => {
-            (mockSession as { connectedAtlasCluster?: unknown }).connectedAtlasCluster = {
-                projectId: "test-project-id",
-                username: "test-user",
-                clusterName: "test-cluster",
-                expiryDate: new Date(),
-            };
-            (mockSession as { connectionStringInfo?: unknown }).connectionStringInfo = undefined;
-
-            const metadata = testTool["getConnectionInfoMetadata"]();
+            const metadata = testTool["getConnectionInfoMetadata"]({
+                tag: "disconnected",
+                connectedAtlasCluster: atlasCluster,
+            });
 
             expect(metadata).toEqual({
                 project_id: "test-project-id",
@@ -219,28 +220,23 @@ describe("ToolBase", () => {
         });
 
         it("should return empty metadata when connectedAtlasCluster exists but projectId is falsy", () => {
-            (mockSession as { connectedAtlasCluster?: unknown }).connectedAtlasCluster = {
-                projectId: "",
-                username: "test-user",
-                clusterName: "test-cluster",
-                expiryDate: new Date(),
-            };
-            (mockSession as { connectionStringInfo?: unknown }).connectionStringInfo = undefined;
-
-            const metadata = testTool["getConnectionInfoMetadata"]();
+            const metadata = testTool["getConnectionInfoMetadata"]({
+                tag: "disconnected",
+                connectedAtlasCluster: { ...atlasCluster, projectId: "" },
+            });
 
             expect(metadata).toEqual({});
             expect(metadata).not.toHaveProperty("project_id");
         });
 
         it("should return metadata with connection_auth_type and connection_host_type when connectionStringInfo is set", () => {
-            (mockSession as { connectedAtlasCluster?: unknown }).connectedAtlasCluster = undefined;
-            (mockSession as { connectionStringInfo?: unknown }).connectionStringInfo = {
-                authType: "scram",
-                hostType: "unknown",
-            };
-
-            const metadata = testTool["getConnectionInfoMetadata"]();
+            const metadata = testTool["getConnectionInfoMetadata"]({
+                tag: "disconnected",
+                connectionStringInfo: {
+                    authType: "scram",
+                    hostType: "unknown",
+                },
+            });
 
             expect(metadata).toEqual({
                 connection_auth_type: "scram",
@@ -250,18 +246,14 @@ describe("ToolBase", () => {
         });
 
         it("should return metadata with both project_id and connection_auth_type when both are set", () => {
-            (mockSession as { connectedAtlasCluster?: unknown }).connectedAtlasCluster = {
-                projectId: "test-project-id",
-                username: "test-user",
-                clusterName: "test-cluster",
-                expiryDate: new Date(),
-            };
-            (mockSession as { connectionStringInfo?: unknown }).connectionStringInfo = {
-                authType: "oidc-auth-flow",
-                hostType: "atlas",
-            };
-
-            const metadata = testTool["getConnectionInfoMetadata"]();
+            const metadata = testTool["getConnectionInfoMetadata"]({
+                tag: "disconnected",
+                connectedAtlasCluster: atlasCluster,
+                connectionStringInfo: {
+                    authType: "oidc-auth-flow",
+                    hostType: "atlas",
+                },
+            });
 
             expect(metadata).toEqual({
                 project_id: "test-project-id",
@@ -276,11 +268,13 @@ describe("ToolBase", () => {
 
             for (const authType of authTypes) {
                 for (const hostType of hostTypes) {
-                    (mockSession as { connectionStringInfo?: unknown }).connectionStringInfo = {
-                        authType,
-                        hostType,
-                    };
-                    const metadata = testTool["getConnectionInfoMetadata"]();
+                    const metadata = testTool["getConnectionInfoMetadata"]({
+                        tag: "disconnected",
+                        connectionStringInfo: {
+                            authType,
+                            hostType,
+                        },
+                    });
                     expect(metadata.connection_auth_type).toBe(authType);
                     expect(metadata.connection_host_type).toBe(hostType);
                 }

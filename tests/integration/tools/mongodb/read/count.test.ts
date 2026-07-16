@@ -37,10 +37,10 @@ describeWithMongoDB("count tool", (integration) => {
     ]);
 
     it("returns 0 when database doesn't exist", async () => {
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         const response = await integration.mcpClient().callTool({
             name: "count",
-            arguments: { database: "non-existent", collection: "foos" },
+            arguments: { connectionId, database: "non-existent", collection: "foos" },
         });
         const content = getResponseContent(response.content);
         expect(content).toEqual('Found 0 documents in the collection "foos".');
@@ -48,12 +48,12 @@ describeWithMongoDB("count tool", (integration) => {
     });
 
     it("returns 0 when collection doesn't exist", async () => {
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         const mongoClient = integration.mongoClient();
         await mongoClient.db(integration.randomDbName()).collection("bar").insertOne({});
         const response = await integration.mcpClient().callTool({
             name: "count",
-            arguments: { database: integration.randomDbName(), collection: "non-existent" },
+            arguments: { connectionId, database: integration.randomDbName(), collection: "non-existent" },
         });
         const content = getResponseContent(response.content);
         expect(content).toEqual('Found 0 documents in the collection "non-existent".');
@@ -81,10 +81,15 @@ describeWithMongoDB("count tool", (integration) => {
         ];
         for (const testCase of testCases) {
             it(`returns ${testCase.expectedCount} documents for filter ${JSON.stringify(testCase.filter)}`, async () => {
-                await integration.connectMcpClient();
+                const connectionId = await integration.connectMcpClient();
                 const response = await integration.mcpClient().callTool({
                     name: "count",
-                    arguments: { database: integration.randomDbName(), collection: "foo", query: testCase.filter },
+                    arguments: {
+                        connectionId,
+                        database: integration.randomDbName(),
+                        collection: "foo",
+                        query: testCase.filter,
+                    },
                 });
 
                 const content = getResponseContent(response.content);
@@ -105,6 +110,8 @@ describeWithMongoDB("count tool", (integration) => {
 });
 
 describeWithMongoDB("count tool with abort signal", (integration) => {
+    let connectionId: string;
+
     beforeEach(async () => {
         // Insert many documents with complex data to simulate a slow query
         await freshInsertDocuments({
@@ -130,6 +137,7 @@ describeWithMongoDB("count tool with abort signal", (integration) => {
                 {
                     name: "count",
                     arguments: {
+                        connectionId,
                         database: integration.randomDbName(),
                         collection: "abort_collection",
                         query: {
@@ -157,7 +165,7 @@ describeWithMongoDB("count tool with abort signal", (integration) => {
     };
 
     it("should abort count operation when signal is triggered immediately", async () => {
-        await integration.connectMcpClient();
+        connectionId = await integration.connectMcpClient();
         const abortController = new AbortController();
 
         const countPromise = runSlowCount(abortController.signal);
@@ -175,7 +183,7 @@ describeWithMongoDB("count tool with abort signal", (integration) => {
     });
 
     it("should abort count operation during query execution", async () => {
-        await integration.connectMcpClient();
+        connectionId = await integration.connectMcpClient();
         const abortController = new AbortController();
 
         // Start a count with $where that requires scanning many documents
@@ -196,7 +204,7 @@ describeWithMongoDB("count tool with abort signal", (integration) => {
     });
 
     it("should complete successfully when not aborted", async () => {
-        await integration.connectMcpClient();
+        connectionId = await integration.connectMcpClient();
 
         const { result, error, executionTime } = await runSlowCount();
 
@@ -228,10 +236,11 @@ describeWithMongoDB("count tool with server-side JavaScript operators", (integra
     for (const jsDisabled of [true, false]) {
         it(`${jsDisabled ? "rejects" : "does not reject"} queries using $where when disableServerSideJs is ${jsDisabled}`, async () => {
             integration.mcpServer().userConfig.disableServerSideJs = jsDisabled;
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "count",
                 arguments: {
+                    connectionId,
                     database: integration.randomDbName(),
                     collection: "people",
                     query: { $where: "function() { return this.age > 8; }" },

@@ -9,11 +9,15 @@ import type { Session } from "../../../../../src/common/session.js";
 import type { UserConfig } from "../../../../../src/common/config/userConfig.js";
 import type { Telemetry } from "../../../../../src/telemetry/telemetry.js";
 import type { Elicitation } from "../../../../../src/elicitation.js";
-import type { CompositeLogger } from "../../../../../src/common/logging/index.js";
+import { CompositeLogger } from "../../../../../src/common/logging/index.js";
 import type { ApiClient } from "../../../../../src/common/atlas/apiClient.js";
 import type { AtlasClusterConnectionInfo } from "../../../../../src/common/connectionInfo.js";
+import { MCPConnectionStore, type ConnectionRegistry } from "../../../../../src/common/connectionRegistry.js";
+import { DeviceId } from "../../../../../src/helpers/deviceId.js";
 import { UIRegistry } from "../../../../../src/ui/registry/index.js";
 import { MockMetrics } from "../../../mocks/metrics.js";
+import { FakeConnectionManager } from "../../../mocks/connectionManager.js";
+import { defaultTestConfig } from "../../../../integration/helpers.js";
 import type { Keychain } from "../../../../../src/lib.js";
 
 const PROJECT_ID = "507f1f77bcf86cd799439011";
@@ -23,15 +27,13 @@ const UPDATE_RESULT = { id: "cluster-id" };
 
 describe("PauseResumeClusterTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
-    let mockDisconnect: ReturnType<typeof vi.fn>;
+    let connectionRegistry: ConnectionRegistry;
     let tool: PauseResumeClusterTool;
 
-    function buildTool(connectedCluster?: AtlasClusterConnectionInfo): PauseResumeClusterTool {
+    function buildTool(): PauseResumeClusterTool {
         mockApiClient = {
             updateCluster: vi.fn().mockResolvedValue(UPDATE_RESULT),
         };
-
-        mockDisconnect = vi.fn().mockResolvedValue(undefined);
 
         const mockLogger = {
             info: vi.fn(),
@@ -40,11 +42,17 @@ describe("PauseResumeClusterTool", () => {
             error: vi.fn(),
         } as unknown as CompositeLogger;
 
+        connectionRegistry = new MCPConnectionStore({
+            userConfig: defaultTestConfig,
+            logger: new CompositeLogger(),
+            deviceId: DeviceId.create(new CompositeLogger()),
+            createConnectionManager: (): FakeConnectionManager => new FakeConnectionManager(),
+        }).view();
+
         const mockSession: Partial<Session> = {
             logger: mockLogger,
             apiClient: mockApiClient as unknown as ApiClient,
-            connectedAtlasCluster: connectedCluster,
-            disconnect: mockDisconnect as unknown as () => Promise<void>,
+            connectionRegistry,
             keychain: { allSecrets: [] } as unknown as Keychain,
         };
 
@@ -160,24 +168,33 @@ describe("PauseResumeClusterTool", () => {
             expiryDate: new Date(Date.now() + 3_600_000),
         };
 
-        it("disconnects and mentions it in the response when pausing the connected cluster", async () => {
-            tool = buildTool(connectedCluster);
+        it("revokes matching connections and mentions them in the response when pausing the cluster", async () => {
+            const entry = await connectionRegistry.connect({
+                settings: { connectionString: "mongodb://localhost:27017", atlas: connectedCluster },
+            });
 
             const result = await exec({ ...BASE_ARGS, action: "PAUSE" });
 
-            expect(mockDisconnect).toHaveBeenCalledTimes(1);
+            await expect(connectionRegistry.peek(entry.connectionId)).resolves.toBeUndefined();
             const text = (result.content[0] as { text: string }).text;
             expect(text).toContain("disconnected");
             expect(text).toContain(CLUSTER_NAME);
+            expect(text).toContain(`"${entry.connectionId}"`);
             expect(result.structuredContent).toMatchObject({ disconnected: true });
         });
 
-        it("does not disconnect when pausing a different cluster", async () => {
-            tool = buildTool({ ...connectedCluster, clusterName: "other-cluster" });
+        it("does not disconnect connections to a different cluster", async () => {
+            const entry = await connectionRegistry.connect({
+                settings: {
+                    connectionString: "mongodb://localhost:27017",
+                    atlas: { ...connectedCluster, clusterName: "other-cluster" },
+                },
+            });
 
-            await exec({ ...BASE_ARGS, action: "PAUSE" });
+            const result = await exec({ ...BASE_ARGS, action: "PAUSE" });
 
-            expect(mockDisconnect).not.toHaveBeenCalled();
+            await expect(connectionRegistry.peek(entry.connectionId)).resolves.toBe(entry);
+            expect(result.structuredContent).toMatchObject({ disconnected: false });
         });
     });
 
@@ -186,15 +203,15 @@ describe("PauseResumeClusterTool", () => {
             const args = { ...BASE_ARGS, action: "PAUSE" as const };
             const result = await exec(args);
 
-            const metadata = tool["resolveTelemetryMetadata"](args as never, { result: result as never });
+            const metadata = await tool["resolveTelemetryMetadata"](args as never, { result: result as never });
             expect(metadata.cluster_id).toBe("cluster-id");
             expect(metadata.action).toBe("PAUSE");
             expect(metadata.project_id).toBe(PROJECT_ID);
         });
 
-        it("returns empty metadata fields when result has no structuredContent", () => {
+        it("returns empty metadata fields when result has no structuredContent", async () => {
             const args = { ...BASE_ARGS, action: "PAUSE" as const };
-            const metadata = tool["resolveTelemetryMetadata"](args as never, {
+            const metadata = await tool["resolveTelemetryMetadata"](args as never, {
                 result: { content: [] } as never,
             });
 

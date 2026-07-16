@@ -23,11 +23,13 @@ import type { DropIndexOutput } from "../../../../../src/tools/mongodb/delete/dr
 function setupForClassicIndexes(integration: MongoDBIntegrationTestCase): {
     getMoviesCollection: () => Collection;
     getIndexName: () => string;
+    getConnectionId: () => string;
 } {
     let moviesCollection: Collection;
     let indexName: string;
+    let connectionId: string;
     beforeEach(async () => {
-        await integration.connectMcpClient();
+        connectionId = await integration.connectMcpClient();
         const client = integration.mongoClient();
         moviesCollection = client.db("mflix").collection("movies");
         await moviesCollection.insertMany([
@@ -50,6 +52,7 @@ function setupForClassicIndexes(integration: MongoDBIntegrationTestCase): {
     return {
         getMoviesCollection: () => moviesCollection,
         getIndexName: () => indexName,
+        getConnectionId: () => connectionId,
     };
 }
 
@@ -57,12 +60,14 @@ function setupForVectorSearchIndexes(integration: MongoDBIntegrationTestCase): {
     getMoviesCollection: () => Collection;
     getSearchIndexName: () => string;
     getVectorIndexName: () => string;
+    getConnectionId: () => string;
 } {
     let moviesCollection: Collection;
     const indexName = "searchIdx";
     const vectorIndexName = "vectorIdx";
+    let connectionId: string;
     beforeEach(async () => {
-        await integration.connectMcpClient();
+        connectionId = await integration.connectMcpClient();
         const mongoClient = integration.mongoClient();
         moviesCollection = mongoClient.db("mflix").collection("movies");
         await moviesCollection.insertMany([
@@ -98,6 +103,7 @@ function setupForVectorSearchIndexes(integration: MongoDBIntegrationTestCase): {
         getMoviesCollection: () => moviesCollection,
         getSearchIndexName: () => indexName,
         getVectorIndexName: () => vectorIndexName,
+        getConnectionId: () => connectionId,
     };
 }
 
@@ -156,7 +162,7 @@ describe("drop-index tool", () => {
     describeWithMongoDB(
         "dropping classic indexes",
         (integration) => {
-            const { getIndexName } = setupForClassicIndexes(integration);
+            const { getIndexName, getConnectionId } = setupForClassicIndexes(integration);
             describe.each([
                 {
                     database: "mflix",
@@ -172,7 +178,13 @@ describe("drop-index tool", () => {
                     it("should fail with error", async () => {
                         const response = await integration.mcpClient().callTool({
                             name: "drop-index",
-                            arguments: { database, collection, indexName: "non-existent", type: "classic" },
+                            arguments: {
+                                connectionId: getConnectionId(),
+                                database,
+                                collection,
+                                indexName: "non-existent",
+                                type: "classic",
+                            },
                         });
                         expect(response.isError).toBe(true);
                         const content = getResponseContent(response.content);
@@ -186,6 +198,7 @@ describe("drop-index tool", () => {
                     const response = await integration.mcpClient().callTool({
                         name: "drop-index",
                         arguments: {
+                            connectionId: getConnectionId(),
                             database: "mflix",
                             collection: "movies",
                             indexName: "non-existent",
@@ -204,6 +217,7 @@ describe("drop-index tool", () => {
                         name: "drop-index",
                         // The index is created in beforeEach
                         arguments: {
+                            connectionId: getConnectionId(),
                             database: "mflix",
                             collection: "movies",
                             indexName: getIndexName(),
@@ -239,7 +253,7 @@ describe("drop-index tool", () => {
     describeWithMongoDB(
         "dropping classic indexes through an elicitation enabled client",
         (integration) => {
-            const { getMoviesCollection, getIndexName } = setupForClassicIndexes(integration);
+            const { getMoviesCollection, getIndexName, getConnectionId } = setupForClassicIndexes(integration);
             afterEach(() => {
                 mockElicitInput.clear();
             });
@@ -250,6 +264,7 @@ describe("drop-index tool", () => {
                 await integration.mcpClient().callTool({
                     name: "drop-index",
                     arguments: {
+                        connectionId: getConnectionId(),
                         database: "mflix",
                         collection: "movies",
                         indexName: getIndexName(),
@@ -279,6 +294,7 @@ describe("drop-index tool", () => {
                 await integration.mcpClient().callTool({
                     name: "drop-index",
                     arguments: {
+                        connectionId: getConnectionId(),
                         database: "mflix",
                         collection: "movies",
                         indexName: getIndexName(),
@@ -314,10 +330,16 @@ describe("drop-index tool", () => {
             "when connected to MongoDB without search support",
             (integration) => {
                 it("should fail with appropriate error when invoked", async () => {
-                    await integration.connectMcpClient();
+                    const connectionId = await integration.connectMcpClient();
                     const response = await integration.mcpClient().callTool({
                         name: "drop-index",
-                        arguments: { database: "any", collection: "foo", indexName: "default", type: "search" },
+                        arguments: {
+                            connectionId,
+                            database: "any",
+                            collection: "foo",
+                            indexName: "default",
+                            type: "search",
+                        },
                     });
                     const content = getResponseContent(response.content);
                     expect(response.isError).toBe(true);
@@ -334,7 +356,7 @@ describe("drop-index tool", () => {
         describeWithMongoDB(
             "when connected to MongoDB with search support",
             (integration) => {
-                const { getSearchIndexName, getVectorIndexName, getMoviesCollection } =
+                const { getSearchIndexName, getVectorIndexName, getMoviesCollection, getConnectionId } =
                     setupForVectorSearchIndexes(integration);
 
                 describe.each([
@@ -360,7 +382,13 @@ describe("drop-index tool", () => {
                     it("should fail with appropriate error", async () => {
                         const response = await integration.mcpClient().callTool({
                             name: "drop-index",
-                            arguments: { database, collection, indexName, type: "search" },
+                            arguments: {
+                                connectionId: getConnectionId(),
+                                database,
+                                collection,
+                                indexName,
+                                type: "search",
+                            },
                         });
                         expect(response.isError).toBe(true);
                         const content = getResponseContent(response.content);
@@ -387,6 +415,7 @@ describe("drop-index tool", () => {
                         const response = await integration.mcpClient().callTool({
                             name: "drop-index",
                             arguments: {
+                                connectionId: getConnectionId(),
                                 database: collection.dbName,
                                 collection: collection.collectionName,
                                 indexName,
@@ -424,8 +453,9 @@ describe("drop-index tool", () => {
             (integration) => {
                 const indexName = "auto-embed-index";
                 let collection: Collection;
+                let connectionId: string;
                 beforeEach(async () => {
-                    await integration.connectMcpClient();
+                    connectionId = await integration.connectMcpClient();
                     collection = integration.mongoClient().db(integration.randomDbName()).collection("foo");
                     await collection.insertOne({ plot: "A movie about alien" });
                     await collection.createSearchIndex({
@@ -452,6 +482,7 @@ describe("drop-index tool", () => {
                     const response = await integration.mcpClient().callTool({
                         name: "drop-index",
                         arguments: {
+                            connectionId,
                             database: collection.dbName,
                             collection: collection.collectionName,
                             indexName,
@@ -486,16 +517,18 @@ describe("drop-index tool", () => {
         describeWithMongoDB(
             "when invoked via an elicitation enabled client",
             (integration) => {
-                const { getSearchIndexName: getIndexName } = setupForVectorSearchIndexes(integration);
+                const { getSearchIndexName: getIndexName, getConnectionId } = setupForVectorSearchIndexes(integration);
                 let dropSearchIndexSpy: MockInstance;
 
-                beforeEach(() => {
+                beforeEach(async () => {
                     // Note: Unlike drop-index tool test, we don't test the final state of
                     // indexes because of possible longer wait periods for changes to
                     // reflect, at-times taking >30 seconds.
-                    const entry = integration
-                        .mcpServer()
-                        .session.connectionRegistry.find((entry) => entry.state.tag === "connected")[0];
+                    const entry = (
+                        await integration
+                            .mcpServer()
+                            .session.connectionRegistry.find((entry) => entry.state.tag === "connected")
+                    )[0];
                     expectDefined(entry);
                     dropSearchIndexSpy = vi.spyOn(entry.getServiceProvider(), "dropSearchIndex");
                 });
@@ -509,6 +542,7 @@ describe("drop-index tool", () => {
                     await integration.mcpClient().callTool({
                         name: "drop-index",
                         arguments: {
+                            connectionId: getConnectionId(),
                             database: "mflix",
                             collection: "movies",
                             indexName: getIndexName(),
@@ -536,6 +570,7 @@ describe("drop-index tool", () => {
                     await integration.mcpClient().callTool({
                         name: "drop-index",
                         arguments: {
+                            connectionId: getConnectionId(),
                             database: "mflix",
                             collection: "movies",
                             indexName: getIndexName(),

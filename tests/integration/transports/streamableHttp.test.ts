@@ -10,7 +10,6 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import { LogId, type LoggerBase } from "../../../src/common/logging/index.js";
 import type { Session } from "../../../src/common/session.js";
-import { ConnectionRegistry } from "../../../src/common/connectionRegistry.js";
 import { Keychain } from "../../../src/common/keychain.js";
 import { defaultTestConfig, InMemoryLogger } from "../helpers.js";
 import { type UserConfig } from "../../../src/common/config/userConfig.js";
@@ -24,6 +23,8 @@ import type { AnyToolClass, Server } from "../../../src/lib.js";
 import type { IncomingMessage } from "node:http";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { sleep } from "../../../src/common/managedTimeout.js";
+import { ErrorCodes, MongoDBError } from "../../../src/common/errors.js";
+import { z } from "zod";
 
 const expectedHealthData: Record<string, unknown> = {
     status: "ok",
@@ -247,7 +248,6 @@ describe("StreamableHttpRunner", () => {
             const logger = new InMemoryLogger(new Keychain());
             const runner = new StreamableHttpRunner({
                 userConfig: config,
-                createConnectionRegistry: (options): ConnectionRegistry => new ConnectionRegistry(options),
                 additionalLoggers: [logger],
             });
             await runner.start();
@@ -1469,6 +1469,133 @@ describe("StreamableHttpRunner", () => {
             expect(adminTools.tools).toHaveLength(2);
             const toolNames = adminTools.tools.map((t) => t.name).sort();
             expect(toolNames).toEqual(["admin-tool", "user-tool"]);
+        });
+    });
+
+    describe("connection scoping", () => {
+        // Tools that poke the session's connection registry directly. The real
+        // connect tool needs a dialable mongod, which this suite does not spin
+        // up; createEntry() registers a handle without dialing, which is all
+        // the per-session visibility scoping operates on.
+        class CreateConnectionEntryTool extends ToolBase {
+            static toolName = "create-connection-entry";
+            public description = "Registers a connection handle without dialing it";
+            public argsShape = {};
+            static category: ToolCategory = "mongodb";
+            static operationType: OperationType = "connect";
+
+            protected async execute(): Promise<CallToolResult> {
+                const entry = await this.session.connectionRegistry.createEntry({ name: "scoping-test" });
+                return { content: [{ type: "text", text: entry.connectionId }] };
+            }
+
+            protected resolveTelemetryMetadata(): TelemetryToolMetadata {
+                return {};
+            }
+        }
+
+        class ListConnectionIdsTool extends ToolBase {
+            static toolName = "list-connection-ids";
+            public description = "Lists the connection ids visible to this session";
+            public argsShape = {};
+            static category: ToolCategory = "mongodb";
+            static operationType: OperationType = "metadata";
+
+            protected async execute(): Promise<CallToolResult> {
+                const entries = await this.session.connectionRegistry.find(() => true);
+                const ids = entries.map((entry) => entry.connectionId);
+                return { content: [{ type: "text", text: JSON.stringify(ids) }] };
+            }
+
+            protected resolveTelemetryMetadata(): TelemetryToolMetadata {
+                return {};
+            }
+        }
+
+        class ResolveConnectionTool extends ToolBase {
+            static toolName = "resolve-connection";
+            public description = "Resolves a connection id, reporting the error code on failure";
+            public argsShape = { connectionId: z.string() };
+            static category: ToolCategory = "mongodb";
+            static operationType: OperationType = "metadata";
+
+            protected async execute({ connectionId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+                try {
+                    await this.session.connectionRegistry.resolve(connectionId);
+                    return { content: [{ type: "text", text: "resolved" }] };
+                } catch (error: unknown) {
+                    const text = error instanceof MongoDBError ? `error-code-${error.code}` : String(error);
+                    return { content: [{ type: "text", text }] };
+                }
+            }
+
+            protected resolveTelemetryMetadata(): TelemetryToolMetadata {
+                return {};
+            }
+        }
+
+        const scopingTools = [CreateConnectionEntryTool, ListConnectionIdsTool, ResolveConnectionTool];
+
+        const callText = async (client: Client, name: string, args: Record<string, unknown> = {}): Promise<string> => {
+            const response = (await client.callTool({ name, arguments: args })) as {
+                content: { text: string }[];
+            };
+            return response.content[0]?.text ?? "";
+        };
+
+        it("isolates connection handles between sessions by default", async () => {
+            const sessionScopeConfig: UserConfig = { ...config, connectionString: "mongodb://localhost:27017" };
+            runner = new StreamableHttpRunner({
+                userConfig: sessionScopeConfig,
+                tools: scopingTools,
+            });
+            await runner.start();
+
+            const clientA = await connectClient({});
+            const clientB = await connectClient({});
+
+            const handle = await callText(clientA, "create-connection-entry");
+            expect(handle).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+
+            // The creating session sees its handle plus the shared preconfigured entry.
+            const idsA = JSON.parse(await callText(clientA, "list-connection-ids")) as string[];
+            expect(idsA).toContain(handle);
+            expect(idsA).toContain("preconfigured");
+
+            // The other session only sees the shared preconfigured entry...
+            const idsB = JSON.parse(await callText(clientB, "list-connection-ids")) as string[];
+            expect(idsB).not.toContain(handle);
+            expect(idsB).toContain("preconfigured");
+
+            // ...and the foreign handle behaves exactly like an absent one. The
+            // owner can still address it: the entry was never dialed, so it
+            // resolves to a not-connected error instead of an unknown handle.
+            expect(await callText(clientB, "resolve-connection", { connectionId: handle })).toBe(
+                `error-code-${ErrorCodes.UnknownConnectionId}`
+            );
+            expect(await callText(clientA, "resolve-connection", { connectionId: handle })).toBe(
+                `error-code-${ErrorCodes.NotConnectedToMongoDB}`
+            );
+        });
+
+        it("shares connection handles across sessions with connectionScope: global", async () => {
+            const globalScopeConfig: UserConfig = { ...config, connectionScope: "global" };
+            runner = new StreamableHttpRunner({
+                userConfig: globalScopeConfig,
+                tools: scopingTools,
+            });
+            await runner.start();
+
+            const clientA = await connectClient({});
+            const clientB = await connectClient({});
+
+            const handle = await callText(clientA, "create-connection-entry");
+
+            const idsB = JSON.parse(await callText(clientB, "list-connection-ids")) as string[];
+            expect(idsB).toContain(handle);
+            expect(await callText(clientB, "resolve-connection", { connectionId: handle })).toBe(
+                `error-code-${ErrorCodes.NotConnectedToMongoDB}`
+            );
         });
     });
 });

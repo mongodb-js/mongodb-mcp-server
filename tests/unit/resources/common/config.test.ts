@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { ConfigResource } from "../../../../src/resources/common/config.js";
 import { Session } from "../../../../src/common/session.js";
 import { CompositeLogger } from "../../../../src/common/logging/index.js";
-import { ConnectionRegistry } from "../../../../src/common/connectionRegistry.js";
+import { MCPConnectionStore } from "../../../../src/common/connectionRegistry.js";
 import { ExportsManager } from "../../../../src/common/exportsManager.js";
 import { DeviceId } from "../../../../src/helpers/deviceId.js";
 import { Keychain } from "../../../../src/common/keychain.js";
@@ -16,7 +16,7 @@ describe("config resource", () => {
     const deviceId = DeviceId.create(logger);
 
     function createResource(config: UserConfig): ConfigResource {
-        const connectionRegistry = new ConnectionRegistry({ userConfig: config, logger, deviceId });
+        const connectionRegistry = new MCPConnectionStore({ userConfig: config, logger, deviceId }).view();
         const keychain = new Keychain();
         const session = vi.mocked(
             new Session({

@@ -25,10 +25,10 @@ describeWithMongoDB("listCollections tool", (integration) => {
 
     describe("with non-existent database", () => {
         it("returns no collections", async () => {
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "list-collections",
-                arguments: { database: "non-existent" },
+                arguments: { connectionId, database: "non-existent" },
             });
             const content = getResponseContent(response.content);
             expect(content).toEqual(
@@ -47,10 +47,10 @@ describeWithMongoDB("listCollections tool", (integration) => {
             const mongoClient = integration.mongoClient();
             await mongoClient.db(integration.randomDbName()).createCollection("collection-1");
 
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "list-collections",
-                arguments: { database: integration.randomDbName() },
+                arguments: { connectionId, database: integration.randomDbName() },
             });
             const items = getResponseElements(response.content);
             expect(items).toHaveLength(2);
@@ -69,7 +69,7 @@ describeWithMongoDB("listCollections tool", (integration) => {
 
             const response2 = await integration.mcpClient().callTool({
                 name: "list-collections",
-                arguments: { database: integration.randomDbName() },
+                arguments: { connectionId, database: integration.randomDbName() },
             });
             const items2 = getResponseElements(response2.content);
             expect(items2).toHaveLength(2);
