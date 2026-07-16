@@ -473,9 +473,9 @@ describe("ExportsManager unit test", () => {
         describe("when there is an error on read stream", () => {
             it("should remove the partial export and never make it available", async () => {
                 const emitSpy = vi.spyOn(manager, "emit");
-                // A cursor that will make the read stream fail after the first chunk
+                // A cursor that will make the read stream fail on the first chunk
                 const { cursor, cursorCloseNotification } = createDummyFindCursor([{ name: "Test1" }], (chunkIndex) => {
-                    if (chunkIndex > 0) {
+                    if (chunkIndex >= 0) {
                         return Promise.reject(new Error("Connection timedout!"));
                     }
                     return Promise.resolve();

@@ -11,7 +11,7 @@
     "build:update-package-version": "pnpm --filter @mongodb-js/mcp-scripts update:package-version",
     "prebuild:mcpb": "pnpm run build",
     "build:mcpb": "pnpm --filter mongodb-mcp-server build:mcpb",
-    "build": "pnpm --filter './packages/*' --filter '!./packages/*-tests' --filter '!./packages/test-utils' -r run build",
+    "build": "pnpm --filter \"./packages/*\" --filter \"!./packages/*-tests\" --filter \"!./packages/test-utils\" -r run build",
     "inspect": "pnpm --filter mongodb-mcp-server inspect",
     "prettier": "prettier",
     "check": "concurrently \"pnpm run check:types\" \"pnpm run check:style\" \"pnpm run check:api\"",
