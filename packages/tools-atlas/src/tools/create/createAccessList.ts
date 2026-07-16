@@ -75,6 +75,9 @@ export class CreateAccessListTool extends AtlasToolBase {
                     text: `IP/CIDR ranges added to access list for project ${projectId}.`,
                 },
             ],
+            structuredContent: {
+                projectId,
+            },
         };
     }
 
