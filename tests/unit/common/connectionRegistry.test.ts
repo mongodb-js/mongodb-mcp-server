@@ -1,10 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-    atlasClusterSlug,
-    MCPConnectionStore,
-    PRECONFIGURED_CONNECTION_ID,
-    type ConnectionStoreOptions,
-} from "../../../src/common/connectionRegistry.js";
+import { atlasClusterSlug, PRECONFIGURED_CONNECTION_ID } from "../../../src/common/connectionRegistry.js";
+import { MCPConnectionStore, type ConnectionStoreOptions } from "../../../src/common/connectionStore.js";
 import { summarizeConnection } from "../../../src/common/connectionSummary.js";
 import { FakeConnectionManager } from "../mocks/connectionManager.js";
 import { CompositeLogger } from "../../../src/common/logging/index.js";

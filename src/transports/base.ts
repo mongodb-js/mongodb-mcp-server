@@ -9,7 +9,7 @@ import { CompositeLogger, ConsoleLogger, DiskLogger, McpLogger } from "../common
 import { ExportsManager } from "../common/exportsManager.js";
 import { DeviceId } from "../helpers/deviceId.js";
 import { Keychain } from "../common/keychain.js";
-import { MCPConnectionStore } from "../common/connectionRegistry.js";
+import { MCPConnectionStore } from "../common/connectionStore.js";
 import { getRandomUUID } from "../helpers/getRandomUUID.js";
 import {
     type ConnectionErrorHandler,

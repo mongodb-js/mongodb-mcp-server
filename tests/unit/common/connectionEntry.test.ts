@@ -4,11 +4,8 @@ import { MongoServerError } from "mongodb";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { CompositeLogger } from "../../../src/common/logging/index.js";
 import { MCPConnectionManager } from "../../../src/common/connectionManager.js";
-import {
-    MCPConnectionStore,
-    type ConnectionEntry,
-    type ConnectionRegistry,
-} from "../../../src/common/connectionRegistry.js";
+import { MCPConnectionStore } from "../../../src/common/connectionStore.js";
+import type { ConnectionEntry, ConnectionRegistry } from "../../../src/common/connectionRegistry.js";
 import { DeviceId } from "../../../src/helpers/deviceId.js";
 import { ErrorCodes, MongoDBError } from "../../../src/common/errors.js";
 import { defaultTestConfig } from "../../integration/helpers.js";

@@ -6,7 +6,7 @@ import { ExportsManager } from "../../../src/common/exportsManager.js";
 import { Session } from "../../../src/common/session.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Server } from "../../../src/server.js";
-import { MCPConnectionStore } from "../../../src/common/connectionRegistry.js";
+import { MCPConnectionStore } from "../../../src/common/connectionStore.js";
 import { DeviceId } from "../../../src/helpers/deviceId.js";
 import { connectionErrorHandler } from "../../../src/common/connectionErrorHandler.js";
 import { Keychain } from "../../../src/common/keychain.js";

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { ConfigResource } from "../../../../src/resources/common/config.js";
 import { Session } from "../../../../src/common/session.js";
 import { CompositeLogger } from "../../../../src/common/logging/index.js";
-import { MCPConnectionStore } from "../../../../src/common/connectionRegistry.js";
+import { MCPConnectionStore } from "../../../../src/common/connectionStore.js";
 import { ExportsManager } from "../../../../src/common/exportsManager.js";
 import { DeviceId } from "../../../../src/helpers/deviceId.js";
 import { Keychain } from "../../../../src/common/keychain.js";

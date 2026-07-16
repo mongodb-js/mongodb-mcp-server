@@ -5,7 +5,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { ConnectionIdArgs, MongoDBToolBase } from "../../../../src/tools/mongodb/mongodbTool.js";
 import { type OperationType, type ToolArgs, type ToolClass } from "../../../../src/tools/tool.js";
 import { type UserConfig } from "../../../../src/common/config/userConfig.js";
-import { MCPConnectionStore } from "../../../../src/common/connectionRegistry.js";
+import { MCPConnectionStore } from "../../../../src/common/connectionStore.js";
 import { Session } from "../../../../src/common/session.js";
 import { CompositeLogger } from "../../../../src/common/logging/index.js";
 import { DeviceId } from "../../../../src/helpers/deviceId.js";
