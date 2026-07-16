@@ -22,7 +22,9 @@ export const PauseResumeClusterOutputSchema = {
     clusterName: z.string(),
     action: actionEnum,
     clusterId: z.string().optional(),
-    disconnected: z.boolean(),
+    disconnectedConnectionIds: z
+        .array(z.string())
+        .describe("Connection IDs that were disconnected due to the cluster being paused."),
 };
 
 export class PauseResumeClusterTool extends AtlasToolBase {
@@ -58,7 +60,7 @@ export class PauseResumeClusterTool extends AtlasToolBase {
         );
 
         let text: string;
-        let disconnected = false;
+        let disconnectedConnectionIds: string[] = [];
 
         if (isPause) {
             text =
@@ -74,11 +76,11 @@ export class PauseResumeClusterTool extends AtlasToolBase {
             for (const entry of affected) {
                 await this.session.connectionRegistry.disconnect(entry.connectionId);
             }
-            if (affected.length > 0) {
-                text += ` The following connections to cluster "${clusterName}" were disconnected and their connectionIds are no longer valid: ${affected
-                    .map((entry) => `"${entry.connectionId}"`)
+            disconnectedConnectionIds = affected.map((entry) => entry.connectionId);
+            if (disconnectedConnectionIds.length > 0) {
+                text += ` The following connections to cluster "${clusterName}" were disconnected and their connectionIds are no longer valid: ${disconnectedConnectionIds
+                    .map((connectionId) => `"${connectionId}"`)
                     .join(", ")}.`;
-                disconnected = true;
             }
         } else {
             text =
@@ -93,7 +95,7 @@ export class PauseResumeClusterTool extends AtlasToolBase {
                 clusterName,
                 action,
                 clusterId: result.id,
-                disconnected,
+                disconnectedConnectionIds,
             },
         };
     }

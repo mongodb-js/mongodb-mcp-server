@@ -135,7 +135,7 @@ describe("PauseResumeClusterTool", () => {
                 clusterName: CLUSTER_NAME,
                 action: "PAUSE",
                 clusterId: "cluster-id",
-                disconnected: false,
+                disconnectedConnectionIds: [],
             });
         });
 
@@ -152,7 +152,7 @@ describe("PauseResumeClusterTool", () => {
                 clusterName: CLUSTER_NAME,
                 action: "RESUME",
                 clusterId: "cluster-id",
-                disconnected: false,
+                disconnectedConnectionIds: [],
             });
         });
     });
@@ -180,7 +180,7 @@ describe("PauseResumeClusterTool", () => {
             expect(text).toContain("disconnected");
             expect(text).toContain(CLUSTER_NAME);
             expect(text).toContain(`"${entry.connectionId}"`);
-            expect(result.structuredContent).toMatchObject({ disconnected: true });
+            expect(result.structuredContent).toMatchObject({ disconnectedConnectionIds: [entry.connectionId] });
         });
 
         it("does not disconnect connections to a different cluster", async () => {
@@ -194,7 +194,7 @@ describe("PauseResumeClusterTool", () => {
             const result = await exec({ ...BASE_ARGS, action: "PAUSE" });
 
             await expect(connectionRegistry.peek(entry.connectionId)).resolves.toBe(entry);
-            expect(result.structuredContent).toMatchObject({ disconnected: false });
+            expect(result.structuredContent).toMatchObject({ disconnectedConnectionIds: [] });
         });
     });
 
