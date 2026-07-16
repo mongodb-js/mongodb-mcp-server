@@ -181,6 +181,22 @@ const ServerConfigSchema = z.object({
             "Maximum number of concurrent sessions the HTTP transport will hold in memory (only used when transport is 'http'). Each session holds a full server instance, transport, and timers, so choose a value based on your deployment's available memory; the default is a conservative safety net rather than a recommended production value."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    maxActiveConnections: z.coerce
+        .number()
+        .int()
+        .min(1, "Invalid maxActiveConnections: must be at least 1")
+        .default(10)
+        .describe(
+            "Maximum number of MongoDB connections a single scope (an MCP session by default, see connectionScope) can hold open. When exceeded, the scope's least-recently-used connection is closed and its connectionId revoked. The preconfigured connection does not count towards the limit."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    connectionScope: z
+        .enum(["session", "global"])
+        .default("session")
+        .describe(
+            "Visibility scope for MongoDB connections created at runtime. With 'session' (the default), each MCP session only sees the connections it created (plus the shared 'preconfigured' one) and they are closed when the session ends — recommended when the HTTP transport is exposed to multiple clients without authentication. With 'global', connections are shared across all sessions and survive session rotation."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
     maxBytesPerQuery: z.coerce
         .number()
         .default(16_777_216)

@@ -47,7 +47,6 @@ describe("CreateClusterTool", () => {
         mockSession = {
             logger: mockLogger,
             apiClient: mockApiClient as unknown as ApiClient,
-            connectedAtlasCluster: undefined,
             keychain: { allSecrets: [] } as unknown as Keychain,
         };
 

@@ -65,11 +65,19 @@ export class PauseResumeClusterTool extends AtlasToolBase {
                 `Cluster "${clusterName}" in project "${projectId}" is being paused. ` +
                 `Paused clusters are unavailable for connections and do not incur compute costs.`;
 
-            // Disconnect if the cluster being paused is the one with the active connection.
-            const connection = this.session.connectedAtlasCluster;
-            if (connection?.projectId === projectId && connection?.clusterName === clusterName) {
-                await this.session.disconnect();
-                text += ` The connection to cluster "${clusterName}" is now disconnected.`;
+            // Revoke any connections established to the cluster being paused.
+            const affected = await this.session.connectionRegistry.find(
+                (entry) =>
+                    entry.state.connectedAtlasCluster?.projectId === projectId &&
+                    entry.state.connectedAtlasCluster?.clusterName === clusterName
+            );
+            for (const entry of affected) {
+                await this.session.connectionRegistry.disconnect(entry.connectionId);
+            }
+            if (affected.length > 0) {
+                text += ` The following connections to cluster "${clusterName}" were disconnected and their connectionIds are no longer valid: ${affected
+                    .map((entry) => `"${entry.connectionId}"`)
+                    .join(", ")}.`;
                 disconnected = true;
             }
         } else {
@@ -90,11 +98,11 @@ export class PauseResumeClusterTool extends AtlasToolBase {
         };
     }
 
-    protected override resolveTelemetryMetadata(
+    protected override async resolveTelemetryMetadata(
         args: ToolArgs<typeof this.argsShape>,
         context: { result: CallToolResult }
-    ): PauseResumeClusterMetadata {
-        const parentMetadata = super.resolveTelemetryMetadata(args, context);
+    ): Promise<PauseResumeClusterMetadata> {
+        const parentMetadata = await super.resolveTelemetryMetadata(args, context);
         type Output = z.infer<z.ZodObject<typeof PauseResumeClusterOutputSchema>>;
         const sc = context.result.structuredContent as Output | undefined;
         return {

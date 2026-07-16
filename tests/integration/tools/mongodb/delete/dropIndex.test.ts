@@ -4,6 +4,7 @@ import {
     databaseCollectionInvalidArgs,
     databaseCollectionParameters,
     defaultTestConfig,
+    expectDefined,
     getDataFromUntrustedContent,
     getResponseContent,
     validateThrowsForInvalidArguments,
@@ -492,7 +493,11 @@ describe("drop-index tool", () => {
                     // Note: Unlike drop-index tool test, we don't test the final state of
                     // indexes because of possible longer wait periods for changes to
                     // reflect, at-times taking >30 seconds.
-                    dropSearchIndexSpy = vi.spyOn(integration.mcpServer().session.serviceProvider, "dropSearchIndex");
+                    const entry = integration
+                        .mcpServer()
+                        .session.connectionRegistry.find((entry) => entry.state.tag === "connected")[0];
+                    expectDefined(entry);
+                    dropSearchIndexSpy = vi.spyOn(entry.getServiceProvider(), "dropSearchIndex");
                 });
 
                 afterEach(() => {

@@ -10,7 +10,7 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import { LogId, type LoggerBase } from "../../../src/common/logging/index.js";
 import type { Session } from "../../../src/common/session.js";
-import { defaultCreateConnectionManager } from "../../../src/common/connectionManager.js";
+import { ConnectionRegistry } from "../../../src/common/connectionRegistry.js";
 import { Keychain } from "../../../src/common/keychain.js";
 import { defaultTestConfig, InMemoryLogger } from "../helpers.js";
 import { type UserConfig } from "../../../src/common/config/userConfig.js";
@@ -247,7 +247,7 @@ describe("StreamableHttpRunner", () => {
             const logger = new InMemoryLogger(new Keychain());
             const runner = new StreamableHttpRunner({
                 userConfig: config,
-                createConnectionManager: defaultCreateConnectionManager,
+                createConnectionRegistry: (options): ConnectionRegistry => new ConnectionRegistry(options),
                 additionalLoggers: [logger],
             });
             await runner.start();
@@ -1307,8 +1307,8 @@ describe("StreamableHttpRunner", () => {
                             {
                                 type: "text",
                                 text: JSON.stringify({
-                                    readOnly: this.session["userConfig"].readOnly,
-                                    maxDocumentsPerQuery: this.session["userConfig"].maxDocumentsPerQuery,
+                                    readOnly: this.config.readOnly,
+                                    maxDocumentsPerQuery: this.config.maxDocumentsPerQuery,
                                     permissions: this.context?.permissions,
                                 }),
                             },

@@ -125,7 +125,7 @@ please log a ticket here: https://github.com/mongodb-js/mongodb-mcp-server/issue
     protected resolveTelemetryMetadata(
         _args: ToolArgs<typeof this.argsShape>,
         { result }: { result: CallToolResult }
-    ): ConnectionMetadata {
+    ): ConnectionMetadata | Promise<ConnectionMetadata> {
         const toolMetadata: ConnectionMetadata = {};
 
         // Atlas Local tools set the deployment ID in the result metadata for telemetry

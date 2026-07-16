@@ -1,6 +1,6 @@
 import z from "zod";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { type ToolArgs, type OperationType, formatUntrustedData, type ToolResult } from "../../tool.js";
 import { escapeMarkdown } from "../../../helpers/escapeMarkdown.js";
 
@@ -17,6 +17,7 @@ export class DropIndexTool extends MongoDBToolBase {
     static toolName = "drop-index";
     public description = "Drop an index for the provided database and collection.";
     public argsShape = {
+        ...ConnectionIdArgs,
         ...CollOperationArgs,
         indexName: z.string().nonempty().describe("The name of the index to be dropped."),
         type: z
@@ -29,7 +30,7 @@ export class DropIndexTool extends MongoDBToolBase {
     static operationType: OperationType = "delete";
 
     protected async execute(toolArgs: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
-        const provider = await this.ensureConnected();
+        const provider = await this.resolveConnection(toolArgs);
         switch (toolArgs.type) {
             case "classic":
                 return this.dropClassicIndex(provider, toolArgs);
@@ -67,9 +68,10 @@ export class DropIndexTool extends MongoDBToolBase {
 
     private async dropSearchIndex(
         provider: NodeDriverServiceProvider,
-        { database, collection, indexName }: ToolArgs<typeof this.argsShape>
+        args: ToolArgs<typeof this.argsShape>
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        await this.session.assertSearchSupported();
+        const { database, collection, indexName } = args;
+        await this.assertSearchSupported(args);
         const indexes = await provider.getSearchIndexes(database, collection, indexName);
         if (indexes.length === 0) {
             return {

@@ -488,11 +488,12 @@ const AVAILABLE_CONNECTIONS = {
   },
 };
 
-// Custom tool to list available connections. We are expecting LLM to call this
-// tool to make user aware of possible connections the MCP server could be
-// connected to.
-class ListConnectionsTool extends ToolBase {
-  static toolName = "list-connections";
+// Custom tool to list the preset connections. We are expecting LLM to call
+// this tool to make user aware of possible connections the MCP server could
+// be connected to. The name deliberately differs from the built-in
+// "list-connections" tool, which lists the active connection handles.
+class ListPresetConnectionsTool extends ToolBase {
+  static toolName = "list-preset-connections";
   static category: ToolCategory = "mongodb";
   static operationType: OperationType = "metadata";
   public override description =
@@ -529,34 +530,35 @@ class ListConnectionsTool extends ToolBase {
 
 // Custom tool to select a specific connection. Once user is made aware of list
 // of connections, they can mention the name of the connection and LLM is then
-// expected to call this tool with the name of the connection and the tool will
-// internally connect to the pre-configured connection string. Notice how we
-// never leak any connection details in the LLM context and maintain the
-// effective communication using opaque connection identifiers.
+// expected to call this tool with the preset ID; the tool connects using the
+// pre-configured connection string and returns the connectionId handle to pass
+// to the MongoDB tools. Notice how we never leak any connection details in the
+// LLM context and maintain the effective communication using opaque
+// identifiers.
 class SelectConnectionTool extends ToolBase {
   static toolName = "select-connection";
   static category: ToolCategory = "mongodb";
-  static operationType: OperationType = "metadata";
+  static operationType: OperationType = "connect";
   public override description =
-    "Select and connect to a pre-configured MongoDB connection by ID";
+    "Connect to a pre-configured MongoDB connection by preset ID and get back a connectionId to pass to the MongoDB tools";
   public override argsShape = {
-    connectionId: z
+    presetId: z
       .enum(Object.keys(AVAILABLE_CONNECTIONS) as [string, ...string[]])
-      .describe("The ID of the connection to select"),
+      .describe("The ID of the preset connection to use"),
   };
 
   protected override async execute(args: {
-    connectionId: string;
+    presetId: string;
   }): Promise<CallToolResult> {
-    const { connectionId } = args;
-    const connection = AVAILABLE_CONNECTIONS[connectionId];
+    const { presetId } = args;
+    const connection = AVAILABLE_CONNECTIONS[presetId];
 
     if (!connection) {
       return {
         content: [
           {
             type: "text",
-            text: `Error: Connection '${connectionId}' not found. Use the list-connections tool to see available connections.`,
+            text: `Error: Connection preset '${presetId}' not found. Use the list-preset-connections tool to see available presets.`,
           },
         ],
         isError: true,
@@ -564,26 +566,23 @@ class SelectConnectionTool extends ToolBase {
     }
 
     try {
-      // Disconnect from current connection if any
-      await this.session.disconnect();
-
-      // Connect to the new connection using the MongoDB MCP's own
-      // ConnectionManager. The inbuilt connection manager is capable of
-      // handling all the connection related task as long as we are able to
-      // provide a `ConnectionInfo` like object to connect.
-      await this.session.connectionManager.connect({
-        connectionString: connection.connectionString,
+      // Establish the connection through the app-level connection registry.
+      // The returned entry's connectionId is the handle the model passes to
+      // every MongoDB tool call that should run against this connection.
+      const entry = await this.session.connectionRegistry.connect({
+        settings: { connectionString: connection.connectionString },
+        name: connection.name,
       });
 
       return {
         content: [
           {
             type: "text",
-            text: `Successfully switched to connection '${
-              connection.name
-            }' (${connectionId})${
+            text: `Successfully connected to '${connection.name}'${
               connection.readOnly ? " in READ-ONLY mode" : ""
-            }.`,
+            }. Your connectionId is "${
+              entry.connectionId
+            }" — pass it as the connectionId argument to the MongoDB tools.`,
           },
         ],
       };
@@ -592,7 +591,7 @@ class SelectConnectionTool extends ToolBase {
         content: [
           {
             type: "text",
-            text: `Failed to switch to connection '${connectionId}': ${
+            text: `Failed to connect to preset '${presetId}': ${
               error instanceof Error ? error.message : String(error)
             }`,
           },
@@ -618,7 +617,7 @@ const runner = new StdioRunner({
   // Register all internal tools except the default connect tools, plus our custom tools
   tools: [
     ...AllTools.filter((tool) => tool.operationType !== "connect"),
-    ListConnectionsTool,
+    ListPresetConnectionsTool,
     SelectConnectionTool,
   ],
 });
@@ -635,7 +634,7 @@ Register only specific internal MongoDB tools alongside custom tools, giving you
 
 #### Example: Minimal Toolset with Custom Integration
 
-This example shows how to selectively enable only specific MongoDB tools (`aggregate`, `connect`, and `switch-connection`) while disabling all others, and adding a custom tool for application-specific functionality:
+This example shows how to selectively enable only specific MongoDB tools (`aggregate`, `connect`, and `list-connections`) while disabling all others, and adding a custom tool for application-specific functionality:
 
 ```typescript
 import { z } from "zod";
@@ -719,7 +718,7 @@ class GetTicketDetailsTool extends ToolBase {
 const selectedInternalTools = [
   AllTools.AggregateTool,
   AllTools.ConnectTool,
-  AllTools.SwitchConnectionTool,
+  AllTools.ListConnectionsTool,
 ];
 
 // Initialize the server with minimal toolset
@@ -742,7 +741,7 @@ console.log(
 
 In this configuration:
 
-- The server will **only** register three internal MongoDB tools: `aggregate`, `connect`, and `switch-connection`
+- The server will **only** register three internal MongoDB tools: `aggregate`, `connect`, and `list-connections`
 - All other internal tools (find, insert, update, etc.) are not registered at all
 - The custom `get-ticket-details` tool provides application-specific functionality
 - Atlas and Atlas Local tools are not registered since they're not in the `tools` array
@@ -895,42 +894,47 @@ See "Example: Integration with Request Overrides" for further details on how to 
 
 ### Custom Connection Management
 
-You can provide a custom connection manager to control how the MongoDB MCP server connects to a MongoDB instance. The main use case for this is if connection handling is done differently in your application. For example, the [MongoDB extension for VS Code](https://github.com/mongodb-js/vscode/blob/f45a4c774ffc01e9aed38f6ef00224bf921d9784/src/mcp/mcpConnectionManager.ts#L30) provides its own implementation of ConnectionManager because the connection handling is done by the extension itself.
+MongoDB connections live in an app-level connection store and are addressed by opaque `connectionId` handles that travel in tool arguments (see the `connect`, `disconnect`, and `list-connections` tools). There are two extension points, depending on how much of that you want to own:
 
-The default connection manager factory (`defaultCreateConnectionManager`) is also exported if you need to use the default implementation.
+**Custom dialing, default bookkeeping.** Construct your own `MCPConnectionStore` with a `createConnectionManager` override and hand each session a view of it via `sessionOptions.connectionRegistry`. Use this when the actual connection handling is done differently in your application but you want the standard handle semantics (ids, connection limits, the `preconfigured` entry). For example, the [MongoDB extension for VS Code](https://github.com/mongodb-js/vscode/blob/f45a4c774ffc01e9aed38f6ef00224bf921d9784/src/mcp/mcpConnectionManager.ts#L30) provides its own implementation of `ConnectionManager` because the connection handling is done by the extension itself.
 
 ```typescript
 import {
-  ConnectionManager,
+  MCPConnectionStore,
   StreamableHttpRunner,
   UserConfigSchema,
-  defaultCreateConnectionManager,
 } from "mongodb-mcp-server";
-import type { Server } from "mongodb-mcp-server";
-import type { RequestContext } from "mongodb-mcp-server";
+import type { Server, TransportRequestContext } from "mongodb-mcp-server";
 
-// Extend StreamableHttpRunner and override createServerForRequest to provide custom connection manager
+// Extend StreamableHttpRunner and override createServerForRequest to serve
+// sessions from a store you own.
 class CustomStreamableHttpRunner extends StreamableHttpRunner {
+  // One store for the whole runner. Omit createConnectionManager to dial with
+  // the default implementation, or supply your own ConnectionManager here.
+  private readonly connectionStore = new MCPConnectionStore({
+    userConfig: this.userConfig,
+    logger: this.logger,
+    deviceId: this.deviceId,
+    createConnectionManager: () => new MyConnectionManager(),
+  });
+
   protected override async createServerForRequest({
     request,
   }: {
-    request: RequestContext;
+    request: TransportRequestContext;
   }): Promise<Server> {
-    // Create a custom connection manager instance
-    // This example uses the default, but you can provide your own implementation
-    const customConnectionManager = await defaultCreateConnectionManager({
-      logger: this.logger,
-      userConfig: this.userConfig,
-      deviceId: this.deviceId,
-    });
-
-    // Create the server with the custom connection manager
     return this.createServer({
       userConfig: this.userConfig,
       sessionOptions: {
-        connectionManager: customConnectionManager,
+        connectionRegistry: this.connectionStore.view(),
       },
     });
+  }
+
+  override async close(): Promise<void> {
+    // You own the store's lifecycle: close its connections on shutdown.
+    await super.close();
+    await this.connectionStore.closeAll();
   }
 }
 
@@ -940,6 +944,8 @@ const runner = new CustomStreamableHttpRunner({
 
 await runner.start();
 ```
+
+**Full ownership.** Implement the `ConnectionRegistry` interface yourself and supply an instance per session via `sessionOptions.connectionRegistry`. This is for embedders that scope connections by their own tenant key (e.g. an authenticated principal) or back them with durable storage. A registry is always fully bound to the connections it can see, so any scoping happens inside your implementation — the server code never passes caller identity to it.
 
 ### Custom Error Handling
 

@@ -1,4 +1,4 @@
-import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { OperationType, ToolArgs, ToolResult } from "../../tool.js";
 import { z } from "zod";
 
@@ -14,16 +14,14 @@ export class CreateCollectionTool extends MongoDBToolBase {
     static toolName = "create-collection";
     public description =
         "Creates a new collection in a database. If the database doesn't exist, it will be created automatically.";
-    public argsShape = CollOperationArgs;
+    public argsShape = { ...ConnectionIdArgs, ...CollOperationArgs };
     public override outputSchema = CreateCollectionOutputSchema;
 
     static operationType: OperationType = "create";
 
-    protected async execute({
-        collection,
-        database,
-    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
-        const provider = await this.ensureConnected();
+    protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
+        const { collection, database } = args;
+        const provider = await this.resolveConnection(args);
         await provider.createCollection(database, collection);
 
         return {

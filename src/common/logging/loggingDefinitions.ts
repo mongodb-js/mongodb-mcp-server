@@ -91,4 +91,8 @@ export const LogId = {
     streamsProcessorStateLookupFailure: mongoLogId(1_012_001),
 
     monitoringServerMetricsFailure: mongoLogId(1_013_001),
+
+    connectionRegistryRevoked: mongoLogId(1_014_001),
+    connectionRegistryRevokeCallbackFailure: mongoLogId(1_014_002),
+    connectionRegistryDialFailure: mongoLogId(1_014_003),
 } as const;

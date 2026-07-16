@@ -75,6 +75,18 @@ export {
     type OIDCConnectionAuthType,
 } from "./common/connectionManager.js";
 export {
+    MCPConnectionStore,
+    ConnectionEntry,
+    PRECONFIGURED_CONNECTION_ID,
+    atlasClusterSlug,
+    type ConnectionRegistry,
+    type ConnectionStoreOptions,
+    type ConnectionSource,
+    type CreateConnectionEntryOptions,
+    type CreateConnectionOptions,
+    type CreateConnectionManagerFn,
+} from "./common/connectionRegistry.js";
+export {
     connectionErrorHandler,
     type ConnectionErrorHandler,
     type ConnectionErrorHandled,

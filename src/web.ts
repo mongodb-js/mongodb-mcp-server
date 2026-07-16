@@ -52,6 +52,18 @@ export type {
 } from "./common/connectionManager.js";
 export { ConnectionManager, ConnectionStateConnected } from "./common/connectionManager.js";
 export {
+    MCPConnectionStore,
+    ConnectionEntry,
+    PRECONFIGURED_CONNECTION_ID,
+    atlasClusterSlug,
+    type ConnectionRegistry,
+    type ConnectionStoreOptions,
+    type ConnectionSource,
+    type CreateConnectionEntryOptions,
+    type CreateConnectionOptions,
+    type CreateConnectionManagerFn,
+} from "./common/connectionRegistry.js";
+export {
     ExportsManager,
     type AvailableExport,
     type ExportsManagerConfig,

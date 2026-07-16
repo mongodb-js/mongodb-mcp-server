@@ -2,6 +2,7 @@ import type { z, ZodRawShape } from "zod";
 import type { RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { Session } from "../common/session.js";
+import type { AnyConnectionState } from "../common/connectionManager.js";
 import { LogId } from "../common/logging/index.js";
 import type { Telemetry } from "../telemetry/telemetry.js";
 import type { ConnectionMetadata, TelemetryToolMetadata, ToolEvent } from "../telemetry/types.js";
@@ -860,10 +861,12 @@ export abstract class ToolBase<
     protected abstract resolveTelemetryMetadata(
         args: ToolArgs<typeof this.argsShape>,
         { result }: { result: CallToolResult }
-    ): TelemetryToolMetadata;
+    ): TelemetryToolMetadata | Promise<TelemetryToolMetadata>;
 
     /**
-     * Creates and emits a tool telemetry event
+     * Creates and emits a tool telemetry event. Fire-and-forget: metadata
+     * resolution may be asynchronous (e.g. a connection registry lookup), and
+     * the tool response must not block on telemetry-only work.
      * @param startTime - Start time in milliseconds
      * @param result - Whether the command succeeded or failed
      * @param args - The arguments passed to the tool
@@ -876,43 +879,50 @@ export abstract class ToolBase<
             return;
         }
         const duration = Date.now() - startTime;
-        const metadata = this.resolveTelemetryMetadata(args, { result });
-        const event: ToolEvent = {
-            timestamp: new Date().toISOString(),
-            source: "mdbmcp",
-            properties: {
-                command: this.name,
-                category: this.category,
-                component: "tool",
-                duration_ms: duration,
-                result: result.isError ? "failure" : "success",
-                ...metadata,
-            },
-        };
+        const timestamp = new Date().toISOString();
+        void (async (): Promise<void> => {
+            const metadata = await this.resolveTelemetryMetadata(args, { result });
+            const event: ToolEvent = {
+                timestamp,
+                source: "mdbmcp",
+                properties: {
+                    command: this.name,
+                    category: this.category,
+                    component: "tool",
+                    duration_ms: duration,
+                    result: result.isError ? "failure" : "success",
+                    ...metadata,
+                },
+            };
 
-        this.telemetry.emitEvents([event]);
+            this.telemetry.emitEvents([event]);
+        })().catch((error: unknown) => {
+            this.session.logger.debug({
+                id: LogId.telemetryMetadataError,
+                context: "tool",
+                message: `Error emitting telemetry event for tool ${this.name}: ${error as string}`,
+            });
+        });
     }
 
     protected isFeatureEnabled(feature: PreviewFeature): boolean {
         return this.config.previewFeatures.includes(feature);
     }
 
-    protected getConnectionInfoMetadata(): ConnectionMetadata {
+    protected getConnectionInfoMetadata(connectionState?: AnyConnectionState): ConnectionMetadata {
         const metadata: ConnectionMetadata = {};
 
-        if (this.session === undefined) {
+        if (connectionState === undefined) {
             return metadata;
         }
 
-        if (this.session.connectionStringInfo !== undefined) {
-            metadata.connection_auth_type = this.session.connectionStringInfo.authType;
-            metadata.connection_host_type = this.session.connectionStringInfo.hostType;
+        if (connectionState.connectionStringInfo !== undefined) {
+            metadata.connection_auth_type = connectionState.connectionStringInfo.authType;
+            metadata.connection_host_type = connectionState.connectionStringInfo.hostType;
         }
 
-        if (this.session.connectedAtlasCluster !== undefined) {
-            if (this.session.connectedAtlasCluster.projectId) {
-                metadata.project_id = this.session.connectedAtlasCluster.projectId;
-            }
+        if (connectionState.connectedAtlasCluster?.projectId) {
+            metadata.project_id = connectionState.connectedAtlasCluster.projectId;
         }
 
         return metadata;

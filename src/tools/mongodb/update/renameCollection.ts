@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolResult } from "../../tool.js";
 import { ErrorCodes, MongoDBError } from "../../../common/errors.js";
 
@@ -17,18 +17,15 @@ export class RenameCollectionTool extends MongoDBToolBase {
     public description = "Renames a collection in a MongoDB database";
     public override outputSchema = RenameCollectionOutputSchema;
     public argsShape = {
+        ...ConnectionIdArgs,
         ...CollOperationArgs,
         newName: z.string().describe("The new name for the collection"),
         dropTarget: z.boolean().optional().default(false).describe("If true, drops the target collection if it exists"),
     };
     static operationType: OperationType = "update";
 
-    protected async execute({
-        database,
-        collection,
-        newName,
-        dropTarget,
-    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
+    protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
+        const { database, collection, newName, dropTarget } = args;
         if (dropTarget && this.config.disabledTools.includes("delete")) {
             // Renaming with `dropTarget: true` drops the existing target collection, which is a
             // destructive delete operation. Since this tool's operation type is `update`, it remains
@@ -40,7 +37,7 @@ export class RenameCollectionTool extends MongoDBToolBase {
             );
         }
 
-        const provider = await this.ensureConnected();
+        const provider = await this.resolveConnection(args);
         const result = await provider.renameCollection(database, collection, newName, {
             dropTarget,
         });

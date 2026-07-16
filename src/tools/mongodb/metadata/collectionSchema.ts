@@ -1,4 +1,4 @@
-import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { getSimplifiedSchema } from "mongodb-schema";
@@ -20,6 +20,7 @@ export class CollectionSchemaTool extends MongoDBToolBase {
     static toolName = "collection-schema";
     public description = "Describe the schema for a collection";
     public argsShape = {
+        ...ConnectionIdArgs,
         ...CollOperationArgs,
         sampleSize: z.number().optional().default(50).describe("Number of documents to sample for schema inference"),
         responseBytesLimit: z
@@ -35,10 +36,11 @@ export class CollectionSchemaTool extends MongoDBToolBase {
     static operationType: OperationType = "metadata";
 
     protected async execute(
-        { database, collection, sampleSize, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
+        args: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        const provider = await this.ensureConnected();
+        const { database, collection, sampleSize, responseBytesLimit } = args;
+        const provider = await this.resolveConnection(args);
         const cursor = provider.aggregate(
             database,
             collection,
