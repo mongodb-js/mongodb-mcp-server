@@ -4,6 +4,7 @@ import type { CallToolResult } from "@mongodb-js/mcp-types";
 import type { ToolArgs } from "@mongodb-js/mcp-core";
 import type { OperationType } from "@mongodb-js/mcp-types";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
+import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import type {
     SuggestedIndex,
     DropIndexSuggestion,
@@ -133,14 +134,43 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
                 `## Schema Suggestions\n${hasSchemaSuggestions ? JSON.stringify(schemaSuggestionsResult.value?.recommendations) : "No schema suggestions found."}`,
             ];
 
-            if (performanceAdvisorData.length === 0) {
+            const structuredContent = {
+                projectId,
+                clusterName,
+                suggestedIndexes:
+                    suggestedIndexesResult.status === "fulfilled"
+                        ? (suggestedIndexesResult.value?.suggestedIndexes ?? [])
+                        : [],
+                dropIndexSuggestions:
+                    dropIndexSuggestionsResult.status === "fulfilled"
+                        ? (dropIndexSuggestionsResult.value ?? {
+                              hiddenIndexes: [],
+                              redundantIndexes: [],
+                              unusedIndexes: [],
+                          })
+                        : {
+                              hiddenIndexes: [],
+                              redundantIndexes: [],
+                              unusedIndexes: [],
+                          },
+                slowQueryLogs:
+                    slowQueryLogsResult.status === "fulfilled" ? (slowQueryLogsResult.value?.slowQueryLogs ?? []) : [],
+                schemaSuggestions:
+                    schemaSuggestionsResult.status === "fulfilled"
+                        ? (schemaSuggestionsResult.value?.recommendations ?? [])
+                        : [],
+            };
+
+            if (!hasSuggestedIndexes && !hasDropIndexSuggestions && !hasSlowQueryLogs && !hasSchemaSuggestions) {
                 return {
                     content: [{ type: "text", text: "No performance advisor recommendations found." }],
+                    structuredContent,
                 };
             }
 
             return {
                 content: formatUntrustedData("Performance advisor data", performanceAdvisorData.join("\n\n")),
+                structuredContent,
             };
         } catch (error) {
             return {
@@ -152,6 +182,25 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
                 ],
             };
         }
+    }
+
+    protected override handleError(
+        error: unknown,
+        args: ToolArgs<typeof this.argsShape>
+    ): Promise<CallToolResult> | CallToolResult {
+        if (error instanceof ApiClientError) {
+            return super.handleError(error, args);
+        }
+
+        return {
+            content: [
+                {
+                    type: "text",
+                    text: `Error retrieving performance advisor data: ${error instanceof Error ? error.message : String(error)}`,
+                },
+            ],
+            isError: true,
+        };
     }
 
     protected override resolveTelemetryMetadata(

@@ -10,7 +10,9 @@
     "skipLibCheck": true,
     "rootDir": ".",
     "paths": {
-      "@mongodb-js/devtools-proxy-support/proxy-options": ["polyfills/empty.ts"]
+      "@mongodb-js/devtools-proxy-support/proxy-options": [
+        "./polyfills/empty.ts"
+      ]
     }
   },
   "include": ["**/*.ts"],

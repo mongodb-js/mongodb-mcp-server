@@ -173,7 +173,7 @@ class TestMCPHttpServer extends MCPHttpServer<CliServer> {
 }
 
 // Helper to create StreamableHttpRunner with all components
-function createStreamableHttpRunner(
+async function createStreamableHttpRunner(
     config: UserConfig,
     options: {
         tools?: ToolClass[];
@@ -1241,16 +1241,14 @@ describe("StreamableHttpRunner", () => {
 
             it("errors out when healthCheck port is missing but host is provided", async () => {
                 config.healthCheckPort = undefined;
-                runner = await createStreamableHttpRunner(config);
 
-                await expect(runner.start()).rejects.toThrowError();
+                await expect(createStreamableHttpRunner(config)).rejects.toThrowError();
             });
 
             it("errors out when healthCheck host is missing but port is provided", async () => {
                 config.healthCheckHost = undefined;
-                runner = await createStreamableHttpRunner(config);
 
-                await expect(runner.start()).rejects.toThrowError();
+                await expect(createStreamableHttpRunner(config)).rejects.toThrowError();
             });
 
             it("errors out when healthcheck port is equal to MCP server port", async () => {
@@ -1307,16 +1305,14 @@ describe("StreamableHttpRunner", () => {
 
             it("errors out when monitoringServerPort is missing but host is provided", async () => {
                 config.monitoringServerPort = undefined;
-                runner = await createStreamableHttpRunner(config);
 
-                await expect(runner.start()).rejects.toThrowError();
+                await expect(createStreamableHttpRunner(config)).rejects.toThrowError();
             });
 
             it("errors out when monitoringServerHost is missing but port is provided", async () => {
                 config.monitoringServerHost = undefined;
-                runner = await createStreamableHttpRunner(config);
 
-                await expect(runner.start()).rejects.toThrowError();
+                await expect(createStreamableHttpRunner(config)).rejects.toThrowError();
             });
 
             it("errors out when monitoringServerPort is equal to MCP server port", async () => {

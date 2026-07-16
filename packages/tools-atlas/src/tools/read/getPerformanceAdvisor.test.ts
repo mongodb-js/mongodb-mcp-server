@@ -141,10 +141,10 @@ describe("GetPerformanceAdvisorTool", () => {
         });
 
         it("delegates ApiClientError to AtlasToolBase", () => {
-            const apiError = ApiClientError.fromError(
-                new Response(null, { status: 403, statusText: "Forbidden" }),
-                "forbidden"
-            );
+            const apiError = ApiClientError.fromError({
+                response: new Response(null, { status: 403, statusText: "Forbidden" }),
+                error: "forbidden",
+            });
             const result = tool["handleError"](apiError, baseArgs as never) as { content: { text: string }[] };
 
             expect(result.content[0]?.text).toContain("Forbidden API Error");
