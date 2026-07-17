@@ -54,6 +54,32 @@ describeAccuracyTests(
             ],
         },
         {
+            prompt: "Group all the movies in 'mflix.movies' namespace by 'genre' and give me a count of them under field named genre_count. No projections, no sort required.",
+            expectedToolCalls: [
+                {
+                    toolName: "aggregate",
+                    parameters: {
+                        database: "mflix",
+                        collection: "movies",
+                        pipeline: [
+                            {
+                                $group: {
+                                    _id: "$genre",
+                                    genre_count: Matcher.anyValue,
+                                },
+                            },
+                        ],
+                    },
+                },
+            ],
+            customScorer: (baselineScore: number, actualToolCalls): number => {
+                const calledSearchStageRules = actualToolCalls.some(
+                    (call) => call.toolName === "get-search-stage-rules"
+                );
+                return calledSearchStageRules ? 0 : baselineScore;
+            },
+        },
+        {
             prompt: "Run a vectorSearch query on musicfy.songs on path 'title_embeddings' using the index 'titles' with the model voyage-3-large to find all 'hammer of justice' songs.",
             expectedToolCalls: [
                 {
