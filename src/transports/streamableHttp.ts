@@ -79,6 +79,7 @@ export {
     JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND,
     JSON_RPC_ERROR_CODE_INVALID_REQUEST,
     JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION,
+    JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED,
 } from "./jsonRpcErrorCodes.js";
 
 export class StreamableHttpRunner<
@@ -99,6 +100,7 @@ export class StreamableHttpRunner<
             options: {
                 idleTimeoutMS: this.userConfig.idleTimeoutMs,
                 notificationTimeoutMS: this.userConfig.notificationTimeoutMs,
+                maxSessions: this.userConfig.maxSessions,
             },
             logger: this.logger,
             metrics: this.metrics,

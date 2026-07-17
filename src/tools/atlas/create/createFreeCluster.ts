@@ -2,7 +2,7 @@ import { z } from "zod";
 import { type ToolArgs, type OperationType, type ToolExecutionContext, type ToolResult } from "../../tool.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import type { ClusterDescription20240805 } from "../../../common/atlas/openapi.js";
-import { ensureCurrentIpInAccessList } from "../../../common/atlas/accessListUtils.js";
+import { ensureCurrentIpInAccessList, getAccessListNote } from "../../../common/atlas/accessListUtils.js";
 import { AtlasArgs } from "../../args.js";
 
 const CreateFreeClusterOutputSchema = {
@@ -46,7 +46,7 @@ export class CreateFreeClusterTool extends AtlasToolBase {
             terminationProtectionEnabled: false,
         } as unknown as ClusterDescription20240805;
 
-        await ensureCurrentIpInAccessList(this.apiClient, projectId, context);
+        const ipAccessListResult = await ensureCurrentIpInAccessList(this.apiClient, projectId, context);
         await this.apiClient.createCluster(
             {
                 params: {
@@ -59,10 +59,12 @@ export class CreateFreeClusterTool extends AtlasToolBase {
             context
         );
 
+        const ipAccessListNote = getAccessListNote(ipAccessListResult);
+
         return {
             content: [
                 { type: "text", text: `Cluster "${name}" has been created in region "${region}".` },
-                { type: "text", text: `Double check your access lists to enable your current IP.` },
+                ...(ipAccessListNote ? [{ type: "text" as const, text: ipAccessListNote }] : []),
             ],
             structuredContent: {
                 created: true,

@@ -25,6 +25,19 @@ export class SessionRejectedError extends Error {
 }
 
 /**
+ * Error thrown from `addSession` when the store has already reached its
+ * configured `maxSessions` limit. Callers should surface this distinctly
+ * from a generic failure so clients can be told to retry later rather than
+ * treating it as a permanent request error.
+ */
+export class SessionLimitExceededError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "SessionLimitExceededError";
+    }
+}
+
+/**
  * Interface for managing MCP transport sessions.
  *
  * Implement this interface to provide custom session storage and lifecycle
@@ -77,17 +90,19 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
 
     private readonly idleTimeoutMS: number;
     private readonly notificationTimeoutMS: number;
+    private readonly maxSessions: number;
     private readonly logger: LoggerBase;
     private readonly metrics: Metrics<DefaultMetrics>;
 
     constructor(params: {
-        options: { idleTimeoutMS: number; notificationTimeoutMS: number };
+        options: { idleTimeoutMS: number; notificationTimeoutMS: number; maxSessions: number };
         logger: LoggerBase;
         metrics: Metrics<DefaultMetrics>;
     }) {
         const { options, logger, metrics } = params;
         this.idleTimeoutMS = options.idleTimeoutMS;
         this.notificationTimeoutMS = options.notificationTimeoutMS;
+        this.maxSessions = options.maxSessions;
         this.logger = logger;
         this.metrics = metrics;
 
@@ -99,6 +114,9 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         }
         if (this.idleTimeoutMS <= this.notificationTimeoutMS) {
             throw new Error("idleTimeoutMS must be greater than notificationTimeoutMS");
+        }
+        if (this.maxSessions < 1) {
+            throw new Error("maxSessions must be at least 1");
         }
     }
 
@@ -159,6 +177,14 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         const { sessionId, transport, logger } = params;
         if (this.sessions[sessionId]) {
             throw new Error(`Session ${sessionId} already exists`);
+        }
+        if (Object.keys(this.sessions).length >= this.maxSessions) {
+            this.logger.warning({
+                id: LogId.streamableHttpTransportSessionLimitExceeded,
+                context: "sessionStore",
+                message: `Refusing to create session ${sessionId}: maxSessions limit of ${this.maxSessions} reached`,
+            });
+            throw new SessionLimitExceededError(`Session limit of ${this.maxSessions} concurrent sessions reached`);
         }
         const abortTimeout = setManagedTimeout(async () => {
             if (this.sessions[sessionId]) {
@@ -232,7 +258,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
  * Constructor arguments for creating a SessionStore instance.
  */
 export type SessionStoreConstructorArgs<TMetrics extends DefaultMetrics = DefaultMetrics> = {
-    options: { idleTimeoutMS: number; notificationTimeoutMS: number };
+    options: { idleTimeoutMS: number; notificationTimeoutMS: number; maxSessions: number };
     logger: LoggerBase;
     metrics: Metrics<TMetrics>;
 };

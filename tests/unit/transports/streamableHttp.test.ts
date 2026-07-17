@@ -249,6 +249,7 @@ describe("StreamableHttpRunner", () => {
                 options: {
                     idleTimeoutMS: 120_000,
                     notificationTimeoutMS: 60_000,
+                    maxSessions: customConfig.maxSessions,
                 },
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                 logger: expect.any(Object),

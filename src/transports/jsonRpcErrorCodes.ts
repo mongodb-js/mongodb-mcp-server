@@ -45,3 +45,9 @@ export const JSON_RPC_ERROR_CODE_INVALID_REQUEST = -32004;
  * status: 400.
  */
 export const JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION = -32005;
+
+/**
+ * The server has reached its configured `maxSessions` limit and cannot
+ * allocate a new session. HTTP status: 503.
+ */
+export const JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED = -32006;

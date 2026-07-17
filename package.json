@@ -1,7 +1,7 @@
 {
   "name": "mongodb-mcp-server",
   "description": "MongoDB Model Context Protocol Server",
-  "version": "1.14.0-prerelease.2",
+  "version": "1.14.0",
   "type": "module",
   "packageManager": "pnpm@11.5.1",
   "mcpName": "io.github.mongodb-js/mongodb-mcp-server",
@@ -184,7 +184,7 @@
     "@mcp-ui/server": "^6.1.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@mongodb-js/device-id": "^0.4.11",
-    "@mongodb-js/devtools-proxy-support": "^0.7.14",
+    "@mongodb-js/devtools-proxy-support": "^0.7.16",
     "@mongodb-js/mcp-metrics": "workspace:*",
     "@mongodb-js/mcp-types": "workspace:*",
     "@mongosh/arg-parser": "^5.0.2",

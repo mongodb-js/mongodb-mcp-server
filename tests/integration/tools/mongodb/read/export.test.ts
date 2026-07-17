@@ -510,6 +510,27 @@ describeWithMongoDB(
                         },
                     ],
                 },
+                {
+                    name: "find target using $function in projection",
+                    operator: "$function",
+                    exportTarget: [
+                        {
+                            name: "find",
+                            arguments: {
+                                filter: {},
+                                projection: {
+                                    doubled: {
+                                        $function: {
+                                            body: "function(age) { return age * 2; }",
+                                            args: ["$age"],
+                                            lang: "js",
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    ],
+                },
             ];
 
             for (const { name, operator, exportTarget } of jsTargets) {

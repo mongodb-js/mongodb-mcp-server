@@ -214,8 +214,7 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         workspaceName: StreamsArgs.workspaceName()
             .optional()
             .describe("Workspace name. Required for all actions except 'list-workspaces' and 'get-networking'."),
-        resourceName: z
-            .string()
+        resourceName: StreamsArgs.resourceName()
             .optional()
             .describe(
                 "Connection or processor name. Required for 'inspect-connection', 'inspect-processor', and 'diagnose-processor'."
