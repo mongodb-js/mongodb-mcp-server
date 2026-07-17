@@ -187,6 +187,17 @@ describe("ListOrganizationsTool", () => {
             });
         });
 
+        it("keeps totalCount as 0 when no organizations are found, even if the API omits it", async () => {
+            mockApiClient.listOrgs!.mockResolvedValue({ results: [] });
+
+            const result = await exec();
+
+            expect(result.structuredContent).toEqual({
+                organizations: [],
+                totalCount: 0,
+            });
+        });
+
         it("omits structuredContent on error paths", async () => {
             mockApiClient.listOrgs!.mockRejectedValue(new Error("API failure"));
 

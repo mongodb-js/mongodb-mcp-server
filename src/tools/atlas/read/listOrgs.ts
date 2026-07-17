@@ -49,7 +49,7 @@ export class ListOrganizationsTool extends AtlasToolBase {
                 content: [{ type: "text", text: "No organizations found in your MongoDB Atlas account." }],
                 structuredContent: {
                     organizations: [],
-                    ...(data?.totalCount !== undefined && { totalCount: data.totalCount }),
+                    totalCount: data?.totalCount ?? 0,
                 },
             };
         }

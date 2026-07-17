@@ -105,7 +105,7 @@ export class ListProjectsTool extends AtlasToolBase {
                 structuredContent: {
                     ...(orgId !== undefined && { orgId }),
                     projects: [],
-                    ...(data?.totalCount !== undefined && { totalCount: data.totalCount }),
+                    totalCount: data?.totalCount ?? 0,
                 },
             };
         }

@@ -287,6 +287,19 @@ describe("ListProjectsTool", () => {
             });
         });
 
+        it("keeps totalCount as 0 when org has no projects, even if the API omits it", async () => {
+            mockApiClient.listOrgs!.mockResolvedValue(orgsResponse);
+            mockApiClient.getOrgGroups!.mockResolvedValue({ results: [] });
+
+            const result = await exec({ orgId });
+
+            expect(result.structuredContent).toEqual({
+                orgId,
+                projects: [],
+                totalCount: 0,
+            });
+        });
+
         it("omits structuredContent on error paths", async () => {
             mockApiClient.listOrgs!.mockRejectedValue(new Error("API failure"));
 
