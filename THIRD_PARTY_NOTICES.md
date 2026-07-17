@@ -323,6 +323,7 @@ Package|Version|License
 **[node-abi](#33d6fecb9cb52faf8a4ce0c437c53e4aba62183c75b443323f636111d8139cfa)**|3.85.0|MIT
 **[node-addon-api](#e7486763beec09dbdc97b04188281671ab43bf57761b71a087741fe5db541d00)**|8.5.0|MIT
 **[node-addon-api](#7607e7f69d6be46c080485db1ef53b73f33d6b004b8bac422a5d5b9dcf3510d8)**|8.6.0|MIT
+**[node-addon-api](#01b9d1e7ba59fa2ddcef1533d61aeb45a44a7e81942161c396b02e598ef8be04)**|8.8.0|MIT
 **[node-domexception](#3c25065fd2bc1b6b56856e30ac5b8f34ddae33ca87b225854f8d855b0ccabfbe)**|1.0.0|MIT
 **[node-fetch](#22edb8ba3fe3457e8c1a02e497e6a8cb54e89775224f0c7680ea43772b5c1638)**|3.3.2|MIT
 **[node-machine-id](#04300d9a81d7dde11af595a215cba70df140afadb59a5032f596d7ea2bcc1add)**|1.1.12|MIT
@@ -26157,6 +26158,25 @@ License files:
 
 <a id="7607e7f69d6be46c080485db1ef53b73f33d6b004b8bac422a5d5b9dcf3510d8"></a>
 ### [node-addon-api](https://www.npmjs.com/package/node-addon-api) (version 8.6.0)
+License tags: MIT
+
+License files:
+* LICENSE.md:
+
+      The MIT License (MIT)
+      
+      Copyright (c) 2017 [Node.js API collaborators](https://github.com/nodejs/node-addon-api#collaborators)
+      
+      Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+      
+      The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+      
+      THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+      
+
+
+<a id="01b9d1e7ba59fa2ddcef1533d61aeb45a44a7e81942161c396b02e598ef8be04"></a>
+### [node-addon-api](https://www.npmjs.com/package/node-addon-api) (version 8.8.0)
 License tags: MIT
 
 License files:

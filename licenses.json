@@ -21,7 +21,6 @@
     "bindings@1.5.0",
     "file-uri-to-path@1.0.0",
     "macos-export-certificate-and-key@2.0.1",
-    "node-addon-api@8.8.0",
     "win-export-certificate-and-key@3.0.2",
     "hadron-document@8.11.5",
     "hadron-type-checker@7.5.5"
