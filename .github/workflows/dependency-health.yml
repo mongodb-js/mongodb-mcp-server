@@ -40,37 +40,6 @@ jobs:
       - name: Generate dependency SBOM
         run: pnpm run create-dependency-sbom-lists
 
-      - name: Run Snyk scan
-        run: pnpm run snyk-test
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-
-      - name: Generate vulnerability report
-        run: |
-          set +e
-          pnpm run generate-vulnerability-report > /dev/null 2>&1
-          status=$?
-          set -e
-          if [ "$status" -ne 0 ]; then
-            run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-            echo "::error title=Vulnerabilities found::High-or-higher severity vulnerabilities were found. See the vulnerability-report artifact on ${run_url}."
-            exit "$status"
-          fi
-        env:
-          JIRA_BASE_URL: https://jira.mongodb.org
-          JIRA_PROJECT: MCP
-          JIRA_API_TOKEN: ${{ github.event_name != 'pull_request' && secrets.JIRA_API_TOKEN || '' }}
-          # Rendered verbatim into the Jira ticket body (Jira wiki markup, not markdown).
-          JIRA_VULNERABILITY_BUILD_INFO: "Detected by the [Dependency Health workflow run|${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}]."
-
-      - name: Upload vulnerability report
-        if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v7.0.1
-        with:
-          name: vulnerability-report
-          path: .sbom/vulnerability-report.md
-          retention-days: 1
-
       - name: Update third-party notices
         if: always()
         run: pnpm run update-third-party-notices
@@ -104,16 +73,12 @@ jobs:
 
           docker pull artifactory.corp.mongodb.com/release-tools-container-registry-public-local/silkbomb:2.0
 
-          docker run --rm -v "$PWD":/pwd \
-            artifactory.corp.mongodb.com/release-tools-container-registry-public-local/silkbomb:2.0 \
-            update --purls /pwd/.sbom/purls.txt --sbom-out /pwd/.sbom/sbom-lite.json
-
           docker run --rm -e KONDUKTO_TOKEN="$KONDUKTO_TOKEN" -v "$PWD":/pwd \
             artifactory.corp.mongodb.com/release-tools-container-registry-public-local/silkbomb:2.0 \
             augment \
             --repo ${{ github.repository }} \
             --branch "$KONDUKTO_BRANCH" \
-            --sbom-in /pwd/.sbom/sbom-lite.json \
+            --sbom-in /pwd/.sbom/sbom-prod.cyclonedx.json \
             --sbom-out /pwd/.sbom/sbom.json
 
       - name: Upload SBOM artifact
@@ -121,8 +86,6 @@ jobs:
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v7.0.1
         with:
           name: sbom
-          path: |
-            .sbom/sbom.json
-            .sbom/purls.txt
+          path: .sbom/sbom.json
           if-no-files-found: ignore
           retention-days: 7

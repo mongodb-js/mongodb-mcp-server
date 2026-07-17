@@ -112,8 +112,6 @@
     "eval:serve": "BRAINTRUST_API_KEY_OVERRIDE=$BRAINTRUST_API_KEY bt eval --dev tests/eval/mongodb.eval.ts",
     "eval:push": "pnpm run eval:bundle && braintrust push tests/eval/dist/mongodb.eval.cjs --if-exists replace",
     "create-dependency-sbom-lists": "node scripts/sbomReport/index.ts",
-    "snyk-test": "mkdir -p .sbom && (snyk test --all-projects --json > .sbom/snyk-test-result.json || true)",
-    "generate-vulnerability-report": "mongodb-sbom-tools generate-vulnerability-report --dependencies=.sbom/dependencies.json --snyk-reports=.sbom/snyk-test-result.json --fail-on=high ${JIRA_API_TOKEN:+--create-jira-issues} > .sbom/vulnerability-report.md",
     "update-third-party-notices": "mongodb-sbom-tools generate-3rd-party-notices --product=\"MongoDB MCP Server\" --dependencies=.sbom/dependencies-prod.json --config=licenses.json > THIRD_PARTY_NOTICES.md"
   },
   "license": "Apache-2.0",
@@ -169,7 +167,6 @@
     "react-dom": "^18.3.0",
     "semver": "^7.7.4",
     "simple-git": "^3.36.0",
-    "snyk": "^1.1306.0",
     "testcontainers": "^12.0.3",
     "tsx": "^4.20.5",
     "type-fest": "^5.6.0",
