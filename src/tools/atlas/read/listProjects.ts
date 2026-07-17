@@ -32,7 +32,8 @@ const ListProjectsOutputSchema = {
 
 export class ListProjectsTool extends AtlasToolBase {
     static toolName = "atlas-list-projects";
-    public description = "List MongoDB Atlas projects";
+    public description =
+        'List MongoDB Atlas projects. To resolve each project\'s organization name, the tool looks up your organizations, capped at 500; if your account has more than 500 organizations, some projects may show orgName: "N/A".';
     static operationType: OperationType = "read";
     public argsShape = {
         ...ListProjectsArgs,

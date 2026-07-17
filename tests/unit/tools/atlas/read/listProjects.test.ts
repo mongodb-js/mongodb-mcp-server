@@ -95,6 +95,11 @@ describe("ListProjectsTool", () => {
             } as never
         );
 
+    it("description clarifies organization names are resolved via a lookup capped at 500 orgs", () => {
+        expect(tool.description).toContain("capped at 500");
+        expect(tool.description).toContain('"N/A"');
+    });
+
     it("returns projects when orgId filter is provided", async () => {
         mockApiClient.listOrgs!.mockResolvedValue(orgsResponse);
         mockApiClient.getOrgGroups!.mockResolvedValue({ results: [projectApiResponse] });
