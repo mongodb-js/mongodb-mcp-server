@@ -27,7 +27,12 @@ import { bsonToJson } from "../../../helpers/bsonToJson.js";
 
 export const pipelineDescriptionWithVectorSearch = `\
 An array of aggregation stages to execute.
-If the user has asked for a vector search, \`$vectorSearch\` **MUST** be the first stage of the pipeline, or the first stage of a \`$unionWith\` subpipeline.
+
+If the user has asked for a vector search, \`$vectorSearch\` **MUST** be the first stage
+of the pipeline (or the first stage of a \`$unionWith\` sub-pipeline only when explicitly
+combining unrelated result sets — for hybrid full-text + vector search, use \`$rankFusion\`
+or \`$scoreFusion\` instead, see below).
+
 If the user has asked for lexical/Atlas search, use \`$search\` instead of \`$text\`.
 ### Usage Rules for \`$vectorSearch\`
 - **Index Type Detection:**
@@ -49,6 +54,31 @@ If the user has asked for lexical/Atlas search, use \`$search\` instead of \`$te
 ### Usage Rules for \`$search\`
 - Include the index name, unless you know for a fact there's a default index. If unsure, use the collection-indexes tool to determine the index name.
 - The \`$search\` stage supports multiple operators, such as 'autocomplete', 'text', 'geoWithin', and others. Choose the approprate operator based on the user's query. If unsure of the exact syntax, consult the MongoDB Atlas Search documentation, which can be found here: https://www.mongodb.com/docs/atlas/atlas-search/operators-and-collectors/
+
+### Usage Rules for \`$rankFusion\` and \`$scoreFusion\` (Hybrid Search)
+Use these stages when the user wants to combine full-text (\`$search\`) and vector
+(\`$vectorSearch\`) retrieval into a single fused result set. **Prefer native
+fusion over a \`$unionWith\` + \`$group\` workaround** — the workaround averages
+incompatible score scales and produces wrong rankings.
+
+**Which stage to use:**
+- \`$rankFusion\` (MongoDB 8.0+) — Reciprocal Rank Fusion. The recommended default.
+  Normalizes scores across incompatible scales automatically. No score tuning needed.
+- \`$scoreFusion\` (MongoDB 8.2+) — Score-based fusion. Use when the user needs explicit
+  per-pipeline weights, score normalisation (sigmoid / minMaxScaler), or a custom
+  combination expression.
+
+**Construction rules:**
+- \`$rankFusion\` / \`$scoreFusion\` MUST be the first stage of the top-level pipeline.
+- Sub-pipelines go inside \`input.pipelines\` as a named map (not an array). Each name
+  must be non-empty, must not start with \`$\`, and must not contain \`.\` or null bytes.
+- Allowed stages inside sub-pipelines: \`$search\`, \`$vectorSearch\`, \`$match\`, \`$sort\`,
+  \`$geoNear\`, \`$skip\`, \`$limit\`. \`$project\` and \`$unset\` are NOT allowed inside sub-pipelines.
+- Do field shaping (\`$project\` / \`$unset\`) only AFTER the fusion stage, at the root.
+- Both a vectorSearch (or autoEmbed) index AND a search (lexical) index must exist on
+  the collection. Use the collection-indexes tool to confirm both before running a hybrid query.
+- Add a \`$limit\` stage after the fusion stage to cap the final result set.
+- Add \`$unset\` at the end to remove embedding fields and avoid context bloat.
 `;
 
 const AggregateOutputSchema = {

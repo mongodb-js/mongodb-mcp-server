@@ -166,4 +166,18 @@ export const StreamsArgs = {
             .min(1, "Connection name is required")
             .max(64, "Connection name must be 64 characters or less")
             .regex(ALLOWED_STREAMS_NAME_REGEX, ALLOWED_STREAMS_NAME_ERROR),
+
+    resourceName: (): z.ZodString =>
+        z
+            .string()
+            .min(1, "Resource name is required")
+            .max(64, "Resource name must be 64 characters or less")
+            .regex(ALLOWED_STREAMS_NAME_REGEX, ALLOWED_STREAMS_NAME_ERROR),
+
+    peeringId: (): z.ZodString =>
+        z
+            .string()
+            .min(1, "Peering ID is required")
+            .max(64, "Peering ID must be 64 characters or less")
+            .regex(ALLOWED_STREAMS_NAME_REGEX, ALLOWED_STREAMS_NAME_ERROR),
 };
