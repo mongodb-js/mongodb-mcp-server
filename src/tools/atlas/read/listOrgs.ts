@@ -15,7 +15,7 @@ const ListOrganizationsOutputSchema = {
             id: z.string().optional(),
         })
     ),
-    totalCount: z.number().optional(),
+    totalCount: z.number(),
 };
 
 export class ListOrganizationsTool extends AtlasToolBase {
@@ -37,7 +37,6 @@ export class ListOrganizationsTool extends AtlasToolBase {
                     query: {
                         itemsPerPage: limit,
                         pageNum,
-                        includeCount: true,
                     },
                 },
             },
@@ -49,7 +48,7 @@ export class ListOrganizationsTool extends AtlasToolBase {
                 content: [{ type: "text", text: "No organizations found in your MongoDB Atlas account." }],
                 structuredContent: {
                     organizations: [],
-                    totalCount: data?.totalCount ?? 0,
+                    totalCount: 0,
                 },
             };
         }
@@ -61,14 +60,12 @@ export class ListOrganizationsTool extends AtlasToolBase {
 
         return {
             content: formatUntrustedData(
-                `Found ${data.results.length} organizations in your MongoDB Atlas account${
-                    data.totalCount !== undefined ? ` (total: ${data.totalCount})` : ""
-                }.`,
+                `Found ${orgs.length} organizations in your MongoDB Atlas account.`,
                 JSON.stringify(orgs)
             ),
             structuredContent: {
                 organizations: orgs,
-                ...(data.totalCount !== undefined && { totalCount: data.totalCount }),
+                totalCount: orgs.length,
             },
         };
     }

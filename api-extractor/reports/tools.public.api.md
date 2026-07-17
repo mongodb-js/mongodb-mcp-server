@@ -1391,7 +1391,7 @@ export class ListOrganizationsTool extends AtlasToolBase {
             name: z.ZodOptional<z.ZodString>;
             id: z.ZodOptional<z.ZodString>;
         }, z.core.$strip>>;
-        totalCount: z.ZodOptional<z.ZodNumber>;
+        totalCount: z.ZodNumber;
     };
     // (undocumented)
     static toolName: string;
@@ -1421,7 +1421,7 @@ export class ListProjectsTool extends AtlasToolBase {
             orgName: z.ZodString;
             created: z.ZodString;
         }, z.core.$strip>>;
-        totalCount: z.ZodOptional<z.ZodNumber>;
+        totalCount: z.ZodNumber;
     };
     // (undocumented)
     static toolName: string;

@@ -27,7 +27,7 @@ const ListProjectsOutputSchema = {
             created: z.string(),
         })
     ),
-    totalCount: z.number().optional(),
+    totalCount: z.number(),
 };
 
 export class ListProjectsTool extends AtlasToolBase {
@@ -80,7 +80,6 @@ export class ListProjectsTool extends AtlasToolBase {
                           query: {
                               itemsPerPage: limit,
                               pageNum,
-                              includeCount: true,
                           },
                       },
                   },
@@ -92,7 +91,6 @@ export class ListProjectsTool extends AtlasToolBase {
                           query: {
                               itemsPerPage: limit,
                               pageNum,
-                              includeCount: true,
                           },
                       },
                   },
@@ -105,7 +103,7 @@ export class ListProjectsTool extends AtlasToolBase {
                 structuredContent: {
                     ...(orgId !== undefined && { orgId }),
                     projects: [],
-                    totalCount: data?.totalCount ?? 0,
+                    totalCount: 0,
                 },
             };
         }
@@ -119,16 +117,11 @@ export class ListProjectsTool extends AtlasToolBase {
         }));
 
         return {
-            content: formatUntrustedData(
-                `Found ${data.results.length} projects${
-                    data.totalCount !== undefined ? ` (total: ${data.totalCount})` : ""
-                }`,
-                JSON.stringify(projects, null, 2)
-            ),
+            content: formatUntrustedData(`Found ${projects.length} projects`, JSON.stringify(projects, null, 2)),
             structuredContent: {
                 ...(orgId !== undefined && { orgId }),
                 projects,
-                ...(data.totalCount !== undefined && { totalCount: data.totalCount }),
+                totalCount: projects.length,
             },
         };
     }
