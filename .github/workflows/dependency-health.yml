@@ -59,7 +59,7 @@ jobs:
           git push
 
       - name: Generate SBOM and upload to Kondukto via SilkBomb
-        if: always() && github.event_name != 'pull_request'
+        if: always()
         env:
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
@@ -82,7 +82,7 @@ jobs:
             --sbom-out /pwd/.sbom/sbom.json
 
       - name: Upload SBOM artifact
-        if: always() && github.event_name != 'pull_request'
+        if: always()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v7.0.1
         with:
           name: sbom
