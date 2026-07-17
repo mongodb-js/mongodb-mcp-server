@@ -111,7 +111,7 @@
     "eval:bundle": "tsx tests/eval/scripts/bundleEval.ts",
     "eval:serve": "BRAINTRUST_API_KEY_OVERRIDE=$BRAINTRUST_API_KEY bt eval --dev tests/eval/mongodb.eval.ts",
     "eval:push": "pnpm run eval:bundle && braintrust push tests/eval/dist/mongodb.eval.cjs --if-exists replace",
-    "create-dependency-sbom-lists": "node scripts/sbomReport/index.ts",
+    "create-dependency-sbom-lists": "tsx scripts/sbomReport/index.ts",
     "update-third-party-notices": "mongodb-sbom-tools generate-3rd-party-notices --product=\"MongoDB MCP Server\" --dependencies=.sbom/dependencies-prod.json --config=licenses.json > THIRD_PARTY_NOTICES.md"
   },
   "license": "Apache-2.0",
