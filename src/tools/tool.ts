@@ -630,7 +630,7 @@ export abstract class ToolBase<
      */
     public async verifyConfirmed(
         args: ToolArgs<typeof this.argsShape>,
-        context?: ToolExecutionContext
+        context: ToolExecutionContext
     ): Promise<boolean> {
         if (!this.requiresConfirmation()) {
             return true;
@@ -638,9 +638,9 @@ export abstract class ToolBase<
 
         return this.elicitation.requestConfirmation(this.getConfirmationMessage(args), {
             relatedRequestId: this.elicitationRelatedRequestId(context),
-            progressToken: context?._meta?.progressToken,
-            sendNotification: context?.sendNotification,
-            signal: context?.signal,
+            progressToken: context._meta?.progressToken,
+            sendNotification: context.sendNotification,
+            signal: context.signal,
         });
     }
 
@@ -653,8 +653,8 @@ export abstract class ToolBase<
      * cannot carry server->client messages at all, so the elicitation must
      * keep using the standalone stream.
      */
-    protected elicitationRelatedRequestId(context?: ToolExecutionContext): RequestId | undefined {
-        return this.config.httpResponseType === "json" ? undefined : context?.requestId;
+    protected elicitationRelatedRequestId(context: ToolExecutionContext): RequestId | undefined {
+        return this.config.httpResponseType === "json" ? undefined : context.requestId;
     }
 
     /**

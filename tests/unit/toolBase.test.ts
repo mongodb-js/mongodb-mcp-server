@@ -83,7 +83,9 @@ describe("ToolBase", () => {
             mockConfig.confirmationRequiredTools = ["other-tool", "another-tool"];
 
             const args = { param1: "test" };
-            const result = await testTool.verifyConfirmed(args);
+            const result = await testTool.verifyConfirmed(args, {
+                signal: new AbortController().signal,
+            });
 
             expect(result).toBe(true);
             expect(mockRequestConfirmation).not.toHaveBeenCalled();
@@ -93,7 +95,9 @@ describe("ToolBase", () => {
             mockConfig.confirmationRequiredTools = [];
 
             const args = { param1: "test" };
-            const result = await testTool.verifyConfirmed(args);
+            const result = await testTool.verifyConfirmed(args, {
+                signal: new AbortController().signal,
+            });
 
             expect(result).toBe(true);
             expect(mockRequestConfirmation).not.toHaveBeenCalled();
@@ -104,7 +108,9 @@ describe("ToolBase", () => {
             mockRequestConfirmation.mockResolvedValue(true);
 
             const args = { param1: "test", param2: 42 };
-            const result = await testTool.verifyConfirmed(args);
+            const result = await testTool.verifyConfirmed(args, {
+                signal: new AbortController().signal,
+            });
 
             expect(result).toBe(true);
             expect(mockRequestConfirmation).toHaveBeenCalledTimes(1);
@@ -119,7 +125,9 @@ describe("ToolBase", () => {
             mockRequestConfirmation.mockResolvedValue(false);
 
             const args = { param1: "test" };
-            const result = await testTool.verifyConfirmed(args);
+            const result = await testTool.verifyConfirmed(args, {
+                signal: new AbortController().signal,
+            });
 
             expect(result).toBe(false);
             expect(mockRequestConfirmation).toHaveBeenCalledTimes(1);
