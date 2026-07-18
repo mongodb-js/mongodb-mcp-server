@@ -22,8 +22,12 @@ import type { Metrics } from '@mongodb-js/mcp-metrics';
 import type { MongoLogId } from 'mongodb-log-writer';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
 import type { operations } from './openapi.js';
+import type { ProgressToken } from '@modelcontextprotocol/sdk/types.js';
+import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
 import type { RequestId } from '@modelcontextprotocol/sdk/types.js';
 import type { Secret } from 'mongodb-redact';
+import type { ServerNotification } from '@modelcontextprotocol/sdk/types.js';
+import type { ServerRequest } from '@modelcontextprotocol/sdk/types.js';
 import type { TelemetryEvents } from '@mongodb-js/mcp-types';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
@@ -2167,15 +2171,8 @@ export type ToolConstructorParams<TUserConfig extends UserConfig = UserConfig, T
     context?: TContext;
 };
 
-// @public (undocumented)
-export interface ToolExecutionContext {
-    requestId?: RequestId;
-    requestInfo?: {
-        headers?: Record<string, unknown>;
-    };
-    // (undocumented)
-    signal: AbortSignal;
-}
+// @public
+export type ToolExecutionContext = Pick<ServerRequestHandlerExtra, "signal"> & Partial<Pick<ServerRequestHandlerExtra, "_meta" | "requestId" | "requestInfo" | "sendNotification">>;
 
 // @public (undocumented)
 export type ToolResult<OutputSchema extends ZodRawShape | undefined = undefined> = OutputSchema extends ZodRawShape ? StructuredToolResult<OutputSchema> : {

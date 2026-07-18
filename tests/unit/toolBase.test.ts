@@ -135,6 +135,26 @@ describe("ToolBase", () => {
             expect(mockRequestConfirmation).toHaveBeenCalledWith(expect.any(String), { relatedRequestId: 42 });
         });
 
+        it("should pass progress heartbeat inputs from the execution context", async () => {
+            mockConfig.confirmationRequiredTools = ["test-tool"];
+            mockRequestConfirmation.mockResolvedValue(true);
+            const sendNotification = vi.fn();
+
+            const context: ToolExecutionContext = {
+                signal: new AbortController().signal,
+                requestId: 42,
+                _meta: { progressToken: "progress-token" },
+                sendNotification,
+            };
+            await testTool.verifyConfirmed({ param1: "test" }, context);
+
+            expect(mockRequestConfirmation).toHaveBeenCalledWith(expect.any(String), {
+                relatedRequestId: 42,
+                progressToken: "progress-token",
+                sendNotification,
+            });
+        });
+
         it("should not relate the confirmation request to the tool call in JSON response mode", async () => {
             // In JSON response mode the in-flight POST cannot carry server->client
             // messages, so the confirmation must use the standalone SSE stream.

@@ -324,6 +324,7 @@ describe("StreamsBuildTool", () => {
 
         it("should relate elicitation to the in-flight tool call", async () => {
             mockElicitation.requestInput.mockResolvedValue({ accepted: false });
+            const sendNotification = vi.fn();
 
             await tool["execute"](
                 {
@@ -333,11 +334,18 @@ describe("StreamsBuildTool", () => {
                     connectionType: "Kafka",
                     connectionConfig: {},
                 } as never,
-                { signal: new AbortController().signal, requestId: 42 } as never
+                {
+                    signal: new AbortController().signal,
+                    requestId: 42,
+                    _meta: { progressToken: "progress-token" },
+                    sendNotification,
+                } as never
             );
 
             expect(mockElicitation.requestInput).toHaveBeenCalledWith(expect.any(String), expect.anything(), {
                 relatedRequestId: 42,
+                progressToken: "progress-token",
+                sendNotification,
             });
         });
 

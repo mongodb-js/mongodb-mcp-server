@@ -1,6 +1,13 @@
 import type { z, ZodRawShape } from "zod";
 import type { RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { CallToolResult, RequestId, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
+import type { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
+import type {
+    CallToolResult,
+    RequestId,
+    ServerNotification,
+    ServerRequest,
+    ToolAnnotations,
+} from "@modelcontextprotocol/sdk/types.js";
 import type { Session } from "../common/session.js";
 import type { AnyConnectionState } from "../common/connectionManager.js";
 import { LogId } from "../common/logging/index.js";
@@ -26,22 +33,19 @@ export type ToolOutput<T extends ZodRawShape> = {
     [K in keyof T]?: z.infer<T[K]>;
 };
 
-export interface ToolExecutionContext {
-    signal: AbortSignal;
-    /**
-     * The JSON-RPC id of the tool call request. Populated by the MCP SDK when
-     * the tool is invoked by the server; may be absent when `invoke` is called
-     * manually.
-     */
-    requestId?: RequestId;
-    /**
-     * Request context object available only when running atop
-     * StreamableHttpTransport.
-     */
-    requestInfo?: {
-        headers?: Record<string, unknown>;
-    };
-}
+type ServerRequestHandlerExtra = RequestHandlerExtra<ServerRequest, ServerNotification>;
+
+/**
+ * The subset of the SDK's request handler context that tools rely on, picked
+ * from `RequestHandlerExtra` so the field types always match the SDK's.
+ *
+ * `signal` is always present. The remaining fields are populated by the MCP
+ * SDK when the tool is invoked by the server, but may be absent when `invoke`
+ * is called manually; `requestInfo` is additionally only available when
+ * running atop StreamableHttpTransport.
+ */
+export type ToolExecutionContext = Pick<ServerRequestHandlerExtra, "signal"> &
+    Partial<Pick<ServerRequestHandlerExtra, "_meta" | "requestId" | "requestInfo" | "sendNotification">>;
 
 export type ToolResult<OutputSchema extends ZodRawShape | undefined = undefined> = OutputSchema extends ZodRawShape
     ? StructuredToolResult<OutputSchema>
@@ -634,6 +638,8 @@ export abstract class ToolBase<
 
         return this.elicitation.requestConfirmation(this.getConfirmationMessage(args), {
             relatedRequestId: this.elicitationRelatedRequestId(context),
+            progressToken: context?._meta?.progressToken,
+            sendNotification: context?.sendNotification,
         });
     }
 

@@ -599,7 +599,11 @@ export class StreamsBuildTool extends StreamsToolBase {
         const elicited = await this.elicitation.requestInput(
             `The following information is required to create the ${connectionType} connection.`,
             schema,
-            { relatedRequestId: this.elicitationRelatedRequestId(context) }
+            {
+                relatedRequestId: this.elicitationRelatedRequestId(context),
+                progressToken: context._meta?.progressToken,
+                sendNotification: context.sendNotification,
+            }
         );
 
         if (elicited.accepted) {

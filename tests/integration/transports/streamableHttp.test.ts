@@ -1536,6 +1536,30 @@ describe("StreamableHttpRunner", () => {
             expect(result.isError).toBeFalsy();
             expect(result.content).toEqual([{ type: "text", text: "Tool executed" }]);
         });
+
+        it("sends progress notifications while the confirmation is pending", async () => {
+            const client = new Client({ name: "test", version: "0.0.0" }, { capabilities: { elicitation: {} } });
+            client.setRequestHandler(ElicitRequestSchema, () => {
+                return { action: "accept" as const, content: { confirmation: "Yes" } };
+            });
+
+            const transport = new StreamableHTTPClientTransport(new URL(`${runner["mcpServer"]!.serverAddress}/mcp`));
+            await client.connect(transport);
+            clients.push(client);
+
+            const progressUpdates: number[] = [];
+            const result = (await client.callTool({ name: "confirm-required-tool", arguments: {} }, undefined, {
+                timeout: 5_000,
+                // Requesting progress makes the client attach a progress token
+                // to the tool call, which the server's elicitation heartbeat
+                // uses to keep the request alive while the user is deciding.
+                onprogress: (progress) => progressUpdates.push(progress.progress),
+            })) as CallToolResult;
+
+            expect(progressUpdates.length).toBeGreaterThanOrEqual(1);
+            expect(result.isError).toBeFalsy();
+            expect(result.content).toEqual([{ type: "text", text: "Tool executed" }]);
+        });
     });
 
     describe("connection scoping", () => {
