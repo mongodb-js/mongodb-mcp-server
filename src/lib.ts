@@ -111,6 +111,7 @@ export {
     createDefaultSessionStore,
     type ISessionStore,
     type CloseableTransport,
+    type NegotiatedClientState,
     type SessionCloseReason,
     type CreateSessionStoreFn,
     type SessionStoreConstructorArgs,

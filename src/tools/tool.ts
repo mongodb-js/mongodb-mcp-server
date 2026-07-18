@@ -636,12 +636,63 @@ export abstract class ToolBase<
             return true;
         }
 
-        return this.elicitation.requestConfirmation(this.getConfirmationMessage(args), {
-            relatedRequestId: this.elicitationRelatedRequestId(context),
-            progressToken: context._meta?.progressToken,
-            sendNotification: context.sendNotification,
-            signal: context.signal,
+        const relatedRequestId = this.elicitationRelatedRequestId(context);
+        this.session.logger.info({
+            id: LogId.toolConfirmationRequested,
+            context: "tool",
+            message: `Requesting user confirmation for ${this.name}`,
+            noRedaction: true,
+            attributes: {
+                tool: this.name,
+                requestId: context.requestId !== undefined ? String(context.requestId) : "(undefined)",
+                requestIdType: typeof context.requestId,
+                relatedRequestId: relatedRequestId !== undefined ? String(relatedRequestId) : "(undefined)",
+                httpResponseType: String(this.config.httpResponseType),
+                progressToken:
+                    context._meta?.progressToken !== undefined ? String(context._meta.progressToken) : "(undefined)",
+                hasSendNotification: String(context.sendNotification !== undefined),
+                ...requestIdAttr(context.requestInfo?.headers),
+            },
         });
+        if (relatedRequestId === undefined && this.config.transport === "http") {
+            // Without a related request id the elicitation is sent on the
+            // standalone GET SSE stream. Deployments that don't support
+            // standalone streams silently drop it, so the confirmation would
+            // hang until it times out.
+            this.session.logger.warning({
+                id: LogId.toolConfirmationStandaloneStreamFallback,
+                context: "tool",
+                message: `Confirmation for ${this.name} has no related request id and will use the standalone SSE stream`,
+                noRedaction: true,
+                attributes: { tool: this.name, ...requestIdAttr(context.requestInfo?.headers) },
+            });
+        }
+
+        const startedAt = Date.now();
+        try {
+            const confirmed = await this.elicitation.requestConfirmation(this.getConfirmationMessage(args), {
+                relatedRequestId,
+                progressToken: context._meta?.progressToken,
+                sendNotification: context.sendNotification,
+                signal: context.signal,
+            });
+            this.session.logger.info({
+                id: LogId.toolConfirmationSettled,
+                context: "tool",
+                message: `Confirmation for ${this.name} settled: ${confirmed ? "confirmed" : "declined"} after ${Date.now() - startedAt}ms`,
+                noRedaction: true,
+                attributes: { tool: this.name, ...requestIdAttr(context.requestInfo?.headers) },
+            });
+            return confirmed;
+        } catch (error) {
+            this.session.logger.warning({
+                id: LogId.toolConfirmationSettled,
+                context: "tool",
+                message: `Confirmation for ${this.name} failed after ${Date.now() - startedAt}ms: ${error instanceof Error ? error.message : String(error)}`,
+                attributes: { tool: this.name, ...requestIdAttr(context.requestInfo?.headers) },
+            });
+            throw error;
+        }
     }
 
     /**

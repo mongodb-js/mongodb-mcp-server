@@ -891,6 +891,12 @@ export type MonitoringServerConstructorArgs<TMetrics extends DefaultMetrics = De
 // @public (undocumented)
 export type MonitoringServerFeature = (typeof monitoringServerFeatureValues)[number];
 
+// @public
+export type NegotiatedClientState = {
+    clientCapabilities?: ClientCapabilities;
+    clientInfo?: Implementation;
+};
+
 // @public (undocumented)
 export class NullLogger extends LoggerBase {
     constructor();
