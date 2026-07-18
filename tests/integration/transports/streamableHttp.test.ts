@@ -17,6 +17,7 @@ import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/se
 import type { OperationType, ToolArgs, ToolCategory, ToolExecutionContext } from "../../../src/tools/tool.js";
 import { ToolBase } from "../../../src/tools/tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { ElicitRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import type { TelemetryToolMetadata } from "../../../src/telemetry/types.js";
 import type { RequestContext } from "../../../src/transports/base.js";
 import type { AnyToolClass, Server } from "../../../src/lib.js";
@@ -1469,6 +1470,95 @@ describe("StreamableHttpRunner", () => {
             expect(adminTools.tools).toHaveLength(2);
             const toolNames = adminTools.tools.map((t) => t.name).sort();
             expect(toolNames).toEqual(["admin-tool", "user-tool"]);
+        });
+    });
+
+    describe("elicitation without a standalone SSE stream", () => {
+        // Mirrors hosted deployments (e.g. the Atlas remote MCP server) that reject
+        // GET /mcp with 405: server->client requests can never use the standalone SSE
+        // stream, so confirmation requests must ride the tool call's own POST stream.
+        class ConfirmRequiredTool extends ToolBase {
+            static toolName = "confirm-required-tool";
+            public description = "Tool that requires confirmation before executing";
+            public argsShape = {};
+            static category: ToolCategory = "mongodb";
+            static operationType: OperationType = "delete";
+
+            protected execute(): Promise<CallToolResult> {
+                return Promise.resolve({ content: [{ type: "text", text: "Tool executed" }] });
+            }
+
+            protected resolveTelemetryMetadata(): TelemetryToolMetadata {
+                return {};
+            }
+        }
+
+        beforeEach(async () => {
+            runner = new StreamableHttpRunner({
+                userConfig: { ...config, confirmationRequiredTools: ["confirm-required-tool"] },
+                tools: [ConfirmRequiredTool],
+                createMcpHttpServer(args): MCPHttpServer {
+                    return new (class extends MCPHttpServer {
+                        protected override setupMiddlewares(): void {
+                            super.setupMiddlewares();
+                            this.app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+                                if (req.method === "GET" && req.path === "/mcp") {
+                                    res.status(405).set("Allow", "POST, DELETE").send("Method Not Allowed");
+                                    return;
+                                }
+                                next();
+                            });
+                        }
+                    })(args);
+                },
+            });
+            await runner.start();
+        });
+
+        it("delivers the confirmation request over the tool call's own stream", async () => {
+            const client = new Client({ name: "test", version: "0.0.0" }, { capabilities: { elicitation: {} } });
+            const elicitationMessages: string[] = [];
+            client.setRequestHandler(ElicitRequestSchema, (request) => {
+                elicitationMessages.push(request.params.message);
+                return { action: "accept" as const, content: { confirmation: "Yes" } };
+            });
+
+            const transport = new StreamableHTTPClientTransport(new URL(`${runner["mcpServer"]!.serverAddress}/mcp`));
+            await client.connect(transport);
+            clients.push(client);
+
+            const result = (await client.callTool({ name: "confirm-required-tool", arguments: {} }, undefined, {
+                timeout: 5_000,
+            })) as CallToolResult;
+
+            expect(elicitationMessages).toHaveLength(1);
+            expect(elicitationMessages[0]).toContain("confirm-required-tool");
+            expect(result.isError).toBeFalsy();
+            expect(result.content).toEqual([{ type: "text", text: "Tool executed" }]);
+        });
+
+        it("sends progress notifications while the confirmation is pending", async () => {
+            const client = new Client({ name: "test", version: "0.0.0" }, { capabilities: { elicitation: {} } });
+            client.setRequestHandler(ElicitRequestSchema, () => {
+                return { action: "accept" as const, content: { confirmation: "Yes" } };
+            });
+
+            const transport = new StreamableHTTPClientTransport(new URL(`${runner["mcpServer"]!.serverAddress}/mcp`));
+            await client.connect(transport);
+            clients.push(client);
+
+            const progressUpdates: number[] = [];
+            const result = (await client.callTool({ name: "confirm-required-tool", arguments: {} }, undefined, {
+                timeout: 5_000,
+                // Requesting progress makes the client attach a progress token
+                // to the tool call, which the server's elicitation heartbeat
+                // uses to keep the request alive while the user is deciding.
+                onprogress: (progress) => progressUpdates.push(progress.progress),
+            })) as CallToolResult;
+
+            expect(progressUpdates.length).toBeGreaterThanOrEqual(1);
+            expect(result.isError).toBeFalsy();
+            expect(result.content).toEqual([{ type: "text", text: "Tool executed" }]);
         });
     });
 

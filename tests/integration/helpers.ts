@@ -157,7 +157,10 @@ export function setupIntegrationTest(
             Object.assign(mcpServerInstance.server, { elicitInput: elicitInput.mock });
         }
 
-        const elicitation = new Elicitation({ server: mcpServerInstance.server });
+        const elicitation = new Elicitation({
+            server: mcpServerInstance.server,
+            timeoutMs: userConfig.elicitationTimeoutMs,
+        });
 
         let uiRegistry = serverOptions?.uiRegistry;
         if (!uiRegistry && userConfig.previewFeatures.includes("mcpUI")) {

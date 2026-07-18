@@ -375,7 +375,9 @@ export abstract class TransportRunnerBase<
             telemetry,
             userConfig,
             connectionErrorHandler: sessionOptions?.connectionErrorHandler ?? this.connectionErrorHandler,
-            elicitation: serverOptions?.elicitation ?? new Elicitation({ server: mcpServer.server }),
+            elicitation:
+                serverOptions?.elicitation ??
+                new Elicitation({ server: mcpServer.server, timeoutMs: userConfig.elicitationTimeoutMs }),
             tools: serverOptions?.tools ?? this.tools,
             uiRegistry,
             toolContext: serverOptions?.toolContext,

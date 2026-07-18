@@ -38,6 +38,7 @@ const expectedDefaults = {
         "atlas-streams-manage",
         "atlas-streams-teardown",
     ],
+    elicitationTimeoutMs: 5 * 60 * 1000, // 5 minutes
     transport: "stdio",
     httpPort: 3000,
     httpHost: "127.0.0.1",

@@ -149,7 +149,10 @@ describe("MongoDBTool implementations", () => {
             name: "test-server",
             version: "5.2.3",
         });
-        const elicitation = new Elicitation({ server: internalMcpServer.server });
+        const elicitation = new Elicitation({
+            server: internalMcpServer.server,
+            timeoutMs: userConfig.elicitationTimeoutMs,
+        });
 
         mcpServer = new Server({
             session,

@@ -208,7 +208,10 @@ describe("Server integration test", () => {
         });
 
         const mcpServerInstance = new McpServer({ name: "test", version: "1.0" });
-        const elicitation = new Elicitation({ server: mcpServerInstance.server });
+        const elicitation = new Elicitation({
+            server: mcpServerInstance.server,
+            timeoutMs: config.elicitationTimeoutMs,
+        });
 
         const server = new Server({
             session,

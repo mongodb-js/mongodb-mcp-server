@@ -1,6 +1,13 @@
 import type { z, ZodRawShape } from "zod";
 import type { RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
+import type { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
+import type {
+    CallToolResult,
+    RequestId,
+    ServerNotification,
+    ServerRequest,
+    ToolAnnotations,
+} from "@modelcontextprotocol/sdk/types.js";
 import type { Session } from "../common/session.js";
 import type { AnyConnectionState } from "../common/connectionManager.js";
 import { LogId } from "../common/logging/index.js";
@@ -26,16 +33,19 @@ export type ToolOutput<T extends ZodRawShape> = {
     [K in keyof T]?: z.infer<T[K]>;
 };
 
-export interface ToolExecutionContext {
-    signal: AbortSignal;
-    /**
-     * Request context object available only when running atop
-     * StreamableHttpTransport.
-     */
-    requestInfo?: {
-        headers?: Record<string, unknown>;
-    };
-}
+type ServerRequestHandlerExtra = RequestHandlerExtra<ServerRequest, ServerNotification>;
+
+/**
+ * The subset of the SDK's request handler context that tools rely on, picked
+ * from `RequestHandlerExtra` so the field types always match the SDK's.
+ *
+ * `signal` is always present. The remaining fields are populated by the MCP
+ * SDK when the tool is invoked by the server, but may be absent when `invoke`
+ * is called manually; `requestInfo` is additionally only available when
+ * running atop StreamableHttpTransport.
+ */
+export type ToolExecutionContext = Pick<ServerRequestHandlerExtra, "signal"> &
+    Partial<Pick<ServerRequestHandlerExtra, "_meta" | "requestId" | "requestInfo" | "sendNotification">>;
 
 export type ToolResult<OutputSchema extends ZodRawShape | undefined = undefined> = OutputSchema extends ZodRawShape
     ? StructuredToolResult<OutputSchema>
@@ -495,7 +505,7 @@ export abstract class ToolBase<
 
         try {
             if (this.requiresConfirmation()) {
-                if (!(await this.verifyConfirmed(args))) {
+                if (!(await this.verifyConfirmed(args, context))) {
                     this.session.logger.debug({
                         id: LogId.toolExecute,
                         context: "tool",
@@ -613,15 +623,38 @@ export abstract class ToolBase<
      * confirmation via the elicitation service if needed.
      *
      * @param args - The tool arguments
+     * @param context - The tool execution context, used to relate the
+     * confirmation request to the in-flight tool call
      * @returns A promise resolving to `true` if confirmed or confirmation not
      * required, `false` otherwise
      */
-    public async verifyConfirmed(args: ToolArgs<typeof this.argsShape>): Promise<boolean> {
+    public async verifyConfirmed(
+        args: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<boolean> {
         if (!this.requiresConfirmation()) {
             return true;
         }
 
-        return this.elicitation.requestConfirmation(this.getConfirmationMessage(args));
+        return this.elicitation.requestConfirmation(this.getConfirmationMessage(args), {
+            relatedRequestId: this.elicitationRelatedRequestId(context),
+            progressToken: context._meta?.progressToken,
+            sendNotification: context.sendNotification,
+            signal: context.signal,
+        });
+    }
+
+    /**
+     * Resolves the request id that elicitation requests should be related to.
+     *
+     * Relating the elicitation to the in-flight tool call routes it over that
+     * call's own SSE stream, which also works for deployments that don't
+     * support standalone GET streams. In JSON response mode the in-flight POST
+     * cannot carry server->client messages at all, so the elicitation must
+     * keep using the standalone stream.
+     */
+    protected elicitationRelatedRequestId(context: ToolExecutionContext): RequestId | undefined {
+        return this.config.httpResponseType === "json" ? undefined : context.requestId;
     }
 
     /**
