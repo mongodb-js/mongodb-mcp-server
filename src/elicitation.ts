@@ -32,21 +32,22 @@ export type ElicitationOptions = {
     sendNotification?: (notification: ServerNotification) => Promise<void>;
 };
 
-const ELICITATION_TIMEOUT_MS = 300_000; // 5 minutes for user interaction
-
 /**
  * How often to emit progress notifications while an elicitation is pending.
  * Frequent enough to beat common client request timeouts (the MCP SDK default
  * is 60 seconds) and infrastructure idle timeouts, without being chatty. The
- * heartbeat stops when the elicitation settles, so `ELICITATION_TIMEOUT_MS` is
+ * heartbeat stops when the elicitation settles, so the elicitation timeout is
  * its upper bound.
  */
 const ELICITATION_PROGRESS_INTERVAL_MS = 15_000;
 
 export class Elicitation {
     private readonly server: McpServer["server"];
-    constructor({ server }: { server: McpServer["server"] }) {
+    /** Time allowed for the user to respond to an elicitation request, from the `elicitationTimeoutMs` config option. */
+    private readonly timeoutMs: number;
+    constructor({ server, timeoutMs }: { server: McpServer["server"]; timeoutMs: number }) {
         this.server = server;
+        this.timeoutMs = timeoutMs;
     }
 
     /**
@@ -77,7 +78,7 @@ export class Elicitation {
                     message,
                     requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
                 },
-                { timeout: ELICITATION_TIMEOUT_MS, relatedRequestId: options?.relatedRequestId }
+                { timeout: this.timeoutMs, relatedRequestId: options?.relatedRequestId }
             );
             return result.action === "accept" && result.content?.confirmation === "Yes";
         } finally {
@@ -113,7 +114,7 @@ export class Elicitation {
                     message,
                     requestedSchema: schema,
                 },
-                { timeout: ELICITATION_TIMEOUT_MS, relatedRequestId: options?.relatedRequestId }
+                { timeout: this.timeoutMs, relatedRequestId: options?.relatedRequestId }
             );
         } finally {
             stopHeartbeat();

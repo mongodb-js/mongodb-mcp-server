@@ -92,6 +92,13 @@ const ServerConfigSchema = z.object({
             "An array of tool names that require user confirmation before execution. Requires the client to support elicitation."
         )
         .register(configRegistry, { overrideBehavior: "merge" }),
+    elicitationTimeoutMs: z.coerce
+        .number()
+        .default(300_000)
+        .describe(
+            "Time in milliseconds the user has to respond to an elicitation request (such as a tool confirmation prompt) before it fails."
+        )
+        .register(configRegistry, { overrideBehavior: onlyLowerThanBaseValueOverride() }),
     readOnly: z
         .preprocess(parseBoolean, z.boolean())
         .default(false)

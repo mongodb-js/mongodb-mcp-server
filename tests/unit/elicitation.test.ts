@@ -16,6 +16,7 @@ describe("Elicitation", () => {
                 getClientCapabilities: mockGetClientCapabilities,
                 elicitInput: mockElicitInput.mock,
             } as unknown as McpServer["server"],
+            timeoutMs: 300_000,
         });
     });
 
@@ -147,6 +148,25 @@ describe("Elicitation", () => {
             expect(mockElicitInput.mock).toHaveBeenCalledWith(expect.anything(), {
                 timeout: 300000,
                 relatedRequestId: 7,
+            });
+        });
+
+        it("should use the configured timeout", async () => {
+            const customElicitation = new Elicitation({
+                server: {
+                    getClientCapabilities: mockGetClientCapabilities,
+                    elicitInput: mockElicitInput.mock,
+                } as unknown as McpServer["server"],
+                timeoutMs: 1_000,
+            });
+            mockGetClientCapabilities.mockReturnValue({ elicitation: {} });
+            mockElicitInput.confirmYes();
+
+            await customElicitation.requestConfirmation(testMessage);
+
+            expect(mockElicitInput.mock).toHaveBeenCalledWith(expect.anything(), {
+                timeout: 1_000,
+                relatedRequestId: undefined,
             });
         });
     });

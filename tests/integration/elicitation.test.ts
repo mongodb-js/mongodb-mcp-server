@@ -41,7 +41,7 @@ describe("Elicitation Integration Tests", () => {
                             requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
                             mode: "form",
                         },
-                        { timeout: 300000 }
+                        { timeout: 300000, relatedRequestId: expect.anything() }
                     );
 
                     // Should attempt to execute (will fail due to no connection, but confirms flow worked)
@@ -95,7 +95,7 @@ describe("Elicitation Integration Tests", () => {
                             requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
                             mode: "form",
                         },
-                        { timeout: 300000 }
+                        { timeout: 300000, relatedRequestId: expect.anything() }
                     );
                 });
 
@@ -135,7 +135,7 @@ describe("Elicitation Integration Tests", () => {
                             requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
                             mode: "form",
                         },
-                        { timeout: 300000 }
+                        { timeout: 300000, relatedRequestId: expect.anything() }
                     );
                 });
 
@@ -158,7 +158,7 @@ describe("Elicitation Integration Tests", () => {
                             requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
                             mode: "form",
                         },
-                        { timeout: 300000 }
+                        { timeout: 300000, relatedRequestId: expect.anything() }
                     );
                 });
 
@@ -182,7 +182,7 @@ describe("Elicitation Integration Tests", () => {
                             requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
                             mode: "form",
                         },
-                        { timeout: 300000 }
+                        { timeout: 300000, relatedRequestId: expect.anything() }
                     );
                 });
             });
@@ -269,7 +269,7 @@ describe("Elicitation Integration Tests", () => {
                         requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
                         mode: "form",
                     },
-                    { timeout: 300000 }
+                    { timeout: 300000, relatedRequestId: expect.anything() }
                 );
             });
 
@@ -316,7 +316,7 @@ describe("Elicitation Integration Tests", () => {
                         requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
                         mode: "form",
                     },
-                    { timeout: 300000 }
+                    { timeout: 300000, relatedRequestId: expect.anything() }
                 );
             });
 
@@ -339,7 +339,7 @@ describe("Elicitation Integration Tests", () => {
                         requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
                         mode: "form",
                     },
-                    { timeout: 300000 }
+                    { timeout: 300000, relatedRequestId: expect.anything() }
                 );
             });
         },
