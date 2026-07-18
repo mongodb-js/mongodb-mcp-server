@@ -3,6 +3,7 @@ import { StreamableHttpRunner, MCPHttpServer } from "../../../src/transports/str
 import {
     createDefaultSessionStore,
     type ISessionStore,
+    type NegotiatedClientState,
     type SessionCloseReason,
 } from "../../../src/common/sessionStore.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -662,6 +663,21 @@ describe("StreamableHttpRunner", () => {
 
                     closeAllSessions(): Promise<void> {
                         return this.inner.closeAllSessions();
+                    }
+
+                    saveNegotiatedClientState(
+                        sessionId: string,
+                        state: NegotiatedClientState,
+                        headers?: Record<string, unknown>
+                    ): Promise<void> {
+                        return this.inner.saveNegotiatedClientState(sessionId, state, headers);
+                    }
+
+                    loadNegotiatedClientState(
+                        sessionId: string,
+                        headers?: Record<string, unknown>
+                    ): Promise<NegotiatedClientState | undefined> {
+                        return this.inner.loadNegotiatedClientState(sessionId, headers);
                     }
                 }
 

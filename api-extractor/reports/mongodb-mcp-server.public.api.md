@@ -7,6 +7,7 @@
 import type { AggregationCursor } from 'mongodb';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { Client } from '@mongodb-js/atlas-local';
+import type { ClientCapabilities } from '@modelcontextprotocol/sdk/types.js';
 import type { CloseableTransport } from '@mongodb-js/mcp-types';
 import type { components } from './openapi.js';
 import { ConnectionInfo } from '@mongosh/arg-parser';
@@ -704,6 +705,8 @@ export interface ISessionStore<T extends CloseableTransport = CloseableTransport
         reason?: SessionCloseReason;
     }): Promise<void>;
     getSession(sessionId: string, headers?: Record<string, unknown>): Promise<T | undefined>;
+    loadNegotiatedClientState(sessionId: string, headers?: Record<string, unknown>): Promise<NegotiatedClientState | undefined>;
+    saveNegotiatedClientState(sessionId: string, state: NegotiatedClientState, headers?: Record<string, unknown>): Promise<void>;
 }
 
 // @public
@@ -1096,6 +1099,9 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
     // (undocumented)
     getSession(sessionId: string, _headers?: Record<string, unknown>): Promise<T | undefined>;
     hasSession(sessionId: string): boolean;
+    // (undocumented)
+    loadNegotiatedClientState(sessionId: string, headers?: Record<string, unknown>): Promise<NegotiatedClientState | undefined>;
+    saveNegotiatedClientState(sessionId: string, state: NegotiatedClientState, headers?: Record<string, unknown>): Promise<void>;
 }
 
 // @public
