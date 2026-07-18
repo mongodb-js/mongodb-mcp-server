@@ -322,6 +322,25 @@ describe("StreamsBuildTool", () => {
             expect(mockApiClient.createStreamConnection).not.toHaveBeenCalled();
         });
 
+        it("should relate elicitation to the in-flight tool call", async () => {
+            mockElicitation.requestInput.mockResolvedValue({ accepted: false });
+
+            await tool["execute"](
+                {
+                    ...baseArgs,
+                    resource: "connection",
+                    connectionName: "kafka1",
+                    connectionType: "Kafka",
+                    connectionConfig: {},
+                } as never,
+                { signal: new AbortController().signal, requestId: 42 } as never
+            );
+
+            expect(mockElicitation.requestInput).toHaveBeenCalledWith(expect.any(String), expect.anything(), {
+                relatedRequestId: 42,
+            });
+        });
+
         it("should accept elicited fields and proceed with creation", async () => {
             mockElicitation.requestInput.mockResolvedValue({
                 accepted: true,

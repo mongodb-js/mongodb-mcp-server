@@ -137,6 +137,18 @@ describe("Elicitation", () => {
             await expect(elicitation.requestConfirmation(testMessage)).rejects.toThrow("Elicitation failed");
             expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
         });
+
+        it("should relate the elicitation to the provided request id", async () => {
+            mockGetClientCapabilities.mockReturnValue({ elicitation: {} });
+            mockElicitInput.confirmYes();
+
+            await elicitation.requestConfirmation(testMessage, { relatedRequestId: 7 });
+
+            expect(mockElicitInput.mock).toHaveBeenCalledWith(expect.anything(), {
+                timeout: 300000,
+                relatedRequestId: 7,
+            });
+        });
     });
 
     describe("requestInput", () => {
@@ -214,6 +226,18 @@ describe("Elicitation", () => {
             mockElicitInput.rejectWith(error);
 
             await expect(elicitation.requestInput(testMessage, testSchema)).rejects.toThrow("Input failed");
+        });
+
+        it("should relate the elicitation to the provided request id", async () => {
+            mockGetClientCapabilities.mockReturnValue({ elicitation: {} });
+            mockElicitInput.acceptWith({ username: "admin" });
+
+            await elicitation.requestInput(testMessage, testSchema, { relatedRequestId: 7 });
+
+            expect(mockElicitInput.mock).toHaveBeenCalledWith(expect.anything(), {
+                timeout: 300000,
+                relatedRequestId: 7,
+            });
         });
     });
 });

@@ -27,7 +27,7 @@ describe("ToolBase", () => {
     let mockConfig: UserConfig;
     let mockTelemetry: Telemetry;
     let mockElicitation: Elicitation;
-    let mockRequestConfirmation: MockedFunction<(message: string) => Promise<boolean>>;
+    let mockRequestConfirmation: MockedFunction<Elicitation["requestConfirmation"]>;
     let testTool: TestTool;
     let mockMetrics: MockMetrics;
 
@@ -109,7 +109,8 @@ describe("ToolBase", () => {
             expect(result).toBe(true);
             expect(mockRequestConfirmation).toHaveBeenCalledTimes(1);
             expect(mockRequestConfirmation).toHaveBeenCalledWith(
-                "You are about to execute the `test-tool` tool which requires additional confirmation. Would you like to proceed?"
+                "You are about to execute the `test-tool` tool which requires additional confirmation. Would you like to proceed?",
+                { relatedRequestId: undefined }
             );
         });
 
@@ -122,6 +123,31 @@ describe("ToolBase", () => {
 
             expect(result).toBe(false);
             expect(mockRequestConfirmation).toHaveBeenCalledTimes(1);
+        });
+
+        it("should relate the confirmation request to the in-flight tool call", async () => {
+            mockConfig.confirmationRequiredTools = ["test-tool"];
+            mockRequestConfirmation.mockResolvedValue(true);
+
+            const context: ToolExecutionContext = { signal: new AbortController().signal, requestId: 42 };
+            await testTool.verifyConfirmed({ param1: "test" }, context);
+
+            expect(mockRequestConfirmation).toHaveBeenCalledWith(expect.any(String), { relatedRequestId: 42 });
+        });
+
+        it("should not relate the confirmation request to the tool call in JSON response mode", async () => {
+            // In JSON response mode the in-flight POST cannot carry server->client
+            // messages, so the confirmation must use the standalone SSE stream.
+            mockConfig.confirmationRequiredTools = ["test-tool"];
+            mockConfig.httpResponseType = "json";
+            mockRequestConfirmation.mockResolvedValue(true);
+
+            const context: ToolExecutionContext = { signal: new AbortController().signal, requestId: 42 };
+            await testTool.verifyConfirmed({ param1: "test" }, context);
+
+            expect(mockRequestConfirmation).toHaveBeenCalledWith(expect.any(String), {
+                relatedRequestId: undefined,
+            });
         });
     });
 

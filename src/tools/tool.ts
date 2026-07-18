@@ -1,6 +1,6 @@
 import type { z, ZodRawShape } from "zod";
 import type { RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult, RequestId, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { Session } from "../common/session.js";
 import type { AnyConnectionState } from "../common/connectionManager.js";
 import { LogId } from "../common/logging/index.js";
@@ -28,6 +28,12 @@ export type ToolOutput<T extends ZodRawShape> = {
 
 export interface ToolExecutionContext {
     signal: AbortSignal;
+    /**
+     * The JSON-RPC id of the tool call request. Populated by the MCP SDK when
+     * the tool is invoked by the server; may be absent when `invoke` is called
+     * manually.
+     */
+    requestId?: RequestId;
     /**
      * Request context object available only when running atop
      * StreamableHttpTransport.
@@ -495,7 +501,7 @@ export abstract class ToolBase<
 
         try {
             if (this.requiresConfirmation()) {
-                if (!(await this.verifyConfirmed(args))) {
+                if (!(await this.verifyConfirmed(args, context))) {
                     this.session.logger.debug({
                         id: LogId.toolExecute,
                         context: "tool",
@@ -613,15 +619,35 @@ export abstract class ToolBase<
      * confirmation via the elicitation service if needed.
      *
      * @param args - The tool arguments
+     * @param context - The tool execution context, used to relate the
+     * confirmation request to the in-flight tool call
      * @returns A promise resolving to `true` if confirmed or confirmation not
      * required, `false` otherwise
      */
-    public async verifyConfirmed(args: ToolArgs<typeof this.argsShape>): Promise<boolean> {
+    public async verifyConfirmed(
+        args: ToolArgs<typeof this.argsShape>,
+        context?: ToolExecutionContext
+    ): Promise<boolean> {
         if (!this.requiresConfirmation()) {
             return true;
         }
 
-        return this.elicitation.requestConfirmation(this.getConfirmationMessage(args));
+        return this.elicitation.requestConfirmation(this.getConfirmationMessage(args), {
+            relatedRequestId: this.elicitationRelatedRequestId(context),
+        });
+    }
+
+    /**
+     * Resolves the request id that elicitation requests should be related to.
+     *
+     * Relating the elicitation to the in-flight tool call routes it over that
+     * call's own SSE stream, which also works for deployments that don't
+     * support standalone GET streams. In JSON response mode the in-flight POST
+     * cannot carry server->client messages at all, so the elicitation must
+     * keep using the standalone stream.
+     */
+    protected elicitationRelatedRequestId(context?: ToolExecutionContext): RequestId | undefined {
+        return this.config.httpResponseType === "json" ? undefined : context?.requestId;
     }
 
     /**

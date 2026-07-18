@@ -1,9 +1,19 @@
-import type { ElicitRequestFormParams } from "@modelcontextprotocol/sdk/types.js";
+import type { ElicitRequestFormParams, RequestId } from "@modelcontextprotocol/sdk/types.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 export type ElicitedInputResult =
     | { accepted: true; fields: Record<string, string> }
     | { accepted: false; fields?: undefined };
+
+export type ElicitationOptions = {
+    /**
+     * The id of the in-flight client request (e.g. the tool call) this
+     * elicitation belongs to. On the streamable HTTP transport this routes the
+     * elicitation over that request's own SSE stream rather than the standalone
+     * GET stream, which not all deployments support.
+     */
+    relatedRequestId?: RequestId;
+};
 
 const ELICITATION_TIMEOUT_MS = 300_000; // 5 minutes for user interaction
 
@@ -25,9 +35,10 @@ export class Elicitation {
     /**
      * Requests a boolean confirmation from the user.
      * @param message - The message to display to the user.
+     * @param options - Options controlling how the elicitation request is routed.
      * @returns True if the user confirms the action or the client does not support elicitation, false otherwise.
      */
-    public async requestConfirmation(message: string): Promise<boolean> {
+    public async requestConfirmation(message: string, options?: ElicitationOptions): Promise<boolean> {
         if (!this.supportsElicitation()) {
             return true;
         }
@@ -38,7 +49,7 @@ export class Elicitation {
                 message,
                 requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
             },
-            { timeout: ELICITATION_TIMEOUT_MS }
+            { timeout: ELICITATION_TIMEOUT_MS, relatedRequestId: options?.relatedRequestId }
         );
         return result.action === "accept" && result.content?.confirmation === "Yes";
     }
@@ -50,11 +61,13 @@ export class Elicitation {
      *
      * @param message - The message/title to display in the form.
      * @param schema - A JSON Schema describing the fields to collect.
+     * @param options - Options controlling how the elicitation request is routed.
      * @returns The user-provided values keyed by field name, or null if declined/unsupported.
      */
     public async requestInput(
         message: string,
-        schema: ElicitRequestFormParams["requestedSchema"]
+        schema: ElicitRequestFormParams["requestedSchema"],
+        options?: ElicitationOptions
     ): Promise<ElicitedInputResult> {
         if (!this.supportsElicitation()) {
             return { accepted: false };
@@ -66,7 +79,7 @@ export class Elicitation {
                 message,
                 requestedSchema: schema,
             },
-            { timeout: ELICITATION_TIMEOUT_MS }
+            { timeout: ELICITATION_TIMEOUT_MS, relatedRequestId: options?.relatedRequestId }
         );
 
         if (result.action !== "accept" || !result.content) {

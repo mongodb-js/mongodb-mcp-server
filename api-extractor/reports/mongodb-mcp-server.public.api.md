@@ -34,6 +34,7 @@ import type { operations } from './openapi.js';
 import { PrometheusMetrics } from '@mongodb-js/mcp-metrics';
 import { PrometheusMetricsOptions } from '@mongodb-js/mcp-metrics';
 import { Registry } from '@mongodb-js/mcp-metrics';
+import type { RequestId } from '@modelcontextprotocol/sdk/types.js';
 import { Secret } from 'mongodb-redact';
 import type { SessionCloseReason } from '@mongodb-js/mcp-types';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
@@ -596,10 +597,15 @@ export class Elicitation {
         };
         required: string[];
     };
-    requestConfirmation(message: string): Promise<boolean>;
-    requestInput(message: string, schema: ElicitRequestFormParams["requestedSchema"]): Promise<ElicitedInputResult>;
+    requestConfirmation(message: string, options?: ElicitationOptions): Promise<boolean>;
+    requestInput(message: string, schema: ElicitRequestFormParams["requestedSchema"], options?: ElicitationOptions): Promise<ElicitedInputResult>;
     supportsElicitation(): boolean;
 }
+
+// @public (undocumented)
+export type ElicitationOptions = {
+    relatedRequestId?: RequestId;
+};
 
 // @public (undocumented)
 export enum ErrorCodes {
@@ -1181,6 +1187,7 @@ export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant";
 
 // @public (undocumented)
 export interface ToolExecutionContext {
+    requestId?: RequestId;
     requestInfo?: {
         headers?: Record<string, unknown>;
     };

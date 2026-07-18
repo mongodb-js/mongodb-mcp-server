@@ -22,6 +22,7 @@ import type { Metrics } from '@mongodb-js/mcp-metrics';
 import type { MongoLogId } from 'mongodb-log-writer';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
 import type { operations } from './openapi.js';
+import type { RequestId } from '@modelcontextprotocol/sdk/types.js';
 import type { Secret } from 'mongodb-redact';
 import type { TelemetryEvents } from '@mongodb-js/mcp-types';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
@@ -2110,6 +2111,7 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
     // (undocumented)
     disable(): void;
     protected readonly elicitation: Elicitation;
+    protected elicitationRelatedRequestId(context?: ToolExecutionContext): RequestId | undefined;
     // (undocumented)
     enable(): void;
     protected abstract execute(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
@@ -2137,7 +2139,7 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
     protected get toolMeta(): Record<string, unknown>;
     // (undocumented)
     protected verifyAllowed(): boolean;
-    verifyConfirmed(args: ToolArgs<typeof ToolBase.argsShape>): Promise<boolean>;
+    verifyConfirmed(args: ToolArgs<typeof ToolBase.argsShape>, context?: ToolExecutionContext): Promise<boolean>;
 }
 
 // @public
@@ -2167,6 +2169,7 @@ export type ToolConstructorParams<TUserConfig extends UserConfig = UserConfig, T
 
 // @public (undocumented)
 export interface ToolExecutionContext {
+    requestId?: RequestId;
     requestInfo?: {
         headers?: Record<string, unknown>;
     };
