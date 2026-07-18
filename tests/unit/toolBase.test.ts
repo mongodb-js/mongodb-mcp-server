@@ -116,7 +116,12 @@ describe("ToolBase", () => {
             expect(mockRequestConfirmation).toHaveBeenCalledTimes(1);
             expect(mockRequestConfirmation).toHaveBeenCalledWith(
                 "You are about to execute the `test-tool` tool which requires additional confirmation. Would you like to proceed?",
-                { relatedRequestId: undefined }
+                {
+                    relatedRequestId: undefined,
+                    progressToken: undefined,
+                    sendNotification: undefined,
+                    signal: expect.any(AbortSignal) as AbortSignal,
+                }
             );
         });
 
