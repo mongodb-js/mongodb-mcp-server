@@ -1033,7 +1033,7 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
     // (undocumented)
     disable(): void;
     protected readonly elicitation: Elicitation;
-    protected elicitationRelatedRequestId(context?: ToolExecutionContext): RequestId | undefined;
+    protected elicitationRelatedRequestId(context: ToolExecutionContext): RequestId | undefined;
     // (undocumented)
     enable(): void;
     protected abstract execute(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
@@ -1061,7 +1061,7 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
     protected get toolMeta(): Record<string, unknown>;
     // (undocumented)
     protected verifyAllowed(): boolean;
-    verifyConfirmed(args: ToolArgs<typeof ToolBase.argsShape>, context?: ToolExecutionContext): Promise<boolean>;
+    verifyConfirmed(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<boolean>;
 }
 
 // @public
