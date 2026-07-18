@@ -132,7 +132,10 @@ describe("ToolBase", () => {
             const context: ToolExecutionContext = { signal: new AbortController().signal, requestId: 42 };
             await testTool.verifyConfirmed({ param1: "test" }, context);
 
-            expect(mockRequestConfirmation).toHaveBeenCalledWith(expect.any(String), { relatedRequestId: 42 });
+            expect(mockRequestConfirmation).toHaveBeenCalledWith(expect.any(String), {
+                relatedRequestId: 42,
+                signal: context.signal,
+            });
         });
 
         it("should pass progress heartbeat inputs from the execution context", async () => {
@@ -152,6 +155,7 @@ describe("ToolBase", () => {
                 relatedRequestId: 42,
                 progressToken: "progress-token",
                 sendNotification,
+                signal: context.signal,
             });
         });
 
@@ -167,6 +171,7 @@ describe("ToolBase", () => {
 
             expect(mockRequestConfirmation).toHaveBeenCalledWith(expect.any(String), {
                 relatedRequestId: undefined,
+                signal: context.signal,
             });
         });
     });

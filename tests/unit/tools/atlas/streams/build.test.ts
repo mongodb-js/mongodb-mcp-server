@@ -346,6 +346,7 @@ describe("StreamsBuildTool", () => {
                 relatedRequestId: 42,
                 progressToken: "progress-token",
                 sendNotification,
+                signal: expect.any(AbortSignal) as unknown,
             });
         });
 

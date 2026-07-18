@@ -30,6 +30,14 @@ export type ElicitationOptions = {
      * `sendNotification` function from the tool's execution context.
      */
     sendNotification?: (notification: ServerNotification) => Promise<void>;
+    /**
+     * The abort signal of the in-flight request, typically from the tool's
+     * execution context. It aborts when the client cancels the request (e.g.
+     * because it timed out waiting), which cancels the pending elicitation --
+     * notifying the client to dismiss the prompt and stopping the progress
+     * heartbeat -- instead of waiting out the full elicitation timeout.
+     */
+    signal?: AbortSignal;
 };
 
 /**
@@ -78,7 +86,7 @@ export class Elicitation {
                     message,
                     requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
                 },
-                { timeout: this.timeoutMs, relatedRequestId: options?.relatedRequestId }
+                { timeout: this.timeoutMs, relatedRequestId: options?.relatedRequestId, signal: options?.signal }
             );
             return result.action === "accept" && result.content?.confirmation === "Yes";
         } finally {
@@ -114,7 +122,7 @@ export class Elicitation {
                     message,
                     requestedSchema: schema,
                 },
-                { timeout: this.timeoutMs, relatedRequestId: options?.relatedRequestId }
+                { timeout: this.timeoutMs, relatedRequestId: options?.relatedRequestId, signal: options?.signal }
             );
         } finally {
             stopHeartbeat();

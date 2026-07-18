@@ -169,6 +169,20 @@ describe("Elicitation", () => {
                 relatedRequestId: undefined,
             });
         });
+
+        it("should forward the abort signal to the elicitation request", async () => {
+            mockGetClientCapabilities.mockReturnValue({ elicitation: {} });
+            mockElicitInput.confirmYes();
+            const controller = new AbortController();
+
+            await elicitation.requestConfirmation(testMessage, { signal: controller.signal });
+
+            expect(mockElicitInput.mock).toHaveBeenCalledWith(expect.anything(), {
+                timeout: 300000,
+                relatedRequestId: undefined,
+                signal: controller.signal,
+            });
+        });
     });
 
     describe("requestInput", () => {
@@ -246,6 +260,20 @@ describe("Elicitation", () => {
             mockElicitInput.rejectWith(error);
 
             await expect(elicitation.requestInput(testMessage, testSchema)).rejects.toThrow("Input failed");
+        });
+
+        it("should forward the abort signal to the elicitation request", async () => {
+            mockGetClientCapabilities.mockReturnValue({ elicitation: {} });
+            mockElicitInput.acceptWith({ username: "admin" });
+            const controller = new AbortController();
+
+            await elicitation.requestInput(testMessage, testSchema, { signal: controller.signal });
+
+            expect(mockElicitInput.mock).toHaveBeenCalledWith(expect.anything(), {
+                timeout: 300000,
+                relatedRequestId: undefined,
+                signal: controller.signal,
+            });
         });
 
         it("should relate the elicitation to the provided request id", async () => {

@@ -603,6 +603,7 @@ export class StreamsBuildTool extends StreamsToolBase {
                 relatedRequestId: this.elicitationRelatedRequestId(context),
                 progressToken: context._meta?.progressToken,
                 sendNotification: context.sendNotification,
+                signal: context.signal,
             }
         );
 

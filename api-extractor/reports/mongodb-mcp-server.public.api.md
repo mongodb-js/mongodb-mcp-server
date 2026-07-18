@@ -612,6 +612,7 @@ export type ElicitationOptions = {
     relatedRequestId?: RequestId;
     progressToken?: ProgressToken;
     sendNotification?: (notification: ServerNotification) => Promise<void>;
+    signal?: AbortSignal;
 };
 
 // @public (undocumented)
