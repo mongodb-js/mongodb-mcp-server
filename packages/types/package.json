@@ -1,7 +1,7 @@
 {
   "name": "@mongodb-js/mcp-types",
   "description": "Shared TypeScript types and interfaces for MongoDB MCP server packages",
-  "version": "1.15.0-alpha.3",
+  "version": "1.15.0-alpha.4",
   "type": "module",
   "license": "Apache-2.0",
   "author": "MongoDB <info@mongodb.com>",
