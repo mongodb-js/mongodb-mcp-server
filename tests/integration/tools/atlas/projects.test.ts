@@ -39,10 +39,14 @@ describeWithAtlas("projects", (integration) => {
             const projName = `testProj-${new ObjectId().toString()}`;
             projectsToCleanup.push(projName);
 
-            const session = integration.mcpServer().session;
-            assertApiClientIsAvailable(session);
-            const orgs = await session.apiClient.listOrgs();
-            const orgId = orgs.results?.[0]?.id;
+            // Prefer a pinned org from the environment; only hit the API when it is not provided.
+            let orgId = process.env.DEV_ATLAS_MCP_ORG_ID;
+            if (!orgId) {
+                const session = integration.mcpServer().session;
+                assertApiClientIsAvailable(session);
+                const orgs = await session.apiClient.listOrgs();
+                orgId = orgs.results?.[0]?.id;
+            }
             expectDefined(orgId);
             const response = await integration.mcpClient().callTool({
                 name: "atlas-create-project",
