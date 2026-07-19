@@ -39,9 +39,14 @@ describeWithAtlas("projects", (integration) => {
             const projName = `testProj-${new ObjectId().toString()}`;
             projectsToCleanup.push(projName);
 
+            const session = integration.mcpServer().session;
+            assertApiClientIsAvailable(session);
+            const orgs = await session.apiClient.listOrgs();
+            const orgId = (orgs.results && orgs.results[0]?.id) ?? "";
+
             const response = await integration.mcpClient().callTool({
                 name: "atlas-create-project",
-                arguments: { projectName: projName },
+                arguments: { projectName: projName, orgId },
             });
 
             const elements = getResponseElements(response);
