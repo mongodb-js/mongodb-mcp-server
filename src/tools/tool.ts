@@ -1,4 +1,4 @@
-import type { z, ZodRawShape } from "zod";
+import { z, type ZodRawShape } from "zod";
 import type { RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { Session } from "../common/session.js";
@@ -708,7 +708,7 @@ export abstract class ToolBase<
                     name: string,
                     config: {
                         description?: string;
-                        inputSchema?: ZodRawShape;
+                        inputSchema?: z.ZodType;
                         outputSchema?: ZodRawShape;
                         annotations?: ToolAnnotations;
                         _meta?: Record<string, unknown>;
@@ -719,7 +719,10 @@ export abstract class ToolBase<
                 this.name,
                 {
                     description: this.description,
-                    inputSchema: this.argsShape,
+                    // Wrap the raw shape in a strict object so the SDK rejects unrecognized
+                    // argument keys instead of silently stripping them (see MCP-602). Only the
+                    // top-level object is strict; nested schemas keep their own behavior.
+                    inputSchema: z.object(this.argsShape).strict(),
                     outputSchema: this.outputSchema,
                     annotations: this.annotations,
                     _meta: this.toolMeta,
