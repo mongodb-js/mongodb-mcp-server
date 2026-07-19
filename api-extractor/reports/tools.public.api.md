@@ -656,8 +656,8 @@ export class CreateIndexTool extends MongoDBToolBase {
 export class CreateProjectTool extends AtlasToolBase {
     // (undocumented)
     argsShape: {
-        projectName: z.ZodOptional<z.ZodString>;
-        orgId: z.ZodOptional<z.ZodString>;
+        projectName: z.ZodString;
+        orgId: z.ZodString;
     };
     // (undocumented)
     description: string;
@@ -668,7 +668,7 @@ export class CreateProjectTool extends AtlasToolBase {
     // (undocumented)
     outputSchema: {
         projectName: z.ZodString;
-        orgId: z.ZodOptional<z.ZodString>;
+        orgId: z.ZodString;
     };
     // (undocumented)
     static toolName: string;
