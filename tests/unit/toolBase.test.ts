@@ -1,7 +1,7 @@
 import type { Mock } from "vitest";
 import { describe, it, expect, vi, beforeEach, type MockedFunction } from "vitest";
 import type { ZodRawShape } from "zod";
-import type { ToolConstructorParams, ToolExecutionContext } from "../../src/tools/tool.js";
+import type { ToolBase, ToolConstructorParams, ToolExecutionContext } from "../../src/tools/tool.js";
 import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { Session } from "../../src/common/session.js";
 import type { UserConfig } from "../../src/common/config/userConfig.js";
@@ -604,6 +604,52 @@ describe("ToolBase", () => {
                     "x-request-id"
                 );
             }
+        });
+    });
+
+    describe("strict argument validation", () => {
+        function registeredInputSchema(tool: ToolBase): { safeParse: (value: unknown) => { success: boolean } } {
+            let inputSchema: unknown;
+            const mockServer = {
+                mcpServer: {
+                    registerTool: (
+                        _name: string,
+                        config: { inputSchema: unknown }
+                    ): { enabled: boolean; disable: () => void; enable: () => void } => {
+                        inputSchema = config.inputSchema;
+                        return { enabled: true, disable: vi.fn(), enable: vi.fn() };
+                    },
+                },
+            };
+            tool.register(mockServer as unknown as Server);
+            return inputSchema as { safeParse: (value: unknown) => { success: boolean } };
+        }
+
+        it("rejects an unrecognized argument name instead of silently dropping it", () => {
+            const schema = registeredInputSchema(testTool);
+
+            // register() must hand the SDK a built schema (not a raw shape) so unknown keys are rejected
+            expect(typeof schema.safeParse).toBe("function");
+            expect(schema.safeParse({ param1: "ok" }).success).toBe(true);
+            expect(schema.safeParse({ param1: "ok", param3: "typo" }).success).toBe(false);
+        });
+
+        it("rejects unknown arguments for tools with no declared parameters", () => {
+            const noArgTool = new ErrorTool({
+                name: ErrorTool.toolName,
+                category: ErrorTool.category,
+                operationType: ErrorTool.operationType,
+                session: mockSession,
+                config: mockConfig,
+                telemetry: mockTelemetry,
+                elicitation: mockElicitation,
+                metrics: mockMetrics,
+            });
+            const schema = registeredInputSchema(noArgTool);
+
+            expect(typeof schema.safeParse).toBe("function");
+            expect(schema.safeParse({}).success).toBe(true);
+            expect(schema.safeParse({ bogus: 1 }).success).toBe(false);
         });
     });
 });

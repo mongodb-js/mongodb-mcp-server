@@ -111,10 +111,7 @@ describeWithMongoDB("logs tool", (integration) => {
 
     validateAutoConnectBehavior(integration, "mongodb-logs", () => {
         return {
-            args: {
-                database: integration.randomDbName(),
-                collection: "foo",
-            },
+            args: {},
             validate: (content): void => {
                 const elements = getResponseElements(content);
                 expect(elements.length).toBeLessThanOrEqual(51);

@@ -27,7 +27,7 @@ import type { TelemetryEvents } from '@mongodb-js/mcp-types';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import { z } from 'zod';
-import type { ZodRawShape } from 'zod';
+import { ZodRawShape } from 'zod';
 
 // @public (undocumented)
 export class AggregateDBTool extends MongoDBToolBase {
