@@ -42,8 +42,8 @@ describeWithAtlas("projects", (integration) => {
             const session = integration.mcpServer().session;
             assertApiClientIsAvailable(session);
             const orgs = await session.apiClient.listOrgs();
-            const orgId = (orgs.results && orgs.results[0]?.id) ?? "";
-
+            const orgId = orgs.results?.[0]?.id;
+            expectDefined(orgId);
             const response = await integration.mcpClient().callTool({
                 name: "atlas-create-project",
                 arguments: { projectName: projName, orgId },
