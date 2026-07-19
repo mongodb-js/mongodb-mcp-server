@@ -115,7 +115,6 @@ describeWithMongoDB("dbStats tool", (integration) => {
         return {
             args: {
                 database: integration.randomDbName(),
-                collection: "foo",
             },
             expectedResponse: `Statistics for database:`,
         };

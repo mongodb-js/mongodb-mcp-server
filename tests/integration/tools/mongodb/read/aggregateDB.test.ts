@@ -198,7 +198,6 @@ describeWithMongoDB("aggregate-db tool", (integration) => {
             name: "aggregate-db",
             arguments: {
                 database: integration.randomDbName(),
-                collection: "people",
                 pipeline: [{ $documents: [{ name: "Peter", age: 5 }] }, { $merge: "mergedpeople" }],
             },
         });
