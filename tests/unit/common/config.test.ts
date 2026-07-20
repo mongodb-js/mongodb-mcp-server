@@ -48,6 +48,8 @@ const expectedDefaults = {
     maxSessions: DEFAULT_MAX_SESSIONS,
     httpHeaders: {},
     httpBodyLimit: TRANSPORT_PAYLOAD_LIMITS.http,
+    oauthJwksCacheTtlMs: 10 * 60 * 1000, // 10 minutes
+
     maxDocumentsPerQuery: 100,
     maxBytesPerQuery: 16 * 1024 * 1024, // ~16 mb
     atlasTemporaryDatabaseUserLifetimeMs: 4 * 60 * 60 * 1000, // 4 hours

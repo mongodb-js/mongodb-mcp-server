@@ -36,6 +36,13 @@ export const LogId = {
     toolDisabled: mongoLogId(1_003_003),
     toolMetadataChange: mongoLogId(1_003_004),
 
+    httpOAuthDisabled: mongoLogId(1_006_200),
+    httpOAuthEnabled: mongoLogId(1_006_201),
+    httpOAuthMissingToken: mongoLogId(1_006_202),
+    httpOAuthInvalidToken: mongoLogId(1_006_203),
+    httpOAuthJwksFetchFailure: mongoLogId(1_006_204),
+    httpOAuthDiscoveryFailure: mongoLogId(1_006_205),
+
     mongodbConnectFailure: mongoLogId(1_004_001),
     mongodbDisconnectFailure: mongoLogId(1_004_002),
     mongodbConnectTry: mongoLogId(1_004_003),

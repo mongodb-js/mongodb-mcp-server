@@ -162,6 +162,30 @@ const ServerConfigSchema = z.object({
             "Maximum size of the HTTP request body in bytes (only used when transport is 'http'). This value is passed as the optional limit parameter to the Express.js json() middleware."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    oauthIssuer: z
+        .string()
+        .url()
+        .optional()
+        .describe(
+            "OAuth/OIDC issuer URL. When set, the HTTP transport requires Authorization: Bearer <jwt> on every request; the token must be issued by this issuer and have the configured oauthAudience claim. Required if httpHost is non-loopback."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    oauthAudience: z
+        .string()
+        .optional()
+        .describe(
+            "Expected `aud` claim on incoming bearer tokens. Required when oauthIssuer is set. Tokens whose `aud` does not include this value are rejected with 401."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    oauthJwksCacheTtlMs: z.coerce
+        .number()
+        .int()
+        .min(1_000, "Invalid oauthJwksCacheTtlMs: must be at least 1000")
+        .default(600_000)
+        .describe(
+            "How long (in ms) to cache the OIDC issuer's JWKS before re-fetching. Default 10 minutes. Lower values reduce key-rotation latency at the cost of more outbound requests to the issuer."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
     idleTimeoutMs: z.coerce
         .number()
         .default(600_000)

@@ -89,6 +89,13 @@ export { EventCache } from "./telemetry/eventCache.js";
 export { Keychain, registerGlobalSecretToRedact } from "./common/keychain.js";
 export type { Secret } from "./common/keychain.js";
 export { Elicitation } from "./elicitation.js";
+export {
+    JwksCache,
+    createOAuthMiddleware,
+    getAuthContext,
+    type AuthContext,
+    type OAuthMiddlewareOptions,
+} from "./transports/auth/index.js";
 export { applyConfigOverrides, ConfigOverrideError } from "./common/config/configOverrides.js";
 export {
     SessionStore,

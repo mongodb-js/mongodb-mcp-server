@@ -29,11 +29,15 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { MetricDefinitions } from '@mongodb-js/mcp-metrics';
 import { Metrics } from '@mongodb-js/mcp-metrics';
 import type { MongoLogId } from 'mongodb-log-writer';
+import type { NextFunction } from 'express';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
+import * as oauth from 'oauth4webapi';
 import type { operations } from './openapi.js';
 import { PrometheusMetrics } from '@mongodb-js/mcp-metrics';
 import { PrometheusMetricsOptions } from '@mongodb-js/mcp-metrics';
 import { Registry } from '@mongodb-js/mcp-metrics';
+import type { Request as Request_2 } from 'express';
+import type { Response as Response_2 } from 'express';
 import { Secret } from 'mongodb-redact';
 import type { SessionCloseReason } from '@mongodb-js/mcp-types';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
@@ -219,6 +223,14 @@ export function applyConfigOverrides<TUserConfig extends UserConfig = UserConfig
     baseConfig: TUserConfig;
     request?: RequestContext_2;
 }): TUserConfig;
+
+// @public
+export interface AuthContext {
+    audience: string[];
+    issuer: string;
+    scopes: string[];
+    sub: string;
+}
 
 // @public
 export interface AuthProvider {
@@ -434,6 +446,9 @@ export type CreateMcpHttpServerFn<TUserConfig extends UserConfig = UserConfig, T
 export type CreateMonitoringServerFn<TMetrics extends DefaultMetrics = DefaultMetrics> = (args: MonitoringServerConstructorArgs<TMetrics>) => MonitoringServer<TMetrics> | undefined;
 
 // @public
+export function createOAuthMiddleware(input: OAuthMiddlewareOptions): (req: Request_2, res: Response_2, next: NextFunction) => Promise<void>;
+
+// @public
 export type CreateSessionConfigFn<TUserConfig extends UserConfig = UserConfig> = (context: {
     userConfig: TUserConfig;
     request?: TransportRequestContext;
@@ -597,6 +612,9 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
 
 export { Gauge }
 
+// @public
+export function getAuthContext(req: Request_2): AuthContext | undefined;
+
 export { Histogram }
 
 // @public
@@ -638,6 +656,16 @@ export const JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED = -32006;
 
 // @public
 export const JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND = -32003;
+
+// @public
+export class JwksCache {
+    constructor(input: {
+        ttlMs: number;
+        logger: LoggerBase;
+    });
+    clear(): void;
+    getAuthorizationServer(issuer: string): Promise<oauth.AuthorizationServer>;
+}
 
 // @public
 export class Keychain {
@@ -797,6 +825,14 @@ export class NullLogger extends LoggerBase {
     protected logCore(): void;
     // (undocumented)
     protected type?: LoggerType;
+}
+
+// @public (undocumented)
+export interface OAuthMiddlewareOptions {
+    audience: string;
+    issuer: string;
+    jwksCache: JwksCache;
+    logger: LoggerBase;
 }
 
 // @public (undocumented)
@@ -1243,6 +1279,9 @@ export const UserConfigSchema: z.ZodObject<{
     httpHost: z.ZodDefault<z.ZodString>;
     httpHeaders: z.ZodDefault<z.ZodObject<{}, z.core.$loose>>;
     httpBodyLimit: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    oauthIssuer: z.ZodOptional<z.ZodString>;
+    oauthAudience: z.ZodOptional<z.ZodString>;
+    oauthJwksCacheTtlMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     idleTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     notificationTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     maxSessions: z.ZodDefault<z.ZodCoercedNumber<unknown>>;

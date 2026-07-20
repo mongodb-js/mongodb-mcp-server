@@ -25,6 +25,7 @@ import {
     JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
     JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED,
 } from "./jsonRpcErrorCodes.js";
+import { createOAuthMiddleware, JwksCache } from "./auth/index.js";
 
 export type MCPHttpServerConstructorArgs<TUserConfig extends UserConfig = UserConfig, TContext = unknown> = {
     userConfig: TUserConfig;
@@ -327,6 +328,41 @@ export class MCPHttpServer<
 
     protected setupMiddlewares(): void {
         this.app.use(express.json({ limit: this.userConfig.httpBodyLimit }));
+
+        // OAuth/OIDC bearer-token authentication. Mounted before any
+        // MCP-routing middleware so unauthenticated requests cannot reach
+        // session state. Active when oauthIssuer is configured; when it
+        // isn't, the server only accepts traffic on loopback (enforced
+        // at startup by StreamableHttpRunner.validateConfig).
+        if (this.userConfig.oauthIssuer && this.userConfig.oauthAudience) {
+            const jwksCache = new JwksCache({
+                ttlMs: this.userConfig.oauthJwksCacheTtlMs,
+                logger: this.logger,
+            });
+            this.app.use(
+                createOAuthMiddleware({
+                    issuer: this.userConfig.oauthIssuer,
+                    audience: this.userConfig.oauthAudience,
+                    jwksCache,
+                    logger: this.logger,
+                })
+            );
+            this.logger.info({
+                id: LogId.httpOAuthEnabled,
+                context: "mcpHttpServer",
+                message: `OAuth bearer-token authentication enabled (issuer=${this.userConfig.oauthIssuer}, audience=${this.userConfig.oauthAudience}).`,
+                noRedaction: true,
+            });
+        } else {
+            this.logger.info({
+                id: LogId.httpOAuthDisabled,
+                context: "mcpHttpServer",
+                message:
+                    "OAuth bearer-token authentication is NOT enabled. The HTTP transport accepts unauthenticated connections; this is only safe on a loopback bind.",
+                noRedaction: true,
+            });
+        }
+
         this.app.use((req, res, next) => {
             for (const [key, value] of Object.entries(this.userConfig.httpHeaders)) {
                 const header = req.headers[key.toLowerCase()];

@@ -22,8 +22,12 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { MetricDefinitions } from '@mongodb-js/mcp-metrics';
 import { Metrics } from '@mongodb-js/mcp-metrics';
 import type { MongoLogId } from 'mongodb-log-writer';
+import type { NextFunction } from 'express';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
+import * as oauth from 'oauth4webapi';
 import type { operations } from './openapi.js';
+import type { Request as Request_2 } from 'express';
+import type { Response as Response_2 } from 'express';
 import { Secret } from 'mongodb-redact';
 import type { TelemetryEvents } from '@mongodb-js/mcp-types';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
@@ -236,6 +240,14 @@ export type AtlasMetadata = {
     project_id?: string;
     org_id?: string;
 };
+
+// @public
+export interface AuthContext {
+    audience: string[];
+    issuer: string;
+    scopes: string[];
+    sub: string;
+}
 
 // @public
 export interface AuthProvider {
@@ -463,6 +475,9 @@ export type ConnectionTag = "connected" | "connecting" | "disconnected" | "error
 export { createDefaultMetrics }
 
 // @public
+export function createOAuthMiddleware(input: OAuthMiddlewareOptions): (req: Request_2, res: Response_2, next: NextFunction) => Promise<void>;
+
+// @public
 export type CreateSessionConfigFn<TUserConfig extends UserConfig = UserConfig> = (context: {
     userConfig: TUserConfig;
     request?: TransportRequestContext;
@@ -606,6 +621,9 @@ export type ExportsManagerEvents = {
 };
 
 // @public
+export function getAuthContext(req: Request_2): AuthContext | undefined;
+
+// @public
 export function getRandomUUID(): string;
 
 // @public (undocumented)
@@ -622,6 +640,16 @@ export const jsonExportFormat: z.ZodEnum<{
     relaxed: "relaxed";
     canonical: "canonical";
 }>;
+
+// @public
+export class JwksCache {
+    constructor(input: {
+        ttlMs: number;
+        logger: LoggerBase;
+    });
+    clear(): void;
+    getAuthorizationServer(issuer: string): Promise<oauth.AuthorizationServer>;
+}
 
 // @public
 export class Keychain {
@@ -700,6 +728,14 @@ export class MongoDBError<ErrorCode extends ErrorCodes = ErrorCodes> extends Err
     constructor(code: ErrorCode, message: string);
     // (undocumented)
     code: ErrorCode;
+}
+
+// @public (undocumented)
+export interface OAuthMiddlewareOptions {
+    audience: string;
+    issuer: string;
+    jwksCache: JwksCache;
+    logger: LoggerBase;
 }
 
 // @public (undocumented)
@@ -1144,6 +1180,9 @@ export const UserConfigSchema: z.ZodObject<{
     httpHost: z.ZodDefault<z.ZodString>;
     httpHeaders: z.ZodDefault<z.ZodObject<{}, z.core.$loose>>;
     httpBodyLimit: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    oauthIssuer: z.ZodOptional<z.ZodString>;
+    oauthAudience: z.ZodOptional<z.ZodString>;
+    oauthJwksCacheTtlMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     idleTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     notificationTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     maxSessions: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
