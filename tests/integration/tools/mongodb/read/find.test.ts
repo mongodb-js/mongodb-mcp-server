@@ -124,10 +124,10 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
     ]);
 
     it("returns 0 when database doesn't exist", async () => {
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         const response = await integration.mcpClient().callTool({
             name: "find",
-            arguments: { database: "non-existent", collection: "foos" },
+            arguments: { connectionId, database: "non-existent", collection: "foos" },
         });
         const content = getResponseContent(response.content);
         expect(content).toEqual('Query on collection "foos" resulted in 0 documents. Returning 0 documents.');
@@ -135,12 +135,12 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
     });
 
     it("returns 0 when collection doesn't exist", async () => {
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         const mongoClient = integration.mongoClient();
         await mongoClient.db(integration.randomDbName()).collection("bar").insertOne({});
         const response = await integration.mcpClient().callTool({
             name: "find",
-            arguments: { database: integration.randomDbName(), collection: "non-existent" },
+            arguments: { connectionId, database: integration.randomDbName(), collection: "non-existent" },
         });
         const content = getResponseContent(response.content);
         expect(content).toEqual('Query on collection "non-existent" resulted in 0 documents. Returning 0 documents.');
@@ -213,10 +213,11 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
 
         for (const { name, filter, limit, projection, sort, expected, expectedTotalCount } of testCases) {
             it(name, async () => {
-                await integration.connectMcpClient();
+                const connectionId = await integration.connectMcpClient();
                 const response = await integration.mcpClient().callTool({
                     name: "find",
                     arguments: {
+                        connectionId,
                         database: integration.randomDbName(),
                         collection: "foo",
                         filter,
@@ -234,7 +235,7 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
         }
 
         it("can find objects by $oid", async () => {
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
 
             const fooObject = await integration
                 .mongoClient()
@@ -246,6 +247,7 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
             const response = await integration.mcpClient().callTool({
                 name: "find",
                 arguments: {
+                    connectionId,
                     database: integration.randomDbName(),
                     collection: "foo",
                     filter: { _id: { $oid: fooObject._id } },
@@ -262,7 +264,7 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
         });
 
         it("can find objects by date", async () => {
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
 
             await integration
                 .mongoClient()
@@ -276,6 +278,7 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
             const response = await integration.mcpClient().callTool({
                 name: "find",
                 arguments: {
+                    connectionId,
                     database: integration.randomDbName(),
                     collection: "foo_with_dates",
                     filter: { date: { $gt: { $date: "2025-05-10" } } }, // only 2025-05-11 will match
@@ -317,10 +320,10 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
 
         it("should abort count operation and respond with indeterminable count", async () => {
             vi.spyOn(constants, "QUERY_COUNT_MAX_TIME_MS_CAP", "get").mockReturnValue(0.1);
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "find",
-                arguments: { database: integration.randomDbName(), collection: "foo" },
+                arguments: { connectionId, database: integration.randomDbName(), collection: "foo" },
             });
             const content = getResponseContent(response);
             expect(content).toContain('Query on collection "foo" resulted in indeterminable number of documents.');
@@ -427,10 +430,11 @@ for (const { suiteLabel, userConfig, cases } of findLimitSuites) {
 
             for (const { name, arguments: findArgs, contentContains, structured } of cases) {
                 it(name, async () => {
-                    await integration.connectMcpClient();
+                    const connectionId = await integration.connectMcpClient();
                     const response = await integration.mcpClient().callTool({
                         name: "find",
                         arguments: {
+                            connectionId,
                             database: integration.randomDbName(),
                             collection: "foo",
                             filter: {},
@@ -455,6 +459,8 @@ for (const { suiteLabel, userConfig, cases } of findLimitSuites) {
 describeWithMongoDB(
     "find tool with abort signal",
     (integration) => {
+        let connectionId: string;
+
         beforeEach(async () => {
             // Insert many documents with complex data to simulate a slow query
             await freshInsertDocuments({
@@ -479,6 +485,7 @@ describeWithMongoDB(
                     {
                         name: "find",
                         arguments: {
+                            connectionId,
                             database: integration.randomDbName(),
                             collection: "abort_collection",
                             filter: {
@@ -503,7 +510,7 @@ describeWithMongoDB(
         };
 
         it("should abort find operation when signal is triggered immediately", async () => {
-            await integration.connectMcpClient();
+            connectionId = await integration.connectMcpClient();
             const abortController = new AbortController();
 
             const findPromise = runSlowFind(abortController.signal);
@@ -520,7 +527,7 @@ describeWithMongoDB(
         });
 
         it("should abort find operation during cursor iteration", async () => {
-            await integration.connectMcpClient();
+            connectionId = await integration.connectMcpClient();
             const abortController = new AbortController();
 
             // Start a query with regex and complex filter that requires scanning many documents
@@ -540,7 +547,7 @@ describeWithMongoDB(
         });
 
         it("should complete successfully when not aborted", async () => {
-            await integration.connectMcpClient();
+            connectionId = await integration.connectMcpClient();
 
             const { result, error, executionTime } = await runSlowFind();
 
@@ -570,14 +577,10 @@ describeWithMongoDB(
         });
 
         it("should return results when maxTimeMS is sufficient", async () => {
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "find",
-                arguments: {
-                    database: integration.randomDbName(),
-                    collection: "foo",
-                    filter: {},
-                },
+                arguments: { connectionId, database: integration.randomDbName(), collection: "foo", filter: {} },
             });
 
             const content = getResponseContent(response);
@@ -601,10 +604,11 @@ describeWithMongoDB(
         });
 
         it("should fail when maxTimeMS is too low for a slow query", async () => {
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "find",
                 arguments: {
+                    connectionId,
                     database: integration.randomDbName(),
                     collection: "foo",
                     filter: {
@@ -642,10 +646,11 @@ describeWithMongoDB("find tool with server-side JavaScript operators", (integrat
     for (const jsDisabled of [true, false]) {
         it(`${jsDisabled ? "rejects" : "allows"} filters using $where when disableServerSideJs is ${jsDisabled}`, async () => {
             integration.mcpServer().userConfig.disableServerSideJs = jsDisabled;
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "find",
                 arguments: {
+                    connectionId,
                     database: integration.randomDbName(),
                     collection: "people",
                     filter: { $where: "function() { return this.age > 8; }" },
@@ -666,10 +671,11 @@ describeWithMongoDB("find tool with server-side JavaScript operators", (integrat
 
     it("rejects a projection using $function when disableServerSideJs is true", async () => {
         integration.mcpServer().userConfig.disableServerSideJs = true;
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         const response = await integration.mcpClient().callTool({
             name: "find",
             arguments: {
+                connectionId,
                 database: integration.randomDbName(),
                 collection: "people",
                 filter: {},

@@ -10,7 +10,7 @@ describeWithAtlasLocal("atlas-local-connect-deployment", (integration) => {
     validateToolMetadata(
         integration,
         "atlas-local-connect-deployment",
-        "Connect to a MongoDB Atlas Local deployment",
+        "Connect to a MongoDB Atlas Local deployment and get back a connectionId to pass to the other MongoDB tools",
         "connect",
         [
             {
@@ -82,7 +82,11 @@ describeWithAtlasLocal("atlas-local-connect-deployment with deployments", (integ
         const elements = getResponseElements(response.content);
         expect(elements.length).toBeGreaterThanOrEqual(1);
         expect(elements[0]?.text).toContain(`Successfully connected to Atlas Local deployment "${deploymentName}".`);
-        expect(response.structuredContent).toEqual({ connected: true, deploymentName });
+        expect(response.structuredContent).toEqual({
+            connected: true,
+            deploymentName,
+            connectionId: expect.any(String) as string,
+        });
     });
 
     it("should be able to insert and read data after connecting", async () => {
@@ -91,7 +95,16 @@ describeWithAtlasLocal("atlas-local-connect-deployment with deployments", (integ
             name: "atlas-local-connect-deployment",
             arguments: { deploymentName },
         });
-        expect(connectResponse.structuredContent).toEqual({ connected: true, deploymentName });
+        const structuredContent = connectResponse.structuredContent as
+            | { connected?: boolean; deploymentName?: string; connectionId?: string }
+            | undefined;
+        expect(structuredContent).toEqual({
+            connected: true,
+            deploymentName,
+            connectionId: expect.any(String) as string,
+        });
+        const connectionId = structuredContent?.connectionId;
+        expectDefined(connectionId);
 
         const testDatabase = "test-db";
         const testCollection = "test-collection";
@@ -104,6 +117,7 @@ describeWithAtlasLocal("atlas-local-connect-deployment with deployments", (integ
         const insertResponse = await integration.mcpClient().callTool({
             name: "insert-many",
             arguments: {
+                connectionId,
                 database: testDatabase,
                 collection: testCollection,
                 documents: testData,
@@ -117,6 +131,7 @@ describeWithAtlasLocal("atlas-local-connect-deployment with deployments", (integ
         const findResponse = await integration.mcpClient().callTool({
             name: "find",
             arguments: {
+                connectionId,
                 database: testDatabase,
                 collection: testCollection,
             },

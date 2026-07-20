@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { z } from "zod";
 import type { ToolConstructorParams } from "../../../../../src/tools/tool.js";
 import { CreateProjectTool } from "../../../../../src/tools/atlas/create/createProject.js";
 import type { Session } from "../../../../../src/common/session.js";
@@ -57,39 +58,31 @@ describe("CreateProjectTool", () => {
     const exec = (args: Record<string, unknown> = {}) =>
         tool["execute"](args as never, { signal: new AbortController().signal } as never);
 
-    it("creates a project with explicit organizationId", async () => {
+    it("requires projectName and orgId, rejecting missing values", () => {
+        const schema = z.object(tool.argsShape);
+        const validOrgId = "66c5c66592100e05467ebfad";
+
+        expect(schema.safeParse({}).success).toBe(false);
+        expect(schema.safeParse({ projectName: "My Project" }).success).toBe(false);
+        expect(schema.safeParse({ orgId: validOrgId }).success).toBe(false);
+        expect(schema.safeParse({ projectName: "My Project", orgId: validOrgId }).success).toBe(true);
+    });
+
+    it("creates a project with the provided name and organizationId", async () => {
         mockApiClient.createGroup!.mockResolvedValue({ id: "proj-123", name: "My Project", orgId: "org-1" });
 
         const result = await exec({ projectName: "My Project", orgId: "org-1" });
 
         expect((result.content[0] as { text: string }).text).toContain('Project "My Project" created successfully');
         expect(mockApiClient.listOrgs).not.toHaveBeenCalled();
+        expect(mockApiClient.createGroup).toHaveBeenCalledWith(
+            { body: { name: "My Project", orgId: "org-1" } },
+            expect.anything()
+        );
         expect(result.structuredContent).toEqual({
             projectName: "My Project",
+            orgId: "org-1",
         });
-    });
-
-    it("assumes first organization when organizationId is omitted", async () => {
-        mockApiClient.listOrgs!.mockResolvedValue({ results: [{ id: "org-first", name: "First Org" }] });
-        mockApiClient.createGroup!.mockResolvedValue({ id: "proj-456", name: "Atlas Project", orgId: "org-first" });
-
-        const result = await exec();
-
-        expect(mockApiClient.listOrgs).toHaveBeenCalled();
-        expect((result.content[0] as { text: string }).text).toContain("using orgId org-first");
-        expect(result.structuredContent).toEqual({
-            projectName: "Atlas Project",
-            orgId: "org-first",
-        });
-    });
-
-    it("uses default project name when projectName is omitted", async () => {
-        mockApiClient.listOrgs!.mockResolvedValue({ results: [{ id: "org-1", name: "Org" }] });
-        mockApiClient.createGroup!.mockResolvedValue({ id: "proj-789", name: "Atlas Project", orgId: "org-1" });
-
-        const result = await exec({ orgId: "org-1" });
-
-        expect(result.structuredContent?.projectName).toBe("Atlas Project");
     });
 
     it("throws when createGroup returns no id", async () => {

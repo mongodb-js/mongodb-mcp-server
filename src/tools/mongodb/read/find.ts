@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import type { FindCursor } from "mongodb";
@@ -46,6 +46,7 @@ export class FindTool extends MongoDBToolBase {
     static toolName = "find";
     public description = "Run a find query against a MongoDB collection";
     public argsShape = {
+        ...ConnectionIdArgs,
         ...CollOperationArgs,
         ...FindArgs,
         responseBytesLimit: z.number().optional().default(ONE_MB).describe(`\
@@ -58,12 +59,21 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
     public override outputSchema = FindOutputSchema;
 
     protected async execute(
-        { database, collection, filter, projection, limit, sort, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
+        {
+            connectionId,
+            database,
+            collection,
+            filter,
+            projection,
+            limit,
+            sort,
+            responseBytesLimit,
+        }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
         let findCursor: FindCursor<unknown> | undefined = undefined;
         try {
-            const provider = await this.ensureConnected();
+            const provider = await this.resolveConnection(connectionId);
 
             this.assertMqlIsAllowed(filter, projection);
 

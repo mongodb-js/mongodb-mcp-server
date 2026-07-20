@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { AggregationCursor } from "mongodb";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { DBOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { ConnectionIdArgs, DBOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { type Document } from "bson";
@@ -42,6 +42,7 @@ export class AggregateDBTool extends MongoDBToolBase {
     static toolName = "aggregate-db";
     public description = "Run an aggregation against a MongoDB database";
     public argsShape = {
+        ...ConnectionIdArgs,
         ...DBOperationArgs,
         ...AggregateArgs,
         responseBytesLimit: z.number().optional().default(ONE_MB).describe(`\
@@ -52,12 +53,12 @@ The maximum number of bytes to return in the response. This value is capped by t
     public override outputSchema = AggregateDBOutputSchema;
 
     protected async execute(
-        { database, pipeline, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
+        { connectionId, database, pipeline, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
         let aggregationCursor: AggregationCursor | undefined = undefined;
         try {
-            const provider = await this.ensureConnected();
+            const provider = await this.resolveConnection(connectionId);
             this.assertOnlyUsesPermittedStages(pipeline);
 
             let successMessage: string;

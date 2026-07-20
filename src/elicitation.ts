@@ -1,16 +1,61 @@
-import type { ElicitRequestFormParams } from "@modelcontextprotocol/sdk/types.js";
+import type {
+    ElicitRequestFormParams,
+    ProgressToken,
+    RequestId,
+    ServerNotification,
+} from "@modelcontextprotocol/sdk/types.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 export type ElicitedInputResult =
     | { accepted: true; fields: Record<string, string> }
     | { accepted: false; fields?: undefined };
 
-const ELICITATION_TIMEOUT_MS = 300_000; // 5 minutes for user interaction
+export type ElicitationOptions = {
+    /**
+     * The id of the in-flight client request (e.g. the tool call) this
+     * elicitation belongs to. On the streamable HTTP transport this routes the
+     * elicitation over that request's own SSE stream rather than the standalone
+     * GET stream, which not all deployments support.
+     */
+    relatedRequestId?: RequestId;
+    /**
+     * The progress token supplied by the client on the in-flight request. When
+     * provided together with `sendNotification`, progress notifications are
+     * emitted while waiting for the user's response so that clients honoring
+     * progress-based timeout resets don't time out the request mid-elicitation.
+     */
+    progressToken?: ProgressToken;
+    /**
+     * Sends a notification related to the in-flight request. Typically the
+     * `sendNotification` function from the tool's execution context.
+     */
+    sendNotification?: (notification: ServerNotification) => Promise<void>;
+    /**
+     * The abort signal of the in-flight request, typically from the tool's
+     * execution context. It aborts when the client cancels the request (e.g.
+     * because it timed out waiting), which cancels the pending elicitation --
+     * notifying the client to dismiss the prompt and stopping the progress
+     * heartbeat -- instead of waiting out the full elicitation timeout.
+     */
+    signal?: AbortSignal;
+};
+
+/**
+ * How often to emit progress notifications while an elicitation is pending.
+ * Frequent enough to beat common client request timeouts (the MCP SDK default
+ * is 60 seconds) and infrastructure idle timeouts, without being chatty. The
+ * heartbeat stops when the elicitation settles, so the elicitation timeout is
+ * its upper bound.
+ */
+const ELICITATION_PROGRESS_INTERVAL_MS = 15_000;
 
 export class Elicitation {
     private readonly server: McpServer["server"];
-    constructor({ server }: { server: McpServer["server"] }) {
+    /** Time allowed for the user to respond to an elicitation request, from the `elicitationTimeoutMs` config option. */
+    private readonly timeoutMs: number;
+    constructor({ server, timeoutMs }: { server: McpServer["server"]; timeoutMs: number }) {
         this.server = server;
+        this.timeoutMs = timeoutMs;
     }
 
     /**
@@ -25,22 +70,28 @@ export class Elicitation {
     /**
      * Requests a boolean confirmation from the user.
      * @param message - The message to display to the user.
+     * @param options - Options controlling how the elicitation request is routed.
      * @returns True if the user confirms the action or the client does not support elicitation, false otherwise.
      */
-    public async requestConfirmation(message: string): Promise<boolean> {
+    public async requestConfirmation(message: string, options?: ElicitationOptions): Promise<boolean> {
         if (!this.supportsElicitation()) {
             return true;
         }
 
-        const result = await this.server.elicitInput(
-            {
-                mode: "form",
-                message,
-                requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
-            },
-            { timeout: ELICITATION_TIMEOUT_MS }
-        );
-        return result.action === "accept" && result.content?.confirmation === "Yes";
+        const stopHeartbeat = this.startProgressHeartbeat(options);
+        try {
+            const result = await this.server.elicitInput(
+                {
+                    mode: "form",
+                    message,
+                    requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
+                },
+                { timeout: this.timeoutMs, relatedRequestId: options?.relatedRequestId, signal: options?.signal }
+            );
+            return result.action === "accept" && result.content?.confirmation === "Yes";
+        } finally {
+            stopHeartbeat();
+        }
     }
 
     /**
@@ -50,24 +101,32 @@ export class Elicitation {
      *
      * @param message - The message/title to display in the form.
      * @param schema - A JSON Schema describing the fields to collect.
+     * @param options - Options controlling how the elicitation request is routed.
      * @returns The user-provided values keyed by field name, or null if declined/unsupported.
      */
     public async requestInput(
         message: string,
-        schema: ElicitRequestFormParams["requestedSchema"]
+        schema: ElicitRequestFormParams["requestedSchema"],
+        options?: ElicitationOptions
     ): Promise<ElicitedInputResult> {
         if (!this.supportsElicitation()) {
             return { accepted: false };
         }
 
-        const result = await this.server.elicitInput(
-            {
-                mode: "form",
-                message,
-                requestedSchema: schema,
-            },
-            { timeout: ELICITATION_TIMEOUT_MS }
-        );
+        const stopHeartbeat = this.startProgressHeartbeat(options);
+        let result;
+        try {
+            result = await this.server.elicitInput(
+                {
+                    mode: "form",
+                    message,
+                    requestedSchema: schema,
+                },
+                { timeout: this.timeoutMs, relatedRequestId: options?.relatedRequestId, signal: options?.signal }
+            );
+        } finally {
+            stopHeartbeat();
+        }
 
         if (result.action !== "accept" || !result.content) {
             return { accepted: false };
@@ -80,6 +139,43 @@ export class Elicitation {
             }
         }
         return { accepted: true, fields };
+    }
+
+    /**
+     * Emits progress notifications for the in-flight request while an
+     * elicitation is pending, so clients that reset request timeouts on
+     * progress don't time out the request while the user is deciding. The
+     * notifications also keep bytes flowing on the underlying stream, which
+     * prevents infrastructure idle timeouts from severing it.
+     *
+     * No-op unless both a progress token and a notification sender are
+     * provided. The returned function stops the heartbeat and must be called
+     * once the elicitation settles.
+     */
+    private startProgressHeartbeat(options?: ElicitationOptions): () => void {
+        const { progressToken, sendNotification } = options ?? {};
+        if (progressToken === undefined || sendNotification === undefined) {
+            return () => undefined;
+        }
+
+        let progress = 0;
+        const sendHeartbeat = (): void => {
+            // Delivery is best-effort: a failed heartbeat must not fail the
+            // elicitation, and the elicitation's own timeout covers the case
+            // where the connection is gone entirely.
+            void sendNotification({
+                method: "notifications/progress",
+                params: {
+                    progressToken,
+                    progress: progress++,
+                    message: "Waiting for the user's response",
+                },
+            }).catch(() => undefined);
+        };
+
+        sendHeartbeat();
+        const interval = setInterval(sendHeartbeat, ELICITATION_PROGRESS_INTERVAL_MS);
+        return () => clearInterval(interval);
     }
 
     /**

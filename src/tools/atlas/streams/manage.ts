@@ -58,8 +58,7 @@ export class StreamsManageTool extends StreamsToolBase {
                 "'reject-peering' — reject a VPC peering request (requires peeringId). " +
                 "For peering actions, workspaceName can be any workspace in the project (peering is project-level)."
         ),
-        resourceName: z
-            .string()
+        resourceName: StreamsArgs.resourceName()
             .optional()
             .describe("Processor or connection name. Required for processor and connection actions."),
 
@@ -124,8 +123,7 @@ export class StreamsManageTool extends StreamsToolBase {
         ),
 
         // peering options
-        peeringId: z
-            .string()
+        peeringId: StreamsArgs.peeringId()
             .optional()
             .describe("VPC peering connection ID. Required for 'accept-peering' and 'reject-peering'."),
         requesterAccountId: z

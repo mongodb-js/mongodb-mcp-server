@@ -22,4 +22,5 @@ export { CreateCollectionTool, type CreateCollectionOutput } from "./create/crea
 export { LogsTool, type LogsOutput } from "./metadata/logs.js";
 export { ExportTool } from "./read/export.js";
 export { DropIndexTool, type DropIndexOutput } from "./delete/dropIndex.js";
-export { SwitchConnectionTool } from "./connect/switchConnection.js";
+export { DisconnectTool } from "./connect/disconnect.js";
+export { ListConnectionsTool } from "./connect/listConnections.js";
