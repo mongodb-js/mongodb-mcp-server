@@ -4,7 +4,7 @@ import { ToolBase } from "../tool.js";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ErrorCodes, MongoDBError } from "../../common/errors.js";
-import { LogId } from "../../common/logging/index.js";
+import type { ConnectionEntry } from "../../common/connectionRegistry.js";
 import type { Server } from "../../server.js";
 import type { ConnectionMetadata } from "../../telemetry/types.js";
 import { assertNoServerSideJS, isWriteStage } from "../../helpers/mqlGuards.js";
@@ -18,38 +18,47 @@ export const CollOperationArgs = {
     collection: z.string().describe("Collection name"),
 };
 
+function connectionIdDescription({ hasPreconfiguredConnection }: { hasPreconfiguredConnection: boolean }): string {
+    const preconfigured = hasPreconfiguredConnection
+        ? ', or "preconfigured" to use the connection string the server was configured with'
+        : "";
+    return `The connection to run the operation against. Use the id returned by one of the connect tools${preconfigured}.`;
+}
+
+export const ConnectionIdArgs = {
+    connectionId: z.string().describe(connectionIdDescription({ hasPreconfiguredConnection: true })),
+};
+
 export abstract class MongoDBToolBase extends ToolBase {
     protected server?: Server;
     static category: ToolCategory = "mongodb";
 
-    protected async ensureConnected(): Promise<NodeDriverServiceProvider> {
-        if (!this.session.isConnectedToMongoDB) {
-            if (this.session.connectedAtlasCluster) {
-                throw new MongoDBError(
-                    ErrorCodes.NotConnectedToMongoDB,
-                    `Attempting to connect to Atlas cluster "${this.session.connectedAtlasCluster.clusterName}", try again in a few seconds.`
-                );
-            }
+    /**
+     * Resolves the required `connectionId` argument to a live service provider
+     * via the app-level connection registry. There is deliberately no implicit
+     * "current connection" fallback — see the connection-handles proposal.
+     */
+    protected async resolveConnection(connectionId: string): Promise<NodeDriverServiceProvider> {
+        return this.session.connectionRegistry.resolve(connectionId);
+    }
 
-            if (this.config.connectionString) {
-                try {
-                    await this.session.connectToConfiguredConnection();
-                } catch (error) {
-                    this.session.logger.error({
-                        id: LogId.mongodbConnectFailure,
-                        context: "mongodbTool",
-                        message: `Failed to connect to MongoDB instance using the connection string from the config: ${error as string}`,
-                    });
-                    throw new MongoDBError(ErrorCodes.MisconfiguredConnectionString, "Not connected to MongoDB.");
-                }
-            }
+    /** The registry entry for the given connectionId, if it exists. Does not affect LRU ordering. */
+    protected async peekConnection(connectionId: string | undefined): Promise<ConnectionEntry | undefined> {
+        return connectionId ? this.session.connectionRegistry.peek(connectionId) : undefined;
+    }
+
+    protected async isSearchSupported(connectionId: string): Promise<boolean> {
+        const entry = await this.session.connectionRegistry.peek(connectionId);
+        return entry ? entry.isSearchSupported(this.session.logger) : false;
+    }
+
+    protected async assertSearchSupported(connectionId: string): Promise<void> {
+        if (!(await this.isSearchSupported(connectionId))) {
+            throw new MongoDBError(
+                ErrorCodes.AtlasSearchNotSupported,
+                "Atlas Search is not supported in the current cluster."
+            );
         }
-
-        if (!this.session.isConnectedToMongoDB) {
-            throw new MongoDBError(ErrorCodes.NotConnectedToMongoDB, "Not connected to MongoDB");
-        }
-
-        return this.session.serviceProvider;
     }
 
     /**
@@ -121,6 +130,14 @@ export abstract class MongoDBToolBase extends ToolBase {
 
     public register(server: Server): boolean {
         this.server = server;
+        // The default connectionId description advertises the "preconfigured"
+        // handle; drop that mention when no connection string is configured.
+        if ("connectionId" in this.argsShape && !this.config.connectionString) {
+            this.argsShape = {
+                ...this.argsShape,
+                connectionId: z.string().describe(connectionIdDescription({ hasPreconfiguredConnection: false })),
+            };
+        }
         return super.register(server);
     }
 
@@ -128,13 +145,16 @@ export abstract class MongoDBToolBase extends ToolBase {
         if (error instanceof MongoDBError) {
             switch (error.code) {
                 case ErrorCodes.NotConnectedToMongoDB:
-                case ErrorCodes.MisconfiguredConnectionString: {
+                case ErrorCodes.MisconfiguredConnectionString:
+                case ErrorCodes.UnknownConnectionId: {
                     const connectionError = error as MongoDBError<
-                        ErrorCodes.NotConnectedToMongoDB | ErrorCodes.MisconfiguredConnectionString
+                        | ErrorCodes.NotConnectedToMongoDB
+                        | ErrorCodes.MisconfiguredConnectionString
+                        | ErrorCodes.UnknownConnectionId
                     >;
                     const outcome = await this.session.connectionErrorHandler(connectionError, {
                         availableTools: this.server?.tools ?? [],
-                        connectionState: this.session.connectionManager.currentConnectionState,
+                        connectionState: (await this.peekConnection(args.connectionId as string | undefined))?.state,
                     });
                     if (outcome.errorHandled) {
                         return outcome.result;
@@ -181,12 +201,15 @@ export abstract class MongoDBToolBase extends ToolBase {
      * @param args - The arguments passed to the tool
      * @returns The tool metadata
      */
-    protected resolveTelemetryMetadata(
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        _args: ToolArgs<typeof this.argsShape>,
+    protected async resolveTelemetryMetadata(
+        args: ToolArgs<typeof this.argsShape>,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         { result }: { result: CallToolResult }
-    ): ConnectionMetadata {
-        return this.getConnectionInfoMetadata();
+    ): Promise<ConnectionMetadata> {
+        const { connectionId } = args as { connectionId?: string };
+        return {
+            ...(connectionId && { connection_id: connectionId }),
+            ...this.getConnectionInfoMetadata((await this.peekConnection(connectionId))?.state),
+        };
     }
 }

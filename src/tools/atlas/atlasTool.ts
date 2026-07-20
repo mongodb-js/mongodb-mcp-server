@@ -99,7 +99,7 @@ For more information on Atlas API access roles, visit: https://www.mongodb.com/d
         args: ToolArgs<typeof this.argsShape>,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         { result }: { result: CallToolResult }
-    ): AtlasMetadata {
+    ): AtlasMetadata | Promise<AtlasMetadata> {
         const toolMetadata: AtlasMetadata = {};
 
         // Create a typed parser for the exact shape we expect

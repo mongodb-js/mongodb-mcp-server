@@ -25,10 +25,10 @@ describeWithMongoDB("dbStats tool", (integration) => {
 
     describe("with non-existent database", () => {
         it("returns an error", async () => {
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "db-stats",
-                arguments: { database: integration.randomDbName() },
+                arguments: { connectionId, database: integration.randomDbName() },
             });
             const elements = getResponseElements(response.content);
             expect(elements).toHaveLength(2);
@@ -79,10 +79,10 @@ describeWithMongoDB("dbStats tool", (integration) => {
                     await integration.mongoClient().db(integration.randomDbName()).collection(name).insertMany(objects);
                 }
 
-                await integration.connectMcpClient();
+                const connectionId = await integration.connectMcpClient();
                 const response = await integration.mcpClient().callTool({
                     name: "db-stats",
-                    arguments: { database: integration.randomDbName() },
+                    arguments: { connectionId, database: integration.randomDbName() },
                 });
                 const elements = getResponseElements(response.content);
                 expect(elements).toHaveLength(2);

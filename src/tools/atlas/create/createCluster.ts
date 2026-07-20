@@ -295,11 +295,11 @@ export class CreateClusterTool extends AtlasToolBase {
         return super.handleError(error, args) as CallToolResult;
     }
 
-    protected override resolveTelemetryMetadata(
+    protected override async resolveTelemetryMetadata(
         args: ToolArgs<typeof this.argsShape>,
         context: { result: CallToolResult }
-    ): CreateClusterMetadata {
-        const parentMetadata = super.resolveTelemetryMetadata(args, context);
+    ): Promise<CreateClusterMetadata> {
+        const parentMetadata = await super.resolveTelemetryMetadata(args, context);
         type Output = z.infer<z.ZodObject<typeof CreateClusterOutputSchema>>;
         const sc = context.result.structuredContent as Output | undefined;
         return {

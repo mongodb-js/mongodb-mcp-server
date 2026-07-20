@@ -1,7 +1,15 @@
 import { z, type ZodRawShape } from "zod";
 import type { RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
+import type { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
+import type {
+    CallToolResult,
+    RequestId,
+    ServerNotification,
+    ServerRequest,
+    ToolAnnotations,
+} from "@modelcontextprotocol/sdk/types.js";
 import type { Session } from "../common/session.js";
+import type { AnyConnectionState } from "../common/connectionManager.js";
 import { LogId } from "../common/logging/index.js";
 import type { Telemetry } from "../telemetry/telemetry.js";
 import type { ConnectionMetadata, TelemetryToolMetadata, ToolEvent } from "../telemetry/types.js";
@@ -21,16 +29,23 @@ export type ToolArgs<T extends ZodRawShape> = {
     [K in keyof T]: z.infer<T[K]>;
 };
 
-export interface ToolExecutionContext {
-    signal: AbortSignal;
-    /**
-     * Request context object available only when running atop
-     * StreamableHttpTransport.
-     */
-    requestInfo?: {
-        headers?: Record<string, unknown>;
-    };
-}
+export type ToolOutput<T extends ZodRawShape> = {
+    [K in keyof T]?: z.infer<T[K]>;
+};
+
+type ServerRequestHandlerExtra = RequestHandlerExtra<ServerRequest, ServerNotification>;
+
+/**
+ * The subset of the SDK's request handler context that tools rely on, picked
+ * from `RequestHandlerExtra` so the field types always match the SDK's.
+ *
+ * `signal` is always present. The remaining fields are populated by the MCP
+ * SDK when the tool is invoked by the server, but may be absent when `invoke`
+ * is called manually; `requestInfo` is additionally only available when
+ * running atop StreamableHttpTransport.
+ */
+export type ToolExecutionContext = Pick<ServerRequestHandlerExtra, "signal"> &
+    Partial<Pick<ServerRequestHandlerExtra, "_meta" | "requestId" | "requestInfo" | "sendNotification">>;
 
 export type ToolResult<OutputSchema extends ZodRawShape | undefined = undefined> = OutputSchema extends ZodRawShape
     ? StructuredToolResult<OutputSchema>
@@ -490,7 +505,7 @@ export abstract class ToolBase<
 
         try {
             if (this.requiresConfirmation()) {
-                if (!(await this.verifyConfirmed(args))) {
+                if (!(await this.verifyConfirmed(args, context))) {
                     this.session.logger.debug({
                         id: LogId.toolExecute,
                         context: "tool",
@@ -608,15 +623,89 @@ export abstract class ToolBase<
      * confirmation via the elicitation service if needed.
      *
      * @param args - The tool arguments
+     * @param context - The tool execution context, used to relate the
+     * confirmation request to the in-flight tool call
      * @returns A promise resolving to `true` if confirmed or confirmation not
      * required, `false` otherwise
      */
-    public async verifyConfirmed(args: ToolArgs<typeof this.argsShape>): Promise<boolean> {
+    public async verifyConfirmed(
+        args: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<boolean> {
         if (!this.requiresConfirmation()) {
             return true;
         }
 
-        return this.elicitation.requestConfirmation(this.getConfirmationMessage(args));
+        const relatedRequestId = this.elicitationRelatedRequestId(context);
+        this.session.logger.info({
+            id: LogId.toolConfirmationRequested,
+            context: "tool",
+            message: `Requesting user confirmation for ${this.name}`,
+            noRedaction: true,
+            attributes: {
+                tool: this.name,
+                requestId: context.requestId !== undefined ? String(context.requestId) : "(undefined)",
+                requestIdType: typeof context.requestId,
+                relatedRequestId: relatedRequestId !== undefined ? String(relatedRequestId) : "(undefined)",
+                httpResponseType: String(this.config.httpResponseType),
+                progressToken:
+                    context._meta?.progressToken !== undefined ? String(context._meta.progressToken) : "(undefined)",
+                hasSendNotification: String(context.sendNotification !== undefined),
+                ...requestIdAttr(context.requestInfo?.headers),
+            },
+        });
+        if (relatedRequestId === undefined && this.config.transport === "http") {
+            // Without a related request id the elicitation is sent on the
+            // standalone GET SSE stream. Deployments that don't support
+            // standalone streams silently drop it, so the confirmation would
+            // hang until it times out.
+            this.session.logger.warning({
+                id: LogId.toolConfirmationStandaloneStreamFallback,
+                context: "tool",
+                message: `Confirmation for ${this.name} has no related request id and will use the standalone SSE stream`,
+                noRedaction: true,
+                attributes: { tool: this.name, ...requestIdAttr(context.requestInfo?.headers) },
+            });
+        }
+
+        const startedAt = Date.now();
+        try {
+            const confirmed = await this.elicitation.requestConfirmation(this.getConfirmationMessage(args), {
+                relatedRequestId,
+                progressToken: context._meta?.progressToken,
+                sendNotification: context.sendNotification,
+                signal: context.signal,
+            });
+            this.session.logger.info({
+                id: LogId.toolConfirmationSettled,
+                context: "tool",
+                message: `Confirmation for ${this.name} settled: ${confirmed ? "confirmed" : "declined"} after ${Date.now() - startedAt}ms`,
+                noRedaction: true,
+                attributes: { tool: this.name, ...requestIdAttr(context.requestInfo?.headers) },
+            });
+            return confirmed;
+        } catch (error) {
+            this.session.logger.warning({
+                id: LogId.toolConfirmationSettled,
+                context: "tool",
+                message: `Confirmation for ${this.name} failed after ${Date.now() - startedAt}ms: ${error instanceof Error ? error.message : String(error)}`,
+                attributes: { tool: this.name, ...requestIdAttr(context.requestInfo?.headers) },
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Resolves the request id that elicitation requests should be related to.
+     *
+     * Relating the elicitation to the in-flight tool call routes it over that
+     * call's own SSE stream, which also works for deployments that don't
+     * support standalone GET streams. In JSON response mode the in-flight POST
+     * cannot carry server->client messages at all, so the elicitation must
+     * keep using the standalone stream.
+     */
+    protected elicitationRelatedRequestId(context: ToolExecutionContext): RequestId | undefined {
+        return this.config.httpResponseType === "json" ? undefined : context.requestId;
     }
 
     /**
@@ -863,10 +952,12 @@ export abstract class ToolBase<
     protected abstract resolveTelemetryMetadata(
         args: ToolArgs<typeof this.argsShape>,
         { result }: { result: CallToolResult }
-    ): TelemetryToolMetadata;
+    ): TelemetryToolMetadata | Promise<TelemetryToolMetadata>;
 
     /**
-     * Creates and emits a tool telemetry event
+     * Creates and emits a tool telemetry event. Fire-and-forget: metadata
+     * resolution may be asynchronous (e.g. a connection registry lookup), and
+     * the tool response must not block on telemetry-only work.
      * @param startTime - Start time in milliseconds
      * @param result - Whether the command succeeded or failed
      * @param args - The arguments passed to the tool
@@ -879,43 +970,50 @@ export abstract class ToolBase<
             return;
         }
         const duration = Date.now() - startTime;
-        const metadata = this.resolveTelemetryMetadata(args, { result });
-        const event: ToolEvent = {
-            timestamp: new Date().toISOString(),
-            source: "mdbmcp",
-            properties: {
-                command: this.name,
-                category: this.category,
-                component: "tool",
-                duration_ms: duration,
-                result: result.isError ? "failure" : "success",
-                ...metadata,
-            },
-        };
+        const timestamp = new Date().toISOString();
+        void (async (): Promise<void> => {
+            const metadata = await this.resolveTelemetryMetadata(args, { result });
+            const event: ToolEvent = {
+                timestamp,
+                source: "mdbmcp",
+                properties: {
+                    command: this.name,
+                    category: this.category,
+                    component: "tool",
+                    duration_ms: duration,
+                    result: result.isError ? "failure" : "success",
+                    ...metadata,
+                },
+            };
 
-        this.telemetry.emitEvents([event]);
+            this.telemetry.emitEvents([event]);
+        })().catch((error: unknown) => {
+            this.session.logger.debug({
+                id: LogId.telemetryMetadataError,
+                context: "tool",
+                message: `Error emitting telemetry event for tool ${this.name}: ${error as string}`,
+            });
+        });
     }
 
     protected isFeatureEnabled(feature: PreviewFeature): boolean {
         return this.config.previewFeatures.includes(feature);
     }
 
-    protected getConnectionInfoMetadata(): ConnectionMetadata {
+    protected getConnectionInfoMetadata(connectionState?: AnyConnectionState): ConnectionMetadata {
         const metadata: ConnectionMetadata = {};
 
-        if (this.session === undefined) {
+        if (connectionState === undefined) {
             return metadata;
         }
 
-        if (this.session.connectionStringInfo !== undefined) {
-            metadata.connection_auth_type = this.session.connectionStringInfo.authType;
-            metadata.connection_host_type = this.session.connectionStringInfo.hostType;
+        if (connectionState.connectionStringInfo !== undefined) {
+            metadata.connection_auth_type = connectionState.connectionStringInfo.authType;
+            metadata.connection_host_type = connectionState.connectionStringInfo.hostType;
         }
 
-        if (this.session.connectedAtlasCluster !== undefined) {
-            if (this.session.connectedAtlasCluster.projectId) {
-                metadata.project_id = this.session.connectedAtlasCluster.projectId;
-            }
+        if (connectionState.connectedAtlasCluster?.projectId) {
+            metadata.project_id = connectionState.connectedAtlasCluster.projectId;
         }
 
         return metadata;

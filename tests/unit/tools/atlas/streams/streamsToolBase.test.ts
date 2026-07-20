@@ -50,7 +50,7 @@ class TestStreamsTool extends StreamsToolBase {
     public testResolveTelemetryMetadata(
         args: ToolArgs<typeof this.argsShape>,
         result: CallToolResult
-    ): TelemetryToolMetadata {
+    ): TelemetryToolMetadata | Promise<TelemetryToolMetadata> {
         return this.resolveTelemetryMetadata(args, { result });
     }
 }
@@ -230,17 +230,17 @@ describe("StreamsToolBase", () => {
     describe("resolveTelemetryMetadata", () => {
         const okResult: CallToolResult = { content: [{ type: "text", text: "ok" }] };
 
-        it("should include action in metadata", () => {
-            const metadata = tool.testResolveTelemetryMetadata(
+        it("should include action in metadata", async () => {
+            const metadata = await tool.testResolveTelemetryMetadata(
                 { projectId: "proj1", action: "list-workspaces" } as never,
                 okResult
             );
             expect(metadata).toHaveProperty("action", "list-workspaces");
         });
 
-        it("should return base metadata on invalid args", () => {
+        it("should return base metadata on invalid args", async () => {
             // projectId is required, passing empty object should fail Zod parse
-            const metadata = tool.testResolveTelemetryMetadata({} as never, okResult);
+            const metadata = await tool.testResolveTelemetryMetadata({} as never, okResult);
             expect(metadata).not.toHaveProperty("action");
         });
     });
