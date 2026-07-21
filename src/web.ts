@@ -23,6 +23,7 @@ export type {
     PerfAdvisorToolMetadata,
     StreamsToolMetadata,
     UpgradeClusterMetadata,
+    ScaleClusterMetadata,
 } from "./telemetry/types.js";
 export { Session, type SessionOptions, type SessionEvents } from "./common/session.js";
 export type { CustomizableServerOptions, CustomizableSessionOptions } from "./transports/base.js";
