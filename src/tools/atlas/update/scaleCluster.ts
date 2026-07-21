@@ -7,7 +7,6 @@ import { ApiClientError } from "../../../common/atlas/apiClientError.js";
 import type { ClusterDescription20240805 } from "../../../common/atlas/openapi.js";
 import { AtlasArgs } from "../../args.js";
 import type { ScaleClusterMetadata } from "../../../telemetry/types.js";
-import type { AtlasClusterConnectionInfo } from "../../../common/connectionInfo.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
 // Standard M-series tiers this tool can scale to, capped at M80 (same cap as atlas-create-cluster).
@@ -53,19 +52,8 @@ async function resolveClusterState(
     apiClient: Pick<ApiClient, "getCluster" | "getFlexCluster">,
     projectId: string,
     clusterName: string,
-    sessionCluster: AtlasClusterConnectionInfo | undefined,
     context: ToolExecutionContext
 ): Promise<ResolvedClusterState> {
-    const knownInstanceType =
-        sessionCluster?.projectId === projectId && sessionCluster?.clusterName === clusterName
-            ? sessionCluster.instanceType
-            : undefined;
-
-    // Only short-circuit for Free/Flex; scaling needs the dedicated payload the session doesn't carry.
-    if (knownInstanceType === "FREE" || knownInstanceType === "FLEX") {
-        return { instanceType: knownInstanceType };
-    }
-
     try {
         const raw = await apiClient.getCluster({ params: { path: { groupId: projectId, clusterName } } }, context);
         const cluster = formatCluster(raw);
@@ -115,12 +103,8 @@ export class ScaleClusterTool extends AtlasToolBase {
     static operationType: OperationType = "update";
     public override outputSchema = ScaleClusterOutputSchema;
     public argsShape = {
-        projectId: AtlasArgs.projectId()
-            .optional()
-            .describe("Atlas project ID. Required if not connected to a cluster."),
-        clusterName: AtlasArgs.clusterName()
-            .optional()
-            .describe("Name of the cluster to scale. Required if not connected to a cluster."),
+        projectId: AtlasArgs.projectId().describe("Atlas project ID"),
+        clusterName: AtlasArgs.clusterName().describe("Name of the cluster to scale"),
         instanceSize: instanceSizeEnum
             .optional()
             .describe(
@@ -144,12 +128,7 @@ export class ScaleClusterTool extends AtlasToolBase {
         args: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        const projectId = args.projectId ?? this.session.connectedAtlasCluster?.projectId;
-        const clusterName = args.clusterName ?? this.session.connectedAtlasCluster?.clusterName;
-
-        if (!projectId || !clusterName) {
-            throw new ScaleClusterError("projectId and clusterName are required when not connected to a cluster.");
-        }
+        const { projectId, clusterName } = args;
 
         if (
             args.instanceSize === undefined &&
@@ -162,13 +141,7 @@ export class ScaleClusterTool extends AtlasToolBase {
             );
         }
 
-        const state = await resolveClusterState(
-            this.apiClient,
-            projectId,
-            clusterName,
-            this.session.connectedAtlasCluster,
-            context
-        );
+        const state = await resolveClusterState(this.apiClient, projectId, clusterName, context);
 
         if (state.instanceType !== "DEDICATED") {
             throw new ScaleClusterError(
@@ -330,11 +303,11 @@ export class ScaleClusterTool extends AtlasToolBase {
         return super.handleError(error, args) as CallToolResult;
     }
 
-    protected override resolveTelemetryMetadata(
+    protected override async resolveTelemetryMetadata(
         args: ToolArgs<typeof this.argsShape>,
         context: { result: CallToolResult }
-    ): ScaleClusterMetadata {
-        const parentMetadata = super.resolveTelemetryMetadata(args, context);
+    ): Promise<ScaleClusterMetadata> {
+        const parentMetadata = await super.resolveTelemetryMetadata(args, context);
         type ScaleClusterOutput = z.infer<z.ZodObject<typeof ScaleClusterOutputSchema>>;
         const sc = context.result.structuredContent as ScaleClusterOutput | undefined;
 

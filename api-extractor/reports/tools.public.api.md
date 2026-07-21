@@ -1673,8 +1673,8 @@ export class RenameCollectionTool extends MongoDBToolBase {
 export class ScaleClusterTool extends AtlasToolBase {
     // (undocumented)
     argsShape: {
-        projectId: z.ZodOptional<z.ZodString>;
-        clusterName: z.ZodOptional<z.ZodString>;
+        projectId: z.ZodString;
+        clusterName: z.ZodString;
         instanceSize: z.ZodOptional<z.ZodEnum<{
             M10: "M10";
             M20: "M20";
@@ -1724,7 +1724,7 @@ export class ScaleClusterTool extends AtlasToolBase {
     // (undocumented)
     protected resolveTelemetryMetadata(args: ToolArgs<typeof ScaleClusterTool.argsShape>, context: {
         result: CallToolResult;
-    }): ScaleClusterMetadata;
+    }): Promise<ScaleClusterMetadata>;
     // (undocumented)
     static toolName: string;
 }

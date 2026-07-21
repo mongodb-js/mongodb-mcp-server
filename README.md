@@ -349,6 +349,7 @@ For more information about configuring OpenCode as an MCP client, including the 
 - `explain` - Returns statistics describing the execution of the winning plan chosen by the query optimizer for the evaluated method
 - `export` - Export a query or aggregation results in the specified EJSON format.
 - `find` - Run a find query against a MongoDB collection
+- `get-search-stage-rules` - Returns construction rules for MongoDB aggregation search stages ($search, $vectorSearch, $rankFusion, $scoreFusion, $rerank). Call this before building a pipeline that uses any of these stages.
 - `insert-many` - Insert an array of documents into a MongoDB collection. If the list of documents is above com.mongodb/maxRequestPayloadBytes, consider inserting them in batches.
 - `list-collections` - List all collections for a given database
 - `list-connections` - List the active MongoDB connections and their connectionIds. Use this to find a connectionId established earlier.

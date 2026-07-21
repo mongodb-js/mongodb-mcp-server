@@ -8,7 +8,6 @@ import type { Elicitation } from "../../../../../src/elicitation.js";
 import type { CompositeLogger } from "../../../../../src/common/logging/index.js";
 import type { ApiClient } from "../../../../../src/common/atlas/apiClient.js";
 import { ApiClientError } from "../../../../../src/common/atlas/apiClientError.js";
-import type { AtlasClusterConnectionInfo } from "../../../../../src/common/connectionInfo.js";
 import { UIRegistry } from "../../../../../src/ui/registry/index.js";
 import { MockMetrics } from "../../../mocks/metrics.js";
 import type { Keychain } from "../../../../../src/lib.js";
@@ -57,6 +56,11 @@ const FLEX_CLUSTER_RAW = {
     providerSettings: { backingProviderName: "AWS", regionName: "US_EAST_1" },
 };
 
+const FREE_CLUSTER_RAW = {
+    id: "free-cluster-id",
+    replicationSpecs: [{ regionConfigs: [{ backingProviderName: "AWS", electableSpecs: { instanceSize: "M0" } }] }],
+};
+
 const UPDATE_RESULT = { id: "scaled-cluster-id" };
 
 describe("ScaleClusterTool", () => {
@@ -64,7 +68,7 @@ describe("ScaleClusterTool", () => {
     let mockSession: Partial<Session>;
     let tool: ScaleClusterTool;
 
-    function buildTool(connectedCluster?: AtlasClusterConnectionInfo): ScaleClusterTool {
+    function buildTool(): ScaleClusterTool {
         mockApiClient = {
             getCluster: vi.fn(),
             getFlexCluster: vi.fn(),
@@ -81,7 +85,6 @@ describe("ScaleClusterTool", () => {
         mockSession = {
             logger: mockLogger,
             apiClient: mockApiClient as unknown as ApiClient,
-            connectedAtlasCluster: connectedCluster,
             keychain: { allSecrets: [] } as unknown as Keychain,
         };
 
@@ -157,12 +160,6 @@ describe("ScaleClusterTool", () => {
     });
 
     describe("argument validation", () => {
-        it("errors when projectId and clusterName are missing and not connected", async () => {
-            const result = await exec({});
-            expect(result.isError).toBe(true);
-            expect((result.content[0] as { text: string }).text).toContain("projectId and clusterName are required");
-        });
-
         it("errors when no scaling input is provided", async () => {
             const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
             expect(result.isError).toBe(true);
@@ -185,22 +182,16 @@ describe("ScaleClusterTool", () => {
             expect(mockApiClient.updateCluster).not.toHaveBeenCalled();
         });
 
-        it("redirects connected FREE clusters without any API lookup", async () => {
-            tool = buildTool({
-                username: "user",
-                projectId: "proj1",
-                clusterName: "MyCluster",
-                instanceType: "FREE",
-                provider: "AWS",
-                region: "US_EAST_1",
-                expiryDate: new Date(),
-            });
+        it("redirects FREE clusters (detected via getCluster) to atlas-upgrade-cluster", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
 
             const result = await exec({ projectId: "proj1", clusterName: "MyCluster", instanceSize: "M30" });
 
             expect(result.isError).toBe(true);
-            expect((result.content[0] as { text: string }).text).toContain("atlas-upgrade-cluster");
-            expect(mockApiClient.getCluster).not.toHaveBeenCalled();
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("FREE cluster");
+            expect(text).toContain("atlas-upgrade-cluster");
+            expect(mockApiClient.updateCluster).not.toHaveBeenCalled();
         });
 
         it("surfaces the original error when the cluster is not found on either endpoint", async () => {
@@ -437,28 +428,6 @@ describe("ScaleClusterTool", () => {
                 clusterId: "scaled-cluster-id",
             });
         });
-
-        it("resolves projectId and clusterName from session when omitted", async () => {
-            tool = buildTool({
-                username: "user",
-                projectId: "session-proj",
-                clusterName: "SessionCluster",
-                instanceType: "DEDICATED",
-                provider: "AWS",
-                region: "US_EAST_1",
-                expiryDate: new Date(),
-            });
-            mockApiClient.getCluster!.mockResolvedValue(dedicatedRaw("M10", "M30"));
-
-            const result = await exec({ instanceSize: "M20" });
-            expect(result.isError).toBeFalsy();
-            expect(mockApiClient.updateCluster).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    params: { path: { groupId: "session-proj", clusterName: "SessionCluster" } },
-                }),
-                expect.anything()
-            );
-        });
     });
 
     describe("API failure handling", () => {
@@ -476,7 +445,7 @@ describe("ScaleClusterTool", () => {
             mockApiClient.getCluster!.mockResolvedValue(dedicatedRaw("M10", "M30"));
             const result = await exec({ projectId: "proj1", clusterName: "MyCluster", instanceSize: "M30" });
 
-            const metadata = tool["resolveTelemetryMetadata"](
+            const metadata = await tool["resolveTelemetryMetadata"](
                 { projectId: "proj1", clusterName: "MyCluster", instanceSize: "M30" } as never,
                 { result: result as never }
             );
@@ -487,8 +456,8 @@ describe("ScaleClusterTool", () => {
             expect(metadata.max_instance_size).toBe("M50");
         });
 
-        it("returns empty scaling fields when result has no structuredContent (error path)", () => {
-            const metadata = tool["resolveTelemetryMetadata"](
+        it("returns empty scaling fields when result has no structuredContent (error path)", async () => {
+            const metadata = await tool["resolveTelemetryMetadata"](
                 { projectId: "proj1", clusterName: "MyCluster" } as never,
                 { result: { content: [] } as never }
             );
