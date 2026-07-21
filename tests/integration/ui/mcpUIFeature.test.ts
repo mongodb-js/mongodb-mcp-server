@@ -6,7 +6,7 @@ import { ExportsManager } from "../../../src/common/exportsManager.js";
 import { Session } from "../../../src/common/session.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Server } from "../../../src/server.js";
-import { MCPConnectionManager } from "../../../src/common/connectionManager.js";
+import { MCPConnectionStore } from "../../../src/common/connectionStore.js";
 import { DeviceId } from "../../../src/helpers/deviceId.js";
 import { connectionErrorHandler } from "../../../src/common/connectionErrorHandler.js";
 import { Keychain } from "../../../src/common/keychain.js";
@@ -23,10 +23,10 @@ describeWithMongoDB(
     (integration) => {
         describe("list-databases tool", () => {
             it("should NOT return UIResource content when mcpUI feature is disabled", async () => {
-                await integration.connectMcpClient();
+                const connectionId = await integration.connectMcpClient();
                 const response = await integration.mcpClient().callTool({
                     name: "list-databases",
-                    arguments: {},
+                    arguments: { connectionId },
                 });
 
                 expect(response.content).toBeDefined();
@@ -54,10 +54,10 @@ describeWithMongoDB(
     (integration) => {
         describe("list-databases tool with mcpUI enabled", () => {
             it("should return UIResource content when mcpUI feature is enabled", async () => {
-                await integration.connectMcpClient();
+                const connectionId = await integration.connectMcpClient();
                 const response = await integration.mcpClient().callTool({
                     name: "list-databases",
-                    arguments: {},
+                    arguments: { connectionId },
                 });
 
                 expect(response.content).toBeDefined();
@@ -106,10 +106,10 @@ describeWithMongoDB(
             });
 
             it("should include system databases in the response", async () => {
-                await integration.connectMcpClient();
+                const connectionId = await integration.connectMcpClient();
                 const response = await integration.mcpClient().callTool({
                     name: "list-databases",
-                    arguments: {},
+                    arguments: { connectionId },
                 });
 
                 const elements = response.content as Array<{
@@ -172,14 +172,13 @@ describe("mcpUI feature with custom UIs", () => {
         };
         const logger = new CompositeLogger();
         const deviceId = DeviceId.create(logger);
-        const connectionManager = new MCPConnectionManager(userConfig, logger, deviceId);
+        const connectionRegistry = new MCPConnectionStore({ userConfig, logger, deviceId }).view();
         const exportsManager = ExportsManager.init(userConfig, logger);
 
         const session = new Session({
-            userConfig,
             logger,
             exportsManager,
-            connectionManager,
+            connectionRegistry,
             keychain: Keychain.root,
             connectionErrorHandler,
             atlasLocalClient: await defaultCreateAtlasLocalClient({ logger }),
@@ -203,7 +202,10 @@ describe("mcpUI feature with custom UIs", () => {
             enabled: false,
         });
         const mcpServerInstance = new McpServer({ name: "test", version: "1.0" });
-        const elicitation = new Elicitation({ server: mcpServerInstance.server });
+        const elicitation = new Elicitation({
+            server: mcpServerInstance.server,
+            timeoutMs: userConfig.elicitationTimeoutMs,
+        });
 
         const server = new Server({
             session,

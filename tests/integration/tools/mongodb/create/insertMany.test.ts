@@ -62,10 +62,11 @@ describeWithMongoDB("insertMany tool when search is disabled", (integration) => 
     };
 
     it("creates the namespace if necessary", async () => {
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         const response = await integration.mcpClient().callTool({
             name: "insert-many",
             arguments: {
+                connectionId,
                 database: integration.randomDbName(),
                 collection: "coll1",
                 documents: [{ prop1: "value1" }],
@@ -92,10 +93,11 @@ describeWithMongoDB("insertMany tool when search is disabled", (integration) => 
             .collection("coll1")
             .insertMany([{ prop1: "value1" }]);
 
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         const response = await integration.mcpClient().callTool({
             name: "insert-many",
             arguments: {
+                connectionId,
                 database: integration.randomDbName(),
                 collection: "coll1",
                 documents: [{ prop1: "value1", _id: { $oid: insertedIds[0] } }],
@@ -111,11 +113,12 @@ describeWithMongoDB("insertMany tool when search is disabled", (integration) => 
     it("should emit tool event without auto-embedding usage metadata", async () => {
         const mockEmitEvents = vi.spyOn(integration.mcpServer()["telemetry"], "emitEvents");
         vi.spyOn(integration.mcpServer()["telemetry"], "isTelemetryEnabled").mockReturnValue(true);
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
 
         const response = await integration.mcpClient().callTool({
             name: "insert-many",
             arguments: {
+                connectionId,
                 database: integration.randomDbName(),
                 collection: "test",
                 documents: [{ title: "The Matrix" }],
@@ -148,9 +151,10 @@ describeWithMongoDB(
     (integration) => {
         let collection: Collection;
         let database: string;
+        let connectionId: string;
 
         beforeEach(async () => {
-            await integration.connectMcpClient();
+            connectionId = await integration.connectMcpClient();
             database = integration.randomDbName();
             collection = await integration.mongoClient().db(database).createCollection("test");
             await waitUntilSearchIsReady(integration.mongoClient());
@@ -191,6 +195,7 @@ describeWithMongoDB(
             const response = await integration.mcpClient().callTool({
                 name: "insert-many",
                 arguments: {
+                    connectionId,
                     database,
                     collection: "test",
                     documents: [{ embedding: [1, 2, 3, 4, 5, 6, 7, 8] }],
@@ -223,9 +228,10 @@ describeWithMongoDB(
     (integration) => {
         let collection: Collection;
         let database: string;
+        let connectionId: string;
 
         beforeEach(async () => {
-            await integration.connectMcpClient();
+            connectionId = await integration.connectMcpClient();
             database = integration.randomDbName();
 
             collection = await integration.mongoClient().db(database).createCollection("test");
@@ -242,10 +248,10 @@ describeWithMongoDB(
         });
 
         it("should be able to insert document and have embeddings auto-generated", async () => {
-            await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "insert-many",
                 arguments: {
+                    connectionId,
                     database,
                     collection: "test",
                     documents: [{ plot: "A movie about alien" }, { plot: "Random movie about cupcake" }],

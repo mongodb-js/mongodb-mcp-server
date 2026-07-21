@@ -4,12 +4,14 @@ import {
     validateThrowsForInvalidArguments,
     getResponseElements,
     getDataFromUntrustedContent,
+    connectionIdParameters,
 } from "../../../helpers.js";
 import type { LogsOutput } from "../../../../../src/tools/mongodb/metadata/logs.js";
 import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 
 describeWithMongoDB("logs tool", (integration) => {
     validateToolMetadata(integration, "mongodb-logs", "Returns the most recent logged mongod events", "metadata", [
+        ...connectionIdParameters,
         {
             type: "string",
             name: "type",
@@ -34,10 +36,10 @@ describeWithMongoDB("logs tool", (integration) => {
     ]);
 
     it("should return global logs", async () => {
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         const response = await integration.mcpClient().callTool({
             name: "mongodb-logs",
-            arguments: {},
+            arguments: { connectionId },
         });
 
         const elements = getResponseElements(response);
@@ -75,12 +77,10 @@ describeWithMongoDB("logs tool", (integration) => {
     });
 
     it("should return startupWarnings logs", async () => {
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         const response = await integration.mcpClient().callTool({
             name: "mongodb-logs",
-            arguments: {
-                type: "startupWarnings",
-            },
+            arguments: { connectionId, type: "startupWarnings" },
         });
 
         const elements = getResponseElements(response);
@@ -111,10 +111,7 @@ describeWithMongoDB("logs tool", (integration) => {
 
     validateAutoConnectBehavior(integration, "mongodb-logs", () => {
         return {
-            args: {
-                database: integration.randomDbName(),
-                collection: "foo",
-            },
+            args: {},
             validate: (content): void => {
                 const elements = getResponseElements(content);
                 expect(elements.length).toBeLessThanOrEqual(51);

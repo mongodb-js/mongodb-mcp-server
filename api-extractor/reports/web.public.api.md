@@ -24,13 +24,18 @@ import { Metrics } from '@mongodb-js/mcp-metrics';
 import type { MongoLogId } from 'mongodb-log-writer';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
 import type { operations } from './openapi.js';
+import type { ProgressToken } from '@modelcontextprotocol/sdk/types.js';
+import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
+import type { RequestId } from '@modelcontextprotocol/sdk/types.js';
 import { Secret } from 'mongodb-redact';
+import type { ServerNotification } from '@modelcontextprotocol/sdk/types.js';
+import type { ServerRequest } from '@modelcontextprotocol/sdk/types.js';
 import type { TelemetryEvents } from '@mongodb-js/mcp-types';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import type { TransportRequestContext } from '@mongodb-js/mcp-types';
 import { z } from 'zod';
-import type { ZodRawShape } from 'zod';
+import { ZodRawShape } from 'zod';
 
 // @public (undocumented)
 export type AnyConnectionState = ConnectionStateConnected | ConnectionStateConnecting | ConnectionStateDisconnected | ConnectionStateErrored;
@@ -220,6 +225,9 @@ export interface AtlasClusterConnectionInfo {
     username: string;
 }
 
+// @public
+export function atlasClusterSlug(projectName: string | undefined, clusterName: string): string;
+
 // @public (undocumented)
 export type AtlasLocalClientFactoryFn = (input: {
     logger: LoggerBase;
@@ -304,6 +312,33 @@ export class CompositeLogger extends LoggerBase {
     protected readonly type?: LoggerType;
 }
 
+// @public
+export class ConnectionEntry {
+    constructor(input: ConnectionEntryOptions);
+    // (undocumented)
+    assertSearchSupported(logger: LoggerBase): Promise<void>;
+    // (undocumented)
+    close(): Promise<void>;
+    // (undocumented)
+    connect(settings: ConnectionSettings): Promise<AnyConnectionState>;
+    readonly connectionId: string;
+    // (undocumented)
+    readonly createdAt: Date;
+    getServiceProvider(): NodeDriverServiceProvider;
+    // (undocumented)
+    isSearchSupported(logger: LoggerBase): Promise<boolean>;
+    // (undocumented)
+    lastError?: string;
+    // (undocumented)
+    lastUsedAt: Date;
+    readonly name: string;
+    runRevokeCleanup(): Promise<void>;
+    // (undocumented)
+    readonly source: ConnectionSource;
+    // (undocumented)
+    get state(): AnyConnectionState;
+}
+
 // @public (undocumented)
 export type ConnectionErrorHandled = {
     errorHandled: true;
@@ -311,12 +346,12 @@ export type ConnectionErrorHandled = {
 };
 
 // @public (undocumented)
-export type ConnectionErrorHandler = (error: MongoDBError<ErrorCodes.NotConnectedToMongoDB | ErrorCodes.MisconfiguredConnectionString>, additionalContext: ConnectionErrorHandlerContext) => ConnectionErrorUnhandled | ConnectionErrorHandled | Promise<ConnectionErrorUnhandled | ConnectionErrorHandled>;
+export type ConnectionErrorHandler = (error: MongoDBError<ErrorCodes.NotConnectedToMongoDB | ErrorCodes.MisconfiguredConnectionString | ErrorCodes.UnknownConnectionId>, additionalContext: ConnectionErrorHandlerContext) => ConnectionErrorUnhandled | ConnectionErrorHandled | Promise<ConnectionErrorUnhandled | ConnectionErrorHandled>;
 
 // @public (undocumented)
 export type ConnectionErrorHandlerContext = {
     availableTools: AnyToolBase[];
-    connectionState: AnyConnectionState;
+    connectionState?: AnyConnectionState;
 };
 
 // @public (undocumented)
@@ -375,12 +410,25 @@ export type ConnectionManagerFactoryFn = (createParams: {
 
 // @public (undocumented)
 export type ConnectionMetadata = AtlasMetadata & AtlasLocalToolMetadata & {
+    connection_id?: string;
     connection_auth_type?: string;
     connection_host_type?: string;
     shared_tier_alerts_detected?: TelemetryBoolSet;
     shared_tier_tier?: SharedTierTier;
     shared_tier_alerts?: SharedTierMetricName[];
 };
+
+// @public
+export interface ConnectionRegistry {
+    close(): Promise<void>;
+    connect(opts: CreateConnectionOptions): Promise<ConnectionEntry>;
+    createEntry(opts: CreateConnectionEntryOptions): Promise<ConnectionEntry>;
+    disconnect(connectionId: string): Promise<void>;
+    find(predicate?: (entry: ConnectionEntry) => boolean): Promise<ConnectionEntry[]>;
+    get(connectionId: string): Promise<ConnectionEntry | undefined>;
+    peek(connectionId: string): Promise<ConnectionEntry | undefined>;
+    resolve(connectionId: string): Promise<NodeDriverServiceProvider>;
+}
 
 // @public (undocumented)
 export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"> {
@@ -389,6 +437,9 @@ export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"
     // (undocumented)
     driverOptions?: ConnectionInfo["driverOptions"];
 }
+
+// @public (undocumented)
+export type ConnectionSource = "explicit" | "preconfigured";
 
 // @public (undocumented)
 export interface ConnectionState {
@@ -444,6 +495,14 @@ export interface ConnectionStateErrored extends ConnectionState {
 }
 
 // @public (undocumented)
+export type ConnectionStoreOptions = {
+    userConfig: UserConfig;
+    logger: LoggerBase;
+    deviceId: DeviceId;
+    createConnectionManager?: CreateConnectionManagerFn;
+};
+
+// @public (undocumented)
 export type ConnectionStringAuthType = "scram" | "ldap" | "kerberos" | ConnectionInfoOIDCConnectionAuthType | "x.509";
 
 // @public
@@ -459,6 +518,23 @@ export interface ConnectionStringInfo {
 
 // @public (undocumented)
 export type ConnectionTag = "connected" | "connecting" | "disconnected" | "errored";
+
+// @public (undocumented)
+export type CreateConnectionEntryOptions = {
+    name: string;
+    clientName?: string;
+    onRevoke?: () => Promise<void>;
+};
+
+// @public (undocumented)
+export type CreateConnectionManagerFn = () => ConnectionManager;
+
+// @public (undocumented)
+export type CreateConnectionOptions = {
+    settings: ConnectionSettings;
+    name?: string;
+    clientName?: string;
+};
 
 export { createDefaultMetrics }
 
@@ -482,7 +558,9 @@ export type CustomizableServerOptions<TUserConfig extends UserConfig = UserConfi
 };
 
 // @public (undocumented)
-export type CustomizableSessionOptions<TUserConfig extends UserConfig = UserConfig> = Partial<Pick<SessionOptions<TUserConfig>, "userConfig" | "apiClient" | "atlasLocalClient" | "connectionManager" | "connectionErrorHandler">>;
+export type CustomizableSessionOptions<TUserConfig extends UserConfig = UserConfig> = Partial<Pick<SessionOptions, "apiClient" | "atlasLocalClient" | "connectionRegistry" | "connectionErrorHandler">> & {
+    userConfig?: TUserConfig;
+};
 
 // @public (undocumented)
 export type DefaultEventMap = Record<string, never[]>;
@@ -501,6 +579,7 @@ export class DeviceId implements IDeviceId {
 export class Elicitation {
     constructor(input: {
         server: McpServer["server"];
+        timeoutMs: number;
     });
     static CONFIRMATION_SCHEMA: {
         type: "object";
@@ -515,10 +594,18 @@ export class Elicitation {
         };
         required: string[];
     };
-    requestConfirmation(message: string): Promise<boolean>;
-    requestInput(message: string, schema: ElicitRequestFormParams["requestedSchema"]): Promise<ElicitedInputResult>;
+    requestConfirmation(message: string, options?: ElicitationOptions): Promise<boolean>;
+    requestInput(message: string, schema: ElicitRequestFormParams["requestedSchema"], options?: ElicitationOptions): Promise<ElicitedInputResult>;
     supportsElicitation(): boolean;
 }
+
+// @public (undocumented)
+export type ElicitationOptions = {
+    relatedRequestId?: RequestId;
+    progressToken?: ProgressToken;
+    sendNotification?: (notification: ServerNotification) => Promise<void>;
+    signal?: AbortSignal;
+};
 
 // @public (undocumented)
 export type ElicitedInputResult = {
@@ -548,7 +635,9 @@ export enum ErrorCodes {
     // (undocumented)
     MisconfiguredConnectionString = 1000001,
     // (undocumented)
-    NotConnectedToMongoDB = 1000000
+    NotConnectedToMongoDB = 1000000,
+    // (undocumented)
+    UnknownConnectionId = 1000010
 }
 
 // @public
@@ -691,6 +780,16 @@ export interface LogPayload {
     noRedaction?: boolean | LoggerType | LoggerType[];
 }
 
+// @public
+export class MCPConnectionStore {
+    constructor(options: ConnectionStoreOptions);
+    closeAll(): Promise<void>;
+    view(input?: {
+        scope?: string;
+        owned?: boolean;
+    }): ConnectionRegistry;
+}
+
 export { MetricDefinitions }
 
 export { Metrics }
@@ -712,6 +811,9 @@ export type OperationType = "metadata" | "read" | "create" | "delete" | "update"
 export type PerfAdvisorToolMetadata = AtlasMetadata & ConnectionMetadata & {
     operations: string[];
 };
+
+// @public
+export const PRECONFIGURED_CONNECTION_ID = "preconfigured";
 
 // @public (undocumented)
 export type PreviewFeature = (typeof previewFeatureValues)[number];
@@ -797,37 +899,21 @@ export interface ServerOptions<TUserConfig extends UserConfig = UserConfig, TCon
     userConfig: TUserConfig;
 }
 
-// @public (undocumented)
+// @public
 export class Session extends EventEmitter<SessionEvents> {
-    constructor(input: SessionOptions<UserConfig>);
+    constructor(input: SessionOptions);
     // (undocumented)
     readonly apiClient: ApiClient;
-    // (undocumented)
-    assertSearchSupported(): Promise<void>;
     // (undocumented)
     readonly atlasLocalClient?: Client;
     // (undocumented)
     close(): Promise<void>;
     // (undocumented)
-    get connectedAtlasCluster(): AtlasClusterConnectionInfo | undefined;
-    // (undocumented)
     readonly connectionErrorHandler: ConnectionErrorHandler;
     // (undocumented)
-    readonly connectionManager: ConnectionManager;
-    // (undocumented)
-    get connectionStringInfo(): ConnectionStringInfo | undefined;
-    // (undocumented)
-    connectToConfiguredConnection(): Promise<void>;
-    // (undocumented)
-    connectToMongoDB(settings: ConnectionSettings): Promise<void>;
-    // (undocumented)
-    disconnect(): Promise<void>;
+    readonly connectionRegistry: ConnectionRegistry;
     // (undocumented)
     readonly exportsManager: ExportsManager;
-    // (undocumented)
-    get isConnectedToMongoDB(): boolean;
-    // (undocumented)
-    isSearchSupported(): Promise<boolean>;
     // (undocumented)
     readonly keychain: Keychain;
     // (undocumented)
@@ -839,8 +925,6 @@ export class Session extends EventEmitter<SessionEvents> {
         title?: string;
     };
     // (undocumented)
-    get serviceProvider(): NodeDriverServiceProvider;
-    // (undocumented)
     readonly sessionId: string;
     // (undocumented)
     setMcpClient(mcpClient: Implementation | undefined): void;
@@ -848,14 +932,11 @@ export class Session extends EventEmitter<SessionEvents> {
 
 // @public (undocumented)
 export type SessionEvents = {
-    connect: [];
     close: [];
-    disconnect: [];
-    "connection-error": [ConnectionStateErrored];
 };
 
 // @public (undocumented)
-export interface SessionOptions<TUserConfig extends UserConfig = UserConfig> {
+export interface SessionOptions {
     // (undocumented)
     apiClient: ApiClient;
     // (undocumented)
@@ -863,15 +944,13 @@ export interface SessionOptions<TUserConfig extends UserConfig = UserConfig> {
     // (undocumented)
     connectionErrorHandler: ConnectionErrorHandler;
     // (undocumented)
-    connectionManager: ConnectionManager;
+    connectionRegistry: ConnectionRegistry;
     // (undocumented)
     exportsManager: ExportsManager;
     // (undocumented)
     keychain: Keychain;
     // (undocumented)
     logger: CompositeLogger;
-    // (undocumented)
-    userConfig: TUserConfig;
 }
 
 // @public (undocumented)
@@ -954,12 +1033,13 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
     // (undocumented)
     disable(): void;
     protected readonly elicitation: Elicitation;
+    protected elicitationRelatedRequestId(context: ToolExecutionContext): RequestId | undefined;
     // (undocumented)
     enable(): void;
     protected abstract execute(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     protected getConfirmationMessage(args: ToolArgs<typeof ToolBase.argsShape>): string;
     // (undocumented)
-    protected getConnectionInfoMetadata(): ConnectionMetadata;
+    protected getConnectionInfoMetadata(connectionState?: AnyConnectionState): ConnectionMetadata;
     protected handleError(error: unknown, args: z.infer<z.ZodObject<typeof ToolBase.argsShape>>): Promise<CallToolResult> | CallToolResult;
     invoke(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)
@@ -975,13 +1055,13 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
     requiresConfirmation(): boolean;
     protected abstract resolveTelemetryMetadata(args: ToolArgs<typeof ToolBase.argsShape>, input: {
         result: CallToolResult;
-    }): TelemetryToolMetadata;
+    }): TelemetryToolMetadata | Promise<TelemetryToolMetadata>;
     protected readonly session: Session;
     protected readonly telemetry: Telemetry;
     protected get toolMeta(): Record<string, unknown>;
     // (undocumented)
     protected verifyAllowed(): boolean;
-    verifyConfirmed(args: ToolArgs<typeof ToolBase.argsShape>): Promise<boolean>;
+    verifyConfirmed(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<boolean>;
 }
 
 // @public
@@ -1009,14 +1089,8 @@ export type ToolConstructorParams<TUserConfig extends UserConfig = UserConfig, T
     context?: TContext;
 };
 
-// @public (undocumented)
-export interface ToolExecutionContext {
-    requestInfo?: {
-        headers?: Record<string, unknown>;
-    };
-    // (undocumented)
-    signal: AbortSignal;
-}
+// @public
+export type ToolExecutionContext = Pick<ServerRequestHandlerExtra, "signal"> & Partial<Pick<ServerRequestHandlerExtra, "_meta" | "requestId" | "requestInfo" | "sendNotification">>;
 
 export { TransportRequestContext }
 
@@ -1036,8 +1110,6 @@ export abstract class TransportRunnerBase<TUserConfig extends UserConfig = UserC
     protected readonly createApiClient: ApiClientFactoryFn;
     // @deprecated (undocumented)
     protected readonly createAtlasLocalClient: AtlasLocalClientFactoryFn;
-    // @deprecated (undocumented)
-    protected readonly createConnectionManager: ConnectionManagerFactoryFn;
     protected createServer(input?: {
         userConfig?: TUserConfig;
         logger?: CompositeLogger;
@@ -1061,7 +1133,7 @@ export abstract class TransportRunnerBase<TUserConfig extends UserConfig = UserC
     // (undocumented)
     abstract start(input: {
         serverOptions?: ServerOptions<TUserConfig, TContext>;
-        sessionOptions?: SessionOptions<TUserConfig>;
+        sessionOptions?: SessionOptions;
     }): Promise<void>;
     // @deprecated (undocumented)
     protected readonly telemetryProperties: Partial<CommonProperties>;
@@ -1073,7 +1145,6 @@ export abstract class TransportRunnerBase<TUserConfig extends UserConfig = UserC
 // @public
 export type TransportRunnerConfig<TUserConfig extends UserConfig = UserConfig, TMetrics extends DefaultMetrics = DefaultMetrics> = {
     userConfig: TUserConfig;
-    createConnectionManager?: ConnectionManagerFactoryFn;
     connectionErrorHandler?: ConnectionErrorHandler;
     createAtlasLocalClient?: AtlasLocalClientFactoryFn;
     additionalLoggers?: LoggerBase[];
@@ -1129,6 +1200,7 @@ export const UserConfigSchema: z.ZodObject<{
     }>>;
     disabledTools: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodString>>>;
     confirmationRequiredTools: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodString>>>;
+    elicitationTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     readOnly: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
     indexCheck: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
     disableServerSideJs: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
@@ -1147,6 +1219,11 @@ export const UserConfigSchema: z.ZodObject<{
     idleTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     notificationTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     maxSessions: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    maxActiveConnections: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    connectionScope: z.ZodDefault<z.ZodEnum<{
+        session: "session";
+        global: "global";
+    }>>;
     maxBytesPerQuery: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     maxDocumentsPerQuery: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     maxTimeMS: z.ZodOptional<z.ZodCoercedNumber<unknown>>;

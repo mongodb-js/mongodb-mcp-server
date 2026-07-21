@@ -2,7 +2,7 @@
   "manifest_version": "0.1",
   "name": "mongodb-mcp-server",
   "display_name": "MongoDB",
-  "version": "1.14.0",
+  "version": "1.15.0-alpha.5",
   "description": "Official MongoDB desktop extension (MCP Server). Connect to databases, explore data, manage collections, optimize queries, generate reliable code, implement best practices, develop advanced features, and more.",
   "long_description": "Connect Claude Desktop to MongoDB Atlas and self-managed MongoDB deployments.\n\nManage your Atlas resources — clusters, projects, network access, and database users — directly from Claude. Query and inspect your data using find and aggregation, explore schemas, and manage indexes. Spin up local Atlas environments via Docker with Atlas Local, and add semantic search to your workflows using Vector Search with Voyage AI embeddings.\n\nFull documentation at [mongodb.com/docs/mcp-server](https://www.mongodb.com/docs/mcp-server/).",
   "author": {
