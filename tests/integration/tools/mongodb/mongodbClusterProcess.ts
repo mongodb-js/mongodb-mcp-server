@@ -62,8 +62,7 @@ export type MongoClusterConfiguration =
 
 const DOWNLOAD_RETRIES = 10;
 
-// Pinned to preview image for now to avoid the issues with the 8.2.x image.
-const DEFAULT_LOCAL_IMAGE = "mongodb/mongodb-atlas-local:preview";
+const DEFAULT_LOCAL_IMAGE = "mongodb/mongodb-atlas-local:latest";
 
 export class MongoDBClusterProcess {
     static async spinUp(config: MongoClusterConfiguration): Promise<MongoDBClusterProcess> {
@@ -71,9 +70,6 @@ export class MongoDBClusterProcess {
             const runningContainer = await new GenericContainer(config.image ?? DEFAULT_LOCAL_IMAGE)
                 .withExposedPorts(27017)
                 .withCommand(["/usr/local/bin/runner", "server"])
-                // DO_NOT_TRACK=1 skips telemetry startup work (Atlas Local v1.0.11+), which
-                // otherwise increases startup time enough to exceed testcontainers' 60s timeout.
-                .withEnvironment({ DO_NOT_TRACK: "1" })
                 .start();
 
             return new MongoDBClusterProcess(
