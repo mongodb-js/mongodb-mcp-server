@@ -411,6 +411,7 @@ export function expectDefined<T>(arg: T): asserts arg is Exclude<T, undefined | 
 function validateToolAnnotations(tool: ToolInfo, name: string, operationType: OperationType): void {
     expectDefined(tool.annotations);
     expect(tool.annotations.title).toBe(name);
+    expect(tool.annotations.openWorldHint).toBe(true);
 
     switch (operationType) {
         case "read":
@@ -419,11 +420,11 @@ function validateToolAnnotations(tool: ToolInfo, name: string, operationType: Op
             expect(tool.annotations.destructiveHint).toBe(false);
             break;
         case "delete":
+        case "update":
             expect(tool.annotations.readOnlyHint).toBe(false);
             expect(tool.annotations.destructiveHint).toBe(true);
             break;
         case "create":
-        case "update":
             expect(tool.annotations.readOnlyHint).toBe(false);
             expect(tool.annotations.destructiveHint).toBe(false);
             break;
