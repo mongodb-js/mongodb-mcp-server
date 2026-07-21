@@ -6,7 +6,6 @@ import type { ApiClient } from "../../../common/atlas/apiClient.js";
 import { ApiClientError } from "../../../common/atlas/apiClientError.js";
 import { AtlasArgs } from "../../args.js";
 import type { UpgradeClusterMetadata } from "../../../telemetry/types.js";
-import type { AtlasClusterConnectionInfo } from "../../../common/connectionInfo.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
 const ALLOWED_PROVIDER_REGEX = /^[A-Z_]+$/;
@@ -99,22 +98,8 @@ async function resolveClusterInfo(
     projectId: string,
     clusterName: string,
     argOverrides: { provider?: string; region?: string },
-    sessionCluster: AtlasClusterConnectionInfo | undefined,
     context: ToolExecutionContext
 ): Promise<ResolvedClusterInfo> {
-    const knownInstanceType =
-        sessionCluster?.projectId === projectId && sessionCluster?.clusterName === clusterName
-            ? sessionCluster.instanceType
-            : undefined;
-
-    if (knownInstanceType !== undefined) {
-        return {
-            instanceType: knownInstanceType,
-            provider: argOverrides.provider ?? sessionCluster?.provider,
-            region: argOverrides.region ?? sessionCluster?.region,
-        };
-    }
-
     try {
         const raw = await apiClient.getCluster({ params: { path: { groupId: projectId, clusterName } } }, context);
         const cluster = formatCluster(raw);
@@ -165,12 +150,8 @@ export class UpgradeClusterTool extends AtlasToolBase {
     static operationType: OperationType = "update";
     public override outputSchema = UpgradeClusterOutputSchema;
     public argsShape = {
-        projectId: AtlasArgs.projectId()
-            .optional()
-            .describe("Atlas project ID. Required if not connected to a cluster."),
-        clusterName: AtlasArgs.clusterName()
-            .optional()
-            .describe("Name of the cluster to upgrade. Required if not connected to a cluster."),
+        projectId: AtlasArgs.projectId().describe("Atlas project ID"),
+        clusterName: AtlasArgs.clusterName().describe("Name of the cluster to upgrade"),
         targetTier: z
             .enum(["FLEX", "M10"])
             .optional()
@@ -191,19 +172,13 @@ export class UpgradeClusterTool extends AtlasToolBase {
         args: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        const projectId = args.projectId ?? this.session.connectedAtlasCluster?.projectId;
-        const clusterName = args.clusterName ?? this.session.connectedAtlasCluster?.clusterName;
-
-        if (!projectId || !clusterName) {
-            throw new UpgradeClusterError("projectId and clusterName are required when not connected to a cluster.");
-        }
+        const { projectId, clusterName } = args;
 
         const clusterInfo = await resolveClusterInfo(
             this.apiClient,
             projectId,
             clusterName,
             { provider: args.provider, region: args.region },
-            this.session.connectedAtlasCluster,
             context
         );
 
@@ -305,11 +280,11 @@ export class UpgradeClusterTool extends AtlasToolBase {
         }
     }
 
-    protected override resolveTelemetryMetadata(
+    protected override async resolveTelemetryMetadata(
         args: ToolArgs<typeof this.argsShape>,
         context: { result: CallToolResult }
-    ): UpgradeClusterMetadata {
-        const parentMetadata = super.resolveTelemetryMetadata(args, context);
+    ): Promise<UpgradeClusterMetadata> {
+        const parentMetadata = await super.resolveTelemetryMetadata(args, context);
         type UpgradeClusterOutput = z.infer<z.ZodObject<typeof UpgradeClusterOutputSchema>>;
         const sc = context.result.structuredContent as UpgradeClusterOutput | undefined;
 

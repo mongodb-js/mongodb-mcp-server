@@ -13,11 +13,13 @@ import type { ConnectionMetadata } from "../../../telemetry/types.js";
 const ConnectDeploymentOutputSchema = {
     connected: z.boolean(),
     deploymentName: z.string(),
+    connectionId: z.string().optional(),
 };
 
 export class ConnectDeploymentTool extends AtlasLocalToolBase {
     static toolName = "atlas-local-connect-deployment";
-    public description = "Connect to a MongoDB Atlas Local deployment";
+    public description =
+        "Connect to a MongoDB Atlas Local deployment and get back a connectionId to pass to the other MongoDB tools";
     static operationType: OperationType = "connect";
     public argsShape = {
         deploymentName: CommonArgs.string().describe("Name of the deployment to connect to"),
@@ -51,18 +53,23 @@ export class ConnectDeploymentTool extends AtlasLocalToolBase {
             throw error;
         }
 
-        await this.session.connectToMongoDB({ connectionString });
+        const entry = await this.session.connectionRegistry.connect({
+            settings: { connectionString },
+            name: deploymentName,
+            clientName: this.session.mcpClient?.name,
+        });
 
         return {
             content: [
                 {
                     type: "text",
-                    text: `Successfully connected to Atlas Local deployment "${deploymentName}".`,
+                    text: `Successfully connected to Atlas Local deployment "${deploymentName}". Your connectionId is "${entry.connectionId}" — pass it as the connectionId argument to all MongoDB tool calls that should run against this deployment.`,
                 },
             ],
             structuredContent: {
                 connected: true,
                 deploymentName,
+                connectionId: entry.connectionId,
             },
             _meta: {
                 ...(await this.lookupTelemetryMetadata(client, deploymentName)),
@@ -70,10 +77,17 @@ export class ConnectDeploymentTool extends AtlasLocalToolBase {
         };
     }
 
-    protected override resolveTelemetryMetadata(
+    protected override async resolveTelemetryMetadata(
         args: ToolArgs<typeof this.argsShape>,
         { result }: { result: CallToolResult }
-    ): ConnectionMetadata {
-        return { ...super.resolveTelemetryMetadata(args, { result }), ...this.getConnectionInfoMetadata() };
+    ): Promise<ConnectionMetadata> {
+        const connectionId = (result.structuredContent as { connectionId?: string } | undefined)?.connectionId;
+        return {
+            ...(await super.resolveTelemetryMetadata(args, { result })),
+            ...(connectionId && { connection_id: connectionId }),
+            ...this.getConnectionInfoMetadata(
+                connectionId ? (await this.session.connectionRegistry.peek(connectionId))?.state : undefined
+            ),
+        };
     }
 }

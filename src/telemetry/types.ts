@@ -263,6 +263,7 @@ export const SHARED_TIER_METRIC_NAMES = [
 export type SharedTierMetricName = (typeof SHARED_TIER_METRIC_NAMES)[number];
 export type ConnectionMetadata = AtlasMetadata &
     AtlasLocalToolMetadata & {
+        connection_id?: string;
         connection_auth_type?: string;
         connection_host_type?: string;
         shared_tier_alerts_detected?: TelemetryBoolSet;
