@@ -227,6 +227,61 @@ describe("ScaleClusterTool", () => {
         });
     });
 
+    describe("current tier above the M80 cap", () => {
+        it.each(["M100", "M140", "M300"])("rejects scaling a cluster currently at %s", async (size) => {
+            mockApiClient.getCluster!.mockResolvedValue(dedicatedRaw(size));
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", instanceSize: "M30" });
+
+            expect(result.isError).toBe(true);
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("above the M80 cap");
+            expect(mockApiClient.updateCluster).not.toHaveBeenCalled();
+        });
+    });
+
+    describe("invalid autoscaling bounds", () => {
+        beforeEach(() => {
+            mockApiClient.getCluster!.mockResolvedValue(dedicatedRaw("M30"));
+        });
+
+        it("rejects minInstanceSize greater than maxInstanceSize", async () => {
+            const result = await exec({
+                projectId: "proj1",
+                clusterName: "MyCluster",
+                minInstanceSize: "M50",
+                maxInstanceSize: "M20",
+            });
+            expect(result.isError).toBe(true);
+            expect((result.content[0] as { text: string }).text).toContain("cannot be larger than maxInstanceSize");
+            expect(mockApiClient.updateCluster).not.toHaveBeenCalled();
+        });
+
+        it("rejects instanceSize above an explicit maxInstanceSize", async () => {
+            const result = await exec({
+                projectId: "proj1",
+                clusterName: "MyCluster",
+                instanceSize: "M60",
+                maxInstanceSize: "M40",
+            });
+            expect(result.isError).toBe(true);
+            expect((result.content[0] as { text: string }).text).toContain("cannot be larger than maxInstanceSize");
+            expect(mockApiClient.updateCluster).not.toHaveBeenCalled();
+        });
+
+        it("rejects instanceSize below an explicit minInstanceSize", async () => {
+            const result = await exec({
+                projectId: "proj1",
+                clusterName: "MyCluster",
+                instanceSize: "M20",
+                minInstanceSize: "M40",
+            });
+            expect(result.isError).toBe(true);
+            expect((result.content[0] as { text: string }).text).toContain("cannot be smaller than minInstanceSize");
+            expect(mockApiClient.updateCluster).not.toHaveBeenCalled();
+        });
+    });
+
     describe("autoscaling reconciliation", () => {
         beforeEach(() => {
             mockApiClient.getCluster!.mockResolvedValue(dedicatedRaw("M10", "M30"));
@@ -336,6 +391,26 @@ describe("ScaleClusterTool", () => {
             const rc = regionConfigFromCall();
             expect((rc.analyticsSpecs as { instanceSize: string }).instanceSize).toBe("M10");
             expect(rc.analyticsAutoScaling).toEqual({ compute: { enabled: false }, diskGB: { enabled: true } });
+        });
+
+        it("leaves an analytics-only region untouched", async () => {
+            const raw = rawWithAllNodeTypes();
+            (raw.replicationSpecs as Array<{ regionConfigs: unknown[] }>)[0]!.regionConfigs.push({
+                providerName: "AWS",
+                regionName: "US_WEST_2",
+                priority: 6,
+                analyticsSpecs: { instanceSize: "M10", nodeCount: 1 },
+            });
+            mockApiClient.getCluster!.mockResolvedValue(raw);
+
+            await exec({ projectId: "proj1", clusterName: "MyCluster", instanceSize: "M30" });
+
+            const call = mockApiClient.updateCluster!.mock.calls[0]![0] as {
+                body: { replicationSpecs: Array<{ regionConfigs: Array<Record<string, unknown>> }> };
+            };
+            const analyticsOnly = call.body.replicationSpecs[0]!.regionConfigs[1]!;
+            expect(analyticsOnly.autoScaling).toBeUndefined();
+            expect((analyticsOnly.analyticsSpecs as { instanceSize: string }).instanceSize).toBe("M10");
         });
     });
 

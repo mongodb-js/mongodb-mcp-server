@@ -184,6 +184,14 @@ export class ScaleClusterTool extends AtlasToolBase {
                     `atlas-scale-cluster only supports standard M-series tiers; high-memory, NVMe, Gen2, and low-CPU (R-series) variants are not supported.`
             );
         }
+        if (!SELECTABLE_TIERS.includes(currentSize as InstanceSize)) {
+            throw new ScaleClusterError(
+                `Cluster "${clusterName}" is currently ${currentSize}, which is above the M80 cap this tool supports. ` +
+                    `Use the Atlas CLI (\`atlas clusters update\`) or the Atlas UI to scale clusters larger than M80.`
+            );
+        }
+
+        this.validateExplicitBounds(args);
 
         const compute = this.resolveComputeAutoScaling(args, currentSize as InstanceSize, state.currentMax);
         const targetSize = args.instanceSize ?? currentSize;
@@ -218,6 +226,32 @@ export class ScaleClusterTool extends AtlasToolBase {
                 clusterId: result?.id,
             },
         };
+    }
+
+    // Rejects incoherent autoscaling bounds supplied by the caller before anything is sent to Atlas.
+    private validateExplicitBounds(args: ToolArgs<typeof this.argsShape>): void {
+        const rank = (size: string): number => STANDARD_TIER_ORDER.indexOf(size);
+        const { instanceSize, minInstanceSize, maxInstanceSize } = args;
+
+        if (
+            minInstanceSize !== undefined &&
+            maxInstanceSize !== undefined &&
+            rank(minInstanceSize) > rank(maxInstanceSize)
+        ) {
+            throw new ScaleClusterError(
+                `minInstanceSize (${minInstanceSize}) cannot be larger than maxInstanceSize (${maxInstanceSize}).`
+            );
+        }
+        if (instanceSize !== undefined && minInstanceSize !== undefined && rank(instanceSize) < rank(minInstanceSize)) {
+            throw new ScaleClusterError(
+                `instanceSize (${instanceSize}) cannot be smaller than minInstanceSize (${minInstanceSize}).`
+            );
+        }
+        if (instanceSize !== undefined && maxInstanceSize !== undefined && rank(instanceSize) > rank(maxInstanceSize)) {
+            throw new ScaleClusterError(
+                `instanceSize (${instanceSize}) cannot be larger than maxInstanceSize (${maxInstanceSize}).`
+            );
+        }
     }
 
     private resolveComputeAutoScaling(
@@ -268,6 +302,11 @@ export class ScaleClusterTool extends AtlasToolBase {
                 const electableSpecs = rc.electableSpecs as Record<string, unknown> | undefined;
                 const readOnlySpecs = rc.readOnlySpecs as Record<string, unknown> | undefined;
                 const existingAutoScaling = rc.autoScaling as { diskGB?: unknown } | undefined;
+                // Regions with no electable/read-only nodes (e.g. analytics-only) don't take compute
+                // autoscaling, so leave their config untouched rather than injecting an autoScaling block.
+                if (!electableSpecs && !readOnlySpecs) {
+                    return { ...rc };
+                }
                 return {
                     ...rc,
                     ...(electableSpecs && { electableSpecs: { ...electableSpecs, instanceSize: targetSize } }),
