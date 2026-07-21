@@ -610,5 +610,55 @@ describeWithAtlas("clusters", (integration) => {
                 });
             });
         });
+
+        describe("atlas-scale-cluster", () => {
+            it("should have correct metadata", async () => {
+                const { tools } = await integration.mcpClient().listTools();
+                const tool = tools.find((t) => t.name === "atlas-scale-cluster");
+
+                expectDefined(tool);
+                expect(tool.inputSchema.type).toBe("object");
+                expectDefined(tool.inputSchema.properties);
+                expect(tool.inputSchema.properties).toHaveProperty("projectId");
+                expect(tool.inputSchema.properties).toHaveProperty("clusterName");
+                expect(tool.inputSchema.properties).toHaveProperty("instanceSize");
+                expect(tool.inputSchema.properties).toHaveProperty("computeAutoScaling");
+                expect(tool.inputSchema.properties).toHaveProperty("minInstanceSize");
+                expect(tool.inputSchema.properties).toHaveProperty("maxInstanceSize");
+            });
+
+            it("scales a dedicated cluster to a larger instance size", async () => {
+                const projectId = getProjectId();
+                const session = integration.mcpServer().session;
+                const pollingInterval = 10000;
+                const maxPollingIterations = 120;
+
+                await waitCluster(
+                    session,
+                    projectId,
+                    clusterName,
+                    (c) => c.stateName === "IDLE",
+                    pollingInterval,
+                    maxPollingIterations
+                );
+
+                const response = await integration.mcpClient().callTool({
+                    name: "atlas-scale-cluster",
+                    arguments: { projectId, clusterName, instanceSize: "M20" },
+                });
+
+                expect(response.isError).toBeFalsy();
+                const content = getResponseContent(response.content);
+                expect(content).toContain(clusterName);
+                expect(content).toContain("M20");
+                expect(content).toContain("atlas-inspect-cluster");
+                expect(content).toContain("IDLE");
+                expect(response.structuredContent).toMatchObject({
+                    clusterName,
+                    instanceSize: "M20",
+                    computeAutoScaling: true,
+                });
+            });
+        });
     });
 });
