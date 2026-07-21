@@ -239,7 +239,9 @@ export type TelemetryToolMetadata =
     | PerfAdvisorToolMetadata
     | StreamsToolMetadata
     | UpgradeClusterMetadata
-    | CreateClusterMetadata;
+    | CreateClusterMetadata
+    | IndexMetadata
+    | PauseResumeClusterMetadata;
 
 export type AtlasMetadata = {
     project_id?: string;
@@ -260,6 +262,7 @@ export const SHARED_TIER_METRIC_NAMES = [
 export type SharedTierMetricName = (typeof SHARED_TIER_METRIC_NAMES)[number];
 export type ConnectionMetadata = AtlasMetadata &
     AtlasLocalToolMetadata & {
+        connection_id?: string;
         connection_auth_type?: string;
         connection_host_type?: string;
         shared_tier_alerts_detected?: TelemetryBoolSet;
@@ -285,6 +288,11 @@ export type UpgradeClusterMetadata = AtlasMetadata & {
     region?: string;
 };
 
+export type PauseResumeClusterMetadata = AtlasMetadata & {
+    cluster_id?: string;
+    action?: "PAUSE" | "RESUME";
+};
+
 export type CreateClusterMetadata = AtlasMetadata & {
     cluster_id?: string;
     provider?: string;
@@ -296,4 +304,8 @@ export type CreateClusterMetadata = AtlasMetadata & {
     termination_protection?: TelemetryBoolSet;
     disk_size_gb?: number;
     mongodb_version?: string;
+};
+
+export type IndexMetadata = ConnectionMetadata & {
+    index_type: "classic" | "vectorSearch" | "search";
 };

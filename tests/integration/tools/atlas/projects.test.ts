@@ -32,21 +32,36 @@ describeWithAtlas("projects", (integration) => {
             expect(createProject.inputSchema.type).toBe("object");
             expectDefined(createProject.inputSchema.properties);
             expect(createProject.inputSchema.properties).toHaveProperty("projectName");
-            expect(createProject.inputSchema.properties).toHaveProperty("organizationId");
+            expect(createProject.inputSchema.properties).toHaveProperty("orgId");
         });
 
         it("should create a project", async () => {
             const projName = `testProj-${new ObjectId().toString()}`;
             projectsToCleanup.push(projName);
 
+            // Prefer a pinned org from the environment; only hit the API when it is not provided.
+            let orgId = process.env.DEV_ATLAS_MCP_ORG_ID;
+            if (!orgId) {
+                const session = integration.mcpServer().session;
+                assertApiClientIsAvailable(session);
+                const orgs = await session.apiClient.listOrgs();
+                orgId = orgs.results?.[0]?.id;
+            }
+            expectDefined(orgId);
             const response = await integration.mcpClient().callTool({
                 name: "atlas-create-project",
-                arguments: { projectName: projName },
+                arguments: { projectName: projName, orgId },
             });
 
             const elements = getResponseElements(response);
             expect(elements).toHaveLength(1);
             expect(elements[0]?.text).toContain(projName);
+
+            expectDefined(response.structuredContent);
+            expect(response.structuredContent).toMatchObject({
+                projectName: projName,
+            });
+            expect(response.structuredContent).toHaveProperty("orgId");
         });
     });
 
@@ -65,7 +80,7 @@ describeWithAtlas("projects", (integration) => {
 
             await integration.mcpClient().callTool({
                 name: "atlas-create-project",
-                arguments: { projectName: projName, organizationId: orgId },
+                arguments: { projectName: projName, orgId: orgId },
             });
         });
 

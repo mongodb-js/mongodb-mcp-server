@@ -13,6 +13,13 @@ import { MockMetrics } from "../mocks/metrics.js";
 import type { CreateSessionStoreFn, ISessionStore } from "../../../src/common/sessionStore.js";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 
+const expectedHealthData: Record<string, unknown> = {
+    status: "ok",
+    version: expect.any(String) as unknown,
+    uptimeSeconds: expect.any(Number) as unknown,
+    timestamp: expect.any(String) as unknown,
+};
+
 describe("StreamableHttpRunner", () => {
     describe("monitoring server initialization", () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -52,7 +59,7 @@ describe("StreamableHttpRunner", () => {
 
                 // Verify the custom server is actually serving requests
                 const address = customServer.serverAddress;
-                expect(await fetch(`${address}/health`).then((res) => res.json())).toEqual({ status: "ok" });
+                expect(await fetch(`${address}/health`).then((res) => res.json())).toEqual(expectedHealthData);
             });
 
             it("supports extending MonitoringServer with custom routes via hook", async () => {
@@ -86,7 +93,7 @@ describe("StreamableHttpRunner", () => {
                 });
 
                 // Verify default routes from parent class still work
-                expect(await fetch(`${address}/health`).then((res) => res.json())).toEqual({ status: "ok" });
+                expect(await fetch(`${address}/health`).then((res) => res.json())).toEqual(expectedHealthData);
                 const metricsResponse = await fetch(`${address}/metrics`);
                 expect(metricsResponse.status).toBe(200);
             });
@@ -194,6 +201,8 @@ describe("StreamableHttpRunner", () => {
                 addSession: vi.fn(),
                 closeSession: vi.fn().mockResolvedValue(undefined),
                 closeAllSessions: vi.fn().mockResolvedValue(undefined),
+                saveNegotiatedClientState: vi.fn().mockResolvedValue(undefined),
+                loadNegotiatedClientState: vi.fn().mockResolvedValue(undefined),
             };
 
             const createSessionStore: CreateSessionStoreFn<StreamableHTTPServerTransport> = () => mockSessionStore;
@@ -242,6 +251,7 @@ describe("StreamableHttpRunner", () => {
                 options: {
                     idleTimeoutMS: 120_000,
                     notificationTimeoutMS: 60_000,
+                    maxSessions: customConfig.maxSessions,
                 },
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                 logger: expect.any(Object),

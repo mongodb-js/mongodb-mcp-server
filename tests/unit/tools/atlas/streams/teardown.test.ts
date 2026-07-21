@@ -75,7 +75,8 @@ describe("StreamsTeardownTool", () => {
 
     const baseArgs = { projectId: "proj1" };
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    const exec = (args: Record<string, unknown>) => tool["execute"](args as never);
+    const exec = (args: Record<string, unknown>) =>
+        tool["execute"](args as never, { signal: new AbortController().signal } as never);
     const confirmMsg = (args: Record<string, unknown>): string => tool["getConfirmationMessage"](args as never);
 
     describe("deleteProcessor", () => {
@@ -94,6 +95,7 @@ describe("StreamsTeardownTool", () => {
             expect(mockApiClient.stopStreamProcessor).toHaveBeenCalledOnce();
             expect(mockApiClient.deleteStreamProcessor).toHaveBeenCalledOnce();
             expect((result.content[0] as { text: string }).text).toContain("deleted");
+            expect(result.structuredContent).toEqual({ resource: "processor" });
         });
 
         it("should proceed with delete when getStreamProcessor throws (error state)", async () => {
@@ -110,6 +112,7 @@ describe("StreamsTeardownTool", () => {
             expect(mockApiClient.stopStreamProcessor).not.toHaveBeenCalled();
             expect(mockApiClient.deleteStreamProcessor).toHaveBeenCalledOnce();
             expect((result.content[0] as { text: string }).text).toContain("deleted");
+            expect(result.structuredContent).toEqual({ resource: "processor" });
             expect(mockLogger.debug).toHaveBeenCalledWith(
                 expect.objectContaining({
                     context: "streams-teardown",
@@ -119,11 +122,29 @@ describe("StreamsTeardownTool", () => {
             );
         });
 
+        it("includes x-request-id in debug log when getStreamProcessor throws during delete", async () => {
+            mockApiClient.getStreamProcessor!.mockRejectedValue(new Error("lookup failed"));
+            mockApiClient.deleteStreamProcessor!.mockResolvedValue({});
+
+            await tool["execute"](
+                { ...baseArgs, resource: "processor", workspaceName: "ws1", resourceName: "proc1" } as never,
+                { signal: new AbortController().signal, requestInfo: { headers: { "x-request-id": "req-del-1" } } }
+            );
+
+            expect(mockLogger.debug).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    context: "streams-teardown",
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                    attributes: expect.objectContaining({ "x-request-id": "req-del-1" }),
+                })
+            );
+        });
+
         it("should delete a STOPPED processor without stopping first", async () => {
             mockApiClient.getStreamProcessor!.mockResolvedValue({ state: "STOPPED", name: "proc1" });
             mockApiClient.deleteStreamProcessor!.mockResolvedValue({});
 
-            await exec({
+            const result = await exec({
                 ...baseArgs,
                 resource: "processor",
                 workspaceName: "ws1",
@@ -132,6 +153,7 @@ describe("StreamsTeardownTool", () => {
 
             expect(mockApiClient.stopStreamProcessor).not.toHaveBeenCalled();
             expect(mockApiClient.deleteStreamProcessor).toHaveBeenCalledOnce();
+            expect(result.structuredContent).toEqual({ resource: "processor" });
         });
 
         it("should throw when workspaceName is missing", async () => {
@@ -169,6 +191,7 @@ describe("StreamsTeardownTool", () => {
 
             expect(mockApiClient.deleteStreamConnection).toHaveBeenCalledOnce();
             expect((result.content[0] as { text: string }).text).toContain("deletion initiated");
+            expect(result.structuredContent).toEqual({ resource: "connection" });
         });
 
         it("should warn and NOT delete when running processor references connection", async () => {
@@ -192,6 +215,7 @@ describe("StreamsTeardownTool", () => {
             expect(result.isError).toBe(true);
             expect((result.content[0] as { text: string }).text).toContain("Warning");
             expect((result.content[0] as { text: string }).text).toContain("running processor");
+            expect(result.structuredContent).toBeUndefined();
             expect(mockApiClient.deleteStreamConnection).not.toHaveBeenCalled();
         });
 
@@ -277,6 +301,7 @@ describe("StreamsTeardownTool", () => {
 
             expect(mockApiClient.deleteStreamConnection).toHaveBeenCalledOnce();
             expect((result.content[0] as { text: string }).text).toContain("deletion initiated");
+            expect(result.structuredContent).toEqual({ resource: "connection" });
         });
 
         it("should proceed with deletion when processor list API fails", async () => {
@@ -292,6 +317,7 @@ describe("StreamsTeardownTool", () => {
 
             expect(mockApiClient.deleteStreamConnection).toHaveBeenCalledOnce();
             expect((result.content[0] as { text: string }).text).toContain("deletion initiated");
+            expect(result.structuredContent).toEqual({ resource: "connection" });
         });
     });
 
@@ -313,6 +339,11 @@ describe("StreamsTeardownTool", () => {
 
             expect((result.content[0] as { text: string }).text).toContain("2 processor(s)");
             expect((result.content[0] as { text: string }).text).toContain("3 connection(s)");
+            expect(result.structuredContent).toEqual({
+                resource: "workspace",
+                processorsRemoved: 2,
+                connectionsRemoved: 3,
+            });
         });
 
         it("should not include impact note for empty workspace", async () => {
@@ -328,6 +359,11 @@ describe("StreamsTeardownTool", () => {
 
             expect((result.content[0] as { text: string }).text).not.toContain("processor(s)");
             expect((result.content[0] as { text: string }).text).toContain("deletion initiated");
+            expect(result.structuredContent).toEqual({
+                resource: "workspace",
+                processorsRemoved: 0,
+                connectionsRemoved: 0,
+            });
         });
 
         it("should proceed without impact note when count APIs fail", async () => {
@@ -342,6 +378,7 @@ describe("StreamsTeardownTool", () => {
             });
 
             expect((result.content[0] as { text: string }).text).toContain("deletion initiated");
+            expect(result.structuredContent).toEqual({ resource: "workspace" });
         });
 
         it("should include connection count when only connection API succeeds", async () => {
@@ -360,6 +397,10 @@ describe("StreamsTeardownTool", () => {
             const text = (result.content[0] as { text: string }).text;
             expect(text).toContain("2 connection(s)");
             expect(text).toContain("0 processor(s)");
+            expect(result.structuredContent).toEqual({
+                resource: "workspace",
+                connectionsRemoved: 2,
+            });
         });
 
         it("should include processor count when only processor API succeeds", async () => {
@@ -378,6 +419,10 @@ describe("StreamsTeardownTool", () => {
             const text = (result.content[0] as { text: string }).text;
             expect(text).toContain("3 processor(s)");
             expect(text).toContain("0 connection(s)");
+            expect(result.structuredContent).toEqual({
+                resource: "workspace",
+                processorsRemoved: 3,
+            });
         });
     });
 
@@ -391,11 +436,15 @@ describe("StreamsTeardownTool", () => {
                 resourceName: "pl-123",
             });
 
-            expect(mockApiClient.deletePrivateLinkConnection).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1", connectionId: "pl-123" } },
-            });
+            expect(mockApiClient.deletePrivateLinkConnection).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1", connectionId: "pl-123" } },
+                },
+                expect.anything()
+            );
             expect((result.content[0] as { text: string }).text).toContain("pl-123");
             expect((result.content[0] as { text: string }).text).toContain("deletion initiated");
+            expect(result.structuredContent).toEqual({ resource: "privatelink" });
         });
     });
 
@@ -409,10 +458,14 @@ describe("StreamsTeardownTool", () => {
                 resourceName: "peer-456",
             });
 
-            expect(mockApiClient.deleteVpcPeeringConnection).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1", id: "peer-456" } },
-            });
+            expect(mockApiClient.deleteVpcPeeringConnection).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1", id: "peer-456" } },
+                },
+                expect.anything()
+            );
             expect((result.content[0] as { text: string }).text).toContain("peer-456");
+            expect(result.structuredContent).toEqual({ resource: "peering" });
         });
     });
 

@@ -3,10 +3,11 @@ import fs from "fs/promises";
 import { EJSON, Long, ObjectId } from "bson";
 import { describe, expect, it, beforeEach, afterAll } from "vitest";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { defaultTestConfig, getDataFromUntrustedContent, resourceChangedNotification, timeout } from "../helpers.js";
+import { defaultTestConfig, getDataFromUntrustedContent, resourceChangedNotification } from "../helpers.js";
 import { describeWithMongoDB } from "../tools/mongodb/mongodbHelpers.js";
 import { contentWithResourceURILink } from "../tools/mongodb/read/export.test.js";
 import type { UserConfig } from "../../../src/lib.js";
+import { sleep } from "../../../src/common/managedTimeout.js";
 
 const userConfig: UserConfig = {
     ...defaultTestConfig,
@@ -65,10 +66,11 @@ describeWithMongoDB(
 
         describe("when requesting an expired resource", () => {
             it("should return an error", async () => {
-                await integration.connectMcpClient();
+                const connectionId = await integration.connectMcpClient();
                 const exportResponse = await integration.mcpClient().callTool({
                     name: "export",
                     arguments: {
+                        connectionId,
                         database: "db",
                         collection,
                         exportTitle: "Export for db.coll",
@@ -83,7 +85,7 @@ describeWithMongoDB(
 
                 // wait for export expired
                 for (let tries = 0; tries < 10; tries++) {
-                    await timeout(300);
+                    await sleep(300);
                     const response = await integration.mcpClient().readResource({
                         uri: exportedResourceURI as string,
                     });
@@ -105,10 +107,11 @@ describeWithMongoDB(
 
         describe("after requesting a fresh export", () => {
             it("should be able to read the resource", async () => {
-                await integration.connectMcpClient();
+                const connectionId = await integration.connectMcpClient();
                 const exportResponse = await integration.mcpClient().callTool({
                     name: "export",
                     arguments: {
+                        connectionId,
                         database: "db",
                         collection,
                         exportTitle: "Export for db.coll",
@@ -143,10 +146,11 @@ describeWithMongoDB(
             });
 
             it("should be able to autocomplete the resource", async () => {
-                await integration.connectMcpClient();
+                const connectionId = await integration.connectMcpClient();
                 const exportResponse = await integration.mcpClient().callTool({
                     name: "export",
                     arguments: {
+                        connectionId,
                         database: "big",
                         collection,
                         exportTitle: "Export for big.coll",

@@ -6,12 +6,12 @@
     "url": "https://github.com/mongodb-js/mongodb-mcp-server",
     "source": "github"
   },
-  "version": "1.12.0",
+  "version": "1.15.0-alpha.2",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "mongodb-mcp-server",
-      "version": "1.12.0",
+      "version": "1.15.0-alpha.2",
       "transport": {
         "type": "stdio"
       },
@@ -59,6 +59,13 @@
           "isSecret": false
         },
         {
+          "name": "MDB_MCP_CONNECTION_SCOPE",
+          "description": "Visibility scope for MongoDB connections created at runtime. With 'session' (the default), each MCP session only sees the connections it created (plus the shared 'preconfigured' one) and they are closed when the session ends — recommended when the HTTP transport is exposed to multiple clients without authentication. With 'global', connections are shared across all sessions and survive session rotation.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
           "name": "MDB_MCP_CONNECTION_STRING",
           "description": "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data.",
           "isRequired": false,
@@ -84,6 +91,13 @@
           "description": "When true, runs the server in dry mode: dumps configuration and enabled tools, then exits without starting the server.",
           "isRequired": false,
           "format": "boolean",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_ELICITATION_TIMEOUT_MS",
+          "description": "Time in milliseconds the user has to respond to an elicitation request (such as a tool confirmation prompt) before it fails.",
+          "isRequired": false,
+          "format": "number",
           "isSecret": false
         },
         {
@@ -192,6 +206,13 @@
           "isSecret": false
         },
         {
+          "name": "MDB_MCP_MAX_ACTIVE_CONNECTIONS",
+          "description": "Maximum number of MongoDB connections a single scope (an MCP session by default, see connectionScope) can hold open. When exceeded, the scope's least-recently-used connection is closed and its connectionId revoked. The preconfigured connection does not count towards the limit.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
           "name": "MDB_MCP_MAX_BYTES_PER_QUERY",
           "description": "The maximum size in bytes for results from a find or aggregate tool call. This serves as an upper bound for the responseBytesLimit parameter in those tools.",
           "isRequired": false,
@@ -201,6 +222,13 @@
         {
           "name": "MDB_MCP_MAX_DOCUMENTS_PER_QUERY",
           "description": "The maximum number of documents that can be returned by a find or aggregate tool call. For the find tool, the effective limit will be the smaller of this value and the tool's limit parameter.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_MAX_SESSIONS",
+          "description": "Maximum number of concurrent sessions the HTTP transport will hold in memory (only used when transport is 'http'). Each session holds a full server instance, transport, and timers, so choose a value based on your deployment's available memory; the default is a conservative safety net rather than a recommended production value.",
           "isRequired": false,
           "format": "number",
           "isSecret": false
@@ -324,6 +352,12 @@
         },
         {
           "type": "named",
+          "name": "--connectionScope",
+          "description": "Visibility scope for MongoDB connections created at runtime. With 'session' (the default), each MCP session only sees the connections it created (plus the shared 'preconfigured' one) and they are closed when the session ends — recommended when the HTTP transport is exposed to multiple clients without authentication. With 'global', connections are shared across all sessions and survive session rotation.",
+          "isRequired": false
+        },
+        {
+          "type": "named",
           "name": "--connectionString",
           "description": "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data.",
           "isRequired": false
@@ -347,6 +381,13 @@
           "description": "When true, runs the server in dry mode: dumps configuration and enabled tools, then exits without starting the server.",
           "isRequired": false,
           "format": "boolean"
+        },
+        {
+          "type": "named",
+          "name": "--elicitationTimeoutMs",
+          "description": "Time in milliseconds the user has to respond to an elicitation request (such as a tool confirmation prompt) before it fails.",
+          "isRequired": false,
+          "format": "number"
         },
         {
           "type": "named",
@@ -448,6 +489,13 @@
         },
         {
           "type": "named",
+          "name": "--maxActiveConnections",
+          "description": "Maximum number of MongoDB connections a single scope (an MCP session by default, see connectionScope) can hold open. When exceeded, the scope's least-recently-used connection is closed and its connectionId revoked. The preconfigured connection does not count towards the limit.",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "type": "named",
           "name": "--maxBytesPerQuery",
           "description": "The maximum size in bytes for results from a find or aggregate tool call. This serves as an upper bound for the responseBytesLimit parameter in those tools.",
           "isRequired": false,
@@ -457,6 +505,13 @@
           "type": "named",
           "name": "--maxDocumentsPerQuery",
           "description": "The maximum number of documents that can be returned by a find or aggregate tool call. For the find tool, the effective limit will be the smaller of this value and the tool's limit parameter.",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "type": "named",
+          "name": "--maxSessions",
+          "description": "Maximum number of concurrent sessions the HTTP transport will hold in memory (only used when transport is 'http'). Each session holds a full server instance, transport, and timers, so choose a value based on your deployment's available memory; the default is a conservative safety net rather than a recommended production value.",
           "isRequired": false,
           "format": "number"
         },
@@ -534,7 +589,7 @@
     },
     {
       "registryType": "oci",
-      "identifier": "docker.io/mongodb/mongodb-mcp-server:1.12.0",
+      "identifier": "docker.io/mongodb/mongodb-mcp-server:1.15.0-alpha.2",
       "transport": {
         "type": "stdio"
       },
@@ -582,6 +637,13 @@
           "isSecret": false
         },
         {
+          "name": "MDB_MCP_CONNECTION_SCOPE",
+          "description": "Visibility scope for MongoDB connections created at runtime. With 'session' (the default), each MCP session only sees the connections it created (plus the shared 'preconfigured' one) and they are closed when the session ends — recommended when the HTTP transport is exposed to multiple clients without authentication. With 'global', connections are shared across all sessions and survive session rotation.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
           "name": "MDB_MCP_CONNECTION_STRING",
           "description": "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data.",
           "isRequired": false,
@@ -607,6 +669,13 @@
           "description": "When true, runs the server in dry mode: dumps configuration and enabled tools, then exits without starting the server.",
           "isRequired": false,
           "format": "boolean",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_ELICITATION_TIMEOUT_MS",
+          "description": "Time in milliseconds the user has to respond to an elicitation request (such as a tool confirmation prompt) before it fails.",
+          "isRequired": false,
+          "format": "number",
           "isSecret": false
         },
         {
@@ -715,6 +784,13 @@
           "isSecret": false
         },
         {
+          "name": "MDB_MCP_MAX_ACTIVE_CONNECTIONS",
+          "description": "Maximum number of MongoDB connections a single scope (an MCP session by default, see connectionScope) can hold open. When exceeded, the scope's least-recently-used connection is closed and its connectionId revoked. The preconfigured connection does not count towards the limit.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
           "name": "MDB_MCP_MAX_BYTES_PER_QUERY",
           "description": "The maximum size in bytes for results from a find or aggregate tool call. This serves as an upper bound for the responseBytesLimit parameter in those tools.",
           "isRequired": false,
@@ -724,6 +800,13 @@
         {
           "name": "MDB_MCP_MAX_DOCUMENTS_PER_QUERY",
           "description": "The maximum number of documents that can be returned by a find or aggregate tool call. For the find tool, the effective limit will be the smaller of this value and the tool's limit parameter.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_MAX_SESSIONS",
+          "description": "Maximum number of concurrent sessions the HTTP transport will hold in memory (only used when transport is 'http'). Each session holds a full server instance, transport, and timers, so choose a value based on your deployment's available memory; the default is a conservative safety net rather than a recommended production value.",
           "isRequired": false,
           "format": "number",
           "isSecret": false
@@ -847,6 +930,12 @@
         },
         {
           "type": "named",
+          "name": "--connectionScope",
+          "description": "Visibility scope for MongoDB connections created at runtime. With 'session' (the default), each MCP session only sees the connections it created (plus the shared 'preconfigured' one) and they are closed when the session ends — recommended when the HTTP transport is exposed to multiple clients without authentication. With 'global', connections are shared across all sessions and survive session rotation.",
+          "isRequired": false
+        },
+        {
+          "type": "named",
           "name": "--connectionString",
           "description": "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data.",
           "isRequired": false
@@ -870,6 +959,13 @@
           "description": "When true, runs the server in dry mode: dumps configuration and enabled tools, then exits without starting the server.",
           "isRequired": false,
           "format": "boolean"
+        },
+        {
+          "type": "named",
+          "name": "--elicitationTimeoutMs",
+          "description": "Time in milliseconds the user has to respond to an elicitation request (such as a tool confirmation prompt) before it fails.",
+          "isRequired": false,
+          "format": "number"
         },
         {
           "type": "named",
@@ -971,6 +1067,13 @@
         },
         {
           "type": "named",
+          "name": "--maxActiveConnections",
+          "description": "Maximum number of MongoDB connections a single scope (an MCP session by default, see connectionScope) can hold open. When exceeded, the scope's least-recently-used connection is closed and its connectionId revoked. The preconfigured connection does not count towards the limit.",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "type": "named",
           "name": "--maxBytesPerQuery",
           "description": "The maximum size in bytes for results from a find or aggregate tool call. This serves as an upper bound for the responseBytesLimit parameter in those tools.",
           "isRequired": false,
@@ -980,6 +1083,13 @@
           "type": "named",
           "name": "--maxDocumentsPerQuery",
           "description": "The maximum number of documents that can be returned by a find or aggregate tool call. For the find tool, the effective limit will be the smaller of this value and the tool's limit parameter.",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "type": "named",
+          "name": "--maxSessions",
+          "description": "Maximum number of concurrent sessions the HTTP transport will hold in memory (only used when transport is 'http'). Each session holds a full server instance, transport, and timers, so choose a value based on your deployment's available memory; the default is a conservative safety net rather than a recommended production value.",
           "isRequired": false,
           "format": "number"
         },

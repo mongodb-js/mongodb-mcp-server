@@ -1,7 +1,8 @@
 import z from "zod";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { type ToolArgs, type OperationType, formatUntrustedData, type ToolResult } from "../../tool.js";
+import { escapeMarkdown } from "../../../helpers/escapeMarkdown.js";
 
 const DropIndexOutputSchema = {
     database: z.string(),
@@ -16,6 +17,7 @@ export class DropIndexTool extends MongoDBToolBase {
     static toolName = "drop-index";
     public description = "Drop an index for the provided database and collection.";
     public argsShape = {
+        ...ConnectionIdArgs,
         ...CollOperationArgs,
         indexName: z.string().nonempty().describe("The name of the index to be dropped."),
         type: z
@@ -28,7 +30,7 @@ export class DropIndexTool extends MongoDBToolBase {
     static operationType: OperationType = "delete";
 
     protected async execute(toolArgs: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
-        const provider = await this.ensureConnected();
+        const provider = await this.resolveConnection(toolArgs.connectionId);
         switch (toolArgs.type) {
             case "classic":
                 return this.dropClassicIndex(provider, toolArgs);
@@ -66,9 +68,9 @@ export class DropIndexTool extends MongoDBToolBase {
 
     private async dropSearchIndex(
         provider: NodeDriverServiceProvider,
-        { database, collection, indexName }: ToolArgs<typeof this.argsShape>
+        { connectionId, database, collection, indexName }: ToolArgs<typeof this.argsShape>
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        await this.session.assertSearchSupported();
+        await this.assertSearchSupported(connectionId);
         const indexes = await provider.getSearchIndexes(database, collection, indexName);
         if (indexes.length === 0) {
             return {
@@ -111,7 +113,7 @@ export class DropIndexTool extends MongoDBToolBase {
         type,
     }: ToolArgs<typeof this.argsShape>): string {
         return (
-            `You are about to drop the ${type === "search" ? "search index" : "index"} named \`${indexName}\` from the \`${database}.${collection}\` namespace:\n\n` +
+            `You are about to drop the ${type === "search" ? "search index" : "index"} named **${escapeMarkdown(indexName)}** from the **${escapeMarkdown(database)}.${escapeMarkdown(collection)}** namespace:\n\n` +
             "This operation will permanently remove the index and might affect the performance of queries relying on this index.\n\n" +
             "**Do you confirm the execution of the action?**"
         );

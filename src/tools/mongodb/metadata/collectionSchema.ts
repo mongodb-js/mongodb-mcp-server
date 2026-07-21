@@ -1,4 +1,4 @@
-import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { getSimplifiedSchema } from "mongodb-schema";
@@ -20,6 +20,7 @@ export class CollectionSchemaTool extends MongoDBToolBase {
     static toolName = "collection-schema";
     public description = "Describe the schema for a collection";
     public argsShape = {
+        ...ConnectionIdArgs,
         ...CollOperationArgs,
         sampleSize: z.number().optional().default(50).describe("Number of documents to sample for schema inference"),
         responseBytesLimit: z
@@ -35,10 +36,10 @@ export class CollectionSchemaTool extends MongoDBToolBase {
     static operationType: OperationType = "metadata";
 
     protected async execute(
-        { database, collection, sampleSize, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
+        { connectionId, database, collection, sampleSize, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        const provider = await this.ensureConnected();
+        const provider = await this.resolveConnection(connectionId);
         const cursor = provider.aggregate(
             database,
             collection,
@@ -59,7 +60,7 @@ export class CollectionSchemaTool extends MongoDBToolBase {
             return {
                 content: [
                     {
-                        text: `Could not deduce the schema for "${database}.${collection}". This may be because it doesn't exist or is empty.`,
+                        text: "Could not deduce the schema for the requested namespace. This may be because it doesn't exist or is empty.",
                         type: "text",
                     },
                 ],
@@ -71,10 +72,10 @@ export class CollectionSchemaTool extends MongoDBToolBase {
         }
 
         const fieldsCount = Object.keys(schema).length;
-        const header = `Found ${fieldsCount} fields in the schema for "${database}.${collection}". Note that this schema is inferred from a sample and may not represent the full schema of the collection.`;
+        const header = `Found ${fieldsCount} fields in the sampled schema. Note that this schema is inferred from a sample and may not represent the full schema of the collection.`;
 
         return {
-            content: formatUntrustedData(`${header}`, JSON.stringify(schema)),
+            content: formatUntrustedData(header, JSON.stringify({ database, collection, schema })),
             structuredContent: {
                 schema,
                 fieldsCount,

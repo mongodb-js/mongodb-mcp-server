@@ -9,6 +9,47 @@ import {
 import { expect, it, afterEach } from "vitest";
 import { describeWithMongoDB, getDocsFromUntrustedContent, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 import type { Client } from "@modelcontextprotocol/sdk/client";
+import type { CursorLimitKey } from "../../../../../src/helpers/constants.js";
+import { bsonToJson } from "../../../../../src/helpers/bsonToJson.js";
+
+type AggregateDBToolResponse = Awaited<ReturnType<Client["callTool"]>>;
+
+function getDocsFromUntrustedContentWhenPresent(content: string): unknown[] {
+    try {
+        return getDocsFromUntrustedContent(content);
+    } catch {
+        return [];
+    }
+}
+
+function expectAggregateDBStructuredContent(
+    response: AggregateDBToolResponse,
+    content: string,
+    expected: {
+        aggResultsCount?: number;
+        omitAggResultsCount?: boolean;
+        appliedLimits?: CursorLimitKey[];
+    }
+): void {
+    const contentDocs = getDocsFromUntrustedContentWhenPresent(content);
+    const expectedStructuredContent: Record<string, unknown> = {
+        documents: contentDocs.length > 0 ? bsonToJson(contentDocs) : [],
+    };
+
+    if (!expected.omitAggResultsCount && expected.aggResultsCount !== undefined) {
+        expectedStructuredContent.aggResultsCount = expected.aggResultsCount;
+    }
+
+    if (expected.appliedLimits !== undefined) {
+        expectedStructuredContent.appliedLimits = expected.appliedLimits;
+    }
+
+    expect(response.structuredContent).toMatchObject(expectedStructuredContent);
+
+    if (expected.omitAggResultsCount) {
+        expect(response.structuredContent).not.toHaveProperty("aggResultsCount");
+    }
+}
 
 describeWithMongoDB("aggregate-db tool", (integration) => {
     afterEach(() => {
@@ -41,21 +82,23 @@ describeWithMongoDB("aggregate-db tool", (integration) => {
     ]);
 
     it("rejects pipelines whose first stage is not a database-level aggregation stage", async () => {
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         const result = await integration.mcpClient().callTool({
             name: "aggregate-db",
-            arguments: { database: "test", pipeline: [{ $match: { name: "Peter" } }] },
+            arguments: { connectionId, database: "test", pipeline: [{ $match: { name: "Peter" } }] },
         });
         expect(result.isError).toBe(true);
         const message = getResponseContent(result.content);
         expect(message).toContain("first stage of the pipeline must be a database-level aggregation stage");
+        expect(result.structuredContent).toBeUndefined();
     });
 
     it("can run aggregation-db on an existing database", async () => {
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         const response = await integration.mcpClient().callTool({
             name: "aggregate-db",
             arguments: {
+                connectionId,
                 database: integration.randomDbName(),
                 pipeline: [
                     {
@@ -73,13 +116,18 @@ describeWithMongoDB("aggregate-db tool", (integration) => {
         const docs = getDocsFromUntrustedContent(content);
         expect(docs[0]).toEqual({ name: "test1", value: 1 });
         expect(docs[1]).toEqual({ name: "test2", value: 2 });
+        expectAggregateDBStructuredContent(response, content, {
+            aggResultsCount: 2,
+            appliedLimits: [],
+        });
     });
 
     it("can run aggregation-db on the admin database", async () => {
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         const response = await integration.mcpClient().callTool({
             name: "aggregate-db",
             arguments: {
+                connectionId,
                 database: "admin",
                 pipeline: [{ $currentOp: { allUsers: true, idleSessions: true } }, { $limit: 10 }],
             },
@@ -90,11 +138,12 @@ describeWithMongoDB("aggregate-db tool", (integration) => {
     });
 
     it("can not run $out stages in readOnly mode", async () => {
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         integration.mcpServer().userConfig.readOnly = true;
         const response = await integration.mcpClient().callTool({
             name: "aggregate-db",
             arguments: {
+                connectionId,
                 database: integration.randomDbName(),
                 pipeline: [{ $documents: [{ name: "Peter", age: 5 }] }, { $out: "outpeople" }],
             },
@@ -103,14 +152,16 @@ describeWithMongoDB("aggregate-db tool", (integration) => {
         expect(content).toEqual(
             "Error running aggregate-db: In readOnly mode you can not run pipelines with $out or $merge stages."
         );
+        expect(response.structuredContent).toBeUndefined();
     });
 
     it("can not run $merge stages in readOnly mode", async () => {
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         integration.mcpServer().userConfig.readOnly = true;
         const response = await integration.mcpClient().callTool({
             name: "aggregate-db",
             arguments: {
+                connectionId,
                 database: integration.randomDbName(),
                 pipeline: [{ $documents: [{ name: "Peter", age: 5 }] }, { $merge: "outpeople" }],
             },
@@ -119,20 +170,26 @@ describeWithMongoDB("aggregate-db tool", (integration) => {
         expect(content).toEqual(
             "Error running aggregate-db: In readOnly mode you can not run pipelines with $out or $merge stages."
         );
+        expect(response.structuredContent).toBeUndefined();
     });
 
     it("can run $out stages in non-readonly mode", async () => {
         const mongoClient = integration.mongoClient();
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         const response = await integration.mcpClient().callTool({
             name: "aggregate-db",
             arguments: {
+                connectionId,
                 database: integration.randomDbName(),
                 pipeline: [{ $documents: [{ name: "Peter", age: 5 }] }, { $out: "outpeople" }],
             },
         });
         const content = getResponseContent(response);
         expect(content).toEqual("The aggregation pipeline executed successfully.");
+        expectAggregateDBStructuredContent(response, content, {
+            omitAggResultsCount: true,
+            appliedLimits: [],
+        });
 
         const copiedDocs = await mongoClient.db(integration.randomDbName()).collection("outpeople").find().toArray();
         expect(copiedDocs).toHaveLength(1);
@@ -141,17 +198,21 @@ describeWithMongoDB("aggregate-db tool", (integration) => {
 
     it("can run $merge stages in non-readonly mode", async () => {
         const mongoClient = integration.mongoClient();
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         const response = await integration.mcpClient().callTool({
             name: "aggregate-db",
             arguments: {
+                connectionId,
                 database: integration.randomDbName(),
-                collection: "people",
                 pipeline: [{ $documents: [{ name: "Peter", age: 5 }] }, { $merge: "mergedpeople" }],
             },
         });
         const content = getResponseContent(response);
         expect(content).toEqual("The aggregation pipeline executed successfully.");
+        expectAggregateDBStructuredContent(response, content, {
+            omitAggResultsCount: true,
+            appliedLimits: [],
+        });
 
         const mergedDocs = await mongoClient.db(integration.randomDbName()).collection("mergedpeople").find().toArray();
         expect(mergedDocs).toHaveLength(1);
@@ -160,11 +221,12 @@ describeWithMongoDB("aggregate-db tool", (integration) => {
 
     for (const disabledOpType of ["create", "update", "delete"] as const) {
         it(`can not run $out stages when ${disabledOpType} operation is disabled`, async () => {
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             integration.mcpServer().userConfig.disabledTools = [disabledOpType];
             const response = await integration.mcpClient().callTool({
                 name: "aggregate-db",
                 arguments: {
+                    connectionId,
                     database: integration.randomDbName(),
                     pipeline: [{ $documents: [{ name: "Peter", age: 5 }] }, { $out: "outpeople" }],
                 },
@@ -176,11 +238,12 @@ describeWithMongoDB("aggregate-db tool", (integration) => {
         });
 
         it(`can not run $merge stages when ${disabledOpType} operation is disabled`, async () => {
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             integration.mcpServer().userConfig.disabledTools = [disabledOpType];
             const response = await integration.mcpClient().callTool({
                 name: "aggregate-db",
                 arguments: {
+                    connectionId,
                     database: integration.randomDbName(),
                     pipeline: [{ $documents: [{ name: "Peter", age: 5 }] }, { $merge: "outpeople" }],
                 },
@@ -228,10 +291,11 @@ describeWithMongoDB(
         };
 
         it("should return documents limited to the configured limit without $limit stage", async () => {
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "aggregate-db",
                 arguments: {
+                    connectionId,
                     database: integration.randomDbName(),
                     pipeline: [{ $documents: initialDocs }, { $sort: { age: -1 } }],
                 },
@@ -244,13 +308,18 @@ describeWithMongoDB(
             );
             const docs = getDocsFromUntrustedContent(content);
             validateDocs(docs, 20);
+            expectAggregateDBStructuredContent(response, content, {
+                aggResultsCount: 100,
+                appliedLimits: ["config.maxDocumentsPerQuery"],
+            });
         });
 
         it("should return documents limited to the configured limit with $limit stage larger than the configured", async () => {
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "aggregate-db",
                 arguments: {
+                    connectionId,
                     database: integration.randomDbName(),
                     pipeline: [{ $documents: initialDocs }, { $sort: { age: -1 } }, { $limit: 50 }],
                 },
@@ -263,13 +332,18 @@ describeWithMongoDB(
             );
             const docs = getDocsFromUntrustedContent(content);
             validateDocs(docs, 20);
+            expectAggregateDBStructuredContent(response, content, {
+                aggResultsCount: 50,
+                appliedLimits: ["config.maxDocumentsPerQuery"],
+            });
         });
 
         it("should return documents limited to the $limit stage when smaller than the configured limit", async () => {
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "aggregate-db",
                 arguments: {
+                    connectionId,
                     database: integration.randomDbName(),
                     pipeline: [{ $documents: initialDocs }, { $sort: { age: -1 } }, { $limit: 5 }],
                 },
@@ -280,6 +354,10 @@ describeWithMongoDB(
 
             const docs = getDocsFromUntrustedContent(content);
             validateDocs(docs, 5);
+            expectAggregateDBStructuredContent(response, content, {
+                aggResultsCount: 5,
+                appliedLimits: [],
+            });
         });
     },
     {
@@ -297,10 +375,11 @@ describeWithMongoDB(
         }));
 
         it("should return only the documents that could fit in maxBytesPerQuery limit", async () => {
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "aggregate-db",
                 arguments: {
+                    connectionId,
                     database: integration.randomDbName(),
                     pipeline: [{ $documents: initialDocuments }, { $sort: { name: -1 } }],
                 },
@@ -311,13 +390,18 @@ describeWithMongoDB(
             expect(content).toContain(
                 `Returning 5 documents while respecting the applied limits of server's configured - maxDocumentsPerQuery, server's configured - maxBytesPerQuery.`
             );
+            expectAggregateDBStructuredContent(response, content, {
+                aggResultsCount: 1000,
+                appliedLimits: ["config.maxDocumentsPerQuery", "config.maxBytesPerQuery"],
+            });
         });
 
         it("should return only the documents that could fit in responseBytesLimit", async () => {
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "aggregate-db",
                 arguments: {
+                    connectionId,
                     database: integration.randomDbName(),
                     pipeline: [{ $documents: initialDocuments }, { $sort: { name: -1 } }],
                     responseBytesLimit: 100,
@@ -329,6 +413,10 @@ describeWithMongoDB(
             expect(content).toContain(
                 `Returning 2 documents while respecting the applied limits of server's configured - maxDocumentsPerQuery, tool's parameter - responseBytesLimit.`
             );
+            expectAggregateDBStructuredContent(response, content, {
+                aggResultsCount: 1000,
+                appliedLimits: ["config.maxDocumentsPerQuery", "tool.responseBytesLimit"],
+            });
         });
     },
     {
@@ -346,10 +434,11 @@ describeWithMongoDB(
                 age: idx,
             }));
 
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "aggregate-db",
                 arguments: {
+                    connectionId,
                     database: integration.randomDbName(),
                     pipeline: [{ $documents: initialDocuments }, { $sort: { name: -1 } }],
                     responseBytesLimit: 1 * 1024 * 1024, // 1MB
@@ -358,6 +447,10 @@ describeWithMongoDB(
 
             const content = getResponseContent(response);
             expect(content).toContain("The aggregation resulted in 1000 documents");
+            expectAggregateDBStructuredContent(response, content, {
+                aggResultsCount: 1000,
+                appliedLimits: [],
+            });
         });
     },
     {
@@ -368,6 +461,7 @@ describeWithMongoDB(
 describeWithMongoDB(
     "aggregate-db tool with abort signal",
     (integration) => {
+        let connectionId: string;
         const initialDocsCount = 1000;
         const initialDocuments = Array.from({ length: initialDocsCount }).map((_, idx) => ({
             _id: idx,
@@ -387,6 +481,7 @@ describeWithMongoDB(
                     {
                         name: "aggregate-db",
                         arguments: {
+                            connectionId,
                             database: integration.randomDbName(),
                             pipeline: [
                                 { $documents: initialDocuments },
@@ -440,7 +535,7 @@ describeWithMongoDB(
         };
 
         it("should abort aggregate-db operation when signal is triggered immediately", async () => {
-            await integration.connectMcpClient();
+            connectionId = await integration.connectMcpClient();
             const abortController = new AbortController();
 
             const aggregatePromise = runSlowAggregateDb(abortController.signal);
@@ -457,7 +552,7 @@ describeWithMongoDB(
         });
 
         it("should abort aggregate-db operation during cursor iteration", async () => {
-            await integration.connectMcpClient();
+            connectionId = await integration.connectMcpClient();
 
             // Measure the full (unaborted) run time as a baseline so the abort bound
             // stays meaningful regardless of how fast the CI runner is.
@@ -489,7 +584,7 @@ describeWithMongoDB(
         });
 
         it("should complete successfully when not aborted", async () => {
-            await integration.connectMcpClient();
+            connectionId = await integration.connectMcpClient();
 
             const { result, error, executionTime } = await runSlowAggregateDb();
 
@@ -532,13 +627,10 @@ describeWithMongoDB("aggregate-db tool with server-side JavaScript operators", (
     for (const jsDisabled of [true, false]) {
         it(`${jsDisabled ? "rejects" : "allows"} pipelines using $function when disableServerSideJs is ${jsDisabled}`, async () => {
             integration.mcpServer().userConfig.disableServerSideJs = jsDisabled;
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "aggregate-db",
-                arguments: {
-                    database: integration.randomDbName(),
-                    pipeline: jsPipeline,
-                },
+                arguments: { connectionId, database: integration.randomDbName(), pipeline: jsPipeline },
             });
             const content = getResponseContent(response);
             if (jsDisabled) {

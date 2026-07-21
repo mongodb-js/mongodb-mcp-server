@@ -1,7 +1,8 @@
 import { z } from "zod";
-import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { type ToolArgs, type OperationType, type ToolResult } from "../../tool.js";
 import { IndexDirectionSchema, modelsSupportingAutoEmbedIndexes } from "../mongodbSchemas.js";
+import type { IndexMetadata } from "../../../telemetry/types.js";
 
 const CreateIndexOutputSchema = {
     database: z.string(),
@@ -191,6 +192,7 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
     static toolName = "create-index";
     public description = "Create an index for a collection";
     public argsShape = {
+        ...ConnectionIdArgs,
         ...CollOperationArgs,
         name: z.string().optional().describe("The name of the index"),
         // Note: Although it is not required to wrap the discriminated union in
@@ -223,12 +225,13 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
     static operationType: OperationType = "create";
 
     protected async execute({
+        connectionId,
         database,
         collection,
         name,
         definition: definitions,
     }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
-        const provider = await this.ensureConnected();
+        const provider = await this.resolveConnection(connectionId);
         let indexes: string[] = [];
         const definition = definitions[0];
         if (!definition) {
@@ -248,7 +251,7 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
                 break;
             case "vectorSearch":
                 {
-                    await this.session.assertSearchSupported();
+                    await this.assertSearchSupported(connectionId);
                     indexes = await provider.createSearchIndexes(database, collection, [
                         {
                             name,
@@ -266,7 +269,7 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
                 break;
             case "search":
                 {
-                    await this.session.assertSearchSupported();
+                    await this.assertSearchSupported(connectionId);
                     indexes = await provider.createSearchIndexes(database, collection, [
                         {
                             name,
@@ -299,6 +302,16 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
                 indexName: indexes[0] ?? "",
                 indexType: definition.type,
             },
+        };
+    }
+
+    protected override async resolveTelemetryMetadata(
+        args: ToolArgs<typeof this.argsShape>,
+        { result }: { result: ToolResult<typeof CreateIndexOutputSchema> }
+    ): Promise<IndexMetadata> {
+        return {
+            ...(await super.resolveTelemetryMetadata(args, { result })),
+            index_type: result.structuredContent?.indexType,
         };
     }
 }

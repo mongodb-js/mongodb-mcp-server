@@ -27,16 +27,17 @@ describeWithMongoDB("dropDatabase tool", (integration) => {
 
         expect(databases.find((db) => db.name === integration.randomDbName())).toBeUndefined();
 
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         const response = await integration.mcpClient().callTool({
             name: "drop-database",
             arguments: {
+                connectionId,
                 database: integration.randomDbName(),
             },
         });
 
         const content = getResponseContent(response.content);
-        expect(content).toContain(`Successfully dropped database "${integration.randomDbName()}"`);
+        expect(content).toContain(`Successfully dropped the requested database.`);
 
         ({ databases } = await integration.mongoClient().db("").admin().listDatabases());
 
@@ -44,7 +45,7 @@ describeWithMongoDB("dropDatabase tool", (integration) => {
     });
 
     it("removes the database along with its collections", async () => {
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         await integration.mongoClient().db(integration.randomDbName()).createCollection("coll1");
         await integration.mongoClient().db(integration.randomDbName()).createCollection("coll2");
 
@@ -54,11 +55,12 @@ describeWithMongoDB("dropDatabase tool", (integration) => {
         const response = await integration.mcpClient().callTool({
             name: "drop-database",
             arguments: {
+                connectionId,
                 database: integration.randomDbName(),
             },
         });
         const content = getResponseContent(response.content);
-        expect(content).toContain(`Successfully dropped database "${integration.randomDbName()}"`);
+        expect(content).toContain(`Successfully dropped the requested database.`);
 
         const structuredContent = response.structuredContent as DropDatabaseOutput;
         expect(structuredContent.database).toBe(integration.randomDbName());
@@ -77,7 +79,7 @@ describeWithMongoDB("dropDatabase tool", (integration) => {
         () => {
             return {
                 args: { database: integration.randomDbName() },
-                expectedResponse: `Successfully dropped database "${integration.randomDbName()}"`,
+                expectedResponse: `Successfully dropped the requested database.`,
             };
         },
         async () => {

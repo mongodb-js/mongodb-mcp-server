@@ -7,6 +7,7 @@
 import type { AggregationCursor } from 'mongodb';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { Client } from '@mongodb-js/atlas-local';
+import type { ClientCapabilities } from '@modelcontextprotocol/sdk/types.js';
 import type { CloseableTransport } from '@mongodb-js/mcp-types';
 import type { components } from './openapi.js';
 import { ConnectionInfo } from '@mongosh/arg-parser';
@@ -31,10 +32,15 @@ import { Metrics } from '@mongodb-js/mcp-metrics';
 import type { MongoLogId } from 'mongodb-log-writer';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
 import type { operations } from './openapi.js';
+import type { ProgressToken } from '@modelcontextprotocol/sdk/types.js';
 import { PrometheusMetrics } from '@mongodb-js/mcp-metrics';
 import { PrometheusMetricsOptions } from '@mongodb-js/mcp-metrics';
 import { Registry } from '@mongodb-js/mcp-metrics';
+import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
+import type { RequestId } from '@modelcontextprotocol/sdk/types.js';
 import { Secret } from 'mongodb-redact';
+import type { ServerNotification } from '@modelcontextprotocol/sdk/types.js';
+import type { ServerRequest } from '@modelcontextprotocol/sdk/types.js';
 import type { SessionCloseReason } from '@mongodb-js/mcp-types';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import type { TelemetryEvents } from '@mongodb-js/mcp-types';
@@ -42,7 +48,7 @@ import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import type { TransportRequestContext } from '@mongodb-js/mcp-types';
 import { z } from 'zod';
-import type { ZodRawShape } from 'zod';
+import { ZodRawShape } from 'zod';
 
 // @public (undocumented)
 export type AnyConnectionState = ConnectionStateConnected | ConnectionStateConnecting | ConnectionStateDisconnected | ConnectionStateErrored;
@@ -57,137 +63,145 @@ export type AnyToolClass = ToolClass<any, any, any>;
 export class ApiClient {
     constructor(options: ApiClientOptions, logger: LoggerBase, authProvider?: AuthProvider | undefined);
     // (undocumented)
-    acceptVpcPeeringConnection(options: FetchOptions<operations["acceptGroupStreamVpcPeeringConnection"]>): Promise<void>;
+    acceptVpcPeeringConnection(options: FetchOptions<operations["acceptGroupStreamVpcPeeringConnection"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
     readonly authProvider?: AuthProvider | undefined;
     // (undocumented)
     close(): Promise<void>;
     // (undocumented)
-    createAccessListEntry(options: FetchOptions<operations["createGroupAccessListEntry"]>): Promise<components["schemas"]["PaginatedNetworkAccessView"]>;
+    createAccessListEntry(options: FetchOptions<operations["createGroupAccessListEntry"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedNetworkAccessView"]>;
     // (undocumented)
-    createCluster(options: FetchOptions<operations["createGroupCluster"]>): Promise<components["schemas"]["ClusterDescription20240805"]>;
+    createCluster(options: FetchOptions<operations["createGroupCluster"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["ClusterDescription20240805"]>;
     // (undocumented)
-    createDatabaseUser(options: FetchOptions<operations["createGroupDatabaseUser"]>): Promise<components["schemas"]["CloudDatabaseUser"]>;
+    createDatabaseUser(options: FetchOptions<operations["createGroupDatabaseUser"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["CloudDatabaseUser"]>;
     // (undocumented)
-    createFlexCluster(options: FetchOptions<operations["createGroupFlexCluster"]>): Promise<components["schemas"]["FlexClusterDescription20241113"]>;
+    createFlexCluster(options: FetchOptions<operations["createGroupFlexCluster"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["FlexClusterDescription20241113"]>;
     // (undocumented)
-    createGroup(options: FetchOptions<operations["createGroup"]>): Promise<components["schemas"]["Group"]>;
+    createGroup(options: FetchOptions<operations["createGroup"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["Group"]>;
     // (undocumented)
-    createPrivateLinkConnection(options: FetchOptions<operations["createGroupStreamPrivateLinkConnection"]>): Promise<components["schemas"]["StreamsPrivateLinkConnection"]>;
+    createPrivateLinkConnection(options: FetchOptions<operations["createGroupStreamPrivateLinkConnection"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsPrivateLinkConnection"]>;
     // (undocumented)
-    createStreamConnection(options: FetchOptions<operations["createGroupStreamConnection"]>): Promise<components["schemas"]["StreamsConnection"]>;
+    createStreamConnection(options: FetchOptions<operations["createGroupStreamConnection"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsConnection"]>;
     // (undocumented)
-    createStreamProcessor(options: FetchOptions<operations["createGroupStreamProcessor"]>): Promise<components["schemas"]["StreamsProcessor"]>;
+    createStreamProcessor(options: FetchOptions<operations["createGroupStreamProcessor"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsProcessor"]>;
     // (undocumented)
-    createStreamWorkspace(options: FetchOptions<operations["createGroupStreamWorkspace"]>): Promise<components["schemas"]["StreamsTenant"]>;
+    createStreamWorkspace(options: FetchOptions<operations["createGroupStreamWorkspace"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsTenant"]>;
     // (undocumented)
-    deleteAccessListEntry(options: FetchOptions<operations["deleteGroupAccessListEntry"]>): Promise<void>;
+    deleteAccessListEntry(options: FetchOptions<operations["deleteGroupAccessListEntry"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    deleteCluster(options: FetchOptions<operations["deleteGroupCluster"]>): Promise<void>;
+    deleteCluster(options: FetchOptions<operations["deleteGroupCluster"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    deleteDatabaseUser(options: FetchOptions<operations["deleteGroupDatabaseUser"]>): Promise<void>;
+    deleteDatabaseUser(options: FetchOptions<operations["deleteGroupDatabaseUser"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    deleteFlexCluster(options: FetchOptions<operations["deleteGroupFlexCluster"]>): Promise<void>;
+    deleteFlexCluster(options: FetchOptions<operations["deleteGroupFlexCluster"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    deleteGroup(options: FetchOptions<operations["deleteGroup"]>): Promise<void>;
+    deleteGroup(options: FetchOptions<operations["deleteGroup"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    deletePrivateLinkConnection(options: FetchOptions<operations["deleteGroupStreamPrivateLinkConnection"]>): Promise<void>;
+    deletePrivateLinkConnection(options: FetchOptions<operations["deleteGroupStreamPrivateLinkConnection"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    deleteStreamConnection(options: FetchOptions<operations["deleteGroupStreamConnection"]>): Promise<void>;
+    deleteStreamConnection(options: FetchOptions<operations["deleteGroupStreamConnection"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    deleteStreamProcessor(options: FetchOptions<operations["deleteGroupStreamProcessor"]>): Promise<void>;
+    deleteStreamProcessor(options: FetchOptions<operations["deleteGroupStreamProcessor"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    deleteStreamWorkspace(options: FetchOptions<operations["deleteGroupStreamWorkspace"]>): Promise<void>;
+    deleteStreamWorkspace(options: FetchOptions<operations["deleteGroupStreamWorkspace"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    deleteVpcPeeringConnection(options: FetchOptions<operations["deleteGroupStreamVpcPeeringConnection"]>): Promise<void>;
+    deleteVpcPeeringConnection(options: FetchOptions<operations["deleteGroupStreamVpcPeeringConnection"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    downloadAuditLogs(options: FetchOptions<operations["downloadGroupStreamAuditLogs"]>): Promise<string>;
+    downloadAuditLogs(options: FetchOptions<operations["downloadGroupStreamAuditLogs"]>, context?: ApiClientRequestContext): Promise<string>;
     // (undocumented)
-    downloadOperationalLogs(options: FetchOptions<operations["downloadGroupStreamOperationalLogs"]>): Promise<string>;
+    downloadOperationalLogs(options: FetchOptions<operations["downloadGroupStreamOperationalLogs"]>, context?: ApiClientRequestContext): Promise<string>;
     // (undocumented)
-    getAccountDetails(options: FetchOptions<operations["getGroupStreamAccountDetails"]>): Promise<components["schemas"]["AccountDetails"]>;
+    getAccountDetails(options: FetchOptions<operations["getGroupStreamAccountDetails"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["AccountDetails"]>;
     // (undocumented)
-    getCluster(options: FetchOptions<operations["getGroupCluster"]>): Promise<components["schemas"]["ClusterDescription20240805"]>;
+    getCluster(options: FetchOptions<operations["getGroupCluster"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["ClusterDescription20240805"]>;
     // (undocumented)
-    getFlexCluster(options: FetchOptions<operations["getGroupFlexCluster"]>): Promise<components["schemas"]["FlexClusterDescription20241113"]>;
+    getFlexCluster(options: FetchOptions<operations["getGroupFlexCluster"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["FlexClusterDescription20241113"]>;
     // (undocumented)
-    getGroup(options: FetchOptions<operations["getGroup"]>): Promise<components["schemas"]["Group"]>;
+    getGroup(options: FetchOptions<operations["getGroup"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["Group"]>;
     // (undocumented)
     getIpInfo(): Promise<{
         currentIpv4Address: string;
     }>;
     // (undocumented)
-    getOrgGroups(options: FetchOptions<operations["getOrgGroups"]>): Promise<components["schemas"]["PaginatedAtlasGroupView"]>;
+    getOrgGroups(options: FetchOptions<operations["getOrgGroups"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedAtlasGroupView"]>;
     // (undocumented)
-    getPrivateLinkConnection(options: FetchOptions<operations["getGroupStreamPrivateLinkConnection"]>): Promise<components["schemas"]["StreamsPrivateLinkConnection"]>;
+    getPrivateLinkConnection(options: FetchOptions<operations["getGroupStreamPrivateLinkConnection"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsPrivateLinkConnection"]>;
     // (undocumented)
-    getStreamConnection(options: FetchOptions<operations["getGroupStreamConnection"]>): Promise<components["schemas"]["StreamsConnection"]>;
+    getSampleDatasetLoad(options: FetchOptions<operations["getGroupSampleDatasetLoad"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["SampleDatasetStatus"]>;
     // (undocumented)
-    getStreamProcessor(options: FetchOptions<operations["getGroupStreamProcessor"]>): Promise<components["schemas"]["StreamsProcessorWithStats"]>;
+    getStreamConnection(options: FetchOptions<operations["getGroupStreamConnection"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsConnection"]>;
     // (undocumented)
-    getStreamProcessors(options: FetchOptions<operations["getGroupStreamProcessors"]>): Promise<components["schemas"]["PaginatedApiStreamsStreamProcessorWithStatsView"]>;
+    getStreamProcessor(options: FetchOptions<operations["getGroupStreamProcessor"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsProcessorWithStats"]>;
     // (undocumented)
-    getStreamWorkspace(options: FetchOptions<operations["getGroupStreamWorkspace"]>): Promise<components["schemas"]["StreamsTenant"]>;
+    getStreamProcessors(options: FetchOptions<operations["getGroupStreamProcessors"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedApiStreamsStreamProcessorWithStatsView"]>;
+    // (undocumented)
+    getStreamWorkspace(options: FetchOptions<operations["getGroupStreamWorkspace"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsTenant"]>;
     // (undocumented)
     isAuthConfigured(): boolean;
     // (undocumented)
-    listAccessListEntries(options: FetchOptions<operations["listGroupAccessListEntries"]>): Promise<components["schemas"]["PaginatedNetworkAccessView"]>;
+    listAccessListEntries(options: FetchOptions<operations["listGroupAccessListEntries"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedNetworkAccessView"]>;
     // (undocumented)
-    listAlerts(options: FetchOptions<operations["listGroupAlerts"]>): Promise<components["schemas"]["PaginatedAlertView"]>;
+    listAlerts(options: FetchOptions<operations["listGroupAlerts"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedAlertView"]>;
     // (undocumented)
-    listClusterDetails(options?: FetchOptions<operations["listClusterDetails"]>): Promise<components["schemas"]["PaginatedOrgGroupView"]>;
+    listClusterDetails(options?: FetchOptions<operations["listClusterDetails"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedOrgGroupView"]>;
     // (undocumented)
-    listClusters(options: FetchOptions<operations["listGroupClusters"]>): Promise<components["schemas"]["PaginatedClusterDescription20240805"]>;
+    listClusters(options: FetchOptions<operations["listGroupClusters"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedClusterDescription20240805"]>;
     // (undocumented)
-    listClusterSuggestedIndexes(options: FetchOptions<operations["listGroupClusterPerformanceAdvisorSuggestedIndexes"]>): Promise<components["schemas"]["PerformanceAdvisorResponse"]>;
+    listClusterSuggestedIndexes(options: FetchOptions<operations["listGroupClusterPerformanceAdvisorSuggestedIndexes"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PerformanceAdvisorResponse"]>;
     // (undocumented)
-    listDatabaseUsers(options: FetchOptions<operations["listGroupDatabaseUsers"]>): Promise<components["schemas"]["PaginatedApiAtlasDatabaseUserView"]>;
+    listDatabaseUsers(options: FetchOptions<operations["listGroupDatabaseUsers"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedApiAtlasDatabaseUserView"]>;
     // (undocumented)
-    listDropIndexSuggestions(options: FetchOptions<operations["listGroupClusterPerformanceAdvisorDropIndexSuggestions"]>): Promise<components["schemas"]["DropIndexSuggestionsResponse"]>;
+    listDropIndexSuggestions(options: FetchOptions<operations["listGroupClusterPerformanceAdvisorDropIndexSuggestions"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["DropIndexSuggestionsResponse"]>;
     // (undocumented)
-    listFlexClusters(options: FetchOptions<operations["listGroupFlexClusters"]>): Promise<components["schemas"]["PaginatedFlexClusters20241113"]>;
+    listFlexClusters(options: FetchOptions<operations["listGroupFlexClusters"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedFlexClusters20241113"]>;
     // (undocumented)
-    listGroups(options?: FetchOptions<operations["listGroups"]>): Promise<components["schemas"]["PaginatedAtlasGroupView"]>;
+    listGroups(options?: FetchOptions<operations["listGroups"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedAtlasGroupView"]>;
     // (undocumented)
-    listOrgs(options?: FetchOptions<operations["listOrgs"]>): Promise<components["schemas"]["PaginatedOrganizationView"]>;
+    listOrgs(options?: FetchOptions<operations["listOrgs"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedOrganizationView"]>;
     // (undocumented)
-    listPrivateLinkConnections(options: FetchOptions<operations["listGroupStreamPrivateLinkConnections"]>): Promise<components["schemas"]["PaginatedApiStreamsPrivateLinkView"]>;
+    listPrivateLinkConnections(options: FetchOptions<operations["listGroupStreamPrivateLinkConnections"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedApiStreamsPrivateLinkView"]>;
     // (undocumented)
-    listSchemaAdvice(options: FetchOptions<operations["listGroupClusterPerformanceAdvisorSchemaAdvice"]>): Promise<components["schemas"]["SchemaAdvisorResponse"]>;
+    listSchemaAdvice(options: FetchOptions<operations["listGroupClusterPerformanceAdvisorSchemaAdvice"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["SchemaAdvisorResponse"]>;
     // (undocumented)
-    listSlowQueryLogs(options: FetchOptions<operations["listGroupProcessPerformanceAdvisorSlowQueryLogs"]>): Promise<components["schemas"]["PerformanceAdvisorSlowQueryList"]>;
+    listSlowQueryLogs(options: FetchOptions<operations["listGroupProcessPerformanceAdvisorSlowQueryLogs"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PerformanceAdvisorSlowQueryList"]>;
     // (undocumented)
-    listStreamConnections(options: FetchOptions<operations["listGroupStreamConnections"]>): Promise<components["schemas"]["PaginatedApiStreamsConnectionView"]>;
+    listStreamConnections(options: FetchOptions<operations["listGroupStreamConnections"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedApiStreamsConnectionView"]>;
     // (undocumented)
-    listStreamWorkspaces(options: FetchOptions<operations["listGroupStreamWorkspaces"]>): Promise<components["schemas"]["PaginatedApiStreamsTenantView"]>;
+    listStreamWorkspaces(options: FetchOptions<operations["listGroupStreamWorkspaces"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedApiStreamsTenantView"]>;
     // (undocumented)
     readonly logger: LoggerBase;
     // (undocumented)
-    rejectVpcPeeringConnection(options: FetchOptions<operations["rejectGroupStreamVpcPeeringConnection"]>): Promise<void>;
+    rejectVpcPeeringConnection(options: FetchOptions<operations["rejectGroupStreamVpcPeeringConnection"]>, context?: ApiClientRequestContext): Promise<void>;
+    // (undocumented)
+    requestSampleDatasetLoad(options: FetchOptions<operations["requestGroupSampleDatasetLoad"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["SampleDatasetStatus"]>;
     // (undocumented)
     sendEvents(events: TelemetryEvent<CommonProperties>[], input?: {
         signal?: AbortSignal;
     }): Promise<void>;
     // (undocumented)
-    startStreamProcessor(options: FetchOptions<operations["startGroupStreamProcessor"]>): Promise<void>;
+    startStreamProcessor(options: FetchOptions<operations["startGroupStreamProcessor"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    startStreamProcessorWith(options: FetchOptions<operations["startGroupStreamProcessorWith"]>): Promise<void>;
+    startStreamProcessorWith(options: FetchOptions<operations["startGroupStreamProcessorWith"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    stopStreamProcessor(options: FetchOptions<operations["stopGroupStreamProcessor"]>): Promise<void>;
+    stopStreamProcessor(options: FetchOptions<operations["stopGroupStreamProcessor"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
-    tenantUpgrade(options: FetchOptions<operations["tenantGroupFlexClusterUpgrade"]>): Promise<components["schemas"]["FlexClusterDescription20241113"]>;
+    get supportsCurrentIpLookup(): boolean;
     // (undocumented)
-    updateStreamConnection(options: FetchOptions<operations["updateGroupStreamConnection"]>): Promise<components["schemas"]["StreamsConnection"]>;
+    tenantUpgrade(options: FetchOptions<operations["tenantGroupFlexClusterUpgrade"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["FlexClusterDescription20241113"]>;
     // (undocumented)
-    updateStreamProcessor(options: FetchOptions<operations["updateGroupStreamProcessor"]>): Promise<components["schemas"]["StreamsProcessorWithStats"]>;
+    updateCluster(options: FetchOptions<operations["updateGroupCluster"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["ClusterDescription20240805"]>;
     // (undocumented)
-    updateStreamWorkspace(options: FetchOptions<operations["updateGroupStreamWorkspace"]>): Promise<components["schemas"]["StreamsTenant"]>;
+    updateStreamConnection(options: FetchOptions<operations["updateGroupStreamConnection"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsConnection"]>;
     // (undocumented)
-    upgradeTenantUpgrade(options: FetchOptions<operations["upgradeGroupClusterTenantUpgrade"]>): Promise<components["schemas"]["LegacyAtlasCluster"]>;
+    updateStreamProcessor(options: FetchOptions<operations["updateGroupStreamProcessor"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsProcessorWithStats"]>;
+    // (undocumented)
+    updateStreamWorkspace(options: FetchOptions<operations["updateGroupStreamWorkspace"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsTenant"]>;
+    // (undocumented)
+    upgradeTenantUpgrade(options: FetchOptions<operations["upgradeGroupClusterTenantUpgrade"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["LegacyAtlasCluster"]>;
     // (undocumented)
     validateAuthConfig(): Promise<void>;
     // (undocumented)
-    withStreamSampleConnections(options: FetchOptions<operations["withGroupStreamSampleConnections"]>): Promise<components["schemas"]["StreamsTenant"]>;
+    withStreamSampleConnections(options: FetchOptions<operations["withGroupStreamSampleConnections"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsTenant"]>;
 }
 
 // @public (undocumented)
@@ -201,6 +215,7 @@ export interface ApiClientOptions {
     credentials?: Credentials;
     // (undocumented)
     requestContext?: RequestContext;
+    supportsCurrentIpLookup?: boolean;
     // (undocumented)
     userAgent?: string;
 }
@@ -210,6 +225,9 @@ export function applyConfigOverrides<TUserConfig extends UserConfig = UserConfig
     baseConfig: TUserConfig;
     request?: RequestContext_2;
 }): TUserConfig;
+
+// @public
+export function atlasClusterSlug(projectName: string | undefined, clusterName: string): string;
 
 // @public
 export interface AuthProvider {
@@ -260,6 +278,33 @@ export class ConfigOverrideError extends Error {
     constructor(message: string);
 }
 
+// @public
+export class ConnectionEntry {
+    constructor(input: ConnectionEntryOptions);
+    // (undocumented)
+    assertSearchSupported(logger: LoggerBase): Promise<void>;
+    // (undocumented)
+    close(): Promise<void>;
+    // (undocumented)
+    connect(settings: ConnectionSettings): Promise<AnyConnectionState>;
+    readonly connectionId: string;
+    // (undocumented)
+    readonly createdAt: Date;
+    getServiceProvider(): NodeDriverServiceProvider;
+    // (undocumented)
+    isSearchSupported(logger: LoggerBase): Promise<boolean>;
+    // (undocumented)
+    lastError?: string;
+    // (undocumented)
+    lastUsedAt: Date;
+    readonly name: string;
+    runRevokeCleanup(): Promise<void>;
+    // (undocumented)
+    readonly source: ConnectionSource;
+    // (undocumented)
+    get state(): AnyConnectionState;
+}
+
 // @public (undocumented)
 export type ConnectionErrorHandled = {
     errorHandled: true;
@@ -267,7 +312,7 @@ export type ConnectionErrorHandled = {
 };
 
 // @public (undocumented)
-export type ConnectionErrorHandler = (error: MongoDBError<ErrorCodes.NotConnectedToMongoDB | ErrorCodes.MisconfiguredConnectionString>, additionalContext: ConnectionErrorHandlerContext) => ConnectionErrorUnhandled | ConnectionErrorHandled | Promise<ConnectionErrorUnhandled | ConnectionErrorHandled>;
+export type ConnectionErrorHandler = (error: MongoDBError<ErrorCodes.NotConnectedToMongoDB | ErrorCodes.MisconfiguredConnectionString | ErrorCodes.UnknownConnectionId>, additionalContext: ConnectionErrorHandlerContext) => ConnectionErrorUnhandled | ConnectionErrorHandled | Promise<ConnectionErrorUnhandled | ConnectionErrorHandled>;
 
 // @public (undocumented)
 export const connectionErrorHandler: ConnectionErrorHandler;
@@ -275,7 +320,7 @@ export const connectionErrorHandler: ConnectionErrorHandler;
 // @public (undocumented)
 export type ConnectionErrorHandlerContext = {
     availableTools: AnyToolBase[];
-    connectionState: AnyConnectionState;
+    connectionState?: AnyConnectionState;
 };
 
 // @public (undocumented)
@@ -329,6 +374,18 @@ export type ConnectionManagerFactoryFn = (createParams: {
     userConfig: UserConfig;
 }) => Promise<ConnectionManager>;
 
+// @public
+export interface ConnectionRegistry {
+    close(): Promise<void>;
+    connect(opts: CreateConnectionOptions): Promise<ConnectionEntry>;
+    createEntry(opts: CreateConnectionEntryOptions): Promise<ConnectionEntry>;
+    disconnect(connectionId: string): Promise<void>;
+    find(predicate?: (entry: ConnectionEntry) => boolean): Promise<ConnectionEntry[]>;
+    get(connectionId: string): Promise<ConnectionEntry | undefined>;
+    peek(connectionId: string): Promise<ConnectionEntry | undefined>;
+    resolve(connectionId: string): Promise<NodeDriverServiceProvider>;
+}
+
 // @public (undocumented)
 export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"> {
     // (undocumented)
@@ -336,6 +393,9 @@ export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"
     // (undocumented)
     driverOptions?: ConnectionInfo["driverOptions"];
 }
+
+// @public (undocumented)
+export type ConnectionSource = "explicit" | "preconfigured";
 
 // @public (undocumented)
 export interface ConnectionState {
@@ -391,6 +451,14 @@ export interface ConnectionStateErrored extends ConnectionState {
 }
 
 // @public (undocumented)
+export type ConnectionStoreOptions = {
+    userConfig: UserConfig;
+    logger: LoggerBase;
+    deviceId: DeviceId;
+    createConnectionManager?: CreateConnectionManagerFn;
+};
+
+// @public (undocumented)
 export type ConnectionTag = "connected" | "connecting" | "disconnected" | "errored";
 
 // @public (undocumented)
@@ -403,6 +471,23 @@ export class ConsoleLogger extends LoggerBase {
 }
 
 export { Counter }
+
+// @public (undocumented)
+export type CreateConnectionEntryOptions = {
+    name: string;
+    clientName?: string;
+    onRevoke?: () => Promise<void>;
+};
+
+// @public (undocumented)
+export type CreateConnectionManagerFn = () => ConnectionManager;
+
+// @public (undocumented)
+export type CreateConnectionOptions = {
+    settings: ConnectionSettings;
+    name?: string;
+    clientName?: string;
+};
 
 // @public
 export const createDefaultMcpHttpServer: <TUserConfig extends UserConfig = UserConfig, TContext = unknown>(args: MCPHttpServerConstructorArgs<TUserConfig, TContext>) => MCPHttpServer<TUserConfig, TContext>;
@@ -447,7 +532,9 @@ export type CustomizableServerOptions<TUserConfig extends UserConfig = UserConfi
 };
 
 // @public (undocumented)
-export type CustomizableSessionOptions<TUserConfig extends UserConfig = UserConfig> = Partial<Pick<SessionOptions<TUserConfig>, "userConfig" | "apiClient" | "atlasLocalClient" | "connectionManager" | "connectionErrorHandler">>;
+export type CustomizableSessionOptions<TUserConfig extends UserConfig = UserConfig> = Partial<Pick<SessionOptions, "apiClient" | "atlasLocalClient" | "connectionRegistry" | "connectionErrorHandler">> & {
+    userConfig?: TUserConfig;
+};
 
 // @public (undocumented)
 export const defaultCreateApiClient: ApiClientFactoryFn;
@@ -501,6 +588,7 @@ export class DeviceId implements IDeviceId {
 export class Elicitation {
     constructor(input: {
         server: McpServer["server"];
+        timeoutMs: number;
     });
     static CONFIRMATION_SCHEMA: {
         type: "object";
@@ -515,10 +603,18 @@ export class Elicitation {
         };
         required: string[];
     };
-    requestConfirmation(message: string): Promise<boolean>;
-    requestInput(message: string, schema: ElicitRequestFormParams["requestedSchema"]): Promise<ElicitedInputResult>;
+    requestConfirmation(message: string, options?: ElicitationOptions): Promise<boolean>;
+    requestInput(message: string, schema: ElicitRequestFormParams["requestedSchema"], options?: ElicitationOptions): Promise<ElicitedInputResult>;
     supportsElicitation(): boolean;
 }
+
+// @public (undocumented)
+export type ElicitationOptions = {
+    relatedRequestId?: RequestId;
+    progressToken?: ProgressToken;
+    sendNotification?: (notification: ServerNotification) => Promise<void>;
+    signal?: AbortSignal;
+};
 
 // @public (undocumented)
 export enum ErrorCodes {
@@ -539,7 +635,9 @@ export enum ErrorCodes {
     // (undocumented)
     MisconfiguredConnectionString = 1000001,
     // (undocumented)
-    NotConnectedToMongoDB = 1000000
+    NotConnectedToMongoDB = 1000000,
+    // (undocumented)
+    UnknownConnectionId = 1000010
 }
 
 // @public
@@ -592,11 +690,12 @@ export { Histogram }
 
 // @public
 export interface ISessionStore<T extends CloseableTransport = CloseableTransport> {
-    // (undocumented)
     addSession(params: {
         sessionId: string;
         transport: T;
         logger: LoggerBase;
+        session: Session;
+        headers?: Record<string, unknown>;
     }): Promise<void>;
     // (undocumented)
     closeAllSessions(): Promise<void>;
@@ -605,8 +704,9 @@ export interface ISessionStore<T extends CloseableTransport = CloseableTransport
         sessionId: string;
         reason?: SessionCloseReason;
     }): Promise<void>;
-    // (undocumented)
-    getSession(sessionId: string): Promise<T | undefined>;
+    getSession(sessionId: string, headers?: Record<string, unknown>): Promise<T | undefined>;
+    loadNegotiatedClientState(sessionId: string, headers?: Record<string, unknown>): Promise<NegotiatedClientState | undefined>;
+    saveNegotiatedClientState(sessionId: string, state: NegotiatedClientState, headers?: Record<string, unknown>): Promise<void>;
 }
 
 // @public
@@ -623,6 +723,9 @@ export const JSON_RPC_ERROR_CODE_SESSION_ID_INVALID = -32002;
 
 // @public
 export const JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED = -32001;
+
+// @public
+export const JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED = -32006;
 
 // @public
 export const JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND = -32003;
@@ -695,6 +798,16 @@ export class MCPConnectionManager extends ConnectionManager {
     close(): Promise<void>;
     connect(settings: ConnectionSettings): Promise<AnyConnectionState>;
     disconnect(): Promise<ConnectionStateDisconnected | ConnectionStateErrored>;
+}
+
+// @public
+export class MCPConnectionStore {
+    constructor(options: ConnectionStoreOptions);
+    closeAll(): Promise<void>;
+    view(input?: {
+        scope?: string;
+        owned?: boolean;
+    }): ConnectionRegistry;
 }
 
 // @public (undocumented)
@@ -778,6 +891,12 @@ export type MonitoringServerConstructorArgs<TMetrics extends DefaultMetrics = De
 // @public (undocumented)
 export type MonitoringServerFeature = (typeof monitoringServerFeatureValues)[number];
 
+// @public
+export type NegotiatedClientState = {
+    clientCapabilities?: ClientCapabilities;
+    clientInfo?: Implementation;
+};
+
 // @public (undocumented)
 export class NullLogger extends LoggerBase {
     constructor();
@@ -810,6 +929,9 @@ export function parseUserConfig(input: {
     parsed: UserConfig | undefined;
     error: string | undefined;
 };
+
+// @public
+export const PRECONFIGURED_CONNECTION_ID = "preconfigured";
 
 export { PrometheusMetrics }
 
@@ -888,37 +1010,21 @@ export interface ServerOptions<TUserConfig extends UserConfig = UserConfig, TCon
     userConfig: TUserConfig;
 }
 
-// @public (undocumented)
+// @public
 export class Session extends EventEmitter<SessionEvents> {
-    constructor(input: SessionOptions<UserConfig>);
+    constructor(input: SessionOptions);
     // (undocumented)
     readonly apiClient: ApiClient;
-    // (undocumented)
-    assertSearchSupported(): Promise<void>;
     // (undocumented)
     readonly atlasLocalClient?: Client;
     // (undocumented)
     close(): Promise<void>;
     // (undocumented)
-    get connectedAtlasCluster(): AtlasClusterConnectionInfo | undefined;
-    // (undocumented)
     readonly connectionErrorHandler: ConnectionErrorHandler;
     // (undocumented)
-    readonly connectionManager: ConnectionManager;
-    // (undocumented)
-    get connectionStringInfo(): ConnectionStringInfo | undefined;
-    // (undocumented)
-    connectToConfiguredConnection(): Promise<void>;
-    // (undocumented)
-    connectToMongoDB(settings: ConnectionSettings): Promise<void>;
-    // (undocumented)
-    disconnect(): Promise<void>;
+    readonly connectionRegistry: ConnectionRegistry;
     // (undocumented)
     readonly exportsManager: ExportsManager;
-    // (undocumented)
-    get isConnectedToMongoDB(): boolean;
-    // (undocumented)
-    isSearchSupported(): Promise<boolean>;
     // (undocumented)
     readonly keychain: Keychain;
     // (undocumented)
@@ -930,8 +1036,6 @@ export class Session extends EventEmitter<SessionEvents> {
         title?: string;
     };
     // (undocumented)
-    get serviceProvider(): NodeDriverServiceProvider;
-    // (undocumented)
     readonly sessionId: string;
     // (undocumented)
     setMcpClient(mcpClient: Implementation | undefined): void;
@@ -941,14 +1045,16 @@ export { SessionCloseReason }
 
 // @public (undocumented)
 export type SessionEvents = {
-    connect: [];
     close: [];
-    disconnect: [];
-    "connection-error": [ConnectionStateErrored];
 };
 
+// @public
+export class SessionLimitExceededError extends Error {
+    constructor(message: string);
+}
+
 // @public (undocumented)
-export interface SessionOptions<TUserConfig extends UserConfig = UserConfig> {
+export interface SessionOptions {
     // (undocumented)
     apiClient: ApiClient;
     // (undocumented)
@@ -956,15 +1062,18 @@ export interface SessionOptions<TUserConfig extends UserConfig = UserConfig> {
     // (undocumented)
     connectionErrorHandler: ConnectionErrorHandler;
     // (undocumented)
-    connectionManager: ConnectionManager;
+    connectionRegistry: ConnectionRegistry;
     // (undocumented)
     exportsManager: ExportsManager;
     // (undocumented)
     keychain: Keychain;
     // (undocumented)
     logger: CompositeLogger;
-    // (undocumented)
-    userConfig: TUserConfig;
+}
+
+// @public
+export class SessionRejectedError extends Error {
+    constructor(message: string);
 }
 
 // @public (undocumented)
@@ -973,6 +1082,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         options: {
             idleTimeoutMS: number;
             notificationTimeoutMS: number;
+            maxSessions: number;
         };
         logger: LoggerBase;
         metrics: Metrics<DefaultMetrics>;
@@ -982,6 +1092,8 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         sessionId: string;
         transport: T;
         logger: LoggerBase;
+        session: Session;
+        headers?: Record<string, unknown>;
     }): Promise<void>;
     // (undocumented)
     closeAllSessions(): Promise<void>;
@@ -991,7 +1103,11 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         reason?: SessionCloseReason;
     }): Promise<void>;
     // (undocumented)
-    getSession(sessionId: string): Promise<T | undefined>;
+    getSession(sessionId: string, _headers?: Record<string, unknown>): Promise<T | undefined>;
+    hasSession(sessionId: string): boolean;
+    // (undocumented)
+    loadNegotiatedClientState(sessionId: string, headers?: Record<string, unknown>): Promise<NegotiatedClientState | undefined>;
+    saveNegotiatedClientState(sessionId: string, state: NegotiatedClientState, headers?: Record<string, unknown>): Promise<void>;
 }
 
 // @public
@@ -999,6 +1115,7 @@ export type SessionStoreConstructorArgs<TMetrics extends DefaultMetrics = Defaul
     options: {
         idleTimeoutMS: number;
         notificationTimeoutMS: number;
+        maxSessions: number;
     };
     logger: LoggerBase;
     metrics: Metrics<TMetrics>;
@@ -1088,14 +1205,8 @@ export { TelemetryEvents }
 // @public
 export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant";
 
-// @public (undocumented)
-export interface ToolExecutionContext {
-    requestInfo?: {
-        headers?: Record<string, unknown>;
-    };
-    // (undocumented)
-    signal: AbortSignal;
-}
+// @public
+export type ToolExecutionContext = Pick<ServerRequestHandlerExtra, "signal"> & Partial<Pick<ServerRequestHandlerExtra, "_meta" | "requestId" | "requestInfo" | "sendNotification">>;
 
 export { TransportRequestContext }
 
@@ -1112,8 +1223,6 @@ export abstract class TransportRunnerBase<TUserConfig extends UserConfig = UserC
     protected readonly createApiClient: ApiClientFactoryFn;
     // @deprecated (undocumented)
     protected readonly createAtlasLocalClient: AtlasLocalClientFactoryFn;
-    // @deprecated (undocumented)
-    protected readonly createConnectionManager: ConnectionManagerFactoryFn;
     protected createServer(input?: {
         userConfig?: TUserConfig;
         logger?: CompositeLogger;
@@ -1137,7 +1246,7 @@ export abstract class TransportRunnerBase<TUserConfig extends UserConfig = UserC
     // (undocumented)
     abstract start(input: {
         serverOptions?: ServerOptions<TUserConfig, TContext>;
-        sessionOptions?: SessionOptions<TUserConfig>;
+        sessionOptions?: SessionOptions;
     }): Promise<void>;
     // @deprecated (undocumented)
     protected readonly telemetryProperties: Partial<CommonProperties>;
@@ -1149,7 +1258,6 @@ export abstract class TransportRunnerBase<TUserConfig extends UserConfig = UserC
 // @public
 export type TransportRunnerConfig<TUserConfig extends UserConfig = UserConfig, TMetrics extends DefaultMetrics = DefaultMetrics> = {
     userConfig: TUserConfig;
-    createConnectionManager?: ConnectionManagerFactoryFn;
     connectionErrorHandler?: ConnectionErrorHandler;
     createAtlasLocalClient?: AtlasLocalClientFactoryFn;
     additionalLoggers?: LoggerBase[];
@@ -1201,6 +1309,7 @@ export const UserConfigSchema: z.ZodObject<{
     }>>;
     disabledTools: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodString>>>;
     confirmationRequiredTools: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodString>>>;
+    elicitationTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     readOnly: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
     indexCheck: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
     disableServerSideJs: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
@@ -1218,6 +1327,12 @@ export const UserConfigSchema: z.ZodObject<{
     httpBodyLimit: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     idleTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     notificationTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    maxSessions: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    maxActiveConnections: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    connectionScope: z.ZodDefault<z.ZodEnum<{
+        session: "session";
+        global: "global";
+    }>>;
     maxBytesPerQuery: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     maxDocumentsPerQuery: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     maxTimeMS: z.ZodOptional<z.ZodCoercedNumber<unknown>>;

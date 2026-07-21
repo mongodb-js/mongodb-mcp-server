@@ -65,7 +65,8 @@ describe("ListAlertsTool", () => {
 
     const baseArgs = { projectId: "proj1", status: "OPEN" as const, limit: 100, pageNum: 1 };
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    const exec = (args: Record<string, unknown>) => tool["execute"](args as never);
+    const exec = (args: Record<string, unknown>) =>
+        tool["execute"](args as never, { signal: new AbortController().signal } as never);
 
     it("should return alerts when they exist", async () => {
         mockApiClient.listAlerts!.mockResolvedValue({
@@ -105,6 +106,11 @@ describe("ListAlertsTool", () => {
 
         const text = (result.content[0] as { text: string }).text;
         expect(text).toContain('No alerts with status "OPEN"');
+        expect(result.structuredContent).toMatchObject({
+            projectId: "proj1",
+            status: "OPEN",
+            alerts: [],
+        });
     });
 
     it("should pass status to API", async () => {
@@ -112,12 +118,15 @@ describe("ListAlertsTool", () => {
 
         await exec({ ...baseArgs, status: "CLOSED" });
 
-        expect(mockApiClient.listAlerts).toHaveBeenCalledWith({
-            params: {
-                path: { groupId: "proj1" },
-                query: { status: "CLOSED", itemsPerPage: 100, pageNum: 1, includeCount: true },
+        expect(mockApiClient.listAlerts).toHaveBeenCalledWith(
+            {
+                params: {
+                    path: { groupId: "proj1" },
+                    query: { status: "CLOSED", itemsPerPage: 100, pageNum: 1, includeCount: true },
+                },
             },
-        });
+            expect.anything()
+        );
     });
 
     it("should pass limit and pageNum to API", async () => {
@@ -125,12 +134,15 @@ describe("ListAlertsTool", () => {
 
         await exec({ ...baseArgs, limit: 10, pageNum: 3 });
 
-        expect(mockApiClient.listAlerts).toHaveBeenCalledWith({
-            params: {
-                path: { groupId: "proj1" },
-                query: { status: "OPEN", itemsPerPage: 10, pageNum: 3, includeCount: true },
+        expect(mockApiClient.listAlerts).toHaveBeenCalledWith(
+            {
+                params: {
+                    path: { groupId: "proj1" },
+                    query: { status: "OPEN", itemsPerPage: 10, pageNum: 3, includeCount: true },
+                },
             },
-        });
+            expect.anything()
+        );
     });
 
     it("should include totalCount in response header", async () => {
@@ -183,6 +195,18 @@ describe("ListAlertsTool", () => {
 
         const text = (result.content[0] as { text: string }).text;
         expect(text).toContain("No alerts with status");
+        expect(result.structuredContent).toMatchObject({
+            projectId: "proj1",
+            status: "OPEN",
+            alerts: [],
+        });
+    });
+
+    it("description clarifies it returns triggered alerts, not configurations, and defaults to OPEN", () => {
+        const description = tool.description.toLowerCase();
+        expect(description).toContain("triggered");
+        expect(description).toContain("configuration");
+        expect(tool.description).toContain("OPEN");
     });
 
     it("should handle missing acknowledgementComment", async () => {
@@ -204,5 +228,60 @@ describe("ListAlertsTool", () => {
 
         const text = result.content.map((c) => (c as { text: string }).text).join("\n");
         expect(text).toContain("N/A");
+    });
+
+    describe("structuredContent", () => {
+        it("returns alerts on success", async () => {
+            mockApiClient.listAlerts!.mockResolvedValue({
+                results: [
+                    {
+                        id: "alert1",
+                        status: "OPEN",
+                        created: "2025-01-01T00:00:00Z",
+                        updated: "2025-01-02T00:00:00Z",
+                        eventTypeName: "HOST_DOWN",
+                        acknowledgementComment: null,
+                    },
+                ],
+                totalCount: 42,
+            });
+
+            const result = await exec({ ...baseArgs });
+
+            expect(result.structuredContent).toMatchObject({
+                projectId: "proj1",
+                status: "OPEN",
+                totalCount: 42,
+                alerts: [
+                    {
+                        id: "alert1",
+                        status: "OPEN",
+                        created: "2025-01-01T00:00:00.000Z",
+                        updated: "2025-01-02T00:00:00.000Z",
+                        eventTypeName: "HOST_DOWN",
+                        acknowledgementComment: "N/A",
+                    },
+                ],
+            });
+        });
+
+        it("returns empty alerts array when no results", async () => {
+            mockApiClient.listAlerts!.mockResolvedValue({ results: [], totalCount: 0 });
+
+            const result = await exec({ ...baseArgs });
+
+            expect(result.structuredContent).toMatchObject({
+                projectId: "proj1",
+                status: "OPEN",
+                alerts: [],
+                totalCount: 0,
+            });
+        });
+
+        it("omits structuredContent on error paths", async () => {
+            mockApiClient.listAlerts!.mockRejectedValue(new Error("API failure"));
+
+            await expect(exec({ ...baseArgs })).rejects.toThrow("API failure");
+        });
     });
 });

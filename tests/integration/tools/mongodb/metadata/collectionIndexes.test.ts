@@ -36,34 +36,31 @@ describeWithMongoDB("collectionIndexes tool", (integration) => {
     validateThrowsForInvalidArguments(integration, "collection-indexes", databaseCollectionInvalidArgs);
 
     it("can inspect indexes on non-existent database", async () => {
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         const response = await integration.mcpClient().callTool({
             name: "collection-indexes",
-            arguments: { database: "non-existent", collection: "people" },
+            arguments: { connectionId, database: "non-existent", collection: "people" },
         });
 
         const elements = getResponseElements(response.content);
         expect(elements).toHaveLength(1);
         expect(elements[0]?.text).toEqual(
-            'The indexes for "non-existent.people" cannot be determined because the collection does not exist.'
+            "The indexes for the requested namespace cannot be determined because the collection does not exist."
         );
     });
 
     it("returns the _id index for a new collection", async () => {
         await integration.mongoClient().db(integration.randomDbName()).createCollection("people");
 
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         const response = await integration.mcpClient().callTool({
             name: "collection-indexes",
-            arguments: {
-                database: integration.randomDbName(),
-                collection: "people",
-            },
+            arguments: { connectionId, database: integration.randomDbName(), collection: "people" },
         });
 
         const elements = getResponseElements(response.content);
         expect(elements).toHaveLength(2);
-        expect(elements[0]?.text).toEqual('Found 1 classic indexes in the collection "people":');
+        expect(elements[0]?.text).toEqual("Found 1 classic indexes in the requested collection:");
         const indexDefinitions = getIndexesFromContent(elements[1]?.text);
         expect(indexDefinitions).toEqual([{ name: "_id_", key: { _id: 1 } }]);
         // Validate structured content matches
@@ -89,19 +86,18 @@ describeWithMongoDB("collectionIndexes tool", (integration) => {
             indexNames.set(indexType, indexName);
         }
 
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         const response = await integration.mcpClient().callTool({
             name: "collection-indexes",
-            arguments: {
-                database: integration.randomDbName(),
-                collection: "people",
-            },
+            arguments: { connectionId, database: integration.randomDbName(), collection: "people" },
         });
 
         const elements = getResponseElements(response.content);
         expect(elements).toHaveLength(2);
 
-        expect(elements[0]?.text).toEqual(`Found ${indexTypes.length + 1} classic indexes in the collection "people":`);
+        expect(elements[0]?.text).toEqual(
+            `Found ${indexTypes.length + 1} classic indexes in the requested collection:`
+        );
         const indexDefinitions = getIndexesFromContent(elements[1]?.text);
         expect(indexDefinitions).toContainEqual({ name: "_id_", key: { _id: 1 } });
 
@@ -141,7 +137,7 @@ describeWithMongoDB("collectionIndexes tool", (integration) => {
     validateAutoConnectBehavior(integration, "collection-indexes", () => {
         return {
             args: { database: integration.randomDbName(), collection: "coll1" },
-            expectedResponse: `The indexes for "${integration.randomDbName()}.coll1" cannot be determined because the collection does not exist.`,
+            expectedResponse: `The indexes for the requested namespace cannot be determined because the collection does not exist.`,
         };
     });
 });
@@ -151,9 +147,10 @@ describeWithMongoDB(
     "collection-indexes tool with Search",
     (integration) => {
         let collection: Collection;
+        let connectionId: string;
 
         beforeEach(async () => {
-            await integration.connectMcpClient();
+            connectionId = await integration.connectMcpClient();
             collection = integration.mongoClient().db(integration.randomDbName()).collection("foo");
             await waitUntilSearchIsReady(integration.mongoClient());
         });
@@ -162,11 +159,11 @@ describeWithMongoDB(
             it("returns an empty list of indexes", async () => {
                 const response = await integration.mcpClient().callTool({
                     name: "collection-indexes",
-                    arguments: { database: "any", collection: "foo" },
+                    arguments: { connectionId, database: "any", collection: "foo" },
                 });
                 const responseContent = getResponseContent(response.content);
                 expect(responseContent).toContain(
-                    'The indexes for "any.foo" cannot be determined because the collection does not exist.'
+                    "The indexes for the requested namespace cannot be determined because the collection does not exist."
                 );
 
                 expect(response.structuredContent).toBeUndefined();
@@ -181,13 +178,13 @@ describeWithMongoDB(
             it("returns just the regular indexes", async () => {
                 const response = await integration.mcpClient().callTool({
                     name: "collection-indexes",
-                    arguments: { database: integration.randomDbName(), collection: "foo" },
+                    arguments: { connectionId, database: integration.randomDbName(), collection: "foo" },
                 });
 
                 const responseElements = getResponseElements(response.content);
                 expect(responseElements).toHaveLength(2);
                 // Expect 2 indexes - _id_ and foo_1
-                expect(responseElements[0]?.text).toContain('Found 2 classic indexes in the collection "foo"');
+                expect(responseElements[0]?.text).toContain("Found 2 classic indexes in the requested collection");
 
                 const responseContent = getResponseContent(response.content);
                 expect(responseContent).not.toContain("search and vector search indexes");
@@ -239,16 +236,16 @@ describeWithMongoDB(
             it("returns the list of existing indexes", { timeout: SEARCH_TIMEOUT }, async () => {
                 const response = await integration.mcpClient().callTool({
                     name: "collection-indexes",
-                    arguments: { database: integration.randomDbName(), collection: "foo" },
+                    arguments: { connectionId, database: integration.randomDbName(), collection: "foo" },
                 });
 
                 const elements = getResponseElements(response.content);
                 expect(elements).toHaveLength(4);
 
                 // Expect 1 regular index - _id_
-                expect(elements[0]?.text).toContain(`Found 1 classic indexes in the collection "foo":`);
+                expect(elements[0]?.text).toContain(`Found 1 classic indexes in the requested collection:`);
                 expect(elements[2]?.text).toContain(
-                    `Found 2 search and vector search indexes in the collection "foo":`
+                    `Found 2 search and vector search indexes in the requested collection:`
                 );
 
                 const indexDefinitions = getIndexesFromContent(elements[3]?.text) as {
@@ -307,7 +304,7 @@ describeWithMongoDB(
 
                     const response = await integration.mcpClient().callTool({
                         name: "collection-indexes",
-                        arguments: { database: integration.randomDbName(), collection: "foo" },
+                        arguments: { connectionId, database: integration.randomDbName(), collection: "foo" },
                     });
 
                     const elements = getResponseElements(response.content);
@@ -338,15 +335,15 @@ describeWithMongoDB(
             it("returns them alongside the regular indexes", async () => {
                 const response = await integration.mcpClient().callTool({
                     name: "collection-indexes",
-                    arguments: { database: integration.randomDbName(), collection: "foo" },
+                    arguments: { connectionId, database: integration.randomDbName(), collection: "foo" },
                 });
 
                 const elements = getResponseElements(response.content);
                 expect(elements).toHaveLength(4);
                 // Expect 1 regular index - _id_
-                expect(elements[0]?.text).toContain(`Found 1 classic indexes in the collection "foo":`);
+                expect(elements[0]?.text).toContain(`Found 1 classic indexes in the requested collection:`);
                 expect(elements[2]?.text).toContain(
-                    `Found 1 search and vector search indexes in the collection "foo":`
+                    `Found 1 search and vector search indexes in the requested collection:`
                 );
 
                 const indexDefinitions = getIndexesFromContent(elements[3]?.text) as {
@@ -373,9 +370,10 @@ describeWithMongoDB(
     "collection-indexes tool with support for auto-embed indexes",
     (integration) => {
         let collection: Collection;
+        let connectionId: string;
 
         beforeEach(async () => {
-            await integration.connectMcpClient();
+            connectionId = await integration.connectMcpClient();
             collection = integration.mongoClient().db(integration.randomDbName()).collection("foo");
             await waitUntilSearchIsReady(integration.mongoClient());
 
@@ -416,15 +414,17 @@ describeWithMongoDB(
         it("returns the list of indexes including auto-embed indexes", { timeout: SEARCH_TIMEOUT }, async () => {
             const response = await integration.mcpClient().callTool({
                 name: "collection-indexes",
-                arguments: { database: integration.randomDbName(), collection: "foo" },
+                arguments: { connectionId, database: integration.randomDbName(), collection: "foo" },
             });
 
             const elements = getResponseElements(response.content);
             expect(elements).toHaveLength(4);
 
             // Expect 1 regular index - _id_
-            expect(elements[0]?.text).toContain(`Found 1 classic indexes in the collection "foo":`);
-            expect(elements[2]?.text).toContain(`Found 2 search and vector search indexes in the collection "foo":`);
+            expect(elements[0]?.text).toContain(`Found 1 classic indexes in the requested collection:`);
+            expect(elements[2]?.text).toContain(
+                `Found 2 search and vector search indexes in the requested collection:`
+            );
 
             const indexDefinitions = getIndexesFromContent(elements[3]?.text) as {
                 name: string;
@@ -473,9 +473,10 @@ describeWithMongoDB(
     "collectionIndexes tool with search support but without voyage API key",
     (integration) => {
         let collection: Collection;
+        let connectionId: string;
 
         beforeEach(async () => {
-            await integration.connectMcpClient();
+            connectionId = await integration.connectMcpClient();
             collection = integration.mongoClient().db(integration.randomDbName()).collection("foo");
             await waitUntilSearchIsReady(integration.mongoClient());
 
@@ -493,14 +494,14 @@ describeWithMongoDB(
         it("returns search indexes when the cluster supports search", async () => {
             const response = await integration.mcpClient().callTool({
                 name: "collection-indexes",
-                arguments: { database: integration.randomDbName(), collection: "foo" },
+                arguments: { connectionId, database: integration.randomDbName(), collection: "foo" },
             });
 
             const elements = getResponseElements(response.content);
             expect(elements).toHaveLength(4);
             // Expect 1 regular index - _id_
-            expect(elements[0]?.text).toContain(`Found 1 classic indexes in the collection "foo"`);
-            expect(elements[2]?.text).toContain(`Found 1 search and vector search indexes in the collection "foo"`);
+            expect(elements[0]?.text).toContain(`Found 1 classic indexes in the requested collection`);
+            expect(elements[2]?.text).toContain(`Found 1 search and vector search indexes in the requested collection`);
         });
     },
     {

@@ -1,4 +1,4 @@
-import { DBOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { ConnectionIdArgs, DBOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { z } from "zod";
@@ -17,16 +17,16 @@ export type ListCollectionsOutput = z.infer<z.ZodObject<typeof ListCollectionsOu
 export class ListCollectionsTool extends MongoDBToolBase {
     static toolName = "list-collections";
     public description = "List all collections for a given database";
-    public argsShape = DBOperationArgs;
+    public argsShape = { ...ConnectionIdArgs, ...DBOperationArgs };
     public override outputSchema = ListCollectionsOutputSchema;
 
     static operationType: OperationType = "metadata";
 
     protected async execute(
-        { database }: ToolArgs<typeof this.argsShape>,
+        { connectionId, database }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        const provider = await this.ensureConnected();
+        const provider = await this.resolveConnection(connectionId);
         const collections = (await provider.listCollections(database, {}, { signal })).map((col) => ({
             name: col.name as string,
         }));
@@ -36,7 +36,7 @@ export class ListCollectionsTool extends MongoDBToolBase {
                 content: [
                     {
                         type: "text",
-                        text: `Found 0 collections for database "${database}". To create a collection, use the "create-collection" tool.`,
+                        text: `Found 0 collections for the requested database. To create a collection, use the "create-collection" tool.`,
                     },
                 ],
                 structuredContent: {
@@ -48,8 +48,8 @@ export class ListCollectionsTool extends MongoDBToolBase {
 
         return {
             content: formatUntrustedData(
-                `Found ${collections.length} collections for database "${database}".`,
-                JSON.stringify(collections)
+                `Found ${collections.length} collections in the requested database.`,
+                JSON.stringify({ database, collections })
             ),
             structuredContent: {
                 collections,

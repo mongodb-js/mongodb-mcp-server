@@ -81,7 +81,9 @@ describeWithAtlas("db users", (integration) => {
             it("should create a database user with supplied password", async () => {
                 const response = await createUserWithMCP("testpassword");
 
-                const elements = getResponseElements(response);
+                // The tool may append an IP access list note depending on whether the
+                // runner's IP was already present in the project's access list.
+                const elements = getResponseElements(response).filter((e) => !e.text.includes("IP access list"));
                 expect(elements).toHaveLength(1);
                 expect(elements[0]?.text).toContain("created successfully");
                 expect(elements[0]?.text).toContain(userName);
@@ -100,7 +102,9 @@ describeWithAtlas("db users", (integration) => {
 
             it("should create a database user with generated password", async () => {
                 const response = await createUserWithMCP();
-                const elements = getResponseElements(response);
+                // The tool may append an IP access list note depending on whether the
+                // runner's IP was already present in the project's access list.
+                const elements = getResponseElements(response).filter((e) => !e.text.includes("IP access list"));
                 expect(elements).toHaveLength(1);
                 expect(elements[0]?.text).toContain("created successfully");
                 expect(elements[0]?.text).toContain(userName);
@@ -162,6 +166,19 @@ describeWithAtlas("db users", (integration) => {
                 expect(elements[0]?.text).toContain("Found 1 database users in project");
                 expect(elements[1]?.text).toContain("<untrusted-user-data-");
                 expect(elements[1]?.text).toContain(userName);
+
+                expectDefined(response.structuredContent);
+                expect(response.structuredContent).toEqual({
+                    projectId,
+                    totalCount: 1,
+                    users: [
+                        {
+                            username: userName,
+                            roles: [{ roleName: "readWrite", databaseName: "admin" }],
+                            scopes: [],
+                        },
+                    ],
+                });
             });
         });
     });

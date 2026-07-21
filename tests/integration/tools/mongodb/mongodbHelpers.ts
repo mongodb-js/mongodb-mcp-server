@@ -15,10 +15,18 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { EJSON } from "bson";
 import { MongoDBClusterProcess } from "./mongodbClusterProcess.js";
 import type { MongoClusterConfiguration } from "./mongodbClusterProcess.js";
+import { ConnectionEntry, PRECONFIGURED_CONNECTION_ID } from "../../../../src/common/connectionRegistry.js";
 import type { createMockElicitInput, MockClientCapabilities } from "../../../utils/elicitationMocks.js";
+import { sleep } from "../../../../src/common/managedTimeout.js";
 
 export const DEFAULT_WAIT_TIMEOUT = 1000;
 export const DEFAULT_RETRY_INTERVAL = 100;
+
+// How many times `connectMcpClient` retries a failed connect (and how long it
+// waits between attempts) before giving up and failing clearly. Connecting can
+// transiently fail while the cluster settles (e.g. a replica set election).
+const CONNECT_MAX_ATTEMPTS = 3;
+const CONNECT_RETRY_INTERVAL = 1000;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -78,7 +86,7 @@ interface MongoDBIntegrationTest {
 }
 
 export type MongoDBIntegrationTestCase = IntegrationTest &
-    MongoDBIntegrationTest & { connectMcpClient: () => Promise<void> };
+    MongoDBIntegrationTest & { connectMcpClient: () => Promise<string> };
 
 export type MongoSearchConfiguration = { search: true; image?: string };
 
@@ -118,11 +126,35 @@ export function describeWithMongoDB(
             ...mdbIntegration,
             connectMcpClient: async () => {
                 const { tools } = await integration.mcpClient().listTools();
-                if (tools.find((tool) => tool.name === "connect")) {
-                    await integration.mcpClient().callTool({
+                if (!tools.find((tool) => tool.name === "connect")) {
+                    return PRECONFIGURED_CONNECTION_ID;
+                }
+
+                let attempt = 0;
+                while (true) {
+                    const response = await integration.mcpClient().callTool({
                         name: "connect",
                         arguments: { connectionString: mdbIntegration.connectionString() },
                     });
+
+                    if (!response.isError) {
+                        const connectionId = (response.structuredContent as { connectionId?: string } | undefined)
+                            ?.connectionId;
+                        if (!connectionId) {
+                            throw new Error(
+                                `connect tool did not return a connectionId: ${getResponseContent(response.content)}`
+                            );
+                        }
+                        return connectionId;
+                    }
+
+                    if (++attempt >= CONNECT_MAX_ATTEMPTS) {
+                        throw new Error(
+                            `Failed to connect MCP client after ${attempt} attempts: ${getResponseContent(response.content)}`
+                        );
+                    }
+
+                    await sleep(CONNECT_RETRY_INTERVAL);
                 }
             },
         });
@@ -190,23 +222,41 @@ export function validateAutoConnectBehavior(
     },
     beforeEachImpl?: () => Promise<void>
 ): void {
-    describe("when not connected", () => {
+    describe("when no connection was explicitly established", () => {
         if (beforeEachImpl) {
             beforeEach(() => beforeEachImpl());
         }
 
-        afterEach(() => {
+        afterEach(async () => {
+            const store = integration.connectionStore();
+            const registry = integration.mcpServer().session.connectionRegistry;
+            if (await registry.peek(PRECONFIGURED_CONNECTION_ID)) {
+                await registry.disconnect(PRECONFIGURED_CONNECTION_ID);
+                store["entries"].delete(PRECONFIGURED_CONNECTION_ID);
+            }
             integration.mcpServer().userConfig.connectionString = undefined;
         });
 
-        it("connects automatically if connection string is configured", async () => {
+        it(`connects lazily when the "${PRECONFIGURED_CONNECTION_ID}" connectionId is used and a connection string is configured`, async () => {
+            const store = integration.connectionStore();
             integration.mcpServer().userConfig.connectionString = integration.connectionString();
+            // Seed the preconfigured entry the same way the store constructor does when the
+            // server is started with a configured connection string. The entry is not dialed
+            // here - resolving it during the tool call is what dials it.
+            store["entries"].set(PRECONFIGURED_CONNECTION_ID, {
+                entry: new ConnectionEntry({
+                    connectionId: PRECONFIGURED_CONNECTION_ID,
+                    name: PRECONFIGURED_CONNECTION_ID,
+                    source: "preconfigured",
+                    manager: store["createConnectionManager"](),
+                }),
+            });
 
             const validationInfo = validation();
 
             const response = await integration.mcpClient().callTool({
                 name,
-                arguments: validationInfo.args,
+                arguments: { ...validationInfo.args, connectionId: PRECONFIGURED_CONNECTION_ID },
             });
 
             if (validationInfo.expectedResponse) {
@@ -219,13 +269,35 @@ export function validateAutoConnectBehavior(
             }
         });
 
-        it("throws an error if connection string is not configured", async () => {
+        it(`returns an error when the "${PRECONFIGURED_CONNECTION_ID}" connectionId is used without a configured connection string`, async () => {
+            const response = await integration.mcpClient().callTool({
+                name,
+                arguments: { ...validation().args, connectionId: PRECONFIGURED_CONNECTION_ID },
+            });
+            const content = getResponseContent(response.content);
+            expect(content).toContain(`Connection "${PRECONFIGURED_CONNECTION_ID}" does not exist or has expired.`);
+            expect(content).toContain("list-connections");
+        });
+
+        it("returns an error for an unknown connectionId", async () => {
+            const response = await integration.mcpClient().callTool({
+                name,
+                arguments: { ...validation().args, connectionId: "nope-12345678" },
+            });
+            const content = getResponseContent(response.content);
+            expect(content).toContain('Connection "nope-12345678" does not exist or has expired.');
+            expect(content).toContain("list-connections");
+        });
+
+        it("returns an input validation error when connectionId is missing", async () => {
             const response = await integration.mcpClient().callTool({
                 name,
                 arguments: validation().args,
             });
+            expect(response.isError).toBe(true);
             const content = getResponseContent(response.content);
-            expect(content).toContain("You need to connect to a MongoDB instance before you can access its data.");
+            expect(content).toContain("-32602");
+            expect(content).toContain(`Invalid arguments for tool ${name}`);
         });
     });
 }

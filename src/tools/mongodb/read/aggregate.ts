@@ -1,16 +1,21 @@
 import { z } from "zod";
 import type { AggregationCursor } from "mongodb";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolExecutionContext } from "../../tool.js";
+import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../mongodbTool.js";
+import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
-import { type Document, EJSON } from "bson";
+import { type Document } from "bson";
 import { ErrorCodes, MongoDBError } from "../../../common/errors.js";
 import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorUntilMaxBytes.js";
 import { operationWithFallback } from "../../../helpers/operationWithFallback.js";
-import { AGG_COUNT_MAX_TIME_MS_CAP, ONE_MB, CURSOR_LIMITS_TO_LLM_TEXT } from "../../../helpers/constants.js";
+import {
+    AGG_COUNT_MAX_TIME_MS_CAP,
+    ONE_MB,
+    CURSOR_LIMITS_TO_LLM_TEXT,
+    CURSOR_LIMIT_KEYS,
+    type CursorLimitKey,
+} from "../../../helpers/constants.js";
 import { LogId } from "../../../common/logging/index.js";
 import { AnyAggregateStage, VectorSearchStage } from "../mongodbSchemas.js";
 import {
@@ -18,32 +23,22 @@ import {
     type SearchIndex,
 } from "../../../helpers/assertVectorSearchFilterFieldsAreIndexed.js";
 import { isWriteStage } from "../../../helpers/mqlGuards.js";
+import { bsonToJson } from "../../../helpers/bsonToJson.js";
 
 export const pipelineDescriptionWithVectorSearch = `\
 An array of aggregation stages to execute.
-If the user has asked for a vector search, \`$vectorSearch\` **MUST** be the first stage of the pipeline, or the first stage of a \`$unionWith\` subpipeline.
-If the user has asked for lexical/Atlas search, use \`$search\` instead of \`$text\`.
-### Usage Rules for \`$vectorSearch\`
-- **Index Type Detection:**
-  Use the collection-indexes tool to determine if the target field has a classic vector index (type: 'vector') or an auto-embed index (type: 'autoEmbed').
-- **Classic Vector Search (type: 'vector'):**
-  Use 'queryVector' with embeddings as an array of numbers.
-- **Auto-Embed Vector Search (type: 'autoEmbed'):**
-  Use 'query' - MongoDB automatically generates embeddings at query time. Do NOT use 'queryVector' or 'embeddingParameters' for auto-embed indexes.
-- **Unset embeddings:**
-  Unless the user explicitly requests the embeddings, add an \`$unset\` stage **at the end of the pipeline** to remove the embedding field and avoid context limits. **The $unset stage in this situation is mandatory**.
-- **Pre-filtering:**
-  If the user requests additional filtering, include filters in \`$vectorSearch.filter\` only for pre-filter fields in the vector index.
-  NEVER include fields in $vectorSearch.filter that are not part of the vector index.
-- **Post-filtering:**
-  For all remaining filters, add a $match stage after $vectorSearch.
-- If unsure which fields are filterable, use the collection-indexes tool to determine valid prefilter fields.
-- If no requested filters are valid prefilters, omit the filter key from $vectorSearch.
 
-### Usage Rules for \`$search\`
-- Include the index name, unless you know for a fact there's a default index. If unsure, use the collection-indexes tool to determine the index name.
-- The \`$search\` stage supports multiple operators, such as 'autocomplete', 'text', 'geoWithin', and others. Choose the approprate operator based on the user's query. If unsure of the exact syntax, consult the MongoDB Atlas Search documentation, which can be found here: https://www.mongodb.com/docs/atlas/atlas-search/operators-and-collectors/
+If the user's request involves \`$search\`, \`$vectorSearch\`, \`$rankFusion\`, \`$scoreFusion\`, or \`$rerank\`, call the \`get-search-stage-rules\` tool first to learn the construction rules for these stages before building the pipeline.
 `;
+
+const AggregateOutputSchema = {
+    documents: z.array(z.unknown()).describe("The documents returned by the aggregation pipeline"),
+    count: z
+        .number()
+        .or(z.literal("indeterminate"))
+        .describe("The total number of documents returned by the aggregation pipeline"),
+    appliedLimits: z.array(CURSOR_LIMIT_KEYS).describe("The limits applied to the aggregation pipeline"),
+};
 
 export const AggregateArgs = {
     pipeline: z.array(z.union([VectorSearchStage, AnyAggregateStage])).describe(pipelineDescriptionWithVectorSearch),
@@ -53,6 +48,7 @@ export class AggregateTool extends MongoDBToolBase {
     static toolName = "aggregate";
     public description = "Run an aggregation against a MongoDB collection";
     public argsShape = {
+        ...ConnectionIdArgs,
         ...CollOperationArgs,
         ...AggregateArgs,
         responseBytesLimit: z.number().optional().default(ONE_MB).describe(`\
@@ -62,15 +58,18 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
     };
     static operationType: OperationType = "read";
 
+    public override outputSchema = AggregateOutputSchema;
+
     protected async execute(
-        { database, collection, pipeline, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
+        { connectionId, database, collection, pipeline, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
-    ): Promise<CallToolResult> {
+    ): Promise<ToolResult<typeof this.outputSchema>> {
         let aggregationCursor: AggregationCursor | undefined = undefined;
         try {
-            const provider = await this.ensureConnected();
-            await this.assertOnlyUsesPermittedStages(pipeline);
-            if (await this.session.isSearchSupported()) {
+            const provider = await this.resolveConnection(connectionId);
+            const isSearchSupported = await this.isSearchSupported(connectionId);
+            this.assertOnlyUsesPermittedStages({ isSearchSupported }, pipeline);
+            if (isSearchSupported) {
                 let searchIndexes: SearchIndex[] | undefined;
                 try {
                     searchIndexes = (await provider.getSearchIndexes(database, collection)) as SearchIndex[];
@@ -92,11 +91,14 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
 
             // Check if aggregate operation uses an index if enabled
             if (this.config.indexCheck) {
-                const [usesVectorSearchIndex, indexName] = await this.isVectorSearchIndexUsed({
-                    database,
-                    collection,
-                    pipeline,
-                });
+                const [usesVectorSearchIndex, indexName] = await this.isVectorSearchIndexUsed(
+                    { isSearchSupported, provider },
+                    {
+                        database,
+                        collection,
+                        pipeline,
+                    }
+                );
                 switch (usesVectorSearchIndex) {
                     case "not-vector-search-query":
                         await checkIndexUsage({
@@ -132,6 +134,9 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
 
             let successMessage: string;
             let documents: unknown[];
+            let count: number | undefined;
+            let appliedLimits: CursorLimitKey[] = [];
+
             if (pipeline.some((stage) => isWriteStage(stage))) {
                 // This is a write pipeline, so special-case it and don't attempt to apply limits or caps
                 aggregationCursor = provider.aggregate(database, collection, pipeline, {
@@ -175,21 +180,30 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                     totalDocuments > this.config.maxDocumentsPerQuery;
 
                 documents = cursorResults.documents;
+                count = totalDocuments;
+                appliedLimits = [
+                    aggregationResultsCappedByMaxDocumentsLimit ? "config.maxDocumentsPerQuery" : undefined,
+                    cursorResults.cappedBy,
+                ].filter((limit): limit is CursorLimitKey => !!limit);
                 successMessage = this.generateMessage({
-                    aggResultsCount: totalDocuments,
-                    documents: cursorResults.documents,
-                    appliedLimits: [
-                        aggregationResultsCappedByMaxDocumentsLimit ? "config.maxDocumentsPerQuery" : undefined,
-                        cursorResults.cappedBy,
-                    ].filter((limit): limit is keyof typeof CURSOR_LIMITS_TO_LLM_TEXT => !!limit),
+                    count,
+                    documents,
+                    appliedLimits,
                 });
             }
+
+            documents = bsonToJson(documents);
 
             return {
                 content: formatUntrustedData(
                     successMessage,
-                    ...(documents.length > 0 ? [EJSON.stringify(documents)] : [])
+                    ...(documents.length > 0 ? [JSON.stringify(documents)] : [])
                 ),
+                structuredContent: {
+                    documents,
+                    count: count ?? "indeterminate",
+                    appliedLimits,
+                },
             };
         } finally {
             if (aggregationCursor) {
@@ -210,9 +224,10 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
         }
     }
 
-    private async assertOnlyUsesPermittedStages(pipeline: Record<string, unknown>[]): Promise<void> {
-        const isSearchSupported = await this.session.isSearchSupported();
-
+    private assertOnlyUsesPermittedStages(
+        { isSearchSupported }: { isSearchSupported: boolean },
+        pipeline: Record<string, unknown>[]
+    ): void {
         this.assertMqlIsAllowed(pipeline);
 
         for (const stage of pipeline) {
@@ -266,15 +281,18 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
         }, undefined);
     }
 
-    private async isVectorSearchIndexUsed({
-        database,
-        collection,
-        pipeline,
-    }: {
-        database: string;
-        collection: string;
-        pipeline: Document[];
-    }): Promise<["valid-index" | "non-existent-index" | "not-vector-search-query", string?]> {
+    private async isVectorSearchIndexUsed(
+        { isSearchSupported, provider }: { isSearchSupported: boolean; provider: NodeDriverServiceProvider },
+        {
+            database,
+            collection,
+            pipeline,
+        }: {
+            database: string;
+            collection: string;
+            pipeline: Document[];
+        }
+    ): Promise<["valid-index" | "non-existent-index" | "not-vector-search-query", string?]> {
         // check if the pipeline contains a $vectorSearch stage
         let usesVectorSearch = false;
         let indexName: string = "default";
@@ -292,10 +310,8 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
             return ["not-vector-search-query"];
         }
 
-        const isSearchSupported = await this.session.isSearchSupported();
         let indexExists = false;
         if (isSearchSupported) {
-            const provider = await this.ensureConnected();
             try {
                 const indexes = await provider.getSearchIndexes(database, collection, indexName);
                 indexExists = indexes.length >= 1;
@@ -313,19 +329,19 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
     }
 
     private generateMessage({
-        aggResultsCount,
+        count,
         documents,
         appliedLimits,
     }: {
-        aggResultsCount: number | undefined;
+        count: number | undefined;
         documents: unknown[];
-        appliedLimits: (keyof typeof CURSOR_LIMITS_TO_LLM_TEXT)[];
+        appliedLimits: CursorLimitKey[];
     }): string {
-        let message = `The aggregation resulted in ${aggResultsCount === undefined ? "indeterminable number of" : aggResultsCount} documents.`;
+        let message = `The aggregation resulted in ${count === undefined ? "indeterminable number of" : count} documents.`;
 
         // If we applied a limit or the count is different from the aggregation result count,
         // communicate what is the actual number of returned documents
-        if (documents.length !== aggResultsCount || appliedLimits.length) {
+        if (documents.length !== count || appliedLimits.length) {
             message += ` Returning ${documents.length} documents`;
             if (appliedLimits.length) {
                 message += ` while respecting the applied limits of ${appliedLimits

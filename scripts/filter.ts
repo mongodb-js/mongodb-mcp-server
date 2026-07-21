@@ -32,6 +32,7 @@ function filterOpenapi(openapi: OpenAPIV3_1.Document): OpenAPIV3_1.Document {
         "createFlexCluster",
         "deleteCluster",
         "deleteFlexCluster",
+        "updateCluster",
         "listClusterDetails",
         "upgradeGroupClusterTenantUpgrade",
         "tenantGroupFlexClusterUpgrade",
@@ -47,6 +48,8 @@ function filterOpenapi(openapi: OpenAPIV3_1.Document): OpenAPIV3_1.Document {
         "listClusterSuggestedIndexes",
         "listSchemaAdvice",
         "listSlowQueryLogs",
+        "requestSampleDatasetLoad",
+        "getSampleDatasetLoad",
 
         // Streams: Workspaces
         "listStreamWorkspaces",

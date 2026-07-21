@@ -1,10 +1,18 @@
 import { z } from "zod";
-import { type OperationType, type ToolArgs, type ToolResult } from "../../tool.js";
+import { type OperationType, type ToolArgs, type ToolResult, type ToolExecutionContext } from "../../tool.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import type { ClusterDescription20240805 } from "../../../common/atlas/openapi.js";
 import { AtlasArgs } from "../../args.js";
 import type { CreateClusterMetadata } from "../../../telemetry/types.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { ensureCurrentIpInAccessList, getAccessListNote } from "../../../common/atlas/accessListUtils.js";
+
+/** @public */
+export const ATLAS_CREATE_CLUSTER_README_DESCRIPTION =
+    "Create a MongoDB Atlas cluster (M10–M80, replica set or single shard). " +
+    "Compute autoscaling is enabled by default: min instance size is set to the selected instance size, max is set two tiers above. " +
+    "Disk autoscaling is always enabled. The tool returns immediately, use the atlas-inspect-cluster tool to poll the cluster state for readiness (state: IDLE). " +
+    "Connection strings are unavailable until the cluster reaches IDLE state.";
 
 // Keeping this region recommendation string and the one for atlas-upgrade-cluster independent in the short term. The current effort is intentionally limited to additive changes only.
 // Differences include the mention of "non-exhaustive" and a nudge to respect user-specified regions when not in the mapping.
@@ -204,7 +212,10 @@ export class CreateClusterTool extends AtlasToolBase {
     public override outputSchema = CreateClusterOutputSchema;
     public argsShape = CreateClusterArgsShape;
 
-    protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
+    protected async execute(
+        args: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<ToolResult<typeof this.outputSchema>> {
         const { projectId, clusterName, provider, region, clusterType, terminationProtectionEnabled } = args;
 
         if (clusterType === "SHARDED" && (args.instanceSize === "M10" || args.instanceSize === "M20")) {
@@ -218,7 +229,7 @@ export class CreateClusterTool extends AtlasToolBase {
             instanceSize = "M30";
         } else {
             // REPLICASET defaults to M10 if there are less than 2 clusters in the project, M30 otherwise.
-            const existing = await this.apiClient.listClusters({ params: { path: { groupId: projectId } } });
+            const existing = await this.apiClient.listClusters({ params: { path: { groupId: projectId } } }, context);
             instanceSize = (existing.results?.length ?? 0) < 2 ? "M10" : "M30";
         }
 
@@ -236,10 +247,17 @@ export class CreateClusterTool extends AtlasToolBase {
             ...versionConfig,
         } as unknown as ClusterDescription20240805;
 
-        const result = await this.apiClient.createCluster({
-            params: { path: { groupId: projectId } },
-            body,
-        });
+        const ipAccessListResult = await ensureCurrentIpInAccessList(this.apiClient, projectId, context);
+
+        const result = await this.apiClient.createCluster(
+            {
+                params: { path: { groupId: projectId } },
+                body,
+            },
+            context
+        );
+
+        const ipAccessListNote = getAccessListNote(ipAccessListResult);
 
         return {
             content: [
@@ -250,6 +268,7 @@ export class CreateClusterTool extends AtlasToolBase {
                         `Use the atlas-inspect-cluster tool with projectId "${projectId}" and clusterName "${clusterName}" to poll for readiness. ` +
                         `The cluster is ready when its state is IDLE, connection strings are unavailable until then.`,
                 },
+                ...(ipAccessListNote ? [{ type: "text" as const, text: ipAccessListNote }] : []),
             ],
             structuredContent: {
                 clusterId: result.id,
@@ -276,11 +295,11 @@ export class CreateClusterTool extends AtlasToolBase {
         return super.handleError(error, args) as CallToolResult;
     }
 
-    protected override resolveTelemetryMetadata(
+    protected override async resolveTelemetryMetadata(
         args: ToolArgs<typeof this.argsShape>,
         context: { result: CallToolResult }
-    ): CreateClusterMetadata {
-        const parentMetadata = super.resolveTelemetryMetadata(args, context);
+    ): Promise<CreateClusterMetadata> {
+        const parentMetadata = await super.resolveTelemetryMetadata(args, context);
         type Output = z.infer<z.ZodObject<typeof CreateClusterOutputSchema>>;
         const sc = context.result.structuredContent as Output | undefined;
         return {

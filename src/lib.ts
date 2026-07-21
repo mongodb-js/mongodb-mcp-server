@@ -75,6 +75,20 @@ export {
     type OIDCConnectionAuthType,
 } from "./common/connectionManager.js";
 export {
+    ConnectionEntry,
+    PRECONFIGURED_CONNECTION_ID,
+    atlasClusterSlug,
+    type ConnectionRegistry,
+    type ConnectionSource,
+    type CreateConnectionEntryOptions,
+    type CreateConnectionOptions,
+} from "./common/connectionRegistry.js";
+export {
+    MCPConnectionStore,
+    type ConnectionStoreOptions,
+    type CreateConnectionManagerFn,
+} from "./common/connectionStore.js";
+export {
     connectionErrorHandler,
     type ConnectionErrorHandler,
     type ConnectionErrorHandled,
@@ -88,13 +102,16 @@ export type { TelemetryEvents, TelemetryConfig } from "./telemetry/telemetry.js"
 export { EventCache } from "./telemetry/eventCache.js";
 export { Keychain, registerGlobalSecretToRedact } from "./common/keychain.js";
 export type { Secret } from "./common/keychain.js";
-export { Elicitation } from "./elicitation.js";
+export { Elicitation, type ElicitationOptions } from "./elicitation.js";
 export { applyConfigOverrides, ConfigOverrideError } from "./common/config/configOverrides.js";
 export {
     SessionStore,
+    SessionRejectedError,
+    SessionLimitExceededError,
     createDefaultSessionStore,
     type ISessionStore,
     type CloseableTransport,
+    type NegotiatedClientState,
     type SessionCloseReason,
     type CreateSessionStoreFn,
     type SessionStoreConstructorArgs,
@@ -130,4 +147,5 @@ export {
     JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND,
     JSON_RPC_ERROR_CODE_INVALID_REQUEST,
     JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION,
+    JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED,
 } from "./transports/jsonRpcErrorCodes.js";

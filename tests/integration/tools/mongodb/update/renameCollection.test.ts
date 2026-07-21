@@ -4,7 +4,7 @@ import {
     validateToolMetadata,
     validateThrowsForInvalidArguments,
 } from "../../../helpers.js";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 import type { RenameCollectionOutput } from "../../../../../src/tools/mongodb/update/renameCollection.js";
 
@@ -37,13 +37,13 @@ describeWithMongoDB("renameCollection tool", (integration) => {
 
     describe("with non-existing database", () => {
         it("returns an error", async () => {
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "rename-collection",
-                arguments: { database: "non-existent", collection: "foos", newName: "bar" },
+                arguments: { connectionId, database: "non-existent", collection: "foos", newName: "bar" },
             });
             const content = getResponseContent(response.content);
-            expect(content).toEqual(`Cannot rename "non-existent.foos" because it doesn't exist.`);
+            expect(content).toEqual(`Cannot rename the requested collection because it doesn't exist.`);
         });
     });
 
@@ -51,15 +51,18 @@ describeWithMongoDB("renameCollection tool", (integration) => {
         it("returns an error", async () => {
             await integration.mongoClient().db(integration.randomDbName()).collection("bar").insertOne({});
 
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "rename-collection",
-                arguments: { database: integration.randomDbName(), collection: "non-existent", newName: "foo" },
+                arguments: {
+                    connectionId,
+                    database: integration.randomDbName(),
+                    collection: "non-existent",
+                    newName: "foo",
+                },
             });
             const content = getResponseContent(response.content);
-            expect(content).toEqual(
-                `Cannot rename "${integration.randomDbName()}.non-existent" because it doesn't exist.`
-            );
+            expect(content).toEqual(`Cannot rename the requested collection because it doesn't exist.`);
         });
     });
 
@@ -71,15 +74,18 @@ describeWithMongoDB("renameCollection tool", (integration) => {
                 .collection("before")
                 .insertOne({ value: 42 });
 
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "rename-collection",
-                arguments: { database: integration.randomDbName(), collection: "before", newName: "after" },
+                arguments: {
+                    connectionId,
+                    database: integration.randomDbName(),
+                    collection: "before",
+                    newName: "after",
+                },
             });
             const content = getResponseContent(response.content);
-            expect(content).toEqual(
-                `Collection "before" renamed to "after" in database "${integration.randomDbName()}".`
-            );
+            expect(content).toEqual(`The collection was renamed successfully in the requested database.`);
 
             const structuredContent = response.structuredContent as RenameCollectionOutput;
             expect(structuredContent.database).toBe(integration.randomDbName());
@@ -113,14 +119,19 @@ describeWithMongoDB("renameCollection tool", (integration) => {
                 .insertOne({ value: 42 });
             await integration.mongoClient().db(integration.randomDbName()).collection("after").insertOne({ value: 84 });
 
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "rename-collection",
-                arguments: { database: integration.randomDbName(), collection: "before", newName: "after" },
+                arguments: {
+                    connectionId,
+                    database: integration.randomDbName(),
+                    collection: "before",
+                    newName: "after",
+                },
             });
             const content = getResponseContent(response.content);
             expect(content).toEqual(
-                `Cannot rename "${integration.randomDbName()}.before" to "after" because the target collection already exists. If you want to overwrite it, set the "dropTarget" argument to true.`
+                `Cannot rename the requested collection because the target collection already exists. If you want to overwrite it, set the "dropTarget" argument to true.`
             );
 
             const structuredContent = response.structuredContent as RenameCollectionOutput;
@@ -157,10 +168,11 @@ describeWithMongoDB("renameCollection tool", (integration) => {
                 .insertOne({ value: 42 });
             await integration.mongoClient().db(integration.randomDbName()).collection("after").insertOne({ value: 84 });
 
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "rename-collection",
                 arguments: {
+                    connectionId,
                     database: integration.randomDbName(),
                     collection: "before",
                     newName: "after",
@@ -168,9 +180,7 @@ describeWithMongoDB("renameCollection tool", (integration) => {
                 },
             });
             const content = getResponseContent(response.content);
-            expect(content).toEqual(
-                `Collection "before" renamed to "after" in database "${integration.randomDbName()}".`
-            );
+            expect(content).toEqual(`The collection was renamed successfully in the requested database.`);
 
             // Ensure the data was moved
             const docsInBefore = await integration
@@ -192,13 +202,86 @@ describeWithMongoDB("renameCollection tool", (integration) => {
         });
     });
 
+    describe("when dropping the target collection is not allowed", () => {
+        afterEach(() => {
+            integration.mcpServer().userConfig.disabledTools = [];
+        });
+
+        it("does not drop the target collection when 'delete' operations are disabled", async () => {
+            await integration
+                .mongoClient()
+                .db(integration.randomDbName())
+                .collection("before")
+                .insertOne({ value: 42 });
+            await integration.mongoClient().db(integration.randomDbName()).collection("after").insertOne({ value: 84 });
+
+            const connectionId = await integration.connectMcpClient();
+            integration.mcpServer().userConfig.disabledTools = ["delete"];
+            const response = await integration.mcpClient().callTool({
+                name: "rename-collection",
+                arguments: {
+                    connectionId,
+                    database: integration.randomDbName(),
+                    collection: "before",
+                    newName: "after",
+                    dropTarget: true,
+                },
+            });
+            const content = getResponseContent(response.content);
+            expect(content).toEqual(
+                "Error running rename-collection: When 'delete' operations are disabled, you can not rename a collection with 'dropTarget' set to true, as it would drop the target collection."
+            );
+
+            // Ensure no data was lost
+            const docsInBefore = await integration
+                .mongoClient()
+                .db(integration.randomDbName())
+                .collection("before")
+                .find({})
+                .toArray();
+            expect(docsInBefore).toHaveLength(1);
+            expect(docsInBefore[0]?.value).toEqual(42);
+
+            const docsInAfter = await integration
+                .mongoClient()
+                .db(integration.randomDbName())
+                .collection("after")
+                .find({})
+                .toArray();
+            expect(docsInAfter).toHaveLength(1);
+            expect(docsInAfter[0]?.value).toEqual(84);
+        });
+
+        it("still allows renaming without dropTarget when 'delete' operations are disabled", async () => {
+            await integration
+                .mongoClient()
+                .db(integration.randomDbName())
+                .collection("before")
+                .insertOne({ value: 42 });
+
+            const connectionId = await integration.connectMcpClient();
+            integration.mcpServer().userConfig.disabledTools = ["delete"];
+            const response = await integration.mcpClient().callTool({
+                name: "rename-collection",
+                arguments: {
+                    connectionId,
+                    database: integration.randomDbName(),
+                    collection: "before",
+                    newName: "after",
+                },
+            });
+            const content = getResponseContent(response.content);
+            expect(content).toEqual(`The collection was renamed successfully in the requested database.`);
+        });
+    });
+
     validateAutoConnectBehavior(
         integration,
         "rename-collection",
         () => {
             return {
                 args: { database: integration.randomDbName(), collection: "coll1", newName: "coll2" },
-                expectedResponse: `Collection "coll1" renamed to "coll2" in database "${integration.randomDbName()}".`,
+                expectedResponse: `The collection was renamed successfully in the requested database.`,
             };
         },
         async () => {

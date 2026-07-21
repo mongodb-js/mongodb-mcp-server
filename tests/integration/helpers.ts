@@ -10,7 +10,8 @@ import { type UserConfig } from "../../src/common/config/userConfig.js";
 import { ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { ConnectionManager, ConnectionState } from "../../src/common/connectionManager.js";
-import { MCPConnectionManager } from "../../src/common/connectionManager.js";
+import { MCPConnectionStore } from "../../src/common/connectionStore.js";
+import type { ConnectionEntry } from "../../src/common/connectionRegistry.js";
 import { DeviceId } from "../../src/helpers/deviceId.js";
 import { connectionErrorHandler } from "../../src/common/connectionErrorHandler.js";
 import { Keychain } from "../../src/common/keychain.js";
@@ -46,11 +47,14 @@ export interface IntegrationTest {
     mcpServer: () => Server & {
         getApiClient: () => ApiClient;
     };
+    /** The app-level store backing the session's connection registry view. */
+    connectionStore: () => MCPConnectionStore;
 }
 export const defaultTestConfig: UserConfig = {
     ...UserConfigSchema.parse({}),
     telemetry: "disabled",
     loggers: ["stderr"],
+    maxSessions: 1000,
 };
 
 export const DEFAULT_LONG_RUNNING_TEST_WAIT_TIMEOUT_MS = 1_200_000;
@@ -70,6 +74,7 @@ export function setupIntegrationTest(
     let mcpClient: Client | undefined;
     let mcpServer: Server | undefined;
     let deviceId: DeviceId | undefined;
+    let connectionStore: MCPConnectionStore | undefined;
 
     beforeAll(async () => {
         const userConfig = getUserConfig();
@@ -98,13 +103,13 @@ export function setupIntegrationTest(
         const exportsManager = ExportsManager.init(userConfig, logger);
 
         deviceId = DeviceId.create(logger);
-        const connectionManager = new MCPConnectionManager(userConfig, logger, deviceId);
+        connectionStore = new MCPConnectionStore({ userConfig, logger, deviceId });
+        const connectionRegistry = connectionStore.view();
 
         const session = new Session({
-            userConfig,
             logger,
             exportsManager,
-            connectionManager,
+            connectionRegistry,
             keychain: new Keychain(),
             connectionErrorHandler,
             atlasLocalClient: await defaultCreateAtlasLocalClient({ logger }),
@@ -152,7 +157,10 @@ export function setupIntegrationTest(
             Object.assign(mcpServerInstance.server, { elicitInput: elicitInput.mock });
         }
 
-        const elicitation = new Elicitation({ server: mcpServerInstance.server });
+        const elicitation = new Elicitation({
+            server: mcpServerInstance.server,
+            timeoutMs: userConfig.elicitationTimeoutMs,
+        });
 
         let uiRegistry = serverOptions?.uiRegistry;
         if (!uiRegistry && userConfig.previewFeatures.includes("mcpUI")) {
@@ -178,7 +186,12 @@ export function setupIntegrationTest(
 
     afterEach(async () => {
         if (mcpServer) {
-            await mcpServer.session.disconnect();
+            // Disconnect every connection between tests. Explicit entries are
+            // revoked; the preconfigured entry (if any) survives disconnected
+            // and re-dials on next use.
+            for (const entry of await mcpServer.session.connectionRegistry.find(() => true)) {
+                await mcpServer.session.connectionRegistry.disconnect(entry.connectionId);
+            }
         }
 
         vi.clearAllMocks();
@@ -193,6 +206,7 @@ export function setupIntegrationTest(
 
         deviceId?.close();
         deviceId = undefined;
+        connectionStore = undefined;
     });
 
     const getMcpClient = (): Client => {
@@ -219,9 +233,18 @@ export function setupIntegrationTest(
         } as Server & { getApiClient: () => ApiClient };
     };
 
+    const getConnectionStore = (): MCPConnectionStore => {
+        if (!connectionStore) {
+            throw new Error("beforeEach() hook not ran yet");
+        }
+
+        return connectionStore;
+    };
+
     return {
         mcpClient: getMcpClient,
         mcpServer: getMcpServer,
+        connectionStore: getConnectionStore,
     };
 }
 
@@ -254,11 +277,18 @@ export function getResponseElements(content: unknown): ResponseElement[] {
     return response;
 }
 
-export async function connect(client: Client, connectionString: string): Promise<void> {
-    await client.callTool({
+/** Connects via the connect tool and returns the connectionId to pass to dataplane tool calls. */
+export async function connect(client: Client, connectionString: string): Promise<string> {
+    const result = await client.callTool({
         name: "connect",
-        arguments: { connectionStringOrClusterName: connectionString },
+        arguments: { connectionString },
     });
+
+    const connectionId = (result.structuredContent as { connectionId?: string } | undefined)?.connectionId;
+    if (!connectionId) {
+        throw new Error(`connect tool did not return a connectionId: ${JSON.stringify(result.content)}`);
+    }
+    return connectionId;
 }
 
 export function getParameters(tool: ToolInfo): ParameterInfo[] {
@@ -303,7 +333,17 @@ export function getParameters(tool: ToolInfo): ParameterInfo[] {
         });
 }
 
+export const connectionIdParameters: ParameterInfo[] = [
+    {
+        name: "connectionId",
+        type: "string",
+        description: "The connection to run the operation against. Use the id returned by one of the connect tools.",
+        required: true,
+    },
+];
+
 export const databaseParameters: ParameterInfo[] = [
+    ...connectionIdParameters,
     { name: "database", type: "string", description: "Database name", required: true },
 ];
 
@@ -392,10 +432,6 @@ function validateToolAnnotations(tool: ToolInfo, name: string, operationType: Op
     }
 }
 
-export function timeout(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 /**
  * Subscribes to the resources changed notification for the provided URI
  */
@@ -416,7 +452,7 @@ export function responseAsText(response: Awaited<ReturnType<Client["callTool"]>>
 
 export function waitUntil<T extends ConnectionState>(
     tag: T["tag"],
-    cm: ConnectionManager,
+    source: ConnectionManager | ConnectionEntry,
     signal: AbortSignal,
     additionalCondition?: (state: T) => boolean
 ): Promise<T> {
@@ -428,7 +464,7 @@ export function waitUntil<T extends ConnectionState>(
                 return reject(new Error(`Aborted: ${signal.reason}`));
             }
 
-            const status = cm.currentConnectionState;
+            const status = "currentConnectionState" in source ? source.currentConnectionState : source.state;
             if (status.tag === tag) {
                 if (!additionalCondition || (additionalCondition && additionalCondition(status as T))) {
                     return resolve(status as T);
@@ -456,10 +492,6 @@ export function getDataFromUntrustedContent(content: string): string {
         throw new Error("Could not find untrusted user data in content");
     }
     return match.groups.data.trim();
-}
-
-export function sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export class InMemoryLogger extends LoggerBase {

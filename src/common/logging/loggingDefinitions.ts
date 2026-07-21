@@ -35,6 +35,9 @@ export const LogId = {
     toolExecuteFailure: mongoLogId(1_003_002),
     toolDisabled: mongoLogId(1_003_003),
     toolMetadataChange: mongoLogId(1_003_004),
+    toolConfirmationRequested: mongoLogId(1_003_005),
+    toolConfirmationSettled: mongoLogId(1_003_006),
+    toolConfirmationStandaloneStreamFallback: mongoLogId(1_003_007),
 
     mongodbConnectFailure: mongoLogId(1_004_001),
     mongodbDisconnectFailure: mongoLogId(1_004_002),
@@ -60,6 +63,9 @@ export const LogId = {
     streamableHttpTransportHttpHostWarning: mongoLogId(1_006_009),
     streamableHttpTransportSessionNotFound: mongoLogId(1_006_010),
     streamableHttpTransportDisallowedExternalSessionError: mongoLogId(1_006_011),
+    streamableHttpTransportSessionLimitExceeded: mongoLogId(1_006_012),
+    streamableHttpTransportClientStateSaveFailure: mongoLogId(1_006_013),
+    streamableHttpTransportClientStateRestoreFailure: mongoLogId(1_006_014),
 
     httpServerStarted: mongoLogId(1_006_100),
     httpServerStopping: mongoLogId(1_006_101),
@@ -90,4 +96,8 @@ export const LogId = {
     streamsProcessorStateLookupFailure: mongoLogId(1_012_001),
 
     monitoringServerMetricsFailure: mongoLogId(1_013_001),
+
+    connectionRegistryRevoked: mongoLogId(1_014_001),
+    connectionRegistryRevokeCallbackFailure: mongoLogId(1_014_002),
+    connectionRegistryDialFailure: mongoLogId(1_014_003),
 } as const;

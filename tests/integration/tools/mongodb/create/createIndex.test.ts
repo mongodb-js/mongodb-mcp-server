@@ -9,8 +9,9 @@ import {
     getResponseElements,
 } from "../../../helpers.js";
 import type { CreateIndexOutput } from "../../../../../src/tools/mongodb/create/createIndex.js";
+import type { ToolEvent } from "../../../../../src/telemetry/types.js";
 import { ObjectId, type Collection, type Document, type IndexDirection } from "mongodb";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 describeWithMongoDB("createIndex tool", (integration) => {
     validateToolMetadata(integration, "create-index", "Create an index for a collection", "create", [
@@ -181,10 +182,11 @@ describeWithMongoDB("createIndex tool with classic indexes", (integration) => {
     };
 
     it("creates the namespace if necessary", async () => {
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         const response = await integration.mcpClient().callTool({
             name: "create-index",
             arguments: {
+                connectionId,
                 database: integration.randomDbName(),
                 collection: "coll1",
                 definition: [
@@ -213,10 +215,11 @@ describeWithMongoDB("createIndex tool with classic indexes", (integration) => {
     });
 
     it("generates a name if not provided", async () => {
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         const response = await integration.mcpClient().callTool({
             name: "create-index",
             arguments: {
+                connectionId,
                 database: integration.randomDbName(),
                 collection: "coll1",
                 definition: [{ type: "classic", keys: { prop1: 1 } }],
@@ -239,10 +242,11 @@ describeWithMongoDB("createIndex tool with classic indexes", (integration) => {
     });
 
     it("can create multiple indexes in the same collection", async () => {
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         let response = await integration.mcpClient().callTool({
             name: "create-index",
             arguments: {
+                connectionId,
                 database: integration.randomDbName(),
                 collection: "coll1",
                 definition: [{ type: "classic", keys: { prop1: 1 } }],
@@ -256,6 +260,7 @@ describeWithMongoDB("createIndex tool with classic indexes", (integration) => {
         response = await integration.mcpClient().callTool({
             name: "create-index",
             arguments: {
+                connectionId,
                 database: integration.randomDbName(),
                 collection: "coll1",
                 definition: [{ type: "classic", keys: { prop2: -1 } }],
@@ -273,10 +278,11 @@ describeWithMongoDB("createIndex tool with classic indexes", (integration) => {
     });
 
     it("can create multiple indexes on the same property", async () => {
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         let response = await integration.mcpClient().callTool({
             name: "create-index",
             arguments: {
+                connectionId,
                 database: integration.randomDbName(),
                 collection: "coll1",
                 definition: [{ type: "classic", keys: { prop1: 1 } }],
@@ -290,6 +296,7 @@ describeWithMongoDB("createIndex tool with classic indexes", (integration) => {
         response = await integration.mcpClient().callTool({
             name: "create-index",
             arguments: {
+                connectionId,
                 database: integration.randomDbName(),
                 collection: "coll1",
                 definition: [{ type: "classic", keys: { prop1: -1 } }],
@@ -307,10 +314,11 @@ describeWithMongoDB("createIndex tool with classic indexes", (integration) => {
     });
 
     it("doesn't duplicate indexes", async () => {
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         let response = await integration.mcpClient().callTool({
             name: "create-index",
             arguments: {
+                connectionId,
                 database: integration.randomDbName(),
                 collection: "coll1",
                 definition: [{ type: "classic", keys: { prop1: 1 } }],
@@ -324,6 +332,7 @@ describeWithMongoDB("createIndex tool with classic indexes", (integration) => {
         response = await integration.mcpClient().callTool({
             name: "create-index",
             arguments: {
+                connectionId,
                 database: integration.randomDbName(),
                 collection: "coll1",
                 definition: [{ type: "classic", keys: { prop1: 1 } }],
@@ -337,14 +346,73 @@ describeWithMongoDB("createIndex tool with classic indexes", (integration) => {
         await validateIndex("coll1", [{ name: "prop1_1", key: { prop1: 1 } }]);
     });
 
-    it("fails to create a vector search index", async () => {
-        await integration.connectMcpClient();
+    it("emits index_type telemetry metadata for classic indexes", async () => {
+        const mockEmitEvents = vi.spyOn(integration.mcpServer()["telemetry"], "emitEvents");
+        vi.spyOn(integration.mcpServer()["telemetry"], "isTelemetryEnabled").mockReturnValue(true);
+        const connectionId = await integration.connectMcpClient();
+
+        await integration.mcpClient().callTool({
+            name: "create-index",
+            arguments: {
+                connectionId,
+                database: integration.randomDbName(),
+                collection: "coll1",
+                definition: [{ type: "classic", keys: { prop1: 1 } }],
+            },
+        });
+
+        expect(mockEmitEvents).toHaveBeenCalled();
+        const emittedEvent = mockEmitEvents.mock.lastCall?.[0][0] as ToolEvent;
+        expectDefined(emittedEvent);
+        expect(emittedEvent.properties.result).toEqual("success");
+        expect(emittedEvent.properties.command).toEqual("create-index");
+        expect(emittedEvent.properties.index_type).toEqual("classic");
+    });
+
+    it("does not emit index_type telemetry metadata when the tool call fails", async () => {
+        const mockEmitEvents = vi.spyOn(integration.mcpServer()["telemetry"], "emitEvents");
+        vi.spyOn(integration.mcpServer()["telemetry"], "isTelemetryEnabled").mockReturnValue(true);
+        const connectionId = await integration.connectMcpClient();
         const collection = new ObjectId().toString();
         await integration.mongoClient().db(integration.randomDbName()).createCollection(collection);
 
         const response = await integration.mcpClient().callTool({
             name: "create-index",
             arguments: {
+                connectionId,
+                database: integration.randomDbName(),
+                collection,
+                name: "vector_1_vector",
+                definition: [
+                    {
+                        type: "vectorSearch",
+                        fields: [
+                            { type: "vector", path: "vector_1", numDimensions: 4 },
+                            { type: "filter", path: "category" },
+                        ],
+                    },
+                ],
+            },
+        });
+
+        expect(response.isError).toBe(true);
+        expect(mockEmitEvents).toHaveBeenCalled();
+        const emittedEvent = mockEmitEvents.mock.lastCall?.[0][0] as ToolEvent;
+        expectDefined(emittedEvent);
+        expect(emittedEvent.properties.result).toEqual("failure");
+        expect(emittedEvent.properties.command).toEqual("create-index");
+        expect(emittedEvent.properties.index_type).toBeUndefined();
+    });
+
+    it("fails to create a vector search index", async () => {
+        const connectionId = await integration.connectMcpClient();
+        const collection = new ObjectId().toString();
+        await integration.mongoClient().db(integration.randomDbName()).createCollection(collection);
+
+        const response = await integration.mcpClient().callTool({
+            name: "create-index",
+            arguments: {
+                connectionId,
                 database: integration.randomDbName(),
                 collection,
                 name: "vector_1_vector",
@@ -376,10 +444,11 @@ describeWithMongoDB("createIndex tool with classic indexes", (integration) => {
 
     for (const { name, direction } of testCases) {
         it(`creates ${name} index`, async () => {
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "create-index",
                 arguments: {
+                    connectionId,
                     database: integration.randomDbName(),
                     collection: "coll1",
                     definition: [{ type: "classic", keys: { prop1: direction } }],
@@ -416,8 +485,9 @@ describeWithMongoDB("createIndex tool with classic indexes", (integration) => {
 describeWithMongoDB(
     "createIndex tool with vector search indexes",
     (integration) => {
+        let connectionId: string;
         beforeEach(async () => {
-            await integration.connectMcpClient();
+            connectionId = await integration.connectMcpClient();
             await waitUntilSearchIsReady(integration.mongoClient());
         });
 
@@ -426,6 +496,7 @@ describeWithMongoDB(
                 const response = await integration.mcpClient().callTool({
                     name: "create-index",
                     arguments: {
+                        connectionId,
                         database: integration.randomDbName(),
                         collection: "foo",
                         definition: [
@@ -450,6 +521,7 @@ describeWithMongoDB(
                 const response = await integration.mcpClient().callTool({
                     name: "create-index",
                     arguments: {
+                        connectionId,
                         database: "nonexistent_db",
                         collection: "foo",
                         definition: [
@@ -485,6 +557,7 @@ describeWithMongoDB(
                 const response = await integration.mcpClient().callTool({
                     name: "create-index",
                     arguments: {
+                        connectionId,
                         database: integration.randomDbName(),
                         collection: collectionName,
                         name: "vector_1_vector",
@@ -525,10 +598,42 @@ describeWithMongoDB(
                 });
             });
 
+            it("emits index_type telemetry metadata for vector search indexes", async () => {
+                const mockEmitEvents = vi.spyOn(integration.mcpServer()["telemetry"], "emitEvents");
+                vi.spyOn(integration.mcpServer()["telemetry"], "isTelemetryEnabled").mockReturnValue(true);
+
+                await integration.mcpClient().callTool({
+                    name: "create-index",
+                    arguments: {
+                        connectionId,
+                        database: integration.randomDbName(),
+                        collection: collectionName,
+                        name: "vector_1_vector",
+                        definition: [
+                            {
+                                type: "vectorSearch",
+                                fields: [
+                                    { type: "vector", path: "vector_1", numDimensions: 4 },
+                                    { type: "filter", path: "category" },
+                                ],
+                            },
+                        ],
+                    },
+                });
+
+                expect(mockEmitEvents).toHaveBeenCalled();
+                const emittedEvent = mockEmitEvents.mock.lastCall?.[0][0] as ToolEvent;
+                expectDefined(emittedEvent);
+                expect(emittedEvent.properties.result).toEqual("success");
+                expect(emittedEvent.properties.command).toEqual("create-index");
+                expect(emittedEvent.properties.index_type).toEqual("vectorSearch");
+            });
+
             it("doesn't duplicate indexes", async () => {
                 const response = await integration.mcpClient().callTool({
                     name: "create-index",
                     arguments: {
+                        connectionId,
                         database: integration.randomDbName(),
                         collection: collectionName,
                         name: "vector_1_vector",
@@ -553,6 +658,7 @@ describeWithMongoDB(
                 const duplicateVectorResponse = await integration.mcpClient().callTool({
                     name: "create-index",
                     arguments: {
+                        connectionId,
                         database: integration.randomDbName(),
                         collection: collectionName,
                         name: "vector_1_vector",
@@ -576,6 +682,7 @@ describeWithMongoDB(
                 const response = await integration.mcpClient().callTool({
                     name: "create-index",
                     arguments: {
+                        connectionId,
                         database: integration.randomDbName(),
                         collection: collectionName,
                         name: "my-super-index",
@@ -599,6 +706,7 @@ describeWithMongoDB(
                 const classicResponse = await integration.mcpClient().callTool({
                     name: "create-index",
                     arguments: {
+                        connectionId,
                         database: integration.randomDbName(),
                         collection: collectionName,
                         name: "my-super-index",
@@ -615,6 +723,7 @@ describeWithMongoDB(
                 const listIndexesResponse = await integration.mcpClient().callTool({
                     name: "collection-indexes",
                     arguments: {
+                        connectionId,
                         database: integration.randomDbName(),
                         collection: collectionName,
                     },
@@ -634,6 +743,7 @@ describeWithMongoDB(
                 const response = await integration.mcpClient().callTool({
                     name: "create-index",
                     arguments: {
+                        connectionId,
                         database: integration.randomDbName(),
                         collection: collectionName,
                         name: "vector_1_vector_auto_embed",
@@ -663,8 +773,9 @@ describeWithMongoDB(
     (integration) => {
         let collectionName: string;
         let collection: Collection;
+        let connectionId: string;
         beforeEach(async () => {
-            await integration.connectMcpClient();
+            connectionId = await integration.connectMcpClient();
             await waitUntilSearchIsReady(integration.mongoClient());
             collectionName = new ObjectId().toString();
             collection = await integration
@@ -681,6 +792,7 @@ describeWithMongoDB(
             const response = await integration.mcpClient().callTool({
                 name: "create-index",
                 arguments: {
+                    connectionId,
                     database: integration.randomDbName(),
                     collection: collectionName,
                     name: "vector_1_vector_auto_embed",
@@ -722,8 +834,9 @@ describeWithMongoDB(
 describeWithMongoDB(
     "createIndex tool with Atlas search indexes",
     (integration) => {
+        let connectionId: string;
         beforeEach(async () => {
-            await integration.connectMcpClient();
+            connectionId = await integration.connectMcpClient();
             await waitUntilSearchIsReady(integration.mongoClient());
         });
 
@@ -733,6 +846,7 @@ describeWithMongoDB(
                 const response = await integration.mcpClient().callTool({
                     name: "create-index",
                     arguments: {
+                        connectionId,
                         database: integration.randomDbName(),
                         collection: "foo",
                         definition: [
@@ -757,6 +871,7 @@ describeWithMongoDB(
                 const response = await integration.mcpClient().callTool({
                     name: "create-index",
                     arguments: {
+                        connectionId,
                         database: "nonexistent_db",
                         collection: "foo",
                         definition: [
@@ -795,6 +910,7 @@ describeWithMongoDB(
                 const response = await integration.mcpClient().callTool({
                     name: "create-index",
                     arguments: {
+                        connectionId,
                         database: integration.randomDbName(),
                         collection: collectionName,
                         name: "search_index",
@@ -846,10 +962,45 @@ describeWithMongoDB(
                 });
             });
 
+            it("emits index_type telemetry metadata for Atlas search indexes", async () => {
+                const mockEmitEvents = vi.spyOn(integration.mcpServer()["telemetry"], "emitEvents");
+                vi.spyOn(integration.mcpServer()["telemetry"], "isTelemetryEnabled").mockReturnValue(true);
+
+                await integration.mcpClient().callTool({
+                    name: "create-index",
+                    arguments: {
+                        connectionId,
+                        database: integration.randomDbName(),
+                        collection: collectionName,
+                        name: "search_index",
+                        definition: [
+                            {
+                                type: "search",
+                                analyzer: "lucene.standard",
+                                mappings: {
+                                    dynamic: false,
+                                    fields: {
+                                        title: { type: "string" },
+                                    },
+                                },
+                            },
+                        ],
+                    },
+                });
+
+                expect(mockEmitEvents).toHaveBeenCalled();
+                const emittedEvent = mockEmitEvents.mock.lastCall?.[0][0] as ToolEvent;
+                expectDefined(emittedEvent);
+                expect(emittedEvent.properties.result).toEqual("success");
+                expect(emittedEvent.properties.command).toEqual("create-index");
+                expect(emittedEvent.properties.index_type).toEqual("search");
+            });
+
             it("creates the index with dynamic mappings", async () => {
                 const response = await integration.mcpClient().callTool({
                     name: "create-index",
                     arguments: {
+                        connectionId,
                         database: integration.randomDbName(),
                         collection: collectionName,
                         name: "dynamic_search_index",
@@ -888,6 +1039,7 @@ describeWithMongoDB(
                 const response = await integration.mcpClient().callTool({
                     name: "create-index",
                     arguments: {
+                        connectionId,
                         database: integration.randomDbName(),
                         collection: collectionName,
                         name: "search_index",
@@ -914,6 +1066,7 @@ describeWithMongoDB(
                 const duplicateSearchResponse = await integration.mcpClient().callTool({
                     name: "create-index",
                     arguments: {
+                        connectionId,
                         database: integration.randomDbName(),
                         collection: collectionName,
                         name: "search_index",
@@ -939,6 +1092,7 @@ describeWithMongoDB(
                 const response = await integration.mcpClient().callTool({
                     name: "create-index",
                     arguments: {
+                        connectionId,
                         database: integration.randomDbName(),
                         collection: collectionName,
                         name: "my-search-index",
@@ -961,6 +1115,7 @@ describeWithMongoDB(
                 const classicResponse = await integration.mcpClient().callTool({
                     name: "create-index",
                     arguments: {
+                        connectionId,
                         database: integration.randomDbName(),
                         collection: collectionName,
                         name: "my-search-index",
@@ -977,6 +1132,7 @@ describeWithMongoDB(
                 const listIndexesResponse = await integration.mcpClient().callTool({
                     name: "collection-indexes",
                     arguments: {
+                        connectionId,
                         database: integration.randomDbName(),
                         collection: collectionName,
                     },

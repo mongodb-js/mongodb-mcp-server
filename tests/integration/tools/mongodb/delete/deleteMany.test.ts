@@ -38,10 +38,11 @@ describeWithMongoDB("deleteMany tool", (integration) => {
     });
 
     it("doesn't create the collection if it doesn't exist", async () => {
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         const response = await integration.mcpClient().callTool({
             name: "delete-many",
             arguments: {
+                connectionId,
                 database: integration.randomDbName(),
                 collection: "coll1",
                 filter: {},
@@ -49,7 +50,7 @@ describeWithMongoDB("deleteMany tool", (integration) => {
         });
 
         const content = getResponseContent(response.content);
-        expect(content).toContain('Deleted `0` document(s) from collection "coll1"');
+        expect(content).toContain("Deleted `0` document(s) from the requested collection.");
 
         const collections = await integration.mongoClient().db(integration.randomDbName()).listCollections().toArray();
         expect(collections).toHaveLength(0);
@@ -85,17 +86,18 @@ describeWithMongoDB("deleteMany tool", (integration) => {
     it("deletes documents matching the filter", async () => {
         await insertDocuments();
 
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         const response = await integration.mcpClient().callTool({
             name: "delete-many",
             arguments: {
+                connectionId,
                 database: integration.randomDbName(),
                 collection: "coll1",
                 filter: { age: { $gt: 20 } },
             },
         });
         const content = getResponseContent(response.content);
-        expect(content).toContain('Deleted `2` document(s) from collection "coll1"');
+        expect(content).toContain("Deleted `2` document(s) from the requested collection.");
 
         const structuredContent = response.structuredContent as DeleteManyOutput;
         expect(structuredContent.database).toBe(integration.randomDbName());
@@ -110,10 +112,11 @@ describeWithMongoDB("deleteMany tool", (integration) => {
 
     it("when filter doesn't match, deletes nothing", async () => {
         await insertDocuments();
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         const response = await integration.mcpClient().callTool({
             name: "delete-many",
             arguments: {
+                connectionId,
                 database: integration.randomDbName(),
                 collection: "coll1",
                 filter: { age: { $gt: 100 } },
@@ -121,7 +124,7 @@ describeWithMongoDB("deleteMany tool", (integration) => {
         });
 
         const content = getResponseContent(response.content);
-        expect(content).toContain('Deleted `0` document(s) from collection "coll1"');
+        expect(content).toContain("Deleted `0` document(s) from the requested collection.");
 
         await validateDocuments([
             { age: 10, name: "Peter" },
@@ -133,10 +136,11 @@ describeWithMongoDB("deleteMany tool", (integration) => {
 
     it("with empty filter, deletes all documents", async () => {
         await insertDocuments();
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         const response = await integration.mcpClient().callTool({
             name: "delete-many",
             arguments: {
+                connectionId,
                 database: integration.randomDbName(),
                 collection: "coll1",
                 filter: {},
@@ -144,7 +148,7 @@ describeWithMongoDB("deleteMany tool", (integration) => {
         });
 
         const content = getResponseContent(response.content);
-        expect(content).toContain('Deleted `4` document(s) from collection "coll1"');
+        expect(content).toContain("Deleted `4` document(s) from the requested collection.");
 
         await validateDocuments([]);
     });
@@ -156,7 +160,7 @@ describeWithMongoDB("deleteMany tool", (integration) => {
                 collection: "coll1",
                 filter: {},
             },
-            expectedResponse: 'Deleted `0` document(s) from collection "coll1"',
+            expectedResponse: "Deleted `0` document(s) from the requested collection.",
         };
     });
 });
@@ -180,10 +184,11 @@ describeWithMongoDB("deleteMany tool with server-side JavaScript operators", (in
     for (const jsDisabled of [true, false]) {
         it(`${jsDisabled ? "rejects" : "allows"} filters using $where when disableServerSideJs is ${jsDisabled}`, async () => {
             integration.mcpServer().userConfig.disableServerSideJs = jsDisabled;
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "delete-many",
                 arguments: {
+                    connectionId,
                     database: integration.randomDbName(),
                     collection: "people",
                     filter: { $where: "function() { return this.age > 8; }" },
@@ -194,7 +199,7 @@ describeWithMongoDB("deleteMany tool with server-side JavaScript operators", (in
                 expect(content).toContain(`The "$where" operator is not allowed.`);
             } else {
                 expect(content).not.toContain("server-side JavaScript operators");
-                expect(content).toContain('Deleted `1` document(s) from collection "people"');
+                expect(content).toContain("Deleted `1` document(s) from the requested collection.");
             }
         });
     }

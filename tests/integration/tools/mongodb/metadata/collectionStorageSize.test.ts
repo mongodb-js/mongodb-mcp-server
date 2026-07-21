@@ -25,14 +25,14 @@ describeWithMongoDB("collectionStorageSize tool", (integration) => {
 
     describe("with non-existent database", () => {
         it("returns an error", async () => {
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "collection-storage-size",
-                arguments: { database: integration.randomDbName(), collection: "foo" },
+                arguments: { connectionId, database: integration.randomDbName(), collection: "foo" },
             });
             const content = getResponseContent(response.content);
             expect(content).toEqual(
-                `The size of "${integration.randomDbName()}.foo" cannot be determined because the collection does not exist.`
+                `The size of the requested namespace cannot be determined because the collection does not exist.`
             );
 
             // For error case, structured content is not required (isError: true)
@@ -63,13 +63,13 @@ describeWithMongoDB("collectionStorageSize tool", (integration) => {
                     .collection("foo")
                     .insertOne({ data: crypto.randomBytes(test.bytesToInsert) });
 
-                await integration.connectMcpClient();
+                const connectionId = await integration.connectMcpClient();
                 const response = await integration.mcpClient().callTool({
                     name: "collection-storage-size",
-                    arguments: { database: integration.randomDbName(), collection: "foo" },
+                    arguments: { connectionId, database: integration.randomDbName(), collection: "foo" },
                 });
                 const content = getResponseContent(response.content);
-                expect(content).toContain(`The size of "${integration.randomDbName()}.foo" is`);
+                expect(content).toContain(`The size of the requested namespace is`);
                 const size = /is `(\d+\.\d+) ([a-zA-Z]*)`/.exec(content);
 
                 expectDefined(size?.[1]);
@@ -94,7 +94,7 @@ describeWithMongoDB("collectionStorageSize tool", (integration) => {
                 database: integration.randomDbName(),
                 collection: "foo",
             },
-            expectedResponse: `The size of "${integration.randomDbName()}.foo" cannot be determined because the collection does not exist.`,
+            expectedResponse: `The size of the requested namespace cannot be determined because the collection does not exist.`,
         };
     });
 });

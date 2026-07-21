@@ -25,14 +25,14 @@ describeWithMongoDB("listCollections tool", (integration) => {
 
     describe("with non-existent database", () => {
         it("returns no collections", async () => {
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "list-collections",
-                arguments: { database: "non-existent" },
+                arguments: { connectionId, database: "non-existent" },
             });
             const content = getResponseContent(response.content);
             expect(content).toEqual(
-                'Found 0 collections for database "non-existent". To create a collection, use the "create-collection" tool.'
+                'Found 0 collections for the requested database. To create a collection, use the "create-collection" tool.'
             );
 
             // Structured content should have empty array for empty database
@@ -47,18 +47,18 @@ describeWithMongoDB("listCollections tool", (integration) => {
             const mongoClient = integration.mongoClient();
             await mongoClient.db(integration.randomDbName()).createCollection("collection-1");
 
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "list-collections",
-                arguments: { database: integration.randomDbName() },
+                arguments: { connectionId, database: integration.randomDbName() },
             });
             const items = getResponseElements(response.content);
             expect(items).toHaveLength(2);
-            expect(items[0]?.text).toEqual(`Found 1 collections for database "${integration.randomDbName()}".`);
+            expect(items[0]?.text).toEqual("Found 1 collections in the requested database.");
 
-            const contentData = JSON.parse(
-                getDataFromUntrustedContent(items[1]?.text ?? "")
-            ) as ListCollectionsOutput["collections"];
+            const { collections: contentData } = JSON.parse(getDataFromUntrustedContent(items[1]?.text ?? "")) as {
+                collections: ListCollectionsOutput["collections"];
+            };
             expect(contentData).toEqual([{ name: "collection-1" }]);
 
             const structuredContent = response.structuredContent as ListCollectionsOutput;
@@ -69,16 +69,16 @@ describeWithMongoDB("listCollections tool", (integration) => {
 
             const response2 = await integration.mcpClient().callTool({
                 name: "list-collections",
-                arguments: { database: integration.randomDbName() },
+                arguments: { connectionId, database: integration.randomDbName() },
             });
             const items2 = getResponseElements(response2.content);
             expect(items2).toHaveLength(2);
 
-            expect(items2[0]?.text).toEqual(`Found 2 collections for database "${integration.randomDbName()}".`);
+            expect(items2[0]?.text).toEqual("Found 2 collections in the requested database.");
 
-            const contentData2 = JSON.parse(
-                getDataFromUntrustedContent(items2[1]?.text ?? "")
-            ) as ListCollectionsOutput["collections"];
+            const { collections: contentData2 } = JSON.parse(getDataFromUntrustedContent(items2[1]?.text ?? "")) as {
+                collections: ListCollectionsOutput["collections"];
+            };
             expect(contentData2.map((c: { name: string }) => c.name)).toIncludeSameMembers([
                 "collection-1",
                 "collection-2",
@@ -100,7 +100,7 @@ describeWithMongoDB("listCollections tool", (integration) => {
         () => {
             return {
                 args: { database: integration.randomDbName() },
-                expectedResponse: `Found 0 collections for database "${integration.randomDbName()}". To create a collection, use the "create-collection" tool.`,
+                expectedResponse: `Found 0 collections for the requested database. To create a collection, use the "create-collection" tool.`,
             };
         }
     );

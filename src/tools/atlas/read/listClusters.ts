@@ -1,6 +1,6 @@
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { z } from "zod";
 import { AtlasToolBase } from "../atlasTool.js";
-import type { ToolArgs, OperationType } from "../../tool.js";
+import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import type {
     PaginatedClusterDescription20240805,
@@ -15,6 +15,34 @@ export const ListClustersArgs = {
     projectId: AtlasArgs.projectId().describe("Atlas project ID to filter clusters").optional(),
 };
 
+export const ClusterOutputSchema = {
+    name: z.string().optional(),
+    instanceType: z.enum(["FREE", "DEDICATED", "FLEX"]),
+    instanceSize: z.string().optional(),
+    provider: z.string().optional(),
+    region: z.string().optional(),
+    paused: z.boolean(),
+    state: z.enum(["IDLE", "CREATING", "UPDATING", "DELETING", "REPAIRING"]).optional(),
+    mongoDBVersion: z.string().optional(),
+    connectionStrings: z.record(z.string(), z.unknown()).optional(),
+    processIds: z.array(z.string()).optional(),
+};
+
+export const ClusterSummaryOutputSchema = z.object({
+    clusterName: z.string().optional(),
+    projectId: z.string().optional(),
+    projectName: z.string().optional(),
+});
+
+export const ListClusterItemOutputSchema = z.union([ClusterSummaryOutputSchema, z.object(ClusterOutputSchema)]);
+
+const ListClustersOutputSchema = {
+    projectId: z.string().optional(),
+    projectName: z.string().optional(),
+    clusters: z.array(ListClusterItemOutputSchema),
+    totalCount: z.number(),
+};
+
 export class ListClustersTool extends AtlasToolBase {
     static toolName = "atlas-list-clusters";
     public description = "List MongoDB Atlas clusters";
@@ -22,40 +50,53 @@ export class ListClustersTool extends AtlasToolBase {
     public argsShape = {
         ...ListClustersArgs,
     };
+    public override outputSchema = ListClustersOutputSchema;
 
-    protected async execute({ projectId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute(
+        { projectId }: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<ToolResult<typeof this.outputSchema>> {
         if (!projectId) {
-            const data = await this.apiClient.listClusterDetails();
+            const data = await this.apiClient.listClusterDetails(undefined, context);
 
             return this.formatAllClustersTable(data);
         } else {
-            const project = await this.apiClient.getGroup({
-                params: {
-                    path: {
-                        groupId: projectId,
+            const project = await this.apiClient.getGroup(
+                {
+                    params: {
+                        path: {
+                            groupId: projectId,
+                        },
                     },
                 },
-            });
+                context
+            );
 
             if (!project?.id) {
                 throw new Error(`Project with ID "${projectId}" not found.`);
             }
 
             const [clustersResult, flexClustersResult] = await Promise.allSettled([
-                this.apiClient.listClusters({
-                    params: {
-                        path: {
-                            groupId: project.id || "",
+                this.apiClient.listClusters(
+                    {
+                        params: {
+                            path: {
+                                groupId: project.id || "",
+                            },
                         },
                     },
-                }),
-                this.apiClient.listFlexClusters({
-                    params: {
-                        path: {
-                            groupId: project.id || "",
+                    context
+                ),
+                this.apiClient.listFlexClusters(
+                    {
+                        params: {
+                            path: {
+                                groupId: project.id || "",
+                            },
                         },
                     },
-                }),
+                    context
+                ),
             ]);
 
             const clusters = clustersResult.status === "fulfilled" ? clustersResult.value : undefined;
@@ -65,10 +106,14 @@ export class ListClustersTool extends AtlasToolBase {
         }
     }
 
-    private formatAllClustersTable(clusters?: PaginatedOrgGroupView): CallToolResult {
+    private formatAllClustersTable(clusters?: PaginatedOrgGroupView): ToolResult<typeof ListClustersOutputSchema> {
         if (!clusters?.results?.length) {
             return {
                 content: [{ type: "text", text: "No clusters found." }],
+                structuredContent: {
+                    clusters: [],
+                    totalCount: 0,
+                },
             };
         }
         const formattedClusters = clusters.results
@@ -83,6 +128,10 @@ export class ListClustersTool extends AtlasToolBase {
         if (!formattedClusters.length) {
             return {
                 content: [{ type: "text", text: "No clusters found." }],
+                structuredContent: {
+                    clusters: [],
+                    totalCount: 0,
+                },
             };
         }
 
@@ -91,6 +140,10 @@ export class ListClustersTool extends AtlasToolBase {
                 `Found ${formattedClusters.length} clusters across all projects`,
                 JSON.stringify(formattedClusters)
             ),
+            structuredContent: {
+                clusters: formattedClusters,
+                totalCount: formattedClusters.length,
+            },
         };
     }
 
@@ -98,11 +151,17 @@ export class ListClustersTool extends AtlasToolBase {
         project: Group,
         clusters: PaginatedClusterDescription20240805 | undefined,
         flexClusters: PaginatedFlexClusters20241113 | undefined
-    ): CallToolResult {
+    ): ToolResult<typeof ListClustersOutputSchema> {
         // Check if both traditional clusters and flex clusters are absent
         if (!clusters?.results?.length && !flexClusters?.results?.length) {
             return {
                 content: [{ type: "text", text: "No clusters found." }],
+                structuredContent: {
+                    projectId: project.id,
+                    projectName: project.name,
+                    clusters: [],
+                    totalCount: 0,
+                },
             };
         }
         const formattedClusters = clusters?.results?.map((cluster) => formatCluster(cluster)) || [];
@@ -111,9 +170,15 @@ export class ListClustersTool extends AtlasToolBase {
 
         return {
             content: formatUntrustedData(
-                `Found ${allClusters.length} clusters in project "${project.name}" (${project.id}):`,
-                JSON.stringify(allClusters)
+                `Found ${allClusters.length} clusters in project ${project.id}:`,
+                JSON.stringify({ projectName: project.name, clusters: allClusters })
             ),
+            structuredContent: {
+                projectId: project.id,
+                projectName: project.name,
+                clusters: allClusters,
+                totalCount: allClusters.length,
+            },
         };
     }
 }

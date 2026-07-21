@@ -1,5 +1,6 @@
-import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolResult } from "../../tool.js";
+import { escapeMarkdown } from "../../../helpers/escapeMarkdown.js";
 import { z } from "zod";
 
 const DropCollectionOutputSchema = {
@@ -15,22 +16,24 @@ export class DropCollectionTool extends MongoDBToolBase {
     public description =
         "Removes a collection or view from the database. The method also removes any indexes associated with the dropped collection.";
     public argsShape = {
+        ...ConnectionIdArgs,
         ...CollOperationArgs,
     };
     public override outputSchema = DropCollectionOutputSchema;
     static operationType: OperationType = "delete";
 
     protected async execute({
+        connectionId,
         database,
         collection,
     }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
-        const provider = await this.ensureConnected();
+        const provider = await this.resolveConnection(connectionId);
         const result = await provider.dropCollection(database, collection);
 
         return {
             content: [
                 {
-                    text: `${result ? "Successfully dropped" : "Failed to drop"} collection "${collection}" from database "${database}"`,
+                    text: `${result ? "Successfully dropped" : "Failed to drop"} the requested collection from the requested database.`,
                     type: "text",
                 },
             ],
@@ -44,7 +47,7 @@ export class DropCollectionTool extends MongoDBToolBase {
 
     protected getConfirmationMessage({ database, collection }: ToolArgs<typeof this.argsShape>): string {
         return (
-            `You are about to drop the \`${collection}\` collection from the \`${database}\` database:\n\n` +
+            `You are about to drop the **${escapeMarkdown(collection)}** collection from the **${escapeMarkdown(database)}** database:\n\n` +
             "This operation will permanently remove the collection and all its data, including indexes.\n\n" +
             "**Do you confirm the execution of the action?**"
         );

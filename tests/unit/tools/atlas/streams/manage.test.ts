@@ -81,7 +81,8 @@ describe("StreamsManageTool", () => {
 
     const baseArgs = { projectId: "proj1", workspaceName: "ws1" };
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    const exec = (args: Record<string, unknown>) => tool["execute"](args as never);
+    const exec = (args: Record<string, unknown>) =>
+        tool["execute"](args as never, { signal: new AbortController().signal } as never);
 
     describe("start-processor", () => {
         it("should start a STOPPED processor", async () => {
@@ -98,6 +99,7 @@ describe("StreamsManageTool", () => {
             expect(text).toContain("started");
             expect(text).toContain("Billing");
             expect(text).toContain("stop-processor");
+            expect(result.structuredContent).toEqual({ processorState: "STARTED" });
         });
 
         it("should return already-running message for STARTED processor", async () => {
@@ -111,6 +113,7 @@ describe("StreamsManageTool", () => {
 
             expect(result.isError).toBe(true);
             expect((result.content[0] as { text: string }).text).toContain("already running");
+            expect(result.structuredContent).toBeUndefined();
             expect(mockApiClient.startStreamProcessor).not.toHaveBeenCalled();
         });
 
@@ -127,7 +130,8 @@ describe("StreamsManageTool", () => {
             expect(mockApiClient.startStreamProcessorWith).toHaveBeenCalledWith(
                 expect.objectContaining({
                     body: expect.objectContaining({ tier: "SP30" }),
-                })
+                }),
+                expect.anything()
             );
             expect(mockApiClient.startStreamProcessor).not.toHaveBeenCalled();
         });
@@ -145,7 +149,8 @@ describe("StreamsManageTool", () => {
             expect(mockApiClient.startStreamProcessorWith).toHaveBeenCalledWith(
                 expect.objectContaining({
                     body: expect.objectContaining({ resumeFromCheckpoint: false }),
-                })
+                }),
+                expect.anything()
             );
         });
 
@@ -174,6 +179,7 @@ describe("StreamsManageTool", () => {
             expect(text).toContain("Cannot start processor");
             expect(text).toContain("SP50");
             expect(text).toContain("SP10");
+            expect(result.structuredContent).toBeUndefined();
             expect(mockApiClient.startStreamProcessor).not.toHaveBeenCalled();
             expect(mockApiClient.startStreamProcessorWith).not.toHaveBeenCalled();
         });
@@ -192,7 +198,8 @@ describe("StreamsManageTool", () => {
             expect(mockApiClient.startStreamProcessorWith).toHaveBeenCalledWith(
                 expect.objectContaining({
                     body: expect.objectContaining({ tier: "SP30" }),
-                })
+                }),
+                expect.anything()
             );
         });
 
@@ -223,7 +230,8 @@ describe("StreamsManageTool", () => {
             expect(mockApiClient.startStreamProcessorWith).toHaveBeenCalledWith(
                 expect.objectContaining({
                     body: expect.objectContaining({ startAtOperationTime: "2026-01-01T00:00:00Z" }),
-                })
+                }),
+                expect.anything()
             );
         });
 
@@ -253,6 +261,7 @@ describe("StreamsManageTool", () => {
 
             expect(mockApiClient.stopStreamProcessor).toHaveBeenCalledOnce();
             expect((result.content[0] as { text: string }).text).toContain("stopped");
+            expect(result.structuredContent).toEqual({ processorState: "STOPPED" });
         });
 
         it("should proceed with stop when getStreamProcessor throws (error state)", async () => {
@@ -266,6 +275,7 @@ describe("StreamsManageTool", () => {
 
             expect(mockApiClient.stopStreamProcessor).toHaveBeenCalledOnce();
             expect((result.content[0] as { text: string }).text).toContain("stopped");
+            expect(result.structuredContent).toEqual({ processorState: "STOPPED" });
         });
 
         it("should return not-running message for STOPPED processor", async () => {
@@ -279,6 +289,7 @@ describe("StreamsManageTool", () => {
 
             expect((result.content[0] as { text: string }).text).toContain("not running");
             expect((result.content[0] as { text: string }).text).toContain("STOPPED");
+            expect(result.structuredContent).toEqual({ processorState: "STOPPED" });
             expect(mockApiClient.stopStreamProcessor).not.toHaveBeenCalled();
         });
 
@@ -293,6 +304,7 @@ describe("StreamsManageTool", () => {
 
             expect((result.content[0] as { text: string }).text).toContain("not running");
             expect((result.content[0] as { text: string }).text).toContain("CREATED");
+            expect(result.structuredContent).toEqual({ processorState: "CREATED" });
             expect(mockApiClient.stopStreamProcessor).not.toHaveBeenCalled();
         });
 
@@ -312,6 +324,22 @@ describe("StreamsManageTool", () => {
                 })
             );
         });
+
+        it("includes x-request-id in debug log when getStreamProcessor throws during stop", async () => {
+            mockApiClient.getStreamProcessor!.mockRejectedValue(new Error("lookup failed"));
+
+            await tool["execute"]({ ...baseArgs, action: "stop-processor", resourceName: "proc1" } as never, {
+                signal: new AbortController().signal,
+                requestInfo: { headers: { "x-request-id": "req-stop-1" } },
+            });
+
+            expect(mockLogger.debug).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    context: "streams-manage",
+                    attributes: expect.objectContaining({ "x-request-id": "req-stop-1" }),
+                })
+            );
+        });
     });
 
     describe("modify-processor", () => {
@@ -327,6 +355,7 @@ describe("StreamsManageTool", () => {
 
             expect(result.isError).toBe(true);
             expect((result.content[0] as { text: string }).text).toContain("must be stopped");
+            expect(result.structuredContent).toBeUndefined();
             expect(mockApiClient.updateStreamProcessor).not.toHaveBeenCalled();
         });
 
@@ -344,9 +373,11 @@ describe("StreamsManageTool", () => {
             expect(mockApiClient.updateStreamProcessor).toHaveBeenCalledWith(
                 expect.objectContaining({
                     body: expect.objectContaining({ pipeline: newPipeline }),
-                })
+                }),
+                expect.anything()
             );
             expect((result.content[0] as { text: string }).text).toContain("modified");
+            expect(result.structuredContent).toEqual({ processorState: "STOPPED" });
         });
 
         it("should return error when no modifications specified", async () => {
@@ -360,6 +391,7 @@ describe("StreamsManageTool", () => {
 
             expect(result.isError).toBe(true);
             expect((result.content[0] as { text: string }).text).toContain("No modifications");
+            expect(result.structuredContent).toBeUndefined();
         });
 
         it("should rename processor via newName", async () => {
@@ -375,10 +407,12 @@ describe("StreamsManageTool", () => {
             expect(mockApiClient.updateStreamProcessor).toHaveBeenCalledWith(
                 expect.objectContaining({
                     body: expect.objectContaining({ name: "proc1-renamed" }),
-                })
+                }),
+                expect.anything()
             );
             expect((result.content[0] as { text: string }).text).toContain("modified");
             expect((result.content[0] as { text: string }).text).toContain("name");
+            expect(result.structuredContent).toEqual({ processorState: "STOPPED" });
         });
 
         it("should update only DLQ config", async () => {
@@ -395,10 +429,12 @@ describe("StreamsManageTool", () => {
             expect(mockApiClient.updateStreamProcessor).toHaveBeenCalledWith(
                 expect.objectContaining({
                     body: expect.objectContaining({ options: { dlq } }),
-                })
+                }),
+                expect.anything()
             );
             expect((result.content[0] as { text: string }).text).toContain("modified");
             expect((result.content[0] as { text: string }).text).toContain("options");
+            expect(result.structuredContent).toEqual({ processorState: "STOPPED" });
         });
     });
 
@@ -417,11 +453,18 @@ describe("StreamsManageTool", () => {
             });
 
             expect(mockApiClient.getStreamWorkspace).toHaveBeenCalled();
-            expect(mockApiClient.updateStreamWorkspace).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1", tenantName: "ws1" } },
-                body: { cloudProvider: "AWS", region: "OREGON_USA", streamConfig: { tier: "SP30" } },
-            });
+            expect(mockApiClient.updateStreamWorkspace).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1", tenantName: "ws1" } },
+                    body: { cloudProvider: "AWS", region: "OREGON_USA", streamConfig: { tier: "SP30" } },
+                },
+                expect.anything()
+            );
             expect((result.content[0] as { text: string }).text).toContain("updated");
+            expect(result.structuredContent).toEqual({
+                region: "AWS/OREGON_USA",
+                tier: "SP30",
+            });
         });
 
         it("should update workspace with region only, including cloudProvider from current workspace", async () => {
@@ -436,11 +479,15 @@ describe("StreamsManageTool", () => {
             });
 
             expect(mockApiClient.getStreamWorkspace).toHaveBeenCalled();
-            expect(mockApiClient.updateStreamWorkspace).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1", tenantName: "ws1" } },
-                body: { cloudProvider: "AWS", region: "DUBLIN_IRL" },
-            });
+            expect(mockApiClient.updateStreamWorkspace).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1", tenantName: "ws1" } },
+                    body: { cloudProvider: "AWS", region: "DUBLIN_IRL" },
+                },
+                expect.anything()
+            );
             expect((result.content[0] as { text: string }).text).toContain("updated");
+            expect(result.structuredContent).toEqual({ region: "AWS/DUBLIN_IRL" });
         });
 
         it("should update workspace with tier only without fetching cloudProvider", async () => {
@@ -456,11 +503,29 @@ describe("StreamsManageTool", () => {
             });
 
             expect(mockApiClient.getStreamWorkspace).not.toHaveBeenCalled();
-            expect(mockApiClient.updateStreamWorkspace).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1", tenantName: "ws1" } },
-                body: { streamConfig: { tier: "SP30" } },
-            });
+            expect(mockApiClient.updateStreamWorkspace).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1", tenantName: "ws1" } },
+                    body: { streamConfig: { tier: "SP30" } },
+                },
+                expect.anything()
+            );
             expect((result.content[0] as { text: string }).text).toContain("updated");
+            expect(result.structuredContent).toEqual({ tier: "SP30" });
+        });
+
+        it("should include maxTier in structuredContent when API returns maxTierSize", async () => {
+            mockApiClient.updateStreamWorkspace!.mockResolvedValue({
+                streamConfig: { tier: "SP30", maxTierSize: "SP50" },
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                action: "update-workspace",
+                newTier: "SP30",
+            });
+
+            expect(result.structuredContent).toEqual({ tier: "SP30", maxTier: "SP50" });
         });
 
         it("should return error when workspace has no cloudProvider", async () => {
@@ -476,6 +541,7 @@ describe("StreamsManageTool", () => {
 
             expect(result.isError).toBe(true);
             expect((result.content[0] as { text: string }).text).toContain("cloud provider");
+            expect(result.structuredContent).toBeUndefined();
             expect(mockApiClient.updateStreamWorkspace).not.toHaveBeenCalled();
         });
 
@@ -490,6 +556,7 @@ describe("StreamsManageTool", () => {
 
             expect(result.isError).toBeUndefined();
             expect((result.content[0] as { text: string }).text).toContain("updated");
+            expect(result.structuredContent).toEqual({});
         });
 
         it("should return error when API response shows region did not change", async () => {
@@ -506,6 +573,7 @@ describe("StreamsManageTool", () => {
             expect(result.isError).toBe(true);
             expect((result.content[0] as { text: string }).text).toContain("Failed to update workspace region");
             expect((result.content[0] as { text: string }).text).toContain("INVALID_REGION");
+            expect(result.structuredContent).toBeUndefined();
         });
 
         it("should return error when no updates specified", async () => {
@@ -516,6 +584,7 @@ describe("StreamsManageTool", () => {
 
             expect(result.isError).toBe(true);
             expect((result.content[0] as { text: string }).text).toContain("No updates specified");
+            expect(result.structuredContent).toBeUndefined();
         });
     });
 
@@ -531,6 +600,34 @@ describe("StreamsManageTool", () => {
             expect(mockApiClient.updateStreamConnection).toHaveBeenCalledOnce();
             expect((result.content[0] as { text: string }).text).toContain("conn1");
             expect((result.content[0] as { text: string }).text).toContain("updated");
+            expect(result.structuredContent).toEqual({ connectionState: "READY" });
+        });
+
+        it("should prefer connection state from update response", async () => {
+            mockApiClient.updateStreamConnection = vi.fn().mockResolvedValue({ state: "PENDING" });
+
+            const result = await exec({
+                ...baseArgs,
+                action: "update-connection",
+                resourceName: "conn1",
+                connectionConfig: { bootstrapServers: "new-broker:9092" },
+            });
+
+            expect(result.structuredContent).toEqual({ connectionState: "PENDING" });
+        });
+
+        it("should return empty structuredContent when connection state is unavailable", async () => {
+            mockApiClient.getStreamConnection = vi.fn().mockResolvedValue({ name: "conn1", type: "Kafka" });
+            mockApiClient.updateStreamConnection = vi.fn().mockResolvedValue({});
+
+            const result = await exec({
+                ...baseArgs,
+                action: "update-connection",
+                resourceName: "conn1",
+                connectionConfig: { bootstrapServers: "new-broker:9092" },
+            });
+
+            expect(result.structuredContent).toEqual({});
         });
 
         it("should normalize bootstrapServers array to comma-separated string", async () => {
@@ -546,7 +643,8 @@ describe("StreamsManageTool", () => {
                     body: expect.objectContaining({
                         bootstrapServers: "broker1:9092,broker2:9092",
                     }),
-                })
+                }),
+                expect.anything()
             );
         });
 
@@ -563,7 +661,8 @@ describe("StreamsManageTool", () => {
                     body: expect.objectContaining({
                         schemaRegistryUrls: ["https://sr.example.com"],
                     }),
-                })
+                }),
+                expect.anything()
             );
         });
 
@@ -583,12 +682,14 @@ describe("StreamsManageTool", () => {
             expect(mockApiClient.updateStreamConnection).toHaveBeenCalledWith(
                 expect.objectContaining({
                     body: expect.not.objectContaining({ type: expect.anything() }),
-                })
+                }),
+                expect.anything()
             );
             expect(mockApiClient.updateStreamConnection).toHaveBeenCalledWith(
                 expect.objectContaining({
                     body: expect.objectContaining({ name: "conn1" }),
-                })
+                }),
+                expect.anything()
             );
         });
 
@@ -628,10 +729,13 @@ describe("StreamsManageTool", () => {
                 },
             });
 
-            expect(mockApiClient.updateStreamConnection).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1", tenantName: "ws1", connectionName: "conn1" } },
-                body: expect.objectContaining({ type: "Kafka" }),
-            });
+            expect(mockApiClient.updateStreamConnection).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1", tenantName: "ws1", connectionName: "conn1" } },
+                    body: expect.objectContaining({ type: "Kafka" }),
+                },
+                expect.anything()
+            );
         });
     });
 
@@ -645,11 +749,15 @@ describe("StreamsManageTool", () => {
                 requesterVpcId: "vpc-abc",
             });
 
-            expect(mockApiClient.acceptVpcPeeringConnection).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1", id: "peer-1" } },
-                body: { requesterAccountId: "123456789", requesterVpcId: "vpc-abc" },
-            });
+            expect(mockApiClient.acceptVpcPeeringConnection).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1", id: "peer-1" } },
+                    body: { requesterAccountId: "123456789", requesterVpcId: "vpc-abc" },
+                },
+                expect.anything()
+            );
             expect((result.content[0] as { text: string }).text).toContain("accepted");
+            expect(result.structuredContent).toEqual({ peeringState: "ACCEPTED" });
         });
 
         it("should throw when peeringId is missing", async () => {
@@ -808,10 +916,14 @@ describe("StreamsManageTool", () => {
                 peeringId: "peer-1",
             });
 
-            expect(mockApiClient.rejectVpcPeeringConnection).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1", id: "peer-1" } },
-            });
+            expect(mockApiClient.rejectVpcPeeringConnection).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1", id: "peer-1" } },
+                },
+                expect.anything()
+            );
             expect((result.content[0] as { text: string }).text).toContain("rejected");
+            expect(result.structuredContent).toEqual({ peeringState: "REJECTED" });
         });
 
         it("should throw when peeringId is missing", async () => {
@@ -833,6 +945,7 @@ describe("StreamsManageTool", () => {
 
             expect(result.isError).toBe(true);
             expect((result.content[0] as { text: string }).text).toContain("Unknown action");
+            expect(result.structuredContent).toBeUndefined();
         });
     });
 });

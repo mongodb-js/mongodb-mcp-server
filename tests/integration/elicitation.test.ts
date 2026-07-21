@@ -31,17 +31,17 @@ describe("Elicitation Integration Tests", () => {
 
                     const result = await integration.mcpClient().callTool({
                         name: "drop-database",
-                        arguments: { database: "test-db" },
+                        arguments: { connectionId: "preconfigured", database: "test-db" },
                     });
 
                     expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
                     expect(mockElicitInput.mock).toHaveBeenCalledWith(
                         {
-                            message: expect.stringContaining("You are about to drop the `test-db` database"),
+                            message: expect.stringContaining("You are about to drop the **test\\-db** database"),
                             requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
                             mode: "form",
                         },
-                        { timeout: 300000 }
+                        { timeout: 300000, relatedRequestId: expect.anything(), signal: expect.anything() }
                     );
 
                     // Should attempt to execute (will fail due to no connection, but confirms flow worked)
@@ -50,7 +50,7 @@ describe("Elicitation Integration Tests", () => {
                         expect.arrayContaining([
                             expect.objectContaining({
                                 type: "text",
-                                text: expect.stringContaining("You need to connect to a MongoDB instance"),
+                                text: expect.stringContaining("does not exist or has expired"),
                             }),
                         ])
                     );
@@ -61,7 +61,7 @@ describe("Elicitation Integration Tests", () => {
 
                     const result = await integration.mcpClient().callTool({
                         name: "drop-database",
-                        arguments: { database: "test-db" },
+                        arguments: { connectionId: "preconfigured", database: "test-db" },
                     });
 
                     expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
@@ -79,18 +79,40 @@ describe("Elicitation Integration Tests", () => {
 
                     await integration.mcpClient().callTool({
                         name: "drop-collection",
-                        arguments: { database: "test-db", collection: "test-collection" },
+                        arguments: {
+                            connectionId: "preconfigured",
+                            database: "test-db",
+                            collection: "test-collection",
+                        },
                     });
 
                     expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
                     expect(mockElicitInput.mock).toHaveBeenCalledWith(
                         {
-                            message: expect.stringContaining("You are about to drop the `test-collection` collection"),
+                            message: expect.stringContaining(
+                                "You are about to drop the **test\\-collection** collection"
+                            ),
                             requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
                             mode: "form",
                         },
-                        { timeout: 300000 }
+                        { timeout: 300000, relatedRequestId: expect.anything(), signal: expect.anything() }
                     );
+                });
+
+                it("escapes markdown special characters in drop-collection names", async () => {
+                    mockElicitInput.confirmYes();
+
+                    await integration.mcpClient().callTool({
+                        name: "drop-collection",
+                        arguments: { connectionId: "preconfigured", database: "test-db", collection: "orders`v2" },
+                    });
+
+                    const [firstCallArg] = (mockElicitInput.mock.mock.calls[0] ?? []) as unknown as [
+                        { message: string },
+                    ];
+                    const message = firstCallArg.message;
+                    expect(message).not.toContain("orders`v2");
+                    expect(message).toContain("orders\\`v2");
                 });
 
                 it("should request confirmation for delete-many tool", async () => {
@@ -99,6 +121,7 @@ describe("Elicitation Integration Tests", () => {
                     await integration.mcpClient().callTool({
                         name: "delete-many",
                         arguments: {
+                            connectionId: "preconfigured",
                             database: "test-db",
                             collection: "test-collection",
                             filter: { status: "inactive" },
@@ -112,7 +135,7 @@ describe("Elicitation Integration Tests", () => {
                             requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
                             mode: "form",
                         },
-                        { timeout: 300000 }
+                        { timeout: 300000, relatedRequestId: expect.anything(), signal: expect.anything() }
                     );
                 });
 
@@ -135,7 +158,7 @@ describe("Elicitation Integration Tests", () => {
                             requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
                             mode: "form",
                         },
-                        { timeout: 300000 }
+                        { timeout: 300000, relatedRequestId: expect.anything(), signal: expect.anything() }
                     );
                 });
 
@@ -159,7 +182,7 @@ describe("Elicitation Integration Tests", () => {
                             requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
                             mode: "form",
                         },
-                        { timeout: 300000 }
+                        { timeout: 300000, relatedRequestId: expect.anything(), signal: expect.anything() }
                     );
                 });
             });
@@ -168,7 +191,7 @@ describe("Elicitation Integration Tests", () => {
                 it("should not request confirmation for read operations", async () => {
                     const result = await integration.mcpClient().callTool({
                         name: "list-databases",
-                        arguments: {},
+                        arguments: { connectionId: "preconfigured" },
                     });
 
                     expect(mockElicitInput.mock).not.toHaveBeenCalled();
@@ -180,6 +203,7 @@ describe("Elicitation Integration Tests", () => {
                     const result = await integration.mcpClient().callTool({
                         name: "find",
                         arguments: {
+                            connectionId: "preconfigured",
                             database: "test-db",
                             collection: "test-collection",
                         },
@@ -203,7 +227,7 @@ describe("Elicitation Integration Tests", () => {
             it("should proceed without confirmation for default confirmation-required tools when client lacks elicitation support", async () => {
                 const result = await integration.mcpClient().callTool({
                     name: "drop-database",
-                    arguments: { database: "test-db" },
+                    arguments: { connectionId: "preconfigured", database: "test-db" },
                 });
 
                 // Note: No mock assertions needed since elicitation is disabled
@@ -213,7 +237,7 @@ describe("Elicitation Integration Tests", () => {
                     expect.arrayContaining([
                         expect.objectContaining({
                             type: "text",
-                            text: expect.stringContaining("You need to connect to a MongoDB instance"),
+                            text: expect.stringContaining("does not exist or has expired"),
                         }),
                     ])
                 );
@@ -233,7 +257,7 @@ describe("Elicitation Integration Tests", () => {
 
                 await integration.mcpClient().callTool({
                     name: "list-databases",
-                    arguments: {},
+                    arguments: { connectionId: "preconfigured" },
                 });
 
                 expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
@@ -245,14 +269,14 @@ describe("Elicitation Integration Tests", () => {
                         requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
                         mode: "form",
                     },
-                    { timeout: 300000 }
+                    { timeout: 300000, relatedRequestId: expect.anything(), signal: expect.anything() }
                 );
             });
 
             it("should not request confirmation when tool is removed from default confirmationRequiredTools", async () => {
                 const result = await integration.mcpClient().callTool({
                     name: "drop-database",
-                    arguments: { database: "test-db" },
+                    arguments: { connectionId: "preconfigured", database: "test-db" },
                 });
 
                 expect(mockElicitInput.mock).not.toHaveBeenCalled();
@@ -292,7 +316,7 @@ describe("Elicitation Integration Tests", () => {
                         requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
                         mode: "form",
                     },
-                    { timeout: 300000 }
+                    { timeout: 300000, relatedRequestId: expect.anything(), signal: expect.anything() }
                 );
             });
 
@@ -302,6 +326,7 @@ describe("Elicitation Integration Tests", () => {
                 await integration.mcpClient().callTool({
                     name: "delete-many",
                     arguments: {
+                        connectionId: "preconfigured",
                         database: "mydb",
                         collection: "users",
                         filter: { status: "inactive", lastLogin: { $lt: "2023-01-01" } },
@@ -314,7 +339,7 @@ describe("Elicitation Integration Tests", () => {
                         requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
                         mode: "form",
                     },
-                    { timeout: 300000 }
+                    { timeout: 300000, relatedRequestId: expect.anything(), signal: expect.anything() }
                 );
             });
         },
@@ -332,7 +357,7 @@ describe("Elicitation Integration Tests", () => {
 
                 const result = await integration.mcpClient().callTool({
                     name: "drop-database",
-                    arguments: { database: "test-db" },
+                    arguments: { connectionId: "preconfigured", database: "test-db" },
                 });
 
                 expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);

@@ -1,8 +1,8 @@
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolExecutionContext } from "../../tool.js";
+import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../mongodbTool.js";
+import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 import { zEJSON } from "../../args.js";
+import { z } from "zod";
 
 export const CountArgs = {
     query: zEJSON()
@@ -12,22 +12,29 @@ export const CountArgs = {
         ),
 };
 
+const CountOutputSchema = {
+    count: z.number().describe("The number of documents in the collection"),
+};
+
 export class CountTool extends MongoDBToolBase {
     static toolName = "count";
     public description =
         "Gets the number of documents in a MongoDB collection using db.collection.count() and query as an optional filter parameter";
     public argsShape = {
+        ...ConnectionIdArgs,
         ...CollOperationArgs,
         ...CountArgs,
     };
 
     static operationType: OperationType = "read";
 
+    public override outputSchema = CountOutputSchema;
+
     protected async execute(
-        { database, collection, query }: ToolArgs<typeof this.argsShape>,
+        { connectionId, database, collection, query }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
-    ): Promise<CallToolResult> {
-        const provider = await this.ensureConnected();
+    ): Promise<ToolResult<typeof this.outputSchema>> {
+        const provider = await this.resolveConnection(connectionId);
 
         this.assertMqlIsAllowed(query);
 
@@ -68,6 +75,9 @@ export class CountTool extends MongoDBToolBase {
                     type: "text",
                 },
             ],
+            structuredContent: {
+                count,
+            },
         };
     }
 }

@@ -1,6 +1,7 @@
 dist
 node_modules
 
+.idea
 .vscode/mcp.json
 .github/prompts/*
 
@@ -12,6 +13,7 @@ state.json
 
 tests/tmp
 coverage
+
 # Generated assets by accuracy runs
 .accuracy
 
@@ -25,3 +27,14 @@ yalc.lock
 # .mcpb build artifacts
 mcpb-build/
 dist-mcpb/
+
+# Eval CI report (sticky PR comment)
+.eval/
+
+# Braintrust
+.bt
+# Generated eval pre-bundle for Braintrust
+tests/eval/dist
+
+# Personal agent configs
+CLAUDE.local.md

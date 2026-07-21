@@ -3,25 +3,37 @@ import { StreamableHttpRunner, MCPHttpServer } from "../../../src/transports/str
 import {
     createDefaultSessionStore,
     type ISessionStore,
+    type NegotiatedClientState,
     type SessionCloseReason,
 } from "../../../src/common/sessionStore.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import { LogId, type LoggerBase } from "../../../src/common/logging/index.js";
-import { defaultCreateConnectionManager } from "../../../src/common/connectionManager.js";
+import type { Session } from "../../../src/common/session.js";
 import { Keychain } from "../../../src/common/keychain.js";
-import { defaultTestConfig, InMemoryLogger, timeout } from "../helpers.js";
+import { defaultTestConfig, InMemoryLogger } from "../helpers.js";
 import { type UserConfig } from "../../../src/common/config/userConfig.js";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { OperationType, ToolArgs, ToolCategory, ToolExecutionContext } from "../../../src/tools/tool.js";
 import { ToolBase } from "../../../src/tools/tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { ElicitRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import type { TelemetryToolMetadata } from "../../../src/telemetry/types.js";
 import type { RequestContext } from "../../../src/transports/base.js";
 import type { AnyToolClass, Server } from "../../../src/lib.js";
 import type { IncomingMessage } from "node:http";
 import { AsyncLocalStorage } from "node:async_hooks";
+import { sleep } from "../../../src/common/managedTimeout.js";
+import { ErrorCodes, MongoDBError } from "../../../src/common/errors.js";
+import { z } from "zod";
+
+const expectedHealthData: Record<string, unknown> = {
+    status: "ok",
+    version: expect.any(String) as unknown,
+    uptimeSeconds: expect.any(Number) as unknown,
+    timestamp: expect.any(String) as unknown,
+};
 
 describe("StreamableHttpRunner", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -238,7 +250,6 @@ describe("StreamableHttpRunner", () => {
             const logger = new InMemoryLogger(new Keychain());
             const runner = new StreamableHttpRunner({
                 userConfig: config,
-                createConnectionManager: defaultCreateConnectionManager,
                 additionalLoggers: [logger],
             });
             await runner.start();
@@ -313,6 +324,47 @@ describe("StreamableHttpRunner", () => {
         const sessionStore = runner["mcpServer"]!["sessionStore"];
         return await sessionStore.getSession(sessionId);
     };
+
+    describe("with maxSessions configuration", () => {
+        beforeEach(async () => {
+            config.maxSessions = 2;
+            runner = new StreamableHttpRunner({ userConfig: config });
+            await runner.start();
+        });
+
+        it("allows sessions up to the configured limit", async () => {
+            await expect(connectClient({})).resolves.toBeDefined();
+            await expect(connectClient({})).resolves.toBeDefined();
+        });
+
+        it("rejects a new session once the limit is reached", async () => {
+            await connectClient({});
+            await connectClient({});
+
+            const response = await sendHttpRequest("initialize");
+            expect(response.status).toBe(503);
+            const body = (await response.json()) as { error?: { code: number } };
+            expect(body.error?.code).toBe(-32006); // JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED
+        });
+
+        it("allows a new session once an existing one is closed", async () => {
+            // `client.close()` only tears down the client-side connection, it doesn't
+            // terminate the server-side session (see the "even after closing" test
+            // above) — so we free the slot with an explicit DELETE instead.
+            const first = await sendHttpRequest("initialize");
+            const sessionId = first.headers.get("mcp-session-id");
+            expect(sessionId).toBeTruthy();
+            await sendHttpRequest("initialize");
+
+            await fetch(`${runner["mcpServer"]!.serverAddress}/mcp`, {
+                method: "DELETE",
+                headers: { "mcp-session-id": sessionId ?? "" },
+            });
+
+            const third = await sendHttpRequest("initialize");
+            expect(third.ok).toBe(true);
+        });
+    });
 
     describe("with externallyManagedSessions enabled", () => {
         beforeEach(async () => {
@@ -474,7 +526,7 @@ describe("StreamableHttpRunner", () => {
 
                         const sessionBefore = await getSessionFromStore(sessionId);
                         expect(sessionBefore).toBeDefined();
-                        await timeout(1100);
+                        await sleep(1100);
 
                         const sessionAfter = await getSessionFromStore(sessionId);
                         expect(sessionAfter).toBeUndefined();
@@ -596,6 +648,7 @@ describe("StreamableHttpRunner", () => {
                         sessionId: string;
                         transport: StreamableHTTPServerTransport;
                         logger: LoggerBase;
+                        session: Session;
                     }): Promise<void> {
                         await this.inner.addSession(params);
                         const caller = ownerStorage.getStore();
@@ -610,6 +663,21 @@ describe("StreamableHttpRunner", () => {
 
                     closeAllSessions(): Promise<void> {
                         return this.inner.closeAllSessions();
+                    }
+
+                    saveNegotiatedClientState(
+                        sessionId: string,
+                        state: NegotiatedClientState,
+                        headers?: Record<string, unknown>
+                    ): Promise<void> {
+                        return this.inner.saveNegotiatedClientState(sessionId, state, headers);
+                    }
+
+                    loadNegotiatedClientState(
+                        sessionId: string,
+                        headers?: Record<string, unknown>
+                    ): Promise<NegotiatedClientState | undefined> {
+                        return this.inner.loadNegotiatedClientState(sessionId, headers);
                     }
                 }
 
@@ -885,7 +953,7 @@ describe("StreamableHttpRunner", () => {
                 const healthResponse = await fetch("http://localhost:3001/health");
                 expect(healthResponse.status).toBe(200);
                 const healthData = (await healthResponse.json()) as unknown;
-                expect(healthData).toEqual({ status: "ok" });
+                expect(healthData).toEqual(expectedHealthData);
             });
 
             it("does not start the monitoring server when not configured", async () => {
@@ -928,7 +996,7 @@ describe("StreamableHttpRunner", () => {
                 const healthResponse = await fetch(`${runner["monitoringServer"]!.serverAddress}/health`);
                 expect(healthResponse.status).toBe(200);
                 const healthData = (await healthResponse.json()) as unknown;
-                expect(healthData).toEqual({ status: "ok" });
+                expect(healthData).toEqual(expectedHealthData);
             });
         });
 
@@ -951,7 +1019,7 @@ describe("StreamableHttpRunner", () => {
                 const healthResponse = await fetch("http://localhost:3001/health");
                 expect(healthResponse.status).toBe(200);
                 const healthData = (await healthResponse.json()) as unknown;
-                expect(healthData).toEqual({ status: "ok" });
+                expect(healthData).toEqual(expectedHealthData);
             });
 
             it("does not start the monitoring server when not configured", async () => {
@@ -1256,8 +1324,8 @@ describe("StreamableHttpRunner", () => {
                             {
                                 type: "text",
                                 text: JSON.stringify({
-                                    readOnly: this.session["userConfig"].readOnly,
-                                    maxDocumentsPerQuery: this.session["userConfig"].maxDocumentsPerQuery,
+                                    readOnly: this.config.readOnly,
+                                    maxDocumentsPerQuery: this.config.maxDocumentsPerQuery,
                                     permissions: this.context?.permissions,
                                 }),
                             },
@@ -1418,6 +1486,222 @@ describe("StreamableHttpRunner", () => {
             expect(adminTools.tools).toHaveLength(2);
             const toolNames = adminTools.tools.map((t) => t.name).sort();
             expect(toolNames).toEqual(["admin-tool", "user-tool"]);
+        });
+    });
+
+    describe("elicitation without a standalone SSE stream", () => {
+        // Mirrors hosted deployments (e.g. the Atlas remote MCP server) that reject
+        // GET /mcp with 405: server->client requests can never use the standalone SSE
+        // stream, so confirmation requests must ride the tool call's own POST stream.
+        class ConfirmRequiredTool extends ToolBase {
+            static toolName = "confirm-required-tool";
+            public description = "Tool that requires confirmation before executing";
+            public argsShape = {};
+            static category: ToolCategory = "mongodb";
+            static operationType: OperationType = "delete";
+
+            protected execute(): Promise<CallToolResult> {
+                return Promise.resolve({ content: [{ type: "text", text: "Tool executed" }] });
+            }
+
+            protected resolveTelemetryMetadata(): TelemetryToolMetadata {
+                return {};
+            }
+        }
+
+        beforeEach(async () => {
+            runner = new StreamableHttpRunner({
+                userConfig: { ...config, confirmationRequiredTools: ["confirm-required-tool"] },
+                tools: [ConfirmRequiredTool],
+                createMcpHttpServer(args): MCPHttpServer {
+                    return new (class extends MCPHttpServer {
+                        protected override setupMiddlewares(): void {
+                            super.setupMiddlewares();
+                            this.app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+                                if (req.method === "GET" && req.path === "/mcp") {
+                                    res.status(405).set("Allow", "POST, DELETE").send("Method Not Allowed");
+                                    return;
+                                }
+                                next();
+                            });
+                        }
+                    })(args);
+                },
+            });
+            await runner.start();
+        });
+
+        it("delivers the confirmation request over the tool call's own stream", async () => {
+            const client = new Client({ name: "test", version: "0.0.0" }, { capabilities: { elicitation: {} } });
+            const elicitationMessages: string[] = [];
+            client.setRequestHandler(ElicitRequestSchema, (request) => {
+                elicitationMessages.push(request.params.message);
+                return { action: "accept" as const, content: { confirmation: "Yes" } };
+            });
+
+            const transport = new StreamableHTTPClientTransport(new URL(`${runner["mcpServer"]!.serverAddress}/mcp`));
+            await client.connect(transport);
+            clients.push(client);
+
+            const result = (await client.callTool({ name: "confirm-required-tool", arguments: {} }, undefined, {
+                timeout: 5_000,
+            })) as CallToolResult;
+
+            expect(elicitationMessages).toHaveLength(1);
+            expect(elicitationMessages[0]).toContain("confirm-required-tool");
+            expect(result.isError).toBeFalsy();
+            expect(result.content).toEqual([{ type: "text", text: "Tool executed" }]);
+        });
+
+        it("sends progress notifications while the confirmation is pending", async () => {
+            const client = new Client({ name: "test", version: "0.0.0" }, { capabilities: { elicitation: {} } });
+            client.setRequestHandler(ElicitRequestSchema, () => {
+                return { action: "accept" as const, content: { confirmation: "Yes" } };
+            });
+
+            const transport = new StreamableHTTPClientTransport(new URL(`${runner["mcpServer"]!.serverAddress}/mcp`));
+            await client.connect(transport);
+            clients.push(client);
+
+            const progressUpdates: number[] = [];
+            const result = (await client.callTool({ name: "confirm-required-tool", arguments: {} }, undefined, {
+                timeout: 5_000,
+                // Requesting progress makes the client attach a progress token
+                // to the tool call, which the server's elicitation heartbeat
+                // uses to keep the request alive while the user is deciding.
+                onprogress: (progress) => progressUpdates.push(progress.progress),
+            })) as CallToolResult;
+
+            expect(progressUpdates.length).toBeGreaterThanOrEqual(1);
+            expect(result.isError).toBeFalsy();
+            expect(result.content).toEqual([{ type: "text", text: "Tool executed" }]);
+        });
+    });
+
+    describe("connection scoping", () => {
+        // Tools that poke the session's connection registry directly. The real
+        // connect tool needs a dialable mongod, which this suite does not spin
+        // up; createEntry() registers a handle without dialing, which is all
+        // the per-session visibility scoping operates on.
+        class CreateConnectionEntryTool extends ToolBase {
+            static toolName = "create-connection-entry";
+            public description = "Registers a connection handle without dialing it";
+            public argsShape = {};
+            static category: ToolCategory = "mongodb";
+            static operationType: OperationType = "connect";
+
+            protected async execute(): Promise<CallToolResult> {
+                const entry = await this.session.connectionRegistry.createEntry({ name: "scoping-test" });
+                return { content: [{ type: "text", text: entry.connectionId }] };
+            }
+
+            protected resolveTelemetryMetadata(): TelemetryToolMetadata {
+                return {};
+            }
+        }
+
+        class ListConnectionIdsTool extends ToolBase {
+            static toolName = "list-connection-ids";
+            public description = "Lists the connection ids visible to this session";
+            public argsShape = {};
+            static category: ToolCategory = "mongodb";
+            static operationType: OperationType = "metadata";
+
+            protected async execute(): Promise<CallToolResult> {
+                const entries = await this.session.connectionRegistry.find(() => true);
+                const ids = entries.map((entry) => entry.connectionId);
+                return { content: [{ type: "text", text: JSON.stringify(ids) }] };
+            }
+
+            protected resolveTelemetryMetadata(): TelemetryToolMetadata {
+                return {};
+            }
+        }
+
+        class ResolveConnectionTool extends ToolBase {
+            static toolName = "resolve-connection";
+            public description = "Resolves a connection id, reporting the error code on failure";
+            public argsShape = { connectionId: z.string() };
+            static category: ToolCategory = "mongodb";
+            static operationType: OperationType = "metadata";
+
+            protected async execute({ connectionId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+                try {
+                    await this.session.connectionRegistry.resolve(connectionId);
+                    return { content: [{ type: "text", text: "resolved" }] };
+                } catch (error: unknown) {
+                    const text = error instanceof MongoDBError ? `error-code-${error.code}` : String(error);
+                    return { content: [{ type: "text", text }] };
+                }
+            }
+
+            protected resolveTelemetryMetadata(): TelemetryToolMetadata {
+                return {};
+            }
+        }
+
+        const scopingTools = [CreateConnectionEntryTool, ListConnectionIdsTool, ResolveConnectionTool];
+
+        const callText = async (client: Client, name: string, args: Record<string, unknown> = {}): Promise<string> => {
+            const response = (await client.callTool({ name, arguments: args })) as {
+                content: { text: string }[];
+            };
+            return response.content[0]?.text ?? "";
+        };
+
+        it("isolates connection handles between sessions by default", async () => {
+            const sessionScopeConfig: UserConfig = { ...config, connectionString: "mongodb://localhost:27017" };
+            runner = new StreamableHttpRunner({
+                userConfig: sessionScopeConfig,
+                tools: scopingTools,
+            });
+            await runner.start();
+
+            const clientA = await connectClient({});
+            const clientB = await connectClient({});
+
+            const handle = await callText(clientA, "create-connection-entry");
+            expect(handle).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+
+            // The creating session sees its handle plus the shared preconfigured entry.
+            const idsA = JSON.parse(await callText(clientA, "list-connection-ids")) as string[];
+            expect(idsA).toContain(handle);
+            expect(idsA).toContain("preconfigured");
+
+            // The other session only sees the shared preconfigured entry...
+            const idsB = JSON.parse(await callText(clientB, "list-connection-ids")) as string[];
+            expect(idsB).not.toContain(handle);
+            expect(idsB).toContain("preconfigured");
+
+            // ...and the foreign handle behaves exactly like an absent one. The
+            // owner can still address it: the entry was never dialed, so it
+            // resolves to a not-connected error instead of an unknown handle.
+            expect(await callText(clientB, "resolve-connection", { connectionId: handle })).toBe(
+                `error-code-${ErrorCodes.UnknownConnectionId}`
+            );
+            expect(await callText(clientA, "resolve-connection", { connectionId: handle })).toBe(
+                `error-code-${ErrorCodes.NotConnectedToMongoDB}`
+            );
+        });
+
+        it("shares connection handles across sessions with connectionScope: global", async () => {
+            const globalScopeConfig: UserConfig = { ...config, connectionScope: "global" };
+            runner = new StreamableHttpRunner({
+                userConfig: globalScopeConfig,
+                tools: scopingTools,
+            });
+            await runner.start();
+
+            const clientA = await connectClient({});
+            const clientB = await connectClient({});
+
+            const handle = await callText(clientA, "create-connection-entry");
+
+            const idsB = JSON.parse(await callText(clientB, "list-connection-ids")) as string[];
+            expect(idsB).toContain(handle);
+            expect(await callText(clientB, "resolve-connection", { connectionId: handle })).toBe(
+                `error-code-${ErrorCodes.NotConnectedToMongoDB}`
+            );
         });
     });
 });

@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - ni/stateless-sessions
 
 jobs:
   check:
@@ -14,9 +15,13 @@ jobs:
       NPM_VERSION: ${{ steps.get-version.outputs.NPM_VERSION }}
       GIT_TAG_VERSION: ${{ steps.get-version.outputs.GIT_TAG_VERSION }}
       RELEASE_CHANNEL: ${{ steps.npm-tag.outputs.RELEASE_CHANNEL }}
+      ATLAS_MCP_REMOTE_VERSION_EXISTS: ${{ steps.check-remote-version.outputs.ATLAS_MCP_REMOTE_VERSION_EXISTS }}
+      ATLAS_MCP_REMOTE_NPM_VERSION: ${{ steps.get-remote-version.outputs.ATLAS_MCP_REMOTE_NPM_VERSION }}
+      ATLAS_MCP_REMOTE_GIT_TAG_VERSION: ${{ steps.get-remote-version.outputs.ATLAS_MCP_REMOTE_GIT_TAG_VERSION }}
+      ATLAS_MCP_REMOTE_RELEASE_CHANNEL: ${{ steps.remote-npm-tag.outputs.ATLAS_MCP_REMOTE_RELEASE_CHANNEL }}
     steps:
-      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
-      - uses: actions/checkout@v6
+      - uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           fetch-depth: 0
       - name: Get version
@@ -67,6 +72,50 @@ jobs:
           echo "RELEASE_CHANNEL=${RELEASE_CHANNEL}" >> "$GITHUB_OUTPUT"
       - name: Output deployment info
         run: echo "::notice title=Deployment Info::Deploying version ${{ steps.get-version.outputs.GIT_TAG_VERSION }} to channel ${{ steps.npm-tag.outputs.RELEASE_CHANNEL }}"
+      - name: Get atlas-mcp-remote version
+        id: get-remote-version
+        shell: bash
+        run: |
+          set -e
+
+          ATLAS_MCP_REMOTE_NPM_VERSION=$(npm pkg get version --prefix packages/mongodb-atlas-mcp-remote | tr -d '"')
+          ATLAS_MCP_REMOTE_GIT_TAG_VERSION="mongodb-atlas-mcp-remote/v${ATLAS_MCP_REMOTE_NPM_VERSION}"
+          echo "ATLAS_MCP_REMOTE_NPM_VERSION=${ATLAS_MCP_REMOTE_NPM_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "ATLAS_MCP_REMOTE_GIT_TAG_VERSION=${ATLAS_MCP_REMOTE_GIT_TAG_VERSION}" >> "$GITHUB_OUTPUT"
+      - name: Check if atlas-mcp-remote version already exists
+        id: check-remote-version
+        shell: bash
+        run: |
+          set +e
+
+          git rev-parse "${{ steps.get-remote-version.outputs.ATLAS_MCP_REMOTE_GIT_TAG_VERSION }}" >/dev/null 2>&1
+          if [[ $? -eq 0 ]]; then
+            echo "ATLAS_MCP_REMOTE_VERSION_EXISTS=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ATLAS_MCP_REMOTE_VERSION_EXISTS=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Get atlas-mcp-remote npm tag
+        id: remote-npm-tag
+        shell: bash
+        run: |
+          set -e
+          VERSION="${{ steps.get-remote-version.outputs.ATLAS_MCP_REMOTE_NPM_VERSION }}"
+
+          if [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+(-(.+))?$ ]]; then
+            if [[ -n "${BASH_REMATCH[2]}" ]]; then
+              CAPTURED_CHANNEL="${BASH_REMATCH[2]}"
+              ATLAS_MCP_REMOTE_RELEASE_CHANNEL="${CAPTURED_CHANNEL%%.*}"
+            else
+              ATLAS_MCP_REMOTE_RELEASE_CHANNEL="latest"
+            fi
+          else
+            echo "::error title=Invalid Version::Encountered unexpected version ${VERSION}, cannot proceed!"
+            exit 1
+          fi
+
+          echo "ATLAS_MCP_REMOTE_RELEASE_CHANNEL=${ATLAS_MCP_REMOTE_RELEASE_CHANNEL}" >> "$GITHUB_OUTPUT"
+      - name: Output atlas-mcp-remote deployment info
+        run: echo "::notice title=atlas-mcp-remote Deployment Info::Deploying version ${{ steps.get-remote-version.outputs.ATLAS_MCP_REMOTE_GIT_TAG_VERSION }} to channel ${{ steps.remote-npm-tag.outputs.ATLAS_MCP_REMOTE_RELEASE_CHANNEL }}"
 
   publish:
     runs-on: ubuntu-latest
@@ -78,17 +127,12 @@ jobs:
       - check
     if: needs.check.outputs.VERSION_EXISTS == 'false'
     steps:
-      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
-      - uses: actions/checkout@v6
+      - uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           persist-credentials: false
           fetch-depth: 0
-      - uses: pnpm/action-setup@v5
-      - uses: actions/setup-node@v6
-        with:
-          node-version: "24"
-          registry-url: "https://registry.npmjs.org"
-          cache: "pnpm"
+      - uses: ./.github/actions/setup-node-pnpm
 
       - name: Build
         run: |
@@ -97,9 +141,7 @@ jobs:
       - name: Build .mcpb
         run: pnpm run build:mcpb
       - name: Publish to NPM
-        run: |
-          pnpm publish --tag ${{ needs.check.outputs.RELEASE_CHANNEL }} --no-git-checks
-          pnpm -r --filter './packages/*' publish --tag ${{ needs.check.outputs.RELEASE_CHANNEL }} --no-git-checks
+        run: pnpm -r publish --tag ${{ needs.check.outputs.RELEASE_CHANNEL }} --no-git-checks
 
       - name: Generate AI release summary
         id: ai-summary
@@ -124,25 +166,10 @@ jobs:
             ${{ (needs.check.outputs.RELEASE_CHANNEL != 'latest' && '--prerelease') || ''}}
 
       - name: Wait for package to be available on npm
-        run: |
-          PACKAGE_NAME=$(npm pkg get name | tr -d '"')
-          NPM_VERSION="${{ needs.check.outputs.NPM_VERSION }}"
-          MAX_ATTEMPTS=30
-          SLEEP_SECONDS=10
-
-          echo "Waiting for ${PACKAGE_NAME}@${NPM_VERSION} to be available on npm..."
-
-          for i in $(seq 1 $MAX_ATTEMPTS); do
-            if npm view "${PACKAGE_NAME}@${NPM_VERSION}" version >/dev/null 2>&1; then
-              echo "✓ Package ${PACKAGE_NAME}@${NPM_VERSION} is now available on npm"
-              exit 0
-            fi
-            echo "Attempt $i/$MAX_ATTEMPTS: Package not yet available, waiting ${SLEEP_SECONDS}s..."
-            sleep $SLEEP_SECONDS
-          done
-
-          echo "::error::Package ${PACKAGE_NAME}@${NPM_VERSION} did not become available after $((MAX_ATTEMPTS * SLEEP_SECONDS)) seconds"
-          exit 1
+        uses: ./.github/actions/wait-for-npm
+        with:
+          package-name: mongodb-mcp-server
+          package-version: ${{ needs.check.outputs.NPM_VERSION }}
 
   docker-push:
     needs: [check, publish]
@@ -206,3 +233,48 @@ jobs:
             -d "{\"name\": \"vNext\", \"projectId\": ${project_id}, \"startDate\": \"${TODAY}\"}" \
             "${JIRA_URL}/rest/api/2/version" > /dev/null
           echo "Created new vNext version with start date ${TODAY}"
+
+  publish-atlas-mcp-remote:
+    runs-on: ubuntu-latest
+    environment: Production
+    permissions:
+      contents: write
+      id-token: write
+    needs:
+      - check
+    # The `!= '0.0.0'` guard skips creating github release forthe placeholder version. `private: true` already makes the npm
+    # publish a no-op. Both can be dropped after the first manual release, see https://jira.mongodb.org/browse/MCP-493
+    if: needs.check.outputs.ATLAS_MCP_REMOTE_VERSION_EXISTS == 'false' && needs.check.outputs.ATLAS_MCP_REMOTE_NPM_VERSION != '0.0.0'
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-node-pnpm
+
+      - name: Build
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --filter 'mongodb-atlas-mcp-remote' run compile
+      - name: Publish to NPM
+        run: pnpm --filter 'mongodb-atlas-mcp-remote' publish --tag ${{ needs.check.outputs.ATLAS_MCP_REMOTE_RELEASE_CHANNEL }} --no-git-checks
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.APIX_BOT_PAT || github.token }}
+        shell: bash
+        run: |
+          set -e
+
+          gh release create ${{ needs.check.outputs.ATLAS_MCP_REMOTE_GIT_TAG_VERSION }} \
+            --title "${{ needs.check.outputs.ATLAS_MCP_REMOTE_GIT_TAG_VERSION }}" \
+            --generate-notes \
+            --target ${{ github.sha }} \
+            ${{ (needs.check.outputs.ATLAS_MCP_REMOTE_RELEASE_CHANNEL != 'latest' && '--prerelease') || ''}}
+
+      - name: Wait for package to be available on npm
+        uses: ./.github/actions/wait-for-npm
+        with:
+          package-name: mongodb-atlas-mcp-remote
+          package-version: ${{ needs.check.outputs.ATLAS_MCP_REMOTE_NPM_VERSION }}

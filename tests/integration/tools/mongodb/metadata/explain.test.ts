@@ -82,11 +82,12 @@ describeWithMongoDB("explain tool", (integration) => {
                         expect(collections.find((collection) => collection.name === "coll1")).toBeUndefined();
                     }
 
-                    await integration.connectMcpClient();
+                    const connectionId = await integration.connectMcpClient();
 
                     const response = await integration.mcpClient().callTool({
                         name: "explain",
                         arguments: {
+                            connectionId,
                             database: integration.randomDbName(),
                             collection: "coll1",
                             method: [
@@ -101,7 +102,7 @@ describeWithMongoDB("explain tool", (integration) => {
                     const content = getResponseElements(response.content);
                     expect(content).toHaveLength(2);
                     expect(content[0]?.text).toEqual(
-                        `Here is some information about the winning plan chosen by the query optimizer for running the given \`${testCase.method}\` operation in "${integration.randomDbName()}.coll1". The execution plan was run with the following verbosity: "queryPlanner". This information can be used to understand how the query was executed and to optimize the query performance.`
+                        `Here is some information about the winning plan chosen by the query optimizer for running the given \`${testCase.method}\` operation on the requested namespace. The execution plan was run with the following verbosity: "queryPlanner". This information can be used to understand how the query was executed and to optimize the query performance.`
                     );
 
                     expect(content[1]?.text).toContain("queryPlanner");
@@ -135,11 +136,12 @@ describeWithMongoDB("explain tool", (integration) => {
                         expect(collections.find((collection) => collection.name === "coll1")).toBeUndefined();
                     }
 
-                    await integration.connectMcpClient();
+                    const connectionId = await integration.connectMcpClient();
 
                     const response = await integration.mcpClient().callTool({
                         name: "explain",
                         arguments: {
+                            connectionId,
                             database: integration.randomDbName(),
                             collection: "coll1",
                             method: [
@@ -155,7 +157,7 @@ describeWithMongoDB("explain tool", (integration) => {
                     const content = getResponseElements(response.content);
                     expect(content).toHaveLength(2);
                     expect(content[0]?.text).toEqual(
-                        `Here is some information about the winning plan chosen by the query optimizer for running the given \`${testCase.method}\` operation in "${integration.randomDbName()}.coll1". The execution plan was run with the following verbosity: "executionStats". This information can be used to understand how the query was executed and to optimize the query performance.`
+                        `Here is some information about the winning plan chosen by the query optimizer for running the given \`${testCase.method}\` operation on the requested namespace. The execution plan was run with the following verbosity: "executionStats". This information can be used to understand how the query was executed and to optimize the query performance.`
                     );
 
                     expect(content[1]?.text).toContain("queryPlanner");
@@ -194,11 +196,12 @@ describeWithMongoDB("explain tool", (integration) => {
 
                 for (const testCase of testCases) {
                     it(`should return the explain plan with verbosity "queryPlanner" for ${testCase.method}`, async () => {
-                        await integration.connectMcpClient();
+                        const connectionId = await integration.connectMcpClient();
 
                         const response = await integration.mcpClient().callTool({
                             name: "explain",
                             arguments: {
+                                connectionId,
                                 database: integration.randomDbName(),
                                 collection: "people",
                                 method: [
@@ -213,7 +216,7 @@ describeWithMongoDB("explain tool", (integration) => {
                         const content = getResponseElements(response.content);
                         expect(content).toHaveLength(2);
                         expect(content[0]?.text).toEqual(
-                            `Here is some information about the winning plan chosen by the query optimizer for running the given \`${testCase.method}\` operation in "${integration.randomDbName()}.people". The execution plan was run with the following verbosity: "queryPlanner". This information can be used to understand how the query was executed and to optimize the query performance.`
+                            `Here is some information about the winning plan chosen by the query optimizer for running the given \`${testCase.method}\` operation on the requested namespace. The execution plan was run with the following verbosity: "queryPlanner". This information can be used to understand how the query was executed and to optimize the query performance.`
                         );
 
                         expect(content[1]?.text).toContain("queryPlanner");
@@ -276,10 +279,11 @@ describeWithMongoDB("explain tool with server-side JavaScript operators", (integ
         for (const jsDisabled of [true, false]) {
             it(`${jsDisabled ? "rejects" : "does not reject"} explaining ${method} using $where when disableServerSideJs is ${jsDisabled}`, async () => {
                 integration.mcpServer().userConfig.disableServerSideJs = jsDisabled;
-                await integration.connectMcpClient();
+                const connectionId = await integration.connectMcpClient();
                 const response = await integration.mcpClient().callTool({
                     name: "explain",
                     arguments: {
+                        connectionId,
                         database: integration.randomDbName(),
                         collection: "people",
                         method: [{ name: method, arguments: methodArguments }],
@@ -296,6 +300,32 @@ describeWithMongoDB("explain tool with server-side JavaScript operators", (integ
             });
         }
     }
+
+    it("rejects explaining a find whose projection uses $function when disableServerSideJs is true", async () => {
+        integration.mcpServer().userConfig.disableServerSideJs = true;
+        const connectionId = await integration.connectMcpClient();
+        const response = await integration.mcpClient().callTool({
+            name: "explain",
+            arguments: {
+                connectionId,
+                database: integration.randomDbName(),
+                collection: "people",
+                method: [
+                    {
+                        name: "find",
+                        arguments: {
+                            filter: {},
+                            projection: {
+                                computed: { $function: { body: "function() { return 1; }", args: [], lang: "js" } },
+                            },
+                        },
+                    },
+                ],
+            },
+        });
+        const content = getResponseContent(response);
+        expect(content).toContain(`The "$function" operator is not allowed.`);
+    });
 });
 
 describeWithMongoDB("explain tool with write stages", (integration) => {
@@ -320,10 +350,11 @@ describeWithMongoDB("explain tool with write stages", (integration) => {
     for (const writeStage of ["$out", "$merge"] as const) {
         it(`rejects explaining aggregations with a ${writeStage} stage in readOnly mode`, async () => {
             integration.mcpServer().userConfig.readOnly = true;
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "explain",
                 arguments: {
+                    connectionId,
                     database: integration.randomDbName(),
                     collection: "people",
                     method: [{ name: "aggregate", arguments: { pipeline: [{ [writeStage]: "outpeople" }] } }],
@@ -336,10 +367,11 @@ describeWithMongoDB("explain tool with write stages", (integration) => {
 
         it(`rejects explaining aggregations with a ${writeStage} stage when write operations are disabled`, async () => {
             integration.mcpServer().userConfig.disabledTools = ["create"];
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "explain",
                 arguments: {
+                    connectionId,
                     database: integration.randomDbName(),
                     collection: "people",
                     method: [{ name: "aggregate", arguments: { pipeline: [{ [writeStage]: "outpeople" }] } }],

@@ -14,6 +14,8 @@
         "vite.ui.config.ts"
       ],
       "ignore": [
+        "tests/eval/scripts/bundleEval/osDnsNativeStub.cjs",
+        "tests/eval/scripts/bundleEval/stub.mjs",
         "tests/integration/fixtures/curl.mjs",
         "tests/vitest.d.ts",
         "src/ui/build/mount.tsx",
@@ -31,6 +33,14 @@
         "@leafygreen-ui/table",
         "react",
         "react-dom"
+      ]
+    },
+    "packages/mongodb-atlas-mcp-remote": {
+      "entry": [
+        "src/cli.ts!",
+        "scripts/**/*.ts",
+        "src/**/*.test.ts",
+        "src/testHelpers/**/*.ts"
       ]
     },
     "tests/browser": {

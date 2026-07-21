@@ -1,5 +1,5 @@
 import { type StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
+import { isInitializeRequest, type ClientCapabilities, type Implementation } from "@modelcontextprotocol/sdk/types.js";
 import express from "express";
 import { LogId } from "../common/logging/loggingDefinitions.js";
 import { getRandomUUID } from "../helpers/getRandomUUID.js";
@@ -12,8 +12,10 @@ import {
     type LoggerBase,
 } from "../lib.js";
 import { ConfigOverrideError } from "../common/config/configOverrides.js";
+import { SessionRejectedError, SessionLimitExceededError, type NegotiatedClientState } from "../common/sessionStore.js";
 import type { CustomizableServerOptions, CustomizableSessionOptions, TransportRequestContext } from "./base.js";
 import { ExpressBasedHttpServer } from "./expressBasedHttpServer.js";
+import { requestIdAttr } from "../helpers/requestIdAttr.js";
 import {
     JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED,
     JSON_RPC_ERROR_CODE_SESSION_ID_INVALID,
@@ -21,6 +23,7 @@ import {
     JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND,
     JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION,
     JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
+    JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED,
 } from "./jsonRpcErrorCodes.js";
 
 export type MCPHttpServerConstructorArgs<TUserConfig extends UserConfig = UserConfig, TContext = unknown> = {
@@ -101,6 +104,10 @@ export class MCPHttpServer<
                 break;
             case JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION:
                 message = "cannot provide sessionId when externally managed sessions are disabled";
+                break;
+            case JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED:
+                message = "server has reached the maximum number of concurrent sessions, try again later";
+                statusCode = 503;
                 break;
             default:
                 message = "unknown error";
@@ -192,9 +199,10 @@ export class MCPHttpServer<
         const { StreamableHTTPServerTransport } = await import("@modelcontextprotocol/sdk/server/streamableHttp.js");
 
         const sessionId = providedSessionId ?? getRandomUUID();
+        const requestIdAttrs = requestIdAttr(req.headers);
 
         // Check if session already exists
-        if (await this.sessionStore.getSession(sessionId)) {
+        if (await this.sessionStore.getSession(sessionId, req.headers)) {
             return sessionId;
         }
 
@@ -205,6 +213,7 @@ export class MCPHttpServer<
                 id: LogId.streamableHttpTransportSessionNotFound,
                 context: "streamableHttpTransport",
                 message: `Session with ID ${sessionId} is already being initialized, waiting`,
+                attributes: { ...requestIdAttrs },
             });
             try {
                 await pendingInit;
@@ -219,6 +228,9 @@ export class MCPHttpServer<
             id: LogId.streamableHttpTransportSessionNotFound,
             context: "streamableHttpTransport",
             message: `Session with ID ${sessionId} not found, initializing new session`,
+            attributes: {
+                ...requestIdAttrs,
+            },
         });
 
         const initPromise = (async (): Promise<void> => {
@@ -277,7 +289,22 @@ export class MCPHttpServer<
 
             await server.connect(transport);
 
-            await this.sessionStore.addSession({ sessionId, transport, logger: server.session.logger });
+            if (isImplicitInitialization) {
+                await this.restoreNegotiatedClientState(server, sessionId, req.headers);
+            } else {
+                this.captureNegotiatedClientStateOnInitialize(server, sessionId, req.headers);
+            }
+
+            await this.sessionStore.addSession({
+                sessionId,
+                transport,
+                logger: server.session.logger,
+                session: server.session,
+                // Pass the incoming request headers to the session store so
+                // that we can trace the x-request-id and other headers in the
+                // resulting logs and downstream requests.
+                headers: req.headers,
+            });
         })();
 
         this.pendingInitializations.set(sessionId, initPromise);
@@ -288,6 +315,7 @@ export class MCPHttpServer<
                 id: LogId.streamableHttpTransportRequestFailure,
                 context: "streamableHttpTransport",
                 message: `Failed to initialize session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
+                attributes: { ...requestIdAttrs },
             });
             // Remove the partially initialized session on failure so that
             // subsequent requests don't see a broken session and can retry
@@ -301,6 +329,82 @@ export class MCPHttpServer<
             this.pendingInitializations.delete(sessionId);
         }
         return sessionId;
+    }
+
+    /**
+     * Restores the client state negotiated during the session's original
+     * initialization onto an implicitly re-initialized server. The server on
+     * this pod never saw the client's `initialize` request, so without this
+     * it would treat the client as capability-less — e.g. skipping
+     * confirmation elicitation for destructive tools. No-op when the session
+     * store does not persist negotiated client state.
+     */
+    private async restoreNegotiatedClientState(
+        server: Server<TUserConfig, TContext>,
+        sessionId: string,
+        headers: Record<string, unknown>
+    ): Promise<void> {
+        let state: NegotiatedClientState | undefined;
+        try {
+            state = await this.sessionStore.loadNegotiatedClientState(sessionId, headers);
+        } catch (error) {
+            // The restored session stays usable; it just behaves as if the
+            // client had no optional capabilities.
+            this.logger.warning({
+                id: LogId.streamableHttpTransportClientStateRestoreFailure,
+                context: "streamableHttpTransport",
+                message: `Failed to restore negotiated client state for session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
+                attributes: { ...requestIdAttr(headers) },
+            });
+            return;
+        }
+        if (!state) {
+            return;
+        }
+
+        // HACK: like the transport `_initialized` flag above, the SDK offers
+        // no supported way to seed a Server with a previously negotiated
+        // initialization, so we write the private fields the initialize
+        // handler would have populated.
+        const protocolServer = server.mcpServer.server as unknown as {
+            _clientCapabilities?: ClientCapabilities;
+            _clientVersion?: Implementation;
+        };
+        protocolServer._clientCapabilities = state.clientCapabilities;
+        protocolServer._clientVersion = state.clientInfo;
+        server.session.setMcpClient(state.clientInfo);
+    }
+
+    /**
+     * Arranges for the client state negotiated by a real `initialize`
+     * exchange to be persisted through the session store, so implicit
+     * re-initializations of this session can restore it. Wraps the
+     * `oninitialized` callback installed by `server.connect`, hence must run
+     * after it.
+     */
+    private captureNegotiatedClientStateOnInitialize(
+        server: Server<TUserConfig, TContext>,
+        sessionId: string,
+        headers: Record<string, unknown>
+    ): void {
+        const protocolServer = server.mcpServer.server;
+        const originalOnInitialized = protocolServer.oninitialized;
+        protocolServer.oninitialized = (): void => {
+            originalOnInitialized?.();
+
+            const state: NegotiatedClientState = {
+                clientCapabilities: protocolServer.getClientCapabilities(),
+                clientInfo: protocolServer.getClientVersion(),
+            };
+            this.sessionStore.saveNegotiatedClientState(sessionId, state, headers).catch((error: unknown) => {
+                this.logger.warning({
+                    id: LogId.streamableHttpTransportClientStateSaveFailure,
+                    context: "streamableHttpTransport",
+                    message: `Failed to save negotiated client state for session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
+                    attributes: { ...requestIdAttr(headers) },
+                });
+            });
+        };
     }
 
     protected setupMiddlewares(): void {
@@ -331,13 +435,16 @@ export class MCPHttpServer<
                 return this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_ID_INVALID);
             }
 
-            let transport = await this.sessionStore.getSession(sessionId);
+            const requestIdAttrs = requestIdAttr(req.headers);
+
+            let transport = await this.sessionStore.getSession(sessionId, req.headers);
             if (!transport) {
                 if (!this.userConfig.externallyManagedSessions) {
                     this.logger.debug({
                         id: LogId.streamableHttpTransportSessionNotFound,
                         context: "streamableHttpTransport",
                         message: `Session with ID ${sessionId} not found`,
+                        attributes: { ...requestIdAttrs },
                     });
 
                     return this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND);
@@ -348,7 +455,7 @@ export class MCPHttpServer<
                     sessionId,
                     isImplicitInitialization: true,
                 });
-                transport = await this.sessionStore.getSession(resolvedSessionId);
+                transport = await this.sessionStore.getSession(resolvedSessionId, req.headers);
                 if (!transport) {
                     return this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND);
                 }
@@ -371,6 +478,7 @@ export class MCPHttpServer<
                             id: LogId.streamableHttpTransportDisallowedExternalSessionError,
                             context: "streamableHttpTransport",
                             message: `Client provided session ID ${sessionId}, but externallyManagedSessions is disabled`,
+                            attributes: requestIdAttr(req.headers),
                         });
 
                         return this.reportSessionError(res, JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION);
@@ -381,7 +489,7 @@ export class MCPHttpServer<
                         sessionId,
                         isImplicitInitialization: false,
                     });
-                    const transport = await this.sessionStore.getSession(resolvedSessionId);
+                    const transport = await this.sessionStore.getSession(resolvedSessionId, req.headers);
                     if (!transport) {
                         return this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND);
                     }
@@ -420,7 +528,19 @@ export class MCPHttpServer<
                     id: LogId.streamableHttpTransportRequestFailure,
                     context: "streamableHttpTransport",
                     message: `Error handling request: ${error instanceof Error ? error.message : String(error)}`,
+                    attributes: requestIdAttr(req.headers),
                 });
+
+                if (error instanceof SessionRejectedError) {
+                    // Respond exactly as if the session doesn't exist so that
+                    // callers can't probe whether a session id is valid; the
+                    // rejection reason is only visible in the log above.
+                    return this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND);
+                }
+
+                if (error instanceof SessionLimitExceededError) {
+                    return this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED);
+                }
 
                 const message = error instanceof ConfigOverrideError ? error.message : `failed to handle request`;
 

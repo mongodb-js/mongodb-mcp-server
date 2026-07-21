@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { StreamsToolBase } from "./streamsToolBase.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { OperationType, ToolArgs } from "../../tool.js";
+import { type OperationType, type ToolArgs, type ToolExecutionContext } from "../../tool.js";
+import { requestIdAttr } from "../../../helpers/requestIdAttr.js";
 import { AtlasArgs } from "../../args.js";
 import { ConnectionConfig, StreamsArgs } from "./streamsArgs.js";
 import { LogId } from "../../../common/logging/index.js";
@@ -15,6 +16,21 @@ const ManageAction = z.enum([
     "accept-peering",
     "reject-peering",
 ]);
+
+const ProcessorState = z.enum(["STARTED", "STOPPED", "CREATED", "FAILED"]);
+const ConnectionState = z.enum(["PENDING", "READY", "DELETING", "FAILED"]);
+const PeeringState = z.enum(["ACCEPTED", "REJECTED"]);
+
+export const ManageOutputSchema = z.object({
+    processorState: ProcessorState.optional().describe("Processor state after a lifecycle action"),
+    connectionState: ConnectionState.optional().describe("Connection state after an update"),
+    region: z.string().optional().describe("Confirmed workspace region after an update"),
+    tier: z.string().optional().describe("Confirmed workspace tier after an update"),
+    maxTier: z.string().optional().describe("Confirmed workspace max tier after an update"),
+    peeringState: PeeringState.optional().describe("Outcome of a VPC peering accept or reject action"),
+});
+
+export type ManageOutput = z.infer<typeof ManageOutputSchema>;
 
 export class StreamsManageTool extends StreamsToolBase {
     static toolName = "atlas-streams-manage";
@@ -42,8 +58,7 @@ export class StreamsManageTool extends StreamsToolBase {
                 "'reject-peering' — reject a VPC peering request (requires peeringId). " +
                 "For peering actions, workspaceName can be any workspace in the project (peering is project-level)."
         ),
-        resourceName: z
-            .string()
+        resourceName: StreamsArgs.resourceName()
             .optional()
             .describe("Processor or connection name. Required for processor and connection actions."),
 
@@ -108,8 +123,7 @@ export class StreamsManageTool extends StreamsToolBase {
         ),
 
         // peering options
-        peeringId: z
-            .string()
+        peeringId: StreamsArgs.peeringId()
             .optional()
             .describe("VPC peering connection ID. Required for 'accept-peering' and 'reject-peering'."),
         requesterAccountId: z
@@ -122,22 +136,27 @@ export class StreamsManageTool extends StreamsToolBase {
             .describe("VPC ID of the peering requester. Required for 'accept-peering'."),
     };
 
-    protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    public override outputSchema = ManageOutputSchema.shape;
+
+    protected async execute(
+        args: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<CallToolResult> {
         switch (args.action) {
             case "start-processor":
-                return this.startProcessor(args);
+                return this.startProcessor(args, context);
             case "stop-processor":
-                return this.stopProcessor(args);
+                return this.stopProcessor(args, context);
             case "modify-processor":
-                return this.modifyProcessor(args);
+                return this.modifyProcessor(args, context);
             case "update-workspace":
-                return this.updateWorkspace(args);
+                return this.updateWorkspace(args, context);
             case "update-connection":
-                return this.updateConnection(args);
+                return this.updateConnection(args, context);
             case "accept-peering":
-                return this.acceptPeering(args);
+                return this.acceptPeering(args, context);
             case "reject-peering":
-                return this.rejectPeering(args);
+                return this.rejectPeering(args, context);
             default:
                 return {
                     content: [{ type: "text", text: `Unknown action: ${args.action as string}` }],
@@ -191,12 +210,38 @@ export class StreamsManageTool extends StreamsToolBase {
         return resourceName;
     }
 
-    private async startProcessor(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    private static mapUpdateWorkspaceStructuredContent(
+        updated: {
+            dataProcessRegion?: { cloudProvider?: string; region?: string };
+            streamConfig?: { tier?: string; maxTierSize?: string } | null;
+        },
+        options: { includeRegion: boolean; includeTier: boolean }
+    ): ManageOutput {
+        const structuredContent: ManageOutput = {};
+        if (options.includeRegion && updated.dataProcessRegion?.cloudProvider && updated.dataProcessRegion.region) {
+            structuredContent.region = `${updated.dataProcessRegion.cloudProvider}/${updated.dataProcessRegion.region}`;
+        }
+        if (options.includeTier && updated.streamConfig?.tier) {
+            structuredContent.tier = updated.streamConfig.tier;
+        }
+        if (options.includeTier && updated.streamConfig?.maxTierSize) {
+            structuredContent.maxTier = updated.streamConfig.maxTierSize;
+        }
+        return structuredContent;
+    }
+
+    private async startProcessor(
+        args: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<CallToolResult> {
         const name = this.requireResourceName(args.resourceName, "start-processor");
 
-        const processor = await this.apiClient.getStreamProcessor({
-            params: { path: { groupId: args.projectId, tenantName: args.workspaceName, processorName: name } },
-        });
+        const processor = await this.apiClient.getStreamProcessor(
+            {
+                params: { path: { groupId: args.projectId, tenantName: args.workspaceName, processorName: name } },
+            },
+            context
+        );
         if (processor?.state === "STARTED") {
             return {
                 content: [
@@ -212,9 +257,12 @@ export class StreamsManageTool extends StreamsToolBase {
         if (args.tier) {
             const tierOrder = ["SP2", "SP5", "SP10", "SP30", "SP50"];
             try {
-                const ws = await this.apiClient.getStreamWorkspace({
-                    params: { path: { groupId: args.projectId, tenantName: args.workspaceName } },
-                });
+                const ws = await this.apiClient.getStreamWorkspace(
+                    {
+                        params: { path: { groupId: args.projectId, tenantName: args.workspaceName } },
+                    },
+                    context
+                );
                 const maxTier = ws?.streamConfig?.maxTierSize;
                 if (maxTier && tierOrder.indexOf(args.tier) > tierOrder.indexOf(maxTier)) {
                     return {
@@ -247,14 +295,20 @@ export class StreamsManageTool extends StreamsToolBase {
             if (args.resumeFromCheckpoint !== undefined) startBody.resumeFromCheckpoint = args.resumeFromCheckpoint;
             if (args.startAtOperationTime !== undefined) startBody.startAtOperationTime = args.startAtOperationTime;
 
-            await this.apiClient.startStreamProcessorWith({
-                params: { path: { groupId: args.projectId, tenantName: args.workspaceName, processorName: name } },
-                body: startBody as never,
-            });
+            await this.apiClient.startStreamProcessorWith(
+                {
+                    params: { path: { groupId: args.projectId, tenantName: args.workspaceName, processorName: name } },
+                    body: startBody as never,
+                },
+                context
+            );
         } else {
-            await this.apiClient.startStreamProcessor({
-                params: { path: { groupId: args.projectId, tenantName: args.workspaceName, processorName: name } },
-            });
+            await this.apiClient.startStreamProcessor(
+                {
+                    params: { path: { groupId: args.projectId, tenantName: args.workspaceName, processorName: name } },
+                },
+                context
+            );
         }
 
         const checkpointNote =
@@ -273,16 +327,23 @@ export class StreamsManageTool extends StreamsToolBase {
                         `Use \`atlas-streams-manage\` with action 'stop-processor' to stop billing.`,
                 },
             ],
+            structuredContent: { processorState: "STARTED" },
         };
     }
 
-    private async stopProcessor(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    private async stopProcessor(
+        args: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<CallToolResult> {
         const name = this.requireResourceName(args.resourceName, "stop-processor");
 
         try {
-            const processor = await this.apiClient.getStreamProcessor({
-                params: { path: { groupId: args.projectId, tenantName: args.workspaceName, processorName: name } },
-            });
+            const processor = await this.apiClient.getStreamProcessor(
+                {
+                    params: { path: { groupId: args.projectId, tenantName: args.workspaceName, processorName: name } },
+                },
+                context
+            );
             if (processor?.state === "STOPPED" || processor?.state === "CREATED") {
                 return {
                     content: [
@@ -291,6 +352,7 @@ export class StreamsManageTool extends StreamsToolBase {
                             text: `Processor '${name}' is not running (state: ${processor.state}). No action needed.`,
                         },
                     ],
+                    structuredContent: { processorState: processor.state },
                 };
             }
         } catch (error: unknown) {
@@ -299,12 +361,16 @@ export class StreamsManageTool extends StreamsToolBase {
                 id: LogId.streamsProcessorStateLookupFailure,
                 context: "streams-manage",
                 message: `Failed to get processor state before stop: ${error instanceof Error ? error.message : String(error)}`,
+                attributes: { ...requestIdAttr(context.requestInfo?.headers) },
             });
         }
 
-        await this.apiClient.stopStreamProcessor({
-            params: { path: { groupId: args.projectId, tenantName: args.workspaceName, processorName: name } },
-        });
+        await this.apiClient.stopStreamProcessor(
+            {
+                params: { path: { groupId: args.projectId, tenantName: args.workspaceName, processorName: name } },
+            },
+            context
+        );
 
         return {
             content: [
@@ -315,15 +381,22 @@ export class StreamsManageTool extends StreamsToolBase {
                         `Use action 'modify-processor' to change its pipeline, or action 'start-processor' to resume.`,
                 },
             ],
+            structuredContent: { processorState: "STOPPED" },
         };
     }
 
-    private async modifyProcessor(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    private async modifyProcessor(
+        args: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<CallToolResult> {
         const name = this.requireResourceName(args.resourceName, "modify-processor");
 
-        const processor = await this.apiClient.getStreamProcessor({
-            params: { path: { groupId: args.projectId, tenantName: args.workspaceName, processorName: name } },
-        });
+        const processor = await this.apiClient.getStreamProcessor(
+            {
+                params: { path: { groupId: args.projectId, tenantName: args.workspaceName, processorName: name } },
+            },
+            context
+        );
         if (processor?.state === "STARTED") {
             return {
                 content: [
@@ -353,10 +426,13 @@ export class StreamsManageTool extends StreamsToolBase {
             };
         }
 
-        await this.apiClient.updateStreamProcessor({
-            params: { path: { groupId: args.projectId, tenantName: args.workspaceName, processorName: name } },
-            body: body as never,
-        });
+        await this.apiClient.updateStreamProcessor(
+            {
+                params: { path: { groupId: args.projectId, tenantName: args.workspaceName, processorName: name } },
+                body: body as never,
+            },
+            context
+        );
 
         const changes = Object.keys(body).join(", ");
         return {
@@ -368,17 +444,24 @@ export class StreamsManageTool extends StreamsToolBase {
                         `Use action 'start-processor' to resume processing with the updated configuration.`,
                 },
             ],
+            structuredContent: { processorState: "STOPPED" },
         };
     }
 
-    private async updateWorkspace(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    private async updateWorkspace(
+        args: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<CallToolResult> {
         const body: Record<string, unknown> = {};
         if (args.newRegion) {
             // The Atlas API requires cloudProvider alongside region in the update request body.
             // Fetch the current workspace to get the existing cloudProvider.
-            const workspace = await this.apiClient.getStreamWorkspace({
-                params: { path: { groupId: args.projectId, tenantName: args.workspaceName } },
-            });
+            const workspace = await this.apiClient.getStreamWorkspace(
+                {
+                    params: { path: { groupId: args.projectId, tenantName: args.workspaceName } },
+                },
+                context
+            );
             const cloudProvider = workspace?.dataProcessRegion?.cloudProvider;
             if (!cloudProvider) {
                 return {
@@ -412,10 +495,13 @@ export class StreamsManageTool extends StreamsToolBase {
             };
         }
 
-        const updated = await this.apiClient.updateStreamWorkspace({
-            params: { path: { groupId: args.projectId, tenantName: args.workspaceName } },
-            body: body as never,
-        });
+        const updated = await this.apiClient.updateStreamWorkspace(
+            {
+                params: { path: { groupId: args.projectId, tenantName: args.workspaceName } },
+                body: body as never,
+            },
+            context
+        );
 
         const updatedRegion = updated?.dataProcessRegion?.region;
         if (
@@ -445,29 +531,48 @@ export class StreamsManageTool extends StreamsToolBase {
                     text: `Workspace '${args.workspaceName}' updated. Use \`atlas-streams-discover\` with action 'inspect-workspace' to verify changes.`,
                 },
             ],
+            structuredContent: StreamsManageTool.mapUpdateWorkspaceStructuredContent(updated ?? {}, {
+                includeRegion: args.newRegion !== undefined,
+                includeTier: args.newTier !== undefined,
+            }),
         };
     }
 
-    private async updateConnection(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    private async updateConnection(
+        args: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<CallToolResult> {
         const name = this.requireResourceName(args.resourceName, "update-connection");
 
         if (!args.connectionConfig) {
             throw new Error("connectionConfig is required to update a connection.");
         }
 
-        const { type: connectionType } = (await this.apiClient.getStreamConnection({
-            params: { path: { groupId: args.projectId, tenantName: args.workspaceName, connectionName: name } },
-        })) as { type?: string };
+        const connection = (await this.apiClient.getStreamConnection(
+            {
+                params: { path: { groupId: args.projectId, tenantName: args.workspaceName, connectionName: name } },
+            },
+            context
+        )) as { type?: string; state?: string };
 
         const normalizedConfig = ConnectionConfig.parse(args.connectionConfig);
-        await this.apiClient.updateStreamConnection({
-            params: { path: { groupId: args.projectId, tenantName: args.workspaceName, connectionName: name } },
-            body: {
-                ...normalizedConfig,
-                ...(connectionType !== undefined ? { type: connectionType } : {}),
-                name,
-            } as never,
-        });
+        const updated = (await this.apiClient.updateStreamConnection(
+            {
+                params: { path: { groupId: args.projectId, tenantName: args.workspaceName, connectionName: name } },
+                body: {
+                    ...normalizedConfig,
+                    ...(connection.type !== undefined ? { type: connection.type } : {}),
+                    name,
+                } as never,
+            },
+            context
+        )) as { state?: string } | undefined;
+
+        const connectionState = updated?.state ?? connection.state;
+        const parsedConnectionState = ConnectionState.safeParse(connectionState);
+        const structuredContent: ManageOutput = parsedConnectionState.success
+            ? { connectionState: parsedConnectionState.data }
+            : {};
 
         return {
             content: [
@@ -476,10 +581,14 @@ export class StreamsManageTool extends StreamsToolBase {
                     text: `Connection '${name}' updated in workspace '${args.workspaceName}'.`,
                 },
             ],
+            structuredContent,
         };
     }
 
-    private async acceptPeering(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    private async acceptPeering(
+        args: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<CallToolResult> {
         if (!args.peeringId) throw new Error("peeringId is required to accept a VPC peering connection.");
         if (!args.requesterAccountId) throw new Error("requesterAccountId is required to accept VPC peering.");
         if (!args.requesterVpcId) throw new Error("requesterVpcId is required to accept VPC peering.");
@@ -488,13 +597,16 @@ export class StreamsManageTool extends StreamsToolBase {
         const requesterAccountId = args.requesterAccountId;
         const requesterVpcId = args.requesterVpcId;
 
-        await this.apiClient.acceptVpcPeeringConnection({
-            params: { path: { groupId: args.projectId, id: peeringId } },
-            body: {
-                requesterAccountId,
-                requesterVpcId,
+        await this.apiClient.acceptVpcPeeringConnection(
+            {
+                params: { path: { groupId: args.projectId, id: peeringId } },
+                body: {
+                    requesterAccountId,
+                    requesterVpcId,
+                },
             },
-        });
+            context
+        );
 
         return {
             content: [
@@ -503,15 +615,22 @@ export class StreamsManageTool extends StreamsToolBase {
                     text: `VPC peering connection '${args.peeringId}' accepted. It may take a few minutes to become active.`,
                 },
             ],
+            structuredContent: { peeringState: "ACCEPTED" },
         };
     }
 
-    private async rejectPeering(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    private async rejectPeering(
+        args: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<CallToolResult> {
         if (!args.peeringId) throw new Error("peeringId is required to reject a VPC peering connection.");
 
-        await this.apiClient.rejectVpcPeeringConnection({
-            params: { path: { groupId: args.projectId, id: args.peeringId } },
-        });
+        await this.apiClient.rejectVpcPeeringConnection(
+            {
+                params: { path: { groupId: args.projectId, id: args.peeringId } },
+            },
+            context
+        );
 
         return {
             content: [
@@ -520,6 +639,7 @@ export class StreamsManageTool extends StreamsToolBase {
                     text: `VPC peering connection '${args.peeringId}' rejected.`,
                 },
             ],
+            structuredContent: { peeringState: "REJECTED" },
         };
     }
 }

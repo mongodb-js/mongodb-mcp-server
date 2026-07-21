@@ -5,7 +5,7 @@ import { DockerComposeEnvironment, GenericContainer, Wait } from "testcontainers
 import { MongoCluster } from "mongodb-runner";
 import { MongoClient } from "mongodb";
 import { ConnectionString } from "mongodb-connection-string-url";
-import { ShellWaitStrategy } from "testcontainers/build/wait-strategies/shell-wait-strategy.js";
+import { sleep } from "../../../../src/common/managedTimeout.js";
 
 export type MongoRunnerConfiguration = {
     runner: true;
@@ -74,9 +74,6 @@ export class MongoDBClusterProcess {
                 // DO_NOT_TRACK=1 skips telemetry startup work (Atlas Local v1.0.11+), which
                 // otherwise increases startup time enough to exceed testcontainers' 60s timeout.
                 .withEnvironment({ DO_NOT_TRACK: "1" })
-                .withWaitStrategy(
-                    new ShellWaitStrategy(`mongosh --eval 'db.test.getSearchIndexes()'`).withStartupTimeout(120_000)
-                )
                 .start();
 
             return new MongoDBClusterProcess(
@@ -161,7 +158,7 @@ export class MongoDBClusterProcess {
                         // Just wait a little bit and retry
                         // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
                         console.error(`Failed to start cluster in ${dbsDir}, attempt ${i}: ${err}`);
-                        await new Promise((resolve) => setTimeout(resolve, 1000));
+                        await sleep(1000);
                     } else {
                         // If we still fail after 5 seconds, try another db dir
                         console.error(

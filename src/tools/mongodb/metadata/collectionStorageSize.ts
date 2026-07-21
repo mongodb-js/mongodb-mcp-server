@@ -1,4 +1,4 @@
-import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
@@ -13,16 +13,16 @@ export type CollectionStorageSizeOutput = z.infer<z.ZodObject<typeof CollectionS
 export class CollectionStorageSizeTool extends MongoDBToolBase {
     static toolName = "collection-storage-size";
     public description = "Gets the size of the collection";
-    public argsShape = CollOperationArgs;
+    public argsShape = { ...ConnectionIdArgs, ...CollOperationArgs };
     public override outputSchema = CollectionStorageSizeOutputSchema;
 
     static operationType: OperationType = "metadata";
 
     protected async execute(
-        { database, collection }: ToolArgs<typeof CollOperationArgs>,
+        { connectionId, database, collection }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        const provider = await this.ensureConnected();
+        const provider = await this.resolveConnection(connectionId);
         const [{ value }] = (await provider
             .aggregate(
                 database,
@@ -42,7 +42,7 @@ export class CollectionStorageSizeTool extends MongoDBToolBase {
         return {
             content: [
                 {
-                    text: `The size of "${database}.${collection}" is \`${scaledValue.toFixed(2)} ${units}\``,
+                    text: `The size of the requested namespace is \`${scaledValue.toFixed(2)} ${units}\``,
                     type: "text",
                 },
             ],
@@ -58,7 +58,7 @@ export class CollectionStorageSizeTool extends MongoDBToolBase {
             return {
                 content: [
                     {
-                        text: `The size of "${args.database}.${args.collection}" cannot be determined because the collection does not exist.`,
+                        text: "The size of the requested namespace cannot be determined because the collection does not exist.",
                         type: "text",
                     },
                 ],
@@ -66,7 +66,7 @@ export class CollectionStorageSizeTool extends MongoDBToolBase {
             };
         }
 
-        return super.handleError(error, args) as ToolResult | Promise<ToolResult>;
+        return super.handleError(error, args);
     }
 
     private static getStats(value: number): { value: number; units: string } {

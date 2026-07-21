@@ -11,6 +11,7 @@ import type { ApiClient } from "../../../../../src/common/atlas/apiClient.js";
 import { UIRegistry } from "../../../../../src/ui/registry/index.js";
 import { MockMetrics } from "../../../mocks/metrics.js";
 import type { Keychain } from "../../../../../src/lib.js";
+import { ApiClientError } from "../../../../../src/common/atlas/apiClientError.js";
 
 const BASE_ARGS = {
     projectId: "507f1f77bcf86cd799439011",
@@ -30,7 +31,10 @@ describe("CreateClusterTool", () => {
         mockApiClient = {
             listClusters: vi.fn().mockResolvedValue({ results: [] }),
             createCluster: vi.fn().mockResolvedValue(CREATE_RESULT),
+            getIpInfo: vi.fn().mockResolvedValue({ currentIpv4Address: "127.0.0.1" }),
+            createAccessListEntry: vi.fn().mockResolvedValue({}),
         };
+        Object.assign(mockApiClient, { supportsCurrentIpLookup: true });
 
         const mockLogger = {
             info: vi.fn(),
@@ -38,11 +42,11 @@ describe("CreateClusterTool", () => {
             warning: vi.fn(),
             error: vi.fn(),
         } as unknown as CompositeLogger;
+        Object.assign(mockApiClient, { logger: mockLogger });
 
         mockSession = {
             logger: mockLogger,
             apiClient: mockApiClient as unknown as ApiClient,
-            connectedAtlasCluster: undefined,
             keychain: { allSecrets: [] } as unknown as Keychain,
         };
 
@@ -91,38 +95,41 @@ describe("CreateClusterTool", () => {
             const result = await exec(BASE_ARGS);
 
             expect(result.isError).toBeFalsy();
-            expect(mockApiClient.createCluster).toHaveBeenCalledWith({
-                params: { path: { groupId: "507f1f77bcf86cd799439011" } },
-                body: {
-                    name: "my-cluster",
-                    clusterType: "REPLICASET",
-                    backupEnabled: true,
-                    pitEnabled: false,
-                    terminationProtectionEnabled: false,
-                    versionReleaseSystem: "CONTINUOUS",
-                    replicationSpecs: [
-                        {
-                            regionConfigs: [
-                                {
-                                    providerName: "AWS",
-                                    regionName: "US_EAST_1",
-                                    priority: 7,
-                                    electableSpecs: { instanceSize: "M10", nodeCount: 3 },
-                                    autoScaling: {
-                                        compute: {
-                                            enabled: true,
-                                            scaleDownEnabled: true,
-                                            minInstanceSize: "M10",
-                                            maxInstanceSize: "M30",
+            expect(mockApiClient.createCluster).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "507f1f77bcf86cd799439011" } },
+                    body: {
+                        name: "my-cluster",
+                        clusterType: "REPLICASET",
+                        backupEnabled: true,
+                        pitEnabled: false,
+                        terminationProtectionEnabled: false,
+                        versionReleaseSystem: "CONTINUOUS",
+                        replicationSpecs: [
+                            {
+                                regionConfigs: [
+                                    {
+                                        providerName: "AWS",
+                                        regionName: "US_EAST_1",
+                                        priority: 7,
+                                        electableSpecs: { instanceSize: "M10", nodeCount: 3 },
+                                        autoScaling: {
+                                            compute: {
+                                                enabled: true,
+                                                scaleDownEnabled: true,
+                                                minInstanceSize: "M10",
+                                                maxInstanceSize: "M30",
+                                            },
+                                            diskGB: { enabled: true },
                                         },
-                                        diskGB: { enabled: true },
                                     },
-                                },
-                            ],
-                        },
-                    ],
+                                ],
+                            },
+                        ],
+                    },
                 },
-            });
+                expect.anything()
+            );
         });
 
         it("sends correct body when all params are provided", async () => {
@@ -138,34 +145,37 @@ describe("CreateClusterTool", () => {
             });
 
             expect(result.isError).toBeFalsy();
-            expect(mockApiClient.createCluster).toHaveBeenCalledWith({
-                params: { path: { groupId: "507f1f77bcf86cd799439011" } },
-                body: {
-                    name: "my-cluster",
-                    clusterType: "SHARDED",
-                    backupEnabled: true,
-                    pitEnabled: true,
-                    terminationProtectionEnabled: true,
-                    versionReleaseSystem: "LTS",
-                    mongoDBMajorVersion: "8.0",
-                    replicationSpecs: [
-                        {
-                            regionConfigs: [
-                                {
-                                    providerName: "AWS",
-                                    regionName: "US_EAST_1",
-                                    priority: 7,
-                                    electableSpecs: { instanceSize: "M40", nodeCount: 3, diskSizeGB: 100 },
-                                    autoScaling: {
-                                        compute: { enabled: false, scaleDownEnabled: false },
-                                        diskGB: { enabled: true },
+            expect(mockApiClient.createCluster).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "507f1f77bcf86cd799439011" } },
+                    body: {
+                        name: "my-cluster",
+                        clusterType: "SHARDED",
+                        backupEnabled: true,
+                        pitEnabled: true,
+                        terminationProtectionEnabled: true,
+                        versionReleaseSystem: "LTS",
+                        mongoDBMajorVersion: "8.0",
+                        replicationSpecs: [
+                            {
+                                regionConfigs: [
+                                    {
+                                        providerName: "AWS",
+                                        regionName: "US_EAST_1",
+                                        priority: 7,
+                                        electableSpecs: { instanceSize: "M40", nodeCount: 3, diskSizeGB: 100 },
+                                        autoScaling: {
+                                            compute: { enabled: false, scaleDownEnabled: false },
+                                            diskGB: { enabled: true },
+                                        },
                                     },
-                                },
-                            ],
-                        },
-                    ],
+                                ],
+                            },
+                        ],
+                    },
                 },
-            });
+                expect.anything()
+            );
         });
     });
 
@@ -234,33 +244,36 @@ describe("CreateClusterTool", () => {
         it("disables compute autoscaling when computeAutoScaling is false", async () => {
             await exec({ ...BASE_ARGS, instanceSize: "M10", computeAutoScaling: false });
 
-            expect(mockApiClient.createCluster).toHaveBeenCalledWith({
-                params: { path: { groupId: "507f1f77bcf86cd799439011" } },
-                body: {
-                    name: "my-cluster",
-                    clusterType: "REPLICASET",
-                    backupEnabled: true,
-                    pitEnabled: false,
-                    terminationProtectionEnabled: false,
-                    versionReleaseSystem: "CONTINUOUS",
-                    replicationSpecs: [
-                        {
-                            regionConfigs: [
-                                {
-                                    providerName: "AWS",
-                                    regionName: "US_EAST_1",
-                                    priority: 7,
-                                    electableSpecs: { instanceSize: "M10", nodeCount: 3 },
-                                    autoScaling: {
-                                        compute: { enabled: false, scaleDownEnabled: false },
-                                        diskGB: { enabled: true },
+            expect(mockApiClient.createCluster).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "507f1f77bcf86cd799439011" } },
+                    body: {
+                        name: "my-cluster",
+                        clusterType: "REPLICASET",
+                        backupEnabled: true,
+                        pitEnabled: false,
+                        terminationProtectionEnabled: false,
+                        versionReleaseSystem: "CONTINUOUS",
+                        replicationSpecs: [
+                            {
+                                regionConfigs: [
+                                    {
+                                        providerName: "AWS",
+                                        regionName: "US_EAST_1",
+                                        priority: 7,
+                                        electableSpecs: { instanceSize: "M10", nodeCount: 3 },
+                                        autoScaling: {
+                                            compute: { enabled: false, scaleDownEnabled: false },
+                                            diskGB: { enabled: true },
+                                        },
                                     },
-                                },
-                            ],
-                        },
-                    ],
+                                ],
+                            },
+                        ],
+                    },
                 },
-            });
+                expect.anything()
+            );
         });
     });
 
@@ -287,12 +300,48 @@ describe("CreateClusterTool", () => {
         });
     });
 
+    describe("IP access list", () => {
+        it("adds the current IP to the access list and discloses it", async () => {
+            const result = await exec(BASE_ARGS);
+
+            expect(mockApiClient.createAccessListEntry).toHaveBeenCalledOnce();
+            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+            expect(text).toContain("Your current IP address has been added");
+        });
+
+        it("does not mention the access list when the current IP is already present", async () => {
+            mockApiClient.createAccessListEntry?.mockRejectedValue(
+                ApiClientError.fromError(
+                    { status: 409, statusText: "Conflict" } as Response,
+                    { message: "Conflict" } as never
+                )
+            );
+
+            const result = await exec(BASE_ARGS);
+
+            expect(result.isError).toBeFalsy();
+            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+            expect(text).not.toContain("access list");
+        });
+
+        it("still creates the cluster and notes that no access list changes were made when the IP lookup fails", async () => {
+            mockApiClient.getIpInfo?.mockRejectedValue(new Error("ipinfo unavailable"));
+
+            const result = await exec(BASE_ARGS);
+
+            expect(mockApiClient.createCluster).toHaveBeenCalledOnce();
+            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+            expect(text).toContain("No IP access list changes were made");
+            expect(text).toContain("did not succeed");
+        });
+    });
+
     describe("telemetry metadata", () => {
         it("resolves all fields from structuredContent", async () => {
             const args = { ...BASE_ARGS, instanceSize: "M30", diskSizeGB: 20 };
             const result = await exec(args);
 
-            const metadata = tool["resolveTelemetryMetadata"](args as never, { result: result as never });
+            const metadata = await tool["resolveTelemetryMetadata"](args as never, { result: result as never });
             expect(metadata.cluster_id).toBe("new-cluster-id");
             expect(metadata.provider).toBe("AWS");
             expect(metadata.region).toBe("US_EAST_1");
@@ -305,8 +354,8 @@ describe("CreateClusterTool", () => {
             expect(metadata.mongodb_version).toBe("LATEST");
         });
 
-        it("returns empty metadata fields when result has no structuredContent (error path)", () => {
-            const metadata = tool["resolveTelemetryMetadata"](BASE_ARGS as never, {
+        it("returns empty metadata fields when result has no structuredContent (error path)", async () => {
+            const metadata = await tool["resolveTelemetryMetadata"](BASE_ARGS as never, {
                 result: { content: [] } as never,
             });
 

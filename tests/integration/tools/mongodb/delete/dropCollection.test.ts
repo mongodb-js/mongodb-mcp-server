@@ -21,39 +21,37 @@ describeWithMongoDB("dropCollection tool", (integration) => {
     validateThrowsForInvalidArguments(integration, "drop-collection", databaseCollectionInvalidArgs);
 
     it("can drop non-existing collection", async () => {
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         const response = await integration.mcpClient().callTool({
             name: "drop-collection",
             arguments: {
+                connectionId,
                 database: integration.randomDbName(),
                 collection: "coll1",
             },
         });
 
         const content = getResponseContent(response.content);
-        expect(content).toContain(
-            `Successfully dropped collection "coll1" from database "${integration.randomDbName()}"`
-        );
+        expect(content).toContain(`Successfully dropped the requested collection from the requested database.`);
 
         const collections = await integration.mongoClient().db(integration.randomDbName()).listCollections().toArray();
         expect(collections).toHaveLength(0);
     });
 
     it("removes the collection if it exists", async () => {
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         await integration.mongoClient().db(integration.randomDbName()).createCollection("coll1");
         await integration.mongoClient().db(integration.randomDbName()).createCollection("coll2");
         const response = await integration.mcpClient().callTool({
             name: "drop-collection",
             arguments: {
+                connectionId,
                 database: integration.randomDbName(),
                 collection: "coll1",
             },
         });
         const content = getResponseContent(response.content);
-        expect(content).toContain(
-            `Successfully dropped collection "coll1" from database "${integration.randomDbName()}"`
-        );
+        expect(content).toContain(`Successfully dropped the requested collection from the requested database.`);
 
         const structuredContent = response.structuredContent as DropCollectionOutput;
         expect(structuredContent.database).toBe(integration.randomDbName());
@@ -71,7 +69,7 @@ describeWithMongoDB("dropCollection tool", (integration) => {
                 database: integration.randomDbName(),
                 collection: "coll1",
             },
-            expectedResponse: `Successfully dropped collection "coll1" from database "${integration.randomDbName()}"`,
+            expectedResponse: `Successfully dropped the requested collection from the requested database.`,
         };
     });
 });

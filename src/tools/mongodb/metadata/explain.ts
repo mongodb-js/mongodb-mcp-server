@@ -1,4 +1,4 @@
-import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { z } from "zod";
@@ -23,6 +23,7 @@ export class ExplainTool extends MongoDBToolBase {
         "Returns statistics describing the execution of the winning plan chosen by the query optimizer for the evaluated method";
 
     public argsShape = {
+        ...ConnectionIdArgs,
         ...CollOperationArgs,
         // Note: Although it is not required to wrap the discriminated union in
         // an array here because we only expect exactly one method to be
@@ -60,10 +61,10 @@ export class ExplainTool extends MongoDBToolBase {
     static operationType: OperationType = "metadata";
 
     protected async execute(
-        { database, collection, method: methods, verbosity }: ToolArgs<typeof this.argsShape>,
+        { connectionId, database, collection, method: methods, verbosity }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        const provider = await this.ensureConnected();
+        const provider = await this.resolveConnection(connectionId);
         const method = methods[0];
 
         if (!method) {
@@ -92,7 +93,7 @@ export class ExplainTool extends MongoDBToolBase {
             }
             case "find": {
                 const { filter, ...rest } = method.arguments;
-                this.assertMqlIsAllowed(filter);
+                this.assertMqlIsAllowed(filter, rest.projection);
                 result = await provider
                     .find(database, collection, filter as Document, {
                         ...rest,
@@ -123,8 +124,8 @@ export class ExplainTool extends MongoDBToolBase {
 
         return {
             content: formatUntrustedData(
-                `Here is some information about the winning plan chosen by the query optimizer for running the given \`${method.name}\` operation in "${database}.${collection}". The execution plan was run with the following verbosity: "${verbosity}". This information can be used to understand how the query was executed and to optimize the query performance.`,
-                JSON.stringify(result)
+                `Here is some information about the winning plan chosen by the query optimizer for running the given \`${method.name}\` operation on the requested namespace. The execution plan was run with the following verbosity: "${verbosity}". This information can be used to understand how the query was executed and to optimize the query performance.`,
+                JSON.stringify({ database, collection, plan: result })
             ),
             structuredContent: {
                 explainResult: result,
