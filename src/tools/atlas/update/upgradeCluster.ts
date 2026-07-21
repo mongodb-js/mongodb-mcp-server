@@ -156,7 +156,12 @@ export const UpgradeClusterOutputSchema = {
 
 export class UpgradeClusterTool extends AtlasToolBase {
     static toolName = "atlas-upgrade-cluster";
-    public description = `Upgrade a MongoDB Atlas cluster tier. Upgrades Free (M0) clusters to Flex or M10 Dedicated, or Flex clusters to M10 Dedicated. The upgrade path is determined automatically from the current tier unless overridden with targetTier. Note to LLM: If provider and region are not already known, ask for both together in a single question before calling this tool. ${REGION_RECOMMENDATIONS}`;
+    public description =
+        "Upgrade a MongoDB Atlas cluster tier. Upgrades Free (M0) clusters to Flex or M10 Dedicated, or Flex clusters to M10 Dedicated. " +
+        "The upgrade path is determined automatically from the current tier unless overridden with targetTier. " +
+        "This tool is ONLY for Free and Flex clusters: to change the instance size or autoscaling of a cluster that is already Dedicated (M10+), use the atlas-scale-cluster tool instead. " +
+        "Note to LLM: If provider and region are not already known, ask for both together in a single question before calling this tool. " +
+        REGION_RECOMMENDATIONS;
     static operationType: OperationType = "update";
     public override outputSchema = UpgradeClusterOutputSchema;
     public argsShape = {
