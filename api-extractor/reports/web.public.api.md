@@ -734,6 +734,15 @@ export type RequestContext = {
     headers?: Record<string, string | string[] | undefined>;
 };
 
+// @public (undocumented)
+export type ScaleClusterMetadata = AtlasMetadata & {
+    cluster_id?: string;
+    instance_size?: string;
+    compute_auto_scaling?: TelemetryBoolSet;
+    min_instance_size?: string;
+    max_instance_size?: string;
+};
+
 export { Secret }
 
 // @public (undocumented)
@@ -934,7 +943,7 @@ export { TelemetryEvents }
 export type TelemetryResult = "success" | "failure";
 
 // @public
-export type TelemetryToolMetadata = AtlasMetadata | ConnectionMetadata | PerfAdvisorToolMetadata | StreamsToolMetadata | UpgradeClusterMetadata | CreateClusterMetadata | IndexMetadata | PauseResumeClusterMetadata;
+export type TelemetryToolMetadata = AtlasMetadata | ConnectionMetadata | PerfAdvisorToolMetadata | StreamsToolMetadata | UpgradeClusterMetadata | ScaleClusterMetadata | CreateClusterMetadata | IndexMetadata | PauseResumeClusterMetadata;
 
 // @public (undocumented)
 export type ToolArgs<T extends ZodRawShape> = {
