@@ -95,8 +95,8 @@ describe("ListProjectsTool", () => {
             } as never
         );
 
-    it("description clarifies organization names are resolved via a lookup capped at 500 orgs", () => {
-        expect(tool.description).toContain("capped at 500");
+    it("description clarifies organization names are resolved via a lookup capped at 10 orgs", () => {
+        expect(tool.description).toContain("capped at 10");
         expect(tool.description).toContain('"N/A"');
     });
 
@@ -144,14 +144,14 @@ describe("ListProjectsTool", () => {
         );
     });
 
-    it("bounds the internal orgId->name lookup call to the Atlas max page size", async () => {
+    it("bounds the internal orgId->name lookup call to ORG_LOOKUP_ITEMS_PER_PAGE", async () => {
         mockApiClient.listOrgs!.mockResolvedValue(orgsResponse);
         mockApiClient.listGroups!.mockResolvedValue({ results: [projectApiResponse] });
 
         await exec();
 
         expect(mockApiClient.listOrgs).toHaveBeenCalledWith(
-            { params: { query: { itemsPerPage: 500 } } },
+            { params: { query: { itemsPerPage: 10 } } },
             expect.anything()
         );
     });

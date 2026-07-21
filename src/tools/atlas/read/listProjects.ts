@@ -4,9 +4,9 @@ import type { OperationType, ToolArgs, ToolExecutionContext, ToolResult } from "
 import { formatUntrustedData } from "../../tool.js";
 import { AtlasArgs } from "../../args.js";
 
-// Atlas's max page size; used only to bound the internal orgId -> orgName lookup call below.
-// Not user-facing pagination — see ListProjectsArgs.limit/pageNum for that.
-const ORG_LOOKUP_ITEMS_PER_PAGE = 500;
+// Bounds the internal orgId -> orgName lookup call below, not user-facing pagination
+// (see ListProjectsArgs.limit/pageNum for that). Orgs beyond this page fall back to orgName: "N/A".
+const ORG_LOOKUP_ITEMS_PER_PAGE = 10;
 
 export const ListProjectsArgs = {
     orgId: AtlasArgs.organizationId()
@@ -33,7 +33,7 @@ const ListProjectsOutputSchema = {
 export class ListProjectsTool extends AtlasToolBase {
     static toolName = "atlas-list-projects";
     public description =
-        'List MongoDB Atlas projects. To resolve each project\'s organization name, the tool looks up your organizations, capped at 500; if your account has more than 500 organizations, some projects may show orgName: "N/A".';
+        'List MongoDB Atlas projects. To resolve each project\'s organization name, the tool looks up your organizations, capped at 10; if your account has more than 10 organizations, some projects may show orgName: "N/A".';
     static operationType: OperationType = "read";
     public argsShape = {
         ...ListProjectsArgs,
