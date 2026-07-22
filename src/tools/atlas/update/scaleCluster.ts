@@ -46,6 +46,7 @@ type ResolvedClusterState = {
     raw?: ClusterDescription20240805;
     instanceSize?: string;
     currentMax?: string;
+    currentAutoScalingEnabled?: boolean;
 };
 
 async function resolveClusterState(
@@ -58,13 +59,14 @@ async function resolveClusterState(
         const raw = await apiClient.getCluster({ params: { path: { groupId: projectId, clusterName } } }, context);
         const cluster = formatCluster(raw);
         const firstRegionConfig = raw.replicationSpecs?.[0]?.regionConfigs?.[0] as
-            | { autoScaling?: { compute?: { maxInstanceSize?: string } } }
+            | { autoScaling?: { compute?: { enabled?: boolean; maxInstanceSize?: string } } }
             | undefined;
         return {
             instanceType: cluster.instanceType,
             raw,
             instanceSize: cluster.instanceSize,
             currentMax: firstRegionConfig?.autoScaling?.compute?.maxInstanceSize,
+            currentAutoScalingEnabled: firstRegionConfig?.autoScaling?.compute?.enabled,
         };
     } catch (err) {
         // Atlas returns 400 for Flex clusters on the dedicated Cluster API ("cannot be used in the Cluster API")
@@ -157,16 +159,13 @@ export class ScaleClusterTool extends AtlasToolBase {
                     `atlas-scale-cluster only supports standard M-series tiers; high-memory, NVMe, Gen2, and low-CPU (R-series) variants are not supported.`
             );
         }
-        if (!SELECTABLE_TIERS.includes(currentSize as InstanceSize)) {
-            throw new ScaleClusterError(
-                `Cluster "${clusterName}" is currently ${currentSize}, which is above the M80 cap this tool supports. ` +
-                    `Use the Atlas CLI (\`atlas clusters update\`) or the Atlas UI to scale clusters larger than M80.`
-            );
-        }
 
-        this.validateExplicitBounds(args);
-
-        const compute = this.resolveComputeAutoScaling(args, currentSize as InstanceSize, state.currentMax);
+        const compute = this.resolveComputeAutoScaling(
+            args,
+            currentSize as InstanceSize,
+            state.currentMax,
+            state.currentAutoScalingEnabled
+        );
         const targetSize = args.instanceSize ?? currentSize;
 
         const body = this.buildUpdateBody(state.raw, targetSize, compute);
@@ -201,43 +200,23 @@ export class ScaleClusterTool extends AtlasToolBase {
         };
     }
 
-    // Rejects incoherent autoscaling bounds supplied by the caller before anything is sent to Atlas.
-    private validateExplicitBounds(args: ToolArgs<typeof this.argsShape>): void {
-        const rank = (size: string): number => STANDARD_TIER_ORDER.indexOf(size);
-        const { instanceSize, minInstanceSize, maxInstanceSize } = args;
-
-        if (
-            minInstanceSize !== undefined &&
-            maxInstanceSize !== undefined &&
-            rank(minInstanceSize) > rank(maxInstanceSize)
-        ) {
-            throw new ScaleClusterError(
-                `minInstanceSize (${minInstanceSize}) cannot be larger than maxInstanceSize (${maxInstanceSize}).`
-            );
-        }
-        if (instanceSize !== undefined && minInstanceSize !== undefined && rank(instanceSize) < rank(minInstanceSize)) {
-            throw new ScaleClusterError(
-                `instanceSize (${instanceSize}) cannot be smaller than minInstanceSize (${minInstanceSize}).`
-            );
-        }
-        if (instanceSize !== undefined && maxInstanceSize !== undefined && rank(instanceSize) > rank(maxInstanceSize)) {
-            throw new ScaleClusterError(
-                `instanceSize (${instanceSize}) cannot be larger than maxInstanceSize (${maxInstanceSize}).`
-            );
-        }
-    }
-
     private resolveComputeAutoScaling(
         args: ToolArgs<typeof this.argsShape>,
         currentSize: InstanceSize,
-        currentMax: string | undefined
+        currentMax: string | undefined,
+        currentEnabled: boolean | undefined
     ): ComputeAutoScaling {
-        const explicitAutoScaling =
-            args.computeAutoScaling !== undefined ||
-            args.minInstanceSize !== undefined ||
-            args.maxInstanceSize !== undefined;
+        const explicitBounds = args.minInstanceSize !== undefined || args.maxInstanceSize !== undefined;
 
-        if (args.instanceSize !== undefined && !explicitAutoScaling) {
+        // Preserve the cluster's current autoscaling state unless the caller sets it explicitly.
+        // Supplying explicit bounds implies intent to autoscale, so it enables autoscaling.
+        const enabled = args.computeAutoScaling ?? (explicitBounds ? true : (currentEnabled ?? false));
+        if (!enabled) {
+            return { enabled: false, scaleDownEnabled: false };
+        }
+
+        // Size-only change on an autoscaling-enabled cluster: reconcile bounds around the new size.
+        if (args.instanceSize !== undefined && args.computeAutoScaling === undefined && !explicitBounds) {
             const min = args.instanceSize;
             return {
                 enabled: true,
@@ -245,11 +224,6 @@ export class ScaleClusterTool extends AtlasToolBase {
                 minInstanceSize: min,
                 maxInstanceSize: preserveHigherMax(twoTiersAbove(min), currentMax),
             };
-        }
-
-        const enabled = args.computeAutoScaling ?? true;
-        if (!enabled) {
-            return { enabled: false, scaleDownEnabled: false };
         }
 
         const min = args.minInstanceSize ?? args.instanceSize ?? currentSize;

@@ -20,6 +20,17 @@ function mockUpgradeResponse(clusterName: string): () => CallToolResult {
     });
 }
 
+function mockInspectResponse(clusterName: string, instanceSize: string): () => CallToolResult {
+    return () => ({
+        content: [
+            {
+                type: "text",
+                text: `Cluster "${clusterName}": instance size ${instanceSize}, dedicated tier, state IDLE.`,
+            },
+        ],
+    });
+}
+
 const PROJECT_ID = "proj-accuracy-test";
 const CLUSTER_NAME = "MyCluster";
 
@@ -95,6 +106,25 @@ describeAccuracyTests([
                     clusterName: CLUSTER_NAME,
                     targetTier: Matcher.anyOf(Matcher.value("M10"), Matcher.undefined),
                 },
+            },
+        ],
+    },
+    {
+        // Ambiguous request (tier not stated): the agent should inspect the cluster before choosing a tool.
+        prompt: `Change cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}" to M40`,
+        mockedTools: {
+            ...bothToolsMocked("M40"),
+            "atlas-inspect-cluster": mockInspectResponse(CLUSTER_NAME, "M30"),
+        },
+        expectedToolCalls: [
+            ...optionalListProjects,
+            {
+                toolName: "atlas-inspect-cluster",
+                parameters: { projectId: PROJECT_ID, clusterName: CLUSTER_NAME },
+            },
+            {
+                toolName: "atlas-scale-cluster",
+                parameters: { projectId: PROJECT_ID, clusterName: CLUSTER_NAME, instanceSize: "M40" },
             },
         ],
     },

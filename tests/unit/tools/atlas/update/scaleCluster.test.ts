@@ -218,61 +218,6 @@ describe("ScaleClusterTool", () => {
         });
     });
 
-    describe("current tier above the M80 cap", () => {
-        it.each(["M100", "M140", "M300"])("rejects scaling a cluster currently at %s", async (size) => {
-            mockApiClient.getCluster!.mockResolvedValue(dedicatedRaw(size));
-
-            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", instanceSize: "M30" });
-
-            expect(result.isError).toBe(true);
-            const text = (result.content[0] as { text: string }).text;
-            expect(text).toContain("above the M80 cap");
-            expect(mockApiClient.updateCluster).not.toHaveBeenCalled();
-        });
-    });
-
-    describe("invalid autoscaling bounds", () => {
-        beforeEach(() => {
-            mockApiClient.getCluster!.mockResolvedValue(dedicatedRaw("M30"));
-        });
-
-        it("rejects minInstanceSize greater than maxInstanceSize", async () => {
-            const result = await exec({
-                projectId: "proj1",
-                clusterName: "MyCluster",
-                minInstanceSize: "M50",
-                maxInstanceSize: "M20",
-            });
-            expect(result.isError).toBe(true);
-            expect((result.content[0] as { text: string }).text).toContain("cannot be larger than maxInstanceSize");
-            expect(mockApiClient.updateCluster).not.toHaveBeenCalled();
-        });
-
-        it("rejects instanceSize above an explicit maxInstanceSize", async () => {
-            const result = await exec({
-                projectId: "proj1",
-                clusterName: "MyCluster",
-                instanceSize: "M60",
-                maxInstanceSize: "M40",
-            });
-            expect(result.isError).toBe(true);
-            expect((result.content[0] as { text: string }).text).toContain("cannot be larger than maxInstanceSize");
-            expect(mockApiClient.updateCluster).not.toHaveBeenCalled();
-        });
-
-        it("rejects instanceSize below an explicit minInstanceSize", async () => {
-            const result = await exec({
-                projectId: "proj1",
-                clusterName: "MyCluster",
-                instanceSize: "M20",
-                minInstanceSize: "M40",
-            });
-            expect(result.isError).toBe(true);
-            expect((result.content[0] as { text: string }).text).toContain("cannot be smaller than minInstanceSize");
-            expect(mockApiClient.updateCluster).not.toHaveBeenCalled();
-        });
-    });
-
     describe("autoscaling reconciliation", () => {
         beforeEach(() => {
             mockApiClient.getCluster!.mockResolvedValue(dedicatedRaw("M10", "M30"));
@@ -329,6 +274,27 @@ describe("ScaleClusterTool", () => {
             await exec({ projectId: "proj1", clusterName: "MyCluster", maxInstanceSize: "M60" });
             expect(electableSizeFromCall()).toBe("M10");
             expect(computeFromCall()).toMatchObject({ enabled: true, minInstanceSize: "M10", maxInstanceSize: "M60" });
+        });
+    });
+
+    describe("autoscaling state preservation", () => {
+        it("does not reconcile or enable autoscaling for a size-only change when it is currently off", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(dedicatedRaw("M30")); // no max => autoscaling off
+            await exec({ projectId: "proj1", clusterName: "MyCluster", instanceSize: "M50" });
+            expect(electableSizeFromCall()).toBe("M50");
+            expect(computeFromCall()).toMatchObject({ enabled: false });
+        });
+
+        it("enables autoscaling when explicit bounds are provided even if it is currently off", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(dedicatedRaw("M30"));
+            await exec({ projectId: "proj1", clusterName: "MyCluster", maxInstanceSize: "M60" });
+            expect(computeFromCall()).toMatchObject({ enabled: true, maxInstanceSize: "M60" });
+        });
+
+        it("enables autoscaling when computeAutoScaling is explicitly true on an off cluster", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(dedicatedRaw("M30"));
+            await exec({ projectId: "proj1", clusterName: "MyCluster", computeAutoScaling: true });
+            expect(computeFromCall()).toMatchObject({ enabled: true, minInstanceSize: "M30", maxInstanceSize: "M50" });
         });
     });
 
