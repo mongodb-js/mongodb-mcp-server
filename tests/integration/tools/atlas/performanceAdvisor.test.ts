@@ -124,15 +124,7 @@ describeWithAtlas("performanceAdvisor", (integration) => {
                     },
                 });
 
-                // A freshly provisioned cluster has no query workload yet, so Atlas's performance
-                // advisor may legitimately have no suggestions to report. Support both shapes
-                // instead of assuming recommendations are always present.
                 const elements = getResponseElements(response.content);
-                if (elements.length === 1) {
-                    expect(elements[0]?.text).toBe("No performance advisor recommendations found.");
-                    return;
-                }
-
                 expect(elements).toHaveLength(2);
 
                 expect(elements[0]?.text).toContain("Performance advisor data");

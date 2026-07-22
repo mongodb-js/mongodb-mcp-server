@@ -51,8 +51,8 @@ importers:
         specifier: ^5.2.1
         version: 5.2.1
       hadron-document:
-        specifier: ^8.11.7
-        version: 8.11.7(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
+        specifier: ^8.11.5
+        version: 8.11.5(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
       jsonc-parser:
         specifier: ^3.3.1
         version: 3.3.1
@@ -4804,8 +4804,8 @@ packages:
   eventemitter3@4.0.7:
     resolution: {integrity: sha512-8guHBZCwKnFhYdHr2ysuRWErTwhoN2X8XELRlrRwpmfeY2jjuUN4taQMsULKUVo1K4DvZl+0pgfyoysHxvmvEw==}
 
-  eventemitter3@5.0.4:
-    resolution: {integrity: sha512-mlsTRyGaPBjPedk6Bvw+aqbsXDtoAyAzm5MO7JgU+yVRyMQ5O8bD4Kcci7BS85f93veegeCPkL8R4GLClnjLFw==}
+  eventemitter3@5.0.1:
+    resolution: {integrity: sha512-GWkBvjiSZK87ELrYOSESUYeVIc9mvLLf/nXalMOS5dYrgZq9o5OVkbZAVM06CVxYsCwH9BDZFPlQTlPA1j4ahA==}
 
   events-universal@1.0.1:
     resolution: {integrity: sha512-LUd5euvbMLpwOF8m6ivPCbhQeSiYVNb8Vs0fQ8QjXo0JTkEHpz8pxdQf0gStltaPpw0Cca8b39KxvK9cfKRiAw==}
@@ -5148,11 +5148,11 @@ packages:
   graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
 
-  hadron-document@8.11.7:
-    resolution: {integrity: sha512-0WTsG1MQW5Hqp/zXbju7p+uUYfv0yHbTi75SKbcCj8h5jIJijSZ7Wm3tiZAgatcH2nRPMz9xLSR1Qh59M2RPIA==}
+  hadron-document@8.11.5:
+    resolution: {integrity: sha512-LUyPJPZ0XJpqsgI50TWJOx/xGPESfJRaWZtPSy6V5ldqzn8bQJUKdXwHwHMAYx9JBkAXXR4HMGHd7Dqs5KPYPg==}
 
-  hadron-type-checker@7.5.7:
-    resolution: {integrity: sha512-vBw5dw/QFzGTmUhAn+1JmzoTVv5PmvlqRhe+GFT/Y3fL71NsXfVGI2HIyQEbVA6k9HP2ifvNV9w1QZ3dyfnfuQ==}
+  hadron-type-checker@7.5.5:
+    resolution: {integrity: sha512-OviWZ7scw9nagjAtbFKAPidincGEgamFx6Pt2z+OXUuIXzrJM1tkWitld/RzionCadnOTEpUkhfHAOPBzjbRsw==}
 
   handlebars@4.7.9:
     resolution: {integrity: sha512-4E71E0rpOaQuJR2A3xDZ+GM1HyWYv1clR58tC8emQNeQe3RH7MAzSbat+V0wG78LQBo6m6bzSG/L4pBuCsgnUQ==}
@@ -5708,6 +5708,12 @@ packages:
 
   lodash.merge@4.6.2:
     resolution: {integrity: sha512-0KpjqXRVvrYyCsX1swR/XTK0va6VQkQM6MNo7PqW77ByjAhoARA8EfrP1N4+KlKj8YS0ZUCtRT/YUuhyYDujIQ==}
+
+  lodash@4.17.21:
+    resolution: {integrity: sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==}
+
+  lodash@4.17.23:
+    resolution: {integrity: sha512-LgVTMpQtIopCi79SJeDiP0TfWi5CNEc/L/aRdTh3yIvmZXTnheWpKjSZhnvMl8iXbC1tFg9gdHHDMLoV7CnG+w==}
 
   lodash@4.18.1:
     resolution: {integrity: sha512-dMInicTPVE8d1e5otfwmmjlxkZoUpiVLwyeTdUsi/Caj/gfzzblBcCE5sRHV/AsjuCmxWrte2TNGSYuCeCq+0Q==}
@@ -9195,7 +9201,7 @@ snapshots:
     dependencies:
       '@leafygreen-ui/lib': 15.7.0(react@18.3.1)
       '@leafygreen-ui/tokens': 4.2.2(@types/react@19.2.14)(react@18.3.1)
-      lodash: 4.18.1
+      lodash: 4.17.23
     transitivePeerDependencies:
       - '@types/react'
       - react
@@ -9221,7 +9227,7 @@ snapshots:
     dependencies:
       '@leafygreen-ui/emotion': 5.2.0(@types/react@19.2.14)(react@18.3.1)
       '@leafygreen-ui/hooks': 9.3.1(@types/react@19.2.14)(react@18.3.1)
-      lodash: 4.18.1
+      lodash: 4.17.23
     transitivePeerDependencies:
       - '@types/react'
       - react
@@ -9240,7 +9246,7 @@ snapshots:
 
   '@leafygreen-ui/lib@15.7.0(react@18.3.1)':
     dependencies:
-      lodash: 4.18.1
+      lodash: 4.17.21
       react: 18.3.1
 
   '@leafygreen-ui/palette@5.0.2': {}
@@ -9248,7 +9254,7 @@ snapshots:
   '@leafygreen-ui/polymorphic@3.1.0(react@18.3.1)':
     dependencies:
       '@leafygreen-ui/lib': 15.7.0(react@18.3.1)
-      lodash: 4.18.1
+      lodash: 4.17.23
     transitivePeerDependencies:
       - react
 
@@ -9268,7 +9274,7 @@ snapshots:
       '@lg-tools/test-harnesses': 0.3.4
       '@tanstack/react-table': 8.21.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@tanstack/react-virtual': 3.13.12(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      lodash: 4.18.1
+      lodash: 4.17.21
       polished: 4.3.1
       react-fast-compare: 3.2.2
       react-intersection-observer: 8.34.0(react@18.3.1)
@@ -13060,7 +13066,7 @@ snapshots:
 
   eventemitter3@4.0.7: {}
 
-  eventemitter3@5.0.4: {}
+  eventemitter3@5.0.1: {}
 
   events-universal@1.0.1:
     dependencies:
@@ -13453,11 +13459,11 @@ snapshots:
 
   graceful-fs@4.2.11: {}
 
-  hadron-document@8.11.7(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7):
+  hadron-document@8.11.5(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7):
     dependencies:
-      bson: 7.3.1
+      bson: 7.2.0
       eventemitter3: 4.0.7
-      hadron-type-checker: 7.5.7
+      hadron-type-checker: 7.5.5
       lodash: 4.18.1
       mongodb: 7.2.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
     transitivePeerDependencies:
@@ -13469,9 +13475,9 @@ snapshots:
       - snappy
       - socks
 
-  hadron-type-checker@7.5.7:
+  hadron-type-checker@7.5.5:
     dependencies:
-      bson: 7.3.1
+      bson: 7.2.0
       lodash: 4.18.1
 
   handlebars@4.7.9:
@@ -14014,6 +14020,10 @@ snapshots:
   lodash.camelcase@4.3.0: {}
 
   lodash.merge@4.6.2: {}
+
+  lodash@4.17.21: {}
+
+  lodash@4.17.23: {}
 
   lodash@4.18.1: {}
 
@@ -15017,7 +15027,7 @@ snapshots:
       core-js: 3.47.0
       decko: 1.2.0
       dompurify: 3.3.1
-      eventemitter3: 5.0.4
+      eventemitter3: 5.0.1
       json-pointer: 0.6.2
       lunr: 2.3.9
       mark.js: 8.11.1

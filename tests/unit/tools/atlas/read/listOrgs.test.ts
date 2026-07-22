@@ -1,7 +1,6 @@
-import { z } from "zod";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ToolConstructorParams } from "../../../../../src/tools/tool.js";
-import { ListOrganizationsTool, ListOrganizationsArgs } from "../../../../../src/tools/atlas/read/listOrgs.js";
+import { ListOrganizationsTool } from "../../../../../src/tools/atlas/read/listOrgs.js";
 import type { Session } from "../../../../../src/common/session.js";
 import type { UserConfig } from "../../../../../src/common/config/userConfig.js";
 import type { Telemetry } from "../../../../../src/telemetry/telemetry.js";
@@ -65,8 +64,7 @@ describe("ListOrganizationsTool", () => {
     });
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    const exec = (args: Record<string, unknown> = { limit: 10, pageNum: 1 }) =>
-        tool["execute"](args as never, { signal: new AbortController().signal } as never);
+    const exec = () => tool["execute"]({} as never, { signal: new AbortController().signal } as never);
 
     it("returns organizations when they exist", async () => {
         mockApiClient.listOrgs!.mockResolvedValue({
@@ -100,36 +98,7 @@ describe("ListOrganizationsTool", () => {
 
         await exec();
 
-        expect(mockApiClient.listOrgs).toHaveBeenCalledWith(
-            { params: { query: { itemsPerPage: 10, pageNum: 1 } } },
-            expect.anything()
-        );
-    });
-
-    it("defaults limit/pageNum to 10/1 when the caller passes no args, same as the real MCP client path", async () => {
-        mockApiClient.listOrgs!.mockResolvedValue({ results: [] });
-
-        // The real invocation path parses incoming args against argsShape (applying zod
-        // defaults) before execute() ever runs; exec() here calls execute() directly, so
-        // we replicate that parsing step to prove the defaults are actually 10/1.
-        const parsedArgs = z.object(ListOrganizationsArgs).parse({});
-        await exec(parsedArgs);
-
-        expect(mockApiClient.listOrgs).toHaveBeenCalledWith(
-            { params: { query: { itemsPerPage: 10, pageNum: 1 } } },
-            expect.anything()
-        );
-    });
-
-    it("passes limit and pageNum to the API", async () => {
-        mockApiClient.listOrgs!.mockResolvedValue({ results: [] });
-
-        await exec({ limit: 10, pageNum: 3 });
-
-        expect(mockApiClient.listOrgs).toHaveBeenCalledWith(
-            { params: { query: { itemsPerPage: 10, pageNum: 3 } } },
-            expect.anything()
-        );
+        expect(mockApiClient.listOrgs).toHaveBeenCalledWith(undefined, expect.anything());
     });
 
     it("handles null results gracefully", async () => {
@@ -143,15 +112,12 @@ describe("ListOrganizationsTool", () => {
     });
 
     describe("structuredContent", () => {
-        it("returns totalCount as the number of organizations actually returned, ignoring any API-reported total", async () => {
+        it("returns organizations and totalCount on success", async () => {
             mockApiClient.listOrgs!.mockResolvedValue({
                 results: [
                     { name: "Org A", id: "org-a" },
                     { name: "Org B", id: "org-b" },
                 ],
-                // Atlas-wide total across all pages, distinct from what this call returned -
-                // must not leak into totalCount below.
-                totalCount: 999,
             });
 
             const result = await exec();
@@ -165,7 +131,7 @@ describe("ListOrganizationsTool", () => {
             });
         });
 
-        it("returns totalCount 0 when no organizations are found", async () => {
+        it("returns empty organizations when no results", async () => {
             mockApiClient.listOrgs!.mockResolvedValue({ results: [] });
 
             const result = await exec();
