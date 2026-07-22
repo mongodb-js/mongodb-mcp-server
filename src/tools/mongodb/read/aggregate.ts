@@ -51,10 +51,13 @@ export class AggregateTool extends MongoDBToolBase {
         ...ConnectionIdArgs,
         ...CollOperationArgs,
         ...AggregateArgs,
-        responseBytesLimit: z.number().optional().default(ONE_MB).describe(`\
-The maximum number of bytes to return in the response. This value is capped by the server's configured maxBytesPerQuery and cannot be exceeded. \
-Note to LLM: If the entire aggregation result is required, use the "export" tool instead of increasing this limit.\
-`),
+        responseBytesLimit: z
+            .number()
+            .optional()
+            .default(ONE_MB)
+            .describe(
+                "The maximum number of bytes to return in the response. This value is capped by the server's configured maximum and cannot be exceeded."
+            ),
     };
     static operationType: OperationType = "read";
 
@@ -346,9 +349,10 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
             if (appliedLimits.length) {
                 message += ` while respecting the applied limits of ${appliedLimits
                     .map((limit) => CURSOR_LIMITS_TO_LLM_TEXT[limit])
-                    .join(
-                        ", "
-                    )}. Note to LLM: If the entire query result is required then use "export" tool to export the query results`;
+                    .join(", ")}`;
+                if (this.isExportToolAvailable) {
+                    message += `. If the entire aggregation result is required, use the "export" tool to retrieve the full result set`;
+                }
             }
 
             message += ".";

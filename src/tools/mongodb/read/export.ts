@@ -7,9 +7,10 @@ import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../mongodb
 import { FindArgs } from "./find.js";
 import { jsonExportFormat } from "../../../common/exportsManager.js";
 import { AggregateArgs } from "./aggregate.js";
+import { EXPORT_TOOL_NAME } from "../../../helpers/constants.js";
 
 export class ExportTool extends MongoDBToolBase {
-    static toolName = "export";
+    static toolName = EXPORT_TOOL_NAME;
     public description = "Export a query or aggregation results in the specified EJSON format.";
     public argsShape = {
         ...ConnectionIdArgs,
