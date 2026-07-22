@@ -373,7 +373,7 @@ For more information about configuring OpenCode as an MCP client, including the 
 - `atlas-list-clusters` - List MongoDB Atlas clusters
 - `atlas-list-db-users` - List MongoDB Atlas database users
 - `atlas-list-orgs` - List MongoDB Atlas organizations
-- `atlas-list-projects` - List MongoDB Atlas projects
+- `atlas-list-projects` - List MongoDB Atlas projects.
 - `atlas-load-sample-dataset` - Load a MongoDB sample dataset into an Atlas cluster, or check the status of a previously-initiated load. To start a new load, provide `clusterName` — the load runs asynchronously and the response includes a `jobId` and initial state. To check progress, call this tool again with `jobId` (sample dataset loads typically take 1–5 minutes). State can be WORKING, COMPLETED, or FAILED.
 - `atlas-pause-resume-cluster` - Pause or resume a dedicated (M10+) MongoDB Atlas cluster.
 - `atlas-scale-cluster` - Scale a dedicated (M10+) MongoDB Atlas cluster by changing its instance size and/or compute autoscaling bounds (electable and read-only nodes only; analytics nodes are not scaled). Supports standard M-series tiers up to M80; for larger sizes use the Atlas CLI (`atlas clusters update`) or UI. This tool does NOT change cluster tiers: to move a Free (M0) or Flex cluster to a dedicated tier, use the atlas-upgrade-cluster tool instead. Returns immediately; poll readiness (state: IDLE) with atlas-inspect-cluster. Note to LLM: provide at least one of instanceSize, computeAutoScaling, minInstanceSize, or maxInstanceSize.
