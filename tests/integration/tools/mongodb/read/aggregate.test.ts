@@ -16,6 +16,7 @@ import {
     validateAutoConnectBehavior,
     waitUntilSearchIndexIsQueryable,
     waitUntilSearchIsReady,
+    type MongoDBIntegrationTestCase,
 } from "../mongodbHelpers.js";
 import * as constants from "../../../../../src/helpers/constants.js";
 import { freshInsertDocuments } from "./find.test.js";
@@ -646,7 +647,7 @@ describeWithMongoDB(
             const content = getResponseContent(response);
             expect(content).toContain("The aggregation resulted in 990 documents");
             expect(content).toContain(
-                `Returning 20 documents while respecting the applied limits of server's configured - maxDocumentsPerQuery.`
+                `Returning 20 documents while respecting the applied limits of the server's configured maximum number of documents.`
             );
             const docs = getDocsFromUntrustedContent(content);
             validateDocs(docs, 20);
@@ -671,7 +672,7 @@ describeWithMongoDB(
             const content = getResponseContent(response);
             expect(content).toContain("The aggregation resulted in 50 documents");
             expect(content).toContain(
-                `Returning 20 documents while respecting the applied limits of server's configured - maxDocumentsPerQuery.`
+                `Returning 20 documents while respecting the applied limits of the server's configured maximum number of documents.`
             );
             const docs = getDocsFromUntrustedContent(content);
             validateDocs(docs, 20);
@@ -734,7 +735,7 @@ describeWithMongoDB(
             const content = getResponseContent(response);
             expect(content).toContain("The aggregation resulted in 990 documents");
             expect(content).toContain(
-                `Returning 3 documents while respecting the applied limits of server's configured - maxDocumentsPerQuery, server's configured - maxBytesPerQuery.`
+                `Returning 3 documents while respecting the applied limits of the server's configured maximum number of documents, the server's configured maximum response size.`
             );
             expectAggregateStructuredContent(response, {
                 count: 990,
@@ -765,7 +766,7 @@ describeWithMongoDB(
             const content = getResponseContent(response);
             expect(content).toContain("The aggregation resulted in 990 documents");
             expect(content).toContain(
-                `Returning 1 documents while respecting the applied limits of server's configured - maxDocumentsPerQuery, tool's parameter - responseBytesLimit.`
+                `Returning 1 documents while respecting the applied limits of the server's configured maximum number of documents, the responseBytesLimit parameter.`
             );
             expectAggregateStructuredContent(response, {
                 count: 990,
@@ -777,6 +778,64 @@ describeWithMongoDB(
         getUserConfig: () => ({ ...defaultTestConfig, maxBytesPerQuery: 200 }),
     }
 );
+
+describe("aggregate tool export hint in the applied-limits message", () => {
+    // A tiny responseBytesLimit guarantees the result is truncated so the
+    // applied-limits portion of the message is always present.
+    const truncatingArgs = { responseBytesLimit: 100 };
+    const appliedLimitsSnippet = "while respecting the applied limits of";
+    const exportHintSnippet = `use the "export" tool`;
+
+    const callAggregate = async (integration: MongoDBIntegrationTestCase): Promise<string> => {
+        await freshInsertDocuments({
+            collection: integration.mongoClient().db(integration.randomDbName()).collection("people"),
+            count: 1000,
+            documentMapper(index) {
+                return { name: `Person ${index}`, age: index };
+            },
+        });
+        const connectionId = await integration.connectMcpClient();
+        const response = await integration.mcpClient().callTool({
+            name: "aggregate",
+            arguments: {
+                connectionId,
+                database: integration.randomDbName(),
+                collection: "people",
+                pipeline: [{ $match: { age: { $gte: 10 } } }, { $sort: { name: -1 } }],
+                ...truncatingArgs,
+            },
+        });
+        return getResponseContent(response);
+    };
+
+    describeWithMongoDB(
+        "when the export tool is available",
+        (integration) => {
+            it("points to the export tool for retrieving the full result set", async () => {
+                const content = await callAggregate(integration);
+                expect(content).toContain(appliedLimitsSnippet);
+                expect(content).toContain(exportHintSnippet);
+            });
+        },
+        {
+            getUserConfig: () => ({ ...defaultTestConfig }),
+        }
+    );
+
+    describeWithMongoDB(
+        "when the export tool is disabled (e.g. remote deployment)",
+        (integration) => {
+            it("reports the applied limits without referencing the export tool", async () => {
+                const content = await callAggregate(integration);
+                expect(content).toContain(appliedLimitsSnippet);
+                expect(content).not.toContain(exportHintSnippet);
+            });
+        },
+        {
+            getUserConfig: () => ({ ...defaultTestConfig, disabledTools: ["export"] }),
+        }
+    );
+});
 
 describeWithMongoDB(
     "aggregate tool with disabled max documents and max bytes per query",

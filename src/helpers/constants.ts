@@ -34,11 +34,11 @@ export const CURSOR_LIMIT_KEYS = z.enum([
 export type CursorLimitKey = z.infer<typeof CURSOR_LIMIT_KEYS>;
 
 /**
- * A map of applied limit on cursors to a text that is supposed to be sent as
- * response to LLM
+ * A map of applied limit on cursors to a human-readable description that is
+ * returned to the model.
  */
 export const CURSOR_LIMITS_TO_LLM_TEXT = {
-    "config.maxDocumentsPerQuery": "server's configured - maxDocumentsPerQuery",
-    "config.maxBytesPerQuery": "server's configured - maxBytesPerQuery",
-    "tool.responseBytesLimit": "tool's parameter - responseBytesLimit",
+    "config.maxDocumentsPerQuery": "the server's configured maximum number of documents",
+    "config.maxBytesPerQuery": "the server's configured maximum response size",
+    "tool.responseBytesLimit": "the responseBytesLimit parameter",
 } as const satisfies Record<CursorLimitKey, string>;

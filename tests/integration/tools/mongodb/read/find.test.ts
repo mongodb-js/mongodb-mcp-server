@@ -363,7 +363,7 @@ const findLimitSuites: {
                 arguments: { limit: 10000 },
                 contentContains: [
                     `Query on collection "foo" resulted in 1000 documents.`,
-                    `Returning 10 documents while respecting the applied limits of server's configured - maxDocumentsPerQuery.`,
+                    `Returning 10 documents while respecting the applied limits of the server's configured maximum number of documents.`,
                 ],
                 structured: { count: 1000, limits: ["config.maxDocumentsPerQuery"] },
             },
@@ -378,7 +378,7 @@ const findLimitSuites: {
                 arguments: { limit: 1000 },
                 contentContains: [
                     `Query on collection "foo" resulted in 1000 documents.`,
-                    `Returning 3 documents while respecting the applied limits of server's configured - maxDocumentsPerQuery, server's configured - maxBytesPerQuery`,
+                    `Returning 3 documents while respecting the applied limits of the server's configured maximum number of documents, the server's configured maximum response size`,
                 ],
                 structured: {
                     count: 1000,
@@ -390,7 +390,7 @@ const findLimitSuites: {
                 arguments: { limit: 1000, responseBytesLimit: 50 },
                 contentContains: [
                     `Query on collection "foo" resulted in 1000 documents.`,
-                    `Returning 1 documents while respecting the applied limits of server's configured - maxDocumentsPerQuery, tool's parameter - responseBytesLimit.`,
+                    `Returning 1 documents while respecting the applied limits of the server's configured maximum number of documents, the responseBytesLimit parameter.`,
                 ],
                 structured: {
                     count: 1000,
@@ -414,7 +414,7 @@ const findLimitSuites: {
                 arguments: { limit: 1000, responseBytesLimit: 50 },
                 contentContains: [
                     `Query on collection "foo" resulted in 1000 documents.`,
-                    `Returning 1 documents while respecting the applied limits of tool's parameter - responseBytesLimit.`,
+                    `Returning 1 documents while respecting the applied limits of the responseBytesLimit parameter.`,
                 ],
                 structured: { count: 1000, limits: ["tool.responseBytesLimit"] },
             },

@@ -304,7 +304,7 @@ describeWithMongoDB(
             const content = getResponseContent(response);
             expect(content).toContain("The aggregation resulted in 100 documents");
             expect(content).toContain(
-                `Returning 20 documents while respecting the applied limits of server's configured - maxDocumentsPerQuery.`
+                `Returning 20 documents while respecting the applied limits of the server's configured maximum number of documents.`
             );
             const docs = getDocsFromUntrustedContent(content);
             validateDocs(docs, 20);
@@ -328,7 +328,7 @@ describeWithMongoDB(
             const content = getResponseContent(response);
             expect(content).toContain("The aggregation resulted in 50 documents");
             expect(content).toContain(
-                `Returning 20 documents while respecting the applied limits of server's configured - maxDocumentsPerQuery.`
+                `Returning 20 documents while respecting the applied limits of the server's configured maximum number of documents.`
             );
             const docs = getDocsFromUntrustedContent(content);
             validateDocs(docs, 20);
@@ -388,7 +388,7 @@ describeWithMongoDB(
             const content = getResponseContent(response);
             expect(content).toContain("The aggregation resulted in 1000 documents");
             expect(content).toContain(
-                `Returning 5 documents while respecting the applied limits of server's configured - maxDocumentsPerQuery, server's configured - maxBytesPerQuery.`
+                `Returning 5 documents while respecting the applied limits of the server's configured maximum number of documents, the server's configured maximum response size.`
             );
             expectAggregateDBStructuredContent(response, content, {
                 aggResultsCount: 1000,
@@ -411,7 +411,7 @@ describeWithMongoDB(
             const content = getResponseContent(response);
             expect(content).toContain("The aggregation resulted in 1000 documents");
             expect(content).toContain(
-                `Returning 2 documents while respecting the applied limits of server's configured - maxDocumentsPerQuery, tool's parameter - responseBytesLimit.`
+                `Returning 2 documents while respecting the applied limits of the server's configured maximum number of documents, the responseBytesLimit parameter.`
             );
             expectAggregateDBStructuredContent(response, content, {
                 aggResultsCount: 1000,
