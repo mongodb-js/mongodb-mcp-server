@@ -1462,11 +1462,14 @@ export class ListKnowledgeSourcesTool extends AssistantToolBase {
 // @public (undocumented)
 export class ListOrganizationsTool extends AtlasToolBase {
     // (undocumented)
-    argsShape: {};
+    argsShape: {
+        limit: z.ZodDefault<z.ZodNumber>;
+        pageNum: z.ZodDefault<z.ZodNumber>;
+    };
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(_args: ToolArgs<typeof ListOrganizationsTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof ListOrganizationsTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof ListOrganizationsTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof ListOrganizationsTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -1486,6 +1489,8 @@ export class ListProjectsTool extends AtlasToolBase {
     // (undocumented)
     argsShape: {
         orgId: z.ZodOptional<z.ZodString>;
+        limit: z.ZodDefault<z.ZodNumber>;
+        pageNum: z.ZodDefault<z.ZodNumber>;
     };
     // (undocumented)
     description: string;
@@ -1500,7 +1505,6 @@ export class ListProjectsTool extends AtlasToolBase {
             name: z.ZodString;
             id: z.ZodOptional<z.ZodString>;
             orgId: z.ZodString;
-            orgName: z.ZodString;
             created: z.ZodString;
         }, z.core.$strip>>;
         totalCount: z.ZodNumber;
