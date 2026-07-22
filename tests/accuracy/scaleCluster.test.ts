@@ -110,8 +110,10 @@ describeAccuracyTests([
         ],
     },
     {
-        // Multi-step: inspect the cluster first, then scale it
-        prompt: `Inspect cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}", then change its instance size to M40`,
+        // Ambiguous request: neither the target size nor the current tier is stated, so the agent
+        // should inspect the cluster to determine its tier before choosing a tool. Here it is
+        // dedicated, so the follow-up is atlas-scale-cluster.
+        prompt: `Make cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}" bigger`,
         mockedTools: {
             ...bothToolsMocked("M40"),
             "atlas-inspect-cluster": mockInspectResponse(CLUSTER_NAME, "M30"),
@@ -124,7 +126,7 @@ describeAccuracyTests([
             },
             {
                 toolName: "atlas-scale-cluster",
-                parameters: { projectId: PROJECT_ID, clusterName: CLUSTER_NAME, instanceSize: "M40" },
+                parameters: { projectId: PROJECT_ID, clusterName: CLUSTER_NAME, instanceSize: Matcher.string() },
             },
         ],
     },
