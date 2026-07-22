@@ -13,7 +13,7 @@ function mockUpgradeResponse(clusterName: string, fromTier: string, toTier: stri
     });
 }
 
-const PROJECT_ID = "proj-accuracy-test";
+const PROJECT_ID = "68f600519f16226591d054c0";
 const CLUSTER_NAME = "MyCluster";
 
 const mockListProjects = {

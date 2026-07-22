@@ -31,7 +31,7 @@ function mockInspectResponse(clusterName: string, instanceSize: string): () => C
     });
 }
 
-const PROJECT_ID = "proj-accuracy-test";
+const PROJECT_ID = "9123a4b056c7d890e1f2a3f4";
 const CLUSTER_NAME = "MyCluster";
 
 const mockListProjects = {
@@ -110,8 +110,8 @@ describeAccuracyTests([
         ],
     },
     {
-        // Ambiguous request (tier not stated): the agent should inspect the cluster before choosing a tool.
-        prompt: `Change cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}" to M40`,
+        // Multi-step: inspect the cluster first, then scale it 
+        prompt: `Inspect cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}", then change its instance size to M40`,
         mockedTools: {
             ...bothToolsMocked("M40"),
             "atlas-inspect-cluster": mockInspectResponse(CLUSTER_NAME, "M30"),
