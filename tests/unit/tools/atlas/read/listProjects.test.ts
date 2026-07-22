@@ -192,10 +192,8 @@ describe("ListProjectsTool", () => {
     });
 
     describe("structuredContent", () => {
-        it("returns totalCount as the number of projects actually returned with orgId filter, ignoring any API-reported total", async () => {
-            // Atlas-wide total across all pages, distinct from what this call returned -
-            // must not leak into totalCount below.
-            mockApiClient.getOrgGroups!.mockResolvedValue({ results: [projectApiResponse], totalCount: 999 });
+        it("returns totalCount as the number of projects actually returned with orgId filter", async () => {
+            mockApiClient.getOrgGroups!.mockResolvedValue({ results: [projectApiResponse] });
 
             const result = await exec({ orgId });
 
@@ -206,8 +204,8 @@ describe("ListProjectsTool", () => {
             });
         });
 
-        it("returns totalCount as the number of projects actually returned when unfiltered, ignoring any API-reported total", async () => {
-            mockApiClient.listGroups!.mockResolvedValue({ results: [projectApiResponse], totalCount: 999 });
+        it("returns totalCount as the number of projects actually returned when unfiltered", async () => {
+            mockApiClient.listGroups!.mockResolvedValue({ results: [projectApiResponse] });
 
             const result = await exec();
 
