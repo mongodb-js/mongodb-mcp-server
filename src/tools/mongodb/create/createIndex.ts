@@ -130,52 +130,42 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
                 .optional()
                 .default("lucene.standard")
                 .describe(
-                    "The analyzer to use for the index. Can be one of the built-in lucene analyzers (`lucene.standard`, `lucene.simple`, `lucene.whitespace`, `lucene.keyword`), a language-specific analyzer, such as `lucene.cjk` or `lucene.czech`, or a custom analyzer defined in the Atlas UI."
+                    "The analyzer to use for the index. Can be one of the built-in lucene analyzers (`lucene.standard`, `lucene.simple`, `lucene.whitespace`, `lucene.keyword`), a language-specific analyzer, such as `lucene.cjk` or `lucene.czech`, or a custom analyzer defined by name in `analyzers`."
                 ),
             mappings: z
                 .object({
                     dynamic: z
-                        .boolean()
+                        .unknown()
                         .optional()
                         .default(false)
                         .describe(
-                            "Enables or disables dynamic mapping of fields for this index. If set to true, Atlas Search recursively indexes all dynamically indexable fields. If set to false, you must specify individual fields to index using mappings.fields."
+                            "Enables or disables dynamic mapping of fields for this index. If set to true, Atlas Search recursively indexes all dynamically indexable fields. If set to false, you must specify individual fields to index using mappings.fields. Can also be set to `{ typeSet: '<name>' }` to reference a named entry in this index's `typeSets`, restricting dynamic mapping to only the field types listed in that type set."
                         ),
                     fields: z
                         .record(
                             z.string().describe("The field name"),
                             z
-                                .object({
-                                    type: z
-                                        .enum([
-                                            "autocomplete",
-                                            "boolean",
-                                            "date",
-                                            "document",
-                                            "embeddedDocuments",
-                                            "geo",
-                                            "number",
-                                            "objectId",
-                                            "string",
-                                            "token",
-                                            "uuid",
-                                        ])
-                                        .describe("The field type"),
-                                })
-                                .passthrough()
+                                .unknown()
                                 .describe(
-                                    "The field index definition. It must contain the field type, as well as any additional options for that field type."
+                                    "The field index definition. It must contain the field type (e.g. `{ type: 'string' }`), as well as any additional options for that field type (e.g. `analyzer`). Field types include `autocomplete`, `boolean`, `date`, `dateFacet`, `document`, `embeddedDocuments`, `geo`, `number`, `numberFacet`, `objectId`, `string`, `stringFacet`, `token`, `uuid`. Provide an array of field definitions instead of a single object to index the same field as multiple types, e.g. `[{ type: 'string' }, { type: 'autocomplete' }]`."
                                 )
                         )
                         .optional()
                         .describe("The field mapping definitions. If `dynamic` is set to `false`, this is required."),
                 })
-                .refine((data) => data.dynamic !== !!(data.fields && Object.keys(data.fields).length > 0), {
-                    message:
-                        "Either `dynamic` must be `true` and `fields` empty or `dynamic` must be `false` and at least one field must be defined in `fields`",
-                })
+                .passthrough()
+                .refine(
+                    (data) => {
+                        const dynamicEnabled = typeof data.dynamic === "boolean" ? data.dynamic : true;
+                        return dynamicEnabled !== !!(data.fields && Object.keys(data.fields).length > 0);
+                    },
+                    {
+                        message:
+                            "Either `dynamic` must be `true` (or a typeSet object) and `fields` empty, or `dynamic` must be `false` and at least one field must be defined in `fields`",
+                    }
+                )
                 .describe(
-                    "Document describing the index to create. Either `dynamic` must be `true` and `fields` empty or `dynamic` must be `false` and at least one field must be defined in the `fields` document."
+                    "Document describing the index to create. Either `dynamic` must be `true` (or a typeSet object) and `fields` empty or `dynamic` must be `false` and at least one field must be defined in the `fields` document."
                 ),
             numPartitions: z
                 .union([z.literal("1"), z.literal("2"), z.literal("4")])
@@ -185,8 +175,17 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
                     "Specifies the number of sub-indexes to create if the document count exceeds two billion. If omitted, defaults to 1."
                 ),
         })
+        .passthrough()
         .describe(
-            "Definition for an Atlas Search (lexical) index. Use this only if user explicitly asked for creating an Atlas search index or simply a search index."
+            `\
+Definition for an Atlas Search (lexical) index. Use this only if user explicitly asked for creating an Atlas search index or simply a search index.
+
+This definition also accepts the following top-level fields, which are forwarded as-is and are not exhaustively typed here:
+- \`analyzers\`: array of custom analyzer definitions, e.g. \`{ name: 'myAnalyzer', tokenizer: { type: 'standard' }, tokenFilters: [{ type: 'lowercase' }], charFilters: [{ type: 'htmlStrip' }] }\`. Reference a custom analyzer by its \`name\` from a field's \`analyzer\`/\`searchAnalyzer\` option, instead of a built-in \`lucene.*\` analyzer. Tokenizer types include \`standard\`, \`keyword\`, \`whitespace\`, \`nGram\`, \`edgeGram\`, \`regexSplit\`, \`regexCaptureGroup\`, \`uaxUrlEmail\`. Token filter types include \`lowercase\`, \`stopword\`, \`snowballStemming\`, \`asciiFolding\`, \`nGram\`, \`shingle\`, \`trim\`, among others.
+- \`synonyms\`: array of synonym mappings, e.g. \`{ name: 'mySynonyms', source: { collection: 'synonymsCollectionName' }, analyzer: 'lucene.standard' }\`. The \`analyzer\` should match the analyzer used on the field(s) being searched.
+- \`storedSource\`: controls which fields are stored on search nodes for fast retrieval without a round trip to the database. \`true\` stores all fields, \`false\` (default) stores none, \`{ include: ['fieldA', 'fieldB'] }\` stores only the listed fields, \`{ exclude: ['fieldC'] }\` stores all except the listed fields.
+- \`typeSets\`: array of named field-type sets for use with \`mappings.dynamic\`, e.g. \`{ name: 'myTypeSet', types: [{ type: 'string' }, { type: 'number' }] }\`, to restrict dynamic mapping to only the listed types instead of every dynamically indexable type.
+`
         );
 
     static toolName = "create-index";
@@ -268,14 +267,12 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
             case "search":
                 {
                     await this.session.assertSearchSupported();
+                    const searchIndexDefinition: Record<string, unknown> = { ...definition };
+                    delete searchIndexDefinition.type;
                     indexes = await provider.createSearchIndexes(database, collection, [
                         {
                             name,
-                            definition: {
-                                mappings: definition.mappings,
-                                analyzer: definition.analyzer,
-                                numPartitions: definition.numPartitions,
-                            },
+                            definition: searchIndexDefinition,
                             type: "search",
                         },
                     ]);
