@@ -1,29 +1,22 @@
 import { z } from "zod";
 import { type OperationType, type ToolArgs, type ToolResult, type ToolExecutionContext } from "../../tool.js";
 import { AtlasToolBase } from "../atlasTool.js";
-import { formatCluster } from "../../../common/atlas/cluster.js";
-import type { ApiClient } from "../../../common/atlas/apiClient.js";
-import { ApiClientError } from "../../../common/atlas/apiClientError.js";
+import { resolveClusterInfo } from "../../../common/atlas/cluster.js";
+import {
+    standardInstanceSizeEnum as instanceSizeEnum,
+    twoStandardTiersAbove as twoTiersAbove,
+    type StandardInstanceSize as InstanceSize,
+} from "../../../common/atlas/instanceSizes.js";
 import type { ClusterDescription20240805 } from "../../../common/atlas/openapi.js";
 import { AtlasArgs } from "../../args.js";
 import type { ScaleClusterMetadata } from "../../../telemetry/types.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-
-// Standard M-series tiers this tool can scale to, capped at M80 (same cap as atlas-create-cluster).
-const SELECTABLE_TIERS = ["M10", "M20", "M30", "M40", "M50", "M60", "M80"] as const;
-const instanceSizeEnum = z.enum(SELECTABLE_TIERS);
-type InstanceSize = z.infer<typeof instanceSizeEnum>;
 
 // Full ordered list of standard tiers (including tiers above the M80 cap) used only to rank autoscaling maxes.
 const STANDARD_TIER_ORDER = ["M10", "M20", "M30", "M40", "M50", "M60", "M80", "M100", "M140", "M200", "M300"];
 
 // A plain standard M-series size, e.g. "M30". Variants (M40_NVME, M30_GEN_2, R40, ...) are unsupported.
 const STANDARD_MSERIES_REGEX = /^M\d+$/;
-
-function twoTiersAbove(size: InstanceSize): InstanceSize {
-    const idx = SELECTABLE_TIERS.indexOf(size);
-    return SELECTABLE_TIERS[Math.min(idx + 2, SELECTABLE_TIERS.length - 1)] ?? "M80";
-}
 
 function preserveHigherMax(computed: InstanceSize, currentMax: string | undefined): string {
     if (currentMax === undefined) {
@@ -40,48 +33,6 @@ type ComputeAutoScaling = {
     minInstanceSize?: string;
     maxInstanceSize?: string;
 };
-
-type ResolvedClusterState = {
-    instanceType: "FREE" | "FLEX" | "DEDICATED";
-    raw?: ClusterDescription20240805;
-    instanceSize?: string;
-    currentMax?: string;
-    currentAutoScalingEnabled?: boolean;
-};
-
-async function resolveClusterState(
-    apiClient: Pick<ApiClient, "getCluster" | "getFlexCluster">,
-    projectId: string,
-    clusterName: string,
-    context: ToolExecutionContext
-): Promise<ResolvedClusterState> {
-    try {
-        const raw = await apiClient.getCluster({ params: { path: { groupId: projectId, clusterName } } }, context);
-        const cluster = formatCluster(raw);
-        const firstRegionConfig = raw.replicationSpecs?.[0]?.regionConfigs?.[0] as
-            | { autoScaling?: { compute?: { enabled?: boolean; maxInstanceSize?: string } } }
-            | undefined;
-        return {
-            instanceType: cluster.instanceType,
-            raw,
-            instanceSize: cluster.instanceSize,
-            currentMax: firstRegionConfig?.autoScaling?.compute?.maxInstanceSize,
-            currentAutoScalingEnabled: firstRegionConfig?.autoScaling?.compute?.enabled,
-        };
-    } catch (err) {
-        // Atlas returns 400 for Flex clusters on the dedicated Cluster API ("cannot be used in the Cluster API")
-        // and 404 when the cluster doesn't exist. Both signal "try the flex endpoint".
-        if (!(err instanceof ApiClientError) || (err.response.status !== 404 && err.response.status !== 400)) {
-            throw err;
-        }
-        try {
-            await apiClient.getFlexCluster({ params: { path: { groupId: projectId, name: clusterName } } }, context);
-        } catch {
-            throw err;
-        }
-        return { instanceType: "FLEX" };
-    }
-}
 
 class ScaleClusterError extends Error {}
 
@@ -143,7 +94,7 @@ export class ScaleClusterTool extends AtlasToolBase {
             );
         }
 
-        const state = await resolveClusterState(this.apiClient, projectId, clusterName, context);
+        const state = await resolveClusterInfo(this.apiClient, projectId, clusterName, context);
 
         if (state.instanceType !== "DEDICATED") {
             throw new ScaleClusterError(
@@ -152,7 +103,7 @@ export class ScaleClusterTool extends AtlasToolBase {
             );
         }
 
-        const currentSize = state.instanceSize;
+        const currentSize = state.cluster?.instanceSize;
         if (currentSize === undefined || !STANDARD_MSERIES_REGEX.test(currentSize)) {
             throw new ScaleClusterError(
                 `Cluster "${clusterName}" uses the "${currentSize ?? "unknown"}" instance size. ` +
@@ -160,11 +111,14 @@ export class ScaleClusterTool extends AtlasToolBase {
             );
         }
 
+        const currentCompute = state.raw?.replicationSpecs?.[0]?.regionConfigs?.[0] as
+            | { autoScaling?: { compute?: { enabled?: boolean; maxInstanceSize?: string } } }
+            | undefined;
         const compute = this.resolveComputeAutoScaling(
             args,
             currentSize as InstanceSize,
-            state.currentMax,
-            state.currentAutoScalingEnabled
+            currentCompute?.autoScaling?.compute?.maxInstanceSize,
+            currentCompute?.autoScaling?.compute?.enabled
         );
         const targetSize = args.instanceSize ?? currentSize;
 

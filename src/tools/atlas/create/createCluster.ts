@@ -6,6 +6,7 @@ import { AtlasArgs } from "../../args.js";
 import type { CreateClusterMetadata } from "../../../telemetry/types.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ensureCurrentIpInAccessList, getAccessListNote } from "../../../common/atlas/accessListUtils.js";
+import { standardInstanceSizeEnum, twoStandardTiersAbove } from "../../../common/atlas/instanceSizes.js";
 
 /** @public */
 export const ATLAS_CREATE_CLUSTER_README_DESCRIPTION =
@@ -24,7 +25,7 @@ Default recommendation: AWS US_EAST_1.
 User-specified regions not present in the mapping MUST be respected, rely on the tool to surface errors if a region is not supported.
 `;
 
-const instanceSizeEnum = z.enum(["M10", "M20", "M30", "M40", "M50", "M60", "M80"]);
+const instanceSizeEnum = standardInstanceSizeEnum;
 const cloudProviderEnum = z.enum(["AWS", "GCP", "AZURE"]);
 const clusterTypeEnum = z.enum(["REPLICASET", "SHARDED"]);
 const mongoDBVersionEnum = z.enum(["7.0", "8.0", "LATEST"]);
@@ -39,7 +40,7 @@ function getMaxAutoScalingSize(size: InstanceSize, provider: CloudProvider): str
     // M60 and M80 extend beyond the selectable range. M140 is not supported on Azure.
     if (size === "M80") return "M200";
     if (size === "M60") return provider === "AZURE" ? "M200" : "M140";
-    return instanceSizeEnum.options[instanceSizeEnum.options.indexOf(size) + 2] ?? "M80";
+    return twoStandardTiersAbove(size);
 }
 
 type AutoScalingConfig = {
