@@ -1505,7 +1505,6 @@ export class ListProjectsTool extends AtlasToolBase {
             name: z.ZodString;
             id: z.ZodOptional<z.ZodString>;
             orgId: z.ZodString;
-            orgName: z.ZodString;
             created: z.ZodString;
         }, z.core.$strip>>;
         totalCount: z.ZodNumber;

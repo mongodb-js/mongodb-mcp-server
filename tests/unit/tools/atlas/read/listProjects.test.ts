@@ -12,9 +12,6 @@ import { UIRegistry } from "../../../../../src/ui/registry/index.js";
 import { MockMetrics } from "../../../mocks/metrics.js";
 
 const orgId = "507f1f77bcf86cd799439011";
-const orgsResponse = {
-    results: [{ id: orgId, name: "Test Org" }],
-};
 
 const projectApiResponse = {
     name: "my-project",
@@ -27,7 +24,6 @@ const formattedProject = {
     name: projectApiResponse.name,
     id: projectApiResponse.id,
     orgId: projectApiResponse.orgId,
-    orgName: "Test Org",
     created: new Date(projectApiResponse.created).toLocaleString(),
 };
 
@@ -37,7 +33,6 @@ describe("ListProjectsTool", () => {
 
     beforeEach(() => {
         mockApiClient = {
-            listOrgs: vi.fn(),
             getOrgGroups: vi.fn(),
             listGroups: vi.fn(),
         };
@@ -95,13 +90,7 @@ describe("ListProjectsTool", () => {
             } as never
         );
 
-    it("description clarifies organization names are resolved via a lookup capped at 10 orgs", () => {
-        expect(tool.description).toContain("capped at 10");
-        expect(tool.description).toContain('"N/A"');
-    });
-
     it("returns projects when orgId filter is provided", async () => {
-        mockApiClient.listOrgs!.mockResolvedValue(orgsResponse);
         mockApiClient.getOrgGroups!.mockResolvedValue({ results: [projectApiResponse] });
 
         const result = await exec({ orgId });
@@ -113,7 +102,6 @@ describe("ListProjectsTool", () => {
     });
 
     it("returns projects for all orgs when orgId is omitted", async () => {
-        mockApiClient.listOrgs!.mockResolvedValue(orgsResponse);
         mockApiClient.listGroups!.mockResolvedValue({ results: [projectApiResponse] });
 
         const result = await exec();
@@ -128,7 +116,6 @@ describe("ListProjectsTool", () => {
     });
 
     it("calls getOrgGroups when orgId is provided", async () => {
-        mockApiClient.listOrgs!.mockResolvedValue(orgsResponse);
         mockApiClient.getOrgGroups!.mockResolvedValue({ results: [] });
 
         await exec({ orgId });
@@ -144,20 +131,7 @@ describe("ListProjectsTool", () => {
         );
     });
 
-    it("bounds the internal orgId->name lookup call to ORG_LOOKUP_ITEMS_PER_PAGE", async () => {
-        mockApiClient.listOrgs!.mockResolvedValue(orgsResponse);
-        mockApiClient.listGroups!.mockResolvedValue({ results: [projectApiResponse] });
-
-        await exec();
-
-        expect(mockApiClient.listOrgs).toHaveBeenCalledWith(
-            { params: { query: { itemsPerPage: 10 } } },
-            expect.anything()
-        );
-    });
-
     it("defaults limit/pageNum to 10/1 when the caller passes no args, same as the real MCP client path", async () => {
-        mockApiClient.listOrgs!.mockResolvedValue(orgsResponse);
         mockApiClient.listGroups!.mockResolvedValue({ results: [] });
 
         // The real invocation path parses incoming args against argsShape (applying zod
@@ -173,7 +147,6 @@ describe("ListProjectsTool", () => {
     });
 
     it("passes limit and pageNum to getOrgGroups", async () => {
-        mockApiClient.listOrgs!.mockResolvedValue(orgsResponse);
         mockApiClient.getOrgGroups!.mockResolvedValue({ results: [] });
 
         await exec({ orgId, limit: 25, pageNum: 2 });
@@ -190,7 +163,6 @@ describe("ListProjectsTool", () => {
     });
 
     it("passes limit and pageNum to listGroups", async () => {
-        mockApiClient.listOrgs!.mockResolvedValue(orgsResponse);
         mockApiClient.listGroups!.mockResolvedValue({ results: [] });
 
         await exec({ limit: 25, pageNum: 2 });
@@ -201,18 +173,7 @@ describe("ListProjectsTool", () => {
         );
     });
 
-    it("returns empty message when no organizations exist", async () => {
-        mockApiClient.listOrgs!.mockResolvedValue({ results: [] });
-
-        const result = await exec({ orgId });
-
-        expect((result.content[0] as { text: string }).text).toBe(
-            "No organizations found in your MongoDB Atlas account."
-        );
-    });
-
     it("returns empty message when org has no projects", async () => {
-        mockApiClient.listOrgs!.mockResolvedValue(orgsResponse);
         mockApiClient.getOrgGroups!.mockResolvedValue({ results: [] });
 
         const result = await exec({ orgId });
@@ -220,17 +181,7 @@ describe("ListProjectsTool", () => {
         expect((result.content[0] as { text: string }).text).toBe(`No projects found in organization ${orgId}.`);
     });
 
-    it("uses N/A for orgName when org is missing from listOrgs results", async () => {
-        mockApiClient.listOrgs!.mockResolvedValue({ results: [{ id: "other-org", name: "Other Org" }] });
-        mockApiClient.listGroups!.mockResolvedValue({ results: [projectApiResponse] });
-
-        const result = await exec();
-
-        expect(result.structuredContent?.projects[0]?.orgName).toBe("N/A");
-    });
-
     it("uses N/A for created when project has no created date", async () => {
-        mockApiClient.listOrgs!.mockResolvedValue(orgsResponse);
         mockApiClient.getOrgGroups!.mockResolvedValue({
             results: [{ ...projectApiResponse, created: undefined }],
         });
@@ -242,7 +193,6 @@ describe("ListProjectsTool", () => {
 
     describe("structuredContent", () => {
         it("returns totalCount as the number of projects actually returned with orgId filter, ignoring any API-reported total", async () => {
-            mockApiClient.listOrgs!.mockResolvedValue(orgsResponse);
             // Atlas-wide total across all pages, distinct from what this call returned -
             // must not leak into totalCount below.
             mockApiClient.getOrgGroups!.mockResolvedValue({ results: [projectApiResponse], totalCount: 999 });
@@ -257,7 +207,6 @@ describe("ListProjectsTool", () => {
         });
 
         it("returns totalCount as the number of projects actually returned when unfiltered, ignoring any API-reported total", async () => {
-            mockApiClient.listOrgs!.mockResolvedValue(orgsResponse);
             mockApiClient.listGroups!.mockResolvedValue({ results: [projectApiResponse], totalCount: 999 });
 
             const result = await exec();
@@ -269,20 +218,7 @@ describe("ListProjectsTool", () => {
             expect(result.structuredContent).not.toHaveProperty("orgId");
         });
 
-        it("returns empty projects when no organizations exist", async () => {
-            mockApiClient.listOrgs!.mockResolvedValue({ results: [] });
-
-            const result = await exec({ orgId });
-
-            expect(result.structuredContent).toEqual({
-                orgId,
-                projects: [],
-                totalCount: 0,
-            });
-        });
-
         it("returns empty projects when org has no projects", async () => {
-            mockApiClient.listOrgs!.mockResolvedValue(orgsResponse);
             mockApiClient.getOrgGroups!.mockResolvedValue({ results: [] });
 
             const result = await exec({ orgId });
@@ -295,7 +231,7 @@ describe("ListProjectsTool", () => {
         });
 
         it("omits structuredContent on error paths", async () => {
-            mockApiClient.listOrgs!.mockRejectedValue(new Error("API failure"));
+            mockApiClient.getOrgGroups!.mockRejectedValue(new Error("API failure"));
 
             await expect(exec({ orgId })).rejects.toThrow("API failure");
         });

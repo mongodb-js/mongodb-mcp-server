@@ -4,10 +4,6 @@ import type { OperationType, ToolArgs, ToolExecutionContext, ToolResult } from "
 import { formatUntrustedData } from "../../tool.js";
 import { AtlasArgs } from "../../args.js";
 
-// Bounds the internal orgId -> orgName lookup call below, not user-facing pagination
-// (see ListProjectsArgs.limit/pageNum for that). Orgs beyond this page fall back to orgName: "N/A".
-const ORG_LOOKUP_ITEMS_PER_PAGE = 10;
-
 export const ListProjectsArgs = {
     orgId: AtlasArgs.organizationId()
         .describe("Atlas organization ID to filter projects. If not provided, projects for all orgs are returned.")
@@ -23,7 +19,6 @@ const ListProjectsOutputSchema = {
             name: z.string(),
             id: z.string().optional(),
             orgId: z.string(),
-            orgName: z.string(),
             created: z.string(),
         })
     ),
@@ -32,8 +27,7 @@ const ListProjectsOutputSchema = {
 
 export class ListProjectsTool extends AtlasToolBase {
     static toolName = "atlas-list-projects";
-    public description =
-        'List MongoDB Atlas projects. To resolve each project\'s organization name, the tool looks up your organizations, capped at 10; if your account has more than 10 organizations, some projects may show orgName: "N/A".';
+    public description = "List MongoDB Atlas projects.";
     static operationType: OperationType = "read";
     public argsShape = {
         ...ListProjectsArgs,
@@ -44,33 +38,6 @@ export class ListProjectsTool extends AtlasToolBase {
         { orgId, limit, pageNum }: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        const orgData = await this.apiClient.listOrgs(
-            {
-                params: {
-                    query: {
-                        itemsPerPage: ORG_LOOKUP_ITEMS_PER_PAGE,
-                    },
-                },
-            },
-            context
-        );
-
-        if (!orgData?.results?.length) {
-            return {
-                content: [{ type: "text", text: "No organizations found in your MongoDB Atlas account." }],
-                structuredContent: {
-                    ...(orgId !== undefined && { orgId }),
-                    projects: [],
-                    totalCount: 0,
-                },
-            };
-        }
-
-        const orgs: Record<string, string> = orgData.results
-            .filter((org) => org.id)
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            .reduce((acc, org) => ({ ...acc, [org.id!]: org.name }), {});
-
         const data = orgId
             ? await this.apiClient.getOrgGroups(
                   {
@@ -113,7 +80,6 @@ export class ListProjectsTool extends AtlasToolBase {
             name: project.name,
             id: project.id,
             orgId: project.orgId,
-            orgName: orgs[project.orgId] ?? "N/A",
             created: project.created ? new Date(project.created).toLocaleString() : "N/A",
         }));
 
