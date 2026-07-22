@@ -1699,24 +1699,6 @@ export class SearchKnowledgeTool extends AssistantToolBase {
 }
 
 // @public (undocumented)
-export class SearchStageRulesTool extends ToolBase {
-    // (undocumented)
-    argsShape: {};
-    // (undocumented)
-    static category: ToolCategory;
-    // (undocumented)
-    description: string;
-    // (undocumented)
-    protected execute(): Promise<CallToolResult>;
-    // (undocumented)
-    static operationType: OperationType;
-    // (undocumented)
-    protected resolveTelemetryMetadata(): TelemetryToolMetadata;
-    // (undocumented)
-    static toolName: string;
-}
-
-// @public (undocumented)
 export class StreamsBuildTool extends StreamsToolBase {
     // (undocumented)
     argsShape: {
