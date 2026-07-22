@@ -10,7 +10,12 @@ import {
     defaultTestConfig,
 } from "../../../helpers.js";
 import * as constants from "../../../../../src/helpers/constants.js";
-import { describeWithMongoDB, getDocsFromUntrustedContent, validateAutoConnectBehavior } from "../mongodbHelpers.js";
+import {
+    describeWithMongoDB,
+    getDocsFromUntrustedContent,
+    validateAutoConnectBehavior,
+    type MongoDBIntegrationTestCase,
+} from "../mongodbHelpers.js";
 import type { Client } from "@modelcontextprotocol/sdk/client";
 import type { CursorLimitKey } from "../../../../../src/helpers/constants.js";
 import { bsonToJson } from "../../../../../src/helpers/bsonToJson.js";
@@ -107,7 +112,7 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
         },
         {
             name: "responseBytesLimit",
-            description: `The maximum number of bytes to return in the response. This value is capped by the server's configured maxBytesPerQuery and cannot be exceeded. Note to LLM: If the entire query result is required, use the "export" tool instead of increasing this limit.`,
+            description: `The maximum number of bytes to return in the response. This value is capped by the server's configured maximum and cannot be exceeded.`,
             type: "number",
             required: false,
         },
@@ -358,7 +363,7 @@ const findLimitSuites: {
                 arguments: { limit: 10000 },
                 contentContains: [
                     `Query on collection "foo" resulted in 1000 documents.`,
-                    `Returning 10 documents while respecting the applied limits of server's configured - maxDocumentsPerQuery.`,
+                    `Returning 10 documents while respecting the applied limits of the server's configured maximum number of documents.`,
                 ],
                 structured: { count: 1000, limits: ["config.maxDocumentsPerQuery"] },
             },
@@ -373,7 +378,7 @@ const findLimitSuites: {
                 arguments: { limit: 1000 },
                 contentContains: [
                     `Query on collection "foo" resulted in 1000 documents.`,
-                    `Returning 3 documents while respecting the applied limits of server's configured - maxDocumentsPerQuery, server's configured - maxBytesPerQuery`,
+                    `Returning 3 documents while respecting the applied limits of the server's configured maximum number of documents, the server's configured maximum response size`,
                 ],
                 structured: {
                     count: 1000,
@@ -385,7 +390,7 @@ const findLimitSuites: {
                 arguments: { limit: 1000, responseBytesLimit: 50 },
                 contentContains: [
                     `Query on collection "foo" resulted in 1000 documents.`,
-                    `Returning 1 documents while respecting the applied limits of server's configured - maxDocumentsPerQuery, tool's parameter - responseBytesLimit.`,
+                    `Returning 1 documents while respecting the applied limits of the server's configured maximum number of documents, the responseBytesLimit parameter.`,
                 ],
                 structured: {
                     count: 1000,
@@ -409,7 +414,7 @@ const findLimitSuites: {
                 arguments: { limit: 1000, responseBytesLimit: 50 },
                 contentContains: [
                     `Query on collection "foo" resulted in 1000 documents.`,
-                    `Returning 1 documents while respecting the applied limits of tool's parameter - responseBytesLimit.`,
+                    `Returning 1 documents while respecting the applied limits of the responseBytesLimit parameter.`,
                 ],
                 structured: { count: 1000, limits: ["tool.responseBytesLimit"] },
             },
@@ -455,6 +460,61 @@ for (const { suiteLabel, userConfig, cases } of findLimitSuites) {
         }
     );
 }
+
+describe("find tool export hint in the applied-limits message", () => {
+    // A tiny responseBytesLimit guarantees the result is truncated so the
+    // applied-limits portion of the message is always present.
+    const truncatingArgs = { limit: 1000, responseBytesLimit: 50 };
+    const appliedLimitsSnippet = "while respecting the applied limits of";
+    const exportHintSnippet = `use the "export" tool`;
+
+    const callFind = async (integration: MongoDBIntegrationTestCase): Promise<string> => {
+        await freshInsertDocuments({
+            collection: integration.mongoClient().db(integration.randomDbName()).collection("foo"),
+            count: 1000,
+        });
+        const connectionId = await integration.connectMcpClient();
+        const response = await integration.mcpClient().callTool({
+            name: "find",
+            arguments: {
+                connectionId,
+                database: integration.randomDbName(),
+                collection: "foo",
+                filter: {},
+                ...truncatingArgs,
+            },
+        });
+        return getResponseContent(response);
+    };
+
+    describeWithMongoDB(
+        "when the export tool is available",
+        (integration) => {
+            it("points to the export tool for retrieving the full result set", async () => {
+                const content = await callFind(integration);
+                expect(content).toContain(appliedLimitsSnippet);
+                expect(content).toContain(exportHintSnippet);
+            });
+        },
+        {
+            getUserConfig: () => ({ ...defaultTestConfig }),
+        }
+    );
+
+    describeWithMongoDB(
+        "when the export tool is disabled (e.g. remote deployment)",
+        (integration) => {
+            it("reports the applied limits without referencing the export tool", async () => {
+                const content = await callFind(integration);
+                expect(content).toContain(appliedLimitsSnippet);
+                expect(content).not.toContain(exportHintSnippet);
+            });
+        },
+        {
+            getUserConfig: () => ({ ...defaultTestConfig, disabledTools: ["export"] }),
+        }
+    );
+});
 
 describeWithMongoDB(
     "find tool with abort signal",

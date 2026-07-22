@@ -8,6 +8,7 @@ import type { ConnectionEntry } from "../../common/connectionRegistry.js";
 import type { Server } from "../../server.js";
 import type { ConnectionMetadata } from "../../telemetry/types.js";
 import { assertNoServerSideJS, isWriteStage } from "../../helpers/mqlGuards.js";
+import { EXPORT_TOOL_NAME } from "../../helpers/constants.js";
 
 export const DBOperationArgs = {
     database: z.string().describe("Database name"),
@@ -32,6 +33,12 @@ export const ConnectionIdArgs = {
 export abstract class MongoDBToolBase extends ToolBase {
     protected server?: Server;
     static category: ToolCategory = "mongodb";
+
+    protected get isExportToolAvailable(): boolean {
+        const registeredTools = this.server?.tools ?? [];
+        const exportTool = registeredTools.find((tool) => tool.name === EXPORT_TOOL_NAME);
+        return exportTool?.isEnabled() ?? false;
+    }
 
     /**
      * Resolves the required `connectionId` argument to a live service provider
