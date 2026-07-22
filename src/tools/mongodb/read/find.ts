@@ -49,10 +49,13 @@ export class FindTool extends MongoDBToolBase {
         ...ConnectionIdArgs,
         ...CollOperationArgs,
         ...FindArgs,
-        responseBytesLimit: z.number().optional().default(ONE_MB).describe(`\
-The maximum number of bytes to return in the response. This value is capped by the server's configured maxBytesPerQuery and cannot be exceeded. \
-Note to LLM: If the entire query result is required, use the "export" tool instead of increasing this limit.\
-`),
+        responseBytesLimit: z
+            .number()
+            .optional()
+            .default(ONE_MB)
+            .describe(
+                "The maximum number of bytes to return in the response. This value is capped by the server's configured maximum and cannot be exceeded."
+            ),
     };
     static operationType: OperationType = "read";
 
@@ -181,16 +184,19 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
         documents: unknown[];
         appliedLimits: CursorLimitKey[];
     }): string {
-        const appliedLimitsText = appliedLimits.length
-            ? `\
-while respecting the applied limits of ${appliedLimits.map((limit) => CURSOR_LIMITS_TO_LLM_TEXT[limit]).join(", ")}. \
-Note to LLM: If the entire query result is required then use "export" tool to export the query results.\
-`
-            : "";
+        let appliedLimitsText = "";
+        if (appliedLimits.length) {
+            appliedLimitsText = ` while respecting the applied limits of ${appliedLimits
+                .map((limit) => CURSOR_LIMITS_TO_LLM_TEXT[limit])
+                .join(", ")}.`;
+            if (this.isExportToolAvailable) {
+                appliedLimitsText += ` If the entire query result is required, use the "export" tool to retrieve the full result set.`;
+            }
+        }
 
         return `\
 Query on collection "${collection}" resulted in ${queryResultsCount === undefined ? "indeterminable number of" : queryResultsCount} documents. \
-Returning ${documents.length} documents${appliedLimitsText ? ` ${appliedLimitsText}` : "."}\
+Returning ${documents.length} documents${appliedLimitsText || "."}\
 `;
     }
 

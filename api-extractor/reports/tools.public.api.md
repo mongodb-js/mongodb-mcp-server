@@ -1587,6 +1587,8 @@ export abstract class MongoDBToolBase extends ToolBase {
     // (undocumented)
     protected handleError(error: unknown, args: ToolArgs<typeof MongoDBToolBase.argsShape>): Promise<CallToolResult>;
     // (undocumented)
+    protected get isExportToolAvailable(): boolean;
+    // (undocumented)
     protected isSearchSupported(connectionId: string): Promise<boolean>;
     protected peekConnection(connectionId: string | undefined): Promise<ConnectionEntry | undefined>;
     // (undocumented)
