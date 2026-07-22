@@ -105,8 +105,8 @@ export type ResolvedClusterInfo = {
     flexRaw?: FlexClusterDescription20241113;
 };
 
-// Fetches a cluster via the dedicated Cluster API, falling back to the Flex endpoint on 400/404 (Flex/missing). 
-// Surfaces the original error if the Flex lookup also fails. 
+// Fetches a cluster via the dedicated Cluster API, falling back to the Flex endpoint on 400/404 (Flex/missing).
+// Surfaces the original error if the Flex lookup also fails.
 // Returns raw payloads so callers extract their own fields.
 export async function resolveClusterInfo(
     apiClient: Pick<ApiClient, "getCluster" | "getFlexCluster">,
