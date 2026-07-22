@@ -1,7 +1,42 @@
 import { ObjectId } from "mongodb";
 import { assertApiClientIsAvailable, describeWithAtlas } from "./atlasHelpers.js";
+import type { IntegrationTest } from "../../helpers.js";
 import { expectDefined, getDataFromUntrustedContent, getResponseElements } from "../../helpers.js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
+// The shared CI Atlas org accumulates leftover test projects over time, and the API returns
+// them oldest-first, so a just-created project can land on any page. Page through with the
+// tool's own pageNum arg - as a real caller would - until it turns up or pages run out.
+const PAGE_LIMIT = 50;
+const MAX_PAGES = 20;
+
+async function findProjectAcrossPages(
+    integration: IntegrationTest,
+    projName: string,
+    orgId?: string
+): Promise<{ elements: ReturnType<typeof getResponseElements>; data: { name: string; orgId: string }[] }> {
+    for (let pageNum = 1; pageNum <= MAX_PAGES; pageNum++) {
+        const response = await integration.mcpClient().callTool({
+            name: "atlas-list-projects",
+            arguments: { ...(orgId !== undefined && { orgId }), limit: PAGE_LIMIT, pageNum },
+        });
+
+        const elements = getResponseElements(response);
+        const data = JSON.parse(getDataFromUntrustedContent(elements[1]?.text ?? "[]")) as {
+            name: string;
+            orgId: string;
+        }[];
+
+        if (data.length === 0) {
+            break;
+        }
+        if (data.some((proj) => proj.name === projName)) {
+            return { elements, data };
+        }
+    }
+
+    throw new Error(`Project "${projName}" not found within ${MAX_PAGES} pages of ${PAGE_LIMIT}`);
+}
 
 describeWithAtlas("projects", (integration) => {
     const projectsToCleanup: string[] = [];
@@ -95,22 +130,11 @@ describeWithAtlas("projects", (integration) => {
 
         describe("with orgId filter", () => {
             it("returns projects only for that org", async () => {
-                const response = await integration.mcpClient().callTool({
-                    name: "atlas-list-projects",
-                    arguments: {
-                        orgId,
-                        limit: 50,
-                    },
-                });
+                const { elements, data } = await findProjectAcrossPages(integration, projName, orgId);
 
-                const elements = getResponseElements(response);
                 expect(elements).toHaveLength(2);
                 expect(elements[1]?.text).toContain("<untrusted-user-data-");
                 expect(elements[1]?.text).toContain(projName);
-                const data = JSON.parse(getDataFromUntrustedContent(elements[1]?.text ?? "")) as {
-                    name: string;
-                    orgId: string;
-                }[];
                 expect(data.length).toBeGreaterThan(0);
                 expect(data.every((proj) => proj.orgId === orgId)).toBe(true);
                 expect(data.find((proj) => proj.name === projName)).toBeDefined();
@@ -121,19 +145,11 @@ describeWithAtlas("projects", (integration) => {
 
         describe("without orgId filter", () => {
             it("returns projects for all orgs", async () => {
-                const response = await integration.mcpClient().callTool({
-                    name: "atlas-list-projects",
-                    arguments: { limit: 50 },
-                });
+                const { elements, data } = await findProjectAcrossPages(integration, projName);
 
-                const elements = getResponseElements(response);
                 expect(elements).toHaveLength(2);
                 expect(elements[1]?.text).toContain("<untrusted-user-data-");
                 expect(elements[1]?.text).toContain(projName);
-                const data = JSON.parse(getDataFromUntrustedContent(elements[1]?.text ?? "")) as {
-                    name: string;
-                    orgId: string;
-                }[];
                 expect(data.length).toBeGreaterThan(0);
                 expect(data.find((proj) => proj.name === projName && proj.orgId === orgId)).toBeDefined();
 
