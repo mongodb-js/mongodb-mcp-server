@@ -64,6 +64,47 @@ describe("StreamsArgs", () => {
             expect(schema.safeParse("c".repeat(65)).success).toBe(false);
         });
     });
+
+    describe("resourceName", () => {
+        const schema = StreamsArgs.resourceName();
+
+        it("should accept valid names", () => {
+            expect(schema.safeParse("my-processor").success).toBe(true);
+            expect(schema.safeParse("507f1f77bcf86cd799439011").success).toBe(true);
+        });
+
+        it("should reject empty string", () => {
+            expect(schema.safeParse("").success).toBe(false);
+        });
+
+        it("should reject path traversal payloads", () => {
+            expect(schema.safeParse("../../../clusters/Prod").success).toBe(false);
+            expect(schema.safeParse("..").success).toBe(false);
+        });
+
+        it("should reject values containing path or query separators", () => {
+            expect(schema.safeParse("foo/bar").success).toBe(false);
+            expect(schema.safeParse("foo?bar").success).toBe(false);
+            expect(schema.safeParse("foo:stop").success).toBe(false);
+        });
+    });
+
+    describe("peeringId", () => {
+        const schema = StreamsArgs.peeringId();
+
+        it("should accept valid ids", () => {
+            expect(schema.safeParse("507f1f77bcf86cd799439011").success).toBe(true);
+        });
+
+        it("should reject empty string", () => {
+            expect(schema.safeParse("").success).toBe(false);
+        });
+
+        it("should reject path traversal payloads", () => {
+            expect(schema.safeParse("../../../groups/123").success).toBe(false);
+            expect(schema.safeParse("foo/bar").success).toBe(false);
+        });
+    });
 });
 
 describe("ConnectionConfig", () => {

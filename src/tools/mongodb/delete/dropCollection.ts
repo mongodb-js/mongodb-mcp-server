@@ -1,4 +1,4 @@
-import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolResult } from "../../tool.js";
 import { escapeMarkdown } from "../../../helpers/escapeMarkdown.js";
 import { z } from "zod";
@@ -16,16 +16,18 @@ export class DropCollectionTool extends MongoDBToolBase {
     public description =
         "Removes a collection or view from the database. The method also removes any indexes associated with the dropped collection.";
     public argsShape = {
+        ...ConnectionIdArgs,
         ...CollOperationArgs,
     };
     public override outputSchema = DropCollectionOutputSchema;
     static operationType: OperationType = "delete";
 
     protected async execute({
+        connectionId,
         database,
         collection,
     }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
-        const provider = await this.ensureConnected();
+        const provider = await this.resolveConnection(connectionId);
         const result = await provider.dropCollection(database, collection);
 
         return {

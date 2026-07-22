@@ -231,8 +231,6 @@ export class Server<
 
         this.mcpServer.server.oninitialized = (): void => {
             this.session.setMcpClient(this.mcpServer.server.getClientVersion());
-            // Placed here to start the connection to the config connection string as soon as the server is initialized.
-            void this.connectToConfigConnectionString();
             this.session.logger.info({
                 id: LogId.serverInitialized,
                 context: "server",
@@ -390,26 +388,6 @@ export class Server<
                     id: LogId.atlasCheckCredentials,
                     context: "server",
                     message: `Failed to validate MongoDB Atlas API client credentials from the config: ${error instanceof Error ? error.message : String(error)}. Continuing since a connection string is also provided.`,
-                });
-            }
-        }
-    }
-
-    private async connectToConfigConnectionString(): Promise<void> {
-        if (this.userConfig.connectionString) {
-            try {
-                this.session.logger.info({
-                    id: LogId.mongodbConnectTry,
-                    context: "server",
-                    message: `Detected a MongoDB connection string in the configuration, trying to connect...`,
-                });
-                await this.session.connectToConfiguredConnection();
-            } catch (error) {
-                // We don't throw an error here because we want to allow the server to start even if the connection string is invalid.
-                this.session.logger.error({
-                    id: LogId.mongodbConnectFailure,
-                    context: "server",
-                    message: `Failed to connect to MongoDB instance using the connection string from the config: ${error instanceof Error ? error.message : String(error)}`,
                 });
             }
         }

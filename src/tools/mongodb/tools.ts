@@ -12,6 +12,7 @@ export { CountTool } from "./read/count.js";
 export { DbStatsTool, type DbStatsOutput } from "./metadata/dbStats.js";
 export { AggregateTool } from "./read/aggregate.js";
 export { AggregateDBTool } from "./read/aggregateDB.js";
+export { SearchStageRulesTool } from "./reference/searchStageRules.js";
 export { UpdateManyTool, type UpdateManyOutput } from "./update/updateMany.js";
 export { RenameCollectionTool, type RenameCollectionOutput } from "./update/renameCollection.js";
 export { DropDatabaseTool, type DropDatabaseOutput } from "./delete/dropDatabase.js";
@@ -21,4 +22,5 @@ export { CreateCollectionTool, type CreateCollectionOutput } from "./create/crea
 export { LogsTool, type LogsOutput } from "./metadata/logs.js";
 export { ExportTool } from "./read/export.js";
 export { DropIndexTool, type DropIndexOutput } from "./delete/dropIndex.js";
-export { SwitchConnectionTool } from "./connect/switchConnection.js";
+export { DisconnectTool } from "./connect/disconnect.js";
+export { ListConnectionsTool } from "./connect/listConnections.js";

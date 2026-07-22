@@ -1,4 +1,4 @@
-import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolResult } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { z } from "zod";
@@ -32,15 +32,16 @@ type IndexStatus = CollectionIndexesOutput["classicIndexes"][number];
 export class CollectionIndexesTool extends MongoDBToolBase {
     static toolName = "collection-indexes";
     public description = "Describe the indexes for a collection";
-    public argsShape = CollOperationArgs;
+    public argsShape = { ...ConnectionIdArgs, ...CollOperationArgs };
     public override outputSchema = CollectionIndexesOutputSchema;
     static operationType: OperationType = "metadata";
 
     protected async execute({
+        connectionId,
         database,
         collection,
-    }: ToolArgs<typeof CollOperationArgs>): Promise<ToolResult<typeof this.outputSchema>> {
-        const provider = await this.ensureConnected();
+    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
+        const provider = await this.resolveConnection(connectionId);
         const indexes = await provider.getIndexes(database, collection);
         const classicIndexes: IndexStatus[] = indexes.map((index) => ({
             name: index.name as string,
@@ -48,7 +49,7 @@ export class CollectionIndexesTool extends MongoDBToolBase {
         }));
 
         const searchIndexes: SearchIndexStatus[] = [];
-        if (await this.session.isSearchSupported()) {
+        if (await this.isSearchSupported(connectionId)) {
             const searchIndexDefinitions = await provider.getSearchIndexes(database, collection);
             searchIndexes.push(...this.extractSearchIndexDetails(searchIndexDefinitions));
         }

@@ -195,13 +195,6 @@ export class StreamableHttpRunner<
             sessionOptions: {
                 ...sessionOptions,
                 connectionErrorHandler: sessionOptions?.connectionErrorHandler ?? this.connectionErrorHandler,
-                connectionManager:
-                    sessionOptions?.connectionManager ??
-                    (await this.createConnectionManager({
-                        logger,
-                        deviceId: this.deviceId,
-                        userConfig,
-                    })),
                 atlasLocalClient: sessionOptions?.atlasLocalClient ?? (await this.createAtlasLocalClient({ logger })),
                 apiClient:
                     sessionOptions?.apiClient ??
