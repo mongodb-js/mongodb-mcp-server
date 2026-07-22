@@ -52,11 +52,15 @@ export class ApiClient {
     // (undocumented)
     acceptVpcPeeringConnection(options: FetchOptions<operations["acceptGroupStreamVpcPeeringConnection"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
+    authorizeProviderAccessRole(options: FetchOptions<operations["authorizeGroupCloudProviderAccessRole"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["CloudProviderAccessRole"]>;
+    // (undocumented)
     readonly authProvider?: AuthProvider | undefined;
     // (undocumented)
     close(): Promise<void>;
     // (undocumented)
     createAccessListEntry(options: FetchOptions<operations["createGroupAccessListEntry"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedNetworkAccessView"]>;
+    // (undocumented)
+    createCloudProviderAccess(options: FetchOptions<operations["createGroupCloudProviderAccess"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["CloudProviderAccessRole"]>;
     // (undocumented)
     createCluster(options: FetchOptions<operations["createGroupCluster"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["ClusterDescription20240805"]>;
     // (undocumented)
@@ -101,6 +105,8 @@ export class ApiClient {
     getAccountDetails(options: FetchOptions<operations["getGroupStreamAccountDetails"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["AccountDetails"]>;
     // (undocumented)
     getCluster(options: FetchOptions<operations["getGroupCluster"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["ClusterDescription20240805"]>;
+    // (undocumented)
+    getEncryptionAtRest(options: FetchOptions<operations["getGroupEncryptionAtRest"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["EncryptionAtRest"]>;
     // (undocumented)
     getFlexCluster(options: FetchOptions<operations["getGroupFlexCluster"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["FlexClusterDescription20241113"]>;
     // (undocumented)
@@ -177,6 +183,8 @@ export class ApiClient {
     tenantUpgrade(options: FetchOptions<operations["tenantGroupFlexClusterUpgrade"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["FlexClusterDescription20241113"]>;
     // (undocumented)
     updateCluster(options: FetchOptions<operations["updateGroupCluster"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["ClusterDescription20240805"]>;
+    // (undocumented)
+    updateEncryptionAtRest(options: FetchOptions<operations["updateGroupEncryptionAtRest"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["EncryptionAtRest"]>;
     // (undocumented)
     updateStreamConnection(options: FetchOptions<operations["updateGroupStreamConnection"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsConnection"]>;
     // (undocumented)

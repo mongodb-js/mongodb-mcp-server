@@ -304,6 +304,7 @@ export type CreateClusterMetadata = AtlasMetadata & {
     termination_protection?: TelemetryBoolSet;
     disk_size_gb?: number;
     mongodb_version?: string;
+    encryption_at_rest_provider?: "AWS" | "AZURE" | "GCP" | "NONE";
 };
 
 export type IndexMetadata = ConnectionMetadata & {
