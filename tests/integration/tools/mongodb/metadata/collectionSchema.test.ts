@@ -27,7 +27,7 @@ describeWithMongoDB("collectionSchema tool", (integration) => {
         {
             name: "responseBytesLimit",
             type: "number",
-            description: `The maximum number of bytes to return in the response. This value is capped by the server's configured maxBytesPerQuery and cannot be exceeded.`,
+            description: `The maximum number of bytes to return in the response. This value is capped by the server's configured maximum and cannot be exceeded.`,
             required: false,
         },
     ]);

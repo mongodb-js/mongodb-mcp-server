@@ -17,6 +17,15 @@ export const AGG_COUNT_MAX_TIME_MS_CAP: number = 60_000;
 
 export const ONE_MB: number = 1 * 1024 * 1024;
 
+/**
+ * The name of the `export` tool. Defined here (rather than referenced from the
+ * `ExportTool` class) so tools such as `find`/`aggregate` can check for the
+ * export tool's availability without importing `ExportTool`, which would create
+ * a circular import (`export.ts` imports `MongoDBToolBase`, `FindArgs` and
+ * `AggregateArgs`).
+ */
+export const EXPORT_TOOL_NAME = "export";
+
 export const CURSOR_LIMIT_KEYS = z.enum([
     "config.maxDocumentsPerQuery",
     "config.maxBytesPerQuery",
