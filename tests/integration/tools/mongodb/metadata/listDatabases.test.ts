@@ -1,5 +1,11 @@
 import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
-import { getResponseElements, getParameters, expectDefined, getDataFromUntrustedContent } from "../../../helpers.js";
+import {
+    getResponseElements,
+    getParameters,
+    expectDefined,
+    getDataFromUntrustedContent,
+    connectionIdParameters,
+} from "../../../helpers.js";
 import { describe, expect, it } from "vitest";
 import type { ListDatabasesOutput } from "../../../../../src/tools/mongodb/metadata/listDatabases.js";
 
@@ -13,13 +19,16 @@ describeWithMongoDB("listDatabases tool", (integration) => {
         expect(listDatabases.description).toBe("List all databases for a MongoDB connection");
 
         const parameters = getParameters(listDatabases);
-        expect(parameters).toHaveLength(0);
+        expect(parameters).toHaveLength(1);
+        expect(parameters).toIncludeSameMembers(connectionIdParameters);
     });
 
     describe("with no preexisting databases", () => {
         it("returns only the system databases", async () => {
-            await integration.connectMcpClient();
-            const response = await integration.mcpClient().callTool({ name: "list-databases", arguments: {} });
+            const connectionId = await integration.connectMcpClient();
+            const response = await integration
+                .mcpClient()
+                .callTool({ name: "list-databases", arguments: { connectionId } });
             const dbNames = getDbNames(response.content);
 
             expect(dbNames).toIncludeSameMembers(defaultDatabases);
@@ -35,9 +44,11 @@ describeWithMongoDB("listDatabases tool", (integration) => {
             await mongoClient.db("foo").collection("bar").insertOne({ test: "test" });
             await mongoClient.db("baz").collection("qux").insertOne({ test: "test" });
 
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
 
-            const response = await integration.mcpClient().callTool({ name: "list-databases", arguments: {} });
+            const response = await integration
+                .mcpClient()
+                .callTool({ name: "list-databases", arguments: { connectionId } });
             const dbNames = getDbNames(response.content);
             expect(dbNames).toIncludeSameMembers([...defaultDatabases, "foo", "baz"]);
 

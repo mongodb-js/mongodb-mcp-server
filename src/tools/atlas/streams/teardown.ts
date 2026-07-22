@@ -49,7 +49,7 @@ export class StreamsTeardownTool extends StreamsToolBase {
         workspaceName: StreamsArgs.workspaceName()
             .optional()
             .describe("Workspace name. Required for workspace, connection, and processor deletion."),
-        resourceName: z.string().optional().describe("Name or ID of the specific resource to delete."),
+        resourceName: StreamsArgs.resourceName().optional().describe("Name or ID of the specific resource to delete."),
     };
 
     public override outputSchema = TeardownOutputSchema.shape;

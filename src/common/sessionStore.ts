@@ -1,3 +1,4 @@
+import type { ClientCapabilities, Implementation } from "@modelcontextprotocol/sdk/types.js";
 import type { LoggerBase } from "./logging/index.js";
 import { LogId } from "./logging/index.js";
 import type { Session } from "./session.js";
@@ -7,6 +8,18 @@ import type { Metrics, DefaultMetrics } from "@mongodb-js/mcp-metrics";
 import type { CloseableTransport, SessionCloseReason } from "@mongodb-js/mcp-types";
 
 export type { CloseableTransport, SessionCloseReason };
+
+/**
+ * The client state negotiated during MCP initialization. Stores that persist
+ * it durably allow an implicitly re-initialized session (one restored on a
+ * pod that never saw the client's `initialize` request) to retain the
+ * client's capabilities — e.g. whether it supports elicitation — instead of
+ * treating the restored client as capability-less.
+ */
+export type NegotiatedClientState = {
+    clientCapabilities?: ClientCapabilities;
+    clientInfo?: Implementation;
+};
 
 /**
  * Error that `ISessionStore` implementations can throw from `getSession` to
@@ -76,6 +89,32 @@ export interface ISessionStore<T extends CloseableTransport = CloseableTransport
     }): Promise<void>;
     closeSession(params: { sessionId: string; reason?: SessionCloseReason }): Promise<void>;
     closeAllSessions(): Promise<void>;
+    /**
+     * Durably records the client state negotiated during a real MCP
+     * initialization, so it can be restored when the session is later
+     * implicitly re-initialized (only relevant with
+     * `externallyManagedSessions`). Stores without durable storage can
+     * implement this as a no-op (the base `SessionStore` does), in which case
+     * restored sessions are treated as capability-less.
+     *
+     * @param headers The headers of the initiating request, for identity
+     * scoping and tracing — mirroring `getSession`.
+     */
+    saveNegotiatedClientState(
+        sessionId: string,
+        state: NegotiatedClientState,
+        headers?: Record<string, unknown>
+    ): Promise<void>;
+    /**
+     * Returns the previously saved negotiated client state for the session,
+     * or `undefined` when unknown. Called during implicit session
+     * re-initialization, before the restored session serves its first
+     * request.
+     */
+    loadNegotiatedClientState(
+        sessionId: string,
+        headers?: Record<string, unknown>
+    ): Promise<NegotiatedClientState | undefined>;
 }
 
 export class SessionStore<T extends CloseableTransport = CloseableTransport> implements ISessionStore<T> {
@@ -252,6 +291,29 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
             Object.keys(this.sessions).map((sessionId) => this.closeSession({ sessionId, reason: "server_stop" }))
         );
     }
+
+    /**
+     * The in-memory store does not persist negotiated client state: a session
+     * it evicts loses its transport too, and restoring client state is only
+     * meaningful with durable session storage. Restored sessions therefore
+     * behave as capability-less unless a subclass overrides these.
+     */
+    /* eslint-disable @typescript-eslint/no-unused-vars */
+    saveNegotiatedClientState(
+        sessionId: string,
+        state: NegotiatedClientState,
+        headers?: Record<string, unknown>
+    ): Promise<void> {
+        return Promise.resolve();
+    }
+
+    loadNegotiatedClientState(
+        sessionId: string,
+        headers?: Record<string, unknown>
+    ): Promise<NegotiatedClientState | undefined> {
+        return Promise.resolve(undefined);
+    }
+    /* eslint-enable @typescript-eslint/no-unused-vars */
 }
 
 /**

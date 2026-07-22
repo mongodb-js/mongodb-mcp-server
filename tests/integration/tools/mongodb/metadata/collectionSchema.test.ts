@@ -27,7 +27,7 @@ describeWithMongoDB("collectionSchema tool", (integration) => {
         {
             name: "responseBytesLimit",
             type: "number",
-            description: `The maximum number of bytes to return in the response. This value is capped by the server's configured maxBytesPerQuery and cannot be exceeded.`,
+            description: `The maximum number of bytes to return in the response. This value is capped by the server's configured maximum and cannot be exceeded.`,
             required: false,
         },
     ]);
@@ -36,10 +36,10 @@ describeWithMongoDB("collectionSchema tool", (integration) => {
 
     describe("with non-existent database", () => {
         it("returns empty schema", async () => {
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "collection-schema",
-                arguments: { database: "non-existent", collection: "foo" },
+                arguments: { connectionId, database: "non-existent", collection: "foo" },
             });
             const content = getResponseContent(response.content);
             expect(content).toEqual(
@@ -140,10 +140,10 @@ describeWithMongoDB("collectionSchema tool", (integration) => {
                 const mongoClient = integration.mongoClient();
                 await mongoClient.db(integration.randomDbName()).collection("foo").insertMany(testCase.insertionData);
 
-                await integration.connectMcpClient();
+                const connectionId = await integration.connectMcpClient();
                 const response = await integration.mcpClient().callTool({
                     name: "collection-schema",
-                    arguments: { database: integration.randomDbName(), collection: "foo" },
+                    arguments: { connectionId, database: integration.randomDbName(), collection: "foo" },
                 });
                 const items = getResponseElements(response.content);
                 expect(items).toHaveLength(2);
@@ -170,10 +170,10 @@ describeWithMongoDB("collectionSchema tool", (integration) => {
             const mongoClient = integration.mongoClient();
             await mongoClient.db(integration.randomDbName()).collection(collectionName).insertOne({ a: 1 });
 
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "collection-schema",
-                arguments: { database: integration.randomDbName(), collection: collectionName },
+                arguments: { connectionId, database: integration.randomDbName(), collection: collectionName },
             });
             const items = getResponseElements(response.content);
             expect(items).toHaveLength(2);

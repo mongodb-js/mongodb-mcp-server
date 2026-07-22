@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { type ToolArgs, type OperationType, type ToolResult } from "../../tool.js";
 import { IndexDirectionSchema, modelsSupportingAutoEmbedIndexes } from "../mongodbSchemas.js";
 import type { IndexMetadata } from "../../../telemetry/types.js";
@@ -191,6 +191,7 @@ This definition also accepts the following top-level fields, which are forwarded
     static toolName = "create-index";
     public description = "Create an index for a collection";
     public argsShape = {
+        ...ConnectionIdArgs,
         ...CollOperationArgs,
         name: z.string().optional().describe("The name of the index"),
         // Note: Although it is not required to wrap the discriminated union in
@@ -223,12 +224,13 @@ This definition also accepts the following top-level fields, which are forwarded
     static operationType: OperationType = "create";
 
     protected async execute({
+        connectionId,
         database,
         collection,
         name,
         definition: definitions,
     }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
-        const provider = await this.ensureConnected();
+        const provider = await this.resolveConnection(connectionId);
         let indexes: string[] = [];
         const definition = definitions[0];
         if (!definition) {
@@ -248,7 +250,7 @@ This definition also accepts the following top-level fields, which are forwarded
                 break;
             case "vectorSearch":
                 {
-                    await this.session.assertSearchSupported();
+                    await this.assertSearchSupported(connectionId);
                     indexes = await provider.createSearchIndexes(database, collection, [
                         {
                             name,
@@ -266,7 +268,7 @@ This definition also accepts the following top-level fields, which are forwarded
                 break;
             case "search":
                 {
-                    await this.session.assertSearchSupported();
+                    await this.assertSearchSupported(connectionId);
                     const searchIndexDefinition: Record<string, unknown> = { ...definition };
                     delete searchIndexDefinition.type;
                     indexes = await provider.createSearchIndexes(database, collection, [
@@ -300,12 +302,12 @@ This definition also accepts the following top-level fields, which are forwarded
         };
     }
 
-    protected override resolveTelemetryMetadata(
+    protected override async resolveTelemetryMetadata(
         args: ToolArgs<typeof this.argsShape>,
         { result }: { result: ToolResult<typeof CreateIndexOutputSchema> }
-    ): IndexMetadata {
+    ): Promise<IndexMetadata> {
         return {
-            ...super.resolveTelemetryMetadata(args, { result }),
+            ...(await super.resolveTelemetryMetadata(args, { result })),
             index_type: result.structuredContent?.indexType,
         };
     }

@@ -25,10 +25,10 @@ describeWithMongoDB("collectionStorageSize tool", (integration) => {
 
     describe("with non-existent database", () => {
         it("returns an error", async () => {
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "collection-storage-size",
-                arguments: { database: integration.randomDbName(), collection: "foo" },
+                arguments: { connectionId, database: integration.randomDbName(), collection: "foo" },
             });
             const content = getResponseContent(response.content);
             expect(content).toEqual(
@@ -63,10 +63,10 @@ describeWithMongoDB("collectionStorageSize tool", (integration) => {
                     .collection("foo")
                     .insertOne({ data: crypto.randomBytes(test.bytesToInsert) });
 
-                await integration.connectMcpClient();
+                const connectionId = await integration.connectMcpClient();
                 const response = await integration.mcpClient().callTool({
                     name: "collection-storage-size",
-                    arguments: { database: integration.randomDbName(), collection: "foo" },
+                    arguments: { connectionId, database: integration.randomDbName(), collection: "foo" },
                 });
                 const content = getResponseContent(response.content);
                 expect(content).toContain(`The size of the requested namespace is`);

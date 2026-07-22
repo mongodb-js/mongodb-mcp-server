@@ -6,12 +6,25 @@ import type { MongoDBIntegrationTestCase } from "../tools/mongodb/mongodbHelpers
 import { describeWithMongoDB, isCommunityServer, getServerVersion } from "../tools/mongodb/mongodbHelpers.js";
 import { connect, defaultTestConfig, responseAsText, waitUntil } from "../helpers.js";
 import type { ConnectionStateConnected, ConnectionStateConnecting } from "../../../src/common/connectionManager.js";
+import type { ConnectionEntry } from "../../../src/common/connectionRegistry.js";
 import type { UserConfig } from "../../../src/common/config/userConfig.js";
 import path from "path";
 import type { OIDCMockProviderConfig } from "@mongodb-js/oidc-mock-provider";
 import { OIDCMockProvider } from "@mongodb-js/oidc-mock-provider";
-import { type TestConnectionManager } from "../../utils/index.js";
 import { sleep } from "../../../src/common/managedTimeout.js";
+
+/**
+ * Returns the registry entry created by the `connect` call in the suite's
+ * beforeEach. Each test dials exactly one connection, so the first entry is
+ * the one under test.
+ */
+async function connectionEntry(integration: MongoDBIntegrationTestCase): Promise<ConnectionEntry> {
+    const entry = (await integration.mcpServer().session.connectionRegistry.find(() => true))[0];
+    if (!entry) {
+        throw new Error("Expected the OIDC test connection to be registered");
+    }
+    return entry;
+}
 
 const DEFAULT_TIMEOUT = 60_000;
 const DEFAULT_RETRIES = 5;
@@ -137,15 +150,9 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
                 beforeEach(async () => {
                     tokenExpiresInSeconds = args?.tokenExpiresInSeconds ?? DEFAULT_TOKEN_EXPIRY_SECONDS;
 
-                    const connectionManager = integration.mcpServer().session
-                        .connectionManager as TestConnectionManager;
-                    // disconnect on purpose doesn't change the state if it was failed to avoid losing
-                    // information in production.
-                    await connectionManager.disconnect();
-                    // for testing, force disconnecting AND setting the connection to closed to reset the
-                    // state of the connection manager
-                    connectionManager.changeState("connection-close", { tag: "disconnected" });
-
+                    // Each connect creates a fresh registry entry with its own connection
+                    // manager; entries from previous tests are revoked by the shared
+                    // integration-test afterEach.
                     await connect(integration.mcpClient(), integration.connectionString());
                 }, DEFAULT_TIMEOUT);
 
@@ -172,7 +179,7 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
             it("can connect with the expected user", async ({ signal }, integration) => {
                 const state = await waitUntil<ConnectionStateConnected>(
                     "connected",
-                    integration.mcpServer().session.connectionManager,
+                    await connectionEntry(integration),
                     signal
                 );
 
@@ -219,7 +226,7 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
             it("can list existing databases", async ({ signal }, integration) => {
                 const state = await waitUntil<ConnectionStateConnected>(
                     "connected",
-                    integration.mcpServer().session.connectionManager,
+                    await connectionEntry(integration),
                     signal
                 );
 
@@ -239,7 +246,7 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
             it("can refresh a token once expired", async ({ signal }, integration) => {
                 const state = await waitUntil<ConnectionStateConnected>(
                     "connected",
-                    integration.mcpServer().session.connectionManager,
+                    await connectionEntry(integration),
                     signal
                 );
 
@@ -260,15 +267,18 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
             { additionalConfig: { oidcFlows: "device-auth", browser: false } },
             (it) => {
                 it("gets requested by the agent to connect", async ({ signal }, integration) => {
+                    const entry = await connectionEntry(integration);
                     const state = await waitUntil<ConnectionStateConnecting>(
                         "connecting",
-                        integration.mcpServer().session.connectionManager,
+                        entry,
                         signal,
                         (state) => !!state.oidcLoginUrl && !!state.oidcUserCode
                     );
 
                     const response = responseAsText(
-                        await integration.mcpClient().callTool({ name: "list-databases", arguments: {} })
+                        await integration
+                            .mcpClient()
+                            .callTool({ name: "list-databases", arguments: { connectionId: entry.connectionId } })
                     );
 
                     expect(response).toContain("The user needs to finish their OIDC connection by opening");
@@ -277,14 +287,12 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
                     expect(response).not.toContain("Please use one of the following tools");
                     expect(response).not.toContain("There are no tools available to connect.");
 
-                    await waitUntil<ConnectionStateConnected>(
-                        "connected",
-                        integration.mcpServer().session.connectionManager,
-                        signal
-                    );
+                    await waitUntil<ConnectionStateConnected>("connected", entry, signal);
 
                     const connectedResponse = responseAsText(
-                        await integration.mcpClient().callTool({ name: "list-databases", arguments: {} })
+                        await integration
+                            .mcpClient()
+                            .callTool({ name: "list-databases", arguments: { connectionId: entry.connectionId } })
                     );
 
                     expect(connectedResponse).toContain("admin");

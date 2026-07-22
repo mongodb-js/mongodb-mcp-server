@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { type ToolArgs, type OperationType, formatUntrustedData, type ToolResult } from "../../tool.js";
 import { zEJSON } from "../../args.js";
 import { type Document } from "bson";
@@ -18,6 +18,7 @@ export class InsertManyTool extends MongoDBToolBase {
     public description =
         "Insert an array of documents into a MongoDB collection. If the list of documents is above com.mongodb/maxRequestPayloadBytes, consider inserting them in batches.";
     public argsShape = {
+        ...ConnectionIdArgs,
         ...CollOperationArgs,
         documents: z
             .array(zEJSON().describe("An individual MongoDB document"))
@@ -29,11 +30,12 @@ export class InsertManyTool extends MongoDBToolBase {
     static operationType: OperationType = "create";
 
     protected async execute({
+        connectionId,
         database,
         collection,
         documents,
     }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
-        const provider = await this.ensureConnected();
+        const provider = await this.resolveConnection(connectionId);
 
         const result = await provider.insertMany(database, collection, documents as Document[]);
         const insertedIds = Object.values(result.insertedIds);

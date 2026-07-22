@@ -9,7 +9,8 @@ import { CompositeLogger, ConsoleLogger, DiskLogger, McpLogger } from "../common
 import { ExportsManager } from "../common/exportsManager.js";
 import { DeviceId } from "../helpers/deviceId.js";
 import { Keychain } from "../common/keychain.js";
-import { defaultCreateConnectionManager, type ConnectionManagerFactoryFn } from "../common/connectionManager.js";
+import { MCPConnectionStore } from "../common/connectionStore.js";
+import { getRandomUUID } from "../helpers/getRandomUUID.js";
 import {
     type ConnectionErrorHandler,
     connectionErrorHandler as defaultConnectionErrorHandler,
@@ -33,11 +34,10 @@ export type { TransportRequestContext };
 export type RequestContext = TransportRequestContext;
 
 export type CustomizableSessionOptions<TUserConfig extends UserConfig = UserConfig> = Partial<
-    Pick<
-        SessionOptions<TUserConfig>,
-        "userConfig" | "apiClient" | "atlasLocalClient" | "connectionManager" | "connectionErrorHandler"
-    >
->;
+    Pick<SessionOptions, "apiClient" | "atlasLocalClient" | "connectionRegistry" | "connectionErrorHandler">
+> & {
+    userConfig?: TUserConfig;
+};
 
 export type CustomizableServerOptions<TUserConfig extends UserConfig = UserConfig, TContext = unknown> = Partial<
     Pick<ServerOptions<TUserConfig, TContext>, "uiRegistry" | "tools" | "toolContext" | "elicitation">
@@ -110,17 +110,6 @@ export type TransportRunnerConfig<
      * `UserConfigSchema.parse({})`.
      */
     userConfig: TUserConfig;
-
-    /**
-     * @deprecated Use `start({ sessionOptions: {connectionManager: MyCustomConnectionManager} })` instead
-     * An optional factory function to generates an instance of
-     * `ConnectionManager`. When not provided, MongoDB MCP Server uses an
-     * internal implementation to manage connection to MongoDB deployments.
-     *
-     * Customize this only if the use-case involves handling the MongoDB
-     * connections differently and outside of MongoDB MCP server.
-     */
-    createConnectionManager?: ConnectionManagerFactoryFn;
 
     /** @deprecated Use `start({ serverOptions: {connectionErrorHandler: MyCustomConnectionErrorHandler} })` instead */
     connectionErrorHandler?: ConnectionErrorHandler;
@@ -206,10 +195,15 @@ export abstract class TransportRunnerBase<
     public metrics: Metrics<TMetrics>;
 
     public deviceId: DeviceId;
+    /**
+     * App-level store of named MongoDB connections, created lazily by the
+     * first session that doesn't bring its own `ConnectionRegistry`. Sessions
+     * never hold the store directly — each gets a view of it, bound per the
+     * `connectionScope` config.
+     */
+    private connectionStore?: MCPConnectionStore;
     /** Base user configuration for the server. */
     protected readonly userConfig: TUserConfig;
-    /** @deprecated This method will be removed in a future version. Extend `StreamableHttpRunner` and override `createServerForRequest` instead. */
-    protected readonly createConnectionManager: ConnectionManagerFactoryFn;
     /** @deprecated This method will be removed in a future version. Extend `StreamableHttpRunner` and override `createServerForRequest` instead. */
     protected readonly connectionErrorHandler: ConnectionErrorHandler;
     /** @deprecated This method will be removed in a future version. Extend `StreamableHttpRunner` and override `createServerForRequest` instead. */
@@ -225,7 +219,6 @@ export abstract class TransportRunnerBase<
 
     protected constructor({
         userConfig,
-        createConnectionManager = defaultCreateConnectionManager,
         connectionErrorHandler = defaultConnectionErrorHandler,
         createAtlasLocalClient = defaultCreateAtlasLocalClient,
         additionalLoggers = [],
@@ -236,7 +229,6 @@ export abstract class TransportRunnerBase<
         createApiClient = defaultCreateApiClient,
     }: TransportRunnerConfig<TUserConfig, TMetrics>) {
         this.userConfig = userConfig;
-        this.createConnectionManager = createConnectionManager;
         this.connectionErrorHandler = connectionErrorHandler;
         this.createAtlasLocalClient = createAtlasLocalClient;
         this.telemetryProperties = telemetryProperties;
@@ -266,6 +258,15 @@ export abstract class TransportRunnerBase<
 
         this.logger = new CompositeLogger(...loggers);
         this.deviceId = DeviceId.create(this.logger);
+    }
+
+    private getConnectionStore(): MCPConnectionStore {
+        this.connectionStore ??= new MCPConnectionStore({
+            userConfig: this.userConfig,
+            logger: this.logger,
+            deviceId: this.deviceId,
+        });
+        return this.connectionStore;
     }
 
     /**
@@ -298,10 +299,6 @@ export abstract class TransportRunnerBase<
 
         const exportsManager = ExportsManager.init(userConfig, logger);
 
-        const connectionManager =
-            sessionOptions?.connectionManager ??
-            (await this.createConnectionManager({ logger: logger, deviceId: this.deviceId, userConfig }));
-
         const { apiClientId, apiClientSecret } = userConfig;
         const apiClientOptions: ApiClientOptions = {
             baseUrl: userConfig.apiBaseUrl,
@@ -315,14 +312,36 @@ export abstract class TransportRunnerBase<
         };
         const apiClient = new ApiClient(apiClientOptions, logger);
 
+        // Scoping policy: an embedder-supplied registry wins (it brings its own
+        // scoping); otherwise the session gets a view of the shared store —
+        // bound to a fresh scope key under the default "session" scope, or
+        // unbound (seeing every entry) under "global". Registries whose
+        // connections become unreachable when the session closes (session-scoped
+        // views, per-session stores) are minted as owned, so `Session.close`
+        // reaps them via `registry.close()`.
+        const sessionScope = userConfig.connectionScope === "session" ? getRandomUUID() : undefined;
+        let connectionRegistry = sessionOptions?.connectionRegistry;
+        if (!connectionRegistry) {
+            if (userConfig.connectionString !== this.userConfig.connectionString) {
+                // The session's resolved config carries a different connection
+                // string than the runner's, so the shared store's preconfigured
+                // entry would not match what this session's instructions and
+                // config resource describe. Give it a private store instead.
+                connectionRegistry = new MCPConnectionStore({ userConfig, logger, deviceId: this.deviceId }).view({
+                    owned: true,
+                });
+            } else {
+                connectionRegistry = this.getConnectionStore().view({ scope: sessionScope });
+            }
+        }
+
         const session = new Session({
-            userConfig,
             atlasLocalClient:
                 sessionOptions?.atlasLocalClient ?? (await this.createAtlasLocalClient({ logger: this.logger })),
             logger,
             connectionErrorHandler: sessionOptions?.connectionErrorHandler ?? this.connectionErrorHandler,
             exportsManager,
-            connectionManager,
+            connectionRegistry,
             keychain: Keychain.root,
             apiClient: sessionOptions?.apiClient ?? apiClient,
         });
@@ -356,7 +375,9 @@ export abstract class TransportRunnerBase<
             telemetry,
             userConfig,
             connectionErrorHandler: sessionOptions?.connectionErrorHandler ?? this.connectionErrorHandler,
-            elicitation: serverOptions?.elicitation ?? new Elicitation({ server: mcpServer.server }),
+            elicitation:
+                serverOptions?.elicitation ??
+                new Elicitation({ server: mcpServer.server, timeoutMs: userConfig.elicitationTimeoutMs }),
             tools: serverOptions?.tools ?? this.tools,
             uiRegistry,
             toolContext: serverOptions?.toolContext,
@@ -398,11 +419,6 @@ export abstract class TransportRunnerBase<
             userConfig,
             serverOptions,
             sessionOptions: {
-                connectionManager: await this.createConnectionManager({
-                    logger: this.logger,
-                    deviceId: this.deviceId,
-                    userConfig,
-                }),
                 atlasLocalClient: await this.createAtlasLocalClient({ logger: this.logger }),
                 apiClient:
                     userConfig.apiClientId && userConfig.apiClientSecret
@@ -429,7 +445,7 @@ export abstract class TransportRunnerBase<
         /** Upstream `serverOptions` passed from running `runner.start({ serverOptions })` method */
         serverOptions?: ServerOptions<TUserConfig, TContext>;
         /** Upstream `sessionOptions` passed from running `runner.start({ sessionOptions })` method */
-        sessionOptions?: SessionOptions<TUserConfig>;
+        sessionOptions?: SessionOptions;
     }): Promise<void>;
 
     abstract closeTransport(): Promise<void>;
@@ -438,6 +454,7 @@ export abstract class TransportRunnerBase<
         try {
             await this.closeTransport();
         } finally {
+            await this.connectionStore?.closeAll().catch(() => undefined);
             this.deviceId.close();
         }
     }
@@ -448,7 +465,7 @@ export abstract class TransportRunnerBase<
         `;
         if (config.connectionString) {
             instructions += `
-            This MCP server was configured with a MongoDB connection string, and you can assume that you are connected to a MongoDB cluster.
+            This MCP server was configured with a MongoDB connection string. A connection with the connectionId "preconfigured" is available — pass it as the connectionId argument to the MongoDB tools.
             `;
         }
 
