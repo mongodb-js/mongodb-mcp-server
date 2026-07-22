@@ -110,7 +110,7 @@ describeAccuracyTests([
         ],
     },
     {
-        // Multi-step: inspect the cluster first, then scale it 
+        // Multi-step: inspect the cluster first, then scale it
         prompt: `Inspect cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}", then change its instance size to M40`,
         mockedTools: {
             ...bothToolsMocked("M40"),
