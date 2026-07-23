@@ -59,6 +59,23 @@ function parseSummaryLine(line: string): ParsedEvalSummary | undefined {
     return obj.summary ?? obj;
 }
 
+/** How long to wait after the final summary line before assuming `bt eval` is stuck and killing it. */
+const FINAL_LINE_GRACE_MS = 10_000;
+/** How long to wait after SIGTERM before escalating to SIGKILL. */
+const FORCE_KILL_GRACE_MS = 5_000;
+
+/**
+ * `bt eval` calls `process.exit(1)` on failure but not `process.exit(0)` on success - it relies
+ * on Node's event loop draining naturally. If anything leaves a handle open (e.g. a keep-alive
+ * connection), the process can hang indefinitely even though the eval finished and its results
+ * are already on Braintrust. Derive a pass/fail exit code from the summary's `errors` metric so
+ * we can proceed without the real exit code when we have to force the process closed.
+ */
+function deriveExitCodeFromSummary(summary: ParsedEvalSummary): number {
+    const errorMetric = summary.metrics?.errors?.metric;
+    return typeof errorMetric === "number" && errorMetric > 0 ? 1 : 0;
+}
+
 /**
  * Spawn the eval subprocess, parse stdout line-by-line for the latest ExperimentSummary,
  * and return the child exit code plus that summary. Stderr is inherited so `cli-progress`
@@ -84,23 +101,58 @@ async function runEvalCommand(
         return { exitCode: 1, summary: {} };
     }
 
+    let watchdog: NodeJS.Timeout | undefined;
+    let forcedClosed = false;
+    const clearWatchdog = (): void => {
+        clearTimeout(watchdog);
+        watchdog = undefined;
+    };
+    // Re-armed on every final summary line seen; only the last one's timer actually fires.
+    const armWatchdog = (): void => {
+        clearWatchdog();
+        watchdog = setTimeout(() => {
+            forcedClosed = true;
+            console.error(
+                `reportCi: eval finished but process didn't exit after ${FINAL_LINE_GRACE_MS}ms, sending SIGTERM`
+            );
+            child.kill("SIGTERM");
+            setTimeout(() => {
+                console.error(`reportCi: process still alive ${FORCE_KILL_GRACE_MS}ms after SIGTERM, sending SIGKILL`);
+                child.kill("SIGKILL");
+            }, FORCE_KILL_GRACE_MS).unref();
+        }, FINAL_LINE_GRACE_MS);
+        watchdog.unref();
+    };
+
     // Resolves with the exit code on close; rejects on spawn failure (e.g. ENOENT).
     const closed = new Promise<number | null>((resolve, reject) => {
-        child.once("close", resolve);
-        child.once("error", reject);
+        child.once("close", (code) => {
+            clearWatchdog();
+            resolve(code);
+        });
+        child.once("error", (err) => {
+            clearWatchdog();
+            reject(err);
+        });
     });
 
     const captureStdout = (async (): Promise<ParsedEvalSummary> => {
         let summary: ParsedEvalSummary = {};
         for await (const line of evalLines(child.stdout)) {
-            summary = parseSummaryLine(line) ?? summary;
+            const parsed = parseSummaryLine(line);
+            if (parsed) {
+                summary = parsed;
+                if (parsed.isFinal) {
+                    armWatchdog();
+                }
+            }
         }
         return summary;
     })();
 
     try {
         const [summary, exitCode] = await Promise.all([captureStdout, closed]);
-        return { exitCode, summary };
+        return { exitCode: forcedClosed ? deriveExitCodeFromSummary(summary) : exitCode, summary };
     } catch (err) {
         console.error("reportCi: failed to spawn eval command:", err);
         return { exitCode: 1, summary: {} };
