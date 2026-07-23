@@ -220,22 +220,18 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
                         .describe("A custom analyzer definition.")
                 )
                 .optional()
-                .describe(
-                    "Custom analyzer definitions for this index. Define one here and reference it by `name` from a field's `analyzer`/`searchAnalyzer` option, instead of a built-in `lucene.*` analyzer."
-                ),
+                .describe("Custom analyzer definitions for this index."),
             synonyms: z
                 .array(
                     z.object({
                         name: z.string().min(1).describe("Unique name for this synonym mapping."),
-                        source: z
-                            .object({
-                                collection: z
-                                    .string()
-                                    .describe(
-                                        "Name of the collection (in the same database) containing the synonym documents."
-                                    ),
-                            })
-                            .describe("Source of the synonym documents."),
+                        source: z.object({
+                            collection: z
+                                .string()
+                                .describe(
+                                    "Name of the collection (in the same database) containing the synonym documents."
+                                ),
+                        }),
                         analyzer: z
                             .string()
                             .describe(
@@ -292,27 +288,23 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
                         .optional()
                         .default(false)
                         .describe(
-                            "Enables or disables dynamic mapping of fields for this index. If set to true, Atlas Search recursively indexes all dynamically indexable fields. If set to false, you must specify individual fields to index using mappings.fields. If set to `{ typeSet: '<name>' }`, dynamic mapping is restricted to only the field types listed in that named entry of `typeSets`."
+                            "`true` recursively indexes all dynamically indexable fields. `false` (default) uses only the fields listed in `mappings.fields`. `{ typeSet: '<name>' }` restricts dynamic mapping to the field types listed in that named entry of `typeSets`."
                         ),
                     fields: z
                         .record(
                             z.string().describe("The field name"),
-                            z
-                                .union([
-                                    this.searchFieldDefinitionSchema,
-                                    z
-                                        .array(this.searchFieldDefinitionSchema)
-                                        .min(1)
-                                        .describe(
-                                            "Multiple field definitions to index the same field as multiple types, e.g. both `string` and `autocomplete`."
-                                        ),
-                                ])
-                                .describe(
-                                    "The field index definition. It must contain the field type, as well as any additional options for that field type."
-                                )
+                            z.union([
+                                this.searchFieldDefinitionSchema,
+                                z
+                                    .array(this.searchFieldDefinitionSchema)
+                                    .min(1)
+                                    .describe(
+                                        "Multiple field definitions to index the same field as multiple types, e.g. both `string` and `autocomplete`."
+                                    ),
+                            ])
                         )
                         .optional()
-                        .describe("The field mapping definitions. If `dynamic` is set to `false`, this is required."),
+                        .describe("The field mapping definitions, one entry per field name."),
                 })
                 .refine(
                     (data) => {
@@ -327,7 +319,7 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
                     }
                 )
                 .describe(
-                    "Document describing the index to create. `fields` is required and must define at least one field when `dynamic` is `false` (the default). When `dynamic` is `true` or a typeSet object, `fields` may still be provided to index additional fields explicitly."
+                    "`fields` must define at least one field when `dynamic` is `false` (the default); `fields` is optional when `dynamic` is `true` or a typeSet object."
                 ),
             storedSource: z
                 .union([
