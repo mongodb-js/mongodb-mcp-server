@@ -35,7 +35,7 @@ jobs:
         with:
           set-host: true
       - uses: pnpm/action-setup@v5
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node-version }}
           cache: "pnpm"
@@ -54,7 +54,7 @@ jobs:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v5
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version-file: package.json
           cache: "pnpm"
