@@ -621,25 +621,13 @@ export class CreateIndexTool extends MongoDBToolBase {
             type: z.ZodLiteral<"search">;
             analyzer: z.ZodDefault<z.ZodOptional<z.ZodString>>;
             mappings: z.ZodObject<{
-                dynamic: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
-                fields: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodObject<{
-                    type: z.ZodEnum<{
-                        string: "string";
-                        number: "number";
-                        boolean: "boolean";
-                        date: "date";
-                        uuid: "uuid";
-                        autocomplete: "autocomplete";
-                        document: "document";
-                        embeddedDocuments: "embeddedDocuments";
-                        geo: "geo";
-                        objectId: "objectId";
-                        token: "token";
-                    }>;
-                }, z.core.$loose>>>;
-            }, z.core.$strip>;
+                dynamic: z.ZodDefault<z.ZodOptional<z.ZodUnion<readonly [z.ZodBoolean, z.ZodObject<{
+                    typeSet: z.ZodString;
+                }, z.core.$strict>]>>>;
+                fields: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+            }, z.core.$loose>;
             numPartitions: z.ZodPipe<z.ZodDefault<z.ZodUnion<readonly [z.ZodLiteral<"1">, z.ZodLiteral<"2">, z.ZodLiteral<"4">]>>, z.ZodTransform<number, "1" | "2" | "4">>;
-        }, z.core.$strip>], "type">>;
+        }, z.core.$loose>], "type">>;
         collection: z.ZodString;
         database: z.ZodString;
         connectionId: z.ZodString;
