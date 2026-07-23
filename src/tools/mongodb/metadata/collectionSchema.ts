@@ -1,11 +1,15 @@
 import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
+import type { SimplifiedSchema } from "mongodb-schema";
 import { getSimplifiedSchema } from "mongodb-schema";
 import z from "zod";
 import { ONE_MB } from "../../../helpers/constants.js";
 import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorUntilMaxBytes.js";
 import { isObjectEmpty } from "../../../helpers/isObjectEmpty.js";
+import { mongoDBJsonSchemaToSimplifiedSchema } from "../../../helpers/mongoDBJsonSchemaToSimplifiedSchema.js";
+import { operationWithFallback } from "../../../helpers/operationWithFallback.js";
+import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 
 const MAXIMUM_SAMPLE_SIZE_HARD_LIMIT = 50_000;
 
@@ -40,6 +44,20 @@ export class CollectionSchemaTool extends MongoDBToolBase {
         { signal }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
         const provider = await this.resolveConnection(connectionId);
+
+        const validatorSchema = await this.getSchemaFromValidator(provider, database, collection, signal);
+        if (validatorSchema) {
+            const fieldsCount = Object.keys(validatorSchema).length;
+            const header = `Found ${fieldsCount} fields derived from the collection's schema validator.`;
+            return {
+                content: formatUntrustedData(header, JSON.stringify({ database, collection, schema: validatorSchema })),
+                structuredContent: {
+                    schema: validatorSchema,
+                    fieldsCount,
+                },
+            };
+        }
+
         const cursor = provider.aggregate(
             database,
             collection,
@@ -81,5 +99,36 @@ export class CollectionSchemaTool extends MongoDBToolBase {
                 fieldsCount,
             },
         };
+    }
+
+    /**
+     * Returns the collection's schema derived from its `$jsonSchema` validator, or
+     * `undefined` when the collection has no validator, the validator does not use a
+     * top-level `$jsonSchema`, the `$jsonSchema` declares no fields, or the validator
+     * metadata could not be read. Callers fall back to sampling in those cases.
+     */
+    private async getSchemaFromValidator(
+        provider: NodeDriverServiceProvider,
+        database: string,
+        collection: string,
+        signal: AbortSignal
+    ): Promise<SimplifiedSchema | undefined> {
+        const jsonSchema = await operationWithFallback(async () => {
+            const collections = await provider.listCollections(database, { name: collection }, { signal });
+            const collectionInfo = collections[0] as
+                | {
+                      options?: {
+                          validator?: { $jsonSchema?: Parameters<typeof mongoDBJsonSchemaToSimplifiedSchema>[0] };
+                      };
+                  }
+                | undefined;
+            return collectionInfo?.options?.validator?.$jsonSchema;
+        }, undefined);
+        if (!jsonSchema) {
+            return undefined;
+        }
+
+        const schema = mongoDBJsonSchemaToSimplifiedSchema(jsonSchema);
+        return isObjectEmpty(schema) ? undefined : schema;
     }
 }
