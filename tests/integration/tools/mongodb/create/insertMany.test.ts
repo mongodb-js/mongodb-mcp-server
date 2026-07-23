@@ -110,6 +110,54 @@ describeWithMongoDB("insertMany tool when search is disabled", (integration) => 
         expect(content).toContain(insertedIds[0]?.toString());
     });
 
+    it("reports per-index failures and the inserted count on a partial failure", async () => {
+        const existingId = new ObjectId();
+        await integration
+            .mongoClient()
+            .db(integration.randomDbName())
+            .collection("coll1")
+            .insertMany([{ _id: existingId, prop1: "existing" }]);
+
+        const connectionId = await integration.connectMcpClient();
+        const response = await integration.mcpClient().callTool({
+            name: "insert-many",
+            arguments: {
+                connectionId,
+                database: integration.randomDbName(),
+                collection: "coll1",
+                documents: [
+                    { prop1: "first" },
+                    { _id: { $oid: existingId.toString() }, prop1: "duplicate" },
+                    { prop1: "third" },
+                ],
+            },
+        });
+
+        expect(response.isError).toBe(true);
+        const content = getResponseContent(response.content);
+        expect(content).toContain(
+            `Error running insert-many: 1 of 3 document(s) failed to insert into ${integration.randomDbName()}.coll1.`
+        );
+        expect(content).toContain("1 document(s) were inserted.");
+        expect(content).toContain("- index 1 (code 11000)");
+        expect(content).toContain(existingId.toString());
+        expect(content).toContain("documents after the first failing index were not attempted");
+
+        // Ordered semantics: the document before the failing index was inserted,
+        // the failing one and everything after it were not.
+        const docs = await integration
+            .mongoClient()
+            .db(integration.randomDbName())
+            .collection("coll1")
+            .find()
+            .toArray();
+        expect(docs).toHaveLength(2);
+        expect(docs).toContainEqual(expect.objectContaining({ prop1: "existing" }));
+        expect(docs).toContainEqual(expect.objectContaining({ prop1: "first" }));
+        expect(docs).not.toContainEqual(expect.objectContaining({ prop1: "duplicate" }));
+        expect(docs).not.toContainEqual(expect.objectContaining({ prop1: "third" }));
+    });
+
     it("should emit tool event without auto-embedding usage metadata", async () => {
         const mockEmitEvents = vi.spyOn(integration.mcpServer()["telemetry"], "emitEvents");
         vi.spyOn(integration.mcpServer()["telemetry"], "isTelemetryEnabled").mockReturnValue(true);

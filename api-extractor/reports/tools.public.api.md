@@ -1132,6 +1132,8 @@ export class InsertManyTool extends MongoDBToolBase {
     // (undocumented)
     protected execute(input: ToolArgs<typeof InsertManyTool.argsShape>): Promise<ToolResult<typeof InsertManyTool.outputSchema>>;
     // (undocumented)
+    protected handleError(error: unknown, args: ToolArgs<typeof InsertManyTool.argsShape>): Promise<CallToolResult>;
+    // (undocumented)
     static operationType: OperationType;
     // (undocumented)
     outputSchema: {
