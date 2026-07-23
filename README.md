@@ -325,6 +325,12 @@ Create or edit your OpenCode config file (`~/.config/opencode/opencode.json` or 
 
 For more information about configuring OpenCode as an MCP client, including the expected syntax and options, see the [OpenCode MCP servers documentation](https://opencode.ai/docs/mcp-servers/).
 
+#### Option 8: Connect to the Remote MCP Server
+
+To connect to the hosted MongoDB Atlas Remote MCP server, use the [`mongodb-atlas-mcp-remote`](packages/mongodb-atlas-mcp-remote/README.md) package.
+
+See the [package README](packages/mongodb-atlas-mcp-remote/README.md) for setup and client-specific configuration examples.
+
 ## 🛠️ Supported Tools
 
 ### Tool List
