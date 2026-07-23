@@ -356,7 +356,7 @@ describeWithMongoDB(
                 expect(indexDefinitions[0]).toHaveProperty("name", "my-search-index");
                 expect(indexDefinitions[0]).toHaveProperty("type", "search");
                 expect(indexDefinitions[0]).toHaveProperty("latestDefinition", {
-                    mappings: { dynamic: true, fields: {} },
+                    mappings: { dynamic: true },
                 });
             });
         });
