@@ -1664,6 +1664,66 @@ export class RenameCollectionTool extends MongoDBToolBase {
 }
 
 // @public (undocumented)
+export class ScaleClusterTool extends AtlasToolBase {
+    // (undocumented)
+    argsShape: {
+        projectId: z.ZodString;
+        clusterName: z.ZodString;
+        instanceSize: z.ZodOptional<z.ZodEnum<{
+            M10: "M10";
+            M20: "M20";
+            M30: "M30";
+            M40: "M40";
+            M50: "M50";
+            M60: "M60";
+            M80: "M80";
+        }>>;
+        computeAutoScaling: z.ZodOptional<z.ZodBoolean>;
+        minInstanceSize: z.ZodOptional<z.ZodEnum<{
+            M10: "M10";
+            M20: "M20";
+            M30: "M30";
+            M40: "M40";
+            M50: "M50";
+            M60: "M60";
+            M80: "M80";
+        }>>;
+        maxInstanceSize: z.ZodOptional<z.ZodEnum<{
+            M10: "M10";
+            M20: "M20";
+            M30: "M30";
+            M40: "M40";
+            M50: "M50";
+            M60: "M60";
+            M80: "M80";
+        }>>;
+    };
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    protected execute(args: ToolArgs<typeof ScaleClusterTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof ScaleClusterTool.outputSchema>>;
+    // (undocumented)
+    protected handleError(error: unknown, args: ToolArgs<typeof ScaleClusterTool.argsShape>): CallToolResult;
+    // (undocumented)
+    static operationType: OperationType;
+    // (undocumented)
+    outputSchema: {
+        clusterName: z.ZodString;
+        instanceSize: z.ZodString;
+        computeAutoScaling: z.ZodBoolean;
+        minInstanceSize: z.ZodOptional<z.ZodString>;
+        maxInstanceSize: z.ZodOptional<z.ZodString>;
+        clusterId: z.ZodOptional<z.ZodString>;
+    };
+    // (undocumented)
+    protected resolveTelemetryMetadata(args: ToolArgs<typeof ScaleClusterTool.argsShape>, context: {
+        result: CallToolResult;
+    }): Promise<ScaleClusterMetadata>;
+    // (undocumented)
+    static toolName: string;
+}
+
+// @public (undocumented)
 export class SearchKnowledgeTool extends AssistantToolBase {
     // (undocumented)
     argsShape: {

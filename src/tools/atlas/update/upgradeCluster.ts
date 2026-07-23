@@ -1,9 +1,8 @@
 import { z } from "zod";
 import { type OperationType, type ToolArgs, type ToolResult, type ToolExecutionContext } from "../../tool.js";
 import { AtlasToolBase } from "../atlasTool.js";
-import { formatCluster } from "../../../common/atlas/cluster.js";
+import { resolveClusterInfo } from "../../../common/atlas/cluster.js";
 import type { ApiClient } from "../../../common/atlas/apiClient.js";
-import { ApiClientError } from "../../../common/atlas/apiClientError.js";
 import { AtlasArgs } from "../../args.js";
 import type { UpgradeClusterMetadata } from "../../../telemetry/types.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
@@ -93,40 +92,30 @@ type ResolvedClusterInfo = {
     region?: string;
 };
 
-async function resolveClusterInfo(
+// Resolves the tier, then picks provider/region from the matching raw payload (arg overrides win).
+async function resolveUpgradeClusterInfo(
     apiClient: Pick<ApiClient, "getCluster" | "getFlexCluster">,
     projectId: string,
     clusterName: string,
     argOverrides: { provider?: string; region?: string },
     context: ToolExecutionContext
 ): Promise<ResolvedClusterInfo> {
-    try {
-        const raw = await apiClient.getCluster({ params: { path: { groupId: projectId, clusterName } } }, context);
-        const cluster = formatCluster(raw);
-        const firstRegionConfig = raw.replicationSpecs?.[0]?.regionConfigs?.[0] as
-            | { backingProviderName?: string; regionName?: string }
-            | undefined;
-        return {
-            instanceType: cluster.instanceType,
-            provider: argOverrides.provider ?? firstRegionConfig?.backingProviderName,
-            region: argOverrides.region ?? firstRegionConfig?.regionName,
-        };
-    } catch (err) {
-        // Atlas returns 400 for Flex clusters on the regular cluster endpoint ("cannot be used in the Cluster API")
-        // and 404 when the cluster simply doesn't exist. Both signal "try the flex endpoint instead".
-        if (!(err instanceof ApiClientError) || (err.response.status !== 404 && err.response.status !== 400)) {
-            throw err;
-        }
-        const raw = await apiClient.getFlexCluster(
-            { params: { path: { groupId: projectId, name: clusterName } } },
-            context
-        );
+    const info = await resolveClusterInfo(apiClient, projectId, clusterName, context);
+    if (info.instanceType === "FLEX") {
         return {
             instanceType: "FLEX",
-            provider: argOverrides.provider ?? raw.providerSettings?.backingProviderName,
-            region: argOverrides.region ?? raw.providerSettings?.regionName,
+            provider: argOverrides.provider ?? info.flexRaw?.providerSettings?.backingProviderName,
+            region: argOverrides.region ?? info.flexRaw?.providerSettings?.regionName,
         };
     }
+    const firstRegionConfig = info.raw?.replicationSpecs?.[0]?.regionConfigs?.[0] as
+        | { backingProviderName?: string; regionName?: string }
+        | undefined;
+    return {
+        instanceType: info.instanceType,
+        provider: argOverrides.provider ?? firstRegionConfig?.backingProviderName,
+        region: argOverrides.region ?? firstRegionConfig?.regionName,
+    };
 }
 
 class UpgradeClusterError extends Error {}
@@ -141,7 +130,12 @@ export const UpgradeClusterOutputSchema = {
 
 export class UpgradeClusterTool extends AtlasToolBase {
     static toolName = "atlas-upgrade-cluster";
-    public description = `Upgrade a MongoDB Atlas cluster tier. Upgrades Free (M0) clusters to Flex or M10 Dedicated, or Flex clusters to M10 Dedicated. The upgrade path is determined automatically from the current tier unless overridden with targetTier. Note to LLM: If provider and region are not already known, ask for both together in a single question before calling this tool. ${REGION_RECOMMENDATIONS}`;
+    public description =
+        "Upgrade a MongoDB Atlas cluster tier. Upgrades Free (M0) clusters to Flex or M10 Dedicated, or Flex clusters to M10 Dedicated. " +
+        "The upgrade path is determined automatically from the current tier unless overridden with targetTier. " +
+        "This tool is ONLY for Free and Flex clusters: to change the instance size or autoscaling of a cluster that is already Dedicated (M10+), use the atlas-scale-cluster tool instead. " +
+        "Note to LLM: If provider and region are not already known, ask for both together in a single question before calling this tool. " +
+        REGION_RECOMMENDATIONS;
     static operationType: OperationType = "update";
     public override outputSchema = UpgradeClusterOutputSchema;
     public argsShape = {
@@ -169,7 +163,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
     ): Promise<ToolResult<typeof this.outputSchema>> {
         const { projectId, clusterName } = args;
 
-        const clusterInfo = await resolveClusterInfo(
+        const clusterInfo = await resolveUpgradeClusterInfo(
             this.apiClient,
             projectId,
             clusterName,

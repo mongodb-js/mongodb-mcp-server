@@ -4,6 +4,7 @@ import type {
     FlexClusterDescription20241113,
 } from "./openapi.js";
 import { type ApiClient, type ApiClientRequestContext } from "./apiClient.js";
+import { ApiClientError } from "./apiClientError.js";
 import { requestIdAttr } from "../../helpers/requestIdAttr.js";
 import { LogId } from "../logging/index.js";
 import { ConnectionString } from "mongodb-connection-string-url";
@@ -95,6 +96,43 @@ export function formatCluster(cluster: ClusterDescription20240805): Cluster {
         connectionStrings: cluster.connectionStrings,
         processIds: extractProcessIds(cluster.connectionStrings?.standard ?? ""),
     };
+}
+
+export type ResolvedClusterInfo = {
+    instanceType: "FREE" | "FLEX" | "DEDICATED";
+    cluster?: Cluster;
+    raw?: ClusterDescription20240805;
+    flexRaw?: FlexClusterDescription20241113;
+};
+
+// Fetches a cluster via the dedicated Cluster API, falling back to the Flex endpoint on 400/404 (Flex/missing).
+// Surfaces the original error if the Flex lookup also fails.
+// Returns raw payloads so callers extract their own fields.
+export async function resolveClusterInfo(
+    apiClient: Pick<ApiClient, "getCluster" | "getFlexCluster">,
+    projectId: string,
+    clusterName: string,
+    context?: ApiClientRequestContext
+): Promise<ResolvedClusterInfo> {
+    try {
+        const raw = await apiClient.getCluster({ params: { path: { groupId: projectId, clusterName } } }, context);
+        const cluster = formatCluster(raw);
+        return { instanceType: cluster.instanceType, cluster, raw };
+    } catch (err) {
+        if (!(err instanceof ApiClientError) || (err.response.status !== 404 && err.response.status !== 400)) {
+            throw err;
+        }
+        let flexRaw: FlexClusterDescription20241113;
+        try {
+            flexRaw = await apiClient.getFlexCluster(
+                { params: { path: { groupId: projectId, name: clusterName } } },
+                context
+            );
+        } catch {
+            throw err;
+        }
+        return { instanceType: "FLEX", flexRaw };
+    }
 }
 
 export async function inspectCluster(

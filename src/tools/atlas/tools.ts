@@ -14,6 +14,7 @@ export { ConnectClusterTool, type ConnectClusterOutput } from "./connect/connect
 export { ListAlertsTool } from "./read/listAlerts.js";
 export { GetPerformanceAdvisorTool } from "./read/getPerformanceAdvisor.js";
 export { UpgradeClusterTool } from "./update/upgradeCluster.js";
+export { ScaleClusterTool } from "./update/scaleCluster.js";
 export { PauseResumeClusterTool } from "./update/pauseResumeCluster.js";
 export { StreamsDiscoverTool } from "./streams/discover.js";
 export { StreamsBuildTool } from "./streams/build.js";

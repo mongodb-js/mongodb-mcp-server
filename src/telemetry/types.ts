@@ -239,6 +239,7 @@ export type TelemetryToolMetadata =
     | PerfAdvisorToolMetadata
     | StreamsToolMetadata
     | UpgradeClusterMetadata
+    | ScaleClusterMetadata
     | CreateClusterMetadata
     | IndexMetadata
     | PauseResumeClusterMetadata;
@@ -286,6 +287,14 @@ export type UpgradeClusterMetadata = AtlasMetadata & {
     cluster_id?: string;
     provider?: string;
     region?: string;
+};
+
+export type ScaleClusterMetadata = AtlasMetadata & {
+    cluster_id?: string;
+    instance_size?: string;
+    compute_auto_scaling?: TelemetryBoolSet;
+    min_instance_size?: string;
+    max_instance_size?: string;
 };
 
 export type PauseResumeClusterMetadata = AtlasMetadata & {

@@ -375,11 +375,12 @@ For more information about configuring OpenCode as an MCP client, including the 
 - `atlas-list-projects` - List MongoDB Atlas projects.
 - `atlas-load-sample-dataset` - Load a MongoDB sample dataset into an Atlas cluster, or check the status of a previously-initiated load. To start a new load, provide `clusterName` — the load runs asynchronously and the response includes a `jobId` and initial state. To check progress, call this tool again with `jobId` (sample dataset loads typically take 1–5 minutes). State can be WORKING, COMPLETED, or FAILED.
 - `atlas-pause-resume-cluster` - Pause or resume a dedicated (M10+) MongoDB Atlas cluster.
+- `atlas-scale-cluster` - Scale a dedicated (M10+) MongoDB Atlas cluster by changing its instance size and/or compute autoscaling bounds (electable and read-only nodes only; analytics nodes are not scaled). Supports standard M-series tiers up to M80; for larger sizes use the Atlas CLI (`atlas clusters update`) or UI. This tool does NOT change cluster tiers: to move a Free (M0) or Flex cluster to a dedicated tier, use the atlas-upgrade-cluster tool instead. Returns immediately; poll readiness (state: IDLE) with atlas-inspect-cluster. Note to LLM: provide at least one of instanceSize, computeAutoScaling, minInstanceSize, or maxInstanceSize.
 - `atlas-streams-build` - Create Atlas Stream Processing resources. Use this tool for 'set up a Kafka pipeline', 'create a workspace', 'add a connection', or 'deploy a processor'. Use resource='workspace' to create a new workspace (specify cloud provider, region, and tier). Use resource='connection' to add a data source or sink to an existing workspace. Use resource='processor' to deploy a stream processor with a pipeline. Use resource='privatelink' to set up private networking. Typical workflow: create workspace → add connections → deploy processor.
 - `atlas-streams-discover` - Discover and inspect Atlas Stream Processing resources. Also use for 'why is my processor failing', 'what workspaces do I have', 'show processor stats', or 'check processor health'. Use 'list-workspaces' to see all workspaces in a project. Use inspect actions for details on a specific resource. Use 'diagnose-processor' for a combined health report including state, stats, connection health, and recent errors. Use 'get-networking' for PrivateLink and account details.
 - `atlas-streams-manage` - Manage Atlas Stream Processing resources: start/stop processors, modify pipelines, update configurations. Also use for 'change the pipeline', 'scale up my processor', or 'update my workspace tier'. Common workflow: action='stop-processor' → action='modify-processor' → action='start-processor'. Use `atlas-streams-discover` with action 'inspect-processor' to check state before managing.
 - `atlas-streams-teardown` - Delete Atlas Stream Processing resources. Also use for 'remove my workspace', 'disconnect a source', 'delete all processors', or 'clean up my streams environment'. Performs basic safety checks before deletion: summarizes counts of processors and connections, highlights connections referenced by processors where possible, and surfaces API errors if processors are still running when deletion is attempted. Use `atlas-streams-discover` to review resources before deleting.
-- `atlas-upgrade-cluster` - Upgrade a MongoDB Atlas cluster tier. Upgrades Free (M0) clusters to Flex or M10 Dedicated, or Flex clusters to M10 Dedicated. The upgrade path is determined automatically from the current tier unless overridden with targetTier. Note to LLM: If provider and region are not already known, ask for both together in a single question before calling this tool. Common region mappings by provider (default recommendation: AWS US_EAST_1):
+- `atlas-upgrade-cluster` - Upgrade a MongoDB Atlas cluster tier. Upgrades Free (M0) clusters to Flex or M10 Dedicated, or Flex clusters to M10 Dedicated. The upgrade path is determined automatically from the current tier unless overridden with targetTier. This tool is ONLY for Free and Flex clusters: to change the instance size or autoscaling of a cluster that is already Dedicated (M10+), use the atlas-scale-cluster tool instead. Note to LLM: If provider and region are not already known, ask for both together in a single question before calling this tool. Common region mappings by provider (default recommendation: AWS US_EAST_1):
   AWS: "East Coast"/"Virginia"/"US East" → US_EAST_1, "Ohio" → US_EAST_2, "California"/"West Coast" → US_WEST_2, "Southeast Asia"/"APAC"/"Singapore" → AP_SOUTHEAST_1, "Europe"/"EU"/"Ireland" → EU_WEST_1.
   GCP: "Central US" → CENTRAL_US, "Western US" → WESTERN_US, "Southeast Asia"/"APAC" → SOUTHEASTERN_ASIA_PACIFIC, "Europe"/"EU" → WESTERN_EUROPE.
   AZURE: "East US" → US_EAST_2, "West US" → US_WEST_2, "Europe"/"EU" → EUROPE_NORTH.
@@ -667,15 +668,15 @@ To learn more about Service Accounts, check the [MongoDB Atlas documentation](ht
 
 #### Quick Reference: Required roles per operation
 
-| What you want to do                  | Safest Role to Assign (where)             |
-| ------------------------------------ | ----------------------------------------- |
-| List orgs/projects                   | Org Member or Org Read Only (Org)         |
-| Create new projects                  | Org Project Creator (Org)                 |
-| View clusters/databases in a project | Project Read Only (Project)               |
-| Create/manage clusters in a project  | Project Cluster Manager (Project)         |
-| Manage project access lists          | Project IP Access List Admin (Project)    |
-| Manage database users                | Project Database Access Admin (Project)   |
-| Manage stream processing resources   | Project Stream Processing Owner (Project) |
+| What you want to do                       | Safest Role to Assign (where)             |
+| ----------------------------------------- | ----------------------------------------- |
+| List orgs/projects                        | Org Member or Org Read Only (Org)         |
+| Create new projects                       | Org Project Creator (Org)                 |
+| View clusters/databases in a project      | Project Read Only (Project)               |
+| Create/scale/manage clusters in a project | Project Cluster Manager (Project)         |
+| Manage project access lists               | Project IP Access List Admin (Project)    |
+| Manage database users                     | Project Database Access Admin (Project)   |
+| Manage stream processing resources        | Project Stream Processing Owner (Project) |
 
 - **Prefer project-level roles** for most operations. Assign only to the specific projects you need to manage or view.
 - **Avoid Organization Owner** unless you require full administrative control over all projects and settings in the organization.
