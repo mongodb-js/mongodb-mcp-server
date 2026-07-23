@@ -56,7 +56,7 @@ If the user has asked for lexical/Atlas search, use \`$search\` instead of \`$te
 - The \`$search\` stage supports multiple operators, such as 'autocomplete', 'text', 'geoWithin', and others. Choose the appropriate operator based on the user's query. If unsure of the exact syntax, consult the MongoDB Atlas Search documentation, which can be found here: https://www.mongodb.com/docs/atlas/atlas-search/operators-and-collectors/
 
 ### Usage Rules for \`$rankFusion\` and \`$scoreFusion\` (Hybrid Search)
-Use this stage when the user wants to combine full-text (\`$search\`) and vector
+Use these stages when the user wants to combine full-text (\`$search\`) and vector
 (\`$vectorSearch\`) retrieval into a single fused result set. **Prefer native
 fusion over a \`$unionWith\` + \`$group\` workaround** — the workaround averages
 incompatible score scales and produces wrong rankings.
@@ -81,7 +81,7 @@ incompatible score scales and produces wrong rankings.
 - Add \`$unset\` at the end to remove embedding fields and avoid context bloat.
 
 ### Usage Rules for \`$rerank\` (Native Reranking)
-Use these stages when the user wants to reorder a set of candidate documents using a cross-encoder reranker model.
+Use this stage when the user wants to reorder a set of candidate documents using a cross-encoder reranker model.
 
 **Construction rules:**
 - \`$rerank\` can be any stage in the pipeline on an Atlas cluster running MongoDB 8.3 or higher.
