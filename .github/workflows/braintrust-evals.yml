@@ -14,6 +14,7 @@ jobs:
   run-braintrust-evals:
     name: Run Braintrust Evals
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
       pull-requests: write
@@ -23,8 +24,9 @@ jobs:
       VOYAGE_API_KEY: ${{ secrets.TEST_MDB_MCP_VOYAGE_API_KEY }}
       EMBEDDING_PROVIDER_ENDPOINT: "https://api.voyageai.com/v1/embeddings"
       GIT_BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
-      # Limits concurrent evals to avoid slowdowns from simultaneous database or text/vector index creation per eval case
-      EVAL_MAX_CONCURRENCY: 25
+      # Limits concurrent evals to avoid CPU/memory starvation on the runner from simultaneous
+      # database or text/vector index creation per eval case (ubuntu-latest is only 2 vCPU / 7GB RAM)
+      EVAL_MAX_CONCURRENCY: 8
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
       - uses: actions/checkout@v7
