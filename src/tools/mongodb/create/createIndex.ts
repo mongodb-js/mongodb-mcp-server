@@ -176,7 +176,11 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
                                 .array(
                                     z
                                         .object({
-                                            type: z.enum(["htmlStrip", "icuNormalize", "mapping", "persian"]),
+                                            type: z
+                                                .string()
+                                                .describe(
+                                                    "Char filter type, e.g. 'htmlStrip', 'icuNormalize', 'mapping', 'persian'."
+                                                ),
                                         })
                                         .passthrough()
                                 )
@@ -186,16 +190,11 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
                                 ),
                             tokenizer: z
                                 .object({
-                                    type: z.enum([
-                                        "edgeGram",
-                                        "keyword",
-                                        "nGram",
-                                        "regexCaptureGroup",
-                                        "regexSplit",
-                                        "standard",
-                                        "uaxUrlEmail",
-                                        "whitespace",
-                                    ]),
+                                    type: z
+                                        .string()
+                                        .describe(
+                                            "Tokenizer type, e.g. 'standard', 'whitespace', 'keyword', 'nGram', 'edgeGram'."
+                                        ),
                                 })
                                 .passthrough()
                                 .describe(
@@ -205,32 +204,11 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
                                 .array(
                                     z
                                         .object({
-                                            type: z.enum([
-                                                "asciiFolding",
-                                                "daitchMokotoffSoundex",
-                                                "edgeGram",
-                                                "englishMinimalStemming",
-                                                "englishPossessive",
-                                                "flattenGraph",
-                                                "icuFolding",
-                                                "icuNormalizer",
-                                                "keywordRepeat",
-                                                "kStemming",
-                                                "length",
-                                                "lowercase",
-                                                "nGram",
-                                                "porterStemming",
-                                                "regex",
-                                                "removeDuplicates",
-                                                "reverse",
-                                                "shingle",
-                                                "snowballStemming",
-                                                "spanishPluralStemming",
-                                                "stempel",
-                                                "stopword",
-                                                "trim",
-                                                "wordDelimiterGraph",
-                                            ]),
+                                            type: z
+                                                .string()
+                                                .describe(
+                                                    "Token filter type, e.g. 'lowercase', 'stopword', 'snowballStemming', 'asciiFolding', 'shingle'."
+                                                ),
                                         })
                                         .passthrough()
                                 )
