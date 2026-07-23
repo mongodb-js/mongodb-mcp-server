@@ -620,9 +620,28 @@ export class CreateIndexTool extends MongoDBToolBase {
         }, z.core.$strip>, z.ZodObject<{
             type: z.ZodLiteral<"search">;
             analyzer: z.ZodDefault<z.ZodOptional<z.ZodString>>;
-            mappings: z.ZodObject<{
-                dynamic: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
-                fields: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodObject<{
+            analyzers: z.ZodOptional<z.ZodArray<z.ZodObject<{
+                name: z.ZodString;
+                charFilters: z.ZodOptional<z.ZodArray<z.ZodObject<{
+                    type: z.ZodString;
+                }, z.core.$loose>>>;
+                tokenizer: z.ZodObject<{
+                    type: z.ZodString;
+                }, z.core.$loose>;
+                tokenFilters: z.ZodOptional<z.ZodArray<z.ZodObject<{
+                    type: z.ZodString;
+                }, z.core.$loose>>>;
+            }, z.core.$strip>>>;
+            synonyms: z.ZodOptional<z.ZodArray<z.ZodObject<{
+                name: z.ZodString;
+                source: z.ZodObject<{
+                    collection: z.ZodString;
+                }, z.core.$strip>;
+                analyzer: z.ZodString;
+            }, z.core.$strip>>>;
+            typeSets: z.ZodOptional<z.ZodArray<z.ZodObject<{
+                name: z.ZodString;
+                types: z.ZodArray<z.ZodObject<{
                     type: z.ZodEnum<{
                         string: "string";
                         number: "number";
@@ -630,14 +649,56 @@ export class CreateIndexTool extends MongoDBToolBase {
                         date: "date";
                         uuid: "uuid";
                         autocomplete: "autocomplete";
-                        document: "document";
-                        embeddedDocuments: "embeddedDocuments";
                         geo: "geo";
                         objectId: "objectId";
                         token: "token";
                     }>;
-                }, z.core.$loose>>>;
+                }, z.core.$strip>>;
+            }, z.core.$strip>>>;
+            mappings: z.ZodObject<{
+                dynamic: z.ZodDefault<z.ZodOptional<z.ZodUnion<readonly [z.ZodBoolean, z.ZodObject<{
+                    typeSet: z.ZodString;
+                }, z.core.$strict>]>>>;
+                fields: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnion<readonly [z.ZodObject<{
+                    type: z.ZodEnum<{
+                        string: "string";
+                        number: "number";
+                        boolean: "boolean";
+                        date: "date";
+                        uuid: "uuid";
+                        autocomplete: "autocomplete";
+                        geo: "geo";
+                        objectId: "objectId";
+                        token: "token";
+                        dateFacet: "dateFacet";
+                        document: "document";
+                        embeddedDocuments: "embeddedDocuments";
+                        numberFacet: "numberFacet";
+                        stringFacet: "stringFacet";
+                    }>;
+                }, z.core.$loose>, z.ZodArray<z.ZodObject<{
+                    type: z.ZodEnum<{
+                        string: "string";
+                        number: "number";
+                        boolean: "boolean";
+                        date: "date";
+                        uuid: "uuid";
+                        autocomplete: "autocomplete";
+                        geo: "geo";
+                        objectId: "objectId";
+                        token: "token";
+                        dateFacet: "dateFacet";
+                        document: "document";
+                        embeddedDocuments: "embeddedDocuments";
+                        numberFacet: "numberFacet";
+                        stringFacet: "stringFacet";
+                    }>;
+                }, z.core.$loose>>]>>>;
             }, z.core.$strip>;
+            storedSource: z.ZodOptional<z.ZodUnion<readonly [z.ZodBoolean, z.ZodObject<{
+                include: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                exclude: z.ZodOptional<z.ZodArray<z.ZodString>>;
+            }, z.core.$strict>]>>;
             numPartitions: z.ZodPipe<z.ZodDefault<z.ZodUnion<readonly [z.ZodLiteral<"1">, z.ZodLiteral<"2">, z.ZodLiteral<"4">]>>, z.ZodTransform<number, "1" | "2" | "4">>;
         }, z.core.$strip>], "type">>;
         collection: z.ZodString;
