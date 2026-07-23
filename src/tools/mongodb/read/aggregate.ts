@@ -53,10 +53,10 @@ If the user has asked for lexical/Atlas search, use \`$search\` instead of \`$te
 
 ### Usage Rules for \`$search\`
 - Include the index name, unless you know for a fact there's a default index. If unsure, use the collection-indexes tool to determine the index name.
-- The \`$search\` stage supports multiple operators, such as 'autocomplete', 'text', 'geoWithin', and others. Choose the approprate operator based on the user's query. If unsure of the exact syntax, consult the MongoDB Atlas Search documentation, which can be found here: https://www.mongodb.com/docs/atlas/atlas-search/operators-and-collectors/
+- The \`$search\` stage supports multiple operators, such as 'autocomplete', 'text', 'geoWithin', and others. Choose the appropriate operator based on the user's query. If unsure of the exact syntax, consult the MongoDB Atlas Search documentation, which can be found here: https://www.mongodb.com/docs/atlas/atlas-search/operators-and-collectors/
 
 ### Usage Rules for \`$rankFusion\` and \`$scoreFusion\` (Hybrid Search)
-Use these stages when the user wants to combine full-text (\`$search\`) and vector
+Use this stage when the user wants to combine full-text (\`$search\`) and vector
 (\`$vectorSearch\`) retrieval into a single fused result set. **Prefer native
 fusion over a \`$unionWith\` + \`$group\` workaround** — the workaround averages
 incompatible score scales and produces wrong rankings.
