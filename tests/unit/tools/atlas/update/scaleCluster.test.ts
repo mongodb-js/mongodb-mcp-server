@@ -298,6 +298,26 @@ describe("ScaleClusterTool", () => {
         });
     });
 
+    describe("current tier above the M80 cap", () => {
+        it("does not compute a max below min when enabling autoscaling with no prior max", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(dedicatedRaw("M100"));
+            await exec({ projectId: "proj1", clusterName: "MyCluster", computeAutoScaling: true });
+            expect(computeFromCall()).toMatchObject({ minInstanceSize: "M100", maxInstanceSize: undefined });
+        });
+
+        it("preserves the existing max instead of computing a smaller one", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(dedicatedRaw("M100", "M300"));
+            await exec({ projectId: "proj1", clusterName: "MyCluster", computeAutoScaling: true });
+            expect(computeFromCall()).toMatchObject({ minInstanceSize: "M100", maxInstanceSize: "M300" });
+        });
+
+        it("still honors an explicit maxInstanceSize", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(dedicatedRaw("M100"));
+            await exec({ projectId: "proj1", clusterName: "MyCluster", maxInstanceSize: "M200" });
+            expect(computeFromCall()).toMatchObject({ minInstanceSize: "M100", maxInstanceSize: "M200" });
+        });
+    });
+
     describe("node scaling scope", () => {
         function rawWithAllNodeTypes(): Record<string, unknown> {
             return {

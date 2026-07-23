@@ -7,6 +7,10 @@ export const standardInstanceSizeEnum = z.enum(STANDARD_INSTANCE_SIZES);
 
 export type StandardInstanceSize = z.infer<typeof standardInstanceSizeEnum>;
 
+export function isStandardInstanceSize(size: string): size is StandardInstanceSize {
+    return (STANDARD_INSTANCE_SIZES as readonly string[]).includes(size);
+}
+
 // Two standard tiers above `size`, capped at M80.
 export function twoStandardTiersAbove(size: StandardInstanceSize): StandardInstanceSize {
     const idx = STANDARD_INSTANCE_SIZES.indexOf(size);

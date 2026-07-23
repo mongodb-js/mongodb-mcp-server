@@ -5,6 +5,7 @@ import { resolveClusterInfo } from "../../../common/atlas/cluster.js";
 import {
     standardInstanceSizeEnum as instanceSizeEnum,
     twoStandardTiersAbove as twoTiersAbove,
+    isStandardInstanceSize,
     type StandardInstanceSize as InstanceSize,
 } from "../../../common/atlas/instanceSizes.js";
 import type { ClusterDescription20240805 } from "../../../common/atlas/openapi.js";
@@ -181,7 +182,10 @@ export class ScaleClusterTool extends AtlasToolBase {
         }
 
         const min = args.minInstanceSize ?? args.instanceSize ?? currentSize;
-        const max = args.maxInstanceSize ?? preserveHigherMax(twoTiersAbove(min), currentMax);
+        // Avoid computing a max below min when min is above the standard M80 cap.
+        const max =
+            args.maxInstanceSize ??
+            (isStandardInstanceSize(min) ? preserveHigherMax(twoTiersAbove(min), currentMax) : currentMax);
         return {
             enabled: true,
             scaleDownEnabled: true,
