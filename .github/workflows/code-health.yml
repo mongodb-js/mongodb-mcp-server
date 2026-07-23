@@ -78,6 +78,13 @@ jobs:
           MDB_MCP_API_CLIENT_ID: ${{ secrets.TEST_ATLAS_CLIENT_ID }}
           MDB_MCP_API_CLIENT_SECRET: ${{ secrets.TEST_ATLAS_CLIENT_SECRET }}
           MDB_MCP_API_BASE_URL: ${{ vars.TEST_ATLAS_BASE_URL }}
+          MDB_MCP_AZURE_CMK_SUBSCRIPTION_ID: ${{ secrets.TEST_MDB_MCP_AZURE_CMK_SUBSCRIPTION_ID }}
+          MDB_MCP_AZURE_CMK_TENANT_ID: ${{ secrets.TEST_MDB_MCP_AZURE_CMK_TENANT_ID }}
+          MDB_MCP_AZURE_CMK_ATLAS_APP_ID: ${{ secrets.TEST_MDB_MCP_AZURE_CMK_ATLAS_APP_ID }}
+          MDB_MCP_AZURE_CMK_SERVICE_PRINCIPAL_ID: ${{ secrets.TEST_MDB_MCP_AZURE_CMK_SERVICE_PRINCIPAL_ID }}
+          MDB_MCP_AZURE_CMK_RESOURCE_GROUP_NAME: ${{ secrets.TEST_MDB_MCP_AZURE_CMK_RESOURCE_GROUP_NAME }}
+          MDB_MCP_AZURE_CMK_KEY_VAULT_NAME: ${{ secrets.TEST_MDB_MCP_AZURE_CMK_KEY_VAULT_NAME }}
+          MDB_MCP_AZURE_CMK_KEY_IDENTIFIER: ${{ secrets.TEST_MDB_MCP_AZURE_CMK_KEY_IDENTIFIER }}
         run: pnpm test tests/integration/tools/atlas/
       - name: Upload test results
         uses: actions/upload-artifact@v7.0.1
