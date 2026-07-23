@@ -5,23 +5,14 @@ import type { components, paths, operations } from "./openapi.js";
 import type { CommonProperties, TelemetryEvent } from "../../telemetry/types.js";
 import { packageInfo } from "../packageInfo.js";
 import type { LoggerBase } from "../logging/index.js";
-import { createFetch } from "@mongodb-js/devtools-proxy-support";
 import { Request as NodeFetchRequest } from "node-fetch";
+import { getSharedProxyFetch } from "../proxyFetch.js";
 import type { Credentials, AuthProvider } from "./auth/authProvider.js";
 import { AuthProviderFactory } from "./auth/authProvider.js";
+import { isNodeRuntime } from "../../helpers/isNodeRuntime.js";
 
 const ATLAS_API_VERSION = "2025-03-12";
 const DEFAULT_SEND_TIMEOUT_MS = 5_000;
-
-/**
- * Detects whether we're running on Node.js as opposed to a browser/web
- * environment. We rely on `process.versions.node` rather than `typeof process`
- * because bundlers (e.g. Vite) may replace `process` with a literal object
- * shim in the browser build, which would still be `"object"` at runtime.
- */
-function isNodeRuntime(): boolean {
-    return typeof process !== "undefined" && process.versions !== undefined && process.versions.node !== undefined;
-}
 
 export interface ApiClientOptions {
     baseUrl: string;
@@ -89,24 +80,7 @@ export class ApiClient {
         public readonly logger: LoggerBase,
         public readonly authProvider?: AuthProvider
     ) {
-        // In Node we use `createFetch` from devtools-proxy-support to pick up
-        // environment-variable proxy configuration and system CA trust, and we
-        // use node-fetch's Request since its interface is a superset of the
-        // web Request. In the browser those Node-only concerns don't apply and
-        // the implementations aren't available, so we fall back to the native
-        // `fetch`/`Request` globals.
-        if (isNodeRuntime()) {
-            // createFetch assumes that the first parameter of fetch is always a string
-            // with the URL. However, fetch can also receive a Request object. While
-            // the typechecking complains, createFetch does passthrough the parameters
-            // so it works fine. That said, node-fetch has incompatibilities with the web version
-            // of fetch and can lead to genuine issues so we would like to move away of node-fetch dependency.
-            this.customFetch = createFetch({
-                useEnvironmentVariableProxies: true,
-            }) as unknown as typeof fetch;
-        } else {
-            this.customFetch = globalThis.fetch.bind(globalThis);
-        }
+        this.customFetch = getSharedProxyFetch();
         this.options = {
             ...options,
             userAgent:

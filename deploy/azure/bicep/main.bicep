@@ -8,7 +8,7 @@ param containerAppEnvironmentName string = ''
 param containerAppName string = 'mongo-mcp-server-app'
 
 @description('Docker image to deploy')
-param containerImage string = 'mongodb/mongodb-mcp-server:1.15.0-alpha.5'
+param containerImage string = 'mongodb/mongodb-mcp-server:1.15.0-alpha.9'
 
 @description('Container CPU (vCPU) as string. Allowed: 0.25 - 2.0 in 0.25 increments')
 @allowed([

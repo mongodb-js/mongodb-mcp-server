@@ -1,6 +1,6 @@
 import { ToolBase, type ToolConstructorParams } from "../tool.js";
 import type { TelemetryToolMetadata } from "../../telemetry/types.js";
-import { createFetch } from "@mongodb-js/devtools-proxy-support";
+import { getSharedProxyFetch } from "../../common/proxyFetch.js";
 import type { Server } from "../../server.js";
 import { packageInfo } from "../../common/packageInfo.js";
 
@@ -40,11 +40,9 @@ export abstract class AssistantToolBase extends ToolBase {
             headers.set("Content-Type", "application/json");
         }
 
-        // Use the same custom fetch implementation as the Atlas API client.
-        // We need this to support enterprise proxies.
-        const customFetch = createFetch({
-            useEnvironmentVariableProxies: true,
-        }) as unknown as typeof fetch;
+        // Shared, memoized proxy-aware fetch (enterprise proxy support), same
+        // as ApiClient.
+        const customFetch = getSharedProxyFetch();
 
         return await customFetch(endpointUrl, {
             method: args.method,
