@@ -339,15 +339,17 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
                 .refine(
                     (data) => {
                         const dynamicEnabled = typeof data.dynamic === "boolean" ? data.dynamic : true;
-                        return dynamicEnabled !== !!(data.fields && Object.keys(data.fields).length > 0);
+                        if (dynamicEnabled) {
+                            return true;
+                        }
+                        return !!(data.fields && Object.keys(data.fields).length > 0);
                     },
                     {
-                        message:
-                            "Either `dynamic` must be `true` (or a typeSet object) and `fields` empty, or `dynamic` must be `false` and at least one field must be defined in `fields`",
+                        message: "At least one field must be defined in `fields` when `dynamic` is `false`",
                     }
                 )
                 .describe(
-                    "Document describing the index to create. Either `dynamic` must be `true` (or a typeSet object) and `fields` empty, or `dynamic` must be `false` and at least one field must be defined in the `fields` document."
+                    "Document describing the index to create. `fields` is required and must define at least one field when `dynamic` is `false` (the default). When `dynamic` is `true` or a typeSet object, `fields` may still be provided to index additional fields explicitly."
                 ),
             storedSource: z
                 .union([
