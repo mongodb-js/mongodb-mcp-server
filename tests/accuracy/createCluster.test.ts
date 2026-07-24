@@ -441,4 +441,82 @@ describeAccuracyTests([
             },
         ],
     },
+    {
+        prompt: `Create a cluster named "${CLUSTER_NAME}" in project "${PROJECT_ID}" on AWS in US_EAST_1 and enable KMS via AWS`,
+        mockedTools: {
+            ...mockListProjects,
+            "atlas-create-cluster": mockCreateClusterResponse({
+                projectId: PROJECT_ID,
+                clusterName: CLUSTER_NAME,
+                provider: "AWS",
+                region: "US_EAST_1",
+            }),
+        },
+        expectedToolCalls: [
+            ...optionalListProjects,
+            {
+                toolName: "atlas-create-cluster",
+                parameters: {
+                    projectId: PROJECT_ID,
+                    clusterName: CLUSTER_NAME,
+                    provider: "AWS",
+                    region: "US_EAST_1",
+                    encryptionAtRestProvider: "AWS",
+                    clusterType: Matcher.anyOf(Matcher.undefined, Matcher.value("REPLICASET")),
+                },
+            },
+        ],
+    },
+    {
+        prompt: `Create a cluster named "${CLUSTER_NAME}" in project "${PROJECT_ID}" on Azure in EUROPE_WEST and use GCP for encryption at rest`,
+        mockedTools: {
+            ...mockListProjects,
+            "atlas-create-cluster": mockCreateClusterResponse({
+                projectId: PROJECT_ID,
+                clusterName: CLUSTER_NAME,
+                provider: "AZURE",
+                region: "EUROPE_WEST",
+            }),
+        },
+        expectedToolCalls: [
+            ...optionalListProjects,
+            {
+                toolName: "atlas-create-cluster",
+                parameters: {
+                    projectId: PROJECT_ID,
+                    clusterName: CLUSTER_NAME,
+                    provider: "AZURE",
+                    region: "EUROPE_WEST",
+                    encryptionAtRestProvider: "GCP",
+                    clusterType: Matcher.anyOf(Matcher.undefined, Matcher.value("REPLICASET")),
+                },
+            },
+        ],
+    },
+    {
+        prompt: `Create a cluster named "${CLUSTER_NAME}" in project "${PROJECT_ID}" on AWS in US_EAST_1 and disable encryption`,
+        mockedTools: {
+            ...mockListProjects,
+            "atlas-create-cluster": mockCreateClusterResponse({
+                projectId: PROJECT_ID,
+                clusterName: CLUSTER_NAME,
+                provider: "AWS",
+                region: "US_EAST_1",
+            }),
+        },
+        expectedToolCalls: [
+            ...optionalListProjects,
+            {
+                toolName: "atlas-create-cluster",
+                parameters: {
+                    projectId: PROJECT_ID,
+                    clusterName: CLUSTER_NAME,
+                    provider: "AWS",
+                    region: "US_EAST_1",
+                    encryptionAtRestProvider: "NONE",
+                    clusterType: Matcher.anyOf(Matcher.undefined, Matcher.value("REPLICASET")),
+                },
+            },
+        ],
+    },
 ]);

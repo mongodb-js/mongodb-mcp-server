@@ -403,9 +403,17 @@ export class CreateClusterTool extends AtlasToolBase {
             CONTINUOUS: "CONTINUOUS";
         }>>;
         terminationProtectionEnabled: z.ZodDefault<z.ZodBoolean>;
+        encryptionAtRestProvider: z.ZodOptional<z.ZodEnum<{
+            AWS: "AWS";
+            AZURE: "AZURE";
+            GCP: "GCP";
+            NONE: "NONE";
+        }>>;
     };
     // (undocumented)
     description: string;
+    // (undocumented)
+    protected doesValidEARConfigExist(provider: CloudProvider, projectId: string, context: ToolExecutionContext): Promise<boolean>;
     // (undocumented)
     protected execute(args: ToolArgs<typeof CreateClusterTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof CreateClusterTool.outputSchema>>;
     // (undocumented)
@@ -447,6 +455,12 @@ export class CreateClusterTool extends AtlasToolBase {
         computeAutoScaling: z.ZodBoolean;
         terminationProtectionEnabled: z.ZodBoolean;
         diskSizeGB: z.ZodOptional<z.ZodNumber>;
+        encryptionAtRestProvider: z.ZodEnum<{
+            AWS: "AWS";
+            AZURE: "AZURE";
+            GCP: "GCP";
+            NONE: "NONE";
+        }>;
     };
     // (undocumented)
     protected resolveTelemetryMetadata(args: ToolArgs<typeof CreateClusterTool.argsShape>, context: {

@@ -431,6 +431,34 @@ export class ApiClient {
         return data;
     }
 
+    async createCloudProviderAccess(
+        options: FetchOptions<operations["createGroupCloudProviderAccess"]>,
+        context?: ApiClientRequestContext
+    ): Promise<components["schemas"]["CloudProviderAccessRole"]> {
+        const { data, error, response } = await this.client.POST(
+            "/api/atlas/v2/groups/{groupId}/cloudProviderAccess",
+            this.applyRequestContext(options, context)
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    async authorizeProviderAccessRole(
+        options: FetchOptions<operations["authorizeGroupCloudProviderAccessRole"]>,
+        context?: ApiClientRequestContext
+    ): Promise<components["schemas"]["CloudProviderAccessRole"]> {
+        const { data, error, response } = await this.client.PATCH(
+            "/api/atlas/v2/groups/{groupId}/cloudProviderAccess/{roleId}",
+            this.applyRequestContext(options, context)
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
     async listClusters(
         options: FetchOptions<operations["listGroupClusters"]>,
         context?: ApiClientRequestContext
@@ -597,6 +625,34 @@ export class ApiClient {
         if (error) {
             throw ApiClientError.fromError(response, error);
         }
+    }
+
+    async getEncryptionAtRest(
+        options: FetchOptions<operations["getGroupEncryptionAtRest"]>,
+        context?: ApiClientRequestContext
+    ): Promise<components["schemas"]["EncryptionAtRest"]> {
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/encryptionAtRest",
+            this.applyRequestContext(options, context)
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    async updateEncryptionAtRest(
+        options: FetchOptions<operations["updateGroupEncryptionAtRest"]>,
+        context?: ApiClientRequestContext
+    ): Promise<components["schemas"]["EncryptionAtRest"]> {
+        const { data, error, response } = await this.client.PATCH(
+            "/api/atlas/v2/groups/{groupId}/encryptionAtRest",
+            this.applyRequestContext(options, context)
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
     }
 
     async listFlexClusters(

@@ -6,12 +6,14 @@ import { AtlasArgs } from "../../args.js";
 import type { CreateClusterMetadata } from "../../../telemetry/types.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ensureCurrentIpInAccessList, getAccessListNote } from "../../../common/atlas/accessListUtils.js";
+import { ApiClientError } from "../../../common/atlas/apiClientError.js";
 
 /** @public */
 export const ATLAS_CREATE_CLUSTER_README_DESCRIPTION =
     "Create a MongoDB Atlas cluster (M10–M80, replica set or single shard). " +
     "Compute autoscaling is enabled by default: min instance size is set to the selected instance size, max is set two tiers above. " +
-    "Disk autoscaling is always enabled. The tool returns immediately, use the atlas-inspect-cluster tool to poll the cluster state for readiness (state: IDLE). " +
+    "Disk autoscaling is always enabled. Encryption at rest with customer-managed keys (CMK) is supported, the CMK provider must already have a valid encryption at rest configuration in the project. " +
+    "The tool returns immediately, use the atlas-inspect-cluster tool to poll the cluster state for readiness (state: IDLE). " +
     "Connection strings are unavailable until the cluster reaches IDLE state.";
 
 // Keeping this region recommendation string and the one for atlas-upgrade-cluster independent in the short term. The current effort is intentionally limited to additive changes only.
@@ -29,6 +31,7 @@ const cloudProviderEnum = z.enum(["AWS", "GCP", "AZURE"]);
 const clusterTypeEnum = z.enum(["REPLICASET", "SHARDED"]);
 const mongoDBVersionEnum = z.enum(["7.0", "8.0", "LATEST"]);
 const backupEnum = z.enum(["OFF", "SNAPSHOT", "CONTINUOUS"]);
+const encryptionAtRestProviderEnum = z.enum(["AWS", "AZURE", "GCP", "NONE"]);
 
 type InstanceSize = z.infer<typeof instanceSizeEnum>;
 type CloudProvider = z.infer<typeof cloudProviderEnum>;
@@ -184,6 +187,12 @@ export const CreateClusterArgsShape = {
         .describe(
             "When true, prevents the cluster from being deleted until protection is explicitly disabled. Recommended for production clusters. Defaults to false."
         ),
+
+    encryptionAtRestProvider: encryptionAtRestProviderEnum
+        .optional()
+        .describe(
+            "Customer-managed key provider for encryption at rest. Defaults to the cluster's provider if a valid configuration exists. Use `NONE` to explicitly disable the feature. Omit unless explicitly specified by the user."
+        ),
 };
 
 const CreateClusterOutputSchema = {
@@ -197,6 +206,7 @@ const CreateClusterOutputSchema = {
     computeAutoScaling: z.boolean(),
     terminationProtectionEnabled: z.boolean(),
     diskSizeGB: z.number().optional(),
+    encryptionAtRestProvider: encryptionAtRestProviderEnum,
 };
 
 export class CreateClusterTool extends AtlasToolBase {
@@ -205,7 +215,9 @@ export class CreateClusterTool extends AtlasToolBase {
     public description =
         "Create a MongoDB Atlas cluster (M10–M80, replica set or single shard). " +
         "Compute autoscaling is enabled by default: min instance size is set to the selected instance size, max is set two tiers above. " +
-        "Disk autoscaling is always enabled. The tool returns immediately, use the atlas-inspect-cluster tool to poll the cluster state for readiness (state: IDLE). " +
+        "Disk autoscaling is always enabled. " +
+        "For encryption at rest, the CMK provider must already have a valid configuration in the Atlas project. " +
+        "The tool returns immediately, use the atlas-inspect-cluster tool to poll the cluster state for readiness (state: IDLE). " +
         "Connection strings are unavailable until the cluster reaches IDLE state. " +
         "Note to LLM: Omit instance size unless specified by the user. If provider and region are not already known, ask for both together in a single question before calling this tool. " +
         REGION_RECOMMENDATIONS;
@@ -238,6 +250,12 @@ export class CreateClusterTool extends AtlasToolBase {
         const backupConfig = buildBackupConfig(args.backup);
         const versionConfig = buildVersionConfig(args.mongoDBVersion);
 
+        let encryptionAtRestProvider = args.encryptionAtRestProvider;
+        if (encryptionAtRestProvider === undefined) {
+            const validConfigExists = await this.doesValidEARConfigExist(provider, projectId, context);
+            encryptionAtRestProvider = validConfigExists ? provider : "NONE";
+        }
+
         const body = {
             name: clusterName,
             clusterType,
@@ -245,6 +263,7 @@ export class CreateClusterTool extends AtlasToolBase {
             terminationProtectionEnabled,
             ...backupConfig,
             ...versionConfig,
+            encryptionAtRestProvider,
         } as unknown as ClusterDescription20240805;
 
         const ipAccessListResult = await ensureCurrentIpInAccessList(this.apiClient, projectId, context);
@@ -281,8 +300,43 @@ export class CreateClusterTool extends AtlasToolBase {
                 computeAutoScaling: args.computeAutoScaling,
                 terminationProtectionEnabled,
                 diskSizeGB: args.diskSizeGB,
+                encryptionAtRestProvider,
             },
         };
+    }
+
+    protected async doesValidEARConfigExist(
+        provider: CloudProvider,
+        projectId: string,
+        context: ToolExecutionContext
+    ): Promise<boolean> {
+        try {
+            const encryptionAtRest = await this.apiClient.getEncryptionAtRest(
+                { params: { path: { groupId: projectId } } },
+                context
+            );
+
+            let config;
+            switch (provider) {
+                case "AWS":
+                    config = encryptionAtRest.awsKms;
+                    break;
+                case "AZURE":
+                    config = encryptionAtRest.azureKeyVault;
+                    break;
+                case "GCP":
+                    config = encryptionAtRest.googleCloudKms;
+                    break;
+            }
+
+            return config?.enabled === true && config.valid === true;
+        } catch (error) {
+            // If no permissions to fetch EAR configs, assume no valid configs and don't set any default.
+            if (error instanceof ApiClientError && error.response.status === 403) {
+                return false;
+            }
+            throw error;
+        }
     }
 
     protected override handleError(error: unknown, args: ToolArgs<typeof this.argsShape>): CallToolResult {
@@ -314,6 +368,7 @@ export class CreateClusterTool extends AtlasToolBase {
             termination_protection: sc !== undefined ? (sc.terminationProtectionEnabled ? "true" : "false") : undefined,
             disk_size_gb: sc?.diskSizeGB,
             mongodb_version: sc?.mongoDBVersion,
+            encryption_at_rest_provider: sc?.encryptionAtRestProvider,
         };
     }
 }
