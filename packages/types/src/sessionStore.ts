@@ -6,7 +6,7 @@ export type CloseableTransport = {
     close(): Promise<void>;
 };
 
-export type SessionCloseReason = "idle_timeout" | "transport_closed" | "server_stop" | "unknown";
+export type SessionCloseReason = "idle_timeout" | "transport_closed" | "server_stop" | "unknown" | "evicted";
 
 export interface ISessionStore<T extends CloseableTransport = CloseableTransport> {
     /**
@@ -44,7 +44,21 @@ export interface ISessionStore<T extends CloseableTransport = CloseableTransport
 }
 
 export type SessionStoreConstructorArgs<TMetrics extends MetricDefinitions = MetricDefinitions> = {
-    options: { idleTimeoutMS: number; notificationTimeoutMS: number; maxSessions: number };
+    options: {
+        idleTimeoutMS: number;
+        notificationTimeoutMS: number;
+        maxSessions: number;
+        /**
+         * When the store is at `maxSessions` and a new session arrives, evict the
+         * least-recently-used session instead of rejecting — but only if it has been
+         * idle for at least this long (ms). Must be < `idleTimeoutMS` (the background
+         * reaper already removes anything past that), or the valve never fires. If a
+         * session idle >= this exists, it is closed locally to make room; otherwise
+         * the new session is rejected. Defaults to 120_000 (2 min), clamped to
+         * `idleTimeoutMS`.
+         */
+        evictionIdleGraceMS?: number;
+    };
     logger: ILoggerBase;
     metrics: IMetrics<TMetrics>;
 };
