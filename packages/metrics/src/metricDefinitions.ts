@@ -1,4 +1,4 @@
-import { Counter, Histogram } from "prom-client";
+import { Counter, Gauge, Histogram } from "prom-client";
 
 /**
  * Creates a new set of default metrics for an MCP server.
@@ -26,6 +26,11 @@ export function createDefaultMetrics() {
             name: "mcp_session_closed",
             help: "Number of closed sessions in a pod's lifetime",
             labelNames: ["reason"] as const,
+            registers: [],
+        }),
+        sessionsActive: new Gauge({
+            name: "mcp_active_sessions",
+            help: "Sessions currently held in the pod's session store.",
             registers: [],
         }),
     } as const;
