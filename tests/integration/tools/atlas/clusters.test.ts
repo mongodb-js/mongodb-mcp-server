@@ -552,8 +552,6 @@ describeWithAtlas("clusters", (integration) => {
                             tenantId,
                         } as never,
                     });
-                    console.log("providerAccess");
-                    console.log(providerAccess);
                     const roleId = (providerAccess as { _id?: string })._id;
                     expectDefined(roleId);
 
@@ -581,8 +579,6 @@ describeWithAtlas("clusters", (integration) => {
                             },
                         } as never,
                     });
-                    console.log("encryptionAtRest");
-                    console.log(encryptionAtRest);
                     expect(encryptionAtRest.azureKeyVault).toMatchObject({ enabled: true, valid: true });
 
                     const response = await integration.mcpClient().callTool({
@@ -595,9 +591,6 @@ describeWithAtlas("clusters", (integration) => {
                             instanceSize: "M10",
                         },
                     });
-
-                    console.log("response");
-                    console.log(response);
 
                     expect(response.isError).toBeFalsy();
                     expect(response.structuredContent).toMatchObject({
