@@ -3,6 +3,8 @@
 
 # MongoDB MCP Server
 
+[![MCP Toplist](https://mcptoplist.com/badge/glama%2Fmongodb-js%2Fmongodb-mcp-server.svg)](https://mcptoplist.com/server/glama%2Fmongodb-js%2Fmongodb-mcp-server)
+
 A Model Context Protocol server for interacting with MongoDB Databases and MongoDB Atlas.
 
 ## 📚 Table of Contents
