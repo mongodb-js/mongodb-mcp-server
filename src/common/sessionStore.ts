@@ -247,6 +247,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
             logger,
         };
         this.metrics.get("sessionCreated").inc();
+        this.metrics.get("sessionsActive").set(Object.keys(this.sessions).length);
         return Promise.resolve();
     }
 
@@ -284,6 +285,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         }
 
         this.metrics.get("sessionClosed").inc({ reason: reason });
+        this.metrics.get("sessionsActive").set(Object.keys(this.sessions).length);
     }
 
     async closeAllSessions(): Promise<void> {
