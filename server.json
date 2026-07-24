@@ -6,12 +6,12 @@
     "url": "https://github.com/mongodb-js/mongodb-mcp-server",
     "source": "github"
   },
-  "version": "1.15.0-alpha.2",
+  "version": "1.15.0-alpha.10",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "mongodb-mcp-server",
-      "version": "1.15.0-alpha.2",
+      "version": "1.15.0-alpha.10",
       "transport": {
         "type": "stdio"
       },
