@@ -274,8 +274,16 @@ export class Server<
             message: `Resource updated: ${uri}`,
         });
 
-        if (this.subscriptions.has(uri)) {
-            void this.mcpServer.server.sendResourceUpdated({ uri });
+        if (this.subscriptions.has(uri) && this.mcpServer.isConnected()) {
+            void this.mcpServer.server.sendResourceUpdated({ uri }).catch((error: unknown) => {
+                this.session.logger.warning({
+                    id: LogId.resourceUpdateFailure,
+                    context: "resources",
+                    message: `Could not send resource update to client: ${
+                        error instanceof Error ? error.message : String(error)
+                    }`,
+                });
+            });
         }
     }
 
