@@ -471,7 +471,7 @@ describeWithAtlas("clusters", (integration) => {
                 expect(properties).toHaveProperty("projectId");
                 expect(properties).toHaveProperty("clusterName");
                 expect(properties).toHaveProperty("provider");
-                expect(properties).toHaveProperty("region");
+                expect(properties).toHaveProperty("regions");
                 expect(properties).toHaveProperty("clusterType");
                 expect(properties).toHaveProperty("instanceSize");
                 expect(properties).toHaveProperty("computeAutoScaling");
@@ -485,10 +485,10 @@ describeWithAtlas("clusters", (integration) => {
                 expect(required).toContain("projectId");
                 expect(required).toContain("clusterName");
                 expect(required).toContain("provider");
-                expect(required).toContain("region");
+                expect(required).toContain("regions");
             });
 
-            it("creates a dedicated cluster", async () => {
+            it("creates a multi-region dedicated cluster", async () => {
                 clusterName = "ClusterTest-" + randomId();
                 const projectId = getProjectId();
 
@@ -498,7 +498,7 @@ describeWithAtlas("clusters", (integration) => {
                         projectId,
                         clusterName,
                         provider: "AWS",
-                        region: "US_EAST_1",
+                        regions: ["US_EAST_1", "US_WEST_2"],
                         instanceSize: "M10",
                         diskSizeGB: 20,
                         encryptionAtRestProvider: "NONE",
@@ -510,12 +510,13 @@ describeWithAtlas("clusters", (integration) => {
                 const content = getResponseContent(response.content);
                 expect(content).toContain(clusterName);
                 expect(content).toContain(projectId);
+                expect(content).toContain("US_EAST_1, US_WEST_2");
                 expect(content).toContain("atlas-inspect-cluster");
                 expect(content).toContain("IDLE");
 
                 expect(response.structuredContent).toMatchObject({
                     provider: "AWS",
-                    region: "US_EAST_1",
+                    regions: ["US_EAST_1", "US_WEST_2"],
                     instanceSize: "M10",
                     clusterType: "REPLICASET",
                     mongoDBVersion: "LATEST",
@@ -587,7 +588,7 @@ describeWithAtlas("clusters", (integration) => {
                             projectId,
                             clusterName: clusterName,
                             provider: "AZURE",
-                            region: "US_EAST_2",
+                            regions: ["US_EAST_2"],
                             instanceSize: "M10",
                         },
                     });

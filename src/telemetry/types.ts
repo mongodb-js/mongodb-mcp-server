@@ -296,7 +296,7 @@ export type PauseResumeClusterMetadata = AtlasMetadata & {
 export type CreateClusterMetadata = AtlasMetadata & {
     cluster_id?: string;
     provider?: string;
-    region?: string;
+    regions?: string[];
     instance_size?: string;
     cluster_type?: "REPLICASET" | "SHARDED";
     backup?: "OFF" | "SNAPSHOT" | "CONTINUOUS";

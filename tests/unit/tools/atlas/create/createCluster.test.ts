@@ -17,7 +17,7 @@ const BASE_ARGS = {
     projectId: "507f1f77bcf86cd799439011",
     clusterName: "my-cluster",
     provider: "AWS" as const,
-    region: "US_EAST_1",
+    regions: ["US_EAST_1"],
 };
 
 const CREATE_RESULT = { id: "new-cluster-id" };
@@ -179,6 +179,36 @@ describe("CreateClusterTool", () => {
                     },
                 },
                 expect.anything()
+            );
+        });
+
+        it.each([
+            [["US_EAST_1"], [3]],
+            [
+                ["US_EAST_1", "US_WEST_2"],
+                [2, 1],
+            ],
+            [
+                ["US_EAST_1", "US_WEST_2", "EU_WEST_1"],
+                [2, 2, 1],
+            ],
+        ] as const)("builds the expected region configs for %j", async (regions, expectedNodeCounts) => {
+            const result = await exec({
+                ...BASE_ARGS,
+                regions,
+            });
+
+            expect(result.isError).toBeFalsy();
+            const createRequest = mockApiClient.createCluster?.mock.calls[0]?.[0] as {
+                body: { replicationSpecs: [{ regionConfigs: unknown }] };
+            };
+            expect(createRequest.body.replicationSpecs[0].regionConfigs).toMatchObject(
+                regions.map((regionName, i) => ({
+                    providerName: "AWS",
+                    regionName,
+                    priority: 7 - i,
+                    electableSpecs: { nodeCount: expectedNodeCounts[i] },
+                }))
             );
         });
     });
@@ -376,17 +406,23 @@ describe("CreateClusterTool", () => {
 
     describe("response", () => {
         it("returns expected text content and structuredContent", async () => {
-            const result = await exec({ ...BASE_ARGS, instanceSize: "M10", encryptionAtRestProvider: "AZURE" });
+            const result = await exec({
+                ...BASE_ARGS,
+                regions: ["US_EAST_1", "US_WEST_2"],
+                instanceSize: "M10",
+                encryptionAtRestProvider: "AZURE",
+            });
 
             expect(result.isError).toBeFalsy();
             const text = (result.content[0] as { text: string }).text;
             expect(text).toContain("my-cluster");
             expect(text).toContain("507f1f77bcf86cd799439011");
+            expect(text).toContain("US_EAST_1, US_WEST_2");
             expect(text).toContain("atlas-inspect-cluster");
             expect(result.structuredContent).toMatchObject({
                 clusterId: "new-cluster-id",
                 provider: "AWS",
-                region: "US_EAST_1",
+                regions: ["US_EAST_1", "US_WEST_2"],
                 instanceSize: "M10",
                 clusterType: "REPLICASET",
                 mongoDBVersion: "LATEST",
@@ -436,13 +472,19 @@ describe("CreateClusterTool", () => {
 
     describe("telemetry metadata", () => {
         it("resolves all fields from structuredContent", async () => {
-            const args = { ...BASE_ARGS, instanceSize: "M30", diskSizeGB: 20, encryptionAtRestProvider: "GCP" };
+            const args = {
+                ...BASE_ARGS,
+                regions: ["US_EAST_1", "US_WEST_2"],
+                instanceSize: "M30",
+                diskSizeGB: 20,
+                encryptionAtRestProvider: "GCP",
+            };
             const result = await exec(args);
 
             const metadata = await tool["resolveTelemetryMetadata"](args as never, { result: result as never });
             expect(metadata.cluster_id).toBe("new-cluster-id");
             expect(metadata.provider).toBe("AWS");
-            expect(metadata.region).toBe("US_EAST_1");
+            expect(metadata.regions).toEqual(["US_EAST_1", "US_WEST_2"]);
             expect(metadata.instance_size).toBe("M30");
             expect(metadata.cluster_type).toBe("REPLICASET");
             expect(metadata.backup).toBe("SNAPSHOT");
@@ -460,7 +502,7 @@ describe("CreateClusterTool", () => {
 
             expect(metadata.cluster_id).toBeUndefined();
             expect(metadata.provider).toBeUndefined();
-            expect(metadata.region).toBeUndefined();
+            expect(metadata.regions).toBeUndefined();
             expect(metadata.instance_size).toBeUndefined();
             expect(metadata.cluster_type).toBeUndefined();
             expect(metadata.backup).toBeUndefined();
@@ -484,6 +526,13 @@ describe("CreateClusterTool", () => {
                 );
             }
         );
+
+        it.each([
+            ["no regions", []],
+            ["more than three regions", ["US_EAST_1", "US_WEST_2", "EU_WEST_1", "AP_SOUTHEAST_1"]],
+        ] as const)("returns error when passing %s", (_case, regions) => {
+            expect(() => z.object(CreateClusterArgsShape).parse({ ...BASE_ARGS, regions })).toThrow();
+        });
 
         it("returns error when createCluster API call fails", async () => {
             mockApiClient.createCluster!.mockRejectedValue(new Error("network error"));

@@ -81,24 +81,29 @@ function buildAutoScaling(
     };
 }
 
+const ELECTABLE_NODE_DISTRIBUTIONS = [[3], [2, 1], [2, 2, 1]] as const;
+
 function buildReplicationSpecs(
     provider: CloudProvider,
-    region: string,
+    regions: string[],
     instanceSize: InstanceSize,
     autoScaling: AutoScalingConfig,
     diskSizeGB?: number
 ): ReplicationSpec[] {
+    const nodeDistribution = ELECTABLE_NODE_DISTRIBUTIONS[regions.length - 1] ?? [];
+
     return [
         {
-            regionConfigs: [
-                {
+            regionConfigs: regions.map((regionName, i) => {
+                const nodeCount = nodeDistribution[i] ?? 3;
+                return {
                     providerName: provider,
-                    regionName: region,
-                    priority: 7,
-                    electableSpecs: { instanceSize, nodeCount: 3, diskSizeGB },
+                    regionName,
+                    priority: 7 - i,
+                    electableSpecs: { instanceSize, nodeCount, diskSizeGB },
                     autoScaling,
-                },
-            ],
+                };
+            }),
         },
     ];
 }
@@ -138,9 +143,13 @@ export const CreateClusterArgsShape = {
 
     provider: cloudProviderEnum.describe("Cloud provider for the cluster."),
 
-    region: AtlasArgs.region().describe(
-        "Cloud provider region in Atlas format using uppercase letters and underscores (e.g. US_EAST_1)."
-    ),
+    regions: z
+        .array(AtlasArgs.region())
+        .min(1)
+        .max(3)
+        .describe(
+            "Cloud provider regions in Atlas format using uppercase letters and underscores (e.g. US_EAST_1). The first region has the highest priority. Do not include duplicate regions."
+        ),
 
     clusterType: clusterTypeEnum
         .default("REPLICASET")
@@ -198,7 +207,7 @@ export const CreateClusterArgsShape = {
 const CreateClusterOutputSchema = {
     clusterId: z.string().optional(),
     provider: cloudProviderEnum,
-    region: z.string(),
+    regions: z.array(z.string()),
     instanceSize: instanceSizeEnum,
     clusterType: clusterTypeEnum,
     mongoDBVersion: mongoDBVersionEnum,
@@ -213,13 +222,13 @@ export class CreateClusterTool extends AtlasToolBase {
     static toolName = "atlas-create-cluster";
     static operationType: OperationType = "create";
     public description =
-        "Create a MongoDB Atlas cluster (M10–M80, replica set or single shard). " +
+        "Create a MongoDB Atlas cluster (M10–M80, replica set or single shard, single or multi-region). " +
         "Compute autoscaling is enabled by default: min instance size is set to the selected instance size, max is set two tiers above. " +
         "Disk autoscaling is always enabled. " +
         "For encryption at rest, the CMK provider must already have a valid configuration in the Atlas project. " +
         "The tool returns immediately, use the atlas-inspect-cluster tool to poll the cluster state for readiness (state: IDLE). " +
         "Connection strings are unavailable until the cluster reaches IDLE state. " +
-        "Note to LLM: Omit instance size unless specified by the user. If provider and region are not already known, ask for both together in a single question before calling this tool. " +
+        "Note to LLM: Omit instance size unless specified by the user. If provider and regions are not already known, ask for both together in a single question before calling this tool. " +
         REGION_RECOMMENDATIONS;
     public override outputSchema = CreateClusterOutputSchema;
     public argsShape = CreateClusterArgsShape;
@@ -228,7 +237,7 @@ export class CreateClusterTool extends AtlasToolBase {
         args: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        const { projectId, clusterName, provider, region, clusterType, terminationProtectionEnabled } = args;
+        const { projectId, clusterName, provider, regions, clusterType, terminationProtectionEnabled } = args;
 
         if (clusterType === "SHARDED" && (args.instanceSize === "M10" || args.instanceSize === "M20")) {
             throw new CreateClusterError("SHARDED clusters require M30 or higher instance size.");
@@ -246,7 +255,7 @@ export class CreateClusterTool extends AtlasToolBase {
         }
 
         const autoScaling = buildAutoScaling(instanceSize, args.computeAutoScaling, provider);
-        const replicationSpecs = buildReplicationSpecs(provider, region, instanceSize, autoScaling, args.diskSizeGB);
+        const replicationSpecs = buildReplicationSpecs(provider, regions, instanceSize, autoScaling, args.diskSizeGB);
         const backupConfig = buildBackupConfig(args.backup);
         const versionConfig = buildVersionConfig(args.mongoDBVersion);
 
@@ -283,7 +292,7 @@ export class CreateClusterTool extends AtlasToolBase {
                 {
                     type: "text",
                     text:
-                        `Cluster "${clusterName}" is being created in project "${projectId}" (${instanceSize} ${clusterType} on ${provider}/${region}). ` +
+                        `Cluster "${clusterName}" is being created in project "${projectId}" (${instanceSize} ${clusterType} on ${provider}/${regions.join(", ")}). ` +
                         `Use the atlas-inspect-cluster tool with projectId "${projectId}" and clusterName "${clusterName}" to poll for readiness. ` +
                         `The cluster is ready when its state is IDLE, connection strings are unavailable until then.`,
                 },
@@ -292,7 +301,7 @@ export class CreateClusterTool extends AtlasToolBase {
             structuredContent: {
                 clusterId: result.id,
                 provider,
-                region,
+                regions,
                 instanceSize,
                 clusterType,
                 mongoDBVersion: args.mongoDBVersion,
@@ -360,7 +369,7 @@ export class CreateClusterTool extends AtlasToolBase {
             ...parentMetadata,
             cluster_id: sc?.clusterId,
             provider: sc?.provider,
-            region: sc?.region,
+            regions: sc?.regions,
             instance_size: sc?.instanceSize,
             cluster_type: sc?.clusterType,
             backup: sc?.backup,
