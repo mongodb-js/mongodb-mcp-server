@@ -376,7 +376,7 @@ export class CreateClusterTool extends AtlasToolBase {
             AZURE: "AZURE";
             GCP: "GCP";
         }>;
-        region: z.ZodString;
+        regions: z.ZodArray<z.ZodString>;
         clusterType: z.ZodDefault<z.ZodEnum<{
             REPLICASET: "REPLICASET";
             SHARDED: "SHARDED";
@@ -428,7 +428,7 @@ export class CreateClusterTool extends AtlasToolBase {
             AZURE: "AZURE";
             GCP: "GCP";
         }>;
-        region: z.ZodString;
+        regions: z.ZodArray<z.ZodString>;
         instanceSize: z.ZodEnum<{
             M10: "M10";
             M20: "M20";
