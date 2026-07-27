@@ -361,7 +361,7 @@ For more information about configuring OpenCode as an MCP client, including the 
 
 - `atlas-connect-cluster` - Connect to MongoDB Atlas cluster and get back a connectionId to pass to the other MongoDB tools. Each call establishes a new, independent connection — multiple connections can be active at the same time.
 - `atlas-create-access-list` - Allow Ip/CIDR ranges to access your MongoDB Atlas clusters.
-- `atlas-create-cluster` - Create a MongoDB Atlas cluster (M10–M80, replica set or single shard). Compute autoscaling is enabled by default: min instance size is set to the selected instance size, max is set two tiers above. Disk autoscaling is always enabled. The tool returns immediately, use the atlas-inspect-cluster tool to poll the cluster state for readiness (state: IDLE). Connection strings are unavailable until the cluster reaches IDLE state.
+- `atlas-create-cluster` - Create a MongoDB Atlas cluster (M10–M80, replica set or single shard). Compute autoscaling is enabled by default: min instance size is set to the selected instance size, max is set two tiers above. Disk autoscaling is always enabled. Encryption at rest with customer-managed keys (CMK) is supported, the CMK provider must already have a valid encryption at rest configuration in the project. The tool returns immediately, use the atlas-inspect-cluster tool to poll the cluster state for readiness (state: IDLE). Connection strings are unavailable until the cluster reaches IDLE state.
 - `atlas-create-db-user` - Create an MongoDB Atlas database user
 - `atlas-create-free-cluster` - Create a free MongoDB Atlas cluster
 - `atlas-create-project` - Create a MongoDB Atlas project
@@ -372,7 +372,7 @@ For more information about configuring OpenCode as an MCP client, including the 
 - `atlas-list-clusters` - List MongoDB Atlas clusters
 - `atlas-list-db-users` - List MongoDB Atlas database users
 - `atlas-list-orgs` - List MongoDB Atlas organizations
-- `atlas-list-projects` - List MongoDB Atlas projects
+- `atlas-list-projects` - List MongoDB Atlas projects.
 - `atlas-load-sample-dataset` - Load a MongoDB sample dataset into an Atlas cluster, or check the status of a previously-initiated load. To start a new load, provide `clusterName` — the load runs asynchronously and the response includes a `jobId` and initial state. To check progress, call this tool again with `jobId` (sample dataset loads typically take 1–5 minutes). State can be WORKING, COMPLETED, or FAILED.
 - `atlas-pause-resume-cluster` - Pause or resume a dedicated (M10+) MongoDB Atlas cluster.
 - `atlas-streams-build` - Create Atlas Stream Processing resources. Use this tool for 'set up a Kafka pipeline', 'create a workspace', 'add a connection', or 'deploy a processor'. Use resource='workspace' to create a new workspace (specify cloud provider, region, and tier). Use resource='connection' to add a data source or sink to an existing workspace. Use resource='processor' to deploy a stream processor with a pipeline. Use resource='privatelink' to set up private networking. Typical workflow: create workspace → add connections → deploy processor.

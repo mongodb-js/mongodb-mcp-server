@@ -589,7 +589,7 @@
     },
     {
       "registryType": "oci",
-      "identifier": "docker.io/mongodb/mongodb-mcp-server:1.15.0-alpha.2",
+      "identifier": "docker.io/mongodb/mongodb-mcp-server:1.15.0-alpha.5",
       "transport": {
         "type": "stdio"
       },

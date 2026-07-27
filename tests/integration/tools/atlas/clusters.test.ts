@@ -13,6 +13,18 @@ import {
 } from "./atlasHelpers.js";
 import { afterAll, beforeAll, describe, expect, it, vitest } from "vitest";
 
+function isAzureCMKTestConfigMissing(): boolean {
+    return (
+        !process.env.MDB_MCP_AZURE_CMK_SUBSCRIPTION_ID ||
+        !process.env.MDB_MCP_AZURE_CMK_TENANT_ID ||
+        !process.env.MDB_MCP_AZURE_CMK_ATLAS_APP_ID ||
+        !process.env.MDB_MCP_AZURE_CMK_SERVICE_PRINCIPAL_ID ||
+        !process.env.MDB_MCP_AZURE_CMK_RESOURCE_GROUP_NAME ||
+        !process.env.MDB_MCP_AZURE_CMK_KEY_VAULT_NAME ||
+        !process.env.MDB_MCP_AZURE_CMK_KEY_IDENTIFIER
+    );
+}
+
 describeWithAtlas("clusters", (integration) => {
     withProject(integration, ({ getProjectId, getIpAddress }) => {
         const clusterName = "ClusterTest-" + randomId();
@@ -435,14 +447,15 @@ describeWithAtlas("clusters", (integration) => {
     });
 
     withProject(integration, ({ getProjectId }) => {
-        const clusterName = "ClusterTest-" + randomId();
+        let clusterName = "";
 
         afterAll(async () => {
             const projectId = getProjectId();
-            if (projectId) {
+            if (projectId && clusterName) {
                 const session: Session = integration.mcpServer().session;
                 await deleteCluster(session, projectId, clusterName);
             }
+            clusterName = "";
         });
 
         describe("atlas-create-cluster", () => {
@@ -458,7 +471,7 @@ describeWithAtlas("clusters", (integration) => {
                 expect(properties).toHaveProperty("projectId");
                 expect(properties).toHaveProperty("clusterName");
                 expect(properties).toHaveProperty("provider");
-                expect(properties).toHaveProperty("region");
+                expect(properties).toHaveProperty("regions");
                 expect(properties).toHaveProperty("clusterType");
                 expect(properties).toHaveProperty("instanceSize");
                 expect(properties).toHaveProperty("computeAutoScaling");
@@ -466,15 +479,17 @@ describeWithAtlas("clusters", (integration) => {
                 expect(properties).toHaveProperty("mongoDBVersion");
                 expect(properties).toHaveProperty("backup");
                 expect(properties).toHaveProperty("terminationProtectionEnabled");
+                expect(properties).toHaveProperty("encryptionAtRestProvider");
 
                 const required = tool.inputSchema.required as string[];
                 expect(required).toContain("projectId");
                 expect(required).toContain("clusterName");
                 expect(required).toContain("provider");
-                expect(required).toContain("region");
+                expect(required).toContain("regions");
             });
 
-            it("creates a dedicated cluster", async () => {
+            it("creates a multi-region dedicated cluster", async () => {
+                clusterName = "ClusterTest-" + randomId();
                 const projectId = getProjectId();
 
                 const response = await integration.mcpClient().callTool({
@@ -483,9 +498,10 @@ describeWithAtlas("clusters", (integration) => {
                         projectId,
                         clusterName,
                         provider: "AWS",
-                        region: "US_EAST_1",
+                        regions: ["US_EAST_1", "US_WEST_2"],
                         instanceSize: "M10",
                         diskSizeGB: 20,
+                        encryptionAtRestProvider: "NONE",
                     },
                 });
 
@@ -494,12 +510,13 @@ describeWithAtlas("clusters", (integration) => {
                 const content = getResponseContent(response.content);
                 expect(content).toContain(clusterName);
                 expect(content).toContain(projectId);
+                expect(content).toContain("US_EAST_1, US_WEST_2");
                 expect(content).toContain("atlas-inspect-cluster");
                 expect(content).toContain("IDLE");
 
                 expect(response.structuredContent).toMatchObject({
                     provider: "AWS",
-                    region: "US_EAST_1",
+                    regions: ["US_EAST_1", "US_WEST_2"],
                     instanceSize: "M10",
                     clusterType: "REPLICASET",
                     mongoDBVersion: "LATEST",
@@ -507,8 +524,81 @@ describeWithAtlas("clusters", (integration) => {
                     computeAutoScaling: true,
                     terminationProtectionEnabled: false,
                     diskSizeGB: 20,
+                    encryptionAtRestProvider: "NONE",
                 });
             });
+
+            it.skipIf(isAzureCMKTestConfigMissing())(
+                "defaults encryption at rest to Azure when the project has a valid Azure configuration",
+                async () => {
+                    clusterName = "ClusterCMKTest-" + randomId();
+                    const subscriptionId = process.env.MDB_MCP_AZURE_CMK_SUBSCRIPTION_ID;
+                    const tenantId = process.env.MDB_MCP_AZURE_CMK_TENANT_ID;
+                    const atlasAzureAppId = process.env.MDB_MCP_AZURE_CMK_ATLAS_APP_ID;
+                    const servicePrincipalId = process.env.MDB_MCP_AZURE_CMK_SERVICE_PRINCIPAL_ID;
+                    const resourceGroupName = process.env.MDB_MCP_AZURE_CMK_RESOURCE_GROUP_NAME;
+                    const keyVaultName = process.env.MDB_MCP_AZURE_CMK_KEY_VAULT_NAME;
+                    const keyIdentifier = process.env.MDB_MCP_AZURE_CMK_KEY_IDENTIFIER;
+
+                    const projectId = getProjectId();
+                    const session = integration.mcpServer().session;
+                    assertApiClientIsAvailable(session);
+
+                    const providerAccess: unknown = await session.apiClient.createCloudProviderAccess({
+                        params: { path: { groupId: projectId } },
+                        body: {
+                            providerName: "AZURE",
+                            atlasAzureAppId,
+                            servicePrincipalId,
+                            tenantId,
+                        } as never,
+                    });
+                    const roleId = (providerAccess as { _id?: string })._id;
+                    expectDefined(roleId);
+
+                    await session.apiClient.authorizeProviderAccessRole({
+                        params: { path: { groupId: projectId, roleId } },
+                        body: {
+                            providerName: "AZURE",
+                            atlasAzureAppId,
+                            servicePrincipalId,
+                            tenantId,
+                        } as never,
+                    });
+
+                    const encryptionAtRest = await session.apiClient.updateEncryptionAtRest({
+                        params: { path: { groupId: projectId } },
+                        body: {
+                            azureKeyVault: {
+                                enabled: true,
+                                azureEnvironment: "AZURE",
+                                roleId,
+                                subscriptionID: subscriptionId,
+                                resourceGroupName,
+                                keyVaultName,
+                                keyIdentifier,
+                            },
+                        } as never,
+                    });
+                    expect(encryptionAtRest.azureKeyVault).toMatchObject({ enabled: true, valid: true });
+
+                    const response = await integration.mcpClient().callTool({
+                        name: "atlas-create-cluster",
+                        arguments: {
+                            projectId,
+                            clusterName: clusterName,
+                            provider: "AZURE",
+                            regions: ["US_EAST_2"],
+                            instanceSize: "M10",
+                        },
+                    });
+
+                    expect(response.isError).toBeFalsy();
+                    expect(response.structuredContent).toMatchObject({
+                        encryptionAtRestProvider: "AZURE",
+                    });
+                }
+            );
         });
 
         describe("atlas-pause-resume-cluster", () => {

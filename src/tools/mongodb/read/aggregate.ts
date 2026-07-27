@@ -53,7 +53,7 @@ If the user has asked for lexical/Atlas search, use \`$search\` instead of \`$te
 
 ### Usage Rules for \`$search\`
 - Include the index name, unless you know for a fact there's a default index. If unsure, use the collection-indexes tool to determine the index name.
-- The \`$search\` stage supports multiple operators, such as 'autocomplete', 'text', 'geoWithin', and others. Choose the approprate operator based on the user's query. If unsure of the exact syntax, consult the MongoDB Atlas Search documentation, which can be found here: https://www.mongodb.com/docs/atlas/atlas-search/operators-and-collectors/
+- The \`$search\` stage supports multiple operators, such as 'autocomplete', 'text', 'geoWithin', and others. Choose the appropriate operator based on the user's query. If unsure of the exact syntax, consult the MongoDB Atlas Search documentation, which can be found here: https://www.mongodb.com/docs/atlas/atlas-search/operators-and-collectors/
 
 ### Usage Rules for \`$rankFusion\` and \`$scoreFusion\` (Hybrid Search)
 Use these stages when the user wants to combine full-text (\`$search\`) and vector
@@ -79,6 +79,49 @@ incompatible score scales and produces wrong rankings.
   the collection. Use the collection-indexes tool to confirm both before running a hybrid query.
 - Add a \`$limit\` stage after the fusion stage to cap the final result set.
 - Add \`$unset\` at the end to remove embedding fields and avoid context bloat.
+
+### Usage Rules for \`$rerank\` (Native Reranking)
+Use this stage when the user wants to reorder a set of candidate documents using a cross-encoder reranker model.
+
+**Construction rules:**
+- \`$rerank\` can be any stage in the pipeline on an Atlas cluster running MongoDB 8.3 or higher.
+- It is recommended to use \`$rerank\` after a sorted pipeline, e.g. \`$search\`, \`$vectorSearch\`, \`$rankFusion\`, \`$scoreFusion\`, or [\`$match\`, \`$sort\`].
+- $rerank must be enabled via the Native Reranking Project Setting
+- Set \`numDocsToRerank\` as the number of documents passed into \`$rerank\`. This will also limit the number of documents returned by \`$rerank\`
+- Set \`path\` as a field name or an array of field names that exist in all documents. Use \`$match\` or \`$set\` before \`$rerank\` to validate no fields are missing.
+- Add \`$addFields\` after \`$rerank\` to retrieve the reranker score.
+
+**\`$rerank\` example (recommended default):**
+\`\`\`javascript
+[
+  {
+    $match: {
+      description: { $exists: true },
+      name: { $exists: true }
+    }
+  },
+  {
+    $sort: {
+      lastUpdated: -1
+    }
+  },
+  {
+    $rerank: {
+      query: {
+        text: "query text including instructions"
+      },
+      model: "rerank-2.5",
+      numDocsToRerank: 100,
+      path: ["description", "name"]
+    }
+  },
+  {
+    $addFields: {
+      rerankScore: { $meta: "score" }
+    }
+  }
+]
+\`\`\`
 `;
 
 const AggregateOutputSchema = {

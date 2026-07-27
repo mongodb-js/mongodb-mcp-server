@@ -296,7 +296,7 @@ export type PauseResumeClusterMetadata = AtlasMetadata & {
 export type CreateClusterMetadata = AtlasMetadata & {
     cluster_id?: string;
     provider?: string;
-    region?: string;
+    regions?: string[];
     instance_size?: string;
     cluster_type?: "REPLICASET" | "SHARDED";
     backup?: "OFF" | "SNAPSHOT" | "CONTINUOUS";
@@ -304,6 +304,7 @@ export type CreateClusterMetadata = AtlasMetadata & {
     termination_protection?: TelemetryBoolSet;
     disk_size_gb?: number;
     mongodb_version?: string;
+    encryption_at_rest_provider?: "AWS" | "AZURE" | "GCP" | "NONE";
 };
 
 export type IndexMetadata = ConnectionMetadata & {

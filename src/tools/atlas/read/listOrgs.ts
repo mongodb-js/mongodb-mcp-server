@@ -3,6 +3,11 @@ import { AtlasToolBase } from "../atlasTool.js";
 import type { OperationType, ToolArgs, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 
+export const ListOrganizationsArgs = {
+    limit: z.number().int().min(1).max(500).default(10).describe("Max number of organizations to return per page."),
+    pageNum: z.number().int().min(1).default(1).describe("Page number of organizations to return."),
+};
+
 const ListOrganizationsOutputSchema = {
     organizations: z.array(
         z.object({
@@ -17,14 +22,26 @@ export class ListOrganizationsTool extends AtlasToolBase {
     static toolName = "atlas-list-orgs";
     public description = "List MongoDB Atlas organizations";
     static operationType: OperationType = "read";
-    public argsShape = {};
+    public argsShape = {
+        ...ListOrganizationsArgs,
+    };
     public override outputSchema = ListOrganizationsOutputSchema;
 
     protected async execute(
-        _args: ToolArgs<typeof this.argsShape>,
+        { limit, pageNum }: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        const data = await this.apiClient.listOrgs(undefined, context);
+        const data = await this.apiClient.listOrgs(
+            {
+                params: {
+                    query: {
+                        itemsPerPage: limit,
+                        pageNum,
+                    },
+                },
+            },
+            context
+        );
 
         if (!data?.results?.length) {
             return {
@@ -43,7 +60,7 @@ export class ListOrganizationsTool extends AtlasToolBase {
 
         return {
             content: formatUntrustedData(
-                `Found ${data.results.length} organizations in your MongoDB Atlas account.`,
+                `Found ${orgs.length} organizations in your MongoDB Atlas account.`,
                 JSON.stringify(orgs)
             ),
             structuredContent: {

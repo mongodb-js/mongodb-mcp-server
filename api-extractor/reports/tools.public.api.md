@@ -376,7 +376,7 @@ export class CreateClusterTool extends AtlasToolBase {
             AZURE: "AZURE";
             GCP: "GCP";
         }>;
-        region: z.ZodString;
+        regions: z.ZodArray<z.ZodString>;
         clusterType: z.ZodDefault<z.ZodEnum<{
             REPLICASET: "REPLICASET";
             SHARDED: "SHARDED";
@@ -403,9 +403,17 @@ export class CreateClusterTool extends AtlasToolBase {
             CONTINUOUS: "CONTINUOUS";
         }>>;
         terminationProtectionEnabled: z.ZodDefault<z.ZodBoolean>;
+        encryptionAtRestProvider: z.ZodOptional<z.ZodEnum<{
+            AWS: "AWS";
+            AZURE: "AZURE";
+            GCP: "GCP";
+            NONE: "NONE";
+        }>>;
     };
     // (undocumented)
     description: string;
+    // (undocumented)
+    protected doesValidEARConfigExist(provider: CloudProvider, projectId: string, context: ToolExecutionContext): Promise<boolean>;
     // (undocumented)
     protected execute(args: ToolArgs<typeof CreateClusterTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof CreateClusterTool.outputSchema>>;
     // (undocumented)
@@ -420,7 +428,7 @@ export class CreateClusterTool extends AtlasToolBase {
             AZURE: "AZURE";
             GCP: "GCP";
         }>;
-        region: z.ZodString;
+        regions: z.ZodArray<z.ZodString>;
         instanceSize: z.ZodEnum<{
             M10: "M10";
             M20: "M20";
@@ -447,6 +455,12 @@ export class CreateClusterTool extends AtlasToolBase {
         computeAutoScaling: z.ZodBoolean;
         terminationProtectionEnabled: z.ZodBoolean;
         diskSizeGB: z.ZodOptional<z.ZodNumber>;
+        encryptionAtRestProvider: z.ZodEnum<{
+            AWS: "AWS";
+            AZURE: "AZURE";
+            GCP: "GCP";
+            NONE: "NONE";
+        }>;
     };
     // (undocumented)
     protected resolveTelemetryMetadata(args: ToolArgs<typeof CreateClusterTool.argsShape>, context: {
@@ -621,25 +635,13 @@ export class CreateIndexTool extends MongoDBToolBase {
             type: z.ZodLiteral<"search">;
             analyzer: z.ZodDefault<z.ZodOptional<z.ZodString>>;
             mappings: z.ZodObject<{
-                dynamic: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
-                fields: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodObject<{
-                    type: z.ZodEnum<{
-                        string: "string";
-                        number: "number";
-                        boolean: "boolean";
-                        date: "date";
-                        uuid: "uuid";
-                        autocomplete: "autocomplete";
-                        document: "document";
-                        embeddedDocuments: "embeddedDocuments";
-                        geo: "geo";
-                        objectId: "objectId";
-                        token: "token";
-                    }>;
-                }, z.core.$loose>>>;
-            }, z.core.$strip>;
+                dynamic: z.ZodDefault<z.ZodOptional<z.ZodUnion<readonly [z.ZodBoolean, z.ZodObject<{
+                    typeSet: z.ZodString;
+                }, z.core.$strict>]>>>;
+                fields: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+            }, z.core.$loose>;
             numPartitions: z.ZodPipe<z.ZodDefault<z.ZodUnion<readonly [z.ZodLiteral<"1">, z.ZodLiteral<"2">, z.ZodLiteral<"4">]>>, z.ZodTransform<number, "1" | "2" | "4">>;
-        }, z.core.$strip>], "type">>;
+        }, z.core.$loose>], "type">>;
         collection: z.ZodString;
         database: z.ZodString;
         connectionId: z.ZodString;
@@ -1462,11 +1464,14 @@ export class ListKnowledgeSourcesTool extends AssistantToolBase {
 // @public (undocumented)
 export class ListOrganizationsTool extends AtlasToolBase {
     // (undocumented)
-    argsShape: {};
+    argsShape: {
+        limit: z.ZodDefault<z.ZodNumber>;
+        pageNum: z.ZodDefault<z.ZodNumber>;
+    };
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(_args: ToolArgs<typeof ListOrganizationsTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof ListOrganizationsTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof ListOrganizationsTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof ListOrganizationsTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -1486,6 +1491,8 @@ export class ListProjectsTool extends AtlasToolBase {
     // (undocumented)
     argsShape: {
         orgId: z.ZodOptional<z.ZodString>;
+        limit: z.ZodDefault<z.ZodNumber>;
+        pageNum: z.ZodDefault<z.ZodNumber>;
     };
     // (undocumented)
     description: string;
@@ -1500,7 +1507,6 @@ export class ListProjectsTool extends AtlasToolBase {
             name: z.ZodString;
             id: z.ZodOptional<z.ZodString>;
             orgId: z.ZodString;
-            orgName: z.ZodString;
             created: z.ZodString;
         }, z.core.$strip>>;
         totalCount: z.ZodNumber;
