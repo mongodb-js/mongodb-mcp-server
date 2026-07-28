@@ -1056,6 +1056,7 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
     protected isFeatureEnabled(feature: PreviewFeature): boolean;
     protected readonly metrics: Metrics<TMetrics>;
     readonly name: string;
+    normalizeRawArgs(args: Record<string, unknown>): Record<string, unknown>;
     readonly operationType: OperationType;
     outputSchema?: ZodRawShape;
     // (undocumented)
