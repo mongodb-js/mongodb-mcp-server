@@ -233,6 +233,16 @@ export class CreateClusterTool extends AtlasToolBase {
     public override outputSchema = CreateClusterOutputSchema;
     public argsShape = CreateClusterArgsShape;
 
+    /** Accepts the `region` argument that `regions` replaced, mapping it to a single-region cluster. */
+    public override normalizeRawArgs(args: Record<string, unknown>): Record<string, unknown> {
+        if (typeof args.region !== "string") {
+            return args;
+        }
+
+        const { region, ...rest } = args;
+        return { ...rest, regions: rest.regions ?? [region] };
+    }
+
     protected async execute(
         args: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
