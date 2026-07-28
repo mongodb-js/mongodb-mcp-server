@@ -395,6 +395,25 @@ export abstract class ToolBase<
      */
     public outputSchema?: ZodRawShape;
 
+    /**
+     * Normalizes the raw arguments of a tool call before they are validated against `argsShape`.
+     *
+     * Override this to keep accepting arguments that are no longer part of the tool's schema,
+     * such as a renamed argument. Arguments that are not mapped to a key of `argsShape` are
+     * rejected by the schema validation that follows.
+     *
+     * @example
+     * ```typescript
+     * public override normalizeRawArgs(args: Record<string, unknown>): Record<string, unknown> {
+     *   const { limit, ...rest } = args;
+     *   return limit === undefined ? args : { ...rest, maxResults: limit };
+     * }
+     * ```
+     */
+    public normalizeRawArgs(args: Record<string, unknown>): Record<string, unknown> {
+        return args;
+    }
+
     private registeredTool: RegisteredTool | undefined;
 
     public get annotations(): ToolAnnotations {

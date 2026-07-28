@@ -13,10 +13,14 @@ import { MockMetrics } from "../../../mocks/metrics.js";
 import type { Keychain } from "../../../../../src/lib.js";
 import { ApiClientError } from "../../../../../src/common/atlas/apiClientError.js";
 
-const BASE_ARGS = {
+const BASE_ARGS_WITHOUT_REGIONS = {
     projectId: "507f1f77bcf86cd799439011",
     clusterName: "my-cluster",
     provider: "AWS" as const,
+};
+
+const BASE_ARGS = {
+    ...BASE_ARGS_WITHOUT_REGIONS,
     regions: ["US_EAST_1"],
 };
 
@@ -85,7 +89,10 @@ describe("CreateClusterTool", () => {
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
-        tool["invoke"](z.object(CreateClusterArgsShape).parse(args) as never, {} as never);
+        tool["invoke"](
+            z.object(CreateClusterArgsShape).strict().parse(tool.normalizeRawArgs(args)) as never,
+            {} as never
+        );
 
     beforeEach(() => {
         tool = buildTool();
@@ -210,6 +217,26 @@ describe("CreateClusterTool", () => {
                     electableSpecs: { nodeCount: expectedNodeCounts[i] },
                 }))
             );
+        });
+
+        it("accepts the deprecated region argument as a single region", async () => {
+            const result = await exec({ ...BASE_ARGS_WITHOUT_REGIONS, region: "EU_WEST_1" });
+
+            expect(result.isError).toBeFalsy();
+            expect(result.structuredContent).toMatchObject({ regions: ["EU_WEST_1"] });
+            const createRequest = mockApiClient.createCluster?.mock.calls[0]?.[0] as {
+                body: { replicationSpecs: [{ regionConfigs: unknown }] };
+            };
+            expect(createRequest.body.replicationSpecs[0].regionConfigs).toMatchObject([
+                { providerName: "AWS", regionName: "EU_WEST_1", priority: 7, electableSpecs: { nodeCount: 3 } },
+            ]);
+        });
+
+        it("ignores the deprecated region argument when regions is also provided", async () => {
+            const result = await exec({ ...BASE_ARGS, region: "EU_WEST_1" });
+
+            expect(result.isError).toBeFalsy();
+            expect(result.structuredContent).toMatchObject({ regions: ["US_EAST_1"] });
         });
     });
 
@@ -532,6 +559,13 @@ describe("CreateClusterTool", () => {
             ["more than three regions", ["US_EAST_1", "US_WEST_2", "EU_WEST_1", "AP_SOUTHEAST_1"]],
         ] as const)("returns error when passing %s", (_case, regions) => {
             expect(() => z.object(CreateClusterArgsShape).parse({ ...BASE_ARGS, regions })).toThrow();
+        });
+
+        it.each([
+            ["no regions and no deprecated region", BASE_ARGS_WITHOUT_REGIONS],
+            ["a non-string deprecated region", { ...BASE_ARGS_WITHOUT_REGIONS, region: 42 }],
+        ])("returns error when passing %s", (_case, args) => {
+            expect(() => z.object(CreateClusterArgsShape).strict().parse(tool.normalizeRawArgs(args))).toThrow();
         });
 
         it("returns error when createCluster API call fails", async () => {
