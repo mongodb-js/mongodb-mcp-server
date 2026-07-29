@@ -50,7 +50,6 @@ const ServerConfigSchema = z.object({
             z.array(z.enum(["stderr", "disk", "mcp"]))
         )
         .check(
-            z.minLength(1, "Cannot be an empty array"),
             z.refine((val) => new Set(val).size === val.length, {
                 message: "Duplicate loggers found in config",
             })

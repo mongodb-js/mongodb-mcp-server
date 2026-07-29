@@ -826,12 +826,6 @@ describe("config", () => {
         describe("loggers", () => {
             const invalidLoggerTestCases = [
                 {
-                    description: "must not be empty",
-                    args: ["--loggers", ""],
-                    expectedError:
-                        "Invalid configuration for the following fields:\nloggers - Cannot be an empty array",
-                },
-                {
                     description: "must not allow duplicates",
                     args: ["--loggers", "disk,disk,disk"],
                     expectedError:
@@ -845,6 +839,11 @@ describe("config", () => {
                     expect(error).toEqual(expect.stringContaining(expectedError));
                 });
             }
+
+            it("allows an empty list (no built-in sinks; e.g. when logs are forwarded to an additional logger)", () => {
+                const { parsed: actual } = parseUserConfig({ args: ["--loggers", ""] });
+                expect(actual?.loggers).toEqual([]);
+            });
 
             it("allows mcp logger", () => {
                 const { parsed: actual } = parseUserConfig({ args: ["--loggers", "mcp"] });

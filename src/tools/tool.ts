@@ -419,6 +419,7 @@ export abstract class ToolBase<
     public get annotations(): ToolAnnotations {
         const annotations: ToolAnnotations = {
             title: this.name,
+            openWorldHint: true,
         };
 
         switch (this.operationType) {
@@ -429,11 +430,11 @@ export abstract class ToolBase<
                 annotations.destructiveHint = false;
                 break;
             case "delete":
+            case "update":
                 annotations.readOnlyHint = false;
                 annotations.destructiveHint = true;
                 break;
             case "create":
-            case "update":
                 annotations.destructiveHint = false;
                 annotations.readOnlyHint = false;
                 break;

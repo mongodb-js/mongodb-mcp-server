@@ -20,7 +20,7 @@ import { Elicitation } from "../elicitation.js";
 import type { AtlasLocalClientFactoryFn } from "../common/atlasLocal.js";
 import { defaultCreateAtlasLocalClient } from "../common/atlasLocal.js";
 import { applyConfigOverrides } from "../common/config/configOverrides.js";
-import type { ApiClientOptions, ApiClientFactoryFn } from "../common/atlas/apiClient.js";
+import type { ApiClientFactoryFn } from "../common/atlas/apiClient.js";
 import { ApiClient } from "../common/atlas/apiClient.js";
 import { defaultCreateApiClient } from "../common/atlas/apiClient.js";
 import type { UIRegistry } from "../ui/registry/index.js";
@@ -300,17 +300,21 @@ export abstract class TransportRunnerBase<
         const exportsManager = ExportsManager.init(userConfig, logger);
 
         const { apiClientId, apiClientSecret } = userConfig;
-        const apiClientOptions: ApiClientOptions = {
-            baseUrl: userConfig.apiBaseUrl,
-            credentials:
-                apiClientId && apiClientSecret
-                    ? {
-                          clientId: apiClientId,
-                          clientSecret: apiClientSecret,
-                      }
-                    : undefined,
-        };
-        const apiClient = new ApiClient(apiClientOptions, logger);
+        const apiClient =
+            sessionOptions?.apiClient ??
+            new ApiClient(
+                {
+                    baseUrl: userConfig.apiBaseUrl,
+                    credentials:
+                        apiClientId && apiClientSecret
+                            ? {
+                                  clientId: apiClientId,
+                                  clientSecret: apiClientSecret,
+                              }
+                            : undefined,
+                },
+                logger
+            );
 
         // Scoping policy: an embedder-supplied registry wins (it brings its own
         // scoping); otherwise the session gets a view of the shared store —
@@ -343,7 +347,7 @@ export abstract class TransportRunnerBase<
             exportsManager,
             connectionRegistry,
             keychain: Keychain.root,
-            apiClient: sessionOptions?.apiClient ?? apiClient,
+            apiClient,
         });
         const telemetry = Telemetry.create({
             logger,

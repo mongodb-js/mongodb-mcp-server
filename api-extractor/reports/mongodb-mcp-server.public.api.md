@@ -1091,6 +1091,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
             idleTimeoutMS: number;
             notificationTimeoutMS: number;
             maxSessions: number;
+            evictionIdleGraceMS?: number;
         };
         logger: LoggerBase;
         metrics: Metrics<DefaultMetrics>;

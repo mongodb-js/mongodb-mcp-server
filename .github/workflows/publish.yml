@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - ni/stateless-sessions
+      - rmcp-ga-release
 
 jobs:
   check:
