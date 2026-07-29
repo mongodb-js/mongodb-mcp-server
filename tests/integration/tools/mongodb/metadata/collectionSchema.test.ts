@@ -186,6 +186,89 @@ describeWithMongoDB("collectionSchema tool", (integration) => {
         });
     });
 
+    describe("with a $jsonSchema validator", () => {
+        it("derives the schema from the validator instead of sampling", async () => {
+            const mongoClient = integration.mongoClient();
+            await mongoClient.db(integration.randomDbName()).createCollection("validated", {
+                validator: {
+                    $jsonSchema: {
+                        bsonType: "object",
+                        required: ["name"],
+                        properties: {
+                            name: { bsonType: "string" },
+                            age: { bsonType: "int" },
+                            address: {
+                                bsonType: "object",
+                                properties: {
+                                    city: { bsonType: "string" },
+                                    zip: { bsonType: ["string", "null"] },
+                                },
+                            },
+                            tags: { bsonType: "array", items: { bsonType: "string" } },
+                        },
+                    },
+                },
+            });
+
+            const expectedSchema: SimplifiedSchema = {
+                name: { types: [{ bsonType: "String" }] },
+                age: { types: [{ bsonType: "Int32" }] },
+                address: {
+                    types: [
+                        {
+                            bsonType: "Document",
+                            fields: {
+                                city: { types: [{ bsonType: "String" }] },
+                                zip: { types: [{ bsonType: "String" }, { bsonType: "Null" }] },
+                            },
+                        },
+                    ],
+                },
+                tags: { types: [{ bsonType: "Array", types: [{ bsonType: "String" }] }] },
+            };
+
+            const connectionId = await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "collection-schema",
+                arguments: { connectionId, database: integration.randomDbName(), collection: "validated" },
+            });
+            const items = getResponseElements(response.content);
+            expect(items).toHaveLength(2);
+
+            expect(items[0]?.text).toEqual(
+                `Found ${Object.entries(expectedSchema).length} fields derived from the collection's schema validator.`
+            );
+
+            const { schema } = JSON.parse(getDataFromUntrustedContent(items[1]?.text ?? "{}")) as {
+                schema: SimplifiedSchema;
+            };
+            expect(schema).toEqual(expectedSchema);
+
+            const structuredContent = response.structuredContent as CollectionSchemaOutput;
+            expect(structuredContent.schema).toEqual(expectedSchema);
+            expect(structuredContent.fieldsCount).toBe(Object.entries(expectedSchema).length);
+        });
+
+        it("falls back to sampling when the validator has no $jsonSchema", async () => {
+            const mongoClient = integration.mongoClient();
+            await mongoClient.db(integration.randomDbName()).createCollection("queryValidated", {
+                validator: { age: { $gte: 18 } },
+            });
+            await mongoClient
+                .db(integration.randomDbName())
+                .collection("queryValidated")
+                .insertOne({ name: "Alice", age: 30 });
+
+            const connectionId = await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "collection-schema",
+                arguments: { connectionId, database: integration.randomDbName(), collection: "queryValidated" },
+            });
+            const items = getResponseElements(response.content);
+            expect(items[0]?.text).toContain("inferred from a sample");
+        });
+    });
+
     validateAutoConnectBehavior(integration, "collection-schema", () => {
         return {
             args: {
