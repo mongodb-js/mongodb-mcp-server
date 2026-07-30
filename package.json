@@ -197,7 +197,7 @@
     "mongodb-connection-string-url": "^7.0.1",
     "mongodb-log-writer": "^2.5.13",
     "mongodb-redact": "^1.4.6",
-    "mongodb-schema": "^12.7.0",
+    "@mongodb-js/mongodb-schema": "^12.7.1",
     "node-fetch": "^3.3.2",
     "node-machine-id": "1.1.12",
     "oauth4webapi": "^3.8.6",
