@@ -1,7 +1,7 @@
 import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
-import { getSimplifiedSchema } from "mongodb-schema";
+import { getSimplifiedSchema } from "@mongodb-js/mongodb-schema";
 import z from "zod";
 import { ONE_MB } from "../../../helpers/constants.js";
 import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorUntilMaxBytes.js";

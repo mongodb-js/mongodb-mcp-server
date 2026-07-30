@@ -11,7 +11,7 @@ import {
 } from "../../../helpers.js";
 import type { Document } from "bson";
 import type { OptionalId } from "mongodb";
-import type { SimplifiedSchema } from "mongodb-schema";
+import type { SimplifiedSchema } from "@mongodb-js/mongodb-schema";
 import type { CollectionSchemaOutput } from "../../../../../src/tools/mongodb/metadata/collectionSchema.js";
 import { describe, expect, it } from "vitest";
 
