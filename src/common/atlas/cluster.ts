@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type {
     ClusterConnectionStrings,
     ClusterDescription20240805,
@@ -7,6 +8,14 @@ import { type ApiClient, type ApiClientRequestContext } from "./apiClient.js";
 import { requestIdAttr } from "../../helpers/requestIdAttr.js";
 import { LogId } from "../logging/index.js";
 import { ConnectionString } from "mongodb-connection-string-url";
+
+export const standardInstanceSizeEnum = z.enum(["M10", "M20", "M30", "M40", "M50", "M60", "M80"]);
+
+export type StandardInstanceSize = z.infer<typeof standardInstanceSizeEnum>;
+
+export function isStandardInstanceSize(size: string): size is StandardInstanceSize {
+    return (standardInstanceSizeEnum.options as readonly string[]).includes(size);
+}
 
 type AtlasProcessId = `${string}:${number}`;
 

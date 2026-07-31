@@ -1,3 +1,5 @@
+import type { StandardInstanceSize } from "../common/atlas/cluster.js";
+
 /**
  * Result type constants for telemetry events
  */
@@ -281,8 +283,9 @@ export type StreamsToolMetadata = AtlasMetadata & {
 };
 
 export type UpgradeClusterMetadata = AtlasMetadata & {
-    original_tier?: "free" | "flex";
-    target_tier?: "flex" | "m10";
+    original_tier?: "free" | "flex" | Lowercase<StandardInstanceSize>;
+    target_tier?: "free" | "flex" | Lowercase<StandardInstanceSize>;
+    compute_auto_scaling?: TelemetryBoolSet;
     cluster_id?: string;
     provider?: string;
     region?: string;

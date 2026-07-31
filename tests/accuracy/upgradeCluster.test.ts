@@ -13,7 +13,18 @@ function mockUpgradeResponse(clusterName: string, fromTier: string, toTier: stri
     });
 }
 
-const PROJECT_ID = "proj-accuracy-test";
+function mockScaleResponse(clusterName: string, targetInstanceSize: string): () => CallToolResult {
+    return () => ({
+        content: [
+            {
+                type: "text",
+                text: `Cluster "${clusterName}" is being scaled to ${targetInstanceSize}. This may take a few minutes.`,
+            },
+        ],
+    });
+}
+
+const PROJECT_ID = "9123a4b056c7d890e1f2a3f4";
 const CLUSTER_NAME = "MyCluster";
 
 const mockListProjects = {
@@ -145,6 +156,102 @@ describeAccuracyTests([
                     projectId: PROJECT_ID,
                     clusterName: CLUSTER_NAME,
                     targetTier: Matcher.anyOf(Matcher.value("FLEX"), Matcher.undefined),
+                },
+            },
+        ],
+    },
+    {
+        prompt: `Scale cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}" to M20`,
+        mockedTools: {
+            ...mockListProjects,
+            "atlas-upgrade-cluster": mockScaleResponse(CLUSTER_NAME, "M20"),
+        },
+        expectedToolCalls: [
+            ...optionalListProjects,
+            {
+                toolName: "atlas-upgrade-cluster",
+                parameters: {
+                    projectId: PROJECT_ID,
+                    clusterName: CLUSTER_NAME,
+                    targetTier: "M20",
+                },
+            },
+        ],
+    },
+    {
+        prompt: `Enable autoscaling on cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}" between M10 and M30`,
+        mockedTools: {
+            ...mockListProjects,
+            "atlas-upgrade-cluster": mockScaleResponse(CLUSTER_NAME, "M10"),
+        },
+        expectedToolCalls: [
+            ...optionalListProjects,
+            {
+                toolName: "atlas-upgrade-cluster",
+                parameters: {
+                    projectId: PROJECT_ID,
+                    clusterName: CLUSTER_NAME,
+                    computeAutoScaling: true,
+                    minInstanceSize: "M10",
+                    maxInstanceSize: "M30",
+                    targetTier: Matcher.undefined,
+                },
+            },
+        ],
+    },
+    {
+        prompt: `Disable autoscaling on cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}"`,
+        mockedTools: {
+            ...mockListProjects,
+            "atlas-upgrade-cluster": mockScaleResponse(CLUSTER_NAME, "M10"),
+        },
+        expectedToolCalls: [
+            ...optionalListProjects,
+            {
+                toolName: "atlas-upgrade-cluster",
+                parameters: {
+                    projectId: PROJECT_ID,
+                    clusterName: CLUSTER_NAME,
+                    computeAutoScaling: false,
+                    targetTier: Matcher.undefined,
+                },
+            },
+        ],
+    },
+    {
+        prompt: `Increase the max autoscaling size on cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}" to M40`,
+        mockedTools: {
+            ...mockListProjects,
+            "atlas-upgrade-cluster": mockScaleResponse(CLUSTER_NAME, "M10"),
+        },
+        expectedToolCalls: [
+            ...optionalListProjects,
+            {
+                toolName: "atlas-upgrade-cluster",
+                parameters: {
+                    projectId: PROJECT_ID,
+                    clusterName: CLUSTER_NAME,
+                    maxInstanceSize: "M40",
+                    targetTier: Matcher.undefined,
+                },
+            },
+        ],
+    },
+    {
+        prompt: `Upgrade my free cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}" to M10 Dedicated with autoscaling disabled`,
+        mockedTools: {
+            ...mockListProjects,
+            "atlas-upgrade-cluster": mockUpgradeResponse(CLUSTER_NAME, "Free", "M10 Dedicated"),
+        },
+        expectedToolCalls: [
+            ...optionalListProjects,
+            {
+                toolName: "atlas-upgrade-cluster",
+                parameters: {
+                    projectId: PROJECT_ID,
+                    clusterName: CLUSTER_NAME,
+                    targetTier: "M10",
+                    computeAutoScaling: false,
                 },
             },
         ],

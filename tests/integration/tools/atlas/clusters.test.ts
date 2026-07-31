@@ -443,6 +443,60 @@ describeWithAtlas("clusters", (integration) => {
                     });
                 });
             });
+
+            withCluster(integration, ({ getProjectId: getScaleProjectId, getClusterName: getScaleClusterName }) => {
+                // A separate cluster fixture: upgrades it (Free -> M10 Dedicated) then scales
+                // it in place, testing both functionalities of this tool against one cluster.
+                describe("scaling an already-Dedicated cluster", () => {
+                    it("upgrades to M10 then scales to a larger instance size", async () => {
+                        const projectId = getScaleProjectId();
+                        const scaleClusterName = getScaleClusterName();
+                        const session = integration.mcpServer().session;
+                        const pollingInterval = 10000;
+                        const maxPollingIterations = 120;
+
+                        const upgradeResponse = await integration.mcpClient().callTool({
+                            name: "atlas-upgrade-cluster",
+                            arguments: { projectId, clusterName: scaleClusterName, targetTier: "M10" },
+                        });
+                        expect(upgradeResponse.isError).toBeFalsy();
+
+                        await waitCluster(
+                            session,
+                            projectId,
+                            scaleClusterName,
+                            (c) => c.stateName === "IDLE",
+                            pollingInterval,
+                            maxPollingIterations
+                        );
+
+                        const scaleResponse = await integration.mcpClient().callTool({
+                            name: "atlas-upgrade-cluster",
+                            arguments: { projectId, clusterName: scaleClusterName, instanceSize: "M20" },
+                        });
+
+                        expect(scaleResponse.isError).toBeFalsy();
+                        const content = getResponseContent(scaleResponse.content);
+                        expect(content).toContain(scaleClusterName);
+                        expect(content).toContain("M20");
+                        expect(scaleResponse.structuredContent).toMatchObject({
+                            originalTier: "DEDICATED",
+                            targetTier: "DEDICATED",
+                            originalInstanceSize: "M10",
+                            targetInstanceSize: "M20",
+                        });
+
+                        await waitCluster(
+                            session,
+                            projectId,
+                            scaleClusterName,
+                            (c) => c.stateName === "IDLE",
+                            pollingInterval,
+                            maxPollingIterations
+                        );
+                    });
+                });
+            });
         });
     });
 

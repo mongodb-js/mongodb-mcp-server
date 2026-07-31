@@ -1190,9 +1190,9 @@ export class InspectClusterTool extends AtlasToolBase {
     outputSchema: {
         name: z.ZodString;
         instanceType: z.ZodEnum<{
+            FREE: "FREE";
             DEDICATED: "DEDICATED";
             FLEX: "FLEX";
-            FREE: "FREE";
         }>;
         instanceSize: z.ZodString;
         provider: z.ZodOptional<z.ZodString>;
@@ -1270,9 +1270,9 @@ export class ListClustersTool extends AtlasToolBase {
         }, z.core.$strip>, z.ZodObject<{
             name: z.ZodOptional<z.ZodString>;
             instanceType: z.ZodEnum<{
+                FREE: "FREE";
                 DEDICATED: "DEDICATED";
                 FLEX: "FLEX";
-                FREE: "FREE";
             }>;
             instanceSize: z.ZodOptional<z.ZodString>;
             provider: z.ZodOptional<z.ZodString>;
@@ -2230,8 +2230,33 @@ export class UpgradeClusterTool extends AtlasToolBase {
         projectId: z.ZodString;
         clusterName: z.ZodString;
         targetTier: z.ZodOptional<z.ZodEnum<{
-            FLEX: "FLEX";
             M10: "M10";
+            M20: "M20";
+            M30: "M30";
+            M40: "M40";
+            M50: "M50";
+            M60: "M60";
+            M80: "M80";
+            FLEX: "FLEX";
+        }>>;
+        computeAutoScaling: z.ZodOptional<z.ZodBoolean>;
+        minInstanceSize: z.ZodOptional<z.ZodEnum<{
+            M10: "M10";
+            M20: "M20";
+            M30: "M30";
+            M40: "M40";
+            M50: "M50";
+            M60: "M60";
+            M80: "M80";
+        }>>;
+        maxInstanceSize: z.ZodOptional<z.ZodEnum<{
+            M10: "M10";
+            M20: "M20";
+            M30: "M30";
+            M40: "M40";
+            M50: "M50";
+            M60: "M60";
+            M80: "M80";
         }>>;
         provider: z.ZodOptional<z.ZodString>;
         region: z.ZodOptional<z.ZodString>;
@@ -2247,13 +2272,19 @@ export class UpgradeClusterTool extends AtlasToolBase {
     // (undocumented)
     outputSchema: {
         originalTier: z.ZodEnum<{
-            FLEX: "FLEX";
             FREE: "FREE";
+            DEDICATED: "DEDICATED";
+            FLEX: "FLEX";
         }>;
         targetTier: z.ZodEnum<{
+            DEDICATED: "DEDICATED";
             FLEX: "FLEX";
-            M10: "M10";
         }>;
+        originalInstanceSize: z.ZodOptional<z.ZodString>;
+        targetInstanceSize: z.ZodOptional<z.ZodString>;
+        computeAutoScaling: z.ZodOptional<z.ZodBoolean>;
+        minInstanceSize: z.ZodOptional<z.ZodString>;
+        maxInstanceSize: z.ZodOptional<z.ZodString>;
         resolvedProvider: z.ZodOptional<z.ZodString>;
         resolvedRegion: z.ZodOptional<z.ZodString>;
         clusterId: z.ZodOptional<z.ZodString>;
