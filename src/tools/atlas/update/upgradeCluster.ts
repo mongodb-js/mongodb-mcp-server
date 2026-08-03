@@ -9,6 +9,7 @@ import { AtlasArgs } from "../../args.js";
 import {
     standardInstanceSizeEnum,
     isStandardInstanceSize,
+    getMaxAutoScalingSize,
     type StandardInstanceSize,
 } from "../../../common/atlas/cluster.js";
 import type { UpgradeClusterMetadata } from "../../../telemetry/types.js";
@@ -100,7 +101,7 @@ function buildM10UpgradeBody(
     const enabled = autoScalingArgs.computeAutoScaling ?? true;
     const minInstanceSize = enabled ? (autoScalingArgs.minInstanceSize ?? "M10") : autoScalingArgs.minInstanceSize;
     const maxInstanceSize = enabled
-        ? (autoScalingArgs.maxInstanceSize ?? getDefaultMaxAutoScalingSize("M10"))
+        ? (autoScalingArgs.maxInstanceSize ?? getMaxAutoScalingSize("M10", provider ?? ""))
         : autoScalingArgs.maxInstanceSize;
 
     if (baseTier === "FREE") {
@@ -187,12 +188,6 @@ async function resolveClusterInfo(
             region: argOverrides.region ?? raw.providerSettings?.regionName,
         };
     }
-}
-
-// Default max autoscaling size when none is given: two tiers above `size`, capped at M80.
-function getDefaultMaxAutoScalingSize(size: StandardInstanceSize): StandardInstanceSize {
-    const index = standardInstanceSizeEnum.options.indexOf(size);
-    return standardInstanceSizeEnum.options[Math.min(index + 2, standardInstanceSizeEnum.options.length - 1)] ?? "M80";
 }
 
 type ComputeAutoScaling = {
@@ -405,7 +400,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
                 const newMax =
                     args.maxInstanceSize ??
                     (isResizing ? undefined : clusterInfo.autoScaling?.compute?.maxInstanceSize) ??
-                    (newEnabled ? getDefaultMaxAutoScalingSize(newSize) : undefined);
+                    (newEnabled ? getMaxAutoScalingSize(newSize, clusterInfo.provider ?? "") : undefined);
 
                 const body = buildScaleClusterBody(clusterInfo.raw, newSize, {
                     enabled: newEnabled,

@@ -690,18 +690,6 @@ describe("UpgradeClusterTool", () => {
             });
         });
 
-        it("caps the default autoscaling max at M80", async () => {
-            mockApiClient.getCluster!.mockResolvedValue(DEDICATED_CLUSTER_M80_RAW);
-
-            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", computeAutoScaling: true });
-
-            expect(result.isError).toBeFalsy();
-            expect(result.structuredContent).toMatchObject({
-                targetInstanceSize: "M80",
-                maxInstanceSize: "M80",
-            });
-        });
-
         it("enables autoscaling with explicit min/max, explicit values win", async () => {
             mockApiClient.getCluster!.mockResolvedValue(DEDICATED_CLUSTER_RAW);
 

@@ -7,7 +7,11 @@ import type { CreateClusterMetadata } from "../../../telemetry/types.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ensureCurrentIpInAccessList, getAccessListNote } from "../../../common/atlas/accessListUtils.js";
 import { ApiClientError } from "../../../common/atlas/apiClientError.js";
-import { standardInstanceSizeEnum, type StandardInstanceSize } from "../../../common/atlas/cluster.js";
+import {
+    standardInstanceSizeEnum,
+    getMaxAutoScalingSize,
+    type StandardInstanceSize,
+} from "../../../common/atlas/cluster.js";
 
 /** @public */
 export const ATLAS_CREATE_CLUSTER_README_DESCRIPTION =
@@ -36,13 +40,6 @@ const encryptionAtRestProviderEnum = z.enum(["AWS", "AZURE", "GCP", "NONE"]);
 type CloudProvider = z.infer<typeof cloudProviderEnum>;
 type MongoDBVersion = z.infer<typeof mongoDBVersionEnum>;
 type Backup = z.infer<typeof backupEnum>;
-
-function getMaxAutoScalingSize(size: StandardInstanceSize, provider: CloudProvider): string {
-    // M60 and M80 extend beyond the selectable range. M140 is not supported on Azure.
-    if (size === "M80") return "M200";
-    if (size === "M60") return provider === "AZURE" ? "M200" : "M140";
-    return standardInstanceSizeEnum.options[standardInstanceSizeEnum.options.indexOf(size) + 2] ?? "M80";
-}
 
 type AutoScalingConfig = {
     compute: {

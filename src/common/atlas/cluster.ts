@@ -17,6 +17,13 @@ export function isStandardInstanceSize(size: string): size is StandardInstanceSi
     return (standardInstanceSizeEnum.options as readonly string[]).includes(size);
 }
 
+// M60 and M80 extend beyond the selectable range. M140 is not supported on Azure.
+export function getMaxAutoScalingSize(size: StandardInstanceSize, provider: string): string {
+    if (size === "M80") return "M200";
+    if (size === "M60") return provider === "AZURE" ? "M200" : "M140";
+    return standardInstanceSizeEnum.options[standardInstanceSizeEnum.options.indexOf(size) + 2] ?? "M80";
+}
+
 type AtlasProcessId = `${string}:${number}`;
 
 function extractProcessIds(connectionString: string): Array<AtlasProcessId> {
