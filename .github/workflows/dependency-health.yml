@@ -13,6 +13,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write # required for aws-actions/configure-aws-credentials OIDC role assumption
 
 jobs:
   generate:
@@ -58,23 +59,36 @@ jobs:
           git commit --no-allow-empty -m "chore: update third-party notices [skip actions]" || true
           git push
 
+      - name: Configure AWS credentials for DevProd Platforms ECR
+        if: always()
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
+        with:
+          role-to-assume: ${{ secrets.DEVPROD_PLATFORMS_ECR_ROLE_ARN }}
+          aws-region: us-east-1
+
       - name: Generate SBOM and upload to Kondukto via SilkBomb
         if: always()
         env:
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          KONDUKTO_TOKEN: ${{ secrets.KONDUKTO_TOKEN }}
           KONDUKTO_BRANCH: ${{ github.ref_name }}
         run: |
           set -e
 
-          echo "$ARTIFACTORY_PASSWORD" | docker login artifactory.corp.mongodb.com \
-            --username "$ARTIFACTORY_USERNAME" --password-stdin
+          ECR_HOST=901841024863.dkr.ecr.us-east-1.amazonaws.com
+          SILKBOMB_IMAGE="${ECR_HOST}/release-infrastructure/silkbomb:2.0"
 
-          docker pull artifactory.corp.mongodb.com/release-tools-container-registry-public-local/silkbomb:2.0
+          aws ecr get-login-password --region us-east-1 \
+            | docker login --username AWS --password-stdin "${ECR_HOST}"
 
-          docker run --rm -e KONDUKTO_TOKEN="$KONDUKTO_TOKEN" -v "$PWD":/pwd \
-            artifactory.corp.mongodb.com/release-tools-container-registry-public-local/silkbomb:2.0 \
+          docker pull "${SILKBOMB_IMAGE}"
+
+          # SilkBomb authenticates to Kondukto using the AWS credentials
+          # configured above; no explicit KONDUKTO_TOKEN is needed for this repo.
+          # Forward the AWS creds into the container (containers don't inherit
+          # the runner environment).
+          docker run --rm \
+            -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_SESSION_TOKEN \
+            -v "$PWD":/pwd \
+            "${SILKBOMB_IMAGE}" \
             augment \
             --repo ${{ github.repository }} \
             --branch "$KONDUKTO_BRANCH" \
