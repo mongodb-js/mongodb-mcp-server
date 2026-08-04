@@ -21,10 +21,11 @@ describeWithMongoDB("dropCollection tool", (integration) => {
     validateThrowsForInvalidArguments(integration, "drop-collection", databaseCollectionInvalidArgs);
 
     it("can drop non-existing collection", async () => {
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         const response = await integration.mcpClient().callTool({
             name: "drop-collection",
             arguments: {
+                connectionId,
                 database: integration.randomDbName(),
                 collection: "coll1",
             },
@@ -38,12 +39,13 @@ describeWithMongoDB("dropCollection tool", (integration) => {
     });
 
     it("removes the collection if it exists", async () => {
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         await integration.mongoClient().db(integration.randomDbName()).createCollection("coll1");
         await integration.mongoClient().db(integration.randomDbName()).createCollection("coll2");
         const response = await integration.mcpClient().callTool({
             name: "drop-collection",
             arguments: {
+                connectionId,
                 database: integration.randomDbName(),
                 collection: "coll1",
             },

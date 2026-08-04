@@ -1,9 +1,10 @@
 import { describe, it, beforeAll, beforeEach, afterAll } from "vitest";
 import { getAvailableModels } from "./models.js";
 import { calculateToolCallingAccuracy } from "./accuracyScorer.js";
-import type { PromptDefinition, VercelAgent, VercelAgentPromptResult } from "./agent.js";
+import type { PromptDefinition, VercelAgent, VercelAgentPromptResult, VercelMCPClientTools } from "./agent.js";
 import { getVercelToolCallingAgent } from "./agent.js";
 import { prepareTestData, setupMongoDBIntegrationTest } from "../../integration/tools/mongodb/mongodbHelpers.js";
+import { PRECONFIGURED_CONNECTION_ID } from "../../../src/common/connectionRegistry.js";
 import type { MockedTools } from "./accuracyTestingClient.js";
 import { AccuracyTestingClient } from "./accuracyTestingClient.js";
 import type { AccuracyResultStorage, ExpectedToolCall, LLMToolCall } from "./accuracyResultStorage/resultStorage.js";
@@ -27,7 +28,11 @@ export interface AccuracyTestConfig {
      * problem mentioned in the prompt but because, for even a slightly vague
      * prompt, LLM might decide to do additional confirmation by calling other
      * tools, its fine to include those other tool calls as well to get a
-     * perfect 1 on the tool calling accuracy score. */
+     * perfect 1 on the tool calling accuracy score.
+     *
+     * Tools that accept a `connectionId` are automatically expected to be
+     * called with the preconfigured connection id, so it can be omitted here;
+     * specify `connectionId` explicitly to expect a different value. */
     expectedToolCalls: ExpectedToolCall[];
 
     /**
@@ -123,13 +128,14 @@ export function describeAccuracyTests(
         eachTest("$description", async function (testConfig) {
             testMCPClient.mockTools(testConfig.mockedTools ?? {});
             const toolsForModel = await testMCPClient.vercelTools();
+            const expectedToolCalls = withExpectedConnectionId(testConfig.expectedToolCalls, toolsForModel);
 
             const timeBeforePrompt = Date.now();
             const result = await agent.prompt(testConfig.prompt, model, toolsForModel, testConfig.systemPrompt);
             const timeAfterPrompt = Date.now();
 
             const llmToolCalls = testMCPClient.getLLMToolCalls();
-            let toolCallingAccuracy = calculateToolCallingAccuracy(testConfig.expectedToolCalls, llmToolCalls);
+            let toolCallingAccuracy = calculateToolCallingAccuracy(expectedToolCalls, llmToolCalls);
             if (testConfig.customScorer) {
                 toolCallingAccuracy = await testConfig.customScorer(
                     toolCallingAccuracy,
@@ -147,7 +153,7 @@ export function describeAccuracyTests(
                 commitSHA,
                 runId: accuracyRunId,
                 prompt: testConfig.description,
-                expectedToolCalls: testConfig.expectedToolCalls,
+                expectedToolCalls,
                 modelResponse: {
                     provider: model.provider,
                     requestedModel: model.modelName,
@@ -161,6 +167,33 @@ export function describeAccuracyTests(
                 },
             });
         });
+    });
+}
+
+/**
+ * Expects every tool call that accepts a `connectionId` to be made with the
+ * preconfigured connection id. The server under test is started with a
+ * connection string and the agent is told it is already connected, so the
+ * preconfigured id is the only correct handle for the accuracy prompts —
+ * injecting the expectation here keeps it out of every test definition.
+ * Expectations that set `connectionId` themselves are left untouched.
+ */
+function withExpectedConnectionId(
+    expectedToolCalls: ExpectedToolCall[],
+    tools: VercelMCPClientTools
+): ExpectedToolCall[] {
+    return expectedToolCalls.map((expectedCall) => {
+        const inputSchema = tools[expectedCall.toolName]?.inputSchema as
+            | { jsonSchema?: { properties?: Record<string, unknown> } }
+            | undefined;
+        if (!inputSchema?.jsonSchema?.properties?.["connectionId"] || "connectionId" in expectedCall.parameters) {
+            return expectedCall;
+        }
+
+        return {
+            ...expectedCall,
+            parameters: { ...expectedCall.parameters, connectionId: PRECONFIGURED_CONNECTION_ID },
+        };
     });
 }
 

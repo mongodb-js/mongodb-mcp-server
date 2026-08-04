@@ -1,7 +1,7 @@
 import * as oauth from "oauth4webapi";
 import type { LoggerBase } from "../../logging/index.js";
 import { LogId } from "../../logging/index.js";
-import { createFetch } from "@mongodb-js/devtools-proxy-support";
+import { getSharedProxyFetch } from "../../proxyFetch.js";
 import type { AccessToken, AuthProvider } from "./authProvider.js";
 
 export interface ClientCredentialsAuthOptions {
@@ -30,9 +30,7 @@ export class ClientCredentialsAuthProvider implements AuthProvider {
             grant_types_supported: ["client_credentials"],
         };
 
-        this.customFetch = createFetch({
-            useEnvironmentVariableProxies: true,
-        }) as unknown as typeof fetch;
+        this.customFetch = getSharedProxyFetch();
     }
 
     public async getAuthHeaders(): Promise<Record<string, string> | undefined> {

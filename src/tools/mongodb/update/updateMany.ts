@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolResult } from "../../tool.js";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 import { zEJSON } from "../../args.js";
@@ -21,6 +21,7 @@ export class UpdateManyTool extends MongoDBToolBase {
         "Updates all documents that match the specified filter for a collection. If the list of documents is above com.mongodb/maxRequestPayloadBytes, consider updating them in batches.";
     public override outputSchema = UpdateManyOutputSchema;
     public argsShape = {
+        ...ConnectionIdArgs,
         ...CollOperationArgs,
         filter: zEJSON()
             .optional()
@@ -38,13 +39,14 @@ export class UpdateManyTool extends MongoDBToolBase {
     static operationType: OperationType = "update";
 
     protected async execute({
+        connectionId,
         database,
         collection,
         filter,
         update,
         upsert,
     }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
-        const provider = await this.ensureConnected();
+        const provider = await this.resolveConnection(connectionId);
 
         this.assertMqlIsAllowed(filter);
 

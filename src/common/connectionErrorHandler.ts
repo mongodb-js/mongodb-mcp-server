@@ -2,20 +2,34 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ErrorCodes, type MongoDBError } from "./errors.js";
 import type { AnyConnectionState } from "./connectionManager.js";
 import type { AnyToolBase } from "../tools/tool.js";
+import { DisconnectTool } from "../tools/mongodb/connect/disconnect.js";
+import { ListConnectionsTool } from "../tools/mongodb/connect/listConnections.js";
 
 export type ConnectionErrorHandler = (
-    error: MongoDBError<ErrorCodes.NotConnectedToMongoDB | ErrorCodes.MisconfiguredConnectionString>,
+    error: MongoDBError<
+        ErrorCodes.NotConnectedToMongoDB | ErrorCodes.MisconfiguredConnectionString | ErrorCodes.UnknownConnectionId
+    >,
     additionalContext: ConnectionErrorHandlerContext
 ) => ConnectionErrorUnhandled | ConnectionErrorHandled | Promise<ConnectionErrorUnhandled | ConnectionErrorHandled>;
 
-export type ConnectionErrorHandlerContext = { availableTools: AnyToolBase[]; connectionState: AnyConnectionState };
+export type ConnectionErrorHandlerContext = { availableTools: AnyToolBase[]; connectionState?: AnyConnectionState };
 export type ConnectionErrorUnhandled = { errorHandled: false };
 export type ConnectionErrorHandled = { errorHandled: true; result: CallToolResult };
 
+/**
+ * The enabled tools that can establish a connection, sorted with Atlas tools
+ * before MongoDB tools so every listing surfaces them in the same order. The
+ * disconnect tool shares the "connect" operation type but cannot establish a
+ * connection, so it is excluded.
+ */
+export function connectCapableTools(tools: AnyToolBase[]): AnyToolBase[] {
+    return tools
+        .filter((t) => t.operationType === "connect" && t.name !== DisconnectTool.toolName && t.isEnabled())
+        .sort((a, b) => a.category.localeCompare(b.category));
+}
+
 export const connectionErrorHandler: ConnectionErrorHandler = (error, { availableTools, connectionState }) => {
-    const connectTools = availableTools
-        .filter((t) => t.operationType === "connect" && t.isEnabled())
-        .sort((a, b) => a.category.localeCompare(b.category)); // Sort Atlas tools before MongoDB tools
+    const connectTools = connectCapableTools(availableTools);
 
     // Find what Atlas connect tools are available and suggest when the LLM should to use each. If no Atlas tools are found, return a suggestion for the MongoDB connect tool.
     const atlasConnectTool = connectTools?.find((t) => t.category === "atlas");
@@ -44,7 +58,7 @@ export const connectionErrorHandler: ConnectionErrorHandler = (error, { availabl
     const connectToolsNames = connectTools?.map((t) => `"${t.name}"`).join(", ");
     const additionalPromptForConnectivity: { type: "text"; text: string }[] = [];
 
-    if (connectionState.tag === "connecting" && connectionState.oidcConnectionType) {
+    if (connectionState?.tag === "connecting" && connectionState.oidcConnectionType) {
         additionalPromptForConnectivity.push({
             type: "text",
             text: `The user needs to finish their OIDC connection by opening '${connectionState.oidcLoginUrl}' in the browser and use the following user code: '${connectionState.oidcUserCode}'`,
@@ -59,6 +73,28 @@ export const connectionErrorHandler: ConnectionErrorHandler = (error, { availabl
     }
 
     switch (error.code) {
+        case ErrorCodes.UnknownConnectionId: {
+            const listConnectionsAvailable = availableTools.some(
+                (t) => t.name === ListConnectionsTool.toolName && t.isEnabled()
+            );
+            return {
+                errorHandled: true,
+                result: {
+                    content: [
+                        {
+                            type: "text",
+                            text: `${error.message} ${
+                                listConnectionsAvailable
+                                    ? `Call the "${ListConnectionsTool.toolName}" tool to see the active connections, or establish a new one and retry with the connectionId it returns.`
+                                    : "Establish a new connection using one of the connect tools and retry with the connectionId it returns."
+                            }`,
+                        },
+                        ...additionalPromptForConnectivity,
+                    ],
+                    isError: true,
+                },
+            };
+        }
         case ErrorCodes.NotConnectedToMongoDB:
             return {
                 errorHandled: true,

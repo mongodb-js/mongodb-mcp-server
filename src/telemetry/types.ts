@@ -262,6 +262,7 @@ export const SHARED_TIER_METRIC_NAMES = [
 export type SharedTierMetricName = (typeof SHARED_TIER_METRIC_NAMES)[number];
 export type ConnectionMetadata = AtlasMetadata &
     AtlasLocalToolMetadata & {
+        connection_id?: string;
         connection_auth_type?: string;
         connection_host_type?: string;
         shared_tier_alerts_detected?: TelemetryBoolSet;
@@ -295,7 +296,7 @@ export type PauseResumeClusterMetadata = AtlasMetadata & {
 export type CreateClusterMetadata = AtlasMetadata & {
     cluster_id?: string;
     provider?: string;
-    region?: string;
+    regions?: string[];
     instance_size?: string;
     cluster_type?: "REPLICASET" | "SHARDED";
     backup?: "OFF" | "SNAPSHOT" | "CONTINUOUS";
@@ -303,6 +304,7 @@ export type CreateClusterMetadata = AtlasMetadata & {
     termination_protection?: TelemetryBoolSet;
     disk_size_gb?: number;
     mongodb_version?: string;
+    encryption_at_rest_provider?: "AWS" | "AZURE" | "GCP" | "NONE";
 };
 
 export type IndexMetadata = ConnectionMetadata & {

@@ -192,7 +192,7 @@ describeWithAtlasLocal(
 
                 // Connect so subsequent MongoDB tool calls target this deployment.
                 // create may return before port bindings are ready; retry connect like a customer would.
-                await vi.waitFor(
+                const connectionId = await vi.waitFor(
                     async () => {
                         const response = await integration.mcpClient().callTool({
                             name: "atlas-local-connect-deployment",
@@ -202,6 +202,11 @@ describeWithAtlasLocal(
                             const message = getResponseElements(response.content)[0]?.text ?? "connect failed";
                             throw new Error(message);
                         }
+                        const id = (response.structuredContent as { connectionId?: string } | undefined)?.connectionId;
+                        if (!id) {
+                            throw new Error("connect did not return a connectionId");
+                        }
+                        return id;
                     },
                     { timeout: SAMPLE_DATA_TEST_TIMEOUT_MS, interval: 5_000 }
                 );
@@ -209,7 +214,7 @@ describeWithAtlasLocal(
                 // Verify the standard MongoDB sample datasets were loaded.
                 const dbsResponse = await integration.mcpClient().callTool({
                     name: "list-databases",
-                    arguments: {},
+                    arguments: { connectionId },
                 });
                 const dbsContent = dbsResponse.structuredContent as ListDatabasesOutput;
                 const sampleDbNames = dbsContent.databases
@@ -220,7 +225,7 @@ describeWithAtlasLocal(
                 // Verify a known collection from sample_mflix is present and has data.
                 const collsResponse = await integration.mcpClient().callTool({
                     name: "list-collections",
-                    arguments: { database: "sample_mflix" },
+                    arguments: { connectionId, database: "sample_mflix" },
                 });
                 const collsContent = collsResponse.structuredContent as ListCollectionsOutput;
                 const collNames = collsContent.collections.map((c) => c.name);
@@ -228,7 +233,7 @@ describeWithAtlasLocal(
 
                 const findResponse = await integration.mcpClient().callTool({
                     name: "find",
-                    arguments: { database: "sample_mflix", collection: "movies", limit: 1 },
+                    arguments: { connectionId, database: "sample_mflix", collection: "movies", limit: 1 },
                 });
                 const findElements = getResponseElements(findResponse.content);
                 // Element 0 is the summary line ("Query on collection ... resulted in N documents..."),

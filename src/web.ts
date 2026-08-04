@@ -35,7 +35,7 @@ export type {
     ConnectionErrorUnhandled,
     ConnectionErrorHandlerContext,
 } from "./common/connectionErrorHandler.js";
-export { Elicitation, type ElicitedInputResult } from "./elicitation.js";
+export { Elicitation, type ElicitationOptions, type ElicitedInputResult } from "./elicitation.js";
 export type {
     ConnectionStateConnecting,
     ConnectionSettings,
@@ -51,6 +51,20 @@ export type {
     ConnectionTag,
 } from "./common/connectionManager.js";
 export { ConnectionManager, ConnectionStateConnected } from "./common/connectionManager.js";
+export {
+    ConnectionEntry,
+    PRECONFIGURED_CONNECTION_ID,
+    atlasClusterSlug,
+    type ConnectionRegistry,
+    type ConnectionSource,
+    type CreateConnectionEntryOptions,
+    type CreateConnectionOptions,
+} from "./common/connectionRegistry.js";
+export {
+    MCPConnectionStore,
+    type ConnectionStoreOptions,
+    type CreateConnectionManagerFn,
+} from "./common/connectionStore.js";
 export {
     ExportsManager,
     type AvailableExport,

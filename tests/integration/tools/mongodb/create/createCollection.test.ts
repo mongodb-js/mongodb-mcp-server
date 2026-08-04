@@ -27,10 +27,10 @@ describeWithMongoDB("createCollection tool", (integration) => {
             let collections = await mongoClient.db(integration.randomDbName()).listCollections().toArray();
             expect(collections).toHaveLength(0);
 
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "create-collection",
-                arguments: { database: integration.randomDbName(), collection: "bar" },
+                arguments: { connectionId, database: integration.randomDbName(), collection: "bar" },
             });
             const content = getResponseContent(response.content);
             expect(content).toEqual(`Collection "bar" created in database "${integration.randomDbName()}".`);
@@ -54,10 +54,10 @@ describeWithMongoDB("createCollection tool", (integration) => {
             let collections = await mongoClient.db(integration.randomDbName()).listCollections().toArray();
             expect(collections).toHaveLength(1);
 
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "create-collection",
-                arguments: { database: integration.randomDbName(), collection: "collection2" },
+                arguments: { connectionId, database: integration.randomDbName(), collection: "collection2" },
             });
             const content = getResponseContent(response.content);
             expect(content).toEqual(`Collection "collection2" created in database "${integration.randomDbName()}".`);
@@ -85,10 +85,10 @@ describeWithMongoDB("createCollection tool", (integration) => {
                 .toArray();
             expect(documents).toHaveLength(1);
 
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "create-collection",
-                arguments: { database: integration.randomDbName(), collection: "collection1" },
+                arguments: { connectionId, database: integration.randomDbName(), collection: "collection1" },
             });
             const content = getResponseContent(response.content);
             expect(content).toEqual(`Collection "collection1" created in database "${integration.randomDbName()}".`);

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { Elicitation } from "../../src/elicitation.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createMockElicitInput, createMockGetClientCapabilities } from "../utils/elicitationMocks.js";
@@ -16,6 +16,7 @@ describe("Elicitation", () => {
                 getClientCapabilities: mockGetClientCapabilities,
                 elicitInput: mockElicitInput.mock,
             } as unknown as McpServer["server"],
+            timeoutMs: 300_000,
         });
     });
 
@@ -137,6 +138,51 @@ describe("Elicitation", () => {
             await expect(elicitation.requestConfirmation(testMessage)).rejects.toThrow("Elicitation failed");
             expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
         });
+
+        it("should relate the elicitation to the provided request id", async () => {
+            mockGetClientCapabilities.mockReturnValue({ elicitation: {} });
+            mockElicitInput.confirmYes();
+
+            await elicitation.requestConfirmation(testMessage, { relatedRequestId: 7 });
+
+            expect(mockElicitInput.mock).toHaveBeenCalledWith(expect.anything(), {
+                timeout: 300000,
+                relatedRequestId: 7,
+            });
+        });
+
+        it("should use the configured timeout", async () => {
+            const customElicitation = new Elicitation({
+                server: {
+                    getClientCapabilities: mockGetClientCapabilities,
+                    elicitInput: mockElicitInput.mock,
+                } as unknown as McpServer["server"],
+                timeoutMs: 1_000,
+            });
+            mockGetClientCapabilities.mockReturnValue({ elicitation: {} });
+            mockElicitInput.confirmYes();
+
+            await customElicitation.requestConfirmation(testMessage);
+
+            expect(mockElicitInput.mock).toHaveBeenCalledWith(expect.anything(), {
+                timeout: 1_000,
+                relatedRequestId: undefined,
+            });
+        });
+
+        it("should forward the abort signal to the elicitation request", async () => {
+            mockGetClientCapabilities.mockReturnValue({ elicitation: {} });
+            mockElicitInput.confirmYes();
+            const controller = new AbortController();
+
+            await elicitation.requestConfirmation(testMessage, { signal: controller.signal });
+
+            expect(mockElicitInput.mock).toHaveBeenCalledWith(expect.anything(), {
+                timeout: 300000,
+                relatedRequestId: undefined,
+                signal: controller.signal,
+            });
+        });
     });
 
     describe("requestInput", () => {
@@ -214,6 +260,132 @@ describe("Elicitation", () => {
             mockElicitInput.rejectWith(error);
 
             await expect(elicitation.requestInput(testMessage, testSchema)).rejects.toThrow("Input failed");
+        });
+
+        it("should forward the abort signal to the elicitation request", async () => {
+            mockGetClientCapabilities.mockReturnValue({ elicitation: {} });
+            mockElicitInput.acceptWith({ username: "admin" });
+            const controller = new AbortController();
+
+            await elicitation.requestInput(testMessage, testSchema, { signal: controller.signal });
+
+            expect(mockElicitInput.mock).toHaveBeenCalledWith(expect.anything(), {
+                timeout: 300000,
+                relatedRequestId: undefined,
+                signal: controller.signal,
+            });
+        });
+
+        it("should relate the elicitation to the provided request id", async () => {
+            mockGetClientCapabilities.mockReturnValue({ elicitation: {} });
+            mockElicitInput.acceptWith({ username: "admin" });
+
+            await elicitation.requestInput(testMessage, testSchema, { relatedRequestId: 7 });
+
+            expect(mockElicitInput.mock).toHaveBeenCalledWith(expect.anything(), {
+                timeout: 300000,
+                relatedRequestId: 7,
+            });
+        });
+    });
+
+    describe("progress heartbeat", () => {
+        beforeEach(() => {
+            vi.useFakeTimers();
+        });
+
+        afterEach(() => {
+            vi.useRealTimers();
+        });
+
+        it("should send progress notifications while waiting for the user's response", async () => {
+            mockGetClientCapabilities.mockReturnValue({ elicitation: {} });
+            let resolveElicitation!: (value: { action: string; content?: Record<string, unknown> }) => void;
+            mockElicitInput.mock.mockReturnValue(
+                new Promise((resolve) => {
+                    resolveElicitation = resolve;
+                })
+            );
+            const sendNotification = vi.fn().mockResolvedValue(undefined);
+
+            const pending = elicitation.requestConfirmation("Confirm?", {
+                progressToken: "token-1",
+                sendNotification,
+            });
+
+            // An immediate heartbeat announces the wait, then one fires per interval.
+            expect(sendNotification).toHaveBeenCalledTimes(1);
+            expect(sendNotification).toHaveBeenCalledWith({
+                method: "notifications/progress",
+                params: expect.objectContaining({ progressToken: "token-1", progress: 0 }) as unknown,
+            });
+
+            await vi.advanceTimersByTimeAsync(15_000);
+            expect(sendNotification).toHaveBeenCalledTimes(2);
+            expect(sendNotification).toHaveBeenLastCalledWith({
+                method: "notifications/progress",
+                params: expect.objectContaining({ progressToken: "token-1", progress: 1 }) as unknown,
+            });
+
+            resolveElicitation({ action: "accept", content: { confirmation: "Yes" } });
+            await expect(pending).resolves.toBe(true);
+
+            // The heartbeat stops once the elicitation settles.
+            await vi.advanceTimersByTimeAsync(60_000);
+            expect(sendNotification).toHaveBeenCalledTimes(2);
+        });
+
+        it("should not send progress notifications without a progress token", async () => {
+            mockGetClientCapabilities.mockReturnValue({ elicitation: {} });
+            mockElicitInput.confirmYes();
+            const sendNotification = vi.fn().mockResolvedValue(undefined);
+
+            await elicitation.requestConfirmation("Confirm?", { sendNotification });
+
+            expect(sendNotification).not.toHaveBeenCalled();
+        });
+
+        it("should stop the heartbeat when the elicitation errors", async () => {
+            mockGetClientCapabilities.mockReturnValue({ elicitation: {} });
+            mockElicitInput.rejectWith(new Error("Elicitation failed"));
+            const sendNotification = vi.fn().mockResolvedValue(undefined);
+
+            await expect(
+                elicitation.requestConfirmation("Confirm?", { progressToken: 1, sendNotification })
+            ).rejects.toThrow("Elicitation failed");
+
+            await vi.advanceTimersByTimeAsync(60_000);
+            expect(sendNotification).toHaveBeenCalledTimes(1);
+        });
+
+        it("should send progress notifications while waiting for requestInput", async () => {
+            mockGetClientCapabilities.mockReturnValue({ elicitation: {} });
+            let resolveElicitation!: (value: { action: string; content?: Record<string, unknown> }) => void;
+            mockElicitInput.mock.mockReturnValue(
+                new Promise((resolve) => {
+                    resolveElicitation = resolve;
+                })
+            );
+            const sendNotification = vi.fn().mockResolvedValue(undefined);
+
+            const pending = elicitation.requestInput(
+                "Provide details",
+                {
+                    type: "object",
+                    properties: { username: { type: "string", title: "Username", description: "Your username" } },
+                    required: ["username"],
+                },
+                { progressToken: 2, sendNotification }
+            );
+
+            await vi.advanceTimersByTimeAsync(15_000);
+            expect(sendNotification).toHaveBeenCalledTimes(2);
+
+            resolveElicitation({ action: "accept", content: { username: "admin" } });
+            await expect(pending).resolves.toEqual({ accepted: true, fields: { username: "admin" } });
+
+            await vi.advanceTimersByTimeAsync(60_000);
+            expect(sendNotification).toHaveBeenCalledTimes(2);
         });
     });
 });

@@ -1,26 +1,20 @@
-import type { ConnectionManagerEvents, ConnectionStateConnected } from "../../../src/common/connectionManager.js";
+import type {
+    ConnectionManagerEvents,
+    ConnectionStateConnected,
+    ConnectionStateErrored,
+} from "../../../src/common/connectionManager.js";
+import { MCPConnectionManager } from "../../../src/common/connectionManager.js";
+import { CompositeLogger } from "../../../src/common/logging/index.js";
+import { DeviceId } from "../../../src/helpers/deviceId.js";
 import { getAuthType, type ConnectionStringAuthType } from "../../../src/common/connectionInfo.js";
 import type { UserConfig } from "../../../src/common/config/userConfig.js";
+import { defaultTestConfig } from "../../integration/helpers.js";
 import { describeWithMongoDB, waitUntilSearchIsReady } from "../tools/mongodb/mongodbHelpers.js";
 import { MongoServerError } from "mongodb";
 import { describe, beforeEach, expect, it, vi, afterEach } from "vitest";
 import type { MockInstance } from "vitest";
-import { type TestConnectionManager } from "../../utils/index.js";
 
 describeWithMongoDB("Connection Manager", (integration) => {
-    function connectionManager(): TestConnectionManager {
-        return integration.mcpServer().session.connectionManager as TestConnectionManager;
-    }
-
-    afterEach(async () => {
-        // disconnect on purpose doesn't change the state if it was failed to avoid losing
-        // information in production.
-        await connectionManager().disconnect();
-        // for testing, force disconnecting AND setting the connection to closed to reset the
-        // state of the connection manager
-        connectionManager().changeState("connection-close", { tag: "disconnected" });
-    });
-
     describe("when successfully connected", () => {
         type ConnectionManagerSpies = {
             "connection-request": (event: ConnectionManagerEvents["connection-request"][0]) => void;
@@ -31,6 +25,7 @@ describeWithMongoDB("Connection Manager", (integration) => {
         };
 
         let connectionManagerSpies: ConnectionManagerSpies;
+        let manager: MCPConnectionManager;
 
         beforeEach(async () => {
             connectionManagerSpies = {
@@ -41,24 +36,36 @@ describeWithMongoDB("Connection Manager", (integration) => {
                 "connection-error": vi.fn(),
             };
 
+            // Construct the manager directly and attach the spies before the
+            // initial dial so they observe the full lifecycle.
+            manager = new MCPConnectionManager(
+                defaultTestConfig,
+                new CompositeLogger(),
+                DeviceId.create(new CompositeLogger())
+            );
+
             for (const [event, spy] of Object.entries(connectionManagerSpies)) {
-                connectionManager().events.on(
+                manager.events.on(
                     event as keyof ConnectionManagerEvents,
                     spy as (...args: ConnectionManagerEvents[keyof ConnectionManagerEvents]) => void
                 );
             }
 
-            await connectionManager().connect({
+            await manager.connect({
                 connectionString: integration.connectionString(),
             });
         });
 
+        afterEach(async () => {
+            await manager.close().catch(() => undefined);
+        });
+
         it("should be marked explicitly as connected", () => {
-            expect(connectionManager().currentConnectionState.tag).toEqual("connected");
+            expect(manager.currentConnectionState.tag).toEqual("connected");
         });
 
         it("can query mongodb successfully", async () => {
-            const connectionState = connectionManager().currentConnectionState as ConnectionStateConnected;
+            const connectionState = manager.currentConnectionState as ConnectionStateConnected;
             const collections = await connectionState.serviceProvider.listCollections("admin");
             expect(collections).not.toBe([]);
         });
@@ -73,7 +80,7 @@ describeWithMongoDB("Connection Manager", (integration) => {
 
         describe("when disconnects", () => {
             beforeEach(async () => {
-                await connectionManager().disconnect();
+                await manager.disconnect();
             });
 
             it("should notify that it was disconnected before connecting", () => {
@@ -81,13 +88,13 @@ describeWithMongoDB("Connection Manager", (integration) => {
             });
 
             it("should be marked explicitly as disconnected", () => {
-                expect(connectionManager().currentConnectionState.tag).toEqual("disconnected");
+                expect(manager.currentConnectionState.tag).toEqual("disconnected");
             });
         });
 
         describe("when reconnects", () => {
             beforeEach(async () => {
-                await connectionManager().connect({
+                await manager.connect({
                     connectionString: integration.connectionString(),
                 });
             });
@@ -101,14 +108,14 @@ describeWithMongoDB("Connection Manager", (integration) => {
             });
 
             it("should be marked explicitly as connected", () => {
-                expect(connectionManager().currentConnectionState.tag).toEqual("connected");
+                expect(manager.currentConnectionState.tag).toEqual("connected");
             });
         });
 
         describe("when fails to connect to a new cluster", () => {
             beforeEach(async () => {
                 try {
-                    await connectionManager().connect({
+                    await manager.connect({
                         connectionString: "mongodb://localhost:xxxxx",
                     });
                 } catch (_error: unknown) {
@@ -132,8 +139,11 @@ describeWithMongoDB("Connection Manager", (integration) => {
                 });
             });
 
-            it("should be marked explicitly as connected", () => {
-                expect(connectionManager().currentConnectionState.tag).toEqual("errored");
+            it("should be marked explicitly as errored and expose the error reason", () => {
+                expect(manager.currentConnectionState.tag).toEqual("errored");
+                expect((manager.currentConnectionState as ConnectionStateErrored).errorReason).toContain(
+                    "Unable to parse localhost:xxxxx with URL"
+                );
             });
         });
 
@@ -148,7 +158,7 @@ describeWithMongoDB("Connection Manager", (integration) => {
 
             beforeEach(async () => {
                 try {
-                    await connectionManager().connect({
+                    await manager.connect({
                         connectionString: "mongodb://localhost:xxxxx",
                         atlas,
                     });
@@ -173,15 +183,18 @@ describeWithMongoDB("Connection Manager", (integration) => {
                 });
             });
 
-            it("should be marked explicitly as connected", () => {
-                expect(connectionManager().currentConnectionState.tag).toEqual("errored");
+            it("should be marked explicitly as errored", () => {
+                expect(manager.currentConnectionState.tag).toEqual("errored");
             });
         });
     });
 
     describe("when disconnected", () => {
-        it("should be marked explicitly as disconnected", () => {
-            expect(connectionManager().currentConnectionState.tag).toEqual("disconnected");
+        it("should be marked explicitly as disconnected", async () => {
+            const entry = await integration.mcpServer().session.connectionRegistry.createEntry({
+                name: "disconnected-test",
+            });
+            expect(entry.state.tag).toEqual("disconnected");
         });
     });
 });
@@ -200,9 +213,9 @@ describeWithMongoDB(
             connectionState: ConnectionStateConnected;
         }> {
             const session = integration.mcpServer().session;
-            await session.connectToMongoDB({ connectionString });
+            const entry = await session.connectionRegistry.connect({ settings: { connectionString } });
 
-            const state = session.connectionManager.currentConnectionState;
+            const state = entry.state;
             if (state.tag !== "connected") {
                 throw new Error(`Expected state 'connected', got '${state.tag}'`);
             }
@@ -223,9 +236,8 @@ describeWithMongoDB(
         });
 
         afterEach(async () => {
-            const session = integration.mcpServer().session;
-            await session.disconnect();
-
+            // Connections established via the registry are revoked by the shared
+            // integration-test afterEach; only the fixture database needs cleanup.
             try {
                 await integration.mongoClient().db(SEARCH_PROBE_USER_DB).dropDatabase();
             } catch {
@@ -432,17 +444,13 @@ describeWithMongoDB(
             await waitUntilSearchIsReady(integration.mongoClient());
         });
 
-        afterEach(async () => {
-            const cm = integration.mcpServer().session.connectionManager as TestConnectionManager;
-            await cm.disconnect();
-            cm.changeState("connection-close", { tag: "disconnected" });
-        });
-
         it("returns true when Atlas Local Search is enabled", async () => {
             const session = integration.mcpServer().session;
-            await session.connectToMongoDB({ connectionString: integration.connectionString() });
+            const entry = await session.connectionRegistry.connect({
+                settings: { connectionString: integration.connectionString() },
+            });
 
-            const state = session.connectionManager.currentConnectionState;
+            const state = entry.state;
             if (state.tag !== "connected") {
                 throw new Error(`Expected state 'connected', got '${state.tag}'`);
             }

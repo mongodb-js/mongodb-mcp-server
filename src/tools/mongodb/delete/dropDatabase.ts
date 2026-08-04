@@ -1,4 +1,4 @@
-import { DBOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { ConnectionIdArgs, DBOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolResult } from "../../tool.js";
 import { escapeMarkdown } from "../../../helpers/escapeMarkdown.js";
 import { z } from "zod";
@@ -13,14 +13,15 @@ export type DropDatabaseOutput = z.infer<z.ZodObject<typeof DropDatabaseOutputSc
 export class DropDatabaseTool extends MongoDBToolBase {
     static toolName = "drop-database";
     public description = "Removes the specified database, deleting the associated data files";
-    public argsShape = DBOperationArgs;
+    public argsShape = { ...ConnectionIdArgs, ...DBOperationArgs };
     public override outputSchema = DropDatabaseOutputSchema;
     static operationType: OperationType = "delete";
 
     protected async execute({
+        connectionId,
         database,
     }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
-        const provider = await this.ensureConnected();
+        const provider = await this.resolveConnection(connectionId);
         const result = await provider.dropDatabase(database);
 
         return {

@@ -1,4 +1,4 @@
-import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 import { zEJSON } from "../../args.js";
@@ -21,6 +21,7 @@ export class CountTool extends MongoDBToolBase {
     public description =
         "Gets the number of documents in a MongoDB collection using db.collection.count() and query as an optional filter parameter";
     public argsShape = {
+        ...ConnectionIdArgs,
         ...CollOperationArgs,
         ...CountArgs,
     };
@@ -30,10 +31,10 @@ export class CountTool extends MongoDBToolBase {
     public override outputSchema = CountOutputSchema;
 
     protected async execute(
-        { database, collection, query }: ToolArgs<typeof this.argsShape>,
+        { connectionId, database, collection, query }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        const provider = await this.ensureConnected();
+        const provider = await this.resolveConnection(connectionId);
 
         this.assertMqlIsAllowed(query);
 

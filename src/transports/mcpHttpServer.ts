@@ -1,5 +1,5 @@
 import { type StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
+import { isInitializeRequest, type ClientCapabilities, type Implementation } from "@modelcontextprotocol/sdk/types.js";
 import express from "express";
 import { LogId } from "../common/logging/loggingDefinitions.js";
 import { getRandomUUID } from "../helpers/getRandomUUID.js";
@@ -12,7 +12,7 @@ import {
     type LoggerBase,
 } from "../lib.js";
 import { ConfigOverrideError } from "../common/config/configOverrides.js";
-import { SessionRejectedError, SessionLimitExceededError } from "../common/sessionStore.js";
+import { SessionRejectedError, SessionLimitExceededError, type NegotiatedClientState } from "../common/sessionStore.js";
 import type { CustomizableServerOptions, CustomizableSessionOptions, TransportRequestContext } from "./base.js";
 import { ExpressBasedHttpServer } from "./expressBasedHttpServer.js";
 import { requestIdAttr } from "../helpers/requestIdAttr.js";
@@ -289,6 +289,12 @@ export class MCPHttpServer<
 
             await server.connect(transport);
 
+            if (isImplicitInitialization) {
+                await this.restoreNegotiatedClientState(server, sessionId, req.headers);
+            } else {
+                this.captureNegotiatedClientStateOnInitialize(server, sessionId, req.headers);
+            }
+
             await this.sessionStore.addSession({
                 sessionId,
                 transport,
@@ -323,6 +329,82 @@ export class MCPHttpServer<
             this.pendingInitializations.delete(sessionId);
         }
         return sessionId;
+    }
+
+    /**
+     * Restores the client state negotiated during the session's original
+     * initialization onto an implicitly re-initialized server. The server on
+     * this pod never saw the client's `initialize` request, so without this
+     * it would treat the client as capability-less — e.g. skipping
+     * confirmation elicitation for destructive tools. No-op when the session
+     * store does not persist negotiated client state.
+     */
+    private async restoreNegotiatedClientState(
+        server: Server<TUserConfig, TContext>,
+        sessionId: string,
+        headers: Record<string, unknown>
+    ): Promise<void> {
+        let state: NegotiatedClientState | undefined;
+        try {
+            state = await this.sessionStore.loadNegotiatedClientState(sessionId, headers);
+        } catch (error) {
+            // The restored session stays usable; it just behaves as if the
+            // client had no optional capabilities.
+            this.logger.warning({
+                id: LogId.streamableHttpTransportClientStateRestoreFailure,
+                context: "streamableHttpTransport",
+                message: `Failed to restore negotiated client state for session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
+                attributes: { ...requestIdAttr(headers) },
+            });
+            return;
+        }
+        if (!state) {
+            return;
+        }
+
+        // HACK: like the transport `_initialized` flag above, the SDK offers
+        // no supported way to seed a Server with a previously negotiated
+        // initialization, so we write the private fields the initialize
+        // handler would have populated.
+        const protocolServer = server.mcpServer.server as unknown as {
+            _clientCapabilities?: ClientCapabilities;
+            _clientVersion?: Implementation;
+        };
+        protocolServer._clientCapabilities = state.clientCapabilities;
+        protocolServer._clientVersion = state.clientInfo;
+        server.session.setMcpClient(state.clientInfo);
+    }
+
+    /**
+     * Arranges for the client state negotiated by a real `initialize`
+     * exchange to be persisted through the session store, so implicit
+     * re-initializations of this session can restore it. Wraps the
+     * `oninitialized` callback installed by `server.connect`, hence must run
+     * after it.
+     */
+    private captureNegotiatedClientStateOnInitialize(
+        server: Server<TUserConfig, TContext>,
+        sessionId: string,
+        headers: Record<string, unknown>
+    ): void {
+        const protocolServer = server.mcpServer.server;
+        const originalOnInitialized = protocolServer.oninitialized;
+        protocolServer.oninitialized = (): void => {
+            originalOnInitialized?.();
+
+            const state: NegotiatedClientState = {
+                clientCapabilities: protocolServer.getClientCapabilities(),
+                clientInfo: protocolServer.getClientVersion(),
+            };
+            this.sessionStore.saveNegotiatedClientState(sessionId, state, headers).catch((error: unknown) => {
+                this.logger.warning({
+                    id: LogId.streamableHttpTransportClientStateSaveFailure,
+                    context: "streamableHttpTransport",
+                    message: `Failed to save negotiated client state for session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
+                    attributes: { ...requestIdAttr(headers) },
+                });
+            });
+        };
     }
 
     protected setupMiddlewares(): void {

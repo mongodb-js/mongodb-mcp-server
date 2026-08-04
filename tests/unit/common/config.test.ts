@@ -38,6 +38,7 @@ const expectedDefaults = {
         "atlas-streams-manage",
         "atlas-streams-teardown",
     ],
+    elicitationTimeoutMs: 5 * 60 * 1000, // 5 minutes
     transport: "stdio",
     httpPort: 3000,
     httpHost: "127.0.0.1",
@@ -46,6 +47,8 @@ const expectedDefaults = {
     idleTimeoutMs: 10 * 60 * 1000, // 10 minutes
     notificationTimeoutMs: 9 * 60 * 1000, // 9 minutes
     maxSessions: DEFAULT_MAX_SESSIONS,
+    maxActiveConnections: 10,
+    connectionScope: "session",
     httpHeaders: {},
     httpBodyLimit: TRANSPORT_PAYLOAD_LIMITS.http,
     maxDocumentsPerQuery: 100,
@@ -823,12 +826,6 @@ describe("config", () => {
         describe("loggers", () => {
             const invalidLoggerTestCases = [
                 {
-                    description: "must not be empty",
-                    args: ["--loggers", ""],
-                    expectedError:
-                        "Invalid configuration for the following fields:\nloggers - Cannot be an empty array",
-                },
-                {
                     description: "must not allow duplicates",
                     args: ["--loggers", "disk,disk,disk"],
                     expectedError:
@@ -842,6 +839,11 @@ describe("config", () => {
                     expect(error).toEqual(expect.stringContaining(expectedError));
                 });
             }
+
+            it("allows an empty list (no built-in sinks; e.g. when logs are forwarded to an additional logger)", () => {
+                const { parsed: actual } = parseUserConfig({ args: ["--loggers", ""] });
+                expect(actual?.loggers).toEqual([]);
+            });
 
             it("allows mcp logger", () => {
                 const { parsed: actual } = parseUserConfig({ args: ["--loggers", "mcp"] });

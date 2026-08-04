@@ -36,10 +36,10 @@ describeWithMongoDB("collectionIndexes tool", (integration) => {
     validateThrowsForInvalidArguments(integration, "collection-indexes", databaseCollectionInvalidArgs);
 
     it("can inspect indexes on non-existent database", async () => {
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         const response = await integration.mcpClient().callTool({
             name: "collection-indexes",
-            arguments: { database: "non-existent", collection: "people" },
+            arguments: { connectionId, database: "non-existent", collection: "people" },
         });
 
         const elements = getResponseElements(response.content);
@@ -52,13 +52,10 @@ describeWithMongoDB("collectionIndexes tool", (integration) => {
     it("returns the _id index for a new collection", async () => {
         await integration.mongoClient().db(integration.randomDbName()).createCollection("people");
 
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         const response = await integration.mcpClient().callTool({
             name: "collection-indexes",
-            arguments: {
-                database: integration.randomDbName(),
-                collection: "people",
-            },
+            arguments: { connectionId, database: integration.randomDbName(), collection: "people" },
         });
 
         const elements = getResponseElements(response.content);
@@ -89,13 +86,10 @@ describeWithMongoDB("collectionIndexes tool", (integration) => {
             indexNames.set(indexType, indexName);
         }
 
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         const response = await integration.mcpClient().callTool({
             name: "collection-indexes",
-            arguments: {
-                database: integration.randomDbName(),
-                collection: "people",
-            },
+            arguments: { connectionId, database: integration.randomDbName(), collection: "people" },
         });
 
         const elements = getResponseElements(response.content);
@@ -153,9 +147,10 @@ describeWithMongoDB(
     "collection-indexes tool with Search",
     (integration) => {
         let collection: Collection;
+        let connectionId: string;
 
         beforeEach(async () => {
-            await integration.connectMcpClient();
+            connectionId = await integration.connectMcpClient();
             collection = integration.mongoClient().db(integration.randomDbName()).collection("foo");
             await waitUntilSearchIsReady(integration.mongoClient());
         });
@@ -164,7 +159,7 @@ describeWithMongoDB(
             it("returns an empty list of indexes", async () => {
                 const response = await integration.mcpClient().callTool({
                     name: "collection-indexes",
-                    arguments: { database: "any", collection: "foo" },
+                    arguments: { connectionId, database: "any", collection: "foo" },
                 });
                 const responseContent = getResponseContent(response.content);
                 expect(responseContent).toContain(
@@ -183,7 +178,7 @@ describeWithMongoDB(
             it("returns just the regular indexes", async () => {
                 const response = await integration.mcpClient().callTool({
                     name: "collection-indexes",
-                    arguments: { database: integration.randomDbName(), collection: "foo" },
+                    arguments: { connectionId, database: integration.randomDbName(), collection: "foo" },
                 });
 
                 const responseElements = getResponseElements(response.content);
@@ -241,7 +236,7 @@ describeWithMongoDB(
             it("returns the list of existing indexes", { timeout: SEARCH_TIMEOUT }, async () => {
                 const response = await integration.mcpClient().callTool({
                     name: "collection-indexes",
-                    arguments: { database: integration.randomDbName(), collection: "foo" },
+                    arguments: { connectionId, database: integration.randomDbName(), collection: "foo" },
                 });
 
                 const elements = getResponseElements(response.content);
@@ -309,7 +304,7 @@ describeWithMongoDB(
 
                     const response = await integration.mcpClient().callTool({
                         name: "collection-indexes",
-                        arguments: { database: integration.randomDbName(), collection: "foo" },
+                        arguments: { connectionId, database: integration.randomDbName(), collection: "foo" },
                     });
 
                     const elements = getResponseElements(response.content);
@@ -340,7 +335,7 @@ describeWithMongoDB(
             it("returns them alongside the regular indexes", async () => {
                 const response = await integration.mcpClient().callTool({
                     name: "collection-indexes",
-                    arguments: { database: integration.randomDbName(), collection: "foo" },
+                    arguments: { connectionId, database: integration.randomDbName(), collection: "foo" },
                 });
 
                 const elements = getResponseElements(response.content);
@@ -375,9 +370,10 @@ describeWithMongoDB(
     "collection-indexes tool with support for auto-embed indexes",
     (integration) => {
         let collection: Collection;
+        let connectionId: string;
 
         beforeEach(async () => {
-            await integration.connectMcpClient();
+            connectionId = await integration.connectMcpClient();
             collection = integration.mongoClient().db(integration.randomDbName()).collection("foo");
             await waitUntilSearchIsReady(integration.mongoClient());
 
@@ -418,7 +414,7 @@ describeWithMongoDB(
         it("returns the list of indexes including auto-embed indexes", { timeout: SEARCH_TIMEOUT }, async () => {
             const response = await integration.mcpClient().callTool({
                 name: "collection-indexes",
-                arguments: { database: integration.randomDbName(), collection: "foo" },
+                arguments: { connectionId, database: integration.randomDbName(), collection: "foo" },
             });
 
             const elements = getResponseElements(response.content);
@@ -477,9 +473,10 @@ describeWithMongoDB(
     "collectionIndexes tool with search support but without voyage API key",
     (integration) => {
         let collection: Collection;
+        let connectionId: string;
 
         beforeEach(async () => {
-            await integration.connectMcpClient();
+            connectionId = await integration.connectMcpClient();
             collection = integration.mongoClient().db(integration.randomDbName()).collection("foo");
             await waitUntilSearchIsReady(integration.mongoClient());
 
@@ -497,7 +494,7 @@ describeWithMongoDB(
         it("returns search indexes when the cluster supports search", async () => {
             const response = await integration.mcpClient().callTool({
                 name: "collection-indexes",
-                arguments: { database: integration.randomDbName(), collection: "foo" },
+                arguments: { connectionId, database: integration.randomDbName(), collection: "foo" },
             });
 
             const elements = getResponseElements(response.content);

@@ -8,6 +8,7 @@ export enum ErrorCodes {
     AtlasVectorSearchInvalidQuery = 1_000_007,
     InvalidPipeline = 1_000_008,
     ForbiddenServerSideJS = 1_000_009,
+    UnknownConnectionId = 1_000_010,
 }
 
 export class MongoDBError<ErrorCode extends ErrorCodes = ErrorCodes> extends Error {

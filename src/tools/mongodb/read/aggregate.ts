@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { AggregationCursor } from "mongodb";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
@@ -53,7 +53,7 @@ If the user has asked for lexical/Atlas search, use \`$search\` instead of \`$te
 
 ### Usage Rules for \`$search\`
 - Include the index name, unless you know for a fact there's a default index. If unsure, use the collection-indexes tool to determine the index name.
-- The \`$search\` stage supports multiple operators, such as 'autocomplete', 'text', 'geoWithin', and others. Choose the approprate operator based on the user's query. If unsure of the exact syntax, consult the MongoDB Atlas Search documentation, which can be found here: https://www.mongodb.com/docs/atlas/atlas-search/operators-and-collectors/
+- The \`$search\` stage supports multiple operators, such as 'autocomplete', 'text', 'geoWithin', and others. Choose the appropriate operator based on the user's query. If unsure of the exact syntax, consult the MongoDB Atlas Search documentation, which can be found here: https://www.mongodb.com/docs/atlas/atlas-search/operators-and-collectors/
 
 ### Usage Rules for \`$rankFusion\` and \`$scoreFusion\` (Hybrid Search)
 Use these stages when the user wants to combine full-text (\`$search\`) and vector
@@ -79,6 +79,49 @@ incompatible score scales and produces wrong rankings.
   the collection. Use the collection-indexes tool to confirm both before running a hybrid query.
 - Add a \`$limit\` stage after the fusion stage to cap the final result set.
 - Add \`$unset\` at the end to remove embedding fields and avoid context bloat.
+
+### Usage Rules for \`$rerank\` (Native Reranking)
+Use this stage when the user wants to reorder a set of candidate documents using a cross-encoder reranker model.
+
+**Construction rules:**
+- \`$rerank\` can be any stage in the pipeline on an Atlas cluster running MongoDB 8.3 or higher.
+- It is recommended to use \`$rerank\` after a sorted pipeline, e.g. \`$search\`, \`$vectorSearch\`, \`$rankFusion\`, \`$scoreFusion\`, or [\`$match\`, \`$sort\`].
+- $rerank must be enabled via the Native Reranking Project Setting
+- Set \`numDocsToRerank\` as the number of documents passed into \`$rerank\`. This will also limit the number of documents returned by \`$rerank\`
+- Set \`path\` as a field name or an array of field names that exist in all documents. Use \`$match\` or \`$set\` before \`$rerank\` to validate no fields are missing.
+- Add \`$addFields\` after \`$rerank\` to retrieve the reranker score.
+
+**\`$rerank\` example (recommended default):**
+\`\`\`javascript
+[
+  {
+    $match: {
+      description: { $exists: true },
+      name: { $exists: true }
+    }
+  },
+  {
+    $sort: {
+      lastUpdated: -1
+    }
+  },
+  {
+    $rerank: {
+      query: {
+        text: "query text including instructions"
+      },
+      model: "rerank-2.5",
+      numDocsToRerank: 100,
+      path: ["description", "name"]
+    }
+  },
+  {
+    $addFields: {
+      rerankScore: { $meta: "score" }
+    }
+  }
+]
+\`\`\`
 `;
 
 const AggregateOutputSchema = {
@@ -98,26 +141,31 @@ export class AggregateTool extends MongoDBToolBase {
     static toolName = "aggregate";
     public description = "Run an aggregation against a MongoDB collection";
     public argsShape = {
+        ...ConnectionIdArgs,
         ...CollOperationArgs,
         ...AggregateArgs,
-        responseBytesLimit: z.number().optional().default(ONE_MB).describe(`\
-The maximum number of bytes to return in the response. This value is capped by the server's configured maxBytesPerQuery and cannot be exceeded. \
-Note to LLM: If the entire aggregation result is required, use the "export" tool instead of increasing this limit.\
-`),
+        responseBytesLimit: z
+            .number()
+            .optional()
+            .default(ONE_MB)
+            .describe(
+                "The maximum number of bytes to return in the response. This value is capped by the server's configured maximum and cannot be exceeded."
+            ),
     };
     static operationType: OperationType = "read";
 
     public override outputSchema = AggregateOutputSchema;
 
     protected async execute(
-        { database, collection, pipeline, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
+        { connectionId, database, collection, pipeline, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
         let aggregationCursor: AggregationCursor | undefined = undefined;
         try {
-            const provider = await this.ensureConnected();
-            await this.assertOnlyUsesPermittedStages(pipeline);
-            if (await this.session.isSearchSupported()) {
+            const provider = await this.resolveConnection(connectionId);
+            const isSearchSupported = await this.isSearchSupported(connectionId);
+            this.assertOnlyUsesPermittedStages({ isSearchSupported }, pipeline);
+            if (isSearchSupported) {
                 let searchIndexes: SearchIndex[] | undefined;
                 try {
                     searchIndexes = (await provider.getSearchIndexes(database, collection)) as SearchIndex[];
@@ -139,11 +187,14 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
 
             // Check if aggregate operation uses an index if enabled
             if (this.config.indexCheck) {
-                const [usesVectorSearchIndex, indexName] = await this.isVectorSearchIndexUsed({
-                    database,
-                    collection,
-                    pipeline,
-                });
+                const [usesVectorSearchIndex, indexName] = await this.isVectorSearchIndexUsed(
+                    { isSearchSupported, provider },
+                    {
+                        database,
+                        collection,
+                        pipeline,
+                    }
+                );
                 switch (usesVectorSearchIndex) {
                     case "not-vector-search-query":
                         await checkIndexUsage({
@@ -269,9 +320,10 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
         }
     }
 
-    private async assertOnlyUsesPermittedStages(pipeline: Record<string, unknown>[]): Promise<void> {
-        const isSearchSupported = await this.session.isSearchSupported();
-
+    private assertOnlyUsesPermittedStages(
+        { isSearchSupported }: { isSearchSupported: boolean },
+        pipeline: Record<string, unknown>[]
+    ): void {
         this.assertMqlIsAllowed(pipeline);
 
         for (const stage of pipeline) {
@@ -325,15 +377,18 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
         }, undefined);
     }
 
-    private async isVectorSearchIndexUsed({
-        database,
-        collection,
-        pipeline,
-    }: {
-        database: string;
-        collection: string;
-        pipeline: Document[];
-    }): Promise<["valid-index" | "non-existent-index" | "not-vector-search-query", string?]> {
+    private async isVectorSearchIndexUsed(
+        { isSearchSupported, provider }: { isSearchSupported: boolean; provider: NodeDriverServiceProvider },
+        {
+            database,
+            collection,
+            pipeline,
+        }: {
+            database: string;
+            collection: string;
+            pipeline: Document[];
+        }
+    ): Promise<["valid-index" | "non-existent-index" | "not-vector-search-query", string?]> {
         // check if the pipeline contains a $vectorSearch stage
         let usesVectorSearch = false;
         let indexName: string = "default";
@@ -351,10 +406,8 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
             return ["not-vector-search-query"];
         }
 
-        const isSearchSupported = await this.session.isSearchSupported();
         let indexExists = false;
         if (isSearchSupported) {
-            const provider = await this.ensureConnected();
             try {
                 const indexes = await provider.getSearchIndexes(database, collection, indexName);
                 indexExists = indexes.length >= 1;
@@ -389,9 +442,10 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
             if (appliedLimits.length) {
                 message += ` while respecting the applied limits of ${appliedLimits
                     .map((limit) => CURSOR_LIMITS_TO_LLM_TEXT[limit])
-                    .join(
-                        ", "
-                    )}. Note to LLM: If the entire query result is required then use "export" tool to export the query results`;
+                    .join(", ")}`;
+                if (this.isExportToolAvailable) {
+                    message += `. If the entire aggregation result is required, use the "export" tool to retrieve the full result set`;
+                }
             }
 
             message += ".";

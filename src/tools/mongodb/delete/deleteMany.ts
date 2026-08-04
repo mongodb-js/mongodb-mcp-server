@@ -1,4 +1,4 @@
-import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolResult } from "../../tool.js";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 import { escapeMarkdown } from "../../../helpers/escapeMarkdown.js";
@@ -18,6 +18,7 @@ export class DeleteManyTool extends MongoDBToolBase {
     static toolName = "delete-many";
     public description = "Removes all documents that match the filter from a MongoDB collection";
     public argsShape = {
+        ...ConnectionIdArgs,
         ...CollOperationArgs,
         filter: zEJSON()
             .optional()
@@ -29,11 +30,12 @@ export class DeleteManyTool extends MongoDBToolBase {
     static operationType: OperationType = "delete";
 
     protected async execute({
+        connectionId,
         database,
         collection,
         filter,
     }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
-        const provider = await this.ensureConnected();
+        const provider = await this.resolveConnection(connectionId);
 
         this.assertMqlIsAllowed(filter);
 

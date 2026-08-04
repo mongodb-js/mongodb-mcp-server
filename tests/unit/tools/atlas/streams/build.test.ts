@@ -322,6 +322,34 @@ describe("StreamsBuildTool", () => {
             expect(mockApiClient.createStreamConnection).not.toHaveBeenCalled();
         });
 
+        it("should relate elicitation to the in-flight tool call", async () => {
+            mockElicitation.requestInput.mockResolvedValue({ accepted: false });
+            const sendNotification = vi.fn();
+
+            await tool["execute"](
+                {
+                    ...baseArgs,
+                    resource: "connection",
+                    connectionName: "kafka1",
+                    connectionType: "Kafka",
+                    connectionConfig: {},
+                } as never,
+                {
+                    signal: new AbortController().signal,
+                    requestId: 42,
+                    _meta: { progressToken: "progress-token" },
+                    sendNotification,
+                } as never
+            );
+
+            expect(mockElicitation.requestInput).toHaveBeenCalledWith(expect.any(String), expect.anything(), {
+                relatedRequestId: 42,
+                progressToken: "progress-token",
+                sendNotification,
+                signal: expect.any(AbortSignal) as unknown,
+            });
+        });
+
         it("should accept elicited fields and proceed with creation", async () => {
             mockElicitation.requestInput.mockResolvedValue({
                 accepted: true,

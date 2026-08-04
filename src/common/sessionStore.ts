@@ -1,3 +1,4 @@
+import type { ClientCapabilities, Implementation } from "@modelcontextprotocol/sdk/types.js";
 import type { LoggerBase } from "./logging/index.js";
 import { LogId } from "./logging/index.js";
 import type { Session } from "./session.js";
@@ -7,6 +8,18 @@ import type { Metrics, DefaultMetrics } from "@mongodb-js/mcp-metrics";
 import type { CloseableTransport, SessionCloseReason } from "@mongodb-js/mcp-types";
 
 export type { CloseableTransport, SessionCloseReason };
+
+/**
+ * The client state negotiated during MCP initialization. Stores that persist
+ * it durably allow an implicitly re-initialized session (one restored on a
+ * pod that never saw the client's `initialize` request) to retain the
+ * client's capabilities — e.g. whether it supports elicitation — instead of
+ * treating the restored client as capability-less.
+ */
+export type NegotiatedClientState = {
+    clientCapabilities?: ClientCapabilities;
+    clientInfo?: Implementation;
+};
 
 /**
  * Error that `ISessionStore` implementations can throw from `getSession` to
@@ -76,6 +89,32 @@ export interface ISessionStore<T extends CloseableTransport = CloseableTransport
     }): Promise<void>;
     closeSession(params: { sessionId: string; reason?: SessionCloseReason }): Promise<void>;
     closeAllSessions(): Promise<void>;
+    /**
+     * Durably records the client state negotiated during a real MCP
+     * initialization, so it can be restored when the session is later
+     * implicitly re-initialized (only relevant with
+     * `externallyManagedSessions`). Stores without durable storage can
+     * implement this as a no-op (the base `SessionStore` does), in which case
+     * restored sessions are treated as capability-less.
+     *
+     * @param headers The headers of the initiating request, for identity
+     * scoping and tracing — mirroring `getSession`.
+     */
+    saveNegotiatedClientState(
+        sessionId: string,
+        state: NegotiatedClientState,
+        headers?: Record<string, unknown>
+    ): Promise<void>;
+    /**
+     * Returns the previously saved negotiated client state for the session,
+     * or `undefined` when unknown. Called during implicit session
+     * re-initialization, before the restored session serves its first
+     * request.
+     */
+    loadNegotiatedClientState(
+        sessionId: string,
+        headers?: Record<string, unknown>
+    ): Promise<NegotiatedClientState | undefined>;
 }
 
 export class SessionStore<T extends CloseableTransport = CloseableTransport> implements ISessionStore<T> {
@@ -85,17 +124,26 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
             transport: T;
             abortTimeout: ManagedTimeout;
             notificationTimeout: ManagedTimeout;
+            /** Epoch ms of the last activity on this session; drives LRU eviction order. */
+            lastUsedAt: number;
         };
     } = {};
 
     private readonly idleTimeoutMS: number;
     private readonly notificationTimeoutMS: number;
     private readonly maxSessions: number;
+    /** Min idle time (ms) before the LRU session may be evicted to admit a new one. */
+    private readonly evictionIdleGraceMS: number;
     private readonly logger: LoggerBase;
     private readonly metrics: Metrics<DefaultMetrics>;
 
     constructor(params: {
-        options: { idleTimeoutMS: number; notificationTimeoutMS: number; maxSessions: number };
+        options: {
+            idleTimeoutMS: number;
+            notificationTimeoutMS: number;
+            maxSessions: number;
+            evictionIdleGraceMS?: number;
+        };
         logger: LoggerBase;
         metrics: Metrics<DefaultMetrics>;
     }) {
@@ -103,6 +151,9 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         this.idleTimeoutMS = options.idleTimeoutMS;
         this.notificationTimeoutMS = options.notificationTimeoutMS;
         this.maxSessions = options.maxSessions;
+        // Default 2 min, but never >= idleTimeoutMS: the reaper already removes sessions
+        // idle past idleTimeoutMS, so a larger grace would make eviction a no-op.
+        this.evictionIdleGraceMS = Math.min(options.evictionIdleGraceMS ?? 120_000, this.idleTimeoutMS);
         this.logger = logger;
         this.metrics = metrics;
 
@@ -147,6 +198,23 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         session.abortTimeout.restart();
 
         session.notificationTimeout.restart();
+        session.lastUsedAt = Date.now();
+    }
+
+    private findEvictableSession(): string | undefined {
+        const now = Date.now();
+        let oldestId: string | undefined;
+        let oldestLastUsedAt = Infinity;
+        for (const [id, session] of Object.entries(this.sessions)) {
+            if (session.lastUsedAt < oldestLastUsedAt) {
+                oldestLastUsedAt = session.lastUsedAt;
+                oldestId = id;
+            }
+        }
+        if (oldestId === undefined || now - oldestLastUsedAt < this.evictionIdleGraceMS) {
+            return undefined;
+        }
+        return oldestId;
     }
 
     private sendNotification(sessionId: string): void {
@@ -179,12 +247,28 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
             throw new Error(`Session ${sessionId} already exists`);
         }
         if (Object.keys(this.sessions).length >= this.maxSessions) {
-            this.logger.warning({
-                id: LogId.streamableHttpTransportSessionLimitExceeded,
-                context: "sessionStore",
-                message: `Refusing to create session ${sessionId}: maxSessions limit of ${this.maxSessions} reached`,
+            // At capacity: rather than hard-rejecting, evict the least-recently-used
+            // session if it has been idle at least evictionIdleGraceMS — a local-only
+            // close that frees a slot while the evicted client can transparently
+            // re-hydrate on its next request. If nothing is idle enough, reject. This
+            // stays fully synchronous (no await before the insert below), so concurrent
+            // addSession calls run to completion one at a time and can't race past the cap.
+            const victimId = this.findEvictableSession();
+            if (victimId === undefined) {
+                this.logger.warning({
+                    id: LogId.streamableHttpTransportSessionLimitExceeded,
+                    context: "sessionStore",
+                    message: `Refusing to create session ${sessionId}: maxSessions limit of ${this.maxSessions} reached and no session is idle past the eviction grace`,
+                });
+                throw new SessionLimitExceededError(`Session limit of ${this.maxSessions} concurrent sessions reached`);
+            }
+            void this.closeSession({ sessionId: victimId, reason: "evicted" }).catch((error) => {
+                this.logger.error({
+                    id: LogId.streamableHttpTransportSessionCloseFailure,
+                    context: "sessionStore",
+                    message: `Error evicting session ${victimId}: ${error instanceof Error ? error.message : String(error)}`,
+                });
             });
-            throw new SessionLimitExceededError(`Session limit of ${this.maxSessions} concurrent sessions reached`);
         }
         const abortTimeout = setManagedTimeout(async () => {
             if (this.sessions[sessionId]) {
@@ -206,8 +290,10 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
             abortTimeout,
             notificationTimeout,
             logger,
+            lastUsedAt: Date.now(),
         };
         this.metrics.get("sessionCreated").inc();
+        this.metrics.get("sessionsActive").set(Object.keys(this.sessions).length);
         return Promise.resolve();
     }
 
@@ -245,6 +331,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         }
 
         this.metrics.get("sessionClosed").inc({ reason: reason });
+        this.metrics.get("sessionsActive").set(Object.keys(this.sessions).length);
     }
 
     async closeAllSessions(): Promise<void> {
@@ -252,6 +339,29 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
             Object.keys(this.sessions).map((sessionId) => this.closeSession({ sessionId, reason: "server_stop" }))
         );
     }
+
+    /**
+     * The in-memory store does not persist negotiated client state: a session
+     * it evicts loses its transport too, and restoring client state is only
+     * meaningful with durable session storage. Restored sessions therefore
+     * behave as capability-less unless a subclass overrides these.
+     */
+    /* eslint-disable @typescript-eslint/no-unused-vars */
+    saveNegotiatedClientState(
+        sessionId: string,
+        state: NegotiatedClientState,
+        headers?: Record<string, unknown>
+    ): Promise<void> {
+        return Promise.resolve();
+    }
+
+    loadNegotiatedClientState(
+        sessionId: string,
+        headers?: Record<string, unknown>
+    ): Promise<NegotiatedClientState | undefined> {
+        return Promise.resolve(undefined);
+    }
+    /* eslint-enable @typescript-eslint/no-unused-vars */
 }
 
 /**

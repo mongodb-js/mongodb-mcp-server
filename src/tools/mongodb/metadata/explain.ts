@@ -1,4 +1,4 @@
-import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { z } from "zod";
@@ -23,6 +23,7 @@ export class ExplainTool extends MongoDBToolBase {
         "Returns statistics describing the execution of the winning plan chosen by the query optimizer for the evaluated method";
 
     public argsShape = {
+        ...ConnectionIdArgs,
         ...CollOperationArgs,
         // Note: Although it is not required to wrap the discriminated union in
         // an array here because we only expect exactly one method to be
@@ -60,10 +61,10 @@ export class ExplainTool extends MongoDBToolBase {
     static operationType: OperationType = "metadata";
 
     protected async execute(
-        { database, collection, method: methods, verbosity }: ToolArgs<typeof this.argsShape>,
+        { connectionId, database, collection, method: methods, verbosity }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        const provider = await this.ensureConnected();
+        const provider = await this.resolveConnection(connectionId);
         const method = methods[0];
 
         if (!method) {

@@ -173,7 +173,10 @@ export class Server<
         // TODO: Eventually we might want to make tools reactive too instead of relying on custom logic.
         this.registerTools();
 
-        // This is a workaround for an issue we've seen with some models, where they'll see that everything in the `arguments`
+        // Wrapping the tool call handler to normalize the arguments before the SDK validates them against the
+        // tool's schema. This gives tools a chance to map deprecated arguments through `normalizeRawArgs`.
+        //
+        // It also works around an issue we've seen with some models, where they'll see that everything in the `arguments`
         // object is optional, and then not pass it at all. However, the MCP server expects the `arguments` object to be if
         // the tool accepts any arguments, even if they're all optional.
         //
@@ -191,9 +194,9 @@ export class Server<
         }
 
         this.mcpServer.server.setRequestHandler(CallToolRequestSchema, (request, extra): Promise<CallToolResult> => {
-            if (!request.params.arguments) {
-                request.params.arguments = {};
-            }
+            const args = request.params.arguments ?? {};
+            const tool = this.tools.find((t) => t.name === request.params.name);
+            request.params.arguments = tool ? tool.normalizeRawArgs(args) : args;
 
             return existingHandler(request, extra);
         });
@@ -231,8 +234,6 @@ export class Server<
 
         this.mcpServer.server.oninitialized = (): void => {
             this.session.setMcpClient(this.mcpServer.server.getClientVersion());
-            // Placed here to start the connection to the config connection string as soon as the server is initialized.
-            void this.connectToConfigConnectionString();
             this.session.logger.info({
                 id: LogId.serverInitialized,
                 context: "server",
@@ -390,26 +391,6 @@ export class Server<
                     id: LogId.atlasCheckCredentials,
                     context: "server",
                     message: `Failed to validate MongoDB Atlas API client credentials from the config: ${error instanceof Error ? error.message : String(error)}. Continuing since a connection string is also provided.`,
-                });
-            }
-        }
-    }
-
-    private async connectToConfigConnectionString(): Promise<void> {
-        if (this.userConfig.connectionString) {
-            try {
-                this.session.logger.info({
-                    id: LogId.mongodbConnectTry,
-                    context: "server",
-                    message: `Detected a MongoDB connection string in the configuration, trying to connect...`,
-                });
-                await this.session.connectToConfiguredConnection();
-            } catch (error) {
-                // We don't throw an error here because we want to allow the server to start even if the connection string is invalid.
-                this.session.logger.error({
-                    id: LogId.mongodbConnectFailure,
-                    context: "server",
-                    message: `Failed to connect to MongoDB instance using the connection string from the config: ${error instanceof Error ? error.message : String(error)}`,
                 });
             }
         }

@@ -37,10 +37,10 @@ describeWithMongoDB("renameCollection tool", (integration) => {
 
     describe("with non-existing database", () => {
         it("returns an error", async () => {
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "rename-collection",
-                arguments: { database: "non-existent", collection: "foos", newName: "bar" },
+                arguments: { connectionId, database: "non-existent", collection: "foos", newName: "bar" },
             });
             const content = getResponseContent(response.content);
             expect(content).toEqual(`Cannot rename the requested collection because it doesn't exist.`);
@@ -51,10 +51,15 @@ describeWithMongoDB("renameCollection tool", (integration) => {
         it("returns an error", async () => {
             await integration.mongoClient().db(integration.randomDbName()).collection("bar").insertOne({});
 
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "rename-collection",
-                arguments: { database: integration.randomDbName(), collection: "non-existent", newName: "foo" },
+                arguments: {
+                    connectionId,
+                    database: integration.randomDbName(),
+                    collection: "non-existent",
+                    newName: "foo",
+                },
             });
             const content = getResponseContent(response.content);
             expect(content).toEqual(`Cannot rename the requested collection because it doesn't exist.`);
@@ -69,10 +74,15 @@ describeWithMongoDB("renameCollection tool", (integration) => {
                 .collection("before")
                 .insertOne({ value: 42 });
 
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "rename-collection",
-                arguments: { database: integration.randomDbName(), collection: "before", newName: "after" },
+                arguments: {
+                    connectionId,
+                    database: integration.randomDbName(),
+                    collection: "before",
+                    newName: "after",
+                },
             });
             const content = getResponseContent(response.content);
             expect(content).toEqual(`The collection was renamed successfully in the requested database.`);
@@ -109,10 +119,15 @@ describeWithMongoDB("renameCollection tool", (integration) => {
                 .insertOne({ value: 42 });
             await integration.mongoClient().db(integration.randomDbName()).collection("after").insertOne({ value: 84 });
 
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "rename-collection",
-                arguments: { database: integration.randomDbName(), collection: "before", newName: "after" },
+                arguments: {
+                    connectionId,
+                    database: integration.randomDbName(),
+                    collection: "before",
+                    newName: "after",
+                },
             });
             const content = getResponseContent(response.content);
             expect(content).toEqual(
@@ -153,10 +168,11 @@ describeWithMongoDB("renameCollection tool", (integration) => {
                 .insertOne({ value: 42 });
             await integration.mongoClient().db(integration.randomDbName()).collection("after").insertOne({ value: 84 });
 
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "rename-collection",
                 arguments: {
+                    connectionId,
                     database: integration.randomDbName(),
                     collection: "before",
                     newName: "after",
@@ -199,11 +215,12 @@ describeWithMongoDB("renameCollection tool", (integration) => {
                 .insertOne({ value: 42 });
             await integration.mongoClient().db(integration.randomDbName()).collection("after").insertOne({ value: 84 });
 
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             integration.mcpServer().userConfig.disabledTools = ["delete"];
             const response = await integration.mcpClient().callTool({
                 name: "rename-collection",
                 arguments: {
+                    connectionId,
                     database: integration.randomDbName(),
                     collection: "before",
                     newName: "after",
@@ -242,11 +259,12 @@ describeWithMongoDB("renameCollection tool", (integration) => {
                 .collection("before")
                 .insertOne({ value: 42 });
 
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             integration.mcpServer().userConfig.disabledTools = ["delete"];
             const response = await integration.mcpClient().callTool({
                 name: "rename-collection",
                 arguments: {
+                    connectionId,
                     database: integration.randomDbName(),
                     collection: "before",
                     newName: "after",

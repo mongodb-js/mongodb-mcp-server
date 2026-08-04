@@ -156,11 +156,11 @@ export abstract class StreamsToolBase extends AtlasToolBase {
         return names;
     }
 
-    protected override resolveTelemetryMetadata(
+    protected override async resolveTelemetryMetadata(
         args: ToolArgs<typeof this.argsShape>,
         { result }: { result: CallToolResult }
-    ): StreamsToolMetadata {
-        const baseMetadata = super.resolveTelemetryMetadata(args, { result });
+    ): Promise<StreamsToolMetadata> {
+        const baseMetadata = await super.resolveTelemetryMetadata(args, { result });
         const metadata: StreamsToolMetadata = { ...baseMetadata };
 
         const argsShape = z.object(this.argsShape);

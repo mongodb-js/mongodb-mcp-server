@@ -46,6 +46,8 @@ export function contentWithExportPath(content: CallToolResult["content"]): { tex
 describeWithMongoDB(
     "export tool",
     (integration) => {
+        let connectionId: string;
+
         validateToolMetadata(
             integration,
             "export",
@@ -89,7 +91,7 @@ describeWithMongoDB(
         ]);
 
         beforeEach(async () => {
-            await integration.connectMcpClient();
+            connectionId = await integration.connectMcpClient();
         });
 
         afterAll(async () => {
@@ -100,6 +102,7 @@ describeWithMongoDB(
             const response = await integration.mcpClient().callTool({
                 name: "export",
                 arguments: {
+                    connectionId,
                     database: "non-existent",
                     collection: "foos",
                     exportTitle: "Export for non-existent.foos",
@@ -143,10 +146,10 @@ describeWithMongoDB(
             });
 
             it("should export entire namespace when filter are empty", async function () {
-                await integration.connectMcpClient();
                 const response = await integration.mcpClient().callTool({
                     name: "export",
                     arguments: {
+                        connectionId,
                         database: integration.randomDbName(),
                         collection: "foo",
                         exportTitle: `Export for ${integration.randomDbName()}.foo`,
@@ -179,10 +182,10 @@ describeWithMongoDB(
             });
 
             it("should export filter results namespace when there are filters", async function () {
-                await integration.connectMcpClient();
                 const response = await integration.mcpClient().callTool({
                     name: "export",
                     arguments: {
+                        connectionId,
                         database: integration.randomDbName(),
                         collection: "foo",
                         exportTitle: `Export for ${integration.randomDbName()}.foo`,
@@ -214,10 +217,10 @@ describeWithMongoDB(
             });
 
             it("should export results limited to the provided limit", async function () {
-                await integration.connectMcpClient();
                 const response = await integration.mcpClient().callTool({
                     name: "export",
                     arguments: {
+                        connectionId,
                         database: integration.randomDbName(),
                         collection: "foo",
                         exportTitle: `Export for ${integration.randomDbName()}.foo`,
@@ -250,10 +253,10 @@ describeWithMongoDB(
             });
 
             it("should export results with sorted by the provided sort", async function () {
-                await integration.connectMcpClient();
                 const response = await integration.mcpClient().callTool({
                     name: "export",
                     arguments: {
+                        connectionId,
                         database: integration.randomDbName(),
                         collection: "foo",
                         exportTitle: `Export for ${integration.randomDbName()}.foo`,
@@ -287,10 +290,10 @@ describeWithMongoDB(
             });
 
             it("should export results containing only projected fields", async function () {
-                await integration.connectMcpClient();
                 const response = await integration.mcpClient().callTool({
                     name: "export",
                     arguments: {
+                        connectionId,
                         database: integration.randomDbName(),
                         collection: "foo",
                         exportTitle: `Export for ${integration.randomDbName()}.foo`,
@@ -327,10 +330,10 @@ describeWithMongoDB(
             });
 
             it("should export relaxed json when provided jsonExportFormat is relaxed", async function () {
-                await integration.connectMcpClient();
                 const response = await integration.mcpClient().callTool({
                     name: "export",
                     arguments: {
+                        connectionId,
                         database: integration.randomDbName(),
                         collection: "foo",
                         jsonExportFormat: "relaxed",
@@ -369,10 +372,10 @@ describeWithMongoDB(
             });
 
             it("should export canonical json when provided jsonExportFormat is canonical", async function () {
-                await integration.connectMcpClient();
                 const response = await integration.mcpClient().callTool({
                     name: "export",
                     arguments: {
+                        connectionId,
                         database: integration.randomDbName(),
                         collection: "foo",
                         jsonExportFormat: "canonical",
@@ -413,10 +416,10 @@ describeWithMongoDB(
             });
 
             it("should allow exporting an aggregation", async () => {
-                await integration.connectMcpClient();
                 const response = await integration.mcpClient().callTool({
                     name: "export",
                     arguments: {
+                        connectionId,
                         database: integration.randomDbName(),
                         collection: "foo",
                         exportTitle: `Export for ${integration.randomDbName()}.foo`,
@@ -540,6 +543,7 @@ describeWithMongoDB(
                         const response = await integration.mcpClient().callTool({
                             name: "export",
                             arguments: {
+                                connectionId,
                                 database: integration.randomDbName(),
                                 collection: "foo",
                                 exportTitle: `Export with ${operator} (disableServerSideJs=${jsDisabled})`,
@@ -580,6 +584,7 @@ describeWithMongoDB(
                     const response = await integration.mcpClient().callTool({
                         name: "export",
                         arguments: {
+                            connectionId,
                             database: integration.randomDbName(),
                             collection: "foo",
                             exportTitle: `Export with ${operator}`,
@@ -595,6 +600,7 @@ describeWithMongoDB(
                     const response = await integration.mcpClient().callTool({
                         name: "export",
                         arguments: {
+                            connectionId,
                             database: integration.randomDbName(),
                             collection: "foo",
                             exportTitle: `Export with ${operator}`,

@@ -13,11 +13,15 @@ import { MockMetrics } from "../../../mocks/metrics.js";
 import type { Keychain } from "../../../../../src/lib.js";
 import { ApiClientError } from "../../../../../src/common/atlas/apiClientError.js";
 
-const BASE_ARGS = {
+const BASE_ARGS_WITHOUT_REGIONS = {
     projectId: "507f1f77bcf86cd799439011",
     clusterName: "my-cluster",
     provider: "AWS" as const,
-    region: "US_EAST_1",
+};
+
+const BASE_ARGS = {
+    ...BASE_ARGS_WITHOUT_REGIONS,
+    regions: ["US_EAST_1"],
 };
 
 const CREATE_RESULT = { id: "new-cluster-id" };
@@ -31,6 +35,7 @@ describe("CreateClusterTool", () => {
         mockApiClient = {
             listClusters: vi.fn().mockResolvedValue({ results: [] }),
             createCluster: vi.fn().mockResolvedValue(CREATE_RESULT),
+            getEncryptionAtRest: vi.fn().mockResolvedValue({}),
             getIpInfo: vi.fn().mockResolvedValue({ currentIpv4Address: "127.0.0.1" }),
             createAccessListEntry: vi.fn().mockResolvedValue({}),
         };
@@ -47,7 +52,6 @@ describe("CreateClusterTool", () => {
         mockSession = {
             logger: mockLogger,
             apiClient: mockApiClient as unknown as ApiClient,
-            connectedAtlasCluster: undefined,
             keychain: { allSecrets: [] } as unknown as Keychain,
         };
 
@@ -85,7 +89,10 @@ describe("CreateClusterTool", () => {
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
-        tool["invoke"](z.object(CreateClusterArgsShape).parse(args) as never, {} as never);
+        tool["invoke"](
+            z.object(CreateClusterArgsShape).strict().parse(tool.normalizeRawArgs(args)) as never,
+            {} as never
+        );
 
     beforeEach(() => {
         tool = buildTool();
@@ -106,6 +113,7 @@ describe("CreateClusterTool", () => {
                         pitEnabled: false,
                         terminationProtectionEnabled: false,
                         versionReleaseSystem: "CONTINUOUS",
+                        encryptionAtRestProvider: "NONE",
                         replicationSpecs: [
                             {
                                 regionConfigs: [
@@ -143,6 +151,7 @@ describe("CreateClusterTool", () => {
                 mongoDBVersion: "8.0",
                 backup: "CONTINUOUS",
                 terminationProtectionEnabled: true,
+                encryptionAtRestProvider: "GCP",
             });
 
             expect(result.isError).toBeFalsy();
@@ -157,6 +166,7 @@ describe("CreateClusterTool", () => {
                         terminationProtectionEnabled: true,
                         versionReleaseSystem: "LTS",
                         mongoDBMajorVersion: "8.0",
+                        encryptionAtRestProvider: "GCP",
                         replicationSpecs: [
                             {
                                 regionConfigs: [
@@ -177,6 +187,56 @@ describe("CreateClusterTool", () => {
                 },
                 expect.anything()
             );
+        });
+
+        it.each([
+            [["US_EAST_1"], [3]],
+            [
+                ["US_EAST_1", "US_WEST_2"],
+                [2, 1],
+            ],
+            [
+                ["US_EAST_1", "US_WEST_2", "EU_WEST_1"],
+                [2, 2, 1],
+            ],
+        ] as const)("builds the expected region configs for %j", async (regions, expectedNodeCounts) => {
+            const result = await exec({
+                ...BASE_ARGS,
+                regions,
+            });
+
+            expect(result.isError).toBeFalsy();
+            const createRequest = mockApiClient.createCluster?.mock.calls[0]?.[0] as {
+                body: { replicationSpecs: [{ regionConfigs: unknown }] };
+            };
+            expect(createRequest.body.replicationSpecs[0].regionConfigs).toMatchObject(
+                regions.map((regionName, i) => ({
+                    providerName: "AWS",
+                    regionName,
+                    priority: 7 - i,
+                    electableSpecs: { nodeCount: expectedNodeCounts[i] },
+                }))
+            );
+        });
+
+        it("accepts the deprecated region argument as a single region", async () => {
+            const result = await exec({ ...BASE_ARGS_WITHOUT_REGIONS, region: "EU_WEST_1" });
+
+            expect(result.isError).toBeFalsy();
+            expect(result.structuredContent).toMatchObject({ regions: ["EU_WEST_1"] });
+            const createRequest = mockApiClient.createCluster?.mock.calls[0]?.[0] as {
+                body: { replicationSpecs: [{ regionConfigs: unknown }] };
+            };
+            expect(createRequest.body.replicationSpecs[0].regionConfigs).toMatchObject([
+                { providerName: "AWS", regionName: "EU_WEST_1", priority: 7, electableSpecs: { nodeCount: 3 } },
+            ]);
+        });
+
+        it("ignores the deprecated region argument when regions is also provided", async () => {
+            const result = await exec({ ...BASE_ARGS, region: "EU_WEST_1" });
+
+            expect(result.isError).toBeFalsy();
+            expect(result.structuredContent).toMatchObject({ regions: ["US_EAST_1"] });
         });
     });
 
@@ -255,6 +315,7 @@ describe("CreateClusterTool", () => {
                         pitEnabled: false,
                         terminationProtectionEnabled: false,
                         versionReleaseSystem: "CONTINUOUS",
+                        encryptionAtRestProvider: "NONE",
                         replicationSpecs: [
                             {
                                 regionConfigs: [
@@ -278,25 +339,124 @@ describe("CreateClusterTool", () => {
         });
     });
 
+    describe("encryption at rest", () => {
+        function assertRequestedEARProvider(expected: string): void {
+            const createCall = mockApiClient.createCluster!.mock.calls[0]![0] as {
+                body: { encryptionAtRestProvider: string };
+            };
+            expect(createCall.body.encryptionAtRestProvider).toBe(expected);
+        }
+
+        it.each(["AWS", "AZURE", "GCP", "NONE"] as const)(
+            "passes explicit %s through",
+            async (encryptionAtRestProvider) => {
+                const result = await exec({ ...BASE_ARGS, encryptionAtRestProvider });
+
+                expect(result.isError).toBeFalsy();
+                expect(mockApiClient.getEncryptionAtRest).not.toHaveBeenCalled();
+                expect(mockApiClient.createCluster).toHaveBeenCalledOnce();
+                assertRequestedEARProvider(encryptionAtRestProvider);
+                expect(result.structuredContent).toMatchObject({ encryptionAtRestProvider });
+            }
+        );
+
+        it.each(["AWS", "AZURE", "GCP"] as const)(
+            "defaults to %s when its project configuration is enabled and valid",
+            async (provider) => {
+                mockApiClient.getEncryptionAtRest!.mockResolvedValue({
+                    awsKms: { enabled: true, valid: true },
+                    azureKeyVault: { enabled: true, valid: true },
+                    googleCloudKms: { enabled: true, valid: true },
+                });
+
+                const result = await exec({ ...BASE_ARGS, provider });
+
+                expect(result.isError).toBeFalsy();
+                expect(mockApiClient.getEncryptionAtRest).toHaveBeenCalledWith(
+                    { params: { path: { groupId: BASE_ARGS.projectId } } },
+                    expect.anything()
+                );
+                expect(mockApiClient.createCluster).toHaveBeenCalledOnce();
+                assertRequestedEARProvider(provider);
+                expect(result.structuredContent).toMatchObject({ encryptionAtRestProvider: provider });
+            }
+        );
+
+        it("ignores a valid configuration for a different provider", async () => {
+            mockApiClient.getEncryptionAtRest!.mockResolvedValue({
+                googleCloudKms: { enabled: true, valid: true },
+                azureKeyVault: { enabled: true, valid: true },
+            });
+
+            const result = await exec({ ...BASE_ARGS, provider: "AWS" });
+
+            expect(result.isError).toBeFalsy();
+            expect(mockApiClient.getEncryptionAtRest).toHaveBeenCalledOnce();
+            assertRequestedEARProvider("NONE");
+            expect(mockApiClient.createCluster).toHaveBeenCalledOnce();
+            expect(result.structuredContent).toMatchObject({ encryptionAtRestProvider: "NONE" });
+        });
+
+        it.each([
+            ["missing", {}],
+            ["disabled", { awsKms: { enabled: false, valid: true } }],
+            ["invalid", { awsKms: { enabled: true, valid: false } }],
+        ])("defaults to NONE when the provider's configuration is %s", async (_case, encryptionAtRest) => {
+            mockApiClient.getEncryptionAtRest!.mockResolvedValue(encryptionAtRest);
+
+            const result = await exec(BASE_ARGS);
+
+            expect(result.isError).toBeFalsy();
+            expect(mockApiClient.getEncryptionAtRest).toHaveBeenCalledOnce();
+            expect(mockApiClient.createCluster).toHaveBeenCalledOnce();
+            assertRequestedEARProvider("NONE");
+            expect(result.structuredContent).toMatchObject({ encryptionAtRestProvider: "NONE" });
+        });
+
+        it("defaults to NONE when getEncryptionAtRest call returns 403", async () => {
+            mockApiClient.getEncryptionAtRest!.mockRejectedValue(
+                ApiClientError.fromError(
+                    { status: 403, statusText: "Forbidden" } as Response,
+                    { message: "Forbidden" } as never
+                )
+            );
+
+            const result = await exec(BASE_ARGS);
+
+            expect(result.isError).toBeFalsy();
+            expect(mockApiClient.getEncryptionAtRest).toHaveBeenCalledOnce();
+            expect(mockApiClient.createCluster).toHaveBeenCalledOnce();
+            assertRequestedEARProvider("NONE");
+            expect(result.structuredContent).toMatchObject({ encryptionAtRestProvider: "NONE" });
+        });
+    });
+
     describe("response", () => {
         it("returns expected text content and structuredContent", async () => {
-            const result = await exec({ ...BASE_ARGS, instanceSize: "M10" });
+            const result = await exec({
+                ...BASE_ARGS,
+                regions: ["US_EAST_1", "US_WEST_2"],
+                instanceSize: "M10",
+                encryptionAtRestProvider: "AZURE",
+            });
 
             expect(result.isError).toBeFalsy();
             const text = (result.content[0] as { text: string }).text;
             expect(text).toContain("my-cluster");
             expect(text).toContain("507f1f77bcf86cd799439011");
+            expect(text).toContain("US_EAST_1, US_WEST_2");
             expect(text).toContain("atlas-inspect-cluster");
             expect(result.structuredContent).toMatchObject({
                 clusterId: "new-cluster-id",
                 provider: "AWS",
-                region: "US_EAST_1",
+                regions: ["US_EAST_1", "US_WEST_2"],
                 instanceSize: "M10",
                 clusterType: "REPLICASET",
                 mongoDBVersion: "LATEST",
                 backup: "SNAPSHOT",
                 computeAutoScaling: true,
                 terminationProtectionEnabled: false,
+                encryptionAtRestProvider: "AZURE",
             });
         });
     });
@@ -339,13 +499,19 @@ describe("CreateClusterTool", () => {
 
     describe("telemetry metadata", () => {
         it("resolves all fields from structuredContent", async () => {
-            const args = { ...BASE_ARGS, instanceSize: "M30", diskSizeGB: 20 };
+            const args = {
+                ...BASE_ARGS,
+                regions: ["US_EAST_1", "US_WEST_2"],
+                instanceSize: "M30",
+                diskSizeGB: 20,
+                encryptionAtRestProvider: "GCP",
+            };
             const result = await exec(args);
 
-            const metadata = tool["resolveTelemetryMetadata"](args as never, { result: result as never });
+            const metadata = await tool["resolveTelemetryMetadata"](args as never, { result: result as never });
             expect(metadata.cluster_id).toBe("new-cluster-id");
             expect(metadata.provider).toBe("AWS");
-            expect(metadata.region).toBe("US_EAST_1");
+            expect(metadata.regions).toEqual(["US_EAST_1", "US_WEST_2"]);
             expect(metadata.instance_size).toBe("M30");
             expect(metadata.cluster_type).toBe("REPLICASET");
             expect(metadata.backup).toBe("SNAPSHOT");
@@ -353,16 +519,17 @@ describe("CreateClusterTool", () => {
             expect(metadata.termination_protection).toBe("false");
             expect(metadata.disk_size_gb).toBe(20);
             expect(metadata.mongodb_version).toBe("LATEST");
+            expect(metadata.encryption_at_rest_provider).toBe("GCP");
         });
 
-        it("returns empty metadata fields when result has no structuredContent (error path)", () => {
-            const metadata = tool["resolveTelemetryMetadata"](BASE_ARGS as never, {
+        it("returns empty metadata fields when result has no structuredContent (error path)", async () => {
+            const metadata = await tool["resolveTelemetryMetadata"](BASE_ARGS as never, {
                 result: { content: [] } as never,
             });
 
             expect(metadata.cluster_id).toBeUndefined();
             expect(metadata.provider).toBeUndefined();
-            expect(metadata.region).toBeUndefined();
+            expect(metadata.regions).toBeUndefined();
             expect(metadata.instance_size).toBeUndefined();
             expect(metadata.cluster_type).toBeUndefined();
             expect(metadata.backup).toBeUndefined();
@@ -370,6 +537,7 @@ describe("CreateClusterTool", () => {
             expect(metadata.termination_protection).toBeUndefined();
             expect(metadata.disk_size_gb).toBeUndefined();
             expect(metadata.mongodb_version).toBeUndefined();
+            expect(metadata.encryption_at_rest_provider).toBeUndefined();
         });
     });
 
@@ -386,6 +554,20 @@ describe("CreateClusterTool", () => {
             }
         );
 
+        it.each([
+            ["no regions", []],
+            ["more than three regions", ["US_EAST_1", "US_WEST_2", "EU_WEST_1", "AP_SOUTHEAST_1"]],
+        ] as const)("returns error when passing %s", (_case, regions) => {
+            expect(() => z.object(CreateClusterArgsShape).parse({ ...BASE_ARGS, regions })).toThrow();
+        });
+
+        it.each([
+            ["no regions and no deprecated region", BASE_ARGS_WITHOUT_REGIONS],
+            ["a non-string deprecated region", { ...BASE_ARGS_WITHOUT_REGIONS, region: 42 }],
+        ])("returns error when passing %s", (_case, args) => {
+            expect(() => z.object(CreateClusterArgsShape).strict().parse(tool.normalizeRawArgs(args))).toThrow();
+        });
+
         it("returns error when createCluster API call fails", async () => {
             mockApiClient.createCluster!.mockRejectedValue(new Error("network error"));
 
@@ -399,6 +581,21 @@ describe("CreateClusterTool", () => {
 
             const result = await exec(BASE_ARGS);
 
+            expect(result.isError).toBe(true);
+        });
+
+        it("returns error when getEncryptionAtRest call fails with a non-403 error", async () => {
+            mockApiClient.getEncryptionAtRest!.mockRejectedValue(
+                ApiClientError.fromError(
+                    { status: 500, statusText: "Internal Server Error" } as Response,
+                    { message: "Internal Server Error" } as never
+                )
+            );
+
+            const result = await exec(BASE_ARGS);
+
+            expect(mockApiClient.getEncryptionAtRest).toHaveBeenCalledOnce();
+            expect(mockApiClient.createCluster).not.toHaveBeenCalled();
             expect(result.isError).toBe(true);
         });
     });

@@ -8,6 +8,7 @@ import { getConnectionString, inspectCluster } from "../../../common/atlas/clust
 import { ensureCurrentIpInAccessList, ACCESS_LIST_ADDED_NOTE } from "../../../common/atlas/accessListUtils.js";
 import { runSharedTierAlertsHook } from "../../../common/atlas/sharedTierAlertsHook.js";
 import type { AtlasClusterConnectionInfo } from "../../../common/connectionManager.js";
+import { atlasClusterSlug, type ConnectionEntry } from "../../../common/connectionRegistry.js";
 import { getDefaultRoleFromConfig } from "../../../common/atlas/roles.js";
 import { AtlasArgs } from "../../args.js";
 import { SHARED_TIER_METRIC_NAMES } from "../../../telemetry/types.js";
@@ -26,6 +27,7 @@ export const ConnectClusterArgs = {
 };
 
 const ConnectClusterOutputSchema = {
+    connectionId: z.string(),
     state: z.enum(["connected", "connecting"]),
     addedCurrentIp: z.boolean(),
     createdTemporaryUser: z.boolean(),
@@ -39,45 +41,11 @@ export type ConnectClusterOutput = z.infer<z.ZodObject<typeof ConnectClusterOutp
 
 export class ConnectClusterTool extends AtlasToolBase {
     static toolName = "atlas-connect-cluster";
-    public description = "Connect to MongoDB Atlas cluster";
+    public description =
+        "Connect to MongoDB Atlas cluster and get back a connectionId to pass to the other MongoDB tools. Each call establishes a new, independent connection — multiple connections can be active at the same time.";
     static operationType: OperationType = "connect";
     public argsShape = ConnectClusterArgs;
     public override outputSchema = ConnectClusterOutputSchema;
-
-    private queryConnection(
-        projectId: string,
-        clusterName: string
-    ): "connected" | "disconnected" | "connecting" | "connected-to-other-cluster" | "unknown" {
-        if (!this.session.connectedAtlasCluster) {
-            if (this.session.isConnectedToMongoDB) {
-                return "connected-to-other-cluster";
-            }
-            return "disconnected";
-        }
-
-        const currentConectionState = this.session.connectionManager.currentConnectionState;
-        if (
-            this.session.connectedAtlasCluster.projectId !== projectId ||
-            this.session.connectedAtlasCluster.clusterName !== clusterName
-        ) {
-            return "connected-to-other-cluster";
-        }
-
-        switch (currentConectionState.tag) {
-            case "connecting":
-            case "disconnected": // we might still be calling Atlas APIs and not attempted yet to connect to MongoDB, but we are still "connecting"
-                return "connecting";
-            case "connected":
-                return "connected";
-            case "errored":
-                this.session.logger.debug({
-                    id: LogId.atlasConnectFailure,
-                    context: "atlas-connect-cluster",
-                    message: `error querying cluster: ${currentConectionState.errorReason}`,
-                });
-                return "unknown";
-        }
-    }
 
     private async prepareClusterConnection(
         projectId: string,
@@ -150,7 +118,38 @@ export class ConnectClusterTool extends AtlasToolBase {
         return { connectionString: cn.toString(), atlas: connectedAtlasCluster };
     }
 
+    private async deleteTemporaryUser(
+        atlas: AtlasClusterConnectionInfo,
+        context?: ToolExecutionContext
+    ): Promise<void> {
+        if (!atlas.username) {
+            return;
+        }
+        await this.apiClient
+            .deleteDatabaseUser(
+                {
+                    params: {
+                        path: {
+                            groupId: atlas.projectId,
+                            username: atlas.username,
+                            databaseName: "admin",
+                        },
+                    },
+                },
+                context
+            )
+            .catch((err: unknown) => {
+                const error = err instanceof Error ? err : new Error(String(err));
+                this.session.logger.debug({
+                    id: LogId.atlasConnectFailure,
+                    context: "atlas-connect-cluster",
+                    message: `error deleting database user: ${error.message}`,
+                });
+            });
+    }
+
     private async connectToCluster(
+        entry: ConnectionEntry,
         connectionString: string,
         atlas: AtlasClusterConnectionInfo,
         context: ToolExecutionContext
@@ -160,7 +159,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         this.session.logger.debug({
             id: LogId.atlasConnectAttempt,
             context: "atlas-connect-cluster",
-            message: `attempting to connect to cluster: ${this.session.connectedAtlasCluster?.clusterName}`,
+            message: `attempting to connect to cluster: ${atlas.clusterName}`,
             noRedaction: true,
             attributes: { ...requestIdAttr(context.requestInfo?.headers) },
         });
@@ -170,7 +169,7 @@ export class ConnectClusterTool extends AtlasToolBase {
             try {
                 lastError = undefined;
 
-                await this.session.connectToMongoDB({ connectionString, atlas });
+                await entry.connect({ connectionString, atlas });
                 break;
             } catch (err: unknown) {
                 const error = err instanceof Error ? err : new Error(String(err));
@@ -187,51 +186,26 @@ export class ConnectClusterTool extends AtlasToolBase {
                 await sleep(500); // wait for 500ms before retrying
             }
 
-            if (
-                !this.session.connectedAtlasCluster ||
-                this.session.connectedAtlasCluster.projectId !== atlas.projectId ||
-                this.session.connectedAtlasCluster.clusterName !== atlas.clusterName
-            ) {
+            if ((await this.session.connectionRegistry.peek(entry.connectionId)) !== entry) {
+                // The entry was revoked (disconnect tool, LRU overflow, shutdown)
+                // while we were dialing; its onRevoke cleaned up the temp user.
                 throw new Error("Cluster connection aborted");
             }
         }
 
         if (lastError) {
-            if (
-                this.session.connectedAtlasCluster?.projectId === atlas.projectId &&
-                this.session.connectedAtlasCluster?.clusterName === atlas.clusterName &&
-                this.session.connectedAtlasCluster?.username
-            ) {
-                void this.apiClient
-                    .deleteDatabaseUser(
-                        {
-                            params: {
-                                path: {
-                                    groupId: this.session.connectedAtlasCluster.projectId,
-                                    username: this.session.connectedAtlasCluster.username,
-                                    databaseName: "admin",
-                                },
-                            },
-                        },
-                        context
-                    )
-                    .catch((err: unknown) => {
-                        const error = err instanceof Error ? err : new Error(String(err));
-                        this.session.logger.debug({
-                            id: LogId.atlasConnectFailure,
-                            context: "atlas-connect-cluster",
-                            message: `error deleting database user: ${error.message}`,
-                            attributes: { ...requestIdAttr(context.requestInfo?.headers) },
-                        });
-                    });
-            }
+            // Keep the errored entry so list-connections/debug expose the failure,
+            // but the temporary user is useless now — run the revocation cleanup
+            // that deletes it right away instead of waiting for the entry to be
+            // revoked.
+            await entry.runRevokeCleanup();
             throw lastError;
         }
 
         this.session.logger.debug({
             id: LogId.atlasConnectSucceeded,
             context: "atlas-connect-cluster",
-            message: `connected to cluster: ${this.session.connectedAtlasCluster?.clusterName}`,
+            message: `connected to cluster: ${atlas.clusterName}`,
             noRedaction: true,
             attributes: { ...requestIdAttr(context.requestInfo?.headers) },
         });
@@ -242,88 +216,86 @@ export class ConnectClusterTool extends AtlasToolBase {
         context: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
         const ipAccessListUpdated = (await ensureCurrentIpInAccessList(this.apiClient, projectId, context)) === "added";
-        let createdUser = false;
 
-        const state = this.queryConnection(projectId, clusterName);
-        switch (state) {
-            case "connected-to-other-cluster":
-            case "disconnected": {
-                await this.session.disconnect();
+        // Models are expected to poll this tool while a dial is in progress, so
+        // a repeat call for a cluster that is already connecting or connected
+        // reuses the in-flight entry: every sibling entry would provision
+        // another temporary user and start another background dial loop.
+        let entry = (
+            await this.session.connectionRegistry.find(
+                (candidate) =>
+                    (candidate.state.tag === "connected" || candidate.state.tag === "connecting") &&
+                    candidate.state.connectedAtlasCluster?.projectId === projectId &&
+                    candidate.state.connectedAtlasCluster?.clusterName === clusterName
+            )
+        )[0];
+        let atlas = entry?.state.connectedAtlasCluster;
+        const createdTemporaryUser = !entry;
 
-                const { connectionString, atlas } = await this.prepareClusterConnection(
-                    projectId,
-                    clusterName,
-                    connectionType,
-                    context
-                );
+        if (!entry) {
+            const prepared = await this.prepareClusterConnection(projectId, clusterName, connectionType, context);
+            atlas = prepared.atlas;
 
-                createdUser = true;
+            // Cluster names are only unique within a project, so the slug includes
+            // the project name for disambiguation. Best-effort: a failed lookup
+            // falls back to the cluster name alone rather than failing the connect.
+            const projectName = await this.apiClient
+                .getGroup({ params: { path: { groupId: projectId } } }, context)
+                .then((group) => group.name)
+                .catch(() => undefined);
 
-                // try to connect for about 5 minutes asynchronously
-                void this.connectToCluster(connectionString, atlas, context).catch((err: unknown) => {
+            entry = await this.session.connectionRegistry.createEntry({
+                name: atlasClusterSlug(projectName, clusterName),
+                clientName: this.session.mcpClient?.name,
+                onRevoke: (): Promise<void> => this.deleteTemporaryUser(prepared.atlas),
+            });
+
+            // try to connect for about 5 minutes asynchronously
+            void this.connectToCluster(entry, prepared.connectionString, prepared.atlas, context).catch(
+                (err: unknown) => {
                     const error = err instanceof Error ? err : new Error(String(err));
                     this.session.logger.error({
                         id: LogId.atlasConnectFailure,
                         context: "atlas-connect-cluster",
                         message: `error connecting to cluster: ${error.message}`,
                     });
-                });
-                break;
-            }
-            case "connecting":
-            case "connected":
-            case "unknown":
-            default: {
-                break;
-            }
+                }
+            );
         }
 
         for (let i = 0; i < 60; i++) {
-            const state = this.queryConnection(projectId, clusterName);
-            switch (state) {
-                case "connected": {
-                    const content: ToolResult<typeof ConnectClusterOutputSchema>["content"] = [
-                        {
-                            type: "text" as const,
-                            text: `Connected to cluster "${clusterName}".`,
-                        },
-                    ];
+            if (entry.state.tag === "connected") {
+                const content: ToolResult<typeof ConnectClusterOutputSchema>["content"] = [
+                    {
+                        type: "text" as const,
+                        text: `Connected to cluster "${clusterName}". Your connectionId is "${entry.connectionId}" — pass it as the connectionId argument to all MongoDB tool calls that should run against this cluster.`,
+                    },
+                ];
 
-                    if (ipAccessListUpdated) {
-                        content.push({
-                            type: "text" as const,
-                            text: ACCESS_LIST_ADDED_NOTE,
-                        });
-                    }
-
-                    if (createdUser) {
-                        content.push({
-                            type: "text" as const,
-                            text: createdUserMessage,
-                        });
-                    }
-
-                    const baseStructuredContent = {
-                        state: "connected" as const,
-                        addedCurrentIp: ipAccessListUpdated,
-                        createdTemporaryUser: createdUser,
-                        ...(createdUser && { temporaryUserClarification: createdUserMessage }),
-                    };
-
-                    const sharedTierFields = await this.runSharedTierHook(
-                        this.session.connectedAtlasCluster,
-                        content,
-                        context
-                    );
-                    return { content, structuredContent: { ...baseStructuredContent, ...sharedTierFields } };
+                if (ipAccessListUpdated) {
+                    content.push({
+                        type: "text" as const,
+                        text: ACCESS_LIST_ADDED_NOTE,
+                    });
                 }
-                case "connecting":
-                case "unknown":
-                case "connected-to-other-cluster":
-                case "disconnected":
-                default: {
-                    break;
+
+                if (createdTemporaryUser) {
+                    content.push({
+                        type: "text" as const,
+                        text: createdUserMessage,
+                    });
                 }
+
+                const baseStructuredContent = {
+                    connectionId: entry.connectionId,
+                    state: "connected" as const,
+                    addedCurrentIp: ipAccessListUpdated,
+                    createdTemporaryUser,
+                    ...(createdTemporaryUser && { temporaryUserClarification: createdUserMessage }),
+                };
+
+                const sharedTierFields = await this.runSharedTierHook(atlas, content, context);
+                return { content, structuredContent: { ...baseStructuredContent, ...sharedTierFields } };
             }
 
             await sleep(500); // wait 500ms before checking the connection state again
@@ -332,7 +304,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         const content: ToolResult<typeof ConnectClusterOutputSchema>["content"] = [
             {
                 type: "text" as const,
-                text: `Attempting to connect to cluster "${clusterName}"...`,
+                text: `Attempting to connect to cluster "${clusterName}". Your connectionId is "${entry.connectionId}" — pass it as the connectionId argument to MongoDB tool calls once the connection is established.`,
             },
             {
                 type: "text" as const,
@@ -347,21 +319,22 @@ export class ConnectClusterTool extends AtlasToolBase {
             });
         }
 
-        if (createdUser) {
+        if (createdTemporaryUser) {
             content.push({
                 type: "text" as const,
                 text: createdUserMessage,
             });
         }
 
-        const sharedTierFields = await this.runSharedTierHook(this.session.connectedAtlasCluster, content, context);
+        const sharedTierFields = await this.runSharedTierHook(atlas, content, context);
         return {
             content,
             structuredContent: {
+                connectionId: entry.connectionId,
                 state: "connecting",
                 addedCurrentIp: ipAccessListUpdated,
-                createdTemporaryUser: createdUser,
-                ...(createdUser && { temporaryUserClarification: createdUserMessage }),
+                createdTemporaryUser,
+                ...(createdTemporaryUser && { temporaryUserClarification: createdUserMessage }),
                 ...sharedTierFields,
             },
         };
@@ -406,12 +379,18 @@ export class ConnectClusterTool extends AtlasToolBase {
         return { sharedTierAlertsDetected: false, sharedTierTier: tier };
     }
 
-    protected override resolveTelemetryMetadata(
+    protected override async resolveTelemetryMetadata(
         args: ToolArgs<typeof this.argsShape>,
         { result }: { result: ToolResult<typeof ConnectClusterOutputSchema> }
-    ): ConnectionMetadata {
-        const parentMetadata = super.resolveTelemetryMetadata(args, { result });
-        const connectionMetadata = this.getConnectionInfoMetadata();
+    ): Promise<ConnectionMetadata> {
+        const parentMetadata = await super.resolveTelemetryMetadata(args, { result });
+        const connectionId = result.structuredContent?.connectionId;
+        const connectionMetadata = {
+            ...(connectionId && { connection_id: connectionId }),
+            ...this.getConnectionInfoMetadata(
+                connectionId ? (await this.session.connectionRegistry.peek(connectionId))?.state : undefined
+            ),
+        };
         if (connectionMetadata && connectionMetadata.project_id !== undefined) {
             // delete the project_id from the parent metadata to avoid duplication
             delete parentMetadata.project_id;
