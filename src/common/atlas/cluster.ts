@@ -9,6 +9,8 @@ import { requestIdAttr } from "../../helpers/requestIdAttr.js";
 import { LogId } from "../logging/index.js";
 import { ConnectionString } from "mongodb-connection-string-url";
 
+// enum is capped at M80 because that's as far as createCluster
+// and upgradeCluster currently support creating/scaling a cluster directly.
 export const standardInstanceSizeEnum = z.enum(["M10", "M20", "M30", "M40", "M50", "M60", "M80"]);
 
 export type StandardInstanceSize = z.infer<typeof standardInstanceSizeEnum>;

@@ -472,7 +472,7 @@ describeWithAtlas("clusters", (integration) => {
 
                         const scaleResponse = await integration.mcpClient().callTool({
                             name: "atlas-upgrade-cluster",
-                            arguments: { projectId, clusterName: scaleClusterName, instanceSize: "M20" },
+                            arguments: { projectId, clusterName: scaleClusterName, targetTier: "M20" },
                         });
 
                         expect(scaleResponse.isError).toBeFalsy();
@@ -480,10 +480,8 @@ describeWithAtlas("clusters", (integration) => {
                         expect(content).toContain(scaleClusterName);
                         expect(content).toContain("M20");
                         expect(scaleResponse.structuredContent).toMatchObject({
-                            originalTier: "DEDICATED",
-                            targetTier: "DEDICATED",
-                            originalInstanceSize: "M10",
-                            targetInstanceSize: "M20",
+                            originalTier: "M10",
+                            targetTier: "M20",
                         });
 
                         await waitCluster(
