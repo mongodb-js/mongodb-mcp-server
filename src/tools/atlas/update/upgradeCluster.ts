@@ -278,6 +278,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
     static toolName = "atlas-upgrade-cluster";
     public description =
         "Upgrade or scale a MongoDB Atlas cluster: upgrades Free/Flex clusters to Flex or M10 Dedicated, and scales a Dedicated cluster's instance size and supports autoscaling configuration. " +
+        "When scaling a Dedicated cluster, at least one of targetTier, computeAutoScaling, minInstanceSize, or maxInstanceSize must be provided. " +
         "Compute autoscaling defaults to enabled when upgrading to M10 Dedicated: min instance size is set to the selected instance size, max is set two tiers above, unless overridden. " +
         "Note to LLM: If provider and region are not already known, ask for both together in a single question before calling this tool. " +
         REGION_RECOMMENDATIONS;
