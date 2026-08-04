@@ -22,12 +22,15 @@ AWS: "East Coast"/"Virginia"/"US East" → US_EAST_1, "Ohio" → US_EAST_2, "Cal
 GCP: "Central US" → CENTRAL_US, "Western US" → WESTERN_US, "Southeast Asia"/"APAC" → SOUTHEASTERN_ASIA_PACIFIC, "Europe"/"EU" → WESTERN_EUROPE.
 AZURE: "East US" → US_EAST_2, "West US" → US_WEST_2, "Europe"/"EU" → EUROPE_NORTH.`;
 
-// Adds M140/M200 since getMaxAutoScalingSize can return those for M60/M80.
-const INSTANCE_SIZE_ORDER = [...standardInstanceSizeEnum.options, "M140", "M200"];
+// Adds M100/M140/M200 since getMaxAutoScalingSize can return those for M60/M80, and maxInstanceSize accepts them directly.
+const INSTANCE_SIZE_ORDER = [...standardInstanceSizeEnum.options, "M100", "M140", "M200"];
 
 function isHigherInstanceSize(a: string, b: string): boolean {
     return INSTANCE_SIZE_ORDER.indexOf(a) > INSTANCE_SIZE_ORDER.indexOf(b);
 }
+
+// maxInstanceSize can go beyond standardInstanceSizeEnum since autoscaling may grow an M60/M80 cluster past M80.
+const maxAutoScalingSizeEnum = z.enum([...standardInstanceSizeEnum.options, "M100", "M140", "M200"]);
 
 // Hardcoded defaults for all dedicated (M10) upgrade paths.
 // provider and region are the only fields callers may override.
@@ -274,7 +277,7 @@ export const UpgradeClusterOutputSchema = {
 export class UpgradeClusterTool extends AtlasToolBase {
     static toolName = "atlas-upgrade-cluster";
     public description =
-        "Upgrade or scale a MongoDB Atlas cluster: upgrades Free/Flex clusters to Flex or M10 Dedicated, and scales an already-Dedicated cluster's instance size and/or compute autoscaling. " +
+        "Upgrade or scale a MongoDB Atlas cluster: upgrades Free/Flex clusters to Flex or M10 Dedicated, and scales a Dedicated cluster's instance size and supports autoscaling configuration. " +
         "Compute autoscaling defaults to enabled when upgrading to M10 Dedicated: min instance size is set to the selected instance size, max is set two tiers above, unless overridden. " +
         "Note to LLM: If provider and region are not already known, ask for both together in a single question before calling this tool. " +
         REGION_RECOMMENDATIONS;
@@ -288,23 +291,23 @@ export class UpgradeClusterTool extends AtlasToolBase {
             .optional()
             .describe(
                 "For a Free/Flex source cluster: the target tier to upgrade to, defaults to FLEX for Free clusters, M10 for Flex clusters. " +
-                    "For an already-Dedicated cluster: the new instance size (M10-M80) to scale it to."
+                    "For a Dedicated cluster: the new instance size (M10-M80) to scale it to."
             ),
         computeAutoScaling: z
             .boolean()
             .optional()
             .describe(
-                "When true, enables compute autoscaling; when false, disables it. Applies to an already-Dedicated cluster, or to a Free/Flex cluster upgrading to M10 Dedicated (Flex clusters do not support autoscaling). Omit unless explicitly specified by the user."
+                "When true, enables compute autoscaling; when false, disables it. Applies to a Dedicated cluster, or to a Free/Flex cluster upgrading to M10 Dedicated (Flex clusters do not support autoscaling). Omit unless explicitly specified by the user."
             ),
         minInstanceSize: standardInstanceSizeEnum
             .optional()
             .describe(
-                "Minimum instance size (M10-M80) for compute autoscaling, for an already-Dedicated cluster or a Free/Flex-to-M10 upgrade. Omit unless explicitly specified by the user."
+                "Minimum instance size (M10-M80) for compute autoscaling, for a Dedicated cluster or a Free/Flex-to-M10 upgrade. Omit unless explicitly specified by the user."
             ),
-        maxInstanceSize: standardInstanceSizeEnum
+        maxInstanceSize: maxAutoScalingSizeEnum
             .optional()
             .describe(
-                "Maximum instance size (M10-M80) for compute autoscaling, for an already-Dedicated cluster or a Free/Flex-to-M10 upgrade. Omit unless explicitly specified by the user."
+                "Maximum instance size (M10-M200) for compute autoscaling, for a Dedicated cluster or a Free/Flex-to-M10 upgrade. Sizes above M80 (M100/M140/M200) are only reachable via autoscaling, not as a direct target size. Omit unless explicitly specified by the user."
             ),
         provider: z
             .string()
@@ -389,9 +392,12 @@ export class UpgradeClusterTool extends AtlasToolBase {
                         `Cluster "${clusterName}" has instance size "${clusterInfo.instanceSize ?? "unknown"}", which this tool does not support scaling. Only standard M10-M80 instance sizes are supported.`
                     );
                 }
-                if (clusterInfo.raw?.clusterType !== "REPLICASET") {
+                if (
+                    clusterInfo.raw?.clusterType === "GEOSHARDED" ||
+                    (clusterInfo.raw?.replicationSpecs?.length ?? 0) > 1
+                ) {
                     throw new UpgradeClusterError(
-                        `Cluster "${clusterName}" is a ${clusterInfo.raw?.clusterType ?? "non-replica-set"} cluster, which this tool does not support scaling. Only REPLICASET clusters are supported.`
+                        `Cluster "${clusterName}" is a ${clusterInfo.raw?.clusterType ?? "multi-shard"} cluster, which this tool does not support scaling. Only single-shard clusters (REPLICASET, or SHARDED with one shard) are supported.`
                     );
                 }
                 const regionElectableSizes = (clusterInfo.raw?.replicationSpecs?.[0]?.regionConfigs ?? [])
@@ -405,6 +411,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
 
                 const isResizing = args.targetTier !== undefined;
 
+                // Target size: an explicit resize, or unchanged if only autoscaling is being adjusted.
                 let newSize: StandardInstanceSize;
                 if (args.targetTier !== undefined) {
                     newSize = args.targetTier as StandardInstanceSize;
@@ -412,22 +419,33 @@ export class UpgradeClusterTool extends AtlasToolBase {
                     newSize = clusterInfo.instanceSize;
                 }
 
+                // Whether autoscaling should be enabled: explicit override, else the cluster's current setting.
                 const newEnabled = args.computeAutoScaling ?? clusterInfo.autoScaling?.compute?.enabled ?? false;
 
+                // Autoscaling min bound.
                 let newMin: string | undefined;
                 if (args.minInstanceSize !== undefined) {
+                    // Explicit override always wins.
                     newMin = args.minInstanceSize;
                 } else if (isResizing) {
+                    // Resizing without an explicit min: reset relative to the new size.
                     newMin = newEnabled ? newSize : undefined;
                 } else {
+                    // Not resizing: keep the cluster's current min, falling back to the new size if autoscaling wasn't already configured.
                     newMin = clusterInfo.autoScaling?.compute?.minInstanceSize ?? (newEnabled ? newSize : undefined);
                 }
+
+                // Autoscaling max bound.
                 let newMax: string | undefined;
                 if (args.maxInstanceSize !== undefined) {
+                    // Explicit override always wins.
                     newMax = args.maxInstanceSize;
                 } else if (!newEnabled) {
+                    // Autoscaling disabled: no max needed.
                     newMax = undefined;
                 } else if (isResizing) {
+                    // Resizing without an explicit max: default to two tiers above the new size, unless the
+                    // cluster's existing max was already higher.
                     const defaultMax = getMaxAutoScalingSize(newSize, clusterInfo.provider ?? "");
                     const existingMax = clusterInfo.autoScaling?.compute?.maxInstanceSize;
                     newMax =
@@ -435,6 +453,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
                             ? existingMax
                             : defaultMax;
                 } else {
+                    // Not resizing: keep the cluster's current max, falling back to the default if autoscaling wasn't already configured.
                     newMax =
                         clusterInfo.autoScaling?.compute?.maxInstanceSize ??
                         getMaxAutoScalingSize(newSize, clusterInfo.provider ?? "");

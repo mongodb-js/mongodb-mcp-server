@@ -239,6 +239,251 @@ describe("UpgradeClusterTool", () => {
             const text = (result.content[0] as { text: string }).text;
             expect(text).toContain("already a Flex cluster");
         });
+
+        it("returns error for non-404 getCluster failure without falling through to getFlexCluster", async () => {
+            const serverError = ApiClientError.fromError(
+                new Response(null, { status: 500, statusText: "Internal Server Error" }),
+                "internal server error"
+            );
+            mockApiClient.getCluster!.mockRejectedValue(serverError);
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
+            expect(result.isError).toBe(true);
+            expect(mockApiClient.getFlexCluster).not.toHaveBeenCalled();
+        });
+
+        it("returns error for plain getCluster failure without falling through to getFlexCluster", async () => {
+            mockApiClient.getCluster!.mockRejectedValue(new Error("network timeout"));
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
+            expect(result.isError).toBe(true);
+            expect(mockApiClient.getFlexCluster).not.toHaveBeenCalled();
+        });
+
+        it("returns error when upgradeTenantUpgrade throws (FREE to FLEX)", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
+            mockApiClient.upgradeTenantUpgrade!.mockRejectedValue(new Error("upgrade quota exceeded"));
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
+            expect(result.isError).toBe(true);
+        });
+
+        it("returns error when upgradeTenantUpgrade throws (FREE to M10)", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
+            mockApiClient.upgradeTenantUpgrade!.mockRejectedValue(new Error("upgrade quota exceeded"));
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M10" });
+            expect(result.isError).toBe(true);
+        });
+
+        it("returns error when tenantUpgrade throws", async () => {
+            mockApiClient.getCluster!.mockRejectedValue(notFoundError());
+            mockApiClient.getFlexCluster!.mockResolvedValue(FLEX_CLUSTER_RAW);
+            mockApiClient.tenantUpgrade!.mockRejectedValue(new Error("upgrade quota exceeded"));
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
+            expect(result.isError).toBe(true);
+        });
+
+        it("returns error when targetTier is FLEX for a DEDICATED cluster", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(DEDICATED_CLUSTER_RAW);
+
+            const result = await exec({
+                projectId: "proj1",
+                clusterName: "MyCluster",
+                targetTier: "FLEX",
+            });
+
+            expect(result.isError).toBe(true);
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("already Dedicated");
+            expect(mockApiClient.updateCluster).not.toHaveBeenCalled();
+        });
+
+        it("returns error when provider is provided for a DEDICATED cluster", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(DEDICATED_CLUSTER_RAW);
+
+            const result = await exec({
+                projectId: "proj1",
+                clusterName: "MyCluster",
+                targetTier: "M20",
+                provider: "GCP",
+            });
+
+            expect(result.isError).toBe(true);
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("not valid when scaling an already-Dedicated cluster");
+            expect(mockApiClient.updateCluster).not.toHaveBeenCalled();
+        });
+
+        it("returns error when region is provided for a DEDICATED cluster", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(DEDICATED_CLUSTER_RAW);
+
+            const result = await exec({
+                projectId: "proj1",
+                clusterName: "MyCluster",
+                targetTier: "M20",
+                region: "US_WEST_2",
+            });
+
+            expect(result.isError).toBe(true);
+            expect(mockApiClient.updateCluster).not.toHaveBeenCalled();
+        });
+
+        it("returns error when current instance size is an NVMe variant", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(DEDICATED_CLUSTER_NVME_RAW);
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M50" });
+
+            expect(result.isError).toBe(true);
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("does not support scaling");
+            expect(mockApiClient.updateCluster).not.toHaveBeenCalled();
+        });
+
+        it("returns error when updateCluster throws", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(DEDICATED_CLUSTER_RAW);
+            mockApiClient.updateCluster!.mockRejectedValue(new Error("update failed"));
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M20" });
+
+            expect(result.isError).toBe(true);
+        });
+
+        it("accepts a SHARDED cluster with a single shard, same as a REPLICASET", async () => {
+            mockApiClient.getCluster!.mockResolvedValue({
+                id: "dedicated-cluster-id",
+                clusterType: "SHARDED",
+                replicationSpecs: [
+                    {
+                        regionConfigs: [
+                            { providerName: "AWS", regionName: "US_EAST_1", electableSpecs: { instanceSize: "M10" } },
+                        ],
+                    },
+                ],
+            });
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M20" });
+
+            expect(result.isError).toBeFalsy();
+            expect(mockApiClient.updateCluster).toHaveBeenCalled();
+        });
+
+        it("returns error when the cluster is GEOSHARDED", async () => {
+            mockApiClient.getCluster!.mockResolvedValue({
+                id: "dedicated-cluster-id",
+                clusterType: "GEOSHARDED",
+                replicationSpecs: [
+                    {
+                        regionConfigs: [
+                            { providerName: "AWS", regionName: "US_EAST_1", electableSpecs: { instanceSize: "M10" } },
+                        ],
+                    },
+                    {
+                        regionConfigs: [
+                            { providerName: "AWS", regionName: "EU_WEST_1", electableSpecs: { instanceSize: "M10" } },
+                        ],
+                    },
+                ],
+            });
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M20" });
+
+            expect(result.isError).toBe(true);
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("GEOSHARDED");
+            expect(mockApiClient.updateCluster).not.toHaveBeenCalled();
+        });
+
+        it("returns error when the cluster has multiple shards", async () => {
+            mockApiClient.getCluster!.mockResolvedValue({
+                id: "dedicated-cluster-id",
+                clusterType: "SHARDED",
+                replicationSpecs: [
+                    {
+                        regionConfigs: [
+                            { providerName: "AWS", regionName: "US_EAST_1", electableSpecs: { instanceSize: "M10" } },
+                        ],
+                    },
+                    {
+                        regionConfigs: [
+                            { providerName: "AWS", regionName: "US_EAST_1", electableSpecs: { instanceSize: "M10" } },
+                        ],
+                    },
+                ],
+            });
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M20" });
+
+            expect(result.isError).toBe(true);
+            expect(mockApiClient.updateCluster).not.toHaveBeenCalled();
+        });
+
+        it("returns error when targetTier is an instance size for a FREE source", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M20" });
+
+            expect(result.isError).toBe(true);
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain('targetTier "M20" is not valid');
+            expect(mockApiClient.upgradeTenantUpgrade).not.toHaveBeenCalled();
+        });
+
+        it("returns error when targetTier is an instance size for a FLEX source", async () => {
+            mockApiClient.getCluster!.mockRejectedValue(notFoundError());
+            mockApiClient.getFlexCluster!.mockResolvedValue(FLEX_CLUSTER_RAW);
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M20" });
+
+            expect(result.isError).toBe(true);
+            expect(mockApiClient.tenantUpgrade).not.toHaveBeenCalled();
+        });
+
+        it("returns error when computeAutoScaling is provided for a FREE-to-FLEX upgrade", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
+
+            const result = await exec({
+                projectId: "proj1",
+                clusterName: "MyCluster",
+                computeAutoScaling: true,
+            });
+
+            expect(result.isError).toBe(true);
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("Flex clusters do not support compute autoscaling");
+            expect(mockApiClient.upgradeTenantUpgrade).not.toHaveBeenCalled();
+        });
+
+        it("returns error when minInstanceSize/maxInstanceSize provided for an explicit FLEX target", async () => {
+            mockApiClient.getCluster!.mockRejectedValue(notFoundError());
+            mockApiClient.getFlexCluster!.mockResolvedValue(FLEX_CLUSTER_RAW);
+
+            const result = await exec({
+                projectId: "proj1",
+                clusterName: "MyCluster",
+                targetTier: "FLEX",
+                minInstanceSize: "M20",
+            });
+
+            expect(result.isError).toBe(true);
+        });
+
+        it("returns error when minInstanceSize is not M10 for a Free/Flex-to-M10 upgrade", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
+
+            const result = await exec({
+                projectId: "proj1",
+                clusterName: "MyCluster",
+                targetTier: "M10",
+                minInstanceSize: "M20",
+            });
+
+            expect(result.isError).toBe(true);
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain('must be omitted or "M10"');
+            expect(mockApiClient.upgradeTenantUpgrade).not.toHaveBeenCalled();
+        });
     });
 
     describe("FREE cluster", () => {
@@ -492,53 +737,6 @@ describe("UpgradeClusterTool", () => {
 
             expect(result.isError).toBeFalsy();
             expect(mockApiClient.getFlexCluster).toHaveBeenCalledTimes(1);
-        });
-    });
-
-    describe("API failure handling", () => {
-        it("returns error for non-404 getCluster failure without falling through to getFlexCluster", async () => {
-            const serverError = ApiClientError.fromError(
-                new Response(null, { status: 500, statusText: "Internal Server Error" }),
-                "internal server error"
-            );
-            mockApiClient.getCluster!.mockRejectedValue(serverError);
-
-            const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
-            expect(result.isError).toBe(true);
-            expect(mockApiClient.getFlexCluster).not.toHaveBeenCalled();
-        });
-
-        it("returns error for plain getCluster failure without falling through to getFlexCluster", async () => {
-            mockApiClient.getCluster!.mockRejectedValue(new Error("network timeout"));
-
-            const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
-            expect(result.isError).toBe(true);
-            expect(mockApiClient.getFlexCluster).not.toHaveBeenCalled();
-        });
-
-        it("returns error when upgradeTenantUpgrade throws (FREE to FLEX)", async () => {
-            mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
-            mockApiClient.upgradeTenantUpgrade!.mockRejectedValue(new Error("upgrade quota exceeded"));
-
-            const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
-            expect(result.isError).toBe(true);
-        });
-
-        it("returns error when upgradeTenantUpgrade throws (FREE to M10)", async () => {
-            mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
-            mockApiClient.upgradeTenantUpgrade!.mockRejectedValue(new Error("upgrade quota exceeded"));
-
-            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M10" });
-            expect(result.isError).toBe(true);
-        });
-
-        it("returns error when tenantUpgrade throws", async () => {
-            mockApiClient.getCluster!.mockRejectedValue(notFoundError());
-            mockApiClient.getFlexCluster!.mockResolvedValue(FLEX_CLUSTER_RAW);
-            mockApiClient.tenantUpgrade!.mockRejectedValue(new Error("upgrade quota exceeded"));
-
-            const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
-            expect(result.isError).toBe(true);
         });
     });
 
@@ -832,171 +1030,9 @@ describe("UpgradeClusterTool", () => {
             expect(text).not.toContain("scaled to");
             expect(text).toContain("compute autoscaling disabled");
         });
-
-        it("returns error when targetTier is FLEX for a DEDICATED cluster", async () => {
-            mockApiClient.getCluster!.mockResolvedValue(DEDICATED_CLUSTER_RAW);
-
-            const result = await exec({
-                projectId: "proj1",
-                clusterName: "MyCluster",
-                targetTier: "FLEX",
-            });
-
-            expect(result.isError).toBe(true);
-            const text = (result.content[0] as { text: string }).text;
-            expect(text).toContain("already Dedicated");
-            expect(mockApiClient.updateCluster).not.toHaveBeenCalled();
-        });
-
-        it("returns error when provider is provided for a DEDICATED cluster", async () => {
-            mockApiClient.getCluster!.mockResolvedValue(DEDICATED_CLUSTER_RAW);
-
-            const result = await exec({
-                projectId: "proj1",
-                clusterName: "MyCluster",
-                targetTier: "M20",
-                provider: "GCP",
-            });
-
-            expect(result.isError).toBe(true);
-            const text = (result.content[0] as { text: string }).text;
-            expect(text).toContain("not valid when scaling an already-Dedicated cluster");
-            expect(mockApiClient.updateCluster).not.toHaveBeenCalled();
-        });
-
-        it("returns error when region is provided for a DEDICATED cluster", async () => {
-            mockApiClient.getCluster!.mockResolvedValue(DEDICATED_CLUSTER_RAW);
-
-            const result = await exec({
-                projectId: "proj1",
-                clusterName: "MyCluster",
-                targetTier: "M20",
-                region: "US_WEST_2",
-            });
-
-            expect(result.isError).toBe(true);
-            expect(mockApiClient.updateCluster).not.toHaveBeenCalled();
-        });
-
-        it("returns error when current instance size is an NVMe variant", async () => {
-            mockApiClient.getCluster!.mockResolvedValue(DEDICATED_CLUSTER_NVME_RAW);
-
-            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M50" });
-
-            expect(result.isError).toBe(true);
-            const text = (result.content[0] as { text: string }).text;
-            expect(text).toContain("does not support scaling");
-            expect(mockApiClient.updateCluster).not.toHaveBeenCalled();
-        });
-
-        it("returns error when updateCluster throws", async () => {
-            mockApiClient.getCluster!.mockResolvedValue(DEDICATED_CLUSTER_RAW);
-            mockApiClient.updateCluster!.mockRejectedValue(new Error("update failed"));
-
-            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M20" });
-
-            expect(result.isError).toBe(true);
-        });
-
-        it("returns error when the cluster is SHARDED, even with a single shard", async () => {
-            mockApiClient.getCluster!.mockResolvedValue({
-                id: "dedicated-cluster-id",
-                clusterType: "SHARDED",
-                replicationSpecs: [
-                    {
-                        regionConfigs: [
-                            { providerName: "AWS", regionName: "US_EAST_1", electableSpecs: { instanceSize: "M10" } },
-                        ],
-                    },
-                ],
-            });
-
-            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M20" });
-
-            expect(result.isError).toBe(true);
-            const text = (result.content[0] as { text: string }).text;
-            expect(text).toContain("SHARDED");
-            expect(mockApiClient.updateCluster).not.toHaveBeenCalled();
-        });
-
-        it("returns error when the cluster is GEOSHARDED", async () => {
-            mockApiClient.getCluster!.mockResolvedValue({
-                id: "dedicated-cluster-id",
-                clusterType: "GEOSHARDED",
-                replicationSpecs: [
-                    {
-                        regionConfigs: [
-                            { providerName: "AWS", regionName: "US_EAST_1", electableSpecs: { instanceSize: "M10" } },
-                        ],
-                    },
-                    {
-                        regionConfigs: [
-                            { providerName: "AWS", regionName: "EU_WEST_1", electableSpecs: { instanceSize: "M10" } },
-                        ],
-                    },
-                ],
-            });
-
-            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M20" });
-
-            expect(result.isError).toBe(true);
-            const text = (result.content[0] as { text: string }).text;
-            expect(text).toContain("GEOSHARDED");
-            expect(mockApiClient.updateCluster).not.toHaveBeenCalled();
-        });
     });
 
     describe("cross-path argument validation", () => {
-        it("returns error when targetTier is an instance size for a FREE source", async () => {
-            mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
-
-            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M20" });
-
-            expect(result.isError).toBe(true);
-            const text = (result.content[0] as { text: string }).text;
-            expect(text).toContain('targetTier "M20" is not valid');
-            expect(mockApiClient.upgradeTenantUpgrade).not.toHaveBeenCalled();
-        });
-
-        it("returns error when targetTier is an instance size for a FLEX source", async () => {
-            mockApiClient.getCluster!.mockRejectedValue(notFoundError());
-            mockApiClient.getFlexCluster!.mockResolvedValue(FLEX_CLUSTER_RAW);
-
-            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M20" });
-
-            expect(result.isError).toBe(true);
-            expect(mockApiClient.tenantUpgrade).not.toHaveBeenCalled();
-        });
-
-        it("returns error when computeAutoScaling is provided for a FREE-to-FLEX upgrade", async () => {
-            mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
-
-            const result = await exec({
-                projectId: "proj1",
-                clusterName: "MyCluster",
-                computeAutoScaling: true,
-            });
-
-            expect(result.isError).toBe(true);
-            const text = (result.content[0] as { text: string }).text;
-            expect(text).toContain("Flex clusters do not support compute autoscaling");
-            expect(mockApiClient.upgradeTenantUpgrade).not.toHaveBeenCalled();
-        });
-
-        it("returns error when minInstanceSize/maxInstanceSize provided for an explicit FLEX target", async () => {
-            mockApiClient.getCluster!.mockRejectedValue(notFoundError());
-            mockApiClient.getFlexCluster!.mockResolvedValue(FLEX_CLUSTER_RAW);
-
-            const result = await exec({
-                projectId: "proj1",
-                clusterName: "MyCluster",
-                targetTier: "FLEX",
-                minInstanceSize: "M20",
-            });
-
-            expect(result.isError).toBe(true);
-        });
-
         it("FREE to M10 with computeAutoScaling=false disables autoscaling in the request body", async () => {
             mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
 
@@ -1026,22 +1062,6 @@ describe("UpgradeClusterTool", () => {
             expect(result.isError).toBeFalsy();
             const text = (result.content[0] as { text: string }).text;
             expect(text).not.toContain("compute autoscaling");
-        });
-
-        it("returns error when minInstanceSize is not M10 for a Free/Flex-to-M10 upgrade", async () => {
-            mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
-
-            const result = await exec({
-                projectId: "proj1",
-                clusterName: "MyCluster",
-                targetTier: "M10",
-                minInstanceSize: "M20",
-            });
-
-            expect(result.isError).toBe(true);
-            const text = (result.content[0] as { text: string }).text;
-            expect(text).toContain('must be omitted or "M10"');
-            expect(mockApiClient.upgradeTenantUpgrade).not.toHaveBeenCalled();
         });
 
         it("FREE to M10 with explicit minInstanceSize/maxInstanceSize uses those instead of hardcoded M10/M30", async () => {
