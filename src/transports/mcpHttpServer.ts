@@ -289,71 +289,19 @@ export class MCPHttpServer<
                 sessionOptions: this.sessionOptions,
             });
 
-            const transport = new StreamableHTTPServerTransport({
-                sessionIdGenerator: (): string => sessionId,
-                enableJsonResponse: this.userConfig.httpResponseType === "json",
-                onsessionclosed: async (sessionId): Promise<void> => {
-                    try {
-                        await this.sessionStore.closeSession({ sessionId, reason: "transport_closed" });
-                    } catch (error) {
-                        this.logger.error({
-                            id: LogId.streamableHttpTransportSessionCloseFailure,
-                            context: "streamableHttpTransport",
-                            message: `Error closing session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
-                        });
-                    }
-                },
-            });
-
-            // HACK: When we're implicitly initializing the session, we want to configure the session id and _initialized flag on the transport
-            // so that it believes it actually went through the initialization flow. Without it, we'd get errors like "transport not initialized"
-            // when we try to use it without initialize request
-            if (isImplicitInitialization) {
-                const internalTransport = transport["_webStandardTransport"] as {
-                    _initialized: boolean;
-                    sessionId: string;
-                };
-                internalTransport._initialized = true;
-                internalTransport.sessionId = sessionId;
-            }
-
-            server.session.logger.setAttribute("sessionId", sessionId);
-
-            const keepAliveLoop = this.createKeepAliveLoop(transport, server);
-            if (keepAliveLoop) {
-                this.keepAliveLoops.set(sessionId, keepAliveLoop);
-            }
-            transport.onclose = (): void => {
+            try {
+                await this.initializeSession({ req, sessionId, isImplicitInitialization, server });
+            } catch (error) {
+                // The session never reached the store, so nothing else holds this
+                // server and `transport.onclose` is not a reliable teardown hook.
+                // Release it explicitly: its exports sweep interval and telemetry
+                // timer are GC roots that would otherwise keep the server — all of
+                // its tools and their schemas — alive for the process's lifetime.
                 this.keepAliveLoops.get(sessionId)?.stop();
                 this.keepAliveLoops.delete(sessionId);
-
-                server.close().catch((error) => {
-                    this.logger.error({
-                        id: LogId.streamableHttpTransportCloseFailure,
-                        context: "streamableHttpTransport",
-                        message: `Error closing server: ${error instanceof Error ? error.message : String(error)}`,
-                    });
-                });
-            };
-
-            await server.connect(transport);
-
-            if (isImplicitInitialization) {
-                await this.restoreNegotiatedClientState(server, sessionId, req.headers);
-            } else {
-                this.captureNegotiatedClientStateOnInitialize(server, sessionId, req.headers);
+                await server.close().catch(() => undefined);
+                throw error;
             }
-
-            await this.sessionStore.addSession({
-                sessionId,
-                transport,
-                logger: server.session.logger,
-                session: server.session,
-                // Pass the incoming request headers to the session store so
-                // that we can trace the x-request-id and other headers in the
-                // resulting logs and downstream requests.
-                headers: req.headers,
-            });
         })();
 
         this.pendingInitializations.set(sessionId, initPromise);
@@ -378,6 +326,93 @@ export class MCPHttpServer<
             this.pendingInitializations.delete(sessionId);
         }
         return sessionId;
+    }
+
+    /**
+     * Wires up the transport for a freshly created server and registers the
+     * session with the store. Throws if the session cannot be admitted (e.g.
+     * the store is at its `maxSessions` limit); the caller owns tearing the
+     * server down in that case.
+     */
+    private async initializeSession({
+        req,
+        sessionId,
+        isImplicitInitialization,
+        server,
+    }: {
+        req: express.Request;
+        sessionId: string;
+        isImplicitInitialization: boolean;
+        server: Server<TUserConfig, TContext>;
+    }): Promise<void> {
+        /** StreamableHTTPTransport needs to be imported dynamically as it uses Node-specific APIs */
+        const { StreamableHTTPServerTransport } = await import("@modelcontextprotocol/sdk/server/streamableHttp.js");
+
+        const transport = new StreamableHTTPServerTransport({
+            sessionIdGenerator: (): string => sessionId,
+            enableJsonResponse: this.userConfig.httpResponseType === "json",
+            onsessionclosed: async (sessionId): Promise<void> => {
+                try {
+                    await this.sessionStore.closeSession({ sessionId, reason: "transport_closed" });
+                } catch (error) {
+                    this.logger.error({
+                        id: LogId.streamableHttpTransportSessionCloseFailure,
+                        context: "streamableHttpTransport",
+                        message: `Error closing session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
+                    });
+                }
+            },
+        });
+
+        // HACK: When we're implicitly initializing the session, we want to configure the session id and _initialized flag on the transport
+        // so that it believes it actually went through the initialization flow. Without it, we'd get errors like "transport not initialized"
+        // when we try to use it without initialize request
+        if (isImplicitInitialization) {
+            const internalTransport = transport["_webStandardTransport"] as {
+                _initialized: boolean;
+                sessionId: string;
+            };
+            internalTransport._initialized = true;
+            internalTransport.sessionId = sessionId;
+        }
+
+        server.session.logger.setAttribute("sessionId", sessionId);
+
+        const keepAliveLoop = this.createKeepAliveLoop(transport, server);
+        if (keepAliveLoop) {
+            this.keepAliveLoops.set(sessionId, keepAliveLoop);
+        }
+        transport.onclose = (): void => {
+            this.keepAliveLoops.get(sessionId)?.stop();
+            this.keepAliveLoops.delete(sessionId);
+
+            server.close().catch((error) => {
+                this.logger.error({
+                    id: LogId.streamableHttpTransportCloseFailure,
+                    context: "streamableHttpTransport",
+                    message: `Error closing server: ${error instanceof Error ? error.message : String(error)}`,
+                });
+            });
+        };
+
+        await server.connect(transport);
+
+        if (isImplicitInitialization) {
+            await this.restoreNegotiatedClientState(server, sessionId, req.headers);
+        } else {
+            this.captureNegotiatedClientStateOnInitialize(server, sessionId, req.headers);
+        }
+
+        await this.sessionStore.addSession({
+            sessionId,
+            transport,
+            logger: server.session.logger,
+            session: server.session,
+            // Pass the incoming request headers to the session store so
+            // that we can trace the x-request-id and other headers in the
+            // resulting logs and downstream requests.
+            headers: req.headers,
+        });
     }
 
     /**
