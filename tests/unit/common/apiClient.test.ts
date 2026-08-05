@@ -94,7 +94,9 @@ describe("ApiClient", () => {
                     headers: { "Content-Type": "application/json" },
                 })
             );
-            const globalFetch = vi.spyOn(global, "fetch");
+            const globalFetch = vi
+                .spyOn(global, "fetch")
+                .mockRejectedValue(new Error("global fetch should not be called"));
 
             const client = new ApiClient(
                 {

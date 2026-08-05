@@ -1,13 +1,12 @@
 import createClient from "openapi-fetch";
-import type { ClientOptions, FetchOptions, Client, Middleware } from "openapi-fetch";
+import type { FetchOptions, Client, Middleware } from "openapi-fetch";
 import { ApiClientError } from "./apiClientError.js";
 import type { components, paths, operations } from "./openapi.js";
 import type { CommonProperties, TelemetryEvent } from "../../telemetry/types.js";
 import { packageInfo } from "../packageInfo.js";
 import type { LoggerBase } from "../logging/index.js";
-import { Request as NodeFetchRequest } from "node-fetch";
 import type { HttpClient } from "../proxyFetch.js";
-import { getSharedProxyFetch } from "../proxyFetch.js";
+import { getDefaultHttpClient } from "../proxyFetch.js";
 import type { Credentials, AuthProvider } from "./auth/authProvider.js";
 import { AuthProviderFactory } from "./auth/authProvider.js";
 import { isNodeRuntime } from "../../helpers/isNodeRuntime.js";
@@ -75,8 +74,6 @@ export class ApiClient {
         supportsCurrentIpLookup: boolean;
     };
 
-    private customFetch: typeof fetch;
-
     private client: Client<paths>;
 
     public isAuthConfigured(): boolean {
@@ -88,7 +85,7 @@ export class ApiClient {
         public readonly logger: LoggerBase,
         public readonly authProvider?: AuthProvider
     ) {
-        this.customFetch = options.httpClient?.fetch ?? getSharedProxyFetch();
+        const httpClient = options.httpClient ?? getDefaultHttpClient();
         this.options = {
             ...options,
             userAgent:
@@ -104,7 +101,7 @@ export class ApiClient {
                     apiBaseUrl: this.options.baseUrl,
                     userAgent: this.options.userAgent,
                     credentials: options.credentials ?? {},
-                    httpClient: options.httpClient,
+                    httpClient,
                 },
                 logger
             );
@@ -115,12 +112,8 @@ export class ApiClient {
                 "User-Agent": this.options.userAgent,
                 Accept: `application/vnd.atlas.${ATLAS_API_VERSION}+json`,
             },
-            fetch: this.customFetch,
-            // NodeFetchRequest has more overloadings than the native Request
-            // so it complains here. However, the interfaces are actually compatible
-            // so it's not a real problem, just a type checking problem.
-            Request: (options.httpClient?.Request ??
-                (isNodeRuntime() ? NodeFetchRequest : globalThis.Request)) as unknown as ClientOptions["Request"],
+            fetch: httpClient.fetch,
+            Request: httpClient.Request,
         });
 
         if (this.authProvider) {
