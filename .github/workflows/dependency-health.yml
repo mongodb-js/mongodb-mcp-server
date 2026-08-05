@@ -70,6 +70,8 @@ jobs:
         if: always()
         env:
           KONDUKTO_BRANCH: ${{ github.ref_name }}
+          KONDUKTO_TOKEN: ${{ secrets.KONDUKTO_TOKEN }}
+          DEPENDENCY_TRACK_API_KEY: ${{ secrets.DEPENDENCY_TRACK_API_KEY }}
         run: |
           set -e
 
@@ -81,12 +83,14 @@ jobs:
 
           docker pull "${SILKBOMB_IMAGE}"
 
-          # SilkBomb authenticates to Kondukto using the AWS credentials
-          # configured above; no explicit KONDUKTO_TOKEN is needed for this repo.
-          # Forward the AWS creds into the container (containers don't inherit
-          # the runner environment).
+          # SilkBomb needs KONDUKTO_TOKEN (and DEPENDENCY_TRACK_API_KEY) to
+          # augment/upload. Unlike Evergreen, GitHub Actions cannot assume
+          # arn:aws:iam::119629040606:role/kondukto (Evergreen-only trust) and
+          # the ECR role assumed above has no secretsmanager:GetSecretValue, so
+          # SilkBomb's built-in AWS Secrets Manager auto-fetch does not work
+          # here. Pass the tokens explicitly from repo secrets instead.
           docker run --rm \
-            -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_SESSION_TOKEN \
+            -e KONDUKTO_TOKEN -e DEPENDENCY_TRACK_API_KEY \
             -v "$PWD":/pwd \
             "${SILKBOMB_IMAGE}" \
             augment \
