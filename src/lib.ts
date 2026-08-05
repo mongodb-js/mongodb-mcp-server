@@ -125,6 +125,7 @@ export {
     type ApiClientFactoryFn,
     type RequestContext,
 } from "./common/atlas/apiClient.js";
+export type { HttpClient } from "./common/proxyFetch.js";
 export type { AuthProvider, Credentials } from "./common/atlas/auth/authProvider.js";
 export { type UIRegistryOptions, UIRegistry } from "./ui/registry/registry.js";
 export { type ToolExecutionContext, type AnyToolBase } from "./tools/tool.js";

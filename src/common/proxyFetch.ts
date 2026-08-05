@@ -4,6 +4,16 @@ import { isNodeRuntime } from "../helpers/isNodeRuntime.js";
 let sharedProxyFetch: typeof fetch | undefined;
 
 /**
+ * A matched `fetch`/`Request` pair. Both must come from the same implementation:
+ * a `Request` built by one implementation is not recognized as a `Request` by
+ * another and gets coerced to a string, producing a bogus URL.
+ */
+export type HttpClient = {
+    fetch: typeof fetch;
+    Request: typeof globalThis.Request;
+};
+
+/**
  * Process-wide memoized `fetch`. In Node it is backed by
  * devtools-proxy-support's `createFetch` (env-var proxy config + system-CA
  * trust); elsewhere it falls back to the platform `fetch`.
