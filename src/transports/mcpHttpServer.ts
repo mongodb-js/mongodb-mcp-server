@@ -26,7 +26,11 @@ import {
     JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED,
 } from "./jsonRpcErrorCodes.js";
 
-export type MCPHttpServerConstructorArgs<TUserConfig extends UserConfig = UserConfig, TContext = unknown> = {
+export type MCPHttpServerConstructorArgs<
+    TUserConfig extends UserConfig = UserConfig,
+    TContext = unknown,
+    TMetrics extends DefaultMetrics = DefaultMetrics,
+> = {
     userConfig: TUserConfig;
     createServerForRequest: (createParams: {
         request: TransportRequestContext;
@@ -36,19 +40,20 @@ export type MCPHttpServerConstructorArgs<TUserConfig extends UserConfig = UserCo
     logger: LoggerBase;
     serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
     sessionOptions?: CustomizableSessionOptions<TUserConfig>;
-    metrics: Metrics<DefaultMetrics>;
+    metrics: Metrics<TMetrics>;
     sessionStore: ISessionStore<StreamableHTTPServerTransport>;
 };
 
 export class MCPHttpServer<
     TUserConfig extends UserConfig = UserConfig,
     TContext = unknown,
+    TMetrics extends DefaultMetrics = DefaultMetrics,
 > extends ExpressBasedHttpServer {
     protected readonly sessionStore: ISessionStore<StreamableHTTPServerTransport>;
     private readonly serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
     private readonly sessionOptions?: CustomizableSessionOptions<TUserConfig>;
     protected readonly userConfig: TUserConfig;
-    private readonly metrics: Metrics<DefaultMetrics>;
+    protected readonly metrics: Metrics<TMetrics>;
     private readonly pendingInitializations = new Map<string, Promise<void>>();
 
     private createServerForRequest: (createParams: {
@@ -65,7 +70,7 @@ export class MCPHttpServer<
         logger,
         metrics,
         sessionStore,
-    }: MCPHttpServerConstructorArgs<TUserConfig, TContext>) {
+    }: MCPHttpServerConstructorArgs<TUserConfig, TContext, TMetrics>) {
         super({
             port: userConfig.httpPort,
             hostname: userConfig.httpHost,
