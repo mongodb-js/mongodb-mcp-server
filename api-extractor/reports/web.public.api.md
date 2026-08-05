@@ -208,6 +208,7 @@ export interface ApiClientOptions {
     baseUrl: string;
     // (undocumented)
     credentials?: Credentials;
+    httpClient?: HttpClient;
     // (undocumented)
     requestContext?: RequestContext;
     supportsCurrentIpLookup?: boolean;
@@ -704,6 +705,12 @@ export type ExportsManagerEvents = {
 
 // @public
 export function getRandomUUID(): string;
+
+// @public
+export type HttpClient = {
+    fetch: typeof fetch;
+    Request: typeof globalThis.Request;
+};
 
 // @public (undocumented)
 export interface InProgressExport extends CommonExportData {

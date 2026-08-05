@@ -83,6 +83,7 @@ export {
     type ApiClientFactoryFn,
     type RequestContext,
 } from "./common/atlas/apiClient.js";
+export type { HttpClient } from "./common/proxyFetch.js";
 export type { AtlasLocalClientFactoryFn, LibraryLoader } from "./common/atlasLocal.js";
 export { UIRegistry } from "./ui/registry/registry.js";
 export {

@@ -221,6 +221,7 @@ export interface ApiClientOptions {
     baseUrl: string;
     // (undocumented)
     credentials?: Credentials;
+    httpClient?: HttpClient;
     // (undocumented)
     requestContext?: RequestContext;
     supportsCurrentIpLookup?: boolean;
@@ -695,6 +696,12 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
 export { Gauge }
 
 export { Histogram }
+
+// @public
+export type HttpClient = {
+    fetch: typeof fetch;
+    Request: typeof globalThis.Request;
+};
 
 // @public
 export interface ISessionStore<T extends CloseableTransport = CloseableTransport> {
