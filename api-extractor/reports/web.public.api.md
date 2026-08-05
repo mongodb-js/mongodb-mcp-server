@@ -1174,9 +1174,11 @@ export class UIRegistry {
 
 // @public (undocumented)
 export type UpgradeClusterMetadata = AtlasMetadata & {
-    original_tier?: "free" | "flex" | Lowercase<StandardInstanceSize>;
-    target_tier?: "free" | "flex" | Lowercase<StandardInstanceSize>;
+    original_tier?: string;
+    target_tier?: string;
     compute_auto_scaling?: TelemetryBoolSet;
+    min_instance_size?: string;
+    max_instance_size?: string;
     cluster_id?: string;
     provider?: string;
     region?: string;

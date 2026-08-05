@@ -372,8 +372,8 @@ export class CreateClusterTool extends AtlasToolBase {
         projectId: z.ZodString;
         clusterName: z.ZodString;
         provider: z.ZodEnum<{
-            AZURE: "AZURE";
             AWS: "AWS";
+            AZURE: "AZURE";
             GCP: "GCP";
         }>;
         regions: z.ZodArray<z.ZodString>;
@@ -404,8 +404,8 @@ export class CreateClusterTool extends AtlasToolBase {
         }>>;
         terminationProtectionEnabled: z.ZodDefault<z.ZodBoolean>;
         encryptionAtRestProvider: z.ZodOptional<z.ZodEnum<{
-            AZURE: "AZURE";
             AWS: "AWS";
+            AZURE: "AZURE";
             GCP: "GCP";
             NONE: "NONE";
         }>>;
@@ -425,8 +425,8 @@ export class CreateClusterTool extends AtlasToolBase {
     outputSchema: {
         clusterId: z.ZodOptional<z.ZodString>;
         provider: z.ZodEnum<{
-            AZURE: "AZURE";
             AWS: "AWS";
+            AZURE: "AZURE";
             GCP: "GCP";
         }>;
         regions: z.ZodArray<z.ZodString>;
@@ -457,8 +457,8 @@ export class CreateClusterTool extends AtlasToolBase {
         terminationProtectionEnabled: z.ZodBoolean;
         diskSizeGB: z.ZodOptional<z.ZodNumber>;
         encryptionAtRestProvider: z.ZodEnum<{
-            AZURE: "AZURE";
             AWS: "AWS";
+            AZURE: "AZURE";
             GCP: "GCP";
             NONE: "NONE";
         }>;
@@ -1190,9 +1190,9 @@ export class InspectClusterTool extends AtlasToolBase {
     outputSchema: {
         name: z.ZodString;
         instanceType: z.ZodEnum<{
-            FREE: "FREE";
             DEDICATED: "DEDICATED";
             FLEX: "FLEX";
+            FREE: "FREE";
         }>;
         instanceSize: z.ZodString;
         provider: z.ZodOptional<z.ZodString>;
@@ -1270,9 +1270,9 @@ export class ListClustersTool extends AtlasToolBase {
         }, z.core.$strip>, z.ZodObject<{
             name: z.ZodOptional<z.ZodString>;
             instanceType: z.ZodEnum<{
-                FREE: "FREE";
                 DEDICATED: "DEDICATED";
                 FLEX: "FLEX";
+                FREE: "FREE";
             }>;
             instanceSize: z.ZodOptional<z.ZodString>;
             provider: z.ZodOptional<z.ZodString>;
@@ -1714,8 +1714,8 @@ export class StreamsBuildTool extends StreamsToolBase {
         }>;
         workspaceName: z.ZodOptional<z.ZodString>;
         cloudProvider: z.ZodOptional<z.ZodEnum<{
-            AZURE: "AZURE";
             AWS: "AWS";
+            AZURE: "AZURE";
             GCP: "GCP";
         }>>;
         region: z.ZodOptional<z.ZodString>;
@@ -1798,8 +1798,8 @@ export class StreamsBuildTool extends StreamsToolBase {
         autoStart: z.ZodOptional<z.ZodBoolean>;
         privateLinkConfig: z.ZodOptional<z.ZodObject<{
             provider: z.ZodEnum<{
-                AZURE: "AZURE";
                 AWS: "AWS";
+                AZURE: "AZURE";
                 GCP: "GCP";
             }>;
             region: z.ZodOptional<z.ZodString>;
@@ -2230,6 +2230,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
         projectId: z.ZodString;
         clusterName: z.ZodString;
         targetTier: z.ZodOptional<z.ZodEnum<{
+            FLEX: "FLEX";
             M10: "M10";
             M20: "M20";
             M30: "M30";
@@ -2237,7 +2238,6 @@ export class UpgradeClusterTool extends AtlasToolBase {
             M50: "M50";
             M60: "M60";
             M80: "M80";
-            FLEX: "FLEX";
         }>>;
         computeAutoScaling: z.ZodOptional<z.ZodBoolean>;
         minInstanceSize: z.ZodOptional<z.ZodEnum<{
@@ -2259,7 +2259,6 @@ export class UpgradeClusterTool extends AtlasToolBase {
             M80: "M80";
             M200: "M200";
             M140: "M140";
-            M100: "M100";
         }>>;
         provider: z.ZodOptional<z.ZodString>;
         region: z.ZodOptional<z.ZodString>;
@@ -2275,6 +2274,8 @@ export class UpgradeClusterTool extends AtlasToolBase {
     // (undocumented)
     outputSchema: {
         originalTier: z.ZodEnum<{
+            FLEX: "FLEX";
+            FREE: "FREE";
             M10: "M10";
             M20: "M20";
             M30: "M30";
@@ -2282,10 +2283,9 @@ export class UpgradeClusterTool extends AtlasToolBase {
             M50: "M50";
             M60: "M60";
             M80: "M80";
-            FREE: "FREE";
-            FLEX: "FLEX";
         }>;
         targetTier: z.ZodEnum<{
+            FLEX: "FLEX";
             M10: "M10";
             M20: "M20";
             M30: "M30";
@@ -2293,7 +2293,6 @@ export class UpgradeClusterTool extends AtlasToolBase {
             M50: "M50";
             M60: "M60";
             M80: "M80";
-            FLEX: "FLEX";
         }>;
         computeAutoScaling: z.ZodOptional<z.ZodBoolean>;
         minInstanceSize: z.ZodOptional<z.ZodString>;
