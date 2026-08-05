@@ -6,9 +6,6 @@ on:
     # Weekly, similar to mongosh's cron-tasks.yml workflow.
     - cron: "0 3 * * 0"
   workflow_dispatch:
-  pull_request:
-    branches:
-      - main
 permissions:
   contents: write
   id-token: write # required for aws-actions/configure-aws-credentials OIDC role assumption
@@ -44,10 +41,7 @@ jobs:
         run: pnpm run update-third-party-notices
 
       - name: Commit and push updated third-party notices
-        # Run even if earlier steps failed, so notices are still committed when
-        # the regeneration step produced changes. The pull_request trigger is
-        # removed, but this guard keeps the push blocked if it is ever re-added.
-        if: always() && github.event_name != 'pull_request'
+        if: always()
         env:
           # Skip pre-commit hooks, since this is a bot commit.
           HUSKY: "0"
@@ -60,7 +54,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "No THIRD_PARTY_NOTICES.md changes to commit"
           else
-            git commit -m "chore: update third-party notices [skip actions]"
+            git commit -m "docs: update third-party notices [skip actions]"
             git push
           fi
 
