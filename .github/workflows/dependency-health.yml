@@ -6,9 +6,6 @@ on:
     # Weekly, similar to mongosh's cron-tasks.yml workflow.
     - cron: "0 3 * * 0"
   workflow_dispatch:
-  pull_request:
-    branches:
-      - main
 permissions:
   contents: write
   id-token: write # required for aws-actions/configure-aws-credentials OIDC role assumption
