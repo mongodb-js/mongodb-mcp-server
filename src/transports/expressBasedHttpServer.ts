@@ -8,7 +8,6 @@ export type ExpressConfig = {
     hostname: string;
 };
 
-/** @internal */
 export abstract class ExpressBasedHttpServer {
     protected httpServer: http.Server | undefined;
     protected app: express.Express;
