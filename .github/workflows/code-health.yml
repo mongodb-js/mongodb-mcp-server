@@ -37,7 +37,7 @@ jobs:
         with:
           set-host: true
       - uses: pnpm/action-setup@v5
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node-version }}
           cache: "pnpm"
@@ -67,7 +67,7 @@ jobs:
         with:
           persist-credentials: false
       - uses: pnpm/action-setup@v5
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version-file: package.json
           cache: "pnpm"
@@ -103,7 +103,7 @@ jobs:
         with:
           persist-credentials: false
       - uses: pnpm/action-setup@v5
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version-file: package.json
           cache: "pnpm"
@@ -126,7 +126,7 @@ jobs:
         with:
           persist-credentials: false
       - uses: pnpm/action-setup@v5
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version-file: package.json
           cache: "pnpm"
@@ -156,7 +156,7 @@ jobs:
         with:
           persist-credentials: false
       - uses: pnpm/action-setup@v5
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version-file: package.json
           cache: "pnpm"
@@ -184,7 +184,7 @@ jobs:
         with:
           persist-credentials: false
       - uses: pnpm/action-setup@v5
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version-file: package.json
           cache: "pnpm"
