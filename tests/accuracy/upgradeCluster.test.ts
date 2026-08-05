@@ -24,6 +24,22 @@ function mockScaleResponse(clusterName: string, targetInstanceSize: string): () 
     });
 }
 
+function mockScaleWithAutoScalingResponse(
+    clusterName: string,
+    targetInstanceSize: string,
+    min: string,
+    max: string
+): () => CallToolResult {
+    return () => ({
+        content: [
+            {
+                type: "text",
+                text: `Cluster "${clusterName}" is being scaled to ${targetInstanceSize} with compute autoscaling enabled (${min}-${max}). This may take a few minutes.`,
+            },
+        ],
+    });
+}
+
 const PROJECT_ID = "9123a4b056c7d890e1f2a3f4";
 const CLUSTER_NAME = "MyCluster";
 
@@ -233,6 +249,48 @@ describeAccuracyTests([
                     clusterName: CLUSTER_NAME,
                     maxInstanceSize: "M40",
                     targetTier: Matcher.undefined,
+                },
+            },
+        ],
+    },
+    {
+        prompt: `Scale cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}" to M30 and enable autoscaling between M20 and M50`,
+        mockedTools: {
+            ...mockListProjects,
+            "atlas-upgrade-cluster": mockScaleWithAutoScalingResponse(CLUSTER_NAME, "M30", "M20", "M50"),
+        },
+        expectedToolCalls: [
+            ...optionalListProjects,
+            {
+                toolName: "atlas-upgrade-cluster",
+                parameters: {
+                    projectId: PROJECT_ID,
+                    clusterName: CLUSTER_NAME,
+                    targetTier: "M30",
+                    computeAutoScaling: true,
+                    minInstanceSize: "M20",
+                    maxInstanceSize: "M50",
+                },
+            },
+        ],
+    },
+    {
+        prompt: `Scale cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}" to M30 with autoscaling enabled`,
+        mockedTools: {
+            ...mockListProjects,
+            "atlas-upgrade-cluster": mockScaleWithAutoScalingResponse(CLUSTER_NAME, "M30", "M30", "M50"),
+        },
+        expectedToolCalls: [
+            ...optionalListProjects,
+            {
+                toolName: "atlas-upgrade-cluster",
+                parameters: {
+                    projectId: PROJECT_ID,
+                    clusterName: CLUSTER_NAME,
+                    targetTier: "M30",
+                    computeAutoScaling: true,
+                    minInstanceSize: Matcher.undefined,
+                    maxInstanceSize: Matcher.undefined,
                 },
             },
         ],

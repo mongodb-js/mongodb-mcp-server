@@ -22,15 +22,15 @@ AWS: "East Coast"/"Virginia"/"US East" → US_EAST_1, "Ohio" → US_EAST_2, "Cal
 GCP: "Central US" → CENTRAL_US, "Western US" → WESTERN_US, "Southeast Asia"/"APAC" → SOUTHEASTERN_ASIA_PACIFIC, "Europe"/"EU" → WESTERN_EUROPE.
 AZURE: "East US" → US_EAST_2, "West US" → US_WEST_2, "Europe"/"EU" → EUROPE_NORTH.`;
 
-// Adds M100/M140/M200 since getMaxAutoScalingSize can return those for M60/M80, and maxInstanceSize accepts them directly.
-const INSTANCE_SIZE_ORDER = [...standardInstanceSizeEnum.options, "M100", "M140", "M200"];
+// Adds M140/M200 since getMaxAutoScalingSize can return those for M60/M80, and maxInstanceSize accepts them directly.
+const INSTANCE_SIZE_ORDER = [...standardInstanceSizeEnum.options, "M140", "M200"];
 
 function isHigherInstanceSize(a: string, b: string): boolean {
     return INSTANCE_SIZE_ORDER.indexOf(a) > INSTANCE_SIZE_ORDER.indexOf(b);
 }
 
 // maxInstanceSize can go beyond standardInstanceSizeEnum since autoscaling may grow an M60/M80 cluster past M80.
-const maxAutoScalingSizeEnum = z.enum([...standardInstanceSizeEnum.options, "M100", "M140", "M200"]);
+const maxAutoScalingSizeEnum = z.enum([...standardInstanceSizeEnum.options, "M140", "M200"]);
 
 // Hardcoded defaults for all dedicated (M10) upgrade paths.
 // provider and region are the only fields callers may override.
@@ -171,7 +171,6 @@ type ResolvedClusterInfo = {
     region?: string;
     raw?: ClusterDescription20240805;
     instanceSize?: string;
-    autoScaling?: { compute?: { enabled?: boolean; minInstanceSize?: string; maxInstanceSize?: string } };
 };
 
 async function resolveClusterInfo(
@@ -184,18 +183,12 @@ async function resolveClusterInfo(
     try {
         const raw = await apiClient.getCluster({ params: { path: { groupId: projectId, clusterName } } }, context);
         const cluster = formatCluster(raw);
-        const firstRegionConfig = raw.replicationSpecs?.[0]?.regionConfigs?.[0] as
-            | {
-                  autoScaling?: { compute?: { enabled?: boolean; minInstanceSize?: string; maxInstanceSize?: string } };
-              }
-            | undefined;
         return {
             instanceType: cluster.instanceType,
             provider: argOverrides.provider ?? cluster.provider,
             region: argOverrides.region ?? cluster.region,
             raw,
             instanceSize: cluster.instanceSize,
-            autoScaling: { compute: firstRegionConfig?.autoScaling?.compute },
         };
     } catch (err) {
         // Atlas returns 400 for Flex clusters on the regular cluster endpoint ("cannot be used in the Cluster API")
@@ -263,6 +256,67 @@ function buildScaleClusterBody(
 
 class UpgradeClusterError extends Error {}
 
+type DedicatedScalingArgs = {
+    targetTier?: string;
+    computeAutoScaling?: boolean;
+    minInstanceSize?: string;
+    maxInstanceSize?: string;
+    provider?: string;
+    region?: string;
+};
+
+// Validates that a DEDICATED cluster can be safely scaled.
+function validateDedicatedScaling(
+    clusterInfo: ResolvedClusterInfo,
+    args: DedicatedScalingArgs,
+    clusterName: string
+): void {
+    if (args.provider !== undefined || args.region !== undefined) {
+        throw new UpgradeClusterError(
+            `Invalid Arguments:provider/region. provider/region are not valid when scaling an already-Dedicated cluster "${clusterName}".`
+        );
+    }
+    if (
+        args.targetTier === undefined &&
+        args.computeAutoScaling === undefined &&
+        args.minInstanceSize === undefined &&
+        args.maxInstanceSize === undefined
+    ) {
+        throw new UpgradeClusterError(
+            `No changes specified for Dedicated cluster "${clusterName}". Provide targetTier (new instance size), computeAutoScaling, minInstanceSize, and/or maxInstanceSize to scale it.`
+        );
+    }
+    if (clusterInfo.instanceSize === undefined || !isStandardInstanceSize(clusterInfo.instanceSize)) {
+        throw new UpgradeClusterError(
+            `Cluster "${clusterName}" has instance size "${clusterInfo.instanceSize ?? "unknown"}", which this tool does not support scaling. Only standard M10-M80 instance sizes are supported.`
+        );
+    }
+    if (clusterInfo.raw?.clusterType === "GEOSHARDED" || (clusterInfo.raw?.replicationSpecs?.length ?? 0) > 1) {
+        throw new UpgradeClusterError(
+            `Cluster "${clusterName}" is a ${clusterInfo.raw?.clusterType ?? "multi-shard"} cluster, which this tool does not support scaling. Only single-shard clusters (REPLICASET, or SHARDED with one shard) are supported.`
+        );
+    }
+    const regionElectableSizes = (clusterInfo.raw?.replicationSpecs?.[0]?.regionConfigs ?? [])
+        .map((rc) => (rc as { electableSpecs?: { instanceSize?: string } }).electableSpecs?.instanceSize)
+        .filter((size): size is string => size !== undefined);
+    if (new Set(regionElectableSizes).size > 1) {
+        throw new UpgradeClusterError(
+            `Cluster "${clusterName}" has regions with different instance sizes, which this tool does not support scaling to avoid unintended changes.`
+        );
+    }
+}
+
+// Validates and resolves the upgrade target for a Free/Flex source cluster: defaults to FLEX for Free,
+// M10 for Flex, and rejects any targetTier value that isn't a valid choice for a non-Dedicated source.
+function resolveNonDedicatedTarget(args: { targetTier?: string }, instanceType: "FREE" | "FLEX"): "FLEX" | "M10" {
+    if (args.targetTier !== undefined && args.targetTier !== "FLEX" && args.targetTier !== "M10") {
+        throw new UpgradeClusterError(
+            `targetTier "${args.targetTier}" is not valid when upgrading from ${instanceType}. Choose FLEX or M10 - larger instance sizes are only valid once the cluster is already Dedicated.`
+        );
+    }
+    return args.targetTier ?? (instanceType === "FREE" ? "FLEX" : "M10");
+}
+
 export const UpgradeClusterOutputSchema = {
     originalTier: z.enum(["FREE", "FLEX", ...standardInstanceSizeEnum.options]),
     targetTier: z.enum(["FLEX", ...standardInstanceSizeEnum.options]),
@@ -277,7 +331,7 @@ export const UpgradeClusterOutputSchema = {
 export class UpgradeClusterTool extends AtlasToolBase {
     static toolName = "atlas-upgrade-cluster";
     public description =
-        "Upgrade or scale a MongoDB Atlas cluster: upgrades Free/Flex clusters to Flex or M10 Dedicated, and scales a Dedicated cluster's instance size and supports autoscaling configuration. " +
+        "Upgrade or scale a MongoDB Atlas cluster. Free and Flex clusters can be upgraded to Flex or M10 Dedicated. Dedicated clusters can be scaled to a different instance size, and compute autoscaling settings can be updated. " +
         "When scaling a Dedicated cluster, at least one of targetTier, computeAutoScaling, minInstanceSize, or maxInstanceSize must be provided. " +
         "Compute autoscaling defaults to enabled when upgrading to M10 Dedicated: min instance size is set to the selected instance size, max is set two tiers above, unless overridden. " +
         "Note to LLM: If provider and region are not already known, ask for both together in a single question before calling this tool. " +
@@ -298,7 +352,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
             .boolean()
             .optional()
             .describe(
-                "When true, enables compute autoscaling; when false, disables it. Applies to a Dedicated cluster, or to a Free/Flex cluster upgrading to M10 Dedicated (Flex clusters do not support autoscaling). Omit unless explicitly specified by the user."
+                "Enable/disable compute autoscaling, for a Dedicated cluster or a Free/Flex-to-M10 upgrade. Omit unless explicitly specified by the user."
             ),
         minInstanceSize: standardInstanceSizeEnum
             .optional()
@@ -308,19 +362,19 @@ export class UpgradeClusterTool extends AtlasToolBase {
         maxInstanceSize: maxAutoScalingSizeEnum
             .optional()
             .describe(
-                "Maximum instance size (M10-M200) for compute autoscaling, for a Dedicated cluster or a Free/Flex-to-M10 upgrade. Sizes above M80 (M100/M140/M200) are only reachable via autoscaling, not as a direct target size. Omit unless explicitly specified by the user."
+                "Maximum instance size (M10-M200) for compute autoscaling, for a Dedicated cluster or a Free/Flex-to-M10 upgrade. Omit unless explicitly specified by the user."
             ),
         provider: z
             .string()
             .regex(ALLOWED_PROVIDER_REGEX, "Provider must be uppercase letters and underscores only")
             .optional()
             .describe(
-                "Cloud provider (e.g. AWS, GCP, AZURE) for a Free/Flex source cluster. Preserves the existing value if omitted. Does not apply once a cluster is already Dedicated."
+                "Cloud provider (e.g. AWS, GCP, AZURE) for a Free/Flex source cluster. Preserves the existing value if omitted. Does not apply if a cluster is already Dedicated."
             ),
         region: AtlasArgs.region()
             .optional()
             .describe(
-                "Cloud provider region in Atlas format using uppercase letters and underscores (e.g. US_EAST_1) for a Free/Flex source cluster. Preserves the existing value if omitted. Does not apply once a cluster is already Dedicated."
+                "Cloud provider region in Atlas format using uppercase letters and underscores (e.g. US_EAST_1) for a Free/Flex source cluster. Preserves the existing value if omitted. Does not apply if a cluster is already Dedicated."
             ),
     };
 
@@ -338,133 +392,93 @@ export class UpgradeClusterTool extends AtlasToolBase {
             context
         );
 
-        if (clusterInfo.instanceType === "DEDICATED") {
-            if (args.targetTier === "FLEX") {
-                throw new UpgradeClusterError(
-                    `Cluster "${clusterName}" is already Dedicated. targetTier must be an instance size (M10-M80) to scale it in place, not FLEX.`
-                );
-            }
-        } else if (args.targetTier !== undefined && args.targetTier !== "FLEX" && args.targetTier !== "M10") {
-            throw new UpgradeClusterError(
-                `targetTier "${args.targetTier}" is not valid when upgrading from ${clusterInfo.instanceType}. Choose FLEX or M10 - larger instance sizes are only valid once the cluster is already Dedicated.`
-            );
-        }
-
-        const target =
-            (args.targetTier as "FLEX" | "M10" | undefined) ?? (clusterInfo.instanceType === "FREE" ? "FLEX" : "M10");
-
-        if (
-            clusterInfo.instanceType !== "DEDICATED" &&
-            target === "FLEX" &&
-            (args.computeAutoScaling !== undefined ||
-                args.minInstanceSize !== undefined ||
-                args.maxInstanceSize !== undefined)
-        ) {
-            throw new UpgradeClusterError(
-                `Invalid Arguments:computeAutoScaling/minInstanceSize/maxInstanceSize. Flex clusters do not support compute autoscaling.`
-            );
-        }
-
         let clusterId: string | undefined;
         let targetInstanceSize: string | undefined;
         let computeAutoScaling: boolean | undefined;
         let minInstanceSize: string | undefined;
         let maxInstanceSize: string | undefined;
+        let isScaling = false;
+        let target: "FLEX" | "M10" | undefined;
 
         switch (clusterInfo.instanceType) {
             case "DEDICATED": {
-                if (args.provider !== undefined || args.region !== undefined) {
+                if (args.targetTier === "FLEX") {
                     throw new UpgradeClusterError(
-                        `Invalid Arguments:provider/region. provider/region are not valid when scaling an already-Dedicated cluster "${clusterName}".`
-                    );
-                }
-                if (
-                    args.targetTier === undefined &&
-                    args.computeAutoScaling === undefined &&
-                    args.minInstanceSize === undefined &&
-                    args.maxInstanceSize === undefined
-                ) {
-                    throw new UpgradeClusterError(
-                        `No changes specified for Dedicated cluster "${clusterName}". Provide targetTier (new instance size), computeAutoScaling, minInstanceSize, and/or maxInstanceSize to scale it.`
-                    );
-                }
-                if (clusterInfo.instanceSize === undefined || !isStandardInstanceSize(clusterInfo.instanceSize)) {
-                    throw new UpgradeClusterError(
-                        `Cluster "${clusterName}" has instance size "${clusterInfo.instanceSize ?? "unknown"}", which this tool does not support scaling. Only standard M10-M80 instance sizes are supported.`
-                    );
-                }
-                if (
-                    clusterInfo.raw?.clusterType === "GEOSHARDED" ||
-                    (clusterInfo.raw?.replicationSpecs?.length ?? 0) > 1
-                ) {
-                    throw new UpgradeClusterError(
-                        `Cluster "${clusterName}" is a ${clusterInfo.raw?.clusterType ?? "multi-shard"} cluster, which this tool does not support scaling. Only single-shard clusters (REPLICASET, or SHARDED with one shard) are supported.`
-                    );
-                }
-                const regionElectableSizes = (clusterInfo.raw?.replicationSpecs?.[0]?.regionConfigs ?? [])
-                    .map((rc) => (rc as { electableSpecs?: { instanceSize?: string } }).electableSpecs?.instanceSize)
-                    .filter((size): size is string => size !== undefined);
-                if (new Set(regionElectableSizes).size > 1) {
-                    throw new UpgradeClusterError(
-                        `Cluster "${clusterName}" has regions with different instance sizes, which this tool does not support scaling to avoid unintended changes.`
+                        `Cluster "${clusterName}" is already Dedicated. targetTier must be an instance size (M10-M80) to scale it in place, not FLEX.`
                     );
                 }
 
-                const isResizing = args.targetTier !== undefined;
+                validateDedicatedScaling(clusterInfo, args, clusterName);
+
+                isScaling = args.targetTier !== undefined;
+
+                // Current autoscaling settings, read from the cluster's single region config (already
+                // validated to be the only one, and consistent across regions, by validateDedicatedScaling).
+                const firstRegionConfig = clusterInfo.raw?.replicationSpecs?.[0]?.regionConfigs?.[0] as
+                    | {
+                          autoScaling?: {
+                              compute?: { enabled?: boolean; minInstanceSize?: string; maxInstanceSize?: string };
+                          };
+                      }
+                    | undefined;
+                const currentAutoScaling = firstRegionConfig?.autoScaling?.compute;
 
                 // Target size: an explicit resize, or unchanged if only autoscaling is being adjusted.
-                let newSize: StandardInstanceSize;
+                let resolvedInstanceSize: StandardInstanceSize;
                 if (args.targetTier !== undefined) {
-                    newSize = args.targetTier as StandardInstanceSize;
+                    resolvedInstanceSize = args.targetTier;
                 } else {
-                    newSize = clusterInfo.instanceSize;
+                    resolvedInstanceSize = clusterInfo.instanceSize as StandardInstanceSize;
                 }
 
                 // Whether autoscaling should be enabled: explicit override, else the cluster's current setting.
-                const newEnabled = args.computeAutoScaling ?? clusterInfo.autoScaling?.compute?.enabled ?? false;
+                const resolvedEnabled = args.computeAutoScaling ?? currentAutoScaling?.enabled ?? false;
 
                 // Autoscaling min bound.
-                let newMin: string | undefined;
+                let resolvedMin: string | undefined;
                 if (args.minInstanceSize !== undefined) {
                     // Explicit override always wins.
-                    newMin = args.minInstanceSize;
-                } else if (isResizing) {
+                    resolvedMin = args.minInstanceSize;
+                } else if (!resolvedEnabled) {
+                    // Autoscaling disabled: no min needed.
+                    resolvedMin = undefined;
+                } else if (isScaling) {
                     // Resizing without an explicit min: reset relative to the new size.
-                    newMin = newEnabled ? newSize : undefined;
+                    resolvedMin = resolvedInstanceSize;
                 } else {
                     // Not resizing: keep the cluster's current min, falling back to the new size if autoscaling wasn't already configured.
-                    newMin = clusterInfo.autoScaling?.compute?.minInstanceSize ?? (newEnabled ? newSize : undefined);
+                    resolvedMin = currentAutoScaling?.minInstanceSize ?? resolvedInstanceSize;
                 }
 
                 // Autoscaling max bound.
-                let newMax: string | undefined;
+                let resolvedMax: string | undefined;
                 if (args.maxInstanceSize !== undefined) {
                     // Explicit override always wins.
-                    newMax = args.maxInstanceSize;
-                } else if (!newEnabled) {
+                    resolvedMax = args.maxInstanceSize;
+                } else if (!resolvedEnabled) {
                     // Autoscaling disabled: no max needed.
-                    newMax = undefined;
-                } else if (isResizing) {
+                    resolvedMax = undefined;
+                } else if (isScaling) {
                     // Resizing without an explicit max: default to two tiers above the new size, unless the
                     // cluster's existing max was already higher.
-                    const defaultMax = getMaxAutoScalingSize(newSize, clusterInfo.provider ?? "");
-                    const existingMax = clusterInfo.autoScaling?.compute?.maxInstanceSize;
-                    newMax =
+                    const defaultMax = getMaxAutoScalingSize(resolvedInstanceSize, clusterInfo.provider ?? "");
+                    const existingMax = currentAutoScaling?.maxInstanceSize;
+                    resolvedMax =
                         existingMax !== undefined && isHigherInstanceSize(existingMax, defaultMax)
                             ? existingMax
                             : defaultMax;
                 } else {
                     // Not resizing: keep the cluster's current max, falling back to the default if autoscaling wasn't already configured.
-                    newMax =
-                        clusterInfo.autoScaling?.compute?.maxInstanceSize ??
-                        getMaxAutoScalingSize(newSize, clusterInfo.provider ?? "");
+                    resolvedMax =
+                        currentAutoScaling?.maxInstanceSize ??
+                        getMaxAutoScalingSize(resolvedInstanceSize, clusterInfo.provider ?? "");
                 }
 
-                const body = buildScaleClusterBody(clusterInfo.raw, newSize, {
-                    enabled: newEnabled,
-                    scaleDownEnabled: newEnabled,
-                    minInstanceSize: newMin,
-                    maxInstanceSize: newMax,
+                const body = buildScaleClusterBody(clusterInfo.raw, resolvedInstanceSize, {
+                    enabled: resolvedEnabled,
+                    scaleDownEnabled: resolvedEnabled,
+                    minInstanceSize: resolvedMin,
+                    maxInstanceSize: resolvedMax,
                 });
 
                 const result = await this.apiClient.updateCluster(
@@ -475,13 +489,14 @@ export class UpgradeClusterTool extends AtlasToolBase {
                     context
                 );
                 clusterId = result.id;
-                targetInstanceSize = newSize;
-                computeAutoScaling = newEnabled;
-                minInstanceSize = newMin;
-                maxInstanceSize = newMax;
+                targetInstanceSize = resolvedInstanceSize;
+                computeAutoScaling = resolvedEnabled;
+                minInstanceSize = resolvedMin;
+                maxInstanceSize = resolvedMax;
                 break;
             }
             case "FLEX": {
+                target = resolveNonDedicatedTarget(args, "FLEX");
                 if (target === "FLEX") {
                     throw new UpgradeClusterError(`Cluster "${clusterName}" is already a Flex cluster.`);
                 }
@@ -505,6 +520,18 @@ export class UpgradeClusterTool extends AtlasToolBase {
                 break;
             }
             case "FREE":
+                target = resolveNonDedicatedTarget(args, "FREE");
+                if (
+                    target === "FLEX" &&
+                    (args.computeAutoScaling !== undefined ||
+                        args.minInstanceSize !== undefined ||
+                        args.maxInstanceSize !== undefined)
+                ) {
+                    throw new UpgradeClusterError(
+                        `Invalid Arguments:computeAutoScaling/minInstanceSize/maxInstanceSize. Flex clusters do not support compute autoscaling.`
+                    );
+                }
+
                 ({ id: clusterId } = await this.upgradeFreeCluster(
                     projectId,
                     clusterName,
@@ -518,7 +545,6 @@ export class UpgradeClusterTool extends AtlasToolBase {
         }
 
         if (clusterInfo.instanceType === "DEDICATED") {
-            const isScaling = targetInstanceSize !== clusterInfo.instanceSize;
             const isAutoscaling =
                 args.computeAutoScaling !== undefined ||
                 args.minInstanceSize !== undefined ||
@@ -574,7 +600,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
             ],
             structuredContent: {
                 originalTier: clusterInfo.instanceType,
-                targetTier: target,
+                targetTier: target as "FLEX" | "M10",
                 resolvedProvider: clusterInfo.provider,
                 resolvedRegion: clusterInfo.region,
                 clusterId,
@@ -651,6 +677,8 @@ export class UpgradeClusterTool extends AtlasToolBase {
             target_tier: UpgradeClusterTool.toLowerCase(sc?.targetTier),
             compute_auto_scaling:
                 sc?.computeAutoScaling === undefined ? undefined : sc.computeAutoScaling ? "true" : "false",
+            min_instance_size: UpgradeClusterTool.toLowerCase(sc?.minInstanceSize),
+            max_instance_size: UpgradeClusterTool.toLowerCase(sc?.maxInstanceSize),
             cluster_id: sc?.clusterId,
             provider: sc?.resolvedProvider,
             region: sc?.resolvedRegion,
