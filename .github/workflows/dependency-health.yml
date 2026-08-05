@@ -61,11 +61,21 @@ jobs:
           git config user.email "$GIT_AUTHOR_EMAIL"
           git commit -m "docs: update third-party notices [skip actions]"
 
-          BRANCH="bot/update-third-party-notices/$(date +%s)"
+          # run_id + run_attempt are unique per workflow execution, so branch
+          # names never collide (unlike date-based names on concurrent runs).
+          BRANCH="bot/update-third-party-notices/${{ github.run_id }}-${{ github.run_attempt }}"
           git checkout -b "$BRANCH"
           git push -u origin "$BRANCH"
 
-          gh pr create --base main --head "$BRANCH" --title "docs: update third-party notices" --body "Automated update of THIRD_PARTY_NOTICES.md by the Dependency Health workflow.\n\n[skip actions]" || echo "PR already exists or creation failed; changes are on branch $BRANCH"
+          # Deliberately do not swallow failures here: if the PR cannot be
+          # opened, the job must fail loudly rather than go green with no PR.
+          # The branch name is unique per run, so a pre-existing PR is not a
+          # realistic failure mode.
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "docs: update third-party notices" \
+            --body $'Automated update of THIRD_PARTY_NOTICES.md by the Dependency Health workflow.\n\n[skip actions]'
 
       - name: Configure AWS credentials for DevProd Platforms ECR
         if: always()
