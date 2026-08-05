@@ -6,10 +6,6 @@ on:
     # Weekly, similar to mongosh's cron-tasks.yml workflow.
     - cron: "0 3 * * 0"
   workflow_dispatch:
-  ## Temporarily enable on PRs
-  pull_request:
-    branches:
-      - main
 
 permissions:
   contents: write
@@ -46,9 +42,9 @@ jobs:
         run: pnpm run update-third-party-notices
 
       - name: Commit and push updated third-party notices
-        # Pull request runs check out a detached, unmergeable ref, so there is no
-        # branch to push updates to; only commit and push on schedule/dispatch runs.
-        if: always() && github.event_name != 'pull_request'
+        # Run even if earlier steps failed, so notices are still committed when
+        # the regeneration step produced changes.
+        if: always()
         env:
           GIT_AUTHOR_NAME: "${{ steps.app-token.outputs.app-slug}}[bot]"
           GIT_AUTHOR_EMAIL: "${{ steps.app-token.outputs.app-email }}"
@@ -56,8 +52,12 @@ jobs:
           GIT_COMMITTER_EMAIL: "${{ steps.app-token.outputs.app-email }}"
         run: |
           git add THIRD_PARTY_NOTICES.md
-          git commit --no-allow-empty -m "chore: update third-party notices [skip actions]" || true
-          git push
+          if git diff --cached --quiet; then
+            echo "No THIRD_PARTY_NOTICES.md changes to commit"
+          else
+            git commit -m "chore: update third-party notices [skip actions]"
+            git push
+          fi
 
       - name: Configure AWS credentials for DevProd Platforms ECR
         if: always()
@@ -71,7 +71,7 @@ jobs:
         env:
           KONDUKTO_BRANCH: ${{ github.ref_name }}
           KONDUKTO_TOKEN: ${{ secrets.KONDUKTO_TOKEN }}
-          DEPENDENCY_TRACK_API_KEY: ${{ secrets.DEPENDENCY_TRACK_API_KEY }}
+
         run: |
           set -e
 
@@ -85,7 +85,7 @@ jobs:
 
 
           docker run --rm \
-            -e KONDUKTO_TOKEN -e DEPENDENCY_TRACK_API_KEY \
+            -e KONDUKTO_TOKEN \
             -v "$PWD":/pwd \
             "${SILKBOMB_IMAGE}" \
             augment \
