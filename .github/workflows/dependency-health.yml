@@ -67,10 +67,6 @@ jobs:
           git checkout -b "$BRANCH"
           git push -u origin "$BRANCH"
 
-          # Deliberately do not swallow failures here: if the PR cannot be
-          # opened, the job must fail loudly rather than go green with no PR.
-          # The branch name is unique per run, so a pre-existing PR is not a
-          # realistic failure mode.
           gh pr create \
             --base main \
             --head "$BRANCH" \
