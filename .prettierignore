@@ -8,6 +8,7 @@ src/ui/lib/tools
 src/ui/lib/loaders.ts
 temp
 api-extractor/reports
+THIRD_PARTY_NOTICES.md
 .github/workflows/*.lock.yml
 packaging/mcpb/manifest.json
 tests/eval/dbSeed
