@@ -861,6 +861,45 @@ describe("UpgradeClusterTool", () => {
             expect(regionConfigs[2]!["autoScaling"]).toBeUndefined();
         });
 
+        it("scales electable and readOnly specs but not analytics when a single region has all three", async () => {
+            mockApiClient.getCluster!.mockResolvedValue({
+                id: "dedicated-cluster-id",
+                clusterType: "REPLICASET",
+                replicationSpecs: [
+                    {
+                        regionConfigs: [
+                            {
+                                providerName: "AWS",
+                                regionName: "US_EAST_1",
+                                electableSpecs: { instanceSize: "M10" },
+                                analyticsSpecs: { instanceSize: "M10" },
+                            },
+                            {
+                                providerName: "AWS",
+                                regionName: "US_WEST_2",
+                                electableSpecs: { instanceSize: "M10" },
+                                readOnlySpecs: { instanceSize: "M10" },
+                                analyticsSpecs: { instanceSize: "M10" },
+                            },
+                        ],
+                    },
+                ],
+            });
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M20" });
+
+            expect(result.isError).toBeFalsy();
+            const call = mockApiClient.updateCluster!.mock.calls[0]![0] as {
+                body: { replicationSpecs: Array<{ regionConfigs: Array<Record<string, unknown>> }> };
+            };
+            const regionConfigs = call.body.replicationSpecs[0]!.regionConfigs;
+            expect(regionConfigs[0]!["electableSpecs"]).toMatchObject({ instanceSize: "M20" });
+            expect(regionConfigs[0]!["analyticsSpecs"]).toMatchObject({ instanceSize: "M10" });
+            expect(regionConfigs[1]!["electableSpecs"]).toMatchObject({ instanceSize: "M20" });
+            expect(regionConfigs[1]!["readOnlySpecs"]).toMatchObject({ instanceSize: "M20" });
+            expect(regionConfigs[1]!["analyticsSpecs"]).toMatchObject({ instanceSize: "M10" });
+        });
+
         it("omits diskGB from the request body when the cluster had no existing diskGB config", async () => {
             mockApiClient.getCluster!.mockResolvedValue(DEDICATED_CLUSTER_RAW);
 
@@ -1029,6 +1068,44 @@ describe("UpgradeClusterTool", () => {
             const text = (result.content[0] as { text: string }).text;
             expect(text).not.toContain("scaled to");
             expect(text).toContain("compute autoscaling disabled");
+        });
+
+        it("does not treat passing the current instance size as targetTier as a resize", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(DEDICATED_CLUSTER_WITH_AUTOSCALING_RAW);
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M20" });
+
+            expect(result.isError).toBeFalsy();
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).not.toContain("scaled to");
+            expect(text).toContain("is being updated");
+            // Existing min/max should be preserved, not reset relative to the "new" (unchanged) size.
+            expect(result.structuredContent).toMatchObject({
+                targetTier: "M20",
+                minInstanceSize: "M20",
+                maxInstanceSize: "M40",
+            });
+        });
+
+        it("returns error when the cluster has an unrecognized clusterType", async () => {
+            mockApiClient.getCluster!.mockResolvedValue({
+                id: "dedicated-cluster-id",
+                clusterType: "SOME_FUTURE_TYPE",
+                replicationSpecs: [
+                    {
+                        regionConfigs: [
+                            { providerName: "AWS", regionName: "US_EAST_1", electableSpecs: { instanceSize: "M10" } },
+                        ],
+                    },
+                ],
+            });
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M20" });
+
+            expect(result.isError).toBe(true);
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("SOME_FUTURE_TYPE");
+            expect(mockApiClient.updateCluster).not.toHaveBeenCalled();
         });
     });
 

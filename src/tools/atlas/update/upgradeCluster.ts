@@ -271,6 +271,11 @@ function validateDedicatedScaling(
     args: DedicatedScalingArgs,
     clusterName: string
 ): void {
+    if (args.targetTier === "FLEX") {
+        throw new UpgradeClusterError(
+            `Cluster "${clusterName}" is already Dedicated. targetTier must be an instance size (M10-M80) to scale it in place, not FLEX.`
+        );
+    }
     if (args.provider !== undefined || args.region !== undefined) {
         throw new UpgradeClusterError(
             `Invalid Arguments:provider/region. provider/region are not valid when scaling an already-Dedicated cluster "${clusterName}".`
@@ -291,15 +296,26 @@ function validateDedicatedScaling(
             `Cluster "${clusterName}" has instance size "${clusterInfo.instanceSize ?? "unknown"}", which this tool does not support scaling. Only standard M10-M80 instance sizes are supported.`
         );
     }
-    if (clusterInfo.raw?.clusterType === "GEOSHARDED" || (clusterInfo.raw?.replicationSpecs?.length ?? 0) > 1) {
+    const clusterType = clusterInfo.raw?.clusterType;
+    if (
+        (clusterType !== "REPLICASET" && clusterType !== "SHARDED") ||
+        (clusterInfo.raw?.replicationSpecs?.length ?? 0) > 1
+    ) {
         throw new UpgradeClusterError(
-            `Cluster "${clusterName}" is a ${clusterInfo.raw?.clusterType ?? "multi-shard"} cluster, which this tool does not support scaling. Only single-shard clusters (REPLICASET, or SHARDED with one shard) are supported.`
+            `Cluster "${clusterName}" is a ${clusterType ?? "unrecognized"} cluster, which this tool does not support scaling. Only single-shard clusters (REPLICASET, or SHARDED with one shard) are supported.`
         );
     }
-    const regionElectableSizes = (clusterInfo.raw?.replicationSpecs?.[0]?.regionConfigs ?? [])
-        .map((rc) => (rc as { electableSpecs?: { instanceSize?: string } }).electableSpecs?.instanceSize)
+    const regionConfigs = (clusterInfo.raw?.replicationSpecs?.[0]?.regionConfigs ?? []) as Array<{
+        electableSpecs?: { instanceSize?: string };
+        readOnlySpecs?: { instanceSize?: string };
+    }>;
+    const electableSizes = regionConfigs
+        .map((rc) => rc.electableSpecs?.instanceSize)
         .filter((size): size is string => size !== undefined);
-    if (new Set(regionElectableSizes).size > 1) {
+    const readOnlySizes = regionConfigs
+        .map((rc) => rc.readOnlySpecs?.instanceSize)
+        .filter((size): size is string => size !== undefined);
+    if (new Set(electableSizes).size > 1 || new Set(readOnlySizes).size > 1) {
         throw new UpgradeClusterError(
             `Cluster "${clusterName}" has regions with different instance sizes, which this tool does not support scaling to avoid unintended changes.`
         );
@@ -402,18 +418,10 @@ export class UpgradeClusterTool extends AtlasToolBase {
 
         switch (clusterInfo.instanceType) {
             case "DEDICATED": {
-                if (args.targetTier === "FLEX") {
-                    throw new UpgradeClusterError(
-                        `Cluster "${clusterName}" is already Dedicated. targetTier must be an instance size (M10-M80) to scale it in place, not FLEX.`
-                    );
-                }
-
                 validateDedicatedScaling(clusterInfo, args, clusterName);
 
-                isScaling = args.targetTier !== undefined;
-
-                // Current autoscaling settings, read from the cluster's single region config (already
-                // validated to be the only one, and consistent across regions, by validateDedicatedScaling).
+                // Current autoscaling settings, read from the first region of the cluster's single replication
+                // spec (validateDedicatedScaling already confirmed there's only one).
                 const firstRegionConfig = clusterInfo.raw?.replicationSpecs?.[0]?.regionConfigs?.[0] as
                     | {
                           autoScaling?: {
@@ -426,10 +434,13 @@ export class UpgradeClusterTool extends AtlasToolBase {
                 // Target size: an explicit resize, or unchanged if only autoscaling is being adjusted.
                 let resolvedInstanceSize: StandardInstanceSize;
                 if (args.targetTier !== undefined) {
-                    resolvedInstanceSize = args.targetTier;
+                    // validateDedicatedScaling already rejected "FLEX" here.
+                    resolvedInstanceSize = args.targetTier as StandardInstanceSize;
                 } else {
                     resolvedInstanceSize = clusterInfo.instanceSize as StandardInstanceSize;
                 }
+
+                isScaling = resolvedInstanceSize !== clusterInfo.instanceSize;
 
                 // Whether autoscaling should be enabled: explicit override, else the cluster's current setting.
                 const resolvedEnabled = args.computeAutoScaling ?? currentAutoScaling?.enabled ?? false;
