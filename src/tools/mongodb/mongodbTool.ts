@@ -30,6 +30,12 @@ export const ConnectionIdArgs = {
     connectionId: z.string().describe(connectionIdDescription({ hasPreconfiguredConnection: true })),
 };
 
+// Shared leaf for the variant advertised when no connection string is configured.
+// Precomputed once so the register()-time swap reuses it instead of rebuilding.
+const connectionIdArgWithoutPreconfigured = z
+    .string()
+    .describe(connectionIdDescription({ hasPreconfiguredConnection: false }));
+
 export abstract class MongoDBToolBase extends ToolBase {
     protected server?: Server;
     static category: ToolCategory = "mongodb";
@@ -135,6 +141,17 @@ export abstract class MongoDBToolBase extends ToolBase {
         }
     }
 
+    /**
+     * The connectionId description varies by whether a connection string is
+     * preconfigured, so cache each variant's shape separately.
+     */
+    protected override schemaVariantKey(): string {
+        if ("connectionId" in this.argsShape) {
+            return this.config.connectionString ? "preconfigured" : "plain";
+        }
+        return "";
+    }
+
     public register(server: Server): boolean {
         this.server = server;
         // The default connectionId description advertises the "preconfigured"
@@ -142,7 +159,7 @@ export abstract class MongoDBToolBase extends ToolBase {
         if ("connectionId" in this.argsShape && !this.config.connectionString) {
             this.argsShape = {
                 ...this.argsShape,
-                connectionId: z.string().describe(connectionIdDescription({ hasPreconfiguredConnection: false })),
+                connectionId: connectionIdArgWithoutPreconfigured,
             };
         }
         return super.register(server);

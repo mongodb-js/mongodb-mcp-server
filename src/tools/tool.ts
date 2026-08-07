@@ -803,6 +803,83 @@ export abstract class ToolBase<
         this.context = context;
     }
 
+    /**
+     * Schemas are session-invariant, so they are built once per concrete tool
+     * class and config variant, then shared across every session. Both caches
+     * are keyed by the concrete constructor; the input cache is additionally
+     * keyed by {@link schemaVariantKey} to separate config-dependent variants.
+     */
+    private static readonly sharedInputSchemas = new WeakMap<
+        object,
+        Map<string, { shape: ZodRawShape; schema: z.ZodType }>
+    >();
+    private static readonly sharedOutputSchemas = new WeakMap<object, { shape: ZodRawShape; schema: z.ZodType }>();
+
+    /**
+     * Identifies config-dependent variations of a tool's `argsShape`. Tools that
+     * vary their shape by config override this so each variant is cached and
+     * shared separately. The default reports no variation.
+     */
+    protected schemaVariantKey(): string {
+        return "";
+    }
+
+    /**
+     * Returns the shared strict input schema for this tool's config variant,
+     * building it once. Also redirects this instance's `argsShape` to the shared
+     * shape so its own per-instance graph becomes collectible.
+     */
+    private resolveSharedInputSchema(): z.ZodType {
+        const ctor = this.constructor;
+        let byVariant = ToolBase.sharedInputSchemas.get(ctor);
+        if (!byVariant) {
+            byVariant = new Map();
+            ToolBase.sharedInputSchemas.set(ctor, byVariant);
+        }
+        const key = this.schemaVariantKey();
+        let entry = byVariant.get(key);
+        if (!entry) {
+            // Wrap the raw shape in a strict object so the SDK rejects unrecognized
+            // argument keys instead of silently stripping them (see MCP-602). Only the
+            // top-level object is strict; nested schemas keep their own behavior.
+            entry = { shape: this.argsShape, schema: z.object(this.argsShape).strict() };
+            byVariant.set(key, entry);
+        }
+        this.redirectToSharedShape("argsShape", entry.shape);
+        return entry.schema;
+    }
+
+    /**
+     * Points a class-field schema property at the shared shape so the instance's
+     * own graph becomes collectible. Getter-based tools recompute their shape
+     * transiently and hold nothing to release, so they are left untouched.
+     */
+    private redirectToSharedShape(property: "argsShape" | "outputSchema", shape: ZodRawShape): void {
+        const descriptor = Object.getOwnPropertyDescriptor(this, property);
+        if (descriptor && "value" in descriptor && descriptor.writable) {
+            this[property] = shape;
+        }
+    }
+
+    /**
+     * Returns the shared output schema for this tool, building it once. Output
+     * schemas do not vary by config. Redirects this instance's `outputSchema` to
+     * the shared shape so its own per-instance graph becomes collectible.
+     */
+    private resolveSharedOutputSchema(): z.ZodType | undefined {
+        if (!this.outputSchema) {
+            return undefined;
+        }
+        const ctor = this.constructor;
+        let entry = ToolBase.sharedOutputSchemas.get(ctor);
+        if (!entry) {
+            entry = { shape: this.outputSchema, schema: z.object(this.outputSchema) };
+            ToolBase.sharedOutputSchemas.set(ctor, entry);
+        }
+        this.redirectToSharedShape("outputSchema", entry.shape);
+        return entry.schema;
+    }
+
     public register(server: Server<TUserConfig, TContext, TMetrics>): boolean {
         if (!this.verifyAllowed()) {
             return false;
@@ -818,7 +895,7 @@ export abstract class ToolBase<
                     config: {
                         description?: string;
                         inputSchema?: z.ZodType;
-                        outputSchema?: ZodRawShape;
+                        outputSchema?: z.ZodType;
                         annotations?: ToolAnnotations;
                         _meta?: Record<string, unknown>;
                     },
@@ -828,11 +905,8 @@ export abstract class ToolBase<
                 this.name,
                 {
                     description: this.description,
-                    // Wrap the raw shape in a strict object so the SDK rejects unrecognized
-                    // argument keys instead of silently stripping them (see MCP-602). Only the
-                    // top-level object is strict; nested schemas keep their own behavior.
-                    inputSchema: z.object(this.argsShape).strict(),
-                    outputSchema: this.outputSchema,
+                    inputSchema: this.resolveSharedInputSchema(),
+                    outputSchema: this.resolveSharedOutputSchema(),
                     annotations: this.annotations,
                     _meta: this.toolMeta,
                 },
