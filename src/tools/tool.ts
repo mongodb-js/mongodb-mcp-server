@@ -45,7 +45,16 @@ type ServerRequestHandlerExtra = RequestHandlerExtra<ServerRequest, ServerNotifi
  * running atop StreamableHttpTransport.
  */
 export type ToolExecutionContext = Pick<ServerRequestHandlerExtra, "signal"> &
-    Partial<Pick<ServerRequestHandlerExtra, "_meta" | "requestId" | "requestInfo" | "sendNotification">>;
+    Partial<Pick<ServerRequestHandlerExtra, "_meta" | "requestId" | "requestInfo" | "sendNotification">> & {
+        /**
+         * Total time spent waiting for the user to answer elicitation requests
+         * raised while handling this call. Accumulated by
+         * `ToolBase.requestConfirmation` and subtracted from the tool execution
+         * duration metric, so that the user's think-time is not reported as
+         * time the tool spent working.
+         */
+        elicitationDurationMs?: number;
+    };
 
 export type ToolResult<OutputSchema extends ZodRawShape | undefined = undefined> = OutputSchema extends ZodRawShape
     ? StructuredToolResult<OutputSchema>
@@ -521,32 +530,48 @@ export abstract class ToolBase<
 
     /** This is used internally by the server to invoke the tool. It can also be run manually to call the tool directly. */
     public async invoke(args: ToolArgs<typeof this.argsShape>, context: ToolExecutionContext): Promise<CallToolResult> {
-        let startTime: number = Date.now();
+        const startTime: number = Date.now();
+
+        /**
+         * Records the outcome of the call, emitting its telemetry event and
+         * observing its execution duration. `error` is passed when the call
+         * failed, and its type is reported alongside the metric.
+         */
+        const recordOutcome = (result: CallToolResult, error?: unknown): void => {
+            // Time the user spent answering an elicitation is not time the tool
+            // spent working, so it counts towards neither duration below.
+            const executionStartTime = startTime + (context.elicitationDurationMs ?? 0);
+
+            this.emitToolEvent(args, { startTime: executionStartTime, result });
+
+            this.metrics.get("toolExecutionDuration").observe(
+                {
+                    tool_name: this.name,
+                    category: this.category,
+                    status: error !== undefined || result.isError ? "error" : "success",
+                    operation_type: this.operationType,
+                    ...(error !== undefined ? { error_type: error instanceof Error ? error.name : "unknown" } : {}),
+                },
+                (Date.now() - executionStartTime) / 1000
+            );
+        };
 
         try {
-            if (this.requiresConfirmation()) {
-                if (!(await this.verifyConfirmed(args, context))) {
-                    this.session.logger.debug({
-                        id: LogId.toolExecute,
-                        context: "tool",
-                        message: `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`,
-                        noRedaction: true,
-                        attributes: { ...requestIdAttr(context.requestInfo?.headers) },
-                    });
-                    return {
-                        content: [
-                            {
-                                type: "text",
-                                text: `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`,
-                            },
-                        ],
-                        isError: true,
-                    };
-                }
-                // We do not want to include the elicitation time in the tool execution time
-                // so we reset the startTime to the current time. We may want to consider adding
-                // a separate field for elicitation time in the future.
-                startTime = Date.now();
+            if (
+                this.requiresConfirmation() &&
+                !(await this.requestConfirmation(this.getConfirmationMessage(args), context))
+            ) {
+                const text = `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`;
+                this.session.logger.debug({
+                    id: LogId.toolExecute,
+                    context: "tool",
+                    message: text,
+                    noRedaction: true,
+                    attributes: { ...requestIdAttr(context.requestInfo?.headers) },
+                });
+                const declined: CallToolResult = { content: [{ type: "text", text }], isError: true };
+                recordOutcome(declined);
+                return declined;
             }
             this.session.logger.debug({
                 id: LogId.toolExecute,
@@ -559,19 +584,7 @@ export abstract class ToolBase<
             const toolCallResult = await this.execute(args, context);
             const result = await this.appendUIResource(toolCallResult);
 
-            this.emitToolEvent(args, { startTime, result });
-
-            const durationSeconds = (Date.now() - startTime) / 1000;
-
-            this.metrics.get("toolExecutionDuration").observe(
-                {
-                    tool_name: this.name,
-                    category: this.category,
-                    status: result.isError ? "error" : "success",
-                    operation_type: this.operationType,
-                },
-                durationSeconds
-            );
+            recordOutcome(result);
 
             this.session.logger.debug({
                 id: LogId.toolExecute,
@@ -589,19 +602,8 @@ export abstract class ToolBase<
                 attributes: { ...requestIdAttr(context.requestInfo?.headers) },
             });
             const toolResult = await this.handleError(error, args);
-            this.emitToolEvent(args, { startTime, result: toolResult });
 
-            const durationSeconds = (Date.now() - startTime) / 1000;
-            this.metrics.get("toolExecutionDuration").observe(
-                {
-                    tool_name: this.name,
-                    category: this.category,
-                    status: "error",
-                    operation_type: this.operationType,
-                    error_type: error instanceof Error ? error.name : "unknown",
-                },
-                durationSeconds
-            );
+            recordOutcome(toolResult, error);
 
             return toolResult;
         }
@@ -635,27 +637,22 @@ export abstract class ToolBase<
     }
 
     /**
-     * Check if the user has confirmed the tool execution (if required by
-     * configuration).
+     * Asks the user to confirm an operation, resolving to `true` when they
+     * accept and `false` when they decline.
      *
-     * This method automatically checks if the tool name is in the
-     * `confirmationRequiredTools` configuration list and requests user
-     * confirmation via the elicitation service if needed.
+     * This is automatically called by `invoke` for confirmationRequired tools.
+     * Other tools can call it at any point of their execution, which matters when
+     * the decision depends on the arguments or needs to happen after some preliminary work.
      *
-     * @param args - The tool arguments
+     * Resolves to `true` without prompting when the client does not support
+     * elicitation, matching how confirmation-required tools behave there.
+     *
+     * @param message - The message to display to the user.
      * @param context - The tool execution context, used to relate the
-     * confirmation request to the in-flight tool call
-     * @returns A promise resolving to `true` if confirmed or confirmation not
-     * required, `false` otherwise
+     * confirmation request to the in-flight tool call and to record how long the
+     * user took to answer.
      */
-    public async verifyConfirmed(
-        args: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
-    ): Promise<boolean> {
-        if (!this.requiresConfirmation()) {
-            return true;
-        }
-
+    protected async requestConfirmation(message: string, context: ToolExecutionContext): Promise<boolean> {
         const relatedRequestId = this.elicitationRelatedRequestId(context);
         this.session.logger.info({
             id: LogId.toolConfirmationRequested,
@@ -690,7 +687,7 @@ export abstract class ToolBase<
 
         const startedAt = Date.now();
         try {
-            const confirmed = await this.elicitation.requestConfirmation(this.getConfirmationMessage(args), {
+            const confirmed = await this.elicitation.requestConfirmation(message, {
                 relatedRequestId,
                 progressToken: context._meta?.progressToken,
                 sendNotification: context.sendNotification,
@@ -712,6 +709,8 @@ export abstract class ToolBase<
                 attributes: { tool: this.name, ...requestIdAttr(context.requestInfo?.headers) },
             });
             throw error;
+        } finally {
+            context.elicitationDurationMs = (context.elicitationDurationMs ?? 0) + (Date.now() - startedAt);
         }
     }
 

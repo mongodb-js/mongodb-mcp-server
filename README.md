@@ -528,7 +528,11 @@ If your client supports [elicitation](https://modelcontextprotocol.io/specificat
 
 When a tool is marked as requiring confirmation, the server will send an elicitation request to the client. The client with elicitation support will then prompt the user for confirmation and send the response back to the server. If the client does not support elicitation, the tool will execute without confirmation.
 
-You can set the `confirmationRequiredTools` configuration option to specify the names of tools which require confirmation. By default, the following tools have this setting enabled: `drop-database`, `drop-collection`, `delete-many`, `atlas-create-db-user`, `atlas-create-access-list`.
+You can set the `confirmationRequiredTools` configuration option to specify the names of tools which require confirmation. By default, the following tools have this setting enabled: `drop-database`, `drop-collection`, `delete-many`, `drop-index`, `atlas-create-db-user`, `atlas-create-access-list`, `atlas-streams-manage`, `atlas-streams-teardown`.
+
+In addition, the `aggregate` and `aggregate-db` tools always request confirmation before running a pipeline that contains a `$out` or `$merge` stage, regardless of whether they appear in `confirmationRequiredTools`. Those stages write to a collection — `$out` replaces its contents entirely — so this confirmation names the affected collection and what will happen to it. Pipelines without a write stage are not confirmed.
+
+Adding either tool to `confirmationRequiredTools` is broader: every call is then confirmed up front with the standard tool-level message, and a write stage does not raise a second prompt.
 
 #### Read-Only Mode
 

@@ -46,7 +46,7 @@ export class AggregateDBTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof AggregateDBTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof AggregateDBTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof AggregateDBTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof AggregateDBTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -102,7 +102,7 @@ export class AggregateTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof AggregateTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof AggregateTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof AggregateTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof AggregateTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -1589,6 +1589,7 @@ export abstract class MongoDBToolBase extends ToolBase {
     protected assertSearchSupported(connectionId: string): Promise<void>;
     // (undocumented)
     static category: ToolCategory;
+    protected confirmWriteStages(targets: WriteStageTarget[], context: ToolExecutionContext): Promise<void>;
     protected getOperationOptions(signal?: AbortSignal): {
         signal?: AbortSignal;
         maxTimeMS?: number;
@@ -2147,6 +2148,7 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
     outputSchema?: ZodRawShape;
     // (undocumented)
     register(server: Server<TUserConfig, TContext, TMetrics>): boolean;
+    protected requestConfirmation(message: string, context: ToolExecutionContext): Promise<boolean>;
     requiresConfirmation(): boolean;
     protected abstract resolveTelemetryMetadata(args: ToolArgs<typeof ToolBase.argsShape>, input: {
         result: CallToolResult;
@@ -2157,7 +2159,6 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
     protected get toolMeta(): Record<string, unknown>;
     // (undocumented)
     protected verifyAllowed(): boolean;
-    verifyConfirmed(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<boolean>;
 }
 
 // @public
@@ -2186,7 +2187,9 @@ export type ToolConstructorParams<TUserConfig extends UserConfig = UserConfig, T
 };
 
 // @public
-export type ToolExecutionContext = Pick<ServerRequestHandlerExtra, "signal"> & Partial<Pick<ServerRequestHandlerExtra, "_meta" | "requestId" | "requestInfo" | "sendNotification">>;
+export type ToolExecutionContext = Pick<ServerRequestHandlerExtra, "signal"> & Partial<Pick<ServerRequestHandlerExtra, "_meta" | "requestId" | "requestInfo" | "sendNotification">> & {
+    elicitationDurationMs?: number;
+};
 
 // @public (undocumented)
 export type ToolResult<OutputSchema extends ZodRawShape | undefined = undefined> = OutputSchema extends ZodRawShape ? StructuredToolResult<OutputSchema> : {
