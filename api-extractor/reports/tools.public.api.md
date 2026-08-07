@@ -362,6 +362,8 @@ export class CreateAccessListTool extends AtlasToolBase {
         projectId: z.ZodString;
     };
     // (undocumented)
+    protected schemaVariantKey(): string;
+    // (undocumented)
     static toolName: string;
 }
 

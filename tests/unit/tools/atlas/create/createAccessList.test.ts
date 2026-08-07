@@ -10,6 +10,7 @@ import type { CompositeLogger } from "../../../../../src/common/logging/index.js
 import type { ApiClient } from "../../../../../src/common/atlas/apiClient.js";
 import { UIRegistry } from "../../../../../src/ui/registry/index.js";
 import { MockMetrics } from "../../../mocks/metrics.js";
+import type { RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp";
 
 const projectId = "507f1f77bcf86cd799439011";
 const currentIpAddress = "203.0.113.10";
@@ -140,6 +141,40 @@ describe("CreateAccessListTool", () => {
                 },
                 expect.anything()
             );
+        });
+    });
+
+    describe("shared schema caching by IP-lookup variant", () => {
+        type CapturedSchema = { safeParse: (value: unknown) => { success: boolean } };
+
+        function registeredInputSchema(t: CreateAccessListTool): CapturedSchema {
+            let inputSchema: unknown;
+            const mockServer = {
+                mcpServer: {
+                    registerTool: (_name: string, config: { inputSchema: unknown }): RegisteredTool => {
+                        inputSchema = config.inputSchema;
+                        return { enabled: true, disable: vi.fn(), enable: vi.fn() } as unknown as RegisteredTool;
+                    },
+                },
+            };
+            t.register(mockServer as never);
+            return inputSchema as CapturedSchema;
+        }
+
+        it("caches the two variants separately without cross-talk", () => {
+            const withLookup = registeredInputSchema(makeTool({ ...mockApiClient, supportsCurrentIpLookup: true }));
+            const withoutLookup = registeredInputSchema(makeTool({ ...mockApiClient, supportsCurrentIpLookup: false }));
+
+            // Distinct shapes must not collapse onto one shared cache entry.
+            expect(withLookup).not.toBe(withoutLookup);
+            expect(withLookup.safeParse({ projectId, currentIpAddress: true }).success).toBe(true);
+            expect(withoutLookup.safeParse({ projectId, currentIpAddress: true }).success).toBe(false);
+        });
+
+        it("shares one schema instance across registrations of the same variant", () => {
+            const a = registeredInputSchema(makeTool({ ...mockApiClient, supportsCurrentIpLookup: true }));
+            const b = registeredInputSchema(makeTool({ ...mockApiClient, supportsCurrentIpLookup: true }));
+            expect(a).toBe(b);
         });
     });
 

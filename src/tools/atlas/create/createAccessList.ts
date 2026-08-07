@@ -38,6 +38,12 @@ export class CreateAccessListTool extends AtlasToolBase {
     }
     public override outputSchema = CreateAccessListOutputSchema;
 
+    // argsShape drops currentIpAddress when IP lookup is unsupported, so the two
+    // shapes must be cached and shared separately.
+    protected override schemaVariantKey(): string {
+        return this.session.apiClient?.supportsCurrentIpLookup === false ? "no-current-ip" : "current-ip";
+    }
+
     protected async execute(
         { projectId, ipAddresses, cidrBlocks, comment, currentIpAddress }: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
