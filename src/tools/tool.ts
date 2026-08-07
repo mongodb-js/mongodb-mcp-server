@@ -567,7 +567,9 @@ export abstract class ToolBase<
                         noRedaction: true,
                         attributes: { ...requestIdAttr(context.requestInfo?.headers) },
                     });
-                    return { content: [{ type: "text", text }], isError: true };
+                    const declined: CallToolResult = { content: [{ type: "text", text }], isError: true };
+                    recordOutcome(declined);
+                    return declined;
                 }
             }
             this.session.logger.debug({

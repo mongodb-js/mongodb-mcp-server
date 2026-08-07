@@ -747,7 +747,7 @@ describe("aggregate tool write stage confirmation", () => {
                 }
             });
 
-            it("asks only once when the tool is also in confirmationRequiredTools", async () => {
+            it("asks only once, with the tool level message, when the tool is also in confirmationRequiredTools", async () => {
                 mockElicitInput.confirmYes();
                 const connectionId = await integration.connectMcpClient();
                 integration.mcpServer().userConfig.confirmationRequiredTools = ["aggregate"];
@@ -763,7 +763,10 @@ describe("aggregate tool write stage confirmation", () => {
                         },
                     });
 
+                    // Confirming the tool call approves the aggregation as a
+                    // whole, so its write stages raise no prompt of their own.
                     expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
+                    expect(elicitedMessage(mockElicitInput)).toContain("You are about to execute the `aggregate` tool");
                 } finally {
                     integration.mcpServer().userConfig.confirmationRequiredTools = [];
                 }

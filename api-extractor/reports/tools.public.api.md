@@ -1582,7 +1582,6 @@ export class LogsTool extends MongoDBToolBase {
 
 // @public (undocumented)
 export abstract class MongoDBToolBase extends ToolBase {
-    // (undocumented)
     protected assertMqlIsAllowed(...values: (Record<string, unknown> | Record<string, unknown>[] | undefined)[]): void;
     // (undocumented)
     protected assertSearchSupported(connectionId: string): Promise<void>;

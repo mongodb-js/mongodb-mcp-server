@@ -131,6 +131,28 @@ describe("ToolBase", () => {
             );
         });
 
+        it("records the outcome of a declined confirmation", async () => {
+            mockConfig.confirmationRequiredTools = ["test-tool"];
+            mockRequestConfirmation.mockResolvedValue(false);
+
+            const result = await testTool["invoke"]({ param1: "test" }, { signal: new AbortController().signal });
+
+            expect(result.isError).toBe(true);
+
+            const { values } = await mockMetrics.get("toolExecutionDuration").get();
+            const count = values.find(
+                (v) =>
+                    v.metricName === "mcp_tool_execution_duration_seconds_count" &&
+                    v.labels.tool_name === "test-tool" &&
+                    v.labels.status === "error"
+            );
+            expect(count?.value).toBe(1);
+
+            const event = ((mockTelemetry.emitEvents as Mock).mock.lastCall?.[0] as ToolEvent[])[0];
+            expectDefined(event);
+            expect(event.properties.result).toBe("failure");
+        });
+
         it("should return false when user declines confirmation", async () => {
             mockConfig.confirmationRequiredTools = ["test-tool"];
             mockRequestConfirmation.mockResolvedValue(false);

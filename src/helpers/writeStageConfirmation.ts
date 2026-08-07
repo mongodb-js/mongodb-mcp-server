@@ -10,7 +10,7 @@ import type { WriteStageTarget } from "./mqlGuards.js";
  * @param targets - The write stage targets, as returned by `getWriteStageTargets`.
  */
 export function buildWriteStageConfirmationMessage(targets: WriteStageTarget[]): string {
-    return `This aggregation ends with ${targets.map(describeTarget).join(" and ")}. Proceed?`;
+    return `This aggregation contains ${targets.map(describeTarget).join(" and ")}. Proceed?`;
 }
 
 function describeTarget(target: WriteStageTarget): string {
