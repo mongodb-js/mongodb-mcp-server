@@ -557,20 +557,21 @@ export abstract class ToolBase<
         };
 
         try {
-            if (this.requiresConfirmation()) {
-                if (!(await this.verifyConfirmed(args, context))) {
-                    const text = `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`;
-                    this.session.logger.debug({
-                        id: LogId.toolExecute,
-                        context: "tool",
-                        message: text,
-                        noRedaction: true,
-                        attributes: { ...requestIdAttr(context.requestInfo?.headers) },
-                    });
-                    const declined: CallToolResult = { content: [{ type: "text", text }], isError: true };
-                    recordOutcome(declined);
-                    return declined;
-                }
+            if (
+                this.requiresConfirmation() &&
+                !(await this.requestConfirmation(this.getConfirmationMessage(args), context))
+            ) {
+                const text = `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`;
+                this.session.logger.debug({
+                    id: LogId.toolExecute,
+                    context: "tool",
+                    message: text,
+                    noRedaction: true,
+                    attributes: { ...requestIdAttr(context.requestInfo?.headers) },
+                });
+                const declined: CallToolResult = { content: [{ type: "text", text }], isError: true };
+                recordOutcome(declined);
+                return declined;
             }
             this.session.logger.debug({
                 id: LogId.toolExecute,
@@ -636,39 +637,12 @@ export abstract class ToolBase<
     }
 
     /**
-     * Check if the user has confirmed the tool execution (if required by
-     * configuration).
-     *
-     * This method automatically checks if the tool name is in the
-     * `confirmationRequiredTools` configuration list and requests user
-     * confirmation via the elicitation service if needed.
-     *
-     * @param args - The tool arguments
-     * @param context - The tool execution context, used to relate the
-     * confirmation request to the in-flight tool call
-     * @returns A promise resolving to `true` if confirmed or confirmation not
-     * required, `false` otherwise
-     */
-    public async verifyConfirmed(
-        args: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
-    ): Promise<boolean> {
-        if (!this.requiresConfirmation()) {
-            return true;
-        }
-
-        return this.requestConfirmation(this.getConfirmationMessage(args), context);
-    }
-
-    /**
      * Asks the user to confirm an operation, resolving to `true` when they
      * accept and `false` when they decline.
      *
-     * Unlike `verifyConfirmed`, this does not consult
-     * `confirmationRequiredTools` -- the caller decides whether a confirmation
-     * is warranted. Tools can therefore call it at any point of their execution,
-     * which matters when the decision depends on the arguments or needs to happen
-     * after some preliminary work.
+     * This is automatically called by `invoke` for confirmationRequired tools.
+     * Other tools can call it at any point of their execution, which matters when
+     * the decision depends on the arguments or needs to happen after some preliminary work.
      *
      * Resolves to `true` without prompting when the client does not support
      * elicitation, matching how confirmation-required tools behave there.

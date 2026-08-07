@@ -2155,7 +2155,6 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
     protected get toolMeta(): Record<string, unknown>;
     // (undocumented)
     protected verifyAllowed(): boolean;
-    verifyConfirmed(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<boolean>;
 }
 
 // @public

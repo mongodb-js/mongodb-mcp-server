@@ -84,41 +84,35 @@ describe("ToolBase", () => {
         testTool = new TestTool(constructorParams);
     });
 
-    describe("verifyConfirmed", () => {
-        it("should return true when tool is not in confirmationRequiredTools list", async () => {
+    describe("confirmation required by configuration", () => {
+        it("does not ask when the tool is not in the confirmationRequiredTools list", async () => {
             mockConfig.confirmationRequiredTools = ["other-tool", "another-tool"];
 
-            const args = { param1: "test" };
-            const result = await testTool.verifyConfirmed(args, {
-                signal: new AbortController().signal,
-            });
+            const result = await testTool["invoke"]({ param1: "test" }, { signal: new AbortController().signal });
 
-            expect(result).toBe(true);
+            expect(result.content).toEqual([{ type: "text", text: "Test tool executed successfully" }]);
             expect(mockRequestConfirmation).not.toHaveBeenCalled();
         });
 
-        it("should return true when confirmationRequiredTools list is empty", async () => {
+        it("does not ask when the confirmationRequiredTools list is empty", async () => {
             mockConfig.confirmationRequiredTools = [];
 
-            const args = { param1: "test" };
-            const result = await testTool.verifyConfirmed(args, {
-                signal: new AbortController().signal,
-            });
+            const result = await testTool["invoke"]({ param1: "test" }, { signal: new AbortController().signal });
 
-            expect(result).toBe(true);
+            expect(result.content).toEqual([{ type: "text", text: "Test tool executed successfully" }]);
             expect(mockRequestConfirmation).not.toHaveBeenCalled();
         });
 
-        it("should call requestConfirmation when tool is in confirmationRequiredTools list", async () => {
+        it("asks with the tool's confirmation message when the tool is in the list", async () => {
             mockConfig.confirmationRequiredTools = ["test-tool"];
             mockRequestConfirmation.mockResolvedValue(true);
 
-            const args = { param1: "test", param2: 42 };
-            const result = await testTool.verifyConfirmed(args, {
-                signal: new AbortController().signal,
-            });
+            const result = await testTool["invoke"](
+                { param1: "test", param2: 42 },
+                { signal: new AbortController().signal }
+            );
 
-            expect(result).toBe(true);
+            expect(result.content).toEqual([{ type: "text", text: "Test tool executed successfully" }]);
             expect(mockRequestConfirmation).toHaveBeenCalledTimes(1);
             expect(mockRequestConfirmation).toHaveBeenCalledWith(
                 "You are about to execute the `test-tool` tool which requires additional confirmation. Would you like to proceed?",
@@ -153,67 +147,20 @@ describe("ToolBase", () => {
             expect(event.properties.result).toBe("failure");
         });
 
-        it("should return false when user declines confirmation", async () => {
+        it("does not run the tool when the user declines", async () => {
             mockConfig.confirmationRequiredTools = ["test-tool"];
             mockRequestConfirmation.mockResolvedValue(false);
 
-            const args = { param1: "test" };
-            const result = await testTool.verifyConfirmed(args, {
-                signal: new AbortController().signal,
-            });
+            const result = await testTool["invoke"]({ param1: "test" }, { signal: new AbortController().signal });
 
-            expect(result).toBe(false);
+            expect(result.isError).toBe(true);
+            expect(result.content).toEqual([
+                {
+                    type: "text",
+                    text: "User did not confirm the execution of the `test-tool` tool so the operation was not performed.",
+                },
+            ]);
             expect(mockRequestConfirmation).toHaveBeenCalledTimes(1);
-        });
-
-        it("should relate the confirmation request to the in-flight tool call", async () => {
-            mockConfig.confirmationRequiredTools = ["test-tool"];
-            mockRequestConfirmation.mockResolvedValue(true);
-
-            const context: ToolExecutionContext = { signal: new AbortController().signal, requestId: 42 };
-            await testTool.verifyConfirmed({ param1: "test" }, context);
-
-            expect(mockRequestConfirmation).toHaveBeenCalledWith(expect.any(String), {
-                relatedRequestId: 42,
-                signal: context.signal,
-            });
-        });
-
-        it("should pass progress heartbeat inputs from the execution context", async () => {
-            mockConfig.confirmationRequiredTools = ["test-tool"];
-            mockRequestConfirmation.mockResolvedValue(true);
-            const sendNotification = vi.fn();
-
-            const context: ToolExecutionContext = {
-                signal: new AbortController().signal,
-                requestId: 42,
-                _meta: { progressToken: "progress-token" },
-                sendNotification,
-            };
-            await testTool.verifyConfirmed({ param1: "test" }, context);
-
-            expect(mockRequestConfirmation).toHaveBeenCalledWith(expect.any(String), {
-                relatedRequestId: 42,
-                progressToken: "progress-token",
-                sendNotification,
-                signal: context.signal,
-            });
-        });
-
-        it("should not relate the confirmation request to the tool call in JSON response mode", async () => {
-            // In JSON response mode the in-flight POST cannot carry server->client
-            // messages, so the confirmation must use the standalone SSE stream.
-            mockConfig.confirmationRequiredTools = ["test-tool"];
-            mockConfig.httpResponseType = "json";
-            mockRequestConfirmation.mockResolvedValue(true);
-
-            const context: ToolExecutionContext = { signal: new AbortController().signal, requestId: 42 };
-            await testTool.verifyConfirmed({ param1: "test" }, context);
-
-            expect(mockRequestConfirmation).toHaveBeenCalledWith(expect.any(String), {
-                relatedRequestId: undefined,
-                signal: context.signal,
-            });
         });
     });
 
@@ -230,6 +177,41 @@ describe("ToolBase", () => {
                 relatedRequestId: 7,
                 progressToken: undefined,
                 sendNotification: undefined,
+                signal: context.signal,
+            });
+        });
+
+        it("passes the progress heartbeat inputs from the execution context", async () => {
+            mockRequestConfirmation.mockResolvedValue(true);
+            const sendNotification = vi.fn();
+
+            const context: ToolExecutionContext = {
+                signal: new AbortController().signal,
+                requestId: 42,
+                _meta: { progressToken: "progress-token" },
+                sendNotification,
+            };
+            await testTool["requestConfirmation"]("confirm?", context);
+
+            expect(mockRequestConfirmation).toHaveBeenCalledWith("confirm?", {
+                relatedRequestId: 42,
+                progressToken: "progress-token",
+                sendNotification,
+                signal: context.signal,
+            });
+        });
+
+        it("does not relate the confirmation request to the tool call in JSON response mode", async () => {
+            // In JSON response mode the in-flight POST cannot carry server->client
+            // messages, so the confirmation must use the standalone SSE stream.
+            mockConfig.httpResponseType = "json";
+            mockRequestConfirmation.mockResolvedValue(true);
+
+            const context: ToolExecutionContext = { signal: new AbortController().signal, requestId: 42 };
+            await testTool["requestConfirmation"]("confirm?", context);
+
+            expect(mockRequestConfirmation).toHaveBeenCalledWith("confirm?", {
+                relatedRequestId: undefined,
                 signal: context.signal,
             });
         });

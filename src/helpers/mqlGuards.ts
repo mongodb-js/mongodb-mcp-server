@@ -77,23 +77,17 @@ export function isWriteStage(stage: Record<string, unknown>): boolean {
     return writeStageOperator(stage) !== undefined;
 }
 
-/**
- * The fully qualified namespace a write stage targets, or `undefined` when the
- * stage targets something other than a collection (such as an S3 bucket on
- * Atlas Data Federation) and no namespace can be resolved.
- */
-type WriteStageNamespace = { namespace: string | undefined };
-
 /** The collection a write stage targets, along with how it will write to it. */
-export type WriteStageTarget =
-    | ({ operator: "$out" } & WriteStageNamespace)
-    | ({
+export type WriteStageTarget = { namespace: string | undefined } & (
+    | { operator: "$out" }
+    | {
           operator: "$merge";
           /** The `whenMatched` mode, when the stage names one of the documented modes. */
           whenMatched?: string;
           /** The `whenNotMatched` mode, when the stage names one of the documented modes. */
           whenNotMatched?: string;
-      } & WriteStageNamespace);
+      }
+);
 
 /**
  * Describes the collections that the write stages of a pipeline target, so that
