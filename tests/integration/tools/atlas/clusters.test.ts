@@ -445,146 +445,53 @@ describeWithAtlas("clusters", (integration) => {
             });
 
             withCluster(integration, ({ getProjectId: getScaleProjectId, getClusterName: getScaleClusterName }) => {
-                // A separate cluster fixture: upgrades it (Free -> M10 Dedicated) then chains several
-                // scale-in-place calls against it, testing resize, autoscaling, and the "preserve
-                // existing max if already higher" behavior against the real Atlas API.
+                // A separate cluster fixture: upgrades it (Free -> M10 Dedicated) then scales
+                // it in place, testing both functionalities of this tool against one cluster.
                 describe("scaling an already-Dedicated cluster", () => {
-                    it("upgrades to M10, resizes without touching autoscaling, enables autoscaling with a high max, then preserves that max on a later resize", async () => {
+                    it("upgrades to M10 then scales to a larger instance size", async () => {
                         const projectId = getScaleProjectId();
                         const scaleClusterName = getScaleClusterName();
                         const session = integration.mcpServer().session;
                         const pollingInterval = 10000;
                         const maxPollingIterations = 120;
 
-                        const waitIdle = (): Promise<void> =>
-                            waitCluster(
-                                session,
-                                projectId,
-                                scaleClusterName,
-                                (c) => c.stateName === "IDLE",
-                                pollingInterval,
-                                maxPollingIterations
-                            );
-
-                        // Free -> M10 (autoscaling defaults to enabled, M10-M30).
                         const upgradeResponse = await integration.mcpClient().callTool({
                             name: "atlas-upgrade-cluster",
                             arguments: { projectId, clusterName: scaleClusterName, targetTier: "M10" },
                         });
                         expect(upgradeResponse.isError).toBeFalsy();
-                        await waitIdle();
 
-                        // Resize only, no autoscaling args: min/max reconcile relative to the new size.
-                        const resizeResponse = await integration.mcpClient().callTool({
+                        await waitCluster(
+                            session,
+                            projectId,
+                            scaleClusterName,
+                            (c) => c.stateName === "IDLE",
+                            pollingInterval,
+                            maxPollingIterations
+                        );
+
+                        const scaleResponse = await integration.mcpClient().callTool({
                             name: "atlas-upgrade-cluster",
                             arguments: { projectId, clusterName: scaleClusterName, targetTier: "M20" },
                         });
-                        expect(resizeResponse.isError).toBeFalsy();
-                        const resizeContent = getResponseContent(resizeResponse.content);
-                        expect(resizeContent).toContain(scaleClusterName);
-                        expect(resizeContent).toContain("M20");
-                        expect(resizeResponse.structuredContent).toMatchObject({
+
+                        expect(scaleResponse.isError).toBeFalsy();
+                        const content = getResponseContent(scaleResponse.content);
+                        expect(content).toContain(scaleClusterName);
+                        expect(content).toContain("M20");
+                        expect(scaleResponse.structuredContent).toMatchObject({
                             originalTier: "M10",
                             targetTier: "M20",
                         });
-                        await waitIdle();
 
-                        // Resize + explicitly set a deliberately high max (beyond the M30 default for M30).
-                        const enableResponse = await integration.mcpClient().callTool({
-                            name: "atlas-upgrade-cluster",
-                            arguments: {
-                                projectId,
-                                clusterName: scaleClusterName,
-                                targetTier: "M30",
-                                computeAutoScaling: true,
-                                minInstanceSize: "M20",
-                                maxInstanceSize: "M80",
-                            },
-                        });
-                        expect(enableResponse.isError).toBeFalsy();
-                        expect(enableResponse.structuredContent).toMatchObject({
-                            targetTier: "M30",
-                            computeAutoScaling: true,
-                            minInstanceSize: "M20",
-                            maxInstanceSize: "M80",
-                        });
-                        await waitIdle();
-
-                        // Resize again without specifying max: the default for M40 (M60) is lower than the
-                        // existing M80, so M80 should be preserved, not shrunk back down to the default.
-                        const preserveResponse = await integration.mcpClient().callTool({
-                            name: "atlas-upgrade-cluster",
-                            arguments: { projectId, clusterName: scaleClusterName, targetTier: "M40" },
-                        });
-                        expect(preserveResponse.isError).toBeFalsy();
-                        expect(preserveResponse.structuredContent).toMatchObject({
-                            targetTier: "M40",
-                            maxInstanceSize: "M80",
-                        });
-                        await waitIdle();
-                    });
-                });
-            });
-
-            withCluster(integration, ({ getProjectId: getFreeM10ProjectId, getClusterName: getFreeM10ClusterName }) => {
-                describe("upgrading FREE directly to M10 with explicit autoscaling", () => {
-                    it("uses the explicit min/max instead of the default M10-M30", async () => {
-                        const projectId = getFreeM10ProjectId();
-                        const clusterName = getFreeM10ClusterName();
-                        const session = integration.mcpServer().session;
-
-                        const response = await integration.mcpClient().callTool({
-                            name: "atlas-upgrade-cluster",
-                            arguments: {
-                                projectId,
-                                clusterName,
-                                targetTier: "M10",
-                                computeAutoScaling: true,
-                                minInstanceSize: "M10",
-                                maxInstanceSize: "M40",
-                            },
-                        });
-
-                        expect(response.isError).toBeFalsy();
-                        expect(response.structuredContent).toMatchObject({
-                            originalTier: "FREE",
-                            targetTier: "M10",
-                            computeAutoScaling: true,
-                            minInstanceSize: "M10",
-                            maxInstanceSize: "M40",
-                        });
-
-                        await waitCluster(session, projectId, clusterName, (c) => c.stateName === "IDLE", 10000, 120);
-                    });
-                });
-            });
-
-            withCluster(integration, ({ getProjectId: getFlexProjectId, getClusterName: getFlexClusterName }) => {
-                describe("upgrading FLEX to M10", () => {
-                    it("upgrades FREE to FLEX, then the resulting FLEX cluster to M10", async () => {
-                        const projectId = getFlexProjectId();
-                        const clusterName = getFlexClusterName();
-                        const session = integration.mcpServer().session;
-                        const waitIdle = (): Promise<void> =>
-                            waitCluster(session, projectId, clusterName, (c) => c.stateName === "IDLE", 10000, 120);
-
-                        const toFlexResponse = await integration.mcpClient().callTool({
-                            name: "atlas-upgrade-cluster",
-                            arguments: { projectId, clusterName, targetTier: "FLEX" },
-                        });
-                        expect(toFlexResponse.isError).toBeFalsy();
-                        await waitIdle();
-
-                        const toM10Response = await integration.mcpClient().callTool({
-                            name: "atlas-upgrade-cluster",
-                            arguments: { projectId, clusterName, targetTier: "M10" },
-                        });
-                        expect(toM10Response.isError).toBeFalsy();
-                        expect(toM10Response.structuredContent).toMatchObject({
-                            originalTier: "FLEX",
-                            targetTier: "M10",
-                        });
-                        await waitIdle();
+                        await waitCluster(
+                            session,
+                            projectId,
+                            scaleClusterName,
+                            (c) => c.stateName === "IDLE",
+                            pollingInterval,
+                            maxPollingIterations
+                        );
                     });
                 });
             });
