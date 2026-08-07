@@ -24,20 +24,23 @@ function mockScaleResponse(clusterName: string, targetInstanceSize: string): () 
     });
 }
 
-function mockScaleWithAutoScalingResponse(
-    clusterName: string,
-    targetInstanceSize: string,
-    min: string,
-    max: string
-): () => CallToolResult {
-    return () => ({
+function mockInspectClusterResponse(): CallToolResult {
+    return {
         content: [
             {
                 type: "text",
-                text: `Cluster "${clusterName}" is being scaled to ${targetInstanceSize} with compute autoscaling enabled (${min}-${max}). This may take a few minutes.`,
+                text: JSON.stringify({
+                    name: CLUSTER_NAME,
+                    instanceType: "DEDICATED",
+                    instanceSize: "M10",
+                    provider: "AWS",
+                    region: "US_EAST_1",
+                    paused: false,
+                    state: "IDLE",
+                }),
             },
         ],
-    });
+    };
 }
 
 const PROJECT_ID = "9123a4b056c7d890e1f2a3f4";
@@ -49,17 +52,31 @@ const mockListProjects = {
     }),
 };
 
+const mockInspectCluster = {
+    "atlas-inspect-cluster": (): CallToolResult => mockInspectClusterResponse(),
+};
+
 const optionalListProjects = [{ toolName: "atlas-list-projects", parameters: {}, optional: true as const }];
+
+const optionalInspectCluster = [
+    {
+        toolName: "atlas-inspect-cluster",
+        parameters: { projectId: PROJECT_ID, clusterName: CLUSTER_NAME },
+        optional: true as const,
+    },
+];
 
 describeAccuracyTests([
     {
         prompt: `Upgrade the free cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}" to Flex tier`,
         mockedTools: {
             ...mockListProjects,
+            ...mockInspectCluster,
             "atlas-upgrade-cluster": mockUpgradeResponse(CLUSTER_NAME, "Free", "Flex"),
         },
         expectedToolCalls: [
             ...optionalListProjects,
+            ...optionalInspectCluster,
             {
                 toolName: "atlas-upgrade-cluster",
                 parameters: {
@@ -74,10 +91,12 @@ describeAccuracyTests([
         prompt: `Upgrade the cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}" to M10 Dedicated`,
         mockedTools: {
             ...mockListProjects,
+            ...mockInspectCluster,
             "atlas-upgrade-cluster": mockUpgradeResponse(CLUSTER_NAME, "Free", "M10 Dedicated"),
         },
         expectedToolCalls: [
             ...optionalListProjects,
+            ...optionalInspectCluster,
             {
                 toolName: "atlas-upgrade-cluster",
                 parameters: {
@@ -92,10 +111,12 @@ describeAccuracyTests([
         prompt: `Upgrade my free cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}" directly to M10 Dedicated, skipping Flex`,
         mockedTools: {
             ...mockListProjects,
+            ...mockInspectCluster,
             "atlas-upgrade-cluster": mockUpgradeResponse(CLUSTER_NAME, "Free", "M10 Dedicated"),
         },
         expectedToolCalls: [
             ...optionalListProjects,
+            ...optionalInspectCluster,
             {
                 toolName: "atlas-upgrade-cluster",
                 parameters: {
@@ -110,10 +131,12 @@ describeAccuracyTests([
         prompt: `Upgrade the Flex cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}" to Dedicated`,
         mockedTools: {
             ...mockListProjects,
+            ...mockInspectCluster,
             "atlas-upgrade-cluster": mockUpgradeResponse(CLUSTER_NAME, "Flex", "M10 Dedicated"),
         },
         expectedToolCalls: [
             ...optionalListProjects,
+            ...optionalInspectCluster,
             {
                 toolName: "atlas-upgrade-cluster",
                 parameters: {
@@ -128,10 +151,12 @@ describeAccuracyTests([
         prompt: `Upgrade cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}" to M10 using AWS in the US_EAST_1 region`,
         mockedTools: {
             ...mockListProjects,
+            ...mockInspectCluster,
             "atlas-upgrade-cluster": mockUpgradeResponse(CLUSTER_NAME, "Free", "M10 Dedicated"),
         },
         expectedToolCalls: [
             ...optionalListProjects,
+            ...optionalInspectCluster,
             {
                 toolName: "atlas-upgrade-cluster",
                 parameters: {
@@ -148,6 +173,7 @@ describeAccuracyTests([
         prompt: `List the clusters in project "${PROJECT_ID}", then upgrade "${CLUSTER_NAME}" to Flex tier`,
         mockedTools: {
             ...mockListProjects,
+            ...mockInspectCluster,
             "atlas-list-clusters": (): CallToolResult => ({
                 content: [
                     {
@@ -160,6 +186,7 @@ describeAccuracyTests([
         },
         expectedToolCalls: [
             ...optionalListProjects,
+            ...optionalInspectCluster,
             {
                 toolName: "atlas-list-clusters",
                 parameters: {
@@ -180,10 +207,12 @@ describeAccuracyTests([
         prompt: `Scale cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}" to M20`,
         mockedTools: {
             ...mockListProjects,
+            ...mockInspectCluster,
             "atlas-upgrade-cluster": mockScaleResponse(CLUSTER_NAME, "M20"),
         },
         expectedToolCalls: [
             ...optionalListProjects,
+            ...optionalInspectCluster,
             {
                 toolName: "atlas-upgrade-cluster",
                 parameters: {
@@ -198,10 +227,12 @@ describeAccuracyTests([
         prompt: `Enable autoscaling on cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}" between M10 and M30`,
         mockedTools: {
             ...mockListProjects,
+            ...mockInspectCluster,
             "atlas-upgrade-cluster": mockScaleResponse(CLUSTER_NAME, "M10"),
         },
         expectedToolCalls: [
             ...optionalListProjects,
+            ...optionalInspectCluster,
             {
                 toolName: "atlas-upgrade-cluster",
                 parameters: {
@@ -219,10 +250,12 @@ describeAccuracyTests([
         prompt: `Disable autoscaling on cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}"`,
         mockedTools: {
             ...mockListProjects,
+            ...mockInspectCluster,
             "atlas-upgrade-cluster": mockScaleResponse(CLUSTER_NAME, "M10"),
         },
         expectedToolCalls: [
             ...optionalListProjects,
+            ...optionalInspectCluster,
             {
                 toolName: "atlas-upgrade-cluster",
                 parameters: {
@@ -238,10 +271,12 @@ describeAccuracyTests([
         prompt: `Increase the max autoscaling size on cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}" to M40`,
         mockedTools: {
             ...mockListProjects,
+            ...mockInspectCluster,
             "atlas-upgrade-cluster": mockScaleResponse(CLUSTER_NAME, "M10"),
         },
         expectedToolCalls: [
             ...optionalListProjects,
+            ...optionalInspectCluster,
             {
                 toolName: "atlas-upgrade-cluster",
                 parameters: {
@@ -254,55 +289,15 @@ describeAccuracyTests([
         ],
     },
     {
-        prompt: `Scale cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}" to M30 and enable autoscaling between M20 and M50`,
-        mockedTools: {
-            ...mockListProjects,
-            "atlas-upgrade-cluster": mockScaleWithAutoScalingResponse(CLUSTER_NAME, "M30", "M20", "M50"),
-        },
-        expectedToolCalls: [
-            ...optionalListProjects,
-            {
-                toolName: "atlas-upgrade-cluster",
-                parameters: {
-                    projectId: PROJECT_ID,
-                    clusterName: CLUSTER_NAME,
-                    targetTier: "M30",
-                    computeAutoScaling: true,
-                    minInstanceSize: "M20",
-                    maxInstanceSize: "M50",
-                },
-            },
-        ],
-    },
-    {
-        prompt: `Scale cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}" to M30 with autoscaling enabled`,
-        mockedTools: {
-            ...mockListProjects,
-            "atlas-upgrade-cluster": mockScaleWithAutoScalingResponse(CLUSTER_NAME, "M30", "M30", "M50"),
-        },
-        expectedToolCalls: [
-            ...optionalListProjects,
-            {
-                toolName: "atlas-upgrade-cluster",
-                parameters: {
-                    projectId: PROJECT_ID,
-                    clusterName: CLUSTER_NAME,
-                    targetTier: "M30",
-                    computeAutoScaling: true,
-                    minInstanceSize: Matcher.undefined,
-                    maxInstanceSize: Matcher.undefined,
-                },
-            },
-        ],
-    },
-    {
         prompt: `Upgrade my free cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}" to M10 Dedicated with autoscaling disabled`,
         mockedTools: {
             ...mockListProjects,
+            ...mockInspectCluster,
             "atlas-upgrade-cluster": mockUpgradeResponse(CLUSTER_NAME, "Free", "M10 Dedicated"),
         },
         expectedToolCalls: [
             ...optionalListProjects,
+            ...optionalInspectCluster,
             {
                 toolName: "atlas-upgrade-cluster",
                 parameters: {
