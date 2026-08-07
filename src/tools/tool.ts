@@ -807,7 +807,7 @@ export abstract class ToolBase<
      * Schemas are session-invariant, so they are built once per concrete tool
      * class and config variant, then shared across every session. Both caches
      * are keyed by the concrete constructor; the input cache is additionally
-     * keyed by {@link schemaVariantKey} to separate config-dependent variants.
+     * keyed by `schemaVariantKey()` to separate config-dependent variants.
      */
     private static readonly sharedInputSchemas = new WeakMap<
         object,
