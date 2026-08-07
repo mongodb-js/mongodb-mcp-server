@@ -1072,6 +1072,7 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
     protected abstract resolveTelemetryMetadata(args: ToolArgs<typeof ToolBase.argsShape>, input: {
         result: CallToolResult;
     }): TelemetryToolMetadata | Promise<TelemetryToolMetadata>;
+    protected schemaVariantKey(): string;
     protected readonly session: Session;
     protected readonly telemetry: Telemetry;
     protected get toolMeta(): Record<string, unknown>;
