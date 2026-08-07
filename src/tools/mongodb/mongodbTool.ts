@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { OperationType, ToolArgs, ToolCategory } from "../tool.js";
+import type { OperationType, ToolArgs, ToolCategory, ToolExecutionContext } from "../tool.js";
 import { ToolBase } from "../tool.js";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
@@ -7,7 +7,8 @@ import { ErrorCodes, MongoDBError } from "../../common/errors.js";
 import type { ConnectionEntry } from "../../common/connectionRegistry.js";
 import type { Server } from "../../server.js";
 import type { ConnectionMetadata } from "../../telemetry/types.js";
-import { assertNoServerSideJS, isWriteStage } from "../../helpers/mqlGuards.js";
+import { assertNoServerSideJS, isWriteStage, type WriteStageTarget } from "../../helpers/mqlGuards.js";
+import { buildWriteStageConfirmationMessage } from "../../helpers/writeStageConfirmation.js";
 import { EXPORT_TOOL_NAME } from "../../helpers/constants.js";
 
 export const DBOperationArgs = {
@@ -103,6 +104,25 @@ export abstract class MongoDBToolBase extends ToolBase {
         }
     }
 
+    /**
+     * Asks the user to confirm the write stages of an aggregation pipeline,
+     * throwing when they decline so that the pipeline never runs.
+     */
+    protected async confirmWriteStages(targets: WriteStageTarget[], context: ToolExecutionContext): Promise<void> {
+        if (this.requiresConfirmation()) {
+            return;
+        }
+
+        if (await this.requestConfirmation(buildWriteStageConfirmationMessage(targets), context)) {
+            return;
+        }
+
+        throw new MongoDBError(
+            ErrorCodes.ConfirmationDeclined,
+            "User did not confirm the write stages of the aggregation pipeline so the aggregation was not performed."
+        );
+    }
+
     private assertSingleMqlValueIsAllowed(
         value: Record<string, unknown> | Record<string, unknown>[] | undefined
     ): void {
@@ -169,6 +189,7 @@ export abstract class MongoDBToolBase extends ToolBase {
 
                     return super.handleError(error, args);
                 }
+                case ErrorCodes.ConfirmationDeclined:
                 case ErrorCodes.ForbiddenCollscan:
                     return {
                         content: [

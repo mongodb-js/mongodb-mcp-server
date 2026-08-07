@@ -8,7 +8,7 @@ import { type Document } from "bson";
 import { ErrorCodes, MongoDBError } from "../../../common/errors.js";
 import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorUntilMaxBytes.js";
 import { operationWithFallback } from "../../../helpers/operationWithFallback.js";
-import { isWriteStage } from "../../../helpers/mqlGuards.js";
+import { getWriteStageTargets } from "../../../helpers/mqlGuards.js";
 import {
     AGG_COUNT_MAX_TIME_MS_CAP,
     ONE_MB,
@@ -59,8 +59,9 @@ export class AggregateDBTool extends MongoDBToolBase {
 
     protected async execute(
         { connectionId, database, pipeline, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
-        { signal }: ToolExecutionContext
+        context: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
+        const { signal } = context;
         let aggregationCursor: AggregationCursor | undefined = undefined;
         try {
             const provider = await this.resolveConnection(connectionId);
@@ -71,7 +72,10 @@ export class AggregateDBTool extends MongoDBToolBase {
             let aggResultsCount: number | undefined;
             let appliedLimits: CursorLimitKey[] = [];
 
-            if (pipeline.some((stage) => isWriteStage(stage))) {
+            const writeStageTargets = getWriteStageTargets(pipeline, database);
+            if (writeStageTargets.length > 0) {
+                await this.confirmWriteStages(writeStageTargets, context);
+
                 // This is a write pipeline, so special-case it and don't attempt to apply limits or caps
                 aggregationCursor = provider.aggregateDb(database, pipeline, {
                     ...this.getOperationOptions(signal),

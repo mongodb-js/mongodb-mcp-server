@@ -54,9 +54,110 @@ export function assertNoServerSideJS(value: unknown): void {
 }
 
 /**
+ * The write operator of an aggregation stage, or `undefined` when the stage
+ * does not write to a collection.
+ */
+function writeStageOperator(stage: Record<string, unknown>): "$out" | "$merge" | undefined {
+    if ("$out" in stage) {
+        return "$out";
+    }
+
+    if ("$merge" in stage) {
+        return "$merge";
+    }
+
+    return undefined;
+}
+
+/**
  * Returns true when the given aggregation stage writes data to a collection,
  * i.e. it is a `$out` or `$merge` stage.
  */
 export function isWriteStage(stage: Record<string, unknown>): boolean {
-    return "$out" in stage || "$merge" in stage;
+    return writeStageOperator(stage) !== undefined;
+}
+
+/**
+ * The fully qualified namespace a write stage targets, or `undefined` when the
+ * stage targets something other than a collection (such as an S3 bucket on
+ * Atlas Data Federation) and no namespace can be resolved.
+ */
+type WriteStageNamespace = { namespace: string | undefined };
+
+/** The collection a write stage targets, along with how it will write to it. */
+export type WriteStageTarget =
+    | ({ operator: "$out" } & WriteStageNamespace)
+    | ({
+          operator: "$merge";
+          /** The `whenMatched` mode, when the stage names one of the documented modes. */
+          whenMatched?: string;
+          /** The `whenNotMatched` mode, when the stage names one of the documented modes. */
+          whenNotMatched?: string;
+      } & WriteStageNamespace);
+
+/**
+ * Describes the collections that the write stages of a pipeline target, so that
+ * the user can be told what a `$out` or `$merge` is about to affect before it
+ * runs.
+ *
+ * Only top-level stages are inspected, matching {@link isWriteStage}: `$out` and
+ * `$merge` are not permitted inside sub-pipelines. MongoDB also requires them to
+ * be the last stage, so in practice at most one target is returned; the array
+ * shape means a malformed pipeline is still described in full rather than
+ * partially.
+ *
+ * @param pipeline - The aggregation pipeline to inspect.
+ * @param defaultDatabase - The database the aggregation runs against, used to
+ * qualify stages that name only a collection.
+ */
+export function getWriteStageTargets(pipeline: Record<string, unknown>[], defaultDatabase: string): WriteStageTarget[] {
+    const targets: WriteStageTarget[] = [];
+
+    for (const stage of pipeline) {
+        switch (writeStageOperator(stage)) {
+            case "$out":
+                targets.push({ operator: "$out", namespace: resolveNamespace(stage.$out, defaultDatabase) });
+                break;
+            case "$merge": {
+                // The stage is either the target itself (`$merge: "coll"`) or a
+                // document describing it. `whenMatched` also accepts a custom
+                // update pipeline, which has no concise description, so only the
+                // documented string modes are reported.
+                const spec = isRecord(stage.$merge) ? stage.$merge : undefined;
+                targets.push({
+                    operator: "$merge",
+                    namespace: resolveNamespace(spec ? spec.into : stage.$merge, defaultDatabase),
+                    ...(typeof spec?.whenMatched === "string" ? { whenMatched: spec.whenMatched } : {}),
+                    ...(typeof spec?.whenNotMatched === "string" ? { whenNotMatched: spec.whenNotMatched } : {}),
+                });
+                break;
+            }
+            case undefined:
+                break;
+        }
+    }
+
+    return targets;
+}
+
+/**
+ * Resolves the target of a `$out` stage or the `into` of a `$merge` stage to a
+ * fully qualified namespace. Returns `undefined` for any other shape, such as
+ * the `{ s3: ... }` target supported by Atlas Data Federation.
+ */
+function resolveNamespace(target: unknown, defaultDatabase: string): string | undefined {
+    if (typeof target === "string") {
+        return `${defaultDatabase}.${target}`;
+    }
+
+    if (isRecord(target) && typeof target.coll === "string") {
+        const database = typeof target.db === "string" ? target.db : defaultDatabase;
+        return `${database}.${target.coll}`;
+    }
+
+    return undefined;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
 }

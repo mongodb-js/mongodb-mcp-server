@@ -16,7 +16,13 @@ import type { PreviewFeature } from "../../src/common/schemas.js";
 import { UIRegistry } from "../../src/ui/registry/index.js";
 import { TRANSPORT_PAYLOAD_LIMITS } from "../../src/transports/constants.js";
 import { expectDefined } from "../integration/helpers.js";
-import { TestTool, TestToolWithOutputSchema, TestToolWithoutStructuredContent, ErrorTool } from "./mocks/tools.js";
+import {
+    TestTool,
+    TestToolWithOutputSchema,
+    TestToolWithoutStructuredContent,
+    ErrorTool,
+    ConfirmingTool,
+} from "./mocks/tools.js";
 import { MockMetrics } from "./mocks/metrics.js";
 import { Keychain } from "../../src/common/keychain.js";
 
@@ -186,6 +192,98 @@ describe("ToolBase", () => {
                 relatedRequestId: undefined,
                 signal: context.signal,
             });
+        });
+    });
+
+    describe("requestConfirmation", () => {
+        it("requests confirmation regardless of the confirmationRequiredTools list", async () => {
+            mockConfig.confirmationRequiredTools = [];
+            mockRequestConfirmation.mockResolvedValue(true);
+
+            const context: ToolExecutionContext = { signal: new AbortController().signal, requestId: 7 };
+            const result = await testTool["requestConfirmation"]("Custom message", context);
+
+            expect(result).toBe(true);
+            expect(mockRequestConfirmation).toHaveBeenCalledWith("Custom message", {
+                relatedRequestId: 7,
+                progressToken: undefined,
+                sendNotification: undefined,
+                signal: context.signal,
+            });
+        });
+
+        it("accumulates the time spent waiting on the execution context", async () => {
+            vi.useFakeTimers();
+            try {
+                mockRequestConfirmation.mockImplementation(() => {
+                    vi.advanceTimersByTime(5000);
+                    return Promise.resolve(true);
+                });
+
+                const context: ToolExecutionContext = { signal: new AbortController().signal };
+                await testTool["requestConfirmation"]("first", context);
+                await testTool["requestConfirmation"]("second", context);
+
+                expect(context.elicitationDurationMs).toBe(10_000);
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+    });
+
+    describe("confirmation requested during execution", () => {
+        function createConfirmingTool(): ConfirmingTool {
+            return new ConfirmingTool({
+                name: ConfirmingTool.toolName,
+                category: ConfirmingTool.category,
+                operationType: ConfirmingTool.operationType,
+                session: mockSession,
+                config: mockConfig,
+                telemetry: mockTelemetry,
+                elicitation: mockElicitation,
+                metrics: mockMetrics,
+            });
+        }
+
+        it("runs the operation when the user confirms", async () => {
+            mockRequestConfirmation.mockResolvedValue(true);
+
+            const result = await createConfirmingTool()["invoke"]({}, { signal: new AbortController().signal });
+
+            expect(result.isError).toBeUndefined();
+            expect(result.content).toEqual([{ type: "text", text: "executed" }]);
+        });
+
+        it("aborts the operation when the user declines", async () => {
+            mockRequestConfirmation.mockResolvedValue(false);
+
+            const result = await createConfirmingTool()["invoke"]({}, { signal: new AbortController().signal });
+
+            expect(result.isError).toBe(true);
+            expect(result.content).toEqual([{ type: "text", text: "The operation was not performed." }]);
+        });
+
+        it("excludes the time the user spent deciding from the duration metric", async () => {
+            vi.useFakeTimers();
+            try {
+                mockRequestConfirmation.mockImplementation(() => {
+                    vi.advanceTimersByTime(5000);
+                    return Promise.resolve(true);
+                });
+
+                const result = await createConfirmingTool()["invoke"]({}, { signal: new AbortController().signal });
+                expect(result.content).toEqual([{ type: "text", text: "executed" }]);
+            } finally {
+                vi.useRealTimers();
+            }
+
+            const { values } = await mockMetrics.get("toolExecutionDuration").get();
+            const sum = values.find(
+                (v) =>
+                    v.metricName === "mcp_tool_execution_duration_seconds_sum" &&
+                    v.labels.tool_name === "confirming-tool"
+            );
+            expect(sum?.value).toBeLessThan(1);
         });
     });
 
