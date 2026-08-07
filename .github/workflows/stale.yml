@@ -15,7 +15,7 @@ jobs:
       pull-requests: write
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
-      - uses: actions/stale@v10
+      - uses: actions/stale@v11
         id: stale
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
