@@ -2239,6 +2239,33 @@ export class UpgradeClusterTool extends AtlasToolBase {
         targetTier: z.ZodOptional<z.ZodEnum<{
             FLEX: "FLEX";
             M10: "M10";
+            M20: "M20";
+            M30: "M30";
+            M40: "M40";
+            M50: "M50";
+            M60: "M60";
+            M80: "M80";
+        }>>;
+        computeAutoScaling: z.ZodOptional<z.ZodBoolean>;
+        minInstanceSize: z.ZodOptional<z.ZodEnum<{
+            M10: "M10";
+            M20: "M20";
+            M30: "M30";
+            M40: "M40";
+            M50: "M50";
+            M60: "M60";
+            M80: "M80";
+        }>>;
+        maxInstanceSize: z.ZodOptional<z.ZodEnum<{
+            M10: "M10";
+            M20: "M20";
+            M30: "M30";
+            M40: "M40";
+            M50: "M50";
+            M60: "M60";
+            M80: "M80";
+            M200: "M200";
+            M140: "M140";
         }>>;
         provider: z.ZodOptional<z.ZodString>;
         region: z.ZodOptional<z.ZodString>;
@@ -2256,11 +2283,27 @@ export class UpgradeClusterTool extends AtlasToolBase {
         originalTier: z.ZodEnum<{
             FLEX: "FLEX";
             FREE: "FREE";
+            M10: "M10";
+            M20: "M20";
+            M30: "M30";
+            M40: "M40";
+            M50: "M50";
+            M60: "M60";
+            M80: "M80";
         }>;
         targetTier: z.ZodEnum<{
             FLEX: "FLEX";
             M10: "M10";
+            M20: "M20";
+            M30: "M30";
+            M40: "M40";
+            M50: "M50";
+            M60: "M60";
+            M80: "M80";
         }>;
+        computeAutoScaling: z.ZodOptional<z.ZodBoolean>;
+        minInstanceSize: z.ZodOptional<z.ZodString>;
+        maxInstanceSize: z.ZodOptional<z.ZodString>;
         resolvedProvider: z.ZodOptional<z.ZodString>;
         resolvedRegion: z.ZodOptional<z.ZodString>;
         clusterId: z.ZodOptional<z.ZodString>;
