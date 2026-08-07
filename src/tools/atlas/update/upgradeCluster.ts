@@ -482,6 +482,17 @@ export class UpgradeClusterTool extends AtlasToolBase {
                         getMaxAutoScalingSize(resolvedInstanceSize, clusterInfo.provider ?? "");
                 }
 
+                if (
+                    resolvedEnabled &&
+                    resolvedMin !== undefined &&
+                    resolvedMax !== undefined &&
+                    isHigherInstanceSize(resolvedMin, resolvedMax)
+                ) {
+                    throw new UpgradeClusterError(
+                        `minInstanceSize "${resolvedMin}" cannot be higher than maxInstanceSize "${resolvedMax}".`
+                    );
+                }
+
                 const body = buildScaleClusterBody(clusterInfo.raw, resolvedInstanceSize, {
                     enabled: resolvedEnabled,
                     scaleDownEnabled: resolvedEnabled,
