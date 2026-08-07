@@ -85,9 +85,12 @@ type AutoScalingArgs = { computeAutoScaling?: boolean; minInstanceSize?: string;
 
 type ResolvedM10AutoScaling = { enabled: boolean; minInstanceSize?: string; maxInstanceSize?: string };
 
+// The target size for a Free/Flex to M10 upgrade is fixed at M10, so minInstanceSize can only be M10 or omitted.
+const m10MinInstanceSizeSchema = z.literal("M10").optional();
+
 // Validates and resolves the autoscaling args for a Free/Flex to M10 upgrade, where the target size is fixed at M10.
 function resolveM10AutoScaling(autoScalingArgs: AutoScalingArgs, provider: string | undefined): ResolvedM10AutoScaling {
-    if (autoScalingArgs.minInstanceSize !== undefined && autoScalingArgs.minInstanceSize !== "M10") {
+    if (!m10MinInstanceSizeSchema.safeParse(autoScalingArgs.minInstanceSize).success) {
         throw new UpgradeClusterError(`minInstanceSize must be omitted or "M10" when upgrading to M10 Dedicated.`);
     }
 
@@ -265,12 +268,15 @@ type DedicatedScalingArgs = {
     region?: string;
 };
 
-// Validates that a DEDICATED cluster can be safely scaled.
+type CurrentAutoScaling = { enabled?: boolean; minInstanceSize?: string; maxInstanceSize?: string };
+
+// Validates that a DEDICATED cluster can be safely scaled, and returns its current autoscaling
+// settings (read from the first region, already confirmed consistent across all regions below).
 function validateDedicatedScaling(
     clusterInfo: ResolvedClusterInfo,
     args: DedicatedScalingArgs,
     clusterName: string
-): void {
+): CurrentAutoScaling | undefined {
     if (args.targetTier === "FLEX") {
         throw new UpgradeClusterError(
             `Cluster "${clusterName}" is already Dedicated. targetTier must be an instance size (M10-M80) to scale it in place, not FLEX.`
@@ -308,6 +314,7 @@ function validateDedicatedScaling(
     const regionConfigs = (clusterInfo.raw?.replicationSpecs?.[0]?.regionConfigs ?? []) as Array<{
         electableSpecs?: { instanceSize?: string };
         readOnlySpecs?: { instanceSize?: string };
+        autoScaling?: { compute?: CurrentAutoScaling };
     }>;
     const electableSizes = regionConfigs
         .map((rc) => rc.electableSpecs?.instanceSize)
@@ -320,6 +327,7 @@ function validateDedicatedScaling(
             `Cluster "${clusterName}" has regions with different instance sizes, which this tool does not support scaling to avoid unintended changes.`
         );
     }
+    return regionConfigs[0]?.autoScaling?.compute;
 }
 
 // Validates and resolves the upgrade target for a Free/Flex source cluster: defaults to FLEX for Free,
@@ -418,18 +426,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
 
         switch (clusterInfo.instanceType) {
             case "DEDICATED": {
-                validateDedicatedScaling(clusterInfo, args, clusterName);
-
-                // Current autoscaling settings, read from the first region of the cluster's single replication
-                // spec (validateDedicatedScaling already confirmed there's only one).
-                const firstRegionConfig = clusterInfo.raw?.replicationSpecs?.[0]?.regionConfigs?.[0] as
-                    | {
-                          autoScaling?: {
-                              compute?: { enabled?: boolean; minInstanceSize?: string; maxInstanceSize?: string };
-                          };
-                      }
-                    | undefined;
-                const currentAutoScaling = firstRegionConfig?.autoScaling?.compute;
+                const currentAutoScaling = validateDedicatedScaling(clusterInfo, args, clusterName);
 
                 // Target size: an explicit resize, or unchanged if only autoscaling is being adjusted.
                 let resolvedInstanceSize: StandardInstanceSize;
