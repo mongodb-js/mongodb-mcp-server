@@ -710,6 +710,98 @@ describe("ToolBase", () => {
             expect(schema.safeParse({ bogus: 1 }).success).toBe(false);
         });
     });
+
+    describe("shared schema caching", () => {
+        type CapturedSchema = {
+            safeParseAsync: (value: unknown) => Promise<{ success: boolean; error?: { issues: unknown[] } }>;
+        };
+
+        function register<T extends ToolBase>(tool: T): { inputSchema: CapturedSchema; outputSchema: unknown } {
+            let captured: { inputSchema?: unknown; outputSchema?: unknown } = {};
+            const mockServer = {
+                mcpServer: {
+                    registerTool: (
+                        _name: string,
+                        config: { inputSchema: unknown; outputSchema?: unknown }
+                    ): { enabled: boolean; disable: () => void; enable: () => void } => {
+                        captured = config;
+                        return { enabled: true, disable: vi.fn(), enable: vi.fn() };
+                    },
+                },
+            };
+            tool.register(mockServer as unknown as Server);
+            return { inputSchema: captured.inputSchema as CapturedSchema, outputSchema: captured.outputSchema };
+        }
+
+        function newTestTool(): TestTool {
+            return new TestTool({
+                name: TestTool.toolName,
+                category: TestTool.category,
+                operationType: TestTool.operationType,
+                session: mockSession,
+                config: mockConfig,
+                telemetry: mockTelemetry,
+                elicitation: mockElicitation,
+                uiRegistry: new UIRegistry(),
+                metrics: mockMetrics,
+            });
+        }
+
+        function newToolWithOutput(): TestToolWithOutputSchema {
+            return new TestToolWithOutputSchema({
+                name: TestToolWithOutputSchema.toolName,
+                category: TestToolWithOutputSchema.category,
+                operationType: TestToolWithOutputSchema.operationType,
+                session: mockSession,
+                config: mockConfig,
+                telemetry: mockTelemetry,
+                elicitation: mockElicitation,
+                uiRegistry: new UIRegistry(),
+                metrics: mockMetrics,
+            });
+        }
+
+        it("reuses one input schema instance across registrations of the same tool", () => {
+            expect(register(newTestTool()).inputSchema).toBe(register(newTestTool()).inputSchema);
+        });
+
+        it("redirects each instance's argsShape to the shared shape", () => {
+            const t1 = newTestTool();
+            const t2 = newTestTool();
+            register(t1);
+            register(t2);
+            expect(t1.argsShape).toBe(t2.argsShape);
+        });
+
+        it("reuses one output schema instance across registrations", () => {
+            const a = register(newToolWithOutput()).outputSchema;
+            const b = register(newToolWithOutput()).outputSchema;
+            expect(a).toBeDefined();
+            expect(a).toBe(b);
+        });
+
+        it("keeps concurrent validation errors isolated across sessions", async () => {
+            // Two sessions share one schema instance; each concurrent parse must
+            // return its own error reflecting its own input, with no cross-talk.
+            const schema = register(newTestTool()).inputSchema;
+            const [wrongType, unknownKey] = await Promise.all([
+                schema.safeParseAsync({ param1: 123 }),
+                schema.safeParseAsync({ param1: "ok", bogus: 1 }),
+            ]);
+
+            expect(wrongType.success).toBe(false);
+            expect(unknownKey.success).toBe(false);
+            expect(JSON.stringify(wrongType.error?.issues)).toContain("param1");
+            expect(JSON.stringify(unknownKey.error?.issues)).toContain("bogus");
+        });
+
+        it("does not mutate the shared shape in place across registrations", () => {
+            register(newTestTool());
+            const t = newTestTool();
+            register(t);
+            expect(Object.keys(t.argsShape).sort()).toEqual(["param1", "param2"]);
+        });
+    });
 });
 
 function createToolWithoutStructuredContent(

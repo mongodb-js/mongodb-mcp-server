@@ -362,6 +362,8 @@ export class CreateAccessListTool extends AtlasToolBase {
         projectId: z.ZodString;
     };
     // (undocumented)
+    protected schemaVariantKey(): string;
+    // (undocumented)
     static toolName: string;
 }
 
@@ -1604,6 +1606,7 @@ export abstract class MongoDBToolBase extends ToolBase {
     protected resolveTelemetryMetadata(args: ToolArgs<typeof MongoDBToolBase.argsShape>, input: {
         result: CallToolResult;
     }): Promise<ConnectionMetadata>;
+    protected schemaVariantKey(): string;
     // (undocumented)
     protected server?: Server;
 }
@@ -2148,6 +2151,7 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
     protected abstract resolveTelemetryMetadata(args: ToolArgs<typeof ToolBase.argsShape>, input: {
         result: CallToolResult;
     }): TelemetryToolMetadata | Promise<TelemetryToolMetadata>;
+    protected schemaVariantKey(): string;
     protected readonly session: Session;
     protected readonly telemetry: Telemetry;
     protected get toolMeta(): Record<string, unknown>;
