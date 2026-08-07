@@ -149,6 +149,10 @@ export class ConnectionEntry {
         return this.manager.currentConnectionState;
     }
 
+    get events(): ConnectionManager["events"] {
+        return this.manager.events;
+    }
+
     /**
      * Invokes the revocation cleanup supplied at creation and disarms it, so
      * the cleanup runs at most once even when triggered both directly and by
