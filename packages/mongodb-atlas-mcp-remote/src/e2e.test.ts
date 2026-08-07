@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { Client, StdioClientTransport } from "@modelcontextprotocol/client";
+import { Client } from "@modelcontextprotocol/client";
+import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 
 /**
  * E2E tests are skipped unless Service Account credentials are set.

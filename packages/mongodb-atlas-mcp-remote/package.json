@@ -27,9 +27,8 @@
     "pretest": "pnpm compile"
   },
   "dependencies": {
-    "@cfworker/json-schema": "4.1.1",
-    "@modelcontextprotocol/client": "2.0.0-alpha.2",
-    "@modelcontextprotocol/server": "2.0.0-alpha.2",
+    "@modelcontextprotocol/client": "^2.0.0",
+    "@modelcontextprotocol/server": "^2.0.0",
     "@mongodb-js/devtools-proxy-support": "^0.7.16",
     "mongodb-log-writer": "^2.5.13",
     "mongodb-redact": "^1.4.6"

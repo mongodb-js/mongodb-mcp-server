@@ -221,6 +221,7 @@ export interface ApiClientOptions {
     baseUrl: string;
     // (undocumented)
     credentials?: Credentials;
+    httpClient?: HttpClient;
     // (undocumented)
     requestContext?: RequestContext;
     supportsCurrentIpLookup?: boolean;
@@ -697,6 +698,12 @@ export { Gauge }
 export { Histogram }
 
 // @public
+export type HttpClient = {
+    fetch: typeof fetch;
+    Request: typeof globalThis.Request;
+};
+
+// @public
 export interface ISessionStore<T extends CloseableTransport = CloseableTransport> {
     addSession(params: {
         sessionId: string;
@@ -819,8 +826,10 @@ export class MCPConnectionStore {
 }
 
 // @public (undocumented)
-export class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unknown> extends ExpressBasedHttpServer {
-    constructor(input: MCPHttpServerConstructorArgs<TUserConfig, TContext>);
+export class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> extends ExpressBasedHttpServer {
+    constructor(input: MCPHttpServerConstructorArgs<TUserConfig, TContext, TMetrics>);
+    // (undocumented)
+    protected readonly metrics: Metrics<TMetrics>;
     // (undocumented)
     protected readonly sessionStore: ISessionStore<StreamableHTTPServerTransport>;
     // (undocumented)
@@ -834,7 +843,7 @@ export class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext
 }
 
 // @public (undocumented)
-export type MCPHttpServerConstructorArgs<TUserConfig extends UserConfig = UserConfig, TContext = unknown> = {
+export type MCPHttpServerConstructorArgs<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> = {
     userConfig: TUserConfig;
     createServerForRequest: (createParams: {
         request: TransportRequestContext;
@@ -844,7 +853,7 @@ export type MCPHttpServerConstructorArgs<TUserConfig extends UserConfig = UserCo
     logger: LoggerBase;
     serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
     sessionOptions?: CustomizableSessionOptions<TUserConfig>;
-    metrics: Metrics<DefaultMetrics>;
+    metrics: Metrics<TMetrics>;
     sessionStore: ISessionStore<StreamableHTTPServerTransport>;
 };
 

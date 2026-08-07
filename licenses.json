@@ -1,0 +1,16 @@
+{
+  "ignoredOrgs": ["@mongodb-js", "@mongosh", "@oven", "@rollup"],
+  "ignoredPackages": [
+    "bindings@1.5.0",
+    "file-uri-to-path@1.0.0",
+    "macos-export-certificate-and-key@2.0.1",
+    "win-export-certificate-and-key@3.0.2",
+    "hadron-document@8.11.7",
+    "hadron-type-checker@7.5.7"
+  ],
+  "licenseOverrides": {
+    "node-addon-api@8.9.0": "MIT"
+  },
+  "doNotValidatePackages": [],
+  "additionalAllowedLicenses": ["Python-2.0"]
+}
