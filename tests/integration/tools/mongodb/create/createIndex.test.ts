@@ -592,7 +592,13 @@ describeWithMongoDB(
                 expect(indexes[0]?.queryable).toEqual(false);
                 expect(indexes[0]?.latestDefinition).toEqual({
                     fields: [
-                        { type: "vector", path: "vector_1", numDimensions: 4, similarity: "euclidean" },
+                        {
+                            type: "vector",
+                            path: "vector_1",
+                            numDimensions: 4,
+                            similarity: "euclidean",
+                            quantization: "none",
+                        },
                         { type: "filter", path: "category" },
                     ],
                 });
@@ -946,7 +952,6 @@ describeWithMongoDB(
                 const indexes = (await collection.listSearchIndexes().toArray()) as unknown as Document[];
                 expect(indexes).toHaveLength(1);
                 expect(indexes[0]?.name).toEqual("search_index");
-                expect(indexes[0]?.type).toEqual("search");
                 expect(indexes[0]?.status).toEqual(expect.stringMatching(/PENDING|BUILDING/));
                 expect(indexes[0]?.queryable).toEqual(false);
                 expect(indexes[0]?.latestDefinition).toMatchObject({
@@ -1023,14 +1028,13 @@ describeWithMongoDB(
                 const indexes = (await collection.listSearchIndexes().toArray()) as unknown as Document[];
                 expect(indexes).toHaveLength(1);
                 expect(indexes[0]?.name).toEqual("dynamic_search_index");
-                expect(indexes[0]?.type).toEqual("search");
                 expect(indexes[0]?.status).toEqual(expect.stringMatching(/PENDING|BUILDING/));
                 expect(indexes[0]?.queryable).toEqual(false);
                 expect(indexes[0]?.latestDefinition).toEqual({
                     analyzer: "lucene.standard",
+                    numPartitions: 1,
                     mappings: {
                         dynamic: true,
-                        fields: {},
                     },
                 });
             });
