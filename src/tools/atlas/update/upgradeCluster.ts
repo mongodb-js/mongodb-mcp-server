@@ -8,7 +8,6 @@ import type { ClusterDescription20240805 } from "../../../common/atlas/openapi.j
 import { AtlasArgs } from "../../args.js";
 import {
     standardInstanceSizeEnum,
-    isStandardInstanceSize,
     getMaxAutoScalingSize,
     type StandardInstanceSize,
 } from "../../../common/atlas/cluster.js";
@@ -85,12 +84,9 @@ type AutoScalingArgs = { computeAutoScaling?: boolean; minInstanceSize?: string;
 
 type ResolvedM10AutoScaling = { enabled: boolean; minInstanceSize?: string; maxInstanceSize?: string };
 
-// The target size for a Free/Flex to M10 upgrade is fixed at M10, so minInstanceSize can only be M10 or omitted.
-const m10MinInstanceSizeSchema = z.literal("M10").optional();
-
 // Validates and resolves the autoscaling args for a Free/Flex to M10 upgrade, where the target size is fixed at M10.
 function resolveM10AutoScaling(autoScalingArgs: AutoScalingArgs, provider: string | undefined): ResolvedM10AutoScaling {
-    if (!m10MinInstanceSizeSchema.safeParse(autoScalingArgs.minInstanceSize).success) {
+    if (autoScalingArgs.minInstanceSize !== undefined && autoScalingArgs.minInstanceSize !== "M10") {
         throw new UpgradeClusterError(`minInstanceSize must be omitted or "M10" when upgrading to M10 Dedicated.`);
     }
 
@@ -297,7 +293,10 @@ function validateDedicatedScaling(
             `No changes specified for Dedicated cluster "${clusterName}". Provide targetTier (new instance size), computeAutoScaling, minInstanceSize, and/or maxInstanceSize to scale it.`
         );
     }
-    if (clusterInfo.instanceSize === undefined || !isStandardInstanceSize(clusterInfo.instanceSize)) {
+    if (
+        clusterInfo.instanceSize === undefined ||
+        !standardInstanceSizeEnum.safeParse(clusterInfo.instanceSize).success
+    ) {
         throw new UpgradeClusterError(
             `Cluster "${clusterName}" has instance size "${clusterInfo.instanceSize ?? "unknown"}", which this tool does not support scaling. Only standard M10-M80 instance sizes are supported.`
         );
