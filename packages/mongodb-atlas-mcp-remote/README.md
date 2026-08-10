@@ -15,11 +15,10 @@ Use this for MCP clients that don't yet natively support service-account (OAuth 
 
 The wrapper is configured with two environment variables:
 
-| Variable                    | Description                               |
-| --------------------------- | ----------------------------------------- |
+| Variable                    | Description                                          |
+| --------------------------- | ---------------------------------------------------- |
 | `MDB_MCP_API_CLIENT_ID`     | The Client ID from your Atlas MCP configuration.     |
 | `MDB_MCP_API_CLIENT_SECRET` | The Client Secret from your Atlas MCP configuration. |
-
 
 ## Usage
 
