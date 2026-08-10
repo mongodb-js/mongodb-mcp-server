@@ -6,7 +6,8 @@ import {
     defaultTestConfig,
     expectDefined,
 } from "../../../helpers.js";
-import { expect, it, afterEach } from "vitest";
+import { expect, it, afterEach, describe, beforeEach } from "vitest";
+import { createMockElicitInput } from "../../../../utils/elicitationMocks.js";
 import { describeWithMongoDB, getDocsFromUntrustedContent, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 import type { Client } from "@modelcontextprotocol/sdk/client";
 import type { CursorLimitKey } from "../../../../../src/helpers/constants.js";
@@ -266,6 +267,104 @@ describeWithMongoDB("aggregate-db tool", (integration) => {
             },
         };
     });
+});
+
+describe("aggregate-db tool write stage confirmation", () => {
+    const mockElicitInput = createMockElicitInput();
+
+    describeWithMongoDB(
+        "with a client that supports elicitation",
+        (integration) => {
+            beforeEach(() => mockElicitInput.clear());
+
+            it("asks the user to confirm a $out stage, naming the collection it replaces", async () => {
+                mockElicitInput.confirmYes();
+                const connectionId = await integration.connectMcpClient();
+
+                const response = await integration.mcpClient().callTool({
+                    name: "aggregate-db",
+                    arguments: {
+                        connectionId,
+                        database: integration.randomDbName(),
+                        pipeline: [{ $documents: [{ name: "Peter", age: 5 }] }, { $out: "outpeople" }],
+                    },
+                });
+
+                expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
+                const [request] = mockElicitInput.mock.mock.calls[0] as unknown as [{ message: string }];
+                expect(request.message).toContain("`$out`");
+                expect(request.message).toContain(`\`${integration.randomDbName()}.outpeople\``);
+                expect(response.isError).toBeUndefined();
+            });
+
+            it("does not write anything when the user declines", async () => {
+                mockElicitInput.confirmNo();
+                const connectionId = await integration.connectMcpClient();
+
+                const response = await integration.mcpClient().callTool({
+                    name: "aggregate-db",
+                    arguments: {
+                        connectionId,
+                        database: integration.randomDbName(),
+                        pipeline: [{ $documents: [{ name: "Peter", age: 5 }] }, { $out: "declinedpeople" }],
+                    },
+                });
+
+                expect(response.isError).toBe(true);
+                expect(getResponseContent(response)).toContain("aggregation was not performed");
+
+                const collections = await integration
+                    .mongoClient()
+                    .db(integration.randomDbName())
+                    .listCollections({ name: "declinedpeople" })
+                    .toArray();
+                expect(collections).toHaveLength(0);
+            });
+
+            it("does not ask for confirmation for a pipeline without write stages", async () => {
+                const connectionId = await integration.connectMcpClient();
+
+                const response = await integration.mcpClient().callTool({
+                    name: "aggregate-db",
+                    arguments: {
+                        connectionId,
+                        database: integration.randomDbName(),
+                        pipeline: [{ $documents: [{ name: "Peter", age: 5 }] }],
+                    },
+                });
+
+                expect(response.isError).toBeUndefined();
+                expect(mockElicitInput.mock).not.toHaveBeenCalled();
+            });
+
+            it("rejects a write pipeline in readOnly mode without asking for confirmation", async () => {
+                const connectionId = await integration.connectMcpClient();
+                integration.mcpServer().userConfig.readOnly = true;
+
+                try {
+                    const response = await integration.mcpClient().callTool({
+                        name: "aggregate-db",
+                        arguments: {
+                            connectionId,
+                            database: integration.randomDbName(),
+                            pipeline: [{ $documents: [{ name: "Peter", age: 5 }] }, { $out: "outpeople" }],
+                        },
+                    });
+
+                    expect(getResponseContent(response)).toEqual(
+                        "Error running aggregate-db: In readOnly mode you can not run pipelines with $out or $merge stages."
+                    );
+                    expect(mockElicitInput.mock).not.toHaveBeenCalled();
+                } finally {
+                    integration.mcpServer().userConfig.readOnly = false;
+                }
+            });
+        },
+        {
+            getUserConfig: () => ({ ...defaultTestConfig, confirmationRequiredTools: [] }),
+            getMockElicitationInput: () => mockElicitInput,
+        }
+    );
 });
 
 describeWithMongoDB(
