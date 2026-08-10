@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ToolBase } from "../../../src/tools/tool.js";
-import type { OperationType, ToolArgs, ToolCategory } from "../../../src/tools/tool.js";
+import type { OperationType, ToolArgs, ToolCategory, ToolExecutionContext } from "../../../src/tools/tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { TelemetryToolMetadata } from "../../../src/telemetry/types.js";
 
@@ -110,6 +110,33 @@ export class EchoTool extends ToolBase {
 
     protected execute(): Promise<CallToolResult> {
         return Promise.resolve({ content: [{ type: "text", text: "ok" }] });
+    }
+
+    protected resolveTelemetryMetadata(): TelemetryToolMetadata {
+        return {};
+    }
+}
+
+/**
+ * Tool that asks for confirmation from within execute(), the way aggregate does
+ * once it knows the pipeline contains a write stage.
+ */
+export class ConfirmingTool extends ToolBase {
+    static toolName = "confirming-tool";
+    static category: ToolCategory = "mongodb";
+    static operationType: OperationType = "read";
+    public description = "Requests confirmation while executing";
+    public argsShape = {};
+
+    protected async execute(
+        _args: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<CallToolResult> {
+        if (!(await this.requestConfirmation("Proceed?", context))) {
+            return { content: [{ type: "text" as const, text: "The operation was not performed." }], isError: true };
+        }
+
+        return { content: [{ type: "text" as const, text: "executed" }] };
     }
 
     protected resolveTelemetryMetadata(): TelemetryToolMetadata {

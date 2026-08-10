@@ -634,6 +634,8 @@ export enum ErrorCodes {
     // (undocumented)
     AtlasVectorSearchInvalidQuery = 1000007,
     // (undocumented)
+    ConfirmationDeclined = 1000011,
+    // (undocumented)
     ForbiddenCollscan = 1000002,
     // (undocumented)
     ForbiddenServerSideJS = 1000009,
@@ -1068,6 +1070,7 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
     outputSchema?: ZodRawShape;
     // (undocumented)
     register(server: Server<TUserConfig, TContext, TMetrics>): boolean;
+    protected requestConfirmation(message: string, context: ToolExecutionContext): Promise<boolean>;
     requiresConfirmation(): boolean;
     protected abstract resolveTelemetryMetadata(args: ToolArgs<typeof ToolBase.argsShape>, input: {
         result: CallToolResult;
@@ -1078,7 +1081,6 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
     protected get toolMeta(): Record<string, unknown>;
     // (undocumented)
     protected verifyAllowed(): boolean;
-    verifyConfirmed(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<boolean>;
 }
 
 // @public
@@ -1107,7 +1109,9 @@ export type ToolConstructorParams<TUserConfig extends UserConfig = UserConfig, T
 };
 
 // @public
-export type ToolExecutionContext = Pick<ServerRequestHandlerExtra, "signal"> & Partial<Pick<ServerRequestHandlerExtra, "_meta" | "requestId" | "requestInfo" | "sendNotification">>;
+export type ToolExecutionContext = Pick<ServerRequestHandlerExtra, "signal"> & Partial<Pick<ServerRequestHandlerExtra, "_meta" | "requestId" | "requestInfo" | "sendNotification">> & {
+    elicitationDurationMs?: number;
+};
 
 export { TransportRequestContext }
 

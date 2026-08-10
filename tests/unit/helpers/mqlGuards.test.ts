@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { assertNoServerSideJS, isWriteStage } from "../../../src/helpers/mqlGuards.js";
+import { assertNoServerSideJS, getWriteStageTargets, isWriteStage } from "../../../src/helpers/mqlGuards.js";
 import { ErrorCodes, MongoDBError } from "../../../src/common/errors.js";
 
 function expectForbiddenOperator(value: unknown, operator: string): void {
@@ -79,6 +79,72 @@ describe("mqlGuards", () => {
             expect(isWriteStage({ $match: { age: 5 } })).toBe(false);
             expect(isWriteStage({ $group: { _id: null } })).toBe(false);
             expect(isWriteStage({})).toBe(false);
+        });
+    });
+
+    describe("getWriteStageTargets", () => {
+        it("returns an empty array for pipelines without write stages", () => {
+            expect(getWriteStageTargets([{ $match: { age: 5 } }, { $sort: { name: 1 } }], "mydb")).toEqual([]);
+        });
+
+        it("resolves a $out stage naming a collection against the default database", () => {
+            expect(getWriteStageTargets([{ $out: "results" }], "mydb")).toEqual([
+                { operator: "$out", namespace: "mydb.results" },
+            ]);
+        });
+
+        it("resolves a $out stage naming an explicit database and collection", () => {
+            expect(getWriteStageTargets([{ $out: { db: "otherdb", coll: "results" } }], "mydb")).toEqual([
+                { operator: "$out", namespace: "otherdb.results" },
+            ]);
+        });
+
+        it("resolves a $merge stage naming a collection against the default database", () => {
+            expect(getWriteStageTargets([{ $merge: "results" }], "mydb")).toEqual([
+                { operator: "$merge", namespace: "mydb.results" },
+            ]);
+        });
+
+        it("resolves a $merge stage with an into string", () => {
+            expect(getWriteStageTargets([{ $merge: { into: "results" } }], "mydb")).toEqual([
+                { operator: "$merge", namespace: "mydb.results" },
+            ]);
+        });
+
+        it("resolves a $merge stage with an into document naming an explicit database", () => {
+            expect(getWriteStageTargets([{ $merge: { into: { db: "otherdb", coll: "results" } } }], "mydb")).toEqual([
+                { operator: "$merge", namespace: "otherdb.results" },
+            ]);
+        });
+
+        it("reports the whenMatched and whenNotMatched behaviours of a $merge stage", () => {
+            expect(
+                getWriteStageTargets(
+                    [{ $merge: { into: "results", whenMatched: "replace", whenNotMatched: "discard" } }],
+                    "mydb"
+                )
+            ).toEqual([
+                { operator: "$merge", namespace: "mydb.results", whenMatched: "replace", whenNotMatched: "discard" },
+            ]);
+        });
+
+        it("omits a whenMatched that is a custom pipeline rather than a documented mode", () => {
+            expect(
+                getWriteStageTargets([{ $merge: { into: "results", whenMatched: [{ $set: { seen: true } }] } }], "mydb")
+            ).toEqual([{ operator: "$merge", namespace: "mydb.results" }]);
+        });
+
+        it("leaves the namespace undefined for unrecognised write stage shapes", () => {
+            expect(getWriteStageTargets([{ $out: { s3: { bucket: "b", region: "us-east-1" } } }], "mydb")).toEqual([
+                { operator: "$out", namespace: undefined },
+            ]);
+            expect(getWriteStageTargets([{ $merge: { into: { s3: "bucket" } } }], "mydb")).toEqual([
+                { operator: "$merge", namespace: undefined },
+            ]);
+        });
+
+        it("only inspects top-level stages", () => {
+            expect(getWriteStageTargets([{ $unionWith: { pipeline: [{ $out: "results" }] } }], "mydb")).toEqual([]);
         });
     });
 });
