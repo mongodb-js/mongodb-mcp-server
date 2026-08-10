@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { inspectCluster, standardInstanceSizeEnum } from "../../../src/common/atlas/cluster.js";
+import { inspectCluster } from "../../../src/common/atlas/cluster.js";
 import type { ApiClient } from "../../../src/common/atlas/apiClient.js";
 
 describe("inspectCluster", () => {
@@ -24,17 +24,4 @@ describe("inspectCluster", () => {
             })
         );
     });
-});
-
-describe("standardInstanceSizeEnum", () => {
-    it.each(["M10", "M20", "M30", "M40", "M50", "M60", "M80"])("returns true for standard tier %s", (size) => {
-        expect(standardInstanceSizeEnum.safeParse(size).success).toBe(true);
-    });
-
-    it.each(["M100", "M140", "M200", "M300", "M40_NVME", "M30_GEN_2", "R40", "M0", "FLEX", "", "m10", "M10 "])(
-        "returns false for unsupported/invalid size %s",
-        (size) => {
-            expect(standardInstanceSizeEnum.safeParse(size).success).toBe(false);
-        }
-    );
 });

@@ -293,10 +293,7 @@ function validateDedicatedScaling(
             `No changes specified for Dedicated cluster "${clusterName}". Provide targetTier (new instance size), computeAutoScaling, minInstanceSize, and/or maxInstanceSize to scale it.`
         );
     }
-    if (
-        clusterInfo.instanceSize === undefined ||
-        !standardInstanceSizeEnum.safeParse(clusterInfo.instanceSize).success
-    ) {
+    if (!standardInstanceSizeEnum.safeParse(clusterInfo.instanceSize).success) {
         throw new UpgradeClusterError(
             `Cluster "${clusterName}" has instance size "${clusterInfo.instanceSize ?? "unknown"}", which this tool does not support scaling. Only standard M10-M80 instance sizes are supported.`
         );
