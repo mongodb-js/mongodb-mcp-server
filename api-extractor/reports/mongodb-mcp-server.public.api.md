@@ -251,6 +251,9 @@ export interface AuthProvider {
 // @public (undocumented)
 export type BaseEvent = TelemetryEvent<unknown>;
 
+// @public (undocumented)
+export function classifyToolError(error: unknown): ToolErrorKind;
+
 export { CloseableTransport }
 
 // @public
@@ -1226,6 +1229,9 @@ export { TelemetryEvents }
 export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant";
 
 // @public
+export type ToolErrorKind = "expected" | "unexpected";
+
+// @public
 export type ToolExecutionContext = Pick<ServerRequestHandlerExtra, "signal"> & Partial<Pick<ServerRequestHandlerExtra, "_meta" | "requestId" | "requestInfo" | "sendNotification">> & {
     elicitationDurationMs?: number;
 };
@@ -1302,6 +1308,13 @@ export class UIRegistry {
 export type UIRegistryOptions = {
     customUIs?: (toolName: string) => string | null | Promise<string | null>;
 };
+
+// @public
+export class UnexpectedError extends Error {
+    constructor(message: string, options?: {
+        cause?: unknown;
+    });
+}
 
 // @public (undocumented)
 export type UserConfig = z.infer<typeof UserConfigSchema>;

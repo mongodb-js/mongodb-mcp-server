@@ -638,6 +638,27 @@ npx -y mongodb-mcp-server@latest --transport http --monitoringServerHost 0.0.0.0
 
 > **💡 Note:** `healthCheckHost` / `healthCheckPort` are deprecated aliases for `monitoringServerHost` / `monitoringServerPort` and continue to serve the same `/health` endpoint.
 
+##### Metrics
+
+The `/metrics` endpoint exposes Prometheus metrics, including the `mcp_tool_execution_duration_seconds` histogram that tracks every tool execution:
+
+| Label            | Description                                                                                             |
+| ---------------- | ------------------------------------------------------------------------------------------------------- |
+| `tool_name`      | Name of the executed tool.                                                                              |
+| `category`       | Tool category (`mongodb`, `atlas`, `atlas-local`, `assistant`, ...).                                    |
+| `status`         | `success` or `error`.                                                                                   |
+| `operation_type` | Operation category of the tool (`read`, `write`, `update`, ...).                                        |
+| `error_type`     | `Error` name or symbolic `ErrorCodes` name (e.g. `ForbiddenWriteOperation`, `UnexpectedError`); only set when the tool threw. |
+| `expected`       | `true` for successes and caller-addressable errors (Atlas API 4xx, rejected operations, declined confirmations); `false` for infrastructure errors. |
+
+Tools signal an infrastructure failure by throwing an `UnexpectedError` (checked first by the classifier), and caller-addressable failures by throwing typed errors or returning an `isError` result. **Error-rate alerts should count only `expected="false"`** so that rejected operations and user decisions are not paged:
+
+```promql
+sum(
+  rate(mcp_tool_execution_duration_seconds_count{expected="false"}[5m])
+) by (tool_name)
+```
+
 ### Atlas API Access
 
 To use the Atlas API tools, you'll need to create a service account in MongoDB Atlas:

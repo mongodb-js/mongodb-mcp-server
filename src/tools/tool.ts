@@ -24,6 +24,8 @@ import { getRandomUUID } from "../helpers/getRandomUUID.js";
 import { requestIdAttr } from "../helpers/requestIdAttr.js";
 import type { Metrics, DefaultMetrics } from "@mongodb-js/mcp-metrics";
 import { redact } from "mongodb-redact";
+import { classifyToolError } from "../common/classifyToolError.js";
+import { ErrorCodes, isMongoDBError } from "../common/errors.js";
 
 export type ToolArgs<T extends ZodRawShape> = {
     [K in keyof T]: z.infer<T[K]>;
@@ -65,6 +67,17 @@ type StructuredToolResult<OutputSchema extends ZodRawShape> = {
     isError?: boolean;
     structuredContent: z.infer<z.ZodObject<OutputSchema>>;
 };
+
+/** `error_type` metric label: symbolic `ErrorCodes` name for MongoDBError, `error.name` otherwise. */
+function errorTypeLabel(error: unknown): string {
+    if (isMongoDBError(error)) {
+        return ErrorCodes[error.code] ?? "MongoDBError";
+    }
+    if (error instanceof Error) {
+        return error.name;
+    }
+    return "unknown";
+}
 
 /**
  * The type of operation the tool performs. This is used when evaluating if a tool is allowed to run based on
@@ -533,9 +546,11 @@ export abstract class ToolBase<
         const startTime: number = Date.now();
 
         /**
-         * Records the outcome of the call, emitting its telemetry event and
-         * observing its execution duration. `error` is passed when the call
-         * failed, and its type is reported alongside the metric.
+         * Emits the telemetry event and observes execution duration. `expected`
+         * is "true" for success, caller-addressable errors and declined
+         * confirmations, "false" for infrastructure errors (what alerts should
+         * count). `error_type` is only recorded for thrown errors; an `isError`
+         * result without a thrown error is treated as expected.
          */
         const recordOutcome = (result: CallToolResult, error?: unknown): void => {
             // Time the user spent answering an elicitation is not time the tool
@@ -550,7 +565,8 @@ export abstract class ToolBase<
                     category: this.category,
                     status: error !== undefined || result.isError ? "error" : "success",
                     operation_type: this.operationType,
-                    ...(error !== undefined ? { error_type: error instanceof Error ? error.name : "unknown" } : {}),
+                    expected: error === undefined || classifyToolError(error) === "expected" ? "true" : "false",
+                    ...(error !== undefined ? { error_type: errorTypeLabel(error) } : {}),
                 },
                 (Date.now() - executionStartTime) / 1000
             );

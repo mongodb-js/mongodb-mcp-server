@@ -99,7 +99,8 @@ export { Telemetry } from "./telemetry/telemetry.js";
 export type { TelemetryEvents, TelemetryConfig } from "./telemetry/telemetry.js";
 export type { TelemetryEvent, BaseEvent } from "./telemetry/types.js";
 export { EventCache } from "./telemetry/eventCache.js";
-export { ErrorCodes, MongoDBError } from "./common/errors.js";
+export { ErrorCodes, MongoDBError, UnexpectedError } from "./common/errors.js";
+export { classifyToolError, type ToolErrorKind } from "./common/classifyToolError.js";
 export { getRandomUUID } from "./helpers/getRandomUUID.js";
 export type { AuthProvider, Credentials } from "./common/atlas/auth/authProvider.js";
 export type {

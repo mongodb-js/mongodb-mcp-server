@@ -21,6 +21,8 @@ import {
     TestToolWithOutputSchema,
     TestToolWithoutStructuredContent,
     ErrorTool,
+    CallerAddressableErrorTool,
+    UnexpectedErrorTool,
     ConfirmingTool,
 } from "./mocks/tools.js";
 import { MockMetrics } from "./mocks/metrics.js";
@@ -265,6 +267,17 @@ describe("ToolBase", () => {
 
             expect(result.isError).toBe(true);
             expect(result.content).toEqual([{ type: "text", text: "The operation was not performed." }]);
+
+            // Declining confirmation is a caller decision, so expected=true.
+            const { values } = await mockMetrics.get("toolExecutionDuration").get();
+            const count = values.find(
+                (v) =>
+                    v.metricName === "mcp_tool_execution_duration_seconds_count" &&
+                    v.labels.tool_name === "confirming-tool" &&
+                    v.labels.status === "error"
+            );
+            expect(count?.value).toBe(1);
+            expect(count?.labels.expected).toBe("true");
         });
 
         it("excludes the time the user spent deciding from the duration metric", async () => {
@@ -637,6 +650,8 @@ describe("ToolBase", () => {
     describe("metrics emission", () => {
         let successCallback: ToolCallback<(typeof testTool)["argsShape"]>;
         let errorCallback: ToolCallback<ZodRawShape>;
+        let callerAddressableCallback: ToolCallback<ZodRawShape>;
+        let unexpectedErrorCallback: ToolCallback<ZodRawShape>;
 
         function makeMockServer(capture: (cb: ToolCallback<ZodRawShape>) => void): Server {
             return {
@@ -667,6 +682,30 @@ describe("ToolBase", () => {
                 metrics: mockMetrics,
             });
             failingTool.register(makeMockServer((cb) => (errorCallback = cb)));
+
+            const callerAddressableTool = new CallerAddressableErrorTool({
+                name: CallerAddressableErrorTool.toolName,
+                category: CallerAddressableErrorTool.category,
+                operationType: CallerAddressableErrorTool.operationType,
+                session: mockSession,
+                config: mockConfig,
+                telemetry: mockTelemetry,
+                elicitation: mockElicitation,
+                metrics: mockMetrics,
+            });
+            callerAddressableTool.register(makeMockServer((cb) => (callerAddressableCallback = cb)));
+
+            const unexpectedErrorTool = new UnexpectedErrorTool({
+                name: UnexpectedErrorTool.toolName,
+                category: UnexpectedErrorTool.category,
+                operationType: UnexpectedErrorTool.operationType,
+                session: mockSession,
+                config: mockConfig,
+                telemetry: mockTelemetry,
+                elicitation: mockElicitation,
+                metrics: mockMetrics,
+            });
+            unexpectedErrorTool.register(makeMockServer((cb) => (unexpectedErrorCallback = cb)));
         });
 
         it("records toolExecutionDuration with status and operation_type on a successful execution", async () => {
@@ -683,6 +722,7 @@ describe("ToolBase", () => {
                     v.labels.operation_type === "delete"
             );
             expect(count?.value).toBe(1);
+            expect(count?.labels.expected).toBe("true");
 
             const sum = values.find(
                 (v) =>
@@ -695,7 +735,7 @@ describe("ToolBase", () => {
             expect(sum?.value).toBeGreaterThanOrEqual(0);
         });
 
-        it("records toolExecutionDuration with status=error when execute() rejects", async () => {
+        it("records toolExecutionDuration with status=error and expected=false when execute() rejects with an unexpected error", async () => {
             const result = await errorCallback({}, {} as never);
 
             expect(result.isError).toBe(true);
@@ -709,6 +749,38 @@ describe("ToolBase", () => {
                     v.labels.status === "error"
             );
             expect(count?.value).toBe(1);
+            expect(count?.labels.expected).toBe("false");
+        });
+
+        it("records toolExecutionDuration with status=error and expected=true when execute() rejects with a caller-addressable error", async () => {
+            await callerAddressableCallback({}, {} as never);
+
+            const { values } = await mockMetrics.get("toolExecutionDuration").get();
+            const count = values.find(
+                (v) =>
+                    v.metricName === "mcp_tool_execution_duration_seconds_count" &&
+                    v.labels.tool_name === "caller-addressable-error-tool" &&
+                    v.labels.category === "mongodb" &&
+                    v.labels.status === "error"
+            );
+            expect(count?.value).toBe(1);
+            expect(count?.labels.expected).toBe("true");
+            expect(count?.labels.error_type).toBe("ForbiddenWriteOperation");
+        });
+
+        it("records toolExecutionDuration with status=error and expected=false when execute() rejects with an UnexpectedError", async () => {
+            await unexpectedErrorCallback({}, {} as never);
+
+            const { values } = await mockMetrics.get("toolExecutionDuration").get();
+            const count = values.find(
+                (v) =>
+                    v.metricName === "mcp_tool_execution_duration_seconds_count" &&
+                    v.labels.tool_name === "unexpected-error-tool" &&
+                    v.labels.status === "error"
+            );
+            expect(count?.value).toBe(1);
+            expect(count?.labels.expected).toBe("false");
+            expect(count?.labels.error_type).toBe("UnexpectedError");
         });
     });
 
