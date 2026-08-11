@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { AtlasArgs } from "../../args.js";
 
 const ALLOWED_STREAMS_NAME_REGEX = /^[a-zA-Z0-9_-]+$/;
 const ALLOWED_STREAMS_NAME_ERROR = "Name can only contain ASCII letters, numbers, hyphens, and underscores";
@@ -97,7 +98,7 @@ export const ConnectionConfig = z
 export const PrivateLinkConfig = z
     .object({
         // Common
-        provider: z.enum(["AWS", "AZURE", "GCP"]).describe("Cloud provider for the PrivateLink endpoint. Required."),
+        provider: AtlasArgs.cloudProvider().describe("Cloud provider for the PrivateLink endpoint. Required."),
         region: z
             .string()
             .optional()

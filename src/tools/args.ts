@@ -22,6 +22,9 @@ const ALLOWED_PROJECT_NAME_CHARACTERS_REGEX = /^[a-zA-Z0-9\s()@&+:._',-]+$/;
 export const ALLOWED_PROJECT_NAME_CHARACTERS_ERROR =
     "Project names can't be longer than 64 characters and can only contain letters, numbers, spaces, and the following symbols: ( ) @ & + : . _ - ' ,";
 
+const atlasCloudProviderSchema = z.enum(["AWS", "GCP", "AZURE"]);
+export type AtlasCloudProvider = z.infer<typeof atlasCloudProviderSchema>;
+
 export const CommonArgs = {
     string: (): ZodString => z.string().regex(NO_UNICODE_REGEX, NO_UNICODE_ERROR),
 
@@ -37,6 +40,8 @@ export const AtlasArgs = {
     projectId: (): z.ZodString => CommonArgs.objectId("projectId"),
 
     organizationId: (): z.ZodString => CommonArgs.objectId("organizationId"),
+
+    cloudProvider: (): typeof atlasCloudProviderSchema => atlasCloudProviderSchema,
 
     clusterName: (): z.ZodString =>
         z

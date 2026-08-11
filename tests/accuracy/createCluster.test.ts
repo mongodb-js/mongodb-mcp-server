@@ -63,7 +63,16 @@ const mockListProjects = {
     }),
 };
 
-const optionalListProjects = [{ toolName: "atlas-list-projects", parameters: {}, optional: true as const }];
+const optionalListProjects = [
+    {
+        toolName: "atlas-list-projects",
+        parameters: {
+            limit: Matcher.anyValue,
+            pageNum: Matcher.anyValue,
+        },
+        optional: true as const,
+    },
+];
 
 describeAccuracyTests([
     {
@@ -346,7 +355,10 @@ describeAccuracyTests([
         expectedToolCalls: [
             {
                 toolName: "atlas-list-projects",
-                parameters: {},
+                parameters: {
+                    limit: Matcher.anyValue,
+                    pageNum: Matcher.anyValue,
+                },
             },
             {
                 toolName: "atlas-create-cluster",

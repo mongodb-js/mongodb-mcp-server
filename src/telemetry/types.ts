@@ -238,6 +238,7 @@ export type TelemetryToolMetadata =
     | ConnectionMetadata
     | PerfAdvisorToolMetadata
     | StreamsToolMetadata
+    | GetRegionsMetadata
     | UpgradeClusterMetadata
     | CreateClusterMetadata
     | IndexMetadata
@@ -278,6 +279,10 @@ export type PerfAdvisorToolMetadata = AtlasMetadata &
 export type StreamsToolMetadata = AtlasMetadata & {
     action?: string;
     resource?: string;
+};
+
+export type GetRegionsMetadata = AtlasMetadata & {
+    provider?: "AWS" | "GCP" | "AZURE";
 };
 
 export type UpgradeClusterMetadata = AtlasMetadata & {

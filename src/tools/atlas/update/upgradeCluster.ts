@@ -16,11 +16,6 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
 const ALLOWED_PROVIDER_REGEX = /^[A-Z_]+$/;
 
-const REGION_RECOMMENDATIONS = `Common region mappings by provider (default recommendation: AWS US_EAST_1):
-AWS: "East Coast"/"Virginia"/"US East" → US_EAST_1, "Ohio" → US_EAST_2, "California"/"West Coast" → US_WEST_2, "Southeast Asia"/"APAC"/"Singapore" → AP_SOUTHEAST_1, "Europe"/"EU"/"Ireland" → EU_WEST_1.
-GCP: "Central US" → CENTRAL_US, "Western US" → WESTERN_US, "Southeast Asia"/"APAC" → SOUTHEASTERN_ASIA_PACIFIC, "Europe"/"EU" → WESTERN_EUROPE.
-AZURE: "East US" → US_EAST_2, "West US" → US_WEST_2, "Europe"/"EU" → EUROPE_NORTH.`;
-
 // Adds M140/M200 since getMaxAutoScalingSize can return those for M60/M80, and maxInstanceSize accepts them directly.
 const INSTANCE_SIZE_ORDER = [...standardInstanceSizeEnum.options, "M140", "M200"];
 
@@ -355,7 +350,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
         "When scaling a Dedicated cluster, at least one of targetTier, computeAutoScaling, minInstanceSize, or maxInstanceSize must be provided. " +
         "Compute autoscaling defaults to enabled when upgrading to M10 Dedicated: min instance size is set to the selected instance size, max is set two tiers above, unless overridden. " +
         "Note to LLM: If provider and region are not already known, ask for both together in a single question before calling this tool. " +
-        REGION_RECOMMENDATIONS;
+        "Use atlas-get-regions to resolve natural-language locations or uncertain region codes before calling this tool.";
     static operationType: OperationType = "update";
     public override outputSchema = UpgradeClusterOutputSchema;
     public argsShape = {
