@@ -7,6 +7,11 @@ import type { CreateClusterMetadata } from "../../../telemetry/types.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ensureCurrentIpInAccessList, getAccessListNote } from "../../../common/atlas/accessListUtils.js";
 import { ApiClientError } from "../../../common/atlas/apiClientError.js";
+import {
+    standardInstanceSizeEnum,
+    getMaxAutoScalingSize,
+    type StandardInstanceSize,
+} from "../../../common/atlas/cluster.js";
 
 /** @public */
 export const ATLAS_CREATE_CLUSTER_README_DESCRIPTION =
@@ -26,24 +31,15 @@ Default recommendation: AWS US_EAST_1.
 User-specified regions not present in the mapping MUST be respected, rely on the tool to surface errors if a region is not supported.
 `;
 
-const instanceSizeEnum = z.enum(["M10", "M20", "M30", "M40", "M50", "M60", "M80"]);
 const cloudProviderEnum = z.enum(["AWS", "GCP", "AZURE"]);
 const clusterTypeEnum = z.enum(["REPLICASET", "SHARDED"]);
 const mongoDBVersionEnum = z.enum(["7.0", "8.0", "LATEST"]);
 const backupEnum = z.enum(["OFF", "SNAPSHOT", "CONTINUOUS"]);
 const encryptionAtRestProviderEnum = z.enum(["AWS", "AZURE", "GCP", "NONE"]);
 
-type InstanceSize = z.infer<typeof instanceSizeEnum>;
 type CloudProvider = z.infer<typeof cloudProviderEnum>;
 type MongoDBVersion = z.infer<typeof mongoDBVersionEnum>;
 type Backup = z.infer<typeof backupEnum>;
-
-function getMaxAutoScalingSize(size: InstanceSize, provider: CloudProvider): string {
-    // M60 and M80 extend beyond the selectable range. M140 is not supported on Azure.
-    if (size === "M80") return "M200";
-    if (size === "M60") return provider === "AZURE" ? "M200" : "M140";
-    return instanceSizeEnum.options[instanceSizeEnum.options.indexOf(size) + 2] ?? "M80";
-}
 
 type AutoScalingConfig = {
     compute: {
@@ -60,13 +56,13 @@ type ReplicationSpec = {
         providerName: string;
         regionName: string;
         priority: number;
-        electableSpecs: { instanceSize: InstanceSize; nodeCount: number; diskSizeGB?: number };
+        electableSpecs: { instanceSize: StandardInstanceSize; nodeCount: number; diskSizeGB?: number };
         autoScaling: AutoScalingConfig;
     }>;
 };
 
 function buildAutoScaling(
-    instanceSize: InstanceSize,
+    instanceSize: StandardInstanceSize,
     computeEnabled: boolean,
     provider: CloudProvider
 ): AutoScalingConfig {
@@ -86,7 +82,7 @@ const ELECTABLE_NODE_DISTRIBUTIONS = [[3], [2, 1], [2, 2, 1]] as const;
 function buildReplicationSpecs(
     provider: CloudProvider,
     regions: string[],
-    instanceSize: InstanceSize,
+    instanceSize: StandardInstanceSize,
     autoScaling: AutoScalingConfig,
     diskSizeGB?: number
 ): ReplicationSpec[] {
@@ -157,7 +153,7 @@ export const CreateClusterArgsShape = {
             "Cluster topology. Use `SHARDED` for single-shard clusters, requires M30 or higher. Defaults to `REPLICASET`."
         ),
 
-    instanceSize: instanceSizeEnum
+    instanceSize: standardInstanceSizeEnum
         .optional()
         .describe(
             "Instance size. NVME and high-memory instances are not supported. Minimum M30 when clusterType is SHARDED. Defaults to M10 for projects with fewer than 2 existing clusters, M30 otherwise. Omit unless explicitly specified by the user."
@@ -208,7 +204,7 @@ const CreateClusterOutputSchema = {
     clusterId: z.string().optional(),
     provider: cloudProviderEnum,
     regions: z.array(z.string()),
-    instanceSize: instanceSizeEnum,
+    instanceSize: standardInstanceSizeEnum,
     clusterType: clusterTypeEnum,
     mongoDBVersion: mongoDBVersionEnum,
     backup: backupEnum,
@@ -253,7 +249,7 @@ export class CreateClusterTool extends AtlasToolBase {
             throw new CreateClusterError("SHARDED clusters require M30 or higher instance size.");
         }
 
-        let instanceSize: InstanceSize;
+        let instanceSize: StandardInstanceSize;
         if (args.instanceSize !== undefined) {
             instanceSize = args.instanceSize;
         } else if (clusterType === "SHARDED") {

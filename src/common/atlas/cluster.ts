@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type {
     ClusterConnectionStrings,
     ClusterDescription20240805,
@@ -7,6 +8,23 @@ import { type ApiClient, type ApiClientRequestContext } from "./apiClient.js";
 import { requestIdAttr } from "../../helpers/requestIdAttr.js";
 import { LogId } from "../logging/index.js";
 import { ConnectionString } from "mongodb-connection-string-url";
+
+// enum is capped at M80 because that's as far as createCluster
+// and upgradeCluster currently support creating/scaling a cluster directly.
+export const standardInstanceSizeEnum = z.enum(["M10", "M20", "M30", "M40", "M50", "M60", "M80"]);
+
+export type StandardInstanceSize = z.infer<typeof standardInstanceSizeEnum>;
+
+// M60 and M80 extend beyond the selectable range. M140 is not supported on Azure.
+export function getMaxAutoScalingSize(size: StandardInstanceSize, provider: string): string {
+    if (size === "M80") {
+        return "M200";
+    }
+    if (size === "M60") {
+        return provider === "AZURE" ? "M200" : "M140";
+    }
+    return standardInstanceSizeEnum.options[standardInstanceSizeEnum.options.indexOf(size) + 2] ?? "M80";
+}
 
 type AtlasProcessId = `${string}:${number}`;
 

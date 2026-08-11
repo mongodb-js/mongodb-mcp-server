@@ -41,6 +41,7 @@ const FREE_CLUSTER_RAW = {
 
 const DEDICATED_CLUSTER_RAW = {
     id: "dedicated-cluster-id",
+    clusterType: "REPLICASET",
     replicationSpecs: [
         {
             regionConfigs: [
@@ -48,6 +49,83 @@ const DEDICATED_CLUSTER_RAW = {
                     providerName: "AWS",
                     regionName: "US_EAST_1",
                     electableSpecs: { instanceSize: "M10" },
+                },
+            ],
+        },
+    ],
+};
+
+const DEDICATED_CLUSTER_WITH_AUTOSCALING_RAW = {
+    id: "dedicated-cluster-id",
+    clusterType: "REPLICASET",
+    replicationSpecs: [
+        {
+            regionConfigs: [
+                {
+                    providerName: "AWS",
+                    regionName: "US_EAST_1",
+                    electableSpecs: { instanceSize: "M20" },
+                    autoScaling: {
+                        compute: { enabled: true, minInstanceSize: "M20", maxInstanceSize: "M40" },
+                    },
+                },
+            ],
+        },
+    ],
+};
+
+const DEDICATED_CLUSTER_MULTI_REGION_RAW = {
+    id: "dedicated-cluster-id",
+    clusterType: "REPLICASET",
+    replicationSpecs: [
+        {
+            regionConfigs: [
+                {
+                    providerName: "AWS",
+                    regionName: "US_EAST_1",
+                    electableSpecs: { instanceSize: "M10" },
+                },
+                {
+                    providerName: "AWS",
+                    regionName: "US_WEST_2",
+                    readOnlySpecs: { instanceSize: "M10" },
+                },
+                {
+                    providerName: "AWS",
+                    regionName: "EU_WEST_1",
+                    analyticsSpecs: { instanceSize: "M10" },
+                },
+            ],
+        },
+    ],
+};
+
+const DEDICATED_CLUSTER_M80_RAW = {
+    id: "dedicated-cluster-id",
+    clusterType: "REPLICASET",
+    replicationSpecs: [
+        {
+            regionConfigs: [
+                {
+                    providerName: "AWS",
+                    regionName: "US_EAST_1",
+                    electableSpecs: { instanceSize: "M80" },
+                },
+            ],
+        },
+    ],
+};
+
+const DEDICATED_CLUSTER_NVME_RAW = {
+    id: "dedicated-cluster-id",
+    clusterType: "REPLICASET",
+    replicationSpecs: [
+        {
+            regionConfigs: [
+                {
+                    providerName: "AWS",
+                    regionName: "US_EAST_1",
+                    electableSpecs: { instanceSize: "M40_NVME" },
                 },
             ],
         },
@@ -75,6 +153,7 @@ describe("UpgradeClusterTool", () => {
             getFlexCluster: vi.fn(),
             upgradeTenantUpgrade: vi.fn().mockResolvedValue(UPGRADE_RESULT),
             tenantUpgrade: vi.fn().mockResolvedValue(UPGRADE_RESULT),
+            updateCluster: vi.fn().mockResolvedValue(UPGRADE_RESULT),
         };
 
         const mockLogger = {
@@ -140,14 +219,14 @@ describe("UpgradeClusterTool", () => {
             );
         });
 
-        it("returns error for DEDICATED cluster", async () => {
+        it("returns error for DEDICATED cluster with no scale args provided", async () => {
             mockApiClient.getCluster!.mockResolvedValue(DEDICATED_CLUSTER_RAW);
 
             const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
 
             expect(result.isError).toBe(true);
             const text = (result.content[0] as { text: string }).text;
-            expect(text).toContain("already at the Dedicated tier");
+            expect(text).toContain("No changes specified");
         });
 
         it("returns error when attempting to upgrade FLEX to FLEX", async () => {
@@ -159,6 +238,251 @@ describe("UpgradeClusterTool", () => {
             expect(result.isError).toBe(true);
             const text = (result.content[0] as { text: string }).text;
             expect(text).toContain("already a Flex cluster");
+        });
+
+        it("returns error for non-404 getCluster failure without falling through to getFlexCluster", async () => {
+            const serverError = ApiClientError.fromError(
+                new Response(null, { status: 500, statusText: "Internal Server Error" }),
+                "internal server error"
+            );
+            mockApiClient.getCluster!.mockRejectedValue(serverError);
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
+            expect(result.isError).toBe(true);
+            expect(mockApiClient.getFlexCluster).not.toHaveBeenCalled();
+        });
+
+        it("returns error for plain getCluster failure without falling through to getFlexCluster", async () => {
+            mockApiClient.getCluster!.mockRejectedValue(new Error("network timeout"));
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
+            expect(result.isError).toBe(true);
+            expect(mockApiClient.getFlexCluster).not.toHaveBeenCalled();
+        });
+
+        it("returns error when upgradeTenantUpgrade throws (FREE to FLEX)", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
+            mockApiClient.upgradeTenantUpgrade!.mockRejectedValue(new Error("upgrade quota exceeded"));
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
+            expect(result.isError).toBe(true);
+        });
+
+        it("returns error when upgradeTenantUpgrade throws (FREE to M10)", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
+            mockApiClient.upgradeTenantUpgrade!.mockRejectedValue(new Error("upgrade quota exceeded"));
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M10" });
+            expect(result.isError).toBe(true);
+        });
+
+        it("returns error when tenantUpgrade throws", async () => {
+            mockApiClient.getCluster!.mockRejectedValue(notFoundError());
+            mockApiClient.getFlexCluster!.mockResolvedValue(FLEX_CLUSTER_RAW);
+            mockApiClient.tenantUpgrade!.mockRejectedValue(new Error("upgrade quota exceeded"));
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
+            expect(result.isError).toBe(true);
+        });
+
+        it("returns error when targetTier is FLEX for a DEDICATED cluster", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(DEDICATED_CLUSTER_RAW);
+
+            const result = await exec({
+                projectId: "proj1",
+                clusterName: "MyCluster",
+                targetTier: "FLEX",
+            });
+
+            expect(result.isError).toBe(true);
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("already Dedicated");
+            expect(mockApiClient.updateCluster).not.toHaveBeenCalled();
+        });
+
+        it("returns error when provider is provided for a DEDICATED cluster", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(DEDICATED_CLUSTER_RAW);
+
+            const result = await exec({
+                projectId: "proj1",
+                clusterName: "MyCluster",
+                targetTier: "M20",
+                provider: "GCP",
+            });
+
+            expect(result.isError).toBe(true);
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("not valid when scaling an already-Dedicated cluster");
+            expect(mockApiClient.updateCluster).not.toHaveBeenCalled();
+        });
+
+        it("returns error when region is provided for a DEDICATED cluster", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(DEDICATED_CLUSTER_RAW);
+
+            const result = await exec({
+                projectId: "proj1",
+                clusterName: "MyCluster",
+                targetTier: "M20",
+                region: "US_WEST_2",
+            });
+
+            expect(result.isError).toBe(true);
+            expect(mockApiClient.updateCluster).not.toHaveBeenCalled();
+        });
+
+        it("returns error when current instance size is an NVMe variant", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(DEDICATED_CLUSTER_NVME_RAW);
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M50" });
+
+            expect(result.isError).toBe(true);
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("does not support scaling");
+            expect(mockApiClient.updateCluster).not.toHaveBeenCalled();
+        });
+
+        it("returns error when updateCluster throws", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(DEDICATED_CLUSTER_RAW);
+            mockApiClient.updateCluster!.mockRejectedValue(new Error("update failed"));
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M20" });
+
+            expect(result.isError).toBe(true);
+        });
+
+        it("accepts a SHARDED cluster with a single shard, same as a REPLICASET", async () => {
+            mockApiClient.getCluster!.mockResolvedValue({
+                id: "dedicated-cluster-id",
+                clusterType: "SHARDED",
+                replicationSpecs: [
+                    {
+                        regionConfigs: [
+                            { providerName: "AWS", regionName: "US_EAST_1", electableSpecs: { instanceSize: "M10" } },
+                        ],
+                    },
+                ],
+            });
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M20" });
+
+            expect(result.isError).toBeFalsy();
+            expect(mockApiClient.updateCluster).toHaveBeenCalled();
+        });
+
+        it("returns error when the cluster is GEOSHARDED", async () => {
+            mockApiClient.getCluster!.mockResolvedValue({
+                id: "dedicated-cluster-id",
+                clusterType: "GEOSHARDED",
+                replicationSpecs: [
+                    {
+                        regionConfigs: [
+                            { providerName: "AWS", regionName: "US_EAST_1", electableSpecs: { instanceSize: "M10" } },
+                        ],
+                    },
+                    {
+                        regionConfigs: [
+                            { providerName: "AWS", regionName: "EU_WEST_1", electableSpecs: { instanceSize: "M10" } },
+                        ],
+                    },
+                ],
+            });
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M20" });
+
+            expect(result.isError).toBe(true);
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("GEOSHARDED");
+            expect(mockApiClient.updateCluster).not.toHaveBeenCalled();
+        });
+
+        it("returns error when the cluster has multiple shards", async () => {
+            mockApiClient.getCluster!.mockResolvedValue({
+                id: "dedicated-cluster-id",
+                clusterType: "SHARDED",
+                replicationSpecs: [
+                    {
+                        regionConfigs: [
+                            { providerName: "AWS", regionName: "US_EAST_1", electableSpecs: { instanceSize: "M10" } },
+                        ],
+                    },
+                    {
+                        regionConfigs: [
+                            { providerName: "AWS", regionName: "US_EAST_1", electableSpecs: { instanceSize: "M10" } },
+                        ],
+                    },
+                ],
+            });
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M20" });
+
+            expect(result.isError).toBe(true);
+            expect(mockApiClient.updateCluster).not.toHaveBeenCalled();
+        });
+
+        it("returns error when targetTier is an instance size for a FREE source", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M20" });
+
+            expect(result.isError).toBe(true);
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain('targetTier "M20" is not valid');
+            expect(mockApiClient.upgradeTenantUpgrade).not.toHaveBeenCalled();
+        });
+
+        it("returns error when targetTier is an instance size for a FLEX source", async () => {
+            mockApiClient.getCluster!.mockRejectedValue(notFoundError());
+            mockApiClient.getFlexCluster!.mockResolvedValue(FLEX_CLUSTER_RAW);
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M20" });
+
+            expect(result.isError).toBe(true);
+            expect(mockApiClient.tenantUpgrade).not.toHaveBeenCalled();
+        });
+
+        it("returns error when computeAutoScaling is provided for a FREE-to-FLEX upgrade", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
+
+            const result = await exec({
+                projectId: "proj1",
+                clusterName: "MyCluster",
+                computeAutoScaling: true,
+            });
+
+            expect(result.isError).toBe(true);
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("Flex clusters do not support compute autoscaling");
+            expect(mockApiClient.upgradeTenantUpgrade).not.toHaveBeenCalled();
+        });
+
+        it("returns error when minInstanceSize/maxInstanceSize provided for an explicit FLEX target", async () => {
+            mockApiClient.getCluster!.mockRejectedValue(notFoundError());
+            mockApiClient.getFlexCluster!.mockResolvedValue(FLEX_CLUSTER_RAW);
+
+            const result = await exec({
+                projectId: "proj1",
+                clusterName: "MyCluster",
+                targetTier: "FLEX",
+                minInstanceSize: "M20",
+            });
+
+            expect(result.isError).toBe(true);
+        });
+
+        it("returns error when minInstanceSize is not M10 for a Free/Flex-to-M10 upgrade", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
+
+            const result = await exec({
+                projectId: "proj1",
+                clusterName: "MyCluster",
+                targetTier: "M10",
+                minInstanceSize: "M20",
+            });
+
+            expect(result.isError).toBe(true);
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain('must be omitted or "M10"');
+            expect(mockApiClient.upgradeTenantUpgrade).not.toHaveBeenCalled();
         });
     });
 
@@ -207,6 +531,19 @@ describe("UpgradeClusterTool", () => {
                             providerName: "AWS",
                             instanceSizeName: "M10",
                             regionName: "US_EAST_1",
+                            autoScaling: {
+                                compute: {
+                                    minInstanceSize: "M10",
+                                    maxInstanceSize: "M30",
+                                },
+                            },
+                        },
+                        autoScaling: {
+                            compute: {
+                                enabled: true,
+                                scaleDownEnabled: true,
+                            },
+                            diskGBEnabled: true,
                         },
                     },
                 },
@@ -259,6 +596,19 @@ describe("UpgradeClusterTool", () => {
                             providerName: "GCP",
                             instanceSizeName: "M10",
                             regionName: "CENTRAL_US",
+                            autoScaling: {
+                                compute: {
+                                    minInstanceSize: "M10",
+                                    maxInstanceSize: "M30",
+                                },
+                            },
+                        },
+                        autoScaling: {
+                            compute: {
+                                enabled: true,
+                                scaleDownEnabled: true,
+                            },
+                            diskGBEnabled: true,
                         },
                     },
                 },
@@ -323,19 +673,19 @@ describe("UpgradeClusterTool", () => {
                                         regionName: "US_EAST_1",
                                         priority: 7,
                                         electableSpecs: { instanceSize: "M10", nodeCount: 3 },
+                                        autoScaling: {
+                                            compute: {
+                                                enabled: true,
+                                                scaleDownEnabled: true,
+                                                minInstanceSize: "M10",
+                                                maxInstanceSize: "M30",
+                                            },
+                                            diskGB: { enabled: true },
+                                        },
                                     },
                                 ],
                             },
                         ],
-                        autoScaling: {
-                            compute: {
-                                enabled: true,
-                                scaleDownEnabled: true,
-                                minInstanceSize: "M10",
-                                maxInstanceSize: "M30",
-                            },
-                            diskGBEnabled: true,
-                        },
                     },
                 },
                 expect.anything()
@@ -390,53 +740,6 @@ describe("UpgradeClusterTool", () => {
         });
     });
 
-    describe("API failure handling", () => {
-        it("returns error for non-404 getCluster failure without falling through to getFlexCluster", async () => {
-            const serverError = ApiClientError.fromError(
-                new Response(null, { status: 500, statusText: "Internal Server Error" }),
-                "internal server error"
-            );
-            mockApiClient.getCluster!.mockRejectedValue(serverError);
-
-            const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
-            expect(result.isError).toBe(true);
-            expect(mockApiClient.getFlexCluster).not.toHaveBeenCalled();
-        });
-
-        it("returns error for plain getCluster failure without falling through to getFlexCluster", async () => {
-            mockApiClient.getCluster!.mockRejectedValue(new Error("network timeout"));
-
-            const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
-            expect(result.isError).toBe(true);
-            expect(mockApiClient.getFlexCluster).not.toHaveBeenCalled();
-        });
-
-        it("returns error when upgradeTenantUpgrade throws (FREE to FLEX)", async () => {
-            mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
-            mockApiClient.upgradeTenantUpgrade!.mockRejectedValue(new Error("upgrade quota exceeded"));
-
-            const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
-            expect(result.isError).toBe(true);
-        });
-
-        it("returns error when upgradeTenantUpgrade throws (FREE to M10)", async () => {
-            mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
-            mockApiClient.upgradeTenantUpgrade!.mockRejectedValue(new Error("upgrade quota exceeded"));
-
-            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M10" });
-            expect(result.isError).toBe(true);
-        });
-
-        it("returns error when tenantUpgrade throws", async () => {
-            mockApiClient.getCluster!.mockRejectedValue(notFoundError());
-            mockApiClient.getFlexCluster!.mockResolvedValue(FLEX_CLUSTER_RAW);
-            mockApiClient.tenantUpgrade!.mockRejectedValue(new Error("upgrade quota exceeded"));
-
-            const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
-            expect(result.isError).toBe(true);
-        });
-    });
-
     describe("structuredContent", () => {
         it("returns originalTier=free and targetTier=flex for FREE to FLEX upgrade", async () => {
             mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
@@ -446,21 +749,27 @@ describe("UpgradeClusterTool", () => {
             expect(result.structuredContent).toMatchObject({ originalTier: "FREE", targetTier: "FLEX" });
         });
 
-        it("returns originalTier=FREE and targetTier=M10 for FREE to M10 upgrade", async () => {
+        it("returns originalTier=FREE, targetTier=M10 for FREE to M10 upgrade", async () => {
             mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
 
             const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M10" });
 
-            expect(result.structuredContent).toMatchObject({ originalTier: "FREE", targetTier: "M10" });
+            expect(result.structuredContent).toMatchObject({
+                originalTier: "FREE",
+                targetTier: "M10",
+            });
         });
 
-        it("returns originalTier=FLEX and targetTier=M10 for FLEX to M10 upgrade", async () => {
+        it("returns originalTier=FLEX, targetTier=M10 for FLEX to M10 upgrade", async () => {
             mockApiClient.getCluster!.mockRejectedValue(notFoundError());
             mockApiClient.getFlexCluster!.mockResolvedValue(FLEX_CLUSTER_RAW);
 
             const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
 
-            expect(result.structuredContent).toMatchObject({ originalTier: "FLEX", targetTier: "M10" });
+            expect(result.structuredContent).toMatchObject({
+                originalTier: "FLEX",
+                targetTier: "M10",
+            });
         });
 
         it("includes provider and region when provided as args", async () => {
@@ -515,6 +824,360 @@ describe("UpgradeClusterTool", () => {
             mockApiClient.getFlexCluster!.mockResolvedValue(FLEX_CLUSTER_RAW);
             const secondResult = await exec({ projectId: "proj1", clusterName: "MyCluster" });
             expect(secondResult.structuredContent).toMatchObject({ originalTier: "FLEX" });
+        });
+    });
+
+    describe("DEDICATED cluster", () => {
+        it("scales instance size only, preserving disabled autoscaling", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(DEDICATED_CLUSTER_RAW);
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M20" });
+
+            expect(result.isError).toBeFalsy();
+            const call = mockApiClient.updateCluster!.mock.calls[0]![0] as {
+                body: { replicationSpecs: Array<{ regionConfigs: Array<Record<string, unknown>> }> };
+            };
+            expect(call.body.replicationSpecs[0]!.regionConfigs[0]!["electableSpecs"]).toMatchObject({
+                instanceSize: "M20",
+            });
+            expect(call.body.replicationSpecs[0]!.regionConfigs[0]!["autoScaling"]).toMatchObject({
+                compute: { enabled: false, scaleDownEnabled: false },
+            });
+        });
+
+        it("leaves analytics-only region configs untouched", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(DEDICATED_CLUSTER_MULTI_REGION_RAW);
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M20" });
+
+            expect(result.isError).toBeFalsy();
+            const call = mockApiClient.updateCluster!.mock.calls[0]![0] as {
+                body: { replicationSpecs: Array<{ regionConfigs: Array<Record<string, unknown>> }> };
+            };
+            const regionConfigs = call.body.replicationSpecs[0]!.regionConfigs;
+            expect(regionConfigs[0]!["electableSpecs"]).toMatchObject({ instanceSize: "M20" });
+            expect(regionConfigs[1]!["readOnlySpecs"]).toMatchObject({ instanceSize: "M20" });
+            expect(regionConfigs[2]!["analyticsSpecs"]).toMatchObject({ instanceSize: "M10" });
+            expect(regionConfigs[2]!["autoScaling"]).toBeUndefined();
+        });
+
+        it("scales electable and readOnly specs but not analytics when a single region has all three", async () => {
+            mockApiClient.getCluster!.mockResolvedValue({
+                id: "dedicated-cluster-id",
+                clusterType: "REPLICASET",
+                replicationSpecs: [
+                    {
+                        regionConfigs: [
+                            {
+                                providerName: "AWS",
+                                regionName: "US_EAST_1",
+                                electableSpecs: { instanceSize: "M10" },
+                                analyticsSpecs: { instanceSize: "M10" },
+                            },
+                            {
+                                providerName: "AWS",
+                                regionName: "US_WEST_2",
+                                electableSpecs: { instanceSize: "M10" },
+                                readOnlySpecs: { instanceSize: "M10" },
+                                analyticsSpecs: { instanceSize: "M10" },
+                            },
+                        ],
+                    },
+                ],
+            });
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M20" });
+
+            expect(result.isError).toBeFalsy();
+            const call = mockApiClient.updateCluster!.mock.calls[0]![0] as {
+                body: { replicationSpecs: Array<{ regionConfigs: Array<Record<string, unknown>> }> };
+            };
+            const regionConfigs = call.body.replicationSpecs[0]!.regionConfigs;
+            expect(regionConfigs[0]!["electableSpecs"]).toMatchObject({ instanceSize: "M20" });
+            expect(regionConfigs[0]!["analyticsSpecs"]).toMatchObject({ instanceSize: "M10" });
+            expect(regionConfigs[1]!["electableSpecs"]).toMatchObject({ instanceSize: "M20" });
+            expect(regionConfigs[1]!["readOnlySpecs"]).toMatchObject({ instanceSize: "M20" });
+            expect(regionConfigs[1]!["analyticsSpecs"]).toMatchObject({ instanceSize: "M10" });
+        });
+
+        it("omits diskGB from the request body when the cluster had no existing diskGB config", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(DEDICATED_CLUSTER_RAW);
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M20" });
+
+            expect(result.isError).toBeFalsy();
+            const call = mockApiClient.updateCluster!.mock.calls[0]![0] as {
+                body: { replicationSpecs: Array<{ regionConfigs: Array<Record<string, unknown>> }> };
+            };
+            const autoScaling = call.body.replicationSpecs[0]!.regionConfigs[0]!["autoScaling"] as Record<
+                string,
+                unknown
+            >;
+            expect(autoScaling["diskGB"]).toBeUndefined();
+        });
+
+        it("enables autoscaling with no bounds, defaulting min to size and max two tiers above", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(DEDICATED_CLUSTER_RAW);
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", computeAutoScaling: true });
+
+            expect(result.isError).toBeFalsy();
+            expect(result.structuredContent).toMatchObject({
+                targetTier: "M10",
+                computeAutoScaling: true,
+                minInstanceSize: "M10",
+                maxInstanceSize: "M30",
+            });
+        });
+
+        it("defaults the autoscaling max for M80 to M200, matching createCluster's convention", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(DEDICATED_CLUSTER_M80_RAW);
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", computeAutoScaling: true });
+
+            expect(result.isError).toBeFalsy();
+            expect(result.structuredContent).toMatchObject({
+                targetTier: "M80",
+                maxInstanceSize: "M200",
+            });
+        });
+
+        it("enables autoscaling with explicit min/max, explicit values win", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(DEDICATED_CLUSTER_RAW);
+
+            const result = await exec({
+                projectId: "proj1",
+                clusterName: "MyCluster",
+                computeAutoScaling: true,
+                minInstanceSize: "M20",
+                maxInstanceSize: "M50",
+            });
+
+            expect(result.isError).toBeFalsy();
+            expect(result.structuredContent).toMatchObject({
+                computeAutoScaling: true,
+                minInstanceSize: "M20",
+                maxInstanceSize: "M50",
+            });
+        });
+
+        it("disables autoscaling while passing min/max, bounds still present in request body", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(DEDICATED_CLUSTER_WITH_AUTOSCALING_RAW);
+
+            const result = await exec({
+                projectId: "proj1",
+                clusterName: "MyCluster",
+                computeAutoScaling: false,
+                minInstanceSize: "M20",
+                maxInstanceSize: "M40",
+            });
+
+            expect(result.isError).toBeFalsy();
+            const call = mockApiClient.updateCluster!.mock.calls[0]![0] as {
+                body: { replicationSpecs: Array<{ regionConfigs: Array<Record<string, unknown>> }> };
+            };
+            expect(call.body.replicationSpecs[0]!.regionConfigs[0]!["autoScaling"]).toMatchObject({
+                compute: {
+                    enabled: false,
+                    scaleDownEnabled: false,
+                    minInstanceSize: "M20",
+                    maxInstanceSize: "M40",
+                },
+            });
+        });
+
+        it("changes only min/max, preserving current enabled state", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(DEDICATED_CLUSTER_WITH_AUTOSCALING_RAW);
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", maxInstanceSize: "M50" });
+
+            expect(result.isError).toBeFalsy();
+            expect(result.structuredContent).toMatchObject({
+                computeAutoScaling: true,
+                minInstanceSize: "M20",
+                maxInstanceSize: "M50",
+            });
+        });
+
+        it("recomputes min/max relative to the new size when resizing, instead of inheriting stale values", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(DEDICATED_CLUSTER_WITH_AUTOSCALING_RAW);
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M30" });
+
+            expect(result.isError).toBeFalsy();
+            expect(result.structuredContent).toMatchObject({
+                targetTier: "M30",
+                computeAutoScaling: true,
+                minInstanceSize: "M30",
+                maxInstanceSize: "M50",
+            });
+        });
+
+        it("preserves the existing max when resizing if it's already higher than the new default", async () => {
+            mockApiClient.getCluster!.mockResolvedValue({
+                id: "dedicated-cluster-id",
+                clusterType: "REPLICASET",
+                replicationSpecs: [
+                    {
+                        regionConfigs: [
+                            {
+                                providerName: "AWS",
+                                regionName: "US_EAST_1",
+                                electableSpecs: { instanceSize: "M20" },
+                                autoScaling: {
+                                    compute: { enabled: true, minInstanceSize: "M20", maxInstanceSize: "M60" },
+                                },
+                            },
+                        ],
+                    },
+                ],
+            });
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M30" });
+
+            expect(result.isError).toBeFalsy();
+            expect(result.structuredContent).toMatchObject({
+                targetTier: "M30",
+                minInstanceSize: "M30",
+                maxInstanceSize: "M60",
+            });
+        });
+
+        it("mentions both size and autoscaling in the response text when both change", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(DEDICATED_CLUSTER_RAW);
+
+            const result = await exec({
+                projectId: "proj1",
+                clusterName: "MyCluster",
+                targetTier: "M20",
+                computeAutoScaling: true,
+            });
+
+            expect(result.isError).toBeFalsy();
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("scaled to M20");
+            expect(text).toContain("compute autoscaling enabled");
+        });
+
+        it("mentions only autoscaling in the response text when size is unchanged", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(DEDICATED_CLUSTER_RAW);
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", computeAutoScaling: false });
+
+            expect(result.isError).toBeFalsy();
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).not.toContain("scaled to");
+            expect(text).toContain("compute autoscaling disabled");
+        });
+
+        it("does not treat passing the current instance size as targetTier as a resize", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(DEDICATED_CLUSTER_WITH_AUTOSCALING_RAW);
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M20" });
+
+            expect(result.isError).toBeFalsy();
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).not.toContain("scaled to");
+            expect(text).toContain("is being updated");
+            // Existing min/max should be preserved, not reset relative to the "new" (unchanged) size.
+            expect(result.structuredContent).toMatchObject({
+                targetTier: "M20",
+                minInstanceSize: "M20",
+                maxInstanceSize: "M40",
+            });
+        });
+
+        it("returns error when the cluster has an unrecognized clusterType", async () => {
+            mockApiClient.getCluster!.mockResolvedValue({
+                id: "dedicated-cluster-id",
+                clusterType: "SOME_FUTURE_TYPE",
+                replicationSpecs: [
+                    {
+                        regionConfigs: [
+                            { providerName: "AWS", regionName: "US_EAST_1", electableSpecs: { instanceSize: "M10" } },
+                        ],
+                    },
+                ],
+            });
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M20" });
+
+            expect(result.isError).toBe(true);
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("SOME_FUTURE_TYPE");
+            expect(mockApiClient.updateCluster).not.toHaveBeenCalled();
+        });
+    });
+
+    describe("cross-path argument validation", () => {
+        it("FREE to M10 with computeAutoScaling=false disables autoscaling in the request body", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
+
+            const result = await exec({
+                projectId: "proj1",
+                clusterName: "MyCluster",
+                targetTier: "M10",
+                computeAutoScaling: false,
+            });
+
+            expect(result.isError).toBeFalsy();
+            const call = mockApiClient.upgradeTenantUpgrade!.mock.calls[0]![0] as {
+                body: {
+                    autoScaling: { compute: { enabled: boolean; minInstanceSize?: string; maxInstanceSize?: string } };
+                };
+            };
+            expect(call.body.autoScaling.compute).toMatchObject({ enabled: false });
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("compute autoscaling disabled");
+        });
+
+        it("FREE to M10 upgrade omits autoscaling detail from the response text when not requested", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M10" });
+
+            expect(result.isError).toBeFalsy();
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).not.toContain("compute autoscaling");
+        });
+
+        it("FREE to M10 with explicit minInstanceSize/maxInstanceSize uses those instead of hardcoded M10/M30", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
+
+            const result = await exec({
+                projectId: "proj1",
+                clusterName: "MyCluster",
+                targetTier: "M10",
+                minInstanceSize: "M10",
+                maxInstanceSize: "M40",
+            });
+
+            expect(result.isError).toBeFalsy();
+            const call = mockApiClient.upgradeTenantUpgrade!.mock.calls[0]![0] as {
+                body: { providerSettings: { autoScaling: { compute: { maxInstanceSize?: string } } } };
+            };
+            expect(call.body.providerSettings.autoScaling.compute.maxInstanceSize).toBe("M40");
+        });
+
+        it("FREE to M10 with no autoscaling args defaults to enabled, M10-M30", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M10" });
+
+            expect(result.isError).toBeFalsy();
+            const call = mockApiClient.upgradeTenantUpgrade!.mock.calls[0]![0] as {
+                body: {
+                    autoScaling: { compute: { enabled: boolean } };
+                    providerSettings: {
+                        autoScaling: { compute: { minInstanceSize?: string; maxInstanceSize?: string } };
+                    };
+                };
+            };
+            expect(call.body.autoScaling.compute).toMatchObject({ enabled: true });
+            expect(call.body.providerSettings.autoScaling.compute).toMatchObject({
+                minInstanceSize: "M10",
+                maxInstanceSize: "M30",
+            });
         });
     });
 

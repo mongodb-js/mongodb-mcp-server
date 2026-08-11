@@ -281,8 +281,11 @@ export type StreamsToolMetadata = AtlasMetadata & {
 };
 
 export type UpgradeClusterMetadata = AtlasMetadata & {
-    original_tier?: "free" | "flex";
-    target_tier?: "flex" | "m10";
+    original_tier?: string;
+    target_tier?: string;
+    compute_auto_scaling?: TelemetryBoolSet;
+    min_instance_size?: string;
+    max_instance_size?: string;
     cluster_id?: string;
     provider?: string;
     region?: string;
