@@ -6,7 +6,6 @@
 
 import type { AggregationCursor } from 'mongodb';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import { classifyToolError } from './common/classifyToolError.ts';
 import type { Client } from '@mongodb-js/atlas-local';
 import type { components } from './openapi.js';
 import { ConnectionInfo } from '@mongosh/arg-parser';
@@ -33,7 +32,6 @@ import type { ServerNotification } from '@modelcontextprotocol/sdk/types.js';
 import type { ServerRequest } from '@modelcontextprotocol/sdk/types.js';
 import type { TelemetryEvents } from '@mongodb-js/mcp-types';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
-import { ToolErrorKind } from './common/classifyToolError.ts';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import type { TransportRequestContext } from '@mongodb-js/mcp-types';
 import { z } from 'zod';
@@ -272,7 +270,8 @@ export type AvailableExport = Pick<StoredExport, "exportName" | "exportTitle" | 
 // @public (undocumented)
 export type BaseEvent = TelemetryEvent<unknown>;
 
-export { classifyToolError }
+// @public (undocumented)
+export function classifyToolError(error: unknown): ToolErrorKind;
 
 // @public (undocumented)
 export interface CommonExportData {
@@ -1112,7 +1111,8 @@ export type ToolConstructorParams<TUserConfig extends UserConfig = UserConfig, T
     context?: TContext;
 };
 
-export { ToolErrorKind }
+// @public
+export type ToolErrorKind = "expected" | "unexpected";
 
 // @public
 export type ToolExecutionContext = Pick<ServerRequestHandlerExtra, "signal"> & Partial<Pick<ServerRequestHandlerExtra, "_meta" | "requestId" | "requestInfo" | "sendNotification">> & {
