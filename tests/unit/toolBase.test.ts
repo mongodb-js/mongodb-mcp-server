@@ -268,7 +268,7 @@ describe("ToolBase", () => {
             expect(result.isError).toBe(true);
             expect(result.content).toEqual([{ type: "text", text: "The operation was not performed." }]);
 
-            // Declining confirmation is a caller decision, so expected=true.
+            // Declining confirmation is a caller decision, not a thrown error, so error_expected is not recorded.
             const { values } = await mockMetrics.get("toolExecutionDuration").get();
             const count = values.find(
                 (v) =>
@@ -277,7 +277,7 @@ describe("ToolBase", () => {
                     v.labels.status === "error"
             );
             expect(count?.value).toBe(1);
-            expect(count?.labels.expected).toBe("true");
+            expect(count?.labels.error_expected).toBeUndefined();
         });
 
         it("excludes the time the user spent deciding from the duration metric", async () => {
@@ -722,7 +722,6 @@ describe("ToolBase", () => {
                     v.labels.operation_type === "delete"
             );
             expect(count?.value).toBe(1);
-            expect(count?.labels.expected).toBe("true");
 
             const sum = values.find(
                 (v) =>
@@ -735,7 +734,7 @@ describe("ToolBase", () => {
             expect(sum?.value).toBeGreaterThanOrEqual(0);
         });
 
-        it("records toolExecutionDuration with status=error and expected=false when execute() rejects with an unexpected error", async () => {
+        it("records toolExecutionDuration with status=error and error_expected=false when execute() rejects with an unexpected error", async () => {
             const result = await errorCallback({}, {} as never);
 
             expect(result.isError).toBe(true);
@@ -749,10 +748,10 @@ describe("ToolBase", () => {
                     v.labels.status === "error"
             );
             expect(count?.value).toBe(1);
-            expect(count?.labels.expected).toBe("false");
+            expect(count?.labels.error_expected).toBe("false");
         });
 
-        it("records toolExecutionDuration with status=error and expected=true when execute() rejects with a caller-addressable error", async () => {
+        it("records toolExecutionDuration with status=error and error_expected=true when execute() rejects with a caller-addressable error", async () => {
             await callerAddressableCallback({}, {} as never);
 
             const { values } = await mockMetrics.get("toolExecutionDuration").get();
@@ -764,11 +763,11 @@ describe("ToolBase", () => {
                     v.labels.status === "error"
             );
             expect(count?.value).toBe(1);
-            expect(count?.labels.expected).toBe("true");
+            expect(count?.labels.error_expected).toBe("true");
             expect(count?.labels.error_type).toBe("ForbiddenWriteOperation");
         });
 
-        it("records toolExecutionDuration with status=error and expected=false when execute() rejects with an UnexpectedError", async () => {
+        it("records toolExecutionDuration with status=error and error_expected=false when execute() rejects with an UnexpectedError", async () => {
             await unexpectedErrorCallback({}, {} as never);
 
             const { values } = await mockMetrics.get("toolExecutionDuration").get();
@@ -779,7 +778,7 @@ describe("ToolBase", () => {
                     v.labels.status === "error"
             );
             expect(count?.value).toBe(1);
-            expect(count?.labels.expected).toBe("false");
+            expect(count?.labels.error_expected).toBe("false");
             expect(count?.labels.error_type).toBe("UnexpectedError");
         });
     });

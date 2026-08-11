@@ -546,11 +546,11 @@ export abstract class ToolBase<
         const startTime: number = Date.now();
 
         /**
-         * Emits the telemetry event and observes execution duration. `expected`
-         * is "true" for success, caller-addressable errors and declined
-         * confirmations, "false" for infrastructure errors (what alerts should
-         * count). `error_type` is only recorded for thrown errors; an `isError`
-         * result without a thrown error is treated as expected.
+         * Emits the telemetry event and observes execution duration. For thrown
+         * errors, `error_type` names the error and `error_expected` is "true"
+         * for caller-addressable errors, "false" for infrastructure errors
+         * (what alerts should count). Successes, declined confirmations and
+         * `isError` results without a thrown error record neither label.
          */
         const recordOutcome = (result: CallToolResult, error?: unknown): void => {
             // Time the user spent answering an elicitation is not time the tool
@@ -565,8 +565,12 @@ export abstract class ToolBase<
                     category: this.category,
                     status: error !== undefined || result.isError ? "error" : "success",
                     operation_type: this.operationType,
-                    expected: error === undefined || classifyToolError(error) === "expected" ? "true" : "false",
-                    ...(error !== undefined ? { error_type: errorTypeLabel(error) } : {}),
+                    ...(error !== undefined
+                        ? {
+                              error_type: errorTypeLabel(error),
+                              error_expected: classifyToolError(error) === "expected" ? "true" : "false",
+                          }
+                        : {}),
                 },
                 (Date.now() - executionStartTime) / 1000
             );

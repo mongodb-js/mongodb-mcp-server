@@ -44,7 +44,7 @@ export class ListKnowledgeSourcesTool extends AssistantToolBase {
                 context: "assistant-list-knowledge-sources",
                 message,
             });
-            // Infrastructure failure: throw so it is classified as expected="false".
+            // Infrastructure failure: throw so it is classified as error_expected="false".
             throw new UnexpectedError(message);
         }
         const { dataSources } = (await response.json()) as ListKnowledgeSourcesResponse;

@@ -70,7 +70,7 @@ export class SearchKnowledgeTool extends AssistantToolBase {
                 context: "assistant-search-knowledge",
                 message,
             });
-            // Infrastructure failure: throw so it is classified as expected="false".
+            // Infrastructure failure: throw so it is classified as error_expected="false".
             throw new UnexpectedError(message);
         }
         const { results } = (await response.json()) as SearchKnowledgeResponse;

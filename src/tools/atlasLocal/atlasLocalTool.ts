@@ -30,7 +30,6 @@ export abstract class AtlasLocalToolBase extends ToolBase {
         //   verifyAllowed would still return false preventing the tool from being registered,
         //   preventing the tool from being executed
         if (!client) {
-            // Server-side invariant violation: throw so it is classified as expected="false".
             throw new UnexpectedError(
                 `Something went wrong on our end, this tool should have been disabled but it was not.
 please log a ticket here: https://github.com/mongodb-js/mongodb-mcp-server/issues/new?template=bug_report.yml`

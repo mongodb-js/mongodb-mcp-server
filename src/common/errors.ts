@@ -29,7 +29,7 @@ export function isMongoDBError(error: unknown): error is MongoDBError<ErrorCodes
 
 /**
  * Marks a tool failure as infrastructure or unintentional rather than caller-addressable, so
- * `classifyToolError` records it as `expected="false"` on the tool metric.
+ * `classifyToolError` records it as `error_expected="false"` on the tool metric.
  */
 export class UnexpectedError extends Error {
     constructor(message: string, options?: { cause?: unknown }) {
