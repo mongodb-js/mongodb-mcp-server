@@ -375,8 +375,8 @@ export class CreateClusterTool extends AtlasToolBase {
         clusterName: z.ZodString;
         provider: z.ZodEnum<{
             AWS: "AWS";
-            AZURE: "AZURE";
             GCP: "GCP";
+            AZURE: "AZURE";
         }>;
         regions: z.ZodArray<z.ZodString>;
         clusterType: z.ZodDefault<z.ZodEnum<{
@@ -407,15 +407,15 @@ export class CreateClusterTool extends AtlasToolBase {
         terminationProtectionEnabled: z.ZodDefault<z.ZodBoolean>;
         encryptionAtRestProvider: z.ZodOptional<z.ZodEnum<{
             AWS: "AWS";
-            AZURE: "AZURE";
             GCP: "GCP";
+            AZURE: "AZURE";
             NONE: "NONE";
         }>>;
     };
     // (undocumented)
     description: string;
     // (undocumented)
-    protected doesValidEARConfigExist(provider: CloudProvider, projectId: string, context: ToolExecutionContext): Promise<boolean>;
+    protected doesValidEARConfigExist(provider: AtlasCloudProvider, projectId: string, context: ToolExecutionContext): Promise<boolean>;
     // (undocumented)
     protected execute(args: ToolArgs<typeof CreateClusterTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof CreateClusterTool.outputSchema>>;
     // (undocumented)
@@ -428,8 +428,8 @@ export class CreateClusterTool extends AtlasToolBase {
         clusterId: z.ZodOptional<z.ZodString>;
         provider: z.ZodEnum<{
             AWS: "AWS";
-            AZURE: "AZURE";
             GCP: "GCP";
+            AZURE: "AZURE";
         }>;
         regions: z.ZodArray<z.ZodString>;
         instanceSize: z.ZodEnum<{
@@ -460,8 +460,8 @@ export class CreateClusterTool extends AtlasToolBase {
         diskSizeGB: z.ZodOptional<z.ZodNumber>;
         encryptionAtRestProvider: z.ZodEnum<{
             AWS: "AWS";
-            AZURE: "AZURE";
             GCP: "GCP";
+            AZURE: "AZURE";
             NONE: "NONE";
         }>;
     };
@@ -661,9 +661,9 @@ export class CreateIndexTool extends MongoDBToolBase {
         collection: z.ZodString;
         indexName: z.ZodString;
         indexType: z.ZodEnum<{
+            search: "search";
             classic: "classic";
             vectorSearch: "vectorSearch";
-            search: "search";
         }>;
     };
     // (undocumented)
@@ -861,8 +861,8 @@ export class DropIndexTool extends MongoDBToolBase {
     argsShape: {
         indexName: z.ZodString;
         type: z.ZodEnum<{
-            classic: "classic";
             search: "search";
+            classic: "classic";
         }>;
         collection: z.ZodString;
         database: z.ZodString;
@@ -1116,6 +1116,42 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
     protected resolveTelemetryMetadata(args: ToolArgs<typeof GetPerformanceAdvisorTool.argsShape>, input: {
         result: CallToolResult;
     }): Promise<PerfAdvisorToolMetadata>;
+    // (undocumented)
+    static toolName: string;
+}
+
+// @public (undocumented)
+export class GetRegionsTool extends AtlasToolBase {
+    // (undocumented)
+    argsShape: {
+        provider: z.ZodEnum<{
+            AWS: "AWS";
+            GCP: "GCP";
+            AZURE: "AZURE";
+        }>;
+    };
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    protected execute(input: ToolArgs<typeof GetRegionsTool.argsShape>, _context: ToolExecutionContext): Promise<ToolResult<typeof GetRegionsTool.outputSchema>>;
+    // (undocumented)
+    static operationType: OperationType;
+    // (undocumented)
+    outputSchema: {
+        provider: z.ZodEnum<{
+            AWS: "AWS";
+            GCP: "GCP";
+            AZURE: "AZURE";
+        }>;
+        regions: z.ZodArray<z.ZodObject<{
+            name: z.ZodString;
+            location: z.ZodString;
+        }, z.core.$strip>>;
+    };
+    // (undocumented)
+    protected resolveTelemetryMetadata(args: ToolArgs<typeof GetRegionsTool.argsShape>, context: {
+        result: CallToolResult;
+    }): Promise<GetRegionsMetadata>;
     // (undocumented)
     static toolName: string;
 }
@@ -1719,8 +1755,8 @@ export class StreamsBuildTool extends StreamsToolBase {
         workspaceName: z.ZodOptional<z.ZodString>;
         cloudProvider: z.ZodOptional<z.ZodEnum<{
             AWS: "AWS";
-            AZURE: "AZURE";
             GCP: "GCP";
+            AZURE: "AZURE";
         }>>;
         region: z.ZodOptional<z.ZodString>;
         tier: z.ZodOptional<z.ZodEnum<{
@@ -1803,8 +1839,8 @@ export class StreamsBuildTool extends StreamsToolBase {
         privateLinkConfig: z.ZodOptional<z.ZodObject<{
             provider: z.ZodEnum<{
                 AWS: "AWS";
-                AZURE: "AZURE";
                 GCP: "GCP";
+                AZURE: "AZURE";
             }>;
             region: z.ZodOptional<z.ZodString>;
             vendor: z.ZodOptional<z.ZodString>;

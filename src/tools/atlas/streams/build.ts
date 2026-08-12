@@ -19,8 +19,6 @@ const ConnectionType = z.enum([
     "Sample",
 ]);
 
-const CloudProvider = z.enum(["AWS", "AZURE", "GCP"]);
-
 interface FieldSchema {
     title: string;
     description: string;
@@ -125,7 +123,9 @@ export class StreamsBuildTool extends StreamsToolBase {
             ),
 
         // Workspace fields
-        cloudProvider: CloudProvider.optional().describe("Cloud provider. Required when resource='workspace'."),
+        cloudProvider: AtlasArgs.cloudProvider()
+            .optional()
+            .describe("Cloud provider. Required when resource='workspace'."),
         region: AtlasArgs.region()
             .optional()
             .describe(

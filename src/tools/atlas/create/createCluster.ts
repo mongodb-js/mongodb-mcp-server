@@ -2,7 +2,7 @@ import { z } from "zod";
 import { type OperationType, type ToolArgs, type ToolResult, type ToolExecutionContext } from "../../tool.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import type { ClusterDescription20240805 } from "../../../common/atlas/openapi.js";
-import { AtlasArgs } from "../../args.js";
+import { AtlasArgs, type AtlasCloudProvider } from "../../args.js";
 import type { CreateClusterMetadata } from "../../../telemetry/types.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ensureCurrentIpInAccessList, getAccessListNote } from "../../../common/atlas/accessListUtils.js";
@@ -21,23 +21,11 @@ export const ATLAS_CREATE_CLUSTER_README_DESCRIPTION =
     "The tool returns immediately, use the atlas-inspect-cluster tool to poll the cluster state for readiness (state: IDLE). " +
     "Connection strings are unavailable until the cluster reaches IDLE state.";
 
-// Keeping this region recommendation string and the one for atlas-upgrade-cluster independent in the short term. The current effort is intentionally limited to additive changes only.
-// Differences include the mention of "non-exhaustive" and a nudge to respect user-specified regions when not in the mapping.
-const REGION_RECOMMENDATIONS = `Common, non-exhaustive region default mappings by provider:
-AWS: "East Coast"/"Virginia"/"US East" → US_EAST_1, "Ohio" → US_EAST_2, "California"/"West Coast" → US_WEST_2, "Southeast Asia"/"APAC"/"Singapore" → AP_SOUTHEAST_1, "Europe"/"EU"/"Ireland" → EU_WEST_1.
-GCP: "Central US" → CENTRAL_US, "Western US" → WESTERN_US, "Southeast Asia"/"APAC" → SOUTHEASTERN_ASIA_PACIFIC, "Europe"/"EU" → WESTERN_EUROPE.
-AZURE: "East US" → US_EAST_2, "West US" → US_WEST_2, "Europe North" → EUROPE_NORTH, "Europe West" → EUROPE_WEST.
-Default recommendation: AWS US_EAST_1.
-User-specified regions not present in the mapping MUST be respected, rely on the tool to surface errors if a region is not supported.
-`;
-
-const cloudProviderEnum = z.enum(["AWS", "GCP", "AZURE"]);
 const clusterTypeEnum = z.enum(["REPLICASET", "SHARDED"]);
 const mongoDBVersionEnum = z.enum(["7.0", "8.0", "LATEST"]);
 const backupEnum = z.enum(["OFF", "SNAPSHOT", "CONTINUOUS"]);
 const encryptionAtRestProviderEnum = z.enum(["AWS", "AZURE", "GCP", "NONE"]);
 
-type CloudProvider = z.infer<typeof cloudProviderEnum>;
 type MongoDBVersion = z.infer<typeof mongoDBVersionEnum>;
 type Backup = z.infer<typeof backupEnum>;
 
@@ -64,7 +52,7 @@ type ReplicationSpec = {
 function buildAutoScaling(
     instanceSize: StandardInstanceSize,
     computeEnabled: boolean,
-    provider: CloudProvider
+    provider: AtlasCloudProvider
 ): AutoScalingConfig {
     return {
         compute: {
@@ -80,7 +68,7 @@ function buildAutoScaling(
 const ELECTABLE_NODE_DISTRIBUTIONS = [[3], [2, 1], [2, 2, 1]] as const;
 
 function buildReplicationSpecs(
-    provider: CloudProvider,
+    provider: AtlasCloudProvider,
     regions: string[],
     instanceSize: StandardInstanceSize,
     autoScaling: AutoScalingConfig,
@@ -137,7 +125,7 @@ export const CreateClusterArgsShape = {
 
     clusterName: AtlasArgs.clusterName().describe("Name of the cluster."),
 
-    provider: cloudProviderEnum.describe("Cloud provider for the cluster."),
+    provider: AtlasArgs.cloudProvider().describe("Cloud provider for the cluster."),
 
     regions: z
         .array(AtlasArgs.region())
@@ -202,7 +190,7 @@ export const CreateClusterArgsShape = {
 
 const CreateClusterOutputSchema = {
     clusterId: z.string().optional(),
-    provider: cloudProviderEnum,
+    provider: AtlasArgs.cloudProvider(),
     regions: z.array(z.string()),
     instanceSize: standardInstanceSizeEnum,
     clusterType: clusterTypeEnum,
@@ -224,8 +212,9 @@ export class CreateClusterTool extends AtlasToolBase {
         "For encryption at rest, the CMK provider must already have a valid configuration in the Atlas project. " +
         "The tool returns immediately, use the atlas-inspect-cluster tool to poll the cluster state for readiness (state: IDLE). " +
         "Connection strings are unavailable until the cluster reaches IDLE state. " +
-        "Note to LLM: Omit instance size unless specified by the user. If provider and regions are not already known, ask for both together in a single question before calling this tool. " +
-        REGION_RECOMMENDATIONS;
+        "Note to LLM: Omit instance size unless specified by the user. " +
+        "If provider and regions are not already known, ask for the provider and desired locations together. " +
+        "Use atlas-get-regions to resolve natural-language locations or uncertain region codes before calling this tool.";
     public override outputSchema = CreateClusterOutputSchema;
     public argsShape = CreateClusterArgsShape;
 
@@ -321,7 +310,7 @@ export class CreateClusterTool extends AtlasToolBase {
     }
 
     protected async doesValidEARConfigExist(
-        provider: CloudProvider,
+        provider: AtlasCloudProvider,
         projectId: string,
         context: ToolExecutionContext
     ): Promise<boolean> {
