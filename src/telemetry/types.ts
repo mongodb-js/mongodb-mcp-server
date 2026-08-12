@@ -1,3 +1,5 @@
+import type { AtlasCloudProvider } from "../tools/args.js";
+
 /**
  * Result type constants for telemetry events
  */
@@ -282,7 +284,7 @@ export type StreamsToolMetadata = AtlasMetadata & {
 };
 
 export type GetRegionsMetadata = AtlasMetadata & {
-    provider?: "AWS" | "GCP" | "AZURE";
+    provider?: AtlasCloudProvider;
 };
 
 export type UpgradeClusterMetadata = AtlasMetadata & {
