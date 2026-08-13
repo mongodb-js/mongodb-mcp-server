@@ -8,7 +8,13 @@ import {
     expectDefined,
     defaultTestConfig,
 } from "../../../integrationHelpers.js";
-import * as constants from "./constants.js";
+// The find tool reads QUERY_COUNT_MAX_TIME_MS_CAP from the tools-mongodb
+// package's own constants module, which the integration server consumes from
+// its built output (dist). Importing that exact module record here allows the
+// vi.spyOn(..., "get") mock below to reach the code path that sets the count
+// query's maxTimeMS (live ESM binding), mirroring how the same tests used to
+// spy on main's single-package src/helpers/constants module.
+import * as constants from "../../../../../tools-mongodb/dist/helpers/constants.js";
 import {
     describeWithMongoDB,
     getDocsFromUntrustedContent,

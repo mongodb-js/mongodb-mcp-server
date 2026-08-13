@@ -278,7 +278,9 @@ describeWithMongoDB("renameCollection tool", (integration) => {
                 },
             });
             const content = getResponseContent(response.content);
-            expect(content).toEqual(`The collection was renamed successfully in the requested database.`);
+            expect(content).toEqual(
+                `Collection "before" renamed to "after" in database "${integration.randomDbName()}".`
+            );
         });
     });
 
