@@ -39,6 +39,13 @@ describe("CreateAccessListTool", () => {
             logger: mockLogger,
             apiClient: apiClient as ApiClient,
             keychain: new Keychain(),
+            config: {
+                apiClientId: "test-api-client-id",
+                apiClientSecret: "test-api-client-secret",
+                confirmationRequiredTools: [],
+                previewFeatures: [],
+                disabledTools: [],
+            } as IAtlasSession["config"],
         } as unknown as IAtlasSession;
 
         const params: ToolConstructorParams<IAtlasSession> = {

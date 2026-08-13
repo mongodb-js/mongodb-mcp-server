@@ -436,7 +436,10 @@ describe("MongoDBTool implementations", () => {
         beforeEach(async () => {
             await cleanupAndStartServer(undefined, [
                 ...(Object.values(MongoDbTools).filter(
-                    (tool) => typeof tool === "function" && tool !== MongoDbTools.ListConnectionsTool
+                    (tool) =>
+                        typeof tool === "function" &&
+                        "toolName" in tool &&
+                        tool !== MongoDbTools.ListConnectionsTool
                 ) as AnyToolClass[]),
                 RandomTool,
             ]);

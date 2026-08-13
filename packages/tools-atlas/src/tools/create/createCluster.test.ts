@@ -50,6 +50,11 @@ describe("CreateClusterTool", () => {
             logger: mockApiClient.logger as unknown as ICompositeLogger,
             apiClient: mockApiClient as unknown as ApiClient,
             keychain: { allSecrets: [] } as unknown as Keychain,
+            config: {
+                confirmationRequiredTools: [],
+                previewFeatures: [],
+                disabledTools: [],
+            } as IAtlasSession["config"],
         };
 
         const mockTelemetry = {

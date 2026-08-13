@@ -4,7 +4,7 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { ElicitRequestSchema, type CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
-import { StreamableHttpRunner } from "@mongodb-js/mcp-http-runners";
+import { StreamableHttpRunner, MCPHttpServer } from "@mongodb-js/mcp-http-runners";
 import { type ISessionStore } from "@mongodb-js/mcp-core";
 import { SessionStore, CompositeLogger, Keychain, NoopTelemetry } from "@mongodb-js/mcp-core";
 import type { NegotiatedClientState, SessionCloseReason } from "@mongodb-js/mcp-types";
@@ -20,7 +20,6 @@ import { createTestApiClient } from "../integrationHelpers.js";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 import { ExportsManager, MCPConnectionStore, type DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { Session } from "@mongodb-js/mcp-cli";
-import { SharedSessionMCPHttpServer } from "@mongodb-js/mcp-cli";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
 
@@ -195,10 +194,17 @@ describe("negotiated client state across implicit session re-initialization", ()
         });
         sessionStore = new DurableClientStateSessionStore(innerStore);
 
-        const server = await createTestServer(userConfig);
+        // A fresh CliServer per request/session: each session gets its own SDK
+        // Server bound to its own transport. A single shared server cannot
+        // serve a second (re-initialized) session because the SDK Server binds
+        // to exactly one transport.
+        class PerRequestMCPHttpServer extends MCPHttpServer<CliServer> {
+            protected override async createServerForRequest(): Promise<CliServer> {
+                return createTestServer(userConfig);
+            }
+        }
 
-        const mcpHttpServer = new SharedSessionMCPHttpServer({
-            server,
+        const mcpHttpServer = new PerRequestMCPHttpServer({
             options: {
                 http: {
                     host: userConfig.httpHost,
