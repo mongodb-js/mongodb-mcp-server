@@ -96,6 +96,8 @@ export type McpSession = {
     readonly exportsManager: ExportsManager;
     readonly connectionErrorHandler: ConnectionErrorHandler;
     readonly apiClient: IApiClient;
+    /** Atlas Local client, when available (long-running `atlas local` mode). */
+    readonly atlasLocalClient?: import("@mongodb-js/atlas-local").Client;
     mcpClient?: { name?: string; version?: string; title?: string };
     on(event: string | symbol, listener: (...args: unknown[]) => void): void;
     setMcpClient(mcpClient: Implementation | undefined): void;

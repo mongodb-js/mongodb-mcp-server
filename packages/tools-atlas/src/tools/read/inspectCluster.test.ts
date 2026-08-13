@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import { InspectClusterTool } from "./inspectCluster.js";
-import type { ISession } from "@mongodb-js/mcp-types";
+import type { IAtlasSession } from "../../atlasTool.js";
 import type { ITelemetry } from "@mongodb-js/mcp-types";
 import type { Elicitation } from "@mongodb-js/mcp-core";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
@@ -69,7 +69,7 @@ describe("InspectClusterTool", () => {
         const mockSession = {
             logger: mockLogger,
             apiClient: { ...mockApiClient, logger: mockLogger } as unknown as ApiClient,
-        } as unknown as ISession;
+        } as unknown as IAtlasSession;
 
         const mockTelemetry = {
             isTelemetryEnabled: () => true,
@@ -80,7 +80,7 @@ describe("InspectClusterTool", () => {
             requestConfirmation: vi.fn(),
         } as unknown as Elicitation;
 
-        const params: ToolConstructorParams = {
+        const params: ToolConstructorParams<IAtlasSession> = {
             name: InspectClusterTool.toolName,
             category: "atlas",
             operationType: InspectClusterTool.operationType,

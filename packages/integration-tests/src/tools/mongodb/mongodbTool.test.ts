@@ -14,7 +14,8 @@ import {
     type ConnectionErrorHandler,
 } from "@mongodb-js/mcp-tools-mongodb";
 import * as MongoDbTools from "@mongodb-js/mcp-tools-mongodb";
-import type { OperationType, ToolArgs } from "@mongodb-js/mcp-types";
+import type { OperationType } from "@mongodb-js/mcp-types";
+import type { ToolArgs } from "@mongodb-js/mcp-core";
 import { type UserConfig } from "mongodb-mcp-server";
 import { Session, CliServer } from "@mongodb-js/mcp-cli";
 import type { AnyToolClass } from "@mongodb-js/mcp-core";
@@ -106,20 +107,26 @@ describe("MongoDBTool implementations", () => {
         const exportsManager = ExportsManager.init({ options: userConfig, logger: logger });
         deviceId = DeviceId.create(logger);
         const connectionRegistry = new MCPConnectionStore({ userConfig, logger, deviceId }).view();
-        const session = new Session({
-            logger,
-            exportsManager,
-            connectionRegistry,
-            keychain: new Keychain(),
-            connectionErrorHandler: errorHandler,
-            apiClient: createTestApiClient({
-                baseUrl: userConfig.apiBaseUrl,
-                serverMetadata: { mcpServerName: "test", version: "1" },
+        const session = Object.assign(
+            new Session({
                 logger,
-                clientId: userConfig.apiClientId,
-                clientSecret: userConfig.apiClientSecret,
+                exportsManager,
+                connectionRegistry,
+                keychain: new Keychain(),
+                connectionErrorHandler: errorHandler,
+                apiClient: createTestApiClient({
+                    baseUrl: userConfig.apiBaseUrl,
+                    serverMetadata: { mcpServerName: "test", version: "1" },
+                    logger,
+                    clientId: userConfig.apiClientId,
+                    clientSecret: userConfig.apiClientSecret,
+                }),
             }),
-        });
+            {
+                config: userConfig,
+                userConfig,
+            }
+        );
 
         const telemetry = AtlasTelemetry.create({
             logger,
@@ -163,6 +170,7 @@ describe("MongoDBTool implementations", () => {
 
         mcpServer = new CliServer({
             session,
+            userConfig,
             telemetry,
             mcpServer: internalMcpServer,
             connectionErrorHandler: errorHandler,
@@ -427,7 +435,9 @@ describe("MongoDBTool implementations", () => {
     describe("when the list-connections tool is not registered", () => {
         beforeEach(async () => {
             await cleanupAndStartServer(undefined, [
-                ...Object.values(MongoDbTools).filter((tool) => tool !== MongoDbTools.ListConnectionsTool),
+                ...(Object.values(MongoDbTools).filter(
+                    (tool) => typeof tool === "function" && tool !== MongoDbTools.ListConnectionsTool
+                ) as AnyToolClass[]),
                 RandomTool,
             ]);
         });

@@ -6,10 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { UserConfig } from "mongodb-mcp-server";
 import {
     CliServer,
-    CliSession,
     Elicitation,
     connectionErrorHandler,
-    MCPConnectionManager,
     ExportsManager,
     packageInfo,
     ToolBase,
@@ -17,6 +15,8 @@ import {
     type ToolCategory,
     AllTools,
 } from "mongodb-mcp-server";
+import { Session } from "@mongodb-js/mcp-cli";
+import { MCPConnectionStore } from "@mongodb-js/mcp-tools-mongodb";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type {
     CallToolResult,
@@ -51,12 +51,11 @@ async function createTestServer(
         logger,
     });
 
-    const connectionManager = new MCPConnectionManager({
+    const connectionRegistry = new MCPConnectionStore({
+        userConfig: config,
         logger,
         deviceId: {} as unknown as DeviceId,
-        serverMetadata: packageInfo,
-        connectionInfo: { transport: "http", httpHost: "localhost" },
-    });
+    }).view();
 
     const apiClient = createTestApiClient({
         baseUrl: config.apiBaseUrl,
@@ -76,23 +75,29 @@ async function createTestServer(
         version: packageInfo.version,
     });
 
-    const elicitation = new Elicitation({ server: mcpServer.server });
+    const elicitation = new Elicitation({ server: mcpServer.server, timeoutMs: config.elicitationTimeoutMs });
 
-    const session = new CliSession({
-        userConfig: config,
-        logger,
-        exportsManager,
-        connectionManager,
-        keychain,
-        apiClient,
-        connectionErrorHandler,
-        atlasLocalClient,
-    });
+    const session = Object.assign(
+        new Session({
+            logger,
+            exportsManager,
+            connectionRegistry,
+            keychain,
+            apiClient,
+            connectionErrorHandler,
+            atlasLocalClient,
+        }),
+        {
+            config,
+            userConfig: config,
+        }
+    );
 
     const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
 
     return new CliServer({
         session,
+        userConfig: config,
         mcpServer,
         telemetry: {
             emitEvents: () => {},

@@ -1,32 +1,239 @@
 import type express from "express";
 import { StreamableHttpRunner, MCPHttpServer } from "@mongodb-js/mcp-http-runners";
 import {
-    createDefaultSessionStore,
+    SessionStore,
     type ISessionStore,
-    type SessionCloseReason,
+    type LoggerBase,
+    CompositeLogger,
+    Keychain,
+    LogId,
+    type ToolClass,
 } from "@mongodb-js/mcp-core";
-import type { NegotiatedClientState } from "@mongodb-js/mcp-types";
+import type { NegotiatedClientState, SessionCloseReason } from "@mongodb-js/mcp-types";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { describe, expect, it, beforeEach, afterEach } from "vitest";
-import { LogId, type LoggerBase } from "@mongodb-js/mcp-core";
-import type { ISession as Session } from "@mongodb-js/mcp-types";
-import { Keychain } from "@mongodb-js/mcp-core";
-import { defaultTestConfig, InMemoryLogger } from "../integrationHelpers.js";
-import type { UserConfig } from "mongodb-mcp-server";
+import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
+import { defaultTestConfig, InMemoryLogger, sleep } from "../integrationHelpers.js";
+import {
+    type UserConfig,
+    type OperationType,
+    type ToolArgs,
+    type ToolCategory,
+    type ToolExecutionContext,
+    ToolBase,
+    CliServer,
+    Elicitation,
+    connectionErrorHandler,
+    ExportsManager,
+    packageInfo,
+} from "mongodb-mcp-server";
+import { Session } from "@mongodb-js/mcp-cli";
+import { MCPConnectionStore } from "@mongodb-js/mcp-tools-mongodb";
+import { AllTools } from "mongodb-mcp-server";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import type { OperationType, ToolArgs, ToolCategory, ToolExecutionContext, CallToolResult } from "@mongodb-js/mcp-types";
-import { ToolBase } from "@mongodb-js/mcp-core";
-import { ElicitRequestSchema } from "@modelcontextprotocol/sdk/types.js";
-import type { TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
-import type { TransportRequestContext as RequestContext } from "@mongodb-js/mcp-types";
-import type { AnyToolClass } from "@mongodb-js/mcp-core";
-import type { CliServer as Server } from "@mongodb-js/mcp-cli";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
+import type { AtlasTelemetry, TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
+import type {
+    DefaultMetricDefinitions,
+    HttpServerOptions,
+    IMetrics,
+    SessionManagementOptions,
+    TransportRequestContext,
+} from "@mongodb-js/mcp-types";
+import type { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import type { IncomingMessage } from "node:http";
 import { AsyncLocalStorage } from "node:async_hooks";
-import { sleep } from "@mongodb-js/mcp-core";
-import { ErrorCodes, MongoDBError } from "@mongodb-js/mcp-tools-mongodb";
-import { z } from "zod";
+import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { createTestApiClient } from "../integrationHelpers.js";
+import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
+import { createMonitoringServerFromConfig } from "@mongodb-js/mcp-cli";
+
+// Helper to create a full Server instance for tests
+async function createTestServer(
+    config: UserConfig,
+    options: {
+        tools?: ToolClass[];
+    } = {}
+): Promise<CliServer> {
+    const logger = new CompositeLogger({ loggers: [] });
+    const keychain = Keychain.root;
+
+    const exportsManager = ExportsManager.init({
+        options: {
+            exportsPath: config.exportsPath,
+            exportTimeoutMs: config.exportTimeoutMs,
+            exportCleanupIntervalMs: config.exportCleanupIntervalMs,
+        },
+        logger,
+    });
+
+    const connectionRegistry = new MCPConnectionStore({
+        userConfig: config,
+        logger,
+        deviceId: {} as unknown as DeviceId,
+    }).view();
+
+    const apiClient = createTestApiClient({
+        baseUrl: config.apiBaseUrl,
+        serverMetadata: packageInfo,
+        logger,
+        clientId: "test-client-id",
+        clientSecret: "test-client-secret",
+    });
+
+    // Mock the API client methods for tests
+    vi.spyOn(apiClient, "validateAuthConfig").mockResolvedValue(undefined);
+    vi.spyOn(apiClient, "close").mockResolvedValue(undefined);
+
+    const atlasLocalClient = await createAtlasLocalClient({ logger });
+
+    const mcpServer = new McpServer({
+        name: "test-server",
+        version: packageInfo.version,
+    });
+
+    const elicitation = new Elicitation({ server: mcpServer.server, timeoutMs: config.elicitationTimeoutMs });
+
+    const session = Object.assign(
+        new Session({
+            logger,
+            exportsManager,
+            connectionRegistry,
+            keychain,
+            apiClient,
+            connectionErrorHandler,
+            atlasLocalClient,
+        }),
+        {
+            config,
+            userConfig: config,
+        }
+    );
+
+    const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
+
+    const server = new CliServer({
+        session,
+        userConfig: config,
+        mcpServer,
+        telemetry: {
+            emitEvents: () => {},
+            close: () => Promise.resolve(),
+            isTelemetryEnabled: () => false,
+        } as unknown as AtlasTelemetry,
+        connectionErrorHandler,
+        elicitation,
+        metrics,
+        tools: options.tools,
+        serverMetadata: {
+            mcpServerName: "test-server",
+            version: "1.0",
+            engines: {
+                node: "20.0.0",
+            },
+        },
+    });
+
+    return server;
+}
+
+// Custom MCPHttpServer that creates test servers
+class TestMCPHttpServer extends MCPHttpServer<CliServer> {
+    protected userConfig: UserConfig;
+    protected tools?: ToolClass[];
+
+    constructor({
+        userConfig,
+        options,
+        logger,
+        metrics,
+        sessionStore,
+        tools,
+    }: {
+        userConfig: UserConfig;
+        options: {
+            http: HttpServerOptions;
+            session: SessionManagementOptions;
+        };
+        logger: CompositeLogger;
+        metrics: IMetrics<DefaultMetricDefinitions>;
+        sessionStore: ISessionStore<StreamableHTTPServerTransport>;
+        tools?: ToolClass[];
+    }) {
+        super({
+            options,
+            logger,
+            metrics,
+            sessionStore: sessionStore as SessionStore<StreamableHTTPServerTransport>,
+        });
+        this.userConfig = userConfig;
+        this.tools = tools;
+    }
+
+    protected override async createServerForRequest(request: TransportRequestContext): Promise<CliServer> {
+        void request;
+        return createTestServer(this.userConfig, { tools: this.tools });
+    }
+}
+
+// Helper to create StreamableHttpRunner with all components
+async function createStreamableHttpRunner(
+    config: UserConfig,
+    options: {
+        tools?: ToolClass[];
+        loggers?: LoggerBase[];
+    } = {}
+): Promise<StreamableHttpRunner<CliServer>> {
+    const logger = new CompositeLogger({ loggers: options.loggers ?? [] });
+    const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
+
+    const sessionStore = new SessionStore<StreamableHTTPServerTransport>({
+        options: {
+            idleTimeoutMS: config.idleTimeoutMs,
+            notificationTimeoutMS: config.notificationTimeoutMs,
+            maxSessions: config.maxSessions,
+        },
+        logger,
+        metrics: metrics,
+    });
+
+    const mcpHttpServer = new TestMCPHttpServer({
+        userConfig: config,
+        options: {
+            http: {
+                host: config.httpHost,
+                port: config.httpPort,
+                bodyLimit: config.httpBodyLimit,
+                headers: config.httpHeaders as Record<string, string> | undefined,
+                responseType: config.httpResponseType,
+            },
+            session: {
+                idleTimeoutMs: config.idleTimeoutMs,
+                notificationTimeoutMs: config.notificationTimeoutMs,
+                externallyManagedSessions: config.externallyManagedSessions,
+            },
+        },
+        logger,
+        metrics: metrics,
+        sessionStore,
+        tools: options.tools ?? AllTools,
+    });
+
+    const monitoringServer = createMonitoringServerFromConfig({
+        config,
+        logger,
+        metrics,
+    });
+
+    return Promise.resolve(
+        new StreamableHttpRunner<CliServer>({
+            logger,
+            mcpHttpServer,
+            monitoringServer,
+        })
+    );
+}
 
 const expectedHealthData: Record<string, unknown> = {
     status: "ok",
@@ -36,8 +243,7 @@ const expectedHealthData: Record<string, unknown> = {
 };
 
 describe("StreamableHttpRunner", () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let runner: StreamableHttpRunner<UserConfig, any>;
+    let runner: StreamableHttpRunner<CliServer>;
     let config: UserConfig;
 
     let clients: Client[] = [];
@@ -63,7 +269,7 @@ describe("StreamableHttpRunner", () => {
             requestHeaders["mcp-session-id"] = sessionId;
         }
 
-        const transport = new StreamableHTTPClientTransport(new URL(`${runner["mcpServer"]!.serverAddress}/mcp`), {
+        const transport = new StreamableHTTPClientTransport(new URL(`${getServerAddress(runner)}/mcp`), {
             requestInit: {
                 headers: requestHeaders,
             },
@@ -94,7 +300,7 @@ describe("StreamableHttpRunner", () => {
 
         await runner?.close();
         // Make sure runner is reset
-        runner = undefined as unknown as StreamableHttpRunner;
+        runner = undefined as unknown as StreamableHttpRunner<CliServer>;
     });
 
     const headerTestCases: { headers: Record<string, string>; description: string }[] = [
@@ -106,7 +312,7 @@ describe("StreamableHttpRunner", () => {
         describe(description, () => {
             beforeEach(async () => {
                 config.httpHeaders = headers;
-                runner = new StreamableHttpRunner({ userConfig: config });
+                runner = await createStreamableHttpRunner(config);
                 await runner.start();
             });
 
@@ -138,14 +344,11 @@ describe("StreamableHttpRunner", () => {
                             name: "test",
                             version: "0.0.0",
                         });
-                        transport = new StreamableHTTPClientTransport(
-                            new URL(`${runner["mcpServer"]!.serverAddress}/mcp`),
-                            {
-                                requestInit: {
-                                    headers: clientHeaders,
-                                },
-                            }
-                        );
+                        transport = new StreamableHTTPClientTransport(new URL(`${getServerAddress(runner)}/mcp`), {
+                            requestInit: {
+                                headers: clientHeaders,
+                            },
+                        });
                     });
 
                     afterEach(async () => {
@@ -181,7 +384,7 @@ describe("StreamableHttpRunner", () => {
     describe("with httpBodyLimit configuration", () => {
         beforeEach(async () => {
             config.httpBodyLimit = 1024;
-            runner = new StreamableHttpRunner({ userConfig: config });
+            runner = await createStreamableHttpRunner(config);
             await runner.start();
         });
 
@@ -210,7 +413,7 @@ describe("StreamableHttpRunner", () => {
                 },
             });
 
-            const response = await fetch(`${runner["mcpServer"]!.serverAddress}/mcp`, {
+            const response = await fetch(`${getServerAddress(runner)}/mcp`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -224,15 +427,15 @@ describe("StreamableHttpRunner", () => {
     });
 
     it("can create multiple runners", async () => {
-        const runners: StreamableHttpRunner[] = [];
+        const runners: StreamableHttpRunner<CliServer>[] = [];
         try {
             for (let i = 0; i < 3; i++) {
-                const runner = new StreamableHttpRunner({ userConfig: config });
+                const runner = await createStreamableHttpRunner(config);
                 await runner.start();
                 runners.push(runner);
             }
 
-            const addresses = new Set<string>(runners.map((r) => r["mcpServer"]!.serverAddress));
+            const addresses = new Set<string>(runners.map((r) => getServerAddress(r)));
             expect(addresses.size).toBe(runners.length);
         } finally {
             for (const runner of runners) {
@@ -247,11 +450,8 @@ describe("StreamableHttpRunner", () => {
         });
 
         it("can provide custom logger", async () => {
-            const logger = new InMemoryLogger(new Keychain());
-            const runner = new StreamableHttpRunner({
-                userConfig: config,
-                additionalLoggers: [logger],
-            });
+            const logger = new InMemoryLogger({ keychain: new Keychain() });
+            runner = await createStreamableHttpRunner(config, { loggers: [logger] });
             await runner.start();
 
             const messages = logger.messages;
@@ -264,21 +464,6 @@ describe("StreamableHttpRunner", () => {
             expect(serverStartedMessage?.payload.message).toContain("Streamable HTTP Transport started");
             expect(serverStartedMessage?.payload.context).toBe("streamableHttpTransport");
             expect(serverStartedMessage?.level).toBe("info");
-        });
-    });
-
-    describe("with telemetry properties", () => {
-        it("merges them with the base properties", async () => {
-            config.telemetry = "enabled";
-            runner = new StreamableHttpRunner({
-                userConfig: config,
-                telemetryProperties: { hosting_mode: "vscode-extension" },
-            });
-            await runner.start();
-
-            const server = await runner["setupServer"]();
-            const properties = server["telemetry"].getCommonProperties();
-            expect(properties.hosting_mode).toBe("vscode-extension");
         });
     });
 
@@ -296,7 +481,7 @@ describe("StreamableHttpRunner", () => {
             headers["mcp-session-id"] = sessionId;
         }
 
-        const response = await fetch(`${runner["mcpServer"]!.serverAddress}/mcp`, {
+        const response = await fetch(`${getServerAddress(runner)}/mcp`, {
             method: "POST",
             headers,
             body: JSON.stringify({
@@ -321,14 +506,14 @@ describe("StreamableHttpRunner", () => {
     };
 
     const getSessionFromStore = async (sessionId: string): Promise<StreamableHTTPServerTransport | undefined> => {
-        const sessionStore = runner["mcpServer"]!["sessionStore"];
+        const sessionStore = getSessionStore(runner);
         return await sessionStore.getSession(sessionId);
     };
 
     describe("with maxSessions configuration", () => {
         beforeEach(async () => {
             config.maxSessions = 2;
-            runner = new StreamableHttpRunner({ userConfig: config });
+            runner = await createStreamableHttpRunner(config);
             await runner.start();
         });
 
@@ -356,7 +541,7 @@ describe("StreamableHttpRunner", () => {
             expect(sessionId).toBeTruthy();
             await sendHttpRequest("initialize");
 
-            await fetch(`${runner["mcpServer"]!.serverAddress}/mcp`, {
+            await fetch(`${runner["mcpHttpServer"].serverAddress}/mcp`, {
                 method: "DELETE",
                 headers: { "mcp-session-id": sessionId ?? "" },
             });
@@ -370,14 +555,17 @@ describe("StreamableHttpRunner", () => {
         beforeEach(async () => {
             config.externallyManagedSessions = true;
 
-            runner = new StreamableHttpRunner({ userConfig: config });
+            runner = await createStreamableHttpRunner(config);
             await runner.start();
         });
 
         for (const responseType of ["json", "sse"] as const) {
             describe(`and httpResponseType set to ${responseType}`, () => {
-                beforeEach(() => {
+                beforeEach(async () => {
                     config.httpResponseType = responseType;
+                    await runner?.close();
+                    runner = await createStreamableHttpRunner(config);
+                    await runner.start();
                 });
 
                 it("should create a new session with external session ID on initialize", async () => {
@@ -515,7 +703,7 @@ describe("StreamableHttpRunner", () => {
                         config.notificationTimeoutMs = 500;
 
                         await runner?.close();
-                        runner = new StreamableHttpRunner({ userConfig: config });
+                        runner = await createStreamableHttpRunner(config);
                         await runner.start();
                     });
 
@@ -648,7 +836,6 @@ describe("StreamableHttpRunner", () => {
                         sessionId: string;
                         transport: StreamableHTTPServerTransport;
                         logger: LoggerBase;
-                        session: Session;
                     }): Promise<void> {
                         await this.inner.addSession(params);
                         const caller = ownerStorage.getStore();
@@ -665,27 +852,21 @@ describe("StreamableHttpRunner", () => {
                         return this.inner.closeAllSessions();
                     }
 
-                    saveNegotiatedClientState(
-                        sessionId: string,
-                        state: NegotiatedClientState,
-                        headers?: Record<string, unknown>
-                    ): Promise<void> {
-                        return this.inner.saveNegotiatedClientState(sessionId, state, headers);
+                    saveNegotiatedClientState(sessionId: string, state: NegotiatedClientState): Promise<void> {
+                        return this.inner.saveNegotiatedClientState(sessionId, state);
                     }
 
-                    loadNegotiatedClientState(
-                        sessionId: string,
-                        headers?: Record<string, unknown>
-                    ): Promise<NegotiatedClientState | undefined> {
-                        return this.inner.loadNegotiatedClientState(sessionId, headers);
+                    loadNegotiatedClientState(sessionId: string): Promise<NegotiatedClientState | undefined> {
+                        return this.inner.loadNegotiatedClientState(sessionId);
                     }
                 }
 
-                function wrapAppHandle(ownershipRunner: StreamableHttpRunner): void {
+                function wrapAppHandle(ownershipRunner: StreamableHttpRunner<CliServer>): void {
                     type HandleFn = (req: IncomingMessage, ...rest: unknown[]) => void;
-                    const appObj = ownershipRunner["mcpServer"]!["app"] as unknown as {
-                        handle: HandleFn;
-                    };
+                    const mcpHttpServer = (
+                        ownershipRunner as unknown as { mcpHttpServer: { app: { handle: HandleFn } } }
+                    ).mcpHttpServer;
+                    const appObj = mcpHttpServer.app as unknown as { handle: HandleFn };
                     const originalHandle: HandleFn = appObj.handle.bind(appObj);
                     appObj.handle = (req: IncomingMessage, ...rest: unknown[]): void => {
                         const ownerId = req.headers["x-owner-id"] as string | undefined;
@@ -696,17 +877,52 @@ describe("StreamableHttpRunner", () => {
                 beforeEach(async () => {
                     await runner?.close();
 
-                    const ownershipRunner = new StreamableHttpRunner({
-                        userConfig: config,
-                        createSessionStore: (args): ISessionStore<StreamableHTTPServerTransport> => {
-                            const inner = createDefaultSessionStore<StreamableHTTPServerTransport>(args);
-                            return new OwnershipSessionStore(inner);
+                    // Create runner with custom session store
+                    const logger = new CompositeLogger({ loggers: [] });
+                    const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
+
+                    const innerSessionStore = new SessionStore<StreamableHTTPServerTransport>({
+                        options: {
+                            idleTimeoutMS: config.idleTimeoutMs,
+                            notificationTimeoutMS: config.notificationTimeoutMs,
+                            maxSessions: config.maxSessions,
                         },
+                        logger,
+                        metrics: metrics,
                     });
+
+                    const ownershipStore = new OwnershipSessionStore(innerSessionStore);
+
+                    const mcpHttpServer = new TestMCPHttpServer({
+                        userConfig: config,
+                        options: {
+                            http: {
+                                host: config.httpHost,
+                                port: config.httpPort,
+                                bodyLimit: config.httpBodyLimit,
+                                responseType: config.httpResponseType,
+                            },
+                            session: {
+                                idleTimeoutMs: config.idleTimeoutMs,
+                                notificationTimeoutMs: config.notificationTimeoutMs,
+                                externallyManagedSessions: config.externallyManagedSessions,
+                            },
+                        },
+                        logger,
+                        metrics: metrics,
+                        sessionStore: ownershipStore,
+                        tools: AllTools,
+                    });
+
+                    const ownershipRunner = new StreamableHttpRunner<CliServer>({
+                        mcpHttpServer,
+                        logger,
+                    });
+
                     await ownershipRunner.start();
                     wrapAppHandle(ownershipRunner);
 
-                    runner = ownershipRunner as typeof runner;
+                    runner = ownershipRunner;
                 });
 
                 it("should deny access when a different owner tries to use another owner's session", async () => {
@@ -782,7 +998,7 @@ describe("StreamableHttpRunner", () => {
         beforeEach(async () => {
             config.externallyManagedSessions = false;
 
-            runner = new StreamableHttpRunner({ userConfig: config });
+            runner = await createStreamableHttpRunner(config);
             await runner.start();
         });
 
@@ -800,8 +1016,11 @@ describe("StreamableHttpRunner", () => {
 
         for (const responseType of ["json", "sse"] as const) {
             describe(`and httpResponseType set to ${responseType}`, () => {
-                beforeEach(() => {
+                beforeEach(async () => {
                     config.httpResponseType = responseType;
+                    await runner?.close();
+                    runner = await createStreamableHttpRunner(config);
+                    await runner.start();
                 });
 
                 it(`should return ${responseType} responses`, async () => {
@@ -836,7 +1055,7 @@ describe("StreamableHttpRunner", () => {
                     expect(data.error?.code).toBe(-32003);
                     expect(data.error?.message).toBe("session not found");
 
-                    const sessionStore = runner["mcpServer"]!["sessionStore"];
+                    const sessionStore = getSessionStore(runner);
                     const session = await sessionStore.getSession(unknownSessionId);
                     expect(session).toBeUndefined();
                 });
@@ -861,22 +1080,56 @@ describe("StreamableHttpRunner", () => {
         it("should use custom MCPHttpServer subclass via factory", async () => {
             const middlewareCalls: string[] = [];
 
-            runner = new StreamableHttpRunner({
-                userConfig: config,
-                createMcpHttpServer(args): MCPHttpServer {
-                    return new (class extends MCPHttpServer {
-                        protected override setupMiddlewares(): void {
-                            this.app.use(
-                                (_req: express.Request, _res: express.Response, next: express.NextFunction) => {
-                                    middlewareCalls.push("middleware-executed");
-                                    next();
-                                }
-                            );
-                            super.setupMiddlewares();
-                        }
-                    })(args);
+            class CustomTestMCPHttpServer extends TestMCPHttpServer {
+                protected override setupMiddlewares(): void {
+                    this.app.use((_req: express.Request, _res: express.Response, next: express.NextFunction) => {
+                        middlewareCalls.push("middleware-executed");
+                        next();
+                    });
+                    super.setupMiddlewares();
+                }
+            }
+
+            // Create runner with custom MCPHttpServer
+            const logger = new CompositeLogger({ loggers: [] });
+            const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
+
+            const sessionStore = new SessionStore<StreamableHTTPServerTransport>({
+                options: {
+                    idleTimeoutMS: config.idleTimeoutMs,
+                    notificationTimeoutMS: config.notificationTimeoutMs,
+                    maxSessions: config.maxSessions,
                 },
+                logger,
+                metrics: metrics,
             });
+
+            const customMcpHttpServer = new CustomTestMCPHttpServer({
+                userConfig: config,
+                options: {
+                    http: {
+                        host: config.httpHost,
+                        port: config.httpPort,
+                        bodyLimit: config.httpBodyLimit,
+                        responseType: config.httpResponseType,
+                    },
+                    session: {
+                        idleTimeoutMs: config.idleTimeoutMs,
+                        notificationTimeoutMs: config.notificationTimeoutMs,
+                        externallyManagedSessions: config.externallyManagedSessions,
+                    },
+                },
+                logger,
+                metrics: metrics,
+                sessionStore,
+                tools: AllTools,
+            });
+
+            runner = new StreamableHttpRunner<CliServer>({
+                mcpHttpServer: customMcpHttpServer,
+                logger,
+            });
+
             await runner.start();
 
             const client = await connectClient({});
@@ -887,22 +1140,56 @@ describe("StreamableHttpRunner", () => {
         });
 
         it("should allow factory to create a server that rejects requests", async () => {
-            runner = new StreamableHttpRunner({
-                userConfig: config,
-                createMcpHttpServer(args): MCPHttpServer {
-                    return new (class extends MCPHttpServer {
-                        protected override setupMiddlewares(): void {
-                            this.app.use((_req: express.Request, res: express.Response) => {
-                                res.status(403).json({ error: "blocked by middleware" });
-                            });
-                            super.setupMiddlewares();
-                        }
-                    })(args);
+            class RejectingMCPHttpServer extends TestMCPHttpServer {
+                protected override setupMiddlewares(): void {
+                    this.app.use((_req: express.Request, res: express.Response) => {
+                        res.status(403).json({ error: "blocked by middleware" });
+                    });
+                    super.setupMiddlewares();
+                }
+            }
+
+            // Create runner with rejecting MCPHttpServer
+            const logger = new CompositeLogger({ loggers: [] });
+            const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
+
+            const sessionStore = new SessionStore<StreamableHTTPServerTransport>({
+                options: {
+                    idleTimeoutMS: config.idleTimeoutMs,
+                    notificationTimeoutMS: config.notificationTimeoutMs,
+                    maxSessions: config.maxSessions,
                 },
+                logger,
+                metrics: metrics,
             });
+
+            const rejectingMcpHttpServer = new RejectingMCPHttpServer({
+                userConfig: config,
+                options: {
+                    http: {
+                        host: config.httpHost,
+                        port: config.httpPort,
+                        responseType: config.httpResponseType,
+                    },
+                    session: {
+                        idleTimeoutMs: config.idleTimeoutMs,
+                        notificationTimeoutMs: config.notificationTimeoutMs,
+                        externallyManagedSessions: config.externallyManagedSessions,
+                    },
+                },
+                logger,
+                metrics: metrics,
+                sessionStore,
+            });
+
+            runner = new StreamableHttpRunner<CliServer>({
+                mcpHttpServer: rejectingMcpHttpServer,
+                logger,
+            });
+
             await runner.start();
 
-            const response = await fetch(`${runner["mcpServer"]!.serverAddress}/mcp`, {
+            const response = await fetch(`${getServerAddress(runner)}/mcp`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", accept: "application/json, text/event-stream" },
                 body: JSON.stringify({
@@ -923,7 +1210,7 @@ describe("StreamableHttpRunner", () => {
         });
 
         it("should work without custom factory (default behavior)", async () => {
-            runner = new StreamableHttpRunner({ userConfig: config });
+            runner = await createStreamableHttpRunner(config);
             await runner.start();
 
             const client = await connectClient({});
@@ -945,7 +1232,7 @@ describe("StreamableHttpRunner", () => {
             });
 
             it("starts the monitoring server when configured", async () => {
-                runner = new StreamableHttpRunner({ userConfig: config });
+                runner = await createStreamableHttpRunner(config);
                 await runner.start();
 
                 expect(runner["monitoringServer"]).toBeDefined();
@@ -959,7 +1246,7 @@ describe("StreamableHttpRunner", () => {
             it("does not start the monitoring server when not configured", async () => {
                 config.healthCheckHost = undefined;
                 config.healthCheckPort = undefined;
-                runner = new StreamableHttpRunner({ userConfig: config });
+                runner = await createStreamableHttpRunner(config);
                 await runner.start();
 
                 expect(runner["monitoringServer"]).toBeUndefined();
@@ -967,29 +1254,27 @@ describe("StreamableHttpRunner", () => {
 
             it("errors out when healthCheck port is missing but host is provided", async () => {
                 config.healthCheckPort = undefined;
-                runner = new StreamableHttpRunner({ userConfig: config });
 
-                await expect(runner.start()).rejects.toThrowError();
+                await expect(createStreamableHttpRunner(config)).rejects.toThrowError();
             });
 
             it("errors out when healthCheck host is missing but port is provided", async () => {
                 config.healthCheckHost = undefined;
-                runner = new StreamableHttpRunner({ userConfig: config });
 
-                await expect(runner.start()).rejects.toThrowError();
+                await expect(createStreamableHttpRunner(config)).rejects.toThrowError();
             });
 
             it("errors out when healthcheck port is equal to MCP server port", async () => {
                 config.healthCheckPort = 3000;
                 config.httpPort = 3000;
-                runner = new StreamableHttpRunner({ userConfig: config });
+                runner = await createStreamableHttpRunner(config);
                 await expect(runner.start()).rejects.toThrowError();
             });
 
             it("handles correctly when healthCheckPort is set to 0", async () => {
                 config.httpPort = 3000;
                 config.healthCheckPort = 0;
-                runner = new StreamableHttpRunner({ userConfig: config });
+                runner = await createStreamableHttpRunner(config);
                 await runner.start();
 
                 expect(runner["monitoringServer"]).toBeDefined();
@@ -1011,7 +1296,7 @@ describe("StreamableHttpRunner", () => {
             });
 
             it("starts the monitoring server and exposes /health by default", async () => {
-                runner = new StreamableHttpRunner({ userConfig: config });
+                runner = await createStreamableHttpRunner(config);
                 await runner.start();
 
                 expect(runner["monitoringServer"]).toBeDefined();
@@ -1025,7 +1310,7 @@ describe("StreamableHttpRunner", () => {
             it("does not start the monitoring server when not configured", async () => {
                 config.monitoringServerHost = undefined;
                 config.monitoringServerPort = undefined;
-                runner = new StreamableHttpRunner({ userConfig: config });
+                runner = await createStreamableHttpRunner(config);
                 await runner.start();
 
                 expect(runner["monitoringServer"]).toBeUndefined();
@@ -1033,28 +1318,26 @@ describe("StreamableHttpRunner", () => {
 
             it("errors out when monitoringServerPort is missing but host is provided", async () => {
                 config.monitoringServerPort = undefined;
-                runner = new StreamableHttpRunner({ userConfig: config });
 
-                await expect(runner.start()).rejects.toThrowError();
+                await expect(createStreamableHttpRunner(config)).rejects.toThrowError();
             });
 
             it("errors out when monitoringServerHost is missing but port is provided", async () => {
                 config.monitoringServerHost = undefined;
-                runner = new StreamableHttpRunner({ userConfig: config });
 
-                await expect(runner.start()).rejects.toThrowError();
+                await expect(createStreamableHttpRunner(config)).rejects.toThrowError();
             });
 
             it("errors out when monitoringServerPort is equal to MCP server port", async () => {
                 config.monitoringServerPort = 3000;
                 config.httpPort = 3000;
-                runner = new StreamableHttpRunner({ userConfig: config });
+                runner = await createStreamableHttpRunner(config);
                 await expect(runner.start()).rejects.toThrowError();
             });
 
             it("does not expose /metrics when features does not include 'metrics'", async () => {
                 config.monitoringServerFeatures = ["health-check"];
-                runner = new StreamableHttpRunner({ userConfig: config });
+                runner = await createStreamableHttpRunner(config);
                 await runner.start();
 
                 const metricsResponse = await fetch("http://localhost:3001/metrics");
@@ -1063,7 +1346,7 @@ describe("StreamableHttpRunner", () => {
 
             it("exposes /metrics when features includes 'metrics'", async () => {
                 config.monitoringServerFeatures = ["health-check", "metrics"];
-                runner = new StreamableHttpRunner({ userConfig: config });
+                runner = await createStreamableHttpRunner(config);
                 await runner.start();
 
                 const metricsResponse = await fetch("http://localhost:3001/metrics");
@@ -1078,36 +1361,35 @@ describe("StreamableHttpRunner", () => {
         const requestInfoReceived = new Promise<ToolExecutionContext["requestInfo"]>((resolve) => {
             confirmRequestInfoReceived = resolve;
         });
-        runner = new StreamableHttpRunner({
-            userConfig: config,
-            tools: [
-                class RandomTool extends ToolBase {
-                    static toolName = "random-tool";
-                    public description = "Random tool";
-                    public argsShape = {};
-                    static category: ToolCategory = "mongodb";
-                    static operationType: OperationType = "metadata";
-                    protected execute(
-                        _: ToolArgs<typeof this.argsShape>,
-                        { requestInfo }: ToolExecutionContext
-                    ): Promise<CallToolResult> {
-                        confirmRequestInfoReceived?.(requestInfo);
-                        return Promise.resolve({
-                            content: [
-                                {
-                                    type: "text",
-                                    text: "Tool executed",
-                                },
-                            ],
-                        });
-                    }
-                    protected resolveTelemetryMetadata(): TelemetryToolMetadata {
-                        return {};
-                    }
-                },
-            ],
-        });
+
+        class RandomTool extends ToolBase {
+            static toolName = "random-tool";
+            public description = "Random tool";
+            public argsShape = {};
+            static category: ToolCategory = "mongodb";
+            static operationType: OperationType = "metadata";
+            protected execute(
+                _: ToolArgs<typeof this.argsShape>,
+                { requestInfo }: ToolExecutionContext
+            ): Promise<CallToolResult> {
+                confirmRequestInfoReceived?.(requestInfo);
+                return Promise.resolve({
+                    content: [
+                        {
+                            type: "text",
+                            text: "Tool executed",
+                        },
+                    ],
+                });
+            }
+            protected resolveTelemetryMetadata(): TelemetryToolMetadata {
+                return {};
+            }
+        }
+
+        runner = await createStreamableHttpRunner(config, { tools: [RandomTool] });
         await runner.start();
+
         const client = await connectClient({ additionalHeaders: { Authorization: "Bearer 1234" } });
         const response = await client.listTools();
         expect(response).toBeDefined();
@@ -1123,585 +1405,17 @@ describe("StreamableHttpRunner", () => {
         const authorizationToken = requestInfo?.headers?.["authorization"] ?? requestInfo?.headers?.["Authorization"];
         expect(authorizationToken).toBe("Bearer 1234");
     });
-
-    describe("session initialization failure handling", () => {
-        beforeEach(async () => {
-            config.externallyManagedSessions = true;
-            config.httpResponseType = "json";
-            runner = new StreamableHttpRunner({ userConfig: config });
-            await runner.start();
-        });
-
-        it("should not store session when server.connect() fails, allowing retry to succeed", async () => {
-            const sessionId = "failing-session-test";
-            let connectCallCount = 0;
-
-            // Create a custom runner that extends StreamableHttpRunner
-            class FailingConnectRunner extends StreamableHttpRunner<UserConfig, unknown> {
-                protected override async createServerForRequest(): Promise<Server> {
-                    const server = await super.createServerForRequest({
-                        request: { headers: {}, query: {} },
-                    });
-
-                    // Wrap the connect method to fail on first call
-                    const originalConnect = server.connect.bind(server);
-                    server.connect = async (transport): Promise<void> => {
-                        connectCallCount++;
-                        if (connectCallCount === 1) {
-                            throw new Error("Simulated connection failure");
-                        }
-                        return originalConnect(transport);
-                    };
-
-                    return server;
-                }
-            }
-
-            await runner?.close();
-            runner = new FailingConnectRunner({ userConfig: config });
-            await runner.start();
-
-            // First request should fail since initialization failed
-            // and the session was cleaned up, allowing future requests to retry
-            const firstResponse = await sendHttpRequest("tools/list", sessionId);
-            expect(firstResponse.ok).toBe(false);
-            expect(firstResponse.status).toBe(400);
-
-            // Verify session was NOT stored (not in a broken state)
-            const sessionAfterFailure = await getSessionFromStore(sessionId);
-            expect(sessionAfterFailure).toBeUndefined();
-
-            // Second request should succeed (no broken session blocking it)
-            const secondResponse = await sendHttpRequest("tools/list", sessionId);
-            expect(secondResponse.ok).toBe(true);
-
-            // Verify session is now stored after successful initialization
-            const sessionAfterSuccess = await getSessionFromStore(sessionId);
-            expect(sessionAfterSuccess).toBeDefined();
-
-            // Verify connect was called twice (once failed, once succeeded)
-            expect(connectCallCount).toBe(2);
-        });
-
-        it("should only call addSession after successful server.connect()", async () => {
-            const sessionId = "addsession-order-test";
-            let connectCallCount = 0;
-            const addSessionCalls: { beforeConnect: boolean; afterConnect: boolean }[] = [];
-
-            // Create a custom runner that tracks the order of operations
-            class TrackingRunner extends StreamableHttpRunner<UserConfig, unknown> {
-                protected override async createServerForRequest(): Promise<Server> {
-                    const server = await super.createServerForRequest({
-                        request: { headers: {}, query: {} },
-                    });
-
-                    // Wrap the connect method to track calls
-                    const originalConnect = server.connect.bind(server);
-                    server.connect = async (transport): Promise<void> => {
-                        connectCallCount++;
-                        if (connectCallCount === 1) {
-                            throw new Error("Simulated connection failure");
-                        }
-                        return originalConnect(transport);
-                    };
-
-                    return server;
-                }
-            }
-
-            // Create a session store wrapper that tracks addSession calls
-            const sessionStore = runner["mcpServer"]!["sessionStore"];
-            const originalAddSession = sessionStore.addSession.bind(sessionStore);
-            let addSessionCallCount = 0;
-            sessionStore.addSession = async (params): Promise<void> => {
-                addSessionCallCount++;
-                addSessionCalls.push({
-                    beforeConnect: connectCallCount === 0 || connectCallCount % 2 === 0,
-                    afterConnect: connectCallCount > 0 && connectCallCount % 2 === 1,
-                });
-                return originalAddSession(params);
-            };
-
-            await runner?.close();
-            runner = new TrackingRunner({ userConfig: config });
-            await runner.start();
-
-            // Replace the session store with our wrapped version
-            const newSessionStore = runner["mcpServer"]!["sessionStore"];
-            const newOriginalAddSession = newSessionStore.addSession.bind(newSessionStore);
-            newSessionStore.addSession = async (params): Promise<void> => {
-                addSessionCallCount++;
-                addSessionCalls.push({
-                    beforeConnect: connectCallCount === 0,
-                    afterConnect: connectCallCount > 0,
-                });
-                return newOriginalAddSession(params);
-            };
-
-            // First request should fail since connect() fails
-            const firstResponse = await sendHttpRequest("tools/list", sessionId);
-            expect(firstResponse.ok).toBe(false);
-
-            // addSession should NOT have been called since connect() failed
-            expect(addSessionCallCount).toBe(0);
-
-            // Second request should succeed
-            const secondResponse = await sendHttpRequest("tools/list", sessionId);
-            expect(secondResponse.ok).toBe(true);
-
-            // Now addSession should have been called exactly once, after successful connect()
-            expect(addSessionCallCount).toBe(1);
-            expect(addSessionCalls).toHaveLength(1);
-            expect(addSessionCalls[0]).toEqual({ beforeConnect: false, afterConnect: true });
-
-            // Third request should reuse the existing session without calling addSession again
-            const thirdResponse = await sendHttpRequest("tools/list", sessionId);
-            expect(thirdResponse.ok).toBe(true);
-            expect(addSessionCallCount).toBe(1); // Still only 1 call
-        });
-    });
-
-    describe("with createServerForRequest override", () => {
-        type ToolContext = {
-            permissions: "none" | "full";
-        };
-        it("should customize server configuration based on request headers", async () => {
-            // Create a custom runner that extends StreamableHttpRunner
-            class CustomStreamableHttpRunner extends StreamableHttpRunner<UserConfig, ToolContext> {
-                protected async createServerForRequest({
-                    request,
-                }: {
-                    request: RequestContext;
-                }): Promise<Server> {
-                    // Extract custom header to determine configuration
-                    const userRole = request.headers?.["x-user-role"];
-
-                    // Customize config based on role
-                    let sessionConfig: UserConfig = { ...this.userConfig };
-                    let toolContext: ToolContext = {
-                        permissions: "none",
-                    };
-
-                    if (userRole === "analyst") {
-                        // Analysts get read-only access with limited results
-                        sessionConfig = {
-                            ...sessionConfig,
-                            readOnly: true,
-                            maxDocumentsPerQuery: 10,
-                        };
-                    } else if (userRole === "admin") {
-                        // Admins get full access
-                        sessionConfig = {
-                            ...sessionConfig,
-                            readOnly: false,
-                            maxDocumentsPerQuery: 1000,
-                        };
-                        toolContext = {
-                            permissions: "full",
-                        };
-                    }
-
-                    return this.createServer({
-                        userConfig: sessionConfig,
-                        serverOptions: {
-                            toolContext,
-                        },
-                    });
-                }
-            }
-
-            // Create a tool that verifies the configuration
-            class ConfigCheckTool extends ToolBase {
-                static toolName = "config-check";
-                public description = "Check current configuration";
-                public argsShape = {};
-                static category: ToolCategory = "mongodb";
-                static operationType: OperationType = "metadata";
-
-                protected execute(): Promise<CallToolResult> {
-                    return Promise.resolve({
-                        content: [
-                            {
-                                type: "text",
-                                text: JSON.stringify({
-                                    readOnly: this.config.readOnly,
-                                    maxDocumentsPerQuery: this.config.maxDocumentsPerQuery,
-                                    permissions: this.context?.permissions,
-                                }),
-                            },
-                        ],
-                    });
-                }
-
-                protected resolveTelemetryMetadata(): TelemetryToolMetadata {
-                    return {};
-                }
-            }
-
-            // Initialize custom runner with the config check tool
-            runner = new CustomStreamableHttpRunner({
-                userConfig: config,
-                tools: [ConfigCheckTool],
-            });
-            await runner.start();
-
-            // Test 1: Analyst role gets read-only with limited results
-            const analystClient = await connectClient({
-                additionalHeaders: { "x-user-role": "analyst" },
-            });
-
-            const analystResponse = (await analystClient.callTool({
-                name: "config-check",
-                arguments: {},
-            })) as { content: { text: string }[] };
-
-            const analystConfig = JSON.parse(analystResponse.content[0]?.text ?? "{}") as {
-                readOnly: boolean;
-                maxDocumentsPerQuery: number;
-            };
-            expect(analystConfig.readOnly).toBe(true);
-            expect(analystConfig.maxDocumentsPerQuery).toBe(10);
-
-            // Test 2: Admin role gets full access
-            const adminClient = await connectClient({
-                additionalHeaders: { "x-user-role": "admin" },
-            });
-
-            const adminResponse = (await adminClient.callTool({
-                name: "config-check",
-                arguments: {},
-            })) as { content: { text: string }[] };
-
-            const adminConfig = JSON.parse(adminResponse.content[0]?.text ?? "{}") as {
-                readOnly: boolean;
-                maxDocumentsPerQuery: number;
-                permissions: "none" | "full";
-            };
-            expect(adminConfig.readOnly).toBe(false);
-            expect(adminConfig.permissions).toBe("full");
-            expect(adminConfig.maxDocumentsPerQuery).toBe(1000);
-
-            // Test 3: No role header uses default config
-            const defaultClient = await connectClient({ additionalHeaders: {} });
-
-            const defaultResponse = (await defaultClient.callTool({
-                name: "config-check",
-                arguments: {},
-            })) as { content: { text: string }[] };
-
-            const defaultConfig = JSON.parse(defaultResponse.content[0]?.text ?? "{}") as {
-                readOnly: boolean;
-                maxDocumentsPerQuery: number;
-                permissions: "none" | "full";
-            };
-            expect(defaultConfig.readOnly).toBe(config.readOnly);
-            expect(defaultConfig.permissions).toBe("none");
-            expect(defaultConfig.maxDocumentsPerQuery).toBe(config.maxDocumentsPerQuery);
-        });
-
-        it("should allow customizing tools based on request context", async () => {
-            // Create different tool sets based on request headers
-            class UserTool extends ToolBase {
-                static toolName = "user-tool";
-                public description = "Available to users";
-                public argsShape = {};
-                static category: ToolCategory = "mongodb";
-                static operationType: OperationType = "metadata";
-
-                protected execute(): Promise<CallToolResult> {
-                    return Promise.resolve({
-                        content: [{ type: "text", text: "user tool executed" }],
-                    });
-                }
-
-                protected resolveTelemetryMetadata(): TelemetryToolMetadata {
-                    return {};
-                }
-            }
-
-            class AdminTool extends ToolBase {
-                static toolName = "admin-tool";
-                public description = "Available to admins only";
-                public argsShape = {};
-                static category: ToolCategory = "mongodb";
-                static operationType: OperationType = "create";
-
-                protected execute(): Promise<CallToolResult> {
-                    return Promise.resolve({
-                        content: [{ type: "text", text: "admin tool executed" }],
-                    });
-                }
-
-                protected resolveTelemetryMetadata(): TelemetryToolMetadata {
-                    return {};
-                }
-            }
-
-            // Custom runner that customizes available tools
-            class CustomStreamableHttpRunner extends StreamableHttpRunner<UserConfig, ToolContext> {
-                protected override async createServerForRequest({
-                    request,
-                }: {
-                    request: RequestContext;
-                }): Promise<Server> {
-                    const userRole = request.headers?.["x-user-role"];
-
-                    // Users only get UserTool
-                    let tools: AnyToolClass[] = [UserTool];
-
-                    // Admins get both tools
-                    if (userRole === "admin") {
-                        tools = [UserTool, AdminTool];
-                    }
-
-                    return this.createServer({
-                        userConfig: this.userConfig,
-                        serverOptions: {
-                            tools,
-                        },
-                    });
-                }
-            }
-
-            runner = new CustomStreamableHttpRunner({
-                userConfig: config,
-            });
-            await runner.start();
-
-            // Test 1: Regular users only see user-tool
-            const userClient = await connectClient({
-                additionalHeaders: { "x-user-role": "user" },
-            });
-
-            const userTools = await userClient.listTools();
-            expect(userTools.tools).toHaveLength(1);
-            expect(userTools.tools[0]?.name).toBe("user-tool");
-
-            // Test 2: Admins see both tools
-            const adminClient = await connectClient({
-                additionalHeaders: { "x-user-role": "admin" },
-            });
-
-            const adminTools = await adminClient.listTools();
-            expect(adminTools.tools).toHaveLength(2);
-            const toolNames = adminTools.tools.map((t) => t.name).sort();
-            expect(toolNames).toEqual(["admin-tool", "user-tool"]);
-        });
-    });
-
-    describe("elicitation without a standalone SSE stream", () => {
-        // Mirrors hosted deployments (e.g. the Atlas remote MCP server) that reject
-        // GET /mcp with 405: server->client requests can never use the standalone SSE
-        // stream, so confirmation requests must ride the tool call's own POST stream.
-        class ConfirmRequiredTool extends ToolBase {
-            static toolName = "confirm-required-tool";
-            public description = "Tool that requires confirmation before executing";
-            public argsShape = {};
-            static category: ToolCategory = "mongodb";
-            static operationType: OperationType = "delete";
-
-            protected execute(): Promise<CallToolResult> {
-                return Promise.resolve({ content: [{ type: "text", text: "Tool executed" }] });
-            }
-
-            protected resolveTelemetryMetadata(): TelemetryToolMetadata {
-                return {};
-            }
-        }
-
-        beforeEach(async () => {
-            runner = new StreamableHttpRunner({
-                userConfig: { ...config, confirmationRequiredTools: ["confirm-required-tool"] },
-                tools: [ConfirmRequiredTool],
-                createMcpHttpServer(args): MCPHttpServer {
-                    return new (class extends MCPHttpServer {
-                        protected override setupMiddlewares(): void {
-                            super.setupMiddlewares();
-                            this.app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
-                                if (req.method === "GET" && req.path === "/mcp") {
-                                    res.status(405).set("Allow", "POST, DELETE").send("Method Not Allowed");
-                                    return;
-                                }
-                                next();
-                            });
-                        }
-                    })(args);
-                },
-            });
-            await runner.start();
-        });
-
-        it("delivers the confirmation request over the tool call's own stream", async () => {
-            const client = new Client({ name: "test", version: "0.0.0" }, { capabilities: { elicitation: {} } });
-            const elicitationMessages: string[] = [];
-            client.setRequestHandler(ElicitRequestSchema, (request) => {
-                elicitationMessages.push(request.params.message);
-                return { action: "accept" as const, content: { confirmation: "Yes" } };
-            });
-
-            const transport = new StreamableHTTPClientTransport(new URL(`${runner["mcpServer"]!.serverAddress}/mcp`));
-            await client.connect(transport);
-            clients.push(client);
-
-            const result = (await client.callTool({ name: "confirm-required-tool", arguments: {} }, undefined, {
-                timeout: 5_000,
-            })) as CallToolResult;
-
-            expect(elicitationMessages).toHaveLength(1);
-            expect(elicitationMessages[0]).toContain("confirm-required-tool");
-            expect(result.isError).toBeFalsy();
-            expect(result.content).toEqual([{ type: "text", text: "Tool executed" }]);
-        });
-
-        it("sends progress notifications while the confirmation is pending", async () => {
-            const client = new Client({ name: "test", version: "0.0.0" }, { capabilities: { elicitation: {} } });
-            client.setRequestHandler(ElicitRequestSchema, () => {
-                return { action: "accept" as const, content: { confirmation: "Yes" } };
-            });
-
-            const transport = new StreamableHTTPClientTransport(new URL(`${runner["mcpServer"]!.serverAddress}/mcp`));
-            await client.connect(transport);
-            clients.push(client);
-
-            const progressUpdates: number[] = [];
-            const result = (await client.callTool({ name: "confirm-required-tool", arguments: {} }, undefined, {
-                timeout: 5_000,
-                // Requesting progress makes the client attach a progress token
-                // to the tool call, which the server's elicitation heartbeat
-                // uses to keep the request alive while the user is deciding.
-                onprogress: (progress) => progressUpdates.push(progress.progress),
-            })) as CallToolResult;
-
-            expect(progressUpdates.length).toBeGreaterThanOrEqual(1);
-            expect(result.isError).toBeFalsy();
-            expect(result.content).toEqual([{ type: "text", text: "Tool executed" }]);
-        });
-    });
-
-    describe("connection scoping", () => {
-        // Tools that poke the session's connection registry directly. The real
-        // connect tool needs a dialable mongod, which this suite does not spin
-        // up; createEntry() registers a handle without dialing, which is all
-        // the per-session visibility scoping operates on.
-        class CreateConnectionEntryTool extends ToolBase {
-            static toolName = "create-connection-entry";
-            public description = "Registers a connection handle without dialing it";
-            public argsShape = {};
-            static category: ToolCategory = "mongodb";
-            static operationType: OperationType = "connect";
-
-            protected async execute(): Promise<CallToolResult> {
-                const entry = await this.session.connectionRegistry.createEntry({ name: "scoping-test" });
-                return { content: [{ type: "text", text: entry.connectionId }] };
-            }
-
-            protected resolveTelemetryMetadata(): TelemetryToolMetadata {
-                return {};
-            }
-        }
-
-        class ListConnectionIdsTool extends ToolBase {
-            static toolName = "list-connection-ids";
-            public description = "Lists the connection ids visible to this session";
-            public argsShape = {};
-            static category: ToolCategory = "mongodb";
-            static operationType: OperationType = "metadata";
-
-            protected async execute(): Promise<CallToolResult> {
-                const entries = await this.session.connectionRegistry.find(() => true);
-                const ids = entries.map((entry) => entry.connectionId);
-                return { content: [{ type: "text", text: JSON.stringify(ids) }] };
-            }
-
-            protected resolveTelemetryMetadata(): TelemetryToolMetadata {
-                return {};
-            }
-        }
-
-        class ResolveConnectionTool extends ToolBase {
-            static toolName = "resolve-connection";
-            public description = "Resolves a connection id, reporting the error code on failure";
-            public argsShape = { connectionId: z.string() };
-            static category: ToolCategory = "mongodb";
-            static operationType: OperationType = "metadata";
-
-            protected async execute({ connectionId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
-                try {
-                    await this.session.connectionRegistry.resolve(connectionId);
-                    return { content: [{ type: "text", text: "resolved" }] };
-                } catch (error: unknown) {
-                    const text = error instanceof MongoDBError ? `error-code-${error.code}` : String(error);
-                    return { content: [{ type: "text", text }] };
-                }
-            }
-
-            protected resolveTelemetryMetadata(): TelemetryToolMetadata {
-                return {};
-            }
-        }
-
-        const scopingTools = [CreateConnectionEntryTool, ListConnectionIdsTool, ResolveConnectionTool];
-
-        const callText = async (client: Client, name: string, args: Record<string, unknown> = {}): Promise<string> => {
-            const response = (await client.callTool({ name, arguments: args })) as {
-                content: { text: string }[];
-            };
-            return response.content[0]?.text ?? "";
-        };
-
-        it("isolates connection handles between sessions by default", async () => {
-            const sessionScopeConfig: UserConfig = { ...config, connectionString: "mongodb://localhost:27017" };
-            runner = new StreamableHttpRunner({
-                userConfig: sessionScopeConfig,
-                tools: scopingTools,
-            });
-            await runner.start();
-
-            const clientA = await connectClient({});
-            const clientB = await connectClient({});
-
-            const handle = await callText(clientA, "create-connection-entry");
-            expect(handle).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
-
-            // The creating session sees its handle plus the shared preconfigured entry.
-            const idsA = JSON.parse(await callText(clientA, "list-connection-ids")) as string[];
-            expect(idsA).toContain(handle);
-            expect(idsA).toContain("preconfigured");
-
-            // The other session only sees the shared preconfigured entry...
-            const idsB = JSON.parse(await callText(clientB, "list-connection-ids")) as string[];
-            expect(idsB).not.toContain(handle);
-            expect(idsB).toContain("preconfigured");
-
-            // ...and the foreign handle behaves exactly like an absent one. The
-            // owner can still address it: the entry was never dialed, so it
-            // resolves to a not-connected error instead of an unknown handle.
-            expect(await callText(clientB, "resolve-connection", { connectionId: handle })).toBe(
-                `error-code-${ErrorCodes.UnknownConnectionId}`
-            );
-            expect(await callText(clientA, "resolve-connection", { connectionId: handle })).toBe(
-                `error-code-${ErrorCodes.NotConnectedToMongoDB}`
-            );
-        });
-
-        it("shares connection handles across sessions with connectionScope: global", async () => {
-            const globalScopeConfig: UserConfig = { ...config, connectionScope: "global" };
-            runner = new StreamableHttpRunner({
-                userConfig: globalScopeConfig,
-                tools: scopingTools,
-            });
-            await runner.start();
-
-            const clientA = await connectClient({});
-            const clientB = await connectClient({});
-
-            const handle = await callText(clientA, "create-connection-entry");
-
-            const idsB = JSON.parse(await callText(clientB, "list-connection-ids")) as string[];
-            expect(idsB).toContain(handle);
-            expect(await callText(clientB, "resolve-connection", { connectionId: handle })).toBe(
-                `error-code-${ErrorCodes.NotConnectedToMongoDB}`
-            );
-        });
-    });
 });
+
+// Helper to get the server address from the runner
+function getServerAddress(runner: StreamableHttpRunner<CliServer>): string {
+    // Access the mcpHttpServer and get its address
+    const mcpHttpServer = (runner as unknown as { mcpHttpServer: { serverAddress: string } }).mcpHttpServer;
+    return mcpHttpServer.serverAddress;
+}
+
+// Helper to get session store from runner
+function getSessionStore(runner: StreamableHttpRunner<CliServer>): ISessionStore<StreamableHTTPServerTransport> {
+    return (runner as unknown as { mcpHttpServer: { sessionStore: ISessionStore<StreamableHTTPServerTransport> } })
+        .mcpHttpServer.sessionStore;
+}

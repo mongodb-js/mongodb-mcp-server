@@ -5,7 +5,7 @@ import { setupIntegrationTest, defaultTestConfig } from "../../integrationHelper
 import type { SuiteCollector } from "vitest";
 import { afterAll, beforeAll, describe } from "vitest";
 import type { McpSession } from "@mongodb-js/mcp-cli";
-import type { CliSession } from "mongodb-mcp-server";
+// CliSession deprecated alias replaced by McpSession below
 import { AllTools } from "mongodb-mcp-server";
 
 export type IntegrationTestFunction = (integration: IntegrationTest) => void;
@@ -189,7 +189,7 @@ export function sleep(ms: number): Promise<void> {
 }
 
 export async function assertClusterIsAvailable(
-    session: CliSession,
+    session: McpSession,
     projectId: string,
     clusterName: string
 ): Promise<boolean> {
@@ -218,7 +218,7 @@ export function assertApiClientIsAvailable(
 }
 
 export async function deleteCluster(
-    session: CliSession,
+    session: McpSession,
     projectId: string,
     clusterName: string,
     shouldWaitTillClusterIsDeleted: boolean = false
@@ -255,7 +255,7 @@ export async function deleteCluster(
 }
 
 export async function waitCluster(
-    session: CliSession,
+    session: McpSession,
     projectId: string,
     clusterName: string,
     check: (cluster: ClusterDescription20240805) => boolean | Promise<boolean>,
@@ -265,8 +265,9 @@ export async function waitCluster(
     if (!session.apiClient) {
         throw new Error("apiClient not available");
     }
+    const apiClient = session.apiClient as ApiClient;
     for (let i = 0; i < maxPollingIterations; i++) {
-        const cluster = await session.apiClient.getCluster({
+        const cluster = await apiClient.getCluster({
             params: {
                 path: {
                     groupId: projectId,

@@ -424,7 +424,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
         });
 
         expect(mockEmitEvents).toHaveBeenCalled();
-        const emittedEvent = mockEmitEvents.mock.lastCall?.[0][0] as ToolEvent;
+        const emittedEvent = (mockEmitEvents.mock.lastCall?.[0] as ToolEvent[] | undefined)?.[0] as ToolEvent;
         expectDefined(emittedEvent);
         expect(emittedEvent.properties.embeddingsGeneratedBy).toBeUndefined();
     });

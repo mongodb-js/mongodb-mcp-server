@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { NoopLogger } from "@mongodb-js/mcp-core";
+import { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ServerMetadata } from "@mongodb-js/mcp-types";
 import { UserConfigSchema } from "./config/userConfig.js";
 
@@ -28,7 +28,7 @@ describe("createApiClientFromConfig", () => {
         mcpServerName: "MongoDB MCP Server",
         version: "1.2.3-test",
     };
-    const logger = new NoopLogger();
+    const logger = new CompositeLogger({ loggers: [] });
 
     beforeEach(() => {
         capturedApiClientOptions.length = 0;

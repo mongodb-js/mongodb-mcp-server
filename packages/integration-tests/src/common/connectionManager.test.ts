@@ -32,11 +32,13 @@ describeWithMongoDB("Connection Manager", (integration) => {
 
             // Construct the manager directly and attach the spies before the
             // initial dial so they observe the full lifecycle.
-            manager = new MCPConnectionManager(
-                defaultTestConfig,
-                new CompositeLogger(),
-                DeviceId.create(new CompositeLogger())
-            );
+            const logger = new CompositeLogger();
+            manager = new MCPConnectionManager({
+                logger,
+                deviceId: DeviceId.create(new CompositeLogger()),
+                serverMetadata: { mcpServerName: "test-server", version: "1.0" },
+                connectionInfo: { transport: "stdio", httpHost: "localhost" },
+            });
 
             for (const [event, spy] of Object.entries(connectionManagerSpies)) {
                 manager.events.on(
@@ -211,7 +213,7 @@ describeWithMongoDB(
             connectionState: ConnectionStateConnected;
         }> {
             const session = integration.mcpServer().session;
-            const entry = await session.connectionRegistry.connect({ settings: { connectionString } });
+            const entry = await session.connectionRegistry.connect({ settings: { connectionString, driverOptions: {} } });
 
             const state = entry.state;
             if (state.tag !== "connected") {
@@ -445,7 +447,7 @@ describeWithMongoDB(
         it("returns true when Atlas Local Search is enabled", async () => {
             const session = integration.mcpServer().session;
             const entry = await session.connectionRegistry.connect({
-                settings: { connectionString: integration.connectionString() },
+                settings: { connectionString: integration.connectionString(), driverOptions: {} },
             });
 
             const state = entry.state;

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { atlasClusterSlug, PRECONFIGURED_CONNECTION_ID } from "./connectionRegistry.js";
 import { MCPConnectionStore, type ConnectionStoreOptions, type ConnectionStoreUserConfig } from "./connectionStore.js";
 import { summarizeConnection } from "./connectionSummary.js";
-import { FakeConnectionManager } from "../mocks/connectionManager.js";
+import { FakeConnectionManager } from "./mocks/connectionManager.js";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
 import { DeviceId } from "../helpers/deviceId.js";
 import { ErrorCodes, MongoDBError } from "./errors.js";

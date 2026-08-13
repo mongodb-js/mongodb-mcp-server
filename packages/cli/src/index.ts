@@ -54,7 +54,7 @@ export {
 } from "./config/configOverrides.js";
 
 // Transport constants
-export { TRANSPORT_PAYLOAD_LIMITS, type TransportType } from "./transports/constants.js";
+export { TRANSPORT_PAYLOAD_LIMITS, DEFAULT_MAX_SESSIONS, type TransportType } from "./transports/constants.js";
 
 // Dry run runner
 export {
@@ -62,6 +62,7 @@ export {
     type DryRunServer,
     type DryRunLogger,
     type DryRunModeRunnerOptions,
+    type DryRunModeTestHelpers,
 } from "./transports/dryModeRunner.js";
 
 // CLI Handlers
@@ -71,3 +72,7 @@ export { VersionHandler } from "./handlers/versionHandler.js";
 
 // MCP resources
 export { Resources, ConfigResource, DebugResource, ExportedData } from "./resources/resources.js";
+
+// HTTP server
+// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+export { SharedSessionMCPHttpServer } from "./cliServer/sharedSessionMCPHttpServer.js";

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { NoopLogger } from "@mongodb-js/mcp-core";
+import { CompositeLogger } from "@mongodb-js/mcp-core";
+import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
 import { UserConfigSchema } from "./config/userConfig.js";
 
 const mockMonitoringServer = vi.fn();
@@ -15,8 +16,8 @@ vi.mock("@mongodb-js/mcp-http-runners", () => ({
 import { createMonitoringServerFromConfig } from "./createMonitoringServerFromConfig.js";
 
 describe("createMonitoringServerFromConfig", () => {
-    const logger = new NoopLogger();
-    const metrics = { getMetrics: vi.fn() };
+    const logger = new CompositeLogger({ loggers: [] });
+    const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
 
     it("returns undefined when monitoring host or port is not configured", () => {
         const config = UserConfigSchema.parse({

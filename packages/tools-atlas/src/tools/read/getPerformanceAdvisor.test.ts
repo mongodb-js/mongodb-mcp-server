@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import { GetPerformanceAdvisorTool } from "./getPerformanceAdvisor.js";
-import type { ISession } from "@mongodb-js/mcp-types";
+import type { IAtlasSession } from "../../atlasTool.js";
 import type { ITelemetry } from "@mongodb-js/mcp-types";
 import type { Elicitation } from "@mongodb-js/mcp-core";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
@@ -39,7 +39,7 @@ describe("GetPerformanceAdvisorTool", () => {
         const mockSession = {
             logger: mockLogger,
             apiClient: { ...mockApiClient, logger: mockLogger } as unknown as ApiClient,
-        } as unknown as ISession;
+        } as unknown as IAtlasSession;
 
         const mockTelemetry = {
             isTelemetryEnabled: () => false,
@@ -50,7 +50,7 @@ describe("GetPerformanceAdvisorTool", () => {
             requestConfirmation: vi.fn(),
         } as unknown as Elicitation;
 
-        const params: ToolConstructorParams = {
+        const params: ToolConstructorParams<IAtlasSession> = {
             name: GetPerformanceAdvisorTool.toolName,
             category: "atlas",
             operationType: GetPerformanceAdvisorTool.operationType,

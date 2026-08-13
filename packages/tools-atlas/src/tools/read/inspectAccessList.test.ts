@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import { InspectAccessListTool } from "./inspectAccessList.js";
-import type { ISession } from "@mongodb-js/mcp-types";
+import type { IAtlasSession } from "../../atlasTool.js";
 import type { ITelemetry } from "@mongodb-js/mcp-types";
 import type { Elicitation } from "@mongodb-js/mcp-core";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
@@ -28,7 +28,7 @@ describe("InspectAccessListTool", () => {
         const mockSession = {
             logger: mockLogger,
             apiClient: mockApiClient as unknown as ApiClient,
-        } as unknown as ISession;
+        } as unknown as IAtlasSession;
 
         const mockTelemetry = {
             isTelemetryEnabled: () => true,
@@ -39,7 +39,7 @@ describe("InspectAccessListTool", () => {
             requestConfirmation: vi.fn(),
         } as unknown as Elicitation;
 
-        const params: ToolConstructorParams = {
+        const params: ToolConstructorParams<IAtlasSession> = {
             name: InspectAccessListTool.toolName,
             category: "atlas",
             operationType: InspectAccessListTool.operationType,

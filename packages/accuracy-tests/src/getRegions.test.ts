@@ -1,6 +1,5 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { AtlasCloudProvider } from "../../src/tools/args.js";
-import { ATLAS_REGIONS } from "../../src/tools/atlas/read/getRegions.js";
+import { ATLAS_REGIONS, type AtlasCloudProvider } from "@mongodb-js/mcp-tools-atlas";
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
 import { Matcher } from "./sdk/matcher.js";
 

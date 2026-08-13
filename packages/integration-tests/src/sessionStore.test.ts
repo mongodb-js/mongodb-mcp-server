@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { SessionStore } from "@mongodb-js/mcp-core";
+import { SessionStore, SessionLimitExceededError } from "@mongodb-js/mcp-core";
 import type { LoggerBase } from "@mongodb-js/mcp-core";
 import type { CloseableTransport, ISession } from "@mongodb-js/mcp-types";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";

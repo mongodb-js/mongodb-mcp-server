@@ -13,7 +13,10 @@ describe("inspectCluster", () => {
             logger: { debug, error },
         } as unknown as ApiClient;
 
-        const context = { requestInfo: { headers: { "x-request-id": "req-cluster-1" } } };
+        const context = {
+            signal: new AbortController().signal,
+            requestInfo: { headers: { "x-request-id": "req-cluster-1" } },
+        };
 
         await expect(inspectCluster(apiClient, "proj1", "cluster1", context)).rejects.toThrow();
 

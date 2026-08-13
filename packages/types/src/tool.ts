@@ -1,5 +1,21 @@
 import { type CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 export type { CallToolResult };
+import type { Secret } from "mongodb-redact";
+import type { IToolConfig } from "./config.js";
+import type { ICompositeLogger } from "./logging.js";
+
+/**
+ * The minimal session surface tools rely on: config and logging. The CLI's
+ * session is deliberately stateless (connection state lives in the app-level
+ * registry and is addressed by connectionId), so tools are not constrained to
+ * the full {@link ISession} shape.
+ */
+export interface IToolSession {
+    readonly config: IToolConfig;
+    readonly logger: ICompositeLogger;
+    /** Secrets registered for redaction (used by ToolBase error handling). */
+    readonly keychain: { readonly allSecrets: Secret[] };
+}
 
 /**
  * The type of operation the tool performs. This is used when evaluating if a tool is allowed to run based on

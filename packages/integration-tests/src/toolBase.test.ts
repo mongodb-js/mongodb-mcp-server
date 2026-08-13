@@ -3,9 +3,10 @@ import { describe, it, expect, vi, beforeEach, type MockedFunction } from "vites
 import type { ZodRawShape } from "zod";
 import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
 import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
-import type { CliSession } from "@mongodb-js/mcp-cli";
 import type { CliServer, UserConfig } from "@mongodb-js/mcp-cli";
+import type { ISession, IToolConfig } from "@mongodb-js/mcp-types";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
+import type { ToolBase } from "@mongodb-js/mcp-core";
 import type { Elicitation } from "@mongodb-js/mcp-core";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -24,7 +25,7 @@ import {
 import { Keychain } from "@mongodb-js/mcp-core";
 
 describe("ToolBase", () => {
-    let mockSession: CliSession;
+    let mockSession: ISession<IToolConfig>;
     let mockLogger: CompositeLogger;
     let mockLoggerWarning: ReturnType<typeof vi.fn>;
     let mockConfig: UserConfig;
@@ -53,7 +54,7 @@ describe("ToolBase", () => {
             logger: mockLogger,
             keychain: new Keychain(),
             config: mockConfig,
-        } as unknown as CliSession;
+        } as unknown as ISession<IToolConfig>;
 
         mockAtlasTelemetry = {
             isTelemetryEnabled: () => true,
@@ -898,7 +899,7 @@ describe("ToolBase", () => {
 
 function createToolWithoutStructuredContent(
     previewFeatures: PreviewFeature[],
-    mockSession: CliSession,
+    mockSession: ISession<IToolConfig>,
     mockConfig: UserConfig,
     mockAtlasTelemetry: AtlasTelemetry,
     mockElicitation: Elicitation,

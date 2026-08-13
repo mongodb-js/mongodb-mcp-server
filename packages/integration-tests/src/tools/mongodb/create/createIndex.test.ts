@@ -362,7 +362,7 @@ describeWithMongoDB("createIndex tool with classic indexes", (integration) => {
         });
 
         expect(mockEmitEvents).toHaveBeenCalled();
-        const emittedEvent = mockEmitEvents.mock.lastCall?.[0][0] as ToolEvent;
+        const emittedEvent = (mockEmitEvents.mock.lastCall?.[0] as ToolEvent[] | undefined)?.[0] as ToolEvent;
         expectDefined(emittedEvent);
         expect(emittedEvent.properties.result).toEqual("success");
         expect(emittedEvent.properties.command).toEqual("create-index");
@@ -397,7 +397,7 @@ describeWithMongoDB("createIndex tool with classic indexes", (integration) => {
 
         expect(response.isError).toBe(true);
         expect(mockEmitEvents).toHaveBeenCalled();
-        const emittedEvent = mockEmitEvents.mock.lastCall?.[0][0] as ToolEvent;
+        const emittedEvent = (mockEmitEvents.mock.lastCall?.[0] as ToolEvent[] | undefined)?.[0] as ToolEvent;
         expectDefined(emittedEvent);
         expect(emittedEvent.properties.result).toEqual("failure");
         expect(emittedEvent.properties.command).toEqual("create-index");
@@ -623,7 +623,7 @@ describeWithMongoDB(
                 });
 
                 expect(mockEmitEvents).toHaveBeenCalled();
-                const emittedEvent = mockEmitEvents.mock.lastCall?.[0][0] as ToolEvent;
+                const emittedEvent = (mockEmitEvents.mock.lastCall?.[0] as ToolEvent[] | undefined)?.[0] as ToolEvent;
                 expectDefined(emittedEvent);
                 expect(emittedEvent.properties.result).toEqual("success");
                 expect(emittedEvent.properties.command).toEqual("create-index");
@@ -991,7 +991,7 @@ describeWithMongoDB(
                 });
 
                 expect(mockEmitEvents).toHaveBeenCalled();
-                const emittedEvent = mockEmitEvents.mock.lastCall?.[0][0] as ToolEvent;
+                const emittedEvent = (mockEmitEvents.mock.lastCall?.[0] as ToolEvent[] | undefined)?.[0] as ToolEvent;
                 expectDefined(emittedEvent);
                 expect(emittedEvent.properties.result).toEqual("success");
                 expect(emittedEvent.properties.command).toEqual("create-index");

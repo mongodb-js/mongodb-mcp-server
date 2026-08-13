@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ToolConstructorParams, CompositeLogger, Elicitation, Keychain } from "@mongodb-js/mcp-core";
+import { Keychain } from "@mongodb-js/mcp-core";
+import type { ToolConstructorParams, CompositeLogger, Elicitation } from "@mongodb-js/mcp-core";
 import type { IAtlasSession, IAtlasConfig } from "../../atlasTool.js";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import type { ITelemetry, IElicitation, ICompositeLogger } from "@mongodb-js/mcp-types";

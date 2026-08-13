@@ -2,7 +2,7 @@ import { z } from "zod";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import { ListOrganizationsTool, ListOrganizationsArgs } from "./listOrgs.js";
-import type { ISession } from "@mongodb-js/mcp-types";
+import type { IAtlasSession } from "../../atlasTool.js";
 import type { ITelemetry } from "@mongodb-js/mcp-types";
 import type { Elicitation } from "@mongodb-js/mcp-core";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
@@ -29,7 +29,7 @@ describe("ListOrganizationsTool", () => {
         const mockSession = {
             logger: mockLogger,
             apiClient: mockApiClient as unknown as ApiClient,
-        } as unknown as ISession;
+        } as unknown as IAtlasSession;
 
         const mockTelemetry = {
             isTelemetryEnabled: () => true,
@@ -40,7 +40,7 @@ describe("ListOrganizationsTool", () => {
             requestConfirmation: vi.fn(),
         } as unknown as Elicitation;
 
-        const params: ToolConstructorParams = {
+        const params: ToolConstructorParams<IAtlasSession> = {
             name: ListOrganizationsTool.toolName,
             category: "atlas",
             operationType: ListOrganizationsTool.operationType,

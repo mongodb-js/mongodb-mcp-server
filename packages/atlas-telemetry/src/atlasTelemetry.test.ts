@@ -11,6 +11,8 @@ import {
 import type { TelemetryBaseEvent, TelemetryCommonProperties, TelemetryEvent, TelemetryResult } from "./types.js";
 import { EventCache } from "./eventCache.js";
 import { afterAll, afterEach, beforeEach, describe, it, vi, expect } from "vitest";
+
+vi.mock("./containerEnv.js", () => ({ detectContainerEnv: vi.fn().mockResolvedValue(false) }));
 import { NoopLogger, Keychain } from "@mongodb-js/mcp-core";
 import type { MockedFunction, MockInstance } from "vitest";
 import type { IDeviceId } from "@mongodb-js/mcp-types";
@@ -101,8 +103,6 @@ describe("AtlasTelemetry", () => {
     ): AtlasTelemetry {
         const { commonPropertiesOverride, ...configOverrides } = overrides;
         const serverMetadata = configOverrides.serverMetadata ?? TEST_SERVER_METADATA;
-
-        vi.spyOn(AtlasTelemetry.prototype, "detectContainerEnv").mockResolvedValue(false);
 
         return TestAtlasTelemetry.createForTest(
             {
@@ -654,7 +654,7 @@ describe("AtlasTelemetry credentials handling", () => {
 
     let fetchSpy: MockInstance<typeof fetch>;
 
-    const mockDeviceId = {
+const mockDeviceId = {
         get: vi.fn().mockResolvedValue("test-device-id"),
         close: vi.fn(),
     } as unknown as IDeviceId;
@@ -719,8 +719,6 @@ describe("AtlasTelemetry credentials handling", () => {
         } else {
             expect(apiClient.isAuthConfigured()).toBe(false);
         }
-
-        vi.spyOn(AtlasTelemetry.prototype, "detectContainerEnv").mockResolvedValue(false);
 
         const telemetry = AtlasTelemetry.create({
             logger: new NoopLogger(),

@@ -1,7 +1,7 @@
 import path from "path";
 import { Long } from "bson";
 import fs from "fs/promises";
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { CallToolResult } from "@mongodb-js/mcp-types";
 import {
     databaseCollectionParameters,

@@ -185,21 +185,27 @@ describe("CliServer integration test", () => {
         const deviceId = DeviceId.create(logger);
         const connectionRegistry = new MCPConnectionStore({ userConfig: config, logger, deviceId }).view();
         const exportsManager = ExportsManager.init({ options: config, logger });
-        const session = new Session({
-            logger,
-            exportsManager,
-            connectionRegistry,
-            keychain: Keychain.root,
-            connectionErrorHandler,
-            atlasLocalClient: await createAtlasLocalClient({ logger }),
-            apiClient: createTestApiClient({
-                baseUrl: config.apiBaseUrl,
-                serverMetadata: { mcpServerName: "test", version: "1" },
+        const session = Object.assign(
+            new Session({
                 logger,
-                clientId: config.apiClientId,
-                clientSecret: config.apiClientSecret,
+                exportsManager,
+                connectionRegistry,
+                keychain: Keychain.root,
+                connectionErrorHandler,
+                atlasLocalClient: await createAtlasLocalClient({ logger }),
+                apiClient: createTestApiClient({
+                    baseUrl: config.apiBaseUrl,
+                    serverMetadata: { mcpServerName: "test", version: "1" },
+                    logger,
+                    clientId: config.apiClientId,
+                    clientSecret: config.apiClientSecret,
+                }),
             }),
-        });
+            {
+                config,
+                userConfig: config,
+            }
+        );
 
         const telemetry = AtlasTelemetry.create({
             logger,
@@ -221,6 +227,7 @@ describe("CliServer integration test", () => {
 
         const server = new CliServer({
             session,
+            userConfig: config,
             telemetry,
             mcpServer: mcpServerInstance,
             elicitation,

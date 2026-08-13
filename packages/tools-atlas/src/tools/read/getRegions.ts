@@ -6,7 +6,7 @@ import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types"
 import { type ToolArgs, type ToolResult } from "@mongodb-js/mcp-core";
 import { AtlasToolBase } from "../../atlasTool.js";
 
-interface AtlasRegion {
+export interface AtlasRegion {
     name: string;
     location: string;
 }

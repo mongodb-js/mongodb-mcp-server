@@ -175,21 +175,27 @@ describe("mcpUI feature with custom UIs", () => {
         const connectionRegistry = new MCPConnectionStore({ userConfig, logger, deviceId }).view();
         const exportsManager = ExportsManager.init({ options: userConfig, logger });
 
-        const session = new Session({
-            logger,
-            exportsManager,
-            connectionRegistry,
-            keychain: Keychain.root,
-            connectionErrorHandler,
-            atlasLocalClient: await createAtlasLocalClient({ logger }),
-            apiClient: createTestApiClient({
-                baseUrl: userConfig.apiBaseUrl,
-                serverMetadata: { mcpServerName: "test", version: "1" },
+        const session = Object.assign(
+            new Session({
                 logger,
-                clientId: userConfig.apiClientId,
-                clientSecret: userConfig.apiClientSecret,
+                exportsManager,
+                connectionRegistry,
+                keychain: Keychain.root,
+                connectionErrorHandler,
+                atlasLocalClient: await createAtlasLocalClient({ logger }),
+                apiClient: createTestApiClient({
+                    baseUrl: userConfig.apiBaseUrl,
+                    serverMetadata: { mcpServerName: "test", version: "1" },
+                    logger,
+                    clientId: userConfig.apiClientId,
+                    clientSecret: userConfig.apiClientSecret,
+                }),
             }),
-        });
+            {
+                config: userConfig,
+                userConfig,
+            }
+        );
 
         const telemetry = AtlasTelemetry.create({
             logger,
@@ -210,6 +216,7 @@ describe("mcpUI feature with custom UIs", () => {
 
         const server = new CliServer({
             session,
+            userConfig,
             telemetry,
             mcpServer: mcpServerInstance,
             elicitation,

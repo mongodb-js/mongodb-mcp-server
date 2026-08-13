@@ -6,8 +6,8 @@ import {
     ALLOWED_USERNAME_CHARACTERS_ERROR,
     ALLOWED_REGION_CHARACTERS_ERROR,
     ALLOWED_CLUSTER_NAME_CHARACTERS_ERROR,
-    ASCII_ONLY_NON_CC_ERROR,
 } from "@mongodb-js/mcp-tools-atlas";
+import { ASCII_ONLY_NON_CC_ERROR } from "@mongodb-js/mcp-core";
 
 describe("Tool args", () => {
     describe("CommonArgs", () => {

@@ -1,12 +1,14 @@
 export { AtlasToolBase, type IAtlasConfig, type IAtlasSession } from "./atlasTool.js";
 export { StreamsToolBase } from "./streams/streamsToolBase.js";
 export { StreamsArgs, ConnectionConfig, PrivateLinkConfig } from "./streams/streamsArgs.js";
+export { ATLAS_REGIONS, type AtlasRegion } from "./tools/read/getRegions.js";
 export { ensureCurrentIpInAccessList, DEFAULT_ACCESS_LIST_COMMENT } from "./helpers/accessListUtils.js";
 export { runSharedTierAlertsHook } from "./helpers/sharedTierAlertsHook.js";
 export { getDefaultRoleFromConfig } from "./helpers/roles.js";
 export {
     AtlasArgs,
     CommonArgs,
+    type AtlasCloudProvider,
     ALLOWED_PROJECT_NAME_CHARACTERS_ERROR,
     ALLOWED_USERNAME_CHARACTERS_ERROR,
     ALLOWED_REGION_CHARACTERS_ERROR,

@@ -1,103 +1,105 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { StreamableHttpRunner } from "@mongodb-js/mcp-http-runners";
-import { defaultTestConfig } from "../integrationHelpers.js";
+import { setupIntegrationTest, defaultTestConfig } from "../integrationHelpers.js";
 import type { UIRegistry } from "@mongodb-js/mcp-ui";
 import type { CliServer as Server } from "@mongodb-js/mcp-cli";
 
-describe("TransportRunnerBase", () => {
+describe("CliServer UIRegistry selection", () => {
     let server: Server | undefined;
+    let cleanup: () => Promise<void>;
 
     afterEach(async () => {
-        if (server) {
-            await server.close();
-            server = undefined;
-        }
+        await cleanup?.();
+        server = undefined;
     });
 
     describe("UIRegistry conditional import", () => {
         it("should not set UIRegistry when mcpUI preview feature is not enabled", async () => {
-            const runner = new StreamableHttpRunner({
-                userConfig: {
+            const integration = setupIntegrationTest(
+                () => ({
                     ...defaultTestConfig,
-                    httpPort: 0,
                     previewFeatures: [], // mcpUI not included
-                },
-            });
+                }),
+                { tools: [] }
+            );
+            cleanup = async () => {
+                await integration.mcpServer().close();
+            };
 
-            server = await runner["setupServer"]();
-
+            server = integration.mcpServer();
             expect(server.uiRegistry).toBeUndefined();
         });
 
         it("should set UIRegistry when mcpUI preview feature is enabled", async () => {
-            const runner = new StreamableHttpRunner({
-                userConfig: {
+            const integration = setupIntegrationTest(
+                () => ({
                     ...defaultTestConfig,
-                    httpPort: 0,
                     previewFeatures: ["mcpUI"],
-                },
-            });
+                }),
+                { tools: [] }
+            );
+            cleanup = async () => {
+                await integration.mcpServer().close();
+            };
 
-            server = await runner["setupServer"]();
-
+            server = integration.mcpServer();
             expect(server.uiRegistry).toBeDefined();
             expect(server.uiRegistry).toHaveProperty("get");
             expect(typeof server.uiRegistry?.get).toBe("function");
         });
 
         it("should use provided UIRegistry from serverOptions when available", async () => {
-            const runner = new StreamableHttpRunner({
-                userConfig: {
-                    ...defaultTestConfig,
-                    httpPort: 0,
-                    previewFeatures: ["mcpUI"], // mcpUI enabled but should be ignored
-                },
-            });
-
             const mockUIRegistry: UIRegistry = {
                 get: vi.fn(),
             } as unknown as UIRegistry;
 
-            server = await runner["setupServer"](undefined, {
-                serverOptions: { uiRegistry: mockUIRegistry },
-            });
+            const integration = setupIntegrationTest(
+                () => ({
+                    ...defaultTestConfig,
+                    previewFeatures: ["mcpUI"], // mcpUI enabled but should be ignored
+                }),
+                { tools: [], serverOptions: { uiRegistry: mockUIRegistry } }
+            );
+            cleanup = async () => {
+                await integration.mcpServer().close();
+            };
 
-            // Should use the provided UIRegistry, not create a new one
+            server = integration.mcpServer();
             expect(server.uiRegistry).toBe(mockUIRegistry);
         });
 
-        it("should not import UIRegistry when serverOptions provides one, even if mcpUI is disabled", async () => {
-            const runner = new StreamableHttpRunner({
-                userConfig: {
-                    ...defaultTestConfig,
-                    httpPort: 0,
-                    previewFeatures: [], // mcpUI not enabled
-                },
-            });
-
+        it("should use provided UIRegistry even when mcpUI is disabled", async () => {
             const mockUIRegistry: UIRegistry = {
                 get: vi.fn(),
             } as unknown as UIRegistry;
 
-            server = await runner["setupServer"](undefined, {
-                serverOptions: { uiRegistry: mockUIRegistry },
-            });
+            const integration = setupIntegrationTest(
+                () => ({
+                    ...defaultTestConfig,
+                    previewFeatures: [], // mcpUI not enabled
+                }),
+                { tools: [], serverOptions: { uiRegistry: mockUIRegistry } }
+            );
+            cleanup = async () => {
+                await integration.mcpServer().close();
+            };
 
-            // Should use the provided UIRegistry
+            server = integration.mcpServer();
             expect(server.uiRegistry).toBe(mockUIRegistry);
         });
 
         it("should handle multiple preview features with mcpUI included", async () => {
-            const runner = new StreamableHttpRunner({
-                userConfig: {
+            const integration = setupIntegrationTest(
+                () => ({
                     ...defaultTestConfig,
-                    httpPort: 0,
                     previewFeatures: ["mcpUI"],
-                },
-            });
+                }),
+                { tools: [] }
+            );
+            cleanup = async () => {
+                await integration.mcpServer().close();
+            };
 
-            server = await runner["setupServer"]();
-
+            server = integration.mcpServer();
             expect(server.uiRegistry).toBeDefined();
             expect(server.uiRegistry).toHaveProperty("get");
             expect(typeof server.uiRegistry?.get).toBe("function");

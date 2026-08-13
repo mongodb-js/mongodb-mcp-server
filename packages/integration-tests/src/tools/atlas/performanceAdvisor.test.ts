@@ -2,7 +2,6 @@
 // The timeouts for the beforeAll/afterAll hooks have been modified to account for longer running tests.
 
 import { ObjectId } from "bson";
-import type { CliSession } from "mongodb-mcp-server";
 import {
     DEFAULT_LONG_RUNNING_TEST_WAIT_TIMEOUT_MS,
     defaultTestConfig,
@@ -30,7 +29,7 @@ describeWithAtlas("performanceAdvisor", (integration) => {
         afterAll(async () => {
             const projectId = getProjectId();
             if (projectId) {
-                const session: CliSession = integration.mcpServer().session;
+                const session = integration.mcpServer().session;
                 await deleteCluster(session, projectId, clusterName);
             }
         }, DEFAULT_LONG_RUNNING_TEST_WAIT_TIMEOUT_MS);

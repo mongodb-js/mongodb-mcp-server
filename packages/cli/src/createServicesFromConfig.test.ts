@@ -5,7 +5,7 @@ import type * as McpToolsMongodb from "@mongodb-js/mcp-tools-mongodb";
 import { UserConfigSchema } from "./config/userConfig.js";
 
 vi.mock("./createLoggerFromConfig.js", () => ({
-    createLoggerFromConfig: vi.fn().mockResolvedValue(new NoopLogger() as CompositeLogger),
+    createLoggerFromConfig: vi.fn().mockResolvedValue(new NoopLogger() as unknown as CompositeLogger),
 }));
 
 vi.mock("./createExportsManagerFromConfig.js", () => ({

@@ -118,17 +118,18 @@ describe("ApiClient", () => {
                 .spyOn(global, "fetch")
                 .mockRejectedValue(new Error("global fetch should not be called"));
 
-            const client = new ApiClient(
-                {
+            const client = new ApiClient({
+                options: {
                     baseUrl: "https://api.test.com",
-                    userAgent: "test-user-agent",
-                    httpClient: {
-                        fetch: injectedFetch as unknown as typeof fetch,
-                        Request: TrackedRequest,
-                    },
                 },
-                new NullLogger()
-            );
+                serverMetadata: testServerMetadata,
+                logger: new NoopLogger(),
+                authProvider: undefined,
+                httpClient: {
+                    fetch: injectedFetch as unknown as typeof fetch,
+                    Request: TrackedRequest,
+                },
+            });
 
             await client.listClusterDetails();
 
@@ -137,27 +138,35 @@ describe("ApiClient", () => {
             expect(globalFetch).not.toHaveBeenCalled();
         });
 
-        it("passes the injected fetch to the auth provider it creates", () => {
-            const injectedFetch = vi.fn();
+        it("uses the injected Request class for outgoing requests", async () => {
+            const injectedFetch = vi.fn().mockResolvedValue(new Response(null, { status: 200 }));
+            let requestCount = 0;
+            class TrackedRequest extends Request {
+                constructor(input: string | URL | Request, init?: RequestInit) {
+                    super(input, init);
+                    requestCount += 1;
+                }
+            }
 
-            const client = new ApiClient(
-                {
+            const client = new ApiClient({
+                options: {
                     baseUrl: "https://api.test.com",
-                    userAgent: "test-user-agent",
-                    credentials: {
-                        clientId: "test-client-id",
-                        clientSecret: "test-client-secret",
-                    },
-                    httpClient: {
-                        fetch: injectedFetch as unknown as typeof fetch,
-                        Request: globalThis.Request,
-                    },
                 },
-                new NullLogger()
-            );
+                serverMetadata: testServerMetadata,
+                logger: new NoopLogger(),
+                authProvider: undefined,
+                httpClient: {
+                    fetch: injectedFetch as unknown as typeof fetch,
+                    Request: TrackedRequest,
+                },
+            });
+
+            await client.listClusterDetails().catch(() => undefined);
 
             // @ts-expect-error accessing private property for testing
-            expect(client.authProvider.customFetch).toBe(injectedFetch);
+            expect(client.customFetch).toBe(injectedFetch);
+            // The injected Request class is used for outgoing fetch calls.
+            expect(requestCount).toBeGreaterThan(0);
         });
     });
 

@@ -1,23 +1,27 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import {
-    DryRunModeRunner,
-    type DryRunModeTestHelpers,
-    type DryRunModeRunnerOptions,
-} from "@mongodb-js/mcp-cli";
+import { DryRunModeRunner, type DryRunLogger, type DryRunServer } from "@mongodb-js/mcp-cli";
 import type { UserConfig } from "@mongodb-js/mcp-cli";
 import { defaultTestConfig } from "../integrationHelpers.js";
 
 describe("DryModeRunner", () => {
-    let loggerMock: DryRunModeTestHelpers["logger"];
-    let runnerConfig: Pick<DryRunModeRunnerOptions, "userConfig">;
+    let loggerMock: DryRunLogger = { log: vi.fn(), error: vi.fn() };
+    let mockServer: DryRunServer;
 
     beforeEach(() => {
         loggerMock = {
             log: vi.fn(),
             error: vi.fn(),
         };
-        runnerConfig = {
-            userConfig: defaultTestConfig,
+
+        mockServer = {
+            tools: [
+                { name: "connect", category: "mongodb", isEnabled: (): boolean => true },
+                { name: "find", category: "mongodb", isEnabled: (): boolean => true },
+                { name: "aggregate", category: "mongodb", isEnabled: (): boolean => true },
+                { name: "switch-connection", category: "mongodb", isEnabled: (): boolean => false },
+            ],
+            connect: vi.fn(() => Promise.resolve()),
+            close: vi.fn(() => Promise.resolve()),
         };
     });
 
@@ -28,18 +32,31 @@ describe("DryModeRunner", () => {
     it.each([{ transport: "http", httpHost: "127.0.0.1", httpPort: "3001" }, { transport: "stdio" }] as Array<
         Partial<UserConfig>
     >)("should handle dry run request for transport - $transport", async (partialConfig) => {
-        runnerConfig.userConfig = {
-            ...runnerConfig.userConfig,
+        const userConfig: UserConfig = {
+            ...defaultTestConfig,
             ...partialConfig,
             dryRun: true,
         };
-        const runner = new DryRunModeRunner({ logger: loggerMock, ...runnerConfig });
+
+        const runner = new DryRunModeRunner({
+            logger: loggerMock,
+            userConfig,
+            server: mockServer,
+        });
+
         await runner.start();
+
         expect(loggerMock.log).toHaveBeenNthCalledWith(1, "Configuration:");
-        expect(loggerMock.log).toHaveBeenNthCalledWith(2, JSON.stringify(runnerConfig.userConfig, null, 2));
+        expect(loggerMock.log).toHaveBeenNthCalledWith(2, JSON.stringify(userConfig, null, 2));
         expect(loggerMock.log).toHaveBeenNthCalledWith(3, "Enabled tools:");
         expect(loggerMock.log).toHaveBeenNthCalledWith(4, expect.stringContaining('"name": "connect"'));
         // Because switch-connection is not enabled by default
         expect(loggerMock.log).toHaveBeenNthCalledWith(4, expect.not.stringContaining('"name": "switch-connection"'));
+
+        // Verify server was connected and closed
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(mockServer.connect).toHaveBeenCalled();
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(mockServer.close).toHaveBeenCalled();
     });
 });

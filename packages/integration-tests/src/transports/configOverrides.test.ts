@@ -17,13 +17,9 @@ import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/se
 import { CliServer } from "mongodb-mcp-server";
 import { AllTools } from "mongodb-mcp-server";
 import { applyConfigOverrides } from "@mongodb-js/mcp-cli";
-import {
-    CliSession,
-    Elicitation,
-    connectionErrorHandler,
-    MCPConnectionManager,
-    ExportsManager,
-} from "mongodb-mcp-server";
+import { Elicitation, connectionErrorHandler, ExportsManager } from "mongodb-mcp-server";
+import { MCPConnectionStore } from "@mongodb-js/mcp-tools-mongodb";
+import { Session } from "@mongodb-js/mcp-cli";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createTestApiClient } from "../integrationHelpers.js";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
@@ -82,12 +78,11 @@ async function createTestServer(config: UserConfig): Promise<CliServer> {
         logger,
     });
 
-    const connectionManager = new MCPConnectionManager({
+    const connectionRegistry = new MCPConnectionStore({
+        userConfig: config,
         logger,
         deviceId: {} as unknown as DeviceId,
-        serverMetadata: packageInfo,
-        connectionInfo: { transport: "http", httpHost: "localhost" },
-    });
+    }).view();
 
     const apiClient = createTestApiClient({
         baseUrl: config.apiBaseUrl,
@@ -108,23 +103,29 @@ async function createTestServer(config: UserConfig): Promise<CliServer> {
         version: packageInfo.version,
     });
 
-    const elicitation = new Elicitation({ server: mcpServer.server });
+    const elicitation = new Elicitation({ server: mcpServer.server, timeoutMs: config.elicitationTimeoutMs });
 
-    const session = new CliSession({
-        userConfig: config,
-        logger,
-        exportsManager,
-        connectionManager,
-        keychain,
-        apiClient,
-        connectionErrorHandler,
-        atlasLocalClient,
-    });
+    const session = Object.assign(
+        new Session({
+            logger,
+            exportsManager,
+            connectionRegistry,
+            keychain,
+            apiClient,
+            connectionErrorHandler,
+            atlasLocalClient,
+        }),
+        {
+            config,
+            userConfig: config,
+        }
+    );
 
     const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
 
     const server = new CliServer({
         session,
+        userConfig: config,
         mcpServer,
         telemetry: new NoopTelemetry() as unknown as AtlasTelemetry,
         connectionErrorHandler,

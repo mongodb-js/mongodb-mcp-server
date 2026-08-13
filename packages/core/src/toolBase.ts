@@ -15,7 +15,7 @@ import type {
     ConnectionMetadata,
     TelemetryToolMetadata,
     ToolEvent,
-    ISession,
+    IToolSession,
     IElicitation,
     PreviewFeature,
     IUIRegistry,
@@ -25,7 +25,6 @@ import type {
     ToolCategory,
     ToolExecutionContext,
     SupportedConnectionState,
-    IToolConfig,
 } from "@mongodb-js/mcp-types";
 import { createUIResource, type UIResource } from "@mcp-ui/server";
 import { TRANSPORT_PAYLOAD_LIMITS } from "./transportConstants.js";
@@ -63,7 +62,7 @@ type StructuredToolResult<OutputSchema extends ZodRawShape> = {
  * See `Server.registerTools` method in `src/server.ts` for further reference.
  */
 export type ToolConstructorParams<
-    TSession extends ISession<IToolConfig> = ISession<IToolConfig>,
+    TSession extends IToolSession = IToolSession,
     TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions,
 > = {
     /**
@@ -163,7 +162,7 @@ export type ToolConstructorParams<
  * ```
  */
 export type ToolClass<
-    TSession extends ISession = ISession,
+    TSession extends IToolSession = IToolSession,
     TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions,
 > = {
     /** Constructor signature for the tool class */
@@ -266,7 +265,7 @@ export type AnyToolClass = ToolClass<any, any>;
  * constructor
  */
 export abstract class ToolBase<
-    TSession extends ISession = ISession,
+    TSession extends IToolSession = IToolSession,
     TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions,
 > {
     /**

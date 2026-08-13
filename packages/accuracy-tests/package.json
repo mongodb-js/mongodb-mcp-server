@@ -20,6 +20,7 @@
     "mongodb": "^7.1.1",
     "@mongodb-js/mcp-integration-tests": "workspace:*",
     "@mongodb-js/mcp-tools-mongodb": "workspace:*",
+    "@mongodb-js/mcp-tools-atlas": "workspace:*",
     "mongodb-mcp-server": "workspace:*",
     "@mongodb-js/mcp-core": "workspace:*",
     "@mongodb-js/mcp-types": "workspace:*",

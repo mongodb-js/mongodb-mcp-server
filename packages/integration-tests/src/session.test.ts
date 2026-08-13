@@ -1,15 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { Session } from "../../../src/common/session.js";
-import { CompositeLogger } from "../../../src/common/logging/index.js";
-import { ExportsManager } from "../../../src/common/exportsManager.js";
-import { MCPConnectionStore } from "../../../src/common/connectionStore.js";
-import type { ConnectionRegistry } from "../../../src/common/connectionRegistry.js";
-import { DeviceId } from "../../../src/helpers/deviceId.js";
-import { Keychain } from "../../../src/common/keychain.js";
-import { defaultTestConfig } from "../../integration/helpers.js";
-import { connectionErrorHandler } from "../../../src/common/connectionErrorHandler.js";
-import type { ApiClient } from "../../../src/common/atlas/apiClient.js";
-import { FakeConnectionManager } from "../mocks/connectionManager.js";
+import { Session } from "@mongodb-js/mcp-cli";
+import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
+import {
+    connectionErrorHandler,
+    DeviceId,
+    ExportsManager,
+    FakeConnectionManager,
+    MCPConnectionStore,
+    type ConnectionRegistry,
+} from "@mongodb-js/mcp-tools-mongodb";
+import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { defaultTestConfig } from "./integrationHelpers.js";
 
 describe("Session", () => {
     let session: Session;
@@ -20,7 +21,14 @@ describe("Session", () => {
     beforeEach(() => {
         const logger = new CompositeLogger();
 
-        exportsManager = ExportsManager.init(defaultTestConfig, logger);
+        exportsManager = ExportsManager.init({
+            options: {
+                exportsPath: defaultTestConfig.exportsPath,
+                exportTimeoutMs: defaultTestConfig.exportTimeoutMs,
+                exportCleanupIntervalMs: defaultTestConfig.exportCleanupIntervalMs,
+            },
+            logger,
+        });
         connectionRegistry = new MCPConnectionStore({
             userConfig: defaultTestConfig,
             logger,

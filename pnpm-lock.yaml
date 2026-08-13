@@ -98,6 +98,9 @@ importers:
       '@mongodb-js/mcp-tools-assistant':
         specifier: workspace:*
         version: link:../tools-assistant
+      '@mongodb-js/mcp-tools-atlas':
+        specifier: workspace:*
+        version: link:../tools-atlas
       '@mongodb-js/mcp-tools-mongodb':
         specifier: workspace:*
         version: link:../tools-mongodb
