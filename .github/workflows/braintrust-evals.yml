@@ -31,7 +31,7 @@ jobs:
         with:
           persist-credentials: false
       - uses: pnpm/action-setup@v5
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           # Braintrust push accepts Node 18–22 only
           # https://www.braintrust.dev/docs/evaluate/remote-evals#2-register-your-sandbox
