@@ -314,9 +314,6 @@ importers:
       '@mongodb-js/mcp-types':
         specifier: workspace:*
         version: link:../types
-      '@mongosh/service-provider-node-driver':
-        specifier: ^5.0.2
-        version: 5.0.2(mongodb-log-writer@2.5.13(bson@7.3.1))
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
@@ -470,9 +467,6 @@ importers:
       '@mongodb-js/mcp-http-runners':
         specifier: workspace:*
         version: link:../http-runners
-      '@mongodb-js/mcp-logging':
-        specifier: workspace:*
-        version: link:../logging
       '@mongodb-js/mcp-metrics':
         specifier: workspace:*
         version: link:../metrics

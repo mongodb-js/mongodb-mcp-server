@@ -16,6 +16,8 @@ const config: KnipConfig = {
             ignoreDependencies: [
                 // Listed in root vitest.config ui project environment; package lives in packages/ui
                 "happy-dom",
+                // Provides the mongodb-sbom-tools bin used by update-third-party-notices / create-dependency-sbom-lists scripts
+                "@mongodb-js/sbom-tools",
             ],
         },
         "packages/eval-tests": {
@@ -128,6 +130,10 @@ const config: KnipConfig = {
         },
     },
     ignoreExportsUsedInFile: true,
+    ignoreIssues: {
+        // Deprecated alias kept for backward compatibility (CliSession === Session)
+        "packages/cli/src/cliSession.ts": ["duplicates"],
+    },
 };
 
 export default config;
