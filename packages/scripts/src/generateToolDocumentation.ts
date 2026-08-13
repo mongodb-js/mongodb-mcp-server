@@ -10,7 +10,7 @@ import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import { AllTools } from "mongodb-mcp-server";
-import { UIRegistry } from "@mongodb-js/mcp-ui";
+import { UIRegistry } from "@mongodb-js/mcp-ui/registry";
 import { UserConfigSchema } from "mongodb-mcp-server";
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
 import type { DefaultMetricDefinitions, ISession, IToolConfig } from "@mongodb-js/mcp-types";

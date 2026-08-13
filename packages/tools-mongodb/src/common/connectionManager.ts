@@ -1,7 +1,7 @@
 import { EventEmitter } from "events";
 import { MongoServerError } from "mongodb";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { type ConnectionInfo as MongoshConnectionInfo } from "@mongosh/arg-parser";
+import { generateConnectionInfoFromCliArgs, type ConnectionInfo as MongoshConnectionInfo } from "@mongosh/arg-parser";
 import type { DeviceId } from "../helpers/deviceId.js";
 import { MongoDBError, ErrorCodes } from "./errors.js";
 import { type LoggerBase, LogId } from "@mongodb-js/mcp-core";
@@ -16,7 +16,13 @@ import type { ServerMetadata } from "@mongodb-js/mcp-types";
 
 export type { ConnectionStringInfo, ConnectionStringAuthType, AtlasClusterConnectionInfo } from "./connectionInfo.js";
 
-export interface ConnectionSettings extends MongoshConnectionInfo {
+export interface ConnectionSettings extends Omit<MongoshConnectionInfo, "driverOptions"> {
+    /**
+     * Driver options for the connect. When omitted (or empty), the manager
+     * derives them from the server's user config (browser, proxy, OIDC,
+     * defaults) — mirroring the preconfigured-connection path.
+     */
+    driverOptions?: MongoshConnectionInfo["driverOptions"];
     atlas?: AtlasClusterConnectionInfo;
 }
 
@@ -254,6 +260,12 @@ export type ConnectionManagerOptions = {
     connectionInfo: ConnectionInfo;
     /** Optional event emitter shared with the OIDC plugin to receive `mongodb-oidc-plugin:auth-*` notifications. */
     bus?: EventEmitter;
+    /**
+     * Server user config, used to derive driver options (browser, proxy, OIDC)
+     * when a connect call does not supply its own. Mirrors main's fallback in
+     * the preconfigured-connection path.
+     */
+    userConfig?: Record<string, unknown>;
 };
 
 /**
@@ -278,6 +290,7 @@ export class MCPConnectionManager extends ConnectionManager {
 
     private readonly serverMetadata: ServerMetadata;
     private readonly connectionInfo: ConnectionInfo;
+    private readonly userConfig?: Record<string, unknown>;
     private logger: LoggerBase;
 
     /**
@@ -288,10 +301,11 @@ export class MCPConnectionManager extends ConnectionManager {
      * @param options.connectionInfo - Transport / browser hints for OIDC auth inference.
      * @param options.bus - Optional event emitter shared with the OIDC plugin.
      */
-    constructor({ logger, deviceId, bus, serverMetadata, connectionInfo }: ConnectionManagerOptions) {
+    constructor({ logger, deviceId, bus, serverMetadata, connectionInfo, userConfig }: ConnectionManagerOptions) {
         super();
         this.serverMetadata = serverMetadata;
         this.connectionInfo = connectionInfo;
+        this.userConfig = userConfig;
         this.logger = logger;
         this.bus = bus ?? new EventEmitter();
         this.bus.on("mongodb-oidc-plugin:auth-failed", this.onOidcAuthFailed.bind(this));
@@ -334,9 +348,21 @@ export class MCPConnectionManager extends ConnectionManager {
                 components: appNameComponents,
             });
 
+            const effectiveDriverOptions =
+                settings.driverOptions && Object.keys(settings.driverOptions).length > 0
+                    ? settings.driverOptions
+                    : // Mirror the preconfigured-connection path: derive driver options
+                      // from the server's user config (browser, proxy, OIDC) plus the
+                      // defaults, matching main's behavior for tool-created connections.
+                      generateConnectionInfoFromCliArgs({
+                          ...defaultDriverOptions,
+                          ...(this.userConfig ?? {}),
+                          connectionSpecifier: settings.connectionString,
+                      }).driverOptions;
+
             const mongoshConnectionInfo: MongoshConnectionInfo = {
                 connectionString: settings.connectionString,
-                driverOptions: settings.driverOptions,
+                driverOptions: effectiveDriverOptions,
             };
 
             if (mongoshConnectionInfo.driverOptions.oidc) {

@@ -17,6 +17,9 @@
       ],
       "openapi-typescript-helpers": [
         "./node_modules/openapi-typescript-helpers/index.d.ts"
+      ],
+      "@mongodb-js/mcp-ui/registry": [
+        "./node_modules/@mongodb-js/mcp-ui/dist/registry/registry.d.ts"
       ]
     }
   },

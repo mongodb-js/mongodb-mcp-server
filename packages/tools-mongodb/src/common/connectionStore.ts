@@ -91,6 +91,9 @@ export class MCPConnectionStore {
                     deviceId: this.deviceId,
                     serverMetadata: this.serverMetadata,
                     connectionInfo: this.connectionInfo(),
+                    // Runtime value is the full UserConfig (typed minimally here);
+                    // used to derive driver options for tool-created connections.
+                    userConfig: this.userConfig as Record<string, unknown>,
                 }));
 
         if (this.userConfig.connectionString) {
