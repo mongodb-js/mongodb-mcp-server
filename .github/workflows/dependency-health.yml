@@ -73,9 +73,7 @@ jobs:
       - name: Generate SBOM and upload to Kondukto via SilkBomb
         if: always()
         env:
-          # The SBOM is generated from the checkout above, which is always main,
-          # so label it as main even for manual dispatches from other branches.
-          KONDUKTO_BRANCH: "main"
+          KONDUKTO_BRANCH: ${{ github.ref_name }}
           KONDUKTO_TOKEN: ${{ secrets.KONDUKTO_TOKEN }}
 
         run: |
