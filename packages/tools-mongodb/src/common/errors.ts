@@ -8,6 +8,8 @@ export const ErrorCodes = {
     AtlasVectorSearchInvalidQuery: 1_000_007,
     InvalidPipeline: 1_000_008,
     ForbiddenServerSideJS: 1_000_009,
+    UnknownConnectionId: 1_000_010,
+    ConfirmationDeclined: 1_000_011,
 } as const;
 
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

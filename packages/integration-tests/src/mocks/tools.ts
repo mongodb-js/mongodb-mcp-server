@@ -5,4 +5,5 @@ export {
     ErrorTool,
     EchoTool,
     NoopTool,
+    ConfirmingTool,
 } from "./mockTools.js";

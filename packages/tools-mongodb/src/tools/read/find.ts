@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
+import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
@@ -7,7 +7,7 @@ import type { FindCursor } from "mongodb";
 import { checkIndexUsage } from "../../helpers/indexCheck.js";
 import { collectCursorUntilMaxBytesLimit } from "../../helpers/collectCursorUntilMaxBytes.js";
 import { operationWithFallback } from "../../helpers/operationWithFallback.js";
-import { ONE_MB, CURSOR_LIMITS_TO_LLM_TEXT, CURSOR_LIMIT_KEYS, type CursorLimitKey } from "../../helpers/constants.js";
+import { ONE_MB, QUERY_COUNT_MAX_TIME_MS_CAP, CURSOR_LIMITS_TO_LLM_TEXT, CURSOR_LIMIT_KEYS, type CursorLimitKey } from "../../helpers/constants.js";
 import { zEJSON } from "../../args.js";
 import { LogId } from "@mongodb-js/mcp-core";
 import { SortDirectionSchema } from "../../mongodbSchemas.js";
@@ -41,24 +41,37 @@ export class FindTool extends MongoDBToolBase {
     static toolName = "find";
     public description = "Run a find query against a MongoDB collection";
     public argsShape = {
+        ...ConnectionIdArgs,
         ...CollOperationArgs,
         ...FindArgs,
-        responseBytesLimit: z.number().optional().default(ONE_MB).describe(`\
-The maximum number of bytes to return in the response. This value is capped by the server's configured maxBytesPerQuery and cannot be exceeded. \
-Note to LLM: If the entire query result is required, use the "export" tool instead of increasing this limit.\
-`),
+        responseBytesLimit: z
+            .number()
+            .optional()
+            .default(ONE_MB)
+            .describe(
+                "The maximum number of bytes to return in the response. This value is capped by the server's configured maximum and cannot be exceeded."
+            ),
     };
     static operationType: OperationType = "read";
 
     public override outputSchema = FindOutputSchema;
 
     protected async execute(
-        { database, collection, filter, projection, limit, sort, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
+        {
+            connectionId,
+            database,
+            collection,
+            filter,
+            projection,
+            limit,
+            sort,
+            responseBytesLimit,
+        }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
         let findCursor: FindCursor<unknown> | undefined = undefined;
         try {
-            const provider = await this.ensureConnected();
+            const provider = await this.resolveConnection(connectionId);
 
             this.assertMqlIsAllowed(filter, projection);
 
@@ -99,7 +112,10 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
                             // query would have yielded which is why we don't
                             // use `limitOnFindCursor` calculated above, and
                             // we don't use the limit provided to the tool either.
-                            maxTimeMS: this.getFindCountDocumentsMaxTimeMS(),
+                            maxTimeMS:
+                                this.config.maxTimeMS !== undefined
+                                    ? Math.min(this.config.maxTimeMS, QUERY_COUNT_MAX_TIME_MS_CAP)
+                                    : QUERY_COUNT_MAX_TIME_MS_CAP,
                             signal,
                         }),
                     undefined
@@ -163,16 +179,19 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
         documents: unknown[];
         appliedLimits: CursorLimitKey[];
     }): string {
-        const appliedLimitsText = appliedLimits.length
-            ? `\
-while respecting the applied limits of ${appliedLimits.map((limit) => CURSOR_LIMITS_TO_LLM_TEXT[limit]).join(", ")}. \
-Note to LLM: If the entire query result is required then use "export" tool to export the query results.\
-`
-            : "";
+        let appliedLimitsText = "";
+        if (appliedLimits.length) {
+            appliedLimitsText = ` while respecting the applied limits of ${appliedLimits
+                .map((limit) => CURSOR_LIMITS_TO_LLM_TEXT[limit])
+                .join(", ")}.`;
+            if (this.isExportToolAvailable) {
+                appliedLimitsText += ` If the entire query result is required, use the "export" tool to retrieve the full result set.`;
+            }
+        }
 
         return `\
 Query on collection "${collection}" resulted in ${queryResultsCount === undefined ? "indeterminable number of" : queryResultsCount} documents. \
-Returning ${documents.length} documents${appliedLimitsText ? ` ${appliedLimitsText}` : "."}\
+Returning ${documents.length} documents${appliedLimitsText || "."}\
 `;
     }
 

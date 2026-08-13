@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from "vitest";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { Client, StdioClientTransport } from "@modelcontextprotocol/client";
+import { Client } from "@modelcontextprotocol/client";
+import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { MockRemote } from "./testHelpers/mockRemote.js";
 
 /**

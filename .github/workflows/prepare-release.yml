@@ -50,6 +50,11 @@ jobs:
         run: |
           pnpm run generate:arguments
 
+      - name: Update third-party notices
+        run: |
+          pnpm run create-dependency-sbom-lists
+          pnpm run update-third-party-notices
+
       - name: Check version regression
         id: version-check
         continue-on-error: true

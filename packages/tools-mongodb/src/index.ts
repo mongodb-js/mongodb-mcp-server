@@ -3,6 +3,7 @@ export {
     type IMongoDBConfig,
     type IMongoDBSession,
     type MongoDBToolRegistrationServer,
+    ConnectionIdArgs,
     DBOperationArgs,
     CollOperationArgs,
 } from "./mongodbTool.js";
@@ -55,6 +56,7 @@ export {
 } from "./common/exportsManager.js";
 export {
     connectionErrorHandler,
+    connectCapableTools,
     type ConnectionErrorHandler,
     type ConnectionErrorHandlerContext,
     type ConnectionErrorHandled,
@@ -62,6 +64,21 @@ export {
 } from "./connectionErrorHandler.js";
 export { DeviceId } from "./helpers/deviceId.js";
 export { isObjectEmpty } from "./helpers/isObjectEmpty.js";
+export { isNodeRuntime } from "./helpers/isNodeRuntime.js";
+export {
+    PRECONFIGURED_CONNECTION_ID,
+    ConnectionEntry,
+    atlasClusterSlug,
+    buildEntryName,
+    type ConnectionRegistry,
+    type CreateConnectionOptions,
+    type CreateConnectionEntryOptions,
+    type ConnectionSource,
+} from "./common/connectionRegistry.js";
+export { MCPConnectionStore, type ConnectionStoreOptions, type CreateConnectionManagerFn } from "./common/connectionStore.js";
+export { ConnectionSummarySchema, summarizeConnection } from "./common/connectionSummary.js";
+export { FakeConnectionManager } from "./common/mocks/connectionManager.js";
+export { buildWriteStageConfirmationMessage } from "./helpers/writeStageConfirmation.js";
 export { bsonToJson } from "./helpers/bsonToJson.js";
 export type { ListDatabasesOutput } from "./tools/metadata/listDatabases.js";
 export { setAppNameParamIfMissing, type AppNameComponents } from "./helpers/connectionOptions.js";
@@ -84,7 +101,6 @@ export { pipelineDescriptionWithVectorSearch } from "./tools/read/aggregate.js";
 export { IndexDirectionSchema, SortDirectionSchema } from "./mongodbSchemas.js";
 export * from "./tools/tools.js";
 
-import type { IMongoDBSession } from "./mongodbTool.js";
 import {
     AggregateTool,
     AggregateDBTool,
@@ -97,7 +113,8 @@ import {
     ExplainTool,
     ExportTool,
     DropIndexTool,
-    SwitchConnectionTool,
+    DisconnectTool,
+    ListConnectionsTool,
 } from "./tools/tools.js";
 import {
     CreateIndexTool,
@@ -116,6 +133,7 @@ import {
     LogsTool,
 } from "./tools/tools.js";
 import type { ToolClass } from "@mongodb-js/mcp-core";
+import type { IMongoDBSession } from "./mongodbTool.js";
 
 export const MongoDBTools: ToolClass<IMongoDBSession>[] = [
     AggregateDBTool,
@@ -129,6 +147,7 @@ export const MongoDBTools: ToolClass<IMongoDBSession>[] = [
     CreateIndexTool,
     DbStatsTool,
     DeleteManyTool,
+    DisconnectTool,
     DropCollectionTool,
     DropDatabaseTool,
     DropIndexTool,
@@ -137,9 +156,9 @@ export const MongoDBTools: ToolClass<IMongoDBSession>[] = [
     FindTool,
     InsertManyTool,
     ListCollectionsTool,
+    ListConnectionsTool,
     ListDatabasesTool,
     LogsTool,
     RenameCollectionTool,
-    SwitchConnectionTool,
     UpdateManyTool,
 ] as const;

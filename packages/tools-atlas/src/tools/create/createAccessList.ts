@@ -1,7 +1,6 @@
 import { z } from "zod";
-import { type ToolArgs } from "@mongodb-js/mcp-core";
-import type { OperationType } from "@mongodb-js/mcp-types";
-import type { CallToolResult } from "@mongodb-js/mcp-types";
+import { type ToolArgs, type ToolResult } from "@mongodb-js/mcp-core";
+import type { OperationType, ToolExecutionContext, CallToolResult } from "@mongodb-js/mcp-types";
 import { AtlasToolBase } from "../../atlasTool.js";
 import { makeCurrentIpAccessListEntry, DEFAULT_ACCESS_LIST_COMMENT } from "../../helpers/accessListUtils.js";
 import { AtlasArgs, CommonArgs } from "../../args.js";
@@ -17,23 +16,45 @@ export const CreateAccessListArgs = {
         .optional(),
 };
 
+const CreateAccessListOutputSchema = {
+    projectId: z.string(),
+};
+
 export class CreateAccessListTool extends AtlasToolBase {
     static toolName = "atlas-create-access-list";
     public description = "Allow Ip/CIDR ranges to access your MongoDB Atlas clusters.";
     static operationType: OperationType = "create";
-    public argsShape = {
-        ...CreateAccessListArgs,
-    };
+    // The currentIpAddress arg is omitted on deployments that can't determine the
+    // caller's public IP (e.g. the Atlas-hosted MCP server), so models are never
+    // offered an option that cannot work there. Typed as the full shape because
+    // execute() still receives currentIpAddress as optional either way.
+    public get argsShape(): typeof CreateAccessListArgs {
+        if (this.session.apiClient?.supportsCurrentIpLookup === false) {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { currentIpAddress, ...rest } = CreateAccessListArgs;
+            return rest as typeof CreateAccessListArgs;
+        }
 
-    protected async execute({
-        projectId,
-        ipAddresses,
-        cidrBlocks,
-        comment,
-        currentIpAddress,
-    }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+        return CreateAccessListArgs;
+    }
+    public override outputSchema = CreateAccessListOutputSchema;
+
+    // argsShape drops currentIpAddress when IP lookup is unsupported, so the two
+    // shapes must be cached and shared separately.
+    protected override schemaVariantKey(): string {
+        return this.session.apiClient?.supportsCurrentIpLookup === false ? "no-current-ip" : "current-ip";
+    }
+
+    protected async execute(
+        { projectId, ipAddresses, cidrBlocks, comment, currentIpAddress }: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<ToolResult<typeof this.outputSchema>> {
         if (!ipAddresses?.length && !cidrBlocks?.length && !currentIpAddress) {
-            throw new Error("One of  ipAddresses, cidrBlocks, currentIpAddress must be provided.");
+            if (!this.apiClient.supportsCurrentIpLookup) {
+                throw new Error("Either ipAddresses or cidrBlocks must be provided.");
+            }
+
+            throw new Error("One of ipAddresses, cidrBlocks, currentIpAddress must be provided.");
         }
 
         const ipInputs = (ipAddresses || []).map((ipAddress) => ({
@@ -59,14 +80,17 @@ export class CreateAccessListTool extends AtlasToolBase {
 
         const inputs = [...ipInputs, ...cidrInputs];
 
-        await this.apiClient.createAccessListEntry({
-            params: {
-                path: {
-                    groupId: projectId,
+        await this.apiClient.createAccessListEntry(
+            {
+                params: {
+                    path: {
+                        groupId: projectId,
+                    },
                 },
+                body: inputs,
             },
-            body: inputs,
-        });
+            context
+        );
 
         return {
             content: [

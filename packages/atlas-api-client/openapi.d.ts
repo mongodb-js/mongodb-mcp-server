@@ -138,6 +138,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/atlas/v2/groups/{groupId}/cloudProviderAccess": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create One Cloud Provider Access Role
+         * @description Creates one access role for the specified cloud provider. Some MongoDB Cloud features use these cloud provider access roles for authentication. For the GCP provider, if the project folder is not yet provisioned, Atlas will now create the role asynchronously. An intermediate role with status `IN_PROGRESS` will be returned, and the final service account will be provisioned. Once the GCP project is set up, subsequent requests will create the service account synchronously.
+         */
+        post: operations["createGroupCloudProviderAccess"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/atlas/v2/groups/{groupId}/cloudProviderAccess/{roleId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Authorize One Cloud Provider Access Role
+         * @description Grants access to the specified project for the specified access role. This API endpoint is one step in a procedure to create unified access for MongoDB Cloud services. This is not required for GCP service account access.
+         */
+        patch: operations["authorizeGroupCloudProviderAccessRole"];
+        trace?: never;
+    };
     "/api/atlas/v2/groups/{groupId}/clusters": {
         parameters: {
             query?: never;
@@ -215,7 +255,7 @@ export interface paths {
         head?: never;
         /**
          * Update One Cluster in One Project
-         * @description Updates the details for one cluster in the specified project. Clusters contain a group of hosts that maintain the same data set. This resource can update clusters with asymmetrically-sized shards. To update a cluster's termination protection, the requesting Service Account or API Key must have the Project Owner role. For all other updates, the requesting Service Account or API Key must have the Project Cluster Manager role or the Project Replica Set Manager role. You can't modify a paused cluster (`paused : true`). You must call this endpoint to set `paused : false`. After this endpoint responds with `paused : false`, you can call it again with the changes you want to make to the cluster. This feature is not available for serverless clusters. Deprecated versions: v2-{2024-08-05}, v2-{2023-02-01}, v2-{2023-01-01}
+         * @description Updates the details for one cluster in the specified project. Clusters contain a group of hosts that maintain the same data set. This resource can update clusters with asymmetrically-sized shards. To update a cluster's termination protection, the requesting Service Account or API Key must have the Project Owner role. For all other updates, the requesting Service Account or API Key must have the Project Cluster Manager role, the Project Cluster Resilience Tester role, or the Project Replica Set Manager role. You can't modify a paused cluster (`paused : true`). You must call this endpoint to set `paused : false`. After this endpoint responds with `paused : false`, you can call it again with the changes you want to make to the cluster. This feature is not available for serverless clusters. Deprecated versions: v2-{2024-08-05}, v2-{2023-02-01}, v2-{2023-01-01}
          */
         patch: operations["updateGroupCluster"];
         trace?: never;
@@ -322,6 +362,34 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/atlas/v2/groups/{groupId}/encryptionAtRest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Return One Configuration for Encryption at Rest Using Customer-Managed Keys for One Project
+         * @description Returns the configuration for encryption at rest using the keys you manage through your cloud provider. MongoDB Cloud encrypts all storage even if you don't use your own key management.
+         *
+         *     **LIMITED TO M10 OR GREATER:** MongoDB Cloud limits this feature to dedicated cluster tiers of M10 and greater.
+         */
+        get: operations["getGroupEncryptionAtRest"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Encryption at Rest Configuration in One Project
+         * @description Updates the configuration for encryption at rest using the keys you manage through your cloud provider. MongoDB Cloud encrypts all storage even if you don't use your own key management. This feature isn't available for `M0` free clusters, `M2`, `M5`, or serverless clusters.
+         *
+         *      After you configure at least one Encryption at Rest using a Customer Key Management provider for the MongoDB Cloud project, Project Owners can enable Encryption at Rest using Customer Key Management for each MongoDB Cloud cluster for which they require encryption. The Encryption at Rest using Customer Key Management provider doesn't have to match the cluster cloud service provider. MongoDB Cloud doesn't automatically rotate user-managed encryption keys. Defer to your preferred Encryption at Rest using Customer Key Management provider's documentation and guidance for best practices on key rotation. MongoDB Cloud automatically creates a 90-day key rotation alert when you configure Encryption at Rest using Customer Key Management using your Key Management in an MongoDB Cloud project. MongoDB Cloud encrypts all storage whether or not you use your own key management.
+         */
+        patch: operations["updateGroupEncryptionAtRest"];
         trace?: never;
     };
     "/api/atlas/v2/groups/{groupId}/flexClusters": {
@@ -1424,8 +1492,77 @@ export interface components {
             /**
              * Format: int32
              * @description Number of nodes of the given type for MongoDB Cloud to deploy to the region.
+             * @example 3
              */
             nodeCount?: number;
+        };
+        /** @description Amazon Web Services (AWS) KMS configuration details and encryption at rest configuration set for the specified project. */
+        AWSKMSConfiguration: {
+            /**
+             * @description Unique alphanumeric string that identifies an Identity and Access Management (IAM) access key with permissions required to access your Amazon Web Services (AWS) Customer Master Key (CMK).
+             * @example 019dd98d94b4bb778e7552e4
+             */
+            accessKeyID?: string;
+            /** @description Unique alphanumeric string that identifies the Amazon Web Services (AWS) Customer Master Key (CMK) you used to encrypt and decrypt the MongoDB master keys. */
+            customerMasterKeyID?: string;
+            /** @description Flag that indicates whether someone enabled encryption at rest for the specified project through Amazon Web Services (AWS) Key Management Service (KMS). To disable encryption at rest using customer key management and remove the configuration details, pass only this parameter with a value of `false`. */
+            enabled?: boolean;
+            /**
+             * AWS Regions
+             * @description Physical location where MongoDB Cloud deploys your AWS-hosted MongoDB cluster nodes. The region you choose can affect network latency for clients accessing your databases. When MongoDB Cloud deploys a dedicated cluster, it checks if a VPC or VPC connection exists for that provider and region. If not, MongoDB Cloud creates them as part of the deployment. MongoDB Cloud assigns the VPC a CIDR block. To limit a new VPC peering connection to one CIDR block and region, create the connection first. Deploy the cluster after the connection starts.
+             * @enum {string}
+             */
+            region?:
+                | "US_GOV_WEST_1"
+                | "US_GOV_EAST_1"
+                | "US_EAST_1"
+                | "US_EAST_2"
+                | "US_WEST_1"
+                | "US_WEST_2"
+                | "CA_CENTRAL_1"
+                | "EU_NORTH_1"
+                | "EU_WEST_1"
+                | "EU_WEST_2"
+                | "EU_WEST_3"
+                | "EU_CENTRAL_1"
+                | "EU_CENTRAL_2"
+                | "AP_EAST_1"
+                | "AP_EAST_2"
+                | "AP_NORTHEAST_1"
+                | "AP_NORTHEAST_2"
+                | "AP_NORTHEAST_3"
+                | "AP_SOUTHEAST_1"
+                | "AP_SOUTHEAST_2"
+                | "AP_SOUTHEAST_3"
+                | "AP_SOUTHEAST_4"
+                | "AP_SOUTHEAST_5"
+                | "AP_SOUTHEAST_6"
+                | "AP_SOUTHEAST_7"
+                | "AP_SOUTH_1"
+                | "AP_SOUTH_2"
+                | "SA_EAST_1"
+                | "CN_NORTH_1"
+                | "CN_NORTHWEST_1"
+                | "ME_SOUTH_1"
+                | "ME_CENTRAL_1"
+                | "AF_SOUTH_1"
+                | "EU_SOUTH_1"
+                | "EU_SOUTH_2"
+                | "IL_CENTRAL_1"
+                | "CA_WEST_1"
+                | "MX_CENTRAL_1"
+                | "GLOBAL";
+            /** @description Enable connection to your Amazon Web Services (AWS) Key Management Service (KMS) over private networking. */
+            requirePrivateNetworking?: boolean;
+            /**
+             * @description Unique 24-hexadecimal digit string that identifies an Amazon Web Services (AWS) Identity and Access Management (IAM) role. This IAM role has the permissions required to manage your AWS customer master key.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            roleId?: string;
+            /** @description Human-readable label of the Identity and Access Management (IAM) secret access key with permissions required to access your Amazon Web Services (AWS) customer master key. */
+            secretAccessKey?: string;
+            /** @description Flag that indicates whether the Amazon Web Services (AWS) Key Management Service (KMS) encryption key can encrypt and decrypt data. */
+            readonly valid?: boolean;
         };
         /**
          * AWS Regional Replication Specifications
@@ -2349,8 +2486,54 @@ export interface components {
             /**
              * Format: int32
              * @description Number of nodes of the given type for MongoDB Cloud to deploy to the region.
+             * @example 3
              */
             nodeCount?: number;
+        };
+        /** @description Details that define the configuration of Encryption at Rest using Azure Key Vault (AKV). */
+        AzureKeyVault: {
+            /**
+             * @description Azure environment in which your account credentials reside.
+             * @enum {string}
+             */
+            azureEnvironment?: "AZURE" | "AZURE_CHINA" | "AZURE_US_GOVERNMENT";
+            /**
+             * Format: uuid
+             * @description Unique 36-hexadecimal character string that identifies an Azure application associated with your Azure Active Directory tenant.
+             */
+            clientID?: string;
+            /** @description Flag that indicates whether someone enabled encryption at rest for the specified  project. To disable encryption at rest using customer key management and remove the configuration details, pass only this parameter with a value of `false`. */
+            enabled?: boolean;
+            /**
+             * @description Web address with a unique key that identifies for your Azure Key Vault.
+             * @example https://EXAMPLEKeyVault.vault.azure.net/keys/EXAMPLEKey/d891821e3d364e9eb88fbd3d11807b86
+             */
+            keyIdentifier?: string;
+            /** @description Unique string that identifies the Azure Key Vault that contains your key. This field cannot be modified when you enable and set up private endpoint connections to your Azure Key Vault. */
+            keyVaultName?: string;
+            /** @description Enable connection to your Azure Key Vault over private networking. */
+            requirePrivateNetworking?: boolean;
+            /** @description Name of the Azure resource group that contains your Azure Key Vault. This field cannot be modified when you enable and set up private endpoint connections to your Azure Key Vault. */
+            resourceGroupName?: string;
+            /**
+             * @description Unique 24-hexadecimal digit string that identifies the Azure Service Principal that MongoDB Cloud uses to access the Azure Key Vault.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            roleId?: string;
+            /** @description Private data that you need secured and that belongs to the specified Azure Key Vault (AKV) tenant (`azureKeyVault.tenantID`). This data can include any type of sensitive data such as passwords, database connection strings, API keys, and the like. AKV stores this information as encrypted binary data. */
+            secret?: string;
+            /**
+             * Format: uuid
+             * @description Unique 36-hexadecimal character string that identifies your Azure subscription. This field cannot be modified when you enable and set up private endpoint connections to your Azure Key Vault.
+             */
+            subscriptionID?: string;
+            /**
+             * Format: uuid
+             * @description Unique 36-hexadecimal character string that identifies the Azure Active Directory tenant within your Azure subscription.
+             */
+            tenantID?: string;
+            /** @description Flag that indicates whether the Azure encryption key can encrypt and decrypt data. */
+            readonly valid?: boolean;
         };
         /**
          * Azure Log Export Integration Request
@@ -2884,6 +3067,41 @@ export interface components {
             providerName: "AWS";
         };
         /** @description Details that describe the features linked to the Amazon Web Services (AWS) Identity and Access Management (IAM) role. */
+        CloudProviderAccessAWSIAMRoleRequest: {
+            /**
+             * @description Amazon Resource Name that identifies the Amazon Web Services (AWS) user account that MongoDB Cloud uses when it assumes the Identity and Access Management (IAM) role.
+             * @example arn:aws:iam::772401394250:role/my-test-aws-role
+             */
+            readonly atlasAWSAccountArn?: string;
+            /**
+             * Format: uuid
+             * @description Unique external ID that MongoDB Cloud uses when it assumes the IAM role in your Amazon Web Services (AWS) account.
+             */
+            readonly atlasAssumedRoleExternalId?: string;
+            /**
+             * Format: date-time
+             * @description Date and time when someone authorized this role for the specified cloud service provider. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
+             */
+            readonly authorizedDate?: string;
+            /**
+             * Format: date-time
+             * @description Date and time when someone created this role for the specified cloud service provider. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
+             */
+            readonly createdDate?: string;
+            /** @description List that contains application features associated with this Amazon Web Services (AWS) Identity and Access Management (IAM) role. */
+            readonly featureUsages?: components["schemas"]["CloudProviderAccessFeatureUsage"][];
+            /**
+             * @description Human-readable label that identifies the cloud provider of the role. (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            providerName: "AWS";
+            /**
+             * @description Unique 24-hexadecimal digit string that identifies the role.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            readonly roleId?: string;
+        };
+        /** @description Details that describe the features linked to the Amazon Web Services (AWS) Identity and Access Management (IAM) role. */
         CloudProviderAccessAWSIAMRoleRequestUpdate: Omit<
             WithRequired<components["schemas"]["CloudProviderAccessRoleRequestUpdate"], "providerName">,
             "providerName"
@@ -2989,6 +3207,46 @@ export interface components {
              * @enum {string}
              */
             providerName: "AZURE";
+        };
+        /** @description Details that describe the features linked to the Azure Service Principal. */
+        CloudProviderAccessAzureServicePrincipalRequest: {
+            /**
+             * @description Unique 24-hexadecimal digit string that identifies the role.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            readonly _id?: string;
+            /**
+             * Format: uuid
+             * @description Azure Active Directory Application ID of Atlas. This field is optional and will be derived from the Azure subscription if not provided.
+             */
+            atlasAzureAppId?: string;
+            /**
+             * Format: date-time
+             * @description Date and time when this Azure Service Principal was created. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
+             */
+            readonly createdDate?: string;
+            /** @description List that contains application features associated with this Azure Service Principal. */
+            readonly featureUsages?: components["schemas"]["CloudProviderAccessFeatureUsage"][];
+            /**
+             * Format: date-time
+             * @description Date and time when this Azure Service Principal was last updated. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
+             */
+            readonly lastUpdatedDate?: string;
+            /**
+             * @description Human-readable label that identifies the cloud provider of the role. (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            providerName: "AZURE";
+            /**
+             * Format: uuid
+             * @description UUID string that identifies the Azure Service Principal.
+             */
+            servicePrincipalId?: string;
+            /**
+             * Format: uuid
+             * @description UUID String that identifies the Azure Active Directory Tenant ID.
+             */
+            tenantId?: string;
         };
         /** @description Details that describe the features linked to the Azure Service Principal. */
         CloudProviderAccessAzureServicePrincipalRequestUpdate: Omit<
@@ -3172,6 +3430,28 @@ export interface components {
             providerName: "GCP";
         };
         /** @description Details that describe the features linked to the GCP Service Account. */
+        CloudProviderAccessGCPServiceAccountRequest: {
+            /**
+             * Format: date-time
+             * @description Date and time when this GCP Service Account was created. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
+             */
+            readonly createdDate?: string;
+            /** @description List that contains application features associated with this GCP Service Account. */
+            readonly featureUsages?: components["schemas"]["CloudProviderAccessFeatureUsage"][];
+            /** @description ID string that identifies the GCP Service Account used by Atlas. */
+            readonly gcpServiceAccountForAtlas?: string;
+            /**
+             * @description Human-readable label that identifies the cloud provider of the role. (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            providerName: "GCP";
+            /**
+             * @description Unique 24-hexadecimal digit string that identifies the role.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            readonly roleId?: string;
+        };
+        /** @description Details that describe the features linked to the GCP Service Account. */
         CloudProviderAccessGCPServiceAccountRequestUpdate: Omit<
             WithRequired<components["schemas"]["CloudProviderAccessRoleRequestUpdate"], "providerName">,
             "providerName"
@@ -3206,6 +3486,18 @@ export interface components {
             | components["schemas"]["CloudProviderAccessAWSIAMRole"]
             | components["schemas"]["CloudProviderAccessAzureServicePrincipal"]
             | components["schemas"]["CloudProviderAccessGCPServiceAccount"]
+        );
+        /** @description Cloud provider access role. */
+        CloudProviderAccessRoleRequest: {
+            /**
+             * @description Human-readable label that identifies the cloud provider of the role.
+             * @enum {string}
+             */
+            providerName: "AWS" | "AZURE" | "GCP";
+        } & (
+            | components["schemas"]["CloudProviderAccessAWSIAMRoleRequest"]
+            | components["schemas"]["CloudProviderAccessAzureServicePrincipalRequest"]
+            | components["schemas"]["CloudProviderAccessGCPServiceAccountRequest"]
         );
         /** @description Cloud provider access role. */
         CloudProviderAccessRoleRequestUpdate: {
@@ -3253,6 +3545,7 @@ export interface components {
              * @description Precedence is given to this region when a primary election occurs. If your `regionConfigs` has only `readOnlySpecs`, `analyticsSpecs`, or both, set this value to `0`. If you have multiple `regionConfigs` objects (your cluster is multi-region or multi-cloud), they must have priorities in descending order. The highest priority is `7`.
              *
              *     **Example:** If you have three regions, their priorities would be `7`, `6`, and `5` respectively. If you added two more regions for supporting electable nodes, the priorities of those regions would be `4` and `3` respectively.
+             * @example 7
              */
             priority?: number;
             /**
@@ -4072,7 +4365,7 @@ export interface components {
              */
             type: "CUSTOM";
         };
-        /** @description The name of a Built in or Custom DB Role to connect to an Atlas Cluster. */
+        /** @description The name of a built-in or custom DB Role to connect to an Atlas Cluster. */
         DBRoleToExecute: {
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
@@ -4085,27 +4378,6 @@ export interface components {
              */
             type?: "BUILT_IN" | "CUSTOM";
         } | null;
-        /**
-         * DLS Ingestion Destination
-         * @description Atlas Data Lake Storage as the destination for a Data Lake Pipeline.
-         */
-        DLSIngestionSink: Omit<components["schemas"]["IngestionSink"], "type"> & {
-            /**
-             * @description Target cloud provider for this Data Lake Pipeline.
-             * @enum {string}
-             */
-            metadataProvider?: "AWS";
-            /** @description Target cloud provider region for this Data Lake Pipeline. */
-            metadataRegion?: string;
-            /** @description Ordered fields used to physically organize data in the destination. */
-            partitionFields?: components["schemas"]["DataLakePipelinesPartitionField"][];
-        } & {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            type: "DLS";
-        };
         DailyScheduleView: Omit<WithRequired<components["schemas"]["OnlineArchiveSchedule"], "type">, "type"> & {
             /**
              * Format: int32
@@ -4544,20 +4816,6 @@ export interface components {
              */
             provider: "http";
         };
-        /**
-         * Partition Field
-         * @description Partition Field in the Data Lake Storage provider for a Data Lake Pipeline.
-         */
-        DataLakePipelinesPartitionField: {
-            /** @description Human-readable label that identifies the field name used to partition data. */
-            fieldName: string;
-            /**
-             * Format: int32
-             * @description Sequence in which MongoDB Cloud slices the collection data to create partitions. The resource expresses this sequence starting with zero.
-             * @default 0
-             */
-            order: number;
-        };
         DataLakeS3StoreSettings: Omit<components["schemas"]["DataLakeStoreSettings"], "provider"> & {
             /** @description Collection of AWS S3 [storage classes](https://aws.amazon.com/s3/storage-classes/). Atlas Data Lake includes the files in these storage classes in the query results. */
             additionalStorageClasses?: ("STANDARD" | "INTELLIGENT_TIERING" | "STANDARD_IA")[];
@@ -4927,6 +5185,7 @@ export interface components {
             /**
              * Format: int32
              * @description Number of nodes of the given type for MongoDB Cloud to deploy to the region.
+             * @example 3
              */
             nodeCount?: number;
         } & (
@@ -5063,7 +5322,11 @@ export interface components {
                 | "OUTSIDE_FLEX_METRIC_THRESHOLD"
                 | ("JOINED_GROUP" | "REMOVED_FROM_GROUP" | "USER_ROLES_CHANGED_AUDIT")
                 | ("TAGS_MODIFIED" | "CLUSTER_TAGS_MODIFIED" | "GROUP_TAGS_MODIFIED")
-                | ("STREAM_PROCESSOR_STATE_IS_FAILED" | "OUTSIDE_STREAM_PROCESSOR_METRIC_THRESHOLD")
+                | (
+                      | "STREAM_PROCESSOR_STATE_IS_FAILED"
+                      | "STREAM_PROCESSOR_AUTOSCALE_INITIATED"
+                      | "OUTSIDE_STREAM_PROCESSOR_METRIC_THRESHOLD"
+                  )
                 | (
                       | "COMPUTE_AUTO_SCALE_INITIATED_BASE"
                       | "COMPUTE_AUTO_SCALE_INITIATED_ANALYTICS"
@@ -5448,6 +5711,7 @@ export interface components {
              */
             sizeBytes?: number;
         };
+        /** @description Response that contains Performance Advisor drop index suggestions. */
         DropIndexSuggestionsResponse: {
             /** @description List that contains the documents with information about the hidden indexes that the Performance Advisor suggests to remove. */
             readonly hiddenIndexes?: components["schemas"]["DropIndexSuggestionsIndex"][];
@@ -5473,6 +5737,52 @@ export interface components {
                 | "CLUSTER_INFRASTRUCTURE_AND_APP_SERVICES_SYNC_DATA";
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
+        };
+        EncryptionAtRest: {
+            awsKms?: components["schemas"]["AWSKMSConfiguration"];
+            azureKeyVault?: components["schemas"]["AzureKeyVault"];
+            /** @description Flag that indicates whether Encryption at Rest for Dedicated Search Nodes is enabled in the specified project. */
+            enabledForSearchNodes?: boolean;
+            googleCloudKms?: components["schemas"]["GoogleCloudKMS"];
+        };
+        /** @description Response envelope that wraps the response payload in `content` and includes response metadata such as `status` and `locations`. */
+        EnvelopedDropIndexSuggestionsResponse: {
+            content: components["schemas"]["DropIndexSuggestionsResponse"];
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            /** @description URLs of resources created by this request. */
+            readonly locations?: string[];
+            /**
+             * Format: int32
+             * @description HTTP status code returned with this response.
+             */
+            readonly status: number;
+        };
+        /** @description Response envelope that wraps the response payload in `content` and includes response metadata such as `status` and `locations`. */
+        EnvelopedPerformanceAdvisorResponse: {
+            content: components["schemas"]["PerformanceAdvisorResponse"];
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            /** @description URLs of resources created by this request. */
+            readonly locations?: string[];
+            /**
+             * Format: int32
+             * @description HTTP status code returned with this response.
+             */
+            readonly status: number;
+        };
+        /** @description Response envelope that wraps the response payload in `content` and includes response metadata such as `status` and `locations`. */
+        EnvelopedSchemaAdvisorResponse: {
+            content: components["schemas"]["SchemaAdvisorResponse"];
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            /** @description URLs of resources created by this request. */
+            readonly locations?: string[];
+            /**
+             * Format: int32
+             * @description HTTP status code returned with this response.
+             */
+            readonly status: number;
         };
         FieldViolation: {
             /** @description A description of why the request element is bad. */
@@ -6004,6 +6314,7 @@ export interface components {
             /**
              * Format: int32
              * @description Number of nodes of the given type for MongoDB Cloud to deploy to the region.
+             * @example 3
              */
             nodeCount?: number;
         };
@@ -6113,6 +6424,25 @@ export interface components {
              * @enum {string}
              */
             type: "GCS_LOG_EXPORT";
+        };
+        /** @description Details that define the configuration of Encryption at Rest using Google Cloud Key Management Service (KMS). */
+        GoogleCloudKMS: {
+            /** @description Flag that indicates whether someone enabled encryption at rest for the specified  project. To disable encryption at rest using customer key management and remove the configuration details, pass only this parameter with a value of `false`. */
+            enabled?: boolean;
+            /**
+             * @description Resource path that displays the key version resource ID for your Google Cloud KMS.
+             * @example projects/my-project-common-0/locations/us-east4/keyRings/my-key-ring-0/cryptoKeys/my-key-0/cryptoKeyVersions/1
+             */
+            keyVersionResourceID?: string;
+            /**
+             * @description Unique 24-hexadecimal digit string that identifies the Google Cloud Provider Access Role that MongoDB Cloud uses to access the Google Cloud KMS.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            roleId?: string;
+            /** @description JavaScript Object Notation (JSON) object that contains the Google Cloud Key Management Service (KMS). Format the JSON as a string and not as an object. */
+            serviceAccountKey?: string;
+            /** @description Flag that indicates whether the Google Cloud Key Management Service (KMS) encryption key can encrypt and decrypt data. */
+            readonly valid?: boolean;
         };
         Group: {
             /**
@@ -6583,28 +6913,6 @@ export interface components {
                 | "billion";
         };
         /**
-         * Ingestion Destination
-         * @description Ingestion destination of a Data Lake Pipeline.
-         */
-        IngestionSink: {
-            /**
-             * @description Type of ingestion destination of this Data Lake Pipeline.
-             * @enum {string}
-             */
-            readonly type?: "DLS";
-        };
-        /**
-         * Ingestion Source
-         * @description Ingestion Source of a Data Lake Pipeline.
-         */
-        IngestionSource: {
-            /**
-             * @description Type of ingestion source of this Data Lake Pipeline.
-             * @enum {string}
-             */
-            type?: "PERIODIC_CPS" | "ON_DEMAND_CPS";
-        };
-        /**
          * Cluster Description
          * @description Group of settings that configure a MongoDB cluster.
          */
@@ -7062,6 +7370,13 @@ export interface components {
              */
             versionReleaseSystem: "LTS" | "CONTINUOUS";
         };
+        /**
+         * Region Configuration
+         * @description Physical location where MongoDB Cloud provisions cluster nodes.
+         */
+        LegacyRegionsConfig: {
+            [key: string]: components["schemas"]["RegionSpec"];
+        };
         LegacyReplicationSpec: {
             /**
              * @description Unique 24-hexadecimal digit string that identifies the replication object for a zone in a Global Cluster.
@@ -7080,13 +7395,7 @@ export interface components {
              * @default 1
              */
             numShards: number;
-            /**
-             * Region Configuration
-             * @description Physical location where MongoDB Cloud provisions cluster nodes.
-             */
-            regionsConfig?: {
-                [key: string]: components["schemas"]["RegionSpec"];
-            };
+            regionsConfig?: components["schemas"]["LegacyRegionsConfig"];
             /** @description Human-readable label that identifies the zone in a Global Cluster. Provide this value only if `clusterType` is `GEOSHARDED`. */
             zoneName?: string;
         };
@@ -7345,29 +7654,6 @@ export interface components {
              */
             readonly number?: number;
             units?: components["schemas"]["NumberMetricUnits"];
-        };
-        /**
-         * On-Demand Cloud Provider Snapshot Source
-         * @description On-Demand Cloud Provider Snapshots as Source for a Data Lake Pipeline.
-         */
-        OnDemandCpsSnapshotSource: Omit<components["schemas"]["IngestionSource"], "type"> & {
-            /** @description Human-readable name that identifies the cluster. */
-            clusterName?: string;
-            /** @description Human-readable name that identifies the collection. */
-            collectionName?: string;
-            /** @description Human-readable name that identifies the database. */
-            databaseName?: string;
-            /**
-             * @description Unique 24-hexadecimal character string that identifies the project.
-             * @example 32b6e34b3d91647abb20e7b8
-             */
-            readonly groupId?: string;
-        } & {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            type: "ON_DEMAND_CPS";
         };
         /**
          * Online Archive Schedule
@@ -7764,6 +8050,7 @@ export interface components {
             readonly predicates?: Record<string, never>[];
             stats?: components["schemas"]["PerformanceAdvisorOpStats"];
         };
+        /** @description Response that contains Performance Advisor suggested indexes and query shapes. */
         PerformanceAdvisorResponse: {
             /** @description List of query predicates, sorts, and projections that the Performance Advisor suggests. */
             readonly shapes?: components["schemas"]["PerformanceAdvisorShape"][];
@@ -7831,8 +8118,12 @@ export interface components {
             readonly docsReturned?: number;
             /** @description This boolean will be true when the server can identify the query source as non-server. This field is only available for MDB 8.0+. */
             readonly fromUserConnection?: boolean;
+            /** @description Flag that indicates whether the slow query used automated embedding, where MongoDB Cloud generates embeddings from raw text at query time instead of the client supplying a precomputed vector. */
+            readonly hasAutoEmbedding?: boolean;
             /** @description Indicates if the query has index coverage. */
             readonly hasIndexCoverage?: boolean;
+            /** @description Flag that indicates whether the slow query used the `$rerank` aggregation stage, which reorders results using Voyage AI reranking models. Always `false` for MongoDB deployments earlier than 8.3. */
+            readonly hasRerank?: boolean;
             /** @description This boolean will be true when a query cannot use the ordering in the index to return the requested sorted results; i.e. MongoDB must sort the documents after it receives the documents from a cursor. */
             readonly hasSort?: boolean;
             /**
@@ -7860,34 +8151,12 @@ export interface components {
              * @description The length in bytes of the operation's result document.
              */
             readonly responseLength?: number;
-        };
-        /**
-         * Periodic Cloud Provider Snapshot Source
-         * @description Scheduled Cloud Provider Snapshot as Source for a Data Lake Pipeline.
-         */
-        PeriodicCpsSnapshotSource: Omit<components["schemas"]["IngestionSource"], "type"> & {
-            /** @description Human-readable name that identifies the cluster. */
-            clusterName?: string;
-            /** @description Human-readable name that identifies the collection. */
-            collectionName?: string;
-            /** @description Human-readable name that identifies the database. */
-            databaseName?: string;
             /**
-             * @description Unique 24-hexadecimal character string that identifies the project.
-             * @example 32b6e34b3d91647abb20e7b8
+             * Format: int64
+             * @description The total inference tokens consumed by this operation, including tokens used by `$rerank`. Returned only for inference queries that consumed tokens; it is omitted otherwise, including for MongoDB deployments earlier than 8.3.
+             * @example 363
              */
-            readonly groupId?: string;
-            /**
-             * @description Unique 24-hexadecimal character string that identifies a policy item.
-             * @example 32b6e34b3d91647abb20e7b8
-             */
-            policyItemId?: string;
-        } & {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            type: "PERIODIC_CPS";
+            readonly tokensUsed?: number;
         };
         RawMetricAlertView: {
             /**
@@ -8321,6 +8590,7 @@ export interface components {
             /** @description List of triggers that specify why the collection activated the recommendation. */
             readonly triggers?: components["schemas"]["SchemaAdvisorTriggerDetails"][];
         };
+        /** @description Response that contains Performance Advisor schema suggestions. */
         SchemaAdvisorResponse: {
             /** @description List that contains the documents with information about the schema advice that Performance Advisor suggests. */
             readonly recommendations?: components["schemas"]["SchemaAdvisorItemRecommendation"][];
@@ -8985,6 +9255,7 @@ export interface components {
         /** @description The configuration for AWS Lambda connections. */
         StreamsAWSLambdaConnection: Omit<components["schemas"]["StreamsConnection"], "type"> & {
             aws?: components["schemas"]["StreamsAWSConnectionConfig"];
+            publicPrivateNetworking?: components["schemas"]["StreamsPublicPrivateLinkNetworking"];
         } & {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -9040,17 +9311,17 @@ export interface components {
             readonly id?: string;
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
-            /** @description Human-readable label that identifies the stream connection. In the case of the Sample type, this is the name of the sample source. */
+            /** @description Human-readable label that identifies the stream connection. For the Sample type, this is the name of the sample source. */
             name?: string;
-            /** @description The connection's region. */
+            /** @description The connection region. */
             region?: string;
             /**
-             * @description The state of the connection.
+             * @description The connection state.
              * @enum {string}
              */
             readonly state?: "PENDING" | "READY" | "DELETING" | "FAILED";
             /**
-             * @description Type of the connection.
+             * @description The connection type.
              * @enum {string}
              */
             type?:
@@ -9096,6 +9367,78 @@ export interface components {
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
             region: components["schemas"]["BaseStreamsRegion"];
+        };
+        StreamsFailoverClusterConnection: Omit<components["schemas"]["StreamsFailoverConnection"], "type"> & {
+            /** @description Unique 24-hexadecimal digit string that identifies the project that contains the configured cluster. Required if the ID does not match the project containing the streams workspace. You must first enable the organization setting. */
+            clusterGroupId?: string | null;
+            /** @description Name of the cluster configured for this connection. */
+            clusterName?: string;
+            dbRoleToExecute?: components["schemas"]["DBRoleToExecute"];
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "Cluster";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "Cluster";
+        };
+        /** @description Settings that define a failover connection to an external data store. */
+        StreamsFailoverConnection: {
+            /** @description Unique identifier of the connection. */
+            readonly id?: string;
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            /** @description Human-readable label that identifies the stream connection. */
+            name?: string;
+            /** @description The connection region. */
+            region?: string;
+            /**
+             * @description The connection state.
+             * @enum {string}
+             */
+            readonly state?: "PENDING" | "READY" | "DELETING" | "FAILED";
+            /**
+             * @description The connection type.
+             * @enum {string}
+             */
+            type?: "Kafka" | "Cluster";
+        } & (
+            | components["schemas"]["StreamsFailoverClusterConnection"]
+            | components["schemas"]["StreamsFailoverKafkaConnection"]
+        );
+        StreamsFailoverKafkaConnection: Omit<components["schemas"]["StreamsFailoverConnection"], "type"> & {
+            authentication?: components["schemas"]["StreamsKafkaAuthentication"];
+            /** @description Comma separated list of server addresses. */
+            bootstrapServers?: string;
+            /**
+             * @description A map of Kafka key-value pairs for optional configuration. This is a flat object, and keys can have '.' characters.
+             * @example {
+             *       "debug": "queue, msg, protocol",
+             *       "group.protocol.type": "consumer"
+             *     }
+             */
+            config?: {
+                [key: string]: string;
+            };
+            networking?: components["schemas"]["StreamsKafkaNetworking"];
+            security?: components["schemas"]["StreamsKafkaSecurity"];
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "Kafka";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "Kafka";
         };
         /** @description GCP-specific configuration for the connection. */
         StreamsGCPConnectionConfig: {
@@ -9143,6 +9486,7 @@ export interface components {
         };
         /** @description User credentials required to connect to a Kafka Cluster. Includes the authentication type, as well as the parameters for that authentication mode. */
         StreamsKafkaAuthentication: {
+            aws?: components["schemas"]["StreamsAWSConnectionConfig"];
             /** @description OIDC client identifier for authentication to the Kafka cluster. */
             clientId?: string;
             /**
@@ -9154,7 +9498,7 @@ export interface components {
             readonly links?: components["schemas"]["Link"][];
             /** @description Style of authentication. Can be one of PLAIN, SCRAM-256, SCRAM-512, or OAUTHBEARER. */
             mechanism?: string;
-            /** @description SASL OAUTHBEARER authentication method. Can only be OIDC currently. */
+            /** @description SASL OAUTHBEARER authentication method. Currently, only OIDC is supported. */
             method?: string;
             /**
              * Format: password
@@ -9167,9 +9511,15 @@ export interface components {
             scope?: string;
             /** @description SSL certificate for client authentication to Kafka. */
             sslCertificate?: string;
-            /** @description SSL key for client authentication to Kafka. */
+            /**
+             * Format: password
+             * @description SSL key for client authentication to Kafka.
+             */
             sslKey?: string;
-            /** @description Password for the SSL key, if it is password protected. */
+            /**
+             * Format: password
+             * @description Password for the SSL key, if it is password protected.
+             */
             sslKeyPassword?: string;
             /** @description OIDC token endpoint URL for obtaining access tokens. */
             tokenEndpointUrl?: string;
@@ -9254,6 +9604,12 @@ export interface components {
             options?: components["schemas"]["StreamsModifyStreamProcessorOptions"];
             /** @description New pipeline for the stream processor. */
             pipeline?: components["schemas"]["Document"][];
+            /**
+             * Stream Workspace Tier
+             * @description Selected tier for the Stream Workspace. Configures Memory / VCPU allowances.
+             * @enum {string}
+             */
+            tier?: "SP50" | "SP30" | "SP10" | "SP5" | "SP2";
         };
         /** @description Additional options for modifying a stream processor. */
         StreamsModifyStreamProcessorOptions: {
@@ -9278,6 +9634,11 @@ export interface components {
             readonly _id?: string;
             /** @description Amazon Resource Name (ARN). Required for AWS Provider and MSK vendor. */
             arn?: string;
+            /**
+             * @description Authentication mechanism to use with this private networking connection.
+             * @enum {string}
+             */
+            authenticationScheme?: "TLS" | "SASL_SCRAM" | "IAM";
             /** @description Azure Resource IDs of each availability zone for the Azure Confluent cluster. */
             azureResourceIds?: string[];
             /**
@@ -9316,6 +9677,8 @@ export interface components {
              *     -- `MSK` for AWS MSK Kafka clusters
              *     -- `CONFLUENT` for Confluent Kafka clusters on AWS
              *     -- `KINESIS` for AWS Kinesis Data Streams
+             *     -- `S3` for AWS S3
+             *     -- `LAMBDA` for AWS Lambda
              *
              *     - Azure
              *     -- `EVENTHUB` for Azure EventHub.
@@ -9490,6 +9853,8 @@ export interface components {
         };
         /** @description Failover options for starting a stream processor. */
         StreamsStartProcessorFailover: {
+            /** @description If true, clears the checkpoint so the failover processor does not resume from it. Applies only to FORCED failover; clearing may cause duplicate or missing records in the output. */
+            clearCheckpoint?: boolean;
             /** @description If true, simulates the operation without making any changes. */
             dryRun?: boolean;
             /**
@@ -10928,6 +11293,7 @@ export type AwsComputeAutoScaling = components["schemas"]["AWSComputeAutoScaling
 export type AwsCreateDataProcessRegionView = components["schemas"]["AWSCreateDataProcessRegionView"];
 export type AwsDataProcessRegionView = components["schemas"]["AWSDataProcessRegionView"];
 export type AwsHardwareSpec20240805 = components["schemas"]["AWSHardwareSpec20240805"];
+export type AwskmsConfiguration = components["schemas"]["AWSKMSConfiguration"];
 export type AwsRegionConfig20240805 = components["schemas"]["AWSRegionConfig20240805"];
 export type AccountDetails = components["schemas"]["AccountDetails"];
 export type AdvancedAutoScalingSettings = components["schemas"]["AdvancedAutoScalingSettings"];
@@ -10957,6 +11323,7 @@ export type AzureConnection = components["schemas"]["AzureConnection"];
 export type AzureCreateDataProcessRegionView = components["schemas"]["AzureCreateDataProcessRegionView"];
 export type AzureDataProcessRegionView = components["schemas"]["AzureDataProcessRegionView"];
 export type AzureHardwareSpec20240805 = components["schemas"]["AzureHardwareSpec20240805"];
+export type AzureKeyVault = components["schemas"]["AzureKeyVault"];
 export type AzureLogIntegrationRequest = components["schemas"]["AzureLogIntegrationRequest"];
 export type AzureLogIntegrationResponse = components["schemas"]["AzureLogIntegrationResponse"];
 export type AzureRegionConfig20240805 = components["schemas"]["AzureRegionConfig20240805"];
@@ -10970,12 +11337,15 @@ export type CloudDatabaseUser = components["schemas"]["CloudDatabaseUser"];
 export type CloudGcpProviderSettings = components["schemas"]["CloudGCPProviderSettings"];
 export type CloudProviderAwsAutoScaling = components["schemas"]["CloudProviderAWSAutoScaling"];
 export type CloudProviderAccessAwsiamRole = components["schemas"]["CloudProviderAccessAWSIAMRole"];
+export type CloudProviderAccessAwsiamRoleRequest = components["schemas"]["CloudProviderAccessAWSIAMRoleRequest"];
 export type CloudProviderAccessAwsiamRoleRequestUpdate =
     components["schemas"]["CloudProviderAccessAWSIAMRoleRequestUpdate"];
 export type CloudProviderAccessAtlasLogIntegrationFeatureUsage =
     components["schemas"]["CloudProviderAccessAtlasLogIntegrationFeatureUsage"];
 export type CloudProviderAccessAzureServicePrincipal =
     components["schemas"]["CloudProviderAccessAzureServicePrincipal"];
+export type CloudProviderAccessAzureServicePrincipalRequest =
+    components["schemas"]["CloudProviderAccessAzureServicePrincipalRequest"];
 export type CloudProviderAccessAzureServicePrincipalRequestUpdate =
     components["schemas"]["CloudProviderAccessAzureServicePrincipalRequestUpdate"];
 export type CloudProviderAccessDataLakeFeatureUsage = components["schemas"]["CloudProviderAccessDataLakeFeatureUsage"];
@@ -10993,11 +11363,14 @@ export type CloudProviderAccessFeatureUsageExportSnapshotFeatureId =
 export type CloudProviderAccessFeatureUsagePushBasedLogExportFeatureId =
     components["schemas"]["CloudProviderAccessFeatureUsagePushBasedLogExportFeatureId"];
 export type CloudProviderAccessGcpServiceAccount = components["schemas"]["CloudProviderAccessGCPServiceAccount"];
+export type CloudProviderAccessGcpServiceAccountRequest =
+    components["schemas"]["CloudProviderAccessGCPServiceAccountRequest"];
 export type CloudProviderAccessGcpServiceAccountRequestUpdate =
     components["schemas"]["CloudProviderAccessGCPServiceAccountRequestUpdate"];
 export type CloudProviderAccessPushBasedLogExportFeatureUsage =
     components["schemas"]["CloudProviderAccessPushBasedLogExportFeatureUsage"];
 export type CloudProviderAccessRole = components["schemas"]["CloudProviderAccessRole"];
+export type CloudProviderAccessRoleRequest = components["schemas"]["CloudProviderAccessRoleRequest"];
 export type CloudProviderAccessRoleRequestUpdate = components["schemas"]["CloudProviderAccessRoleRequestUpdate"];
 export type CloudProviderAzureAutoScaling = components["schemas"]["CloudProviderAzureAutoScaling"];
 export type CloudProviderContainer = components["schemas"]["CloudProviderContainer"];
@@ -11031,7 +11404,6 @@ export type CreateGcpForwardingRuleRequest = components["schemas"]["CreateGCPFor
 export type CriteriaView = components["schemas"]["CriteriaView"];
 export type CustomCriteriaView = components["schemas"]["CustomCriteriaView"];
 export type DbRoleToExecute = components["schemas"]["DBRoleToExecute"];
-export type DlsIngestionSink = components["schemas"]["DLSIngestionSink"];
 export type DailyScheduleView = components["schemas"]["DailyScheduleView"];
 export type DataLakeAtlasStoreInstance = components["schemas"]["DataLakeAtlasStoreInstance"];
 export type DataLakeAtlasStoreReadConcern = components["schemas"]["DataLakeAtlasStoreReadConcern"];
@@ -11043,7 +11415,6 @@ export type DataLakeDlsAzureStore = components["schemas"]["DataLakeDLSAzureStore
 export type DataLakeDlsgcpStore = components["schemas"]["DataLakeDLSGCPStore"];
 export type DataLakeGoogleCloudStorageStore = components["schemas"]["DataLakeGoogleCloudStorageStore"];
 export type DataLakeHttpStore = components["schemas"]["DataLakeHTTPStore"];
-export type DataLakePipelinesPartitionField = components["schemas"]["DataLakePipelinesPartitionField"];
 export type DataLakeS3StoreSettings = components["schemas"]["DataLakeS3StoreSettings"];
 export type DataLakeStoreSettings = components["schemas"]["DataLakeStoreSettings"];
 export type DataMetricAlertView = components["schemas"]["DataMetricAlertView"];
@@ -11079,6 +11450,10 @@ export type Document = components["schemas"]["Document"];
 export type DropIndexSuggestionsIndex = components["schemas"]["DropIndexSuggestionsIndex"];
 export type DropIndexSuggestionsResponse = components["schemas"]["DropIndexSuggestionsResponse"];
 export type EmployeeAccessGrantView = components["schemas"]["EmployeeAccessGrantView"];
+export type EncryptionAtRest = components["schemas"]["EncryptionAtRest"];
+export type EnvelopedDropIndexSuggestionsResponse = components["schemas"]["EnvelopedDropIndexSuggestionsResponse"];
+export type EnvelopedPerformanceAdvisorResponse = components["schemas"]["EnvelopedPerformanceAdvisorResponse"];
+export type EnvelopedSchemaAdvisorResponse = components["schemas"]["EnvelopedSchemaAdvisorResponse"];
 export type FieldViolation = components["schemas"]["FieldViolation"];
 export type Fields = components["schemas"]["Fields"];
 export type FlexBackupSettings20241113 = components["schemas"]["FlexBackupSettings20241113"];
@@ -11099,6 +11474,7 @@ export type GcpHardwareSpec20240805 = components["schemas"]["GCPHardwareSpec2024
 export type GcpRegionConfig20240805 = components["schemas"]["GCPRegionConfig20240805"];
 export type GcsLogIntegrationRequest = components["schemas"]["GcsLogIntegrationRequest"];
 export type GcsLogIntegrationResponse = components["schemas"]["GcsLogIntegrationResponse"];
+export type GoogleCloudKms = components["schemas"]["GoogleCloudKMS"];
 export type Group = components["schemas"]["Group"];
 export type GroupActiveUserResponse = components["schemas"]["GroupActiveUserResponse"];
 export type GroupPendingUserResponse = components["schemas"]["GroupPendingUserResponse"];
@@ -11111,10 +11487,9 @@ export type HostEventTypeViewForNdsGroupAlertable = components["schemas"]["HostE
 export type HostMetricAlert = components["schemas"]["HostMetricAlert"];
 export type HostMetricEventTypeViewAlertable = components["schemas"]["HostMetricEventTypeViewAlertable"];
 export type HostMetricValue = components["schemas"]["HostMetricValue"];
-export type IngestionSink = components["schemas"]["IngestionSink"];
-export type IngestionSource = components["schemas"]["IngestionSource"];
 export type LegacyAtlasCluster = components["schemas"]["LegacyAtlasCluster"];
 export type LegacyAtlasTenantClusterUpgradeRequest = components["schemas"]["LegacyAtlasTenantClusterUpgradeRequest"];
+export type LegacyRegionsConfig = components["schemas"]["LegacyRegionsConfig"];
 export type LegacyReplicationSpec = components["schemas"]["LegacyReplicationSpec"];
 export type Link = components["schemas"]["Link"];
 export type LogIntegrationRequest = components["schemas"]["LogIntegrationRequest"];
@@ -11124,7 +11499,6 @@ export type NetworkPermissionEntry = components["schemas"]["NetworkPermissionEnt
 export type NumberMetricAlertView = components["schemas"]["NumberMetricAlertView"];
 export type NumberMetricUnits = components["schemas"]["NumberMetricUnits"];
 export type NumberMetricValueView = components["schemas"]["NumberMetricValueView"];
-export type OnDemandCpsSnapshotSource = components["schemas"]["OnDemandCpsSnapshotSource"];
 export type OnlineArchiveSchedule = components["schemas"]["OnlineArchiveSchedule"];
 export type OrgActiveUserResponse = components["schemas"]["OrgActiveUserResponse"];
 export type OrgGroup = components["schemas"]["OrgGroup"];
@@ -11154,7 +11528,6 @@ export type PerformanceAdvisorShape = components["schemas"]["PerformanceAdvisorS
 export type PerformanceAdvisorSlowQuery = components["schemas"]["PerformanceAdvisorSlowQuery"];
 export type PerformanceAdvisorSlowQueryList = components["schemas"]["PerformanceAdvisorSlowQueryList"];
 export type PerformanceAdvisorSlowQueryMetrics = components["schemas"]["PerformanceAdvisorSlowQueryMetrics"];
-export type PeriodicCpsSnapshotSource = components["schemas"]["PeriodicCpsSnapshotSource"];
 export type RawMetricAlertView = components["schemas"]["RawMetricAlertView"];
 export type RawMetricUnits = components["schemas"]["RawMetricUnits"];
 export type RawMetricValueView = components["schemas"]["RawMetricValueView"];
@@ -11198,6 +11571,9 @@ export type StreamsClusterConnection = components["schemas"]["StreamsClusterConn
 export type StreamsConnection = components["schemas"]["StreamsConnection"];
 export type StreamsDlq = components["schemas"]["StreamsDLQ"];
 export type StreamsDataProcessRegion = components["schemas"]["StreamsDataProcessRegion"];
+export type StreamsFailoverClusterConnection = components["schemas"]["StreamsFailoverClusterConnection"];
+export type StreamsFailoverConnection = components["schemas"]["StreamsFailoverConnection"];
+export type StreamsFailoverKafkaConnection = components["schemas"]["StreamsFailoverKafkaConnection"];
 export type StreamsGcpConnectionConfig = components["schemas"]["StreamsGCPConnectionConfig"];
 export type StreamsGcpPubSubConnection = components["schemas"]["StreamsGCPPubSubConnection"];
 export type StreamsHttpsConnection = components["schemas"]["StreamsHttpsConnection"];
@@ -11689,6 +12065,98 @@ export interface operations {
             500: components["responses"]["internalServerError"];
         };
     };
+    createGroupCloudProviderAccess: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description Flag that indicates whether the response body should be in the prettyprint format. */
+                pretty?: components["parameters"]["pretty"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+            };
+            cookie?: never;
+        };
+        /** @description Creates one role for the specified cloud provider. */
+        requestBody: {
+            content: {
+                "application/vnd.atlas.2023-01-01+json": components["schemas"]["CloudProviderAccessRoleRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2023-01-01+json": components["schemas"]["CloudProviderAccessRole"];
+                };
+            };
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    authorizeGroupCloudProviderAccessRole: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description Flag that indicates whether the response body should be in the prettyprint format. */
+                pretty?: components["parameters"]["pretty"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+                /** @description Unique 24-hexadecimal digit string that identifies the role. */
+                roleId: string;
+            };
+            cookie?: never;
+        };
+        /** @description Grants access to the specified project for the specified access role. */
+        requestBody: {
+            content: {
+                "application/vnd.atlas.2023-01-01+json": components["schemas"]["CloudProviderAccessRoleRequestUpdate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2023-01-01+json": components["schemas"]["CloudProviderAccessRole"];
+                };
+            };
+            400: components["responses"]["badRequest"];
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            409: components["responses"]["conflict"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
     listGroupClusters: {
         parameters: {
             query?: {
@@ -11985,7 +12453,10 @@ export interface operations {
     };
     listGroupClusterPerformanceAdvisorDropIndexSuggestions: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: boolean;
+            };
             header?: never;
             path: {
                 /**
@@ -12009,7 +12480,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/vnd.atlas.2024-08-05+json": components["schemas"]["DropIndexSuggestionsResponse"];
+                    "application/vnd.atlas.2024-08-05+json": components["schemas"]["EnvelopedDropIndexSuggestionsResponse"];
                 };
             };
             400: components["responses"]["badRequest"];
@@ -12022,7 +12493,10 @@ export interface operations {
     };
     listGroupClusterPerformanceAdvisorSchemaAdvice: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: boolean;
+            };
             header?: never;
             path: {
                 /**
@@ -12046,7 +12520,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/vnd.atlas.2024-08-05+json": components["schemas"]["SchemaAdvisorResponse"];
+                    "application/vnd.atlas.2024-08-05+json": components["schemas"]["EnvelopedSchemaAdvisorResponse"];
                 };
             };
             400: components["responses"]["badRequest"];
@@ -12060,6 +12534,8 @@ export interface operations {
     listGroupClusterPerformanceAdvisorSuggestedIndexes: {
         parameters: {
             query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: boolean;
                 /** @description Process IDs from which to retrieve suggested indexes. A `processId` is a combination of host and port that serves the MongoDB process. The host must be the hostname, FQDN, IPv4 address, or IPv6 address of the host that runs the MongoDB process (`mongod` or `mongos`). The port must be the IANA port on which the MongoDB process listens for requests. To include multiple `processIds`, pass the parameter multiple times delimited with an ampersand (`&`) between each `processId`. */
                 processIds?: string[];
                 /** @description Namespaces from which to retrieve suggested indexes. A namespace consists of one database and one collection resource written as `.`: `<database>.<collection>`. To include multiple namespaces, pass the parameter multiple times delimited with an ampersand (`&`) between each namespace. Omit this parameter to return results for all namespaces. */
@@ -12102,7 +12578,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/vnd.atlas.2024-08-05+json": components["schemas"]["PerformanceAdvisorResponse"];
+                    "application/vnd.atlas.2024-08-05+json": components["schemas"]["EnvelopedPerformanceAdvisorResponse"];
                 };
             };
             400: components["responses"]["badRequest"];
@@ -12257,6 +12733,101 @@ export interface operations {
             401: components["responses"]["unauthorized"];
             403: components["responses"]["forbidden"];
             404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    getGroupEncryptionAtRest: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description Flag that indicates whether the response body should be in the prettyprint format. */
+                pretty?: components["parameters"]["pretty"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2023-01-01+json": components["schemas"]["EncryptionAtRest"];
+                };
+            };
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    updateGroupEncryptionAtRest: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description Flag that indicates whether the response body should be in the prettyprint format. */
+                pretty?: components["parameters"]["pretty"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * @description Required parameters depend on whether someone has enabled Encryption at Rest using Customer Key Management:
+         *
+         *     If you have enabled Encryption at Rest using Customer Key Management (CMK), Atlas requires all of the parameters for the desired encryption provider.
+         *
+         *     - To use AWS Key Management Service (KMS), MongoDB Cloud requires all the fields in the `awsKms` object.
+         *     - To use Azure Key Vault, MongoDB Cloud requires all the fields in the `azureKeyVault` object.
+         *     - To use Google Cloud Key Management Service (KMS), MongoDB Cloud requires all the fields in the `googleCloudKms` object For authentication, you must provide either `serviceAccountKey` (static credentials) or `roleId` (service-account–based authentication) Once `roleId` is configured, `serviceAccountKey` is no longer supported.
+         *
+         *     If you enabled Encryption at Rest using Customer Key Management, administrators can pass only the changed fields for the `awsKms`, `azureKeyVault`, or `googleCloudKms` object to update the configuration to this endpoint.
+         */
+        requestBody: {
+            content: {
+                "application/vnd.atlas.2023-01-01+json": components["schemas"]["EncryptionAtRest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2023-01-01+json": components["schemas"]["EncryptionAtRest"];
+                };
+            };
+            400: components["responses"]["badRequest"];
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            409: components["responses"]["conflict"];
             429: components["responses"]["tooManyRequests"];
             500: components["responses"]["internalServerError"];
         };
@@ -12823,7 +13394,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        /** @description Details to create one Private Link connection for a project. project. */
+        /** @description Details to create one Private Link connection for a project. */
         requestBody: {
             content: {
                 "application/vnd.atlas.2023-02-01+json": components["schemas"]["StreamsPrivateLinkConnection"];

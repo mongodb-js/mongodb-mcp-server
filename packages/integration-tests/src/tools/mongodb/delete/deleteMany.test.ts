@@ -37,10 +37,11 @@ describeWithMongoDB("deleteMany tool", (integration) => {
     });
 
     it("doesn't create the collection if it doesn't exist", async () => {
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         const response = await integration.mcpClient().callTool({
             name: "delete-many",
             arguments: {
+                connectionId,
                 database: integration.randomDbName(),
                 collection: "coll1",
                 filter: {},
@@ -84,10 +85,11 @@ describeWithMongoDB("deleteMany tool", (integration) => {
     it("deletes documents matching the filter", async () => {
         await insertDocuments();
 
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         const response = await integration.mcpClient().callTool({
             name: "delete-many",
             arguments: {
+                connectionId,
                 database: integration.randomDbName(),
                 collection: "coll1",
                 filter: { age: { $gt: 20 } },
@@ -109,10 +111,11 @@ describeWithMongoDB("deleteMany tool", (integration) => {
 
     it("when filter doesn't match, deletes nothing", async () => {
         await insertDocuments();
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         const response = await integration.mcpClient().callTool({
             name: "delete-many",
             arguments: {
+                connectionId,
                 database: integration.randomDbName(),
                 collection: "coll1",
                 filter: { age: { $gt: 100 } },
@@ -132,10 +135,11 @@ describeWithMongoDB("deleteMany tool", (integration) => {
 
     it("with empty filter, deletes all documents", async () => {
         await insertDocuments();
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         const response = await integration.mcpClient().callTool({
             name: "delete-many",
             arguments: {
+                connectionId,
                 database: integration.randomDbName(),
                 collection: "coll1",
                 filter: {},
@@ -179,10 +183,11 @@ describeWithMongoDB("deleteMany tool with server-side JavaScript operators", (in
     for (const jsDisabled of [true, false]) {
         it(`${jsDisabled ? "rejects" : "allows"} filters using $where when disableServerSideJs is ${jsDisabled}`, async () => {
             integration.mcpServer().userConfig.disableServerSideJs = jsDisabled;
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "delete-many",
                 arguments: {
+                    connectionId,
                     database: integration.randomDbName(),
                     collection: "people",
                     filter: { $where: "function() { return this.age > 8; }" },

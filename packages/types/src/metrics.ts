@@ -20,6 +20,16 @@ export interface ICounter {
 }
 
 /**
+ * Interface for gauge metrics.
+ * Used for metrics that can go up and down (e.g. currently active sessions).
+ */
+export interface IGauge {
+    set(value: number): void;
+    inc(labels?: MetricLabels, value?: number): void;
+    dec(labels?: MetricLabels, value?: number): void;
+}
+
+/**
  * Default metric definitions for MCP servers.
  * These are the standard metrics used across the MCP packages.
  *
@@ -39,6 +49,8 @@ export type DefaultMetricDefinitions = {
     sessionClosed: ICounter;
     /** Histogram for tracking tool execution duration in seconds */
     toolExecutionDuration: IObservable;
+    /** Gauge for tracking currently active sessions */
+    sessionsActive: IGauge;
 };
 
 /**

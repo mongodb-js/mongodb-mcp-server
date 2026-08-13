@@ -4,11 +4,13 @@ import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
 import { Matcher } from "./sdk/matcher.js";
 import type { VercelAgentPromptResult } from "./sdk/agent.js";
 
+const CONNECTION_ID = "9f4b7c52-3e2d-4a8f-b1c6-0d5e8a7f2c31";
+
 const atlasConnectClusterWithAlerts: CallToolResult = {
     content: [
         {
             type: "text",
-            text: `Connected to cluster "acc-test-free-cluster".`,
+            text: `Connected to cluster "acc-test-free-cluster". Your connectionId is "${CONNECTION_ID}" — pass it as the connectionId argument to all MongoDB tool calls that should run against this cluster.`,
         },
         {
             type: "text",
@@ -19,7 +21,8 @@ const atlasConnectClusterWithAlerts: CallToolResult = {
         },
     ],
     structuredContent: {
-        connected: true,
+        connectionId: CONNECTION_ID,
+        state: "connected",
         addedCurrentIp: false,
         createdTemporaryUser: true,
         sharedTierAlertsDetected: true,

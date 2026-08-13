@@ -22,6 +22,7 @@
   "dependencies": {
     "@mongodb-js/mcp-atlas-api-client": "workspace:*",
     "@mongodb-js/mcp-core": "workspace:*",
+    "@mongodb-js/mcp-tools-mongodb": "workspace:*",
     "mongodb-connection-string-url": "^7.0.1",
     "zod": "^4.0.0"
   },
@@ -34,6 +35,7 @@
     "@mongodb-js/mcp-test-utils": "workspace:*",
     "@mongodb-js/mcp-ui": "workspace:*",
     "@mongodb-js/mcp-metrics": "workspace:*",
+    "@mongodb-js/mcp-cli": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.29.0"
   }
 }

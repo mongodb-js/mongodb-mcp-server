@@ -5,6 +5,7 @@ import { ToolBase } from "@mongodb-js/mcp-core";
 import { LogId } from "@mongodb-js/mcp-core";
 import type { Client } from "@mongodb-js/atlas-local";
 import type { ToolCategory } from "@mongodb-js/mcp-types";
+import type { ConnectionRegistry } from "@mongodb-js/mcp-tools-mongodb";
 
 export interface IAtlasLocalConfig extends IToolConfig {
     voyageApiKey?: string;
@@ -13,6 +14,7 @@ export interface IAtlasLocalConfig extends IToolConfig {
 export interface IAtlasLocalSession extends ISession {
     config: IAtlasLocalConfig;
     readonly atlasLocalClient?: Client;
+    readonly connectionRegistry: ConnectionRegistry;
     connectToMongoDB(settings: { connectionString: string }): Promise<void>;
 }
 
@@ -138,7 +140,7 @@ please log a ticket here: https://github.com/mongodb-js/mongodb-mcp-server/issue
     protected resolveTelemetryMetadata(
         _args: ToolArgs<typeof this.argsShape>,
         { result }: { result: CallToolResult }
-    ): ConnectionMetadata {
+    ): ConnectionMetadata | Promise<ConnectionMetadata> {
         const toolMetadata: ConnectionMetadata = {};
 
         // Atlas Local tools set the deployment ID in the result metadata for telemetry

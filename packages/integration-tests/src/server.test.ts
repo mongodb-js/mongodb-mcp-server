@@ -1,14 +1,11 @@
-import { MCPConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
-import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
+import { MCPConnectionStore, ExportsManager, DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
-import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
-import { CliSession } from "@mongodb-js/mcp-cli";
+import { Session } from "@mongodb-js/mcp-cli";
 import {
     createTestApiClient,
     defaultTestConfig,
     expectDefined,
     InMemoryLogger,
-    testServerMetadata,
 } from "./integrationHelpers.js";
 import { describeWithMongoDB } from "./mongodbHelpers.js";
 import { afterEach, describe, expect, it } from "vitest";
@@ -186,18 +183,12 @@ describe("CliServer integration test", () => {
     ): Promise<{ server: CliServer; transport: Transport }> => {
         const logger = new CompositeLogger({ loggers });
         const deviceId = DeviceId.create(logger);
-        const connectionManager = new MCPConnectionManager({
-            logger,
-            deviceId,
-            serverMetadata: testServerMetadata,
-            connectionInfo: config,
-        });
+        const connectionRegistry = new MCPConnectionStore({ userConfig: config, logger, deviceId }).view();
         const exportsManager = ExportsManager.init({ options: config, logger });
-        const session = new CliSession({
-            userConfig: config,
+        const session = new Session({
             logger,
             exportsManager,
-            connectionManager,
+            connectionRegistry,
             keychain: Keychain.root,
             connectionErrorHandler,
             atlasLocalClient: await createAtlasLocalClient({ logger }),
@@ -223,7 +214,10 @@ describe("CliServer integration test", () => {
         });
 
         const mcpServerInstance = new McpServer({ name: "test", version: "1.0" });
-        const elicitation = new Elicitation({ server: mcpServerInstance.server });
+        const elicitation = new Elicitation({
+            server: mcpServerInstance.server,
+            timeoutMs: config.elicitationTimeoutMs,
+        });
 
         const server = new CliServer({
             session,

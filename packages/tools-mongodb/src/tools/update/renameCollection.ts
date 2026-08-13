@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CollOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
+import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType } from "@mongodb-js/mcp-types";
 import { ErrorCodes, MongoDBError } from "../../common/errors.js";
@@ -18,6 +18,7 @@ export class RenameCollectionTool extends MongoDBToolBase {
     public description = "Renames a collection in a MongoDB database";
     public override outputSchema = RenameCollectionOutputSchema;
     public argsShape = {
+        ...ConnectionIdArgs,
         ...CollOperationArgs,
         newName: z.string().describe("The new name for the collection"),
         dropTarget: z.boolean().optional().default(false).describe("If true, drops the target collection if it exists"),
@@ -25,6 +26,7 @@ export class RenameCollectionTool extends MongoDBToolBase {
     static operationType: OperationType = "update";
 
     protected async execute({
+        connectionId,
         database,
         collection,
         newName,
@@ -41,7 +43,7 @@ export class RenameCollectionTool extends MongoDBToolBase {
             );
         }
 
-        const provider = await this.ensureConnected();
+        const provider = await this.resolveConnection(connectionId);
         const result = await provider.renameCollection(database, collection, newName, {
             dropTarget,
         });

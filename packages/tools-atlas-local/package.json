@@ -22,6 +22,7 @@
   "dependencies": {
     "@mongodb-js/atlas-local": "^1.3.0",
     "@mongodb-js/mcp-core": "workspace:*",
+    "@mongodb-js/mcp-tools-mongodb": "workspace:*",
     "zod": "^4.0.0"
   },
   "devDependencies": {

@@ -1,5 +1,5 @@
 import type {
-    ISession,
+    IResourceSession,
     SessionEvents,
     ITelemetry,
     IElicitation,
@@ -58,7 +58,7 @@ type PayloadOf<K extends keyof SessionEvents> = SessionEvents[K][0];
  *
  * @example Resource with Config Access
  * ```typescript
- * interface ICustomSession extends ISession {
+ * interface ICustomSession extends IResourceSession {
  *   userConfig: MyConfig;
  * }
  *
@@ -85,7 +85,7 @@ export abstract class ReactiveResource<
     /** Value stored in the resource */
     Value,
     RelevantEvents extends readonly (keyof SessionEvents)[],
-    TSession extends ISession = ISession,
+    TSession extends IResourceSession = IResourceSession,
     TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions,
 > {
     protected server?: IResourceServer;

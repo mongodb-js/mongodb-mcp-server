@@ -1,10 +1,9 @@
 import { z } from "zod";
 import { ToolBase } from "@mongodb-js/mcp-core";
 import type { ToolArgs } from "@mongodb-js/mcp-core";
-import type { OperationType, ToolCategory, CallToolResult } from "@mongodb-js/mcp-types";
+import type { IToolConfig, ISession, OperationType, ToolCategory, CallToolResult, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import type { TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
-import type { IToolConfig, ISession } from "@mongodb-js/mcp-types";
 
 /** General-purpose tool used by most ToolBase unit tests. */
 export class TestTool extends ToolBase<ISession<IToolConfig>, DefaultPrometheusMetricDefinitions> {
@@ -115,6 +114,33 @@ export class EchoTool extends ToolBase<ISession<IToolConfig>, DefaultPrometheusM
 
     protected execute(): Promise<CallToolResult> {
         return Promise.resolve({ content: [{ type: "text", text: "ok" }] });
+    }
+
+    protected resolveTelemetryMetadata(): TelemetryToolMetadata {
+        return {};
+    }
+}
+
+/**
+ * Tool that asks for confirmation from within execute(), the way aggregate does
+ * once it knows the pipeline contains a write stage.
+ */
+export class ConfirmingTool extends ToolBase {
+    static toolName = "confirming-tool";
+    static category: ToolCategory = "mongodb";
+    static operationType: OperationType = "read";
+    public description = "Requests confirmation while executing";
+    public argsShape = {};
+
+    protected async execute(
+        _args: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<CallToolResult> {
+        if (!(await this.requestConfirmation("Proceed?", context))) {
+            return { content: [{ type: "text" as const, text: "The operation was not performed." }], isError: true };
+        }
+
+        return { content: [{ type: "text" as const, text: "executed" }] };
     }
 
     protected resolveTelemetryMetadata(): TelemetryToolMetadata {

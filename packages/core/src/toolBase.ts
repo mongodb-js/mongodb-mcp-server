@@ -1,7 +1,15 @@
-import type { z, ZodRawShape } from "zod";
+import { z, type ZodRawShape } from "zod";
 import type { RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
+import type {
+    CallToolResult,
+    ProgressToken,
+    RequestId,
+    ServerNotification,
+    ServerRequest,
+    ToolAnnotations,
+} from "@modelcontextprotocol/sdk/types.js";
 import type {
     ITelemetry,
     ConnectionMetadata,
@@ -16,7 +24,7 @@ import type {
     OperationType,
     ToolCategory,
     ToolExecutionContext,
-    CallToolResult,
+    SupportedConnectionState,
     IToolConfig,
 } from "@mongodb-js/mcp-types";
 import { createUIResource, type UIResource } from "@mcp-ui/server";
@@ -24,17 +32,16 @@ import { TRANSPORT_PAYLOAD_LIMITS } from "./transportConstants.js";
 import { getRandomUUID } from "@mongodb-js/mcp-core";
 import { requestIdAttr } from "./helpers/requestIdAttr.js";
 
-const LogId = {
-    toolExecute: { __value: 1_003_001 },
-    toolExecuteFailure: { __value: 1_003_002 },
-    toolDisabled: { __value: 1_003_003 },
-    toolMetadataChange: { __value: 1_003_004 },
-} as const;
+import { LogId } from "./logId.js";
 
 import { redact } from "mongodb-redact";
 
 export type ToolArgs<T extends ZodRawShape> = {
     [K in keyof T]: z.infer<T[K]>;
+};
+
+export type ToolOutput<T extends ZodRawShape> = {
+    [K in keyof T]?: z.infer<T[K]>;
 };
 
 export type ToolResult<OutputSchema extends ZodRawShape | undefined = undefined> = OutputSchema extends ZodRawShape
@@ -333,11 +340,31 @@ export abstract class ToolBase<
      */
     public outputSchema?: ZodRawShape;
 
+    /**
+     * Normalizes the raw arguments of a tool call before they are validated against `argsShape`.
+     *
+     * Override this to keep accepting arguments that are no longer part of the tool's schema,
+     * such as a renamed argument. Arguments that are not mapped to a key of `argsShape` are
+     * rejected by the schema validation that follows.
+     *
+     * @example
+     * ```typescript
+     * public override normalizeRawArgs(args: Record<string, unknown>): Record<string, unknown> {
+     *   const { limit, ...rest } = args;
+     *   return limit === undefined ? args : { ...rest, maxResults: limit };
+     * }
+     * ```
+     */
+    public normalizeRawArgs(args: Record<string, unknown>): Record<string, unknown> {
+        return args;
+    }
+
     private registeredTool: RegisteredTool | undefined;
 
     public get annotations(): ToolAnnotations {
         const annotations: ToolAnnotations = {
             title: this.name,
+            openWorldHint: true,
         };
 
         switch (this.operationType) {
@@ -348,11 +375,11 @@ export abstract class ToolBase<
                 annotations.destructiveHint = false;
                 break;
             case "delete":
+            case "update":
                 annotations.readOnlyHint = false;
                 annotations.destructiveHint = true;
                 break;
             case "create":
-            case "update":
                 annotations.destructiveHint = false;
                 annotations.readOnlyHint = false;
                 break;
@@ -438,32 +465,48 @@ export abstract class ToolBase<
 
     /** This is used internally by the server to invoke the tool. It can also be run manually to call the tool directly. */
     public async invoke(args: ToolArgs<typeof this.argsShape>, context: ToolExecutionContext): Promise<CallToolResult> {
-        let startTime: number = Date.now();
+        const startTime: number = Date.now();
+
+        /**
+         * Records the outcome of the call, emitting its telemetry event and
+         * observing its execution duration. `error` is passed when the call
+         * failed, and its type is reported alongside the metric.
+         */
+        const recordOutcome = (result: CallToolResult, error?: unknown): void => {
+            // Time the user spent answering an elicitation is not time the tool
+            // spent working, so it counts towards neither duration below.
+            const executionStartTime = startTime + (context.elicitationDurationMs ?? 0);
+
+            this.emitToolEvent(args, { startTime: executionStartTime, result });
+
+            this.metrics.get("toolExecutionDuration").observe(
+                {
+                    tool_name: this.name,
+                    category: this.category,
+                    status: error !== undefined || result.isError ? "error" : "success",
+                    operation_type: this.operationType,
+                    ...(error !== undefined ? { error_type: error instanceof Error ? error.name : "unknown" } : {}),
+                },
+                (Date.now() - executionStartTime) / 1000
+            );
+        };
 
         try {
-            if (this.requiresConfirmation()) {
-                if (!(await this.verifyConfirmed(args))) {
-                    this.session.logger.debug({
-                        id: LogId.toolExecute,
-                        context: "tool",
-                        message: `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`,
-                        noRedaction: true,
-                        attributes: { ...requestIdAttr(context.requestInfo?.headers) },
-                    });
-                    return {
-                        content: [
-                            {
-                                type: "text",
-                                text: `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`,
-                            },
-                        ],
-                        isError: true,
-                    };
-                }
-                // We do not want to include the elicitation time in the tool execution time
-                // so we reset the startTime to the current time. We may want to consider adding
-                // a separate field for elicitation time in the future.
-                startTime = Date.now();
+            if (
+                this.requiresConfirmation() &&
+                !(await this.requestConfirmation(this.getConfirmationMessage(args), context))
+            ) {
+                const text = `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`;
+                this.session.logger.debug({
+                    id: LogId.toolExecute,
+                    context: "tool",
+                    message: text,
+                    noRedaction: true,
+                    attributes: { ...requestIdAttr(context.requestInfo?.headers) },
+                });
+                const declined: CallToolResult = { content: [{ type: "text", text }], isError: true };
+                recordOutcome(declined);
+                return declined;
             }
             this.session.logger.debug({
                 id: LogId.toolExecute,
@@ -476,19 +519,7 @@ export abstract class ToolBase<
             const toolCallResult = await this.execute(args, context);
             const result = await this.appendUIResource(toolCallResult);
 
-            this.emitToolEvent(args, { startTime, result });
-
-            const durationSeconds = (Date.now() - startTime) / 1000;
-
-            this.metrics.get("toolExecutionDuration").observe(
-                {
-                    tool_name: this.name,
-                    category: this.category,
-                    status: result.isError ? "error" : "success",
-                    operation_type: this.operationType,
-                },
-                durationSeconds
-            );
+            recordOutcome(result);
 
             this.session.logger.debug({
                 id: LogId.toolExecute,
@@ -506,19 +537,8 @@ export abstract class ToolBase<
                 attributes: { ...requestIdAttr(context.requestInfo?.headers) },
             });
             const toolResult = await this.handleError(error, args);
-            this.emitToolEvent(args, { startTime, result: toolResult });
 
-            const durationSeconds = (Date.now() - startTime) / 1000;
-            this.metrics.get("toolExecutionDuration").observe(
-                {
-                    tool_name: this.name,
-                    category: this.category,
-                    status: "error",
-                    operation_type: this.operationType,
-                    error_type: error instanceof Error ? error.name : "unknown",
-                },
-                durationSeconds
-            );
+            recordOutcome(toolResult, error);
 
             return toolResult;
         }
@@ -552,23 +572,94 @@ export abstract class ToolBase<
     }
 
     /**
-     * Check if the user has confirmed the tool execution (if required by
-     * configuration).
+     * Asks the user to confirm an operation, resolving to `true` when they
+     * accept and `false` when they decline.
      *
-     * This method automatically checks if the tool name is in the
-     * `confirmationRequiredTools` configuration list and requests user
-     * confirmation via the elicitation service if needed.
+     * This is automatically called by `invoke` for confirmationRequired tools.
+     * Other tools can call it at any point of their execution, which matters when
+     * the decision depends on the arguments or needs to happen after some preliminary work.
      *
-     * @param args - The tool arguments
-     * @returns A promise resolving to `true` if confirmed or confirmation not
-     * required, `false` otherwise
+     * Resolves to `true` without prompting when the client does not support
+     * elicitation, matching how confirmation-required tools behave there.
+     *
+     * @param message - The message to display to the user.
+     * @param context - The tool execution context, used to relate the
+     * confirmation request to the in-flight tool call and to record how long the
+     * user took to answer.
      */
-    public async verifyConfirmed(args: ToolArgs<typeof this.argsShape>): Promise<boolean> {
-        if (!this.requiresConfirmation()) {
-            return true;
+    protected async requestConfirmation(message: string, context: ToolExecutionContext): Promise<boolean> {
+        const relatedRequestId = this.elicitationRelatedRequestId(context);
+        this.session.logger.info({
+            id: LogId.toolConfirmationRequested,
+            context: "tool",
+            message: `Requesting user confirmation for ${this.name}`,
+            noRedaction: true,
+            attributes: {
+                tool: this.name,
+                requestId: context.requestId !== undefined ? String(context.requestId) : "(undefined)",
+                requestIdType: typeof context.requestId,
+                relatedRequestId: relatedRequestId !== undefined ? String(relatedRequestId) : "(undefined)",
+                httpResponseType: String(this.config.httpResponseType),
+                progressToken:
+                    context._meta?.progressToken !== undefined ? String(context._meta.progressToken) : "(undefined)",
+                hasSendNotification: String(context.sendNotification !== undefined),
+                ...requestIdAttr(context.requestInfo?.headers),
+            },
+        });
+        if (relatedRequestId === undefined && this.config.transport === "http") {
+            // Without a related request id the elicitation is sent on the
+            // standalone GET SSE stream. Deployments that don't support
+            // standalone streams silently drop it, so the confirmation would
+            // hang until it times out.
+            this.session.logger.warning({
+                id: LogId.toolConfirmationStandaloneStreamFallback,
+                context: "tool",
+                message: `Confirmation for ${this.name} has no related request id and will use the standalone SSE stream`,
+                noRedaction: true,
+                attributes: { tool: this.name, ...requestIdAttr(context.requestInfo?.headers) },
+            });
         }
 
-        return this.elicitation.requestConfirmation(this.getConfirmationMessage(args));
+        const startedAt = Date.now();
+        try {
+            const confirmed = await this.elicitation.requestConfirmation(message, {
+                relatedRequestId,
+                progressToken: context._meta?.progressToken as ProgressToken | undefined,
+                sendNotification: context.sendNotification,
+                signal: context.signal,
+            });
+            this.session.logger.info({
+                id: LogId.toolConfirmationSettled,
+                context: "tool",
+                message: `Confirmation for ${this.name} settled: ${confirmed ? "confirmed" : "declined"} after ${Date.now() - startedAt}ms`,
+                noRedaction: true,
+                attributes: { tool: this.name, ...requestIdAttr(context.requestInfo?.headers) },
+            });
+            return confirmed;
+        } catch (error) {
+            this.session.logger.warning({
+                id: LogId.toolConfirmationSettled,
+                context: "tool",
+                message: `Confirmation for ${this.name} failed after ${Date.now() - startedAt}ms: ${error instanceof Error ? error.message : String(error)}`,
+                attributes: { tool: this.name, ...requestIdAttr(context.requestInfo?.headers) },
+            });
+            throw error;
+        } finally {
+            context.elicitationDurationMs = (context.elicitationDurationMs ?? 0) + (Date.now() - startedAt);
+        }
+    }
+
+    /**
+     * Resolves the request id that elicitation requests should be related to.
+     *
+     * Relating the elicitation to the in-flight tool call routes it over that
+     * call's own SSE stream, which also works for deployments that don't
+     * support standalone GET streams. In JSON response mode the in-flight POST
+     * cannot carry server->client messages at all, so the elicitation must
+     * keep using the standalone stream.
+     */
+    protected elicitationRelatedRequestId(context: ToolExecutionContext): RequestId | undefined {
+        return this.config.httpResponseType === "json" ? undefined : context.requestId;
     }
 
     /**
@@ -576,6 +667,11 @@ export abstract class ToolBase<
      * loggers, connection manager, config, and other session-level resources.
      */
     protected readonly session: TSession;
+
+    /** Access to the session's configuration. */
+    protected get config(): TSession["config"] {
+        return this.session.config;
+    }
 
     /**
      * Access to the telemetry service. Use this to emit custom telemetry events
@@ -617,6 +713,83 @@ export abstract class ToolBase<
         this.uiRegistry = uiRegistry;
     }
 
+    /**
+     * Schemas are session-invariant, so they are built once per concrete tool
+     * class and config variant, then shared across every session. Both caches
+     * are keyed by the concrete constructor; the input cache is additionally
+     * keyed by `schemaVariantKey()` to separate config-dependent variants.
+     */
+    private static readonly sharedInputSchemas = new WeakMap<
+        object,
+        Map<string, { shape: ZodRawShape; schema: z.ZodType }>
+    >();
+    private static readonly sharedOutputSchemas = new WeakMap<object, { shape: ZodRawShape; schema: z.ZodType }>();
+
+    /**
+     * Identifies config-dependent variations of a tool's `argsShape`. Tools that
+     * vary their shape by config override this so each variant is cached and
+     * shared separately. The default reports no variation.
+     */
+    protected schemaVariantKey(): string {
+        return "";
+    }
+
+    /**
+     * Returns the shared strict input schema for this tool's config variant,
+     * building it once. Also redirects this instance's `argsShape` to the shared
+     * shape so its own per-instance graph becomes collectible.
+     */
+    private resolveSharedInputSchema(): z.ZodType {
+        const ctor = this.constructor;
+        let byVariant = ToolBase.sharedInputSchemas.get(ctor);
+        if (!byVariant) {
+            byVariant = new Map();
+            ToolBase.sharedInputSchemas.set(ctor, byVariant);
+        }
+        const key = this.schemaVariantKey();
+        let entry = byVariant.get(key);
+        if (!entry) {
+            // Wrap the raw shape in a strict object so the SDK rejects unrecognized
+            // argument keys instead of silently stripping them (see MCP-602). Only the
+            // top-level object is strict; nested schemas keep their own behavior.
+            entry = { shape: this.argsShape, schema: z.object(this.argsShape).strict() };
+            byVariant.set(key, entry);
+        }
+        this.redirectToSharedShape("argsShape", entry.shape);
+        return entry.schema;
+    }
+
+    /**
+     * Points a class-field schema property at the shared shape so the instance's
+     * own graph becomes collectible. Getter-based tools recompute their shape
+     * transiently and hold nothing to release, so they are left untouched.
+     */
+    private redirectToSharedShape(property: "argsShape" | "outputSchema", shape: ZodRawShape): void {
+        const descriptor = Object.getOwnPropertyDescriptor(this, property);
+        if (descriptor && "value" in descriptor && descriptor.writable) {
+            this[property] = shape;
+        }
+    }
+
+    /**
+     * Returns the shared output schema for this tool, building it once. Output
+     * schemas do not vary by config. Redirects this instance's `outputSchema` to
+     * the shared shape so its own per-instance graph becomes collectible.
+     */
+    private resolveSharedOutputSchema(): z.ZodType | undefined {
+        if (!this.outputSchema) {
+            return undefined;
+        }
+        const ctor = this.constructor;
+        let entry = ToolBase.sharedOutputSchemas.get(ctor);
+        if (!entry) {
+            entry = { shape: this.outputSchema, schema: z.object(this.outputSchema) };
+            ToolBase.sharedOutputSchemas.set(ctor, entry);
+        }
+        this.redirectToSharedShape("outputSchema", entry.shape);
+        return entry.schema;
+    }
+
     public register(server: { mcpServer: McpServer }): boolean {
         if (!this.verifyAllowed()) {
             return false;
@@ -631,8 +804,8 @@ export abstract class ToolBase<
                     name: string,
                     config: {
                         description?: string;
-                        inputSchema?: ZodRawShape;
-                        outputSchema?: ZodRawShape;
+                        inputSchema?: z.ZodType;
+                        outputSchema?: z.ZodType;
                         annotations?: ToolAnnotations;
                         _meta?: Record<string, unknown>;
                     },
@@ -642,8 +815,8 @@ export abstract class ToolBase<
                 this.name,
                 {
                     description: this.description,
-                    inputSchema: this.argsShape,
-                    outputSchema: this.outputSchema,
+                    inputSchema: this.resolveSharedInputSchema(),
+                    outputSchema: this.resolveSharedOutputSchema(),
                     annotations: this.annotations,
                     _meta: this.toolMeta,
                 },
@@ -783,10 +956,12 @@ export abstract class ToolBase<
     protected abstract resolveTelemetryMetadata(
         args: ToolArgs<typeof this.argsShape>,
         { result }: { result: CallToolResult }
-    ): TelemetryToolMetadata;
+    ): TelemetryToolMetadata | Promise<TelemetryToolMetadata>;
 
     /**
-     * Creates and emits a tool telemetry event
+     * Creates and emits a tool telemetry event. Fire-and-forget: metadata
+     * resolution may be asynchronous (e.g. a connection registry lookup), and
+     * the tool response must not block on telemetry-only work.
      * @param startTime - Start time in milliseconds
      * @param result - Whether the command succeeded or failed
      * @param args - The arguments passed to the tool
@@ -799,41 +974,51 @@ export abstract class ToolBase<
             return;
         }
         const duration = Date.now() - startTime;
-        const metadata = this.resolveTelemetryMetadata(args, { result });
-        const event: ToolEvent = {
-            timestamp: new Date().toISOString(),
-            source: "mdbmcp",
-            properties: {
-                command: this.name,
-                category: this.category,
-                component: "tool",
-                duration_ms: duration,
-                result: result.isError ? "failure" : "success",
-                ...metadata,
-            },
-        };
+        const timestamp = new Date().toISOString();
+        void (async (): Promise<void> => {
+            const metadata = await this.resolveTelemetryMetadata(args, { result });
+            const event: ToolEvent = {
+                timestamp,
+                source: "mdbmcp",
+                properties: {
+                    command: this.name,
+                    category: this.category,
+                    component: "tool",
+                    duration_ms: duration,
+                    result: result.isError ? "failure" : "success",
+                    ...metadata,
+                },
+            };
 
-        this.telemetry.emitEvents([event]);
+            this.telemetry.emitEvents([event]);
+        })().catch((error: unknown) => {
+            this.session.logger.debug({
+                id: LogId.telemetryMetadataError,
+                context: "tool",
+                message: `Error emitting telemetry event for tool ${this.name}: ${error as string}`,
+            });
+        });
     }
 
     protected isFeatureEnabled(feature: PreviewFeature): boolean {
         return this.session.config.previewFeatures.includes(feature);
     }
 
-    protected getConnectionInfoMetadata(): ConnectionMetadata {
+    protected getConnectionInfoMetadata(connectionState?: SupportedConnectionState): ConnectionMetadata {
         const metadata: ConnectionMetadata = {};
 
-        if (this.session === undefined) {
+        if (connectionState === undefined) {
             return metadata;
         }
 
-        if (this.session.connectionStringInfo !== undefined) {
-            metadata.connection_auth_type = this.session.connectionStringInfo.authType;
-            metadata.connection_host_type = this.session.connectionStringInfo.hostType;
+        if (connectionState.connectionStringInfo !== undefined) {
+            metadata.connection_auth_type = connectionState.connectionStringInfo.authType;
+            metadata.connection_host_type = connectionState.connectionStringInfo.hostType;
         }
 
-        if (this.session.connectedAtlasCluster?.projectId) {
-            metadata.project_id = this.session.connectedAtlasCluster.projectId;
+        if (connectionState.connectedAtlasCluster?.projectId) {
+            metadata.project_id = connectionState.connectedAtlasCluster.projectId;
+
         }
 
         return metadata;

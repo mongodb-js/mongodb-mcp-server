@@ -3,14 +3,17 @@ import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import type { LogLevel } from "@mongodb-js/mcp-types";
 import { MCP_LOG_LEVELS, LogId } from "@mongodb-js/mcp-core";
 import type { UserConfig } from "./config/userConfig.js";
-import type { CallToolResult, IApiClient, ISession, IUIRegistry } from "@mongodb-js/mcp-types";
+import type { CallToolResult, IApiClient, IUIRegistry } from "@mongodb-js/mcp-types";
+import type { Implementation } from "@modelcontextprotocol/sdk/types.js";
+import type { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
+import type { ConnectionRegistry, ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import {
     CallToolRequestSchema,
     SetLevelRequestSchema,
     SubscribeRequestSchema,
     UnsubscribeRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import { type ConnectionErrorHandler, type ConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
+import { type ConnectionErrorHandler } from "@mongodb-js/mcp-tools-mongodb";
 import type { Elicitation } from "@mongodb-js/mcp-core";
 import type { AnyResourceClass, IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
 import type { AtlasTelemetry, TelemetryServerCommand, TelemetryServerEvent } from "@mongodb-js/mcp-atlas-telemetry";
@@ -27,6 +30,7 @@ export type ResourceRegistry = readonly AnyResourceClass[];
 
 export interface CliServerOptions<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
     session: McpSession;
+    userConfig: UserConfig;
     mcpServer: McpServer;
     telemetry: AtlasTelemetry;
     elicitation: Elicitation;
@@ -78,10 +82,24 @@ export interface CliServerOptions<TMetrics extends DefaultMetricDefinitions = De
     readonly serverMetadata: ServerMetadata;
 }
 
-export type McpSession = ISession<UserConfig> & {
-    apiClient: IApiClient;
-    connectionManager: ConnectionManager;
-    connectToConfiguredConnection: () => Promise<void>;
+/**
+ * The per-session context handed to resources and tools registered by the
+ * CLI. Note that MongoDB connection state deliberately lives at the app level
+ * (see {@link ConnectionRegistry}); the registry is dependency plumbing here.
+ */
+export type McpSession = {
+    readonly config: UserConfig;
+    readonly userConfig: UserConfig;
+    readonly logger: CompositeLogger;
+    readonly keychain: Keychain;
+    readonly connectionRegistry: ConnectionRegistry;
+    readonly exportsManager: ExportsManager;
+    readonly connectionErrorHandler: ConnectionErrorHandler;
+    readonly apiClient: IApiClient;
+    mcpClient?: { name?: string; version?: string; title?: string };
+    on(event: string | symbol, listener: (...args: unknown[]) => void): void;
+    setMcpClient(mcpClient: Implementation | undefined): void;
+    close(): Promise<void>;
 };
 
 export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
@@ -96,6 +114,7 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
     public readonly uiRegistry?: IUIRegistry;
     public readonly metrics: IMetrics<TMetrics>;
     public readonly serverMetadata: ServerMetadata;
+    public readonly userConfig: UserConfig;
 
     private _mcpLogLevel: LogLevel;
     /** Lowest log level allowed to be sent to the MCP client. */
@@ -110,6 +129,7 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
 
     constructor({
         session,
+        userConfig,
         mcpServer,
         telemetry,
         connectionErrorHandler,
@@ -122,6 +142,7 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
     }: CliServerOptions<TMetrics> & { session: McpSession }) {
         this.startTime = Date.now();
         this.session = session;
+        this.userConfig = userConfig;
         this.telemetry = telemetry;
         this.mcpServer = mcpServer;
         this.elicitation = elicitation;
@@ -149,7 +170,10 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
         // TODO: Eventually we might want to make tools reactive too instead of relying on custom logic.
         this.registerTools();
 
-        // This is a workaround for an issue we've seen with some models, where they'll see that everything in the `arguments`
+        // Wrapping the tool call handler to normalize the arguments before the SDK validates them against the
+        // tool's schema. This gives tools a chance to map deprecated arguments through `normalizeRawArgs`.
+        //
+        // It also works around an issue we've seen with some models, where they'll see that everything in the `arguments`
         // object is optional, and then not pass it at all. However, the MCP server expects the `arguments` object to be if
         // the tool accepts any arguments, even if they're all optional.
         //
@@ -167,9 +191,9 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
         }
 
         this.mcpServer.server.setRequestHandler(CallToolRequestSchema, (request, extra): Promise<CallToolResult> => {
-            if (!request.params.arguments) {
-                request.params.arguments = {};
-            }
+            const args = request.params.arguments ?? {};
+            const tool = this.tools.find((t) => t.name === request.params.name);
+            request.params.arguments = tool ? tool.normalizeRawArgs(args) : args;
 
             return existingHandler(request, extra);
         });
@@ -207,8 +231,6 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
 
         this.mcpServer.server.oninitialized = (): void => {
             this.session.setMcpClient(this.mcpServer.server.getClientVersion());
-            // Placed here to start the connection to the config connection string as soon as the server is initialized.
-            void this.connectToConfigConnectionString();
             this.session.logger.info({
                 id: LogId.serverInitialized,
                 context: "server",
@@ -272,10 +294,10 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
 
         if (command === "start") {
             event.properties.startup_time_ms = commandDuration;
-            event.properties.read_only_mode = this.session.config.readOnly ? "true" : "false";
-            event.properties.disabled_tools = this.session.config.disabledTools || [];
-            event.properties.confirmation_required_tools = this.session.config.confirmationRequiredTools || [];
-            event.properties.previewFeatures = this.session.config.previewFeatures;
+            event.properties.read_only_mode = this.userConfig.readOnly ? "true" : "false";
+            event.properties.disabled_tools = this.userConfig.disabledTools || [];
+            event.properties.confirmation_required_tools = this.userConfig.confirmationRequiredTools || [];
+            event.properties.previewFeatures = this.userConfig.previewFeatures;
         }
         if (command === "stop") {
             event.properties.runtime_duration_ms = Date.now() - this.startTime;
@@ -320,9 +342,9 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
 
     private async validateConfig(): Promise<void> {
         // Validate connection string
-        if (this.session.config.connectionString) {
+        if (this.userConfig.connectionString) {
             try {
-                validateConnectionString(this.session.config.connectionString, false);
+                validateConnectionString(this.userConfig.connectionString, false);
             } catch (error) {
                 throw new Error(
                     "Connection string validation failed with error: " +
@@ -333,14 +355,14 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
         }
 
         // Validate API client credentials
-        if (this.session.config.apiClientId && this.session.config.apiClientSecret) {
+        if (this.userConfig.apiClientId && this.userConfig.apiClientSecret) {
             try {
                 if (!this.session.apiClient) {
                     throw new Error("API client is not available.");
                 }
 
                 try {
-                    const apiBaseUrl = new URL(this.session.config.apiBaseUrl);
+                    const apiBaseUrl = new URL(this.userConfig.apiBaseUrl);
                     if (apiBaseUrl.protocol !== "https:") {
                         // Log a warning, but don't error out. This is to allow for testing against local or non-HTTPS endpoints.
                         const message = `apiBaseUrl is configured to use ${apiBaseUrl.protocol}, which is not secure. It is strongly recommended to use HTTPS for secure communication.`;
@@ -358,7 +380,7 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
 
                 await this.session.apiClient?.validateAuthConfig();
             } catch (error) {
-                if (this.session.config.connectionString === undefined) {
+                if (this.userConfig.connectionString === undefined) {
                     throw new Error(
                         `Failed to connect to MongoDB Atlas instance using the credentials from the config: ${error instanceof Error ? error.message : String(error)}`,
                         { cause: error }
@@ -369,26 +391,6 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
                     id: LogId.atlasCheckCredentials,
                     context: "server",
                     message: `Failed to validate MongoDB Atlas API client credentials from the config: ${error instanceof Error ? error.message : String(error)}. Continuing since a connection string is also provided.`,
-                });
-            }
-        }
-    }
-
-    private async connectToConfigConnectionString(): Promise<void> {
-        if (this.session.config.connectionString) {
-            try {
-                this.session.logger.info({
-                    id: LogId.mongodbConnectTry,
-                    context: "server",
-                    message: `Detected a MongoDB connection string in the configuration, trying to connect...`,
-                });
-                await this.session.connectToConfiguredConnection();
-            } catch (error) {
-                // We don't throw an error here because we want to allow the server to start even if the connection string is invalid.
-                this.session.logger.error({
-                    id: LogId.mongodbConnectFailure,
-                    context: "server",
-                    message: `Failed to connect to MongoDB instance using the connection string from the config: ${error instanceof Error ? error.message : String(error)}`,
                 });
             }
         }

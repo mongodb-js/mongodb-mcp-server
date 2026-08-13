@@ -5,7 +5,7 @@ import {
     getResponseContent,
 } from "../../../integrationHelpers.js";
 import { describeWithMongoDB, validateAutoConnectBehavior } from "../../../mongodbHelpers.js";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { UpdateManyOutput } from "@mongodb-js/mcp-tools-mongodb";
 
 describeWithMongoDB("updateMany tool", (integration) => {
@@ -53,11 +53,12 @@ describeWithMongoDB("updateMany tool", (integration) => {
 
     describe("with non-existent database", () => {
         it("doesn't update any documents", async () => {
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
 
             const response = await integration.mcpClient().callTool({
                 name: "update-many",
                 arguments: {
+                    connectionId,
                     database: "non-existent-db",
                     collection: "coll1",
                     update: { $set: { name: "new-name" } },
@@ -76,11 +77,12 @@ describeWithMongoDB("updateMany tool", (integration) => {
                 .db(integration.randomDbName())
                 .collection("coll1")
                 .insertOne({ name: "old-name" });
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
 
             const response = await integration.mcpClient().callTool({
                 name: "update-many",
                 arguments: {
+                    connectionId,
                     database: integration.randomDbName(),
                     collection: "non-existent",
                     update: { $set: { name: "new-name" } },
@@ -105,11 +107,12 @@ describeWithMongoDB("updateMany tool", (integration) => {
                 ]);
         });
         it("updates all documents without filter", async () => {
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
 
             const response = await integration.mcpClient().callTool({
                 name: "update-many",
                 arguments: {
+                    connectionId,
                     database: integration.randomDbName(),
                     collection: "coll1",
                     update: { $set: { name: "new-name" } },
@@ -141,11 +144,12 @@ describeWithMongoDB("updateMany tool", (integration) => {
         });
 
         it("updates all documents that match the filter", async () => {
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
 
             const response = await integration.mcpClient().callTool({
                 name: "update-many",
                 arguments: {
+                    connectionId,
                     database: integration.randomDbName(),
                     collection: "coll1",
                     update: { $set: { name: "new-name" } },
@@ -173,11 +177,12 @@ describeWithMongoDB("updateMany tool", (integration) => {
         });
 
         it("upserts a new document if no documents match the filter", async () => {
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
 
             const response = await integration.mcpClient().callTool({
                 name: "update-many",
                 arguments: {
+                    connectionId,
                     database: integration.randomDbName(),
                     collection: "coll1",
                     update: { $set: { name: "new-name" } },
@@ -216,11 +221,12 @@ describeWithMongoDB("updateMany tool", (integration) => {
         });
 
         it("doesn't upsert a new document if no documents match the filter and upsert is false", async () => {
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
 
             const response = await integration.mcpClient().callTool({
                 name: "update-many",
                 arguments: {
+                    connectionId,
                     database: integration.randomDbName(),
                     collection: "coll1",
                     update: { $set: { name: "new-name" } },
@@ -255,4 +261,45 @@ describeWithMongoDB("updateMany tool", (integration) => {
             expectedResponse: "No documents matched the filter.",
         };
     });
+});
+
+describeWithMongoDB("updateMany tool with server-side JavaScript operators", (integration) => {
+    afterEach(() => {
+        integration.mcpServer().userConfig.disableServerSideJs = true;
+    });
+
+    beforeEach(async () => {
+        await integration
+            .mongoClient()
+            .db(integration.randomDbName())
+            .collection("people")
+            .insertMany([
+                { name: "Peter", age: 5 },
+                { name: "Laura", age: 10 },
+            ]);
+    });
+
+    for (const jsDisabled of [true, false]) {
+        it(`${jsDisabled ? "rejects" : "allows"} filters using $where when disableServerSideJs is ${jsDisabled}`, async () => {
+            integration.mcpServer().userConfig.disableServerSideJs = jsDisabled;
+            const connectionId = await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "update-many",
+                arguments: {
+                    connectionId,
+                    database: integration.randomDbName(),
+                    collection: "people",
+                    filter: { $where: "function() { return this.age > 8; }" },
+                    update: { $set: { adult: true } },
+                },
+            });
+            const content = getResponseContent(response.content);
+            if (jsDisabled) {
+                expect(content).toContain(`The "$where" operator is not allowed.`);
+            } else {
+                expect(content).not.toContain("server-side JavaScript operators");
+                expect(content).toContain("Matched 1 document(s)");
+            }
+        });
+    }
 });

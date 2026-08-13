@@ -93,6 +93,8 @@ function makeSessionStore(
         addSession: vi.fn().mockResolvedValue(undefined),
         closeSession: vi.fn().mockResolvedValue(undefined),
         closeAllSessions: vi.fn().mockResolvedValue(undefined),
+        saveNegotiatedClientState: vi.fn().mockResolvedValue(undefined),
+        loadNegotiatedClientState: vi.fn().mockResolvedValue(undefined),
     };
 }
 
@@ -100,6 +102,14 @@ function makeFakeServer(): SessionServer {
     return {
         session: {
             logger: new InMemoryLogger(),
+            setMcpClient: vi.fn(),
+        },
+        mcpServer: {
+            server: {
+                oninitialized: undefined,
+                getClientCapabilities: vi.fn(),
+                getClientVersion: vi.fn(),
+            },
         },
         connect: vi.fn().mockResolvedValue(undefined),
         close: vi.fn().mockResolvedValue(undefined),

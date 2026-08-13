@@ -1,30 +1,19 @@
 import { ObjectId } from "bson";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import type { Implementation } from "@modelcontextprotocol/sdk/types.js";
-import { LogId, type CompositeLogger } from "@mongodb-js/mcp-core";
+import { LogId, type CompositeLogger, type Keychain } from "@mongodb-js/mcp-core";
 import EventEmitter from "events";
-import type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-types";
 import type {
-    ConnectionManager,
-    ConnectionStateConnected,
-    ConnectionStateErrored,
+    ConnectionErrorHandler,
+    ConnectionRegistry,
+    ExportsManager,
 } from "@mongodb-js/mcp-tools-mongodb";
-import type { ConnectionStringInfo } from "@mongodb-js/mcp-tools-mongodb";
-import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { ErrorCodes, MongoDBError } from "@mongodb-js/mcp-tools-mongodb";
-import type { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import type { Client } from "@mongodb-js/atlas-local";
-import type { Keychain } from "@mongodb-js/mcp-core";
-import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
-import type { UserConfig } from "./config/userConfig.js";
-import type { McpSession } from "./cliServer.js";
-import { type ConnectionErrorHandler } from "@mongodb-js/mcp-tools-mongodb";
 
-export interface CliSessionOptions<TUserConfig extends UserConfig = UserConfig> {
-    userConfig: TUserConfig;
+export interface SessionOptions {
     logger: CompositeLogger;
     exportsManager: ExportsManager;
-    connectionManager: ConnectionManager;
+    connectionRegistry: ConnectionRegistry;
     keychain: Keychain;
     atlasLocalClient?: Client;
     connectionErrorHandler: ConnectionErrorHandler;
@@ -32,21 +21,25 @@ export interface CliSessionOptions<TUserConfig extends UserConfig = UserConfig> 
 }
 
 export type SessionEvents = {
-    connect: [];
     close: [];
-    disconnect: [];
-    "connection-error": [ConnectionStateErrored];
 };
 
-export class CliSession extends EventEmitter<SessionEvents> implements McpSession {
-    public readonly config: UserConfig;
-    public readonly sessionId: string = new ObjectId().toString();
-    public readonly exportsManager: ExportsManager;
-    public readonly connectionManager: ConnectionManager;
-    public readonly apiClient: ApiClient;
-    public readonly atlasLocalClient?: Client;
-    public readonly connectionErrorHandler: ConnectionErrorHandler;
-    public readonly keychain: Keychain;
+/**
+ * Per-MCP-session context: logging, exports, Atlas API access, and secrets.
+ *
+ * MongoDB connection state is deliberately NOT session-scoped — it lives in the
+ * app-level {@link ConnectionRegistry} (shared across sessions) and is addressed
+ * by the `connectionId` tool argument. The registry reference here is dependency
+ * plumbing, not state.
+ */
+export class Session extends EventEmitter<SessionEvents> {
+    readonly sessionId: string = new ObjectId().toString();
+    readonly exportsManager: ExportsManager;
+    readonly connectionRegistry: ConnectionRegistry;
+    readonly apiClient: ApiClient;
+    readonly atlasLocalClient?: Client;
+    readonly keychain: Keychain;
+    readonly connectionErrorHandler: ConnectionErrorHandler;
 
     mcpClient?: {
         name?: string;
@@ -57,34 +50,27 @@ export class CliSession extends EventEmitter<SessionEvents> implements McpSessio
     public readonly logger: CompositeLogger;
 
     constructor({
-        userConfig,
         logger,
-        connectionManager,
+        connectionRegistry,
         exportsManager,
         keychain,
         atlasLocalClient,
         connectionErrorHandler,
         apiClient,
-    }: CliSessionOptions<UserConfig>) {
+    }: SessionOptions) {
         super();
 
-        this.config = userConfig;
         this.keychain = keychain;
         this.logger = logger;
         this.apiClient = apiClient;
         this.atlasLocalClient = atlasLocalClient;
         this.exportsManager = exportsManager;
-        this.connectionManager = connectionManager;
+        this.connectionRegistry = connectionRegistry;
         this.connectionErrorHandler = connectionErrorHandler;
-        this.connectionManager.events.on("connection-success", () => this.emit("connect"));
-        this.connectionManager.events.on("connection-time-out", (error) => this.emit("connection-error", error));
-        this.connectionManager.events.on("connection-close", () => this.emit("disconnect"));
-        this.connectionManager.events.on("connection-error", (error) => this.emit("connection-error", error));
     }
 
     setMcpClient(mcpClient: Implementation | undefined): void {
         if (!mcpClient) {
-            this.connectionManager.setClientName("unknown");
             this.logger.debug({
                 id: LogId.serverMcpClientSet,
                 context: "session",
@@ -97,103 +83,22 @@ export class CliSession extends EventEmitter<SessionEvents> implements McpSessio
             version: mcpClient?.version || "unknown",
             title: mcpClient?.title || "unknown",
         };
-
-        // Set the client name on the connection manager for appName generation
-        this.connectionManager.setClientName(this.mcpClient.name || "unknown");
-    }
-
-    async disconnect(): Promise<void> {
-        const atlasCluster = this.connectedAtlasCluster;
-
-        await this.connectionManager.close();
-
-        if (atlasCluster?.username && atlasCluster?.projectId && this.apiClient) {
-            void this.apiClient
-                .deleteDatabaseUser({
-                    params: {
-                        path: {
-                            groupId: atlasCluster.projectId,
-                            username: atlasCluster.username,
-                            databaseName: "admin",
-                        },
-                    },
-                })
-                .catch((err: unknown) => {
-                    const error = err instanceof Error ? err : new Error(String(err));
-                    this.logger.error({
-                        id: LogId.atlasDeleteDatabaseUserFailure,
-                        context: "session",
-                        message: `Error deleting previous database user: ${error.message}`,
-                    });
-                });
-        }
     }
 
     async close(): Promise<void> {
-        await this.disconnect();
-        await this.apiClient.close();
+        // Close the registry before the API client: revoking
+        // Atlas entries deletes their temporary database users through it.
+        await this.connectionRegistry.close().catch(() => undefined);
+        await this.apiClient?.close();
         await this.exportsManager.close();
         this.emit("close");
     }
-
-    async connectToConfiguredConnection(): Promise<void> {
-        if (typeof this.config.connectionString !== "string") {
-            throw new MongoDBError(ErrorCodes.MisconfiguredConnectionString, "No connection string is configured.");
-        }
-        await this.connectToMongoDB({ connectionString: this.config.connectionString });
-    }
-
-    async connectToMongoDB(settings: { connectionString: string; atlas?: AtlasClusterConnectionInfo }): Promise<void> {
-        let connectionInfo: ReturnType<typeof generateConnectionInfoFromCliArgs>;
-        try {
-            connectionInfo = generateConnectionInfoFromCliArgs({
-                ...this.config,
-                connectionSpecifier: settings.connectionString,
-            });
-        } catch (error: unknown) {
-            const errorReason = error instanceof Error ? error.message : String(error);
-            throw new MongoDBError(ErrorCodes.MisconfiguredConnectionString, errorReason);
-        }
-        await this.connectionManager.connect({ ...connectionInfo, atlas: settings.atlas });
-    }
-
-    get isConnectedToMongoDB(): boolean {
-        return this.connectionManager.currentConnectionState.tag === "connected";
-    }
-
-    async isSearchSupported(): Promise<boolean> {
-        const state = this.connectionManager.currentConnectionState;
-        if (state.tag === "connected") {
-            return await state.isSearchSupported(this.logger);
-        }
-
-        return false;
-    }
-
-    async assertSearchSupported(): Promise<void> {
-        const isSearchSupported = await this.isSearchSupported();
-        if (!isSearchSupported) {
-            throw new MongoDBError(
-                ErrorCodes.AtlasSearchNotSupported,
-                "Atlas Search is not supported in the current cluster."
-            );
-        }
-    }
-
-    get serviceProvider(): NodeDriverServiceProvider {
-        if (this.isConnectedToMongoDB) {
-            const state = this.connectionManager.currentConnectionState as ConnectionStateConnected;
-            return state.serviceProvider;
-        }
-
-        throw new MongoDBError(ErrorCodes.NotConnectedToMongoDB, "Not connected to MongoDB");
-    }
-
-    get connectedAtlasCluster(): AtlasClusterConnectionInfo | undefined {
-        return this.connectionManager.currentConnectionState.connectedAtlasCluster;
-    }
-
-    get connectionStringInfo(): ConnectionStringInfo | undefined {
-        return this.connectionManager.currentConnectionState.connectionStringInfo;
-    }
 }
+
+/**
+ * @deprecated Renamed to {@link Session}. Kept as an alias for backwards
+ * compatibility.
+ */
+export const CliSession = Session;
+export type CliSession = Session;
+export type CliSessionOptions = SessionOptions;

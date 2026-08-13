@@ -1,45 +1,23 @@
 import { z } from "zod";
-import type { ToolArgs, ToolConstructorParams } from "@mongodb-js/mcp-core";
-import type { McpServer, ToolCategory, OperationType } from "@mongodb-js/mcp-types";
+import type { ToolArgs, ToolResult, AnyToolBase, CompositeLogger } from "@mongodb-js/mcp-core";
 import { ToolBase } from "@mongodb-js/mcp-core";
+import type {
+    McpServer,
+    ToolCategory,
+    OperationType,
+    ToolExecutionContext,
+    CallToolResult,
+    ISession,
+    IToolConfig,
+} from "@mongodb-js/mcp-types";
+import type { ConnectionMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import type { CallToolResult, ISession, IToolConfig } from "@mongodb-js/mcp-types";
-import { LogId } from "@mongodb-js/mcp-core";
 import { ErrorCodes, MongoDBError } from "./common/errors.js";
-import { assertNoServerSideJS, isWriteStage } from "./helpers/mqlGuards.js";
-import type { ConnectionMetadata } from "@mongodb-js/mcp-types";
+import type { ConnectionEntry, ConnectionRegistry } from "./common/connectionRegistry.js";
+import { assertNoServerSideJS, isWriteStage, type WriteStageTarget } from "./helpers/mqlGuards.js";
+import { buildWriteStageConfirmationMessage } from "./helpers/writeStageConfirmation.js";
+import { EXPORT_TOOL_NAME } from "./helpers/constants.js";
 import type { AvailableExport, CreateJSONExportParams } from "./common/exportsManager.js";
-
-/** MongoDB tool subset of server config. */
-export type IMongoDBConfig = IToolConfig & {
-    connectionString: string | undefined;
-    indexCheck: boolean;
-    disableServerSideJs: boolean;
-    maxTimeMS: number | undefined;
-    maxDocumentsPerQuery: number;
-    maxBytesPerQuery: number;
-    httpHost: string;
-    queryCountMaxTimeMsCap: number;
-    aggregationCountMaxTimeMsCap: number;
-};
-
-export interface IMongoDBSession extends ISession {
-    config: IMongoDBConfig;
-    isConnectedToMongoDB: boolean;
-    connectedAtlasCluster?: { clusterName: string; projectId: string };
-    serviceProvider: NodeDriverServiceProvider;
-    connectToConfiguredConnection(): Promise<void>;
-    connectToMongoDB(settings: { connectionString: string }): Promise<void>;
-    connectionErrorHandler(
-        error: MongoDBError,
-        context: { availableTools: unknown[]; connectionState: unknown }
-    ): Promise<{ errorHandled: boolean; result: CallToolResult }>;
-    connectionManager: { currentConnectionState: unknown };
-    exportsManager: { createJSONExport: (params: CreateJSONExportParams) => Promise<AvailableExport> };
-    assertSearchSupported(): Promise<void>;
-    isSearchSupported(): Promise<boolean>;
-    on(event: "connect" | "disconnect", listener: () => void): void;
-}
 
 export const DBOperationArgs = {
     database: z.string().describe("Database name"),
@@ -50,77 +28,97 @@ export const CollOperationArgs = {
     collection: z.string().describe("Collection name"),
 };
 
+/** MongoDB tool subset of server config. */
+export type IMongoDBConfig = IToolConfig & {
+    connectionString: string | undefined;
+    indexCheck: boolean;
+    disableServerSideJs: boolean;
+    maxTimeMS: number | undefined;
+    maxDocumentsPerQuery: number;
+    maxBytesPerQuery: number;
+    httpHost: string;
+};
+
+export interface IMongoDBSession extends ISession<IMongoDBConfig> {
+    logger: CompositeLogger;
+    config: IMongoDBConfig;
+    connectionRegistry: ConnectionRegistry;
+    connectionErrorHandler(
+        error: MongoDBError,
+        context: { availableTools: readonly unknown[]; connectionState: unknown }
+    ): Promise<{ errorHandled: boolean; result: CallToolResult }>;
+    exportsManager: { createJSONExport: (params: CreateJSONExportParams) => Promise<AvailableExport> };
+}
+
 /**
- * MCP registration payload for MongoDB tools. Matches `{ mcpServer }` from {@link ToolBase.register}
- * plus optional host context used when rendering connection errors.
+ * MCP registration payload for MongoDB tools. Matches `{ mcpServer }` from
+ * {@link ToolBase.register} plus optional host context used when rendering
+ * connection errors.
  */
 export type MongoDBToolRegistrationServer = {
     mcpServer: McpServer;
-    readonly tools?: readonly unknown[];
+    readonly tools?: readonly AnyToolBase[];
     isToolCategoryAvailable(name: ToolCategory): boolean;
 };
 
-export abstract class MongoDBToolBase extends ToolBase<IMongoDBSession> {
-    declare protected readonly session: IMongoDBSession;
-    static category: ToolCategory = "mongodb";
+function connectionIdDescription({ hasPreconfiguredConnection }: { hasPreconfiguredConnection: boolean }): string {
+    const preconfigured = hasPreconfiguredConnection
+        ? ', or "preconfigured" to use the connection string the server was configured with'
+        : "";
+    return `The connection to run the operation against. Use the id returned by one of the connect tools${preconfigured}.`;
+}
 
-    /** Host MCP server instance set in {@link MongoDBToolBase.register} (same object passed from {@link Server.registerTools}). */
+export const ConnectionIdArgs = {
+    connectionId: z.string().describe(connectionIdDescription({ hasPreconfiguredConnection: true })),
+};
+
+// Shared leaf for the variant advertised when no connection string is configured.
+// Precomputed once so the register()-time swap reuses it instead of rebuilding.
+const connectionIdArgWithoutPreconfigured = z
+    .string()
+    .describe(connectionIdDescription({ hasPreconfiguredConnection: false }));
+
+export abstract class MongoDBToolBase extends ToolBase<IMongoDBSession> {
     protected server?: MongoDBToolRegistrationServer;
+    static category: ToolCategory = "mongodb";
 
     /** Access to the MongoDB-specific configuration. */
     protected get config(): IMongoDBConfig {
         return this.session.config;
     }
 
-    constructor(params: ToolConstructorParams<IMongoDBSession>) {
-        super(params);
+    protected get isExportToolAvailable(): boolean {
+        const registeredTools = this.server?.tools ?? [];
+        const exportTool = registeredTools.find((tool) => tool.name === EXPORT_TOOL_NAME);
+        return exportTool?.isEnabled() ?? false;
     }
 
-    /** Effective maxTimeMS for find countDocuments. */
-    protected getFindCountDocumentsMaxTimeMS(): number {
-        const cap = this.config.queryCountMaxTimeMsCap;
-        return this.config.maxTimeMS !== undefined ? Math.min(this.config.maxTimeMS, cap) : cap;
+    /**
+     * Resolves the required `connectionId` argument to a live service provider
+     * via the app-level connection registry. There is deliberately no implicit
+     * "current connection" fallback — see the connection-handles proposal.
+     */
+    protected async resolveConnection(connectionId: string): Promise<NodeDriverServiceProvider> {
+        return this.session.connectionRegistry.resolve(connectionId);
     }
 
-    /** Effective maxTimeMS for aggregation preliminary $count. */
-    protected getAggregationCountDocumentsMaxTimeMS(): number {
-        const cap = this.config.aggregationCountMaxTimeMsCap;
-        return this.config.maxTimeMS !== undefined ? Math.min(this.config.maxTimeMS, cap) : cap;
+    /** The registry entry for the given connectionId, if it exists. Does not affect LRU ordering. */
+    protected async peekConnection(connectionId: string | undefined): Promise<ConnectionEntry | undefined> {
+        return connectionId ? this.session.connectionRegistry.peek(connectionId) : undefined;
     }
 
-    public override register(server: MongoDBToolRegistrationServer): boolean {
-        this.server = server;
-        return super.register(server);
+    protected async isSearchSupported(connectionId: string): Promise<boolean> {
+        const entry = await this.session.connectionRegistry.peek(connectionId);
+        return entry ? entry.isSearchSupported(this.session.logger) : false;
     }
 
-    protected async ensureConnected(): Promise<NodeDriverServiceProvider> {
-        if (!this.session.isConnectedToMongoDB) {
-            if (this.session.connectedAtlasCluster) {
-                throw new MongoDBError(
-                    ErrorCodes.NotConnectedToMongoDB,
-                    `Attempting to connect to Atlas cluster "${this.session.connectedAtlasCluster.clusterName}", try again in a few seconds.`
-                );
-            }
-
-            if (this.config.connectionString) {
-                try {
-                    await this.session.connectToConfiguredConnection();
-                } catch (error) {
-                    this.session.logger.error({
-                        id: LogId.mongodbConnectFailure,
-                        context: "mongodbTool",
-                        message: `Failed to connect to MongoDB instance using the connection string from the config: ${error as string}`,
-                    });
-                    throw new MongoDBError(ErrorCodes.MisconfiguredConnectionString, "Not connected to MongoDB.");
-                }
-            }
+    protected async assertSearchSupported(connectionId: string): Promise<void> {
+        if (!(await this.isSearchSupported(connectionId))) {
+            throw new MongoDBError(
+                ErrorCodes.AtlasSearchNotSupported,
+                "Atlas Search is not supported in the current cluster."
+            );
         }
-
-        if (!this.session.isConnectedToMongoDB) {
-            throw new MongoDBError(ErrorCodes.NotConnectedToMongoDB, "Not connected to MongoDB");
-        }
-
-        return this.session.serviceProvider;
     }
 
     /**
@@ -158,6 +156,25 @@ export abstract class MongoDBToolBase extends ToolBase<IMongoDBSession> {
         }
     }
 
+    /**
+     * Asks the user to confirm the write stages of an aggregation pipeline,
+     * throwing when they decline so that the pipeline never runs.
+     */
+    protected async confirmWriteStages(targets: WriteStageTarget[], context: ToolExecutionContext): Promise<void> {
+        if (this.requiresConfirmation()) {
+            return;
+        }
+
+        if (await this.requestConfirmation(buildWriteStageConfirmationMessage(targets), context)) {
+            return;
+        }
+
+        throw new MongoDBError(
+            ErrorCodes.ConfirmationDeclined,
+            "User did not confirm the write stages of the aggregation pipeline so the aggregation was not performed."
+        );
+    }
+
     private assertSingleMqlValueIsAllowed(
         value: Record<string, unknown> | Record<string, unknown>[] | undefined
     ): void {
@@ -190,15 +207,44 @@ export abstract class MongoDBToolBase extends ToolBase<IMongoDBSession> {
         }
     }
 
+    /**
+     * The connectionId description varies by whether a connection string is
+     * preconfigured, so cache each variant's shape separately.
+     */
+    protected override schemaVariantKey(): string {
+        if ("connectionId" in this.argsShape) {
+            return this.config.connectionString ? "preconfigured" : "plain";
+        }
+        return "";
+    }
+
+    public register(server: MongoDBToolRegistrationServer): boolean {
+        this.server = server;
+        // The default connectionId description advertises the "preconfigured"
+        // handle; drop that mention when no connection string is configured.
+        if ("connectionId" in this.argsShape && !this.config.connectionString) {
+            this.argsShape = {
+                ...this.argsShape,
+                connectionId: connectionIdArgWithoutPreconfigured,
+            };
+        }
+        return super.register(server);
+    }
+
     protected async handleError(error: unknown, args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         if (error instanceof MongoDBError) {
             switch (error.code) {
                 case ErrorCodes.NotConnectedToMongoDB:
-                case ErrorCodes.MisconfiguredConnectionString: {
-                    const connectionError = error as MongoDBError;
+                case ErrorCodes.MisconfiguredConnectionString:
+                case ErrorCodes.UnknownConnectionId: {
+                    const connectionError = error as MongoDBError<
+                        | typeof ErrorCodes.NotConnectedToMongoDB
+                        | typeof ErrorCodes.MisconfiguredConnectionString
+                        | typeof ErrorCodes.UnknownConnectionId
+                    >;
                     const outcome = await this.session.connectionErrorHandler(connectionError, {
-                        availableTools: [...(this.server?.tools ?? [])],
-                        connectionState: this.session.connectionManager.currentConnectionState,
+                        availableTools: this.server?.tools ?? [],
+                        connectionState: (await this.peekConnection(args.connectionId as string | undefined))?.state,
                     });
                     if (outcome.errorHandled) {
                         return outcome.result;
@@ -206,6 +252,7 @@ export abstract class MongoDBToolBase extends ToolBase<IMongoDBSession> {
 
                     return super.handleError(error, args);
                 }
+                case ErrorCodes.ConfirmationDeclined:
                 case ErrorCodes.ForbiddenCollscan:
                     return {
                         content: [
@@ -217,7 +264,7 @@ export abstract class MongoDBToolBase extends ToolBase<IMongoDBSession> {
                         isError: true,
                     };
                 case ErrorCodes.AtlasSearchNotSupported: {
-                    const CTA = this.server?.isToolCategoryAvailable("atlas-local")
+                    const CTA = this.server?.isToolCategoryAvailable("atlas-local" as unknown as ToolCategory)
                         ? "`atlas-local` tools"
                         : "Atlas CLI";
                     return {
@@ -245,12 +292,15 @@ export abstract class MongoDBToolBase extends ToolBase<IMongoDBSession> {
      * @param args - The arguments passed to the tool
      * @returns The tool metadata
      */
-    protected resolveTelemetryMetadata(
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        _args: ToolArgs<typeof this.argsShape>,
+    protected async resolveTelemetryMetadata(
+        args: ToolArgs<typeof this.argsShape>,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         { result }: { result: CallToolResult }
-    ): ConnectionMetadata {
-        return this.getConnectionInfoMetadata();
+    ): Promise<ConnectionMetadata> {
+        const { connectionId } = args as { connectionId?: string };
+        return {
+            ...(connectionId && { connection_id: connectionId }),
+            ...this.getConnectionInfoMetadata((await this.peekConnection(connectionId))?.state),
+        };
     }
 }

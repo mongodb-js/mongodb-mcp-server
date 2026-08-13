@@ -5,21 +5,14 @@ import {
     defaultTestConfig,
     expectDefined,
     getResponseElements,
-    testServerMetadata,
 } from "../integrationHelpers.js";
-import { CompositeLogger } from "@mongodb-js/mcp-core";
-import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
-import { CliSession } from "mongodb-mcp-server";
+import { CompositeLogger, Keychain, InMemoryTransport } from "@mongodb-js/mcp-core";
+import { ExportsManager, MCPConnectionStore, DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { AllTools } from "mongodb-mcp-server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { CliServer } from "mongodb-mcp-server";
-import { MCPConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
-import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
-import { connectionErrorHandler } from "mongodb-mcp-server";
-import { Keychain } from "@mongodb-js/mcp-core";
-import { Elicitation } from "mongodb-mcp-server";
+import { CliServer, connectionErrorHandler, Elicitation } from "mongodb-mcp-server";
+import { Session } from "@mongodb-js/mcp-cli";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
-import { InMemoryTransport } from "@mongodb-js/mcp-core";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
@@ -30,10 +23,10 @@ describeWithMongoDB(
     (integration) => {
         describe("list-databases tool", () => {
             it("should NOT return UIResource content when mcpUI feature is disabled", async () => {
-                await integration.connectMcpClient();
+                const connectionId = await integration.connectMcpClient();
                 const response = await integration.mcpClient().callTool({
                     name: "list-databases",
-                    arguments: {},
+                    arguments: { connectionId },
                 });
 
                 expect(response.content).toBeDefined();
@@ -61,10 +54,10 @@ describeWithMongoDB(
     (integration) => {
         describe("list-databases tool with mcpUI enabled", () => {
             it("should return UIResource content when mcpUI feature is enabled", async () => {
-                await integration.connectMcpClient();
+                const connectionId = await integration.connectMcpClient();
                 const response = await integration.mcpClient().callTool({
                     name: "list-databases",
-                    arguments: {},
+                    arguments: { connectionId },
                 });
 
                 expect(response.content).toBeDefined();
@@ -113,10 +106,10 @@ describeWithMongoDB(
             });
 
             it("should include system databases in the response", async () => {
-                await integration.connectMcpClient();
+                const connectionId = await integration.connectMcpClient();
                 const response = await integration.mcpClient().callTool({
                     name: "list-databases",
-                    arguments: {},
+                    arguments: { connectionId },
                 });
 
                 const elements = response.content as Array<{
@@ -179,19 +172,13 @@ describe("mcpUI feature with custom UIs", () => {
         };
         const logger = new CompositeLogger();
         const deviceId = DeviceId.create(logger);
-        const connectionManager = new MCPConnectionManager({
-            logger,
-            deviceId,
-            serverMetadata: testServerMetadata,
-            connectionInfo: userConfig,
-        });
+        const connectionRegistry = new MCPConnectionStore({ userConfig, logger, deviceId }).view();
         const exportsManager = ExportsManager.init({ options: userConfig, logger });
 
-        const session = new CliSession({
-            userConfig,
+        const session = new Session({
             logger,
             exportsManager,
-            connectionManager,
+            connectionRegistry,
             keychain: Keychain.root,
             connectionErrorHandler,
             atlasLocalClient: await createAtlasLocalClient({ logger }),
@@ -216,7 +203,10 @@ describe("mcpUI feature with custom UIs", () => {
             },
         });
         const mcpServerInstance = new McpServer({ name: "test", version: "1.0" });
-        const elicitation = new Elicitation({ server: mcpServerInstance.server });
+        const elicitation = new Elicitation({
+            server: mcpServerInstance.server,
+            timeoutMs: userConfig.elicitationTimeoutMs,
+        });
 
         const server = new CliServer({
             session,

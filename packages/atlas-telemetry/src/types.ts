@@ -7,6 +7,8 @@ import type {
     AtlasMetadata,
     AtlasLocalToolMetadata,
     TelemetryToolMetadata as TelemetryToolMetadataFromCore,
+    ConnectionMetadata as ConnectionMetadataFromCore,
+    StreamsToolMetadata as StreamsToolMetadataFromCore,
 } from "@mongodb-js/mcp-types";
 
 export type {
@@ -17,17 +19,28 @@ export type {
     TelemetryResult,
     AtlasMetadata,
     AtlasLocalToolMetadata,
+    StreamsToolMetadataFromCore as StreamsToolMetadata,
 };
+
+/**
+ * Atlas cloud providers, mirroring the `AtlasCloudProvider` schema in
+ * `@mongodb-js/mcp-tools-atlas`. Defined locally (rather than imported) to
+ * avoid a dependency cycle: tools-atlas already depends on this package.
+ */
+export type AtlasCloudProvider = "AWS" | "GCP" | "AZURE";
 
 export type TelemetryServerCommand = "start" | "stop";
 
 export type TelemetryBaseEvent = TelemetryEvent<unknown>;
 
 export type UpgradeClusterMetadata = AtlasMetadata & {
-    original_tier?: "free" | "flex";
-    target_tier?: "flex" | "m10";
+    original_tier?: string;
+    target_tier?: string;
     original_cluster_id?: string;
     target_cluster_id?: string;
+    compute_auto_scaling?: TelemetryBoolSet;
+    min_instance_size?: string;
+    max_instance_size?: string;
     provider?: string;
     region?: string;
 };
@@ -40,6 +53,7 @@ export type PauseResumeClusterMetadata = AtlasMetadata & {
 export type CreateClusterMetadata = AtlasMetadata & {
     cluster_id?: string;
     provider?: string;
+    regions?: string[];
     region?: string;
     instance_size?: string;
     cluster_type?: "REPLICASET" | "SHARDED";
@@ -48,10 +62,37 @@ export type CreateClusterMetadata = AtlasMetadata & {
     termination_protection?: TelemetryBoolSet;
     disk_size_gb?: number;
     mongodb_version?: string;
+    encryption_at_rest_provider?: "AWS" | "AZURE" | "GCP" | "NONE";
+};
+
+/**
+ * Connection metadata for MongoDB tools, extending the core connection
+ * metadata with the `connection_id` that identifies the connection in the
+ * connection registry.
+ */
+export type ConnectionMetadata = ConnectionMetadataFromCore & {
+    connection_id?: string;
+};
+
+export type PerfAdvisorToolMetadata = AtlasMetadata &
+    ConnectionMetadata & {
+        operations: string[];
+    };
+
+export type GetRegionsMetadata = AtlasMetadata & {
+    provider?: AtlasCloudProvider;
+};
+
+export type IndexMetadata = ConnectionMetadata & {
+    index_type: "classic" | "vectorSearch" | "search";
 };
 
 export type TelemetryToolMetadata =
     | TelemetryToolMetadataFromCore
+    | ConnectionMetadata
+    | PerfAdvisorToolMetadata
+    | GetRegionsMetadata
+    | IndexMetadata
     | UpgradeClusterMetadata
     | PauseResumeClusterMetadata
     | CreateClusterMetadata;

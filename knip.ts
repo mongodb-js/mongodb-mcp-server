@@ -52,7 +52,7 @@ const config: KnipConfig = {
             ],
         },
         "packages/mongodb-atlas-mcp-remote": {
-            entry: ["src/cli.ts!", "src/**/*.test.ts", "src/testHelpers/**/*.ts"],
+            entry: ["src/cli.ts!", "scripts/**/*.ts", "src/**/*.test.ts", "src/testHelpers/**/*.ts"],
         },
         "packages/test-utils": {
             entry: ["src/index.ts", "src/setup.ts"],

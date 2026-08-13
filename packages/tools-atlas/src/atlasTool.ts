@@ -7,6 +7,7 @@ import { LogId } from "@mongodb-js/mcp-core";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import { z } from "zod";
 import type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-types";
+import type { ConnectionRegistry } from "@mongodb-js/mcp-tools-mongodb";
 
 export interface IAtlasConfig extends IToolConfig {
     apiClientId?: string;
@@ -24,6 +25,7 @@ export interface IAtlasSession extends ISession {
             errorReason?: string;
         };
     };
+    readonly connectionRegistry: ConnectionRegistry;
     connectToMongoDB(settings: { connectionString: string; atlas?: AtlasClusterConnectionInfo }): Promise<void>;
 }
 
@@ -127,7 +129,7 @@ For more information on Atlas API access roles, visit: https://www.mongodb.com/d
         args: ToolArgs<typeof this.argsShape>,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         { result }: { result: CallToolResult }
-    ): AtlasMetadata {
+    ): AtlasMetadata | Promise<AtlasMetadata> {
         const toolMetadata: AtlasMetadata = {};
 
         // Create a typed parser for the exact shape we expect

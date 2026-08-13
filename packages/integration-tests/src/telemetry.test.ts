@@ -6,6 +6,7 @@ import { createTestApiClient } from "./integrationHelpers.js";
 import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 
 describe("AtlasTelemetry", () => {
+
     it("should resolve the actual device ID", async () => {
         const logger = new CompositeLogger();
 

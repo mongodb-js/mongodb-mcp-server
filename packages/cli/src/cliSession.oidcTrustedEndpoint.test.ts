@@ -1,10 +1,18 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { EventEmitter } from "events";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
-import type { ConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
-import { UserConfigSchema } from "./config/userConfig.js";
-import type { CliSessionOptions } from "./cliSession.js";
-import { CliSession } from "./cliSession.js";
+import { parseUserConfig } from "./config/parseUserConfig.js";
+import { Session } from "./cliSession.js";
+import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
+import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { UserConfigSchema, type UserConfig } from "./config/userConfig.js";
+import {
+    ExportsManager,
+    DeviceId,
+    MCPConnectionStore,
+    connectionErrorHandler,
+    type ConnectionRegistry,
+} from "@mongodb-js/mcp-tools-mongodb";
+import type { ServerMetadata } from "@mongodb-js/mcp-types";
 
 vi.mock("@mongosh/arg-parser", async (importOriginal) => {
     // eslint-disable-next-line @typescript-eslint/consistent-type-imports
@@ -17,36 +25,122 @@ vi.mock("@mongosh/arg-parser", async (importOriginal) => {
 
 const mockGenerateFn = vi.mocked(generateConnectionInfoFromCliArgs);
 
-function createTestSession(userConfig: ReturnType<typeof UserConfigSchema.parse>): CliSession {
-    const connectionManager = {
-        events: new EventEmitter(),
-        connect: vi.fn().mockResolvedValue(undefined),
-    } as unknown as ConnectionManager;
+const serverMetadata: ServerMetadata = {
+    mcpServerName: "test-server",
+    version: "0.0.0",
+};
 
-    return new CliSession({
+const logger = new CompositeLogger();
+
+function createSession(): { session: Session; registry: ConnectionRegistry } {
+    const deviceId = DeviceId.create(logger);
+    const userConfig: UserConfig = {
+        ...UserConfigSchema.parse({}),
+        telemetry: "disabled",
+        loggers: ["stderr"],
+    };
+    const registry = new MCPConnectionStore({
         userConfig,
-        logger: {} as unknown as CliSessionOptions["logger"],
-        exportsManager: {} as unknown as CliSessionOptions["exportsManager"],
-        connectionManager,
-        keychain: {} as unknown as CliSessionOptions["keychain"],
-        connectionErrorHandler: {} as unknown as CliSessionOptions["connectionErrorHandler"],
-        apiClient: {} as unknown as CliSessionOptions["apiClient"],
+        logger,
+        deviceId,
+    }).view();
+
+    const session = new Session({
+        logger,
+        exportsManager: ExportsManager.init({ options: userConfig, logger }),
+        connectionRegistry: registry,
+        keychain: new Keychain(),
+        connectionErrorHandler,
+        apiClient: new ApiClient({
+            options: {
+                baseUrl: userConfig.apiBaseUrl,
+            },
+            serverMetadata,
+            logger,
+            authProvider: undefined,
+        }),
     });
+
+    return { session, registry };
 }
 
-describe("CliSession.connectToMongoDB() — mongosh CLI option propagation", () => {
+describe("Session (stateless) — MCP client and lifecycle", () => {
     beforeEach(() => {
         mockGenerateFn.mockClear();
     });
 
-    it("passes oidcTrustedEndpoint from userConfig when connecting", async () => {
-        const userConfig = UserConfigSchema.parse({ oidcTrustedEndpoint: true });
-        const session = createTestSession(userConfig);
+    it("records the MCP client info via setMcpClient", () => {
+        const { session } = createSession();
 
-        const connectionString = "mongodb://localhost:27017/";
+        session.setMcpClient({
+            name: "test-client",
+            version: "1.2.3",
+        });
 
-        await session.connectToMongoDB({ connectionString }).catch(() => {});
+        expect(session.mcpClient).toEqual({
+            name: "test-client",
+            version: "1.2.3",
+            title: "unknown",
+        });
+    });
 
+    it("falls back to unknown client info when setMcpClient is called without a client", () => {
+        const { session } = createSession();
+
+        session.setMcpClient(undefined);
+
+        expect(session.mcpClient).toEqual({
+            name: "unknown",
+            version: "unknown",
+            title: "unknown",
+        });
+    });
+
+    it("close() closes the connection registry, api client and exports manager", async () => {
+        const { session, registry } = createSession();
+        const registryClose = vi.spyOn(registry, "close").mockResolvedValue(undefined);
+        const apiClientClose = vi.spyOn(session.apiClient, "close").mockResolvedValue(undefined);
+        const exportsManagerClose = vi.spyOn(session.exportsManager, "close").mockResolvedValue(undefined);
+        const closeListener = vi.fn();
+        session.on("close", closeListener);
+
+        await session.close();
+
+        expect(registryClose).toHaveBeenCalled();
+        expect(apiClientClose).toHaveBeenCalled();
+        expect(exportsManagerClose).toHaveBeenCalled();
+        expect(closeListener).toHaveBeenCalled();
+    });
+});
+
+describe("oidcTrustedEndpoint — CLI option propagation", () => {
+    // parseUserConfig additionally merges MDB_MCP_-prefixed environment
+    // variables; clear them so the CLI-args-only assertions below are
+    // deterministic regardless of the host environment.
+    let savedEnv: Record<string, string | undefined>;
+
+    beforeEach(() => {
+        mockGenerateFn.mockClear();
+        savedEnv = Object.create(null) as Record<string, string | undefined>;
+        for (const key of Object.keys(process.env)) {
+            if (key.startsWith("MDB_MCP_")) {
+                savedEnv[key] = process.env[key];
+                delete process.env[key];
+            }
+        }
+    });
+
+    afterEach(() => {
+        Object.assign(process.env, savedEnv);
+    });
+
+    it("passes oidcTrustedEndpoint from the CLI args into connection info generation", () => {
+        const { parsed, error } = parseUserConfig({
+            args: ["mongodb://localhost:27017/", "--oidcTrustedEndpoint"],
+        });
+
+        expect(error).toBeUndefined();
+        expect(parsed).toBeDefined();
         expect(mockGenerateFn).toHaveBeenCalledWith(
             expect.objectContaining({
                 oidcTrustedEndpoint: true,
@@ -56,13 +150,10 @@ describe("CliSession.connectToMongoDB() — mongosh CLI option propagation", () 
         );
     });
 
-    it("does NOT pass oidcTrustedEndpoint when it is not set in userConfig", async () => {
-        const userConfig = UserConfigSchema.parse({});
-        const session = createTestSession(userConfig);
-
-        const connectionString = "mongodb://localhost:27017/";
-
-        await session.connectToMongoDB({ connectionString }).catch(() => {});
+    it("does NOT pass oidcTrustedEndpoint when it is not configured", () => {
+        parseUserConfig({
+            args: ["mongodb://localhost:27017/"],
+        });
 
         expect(mockGenerateFn).toHaveBeenCalledWith(expect.not.objectContaining({ oidcTrustedEndpoint: true }));
     });

@@ -1,10 +1,14 @@
-import type { CallToolResult } from "@mongodb-js/mcp-types";
-import { type ToolArgs } from "@mongodb-js/mcp-core";
-import type { OperationType } from "@mongodb-js/mcp-types";
+import { z } from "zod";
+import { type ToolArgs, type ToolResult } from "@mongodb-js/mcp-core";
+import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { AtlasToolBase } from "../../atlasTool.js";
 import type { ClusterDescription20240805 } from "@mongodb-js/mcp-atlas-api-client";
-import { ensureCurrentIpInAccessList } from "../../helpers/accessListUtils.js";
+import { ensureCurrentIpInAccessList, getAccessListNote } from "../../helpers/accessListUtils.js";
 import { AtlasArgs } from "../../args.js";
+
+const CreateFreeClusterOutputSchema = {
+    created: z.boolean().describe("Whether the cluster was created successfully"),
+};
 
 export class CreateFreeClusterTool extends AtlasToolBase {
     static toolName = "atlas-create-free-cluster";
@@ -15,8 +19,12 @@ export class CreateFreeClusterTool extends AtlasToolBase {
         name: AtlasArgs.clusterName().describe("Name of the cluster"),
         region: AtlasArgs.region().describe("Region of the cluster").default("US_EAST_1"),
     };
+    public override outputSchema = CreateFreeClusterOutputSchema;
 
-    protected async execute({ projectId, name, region }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute(
+        { projectId, name, region }: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<ToolResult<typeof this.outputSchema>> {
         const input = {
             groupId: projectId,
             name,
@@ -39,21 +47,29 @@ export class CreateFreeClusterTool extends AtlasToolBase {
             terminationProtectionEnabled: false,
         } as unknown as ClusterDescription20240805;
 
-        await ensureCurrentIpInAccessList(this.apiClient, projectId);
-        await this.apiClient.createCluster({
-            params: {
-                path: {
-                    groupId: projectId,
+        const ipAccessListResult = await ensureCurrentIpInAccessList(this.apiClient, projectId, context);
+        await this.apiClient.createCluster(
+            {
+                params: {
+                    path: {
+                        groupId: projectId,
+                    },
                 },
+                body: input,
             },
-            body: input,
-        });
+            context
+        );
+
+        const ipAccessListNote = getAccessListNote(ipAccessListResult);
 
         return {
             content: [
                 { type: "text", text: `Cluster "${name}" has been created in region "${region}".` },
-                { type: "text", text: `Double check your access lists to enable your current IP.` },
+                ...(ipAccessListNote ? [{ type: "text" as const, text: ipAccessListNote }] : []),
             ],
+            structuredContent: {
+                created: true,
+            },
         };
     }
 }

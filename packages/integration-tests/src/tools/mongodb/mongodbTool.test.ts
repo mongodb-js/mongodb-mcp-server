@@ -4,29 +4,25 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
     MongoDBToolBase,
-    MCPConnectionManager,
+    ConnectionIdArgs,
+    MCPConnectionStore,
     DeviceId,
     ExportsManager,
     ErrorCodes,
     MongoDBTools,
-} from "@mongodb-js/mcp-tools-mongodb";
-import {
-    type OperationType,
-    type UserConfig,
-    CliSession,
-    CliServer,
     connectionErrorHandler,
     type ConnectionErrorHandler,
-    Elicitation,
-} from "mongodb-mcp-server";
+} from "@mongodb-js/mcp-tools-mongodb";
+import * as MongoDbTools from "@mongodb-js/mcp-tools-mongodb";
+import type { OperationType, ToolArgs } from "@mongodb-js/mcp-types";
+import { type UserConfig } from "mongodb-mcp-server";
+import { Session, CliServer } from "@mongodb-js/mcp-cli";
 import type { AnyToolClass } from "@mongodb-js/mcp-core";
-import { CompositeLogger, InMemoryTransport, Keychain } from "@mongodb-js/mcp-core";
+import { CompositeLogger, InMemoryTransport, Keychain, Elicitation } from "@mongodb-js/mcp-core";
 import {
     createTestApiClient,
     defaultTestConfig,
     expectDefined,
-    resetSessionAfterIntegrationTest,
-    testServerMetadata,
 } from "../../integrationHelpers.js";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 import { setupMongoDBIntegrationTest } from "../../mongodbHelpers.js";
@@ -60,6 +56,8 @@ const injectedErrorHandler: ConnectionErrorHandler = (error) => {
                     ],
                 },
             };
+        default:
+            return { errorHandled: false };
     }
 };
 
@@ -67,9 +65,9 @@ class RandomTool extends MongoDBToolBase {
     static toolName = "Random";
     static operationType: OperationType = "read";
     public description = "This is a tool.";
-    public argsShape = {};
-    protected async execute(): Promise<CallToolResult> {
-        await this.ensureConnected();
+    public argsShape = { ...ConnectionIdArgs };
+    protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+        await this.resolveConnection(args.connectionId);
         return { content: [{ type: "text", text: "Something" }] };
     }
 }
@@ -78,14 +76,14 @@ class UnusableVoyageTool extends MongoDBToolBase {
     static toolName = "UnusableVoyageTool";
     static operationType: OperationType = "read";
     public description = "This is a Voyage tool.";
-    public argsShape = {};
+    public argsShape = { ...ConnectionIdArgs };
 
     override verifyAllowed(): boolean {
         return false;
     }
 
-    protected async execute(): Promise<CallToolResult> {
-        await this.ensureConnected();
+    protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+        await this.resolveConnection(args.connectionId);
         return { content: [{ type: "text", text: "Something" }] };
     }
 }
@@ -107,17 +105,11 @@ describe("MongoDBTool implementations", () => {
         const logger = new CompositeLogger();
         const exportsManager = ExportsManager.init({ options: userConfig, logger: logger });
         deviceId = DeviceId.create(logger);
-        const connectionManager = new MCPConnectionManager({
-            logger: logger,
-            deviceId: deviceId,
-            serverMetadata: testServerMetadata,
-            connectionInfo: userConfig,
-        });
-        const session = new CliSession({
-            userConfig,
+        const connectionRegistry = new MCPConnectionStore({ userConfig, logger, deviceId }).view();
+        const session = new Session({
             logger,
             exportsManager,
-            connectionManager,
+            connectionRegistry,
             keychain: new Keychain(),
             connectionErrorHandler: errorHandler,
             apiClient: createTestApiClient({
@@ -164,7 +156,10 @@ describe("MongoDBTool implementations", () => {
             name: "test-server",
             version: "5.2.3",
         });
-        const elicitation = new Elicitation({ server: internalMcpServer.server });
+        const elicitation = new Elicitation({
+            server: internalMcpServer.server,
+            timeoutMs: userConfig.elicitationTimeoutMs,
+        });
 
         mcpServer = new CliServer({
             session,
@@ -188,9 +183,7 @@ describe("MongoDBTool implementations", () => {
     }
 
     async function cleanup(): Promise<void> {
-        if (mcpServer) {
-            await resetSessionAfterIntegrationTest(mcpServer);
-        }
+        await mcpServer?.session.connectionRegistry.close();
         await mcpClient?.close();
         mcpClient = undefined;
 
@@ -208,7 +201,7 @@ describe("MongoDBTool implementations", () => {
     afterEach(async () => {
         vi.clearAllMocks();
         if (mcpServer) {
-            await resetSessionAfterIntegrationTest(mcpServer);
+            await mcpServer.session.connectionRegistry.close();
         }
     });
 
@@ -217,9 +210,12 @@ describe("MongoDBTool implementations", () => {
     describe("when MCP is using default connection error handler", () => {
         describe("and comes across a MongoDB Error - NotConnectedToMongoDB", () => {
             it("should handle the error", async () => {
+                // An entry that exists but was never dialed resolves to a NotConnectedToMongoDB error.
+                const entry = await mcpServer?.session.connectionRegistry.createEntry({ name: "test" });
+                expectDefined(entry);
                 const toolResponse = await mcpClient?.callTool({
                     name: "Random",
-                    arguments: {},
+                    arguments: { connectionId: entry.connectionId },
                 });
                 expect(toolResponse?.isError).to.equal(true);
                 expect(toolResponse?.content).toEqual(
@@ -233,13 +229,31 @@ describe("MongoDBTool implementations", () => {
             });
         });
 
+        describe("and comes across a MongoDB Error - UnknownConnectionId", () => {
+            it("should handle the error", async () => {
+                const toolResponse = await mcpClient?.callTool({
+                    name: "Random",
+                    arguments: { connectionId: "nonexistent-12345678" },
+                });
+                expect(toolResponse?.isError).to.equal(true);
+                expect(toolResponse?.content).toEqual(
+                    expect.arrayContaining([
+                        {
+                            type: "text",
+                            text: 'Connection "nonexistent-12345678" does not exist or has expired. Call the "list-connections" tool to see the active connections, or establish a new one and retry with the connectionId it returns.',
+                        },
+                    ])
+                );
+            });
+        });
+
         describe("and comes across a MongoDB Error - MisconfiguredConnectionString", () => {
             it("should handle the error", async () => {
                 // This is a misconfigured connection string
                 await cleanupAndStartServer({ connectionString: "mongodb://localhost:1234" });
                 const toolResponse = await mcpClient?.callTool({
                     name: "Random",
-                    arguments: {},
+                    arguments: { connectionId: "preconfigured" },
                 });
                 expect(toolResponse?.isError).to.equal(true);
                 expect(toolResponse?.content).toEqual(
@@ -260,6 +274,7 @@ describe("MongoDBTool implementations", () => {
                 const toolResponse = await mcpClient?.callTool({
                     name: "find",
                     arguments: {
+                        connectionId: "preconfigured",
                         database: "db1",
                         collection: "coll1",
                     },
@@ -288,9 +303,11 @@ describe("MongoDBTool implementations", () => {
 
         describe("and comes across a MongoDB Error - NotConnectedToMongoDB", () => {
             it("should handle the error", async () => {
+                const entry = await mcpServer?.session.connectionRegistry.createEntry({ name: "test" });
+                expectDefined(entry);
                 const toolResponse = await mcpClient?.callTool({
                     name: "Random",
-                    arguments: {},
+                    arguments: { connectionId: entry.connectionId },
                 });
                 expect(toolResponse?.isError).to.equal(true);
                 expect(toolResponse?.content).toEqual(
@@ -298,6 +315,24 @@ describe("MongoDBTool implementations", () => {
                         {
                             type: "text",
                             text: "Custom handler - Not connected",
+                        },
+                    ])
+                );
+            });
+        });
+
+        describe("and comes across a MongoDB Error - UnknownConnectionId", () => {
+            it("should fall back to the default error handling for unhandled paths", async () => {
+                const toolResponse = await mcpClient?.callTool({
+                    name: "Random",
+                    arguments: { connectionId: "nonexistent-12345678" },
+                });
+                expect(toolResponse?.isError).to.equal(true);
+                expect(toolResponse?.content).toEqual(
+                    expect.arrayContaining([
+                        {
+                            type: "text",
+                            text: 'Error running Random: Connection "nonexistent-12345678" does not exist or has expired.',
                         },
                     ])
                 );
@@ -314,7 +349,7 @@ describe("MongoDBTool implementations", () => {
                 );
                 const toolResponse = await mcpClient?.callTool({
                     name: "Random",
-                    arguments: {},
+                    arguments: { connectionId: "preconfigured" },
                 });
                 expect(toolResponse?.isError).to.equal(true);
                 expect(toolResponse?.content).toEqual(
@@ -339,6 +374,7 @@ describe("MongoDBTool implementations", () => {
                 const toolResponse = await mcpClient?.callTool({
                     name: "find",
                     arguments: {
+                        connectionId: "preconfigured",
                         database: "db1",
                         collection: "coll1",
                     },
@@ -369,28 +405,85 @@ describe("MongoDBTool implementations", () => {
         });
     });
 
+    describe("connectionId argument description", () => {
+        async function connectionIdDescription(): Promise<string | undefined> {
+            const tools = await mcpClient?.listTools();
+            const randomTool = tools?.tools.find((t) => t.name === "Random");
+            expectDefined(randomTool);
+            return (randomTool.inputSchema.properties?.connectionId as { description?: string })?.description;
+        }
+
+        it("mentions preconfigured when a connection string is configured", async () => {
+            await cleanupAndStartServer({ connectionString: mdbIntegration.connectionString() });
+            expect(await connectionIdDescription()).toContain('"preconfigured"');
+        });
+
+        it("does not mention preconfigured without a configured connection string", async () => {
+            await cleanupAndStartServer();
+            expect(await connectionIdDescription()).not.toContain("preconfigured");
+        });
+    });
+
+    describe("when the list-connections tool is not registered", () => {
+        beforeEach(async () => {
+            await cleanupAndStartServer(undefined, [
+                ...Object.values(MongoDbTools).filter((tool) => tool !== MongoDbTools.ListConnectionsTool),
+                RandomTool,
+            ]);
+        });
+
+        it("omits list-connections from the unknown connectionId error", async () => {
+            const toolResponse = await mcpClient?.callTool({
+                name: "Random",
+                arguments: { connectionId: "nonexistent-12345678" },
+            });
+            expect(toolResponse?.isError).toBe(true);
+            const text = JSON.stringify(toolResponse?.content);
+            expect(text).toContain("Establish a new connection");
+            expect(text).not.toContain("list-connections");
+        });
+    });
+
     describe("resolveTelemetryMetadata", () => {
-        it("should return empty metadata when not connected", async () => {
+        it("should return empty metadata when no connectionId is provided", async () => {
             await cleanupAndStartServer();
             const tool = mcpServer?.tools.find((t) => t.name === "Random");
             expectDefined(tool);
             const randomTool = tool as RandomTool;
 
             const result: CallToolResult = { content: [{ type: "text", text: "test" }] };
-            const metadata = randomTool["resolveTelemetryMetadata"](result, {} as never);
+            const metadata = await randomTool["resolveTelemetryMetadata"]({} as ToolArgs<typeof randomTool.argsShape>, {
+                result,
+            });
 
             expect(metadata).toEqual({});
             expect(metadata).not.toHaveProperty("project_id");
+            expect(metadata).not.toHaveProperty("connection_id");
             expect(metadata).not.toHaveProperty("connection_auth_type");
             expect(metadata).not.toHaveProperty("connection_host_type");
         });
 
+        it("should include connection_id equal to the passed connectionId even when the handle is unknown", async () => {
+            await cleanupAndStartServer();
+            const tool = mcpServer?.tools.find((t) => t.name === "Random");
+            expectDefined(tool);
+            const randomTool = tool as RandomTool;
+
+            const result: CallToolResult = { content: [{ type: "text", text: "test" }] };
+            const metadata = await randomTool["resolveTelemetryMetadata"](
+                { connectionId: "my-cluster-ab12cd34" },
+                { result }
+            );
+
+            expect(metadata).toEqual({ connection_id: "my-cluster-ab12cd34" });
+        });
+
         it("should return metadata with connection_auth_type and host_type when connected via connection string", async () => {
             await cleanupAndStartServer({ connectionString: mdbIntegration.connectionString() });
-            // Connect to MongoDB to set the connection state
+            // Dial the preconfigured connection to set the connection state
             await mcpClient?.callTool({
                 name: "Random",
-                arguments: {},
+                arguments: { connectionId: "preconfigured" },
             });
 
             const tool = mcpServer?.tools.find((t) => t.name === "Random");
@@ -398,10 +491,14 @@ describe("MongoDBTool implementations", () => {
             const randomTool = tool as RandomTool;
 
             const result: CallToolResult = { content: [{ type: "text", text: "test" }] };
-            const metadata = randomTool["resolveTelemetryMetadata"](result, {} as never);
+            const metadata = await randomTool["resolveTelemetryMetadata"](
+                { connectionId: "preconfigured" },
+                { result }
+            );
 
             // When connected via connection string, connection_auth_type and host_type should be set
             // The actual value depends on the connection string, but they should be present
+            expect(metadata).toHaveProperty("connection_id", "preconfigured");
             expect(metadata).toHaveProperty("connection_auth_type");
             expect(typeof metadata.connection_auth_type).toBe("string");
             expect(metadata.connection_auth_type).toBe("scram");

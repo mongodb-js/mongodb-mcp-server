@@ -5,7 +5,7 @@ import { createFetch, systemCA } from "@mongodb-js/devtools-proxy-support";
 import type { AuthProvider, FetchLike, JSONRPCMessage } from "@modelcontextprotocol/client";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import { HttpTransportWithSessionRecovery } from "./httpTransportWithSessionRecovery.js";
-import { StdioServerTransport } from "@modelcontextprotocol/server";
+import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import { loadConfig, ConfigurationError } from "./config.js";
 import { TokenManager, TokenError } from "./tokenManager.js";
 import { logger, addSecret } from "./logger.js";

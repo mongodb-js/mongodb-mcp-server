@@ -6,7 +6,7 @@ import type {
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { LogId } from "@mongodb-js/mcp-core";
 import type { ResourceConstructorParams } from "@mongodb-js/mcp-types";
-import type { CliServer, CliSession } from "@mongodb-js/mcp-cli";
+import type { CliServer, McpSession } from "@mongodb-js/mcp-cli";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
 
 export class ExportedData {
@@ -14,9 +14,9 @@ export class ExportedData {
     private readonly description = "Data files exported in the current session.";
     private readonly uri = "exported-data://{exportName}";
     private server?: CliServer;
-    private readonly session: CliSession;
+    private readonly session: McpSession;
 
-    constructor({ session }: ResourceConstructorParams<CliSession>) {
+    constructor({ session }: ResourceConstructorParams<McpSession>) {
         this.session = session;
     }
 

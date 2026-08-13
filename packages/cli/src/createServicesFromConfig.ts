@@ -2,12 +2,12 @@ import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics
 import type { MonitoringServer } from "@mongodb-js/mcp-http-runners";
 import type { IMetrics } from "@mongodb-js/mcp-types";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
-import { Elicitation, Keychain, McpServer } from "@mongodb-js/mcp-core";
+import { Elicitation, Keychain, McpServer, getRandomUUID } from "@mongodb-js/mcp-core";
 import type { ResourceRegistry, ToolRegistry } from "./cliServer.js";
 import { CliServer } from "./cliServer.js";
-import { connectionErrorHandler, DeviceId, MCPConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
+import { connectionErrorHandler, DeviceId, MCPConnectionStore } from "@mongodb-js/mcp-tools-mongodb";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
-import { CliSession } from "./cliSession.js";
+import { Session } from "./cliSession.js";
 import type { UserConfig } from "./config/userConfig.js";
 import type { ServerMetadata } from "@mongodb-js/mcp-types";
 import { createLoggerFromConfig } from "./createLoggerFromConfig.js";
@@ -46,11 +46,12 @@ export async function createServicesFromConfig({
     const exportsManager = createExportsManagerFromConfig({ config, logger });
     const deviceId = DeviceId.create(logger);
 
-    const connectionManager = new MCPConnectionManager({
-        logger,
-        deviceId,
-        serverMetadata,
-        connectionInfo: { transport: "http", httpHost: "localhost" },
+    const connectionStore = new MCPConnectionStore({ userConfig: config, logger, deviceId });
+    // Each server instance owns its connection scope: sessions are scoped to
+    // the session by default, or shared globally when configured so.
+    const connectionRegistry = connectionStore.view({
+        scope: config.connectionScope === "session" ? getRandomUUID() : undefined,
+        owned: true,
     });
 
     const apiClient = createApiClientFromConfig({ config, serverMetadata, logger });
@@ -70,21 +71,33 @@ export async function createServicesFromConfig({
         version: serverMetadata.version,
     });
 
-    const elicitation = new Elicitation({ server: mcpServer.server });
-
-    const session = new CliSession({
-        userConfig: config,
-        logger,
-        exportsManager,
-        connectionManager,
-        keychain,
-        apiClient,
-        connectionErrorHandler,
-        atlasLocalClient,
+    const elicitation = new Elicitation({
+        server: mcpServer.server,
+        timeoutMs: config.elicitationTimeoutMs,
     });
+
+    const session = Object.assign(
+        new Session({
+            logger,
+            exportsManager,
+            connectionRegistry,
+            keychain,
+            apiClient,
+            connectionErrorHandler,
+            atlasLocalClient,
+        }),
+        {
+            // The stateless session has no config of its own: the config is
+            // supplied by the CLI at construction. Resources (e.g. the config
+            // resource) read it back through `session.config`.
+            config,
+            userConfig: config,
+        }
+    );
 
     const server = new CliServer({
         session,
+        userConfig: config,
         mcpServer,
         telemetry,
         connectionErrorHandler,

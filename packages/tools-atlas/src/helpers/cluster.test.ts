@@ -3,20 +3,24 @@ import { inspectCluster } from "./cluster.js";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 
 describe("inspectCluster", () => {
-    it("logs an error when both getCluster and getFlexCluster fail", async () => {
+    it("includes x-request-id in error log when both getCluster and getFlexCluster fail", async () => {
+        const debug = vi.fn();
         const error = vi.fn();
 
         const apiClient = {
             getCluster: vi.fn().mockRejectedValue(new Error("cluster not found")),
             getFlexCluster: vi.fn().mockRejectedValue(new Error("flex cluster not found")),
-            logger: { error },
+            logger: { debug, error },
         } as unknown as ApiClient;
 
-        await expect(inspectCluster(apiClient, "proj1", "cluster1")).rejects.toThrow();
+        const context = { requestInfo: { headers: { "x-request-id": "req-cluster-1" } } };
+
+        await expect(inspectCluster(apiClient, "proj1", "cluster1", context)).rejects.toThrow();
 
         expect(error).toHaveBeenCalledWith(
             expect.objectContaining({
-                message: expect.stringContaining("error inspecting cluster"), // eslint-disable-line @typescript-eslint/no-unsafe-assignment
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                attributes: expect.objectContaining({ "x-request-id": "req-cluster-1" }),
             })
         );
     });

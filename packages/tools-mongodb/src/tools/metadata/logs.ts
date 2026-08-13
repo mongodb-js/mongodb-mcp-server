@@ -1,4 +1,4 @@
-import { MongoDBToolBase } from "../../mongodbTool.js";
+import { ConnectionIdArgs, MongoDBToolBase } from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import type { ToolExecutionContext, OperationType } from "@mongodb-js/mcp-types";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
@@ -16,6 +16,7 @@ export class LogsTool extends MongoDBToolBase {
     static toolName = "mongodb-logs";
     public description = "Returns the most recent logged mongod events";
     public argsShape = {
+        ...ConnectionIdArgs,
         type: z
             .enum(["global", "startupWarnings"])
             .optional()
@@ -37,10 +38,10 @@ export class LogsTool extends MongoDBToolBase {
     static operationType: OperationType = "metadata";
 
     protected async execute(
-        { type, limit }: ToolArgs<typeof this.argsShape>,
+        { connectionId, type, limit }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        const provider = await this.ensureConnected();
+        const provider = await this.resolveConnection(connectionId);
 
         const result = await provider.runCommandWithCheck(
             "admin",

@@ -7,8 +7,10 @@ describe("IndexCheck integration tests", () => {
         describeWithMongoDB(
             "indexCheck functionality",
             (integration) => {
+                let connectionId: string;
+
                 beforeEach(async () => {
-                    await integration.connectMcpClient();
+                    connectionId = await integration.connectMcpClient();
                 });
 
                 describe("find operations", () => {
@@ -29,6 +31,7 @@ describe("IndexCheck integration tests", () => {
                         const response = await integration.mcpClient().callTool({
                             name: "find",
                             arguments: {
+                                connectionId,
                                 database: integration.randomDbName(),
                                 collection: "find-test-collection",
                                 filter: { category: "A" }, // No index on category field
@@ -53,6 +56,7 @@ describe("IndexCheck integration tests", () => {
                         const response = await integration.mcpClient().callTool({
                             name: "find",
                             arguments: {
+                                connectionId,
                                 database: integration.randomDbName(),
                                 collection: "find-test-collection",
                                 filter: { category: "A" }, // Now has index
@@ -77,6 +81,7 @@ describe("IndexCheck integration tests", () => {
                         const response = await integration.mcpClient().callTool({
                             name: "find",
                             arguments: {
+                                connectionId,
                                 database: integration.randomDbName(),
                                 collection: "find-test-collection",
                                 filter: { _id: { $oid: docs[0]?._id } }, // Uses _id index (IDHACK)
@@ -109,6 +114,7 @@ describe("IndexCheck integration tests", () => {
                         const response = await integration.mcpClient().callTool({
                             name: "count",
                             arguments: {
+                                connectionId,
                                 database: integration.randomDbName(),
                                 collection: "count-test-collection",
                                 query: { value: { $gt: 1 } }, // No index on value field
@@ -132,6 +138,7 @@ describe("IndexCheck integration tests", () => {
                         const response = await integration.mcpClient().callTool({
                             name: "count",
                             arguments: {
+                                connectionId,
                                 database: integration.randomDbName(),
                                 collection: "count-test-collection",
                                 query: { value: { $gt: 1 } }, // Now has index
@@ -163,6 +170,7 @@ describe("IndexCheck integration tests", () => {
                         const response = await integration.mcpClient().callTool({
                             name: "aggregate",
                             arguments: {
+                                connectionId,
                                 database: integration.randomDbName(),
                                 collection: "aggregate-test-collection",
                                 pipeline: [
@@ -189,6 +197,7 @@ describe("IndexCheck integration tests", () => {
                         const response = await integration.mcpClient().callTool({
                             name: "aggregate",
                             arguments: {
+                                connectionId,
                                 database: integration.randomDbName(),
                                 collection: "aggregate-test-collection",
                                 pipeline: [
@@ -221,6 +230,7 @@ describe("IndexCheck integration tests", () => {
                         const response = await integration.mcpClient().callTool({
                             name: "update-many",
                             arguments: {
+                                connectionId,
                                 database: integration.randomDbName(),
                                 collection: "update-test-collection",
                                 filter: { category: "A" }, // No index on category
@@ -245,6 +255,7 @@ describe("IndexCheck integration tests", () => {
                         const response = await integration.mcpClient().callTool({
                             name: "update-many",
                             arguments: {
+                                connectionId,
                                 database: integration.randomDbName(),
                                 collection: "update-test-collection",
                                 filter: { category: "A" }, // Now has index
@@ -277,6 +288,7 @@ describe("IndexCheck integration tests", () => {
                         const response = await integration.mcpClient().callTool({
                             name: "delete-many",
                             arguments: {
+                                connectionId,
                                 database: integration.randomDbName(),
                                 collection: "delete-test-collection",
                                 filter: { value: { $lt: 2 } }, // No index on value
@@ -300,6 +312,7 @@ describe("IndexCheck integration tests", () => {
                         const response = await integration.mcpClient().callTool({
                             name: "delete-many",
                             arguments: {
+                                connectionId,
                                 database: integration.randomDbName(),
                                 collection: "delete-test-collection",
                                 filter: { value: { $lt: 2 } }, // Now has index
@@ -326,8 +339,10 @@ describe("IndexCheck integration tests", () => {
         describeWithMongoDB(
             "indexCheck disabled functionality",
             (integration) => {
+                let connectionId: string;
+
                 beforeEach(async () => {
-                    await integration.connectMcpClient();
+                    connectionId = await integration.connectMcpClient();
 
                     // insert test data for disabled indexCheck tests
                     await integration
@@ -346,6 +361,7 @@ describe("IndexCheck integration tests", () => {
                     const findResponse = await integration.mcpClient().callTool({
                         name: "find",
                         arguments: {
+                            connectionId,
                             database: integration.randomDbName(),
                             collection: "disabled-test-collection",
                             filter: { category: "A" }, // No index, but should be allowed
@@ -362,6 +378,7 @@ describe("IndexCheck integration tests", () => {
                     const response = await integration.mcpClient().callTool({
                         name: "count",
                         arguments: {
+                            connectionId,
                             database: integration.randomDbName(),
                             collection: "disabled-test-collection",
                             query: { value: { $gt: 1 } }, // No index, but should be allowed
@@ -378,6 +395,7 @@ describe("IndexCheck integration tests", () => {
                     const response = await integration.mcpClient().callTool({
                         name: "aggregate",
                         arguments: {
+                            connectionId,
                             database: integration.randomDbName(),
                             collection: "disabled-test-collection",
                             pipeline: [
@@ -397,6 +415,7 @@ describe("IndexCheck integration tests", () => {
                     const response = await integration.mcpClient().callTool({
                         name: "update-many",
                         arguments: {
+                            connectionId,
                             database: integration.randomDbName(),
                             collection: "disabled-test-collection",
                             filter: { category: "A" }, // No index, but should be allowed
@@ -414,6 +433,7 @@ describe("IndexCheck integration tests", () => {
                     const response = await integration.mcpClient().callTool({
                         name: "delete-many",
                         arguments: {
+                            connectionId,
                             database: integration.randomDbName(),
                             collection: "disabled-test-collection",
                             filter: { value: { $lt: 2 } }, // No index, but should be allowed
@@ -440,7 +460,7 @@ describe("IndexCheck integration tests", () => {
             "default indexCheck behavior",
             (integration) => {
                 it("should allow collection scans by default when indexCheck is not specified", async () => {
-                    await integration.connectMcpClient();
+                    const connectionId = await integration.connectMcpClient();
 
                     await integration
                         .mongoClient()
@@ -451,6 +471,7 @@ describe("IndexCheck integration tests", () => {
                     const response = await integration.mcpClient().callTool({
                         name: "find",
                         arguments: {
+                            connectionId,
                             database: integration.randomDbName(),
                             collection: "default-test-collection",
                             filter: { name: "test" }, // No index, should be allowed by default

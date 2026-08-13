@@ -17,6 +17,7 @@ export {
     type AnyToolBase,
     type ToolArgs,
     type ToolResult,
+    type ToolOutput,
     formatUntrustedData,
 } from "./toolBase.js";
 export { ReactiveResource } from "./reactiveResource.js";

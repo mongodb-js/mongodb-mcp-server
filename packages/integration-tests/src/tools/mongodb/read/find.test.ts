@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { z } from "zod";
 import {
     getResponseContent,
     databaseCollectionParameters,
@@ -7,14 +8,72 @@ import {
     expectDefined,
     defaultTestConfig,
 } from "../../../integrationHelpers.js";
+import * as constants from "./constants.js";
 import {
     describeWithMongoDB,
     getDocsFromUntrustedContent,
     validateAutoConnectBehavior,
+    type MongoDBIntegrationTestCase,
 } from "../../../mongodbHelpers.js";
-import { AGG_COUNT_MAX_TIME_MS_CAP } from "@mongodb-js/mcp-tools-mongodb";
 import type { Client } from "@modelcontextprotocol/sdk/client";
+import type { CursorLimitKey } from "@mongodb-js/mcp-tools-mongodb";
+import { bsonToJson } from "@mongodb-js/mcp-tools-mongodb";
 import { freshInsertDocuments } from "./helpers.js";
+
+type FindToolResponse = Awaited<ReturnType<Client["callTool"]>>;
+
+// Mirrors the structured content emitted by FindTool. FindOutputSchema is not
+// re-exported from the tools package barrel, so the test re-declares the shape
+// (loosened for appliedLimits, which is a zod enum in the real schema).
+const findStructuredContentSchema = z
+    .object({
+        documents: z.array(z.unknown()),
+        queryResultsCount: z.number().optional(),
+        appliedLimits: z.array(z.string()),
+    })
+    .strict();
+
+function expectFindStructuredContent(
+    response: FindToolResponse,
+    content: string,
+    { count, limits = [], documents }: { count?: number; limits?: CursorLimitKey[]; documents?: unknown[] } = {}
+): unknown[] {
+    let contentDocs: unknown[];
+    try {
+        contentDocs = getDocsFromUntrustedContent(content);
+    } catch {
+        contentDocs = [];
+    }
+
+    if (documents !== undefined) {
+        expect(contentDocs).toHaveLength(documents.length);
+        for (let i = 0; i < documents.length; i++) {
+            expect(contentDocs[i]).toEqual(documents[i]);
+        }
+    }
+
+    expectDefined(response.structuredContent);
+
+    const schemaResult = findStructuredContentSchema.safeParse(response.structuredContent);
+    if (!schemaResult.success) {
+        expect.fail(
+            `structuredContent failed output schema validation:\n${JSON.stringify(schemaResult.error.format(), null, 2)}`
+        );
+    }
+
+    const expectedStructuredContent: Record<string, unknown> = {
+        documents: bsonToJson(contentDocs),
+        appliedLimits: limits,
+    };
+
+    if (count !== undefined) {
+        expectedStructuredContent.queryResultsCount = count;
+    }
+
+    expect(response.structuredContent).toEqual(expectedStructuredContent);
+
+    return contentDocs;
+}
 
 describeWithMongoDB("find tool with default configuration", (integration) => {
     validateToolMetadata(integration, "find", "Run a find query against a MongoDB collection", "read", [
@@ -47,7 +106,7 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
         },
         {
             name: "responseBytesLimit",
-            description: `The maximum number of bytes to return in the response. This value is capped by the server's configured maxBytesPerQuery and cannot be exceeded. Note to LLM: If the entire query result is required, use the "export" tool instead of increasing this limit.`,
+            description: `The maximum number of bytes to return in the response. This value is capped by the server's configured maximum and cannot be exceeded.`,
             type: "number",
             required: false,
         },
@@ -64,25 +123,27 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
     ]);
 
     it("returns 0 when database doesn't exist", async () => {
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         const response = await integration.mcpClient().callTool({
             name: "find",
-            arguments: { database: "non-existent", collection: "foos" },
+            arguments: { connectionId, database: "non-existent", collection: "foos" },
         });
         const content = getResponseContent(response.content);
         expect(content).toEqual('Query on collection "foos" resulted in 0 documents. Returning 0 documents.');
+        expectFindStructuredContent(response, content, { count: 0, documents: [] });
     });
 
     it("returns 0 when collection doesn't exist", async () => {
-        await integration.connectMcpClient();
+        const connectionId = await integration.connectMcpClient();
         const mongoClient = integration.mongoClient();
         await mongoClient.db(integration.randomDbName()).collection("bar").insertOne({});
         const response = await integration.mcpClient().callTool({
             name: "find",
-            arguments: { database: integration.randomDbName(), collection: "non-existent" },
+            arguments: { connectionId, database: integration.randomDbName(), collection: "non-existent" },
         });
         const content = getResponseContent(response.content);
         expect(content).toEqual('Query on collection "non-existent" resulted in 0 documents. Returning 0 documents.');
+        expectFindStructuredContent(response, content, { count: 0, documents: [] });
     });
 
     describe("with existing database", () => {
@@ -107,6 +168,7 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
                 expected: Array(10)
                     .fill(0)
                     .map((_, index) => ({ _id: expect.any(Object) as unknown, value: index })),
+                expectedTotalCount: 10,
             },
             {
                 name: "returns documents matching the filter",
@@ -115,6 +177,7 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
                     .fill(0)
 
                     .map((_, index) => ({ _id: expect.any(Object) as unknown, value: index + 6 })),
+                expectedTotalCount: 4,
             },
             {
                 name: "returns documents matching the filter with projection",
@@ -123,6 +186,7 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
                 expected: Array(4)
                     .fill(0)
                     .map((_, index) => ({ value: index + 6 })),
+                expectedTotalCount: 4,
             },
             {
                 name: "returns documents matching the filter with limit",
@@ -142,15 +206,17 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
                     .fill(0)
                     .map((_, index) => ({ _id: expect.any(Object) as unknown, value: index }))
                     .reverse(),
+                expectedTotalCount: 10,
             },
         ];
 
         for (const { name, filter, limit, projection, sort, expected, expectedTotalCount } of testCases) {
             it(name, async () => {
-                await integration.connectMcpClient();
+                const connectionId = await integration.connectMcpClient();
                 const response = await integration.mcpClient().callTool({
                     name: "find",
                     arguments: {
+                        connectionId,
                         database: integration.randomDbName(),
                         collection: "foo",
                         filter,
@@ -163,33 +229,12 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
                 const expectedCount = expectedTotalCount ?? expected.length;
                 expect(content).toContain(`Query on collection "foo" resulted in ${expectedCount} documents.`);
 
-                const docs = getDocsFromUntrustedContent(content);
-
-                for (let i = 0; i < expected.length; i++) {
-                    expect(docs[i]).toEqual(expected[i]);
-                }
+                expectFindStructuredContent(response, content, { count: expectedCount, documents: expected });
             });
         }
 
-        it("returns all documents when no filter is provided", async () => {
-            await integration.connectMcpClient();
-            const response = await integration.mcpClient().callTool({
-                name: "find",
-                arguments: { database: integration.randomDbName(), collection: "foo" },
-            });
-            const content = getResponseContent(response);
-            expect(content).toContain('Query on collection "foo" resulted in 10 documents.');
-
-            const docs = getDocsFromUntrustedContent(content);
-            expect(docs.length).toEqual(10);
-
-            for (let i = 0; i < 10; i++) {
-                expect((docs[i] as { value: number }).value).toEqual(i);
-            }
-        });
-
         it("can find objects by $oid", async () => {
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
 
             const fooObject = await integration
                 .mongoClient()
@@ -201,6 +246,7 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
             const response = await integration.mcpClient().callTool({
                 name: "find",
                 arguments: {
+                    connectionId,
                     database: integration.randomDbName(),
                     collection: "foo",
                     filter: { _id: { $oid: fooObject._id } },
@@ -210,14 +256,14 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
             const content = getResponseContent(response);
             expect(content).toContain('Query on collection "foo" resulted in 1 documents.');
 
-            const docs = getDocsFromUntrustedContent(content);
-            expect(docs.length).toEqual(1);
-
-            expect((docs[0] as { value: number }).value).toEqual(fooObject.value);
+            expectFindStructuredContent(response, content, {
+                count: 1,
+                documents: [expect.objectContaining({ value: fooObject.value as number })],
+            });
         });
 
         it("can find objects by date", async () => {
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
 
             await integration
                 .mongoClient()
@@ -231,6 +277,7 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
             const response = await integration.mcpClient().callTool({
                 name: "find",
                 arguments: {
+                    connectionId,
                     database: integration.randomDbName(),
                     collection: "foo_with_dates",
                     filter: { date: { $gt: { $date: "2025-05-10" } } }, // only 2025-05-11 will match
@@ -242,8 +289,10 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
                 'Query on collection "foo_with_dates" resulted in 1 documents. Returning 1 documents.'
             );
 
-            const docs = getDocsFromUntrustedContent<{ date: Date }>(content);
-            expect(docs.length).toEqual(1);
+            const docs = expectFindStructuredContent(response, content, {
+                count: 1,
+                documents: [expect.objectContaining({ idx: 1 })],
+            }) as { date: Date }[];
 
             expect(docs[0]?.date.toISOString()).toContain("2025-05-11");
         });
@@ -255,54 +304,12 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
             expectedResponse: 'Query on collection "coll1" resulted in 0 documents.',
         };
     });
-});
 
-describeWithMongoDB(
-    "find tool — count maxTimeMS runtime override",
-    (integration) => {
-        describe("when counting documents exceed the configured count maxTimeMS", () => {
-            beforeEach(async () => {
-                await freshInsertDocuments({
-                    collection: integration.mongoClient().db(integration.randomDbName()).collection("foo"),
-                    count: 10,
-                });
-            });
-
-            afterEach(() => {
-                vi.resetAllMocks();
-            });
-
-            it("should abort count operation and respond with indeterminable count", async () => {
-                await integration.connectMcpClient();
-                const response = await integration.mcpClient().callTool({
-                    name: "find",
-                    arguments: { database: integration.randomDbName(), collection: "foo" },
-                });
-                const content = getResponseContent(response);
-                expect(content).toContain('Query on collection "foo" resulted in indeterminable number of documents.');
-
-                const docs = getDocsFromUntrustedContent(content);
-                expect(docs.length).toEqual(10);
-            });
-        });
-    },
-    {
-        getUserConfig: (mdbIntegration) => ({
-            ...structuredClone(defaultTestConfig),
-            connectionString: mdbIntegration.connectionString(),
-            queryCountMaxTimeMsCap: 0.1,
-            aggregationCountMaxTimeMsCap: AGG_COUNT_MAX_TIME_MS_CAP,
-        }),
-    }
-);
-
-describeWithMongoDB(
-    "find tool with configured max documents per query",
-    (integration) => {
+    describe("when counting documents exceed the configured count maxTimeMS", () => {
         beforeEach(async () => {
             await freshInsertDocuments({
                 collection: integration.mongoClient().db(integration.randomDbName()).collection("foo"),
-                count: 1000,
+                count: 10,
             });
         });
 
@@ -310,154 +317,204 @@ describeWithMongoDB(
             vi.resetAllMocks();
         });
 
-        it("should return documents limited to the provided limit when provided limit < configured limit", async () => {
-            await integration.connectMcpClient();
+        it("should abort count operation and respond with indeterminable count", async () => {
+            vi.spyOn(constants, "QUERY_COUNT_MAX_TIME_MS_CAP", "get").mockReturnValue(0.1);
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "find",
-                arguments: {
-                    database: integration.randomDbName(),
-                    collection: "foo",
-                    filter: {},
-                    limit: 8,
-                },
+                arguments: { connectionId, database: integration.randomDbName(), collection: "foo" },
             });
-
             const content = getResponseContent(response);
-            expect(content).toContain(`Query on collection "foo" resulted in 1000 documents.`);
-            expect(content).toContain(`Returning 8 documents.`);
-        });
+            expect(content).toContain('Query on collection "foo" resulted in indeterminable number of documents.');
 
-        it("should return documents limited to the configured max limit when provided limit > configured limit", async () => {
-            await integration.connectMcpClient();
-            const response = await integration.mcpClient().callTool({
-                name: "find",
-                arguments: {
-                    database: integration.randomDbName(),
-                    collection: "foo",
-                    filter: {},
-                    limit: 10000,
-                },
-            });
-
-            const content = getResponseContent(response);
-            expect(content).toContain(`Query on collection "foo" resulted in 1000 documents.`);
-            expect(content).toContain(
-                `Returning 10 documents while respecting the applied limits of server's configured - maxDocumentsPerQuery.`
-            );
+            expectFindStructuredContent(response, content, {});
         });
+    });
+});
+
+const findLimitSuites: {
+    suiteLabel: string;
+    userConfig: { maxDocumentsPerQuery?: number; maxBytesPerQuery?: number };
+    cases: {
+        name: string;
+        arguments: { limit?: number; responseBytesLimit?: number };
+        contentContains: string[];
+        structured: { count: number; limits?: CursorLimitKey[] };
+    }[];
+}[] = [
+    {
+        suiteLabel: "configured max documents per query",
+        userConfig: { maxDocumentsPerQuery: 10 },
+        cases: [
+            {
+                name: "should return documents limited to the provided limit when provided limit < configured limit",
+                arguments: { limit: 8 },
+                contentContains: [`Query on collection "foo" resulted in 1000 documents.`, `Returning 8 documents.`],
+                structured: { count: 1000 },
+            },
+            {
+                name: "should return documents limited to the configured max limit when provided limit > configured limit",
+                arguments: { limit: 10000 },
+                contentContains: [
+                    `Query on collection "foo" resulted in 1000 documents.`,
+                    `Returning 10 documents while respecting the applied limits of the server's configured maximum number of documents.`,
+                ],
+                structured: { count: 1000, limits: ["config.maxDocumentsPerQuery"] },
+            },
+        ],
     },
     {
-        getUserConfig: () => ({ ...defaultTestConfig, maxDocumentsPerQuery: 10 }),
-    }
-);
-
-describeWithMongoDB(
-    "find tool with configured max bytes per query",
-    (integration) => {
-        beforeEach(async () => {
-            await freshInsertDocuments({
-                collection: integration.mongoClient().db(integration.randomDbName()).collection("foo"),
-                count: 1000,
-            });
-        });
-        it("should return only the documents that could fit in configured maxBytesPerQuery limit", async () => {
-            await integration.connectMcpClient();
-            const response = await integration.mcpClient().callTool({
-                name: "find",
-                arguments: {
-                    database: integration.randomDbName(),
-                    collection: "foo",
-                    filter: {},
-                    limit: 1000,
+        suiteLabel: "configured max bytes per query",
+        userConfig: { maxBytesPerQuery: 100 },
+        cases: [
+            {
+                name: "should return only the documents that could fit in configured maxBytesPerQuery limit",
+                arguments: { limit: 1000 },
+                contentContains: [
+                    `Query on collection "foo" resulted in 1000 documents.`,
+                    `Returning 3 documents while respecting the applied limits of the server's configured maximum number of documents, the server's configured maximum response size`,
+                ],
+                structured: {
+                    count: 1000,
+                    limits: ["config.maxDocumentsPerQuery", "config.maxBytesPerQuery"],
                 },
-            });
-
-            const content = getResponseContent(response);
-            expect(content).toContain(`Query on collection "foo" resulted in 1000 documents.`);
-            expect(content).toContain(
-                `Returning 3 documents while respecting the applied limits of server's configured - maxDocumentsPerQuery, server's configured - maxBytesPerQuery`
-            );
-        });
-        it("should return only the documents that could fit in provided responseBytesLimit", async () => {
-            await integration.connectMcpClient();
-            const response = await integration.mcpClient().callTool({
-                name: "find",
-                arguments: {
-                    database: integration.randomDbName(),
-                    collection: "foo",
-                    filter: {},
-                    limit: 1000,
-                    responseBytesLimit: 50,
+            },
+            {
+                name: "should return only the documents that could fit in provided responseBytesLimit",
+                arguments: { limit: 1000, responseBytesLimit: 50 },
+                contentContains: [
+                    `Query on collection "foo" resulted in 1000 documents.`,
+                    `Returning 1 documents while respecting the applied limits of the server's configured maximum number of documents, the responseBytesLimit parameter.`,
+                ],
+                structured: {
+                    count: 1000,
+                    limits: ["config.maxDocumentsPerQuery", "tool.responseBytesLimit"],
                 },
-            });
-
-            const content = getResponseContent(response);
-            expect(content).toContain(`Query on collection "foo" resulted in 1000 documents.`);
-            expect(content).toContain(
-                `Returning 1 documents while respecting the applied limits of server's configured - maxDocumentsPerQuery, tool's parameter - responseBytesLimit.`
-            );
-        });
+            },
+        ],
     },
     {
-        getUserConfig: () => ({ ...defaultTestConfig, maxBytesPerQuery: 100 }),
-    }
-);
-
-describeWithMongoDB(
-    "find tool with disabled max limit and max bytes per query",
-    (integration) => {
-        beforeEach(async () => {
-            await freshInsertDocuments({
-                collection: integration.mongoClient().db(integration.randomDbName()).collection("foo"),
-                count: 1000,
-            });
-        });
-
-        it("should return documents limited to the provided limit", async () => {
-            await integration.connectMcpClient();
-            const response = await integration.mcpClient().callTool({
-                name: "find",
-                arguments: {
-                    database: integration.randomDbName(),
-                    collection: "foo",
-                    filter: {},
-                    limit: 8,
-                },
-            });
-
-            const content = getResponseContent(response);
-            expect(content).toContain(`Query on collection "foo" resulted in 1000 documents.`);
-            expect(content).toContain(`Returning 8 documents.`);
-        });
-
-        it("should return documents limited to the responseBytesLimit", async () => {
-            await integration.connectMcpClient();
-            const response = await integration.mcpClient().callTool({
-                name: "find",
-                arguments: {
-                    database: integration.randomDbName(),
-                    collection: "foo",
-                    filter: {},
-                    limit: 1000,
-                    responseBytesLimit: 50,
-                },
-            });
-
-            const content = getResponseContent(response);
-            expect(content).toContain(`Query on collection "foo" resulted in 1000 documents.`);
-            expect(content).toContain(
-                `Returning 1 documents while respecting the applied limits of tool's parameter - responseBytesLimit.`
-            );
-        });
+        suiteLabel: "disabled max limit and max bytes per query",
+        userConfig: { maxDocumentsPerQuery: -1, maxBytesPerQuery: -1 },
+        cases: [
+            {
+                name: "should return documents limited to the provided limit",
+                arguments: { limit: 8 },
+                contentContains: [`Query on collection "foo" resulted in 1000 documents.`, `Returning 8 documents.`],
+                structured: { count: 1000 },
+            },
+            {
+                name: "should return documents limited to the responseBytesLimit",
+                arguments: { limit: 1000, responseBytesLimit: 50 },
+                contentContains: [
+                    `Query on collection "foo" resulted in 1000 documents.`,
+                    `Returning 1 documents while respecting the applied limits of the responseBytesLimit parameter.`,
+                ],
+                structured: { count: 1000, limits: ["tool.responseBytesLimit"] },
+            },
+        ],
     },
-    {
-        getUserConfig: () => ({ ...defaultTestConfig, maxDocumentsPerQuery: -1, maxBytesPerQuery: -1 }),
-    }
-);
+];
+
+for (const { suiteLabel, userConfig, cases } of findLimitSuites) {
+    describeWithMongoDB(
+        `find tool with ${suiteLabel}`,
+        (integration) => {
+            beforeEach(async () => {
+                await freshInsertDocuments({
+                    collection: integration.mongoClient().db(integration.randomDbName()).collection("foo"),
+                    count: 1000,
+                });
+            });
+
+            for (const { name, arguments: findArgs, contentContains, structured } of cases) {
+                it(name, async () => {
+                    const connectionId = await integration.connectMcpClient();
+                    const response = await integration.mcpClient().callTool({
+                        name: "find",
+                        arguments: {
+                            connectionId,
+                            database: integration.randomDbName(),
+                            collection: "foo",
+                            filter: {},
+                            ...findArgs,
+                        },
+                    });
+
+                    const content = getResponseContent(response);
+                    for (const snippet of contentContains) {
+                        expect(content).toContain(snippet);
+                    }
+                    expectFindStructuredContent(response, content, structured);
+                });
+            }
+        },
+        {
+            getUserConfig: () => ({ ...defaultTestConfig, ...userConfig }),
+        }
+    );
+}
+
+describe("find tool export hint in the applied-limits message", () => {
+    // A tiny responseBytesLimit guarantees the result is truncated so the
+    // applied-limits portion of the message is always present.
+    const truncatingArgs = { limit: 1000, responseBytesLimit: 50 };
+    const appliedLimitsSnippet = "while respecting the applied limits of";
+    const exportHintSnippet = `use the "export" tool`;
+
+    const callFind = async (integration: MongoDBIntegrationTestCase): Promise<string> => {
+        await freshInsertDocuments({
+            collection: integration.mongoClient().db(integration.randomDbName()).collection("foo"),
+            count: 1000,
+        });
+        const connectionId = await integration.connectMcpClient();
+        const response = await integration.mcpClient().callTool({
+            name: "find",
+            arguments: {
+                connectionId,
+                database: integration.randomDbName(),
+                collection: "foo",
+                filter: {},
+                ...truncatingArgs,
+            },
+        });
+        return getResponseContent(response);
+    };
+
+    describeWithMongoDB(
+        "when the export tool is available",
+        (integration) => {
+            it("points to the export tool for retrieving the full result set", async () => {
+                const content = await callFind(integration);
+                expect(content).toContain(appliedLimitsSnippet);
+                expect(content).toContain(exportHintSnippet);
+            });
+        },
+        {
+            getUserConfig: () => ({ ...defaultTestConfig }),
+        }
+    );
+
+    describeWithMongoDB(
+        "when the export tool is disabled (e.g. remote deployment)",
+        (integration) => {
+            it("reports the applied limits without referencing the export tool", async () => {
+                const content = await callFind(integration);
+                expect(content).toContain(appliedLimitsSnippet);
+                expect(content).not.toContain(exportHintSnippet);
+            });
+        },
+        {
+            getUserConfig: () => ({ ...defaultTestConfig, disabledTools: ["export"] }),
+        }
+    );
+});
 
 describeWithMongoDB(
     "find tool with abort signal",
     (integration) => {
+        let connectionId: string;
+
         beforeEach(async () => {
             // Insert many documents with complex data to simulate a slow query
             await freshInsertDocuments({
@@ -482,6 +539,7 @@ describeWithMongoDB(
                     {
                         name: "find",
                         arguments: {
+                            connectionId,
                             database: integration.randomDbName(),
                             collection: "abort_collection",
                             filter: {
@@ -506,7 +564,7 @@ describeWithMongoDB(
         };
 
         it("should abort find operation when signal is triggered immediately", async () => {
-            await integration.connectMcpClient();
+            connectionId = await integration.connectMcpClient();
             const abortController = new AbortController();
 
             const findPromise = runSlowFind(abortController.signal);
@@ -520,10 +578,10 @@ describeWithMongoDB(
             expect(result).toBeUndefined();
             expectDefined(error);
             expect(error.message).toContain("This operation was aborted");
-        }, 5000);
+        });
 
         it("should abort find operation during cursor iteration", async () => {
-            await integration.connectMcpClient();
+            connectionId = await integration.connectMcpClient();
             const abortController = new AbortController();
 
             // Start a query with regex and complex filter that requires scanning many documents
@@ -534,16 +592,16 @@ describeWithMongoDB(
 
             const { result, error, executionTime } = await findPromise;
 
-            // Ensure it aborted after the abort timeout, but before the query would complete (~1000ms)
-            expect(executionTime).toBeGreaterThanOrEqual(200);
-            expect(executionTime).toBeLessThan(800);
+            // Ensure it aborted quickly, but possibly after some processing
+            expect(executionTime).toBeGreaterThanOrEqual(250);
+            expect(executionTime).toBeLessThan(450);
             expect(result).toBeUndefined();
             expectDefined(error);
             expect(error.message).toContain("This operation was aborted");
         });
 
         it("should complete successfully when not aborted", async () => {
-            await integration.connectMcpClient();
+            connectionId = await integration.connectMcpClient();
 
             const { result, error, executionTime } = await runSlowFind();
 
@@ -553,9 +611,11 @@ describeWithMongoDB(
             expect(error).toBeUndefined();
             const content = getResponseContent(result);
             expect(content).toContain('Query on collection "abort_collection"');
-        }, 15000);
+            expect(result?.structuredContent).toBeDefined();
+        });
     },
     {
+        // The slow-query tests rely on $where, which is a server-side JS operator.
         getUserConfig: () => ({ ...defaultTestConfig, disableServerSideJs: false }),
     }
 );
@@ -571,20 +631,15 @@ describeWithMongoDB(
         });
 
         it("should return results when maxTimeMS is sufficient", async () => {
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "find",
-                arguments: {
-                    database: integration.randomDbName(),
-                    collection: "foo",
-                    filter: {},
-                },
+                arguments: { connectionId, database: integration.randomDbName(), collection: "foo", filter: {} },
             });
 
             const content = getResponseContent(response);
             expect(content).toContain('Query on collection "foo"');
-            const docs = getDocsFromUntrustedContent(content);
-            expect(docs.length).toEqual(5);
+            expectFindStructuredContent(response, content, { count: 5 });
         });
     },
     {
@@ -603,10 +658,11 @@ describeWithMongoDB(
         });
 
         it("should fail when maxTimeMS is too low for a slow query", async () => {
-            await integration.connectMcpClient();
+            const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "find",
                 arguments: {
+                    connectionId,
                     database: integration.randomDbName(),
                     collection: "foo",
                     filter: {
@@ -617,9 +673,70 @@ describeWithMongoDB(
 
             const content = getResponseContent(response);
             expect(content).toContain("operation exceeded time limit");
-        }, 10000);
+            expect(response.structuredContent).toBeUndefined();
+        });
     },
     {
         getUserConfig: () => ({ ...defaultTestConfig, maxTimeMS: 100, disableServerSideJs: false }),
     }
 );
+
+describeWithMongoDB("find tool with server-side JavaScript operators", (integration) => {
+    afterEach(() => {
+        integration.mcpServer().userConfig.disableServerSideJs = true;
+    });
+
+    beforeEach(async () => {
+        await integration
+            .mongoClient()
+            .db(integration.randomDbName())
+            .collection("people")
+            .insertMany([
+                { name: "Peter", age: 5 },
+                { name: "Laura", age: 10 },
+            ]);
+    });
+
+    for (const jsDisabled of [true, false]) {
+        it(`${jsDisabled ? "rejects" : "allows"} filters using $where when disableServerSideJs is ${jsDisabled}`, async () => {
+            integration.mcpServer().userConfig.disableServerSideJs = jsDisabled;
+            const connectionId = await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "find",
+                arguments: {
+                    connectionId,
+                    database: integration.randomDbName(),
+                    collection: "people",
+                    filter: { $where: "function() { return this.age > 8; }" },
+                },
+            });
+            const content = getResponseContent(response);
+            if (jsDisabled) {
+                expect(content).toContain(`The "$where" operator is not allowed.`);
+            } else {
+                expect(content).not.toContain("server-side JavaScript operators");
+                expect(content).toContain('Query on collection "people"');
+                expectFindStructuredContent(response, content, {
+                    documents: [expect.objectContaining({ name: "Laura", age: 10 })],
+                });
+            }
+        });
+    }
+
+    it("rejects a projection using $function when disableServerSideJs is true", async () => {
+        integration.mcpServer().userConfig.disableServerSideJs = true;
+        const connectionId = await integration.connectMcpClient();
+        const response = await integration.mcpClient().callTool({
+            name: "find",
+            arguments: {
+                connectionId,
+                database: integration.randomDbName(),
+                collection: "people",
+                filter: {},
+                projection: { computed: { $function: { body: "function() { return 1; }", args: [], lang: "js" } } },
+            },
+        });
+        const content = getResponseContent(response);
+        expect(content).toContain(`The "$function" operator is not allowed.`);
+    });
+});

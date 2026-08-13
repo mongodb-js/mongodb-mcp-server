@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { StreamsToolBase } from "../../streams/streamsToolBase.js";
 import type { CallToolResult, OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
-import type { ElicitRequestFormParams } from "@modelcontextprotocol/sdk/types.js";
+import type { ElicitRequestFormParams, ProgressToken } from "@modelcontextprotocol/sdk/types.js";
 import type { ToolArgs } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
 import { ConnectionConfig, PrivateLinkConfig, StreamsArgs } from "../../streams/streamsArgs.js";
@@ -18,8 +18,6 @@ const ConnectionType = z.enum([
     "SchemaRegistry",
     "Sample",
 ]);
-
-const CloudProvider = z.enum(["AWS", "AZURE", "GCP"]);
 
 interface FieldSchema {
     title: string;
@@ -125,7 +123,9 @@ export class StreamsBuildTool extends StreamsToolBase {
             ),
 
         // Workspace fields
-        cloudProvider: CloudProvider.optional().describe("Cloud provider. Required when resource='workspace'."),
+        cloudProvider: AtlasArgs.cloudProvider()
+            .optional()
+            .describe("Cloud provider. Required when resource='workspace'."),
         region: AtlasArgs.region()
             .optional()
             .describe(
@@ -318,7 +318,7 @@ export class StreamsBuildTool extends StreamsToolBase {
 
         const config = { ...ConnectionConfig.parse(args.connectionConfig ?? {}) };
 
-        const missingInfo = await this.normalizeAndValidateConnectionConfig(config, args.connectionType);
+        const missingInfo = await this.normalizeAndValidateConnectionConfig(config, args.connectionType, context);
         if (missingInfo) {
             return missingInfo;
         }
@@ -366,27 +366,31 @@ export class StreamsBuildTool extends StreamsToolBase {
      */
     private async normalizeAndValidateConnectionConfig(
         config: Record<string, unknown>,
-        connectionType: string
+        connectionType: string,
+        context: ToolExecutionContext
     ): Promise<CallToolResult | null> {
         switch (connectionType) {
             case "Kafka":
-                return this.validateKafkaConfig(config);
+                return this.validateKafkaConfig(config, context);
             case "Cluster":
-                return this.validateClusterConfig(config);
+                return this.validateClusterConfig(config, context);
             case "S3":
             case "AWSKinesisDataStreams":
             case "AWSLambda":
-                return this.validateAwsConfig(config, connectionType);
+                return this.validateAwsConfig(config, connectionType, context);
             case "SchemaRegistry":
-                return this.validateSchemaRegistryConfig(config);
+                return this.validateSchemaRegistryConfig(config, context);
             case "Https":
-                return this.validateHttpsConfig(config);
+                return this.validateHttpsConfig(config, context);
             default:
                 return null;
         }
     }
 
-    private async validateKafkaConfig(config: Record<string, unknown>): Promise<CallToolResult | null> {
+    private async validateKafkaConfig(
+        config: Record<string, unknown>,
+        context: ToolExecutionContext
+    ): Promise<CallToolResult | null> {
         const auth = config.authentication as Record<string, unknown> | undefined;
         const security = config.security as Record<string, unknown> | undefined;
 
@@ -402,7 +406,7 @@ export class StreamsBuildTool extends StreamsToolBase {
             return null;
         }
 
-        return this.elicitOrReportMissing("Kafka", config, missingFields, (fields, cfg) => {
+        return this.elicitOrReportMissing("Kafka", config, missingFields, context, (fields, cfg) => {
             if (fields.bootstrapServers) cfg.bootstrapServers = fields.bootstrapServers;
             if (!cfg.authentication) cfg.authentication = {};
             const authObj = cfg.authentication as Record<string, unknown>;
@@ -415,7 +419,10 @@ export class StreamsBuildTool extends StreamsToolBase {
         });
     }
 
-    private async validateClusterConfig(config: Record<string, unknown>): Promise<CallToolResult | null> {
+    private async validateClusterConfig(
+        config: Record<string, unknown>,
+        context: ToolExecutionContext
+    ): Promise<CallToolResult | null> {
         const missingFields = StreamsBuildTool.collectMissingFields([
             { key: "clusterName", present: !!config.clusterName, schema: CLUSTER_FIELDS.clusterName },
         ]);
@@ -429,14 +436,15 @@ export class StreamsBuildTool extends StreamsToolBase {
             return null;
         }
 
-        return this.elicitOrReportMissing("Cluster", config, missingFields, (fields, cfg) => {
+        return this.elicitOrReportMissing("Cluster", config, missingFields, context, (fields, cfg) => {
             if (fields.clusterName) cfg.clusterName = fields.clusterName;
         });
     }
 
     private async validateAwsConfig(
         config: Record<string, unknown>,
-        connectionType: string
+        connectionType: string,
+        context: ToolExecutionContext
     ): Promise<CallToolResult | null> {
         const aws = config.aws as Record<string, unknown> | undefined;
 
@@ -452,6 +460,7 @@ export class StreamsBuildTool extends StreamsToolBase {
             connectionType,
             config,
             missingFields,
+            context,
             (fields, cfg) => {
                 if (fields.roleArn) {
                     if (!cfg.aws) cfg.aws = {};
@@ -464,7 +473,10 @@ export class StreamsBuildTool extends StreamsToolBase {
         );
     }
 
-    private async validateSchemaRegistryConfig(config: Record<string, unknown>): Promise<CallToolResult | null> {
+    private async validateSchemaRegistryConfig(
+        config: Record<string, unknown>,
+        context: ToolExecutionContext
+    ): Promise<CallToolResult | null> {
         // Normalize common alternative key names for schemaRegistryUrls
         if (!config.schemaRegistryUrls) {
             const alt = config.url || config.urls || config.endpoint || config.schemaRegistryUrl;
@@ -527,7 +539,7 @@ export class StreamsBuildTool extends StreamsToolBase {
             return null;
         }
 
-        return this.elicitOrReportMissing("SchemaRegistry", config, missingFields, (fields, cfg) => {
+        return this.elicitOrReportMissing("SchemaRegistry", config, missingFields, context, (fields, cfg) => {
             if (fields.schemaRegistryUrl) {
                 cfg.schemaRegistryUrls = [fields.schemaRegistryUrl];
             }
@@ -537,7 +549,10 @@ export class StreamsBuildTool extends StreamsToolBase {
         });
     }
 
-    private async validateHttpsConfig(config: Record<string, unknown>): Promise<CallToolResult | null> {
+    private async validateHttpsConfig(
+        config: Record<string, unknown>,
+        context: ToolExecutionContext
+    ): Promise<CallToolResult | null> {
         const missingFields = StreamsBuildTool.collectMissingFields([
             { key: "url", present: !!config.url, schema: HTTPS_FIELDS.url },
         ]);
@@ -546,7 +561,7 @@ export class StreamsBuildTool extends StreamsToolBase {
             return null;
         }
 
-        return this.elicitOrReportMissing("Https", config, missingFields, (fields, cfg) => {
+        return this.elicitOrReportMissing("Https", config, missingFields, context, (fields, cfg) => {
             if (fields.url) cfg.url = fields.url;
         });
     }
@@ -562,15 +577,22 @@ export class StreamsBuildTool extends StreamsToolBase {
         connectionType: string,
         config: Record<string, unknown>,
         missingFields: MissingField[],
+        context: ToolExecutionContext,
         applyFields: (fields: Record<string, string>, config: Record<string, unknown>) => void,
         additionalNote?: string
     ): Promise<CallToolResult | null> {
         const schema = StreamsBuildTool.buildElicitationSchema(connectionType, missingFields);
 
-        const elicited = await this.elicitation.requestInput({
-            message: `The following information is required to create the ${connectionType} connection.`,
+        const elicited = await this.elicitation.requestInput(
+            `The following information is required to create the ${connectionType} connection.`,
             schema,
-        });
+            {
+                relatedRequestId: this.elicitationRelatedRequestId(context),
+                progressToken: context._meta?.progressToken as ProgressToken | undefined,
+                sendNotification: context.sendNotification,
+                signal: context.signal,
+            }
+        );
 
         if (elicited.accepted) {
             applyFields(elicited.fields, config);

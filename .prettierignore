@@ -6,6 +6,7 @@ packages/ui/src/lib/tools/*
 packages/ui/src/lib/loaders.ts
 **/reports/*.api.md
 **/reports/*.api.json
+THIRD_PARTY_NOTICES.md
 .github/workflows/*.lock.yml
 **/packaging/mcpb/manifest.json
 pnpm-lock.yaml

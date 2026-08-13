@@ -14,6 +14,7 @@
     "generate:release-notes": "./generate-release-notes.sh",
     "filter:openapi": "tsx src/filter.ts",
     "apply:openapi": "tsx src/apply.ts",
+    "create-dependency-sbom-lists": "tsx src/sbomReport/index.ts",
     "check": "tsc --build tsconfig.build.json --noEmit"
   },
   "devDependencies": {

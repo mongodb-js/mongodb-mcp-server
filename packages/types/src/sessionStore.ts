@@ -1,3 +1,4 @@
+import type { ClientCapabilities, Implementation } from "@modelcontextprotocol/sdk/types.js";
 import type { ILogger, ICompositeLogger } from "./logging.js";
 import type { IMetrics, DefaultMetricDefinitions } from "./metrics.js";
 
@@ -5,7 +6,19 @@ export type CloseableTransport = {
     close(): Promise<void>;
 };
 
-export type SessionCloseReason = "idle_timeout" | "transport_closed" | "server_stop" | "unknown";
+export type SessionCloseReason = "idle_timeout" | "transport_closed" | "server_stop" | "unknown" | "evicted";
+
+/**
+ * The client state negotiated during MCP initialization. Stores that persist
+ * it durably allow an implicitly re-initialized session (one restored on a
+ * pod that never saw the client's `initialize` request) to retain the
+ * client's capabilities -- e.g. whether it supports elicitation -- instead of
+ * treating the restored client as capability-less.
+ */
+export type NegotiatedClientState = {
+    clientCapabilities?: ClientCapabilities;
+    clientInfo?: Implementation;
+};
 
 export interface ISessionStore<T extends CloseableTransport = CloseableTransport> {
     /**
@@ -39,10 +52,44 @@ export interface ISessionStore<T extends CloseableTransport = CloseableTransport
     }): Promise<void>;
     closeSession(params: { sessionId: string; reason?: SessionCloseReason }): Promise<void>;
     closeAllSessions(): Promise<void>;
+    /**
+     * Durably records the client state negotiated during a real MCP
+     * initialization, so it can be restored when the session is later
+     * implicitly re-initialized (only relevant with
+     * `externallyManagedSessions`). Stores without durable storage can
+     * implement this as a no-op.
+     */
+    saveNegotiatedClientState(
+        sessionId: string,
+        state: NegotiatedClientState,
+        headers?: Record<string, unknown>
+    ): Promise<void>;
+    /**
+     * Returns the previously saved negotiated client state for the session,
+     * or `undefined` when unknown.
+     */
+    loadNegotiatedClientState(
+        sessionId: string,
+        headers?: Record<string, unknown>
+    ): Promise<NegotiatedClientState | undefined>;
 }
 
 export type SessionStoreConstructorArgs<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
-    options: { idleTimeoutMS: number; notificationTimeoutMS: number; maxSessions: number };
+    options: {
+        idleTimeoutMS: number;
+        notificationTimeoutMS: number;
+        maxSessions: number;
+        /**
+         * When the store is at `maxSessions` and a new session arrives, evict the
+         * least-recently-used session instead of rejecting -- but only if it has been
+         * idle for at least this long (ms). Must be < `idleTimeoutMS` (the background
+         * reaper already removes anything past that), or the valve never fires. If a
+         * session idle >= this exists, it is closed locally to make room; otherwise
+         * the new session is rejected. Defaults to 120_000 (2 min), clamped to
+         * `idleTimeoutMS`.
+         */
+        evictionIdleGraceMS?: number;
+    };
     logger: ILogger;
     metrics: IMetrics<TMetrics>;
 };

@@ -1,4 +1,5 @@
 import { expectDefined, getResponseContent, sleep } from "../../integrationHelpers.js";
+import type { Session } from "@mongodb-js/mcp-cli";
 import type { ConnectClusterOutput } from "@mongodb-js/mcp-tools-atlas";
 import {
     describeWithAtlas,
@@ -11,6 +12,18 @@ import {
 } from "./atlasHelpers.js";
 import { afterAll, beforeAll, describe, expect, it, vitest } from "vitest";
 
+function isAzureCMKTestConfigMissing(): boolean {
+    return (
+        !process.env.MDB_MCP_AZURE_CMK_SUBSCRIPTION_ID ||
+        !process.env.MDB_MCP_AZURE_CMK_TENANT_ID ||
+        !process.env.MDB_MCP_AZURE_CMK_ATLAS_APP_ID ||
+        !process.env.MDB_MCP_AZURE_CMK_SERVICE_PRINCIPAL_ID ||
+        !process.env.MDB_MCP_AZURE_CMK_RESOURCE_GROUP_NAME ||
+        !process.env.MDB_MCP_AZURE_CMK_KEY_VAULT_NAME ||
+        !process.env.MDB_MCP_AZURE_CMK_KEY_IDENTIFIER
+    );
+}
+
 describeWithAtlas("clusters", (integration) => {
     withProject(integration, ({ getProjectId, getIpAddress }) => {
         const clusterName = "ClusterTest-" + randomId();
@@ -18,7 +31,7 @@ describeWithAtlas("clusters", (integration) => {
         afterAll(async () => {
             const projectId = getProjectId();
             if (projectId) {
-                const session = integration.mcpServer().session;
+                const session: Session = integration.mcpServer().session;
                 await deleteCluster(session, projectId, clusterName);
             }
         });
@@ -54,6 +67,11 @@ describeWithAtlas("clusters", (integration) => {
                 expect(content).toContain("has been created");
                 expect(content).toContain("US_EAST_1");
 
+                expectDefined(response.structuredContent);
+                expect(response.structuredContent).toEqual({
+                    created: true,
+                });
+
                 assertApiClientIsAvailable(session);
                 // Check that the current IP is present in the access list
                 const accessList = await session.apiClient.listAccessListEntries({
@@ -87,6 +105,22 @@ describeWithAtlas("clusters", (integration) => {
                 expect(content).toContain("Cluster details:");
                 expect(content).toContain("<untrusted-user-data-");
                 expect(content).toContain(clusterName);
+                expect(content).toContain('"provider"');
+                expect(content).toContain('"region"');
+                expect(content).toContain('"paused"');
+
+                expectDefined(response.structuredContent);
+                expect(response.structuredContent).toMatchObject({
+                    name: clusterName,
+                    instanceType: "FREE",
+                    instanceSize: "N/A",
+                    provider: "AWS",
+                    region: "US_EAST_1",
+                    paused: false,
+                    mongoDBVersion: expect.any(String) as string,
+                    state: expect.any(String) as string,
+                    connectionStrings: expect.any(Object) as Record<string, string>,
+                });
             });
         });
 
@@ -117,6 +151,20 @@ describeWithAtlas("clusters", (integration) => {
                 expect(content).toContain(projectId);
                 expect(listClustersSpy).toHaveBeenCalledTimes(1);
                 expect(listFlexClustersSpy).toHaveBeenCalledTimes(1);
+
+                expectDefined(response.structuredContent);
+                const structuredContent = response.structuredContent as {
+                    projectId: string;
+                    totalCount: number;
+                    clusters: Array<{ name?: string; instanceType?: string }>;
+                };
+                expect(structuredContent.projectId).toBe(projectId);
+                expect(structuredContent.totalCount).toBeGreaterThanOrEqual(1);
+                expect(
+                    structuredContent.clusters.some(
+                        (cluster) => cluster.name === clusterName && cluster.instanceType === "FREE"
+                    )
+                ).toBe(true);
             });
 
             it("returns clusters when listFlexClusters fails", async () => {
@@ -134,6 +182,16 @@ describeWithAtlas("clusters", (integration) => {
                 const content = getResponseContent(response.content);
                 expect(content).toMatch(/Found \d+ clusters in project/);
                 expect(content).toContain(projectId);
+
+                expectDefined(response.structuredContent);
+                const structuredContent = response.structuredContent as {
+                    projectId: string;
+                    totalCount: number;
+                    clusters: Array<{ name?: string }>;
+                };
+                expect(structuredContent.projectId).toBe(projectId);
+                expect(structuredContent.totalCount).toBeGreaterThanOrEqual(1);
+                expect(structuredContent.clusters.some((cluster) => cluster.name === clusterName)).toBe(true);
             });
 
             it("returns clusters when listClusters fails", async () => {
@@ -148,6 +206,16 @@ describeWithAtlas("clusters", (integration) => {
 
                 const content = getResponseContent(response.content);
                 expect(content).toBeDefined();
+
+                expectDefined(response.structuredContent);
+                const structuredContent = response.structuredContent as {
+                    projectId: string;
+                    totalCount: number;
+                    clusters: unknown[];
+                };
+                expect(structuredContent.projectId).toBe(projectId);
+                expect(typeof structuredContent.totalCount).toBe("number");
+                expect(Array.isArray(structuredContent.clusters)).toBe(true);
             });
 
             it("returns a successful empty result when no clusters exist across all projects", async () => {
@@ -159,6 +227,10 @@ describeWithAtlas("clusters", (integration) => {
 
                 expect(response.isError).toBeFalsy();
                 expect(getResponseContent(response.content)).toContain("No clusters found.");
+                expect(response.structuredContent).toEqual({
+                    clusters: [],
+                    totalCount: 0,
+                });
             });
         });
 
@@ -216,18 +288,22 @@ describeWithAtlas("clusters", (integration) => {
                     });
 
                     const content = getResponseContent(response.content);
-                    expect(content).toContain("Connected to cluster");
                     expect(content).toContain(clusterName);
                     const structuredContent = response.structuredContent as ConnectClusterOutput;
                     if (content.includes(`Connected to cluster "${clusterName}"`)) {
                         connected = true;
 
+                        // Repeat calls reuse the in-flight entry, so however many
+                        // polls it took, exactly one temporary user exists.
                         expect(createDatabaseUserSpy).toHaveBeenCalledTimes(1);
 
-                        // assert that some of the element s have the message
-                        expect(content).toContain(
-                            "Note: A temporary user has been created to enable secure connection to the cluster. For more information, see https://dochub.mongodb.org/core/mongodb-mcp-server-tools-considerations"
-                        );
+                        // The temporary-user note is attached by the call that
+                        // provisioned the user — the first one.
+                        if (structuredContent.createdTemporaryUser) {
+                            expect(content).toContain(
+                                "Note: A temporary user has been created to enable secure connection to the cluster. For more information, see https://dochub.mongodb.org/core/mongodb-mcp-server-tools-considerations"
+                            );
+                        }
 
                         // structuredContent must mirror content
                         expect(structuredContent.state).toBe("connected");
@@ -241,7 +317,7 @@ describeWithAtlas("clusters", (integration) => {
 
                         break;
                     } else {
-                        expect(content).toContain(`Attempting to connect to cluster "${clusterName}"...`);
+                        expect(content).toContain(`Attempting to connect to cluster "${clusterName}"`);
                         expect(structuredContent.state).toBe("connecting");
                     }
                     await sleep(500);
@@ -253,6 +329,8 @@ describeWithAtlas("clusters", (integration) => {
                 withCluster(
                     integration,
                     ({ getProjectId: getSecondaryProjectId, getClusterName: getSecondaryClusterName }) => {
+                        let secondaryConnectionId: string;
+
                         beforeAll(async () => {
                             let connected = false;
                             for (let i = 0; i < 10; i++) {
@@ -269,6 +347,8 @@ describeWithAtlas("clusters", (integration) => {
 
                                 if (content.includes(`Connected to cluster "${getSecondaryClusterName()}"`)) {
                                     connected = true;
+                                    secondaryConnectionId = (response.structuredContent as ConnectClusterOutput)
+                                        .connectionId;
                                     break;
                                 }
 
@@ -280,18 +360,14 @@ describeWithAtlas("clusters", (integration) => {
                             }
                         });
 
-                        it("disconnects and deletes the database user before connecting to another cluster", async () => {
+                        it("deletes the temporary database user when the connection is disconnected", async () => {
                             const session = integration.mcpServer().session;
                             assertApiClientIsAvailable(session);
                             const deleteDatabaseUserSpy = vitest.spyOn(session.apiClient, "deleteDatabaseUser");
 
                             await integration.mcpClient().callTool({
-                                name: "atlas-connect-cluster",
-                                arguments: {
-                                    projectId: getProjectId(),
-                                    clusterName: clusterName,
-                                    connectionType: "standard",
-                                },
+                                name: "disconnect",
+                                arguments: { connectionId: secondaryConnectionId },
                             });
 
                             expect(deleteDatabaseUserSpy).toHaveBeenCalledTimes(1);
@@ -302,18 +378,23 @@ describeWithAtlas("clusters", (integration) => {
 
             describe("when not connected", () => {
                 beforeAll(async () => {
-                    await integration.mcpServer().session.disconnect();
+                    const registry = integration.mcpServer().session.connectionRegistry;
+                    for (const entry of await registry.find(() => true)) {
+                        await registry.disconnect(entry.connectionId);
+                    }
                 });
 
-                it("prompts for atlas-connect-cluster when querying mongodb", async () => {
+                it("prompts for atlas-connect-cluster when querying mongodb with an unknown connectionId", async () => {
                     const response = await integration.mcpClient().callTool({
                         name: "find",
-                        arguments: { database: "some-db", collection: "some-collection" },
+                        arguments: {
+                            connectionId: "unknown-connection-id",
+                            database: "some-db",
+                            collection: "some-collection",
+                        },
                     });
                     const content = getResponseContent(response.content);
-                    expect(content).toContain(
-                        "You need to connect to a MongoDB instance before you can access its data."
-                    );
+                    expect(content).toContain('Connection "unknown-connection-id" does not exist or has expired.');
                     // Check if the response contains all available test tools.
                     if (process.platform === "darwin" && process.env.GITHUB_ACTIONS === "true") {
                         // The tool atlas-local-connect-deployment may be disabled in some test environments if Docker is not available.
@@ -362,39 +443,284 @@ describeWithAtlas("clusters", (integration) => {
                 });
             });
 
-            // Simulates being "connected" to the outer cluster (created by atlas-create-free-cluster above).
-            // The session state is patched so the tool picks up projectId/clusterName without explicit args,
-            // then makes a real upgrade API call against that outer cluster.
-            describe("when connected to the cluster being upgraded", () => {
-                beforeAll(() => {
-                    const session = integration.mcpServer().session;
-                    (session.connectionManager as unknown as { state: unknown }).state = {
-                        tag: "disconnected",
-                        connectedAtlasCluster: {
-                            username: "testuser",
-                            projectId: getProjectId(),
-                            clusterName,
-                            instanceType: "FREE" as const,
-                            provider: "AWS",
-                            region: "US_EAST_1",
-                            expiryDate: new Date(Date.now() + 3_600_000),
-                        },
-                    };
-                });
+            withCluster(integration, ({ getProjectId: getScaleProjectId, getClusterName: getScaleClusterName }) => {
+                // A separate cluster fixture: upgrades it (Free -> M10 Dedicated) then scales
+                // it in place, testing both functionalities of this tool against one cluster.
+                describe("scaling an already-Dedicated cluster", () => {
+                    it("upgrades to M10 then scales to a larger instance size", async () => {
+                        const projectId = getScaleProjectId();
+                        const scaleClusterName = getScaleClusterName();
+                        const session = integration.mcpServer().session;
+                        const pollingInterval = 10000;
+                        const maxPollingIterations = 120;
 
-                afterAll(() => {
-                    const session = integration.mcpServer().session;
-                    (session.connectionManager as unknown as { state: unknown }).state = { tag: "disconnected" };
-                });
+                        const upgradeResponse = await integration.mcpClient().callTool({
+                            name: "atlas-upgrade-cluster",
+                            arguments: { projectId, clusterName: scaleClusterName, targetTier: "M10" },
+                        });
+                        expect(upgradeResponse.isError).toBeFalsy();
 
-                it("upgrades FREE cluster to FLEX using session state without explicit params", async () => {
-                    const response = await integration.mcpClient().callTool({
-                        name: "atlas-upgrade-cluster",
-                        arguments: {},
+                        await waitCluster(
+                            session,
+                            projectId,
+                            scaleClusterName,
+                            (c) => c.stateName === "IDLE",
+                            pollingInterval,
+                            maxPollingIterations
+                        );
+
+                        const scaleResponse = await integration.mcpClient().callTool({
+                            name: "atlas-upgrade-cluster",
+                            arguments: { projectId, clusterName: scaleClusterName, targetTier: "M20" },
+                        });
+
+                        expect(scaleResponse.isError).toBeFalsy();
+                        const content = getResponseContent(scaleResponse.content);
+                        expect(content).toContain(scaleClusterName);
+                        expect(content).toContain("M20");
+                        expect(scaleResponse.structuredContent).toMatchObject({
+                            originalTier: "M10",
+                            targetTier: "M20",
+                        });
+
+                        await waitCluster(
+                            session,
+                            projectId,
+                            scaleClusterName,
+                            (c) => c.stateName === "IDLE",
+                            pollingInterval,
+                            maxPollingIterations
+                        );
                     });
-                    const content = getResponseContent(response.content);
-                    expect(content).toContain(clusterName);
-                    expect(content).toContain("being upgraded");
+                });
+            });
+        });
+    });
+
+    withProject(integration, ({ getProjectId }) => {
+        let clusterName = "";
+
+        afterAll(async () => {
+            const projectId = getProjectId();
+            if (projectId && clusterName) {
+                const session: Session = integration.mcpServer().session;
+                await deleteCluster(session, projectId, clusterName);
+            }
+            clusterName = "";
+        });
+
+        describe("atlas-create-cluster", () => {
+            it("should have correct metadata", async () => {
+                const { tools } = await integration.mcpClient().listTools();
+                const tool = tools.find((t) => t.name === "atlas-create-cluster");
+
+                expectDefined(tool);
+                expect(tool.inputSchema.type).toBe("object");
+                expectDefined(tool.inputSchema.properties);
+
+                const properties = tool.inputSchema.properties;
+                expect(properties).toHaveProperty("projectId");
+                expect(properties).toHaveProperty("clusterName");
+                expect(properties).toHaveProperty("provider");
+                expect(properties).toHaveProperty("regions");
+                expect(properties).toHaveProperty("clusterType");
+                expect(properties).toHaveProperty("instanceSize");
+                expect(properties).toHaveProperty("computeAutoScaling");
+                expect(properties).toHaveProperty("diskSizeGB");
+                expect(properties).toHaveProperty("mongoDBVersion");
+                expect(properties).toHaveProperty("backup");
+                expect(properties).toHaveProperty("terminationProtectionEnabled");
+                expect(properties).toHaveProperty("encryptionAtRestProvider");
+
+                const required = tool.inputSchema.required as string[];
+                expect(required).toContain("projectId");
+                expect(required).toContain("clusterName");
+                expect(required).toContain("provider");
+                expect(required).toContain("regions");
+            });
+
+            it("creates a multi-region dedicated cluster", async () => {
+                clusterName = "ClusterTest-" + randomId();
+                const projectId = getProjectId();
+
+                const response = await integration.mcpClient().callTool({
+                    name: "atlas-create-cluster",
+                    arguments: {
+                        projectId,
+                        clusterName,
+                        provider: "AWS",
+                        regions: ["US_EAST_1", "US_WEST_2"],
+                        instanceSize: "M10",
+                        diskSizeGB: 20,
+                        encryptionAtRestProvider: "NONE",
+                    },
+                });
+
+                expect(response.isError).toBeFalsy();
+
+                const content = getResponseContent(response.content);
+                expect(content).toContain(clusterName);
+                expect(content).toContain(projectId);
+                expect(content).toContain("US_EAST_1, US_WEST_2");
+                expect(content).toContain("atlas-inspect-cluster");
+                expect(content).toContain("IDLE");
+
+                expect(response.structuredContent).toMatchObject({
+                    provider: "AWS",
+                    regions: ["US_EAST_1", "US_WEST_2"],
+                    instanceSize: "M10",
+                    clusterType: "REPLICASET",
+                    mongoDBVersion: "LATEST",
+                    backup: "SNAPSHOT",
+                    computeAutoScaling: true,
+                    terminationProtectionEnabled: false,
+                    diskSizeGB: 20,
+                    encryptionAtRestProvider: "NONE",
+                });
+            });
+
+            it.skipIf(isAzureCMKTestConfigMissing())(
+                "defaults encryption at rest to Azure when the project has a valid Azure configuration",
+                async () => {
+                    clusterName = "ClusterCMKTest-" + randomId();
+                    const subscriptionId = process.env.MDB_MCP_AZURE_CMK_SUBSCRIPTION_ID;
+                    const tenantId = process.env.MDB_MCP_AZURE_CMK_TENANT_ID;
+                    const atlasAzureAppId = process.env.MDB_MCP_AZURE_CMK_ATLAS_APP_ID;
+                    const servicePrincipalId = process.env.MDB_MCP_AZURE_CMK_SERVICE_PRINCIPAL_ID;
+                    const resourceGroupName = process.env.MDB_MCP_AZURE_CMK_RESOURCE_GROUP_NAME;
+                    const keyVaultName = process.env.MDB_MCP_AZURE_CMK_KEY_VAULT_NAME;
+                    const keyIdentifier = process.env.MDB_MCP_AZURE_CMK_KEY_IDENTIFIER;
+
+                    const projectId = getProjectId();
+                    const session = integration.mcpServer().session;
+                    assertApiClientIsAvailable(session);
+
+                    const providerAccess: unknown = await session.apiClient.createCloudProviderAccess({
+                        params: { path: { groupId: projectId } },
+                        body: {
+                            providerName: "AZURE",
+                            atlasAzureAppId,
+                            servicePrincipalId,
+                            tenantId,
+                        } as never,
+                    });
+                    const roleId = (providerAccess as { _id?: string })._id;
+                    expectDefined(roleId);
+
+                    await session.apiClient.authorizeProviderAccessRole({
+                        params: { path: { groupId: projectId, roleId } },
+                        body: {
+                            providerName: "AZURE",
+                            atlasAzureAppId,
+                            servicePrincipalId,
+                            tenantId,
+                        } as never,
+                    });
+
+                    const encryptionAtRest = await session.apiClient.updateEncryptionAtRest({
+                        params: { path: { groupId: projectId } },
+                        body: {
+                            azureKeyVault: {
+                                enabled: true,
+                                azureEnvironment: "AZURE",
+                                roleId,
+                                subscriptionID: subscriptionId,
+                                resourceGroupName,
+                                keyVaultName,
+                                keyIdentifier,
+                            },
+                        } as never,
+                    });
+                    expect(encryptionAtRest.azureKeyVault).toMatchObject({ enabled: true, valid: true });
+
+                    const response = await integration.mcpClient().callTool({
+                        name: "atlas-create-cluster",
+                        arguments: {
+                            projectId,
+                            clusterName: clusterName,
+                            provider: "AZURE",
+                            regions: ["US_EAST_2"],
+                            instanceSize: "M10",
+                        },
+                    });
+
+                    expect(response.isError).toBeFalsy();
+                    expect(response.structuredContent).toMatchObject({
+                        encryptionAtRestProvider: "AZURE",
+                    });
+                }
+            );
+        });
+
+        describe("atlas-pause-resume-cluster", () => {
+            it("should have correct metadata", async () => {
+                const { tools } = await integration.mcpClient().listTools();
+                const tool = tools.find((t) => t.name === "atlas-pause-resume-cluster");
+
+                expectDefined(tool);
+                expect(tool.inputSchema.type).toBe("object");
+                expectDefined(tool.inputSchema.properties);
+                expect(tool.inputSchema.properties).toHaveProperty("projectId");
+                expect(tool.inputSchema.properties).toHaveProperty("clusterName");
+                expect(tool.inputSchema.properties).toHaveProperty("action");
+
+                const required = tool.inputSchema.required as string[];
+                expect(required).toContain("projectId");
+                expect(required).toContain("clusterName");
+                expect(required).toContain("action");
+            });
+
+            it("pauses and resumes a dedicated cluster", async () => {
+                const projectId = getProjectId();
+                const session = integration.mcpServer().session;
+                const pollingInterval = 10000;
+                const maxPollingIterations = 120;
+
+                await waitCluster(
+                    session,
+                    projectId,
+                    clusterName,
+                    (c) => c.stateName === "IDLE",
+                    pollingInterval,
+                    maxPollingIterations
+                );
+
+                const pauseResponse = await integration.mcpClient().callTool({
+                    name: "atlas-pause-resume-cluster",
+                    arguments: { projectId, clusterName, action: "PAUSE" },
+                });
+                expect(pauseResponse.isError).toBeFalsy();
+                const pauseContent = getResponseContent(pauseResponse.content);
+                expect(pauseContent).toContain(clusterName);
+                expect(pauseContent).toContain(projectId);
+                expect(pauseContent).toContain("paused");
+                expect(pauseResponse.structuredContent).toMatchObject({
+                    clusterName,
+                    action: "PAUSE",
+                });
+
+                await waitCluster(
+                    session,
+                    projectId,
+                    clusterName,
+                    (c) => c.paused === true,
+                    pollingInterval,
+                    maxPollingIterations
+                );
+
+                const resumeResponse = await integration.mcpClient().callTool({
+                    name: "atlas-pause-resume-cluster",
+                    arguments: { projectId, clusterName, action: "RESUME" },
+                });
+                expect(resumeResponse.isError).toBeFalsy();
+                const resumeContent = getResponseContent(resumeResponse.content);
+                expect(resumeContent).toContain(clusterName);
+                expect(resumeContent).toContain(projectId);
+                expect(resumeContent).toContain("atlas-inspect-cluster");
+                expect(resumeContent).toContain("IDLE");
+                expect(resumeResponse.structuredContent).toMatchObject({
+                    clusterName,
+                    action: "RESUME",
                 });
             });
         });

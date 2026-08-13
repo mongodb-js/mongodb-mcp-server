@@ -1,8 +1,8 @@
-import { ReactiveResource, Keychain, redactValues } from "@mongodb-js/mcp-core";
-import type { ResourceConstructorParams } from "@mongodb-js/mcp-types";
-import type { UserConfig } from "@mongodb-js/mcp-cli";
+import { ReactiveResource, Keychain, redactValues, type AnyToolBase } from "@mongodb-js/mcp-core";
+import type { ResourceConstructorParams, IResourceServer } from "@mongodb-js/mcp-types";
+import type { UserConfig, McpSession } from "@mongodb-js/mcp-cli";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
-import type { CliSession } from "@mongodb-js/mcp-cli";
+import { connectCapableTools } from "@mongodb-js/mcp-tools-mongodb";
 
 /**
  * Removes secret material from the driver options before exposing them via the config resource.
@@ -17,12 +17,18 @@ function redactDriverOptions(driverOptions: Record<string, unknown>): Record<str
     return { ...rest, autoEncryption: "set; client-side field level encryption is configured" };
 }
 
-export class ConfigResource extends ReactiveResource<
-    UserConfig,
-    readonly [],
-    CliSession
-> {
-    constructor({ session, ...rest }: ResourceConstructorParams<CliSession>) {
+/**
+ * Host server surface the resource can read tool state from. The typed
+ * `IResourceServer` contract (see @mongodb-js/mcp-types) only exposes mcpServer
+ * and change notifications; at runtime the resource is registered by
+ * `CliServer` (see `registerResources`), which also carries the registered
+ * tools. The optional-chain cast below keeps access safe when the resource is
+ * registered by a different host.
+ */
+type ResourceServerWithTools = IResourceServer & { readonly tools?: AnyToolBase[] };
+
+export class ConfigResource extends ReactiveResource<UserConfig, readonly [], McpSession> {
+    constructor({ session, ...rest }: ResourceConstructorParams<McpSession>) {
         super({
             options: {
                 resource: {
@@ -51,8 +57,8 @@ export class ConfigResource extends ReactiveResource<
             telemetry: this.current.telemetry,
             logPath: this.current.logPath,
             connectionString: connectionInfo.connectionString
-                ? "set; access to MongoDB tools are currently available to use"
-                : "not set; before using any MongoDB tool, you need to configure a connection string, alternatively you can setup MongoDB Atlas access, more info at 'https://github.com/mongodb-js/mongodb-mcp-server'.",
+                ? 'set; a connection with the connectionId "preconfigured" is available — pass it as the connectionId argument to the MongoDB tools'
+                : `not set; before using any MongoDB tool, ${this.connectToolsGuidance()}, alternatively you can setup MongoDB Atlas access, more info at 'https://github.com/mongodb-js/mongodb-mcp-server'.`,
             connectOptions: redactDriverOptions(connectionInfo.driverOptions),
             atlas:
                 this.current.apiClientId && this.current.apiClientSecret
@@ -64,5 +70,16 @@ export class ConfigResource extends ReactiveResource<
         // the redaction applied on every logging path. Redact per-value so JSON stays valid.
         const secrets = [...this.session.keychain.allSecrets, ...Keychain.root.allSecrets];
         return JSON.stringify(redactValues(result, secrets));
+    }
+
+    private connectToolsGuidance(): string {
+        const connectToolNames = connectCapableTools(
+            (this.server as ResourceServerWithTools | undefined)?.tools ?? []
+        )
+            .map((tool) => `"${tool.name}"`)
+            .join(", ");
+        return connectToolNames
+            ? `establish a connection using one of the following tools and pass the returned connectionId to the MongoDB tools: ${connectToolNames}`
+            : "update the MCP server configuration to include a connection string";
     }
 }

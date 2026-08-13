@@ -9,10 +9,6 @@ import { Request as NodeFetchRequest } from "node-fetch";
 import type { AuthProvider } from "./auth/authProvider.js";
 import { userAgentFromServerMetadata } from "./userAgentFromServerMetadata.js";
 
-const ATLAS_API_VERSION = "2025-03-12";
-const LEGACY_ATLAS_API_VERSION = "2023-01-01";
-const DEFAULT_SEND_TIMEOUT_MS = 5_000;
-
 /**
  * Detects whether we're running on Node.js as opposed to a browser/web
  * environment. We rely on `process.versions.node` rather than `typeof process`
@@ -22,6 +18,19 @@ const DEFAULT_SEND_TIMEOUT_MS = 5_000;
 function isNodeRuntime(): boolean {
     return typeof process !== "undefined" && process.versions !== undefined && process.versions.node !== undefined;
 }
+
+/**
+ * A minimal fetch-like client, used to override the default proxy-aware
+ * `fetch`/`Request` pair used for Atlas API and OAuth token requests.
+ */
+export type HttpClient = {
+    fetch: typeof fetch;
+    Request: typeof globalThis.Request;
+};
+
+const ATLAS_API_VERSION = "2025-03-12";
+const LEGACY_ATLAS_API_VERSION = "2023-01-01";
+const DEFAULT_SEND_TIMEOUT_MS = 5_000;
 
 export interface ApiClientOptions {
     options: {
@@ -39,6 +48,13 @@ export interface ApiClientOptions {
      * setup and direct users to provide IP addresses explicitly.
      */
     supportsCurrentIpLookup?: boolean;
+    /**
+     * Overrides the default proxy-aware `fetch` used for Atlas API and OAuth token
+     * requests. Embedders that don't need environment-variable proxy support or
+     * system CA trust can inject the platform `fetch`/`Request`, which pools
+     * connections and avoids rebuilding a TLS context per request.
+     */
+    httpClient?: HttpClient;
 }
 
 /** @public */
@@ -80,8 +96,6 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
         supportsCurrentIpLookup: boolean;
     };
 
-    private customFetch: typeof fetch;
-
     private client: Client<paths>;
 
     public isAuthConfigured(): boolean {
@@ -91,16 +105,24 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     readonly logger: LoggerBase;
     readonly authProvider?: AuthProvider;
 
-    constructor({ logger, authProvider, options, serverMetadata, supportsCurrentIpLookup }: ApiClientOptions) {
+    private customFetch: typeof fetch;
+
+    constructor({
+        logger,
+        authProvider,
+        options,
+        serverMetadata,
+        supportsCurrentIpLookup,
+        httpClient,
+    }: ApiClientOptions) {
         this.logger = logger;
         this.authProvider = authProvider;
-        // In Node we use `createFetch` from devtools-proxy-support to pick up
-        // environment-variable proxy configuration and system CA trust, and we
-        // use node-fetch's Request since its interface is a superset of the
-        // web Request. In the browser those Node-only concerns don't apply and
-        // the implementations aren't available, so we fall back to the native
-        // `fetch`/`Request` globals.
-        if (isNodeRuntime()) {
+        // An injected httpClient wins over the platform detection below so that
+        // embedders can supply the platform `fetch`/`Request` (which pools
+        // connections) instead of the proxy-aware one.
+        if (httpClient) {
+            this.customFetch = httpClient.fetch;
+        } else if (isNodeRuntime()) {
             // createFetch assumes that the first parameter of fetch is always a string
             // with the URL. However, fetch can also receive a Request object. While
             // the typechecking complains, createFetch does passthrough the parameters
@@ -128,7 +150,11 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             // NodeFetchRequest has more overloadings than the native Request
             // so it complains here. However, the interfaces are actually compatible
             // so it's not a real problem, just a type checking problem.
-            Request: (isNodeRuntime() ? NodeFetchRequest : globalThis.Request) as unknown as ClientOptions["Request"],
+            Request: (httpClient
+                ? httpClient.Request
+                : isNodeRuntime()
+                  ? NodeFetchRequest
+                  : globalThis.Request) as unknown as ClientOptions["Request"],
         });
 
         if (this.authProvider) {
@@ -431,6 +457,34 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
         return data;
     }
 
+    async createCloudProviderAccess(
+        options: FetchOptions<operations["createGroupCloudProviderAccess"]>,
+        context?: ApiClientRequestContext
+    ): Promise<components["schemas"]["CloudProviderAccessRole"]> {
+        const { data, error, response } = await this.client.POST(
+            "/api/atlas/v2/groups/{groupId}/cloudProviderAccess",
+            this.applyRequestContext(options, context)
+        );
+        if (error) {
+            throw ApiClientError.fromError({ response, error });
+        }
+        return data;
+    }
+
+    async authorizeProviderAccessRole(
+        options: FetchOptions<operations["authorizeGroupCloudProviderAccessRole"]>,
+        context?: ApiClientRequestContext
+    ): Promise<components["schemas"]["CloudProviderAccessRole"]> {
+        const { data, error, response } = await this.client.PATCH(
+            "/api/atlas/v2/groups/{groupId}/cloudProviderAccess/{roleId}",
+            this.applyRequestContext(options, context)
+        );
+        if (error) {
+            throw ApiClientError.fromError({ response, error });
+        }
+        return data;
+    }
+
     async listClusters(
         options: FetchOptions<operations["listGroupClusters"]>,
         context?: ApiClientRequestContext
@@ -518,7 +572,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     async listDropIndexSuggestions(
         options: FetchOptions<operations["listGroupClusterPerformanceAdvisorDropIndexSuggestions"]>,
         context?: ApiClientRequestContext
-    ): Promise<components["schemas"]["DropIndexSuggestionsResponse"]> {
+    ): Promise<components["schemas"]["EnvelopedDropIndexSuggestionsResponse"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}/performanceAdvisor/dropIndexSuggestions",
             this.applyRequestContext(options, context)
@@ -532,7 +586,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     async listSchemaAdvice(
         options: FetchOptions<operations["listGroupClusterPerformanceAdvisorSchemaAdvice"]>,
         context?: ApiClientRequestContext
-    ): Promise<components["schemas"]["SchemaAdvisorResponse"]> {
+    ): Promise<components["schemas"]["EnvelopedSchemaAdvisorResponse"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}/performanceAdvisor/schemaAdvice",
             this.applyRequestContext(options, context)
@@ -546,7 +600,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     async listClusterSuggestedIndexes(
         options: FetchOptions<operations["listGroupClusterPerformanceAdvisorSuggestedIndexes"]>,
         context?: ApiClientRequestContext
-    ): Promise<components["schemas"]["PerformanceAdvisorResponse"]> {
+    ): Promise<components["schemas"]["EnvelopedPerformanceAdvisorResponse"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}/performanceAdvisor/suggestedIndexes",
             this.applyRequestContext(options, context)
@@ -597,6 +651,34 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
         if (error) {
             throw ApiClientError.fromError({ response, error });
         }
+    }
+
+    async getEncryptionAtRest(
+        options: FetchOptions<operations["getGroupEncryptionAtRest"]>,
+        context?: ApiClientRequestContext
+    ): Promise<components["schemas"]["EncryptionAtRest"]> {
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/encryptionAtRest",
+            this.applyRequestContext(options, context)
+        );
+        if (error) {
+            throw ApiClientError.fromError({ response, error });
+        }
+        return data;
+    }
+
+    async updateEncryptionAtRest(
+        options: FetchOptions<operations["updateGroupEncryptionAtRest"]>,
+        context?: ApiClientRequestContext
+    ): Promise<components["schemas"]["EncryptionAtRest"]> {
+        const { data, error, response } = await this.client.PATCH(
+            "/api/atlas/v2/groups/{groupId}/encryptionAtRest",
+            this.applyRequestContext(options, context)
+        );
+        if (error) {
+            throw ApiClientError.fromError({ response, error });
+        }
+        return data;
     }
 
     async listFlexClusters(

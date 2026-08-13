@@ -299,6 +299,8 @@ describe("StreamableHttpRunner", () => {
                 addSession: vi.fn(),
                 closeSession: vi.fn().mockResolvedValue(undefined),
                 closeAllSessions: vi.fn().mockResolvedValue(undefined),
+                saveNegotiatedClientState: vi.fn().mockResolvedValue(undefined),
+                loadNegotiatedClientState: vi.fn().mockResolvedValue(undefined),
             };
 
             runner = createStreamableHttpRunnerFromConfig({

@@ -280,6 +280,7 @@ describe("configOverrides", () => {
                         .map(([key]) => key)
                 ).toEqual([
                     "mcpClientLogLevel",
+                    "elicitationTimeoutMs",
                     "readOnly",
                     "indexCheck",
                     "disableServerSideJs",

@@ -8,7 +8,7 @@ import { defaultTestConfig, setupIntegrationTest } from "./integrationHelpers.js
 describe("Custom Tools", () => {
     const { mcpClient, mcpServer } = setupIntegrationTest(() => ({ ...defaultTestConfig }), {
         serverOptions: {
-            tools: [CustomGreetingTool, CustomCalculatorTool],
+            tools: [CustomGreetingTool, CustomCalculatorTool, CustomRenamedArgTool],
         },
     });
 
@@ -64,6 +64,23 @@ describe("Custom Tools", () => {
         ]);
     });
 
+    it("should normalize deprecated arguments before validating them", async () => {
+        const tools = await mcpClient().listTools();
+        const renamedArgTool = tools.tools.find((t) => t.name === "custom_renamed_arg");
+
+        // The deprecated argument is not advertised, the replacement stays required.
+        expect(Object.keys(renamedArgTool?.inputSchema.properties ?? {})).toEqual(["names"]);
+        expect(renamedArgTool?.inputSchema.required).toEqual(["names"]);
+
+        const result = await mcpClient().callTool({
+            name: "custom_renamed_arg",
+            arguments: { name: "World" },
+        });
+
+        expect(result.isError).toBeFalsy();
+        expect(result.content).toEqual([{ type: "text", text: "Hello, World!" }]);
+    });
+
     it("should respect tool categories and operation types from custom tools", () => {
         const customGreetingTool = mcpServer().tools.find((t) => t.name === "custom_greeting");
         expect(customGreetingTool?.category).toBe("mongodb");
@@ -95,6 +112,38 @@ class CustomGreetingTool extends ToolBase {
                     text: `Hello, ${name}! This is a custom tool.`,
                 },
             ],
+        });
+    }
+
+    protected resolveTelemetryMetadata(): TelemetryToolMetadata {
+        return {};
+    }
+}
+
+/**
+ * Example custom tool that keeps accepting an argument that has been renamed
+ */
+class CustomRenamedArgTool extends ToolBase {
+    static toolName = "custom_renamed_arg";
+    static category = "mongodb" as const;
+    static operationType = "read" as const;
+    public description = "A custom tool with a renamed argument";
+    public argsShape = {
+        names: z.array(z.string()).min(1).describe("The names to greet"),
+    };
+
+    public override normalizeRawArgs(args: Record<string, unknown>): Record<string, unknown> {
+        if (typeof args.name !== "string") {
+            return args;
+        }
+
+        const { name, ...rest } = args;
+        return { ...rest, names: rest.names ?? [name] };
+    }
+
+    public execute({ names }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+        return Promise.resolve({
+            content: [{ type: "text", text: `Hello, ${names.join(", ")}!` }],
         });
     }
 

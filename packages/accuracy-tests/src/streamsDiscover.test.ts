@@ -15,7 +15,6 @@ const mockedTools = {
                         name: "StreamsProject",
                         id: projectId,
                         orgId: "68f600589f16226591d054c1",
-                        orgName: "MyOrg",
                         created: "N/A",
                     },
                 ])

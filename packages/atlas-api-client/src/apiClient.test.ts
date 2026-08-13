@@ -99,6 +99,68 @@ describe("ApiClient", () => {
         });
     });
 
+    describe("httpClient", () => {
+        it("uses the injected fetch and Request instead of the shared proxy fetch", async () => {
+            let requestCount = 0;
+            class TrackedRequest extends Request {
+                constructor(input: RequestInfo | URL, init?: RequestInit) {
+                    super(input, init);
+                    requestCount++;
+                }
+            }
+            const injectedFetch = vi.fn().mockResolvedValue(
+                new Response(JSON.stringify({ results: [] }), {
+                    status: 200,
+                    headers: { "Content-Type": "application/json" },
+                })
+            );
+            const globalFetch = vi
+                .spyOn(global, "fetch")
+                .mockRejectedValue(new Error("global fetch should not be called"));
+
+            const client = new ApiClient(
+                {
+                    baseUrl: "https://api.test.com",
+                    userAgent: "test-user-agent",
+                    httpClient: {
+                        fetch: injectedFetch as unknown as typeof fetch,
+                        Request: TrackedRequest,
+                    },
+                },
+                new NullLogger()
+            );
+
+            await client.listClusterDetails();
+
+            expect(injectedFetch).toHaveBeenCalledTimes(1);
+            expect(requestCount).toBe(1);
+            expect(globalFetch).not.toHaveBeenCalled();
+        });
+
+        it("passes the injected fetch to the auth provider it creates", () => {
+            const injectedFetch = vi.fn();
+
+            const client = new ApiClient(
+                {
+                    baseUrl: "https://api.test.com",
+                    userAgent: "test-user-agent",
+                    credentials: {
+                        clientId: "test-client-id",
+                        clientSecret: "test-client-secret",
+                    },
+                    httpClient: {
+                        fetch: injectedFetch as unknown as typeof fetch,
+                        Request: globalThis.Request,
+                    },
+                },
+                new NullLogger()
+            );
+
+            // @ts-expect-error accessing private property for testing
+            expect(client.authProvider.customFetch).toBe(injectedFetch);
+        });
+    });
+
     describe("User-Agent", () => {
         it("should derive userAgent from serverMetadata", async () => {
             const mockFetch = vi.spyOn(global, "fetch");

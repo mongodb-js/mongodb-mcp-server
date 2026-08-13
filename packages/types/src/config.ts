@@ -5,6 +5,7 @@ export type TransportType = "stdio" | "http";
 export interface IToolConfig {
     transport: TransportType;
     httpBodyLimit?: number;
+    httpResponseType: "sse" | "json";
     readOnly: boolean;
     disabledTools: string[];
     confirmationRequiredTools: string[];

@@ -66,10 +66,11 @@ describeWithMongoDB(
 
         describe("when requesting an expired resource", () => {
             it("should return an error", async () => {
-                await integration.connectMcpClient();
+                const connectionId = await integration.connectMcpClient();
                 const exportResponse = await integration.mcpClient().callTool({
                     name: "export",
                     arguments: {
+                        connectionId,
                         database: "db",
                         collection,
                         exportTitle: "Export for db.coll",
@@ -106,10 +107,11 @@ describeWithMongoDB(
 
         describe("after requesting a fresh export", () => {
             it("should be able to read the resource", async () => {
-                await integration.connectMcpClient();
+                const connectionId = await integration.connectMcpClient();
                 const exportResponse = await integration.mcpClient().callTool({
                     name: "export",
                     arguments: {
+                        connectionId,
                         database: "db",
                         collection,
                         exportTitle: "Export for db.coll",
@@ -144,10 +146,11 @@ describeWithMongoDB(
             });
 
             it("should be able to autocomplete the resource", async () => {
-                await integration.connectMcpClient();
+                const connectionId = await integration.connectMcpClient();
                 const exportResponse = await integration.mcpClient().callTool({
                     name: "export",
                     arguments: {
+                        connectionId,
                         database: "big",
                         collection,
                         exportTitle: "Export for big.coll",

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { AggregationCursor } from "mongodb";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { DBOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
+import { ConnectionIdArgs, DBOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
@@ -9,7 +9,7 @@ import { type Document } from "bson";
 import { ErrorCodes, MongoDBError } from "../../common/errors.js";
 import { collectCursorUntilMaxBytesLimit } from "../../helpers/collectCursorUntilMaxBytes.js";
 import { operationWithFallback } from "../../helpers/operationWithFallback.js";
-import { isWriteStage } from "../../helpers/mqlGuards.js";
+import { getWriteStageTargets } from "../../helpers/mqlGuards.js";
 import {
     AGG_COUNT_MAX_TIME_MS_CAP,
     ONE_MB,
@@ -43,22 +43,29 @@ export class AggregateDBTool extends MongoDBToolBase {
     static toolName = "aggregate-db";
     public description = "Run an aggregation against a MongoDB database";
     public argsShape = {
+        ...ConnectionIdArgs,
         ...DBOperationArgs,
         ...AggregateArgs,
-        responseBytesLimit: z.number().optional().default(ONE_MB).describe(`\
-The maximum number of bytes to return in the response. This value is capped by the server's configured maxBytesPerQuery and cannot be exceeded.`),
+        responseBytesLimit: z
+            .number()
+            .optional()
+            .default(ONE_MB)
+            .describe(
+                "The maximum number of bytes to return in the response. This value is capped by the server's configured maximum and cannot be exceeded."
+            ),
     };
     static operationType: OperationType = "read";
 
     public override outputSchema = AggregateDBOutputSchema;
 
     protected async execute(
-        { database, pipeline, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
-        { signal }: ToolExecutionContext
+        { connectionId, database, pipeline, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
+        const { signal } = context;
         let aggregationCursor: AggregationCursor | undefined = undefined;
         try {
-            const provider = await this.ensureConnected();
+            const provider = await this.resolveConnection(connectionId);
             this.assertOnlyUsesPermittedStages(pipeline);
 
             let successMessage: string;
@@ -66,7 +73,10 @@ The maximum number of bytes to return in the response. This value is capped by t
             let aggResultsCount: number | undefined;
             let appliedLimits: CursorLimitKey[] = [];
 
-            if (pipeline.some((stage) => isWriteStage(stage))) {
+            const writeStageTargets = getWriteStageTargets(pipeline, database);
+            if (writeStageTargets.length > 0) {
+                await this.confirmWriteStages(writeStageTargets, context);
+
                 // This is a write pipeline, so special-case it and don't attempt to apply limits or caps
                 aggregationCursor = provider.aggregateDb(database, pipeline, {
                     ...this.getOperationOptions(signal),

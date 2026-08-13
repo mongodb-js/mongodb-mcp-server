@@ -10,8 +10,7 @@ import { type UserConfig } from "mongodb-mcp-server";
 import { ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { ConnectionManager, ConnectionState } from "@mongodb-js/mcp-tools-mongodb";
-import { MCPConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
-import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
+import { DeviceId, MCPConnectionStore, type ConnectionEntry } from "@mongodb-js/mcp-tools-mongodb";
 import { connectionErrorHandler } from "mongodb-mcp-server";
 import { Keychain } from "@mongodb-js/mcp-core";
 import { Elicitation } from "mongodb-mcp-server";
@@ -21,6 +20,7 @@ import type { AnyToolClass } from "@mongodb-js/mcp-core";
 import type { AnyResourceClass, OperationType, ServerMetadata } from "@mongodb-js/mcp-types";
 import { ApiClient, ClientCredentialsAuthProvider } from "@mongodb-js/mcp-atlas-api-client";
 import { MockMetrics, sleep } from "@mongodb-js/mcp-test-utils";
+import { Session } from "@mongodb-js/mcp-cli";
 export { sleep };
 export { CliSession } from "@mongodb-js/mcp-cli";
 import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
@@ -28,6 +28,7 @@ export const defaultTestConfig: UserConfig = {
     ...UserConfigSchema.parse({}),
     telemetry: "disabled",
     loggers: ["stderr"],
+    maxSessions: 1000,
 };
 
 export type CreateTestApiClientOptions = {
@@ -85,12 +86,11 @@ export interface IntegrationTest {
         userConfig: UserConfig;
         getApiClient: () => ApiClient;
     };
+    /** The app-level store backing the session's connection registry view. */
+    connectionStore: () => MCPConnectionStore;
 }
 
 export const DEFAULT_LONG_RUNNING_TEST_WAIT_TIMEOUT_MS = 1_200_000;
-
-/** Max time to wait for MongoDB disconnect during per-test integration teardown. */
-const INTEGRATION_TEST_DISCONNECT_TIMEOUT_MS = 30_000;
 
 /** Max time to wait for a resource-updated notification in tests. */
 const RESOURCE_CHANGED_NOTIFICATION_TIMEOUT_MS = 30_000;
@@ -103,31 +103,6 @@ export function syncMongoToolsConfigFromUserConfig(mcpServer: CliServer): void {
             Object.assign((tool as unknown as { session: CliSession }).session.config, session.config);
         }
     }
-}
-
-/** Drop any active MongoDB connection and reset connection config for the next test. */
-export async function resetSessionAfterIntegrationTest(
-    mcpServer: CliServer,
-    options?: { baselineConnectionString?: string | undefined }
-): Promise<void> {
-    const { session } = mcpServer;
-
-    session.config.connectionString = options?.baselineConnectionString;
-    syncMongoToolsConfigFromUserConfig(mcpServer);
-
-    const { tag } = session.connectionManager.currentConnectionState;
-    if (tag === "disconnected" || tag === "errored") {
-        return;
-    }
-
-    await Promise.race([
-        session.connectionManager.disconnect(),
-        sleep(INTEGRATION_TEST_DISCONNECT_TIMEOUT_MS).then(() => {
-            throw new Error(
-                `Timed out after ${INTEGRATION_TEST_DISCONNECT_TIMEOUT_MS}ms while disconnecting MongoDB in test teardown (connection state: ${tag})`
-            );
-        }),
-    ]);
 }
 
 export function setupIntegrationTest(
@@ -151,11 +126,10 @@ export function setupIntegrationTest(
     let mcpClient: Client | undefined;
     let mcpServer: CliServer | undefined;
     let deviceId: DeviceId | undefined;
-    let baselineConnectionString: string | undefined;
+    let connectionStore: MCPConnectionStore | undefined;
 
     beforeAll(async () => {
         const userConfig = getUserConfig();
-        baselineConnectionString = userConfig.connectionString;
         const clientCapabilities = getClientCapabilities?.() ?? (elicitInput ? { elicitation: {} } : {});
 
         const clientTransport = new InMemoryTransport();
@@ -181,18 +155,14 @@ export function setupIntegrationTest(
         const exportsManager = ExportsManager.init({ options: userConfig, logger: logger });
 
         deviceId = DeviceId.create(logger);
-        const connectionManager = new MCPConnectionManager({
-            logger: logger,
-            deviceId: deviceId,
-            serverMetadata: packageInfo,
-            connectionInfo: userConfig,
-        });
+        connectionStore = new MCPConnectionStore({ userConfig, logger, deviceId });
+        const connectionRegistry = connectionStore.view();
 
-        const session = new CliSession({
-            userConfig,
+        const session = new Session({
+
             logger,
             exportsManager,
-            connectionManager,
+            connectionRegistry,
             keychain: new Keychain(),
             connectionErrorHandler,
             atlasLocalClient: await createAtlasLocalClient({ logger }),
@@ -238,7 +208,10 @@ export function setupIntegrationTest(
             Object.assign(mcpServerInstance.server, { elicitInput: elicitInput.mock });
         }
 
-        const elicitation = new Elicitation({ server: mcpServerInstance.server });
+        const elicitation = new Elicitation({
+            server: mcpServerInstance.server,
+            timeoutMs: userConfig.elicitationTimeoutMs,
+        });
 
         let uiRegistry = serverOptions?.uiRegistry;
         if (!uiRegistry && userConfig.previewFeatures.includes("mcpUI")) {
@@ -278,7 +251,12 @@ export function setupIntegrationTest(
 
     afterEach(async () => {
         if (mcpServer) {
-            await resetSessionAfterIntegrationTest(mcpServer, { baselineConnectionString });
+            // Disconnect every connection between tests. Explicit entries are
+            // revoked; the preconfigured entry (if any) survives disconnected
+            // and re-dials on next use.
+            for (const entry of await mcpServer.session.connectionRegistry.find(() => true)) {
+                await mcpServer.session.connectionRegistry.disconnect(entry.connectionId);
+            }
         }
 
         vi.clearAllMocks();
@@ -293,6 +271,7 @@ export function setupIntegrationTest(
 
         deviceId?.close();
         deviceId = undefined;
+        connectionStore = undefined;
     });
 
     const getMcpClient = (): Client => {
@@ -326,9 +305,18 @@ export function setupIntegrationTest(
         );
     };
 
+    const getConnectionStore = (): MCPConnectionStore => {
+        if (!connectionStore) {
+            throw new Error("beforeEach() hook not ran yet");
+        }
+
+        return connectionStore;
+    };
+
     return {
         mcpClient: getMcpClient,
         mcpServer: getMcpServer,
+        connectionStore: getConnectionStore,
     };
 }
 
@@ -361,11 +349,18 @@ export function getResponseElements(content: unknown): ResponseElement[] {
     return response;
 }
 
-export async function connect(client: Client, connectionString: string): Promise<void> {
-    await client.callTool({
+/** Connects via the connect tool and returns the connectionId to pass to dataplane tool calls. */
+export async function connect(client: Client, connectionString: string): Promise<string> {
+    const result = await client.callTool({
         name: "connect",
         arguments: { connectionString },
     });
+
+    const connectionId = (result.structuredContent as { connectionId?: string } | undefined)?.connectionId;
+    if (!connectionId) {
+        throw new Error(`connect tool did not return a connectionId: ${JSON.stringify(result.content)}`);
+    }
+    return connectionId;
 }
 
 export function getParameters(tool: ToolInfo): ParameterInfo[] {
@@ -410,7 +405,17 @@ export function getParameters(tool: ToolInfo): ParameterInfo[] {
         });
 }
 
+export const connectionIdParameters: ParameterInfo[] = [
+    {
+        name: "connectionId",
+        type: "string",
+        description: "The connection to run the operation against. Use the id returned by one of the connect tools.",
+        required: true,
+    },
+];
+
 export const databaseParameters: ParameterInfo[] = [
+    ...connectionIdParameters,
     { name: "database", type: "string", description: "Database name", required: true },
 ];
 
@@ -478,6 +483,7 @@ export function expectDefined<T>(arg: T): asserts arg is Exclude<T, undefined | 
 function validateToolAnnotations(tool: ToolInfo, name: string, operationType: OperationType): void {
     expectDefined(tool.annotations);
     expect(tool.annotations.title).toBe(name);
+    expect(tool.annotations.openWorldHint).toBe(true);
 
     switch (operationType) {
         case "read":
@@ -486,11 +492,11 @@ function validateToolAnnotations(tool: ToolInfo, name: string, operationType: Op
             expect(tool.annotations.destructiveHint).toBe(false);
             break;
         case "delete":
+        case "update":
             expect(tool.annotations.readOnlyHint).toBe(false);
             expect(tool.annotations.destructiveHint).toBe(true);
             break;
         case "create":
-        case "update":
             expect(tool.annotations.readOnlyHint).toBe(false);
             expect(tool.annotations.destructiveHint).toBe(false);
             break;
@@ -526,7 +532,7 @@ export function responseAsText(response: Awaited<ReturnType<Client["callTool"]>>
 
 export function waitUntil<T extends ConnectionState>(
     tag: T["tag"],
-    cm: ConnectionManager,
+    source: ConnectionManager | ConnectionEntry,
     signal: AbortSignal,
     additionalCondition?: (state: T) => boolean
 ): Promise<T> {
@@ -538,7 +544,7 @@ export function waitUntil<T extends ConnectionState>(
                 return reject(new Error(`Aborted: ${signal.reason}`));
             }
 
-            const status = cm.currentConnectionState;
+            const status = "currentConnectionState" in source ? source.currentConnectionState : source.state;
             if (status.tag === tag) {
                 if (!additionalCondition || (additionalCondition && additionalCondition(status as T))) {
                     return resolve(status as T);

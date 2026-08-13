@@ -1,12 +1,14 @@
-import type { IMetrics, DefaultMetricDefinitions, ICounter, IObservable } from "@mongodb-js/mcp-types";
+import type { IMetrics, DefaultMetricDefinitions, ICounter, IObservable, IGauge } from "@mongodb-js/mcp-types";
 
 /**
  * Combined no-op metric object that implements all metric interfaces.
  * Has all possible methods so it works for any metric type.
  */
-const noopMetric: ICounter & IObservable = {
+const noopMetric: ICounter & IObservable & IGauge = {
     inc: () => {},
     observe: () => {},
+    set: () => {},
+    dec: () => {},
 };
 
 /**

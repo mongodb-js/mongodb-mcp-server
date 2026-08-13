@@ -10,11 +10,17 @@ import type { Elicitation } from "@mongodb-js/mcp-core";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { TelemetryToolEvent as ToolEvent } from "@mongodb-js/mcp-atlas-telemetry";
-import type { PreviewFeature } from "@mongodb-js/mcp-tools-mongodb";
+import type { PreviewFeature, AtlasClusterConnectionInfo } from "@mongodb-js/mcp-tools-mongodb";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { TRANSPORT_PAYLOAD_LIMITS } from "@mongodb-js/mcp-cli";
 import { expectDefined, MockMetrics } from "@mongodb-js/mcp-test-utils";
-import { TestTool, TestToolWithOutputSchema, TestToolWithoutStructuredContent, ErrorTool } from "./mocks/tools.js";
+import {
+    TestTool,
+    TestToolWithOutputSchema,
+    TestToolWithoutStructuredContent,
+    ErrorTool,
+    ConfirmingTool,
+} from "./mocks/tools.js";
 import { Keychain } from "@mongodb-js/mcp-core";
 
 describe("ToolBase", () => {
@@ -24,7 +30,7 @@ describe("ToolBase", () => {
     let mockConfig: UserConfig;
     let mockAtlasTelemetry: AtlasTelemetry;
     let mockElicitation: Elicitation;
-    let mockRequestConfirmation: MockedFunction<(message: string) => Promise<boolean>>;
+    let mockRequestConfirmation: MockedFunction<Elicitation["requestConfirmation"]>;
     let testTool: TestTool;
     let mockMetrics: MockMetrics;
 
@@ -75,50 +81,209 @@ describe("ToolBase", () => {
         testTool = new TestTool(constructorParams);
     });
 
-    describe("verifyConfirmed", () => {
-        it("should return true when tool is not in confirmationRequiredTools list", async () => {
+    describe("confirmation required by configuration", () => {
+        it("does not ask when the tool is not in the confirmationRequiredTools list", async () => {
             mockConfig.confirmationRequiredTools = ["other-tool", "another-tool"];
 
-            const args = { param1: "test" };
-            const result = await testTool.verifyConfirmed(args);
+            const result = await testTool["invoke"]({ param1: "test" }, { signal: new AbortController().signal });
 
-            expect(result).toBe(true);
+            expect(result.content).toEqual([{ type: "text", text: "Test tool executed successfully" }]);
             expect(mockRequestConfirmation).not.toHaveBeenCalled();
         });
 
-        it("should return true when confirmationRequiredTools list is empty", async () => {
+        it("does not ask when the confirmationRequiredTools list is empty", async () => {
             mockConfig.confirmationRequiredTools = [];
 
-            const args = { param1: "test" };
-            const result = await testTool.verifyConfirmed(args);
+            const result = await testTool["invoke"]({ param1: "test" }, { signal: new AbortController().signal });
 
-            expect(result).toBe(true);
+            expect(result.content).toEqual([{ type: "text", text: "Test tool executed successfully" }]);
             expect(mockRequestConfirmation).not.toHaveBeenCalled();
         });
 
-        it("should call requestConfirmation when tool is in confirmationRequiredTools list", async () => {
+        it("asks with the tool's confirmation message when the tool is in the list", async () => {
             mockConfig.confirmationRequiredTools = ["test-tool"];
             mockRequestConfirmation.mockResolvedValue(true);
 
-            const args = { param1: "test", param2: 42 };
-            const result = await testTool.verifyConfirmed(args);
+            const result = await testTool["invoke"](
+                { param1: "test", param2: 42 },
+                { signal: new AbortController().signal }
+            );
 
-            expect(result).toBe(true);
+            expect(result.content).toEqual([{ type: "text", text: "Test tool executed successfully" }]);
             expect(mockRequestConfirmation).toHaveBeenCalledTimes(1);
             expect(mockRequestConfirmation).toHaveBeenCalledWith(
-                "You are about to execute the `test-tool` tool which requires additional confirmation. Would you like to proceed?"
+                "You are about to execute the `test-tool` tool which requires additional confirmation. Would you like to proceed?",
+                {
+                    relatedRequestId: undefined,
+                    progressToken: undefined,
+                    sendNotification: undefined,
+                    signal: expect.any(AbortSignal) as AbortSignal,
+                }
             );
         });
 
-        it("should return false when user declines confirmation", async () => {
+        it("records the outcome of a declined confirmation", async () => {
             mockConfig.confirmationRequiredTools = ["test-tool"];
             mockRequestConfirmation.mockResolvedValue(false);
 
-            const args = { param1: "test" };
-            const result = await testTool.verifyConfirmed(args);
+            const result = await testTool["invoke"]({ param1: "test" }, { signal: new AbortController().signal });
 
-            expect(result).toBe(false);
+            expect(result.isError).toBe(true);
+
+            const { values } = await mockMetrics.get("toolExecutionDuration").get();
+            const count = values.find(
+                (v) =>
+                    v.metricName === "mcp_tool_execution_duration_seconds_count" &&
+                    v.labels.tool_name === "test-tool" &&
+                    v.labels.status === "error"
+            );
+            expect(count?.value).toBe(1);
+
+            const event = ((mockAtlasTelemetry.emitEvents as Mock).mock.lastCall?.[0] as ToolEvent[])[0];
+            expectDefined(event);
+            expect(event.properties.result).toBe("failure");
+        });
+
+        it("does not run the tool when the user declines", async () => {
+            mockConfig.confirmationRequiredTools = ["test-tool"];
+            mockRequestConfirmation.mockResolvedValue(false);
+
+            const result = await testTool["invoke"]({ param1: "test" }, { signal: new AbortController().signal });
+
+            expect(result.isError).toBe(true);
+            expect(result.content).toEqual([
+                {
+                    type: "text",
+                    text: "User did not confirm the execution of the `test-tool` tool so the operation was not performed.",
+                },
+            ]);
             expect(mockRequestConfirmation).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    describe("requestConfirmation", () => {
+        it("requests confirmation regardless of the confirmationRequiredTools list", async () => {
+            mockConfig.confirmationRequiredTools = [];
+            mockRequestConfirmation.mockResolvedValue(true);
+
+            const context: ToolExecutionContext = { signal: new AbortController().signal, requestId: 7 };
+            const result = await testTool["requestConfirmation"]("Custom message", context);
+
+            expect(result).toBe(true);
+            expect(mockRequestConfirmation).toHaveBeenCalledWith("Custom message", {
+                relatedRequestId: 7,
+                progressToken: undefined,
+                sendNotification: undefined,
+                signal: context.signal,
+            });
+        });
+
+        it("passes the progress heartbeat inputs from the execution context", async () => {
+            mockRequestConfirmation.mockResolvedValue(true);
+            const sendNotification = vi.fn();
+
+            const context: ToolExecutionContext = {
+                signal: new AbortController().signal,
+                requestId: 42,
+                _meta: { progressToken: "progress-token" },
+                sendNotification,
+            };
+            await testTool["requestConfirmation"]("confirm?", context);
+
+            expect(mockRequestConfirmation).toHaveBeenCalledWith("confirm?", {
+                relatedRequestId: 42,
+                progressToken: "progress-token",
+                sendNotification,
+                signal: context.signal,
+            });
+        });
+
+        it("does not relate the confirmation request to the tool call in JSON response mode", async () => {
+            // In JSON response mode the in-flight POST cannot carry server->client
+            // messages, so the confirmation must use the standalone SSE stream.
+            mockConfig.httpResponseType = "json";
+            mockRequestConfirmation.mockResolvedValue(true);
+
+            const context: ToolExecutionContext = { signal: new AbortController().signal, requestId: 42 };
+            await testTool["requestConfirmation"]("confirm?", context);
+
+            expect(mockRequestConfirmation).toHaveBeenCalledWith("confirm?", {
+                relatedRequestId: undefined,
+                signal: context.signal,
+            });
+        });
+
+        it("accumulates the time spent waiting on the execution context", async () => {
+            vi.useFakeTimers();
+            try {
+                mockRequestConfirmation.mockImplementation(() => {
+                    vi.advanceTimersByTime(5000);
+                    return Promise.resolve(true);
+                });
+
+                const context: ToolExecutionContext = { signal: new AbortController().signal };
+                await testTool["requestConfirmation"]("first", context);
+                await testTool["requestConfirmation"]("second", context);
+
+                expect(context.elicitationDurationMs).toBe(10_000);
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+    });
+
+    describe("confirmation requested during execution", () => {
+        function createConfirmingTool(): ConfirmingTool {
+            return new ConfirmingTool({
+                name: ConfirmingTool.toolName,
+                category: ConfirmingTool.category,
+                operationType: ConfirmingTool.operationType,
+                session: mockSession,
+                telemetry: mockAtlasTelemetry,
+                elicitation: mockElicitation,
+                metrics: mockMetrics,
+            });
+        }
+
+        it("runs the operation when the user confirms", async () => {
+            mockRequestConfirmation.mockResolvedValue(true);
+
+            const result = await createConfirmingTool()["invoke"]({}, { signal: new AbortController().signal });
+
+            expect(result.isError).toBeUndefined();
+            expect(result.content).toEqual([{ type: "text", text: "executed" }]);
+        });
+
+        it("aborts the operation when the user declines", async () => {
+            mockRequestConfirmation.mockResolvedValue(false);
+
+            const result = await createConfirmingTool()["invoke"]({}, { signal: new AbortController().signal });
+
+            expect(result.isError).toBe(true);
+            expect(result.content).toEqual([{ type: "text", text: "The operation was not performed." }]);
+        });
+
+        it("excludes the time the user spent deciding from the duration metric", async () => {
+            vi.useFakeTimers();
+            try {
+                mockRequestConfirmation.mockImplementation(() => {
+                    vi.advanceTimersByTime(5000);
+                    return Promise.resolve(true);
+                });
+
+                const result = await createConfirmingTool()["invoke"]({}, { signal: new AbortController().signal });
+                expect(result.content).toEqual([{ type: "text", text: "executed" }]);
+            } finally {
+                vi.useRealTimers();
+            }
+
+            const { values } = await mockMetrics.get("toolExecutionDuration").get();
+            const sum = values.find(
+                (v) =>
+                    v.metricName === "mcp_tool_execution_duration_seconds_sum" &&
+                    v.labels.tool_name === "confirming-tool"
+            );
+            expect(sum?.value).toBeLessThan(1);
         });
     });
 
@@ -186,10 +351,15 @@ describe("ToolBase", () => {
     });
 
     describe("getConnectionInfoMetadata", () => {
-        it("should return empty metadata when neither connectedAtlasCluster nor connectionStringInfo are set", () => {
-            (mockSession as { connectedAtlasCluster?: unknown }).connectedAtlasCluster = undefined;
-            (mockSession as { connectionStringInfo?: unknown }).connectionStringInfo = undefined;
+        const atlasCluster: AtlasClusterConnectionInfo = {
+            projectId: "test-project-id",
+            username: "test-user",
+            clusterName: "test-cluster",
+            instanceType: "FREE",
+            expiryDate: new Date(),
+        };
 
+        it("should return empty metadata when no connection state is provided", () => {
             const metadata = testTool["getConnectionInfoMetadata"]();
 
             expect(metadata).toEqual({});
@@ -199,15 +369,10 @@ describe("ToolBase", () => {
         });
 
         it("should return metadata with project_id when connectedAtlasCluster.projectId is set", () => {
-            (mockSession as { connectedAtlasCluster?: unknown }).connectedAtlasCluster = {
-                projectId: "test-project-id",
-                username: "test-user",
-                clusterName: "test-cluster",
-                expiryDate: new Date(),
-            };
-            (mockSession as { connectionStringInfo?: unknown }).connectionStringInfo = undefined;
-
-            const metadata = testTool["getConnectionInfoMetadata"]();
+            const metadata = testTool["getConnectionInfoMetadata"]({
+                tag: "disconnected",
+                connectedAtlasCluster: atlasCluster,
+            });
 
             expect(metadata).toEqual({
                 project_id: "test-project-id",
@@ -217,28 +382,23 @@ describe("ToolBase", () => {
         });
 
         it("should return empty metadata when connectedAtlasCluster exists but projectId is falsy", () => {
-            (mockSession as { connectedAtlasCluster?: unknown }).connectedAtlasCluster = {
-                projectId: "",
-                username: "test-user",
-                clusterName: "test-cluster",
-                expiryDate: new Date(),
-            };
-            (mockSession as { connectionStringInfo?: unknown }).connectionStringInfo = undefined;
-
-            const metadata = testTool["getConnectionInfoMetadata"]();
+            const metadata = testTool["getConnectionInfoMetadata"]({
+                tag: "disconnected",
+                connectedAtlasCluster: { ...atlasCluster, projectId: "" },
+            });
 
             expect(metadata).toEqual({});
             expect(metadata).not.toHaveProperty("project_id");
         });
 
         it("should return metadata with connection_auth_type and connection_host_type when connectionStringInfo is set", () => {
-            (mockSession as { connectedAtlasCluster?: unknown }).connectedAtlasCluster = undefined;
-            (mockSession as { connectionStringInfo?: unknown }).connectionStringInfo = {
-                authType: "scram",
-                hostType: "unknown",
-            };
-
-            const metadata = testTool["getConnectionInfoMetadata"]();
+            const metadata = testTool["getConnectionInfoMetadata"]({
+                tag: "disconnected",
+                connectionStringInfo: {
+                    authType: "scram",
+                    hostType: "unknown",
+                },
+            });
 
             expect(metadata).toEqual({
                 connection_auth_type: "scram",
@@ -248,18 +408,14 @@ describe("ToolBase", () => {
         });
 
         it("should return metadata with both project_id and connection_auth_type when both are set", () => {
-            (mockSession as { connectedAtlasCluster?: unknown }).connectedAtlasCluster = {
-                projectId: "test-project-id",
-                username: "test-user",
-                clusterName: "test-cluster",
-                expiryDate: new Date(),
-            };
-            (mockSession as { connectionStringInfo?: unknown }).connectionStringInfo = {
-                authType: "oidc-auth-flow",
-                hostType: "atlas",
-            };
-
-            const metadata = testTool["getConnectionInfoMetadata"]();
+            const metadata = testTool["getConnectionInfoMetadata"]({
+                tag: "disconnected",
+                connectedAtlasCluster: atlasCluster,
+                connectionStringInfo: {
+                    authType: "oidc-auth-flow",
+                    hostType: "atlas",
+                },
+            });
 
             expect(metadata).toEqual({
                 project_id: "test-project-id",
@@ -274,11 +430,13 @@ describe("ToolBase", () => {
 
             for (const authType of authTypes) {
                 for (const hostType of hostTypes) {
-                    (mockSession as { connectionStringInfo?: unknown }).connectionStringInfo = {
-                        authType,
-                        hostType,
-                    };
-                    const metadata = testTool["getConnectionInfoMetadata"]();
+                    const metadata = testTool["getConnectionInfoMetadata"]({
+                        tag: "disconnected",
+                        connectionStringInfo: {
+                            authType,
+                            hostType,
+                        },
+                    });
                     expect(metadata.connection_auth_type).toBe(authType);
                     expect(metadata.connection_host_type).toBe(hostType);
                 }
@@ -599,6 +757,141 @@ describe("ToolBase", () => {
                     "x-request-id"
                 );
             }
+        });
+    });
+
+    describe("strict argument validation", () => {
+        function registeredInputSchema(tool: ToolBase): { safeParse: (value: unknown) => { success: boolean } } {
+            let inputSchema: unknown;
+            const mockServer = {
+                mcpServer: {
+                    registerTool: (
+                        _name: string,
+                        config: { inputSchema: unknown }
+                    ): { enabled: boolean; disable: () => void; enable: () => void } => {
+                        inputSchema = config.inputSchema;
+                        return { enabled: true, disable: vi.fn(), enable: vi.fn() };
+                    },
+                },
+            };
+            tool.register(mockServer as unknown as CliServer);
+            return inputSchema as { safeParse: (value: unknown) => { success: boolean } };
+        }
+
+        it("rejects an unrecognized argument name instead of silently dropping it", () => {
+            const schema = registeredInputSchema(testTool);
+
+            // register() must hand the SDK a built schema (not a raw shape) so unknown keys are rejected
+            expect(typeof schema.safeParse).toBe("function");
+            expect(schema.safeParse({ param1: "ok" }).success).toBe(true);
+            expect(schema.safeParse({ param1: "ok", param3: "typo" }).success).toBe(false);
+        });
+
+        it("rejects unknown arguments for tools with no declared parameters", () => {
+            const noArgTool = new ErrorTool({
+                name: ErrorTool.toolName,
+                category: ErrorTool.category,
+                operationType: ErrorTool.operationType,
+                session: mockSession,
+                telemetry: mockAtlasTelemetry,
+                elicitation: mockElicitation,
+                metrics: mockMetrics,
+            });
+            const schema = registeredInputSchema(noArgTool);
+
+            expect(typeof schema.safeParse).toBe("function");
+            expect(schema.safeParse({}).success).toBe(true);
+            expect(schema.safeParse({ bogus: 1 }).success).toBe(false);
+        });
+    });
+
+    describe("shared schema caching", () => {
+        type CapturedSchema = {
+            safeParseAsync: (value: unknown) => Promise<{ success: boolean; error?: { issues: unknown[] } }>;
+        };
+
+        function register<T extends ToolBase>(tool: T): { inputSchema: CapturedSchema; outputSchema: unknown } {
+            let captured: { inputSchema?: unknown; outputSchema?: unknown } = {};
+            const mockServer = {
+                mcpServer: {
+                    registerTool: (
+                        _name: string,
+                        config: { inputSchema: unknown; outputSchema?: unknown }
+                    ): { enabled: boolean; disable: () => void; enable: () => void } => {
+                        captured = config;
+                        return { enabled: true, disable: vi.fn(), enable: vi.fn() };
+                    },
+                },
+            };
+            tool.register(mockServer as unknown as CliServer);
+            return { inputSchema: captured.inputSchema as CapturedSchema, outputSchema: captured.outputSchema };
+        }
+
+        function newTestTool(): TestTool {
+            return new TestTool({
+                name: TestTool.toolName,
+                category: TestTool.category,
+                operationType: TestTool.operationType,
+                session: mockSession,
+                telemetry: mockAtlasTelemetry,
+                elicitation: mockElicitation,
+                uiRegistry: new UIRegistry(),
+                metrics: mockMetrics,
+            });
+        }
+
+        function newToolWithOutput(): TestToolWithOutputSchema {
+            return new TestToolWithOutputSchema({
+                name: TestToolWithOutputSchema.toolName,
+                category: TestToolWithOutputSchema.category,
+                operationType: TestToolWithOutputSchema.operationType,
+                session: mockSession,
+                telemetry: mockAtlasTelemetry,
+                elicitation: mockElicitation,
+                uiRegistry: new UIRegistry(),
+                metrics: mockMetrics,
+            });
+        }
+
+        it("reuses one input schema instance across registrations of the same tool", () => {
+            expect(register(newTestTool()).inputSchema).toBe(register(newTestTool()).inputSchema);
+        });
+
+        it("redirects each instance's argsShape to the shared shape", () => {
+            const t1 = newTestTool();
+            const t2 = newTestTool();
+            register(t1);
+            register(t2);
+            expect(t1.argsShape).toBe(t2.argsShape);
+        });
+
+        it("reuses one output schema instance across registrations", () => {
+            const a = register(newToolWithOutput()).outputSchema;
+            const b = register(newToolWithOutput()).outputSchema;
+            expect(a).toBeDefined();
+            expect(a).toBe(b);
+        });
+
+        it("keeps concurrent validation errors isolated across sessions", async () => {
+            // Two sessions share one schema instance; each concurrent parse must
+            // return its own error reflecting its own input, with no cross-talk.
+            const schema = register(newTestTool()).inputSchema;
+            const [wrongType, unknownKey] = await Promise.all([
+                schema.safeParseAsync({ param1: 123 }),
+                schema.safeParseAsync({ param1: "ok", bogus: 1 }),
+            ]);
+
+            expect(wrongType.success).toBe(false);
+            expect(unknownKey.success).toBe(false);
+            expect(JSON.stringify(wrongType.error?.issues)).toContain("param1");
+            expect(JSON.stringify(unknownKey.error?.issues)).toContain("bogus");
+        });
+
+        it("does not mutate the shared shape in place across registrations", () => {
+            register(newTestTool());
+            const t = newTestTool();
+            register(t);
+            expect(Object.keys(t.argsShape).sort()).toEqual(["param1", "param2"]);
         });
     });
 });

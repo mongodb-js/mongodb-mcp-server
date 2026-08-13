@@ -1,4 +1,5 @@
 export { ListClustersTool, ListClustersArgs } from "./read/listClusters.js";
+export { GetRegionsTool } from "./read/getRegions.js";
 export { ListProjectsTool } from "./read/listProjects.js";
 export { ListDBUsersTool, ListDBUsersArgs } from "./read/listDBUsers.js";
 export { ListAlertsTool, ListAlertsArgs } from "./read/listAlerts.js";

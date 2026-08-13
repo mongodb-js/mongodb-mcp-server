@@ -39,6 +39,12 @@ CLAUDE.local.md
 # Eval CI report (sticky PR comment)
 .eval/
 
+# SBOM artifacts
+.sbom/
+
+# pnpm local store
+.pnpm-store/
+
 # Braintrust
 .bt
 # Generated eval pre-bundle for Braintrust

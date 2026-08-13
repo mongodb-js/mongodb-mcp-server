@@ -17,23 +17,23 @@ interface ClusterMockParams {
     mongoDBVersion?: string;
     clusterType?: string;
     provider?: string;
-    region?: string;
+    regions?: string[];
 }
 
 function mockCreateClusterResponse({
     projectId,
     clusterName,
     provider,
-    region,
+    regions,
     instanceSize = "M10",
     clusterType = "REPLICASET",
-}: ClusterMockParams): () => CallToolResult {
+}: ClusterMockParams & { regions: string[] }): () => CallToolResult {
     return () => ({
         content: [
             {
                 type: "text",
                 text:
-                    `Cluster "${clusterName}" is being created in project "${projectId}" (${instanceSize} ${clusterType} on ${provider}/${region}). ` +
+                    `Cluster "${clusterName}" is being created in project "${projectId}" (${instanceSize} ${clusterType} on ${provider}/${regions.join(", ")}). ` +
                     `Use the atlas-inspect-cluster tool with projectId "${projectId}" and clusterName "${clusterName}" to poll for readiness. ` +
                     `The cluster is ready when its state is IDLE, connection strings are unavailable until then.`,
             },
@@ -41,26 +41,16 @@ function mockCreateClusterResponse({
     });
 }
 
-function mockInspectClusterResponse({
-    clusterName,
-    instanceSize,
-    mongoDBVersion,
-    provider,
-    region,
-}: ClusterMockParams): () => CallToolResult {
+function mockInspectClusterResponse(name: string): () => CallToolResult {
     return (): CallToolResult => ({
         content: [
             {
                 type: "text",
                 text: JSON.stringify({
-                    name: clusterName,
+                    name,
                     paused: false,
                     state: "IDLE",
-                    instanceSize,
-                    mongoDBVersion,
-                    provider,
-                    region,
-                    connectionStrings: { standardSrv: `mongodb+srv://${clusterName}.example.mongodb.net` },
+                    connectionStrings: { standardSrv: `mongodb+srv://${name}.example.mongodb.net` },
                 }),
             },
         ],
@@ -73,7 +63,16 @@ const mockListProjects = {
     }),
 };
 
-const optionalListProjects = [{ toolName: "atlas-list-projects", parameters: {}, optional: true as const }];
+const optionalListProjects = [
+    {
+        toolName: "atlas-list-projects",
+        parameters: {
+            limit: Matcher.anyValue,
+            pageNum: Matcher.anyValue,
+        },
+        optional: true as const,
+    },
+];
 
 describeAccuracyTests([
     {
@@ -84,7 +83,7 @@ describeAccuracyTests([
                 projectId: PROJECT_ID,
                 clusterName: CLUSTER_NAME,
                 provider: "AWS",
-                region: "US_EAST_1",
+                regions: ["US_EAST_1"],
             }),
         },
         expectedToolCalls: [
@@ -95,7 +94,57 @@ describeAccuracyTests([
                     projectId: PROJECT_ID,
                     clusterName: CLUSTER_NAME,
                     provider: "AWS",
-                    region: "US_EAST_1",
+                    regions: ["US_EAST_1"],
+                    clusterType: Matcher.anyOf(Matcher.undefined, Matcher.value("REPLICASET")),
+                },
+            },
+        ],
+    },
+    {
+        prompt: `Create a cluster named "${CLUSTER_NAME}" in project "${PROJECT_ID}" on AWS with US_EAST_1 as the highest-priority region and US_WEST_2 as the second region`,
+        mockedTools: {
+            ...mockListProjects,
+            "atlas-create-cluster": mockCreateClusterResponse({
+                projectId: PROJECT_ID,
+                clusterName: CLUSTER_NAME,
+                provider: "AWS",
+                regions: ["US_EAST_1", "US_WEST_2"],
+            }),
+        },
+        expectedToolCalls: [
+            ...optionalListProjects,
+            {
+                toolName: "atlas-create-cluster",
+                parameters: {
+                    projectId: PROJECT_ID,
+                    clusterName: CLUSTER_NAME,
+                    provider: "AWS",
+                    regions: ["US_EAST_1", "US_WEST_2"],
+                    clusterType: Matcher.anyOf(Matcher.undefined, Matcher.value("REPLICASET")),
+                },
+            },
+        ],
+    },
+    {
+        prompt: `Create a cluster named "${CLUSTER_NAME}" in project "${PROJECT_ID}" on AWS EU_WEST_1, EU_CENTRAL_1 and EU_WEST_2`,
+        mockedTools: {
+            ...mockListProjects,
+            "atlas-create-cluster": mockCreateClusterResponse({
+                projectId: PROJECT_ID,
+                clusterName: CLUSTER_NAME,
+                provider: "AWS",
+                regions: ["EU_WEST_1", "EU_CENTRAL_1", "EU_WEST_2"],
+            }),
+        },
+        expectedToolCalls: [
+            ...optionalListProjects,
+            {
+                toolName: "atlas-create-cluster",
+                parameters: {
+                    projectId: PROJECT_ID,
+                    clusterName: CLUSTER_NAME,
+                    provider: "AWS",
+                    regions: ["EU_WEST_1", "EU_CENTRAL_1", "EU_WEST_2"],
                     clusterType: Matcher.anyOf(Matcher.undefined, Matcher.value("REPLICASET")),
                 },
             },
@@ -109,7 +158,7 @@ describeAccuracyTests([
                 projectId: PROJECT_ID,
                 clusterName: CLUSTER_NAME,
                 provider: "GCP",
-                region: "CENTRAL_US",
+                regions: ["CENTRAL_US"],
                 instanceSize: "M30",
             }),
         },
@@ -121,7 +170,7 @@ describeAccuracyTests([
                     projectId: PROJECT_ID,
                     clusterName: CLUSTER_NAME,
                     provider: "GCP",
-                    region: "CENTRAL_US",
+                    regions: ["CENTRAL_US"],
                     instanceSize: "M30",
                     clusterType: Matcher.anyOf(Matcher.undefined, Matcher.value("REPLICASET")),
                 },
@@ -136,7 +185,7 @@ describeAccuracyTests([
                 projectId: PROJECT_ID,
                 clusterName: CLUSTER_NAME,
                 provider: "AZURE",
-                region: "EUROPE_WEST",
+                regions: ["EUROPE_WEST"],
             }),
         },
         expectedToolCalls: [
@@ -147,7 +196,7 @@ describeAccuracyTests([
                     projectId: PROJECT_ID,
                     clusterName: CLUSTER_NAME,
                     provider: "AZURE",
-                    region: "EUROPE_WEST",
+                    regions: ["EUROPE_WEST"],
                     mongoDBVersion: "7.0",
                     clusterType: Matcher.anyOf(Matcher.undefined, Matcher.value("REPLICASET")),
                 },
@@ -162,7 +211,7 @@ describeAccuracyTests([
                 projectId: PROJECT_ID,
                 clusterName: CLUSTER_NAME,
                 provider: "AWS",
-                region: "US_EAST_1",
+                regions: ["US_EAST_1"],
             }),
         },
         expectedToolCalls: [
@@ -173,7 +222,7 @@ describeAccuracyTests([
                     projectId: PROJECT_ID,
                     clusterName: CLUSTER_NAME,
                     provider: "AWS",
-                    region: "US_EAST_1",
+                    regions: ["US_EAST_1"],
                     backup: "CONTINUOUS",
                     clusterType: Matcher.anyOf(Matcher.undefined, Matcher.value("REPLICASET")),
                 },
@@ -188,7 +237,7 @@ describeAccuracyTests([
                 projectId: PROJECT_ID,
                 clusterName: CLUSTER_NAME,
                 provider: "GCP",
-                region: "SOUTH_AMERICA_EAST_1",
+                regions: ["SOUTH_AMERICA_EAST_1"],
             }),
         },
         expectedToolCalls: [
@@ -199,7 +248,7 @@ describeAccuracyTests([
                     projectId: PROJECT_ID,
                     clusterName: CLUSTER_NAME,
                     provider: "GCP",
-                    region: "SOUTH_AMERICA_EAST_1",
+                    regions: ["SOUTH_AMERICA_EAST_1"],
                     backup: "OFF",
                     clusterType: Matcher.anyOf(Matcher.undefined, Matcher.value("REPLICASET")),
                 },
@@ -214,7 +263,7 @@ describeAccuracyTests([
                 projectId: PROJECT_ID,
                 clusterName: CLUSTER_NAME,
                 provider: "AZURE",
-                region: "EUROPE_NORTH",
+                regions: ["EUROPE_NORTH"],
                 instanceSize: "M30",
             }),
         },
@@ -226,7 +275,7 @@ describeAccuracyTests([
                     projectId: PROJECT_ID,
                     clusterName: CLUSTER_NAME,
                     provider: "AZURE",
-                    region: "EUROPE_NORTH",
+                    regions: ["EUROPE_NORTH"],
                     instanceSize: "M30",
                     computeAutoScaling: false,
                     backup: "OFF",
@@ -243,7 +292,7 @@ describeAccuracyTests([
                 projectId: PROJECT_ID,
                 clusterName: CLUSTER_NAME,
                 provider: "AWS",
-                region: "EU_WEST_1",
+                regions: ["EU_WEST_1"],
             }),
         },
         expectedToolCalls: [
@@ -254,7 +303,7 @@ describeAccuracyTests([
                     projectId: PROJECT_ID,
                     clusterName: CLUSTER_NAME,
                     provider: "AWS",
-                    region: "EU_WEST_1",
+                    regions: ["EU_WEST_1"],
                     terminationProtectionEnabled: true,
                     clusterType: Matcher.anyOf(Matcher.undefined, Matcher.value("REPLICASET")),
                 },
@@ -269,7 +318,7 @@ describeAccuracyTests([
                 projectId: PROJECT_ID,
                 clusterName: CLUSTER_NAME,
                 provider: "GCP",
-                region: "US_EAST_4",
+                regions: ["US_EAST_4"],
                 clusterType: "SHARDED",
                 instanceSize: "M30",
             }),
@@ -282,7 +331,7 @@ describeAccuracyTests([
                     projectId: PROJECT_ID,
                     clusterName: CLUSTER_NAME,
                     provider: "GCP",
-                    region: "US_EAST_4",
+                    regions: ["US_EAST_4"],
                     clusterType: "SHARDED",
                     instanceSize: Matcher.anyOf(Matcher.undefined, Matcher.value("M30")),
                 },
@@ -300,13 +349,16 @@ describeAccuracyTests([
                 projectId: PROJECT_ID,
                 clusterName: CLUSTER_NAME,
                 provider: "AWS",
-                region: "US_EAST_1",
+                regions: ["US_EAST_1"],
             }),
         },
         expectedToolCalls: [
             {
                 toolName: "atlas-list-projects",
-                parameters: {},
+                parameters: {
+                    limit: Matcher.anyValue,
+                    pageNum: Matcher.anyValue,
+                },
             },
             {
                 toolName: "atlas-create-cluster",
@@ -314,7 +366,7 @@ describeAccuracyTests([
                     projectId: PROJECT_ID,
                     clusterName: CLUSTER_NAME,
                     provider: "AWS",
-                    region: "US_EAST_1",
+                    regions: ["US_EAST_1"],
                     clusterType: Matcher.anyOf(Matcher.undefined, Matcher.value("REPLICASET")),
                 },
             },
@@ -329,9 +381,9 @@ describeAccuracyTests([
                 projectId: PROJECT_ID,
                 clusterName: CLUSTER_NAME,
                 provider: "AWS",
-                region: "US_EAST_1",
+                regions: ["US_EAST_1"],
             }),
-            "atlas-inspect-cluster": mockInspectClusterResponse({ projectId: PROJECT_ID, clusterName: CLUSTER_NAME }),
+            "atlas-inspect-cluster": mockInspectClusterResponse(CLUSTER_NAME),
         },
         expectedToolCalls: [
             ...optionalListProjects,
@@ -341,7 +393,7 @@ describeAccuracyTests([
                     projectId: PROJECT_ID,
                     clusterName: CLUSTER_NAME,
                     provider: "AWS",
-                    region: "US_EAST_1",
+                    regions: ["US_EAST_1"],
                     clusterType: Matcher.anyOf(Matcher.undefined, Matcher.value("REPLICASET")),
                 },
             },
@@ -406,7 +458,7 @@ describeAccuracyTests([
                 projectId: PROJECT_ID,
                 clusterName: SOURCE_CLUSTER_NAME,
                 provider: "AWS",
-                region: "EU_WEST_1",
+                regions: ["EU_WEST_1"],
                 instanceSize: "M40",
             }),
         },
@@ -433,9 +485,87 @@ describeAccuracyTests([
                     projectId: PROJECT_ID,
                     clusterName: SOURCE_CLUSTER_NAME,
                     provider: "AWS",
-                    region: "EU_WEST_1",
+                    regions: ["EU_WEST_1"],
                     instanceSize: "M40",
                     mongoDBVersion: "7.0",
+                    clusterType: Matcher.anyOf(Matcher.undefined, Matcher.value("REPLICASET")),
+                },
+            },
+        ],
+    },
+    {
+        prompt: `Create a cluster named "${CLUSTER_NAME}" in project "${PROJECT_ID}" on AWS in US_EAST_1 and enable KMS via AWS`,
+        mockedTools: {
+            ...mockListProjects,
+            "atlas-create-cluster": mockCreateClusterResponse({
+                projectId: PROJECT_ID,
+                clusterName: CLUSTER_NAME,
+                provider: "AWS",
+                regions: ["US_EAST_1"],
+            }),
+        },
+        expectedToolCalls: [
+            ...optionalListProjects,
+            {
+                toolName: "atlas-create-cluster",
+                parameters: {
+                    projectId: PROJECT_ID,
+                    clusterName: CLUSTER_NAME,
+                    provider: "AWS",
+                    regions: ["US_EAST_1"],
+                    encryptionAtRestProvider: "AWS",
+                    clusterType: Matcher.anyOf(Matcher.undefined, Matcher.value("REPLICASET")),
+                },
+            },
+        ],
+    },
+    {
+        prompt: `Create a cluster named "${CLUSTER_NAME}" in project "${PROJECT_ID}" on Azure in EUROPE_WEST and use GCP for encryption at rest`,
+        mockedTools: {
+            ...mockListProjects,
+            "atlas-create-cluster": mockCreateClusterResponse({
+                projectId: PROJECT_ID,
+                clusterName: CLUSTER_NAME,
+                provider: "AZURE",
+                regions: ["EUROPE_WEST"],
+            }),
+        },
+        expectedToolCalls: [
+            ...optionalListProjects,
+            {
+                toolName: "atlas-create-cluster",
+                parameters: {
+                    projectId: PROJECT_ID,
+                    clusterName: CLUSTER_NAME,
+                    provider: "AZURE",
+                    regions: ["EUROPE_WEST"],
+                    encryptionAtRestProvider: "GCP",
+                    clusterType: Matcher.anyOf(Matcher.undefined, Matcher.value("REPLICASET")),
+                },
+            },
+        ],
+    },
+    {
+        prompt: `Create a cluster named "${CLUSTER_NAME}" in project "${PROJECT_ID}" on AWS in US_EAST_1 and disable encryption`,
+        mockedTools: {
+            ...mockListProjects,
+            "atlas-create-cluster": mockCreateClusterResponse({
+                projectId: PROJECT_ID,
+                clusterName: CLUSTER_NAME,
+                provider: "AWS",
+                regions: ["US_EAST_1"],
+            }),
+        },
+        expectedToolCalls: [
+            ...optionalListProjects,
+            {
+                toolName: "atlas-create-cluster",
+                parameters: {
+                    projectId: PROJECT_ID,
+                    clusterName: CLUSTER_NAME,
+                    provider: "AWS",
+                    regions: ["US_EAST_1"],
+                    encryptionAtRestProvider: "NONE",
                     clusterType: Matcher.anyOf(Matcher.undefined, Matcher.value("REPLICASET")),
                 },
             },

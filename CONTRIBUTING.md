@@ -243,6 +243,38 @@ All pull requests automatically run through the "Code Health" workflow, which:
 - Verifies code style and formatting
 - Runs tests on multiple platforms (Ubuntu, macOS, Windows)
 
+## `packages/mongodb-atlas-mcp-remote`
+
+`mongodb-atlas-mcp-remote` is a stdio proxy that forwards MCP requests to a
+remote MongoDB MCP server, authenticating with OAuth2 client-credentials.
+
+### Running it locally
+
+Requires `MDB_MCP_API_CLIENT_ID` and `MDB_MCP_API_CLIENT_SECRET` environment
+variables. See the package's own
+[README](packages/mongodb-atlas-mcp-remote/README.md) for the exact
+invocation.
+
+### Running tests
+
+```bash
+pnpm --filter mongodb-atlas-mcp-remote test
+```
+
+### Release process
+
+1. Go to the GitHub repository Actions tab and run the "Prepare
+   atlas-mcp-remote release" workflow with the desired version bump
+   (`patch`, `minor`, `major`, an exact version number, or a
+   `-prerelease.{n}` suffix for a pre-release).
+2. This creates a pull request bumping the version in
+   `packages/mongodb-atlas-mcp-remote/package.json`.
+3. Merge the pull request. This publishes the new version to NPM as
+   `mongodb-atlas-mcp-remote` and tags the release
+   `mongodb-atlas-mcp-remote/vX.Y.Z`.
+4. Verify the new version is published:
+   https://www.npmjs.com/package/mongodb-atlas-mcp-remote
+
 ## License
 
 By contributing to this project, you agree that your contributions will be licensed under the project's license.

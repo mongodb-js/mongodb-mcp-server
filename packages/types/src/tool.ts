@@ -40,6 +40,20 @@ export type ToolExecutionContext = {
     requestInfo?: {
         headers?: Record<string, unknown>;
     };
+    /** Passed through to the MCP request handler extra. */
+    _meta?: Record<string, unknown>;
+    /** The request id, when invoked through an MCP server. */
+    requestId?: string | number;
+    /** Send an MCP server notification. */
+    sendNotification?: (notification: unknown) => Promise<void>;
+    /**
+     * Total time spent waiting for the user to answer elicitation requests
+     * raised while handling this call. Accumulated by
+     * `ToolBase.requestConfirmation` and subtracted from the tool execution
+     * duration metric, so that the user's think-time is not reported as
+     * time the tool spent working.
+     */
+    elicitationDurationMs?: number;
 };
 
 export type ToolClass<TParams extends unknown[] = unknown[]> = {

@@ -102,8 +102,8 @@ export class MongoDBClusterProcess {
                     VOYAGE_QUERY_KEY: config.voyageQueryKey,
                     VOYAGE_INDEXING_KEY: config.voyageIndexingKey,
                 })
-                .withWaitStrategy("mongod-1", Wait.forHealthCheck())
-                .withWaitStrategy("mongot-1", Wait.forHealthCheck())
+                .withWaitStrategy("mongod-1", Wait.forHealthCheck().withStartupTimeout(180_000))
+                .withWaitStrategy("mongot-1", Wait.forHealthCheck().withStartupTimeout(300_000))
                 .up();
 
             const mongodContainer = environment.getContainer("mongod-1");

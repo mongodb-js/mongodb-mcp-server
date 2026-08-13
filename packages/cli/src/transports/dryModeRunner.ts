@@ -13,6 +13,11 @@ export type DryRunServer = {
 
 export type DryRunLogger = { log(log: string): void; error(log: string): void };
 
+/** Test helpers surface for dry run mode: a logger capturing emitted output. */
+export type DryRunModeTestHelpers = {
+    logger: DryRunLogger;
+};
+
 /**
  * Options for DryRunModeRunner.
  */
@@ -74,13 +79,12 @@ export class DryRunModeRunner implements ITransportRunner {
     }
 
     private dumpTools(): void {
-        const tools =
-            this.server.tools
-                .filter((tool) => tool.isEnabled())
-                .map((tool) => ({
-                    name: tool.name,
-                    category: tool.category,
-                })) ?? [];
+        const tools = (this.server?.tools ?? [])
+            .filter((tool) => tool.isEnabled())
+            .map((tool) => ({
+                name: tool.name,
+                category: tool.category,
+            }));
         this.consoleLogger.log("Enabled tools:");
         this.consoleLogger.log(JSON.stringify(tools, null, 2));
     }
