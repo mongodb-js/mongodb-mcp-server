@@ -13,14 +13,18 @@ import type { ElicitRequestFormParams } from '@modelcontextprotocol/sdk/types.js
 import { EventEmitter } from 'events';
 import type { FetchOptions } from 'openapi-fetch';
 import type { FindCursor } from 'mongodb';
+import { Gauge } from 'prom-client';
 import { Histogram } from 'prom-client';
 import type { LoggingMessageNotification } from '@modelcontextprotocol/sdk/types.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
+import type { ProgressToken } from '@modelcontextprotocol/sdk/types.js';
+import type { RequestId } from '@modelcontextprotocol/sdk/types.js';
 import { Secret } from 'mongodb-redact';
+import type { ServerNotification } from '@modelcontextprotocol/sdk/types.js';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
-import type { ZodRawShape } from 'zod';
+import { ZodRawShape } from 'zod';
 
 // @public (undocumented)
 export type AnyConnectionState = ConnectionStateConnected | ConnectionStateConnecting | ConnectionStateDisconnected | ConnectionStateErrored;
@@ -34,11 +38,15 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     // (undocumented)
     acceptVpcPeeringConnection(options: FetchOptions<operations["acceptGroupStreamVpcPeeringConnection"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
+    authorizeProviderAccessRole(options: FetchOptions<operations["authorizeGroupCloudProviderAccessRole"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["CloudProviderAccessRole"]>;
+    // (undocumented)
     readonly authProvider?: AuthProvider;
     // (undocumented)
     close(): Promise<void>;
     // (undocumented)
     createAccessListEntry(options: FetchOptions<operations["createGroupAccessListEntry"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedNetworkAccessView"]>;
+    // (undocumented)
+    createCloudProviderAccess(options: FetchOptions<operations["createGroupCloudProviderAccess"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["CloudProviderAccessRole"]>;
     // (undocumented)
     createCluster(options: FetchOptions<operations["createGroupCluster"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["ClusterDescription20240805"]>;
     // (undocumented)
@@ -84,6 +92,8 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     // (undocumented)
     getCluster(options: FetchOptions<operations["getGroupCluster"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["ClusterDescription20240805"]>;
     // (undocumented)
+    getEncryptionAtRest(options: FetchOptions<operations["getGroupEncryptionAtRest"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["EncryptionAtRest"]>;
+    // (undocumented)
     getFlexCluster(options: FetchOptions<operations["getGroupFlexCluster"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["FlexClusterDescription20241113"]>;
     // (undocumented)
     getGroup(options: FetchOptions<operations["getGroup"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["Group"]>;
@@ -116,11 +126,11 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     // (undocumented)
     listClusters(options: FetchOptions<operations["listGroupClusters"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedClusterDescription20240805"]>;
     // (undocumented)
-    listClusterSuggestedIndexes(options: FetchOptions<operations["listGroupClusterPerformanceAdvisorSuggestedIndexes"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PerformanceAdvisorResponse"]>;
+    listClusterSuggestedIndexes(options: FetchOptions<operations["listGroupClusterPerformanceAdvisorSuggestedIndexes"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["EnvelopedPerformanceAdvisorResponse"]>;
     // (undocumented)
     listDatabaseUsers(options: FetchOptions<operations["listGroupDatabaseUsers"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedApiAtlasDatabaseUserView"]>;
     // (undocumented)
-    listDropIndexSuggestions(options: FetchOptions<operations["listGroupClusterPerformanceAdvisorDropIndexSuggestions"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["DropIndexSuggestionsResponse"]>;
+    listDropIndexSuggestions(options: FetchOptions<operations["listGroupClusterPerformanceAdvisorDropIndexSuggestions"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["EnvelopedDropIndexSuggestionsResponse"]>;
     // (undocumented)
     listFlexClusters(options: FetchOptions<operations["listGroupFlexClusters"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedFlexClusters20241113"]>;
     // (undocumented)
@@ -130,7 +140,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     // (undocumented)
     listPrivateLinkConnections(options: FetchOptions<operations["listGroupStreamPrivateLinkConnections"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PaginatedApiStreamsPrivateLinkView"]>;
     // (undocumented)
-    listSchemaAdvice(options: FetchOptions<operations["listGroupClusterPerformanceAdvisorSchemaAdvice"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["SchemaAdvisorResponse"]>;
+    listSchemaAdvice(options: FetchOptions<operations["listGroupClusterPerformanceAdvisorSchemaAdvice"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["EnvelopedSchemaAdvisorResponse"]>;
     // (undocumented)
     listSlowQueryLogs(options: FetchOptions<operations["listGroupProcessPerformanceAdvisorSlowQueryLogs"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["PerformanceAdvisorSlowQueryList"]>;
     // (undocumented)
@@ -160,6 +170,8 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     tenantUpgrade(options: FetchOptions<operations["tenantGroupFlexClusterUpgrade"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["FlexClusterDescription20241113"]>;
     // (undocumented)
     updateCluster(options: FetchOptions<operations["updateGroupCluster"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["ClusterDescription20240805"]>;
+    // (undocumented)
+    updateEncryptionAtRest(options: FetchOptions<operations["updateGroupEncryptionAtRest"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["EncryptionAtRest"]>;
     // (undocumented)
     updateStreamConnection(options: FetchOptions<operations["updateGroupStreamConnection"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsConnection"]>;
     // (undocumented)
@@ -223,6 +235,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
 export interface ApiClientOptions {
     // (undocumented)
     authProvider: AuthProvider | undefined;
+    httpClient?: HttpClient;
     // (undocumented)
     logger: LoggerBase;
     // (undocumented)
@@ -325,12 +338,12 @@ export type ConnectionErrorHandled = {
 };
 
 // @public (undocumented)
-export type ConnectionErrorHandler = (error: MongoDBError<NotConnectedToMongoDBErrorCode | MisconfiguredConnectionStringErrorCode>, additionalContext: ConnectionErrorHandlerContext) => ConnectionErrorUnhandled | ConnectionErrorHandled | Promise<ConnectionErrorUnhandled | ConnectionErrorHandled>;
+export type ConnectionErrorHandler = (error: MongoDBError<typeof ErrorCodes.NotConnectedToMongoDB | typeof ErrorCodes.MisconfiguredConnectionString | typeof ErrorCodes.UnknownConnectionId>, additionalContext: ConnectionErrorHandlerContext) => ConnectionErrorUnhandled | ConnectionErrorHandled | Promise<ConnectionErrorUnhandled | ConnectionErrorHandled>;
 
 // @public (undocumented)
 export type ConnectionErrorHandlerContext = {
     availableTools: AnyToolBase[];
-    connectionState: AnyConnectionState;
+    connectionState?: AnyConnectionState;
 };
 
 // @public (undocumented)
@@ -476,6 +489,7 @@ export function createDefaultMetrics(): {
     readonly toolExecutionDuration: Histogram<"tool_name" | "category" | "status" | "operation_type" | "error_type">;
     readonly sessionCreated: Counter<string>;
     readonly sessionClosed: Counter<"reason">;
+    readonly sessionsActive: Gauge<string>;
 };
 
 // @public (undocumented)
@@ -486,6 +500,7 @@ export type DefaultMetricDefinitions = {
     sessionCreated: ICounter;
     sessionClosed: ICounter;
     toolExecutionDuration: IObservable;
+    sessionsActive: IGauge;
 };
 
 // @public (undocumented)
@@ -503,6 +518,7 @@ export class DeviceId implements IDeviceId {
 export class Elicitation {
     constructor(input: {
         server: McpServer["server"];
+        timeoutMs: number;
     });
     static CONFIRMATION_SCHEMA: {
         type: "object";
@@ -517,11 +533,8 @@ export class Elicitation {
         };
         required: string[];
     };
-    requestConfirmation(message: string): Promise<boolean>;
-    requestInput(input: {
-        message: string;
-        schema: ElicitRequestFormParams["requestedSchema"];
-    }): Promise<ElicitedInputResult>;
+    requestConfirmation(message: string, options?: ElicitationOptions_2): Promise<boolean>;
+    requestInput(message: string, schema: ElicitRequestFormParams["requestedSchema"], options?: ElicitationOptions_2): Promise<ElicitedInputResult>;
     supportsElicitation(): boolean;
 }
 
@@ -814,7 +827,7 @@ export type TelemetryEvents = {
 export type TelemetryResult = "success" | "failure";
 
 // @public (undocumented)
-export type TelemetryToolMetadata = TelemetryToolMetadata_2 | UpgradeClusterMetadata | PauseResumeClusterMetadata | CreateClusterMetadata;
+export type TelemetryToolMetadata = TelemetryToolMetadata_2 | ConnectionMetadata_2 | PerfAdvisorToolMetadata_2 | GetRegionsMetadata | IndexMetadata_2 | UpgradeClusterMetadata | PauseResumeClusterMetadata | CreateClusterMetadata;
 
 // @public (undocumented)
 export type ToolArgs<T extends ZodRawShape> = {
@@ -822,22 +835,24 @@ export type ToolArgs<T extends ZodRawShape> = {
 };
 
 // @public
-export abstract class ToolBase<TSession extends ISession = ISession, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
+export abstract class ToolBase<TSession extends IToolSession = IToolSession, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
     constructor(input: ToolConstructorParams<TSession, TMetricsDefinitions>);
     // (undocumented)
     get annotations(): ToolAnnotations;
     abstract argsShape: ZodRawShape;
     readonly category: ToolCategory;
+    protected get config(): TSession["config"];
     abstract description: string;
     // (undocumented)
     disable(): void;
     protected readonly elicitation: IElicitation;
+    protected elicitationRelatedRequestId(context: ToolExecutionContext): RequestId | undefined;
     // (undocumented)
     enable(): void;
     protected abstract execute(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     protected getConfirmationMessage(args: ToolArgs<typeof ToolBase.argsShape>): string;
     // (undocumented)
-    protected getConnectionInfoMetadata(): ConnectionMetadata;
+    protected getConnectionInfoMetadata(connectionState?: SupportedConnectionState): ConnectionMetadata;
     protected handleError(error: unknown, args: z.infer<z.ZodObject<typeof ToolBase.argsShape>>): Promise<CallToolResult> | CallToolResult;
     invoke(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)
@@ -846,29 +861,31 @@ export abstract class ToolBase<TSession extends ISession = ISession, TMetricsDef
     protected isFeatureEnabled(feature: PreviewFeature_2): boolean;
     protected readonly metrics: IMetrics<TMetricsDefinitions>;
     readonly name: string;
+    normalizeRawArgs(args: Record<string, unknown>): Record<string, unknown>;
     readonly operationType: OperationType;
     outputSchema?: ZodRawShape;
     // (undocumented)
     register(server: {
         mcpServer: McpServer;
     }): boolean;
+    protected requestConfirmation(message: string, context: ToolExecutionContext): Promise<boolean>;
     requiresConfirmation(): boolean;
     protected abstract resolveTelemetryMetadata(args: ToolArgs<typeof ToolBase.argsShape>, input: {
         result: CallToolResult;
-    }): TelemetryToolMetadata_2;
+    }): TelemetryToolMetadata_2 | Promise<TelemetryToolMetadata_2>;
+    protected schemaVariantKey(): string;
     protected readonly session: TSession;
     protected readonly telemetry: ITelemetry;
     protected get toolMeta(): Record<string, unknown>;
     // (undocumented)
     protected verifyAllowed(): boolean;
-    verifyConfirmed(args: ToolArgs<typeof ToolBase.argsShape>): Promise<boolean>;
 }
 
 // @public
 export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant" | "custom";
 
 // @public
-export type ToolClass<TSession extends ISession = ISession, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
+export type ToolClass<TSession extends IToolSession = IToolSession, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
     new (args: ToolConstructorParams<TSession, TMetricsDefinitions>): ToolBase<TSession, TMetricsDefinitions>;
     toolName: string;
     category: ToolCategory;
@@ -876,7 +893,7 @@ export type ToolClass<TSession extends ISession = ISession, TMetricsDefinitions 
 };
 
 // @public
-export type ToolConstructorParams<TSession extends ISession<IToolConfig> = ISession<IToolConfig>, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
+export type ToolConstructorParams<TSession extends IToolSession = IToolSession, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
     name: string;
     category: ToolCategory;
     operationType: OperationType;
@@ -893,6 +910,10 @@ export type ToolExecutionContext = {
     requestInfo?: {
         headers?: Record<string, unknown>;
     };
+    _meta?: Record<string, unknown>;
+    requestId?: string | number;
+    sendNotification?: (notification: unknown) => Promise<void>;
+    elicitationDurationMs?: number;
 };
 
 // @public (undocumented)
@@ -909,10 +930,13 @@ export class UIRegistry implements IUIRegistry {
 
 // @public (undocumented)
 export type UpgradeClusterMetadata = AtlasMetadata & {
-    original_tier?: "free" | "flex";
-    target_tier?: "flex" | "m10";
+    original_tier?: string;
+    target_tier?: string;
     original_cluster_id?: string;
     target_cluster_id?: string;
+    compute_auto_scaling?: TelemetryBoolSet;
+    min_instance_size?: string;
+    max_instance_size?: string;
     provider?: string;
     region?: string;
 };
