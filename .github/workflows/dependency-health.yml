@@ -14,6 +14,9 @@ jobs:
   generate:
     name: Scan dependencies and update notices
     runs-on: ubuntu-latest
+    # This workflow maintains THIRD_PARTY_NOTICES.md on main: never run it
+    # against any other branch, even for manual workflow_dispatch runs.
+    if: github.ref == 'refs/heads/main'
     steps:
       - uses: mongodb-js/devtools-shared/actions/setup-bot-token@04e390e1e6157b3edbc120f3d9359d3fb47ab839 # main
         id: app-token
