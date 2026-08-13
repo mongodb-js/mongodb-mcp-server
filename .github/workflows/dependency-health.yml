@@ -29,9 +29,6 @@ jobs:
         with:
           token: ${{ steps.app-token.outputs.token }}
           persist-credentials: true
-          # This workflow's job is to keep THIRD_PARTY_NOTICES.md on main up to
-          # date. A manual workflow_dispatch can target any branch, so always
-          # operate on main (fetched fresh from origin) rather than the dispatch ref.
           ref: main
 
       - name: Set up Node.js and pnpm
