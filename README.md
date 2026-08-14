@@ -105,8 +105,8 @@ Note: The configuration file syntax can be different across clients. Please refe
 - **VSCode**: https://code.visualstudio.com/docs/copilot/chat/mcp-servers
 - **Claude Desktop**: https://modelcontextprotocol.io/quickstart/user
 - **Cursor**: https://docs.cursor.com/context/model-context-protocol
-- **Copilot CLI**: https://docs.github.com/en/copilot/concepts/agents/about-copilot-cli
-- **Opencode CLI**: https://opencode.ai/docs/mcp-servers
+- **Copilot CLI**: https://docs.github.com/en/copilot/concepts/agents/about-copilot-cli ([example](HARNESS_INSTRUCTIONS.md#copilot-cli))
+- **Opencode CLI**: https://opencode.ai/docs/mcp-servers ([example](HARNESS_INSTRUCTIONS.md#opencode))
 
 > **Default Safety Notice:** All examples below include `--readOnly` by default to ensure safe, read-only access to your data. Remove `--readOnly` if you need to enable write operations.
 
