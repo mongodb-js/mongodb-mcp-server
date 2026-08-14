@@ -26,12 +26,12 @@ MongoDB MCP Server comes bundled with the official MongoDB plugins for AI agents
 - Claude: [marketplace](https://claude.com/plugins/mongodb)
 - Gemini: [marketplace](https://geminicli.com/extensions/?name=mongodbagent-skills)
 - Codex: Run `codex plugin marketplace add mongodb/agent-skills`, then open `/plugins` and install `mongodb`.
-- GitHub Copilot CLI: Run `/plugin install https://github.com/mongodb/agent-skills.git`.
+- GitHub Copilot CLI: Run `copilot plugin install mongodb`.
 - Grok: Open `/marketplace` in Grok Build and install `mongodb`.
 
 #### Using the setup script
 
-You can manually setup the local MCP server by running the following command:
+You can manually set up the local MCP server by running the following command:
 
 ```bash
 npx -y mongodb-mcp-server@latest setup
@@ -39,7 +39,7 @@ npx -y mongodb-mcp-server@latest setup
 
 This will guide you through an interactive setup process, including configuring your MongoDB connection string or Atlas API credentials.
 
-For more advanced setup options, see the [Manual Setup](#setup) section below.
+For more advanced setup options, see the [Manual Setup](#manual-setup) section below.
 
 #### Using the MongoDB MCP Server setup skill
 
