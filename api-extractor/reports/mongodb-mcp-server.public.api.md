@@ -6,7 +6,7 @@
 
 import type { AggregationCursor } from 'mongodb';
 import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import { Client } from '@mongodb-js/atlas-local';
+import type { Client } from '@mongodb-js/atlas-local';
 import type { ClientCapabilities } from '@modelcontextprotocol/sdk/types.js';
 import { ConnectionInfo } from '@mongosh/arg-parser';
 import { Counter } from 'prom-client';
@@ -54,8 +54,8 @@ export type AnyToolBase = ToolBase<any>;
 export type AnyToolClass = ToolClass<any, any>;
 
 // @public (undocumented)
-export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonProperties>[]> {
-    constructor(input: ApiClientOptions);
+export class ApiClient {
+    constructor(options: ApiClientOptions, logger: LoggerBase, authProvider?: AuthProvider);
     // (undocumented)
     acceptVpcPeeringConnection(options: FetchOptions<operations["acceptGroupStreamVpcPeeringConnection"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
@@ -175,8 +175,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     // (undocumented)
     requestSampleDatasetLoad(options: FetchOptions<operations["requestGroupSampleDatasetLoad"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["SampleDatasetStatus"]>;
     // (undocumented)
-    sendEvents(input?: {
-        events: TelemetryEvent<TelemetryCommonProperties>[];
+    sendEvents(events: TelemetryEvent<TelemetryCommonProperties>[], input?: {
         signal?: AbortSignal;
     }): Promise<void>;
     // (undocumented)
@@ -200,51 +199,6 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     // (undocumented)
     updateStreamWorkspace(options: FetchOptions<operations["updateGroupStreamWorkspace"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["StreamsTenant"]>;
     // (undocumented)
-    upgradeFlexToDedicated(options: {
-        groupId: string;
-        body: {
-            name: string;
-            clusterType: "REPLICASET";
-            replicationSpecs: Array<{
-                regionConfigs: Array<{
-                    providerName?: string;
-                    regionName?: string;
-                    priority: number;
-                    electableSpecs: {
-                        instanceSize: string;
-                        nodeCount: number;
-                    };
-                }>;
-            }>;
-            autoScaling: {
-                compute: {
-                    enabled: boolean;
-                    scaleDownEnabled: boolean;
-                    minInstanceSize: string;
-                    maxInstanceSize: string;
-                };
-                diskGBEnabled: boolean;
-            };
-        };
-    }): Promise<{
-        id?: string;
-    }>;
-    // (undocumented)
-    upgradeSharedTierCluster(options: {
-        groupId: string;
-        body: {
-            name: string;
-            providerSettings: {
-                providerName?: string;
-                instanceSizeName: "FLEX" | "M10";
-                backingProviderName?: string;
-                regionName?: string;
-            };
-        };
-    }): Promise<{
-        id?: string;
-    }>;
-    // (undocumented)
     upgradeTenantUpgrade(options: FetchOptions<operations["upgradeGroupClusterTenantUpgrade"]>, context?: ApiClientRequestContext): Promise<components["schemas"]["LegacyAtlasCluster"]>;
     // (undocumented)
     validateAuthConfig(): Promise<void>;
@@ -255,17 +209,14 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
 // @public (undocumented)
 export interface ApiClientOptions {
     // (undocumented)
-    authProvider: AuthProvider | undefined;
-    httpClient?: HttpClient;
+    baseUrl: string;
     // (undocumented)
-    logger: LoggerBase;
+    credentials?: Credentials;
+    httpClient: HttpClient;
     // (undocumented)
-    options: {
-        baseUrl: string;
-    };
-    // (undocumented)
-    serverMetadata: ServerMetadata;
+    requestContext?: RequestContext;
     supportsCurrentIpLookup?: boolean;
+    userAgent: string;
 }
 
 // @public
@@ -306,7 +257,7 @@ export interface AuthProvider {
 
 // @public (undocumented)
 export class ClientCredentialsAuthProvider implements AuthProvider {
-    constructor(input: ClientCredentialsAuthProviderParams);
+    constructor(options: ClientCredentialsAuthOptions, logger: LoggerBase);
     // (undocumented)
     getAuthHeaders(): Promise<Record<string, string> | undefined>;
     // (undocumented)
@@ -379,15 +330,6 @@ export interface CliServerOptions<TMetrics extends DefaultMetricDefinitions = De
     // (undocumented)
     userConfig: UserConfig;
 }
-
-// @public @deprecated (undocumented)
-export const CliSession: typeof Session;
-
-// @public (undocumented)
-export type CliSession = Session;
-
-// @public (undocumented)
-export type CliSessionOptions = SessionOptions;
 
 // @public (undocumented)
 export type CloseableTransport = {
@@ -496,9 +438,10 @@ export type ConnectionManagerFactoryOptions = {
 };
 
 // @public (undocumented)
-export interface ConnectionSettings extends ConnectionInfo {
+export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"> {
     // (undocumented)
     atlas?: AtlasClusterConnectionInfo;
+    driverOptions?: ConnectionInfo["driverOptions"];
 }
 
 // @public (undocumented)
@@ -684,7 +627,7 @@ export type EventMap<T> = Record<keyof T, any[]>;
 
 // @public (undocumented)
 export class ExportedData {
-    constructor(input: ResourceConstructorParams<McpSession>);
+    constructor(session: McpSession);
     // (undocumented)
     register(server: CliServer): void;
 }
