@@ -101,12 +101,13 @@ Most MCP clients require a configuration file to be created or modified to add t
 
 Note: The configuration file syntax can be different across clients. Please refer to the following links for the latest expected syntax:
 
-- **Windsurf**: https://docs.windsurf.com/windsurf/mcp
-- **VSCode**: https://code.visualstudio.com/docs/copilot/chat/mcp-servers
-- **Claude Desktop**: https://modelcontextprotocol.io/quickstart/user
-- **Cursor**: https://docs.cursor.com/context/model-context-protocol
-- **Copilot CLI**: https://docs.github.com/en/copilot/concepts/agents/about-copilot-cli ([example](HARNESS_INSTRUCTIONS.md#copilot-cli))
-- **Opencode CLI**: https://opencode.ai/docs/mcp-servers ([example](HARNESS_INSTRUCTIONS.md#opencode))
+- [Devin Desktop](MCP_CLIENT_CONFIGURATION.md#devin-desktop) (formerly Windsurf)
+- [VS Code](MCP_CLIENT_CONFIGURATION.md#vs-code)
+- [Claude Desktop](MCP_CLIENT_CONFIGURATION.md#claude-desktop)
+- [Cursor](MCP_CLIENT_CONFIGURATION.md#cursor)
+- [Copilot CLI](MCP_CLIENT_CONFIGURATION.md#copilot-cli)
+- [OpenCode](MCP_CLIENT_CONFIGURATION.md#opencode)
+- [Codex](MCP_CLIENT_CONFIGURATION.md#codex)
 
 > **Default Safety Notice:** All examples below include `--readOnly` by default to ensure safe, read-only access to your data. Remove `--readOnly` if you need to enable write operations.
 
