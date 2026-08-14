@@ -1,66 +1,50 @@
-import { ReactiveResource, formatUntrustedData, type AnyToolBase, type LoggerBase } from "@mongodb-js/mcp-core";
-import type { ResourceConstructorParams, IResourceServer } from "@mongodb-js/mcp-types";
-import type { McpSession } from "@mongodb-js/mcp-cli";
-import {
-    connectCapableTools,
-    summarizeConnection,
-    type ConnectionRegistry,
-} from "@mongodb-js/mcp-tools-mongodb";
+import { ReactiveResource, formatUntrustedData } from "@mongodb-js/mcp-core";
+import type { ITelemetry } from "@mongodb-js/mcp-types";
+import { connectCapableTools, summarizeConnection } from "@mongodb-js/mcp-tools-mongodb";
+import type { McpSession, CliServer } from "@mongodb-js/mcp-cli";
 
-/**
- * Session surface the debug resource reads from: everything on
- * `McpSession` (config, keychain, logger, ...) plus the app-level connection
- * registry that holds MongoDB connection state (see `@mongodb-js/mcp-cli`'s
- * stateless `Session`).
- */
-export type DebugSession = McpSession & {
-    readonly connectionRegistry: ConnectionRegistry;
-    /** The registry probe APIs (`isSearchSupported`) take the concrete logger base. */
-    logger: LoggerBase;
-};
-
-/**
- * Host server surface the resource can read tool state from. The typed
- * `IResourceServer` contract (see @mongodb-js/mcp-types) only exposes mcpServer
- * and change notifications; at runtime the resource is registered by
- * `CliServer` (see `registerResources`), which also carries the registered
- * tools. The optional-chain cast below keeps access safe when the resource is
- * registered by a different host.
- */
-type ResourceServerWithTools = IResourceServer & { readonly tools?: AnyToolBase[] };
-
-export class DebugResource extends ReactiveResource<undefined, readonly [], DebugSession> {
-    constructor(params: ResourceConstructorParams<DebugSession>) {
+export class DebugResource extends ReactiveResource<undefined, readonly [], McpSession> {
+    constructor(session: McpSession, config: McpSession["config"], telemetry: ITelemetry) {
         super({
-            options: {
-                resource: {
-                    name: "debug-mongodb",
-                    uri: "debug://mongodb",
-                    config: {
-                        description:
-                            "Debugging information for MongoDB connectivity issues. Lists the active connections, their state, and the error from their last failed connection attempt.",
-                    },
+            resourceConfiguration: {
+                name: "debug-mongodb",
+                uri: "debug://mongodb",
+                config: {
+                    description:
+                        "Debugging information for MongoDB connectivity issues. Lists the active connections, their state, and the error from their last failed connection attempt.",
                 },
+            },
+            options: {
                 initial: undefined,
                 events: [],
             },
-            ...params,
+            session,
+            config,
+            telemetry,
         });
     }
 
-    reduce(eventName: never, ...event: never[]): undefined {
+    reduce(eventName: undefined, event: undefined): undefined {
         void eventName;
         void event;
 
         return this.current;
     }
 
+    /**
+     * The host server surface the resource can read tool state from. At runtime
+     * resources are registered by {@link CliServer} (see `registerResources`),
+     * which carries the registered tools alongside the `IResourceServer`
+     * contract (mcpServer + change notifications).
+     */
+    private get resourceServer(): CliServer | undefined {
+        return this.server as CliServer | undefined;
+    }
+
     async toOutput(): Promise<string> {
         const entries = await this.session.connectionRegistry.find(() => true);
         if (entries.length === 0) {
-            const connectToolNames = connectCapableTools(
-                (this.server as ResourceServerWithTools | undefined)?.tools ?? []
-            )
+            const connectToolNames = connectCapableTools(this.resourceServer?.tools ?? [])
                 .map((tool) => `"${tool.name}"`)
                 .join(", ");
             if (!connectToolNames) {

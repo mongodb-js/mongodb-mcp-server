@@ -242,6 +242,14 @@ const expectedHealthData: Record<string, unknown> = {
     timestamp: expect.any(String) as unknown,
 };
 
+// Note (v2-rebuilt sync): main's streamableHttp.test.ts also carried suites for
+// "with telemetry properties", "connection scoping", and "elicitation without a
+// standalone SSE stream". They exercised main's runner API (userConfig +
+// createMcpHttpServer + telemetryProperties options), which v2-rebuilt's
+// http-runners architecture (injected MCPHttpServer) does not provide, so they
+// were deliberately not ported. "session initialization failure handling" and
+// "with createServerForRequest override" were ported to
+// streamableHttpMcpHttpServer.test.ts, which matches their scope.
 describe("StreamableHttpRunner", () => {
     let runner: StreamableHttpRunner<CliServer>;
     let config: UserConfig;

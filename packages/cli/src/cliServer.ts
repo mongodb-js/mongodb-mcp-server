@@ -333,12 +333,7 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
 
     public registerResources(): void {
         for (const resourceConstructor of this.resourceConstructors) {
-            const resource = new resourceConstructor({
-                session: this.session,
-                telemetry: this.telemetry,
-                elicitation: this.elicitation,
-                metrics: this.metrics,
-            });
+            const resource = new resourceConstructor(this.session, this.userConfig, this.telemetry);
             resource.register(this);
         }
     }

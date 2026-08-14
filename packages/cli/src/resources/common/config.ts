@@ -1,6 +1,6 @@
-import { ReactiveResource, Keychain, redactValues, type AnyToolBase } from "@mongodb-js/mcp-core";
-import type { ResourceConstructorParams, IResourceServer } from "@mongodb-js/mcp-types";
-import type { UserConfig, McpSession } from "@mongodb-js/mcp-cli";
+import { ReactiveResource, Keychain, redactValues } from "@mongodb-js/mcp-core";
+import type { ITelemetry } from "@mongodb-js/mcp-types";
+import type { UserConfig, McpSession, CliServer } from "@mongodb-js/mcp-cli";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import { connectCapableTools } from "@mongodb-js/mcp-tools-mongodb";
 
@@ -17,33 +17,24 @@ function redactDriverOptions(driverOptions: Record<string, unknown>): Record<str
     return { ...rest, autoEncryption: "set; client-side field level encryption is configured" };
 }
 
-/**
- * Host server surface the resource can read tool state from. The typed
- * `IResourceServer` contract (see @mongodb-js/mcp-types) only exposes mcpServer
- * and change notifications; at runtime the resource is registered by
- * `CliServer` (see `registerResources`), which also carries the registered
- * tools. The optional-chain cast below keeps access safe when the resource is
- * registered by a different host.
- */
-type ResourceServerWithTools = IResourceServer & { readonly tools?: AnyToolBase[] };
-
 export class ConfigResource extends ReactiveResource<UserConfig, readonly [], McpSession> {
-    constructor({ session, ...rest }: ResourceConstructorParams<McpSession>) {
+    constructor(session: McpSession, config: UserConfig, telemetry: ITelemetry) {
         super({
-            options: {
-                resource: {
-                    name: "config",
-                    uri: "config://config",
-                    config: {
-                        description:
-                            "Server configuration, supplied by the user either as environment variables or as startup arguments",
-                    },
+            resourceConfiguration: {
+                name: "config",
+                uri: "config://config",
+                config: {
+                    description:
+                        "Server configuration, supplied by the user either as environment variables or as startup arguments",
                 },
-                initial: { ...session.config },
+            },
+            options: {
+                initial: { ...config },
                 events: [],
             },
             session,
-            ...rest,
+            config,
+            telemetry,
         });
     }
 
@@ -72,10 +63,18 @@ export class ConfigResource extends ReactiveResource<UserConfig, readonly [], Mc
         return JSON.stringify(redactValues(result, secrets));
     }
 
+    /**
+     * The host server surface the resource can read tool state from. At runtime
+     * resources are registered by {@link CliServer} (see `registerResources`),
+     * which carries the registered tools alongside the `IResourceServer`
+     * contract (mcpServer + change notifications).
+     */
+    private get resourceServer(): CliServer | undefined {
+        return this.server as CliServer | undefined;
+    }
+
     private connectToolsGuidance(): string {
-        const connectToolNames = connectCapableTools(
-            (this.server as ResourceServerWithTools | undefined)?.tools ?? []
-        )
+        const connectToolNames = connectCapableTools(this.resourceServer?.tools ?? [])
             .map((tool) => `"${tool.name}"`)
             .join(", ");
         return connectToolNames

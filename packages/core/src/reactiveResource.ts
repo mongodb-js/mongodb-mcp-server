@@ -2,10 +2,8 @@ import type {
     IResourceSession,
     SessionEvents,
     ITelemetry,
-    IElicitation,
-    DefaultMetricDefinitions,
-    IMetrics,
     ReactiveResourceOptions,
+    ResourceConfiguration,
     IResourceServer,
 } from "@mongodb-js/mcp-types";
 import type { ReadResourceCallback, ResourceMetadata } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -25,24 +23,27 @@ type PayloadOf<K extends keyof SessionEvents> = SessionEvents[K][0];
  * - `reduce()` - Update state based on session events
  * - `toOutput()` - Convert current state to resource output
  *
- * The session type parameter allows resources to access config and other session-specific
- * data through the session object.
+ * Resources are constructed by the host server with `(session, config, telemetry)`
+ * (see the CLI's `registerResources`), which the base class receives as separate
+ * constructor options. The `config` is the server's resolved user configuration.
  *
  * @example Basic Custom Resource
  * ```typescript
  * class MyResource extends ReactiveResource<string, readonly ["connect", "disconnect"]> {
- *   constructor(params: ResourceConstructorParams) {
+ *   constructor(session: IResourceSession, config: UserConfig, telemetry: ITelemetry) {
  *     super({
+ *       resourceConfiguration: {
+ *         name: "my-resource",
+ *         uri: "resource://my-resource",
+ *         config: { description: "My reactive resource" },
+ *       },
  *       options: {
- *         resource: {
- *           name: "my-resource",
- *           uri: "resource://my-resource",
- *           config: { description: "My reactive resource" },
- *         },
  *         initial: "disconnected",
  *         events: ["connect", "disconnect"],
  *       },
- *       ...params,
+ *       session,
+ *       config,
+ *       telemetry,
  *     });
  *   }
  *
@@ -55,44 +56,19 @@ type PayloadOf<K extends keyof SessionEvents> = SessionEvents[K][0];
  *   }
  * }
  * ```
- *
- * @example Resource with Config Access
- * ```typescript
- * interface ICustomSession extends IResourceSession {
- *   userConfig: MyConfig;
- * }
- *
- * class ConfigResource extends ReactiveResource<MyConfig, readonly [], ICustomSession> {
- *   constructor(params: ResourceConstructorParams<ICustomSession>) {
- *     super({
- *       options: {
- *         resource: { name: "config", uri: "config://config", config: { description: "Config" } },
- *         initial: params.session.userConfig,
- *         events: [],
- *       },
- *       ...params,
- *     });
- *   }
- *
- *   toOutput(): string {
- *     // Access config through session
- *     return JSON.stringify(this.session.userConfig);
- *   }
- * }
- * ```
  */
 export abstract class ReactiveResource<
     /** Value stored in the resource */
     Value,
     RelevantEvents extends readonly (keyof SessionEvents)[],
     TSession extends IResourceSession = IResourceSession,
-    TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions,
+    TConfig extends IResourceSession["config"] = IResourceSession["config"],
 > {
     protected server?: IResourceServer;
     protected session: TSession;
+    /** The resolved user configuration, supplied by the host server at construction. */
+    protected config: TConfig;
     protected telemetry: ITelemetry;
-    protected elicitation: IElicitation;
-    protected metrics: IMetrics<TMetricsDefinitions>;
 
     protected current: Value;
     protected readonly name: string;
@@ -101,28 +77,27 @@ export abstract class ReactiveResource<
     protected readonly events: RelevantEvents;
 
     constructor({
+        resourceConfiguration,
         options,
         session,
+        config,
         telemetry,
-        elicitation,
-        metrics,
         current,
     }: {
+        resourceConfiguration: ResourceConfiguration;
         options: ReactiveResourceOptions<Value, RelevantEvents>;
         session: TSession;
+        config: TConfig;
         telemetry: ITelemetry;
-        elicitation: IElicitation;
-        metrics: IMetrics<TMetricsDefinitions>;
         current?: Value;
     }) {
         this.session = session;
+        this.config = config;
         this.telemetry = telemetry;
-        this.elicitation = elicitation;
-        this.metrics = metrics;
 
-        this.name = options.resource.name;
-        this.uri = options.resource.uri;
-        this.resourceConfig = options.resource.config;
+        this.name = resourceConfiguration.name;
+        this.uri = resourceConfiguration.uri;
+        this.resourceConfig = resourceConfiguration.config;
         this.events = options.events;
         this.current = current ?? options.initial;
 
