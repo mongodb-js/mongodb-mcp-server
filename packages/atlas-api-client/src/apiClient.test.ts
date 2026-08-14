@@ -5,7 +5,7 @@ import { NoopLogger } from "@mongodb-js/mcp-core";
 
 const TEST_USER_AGENT = "test-user-agent";
 const testHttpClient = {
-    fetch: globalThis.fetch.bind(globalThis) as typeof fetch,
+    fetch: globalThis.fetch.bind(globalThis),
     Request: globalThis.Request,
 };
 

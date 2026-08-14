@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
-import type { ServerMetadata } from "@mongodb-js/mcp-types";
 import { UserConfigSchema } from "./config/userConfig.js";
 
 const { capturedApiClientArgs } = vi.hoisted(() => ({
@@ -13,7 +12,7 @@ vi.mock("@mongodb-js/mcp-atlas-api-client", () => ({
             capturedApiClientArgs.push(options);
         }
     },
-    userAgentFromServerMetadata: () => "MongoDB MCP Server/1.2.3-test",
+    userAgentFromServerMetadata: (): string => "MongoDB MCP Server/1.2.3-test",
 }));
 
 import { createApiClientFromConfig } from "./createApiClientFromConfig.js";
@@ -25,7 +24,7 @@ describe("createApiClientFromConfig", () => {
     };
     const logger = new CompositeLogger({ loggers: [] });
 
-    beforeEach(() => {
+    beforeEach((): void => {
         capturedApiClientArgs.length = 0;
     });
 

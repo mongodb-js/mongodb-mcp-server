@@ -156,7 +156,7 @@ async function main(): Promise<void> {
                 clientSecret,
             },
             httpClient: {
-                fetch: globalThis.fetch.bind(globalThis) as typeof fetch,
+                fetch: globalThis.fetch.bind(globalThis),
                 Request: globalThis.Request,
             },
         },

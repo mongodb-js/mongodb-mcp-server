@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DebugResource } from "./debug.js";
-import { CompositeLogger, Keychain, McpServer } from "@mongodb-js/mcp-core";
+import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
 import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import { ApiClient, userAgentFromServerMetadata } from "@mongodb-js/mcp-atlas-api-client";
 import { Session, UserConfigSchema, type UserConfig } from "@mongodb-js/mcp-cli";
@@ -59,7 +59,7 @@ describe("debug resource", () => {
                     baseUrl: config.apiBaseUrl,
                     userAgent: userAgentFromServerMetadata(testServerMetadata),
                     httpClient: {
-                        fetch: globalThis.fetch.bind(globalThis) as typeof fetch,
+                        fetch: globalThis.fetch.bind(globalThis),
                         Request: globalThis.Request,
                     },
                 },
@@ -67,11 +67,6 @@ describe("debug resource", () => {
             ),
             config,
             userConfig: config,
-        });
-
-        const mcpServer = new McpServer({
-            name: testServerMetadata.mcpServerName,
-            version: testServerMetadata.version,
         });
 
         const telemetry = AtlasTelemetry.create({

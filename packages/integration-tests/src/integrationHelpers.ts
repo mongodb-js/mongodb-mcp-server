@@ -42,7 +42,7 @@ export type CreateTestApiClientOptions = {
 export function createTestApiClient(options: CreateTestApiClientOptions): ApiClient {
     const { baseUrl, serverMetadata, logger, clientId, clientSecret } = options;
     const httpClient: HttpClient = options.httpClient ?? {
-        fetch: globalThis.fetch.bind(globalThis) as typeof fetch,
+        fetch: globalThis.fetch.bind(globalThis),
         Request: globalThis.Request,
     };
 

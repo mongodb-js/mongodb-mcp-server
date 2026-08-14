@@ -54,8 +54,6 @@ describe("Telemetry in browser environment", () => {
         vi.clearAllMocks();
     });
 
-    const browserTestServerMetadata = { mcpServerName: "browser-test-agent", version: "1.0.0" };
-
     it("can construct an ApiClient with an injected browser httpClient", () => {
         expect(
             () =>
@@ -64,7 +62,7 @@ describe("Telemetry in browser environment", () => {
                         baseUrl: API_BASE,
                         userAgent: "browser-test-agent/1.0.0",
                         httpClient: {
-                            fetch: globalThis.fetch.bind(globalThis) as typeof fetch,
+                            fetch: globalThis.fetch.bind(globalThis),
                             Request: globalThis.Request,
                         },
                     },
@@ -79,7 +77,7 @@ describe("Telemetry in browser environment", () => {
                 baseUrl: API_BASE,
                 userAgent: "browser-test-agent/1.0.0",
                 httpClient: {
-                    fetch: globalThis.fetch.bind(globalThis) as typeof fetch,
+                    fetch: globalThis.fetch.bind(globalThis),
                     Request: globalThis.Request,
                 },
             },
