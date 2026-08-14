@@ -1,4 +1,4 @@
-import { ApiClient, ApiClientError, ClientCredentialsAuthProvider } from "@mongodb-js/mcp-atlas-api-client";
+import { ApiClient, ApiClientError, userAgentFromServerMetadata } from "@mongodb-js/mcp-atlas-api-client";
 import {
     AtlasTelemetry,
     nextBackoffMs,
@@ -166,10 +166,10 @@ describe("AtlasTelemetry", () => {
     }
 
     function createRateLimitedError(): ApiClientError {
-        return ApiClientError.fromError({
-            response: { status: 429, statusText: "Too Many Requests" } as Response,
-            error: "Too Many Requests",
-        });
+        return ApiClientError.fromError(
+            { status: 429, statusText: "Too Many Requests" } as Response,
+            "Too Many Requests"
+        );
     }
 
     beforeEach(() => {
@@ -689,26 +689,21 @@ describe("AtlasTelemetry credentials handling", () => {
         },
     ])("sends telemetry events $label", async ({ clientId, clientSecret, expectedPath, expectAuthHeader }) => {
         const logger = new NoopLogger();
-        const authProvider =
-            clientId && clientSecret
-                ? new ClientCredentialsAuthProvider({
-                      options: {
-                          baseUrl: API_BASE,
-                          clientId,
-                          clientSecret,
-                      },
-                      serverMetadata: TEST_SERVER_METADATA,
-                      logger,
-                  })
-                : undefined;
-        const apiClient = new ApiClient({
-            options: {
+        const apiClient = new ApiClient(
+            {
                 baseUrl: API_BASE,
+                userAgent: userAgentFromServerMetadata(TEST_SERVER_METADATA),
+                credentials: {
+                    clientId,
+                    clientSecret,
+                },
+                httpClient: {
+                    fetch: globalThis.fetch.bind(globalThis) as typeof fetch,
+                    Request: globalThis.Request,
+                },
             },
-            serverMetadata: TEST_SERVER_METADATA,
-            logger,
-            authProvider,
-        });
+            logger
+        );
 
         // When credentials are present, short-circuit the OAuth token fetch
         // so the test stays focused on the telemetry dispatch rather than the

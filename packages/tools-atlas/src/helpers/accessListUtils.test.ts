@@ -28,10 +28,7 @@ describe("accessListUtils", () => {
             supportsCurrentIpLookup: true,
             getIpInfo: vi.fn().mockResolvedValue({ currentIpv4Address: "127.0.0.1" } as never),
             createAccessListEntry: vi.fn().mockRejectedValue(
-                ApiClientError.fromError({
-                    response: { status: 409, statusText: "Conflict" } as Response,
-                    error: { message: "Conflict" } as never,
-                }) as never
+                ApiClientError.fromError({ status: 409, statusText: "Conflict" } as Response, { message: "Conflict" } as never) as never
             ),
             logger: new NoopLogger(),
         } as unknown as ApiClient;
@@ -51,10 +48,7 @@ describe("accessListUtils", () => {
         const apiClient = {
             supportsCurrentIpLookup: true,
             getIpInfo: vi.fn().mockRejectedValue(
-                ApiClientError.fromError({
-                    response: { status: 404, statusText: "Not Found" } as Response,
-                    error: { message: "Not Found" } as never,
-                }) as never
+                ApiClientError.fromError({ status: 404, statusText: "Not Found" } as Response, { message: "Not Found" } as never) as never
             ),
             createAccessListEntry: vi.fn(),
             logger,

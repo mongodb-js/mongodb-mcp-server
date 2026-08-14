@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
-import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { createFetch } from "@mongodb-js/devtools-proxy-support";
+import { ApiClient, type HttpClient, userAgentFromServerMetadata } from "@mongodb-js/mcp-atlas-api-client";
 import type { Keychain } from "@mongodb-js/mcp-core";
 import { NoopLogger } from "@mongodb-js/mcp-core";
 import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
@@ -65,14 +66,18 @@ export class SetupTelemetry {
     }): SetupTelemetry {
         const logger = new NoopLogger();
         const deviceId = DeviceId.create(logger);
-        const apiClient = new ApiClient({
-            options: {
+        const httpClient: HttpClient = {
+            fetch: createFetch({ useEnvironmentVariableProxies: true }) as unknown as typeof fetch,
+            Request: globalThis.Request,
+        };
+        const apiClient = new ApiClient(
+            {
                 baseUrl: config.apiBaseUrl,
+                userAgent: userAgentFromServerMetadata(serverMetadata),
+                httpClient,
             },
-            serverMetadata,
-            logger,
-            authProvider: undefined,
-        });
+            logger
+        );
         const telemetry = AtlasTelemetry.create({
             logger,
             deviceId,

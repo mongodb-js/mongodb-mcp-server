@@ -4,5 +4,5 @@ export interface IApiClient<TEvent extends unknown[] = TelemetryEvent<TelemetryC
     isAuthConfigured(): boolean;
     close(): Promise<void>;
     validateAuthConfig(): Promise<void>;
-    sendEvents(options?: { signal?: AbortSignal; events: TEvent }): Promise<void>;
+    sendEvents(events: TEvent, options?: { signal?: AbortSignal }): Promise<void>;
 }

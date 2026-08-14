@@ -1,44 +1,35 @@
 import createClient from "openapi-fetch";
-import type { ClientOptions, FetchOptions, Client, Middleware } from "openapi-fetch";
+import type { FetchOptions, Client, Middleware } from "openapi-fetch";
 import { ApiClientError } from "./apiClientError.js";
 import type { components, paths, operations } from "./openapi.js";
+import type { TelemetryEvent, TelemetryCommonProperties } from "@mongodb-js/mcp-types";
 import type { LoggerBase } from "@mongodb-js/mcp-core";
-import type { IApiClient, ServerMetadata, TelemetryCommonProperties, TelemetryEvent } from "@mongodb-js/mcp-types";
-import { createFetch } from "@mongodb-js/devtools-proxy-support";
-import { Request as NodeFetchRequest } from "node-fetch";
-import type { AuthProvider } from "./auth/authProvider.js";
-import { userAgentFromServerMetadata } from "./userAgentFromServerMetadata.js";
+import type { Credentials, AuthProvider } from "./auth/authProvider.js";
+import { AuthProviderFactory } from "./auth/authProvider.js";
+
+const ATLAS_API_VERSION = "2025-03-12";
+const DEFAULT_SEND_TIMEOUT_MS = 5_000;
 
 /**
- * Detects whether we're running on Node.js as opposed to a browser/web
- * environment. We rely on `process.versions.node` rather than `typeof process`
- * because bundlers (e.g. Vite) may replace `process` with a literal object
- * shim in the browser build, which would still be `"object"` at runtime.
- */
-function isNodeRuntime(): boolean {
-    return typeof process !== "undefined" && process.versions !== undefined && process.versions.node !== undefined;
-}
-
-/**
- * A minimal fetch-like client, used to override the default proxy-aware
- * `fetch`/`Request` pair used for Atlas API and OAuth token requests.
+ * The `fetch`/`Request` pair used for Atlas API and OAuth token requests.
+ * Always injected by embedders so they can supply the platform
+ * `fetch`/`Request` (which pools connections) or a proxy-aware
+ * implementation.
  */
 export type HttpClient = {
     fetch: typeof fetch;
     Request: typeof globalThis.Request;
 };
 
-const ATLAS_API_VERSION = "2025-03-12";
-const LEGACY_ATLAS_API_VERSION = "2023-01-01";
-const DEFAULT_SEND_TIMEOUT_MS = 5_000;
-
 export interface ApiClientOptions {
-    options: {
-        baseUrl: string;
-    };
-    serverMetadata: ServerMetadata;
-    logger: LoggerBase;
-    authProvider: AuthProvider | undefined;
+    baseUrl: string;
+    /**
+     * The User-Agent header value sent with every Atlas API and OAuth token
+     * request. Always injected by embedders (no default is constructed here).
+     */
+    userAgent: string;
+    credentials?: Credentials;
+    requestContext?: RequestContext;
     /**
      * Whether this deployment can determine the caller's public IP address via the
      * `api/private/ipinfo` endpoint. Embedders whose network position makes the
@@ -49,15 +40,14 @@ export interface ApiClientOptions {
      */
     supportsCurrentIpLookup?: boolean;
     /**
-     * Overrides the default proxy-aware `fetch` used for Atlas API and OAuth token
-     * requests. Embedders that don't need environment-variable proxy support or
-     * system CA trust can inject the platform `fetch`/`Request`, which pools
-     * connections and avoids rebuilding a TLS context per request.
+     * The `fetch`/`Request` pair used for Atlas API and OAuth token requests.
+     * Always injected by embedders so they can supply the platform
+     * `fetch`/`Request` (which pools connections) or a proxy-aware
+     * implementation.
      */
-    httpClient?: HttpClient;
+    httpClient: HttpClient;
 }
 
-/** @public */
 export type RequestContext = {
     headers?: Record<string, string | string[] | undefined>;
 };
@@ -82,14 +72,14 @@ export type ApiClientRequestContext = {
  */
 const FORWARDABLE_REQUEST_HEADERS: ReadonlySet<string> = new Set(["x-request-id"]);
 
-export type ApiClientFactoryFn = (options: ApiClientOptions) => ApiClient;
+export type ApiClientFactoryFn = (options: ApiClientOptions, logger: LoggerBase) => ApiClient;
 
 /** @public */
-export const defaultCreateApiClient: ApiClientFactoryFn = (options) => {
-    return new ApiClient(options);
+export const defaultCreateApiClient: ApiClientFactoryFn = (options, logger) => {
+    return new ApiClient(options, logger);
 };
 
-export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonProperties>[]> {
+export class ApiClient {
     private readonly options: {
         baseUrl: string;
         userAgent: string;
@@ -98,47 +88,32 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
 
     private client: Client<paths>;
 
+    readonly logger: LoggerBase;
+    readonly authProvider?: AuthProvider;
+
     public isAuthConfigured(): boolean {
         return !!this.authProvider;
     }
 
-    readonly logger: LoggerBase;
-    readonly authProvider?: AuthProvider;
-
-    private customFetch: typeof fetch;
-
-    constructor({
-        logger,
-        authProvider,
-        options,
-        serverMetadata,
-        supportsCurrentIpLookup,
-        httpClient,
-    }: ApiClientOptions) {
+    constructor(options: ApiClientOptions, logger: LoggerBase, authProvider?: AuthProvider) {
         this.logger = logger;
-        this.authProvider = authProvider;
-        // An injected httpClient wins over the platform detection below so that
-        // embedders can supply the platform `fetch`/`Request` (which pools
-        // connections) instead of the proxy-aware one.
-        if (httpClient) {
-            this.customFetch = httpClient.fetch;
-        } else if (isNodeRuntime()) {
-            // createFetch assumes that the first parameter of fetch is always a string
-            // with the URL. However, fetch can also receive a Request object. While
-            // the typechecking complains, createFetch does passthrough the parameters
-            // so it works fine. That said, node-fetch has incompatibilities with the web version
-            // of fetch and can lead to genuine issues so we would like to move away of node-fetch dependency.
-            this.customFetch = createFetch({
-                useEnvironmentVariableProxies: true,
-            }) as unknown as typeof fetch;
-        } else {
-            this.customFetch = globalThis.fetch.bind(globalThis);
-        }
         this.options = {
             baseUrl: options.baseUrl,
-            userAgent: userAgentFromServerMetadata(serverMetadata),
-            supportsCurrentIpLookup: supportsCurrentIpLookup ?? true,
+            userAgent: options.userAgent,
+            supportsCurrentIpLookup: options.supportsCurrentIpLookup ?? true,
         };
+
+        this.authProvider =
+            authProvider ??
+            AuthProviderFactory.create(
+                {
+                    apiBaseUrl: this.options.baseUrl,
+                    userAgent: this.options.userAgent,
+                    credentials: options.credentials ?? {},
+                    httpClient: options.httpClient,
+                },
+                logger
+            );
 
         this.client = createClient<paths>({
             baseUrl: this.options.baseUrl,
@@ -146,15 +121,8 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
                 "User-Agent": this.options.userAgent,
                 Accept: `application/vnd.atlas.${ATLAS_API_VERSION}+json`,
             },
-            fetch: this.customFetch,
-            // NodeFetchRequest has more overloadings than the native Request
-            // so it complains here. However, the interfaces are actually compatible
-            // so it's not a real problem, just a type checking problem.
-            Request: (httpClient
-                ? httpClient.Request
-                : isNodeRuntime()
-                  ? NodeFetchRequest
-                  : globalThis.Request) as unknown as ClientOptions["Request"],
+            fetch: options.httpClient.fetch,
+            Request: options.httpClient.Request,
         });
 
         if (this.authProvider) {
@@ -257,10 +225,8 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
     }
 
     public async sendEvents(
-        {
-            events,
-            signal = AbortSignal.timeout(DEFAULT_SEND_TIMEOUT_MS),
-        }: { events: TelemetryEvent<TelemetryCommonProperties>[]; signal?: AbortSignal } = { events: [] }
+        events: TelemetryEvent<TelemetryCommonProperties>[],
+        { signal = AbortSignal.timeout(DEFAULT_SEND_TIMEOUT_MS) }: { signal?: AbortSignal } = {}
     ): Promise<void> {
         if (!this.authProvider) {
             await this.sendUnauthEvents(events, signal);
@@ -343,7 +309,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -357,7 +323,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -371,7 +337,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -383,7 +349,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
     }
 
@@ -396,7 +362,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -410,7 +376,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -424,7 +390,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -439,7 +405,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
     }
 
@@ -452,7 +418,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -466,7 +432,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -480,7 +446,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -494,7 +460,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -508,7 +474,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -525,7 +491,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             )
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -537,7 +503,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
     }
 
@@ -550,7 +516,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -564,7 +530,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -578,7 +544,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -592,7 +558,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -606,7 +572,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -620,7 +586,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -634,7 +600,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -649,7 +615,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
     }
 
@@ -662,7 +628,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -676,7 +642,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -690,7 +656,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -704,7 +670,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -719,7 +685,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
     }
 
@@ -732,7 +698,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -746,7 +712,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -760,7 +726,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -774,7 +740,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -788,7 +754,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -802,7 +768,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -816,7 +782,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -830,7 +796,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -844,7 +810,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -858,7 +824,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -873,7 +839,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
     }
 
@@ -886,7 +852,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -901,7 +867,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
     }
 
@@ -915,7 +881,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
     }
 
@@ -929,7 +895,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
     }
 
@@ -943,7 +909,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
     }
 
@@ -956,7 +922,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -970,7 +936,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -988,7 +954,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             )
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -1002,7 +968,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -1016,7 +982,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -1031,7 +997,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
     }
 
@@ -1044,7 +1010,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -1058,7 +1024,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -1072,7 +1038,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -1087,7 +1053,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
     }
 
@@ -1100,7 +1066,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -1114,7 +1080,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -1129,7 +1095,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
     }
 
@@ -1143,7 +1109,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
     }
 
@@ -1157,7 +1123,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
     }
 
@@ -1170,7 +1136,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -1188,7 +1154,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             )
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -1202,7 +1168,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -1216,7 +1182,7 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
@@ -1230,84 +1196,10 @@ export class ApiClient implements IApiClient<TelemetryEvent<TelemetryCommonPrope
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError({ response, error });
+            throw ApiClientError.fromError(response, error);
         }
         return data;
     }
     /* eslint-enable @typescript-eslint/no-unsafe-assignment */
     // DO NOT EDIT. This is auto-generated code.
-
-    async upgradeSharedTierCluster(options: {
-        groupId: string;
-        body: {
-            name: string;
-            providerSettings: {
-                providerName?: string;
-                instanceSizeName: "FLEX" | "M10";
-                backingProviderName?: string;
-                regionName?: string;
-            };
-        };
-    }): Promise<{ id?: string }> {
-        const authHeaders = (await this.authProvider?.getAuthHeaders()) ?? {};
-        const url = new URL(`api/atlas/v2/groups/${options.groupId}/clusters/tenantUpgrade`, this.options.baseUrl);
-        const response = await this.customFetch(url.toString(), {
-            method: "POST",
-            signal: AbortSignal.timeout(DEFAULT_SEND_TIMEOUT_MS),
-            headers: {
-                ...authHeaders,
-                "Content-Type": `application/vnd.atlas.${LEGACY_ATLAS_API_VERSION}+json`,
-                Accept: `application/vnd.atlas.${LEGACY_ATLAS_API_VERSION}+json`,
-                "User-Agent": this.options.userAgent,
-            },
-            body: JSON.stringify(options.body),
-        });
-        if (!response.ok) {
-            throw await ApiClientError.fromResponse(response);
-        }
-        return (await response.json()) as { id?: string };
-    }
-
-    async upgradeFlexToDedicated(options: {
-        groupId: string;
-        body: {
-            name: string;
-            clusterType: "REPLICASET";
-            replicationSpecs: Array<{
-                regionConfigs: Array<{
-                    providerName?: string;
-                    regionName?: string;
-                    priority: number;
-                    electableSpecs: { instanceSize: string; nodeCount: number };
-                }>;
-            }>;
-            autoScaling: {
-                compute: {
-                    enabled: boolean;
-                    scaleDownEnabled: boolean;
-                    minInstanceSize: string;
-                    maxInstanceSize: string;
-                };
-                diskGBEnabled: boolean;
-            };
-        };
-    }): Promise<{ id?: string }> {
-        const authHeaders = (await this.authProvider?.getAuthHeaders()) ?? {};
-        const url = new URL(`api/atlas/v2/groups/${options.groupId}/flexClusters:tenantUpgrade`, this.options.baseUrl);
-        const response = await this.customFetch(url.toString(), {
-            method: "POST",
-            signal: AbortSignal.timeout(DEFAULT_SEND_TIMEOUT_MS),
-            headers: {
-                ...authHeaders,
-                "Content-Type": `application/vnd.atlas.${ATLAS_API_VERSION}+json`,
-                Accept: `application/vnd.atlas.${ATLAS_API_VERSION}+json`,
-                "User-Agent": this.options.userAgent,
-            },
-            body: JSON.stringify(options.body),
-        });
-        if (!response.ok) {
-            throw await ApiClientError.fromResponse(response);
-        }
-        return (await response.json()) as { id?: string };
-    }
 }

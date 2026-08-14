@@ -1,33 +1,25 @@
 import * as oauth from "oauth4webapi";
 import { LogId, type LoggerBase } from "@mongodb-js/mcp-core";
-import type { ServerMetadata } from "@mongodb-js/mcp-types";
-import { createFetch } from "@mongodb-js/devtools-proxy-support";
+import type { HttpClient } from "../apiClient.js";
 import type { AccessToken, AuthProvider } from "./authProvider.js";
-import { userAgentFromServerMetadata } from "../userAgentFromServerMetadata.js";
 
 export interface ClientCredentialsAuthOptions {
     clientId: string;
     clientSecret: string;
     baseUrl: string;
+    userAgent: string;
+    httpClient: HttpClient;
 }
-
-export type ClientCredentialsAuthProviderParams = {
-    options: ClientCredentialsAuthOptions;
-    serverMetadata: ServerMetadata;
-    logger: LoggerBase;
-};
 
 export class ClientCredentialsAuthProvider implements AuthProvider {
     private oauth2Issuer?: oauth.AuthorizationServer;
     private accessToken?: AccessToken;
     private readonly options: ClientCredentialsAuthOptions;
-    private readonly userAgent: string;
     private readonly logger: LoggerBase;
     private customFetch: typeof fetch;
 
-    constructor({ options, serverMetadata, logger }: ClientCredentialsAuthProviderParams) {
+    constructor(options: ClientCredentialsAuthOptions, logger: LoggerBase) {
         this.options = options;
-        this.userAgent = userAgentFromServerMetadata(serverMetadata);
         this.logger = logger;
 
         this.oauth2Issuer = {
@@ -38,9 +30,7 @@ export class ClientCredentialsAuthProvider implements AuthProvider {
             grant_types_supported: ["client_credentials"],
         };
 
-        this.customFetch = createFetch({
-            useEnvironmentVariableProxies: true,
-        }) as unknown as typeof fetch;
+        this.customFetch = options.httpClient.fetch;
     }
 
     public async getAuthHeaders(): Promise<Record<string, string> | undefined> {
@@ -91,7 +81,7 @@ export class ClientCredentialsAuthProvider implements AuthProvider {
                     {
                         [oauth.customFetch]: this.customFetch,
                         headers: {
-                            "User-Agent": this.userAgent,
+                            "User-Agent": this.options.userAgent,
                         },
                     }
                 );

@@ -18,7 +18,7 @@ import type { MockClientCapabilities, createMockElicitInput } from "@mongodb-js/
 import { createAtlasLocalClient } from "mongodb-mcp-server";
 import type { AnyToolClass } from "@mongodb-js/mcp-core";
 import type { AnyResourceClass, OperationType, ServerMetadata } from "@mongodb-js/mcp-types";
-import { ApiClient, ClientCredentialsAuthProvider } from "@mongodb-js/mcp-atlas-api-client";
+import { ApiClient, type HttpClient, userAgentFromServerMetadata } from "@mongodb-js/mcp-atlas-api-client";
 import { MockMetrics, sleep } from "@mongodb-js/mcp-test-utils";
 import { Session, type McpSession } from "@mongodb-js/mcp-cli";
 export { sleep };
@@ -36,25 +36,28 @@ export type CreateTestApiClientOptions = {
     logger: LoggerBase;
     clientId?: string;
     clientSecret?: string;
+    httpClient?: HttpClient;
 };
 
 export function createTestApiClient(options: CreateTestApiClientOptions): ApiClient {
     const { baseUrl, serverMetadata, logger, clientId, clientSecret } = options;
-    const authProvider =
-        clientId && clientSecret
-            ? new ClientCredentialsAuthProvider({
-                  options: { baseUrl, clientId, clientSecret },
-                  serverMetadata,
-                  logger,
-              })
-            : undefined;
+    const httpClient: HttpClient = options.httpClient ?? {
+        fetch: globalThis.fetch.bind(globalThis) as typeof fetch,
+        Request: globalThis.Request,
+    };
 
-    return new ApiClient({
-        options: { baseUrl },
-        serverMetadata,
-        logger,
-        authProvider,
-    });
+    return new ApiClient(
+        {
+            baseUrl,
+            userAgent: userAgentFromServerMetadata(serverMetadata),
+            credentials: {
+                clientId,
+                clientSecret,
+            },
+            httpClient,
+        },
+        logger
+    );
 }
 
 /** Driver product labels for tests; mirrors root `serverMetadata`. */

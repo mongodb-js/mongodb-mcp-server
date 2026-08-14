@@ -15,15 +15,14 @@ type MockTelemetrySession = {
 
 /**
  * Browser regression test: web-compatible Atlas telemetry and API client code
- * must be usable from a browser bundle. Historically the
- * `ApiClient` constructor and the telemetry auth provider both called
- * `createFetch` from `@mongodb-js/devtools-proxy-support` — a node-fetch /
- * Node-only helper that throws in the browser polyfill. This test verifies
- * that:
+ * must be usable from a browser bundle. Embedders inject the platform
+ * `fetch`/`Request` (the browser's `globalThis.fetch`) as the ApiClient's
+ * `httpClient`, so the client and the telemetry auth provider never pull in
+ * `@mongodb-js/devtools-proxy-support` (a node-fetch / Node-only helper that
+ * throws in the browser polyfill). This test verifies that:
  *
- *   1. `ApiClient` can be constructed in the browser without invoking
- *      `createFetch` (i.e. it must detect the environment and fall back to
- *      `globalThis.fetch`).
+ *   1. `ApiClient` can be constructed in the browser with an injected browser
+ *      `httpClient` and no node-fetch / createFetch involvement.
  *   2. A `Telemetry` instance can be created, initialized, and used to emit +
  *      flush events end-to-end via `globalThis.fetch`, without any
  *      node-fetch related exceptions.
@@ -57,29 +56,35 @@ describe("Telemetry in browser environment", () => {
 
     const browserTestServerMetadata = { mcpServerName: "browser-test-agent", version: "1.0.0" };
 
-    it("can construct an ApiClient without throwing due to node-fetch / createFetch", () => {
+    it("can construct an ApiClient with an injected browser httpClient", () => {
         expect(
             () =>
-                new ApiClient({
-                    options: {
+                new ApiClient(
+                    {
                         baseUrl: API_BASE,
+                        userAgent: "browser-test-agent/1.0.0",
+                        httpClient: {
+                            fetch: globalThis.fetch.bind(globalThis) as typeof fetch,
+                            Request: globalThis.Request,
+                        },
                     },
-                    serverMetadata: browserTestServerMetadata,
-                    logger: new CompositeLogger(),
-                    authProvider: undefined,
-                })
+                    new CompositeLogger()
+                )
         ).not.toThrow();
     });
 
     it("initializes Telemetry and sends events via the browser fetch without throwing", async () => {
-        const apiClient = new ApiClient({
-            options: {
+        const apiClient = new ApiClient(
+            {
                 baseUrl: API_BASE,
+                userAgent: "browser-test-agent/1.0.0",
+                httpClient: {
+                    fetch: globalThis.fetch.bind(globalThis) as typeof fetch,
+                    Request: globalThis.Request,
+                },
             },
-            serverMetadata: browserTestServerMetadata,
-            logger: new CompositeLogger(),
-            authProvider: undefined,
-        });
+            new CompositeLogger()
+        );
         expect(apiClient.isAuthConfigured()).toBe(false);
 
         const session = createMockSession(apiClient);

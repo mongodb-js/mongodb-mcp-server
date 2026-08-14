@@ -11,17 +11,11 @@ import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 
 function notFoundError(): ApiClientError {
-    return ApiClientError.fromError({
-        response: new Response(null, { status: 404, statusText: "Not Found" }),
-        error: "cluster not found",
-    });
+    return ApiClientError.fromError(new Response(null, { status: 404, statusText: "Not Found" }), "cluster not found");
 }
 
 function flexOnRegularApiError(): ApiClientError {
-    return ApiClientError.fromError({
-        response: new Response(null, { status: 400, statusText: "Bad Request" }),
-        error: "Flex cluster cannot be used in the Cluster API",
-    });
+    return ApiClientError.fromError(new Response(null, { status: 400, statusText: "Bad Request" }), "Flex cluster cannot be used in the Cluster API");
 }
 
 const FREE_CLUSTER_RAW = {
@@ -239,10 +233,7 @@ describe("UpgradeClusterTool", () => {
         });
 
         it("returns error for non-404 getCluster failure without falling through to getFlexCluster", async () => {
-            const serverError = ApiClientError.fromError({
-                response: new Response(null, { status: 500, statusText: "Internal Server Error" }),
-                error: "internal server error",
-            });
+            const serverError = ApiClientError.fromError(new Response(null, { status: 500, statusText: "Internal Server Error" }), "internal server error");
             mockApiClient.getCluster!.mockRejectedValue(serverError);
 
             const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });

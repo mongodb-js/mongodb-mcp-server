@@ -1,6 +1,6 @@
 import {
     ApiClient,
-    ClientCredentialsAuthProvider,
+    userAgentFromServerMetadata,
     type Group,
     type AtlasOrganization,
 } from "@mongodb-js/mcp-atlas-api-client";
@@ -147,20 +147,21 @@ async function main(): Promise<void> {
     const logger = new ConsoleLogger({ keychain: Keychain.root });
     const clientId = process.env.MDB_MCP_API_CLIENT_ID || "";
     const clientSecret = process.env.MDB_MCP_API_CLIENT_SECRET || "";
-    const authProvider =
-        clientId && clientSecret
-            ? new ClientCredentialsAuthProvider({
-                  options: { baseUrl, clientId, clientSecret },
-                  serverMetadata: testServerMetadata,
-                  logger,
-              })
-            : undefined;
-    const apiClient = new ApiClient({
-        options: { baseUrl },
-        serverMetadata: testServerMetadata,
-        logger,
-        authProvider,
-    });
+    const apiClient = new ApiClient(
+        {
+            baseUrl,
+            userAgent: userAgentFromServerMetadata(testServerMetadata),
+            credentials: {
+                clientId,
+                clientSecret,
+            },
+            httpClient: {
+                fetch: globalThis.fetch.bind(globalThis) as typeof fetch,
+                Request: globalThis.Request,
+            },
+        },
+        logger
+    );
 
     const testOrg = await findTestOrganization(apiClient);
     if (!testOrg.id) {

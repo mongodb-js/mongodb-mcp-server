@@ -3,22 +3,17 @@ import { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ServerMetadata } from "@mongodb-js/mcp-types";
 import { UserConfigSchema } from "./config/userConfig.js";
 
-const { capturedApiClientOptions, capturedAuthProviderOptions } = vi.hoisted(() => ({
-    capturedApiClientOptions: [] as Array<{ serverMetadata: ServerMetadata }>,
-    capturedAuthProviderOptions: [] as Array<{ serverMetadata: ServerMetadata }>,
+const { capturedApiClientArgs } = vi.hoisted(() => ({
+    capturedApiClientArgs: [] as unknown[],
 }));
 
 vi.mock("@mongodb-js/mcp-atlas-api-client", () => ({
     ApiClient: class MockApiClient {
-        constructor(options: { serverMetadata: ServerMetadata }) {
-            capturedApiClientOptions.push(options);
+        constructor(options: unknown) {
+            capturedApiClientArgs.push(options);
         }
     },
-    ClientCredentialsAuthProvider: class MockClientCredentialsAuthProvider {
-        constructor({ serverMetadata }: { serverMetadata: ServerMetadata }) {
-            capturedAuthProviderOptions.push({ serverMetadata });
-        }
-    },
+    userAgentFromServerMetadata: () => "MongoDB MCP Server/1.2.3-test",
 }));
 
 import { createApiClientFromConfig } from "./createApiClientFromConfig.js";
@@ -31,11 +26,10 @@ describe("createApiClientFromConfig", () => {
     const logger = new CompositeLogger({ loggers: [] });
 
     beforeEach(() => {
-        capturedApiClientOptions.length = 0;
-        capturedAuthProviderOptions.length = 0;
+        capturedApiClientArgs.length = 0;
     });
 
-    it("should pass serverMetadata to ApiClient", () => {
+    it("should pass baseUrl, the derived userAgent, and an injected httpClient to ApiClient", () => {
         const config = UserConfigSchema.parse({
             telemetry: "disabled",
             loggers: ["stderr"],
@@ -47,11 +41,21 @@ describe("createApiClientFromConfig", () => {
             logger,
         });
 
-        expect(capturedApiClientOptions).toHaveLength(1);
-        expect(capturedApiClientOptions[0]!.serverMetadata).toBe(serverMetadata);
+        expect(capturedApiClientArgs).toHaveLength(1);
+        const options = capturedApiClientArgs[0] as {
+            baseUrl: string;
+            userAgent: string;
+            credentials: { clientId?: string; clientSecret?: string };
+            httpClient: { fetch: unknown; Request: unknown };
+        };
+        expect(options.baseUrl).toBe(config.apiBaseUrl);
+        expect(options.userAgent).toBe("MongoDB MCP Server/1.2.3-test");
+        expect(options.credentials).toEqual({ clientId: undefined, clientSecret: undefined });
+        expect(typeof options.httpClient.fetch).toBe("function");
+        expect(options.httpClient.Request).toBeDefined();
     });
 
-    it("should pass the same serverMetadata to ClientCredentialsAuthProvider when credentials are configured", () => {
+    it("should pass configured credentials to ApiClient when they are set", () => {
         const config = UserConfigSchema.parse({
             telemetry: "disabled",
             loggers: ["stderr"],
@@ -65,9 +69,15 @@ describe("createApiClientFromConfig", () => {
             logger,
         });
 
-        expect(capturedApiClientOptions).toHaveLength(1);
-        expect(capturedAuthProviderOptions).toHaveLength(1);
-        expect(capturedApiClientOptions[0]!.serverMetadata).toBe(serverMetadata);
-        expect(capturedAuthProviderOptions[0]!.serverMetadata).toBe(serverMetadata);
+        expect(capturedApiClientArgs).toHaveLength(1);
+        const options = capturedApiClientArgs[0] as {
+            userAgent: string;
+            credentials: { clientId?: string; clientSecret?: string };
+        };
+        expect(options.userAgent).toBe("MongoDB MCP Server/1.2.3-test");
+        expect(options.credentials).toEqual({
+            clientId: "test-client-id",
+            clientSecret: "test-client-secret",
+        });
     });
 });

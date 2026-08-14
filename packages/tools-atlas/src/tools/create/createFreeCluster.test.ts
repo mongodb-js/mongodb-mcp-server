@@ -78,10 +78,10 @@ describe("CreateFreeClusterTool", () => {
 
     it("does not mention the access list when the current IP is already present", async () => {
         mockApiClient.createAccessListEntry.mockRejectedValue(
-            ApiClientError.fromError({
-                response: { status: 409, statusText: "Conflict" } as Response,
-                error: { message: "Conflict" } as never,
-            })
+            ApiClientError.fromError(
+                { status: 409, statusText: "Conflict" } as Response,
+                { message: "Conflict" } as never
+            )
         );
 
         const result = await exec();

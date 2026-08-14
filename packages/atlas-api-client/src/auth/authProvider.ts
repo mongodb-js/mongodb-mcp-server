@@ -1,3 +1,7 @@
+import type { LoggerBase } from "@mongodb-js/mcp-core";
+import type { HttpClient } from "../apiClient.js";
+import { ClientCredentialsAuthProvider } from "./clientCredentials.js";
+
 export interface AccessToken {
     access_token: string;
     expires_at?: number;
@@ -16,4 +20,34 @@ export interface AuthProvider {
     // Clear or invalidate any auth state this provider owns (cached tokens, refresh tokens, sessions).
     // Implement as a no op if not applicable.
     revoke(): Promise<void>;
+}
+
+export interface Credentials {
+    clientId?: string;
+    clientSecret?: string;
+}
+
+export interface AuthProviderOptions {
+    apiBaseUrl: string;
+    userAgent: string;
+    credentials: Credentials;
+    httpClient: HttpClient;
+}
+
+export class AuthProviderFactory {
+    static create(options: AuthProviderOptions, logger: LoggerBase): AuthProvider | undefined {
+        if (options.credentials.clientId && options.credentials.clientSecret) {
+            return new ClientCredentialsAuthProvider(
+                {
+                    baseUrl: options.apiBaseUrl,
+                    userAgent: options.userAgent,
+                    clientId: options.credentials.clientId,
+                    clientSecret: options.credentials.clientSecret,
+                    httpClient: options.httpClient,
+                },
+                logger
+            );
+        }
+        return undefined;
+    }
 }

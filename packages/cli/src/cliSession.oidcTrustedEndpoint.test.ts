@@ -3,7 +3,7 @@ import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import { parseUserConfig } from "./config/parseUserConfig.js";
 import { Session } from "./cliSession.js";
 import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
-import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { ApiClient, userAgentFromServerMetadata } from "@mongodb-js/mcp-atlas-api-client";
 import { UserConfigSchema, type UserConfig } from "./config/userConfig.js";
 import {
     ExportsManager,
@@ -46,19 +46,24 @@ function createSession(): { session: Session; registry: ConnectionRegistry } {
     }).view();
 
     const session = new Session({
+        config: userConfig,
+        userConfig,
         logger,
         exportsManager: ExportsManager.init({ options: userConfig, logger }),
         connectionRegistry: registry,
         keychain: new Keychain(),
         connectionErrorHandler,
-        apiClient: new ApiClient({
-            options: {
+        apiClient: new ApiClient(
+            {
                 baseUrl: userConfig.apiBaseUrl,
+                userAgent: userAgentFromServerMetadata(serverMetadata),
+                httpClient: {
+                    fetch: globalThis.fetch.bind(globalThis) as typeof fetch,
+                    Request: globalThis.Request,
+                },
             },
-            serverMetadata,
-            logger,
-            authProvider: undefined,
-        }),
+            logger
+        ),
     });
 
     return { session, registry };

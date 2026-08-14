@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as oauth from "oauth4webapi";
 import { ClientCredentialsAuthProvider } from "@mongodb-js/mcp-atlas-api-client";
 import { NoopLogger } from "@mongodb-js/mcp-core";
-import { userAgentFromServerMetadata } from "../userAgentFromServerMetadata.js";
 
 vi.mock("oauth4webapi", () => ({
     clientCredentialsGrantRequest: vi.fn(),
@@ -13,21 +12,21 @@ vi.mock("oauth4webapi", () => ({
 
 describe("ClientCredentialsAuthProvider", () => {
     let authProvider: ClientCredentialsAuthProvider;
+    const testUserAgent = "test-user-agent";
     const mockOptions = {
         clientId: "test-client-id",
         clientSecret: "test-client-secret",
         baseUrl: "https://api.test.com",
+        userAgent: testUserAgent,
+        httpClient: {
+            fetch: vi.fn() as unknown as typeof fetch,
+            Request: globalThis.Request,
+        },
     };
-    const mockServerMetadata = { mcpServerName: "test-user-agent", version: "1.0.0" };
-    const testUserAgent = userAgentFromServerMetadata(mockServerMetadata);
 
     beforeEach(() => {
         vi.clearAllMocks();
-        authProvider = new ClientCredentialsAuthProvider({
-            options: mockOptions,
-            serverMetadata: mockServerMetadata,
-            logger: new NoopLogger(),
-        });
+        authProvider = new ClientCredentialsAuthProvider(mockOptions, new NoopLogger());
     });
 
     afterEach(() => {

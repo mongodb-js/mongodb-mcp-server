@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DebugResource } from "./debug.js";
 import { CompositeLogger, Keychain, McpServer } from "@mongodb-js/mcp-core";
 import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
-import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { ApiClient, userAgentFromServerMetadata } from "@mongodb-js/mcp-atlas-api-client";
 import { Session, UserConfigSchema, type UserConfig } from "@mongodb-js/mcp-cli";
 import {
     PRECONFIGURED_CONNECTION_ID,
@@ -54,14 +54,17 @@ describe("debug resource", () => {
             connectionRegistry: registry,
             keychain: new Keychain(),
             connectionErrorHandler,
-            apiClient: new ApiClient({
-                options: {
+            apiClient: new ApiClient(
+                {
                     baseUrl: config.apiBaseUrl,
+                    userAgent: userAgentFromServerMetadata(testServerMetadata),
+                    httpClient: {
+                        fetch: globalThis.fetch.bind(globalThis) as typeof fetch,
+                        Request: globalThis.Request,
+                    },
                 },
-                serverMetadata: testServerMetadata,
-                logger,
-                authProvider: undefined,
-            }),
+                logger
+            ),
             config,
             userConfig: config,
         });
