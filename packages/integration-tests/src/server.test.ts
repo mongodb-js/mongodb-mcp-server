@@ -1,12 +1,7 @@
 import { MCPConnectionStore, ExportsManager, DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
 import { Session } from "@mongodb-js/mcp-cli";
-import {
-    createTestApiClient,
-    defaultTestConfig,
-    expectDefined,
-    InMemoryLogger,
-} from "./integrationHelpers.js";
+import { createTestApiClient, defaultTestConfig, expectDefined, InMemoryLogger } from "./integrationHelpers.js";
 import { describeWithMongoDB } from "./mongodbHelpers.js";
 import { afterEach, describe, expect, it } from "vitest";
 import type { LoggerBase } from "@mongodb-js/mcp-core";

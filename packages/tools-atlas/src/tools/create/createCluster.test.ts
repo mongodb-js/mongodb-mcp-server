@@ -7,7 +7,7 @@ import type { ITelemetry, IElicitation, ICompositeLogger } from "@mongodb-js/mcp
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
-import { Keychain } from "@mongodb-js/mcp-core";
+import type { Keychain } from "@mongodb-js/mcp-core";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 
 const BASE_ARGS_WITHOUT_REGIONS = {

@@ -7,11 +7,7 @@ import { AtlasArgs, type AtlasCloudProvider } from "../../args.js";
 import type { CreateClusterMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import { ensureCurrentIpInAccessList, getAccessListNote } from "../../helpers/accessListUtils.js";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
-import {
-    standardInstanceSizeEnum,
-    getMaxAutoScalingSize,
-    type StandardInstanceSize,
-} from "../../helpers/cluster.js";
+import { standardInstanceSizeEnum, getMaxAutoScalingSize, type StandardInstanceSize } from "../../helpers/cluster.js";
 
 /** @public */
 export const ATLAS_CREATE_CLUSTER_README_DESCRIPTION =

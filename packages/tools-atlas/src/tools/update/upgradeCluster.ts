@@ -7,11 +7,7 @@ import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import type { ClusterDescription20240805 } from "@mongodb-js/mcp-atlas-api-client";
 import { AtlasArgs } from "../../args.js";
-import {
-    standardInstanceSizeEnum,
-    getMaxAutoScalingSize,
-    type StandardInstanceSize,
-} from "../../helpers/cluster.js";
+import { standardInstanceSizeEnum, getMaxAutoScalingSize, type StandardInstanceSize } from "../../helpers/cluster.js";
 import type { UpgradeClusterMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 
 const ALLOWED_PROVIDER_REGEX = /^[A-Z_]+$/;

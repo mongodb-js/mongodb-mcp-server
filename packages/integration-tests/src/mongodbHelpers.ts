@@ -21,7 +21,7 @@ import { EJSON } from "bson";
 import { MongoDBClusterProcess } from "@mongodb-js/mcp-test-utils";
 import type { MongoClusterConfiguration } from "@mongodb-js/mcp-test-utils";
 import type { createMockElicitInput, MockClientCapabilities } from "@mongodb-js/mcp-test-utils";
-import { ConnectionEntry, PRECONFIGURED_CONNECTION_ID } from "@mongodb-js/mcp-tools-mongodb";
+import { ConnectionEntry, type ConnectionManager, PRECONFIGURED_CONNECTION_ID } from "@mongodb-js/mcp-tools-mongodb";
 import { sleep } from "@mongodb-js/mcp-core";
 
 export const DEFAULT_WAIT_TIMEOUT = 1000;
@@ -256,6 +256,9 @@ export function validateAutoConnectBehavior(
             const registry = integration.mcpServer().session.connectionRegistry;
             if (await registry.peek(PRECONFIGURED_CONNECTION_ID)) {
                 await registry.disconnect(PRECONFIGURED_CONNECTION_ID);
+                // Directly reach into the store: tests seed/remove the preconfigured
+                // entry which the public registry API deliberately does not allow.
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
                 store["entries"].delete(PRECONFIGURED_CONNECTION_ID);
             }
             integration.mcpServer().userConfig.connectionString = undefined;
@@ -267,12 +270,18 @@ export function validateAutoConnectBehavior(
             // Seed the preconfigured entry the same way the store constructor does when the
             // server is started with a configured connection string. The entry is not dialed
             // here - resolving it during the tool call is what dials it.
-            store["entries"].set(PRECONFIGURED_CONNECTION_ID, {
+            // Accessing the private `entries`/`createConnectionManager` members is
+            // necessary because the public registry API deliberately cannot seed
+            // entries after construction.
+            type StoredEntry = { entry: ConnectionEntry; scope?: string };
+            const storeEntries = store["entries"] as Map<string, StoredEntry>;
+            const createManager = store["createConnectionManager"] as () => ConnectionManager;
+            storeEntries.set(PRECONFIGURED_CONNECTION_ID, {
                 entry: new ConnectionEntry({
                     connectionId: PRECONFIGURED_CONNECTION_ID,
                     name: PRECONFIGURED_CONNECTION_ID,
                     source: "preconfigured",
-                    manager: store["createConnectionManager"](),
+                    manager: createManager(),
                 }),
             });
 

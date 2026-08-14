@@ -79,7 +79,6 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
     private readonly metrics: IMetrics<DefaultMetricDefinitions>;
 
     constructor(params: SessionStoreConstructorArgs<DefaultMetricDefinitions>) {
-
         const { options, logger, metrics } = params;
         this.idleTimeoutMS = options.idleTimeoutMS;
         this.notificationTimeoutMS = options.notificationTimeoutMS;

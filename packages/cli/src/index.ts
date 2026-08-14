@@ -74,5 +74,5 @@ export { VersionHandler } from "./handlers/versionHandler.js";
 export { Resources, ConfigResource, DebugResource, ExportedData } from "./resources/resources.js";
 
 // HTTP server
-// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+
 export { SharedSessionMCPHttpServer } from "./cliServer/sharedSessionMCPHttpServer.js";

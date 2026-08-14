@@ -1,8 +1,16 @@
-import type { ConnectionManagerEvents, ConnectionStateConnected, ConnectionStateErrored } from "@mongodb-js/mcp-tools-mongodb";
-import { MCPConnectionManager, getAuthType, DeviceId, type ConnectionStringAuthType } from "@mongodb-js/mcp-tools-mongodb";
+import type {
+    ConnectionManagerEvents,
+    ConnectionStateConnected,
+    ConnectionStateErrored,
+} from "@mongodb-js/mcp-tools-mongodb";
+import {
+    MCPConnectionManager,
+    getAuthType,
+    DeviceId,
+    type ConnectionStringAuthType,
+} from "@mongodb-js/mcp-tools-mongodb";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { UserConfig } from "mongodb-mcp-server";
-import { defaultTestConfig } from "../integrationHelpers.js";
 import { describeWithMongoDB, waitUntilSearchIsReady } from "../mongodbHelpers.js";
 import { MongoServerError } from "mongodb";
 import { describe, beforeEach, expect, it, vi, afterEach } from "vitest";
@@ -213,7 +221,9 @@ describeWithMongoDB(
             connectionState: ConnectionStateConnected;
         }> {
             const session = integration.mcpServer().session;
-            const entry = await session.connectionRegistry.connect({ settings: { connectionString, driverOptions: {} } });
+            const entry = await session.connectionRegistry.connect({
+                settings: { connectionString, driverOptions: {} },
+            });
 
             const state = entry.state;
             if (state.tag !== "connected") {

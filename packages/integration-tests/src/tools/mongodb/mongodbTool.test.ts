@@ -20,11 +20,7 @@ import { type UserConfig } from "mongodb-mcp-server";
 import { Session, CliServer } from "@mongodb-js/mcp-cli";
 import type { AnyToolClass } from "@mongodb-js/mcp-core";
 import { CompositeLogger, InMemoryTransport, Keychain, Elicitation } from "@mongodb-js/mcp-core";
-import {
-    createTestApiClient,
-    defaultTestConfig,
-    expectDefined,
-} from "../../integrationHelpers.js";
+import { createTestApiClient, defaultTestConfig, expectDefined } from "../../integrationHelpers.js";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 import { setupMongoDBIntegrationTest } from "../../mongodbHelpers.js";
 import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
@@ -437,9 +433,7 @@ describe("MongoDBTool implementations", () => {
             await cleanupAndStartServer(undefined, [
                 ...(Object.values(MongoDbTools).filter(
                     (tool) =>
-                        typeof tool === "function" &&
-                        "toolName" in tool &&
-                        tool !== MongoDbTools.ListConnectionsTool
+                        typeof tool === "function" && "toolName" in tool && tool !== MongoDbTools.ListConnectionsTool
                 ) as AnyToolClass[]),
                 RandomTool,
             ]);

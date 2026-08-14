@@ -4,13 +4,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { UserConfig } from "mongodb-mcp-server";
-import {
-    CliServer,
-    Elicitation,
-    connectionErrorHandler,
-    ExportsManager,
-    packageInfo,
-} from "mongodb-mcp-server";
+import { CliServer, Elicitation, connectionErrorHandler, ExportsManager, packageInfo } from "mongodb-mcp-server";
 import { MCPConnectionStore } from "@mongodb-js/mcp-tools-mongodb";
 import { AllTools } from "mongodb-mcp-server";
 import { defaultTestConfig, expectDefined } from "../integrationHelpers.js";

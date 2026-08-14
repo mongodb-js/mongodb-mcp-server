@@ -1,15 +1,7 @@
 import { z, type ZodRawShape } from "zod";
 import type { RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
-import type {
-    CallToolResult,
-    ProgressToken,
-    RequestId,
-    ServerNotification,
-    ServerRequest,
-    ToolAnnotations,
-} from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult, ProgressToken, RequestId, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type {
     ITelemetry,
     ConnectionMetadata,
@@ -600,7 +592,9 @@ export abstract class ToolBase<
                 relatedRequestId: relatedRequestId !== undefined ? String(relatedRequestId) : "(undefined)",
                 httpResponseType: String(this.config.httpResponseType),
                 progressToken:
-                    context._meta?.progressToken !== undefined ? String(context._meta.progressToken) : "(undefined)",
+                    context._meta?.progressToken !== undefined
+                        ? String(context._meta.progressToken as ProgressToken)
+                        : "(undefined)",
                 hasSendNotification: String(context.sendNotification !== undefined),
                 ...requestIdAttr(context.requestInfo?.headers),
             },
@@ -1017,7 +1011,6 @@ export abstract class ToolBase<
 
         if (connectionState.connectedAtlasCluster?.projectId) {
             metadata.project_id = connectionState.connectedAtlasCluster.projectId;
-
         }
 
         return metadata;

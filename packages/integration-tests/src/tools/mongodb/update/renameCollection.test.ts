@@ -208,7 +208,6 @@ describeWithMongoDB("renameCollection tool", (integration) => {
         });
     });
 
-
     describe("when dropping the target collection is not allowed", () => {
         afterEach(() => {
             integration.mcpServer().userConfig.disabledTools = [];

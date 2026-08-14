@@ -27,14 +27,12 @@ describe("accessListUtils", () => {
         const apiClient = {
             supportsCurrentIpLookup: true,
             getIpInfo: vi.fn().mockResolvedValue({ currentIpv4Address: "127.0.0.1" } as never),
-            createAccessListEntry: vi
-                .fn()
-                .mockRejectedValue(
-                    ApiClientError.fromError({
-                        response: { status: 409, statusText: "Conflict" } as Response,
-                        error: { message: "Conflict" } as never,
-                    }) as never
-                ),
+            createAccessListEntry: vi.fn().mockRejectedValue(
+                ApiClientError.fromError({
+                    response: { status: 409, statusText: "Conflict" } as Response,
+                    error: { message: "Conflict" } as never,
+                }) as never
+            ),
             logger: new NoopLogger(),
         } as unknown as ApiClient;
         await expect(ensureCurrentIpInAccessList(apiClient, "projectId")).resolves.toBe("already-present");
@@ -52,14 +50,12 @@ describe("accessListUtils", () => {
         const logger = { debug: vi.fn(), warning: vi.fn() } as unknown as LoggerBase;
         const apiClient = {
             supportsCurrentIpLookup: true,
-            getIpInfo: vi
-                .fn()
-                .mockRejectedValue(
-                    ApiClientError.fromError({
-                        response: { status: 404, statusText: "Not Found" } as Response,
-                        error: { message: "Not Found" } as never,
-                    }) as never
-                ),
+            getIpInfo: vi.fn().mockRejectedValue(
+                ApiClientError.fromError({
+                    response: { status: 404, statusText: "Not Found" } as Response,
+                    error: { message: "Not Found" } as never,
+                }) as never
+            ),
             createAccessListEntry: vi.fn(),
             logger,
         } as unknown as ApiClient;

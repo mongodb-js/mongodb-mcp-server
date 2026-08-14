@@ -310,9 +310,7 @@ describe("Elicitation", () => {
             const error = new Error("Input failed");
             mockElicitInput.rejectWith(error);
 
-            await expect(elicitation.requestInput(testMessage, testSchema)).rejects.toThrow(
-                "Input failed"
-            );
+            await expect(elicitation.requestInput(testMessage, testSchema)).rejects.toThrow("Input failed");
         });
 
         it("should forward the abort signal to the elicitation request", async () => {

@@ -1,9 +1,5 @@
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import {
-    isInitializeRequest,
-    type ClientCapabilities,
-    type Implementation,
-} from "@modelcontextprotocol/sdk/types.js";
+import { isInitializeRequest, type ClientCapabilities, type Implementation } from "@modelcontextprotocol/sdk/types.js";
 import express from "express";
 import type {
     ICompositeLogger,

@@ -170,7 +170,7 @@ async function createTestServer(config: UserConfig): Promise<CliServer> {
 describe("negotiated client state across implicit session re-initialization", () => {
     let runner: StreamableHttpRunner;
     let sessionStore: DurableClientStateSessionStore;
-        let client: Client | undefined;
+    let client: Client | undefined;
 
     beforeEach(async () => {
         const userConfig: UserConfig = {

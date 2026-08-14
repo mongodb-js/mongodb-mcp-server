@@ -1,11 +1,6 @@
 import { describe, expect, it, afterAll } from "vitest";
 import { describeWithMongoDB } from "../mongodbHelpers.js";
-import {
-    createTestApiClient,
-    defaultTestConfig,
-    expectDefined,
-    getResponseElements,
-} from "../integrationHelpers.js";
+import { createTestApiClient, defaultTestConfig, expectDefined, getResponseElements } from "../integrationHelpers.js";
 import { CompositeLogger, Keychain, InMemoryTransport } from "@mongodb-js/mcp-core";
 import { ExportsManager, MCPConnectionStore, DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { AllTools } from "mongodb-mcp-server";

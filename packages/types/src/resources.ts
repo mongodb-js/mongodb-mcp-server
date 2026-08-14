@@ -1,5 +1,5 @@
 import type { ResourceMetadata, ReadResourceCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { SessionEvents, ISession } from "./session.js";
+import type { SessionEvents } from "./session.js";
 import type { ITelemetry } from "./telemetry.js";
 import type { IElicitation } from "./elicitation.js";
 import type { DefaultMetricDefinitions, IMetrics } from "./metrics.js";

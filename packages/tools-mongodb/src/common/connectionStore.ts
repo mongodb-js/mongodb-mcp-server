@@ -29,6 +29,8 @@ export type ConnectionStoreUserConfig = {
     maxActiveConnections: number;
     transport: "stdio" | "http";
     httpHost: string;
+    /** Browser command used for OIDC auth-flow inference (e.g. an executable or fixture path). */
+    browser?: string | false;
 };
 
 /**
@@ -116,6 +118,7 @@ export class MCPConnectionStore {
         return {
             transport: this.userConfig.transport,
             httpHost: this.userConfig.httpHost,
+            browser: this.userConfig.browser,
         };
     }
 

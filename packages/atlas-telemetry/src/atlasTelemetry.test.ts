@@ -654,7 +654,7 @@ describe("AtlasTelemetry credentials handling", () => {
 
     let fetchSpy: MockInstance<typeof fetch>;
 
-const mockDeviceId = {
+    const mockDeviceId = {
         get: vi.fn().mockResolvedValue("test-device-id"),
         close: vi.fn(),
     } as unknown as IDeviceId;

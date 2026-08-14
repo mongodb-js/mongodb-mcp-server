@@ -16,14 +16,7 @@ export type AtlasClusterConnectionInfo = {
  * Connection string info describing the auth and host type of a MongoDB connection.
  */
 export type ConnectionStringInfo = {
-    authType:
-        | "scram"
-        | "ldap"
-        | "kerberos"
-        | "oidc-auth-flow"
-        | "oidc-device-flow"
-        | "x.509"
-        | "unknown";
+    authType: "scram" | "ldap" | "kerberos" | "oidc-auth-flow" | "oidc-device-flow" | "x.509" | "unknown";
     hostType: "unknown" | "atlas" | "local" | "atlas_local" | "other";
 };
 

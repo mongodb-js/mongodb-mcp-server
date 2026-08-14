@@ -88,7 +88,9 @@ describe("ConnectionRegistry", () => {
     describe("resolve", () => {
         it("returns the service provider for a connected entry", async () => {
             const registry = makeStore().view();
-            const entry = await registry.connect({ settings: { connectionString: "mongodb://localhost:27017", driverOptions: {} } });
+            const entry = await registry.connect({
+                settings: { connectionString: "mongodb://localhost:27017", driverOptions: {} },
+            });
             await expect(registry.resolve(entry.connectionId)).resolves.toEqual({ fake: true });
         });
 
@@ -178,11 +180,17 @@ describe("ConnectionRegistry", () => {
                 },
             }).view();
 
-            const first = await registry.connect({ settings: { connectionString: "mongodb://first:27017", driverOptions: {} } });
+            const first = await registry.connect({
+                settings: { connectionString: "mongodb://first:27017", driverOptions: {} },
+            });
             vi.advanceTimersByTime(10);
-            const second = await registry.connect({ settings: { connectionString: "mongodb://second:27017", driverOptions: {} } });
+            const second = await registry.connect({
+                settings: { connectionString: "mongodb://second:27017", driverOptions: {} },
+            });
             vi.advanceTimersByTime(10);
-            const third = await registry.connect({ settings: { connectionString: "mongodb://third:27017", driverOptions: {} } });
+            const third = await registry.connect({
+                settings: { connectionString: "mongodb://third:27017", driverOptions: {} },
+            });
 
             const ids = (await registry.find(() => true)).map((entry) => entry.connectionId);
             expect(ids).toContain(PRECONFIGURED_CONNECTION_ID);
@@ -197,11 +205,17 @@ describe("ConnectionRegistry", () => {
             const viewA = store.view({ scope: "scope-a" });
             const viewB = store.view({ scope: "scope-b" });
 
-            const bEntry = await viewB.connect({ settings: { connectionString: "mongodb://b-host:27017", driverOptions: {} } });
+            const bEntry = await viewB.connect({
+                settings: { connectionString: "mongodb://b-host:27017", driverOptions: {} },
+            });
             vi.advanceTimersByTime(10);
-            const aFirst = await viewA.connect({ settings: { connectionString: "mongodb://a-first:27017", driverOptions: {} } });
+            const aFirst = await viewA.connect({
+                settings: { connectionString: "mongodb://a-first:27017", driverOptions: {} },
+            });
             vi.advanceTimersByTime(10);
-            const aSecond = await viewA.connect({ settings: { connectionString: "mongodb://a-second:27017", driverOptions: {} } });
+            const aSecond = await viewA.connect({
+                settings: { connectionString: "mongodb://a-second:27017", driverOptions: {} },
+            });
 
             const ids = (await store.view().find(() => true)).map((entry) => entry.connectionId);
             expect(ids).not.toContain(aFirst.connectionId);
@@ -219,7 +233,9 @@ describe("ConnectionRegistry", () => {
             const viewA = store.view({ scope: "scope-a" });
             const viewB = store.view({ scope: "scope-b" });
 
-            const entry = await viewA.connect({ settings: { connectionString: "mongodb://localhost:27017", driverOptions: {} } });
+            const entry = await viewA.connect({
+                settings: { connectionString: "mongodb://localhost:27017", driverOptions: {} },
+            });
 
             // Visible and usable through the creating view.
             await expect(viewA.peek(entry.connectionId)).resolves.toBe(entry);
@@ -259,9 +275,15 @@ describe("ConnectionRegistry", () => {
             const viewA = store.view({ scope: "scope-a" });
             const viewB = store.view({ scope: "scope-b" });
 
-            const aFirst = await viewA.connect({ settings: { connectionString: "mongodb://a-first:27017", driverOptions: {} } });
-            const aSecond = await viewA.connect({ settings: { connectionString: "mongodb://a-second:27017", driverOptions: {} } });
-            const bEntry = await viewB.connect({ settings: { connectionString: "mongodb://b-host:27017", driverOptions: {} } });
+            const aFirst = await viewA.connect({
+                settings: { connectionString: "mongodb://a-first:27017", driverOptions: {} },
+            });
+            const aSecond = await viewA.connect({
+                settings: { connectionString: "mongodb://a-second:27017", driverOptions: {} },
+            });
+            const bEntry = await viewB.connect({
+                settings: { connectionString: "mongodb://b-host:27017", driverOptions: {} },
+            });
 
             await viewA.close();
 
@@ -275,7 +297,9 @@ describe("ConnectionRegistry", () => {
         it("close is a no-op on an unowned view", async () => {
             const store = makeStore();
             const unowned = store.view();
-            const entry = await unowned.connect({ settings: { connectionString: "mongodb://host:27017", driverOptions: {} } });
+            const entry = await unowned.connect({
+                settings: { connectionString: "mongodb://host:27017", driverOptions: {} },
+            });
 
             await unowned.close();
 
@@ -286,7 +310,9 @@ describe("ConnectionRegistry", () => {
         it("close revokes everything reachable through an owned unbound view", async () => {
             const store = makeStore();
             const owned = store.view({ owned: true });
-            const entry = await owned.connect({ settings: { connectionString: "mongodb://host:27017", driverOptions: {} } });
+            const entry = await owned.connect({
+                settings: { connectionString: "mongodb://host:27017", driverOptions: {} },
+            });
 
             await owned.close();
 
@@ -303,8 +329,12 @@ describe("ConnectionRegistry", () => {
             const scoped = store.view({ scope: "scope-a" });
             const unbound = store.view();
 
-            const scopedEntry = await scoped.connect({ settings: { connectionString: "mongodb://a-host:27017", driverOptions: {} } });
-            const sharedEntry = await unbound.connect({ settings: { connectionString: "mongodb://b-host:27017", driverOptions: {} } });
+            const scopedEntry = await scoped.connect({
+                settings: { connectionString: "mongodb://a-host:27017", driverOptions: {} },
+            });
+            const sharedEntry = await unbound.connect({
+                settings: { connectionString: "mongodb://b-host:27017", driverOptions: {} },
+            });
             await unbound.resolve(PRECONFIGURED_CONNECTION_ID);
 
             await store.closeAll();

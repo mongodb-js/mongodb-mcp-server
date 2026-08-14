@@ -230,9 +230,12 @@ export function setupIntegrationTest(
         const {
             tools: toolsFromServerOptions,
             resources: resourcesFromServerOptions,
+            // Explicitly discard serverOptions.userConfig: the test server always
+            // runs with the caller-provided userConfig from getUserConfig().
             userConfig: _userConfigFromServerOptions,
             ...restServerOptions
         } = serverOptions ?? {};
+        void _userConfigFromServerOptions;
 
         mcpServer = new CliServer({
             session,
@@ -304,12 +307,12 @@ export function setupIntegrationTest(
         return Object.assign(
             mcpServer as CliServer & { session: McpSession; userConfig: UserConfig; getApiClient: () => ApiClient },
             {
-                userConfig: (mcpServer.session as McpSession).config,
+                userConfig: mcpServer.session.config,
                 getApiClient: (): ApiClient => {
                     if (!mcpServer?.session.apiClient) {
                         throw new Error("apiClient not available");
                     }
-                    return (mcpServer.session as McpSession).apiClient as unknown as ApiClient;
+                    return mcpServer.session.apiClient as unknown as ApiClient;
                 },
             }
         );

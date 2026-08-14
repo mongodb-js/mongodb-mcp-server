@@ -16,11 +16,11 @@ const vitestDefaultExcludes = [
 const longRunningTests = ["packages/integration-tests/src/tools/atlas/performanceAdvisor.test.ts"];
 
 if (process.env.SKIP_ATLAS_INTEGRATION_TESTS === "true") {
-    vitestDefaultExcludes.push("**/integration/**/atlas/**");
+    vitestDefaultExcludes.push("**/integration-tests/**/atlas/**");
 }
 
 if (process.env.SKIP_ATLAS_LOCAL_TESTS === "true") {
-    vitestDefaultExcludes.push("**/atlas-local/**");
+    vitestDefaultExcludes.push("**/integration-tests/**/atlas-local/**");
 }
 
 export default defineConfig({

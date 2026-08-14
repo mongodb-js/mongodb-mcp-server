@@ -89,7 +89,9 @@ describe("ConnectionEntry with MCPConnectionManager", () => {
         }
 
         it("should configure the proxy to use environment variables", async () => {
-            const entry = await registry.connect({ settings: { connectionString: "mongodb://localhost", driverOptions: {} } });
+            const entry = await registry.connect({
+                settings: { connectionString: "mongodb://localhost", driverOptions: {} },
+            });
             expect(entry.getServiceProvider()).toBeDefined();
 
             const connectMock = MockNodeDriverServiceProvider.connect;

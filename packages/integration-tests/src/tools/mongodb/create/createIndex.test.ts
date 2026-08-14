@@ -345,7 +345,6 @@ describeWithMongoDB("createIndex tool with classic indexes", (integration) => {
         await validateIndex("coll1", [{ name: "prop1_1", key: { prop1: 1 } }]);
     });
 
-
     it("emits index_type telemetry metadata for classic indexes", async () => {
         const mockEmitEvents = vi.spyOn(integration.mcpServer()["telemetry"], "emitEvents");
         vi.spyOn(integration.mcpServer()["telemetry"], "isTelemetryEnabled").mockReturnValue(true);
@@ -597,7 +596,6 @@ describeWithMongoDB(
                     ],
                 });
             });
-
 
             it("emits index_type telemetry metadata for vector search indexes", async () => {
                 const mockEmitEvents = vi.spyOn(integration.mcpServer()["telemetry"], "emitEvents");
@@ -962,7 +960,6 @@ describeWithMongoDB(
                     },
                 });
             });
-
 
             it("emits index_type telemetry metadata for Atlas search indexes", async () => {
                 const mockEmitEvents = vi.spyOn(integration.mcpServer()["telemetry"], "emitEvents");

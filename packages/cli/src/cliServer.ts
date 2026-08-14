@@ -19,6 +19,7 @@ import type { AnyResourceClass, IMetrics, DefaultMetricDefinitions } from "@mong
 import type { AtlasTelemetry, TelemetryServerCommand, TelemetryServerEvent } from "@mongodb-js/mcp-atlas-telemetry";
 import type { AnyToolBase, AnyToolClass } from "@mongodb-js/mcp-core";
 import type { ToolCategory } from "@mongodb-js/mcp-types";
+import type { Client as AtlasLocalClient } from "@mongodb-js/atlas-local";
 import { validateConnectionString } from "@mongodb-js/mcp-tools-mongodb";
 import type { ServerMetadata } from "@mongodb-js/mcp-types";
 
@@ -97,7 +98,7 @@ export type McpSession = {
     readonly connectionErrorHandler: ConnectionErrorHandler;
     readonly apiClient: IApiClient;
     /** Atlas Local client, when available (long-running `atlas local` mode). */
-    readonly atlasLocalClient?: import("@mongodb-js/atlas-local").Client;
+    readonly atlasLocalClient?: AtlasLocalClient;
     mcpClient?: { name?: string; version?: string; title?: string };
     on(event: string | symbol, listener: (...args: unknown[]) => void): void;
     setMcpClient(mcpClient: Implementation | undefined): void;

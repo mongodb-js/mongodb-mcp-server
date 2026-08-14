@@ -26,5 +26,9 @@ export type ElicitationOptions = {
 export interface IElicitation {
     supportsElicitation(): boolean;
     requestConfirmation(message: string, options?: ElicitationOptions): Promise<boolean>;
-    requestInput(message: string, schema: ElicitRequestSchema, options?: ElicitationOptions): Promise<ElicitedInputResult>;
+    requestInput(
+        message: string,
+        schema: ElicitRequestSchema,
+        options?: ElicitationOptions
+    ): Promise<ElicitedInputResult>;
 }

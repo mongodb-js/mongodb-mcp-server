@@ -46,11 +46,16 @@ describe("DryModeRunner", () => {
 
         await runner.start();
 
+        // eslint-disable-next-line @typescript-eslint/unbound-method
         expect(loggerMock.log).toHaveBeenNthCalledWith(1, "Configuration:");
+        // eslint-disable-next-line @typescript-eslint/unbound-method
         expect(loggerMock.log).toHaveBeenNthCalledWith(2, JSON.stringify(userConfig, null, 2));
+        // eslint-disable-next-line @typescript-eslint/unbound-method
         expect(loggerMock.log).toHaveBeenNthCalledWith(3, "Enabled tools:");
+        // eslint-disable-next-line @typescript-eslint/unbound-method
         expect(loggerMock.log).toHaveBeenNthCalledWith(4, expect.stringContaining('"name": "connect"'));
         // Because switch-connection is not enabled by default
+        // eslint-disable-next-line @typescript-eslint/unbound-method
         expect(loggerMock.log).toHaveBeenNthCalledWith(4, expect.not.stringContaining('"name": "switch-connection"'));
 
         // Verify server was connected and closed
