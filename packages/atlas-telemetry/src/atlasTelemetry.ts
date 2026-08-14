@@ -321,16 +321,16 @@ export class AtlasTelemetry implements ITelemetry {
         try {
             const effectiveSignal = signal ?? AbortSignal.timeout(SEND_TIMEOUT_MS);
             const secrets = this.keychain?.allSecrets ?? [];
-            await client.sendEvents({
-                events: events.map((event) => ({
+            await client.sendEvents(
+                events.map((event) => ({
                     ...event,
                     properties: {
                         ...redact(this.getCommonProperties(), secrets),
                         ...redact(event.properties, secrets),
                     },
                 })),
-                signal: effectiveSignal,
-            });
+                { signal: effectiveSignal }
+            );
             return { status: "success" };
         } catch (error) {
             if (error instanceof ApiClientError && error.response.status === 429) {

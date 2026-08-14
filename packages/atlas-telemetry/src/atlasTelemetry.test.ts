@@ -44,7 +44,7 @@ describe("nextBackoffMs", () => {
 
 describe("AtlasTelemetry", () => {
     let mockApiClient: {
-        sendEvents: MockedFunction<(options: { events: unknown[]; signal?: AbortSignal }) => Promise<void>>;
+        sendEvents: MockedFunction<(events: unknown[], options?: { signal?: AbortSignal }) => Promise<void>>;
         validateAuthConfig: MockedFunction<() => Promise<void>>;
         isAuthConfigured: MockedFunction<() => boolean>;
     };
@@ -281,7 +281,7 @@ describe("AtlasTelemetry", () => {
             await emitEventsForTest([newEvent]);
 
             expect(mockApiClient.sendEvents).toHaveBeenCalledTimes(1);
-            const sentEvents = mockApiClient.sendEvents.mock.calls[0]?.[0]?.events;
+            const sentEvents = mockApiClient.sendEvents.mock.calls[0]?.[0];
             expect(sentEvents).toHaveLength(2);
         });
 
@@ -297,7 +297,7 @@ describe("AtlasTelemetry", () => {
             await vi.advanceTimersByTimeAsync(SEND_INTERVAL_MS);
             await eventFired;
 
-            const sentEvents = mockApiClient.sendEvents.mock.calls[0]?.[0]?.events;
+            const sentEvents = mockApiClient.sendEvents.mock.calls[0]?.[0];
             expect(sentEvents).toHaveLength(BATCH_SIZE);
             expect(_cachedEvents).toHaveLength(5);
         });
@@ -329,7 +329,7 @@ describe("AtlasTelemetry", () => {
 
             const calls = mockApiClient.sendEvents.mock.calls;
             expect(calls).toHaveLength(1);
-            const event = calls[0]?.[0]?.events[0];
+            const event = calls[0]?.[0]?.[0];
             expectDefined(event);
             expect((event as TelemetryEvent<TelemetryCommonProperties>).properties.hosting_mode).toBe(
                 "vscode-extension"
@@ -530,7 +530,7 @@ describe("AtlasTelemetry", () => {
                 const calls = mockApiClient.sendEvents.mock.calls;
                 expect(calls).toHaveLength(1);
 
-                const sentEvent = calls[0]?.[0]?.events[0] as { properties: Record<string, unknown> };
+                const sentEvent = calls[0]?.[0]?.[0] as { properties: Record<string, unknown> };
                 expectDefined(sentEvent);
 
                 const eventProps = sentEvent.properties;
@@ -552,7 +552,7 @@ describe("AtlasTelemetry", () => {
                 const calls = mockApiClient.sendEvents.mock.calls;
                 expect(calls).toHaveLength(1);
 
-                const sentEvent = calls[0]?.[0]?.events[0] as { properties: Record<string, unknown> };
+                const sentEvent = calls[0]?.[0]?.[0] as { properties: Record<string, unknown> };
                 expectDefined(sentEvent);
 
                 expect(sentEvent.properties.device_id).toBe("<password>");
@@ -570,7 +570,7 @@ describe("AtlasTelemetry", () => {
                 const calls = mockApiClient.sendEvents.mock.calls;
                 expect(calls).toHaveLength(1);
 
-                const sentEvent = calls[0]?.[0]?.events[0] as { properties: Record<string, unknown> };
+                const sentEvent = calls[0]?.[0]?.[0] as { properties: Record<string, unknown> };
                 expectDefined(sentEvent);
 
                 expect(sentEvent.properties.device_id).toBe("<password>");
@@ -596,7 +596,7 @@ describe("AtlasTelemetry", () => {
             _cachedEvents.push(createTestEvent());
 
             let receivedSignal: AbortSignal | undefined;
-            mockApiClient.sendEvents.mockImplementation((options) => {
+            mockApiClient.sendEvents.mockImplementation((_events, options) => {
                 receivedSignal = options?.signal;
                 return Promise.resolve();
             });
@@ -631,7 +631,7 @@ describe("AtlasTelemetry", () => {
 
             let cachedEventSendCount = 0;
             for (const call of mockApiClient.sendEvents.mock.calls) {
-                const events = call[0].events as Array<{ properties?: { command?: string } }>;
+                const events = call[0] as Array<{ properties?: { command?: string } }>;
                 for (const e of events) {
                     if (e.properties?.command === CACHED_MARKER) cachedEventSendCount++;
                 }
