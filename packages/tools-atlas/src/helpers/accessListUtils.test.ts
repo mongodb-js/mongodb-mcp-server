@@ -94,12 +94,12 @@ describe("accessListUtils", () => {
             createMock = vi.fn().mockResolvedValue(undefined);
         } else if (createResult === "conflict") {
             createMock = vi.fn().mockRejectedValue(
-                ApiClientError.fromError({
-                    response: { status: 409, statusText: "Conflict" } as Response,
-                    error: {
+                ApiClientError.fromError(
+                    { status: 409, statusText: "Conflict" } as Response,
+                    {
                         message: "Conflict",
-                    } as never,
-                })
+                    } as never
+                )
             );
         } else {
             createMock = vi.fn().mockRejectedValue(new Error("network error"));
