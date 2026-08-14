@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DebugResource, type DebugSession } from "./debug.js";
-import { CompositeLogger, Keychain, NoopMetrics, Elicitation, McpServer } from "@mongodb-js/mcp-core";
+import { DebugResource } from "./debug.js";
+import { CompositeLogger, Keychain, McpServer } from "@mongodb-js/mcp-core";
 import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { Session, UserConfigSchema, type UserConfig } from "@mongodb-js/mcp-cli";
@@ -62,6 +62,8 @@ describe("debug resource", () => {
                 logger,
                 authProvider: undefined,
             }),
+            config,
+            userConfig: config,
         });
 
         const mcpServer = new McpServer({
@@ -78,17 +80,7 @@ describe("debug resource", () => {
             serverMetadata: testServerMetadata,
         });
 
-        // The stateless Session satisfies every DebugResource dependency
-        // (config surface via ISession, keychain, logger, ...) except the
-        // ISession contract members it deliberately dropped in the MCP-601
-        // refactor (config/disconnect/isConnectedToMongoDB), so the resource
-        // construction narrows the runtime session to its DebugSession view.
-        debugResource = new DebugResource({
-            session: session as unknown as DebugSession,
-            telemetry,
-            elicitation: new Elicitation({ server: mcpServer.server, timeoutMs: 1000 }),
-            metrics: new NoopMetrics(),
-        });
+        debugResource = new DebugResource(session, config, telemetry);
     }
 
     beforeEach(() => {
