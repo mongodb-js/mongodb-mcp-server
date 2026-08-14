@@ -73,6 +73,7 @@ Create or edit `.vscode/mcp.json` in your workspace (or run **MCP: Open User Con
 ([Claude Desktop documentation](https://modelcontextprotocol.io/quickstart/user))
 
 Edit `claude_desktop_config.json`:
+
 - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 

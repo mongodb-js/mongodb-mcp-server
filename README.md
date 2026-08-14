@@ -7,7 +7,6 @@ A Model Context Protocol server for interacting with MongoDB Databases and Mongo
 
 ### Quick Start
 
-
 #### Using the official MongoDB plugins for AI agents
 
 MongoDB MCP Server comes bundled with the official MongoDB plugins for AI agents. The following plugins are available:
@@ -29,7 +28,6 @@ MongoDB MCP Server comes bundled with the official MongoDB plugins for AI agents
 - Codex: Run `codex plugin marketplace add mongodb/agent-skills`, then open `/plugins` and install `mongodb`.
 - GitHub Copilot CLI: Run `/plugin install https://github.com/mongodb/agent-skills.git`.
 - Grok: Open `/marketplace` in Grok Build and install `mongodb`.
-
 
 #### Using the setup script
 
@@ -110,7 +108,6 @@ Note: The configuration file syntax can be different across clients. Please refe
 - [Codex](MCP_CLIENT_CONFIGURATION.md#codex)
 
 > **Default Safety Notice:** All examples below include `--readOnly` by default to ensure safe, read-only access to your data. Remove `--readOnly` if you need to enable write operations.
-
 
 #### Option 1: Connection String
 
