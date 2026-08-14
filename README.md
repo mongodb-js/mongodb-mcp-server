@@ -112,27 +112,7 @@ Note: The configuration file syntax can be different across clients. Please refe
 > **Default Safety Notice:** All examples below include `--readOnly` by default to ensure safe, read-only access to your data. Remove `--readOnly` if you need to enable write operations.
 
 
-#### Option 1: Connect to the MongoDB Atlas-Managed MCP Server
-
-When working with MongoDB Atlas, you can use the MongoDB Atlas-Managed MCP server. This is the recommended approach as it provides secure access without requiring you to run an MCP server on your device.
-
-```json
-{
-  "mcpServers": {
-    "mongodb-atlas": {
-      "type": "http",
-      "url": "https://mcp.mongodb.com/",
-      "oauth": {
-        "clientId": "<your MCP client ID here>"
-      }
-    }
-  }
-}
-```
-
-You can also connect to the hosted MongoDB Atlas Remote MCP server without the OAuth flow using the `mongodb-atlas-mcp-remote` package and Service Account credentials. See the [package README](packages/mongodb-atlas-mcp-remote/README.md) for setup and client-specific configuration examples.
-
-#### Option 2: Connection String
+#### Option 1: Connection String
 
 You can pass your connection string via environment variables, make sure to use a valid username and password.
 
@@ -151,6 +131,12 @@ You can pass your connection string via environment variables, make sure to use 
 ```
 
 NOTE: The connection string can be configured to connect to any MongoDB cluster, whether it's a local instance or an Atlas cluster.
+
+#### Option 2: Connect to the MongoDB Atlas-Managed MCP Server
+
+When working with MongoDB Atlas, the recommended approach is to install the [`mongodb-atlas` plugin](#using-the-official-mongodb-plugins-for-ai-agents) for your AI agent, which handles OAuth authentication automatically.
+
+For manual configuration, see the [client-specific instructions](MCP_CLIENT_CONFIGURATION.md) for setting up the Atlas Remote MCP server with OAuth. Alternatively, you can connect using the [`mongodb-atlas-mcp-remote`](packages/mongodb-atlas-mcp-remote/README.md) package with Service Account credentials — see the [package README](packages/mongodb-atlas-mcp-remote/README.md) for setup instructions.
 
 #### Option 3: Atlas API Credentials
 

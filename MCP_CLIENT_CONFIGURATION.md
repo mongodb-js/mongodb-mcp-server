@@ -12,18 +12,7 @@ Edit `~/.codeium/windsurf/mcp_config.json`.
 
 **Atlas Remote MCP:**
 
-```json
-{
-  "mcpServers": {
-    "MongoDB": {
-      "serverUrl": "https://mcp.mongodb.com/mcp",
-      "headers": {}
-    }
-  }
-}
-```
-
-> Devin Desktop handles OAuth automatically for HTTP servers.
+To connect to the Atlas Remote MCP server, use the [`mongodb-atlas-mcp-remote`](packages/mongodb-atlas-mcp-remote/README.md) proxy with Service Account credentials. See the [package README](packages/mongodb-atlas-mcp-remote/README.md) for setup instructions.
 
 **Local MCP:**
 
@@ -163,11 +152,7 @@ Edit `~/.cursor/mcp.json`.
 
 **Atlas Remote MCP:**
 
-```shell
-copilot mcp add --transport http MongoDB https://mcp.mongodb.com/
-```
-
-Or from an interactive session, use the `/mcp add` slash command and fill in the details.
+To connect to the Atlas Remote MCP server, use the [`mongodb-atlas-mcp-remote`](packages/mongodb-atlas-mcp-remote/README.md) proxy with Service Account credentials. See the [package README](packages/mongodb-atlas-mcp-remote/README.md) for setup instructions.
 
 **Local MCP:**
 
@@ -199,20 +184,7 @@ Create or edit your OpenCode config file (`~/.config/opencode/opencode.json` or 
 
 **Atlas Remote MCP:**
 
-```json
-{
-  "$schema": "https://opencode.ai/config.json",
-  "mcp": {
-    "MongoDB": {
-      "type": "remote",
-      "url": "https://mcp.mongodb.com/",
-      "enabled": true
-    }
-  }
-}
-```
-
-> OpenCode handles OAuth automatically for remote servers.
+To connect to the Atlas Remote MCP server, use the [`mongodb-atlas-mcp-remote`](packages/mongodb-atlas-mcp-remote/README.md) proxy with Service Account credentials. See the [package README](packages/mongodb-atlas-mcp-remote/README.md) for setup instructions.
 
 **Local MCP:**
 
@@ -238,19 +210,17 @@ Create or edit your OpenCode config file (`~/.config/opencode/opencode.json` or 
 
 Add to `~/.codex/config.toml`.
 
-**Remote MCP (via `mongodb-atlas-mcp-remote` proxy):**
+**Atlas Remote MCP:**
 
-Codex doesn't natively support HTTP/OAuth transport. Use the [`mongodb-atlas-mcp-remote`](packages/mongodb-atlas-mcp-remote/README.md) proxy with Service Account credentials:
+1. Open the plugins browser:
 
-```toml
-[mcp_servers.MongoDB]
-command = "npx"
-args = ["-y", "mongodb-atlas-mcp-remote@latest"]
+   ```bash
+   /plugins
+   ```
 
-[mcp_servers.MongoDB.env]
-MDB_MCP_API_CLIENT_ID = "your-client-id"
-MDB_MCP_API_CLIENT_SECRET = "your-client-secret"
-```
+2. Find the `mongodb-atlas` plugin and install it.
+
+Alternatively, use the [`mongodb-atlas-mcp-remote`](packages/mongodb-atlas-mcp-remote/README.md) proxy with Service Account credentials — see the [package README](packages/mongodb-atlas-mcp-remote/README.md) for setup instructions.
 
 **Local MCP:**
 
