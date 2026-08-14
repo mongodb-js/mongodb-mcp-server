@@ -21,8 +21,8 @@ export {
 
 export type { CliHandler, CliHandlerContext } from "./cliHandler.js";
 
-export { Session, CliSession } from "./cliSession.js";
-export type { SessionOptions, CliSessionOptions } from "./cliSession.js";
+export { Session } from "./cliSession.js";
+export type { SessionOptions } from "./cliSession.js";
 
 // Config parsing and types
 export { parseUserConfig, type ParserOptions, defaultParserOptions } from "./config/parseUserConfig.js";

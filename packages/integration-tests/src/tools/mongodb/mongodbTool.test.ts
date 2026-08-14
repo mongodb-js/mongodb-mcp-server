@@ -103,26 +103,22 @@ describe("MongoDBTool implementations", () => {
         const exportsManager = ExportsManager.init({ options: userConfig, logger: logger });
         deviceId = DeviceId.create(logger);
         const connectionRegistry = new MCPConnectionStore({ userConfig, logger, deviceId }).view();
-        const session = Object.assign(
-            new Session({
+        const session = new Session({
+            logger,
+            exportsManager,
+            connectionRegistry,
+            keychain: new Keychain(),
+            connectionErrorHandler: errorHandler,
+            apiClient: createTestApiClient({
+                baseUrl: userConfig.apiBaseUrl,
+                serverMetadata: { mcpServerName: "test", version: "1" },
                 logger,
-                exportsManager,
-                connectionRegistry,
-                keychain: new Keychain(),
-                connectionErrorHandler: errorHandler,
-                apiClient: createTestApiClient({
-                    baseUrl: userConfig.apiBaseUrl,
-                    serverMetadata: { mcpServerName: "test", version: "1" },
-                    logger,
-                    clientId: userConfig.apiClientId,
-                    clientSecret: userConfig.apiClientSecret,
-                }),
+                clientId: userConfig.apiClientId,
+                clientSecret: userConfig.apiClientSecret,
             }),
-            {
-                config: userConfig,
-                userConfig,
-            }
-        );
+            config: userConfig,
+            userConfig,
+        });
 
         const telemetry = AtlasTelemetry.create({
             logger,

@@ -130,10 +130,6 @@ const config: KnipConfig = {
         },
     },
     ignoreExportsUsedInFile: true,
-    ignoreIssues: {
-        // Deprecated alias kept for backward compatibility (CliSession === Session)
-        "packages/cli/src/cliSession.ts": ["duplicates"],
-    },
 };
 
 export default config;

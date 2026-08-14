@@ -53,7 +53,6 @@ vi.mock("@mongodb-js/mcp-core", async (importOriginal) => {
 });
 
 vi.mock("./cliSession.js", () => ({
-    CliSession: class MockCliSession {},
     Session: class MockSession {
         close(): Promise<void> {
             return Promise.resolve();

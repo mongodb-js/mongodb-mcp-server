@@ -5,7 +5,6 @@ import { setupIntegrationTest, defaultTestConfig } from "../../integrationHelper
 import type { SuiteCollector } from "vitest";
 import { afterAll, beforeAll, describe } from "vitest";
 import type { McpSession } from "@mongodb-js/mcp-cli";
-// CliSession deprecated alias replaced by McpSession below
 import { AllTools } from "mongodb-mcp-server";
 
 export type IntegrationTestFunction = (integration: IntegrationTest) => void;

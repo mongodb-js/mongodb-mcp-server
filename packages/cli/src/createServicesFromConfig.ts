@@ -76,24 +76,17 @@ export async function createServicesFromConfig({
         timeoutMs: config.elicitationTimeoutMs,
     });
 
-    const session = Object.assign(
-        new Session({
-            logger,
-            exportsManager,
-            connectionRegistry,
-            keychain,
-            apiClient,
-            connectionErrorHandler,
-            atlasLocalClient,
-        }),
-        {
-            // The stateless session has no config of its own: the config is
-            // supplied by the CLI at construction. Resources (e.g. the config
-            // resource) read it back through `session.config`.
-            config,
-            userConfig: config,
-        }
-    );
+    const session = new Session({
+        logger,
+        exportsManager,
+        connectionRegistry,
+        keychain,
+        apiClient,
+        connectionErrorHandler,
+        atlasLocalClient,
+        config,
+        userConfig: config,
+    });
 
     const server = new CliServer({
         session,

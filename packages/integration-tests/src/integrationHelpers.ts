@@ -22,7 +22,6 @@ import { ApiClient, ClientCredentialsAuthProvider } from "@mongodb-js/mcp-atlas-
 import { MockMetrics, sleep } from "@mongodb-js/mcp-test-utils";
 import { Session, type McpSession } from "@mongodb-js/mcp-cli";
 export { sleep };
-export { CliSession } from "@mongodb-js/mcp-cli";
 import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 export const defaultTestConfig: UserConfig = {
     ...UserConfigSchema.parse({}),
@@ -158,30 +157,23 @@ export function setupIntegrationTest(
         connectionStore = new MCPConnectionStore({ userConfig, logger, deviceId });
         const connectionRegistry = connectionStore.view();
 
-        const session = Object.assign(
-            new Session({
+        const session = new Session({
+            logger,
+            exportsManager,
+            connectionRegistry,
+            keychain: new Keychain(),
+            connectionErrorHandler,
+            atlasLocalClient: await createAtlasLocalClient({ logger }),
+            apiClient: createTestApiClient({
+                baseUrl: userConfig.apiBaseUrl,
+                serverMetadata: { mcpServerName: "mongodb-mcp-test", version: "1" },
                 logger,
-                exportsManager,
-                connectionRegistry,
-                keychain: new Keychain(),
-                connectionErrorHandler,
-                atlasLocalClient: await createAtlasLocalClient({ logger }),
-                apiClient: createTestApiClient({
-                    baseUrl: userConfig.apiBaseUrl,
-                    serverMetadata: { mcpServerName: "mongodb-mcp-test", version: "1" },
-                    logger,
-                    clientId: userConfig.apiClientId,
-                    clientSecret: userConfig.apiClientSecret,
-                }),
+                clientId: userConfig.apiClientId,
+                clientSecret: userConfig.apiClientSecret,
             }),
-            {
-                // Mirror createServicesFromConfig: the stateless session is
-                // decorated with the user config for resources/tools that read
-                // it back through `session.config`.
-                config: userConfig,
-                userConfig,
-            }
-        );
+            config: userConfig,
+            userConfig,
+        });
 
         // Mock hasValidAccessToken for tests
         if (!userConfig.apiClientId && !userConfig.apiClientSecret) {

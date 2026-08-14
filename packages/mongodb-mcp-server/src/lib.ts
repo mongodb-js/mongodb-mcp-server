@@ -2,9 +2,7 @@
 export {
     CliServer,
     type CliServerOptions,
-    CliSession,
     type McpSession,
-    type CliSessionOptions,
 } from "@mongodb-js/mcp-cli";
 export type { SessionEvents } from "@mongodb-js/mcp-types";
 export { type UserConfig, UserConfigSchema, configRegistry } from "@mongodb-js/mcp-cli";

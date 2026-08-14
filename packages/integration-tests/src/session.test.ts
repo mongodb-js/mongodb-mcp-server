@@ -44,6 +44,8 @@ describe("Session", () => {
             keychain: new Keychain(),
             connectionErrorHandler,
             apiClient: { close: apiClientCloseMock } as unknown as ApiClient,
+            config: defaultTestConfig,
+            userConfig: defaultTestConfig,
         });
     });
 
@@ -56,6 +58,8 @@ describe("Session", () => {
                 keychain: new Keychain(),
                 connectionErrorHandler,
                 apiClient: { close: vi.fn() } as unknown as ApiClient,
+                config: defaultTestConfig,
+                userConfig: defaultTestConfig,
             });
 
             expect(session.sessionId).toMatch(/^[0-9a-f]{24}$/);

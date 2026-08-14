@@ -81,21 +81,17 @@ async function createTestServer(
 
     const elicitation = new Elicitation({ server: mcpServer.server, timeoutMs: config.elicitationTimeoutMs });
 
-    const session = Object.assign(
-        new Session({
-            logger,
-            exportsManager,
-            connectionRegistry,
-            keychain,
-            apiClient,
-            connectionErrorHandler,
-            atlasLocalClient,
-        }),
-        {
-            config,
-            userConfig: config,
-        }
-    );
+    const session = new Session({
+        logger,
+        exportsManager,
+        connectionRegistry,
+        keychain,
+        apiClient,
+        connectionErrorHandler,
+        atlasLocalClient,
+        config,
+        userConfig: config,
+    });
 
     const metrics = options.metrics ?? new PrometheusMetrics({ definitions: createDefaultMetrics() });
 

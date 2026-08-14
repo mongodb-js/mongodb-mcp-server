@@ -5,6 +5,7 @@ import { LogId, type CompositeLogger, type Keychain } from "@mongodb-js/mcp-core
 import EventEmitter from "events";
 import type { ConnectionErrorHandler, ConnectionRegistry, ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import type { Client } from "@mongodb-js/atlas-local";
+import type { UserConfig } from "./config/userConfig.js";
 
 export interface SessionOptions {
     logger: CompositeLogger;
@@ -14,6 +15,8 @@ export interface SessionOptions {
     atlasLocalClient?: Client;
     connectionErrorHandler: ConnectionErrorHandler;
     apiClient: ApiClient;
+    config: UserConfig;
+    userConfig: UserConfig;
 }
 
 export type SessionEvents = {
@@ -36,6 +39,8 @@ export class Session extends EventEmitter<SessionEvents> {
     readonly atlasLocalClient?: Client;
     readonly keychain: Keychain;
     readonly connectionErrorHandler: ConnectionErrorHandler;
+    readonly config: UserConfig;
+    readonly userConfig: UserConfig;
 
     mcpClient?: {
         name?: string;
@@ -53,6 +58,8 @@ export class Session extends EventEmitter<SessionEvents> {
         atlasLocalClient,
         connectionErrorHandler,
         apiClient,
+        config,
+        userConfig,
     }: SessionOptions) {
         super();
 
@@ -63,6 +70,8 @@ export class Session extends EventEmitter<SessionEvents> {
         this.exportsManager = exportsManager;
         this.connectionRegistry = connectionRegistry;
         this.connectionErrorHandler = connectionErrorHandler;
+        this.config = config;
+        this.userConfig = userConfig;
     }
 
     setMcpClient(mcpClient: Implementation | undefined): void {
@@ -90,11 +99,3 @@ export class Session extends EventEmitter<SessionEvents> {
         this.emit("close");
     }
 }
-
-/**
- * @deprecated Renamed to {@link Session}. Kept as an alias for backwards
- * compatibility.
- */
-export const CliSession = Session;
-export type CliSession = Session;
-export type CliSessionOptions = SessionOptions;

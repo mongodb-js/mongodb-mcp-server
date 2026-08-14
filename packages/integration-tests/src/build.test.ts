@@ -48,7 +48,6 @@ describe("Build Test", () => {
                 "ConnectionManager",
                 "LoggerBase",
                 "CliServer",
-                "CliSession",
                 "StreamableHttpRunner",
                 "AtlasTelemetry",
                 "Elicitation",

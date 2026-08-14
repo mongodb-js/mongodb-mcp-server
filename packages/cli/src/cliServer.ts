@@ -35,7 +35,7 @@ export interface CliServerOptions<TMetrics extends DefaultMetricDefinitions = De
     mcpServer: McpServer;
     telemetry: AtlasTelemetry;
     elicitation: Elicitation;
-    /** @deprecated Will be removed in a future version. Use `CliSessionOptions.connectionErrorHandler` instead. */
+    /** @deprecated Will be removed in a future version. Use `SessionOptions.connectionErrorHandler` instead. */
     connectionErrorHandler: ConnectionErrorHandler;
     uiRegistry?: IUIRegistry;
     metrics: IMetrics<TMetrics>;
