@@ -102,6 +102,7 @@ export {
     type CursorLimitKey,
 } from "./helpers/constants.js";
 export { pipelineDescriptionWithVectorSearch } from "./tools/read/aggregate.js";
+export { FindOutputSchema } from "./tools/read/find.js";
 export { IndexDirectionSchema, SortDirectionSchema } from "./mongodbSchemas.js";
 export * from "./tools/tools.js";
 

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { SessionStore, SessionLimitExceededError } from "@mongodb-js/mcp-core";
+import { SessionStore, SessionLimitExceededError, type CloseableTransport } from "@mongodb-js/mcp-core";
 import type { LoggerBase } from "@mongodb-js/mcp-core";
-import type { CloseableTransport, ISession } from "@mongodb-js/mcp-types";
+import type { Session } from "@mongodb-js/mcp-cli";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 
 function createMockTransport(): CloseableTransport {
@@ -17,8 +17,8 @@ function createMockLogger(): LoggerBase {
     } as unknown as LoggerBase;
 }
 
-function createMockSession(): ISession {
-    return { logger: createMockLogger() } as unknown as ISession;
+function createMockSession(): Session {
+    return { logger: createMockLogger() } as unknown as Session;
 }
 
 describe("SessionStore metrics", () => {
@@ -30,9 +30,9 @@ describe("SessionStore metrics", () => {
         metrics = new MockMetrics();
         logger = createMockLogger();
         store = new SessionStore({
-            options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000, maxSessions: 1000 },
+            options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000, maxSessions: 100 },
             logger,
-            metrics: metrics,
+            metrics,
         });
     });
 
@@ -191,7 +191,7 @@ describe("SessionStore.hasSession", () => {
 
     beforeEach(() => {
         store = new SessionStore({
-            options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000, maxSessions: 1000 },
+            options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000, maxSessions: 100 },
             logger: createMockLogger(),
             metrics: new MockMetrics(),
         });

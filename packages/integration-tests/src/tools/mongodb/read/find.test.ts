@@ -8,12 +8,6 @@ import {
     expectDefined,
     defaultTestConfig,
 } from "../../../integrationHelpers.js";
-// The find tool reads QUERY_COUNT_MAX_TIME_MS_CAP from the tools-mongodb
-// package's own constants module, which the integration server consumes from
-// its built output (dist). Importing that exact module record here allows the
-// vi.spyOn(..., "get") mock below to reach the code path that sets the count
-// query's maxTimeMS (live ESM binding), mirroring how the same tests used to
-// spy on main's single-package src/helpers/constants module.
 import * as constants from "../../../../../tools-mongodb/dist/helpers/constants.js";
 import {
     describeWithMongoDB,
@@ -23,21 +17,12 @@ import {
 } from "../../../mongodbHelpers.js";
 import type { Client } from "@modelcontextprotocol/sdk/client";
 import type { CursorLimitKey } from "@mongodb-js/mcp-tools-mongodb";
-import { bsonToJson } from "@mongodb-js/mcp-tools-mongodb";
+import { bsonToJson, FindOutputSchema } from "@mongodb-js/mcp-tools-mongodb";
 import { freshInsertDocuments } from "./helpers.js";
 
 type FindToolResponse = Awaited<ReturnType<Client["callTool"]>>;
 
-// Mirrors the structured content emitted by FindTool. FindOutputSchema is not
-// re-exported from the tools package barrel, so the test re-declares the shape
-// (loosened for appliedLimits, which is a zod enum in the real schema).
-const findStructuredContentSchema = z
-    .object({
-        documents: z.array(z.unknown()),
-        queryResultsCount: z.number().optional(),
-        appliedLimits: z.array(z.string()),
-    })
-    .strict();
+const findStructuredContentSchema = z.object(FindOutputSchema).strict();
 
 function expectFindStructuredContent(
     response: FindToolResponse,

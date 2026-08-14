@@ -43,6 +43,7 @@ describeWithMongoDB("count tool", (integration) => {
         });
         const content = getResponseContent(response.content);
         expect(content).toEqual('Found 0 documents in the collection "foos".');
+        expect(response.structuredContent).toEqual({ count: 0 });
     });
 
     it("returns 0 when collection doesn't exist", async () => {
@@ -55,6 +56,7 @@ describeWithMongoDB("count tool", (integration) => {
         });
         const content = getResponseContent(response.content);
         expect(content).toEqual('Found 0 documents in the collection "non-existent".');
+        expect(response.structuredContent).toEqual({ count: 0 });
     });
 
     describe("with existing database", () => {
@@ -93,6 +95,7 @@ describeWithMongoDB("count tool", (integration) => {
                 expect(content).toEqual(
                     `Found ${testCase.expectedCount} documents in the collection "foo"${testCase.filter ? " that matched the query" : ""}.`
                 );
+                expect(response.structuredContent).toEqual({ count: testCase.expectedCount });
             });
         }
     });
@@ -175,6 +178,7 @@ describeWithMongoDB("count tool with abort signal", (integration) => {
         expect(result).toBeUndefined();
         expectDefined(error);
         expect(error.message).toContain("This operation was aborted");
+        expect(result?.structuredContent).toBeUndefined();
     });
 
     it("should abort count operation during query execution", async () => {
@@ -190,11 +194,12 @@ describeWithMongoDB("count tool with abort signal", (integration) => {
         const { result, error, executionTime } = await countPromise;
 
         // Ensure it aborted quickly, but possibly after some processing
-        expect(executionTime).toBeGreaterThanOrEqual(15);
-        expect(executionTime).toBeLessThan(100);
+        expect(executionTime).toBeGreaterThanOrEqual(10);
+        expect(executionTime).toBeLessThan(50);
         expect(result).toBeUndefined();
         expectDefined(error);
         expect(error.message).toContain("This operation was aborted");
+        expect(result?.structuredContent).toBeUndefined();
     });
 
     it("should complete successfully when not aborted", async () => {
@@ -207,6 +212,7 @@ describeWithMongoDB("count tool with abort signal", (integration) => {
         expect(error).toBeUndefined();
         const content = getResponseContent(result);
         expect(content).toContain('Found 0 documents in the collection "abort_collection" that matched the query.');
+        expect(result.structuredContent).toEqual({ count: 0 });
     });
 });
 

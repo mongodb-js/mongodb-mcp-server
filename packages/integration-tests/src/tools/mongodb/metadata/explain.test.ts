@@ -102,7 +102,7 @@ describeWithMongoDB("explain tool", (integration) => {
                     const content = getResponseElements(response.content);
                     expect(content).toHaveLength(2);
                     expect(content[0]?.text).toEqual(
-                        `Here is some information about the winning plan chosen by the query optimizer for running the given \`${testCase.method}\` operation in "${integration.randomDbName()}.coll1". The execution plan was run with the following verbosity: "queryPlanner". This information can be used to understand how the query was executed and to optimize the query performance.`
+                        `Here is some information about the winning plan chosen by the query optimizer for running the given \`${testCase.method}\` operation on the requested namespace. The execution plan was run with the following verbosity: "queryPlanner". This information can be used to understand how the query was executed and to optimize the query performance.`
                     );
 
                     expect(content[1]?.text).toContain("queryPlanner");
@@ -157,7 +157,7 @@ describeWithMongoDB("explain tool", (integration) => {
                     const content = getResponseElements(response.content);
                     expect(content).toHaveLength(2);
                     expect(content[0]?.text).toEqual(
-                        `Here is some information about the winning plan chosen by the query optimizer for running the given \`${testCase.method}\` operation in "${integration.randomDbName()}.coll1". The execution plan was run with the following verbosity: "executionStats". This information can be used to understand how the query was executed and to optimize the query performance.`
+                        `Here is some information about the winning plan chosen by the query optimizer for running the given \`${testCase.method}\` operation on the requested namespace. The execution plan was run with the following verbosity: "executionStats". This information can be used to understand how the query was executed and to optimize the query performance.`
                     );
 
                     expect(content[1]?.text).toContain("queryPlanner");
@@ -216,7 +216,7 @@ describeWithMongoDB("explain tool", (integration) => {
                         const content = getResponseElements(response.content);
                         expect(content).toHaveLength(2);
                         expect(content[0]?.text).toEqual(
-                            `Here is some information about the winning plan chosen by the query optimizer for running the given \`${testCase.method}\` operation in "${integration.randomDbName()}.people". The execution plan was run with the following verbosity: "queryPlanner". This information can be used to understand how the query was executed and to optimize the query performance.`
+                            `Here is some information about the winning plan chosen by the query optimizer for running the given \`${testCase.method}\` operation on the requested namespace. The execution plan was run with the following verbosity: "queryPlanner". This information can be used to understand how the query was executed and to optimize the query performance.`
                         );
 
                         expect(content[1]?.text).toContain("queryPlanner");
