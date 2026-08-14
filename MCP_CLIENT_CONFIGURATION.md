@@ -1,4 +1,4 @@
-# Harness-Specific Configuration
+# MCP Client Configurations
 
 Configuration examples for various MCP clients. For working with MongoDB Atlas, it is recommended to use the Atlas-managed MCP Server. For clients that don't natively support HTTP/OAuth transport, use the [`mongodb-atlas-mcp-remote`](packages/mongodb-atlas-mcp-remote/README.md) proxy package with Service Account credentials instead.
 
