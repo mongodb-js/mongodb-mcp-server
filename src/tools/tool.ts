@@ -1,4 +1,5 @@
 import { z, type ZodRawShape } from "zod";
+import { encodeGeneric, decodeGeneric } from "@blackwell-systems/gcf";
 import type { RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
 import type {
@@ -1163,7 +1164,90 @@ export type AnyToolBase = ToolBase<any, any, any>;
  * @param data The data to format. If an empty array, only the description is returned.
  * @returns A tool response content that can be directly returned.
  */
+/**
+ * True when GCF output is requested via `MDB_MCP_OUTPUT_FORMAT=gcf`. Read here (rather
+ * than from {@link UserConfig}) because {@link formatUntrustedData} is a standalone
+ * helper shared by every tool; the setting is validated and documented on the config
+ * schema as `outputFormat`.
+ */
+function gcfOutputEnabled(): boolean {
+    return (process.env.MDB_MCP_OUTPUT_FORMAT ?? "").trim().toLowerCase() === "gcf";
+}
+
+/**
+ * Re-encodes a JSON string as a Graph Compact Format (https://gcformat.com) generic
+ * wire, or returns the original string unchanged. The result documents these tools
+ * return are arrays of uniform records, whose repeated field names GCF factors into a
+ * single header for fewer tokens. The substitution is conservative: the original JSON
+ * is kept unless GCF parses it, is strictly smaller, and round-trips back to the same
+ * value, so enabling GCF never grows or alters a result.
+ */
+function maybeEncodeGcf(jsonText: string): string {
+    let value: unknown;
+    try {
+        value = JSON.parse(jsonText);
+    } catch {
+        return jsonText; // not JSON (e.g. a plain message): leave as-is
+    }
+
+    let wire: string;
+    try {
+        wire = encodeGeneric(value);
+    } catch {
+        return jsonText;
+    }
+
+    if (wire.length >= jsonText.length) {
+        return jsonText; // never-grow guard
+    }
+
+    try {
+        if (canonicalJson(decodeGeneric(wire)) !== canonicalJson(value)) {
+            return jsonText; // fail-safe: not a lossless round-trip
+        }
+    } catch {
+        return jsonText;
+    }
+
+    return wire;
+}
+
+/**
+ * Stable JSON string used for the round-trip check in {@link maybeEncodeGcf}. Object
+ * keys are sorted so the comparison is independent of key order, and Map values (which
+ * the GCF decoder returns for objects) are converted to plain objects, so a decoded wire
+ * compares equal to the source value.
+ */
+function canonicalJson(value: unknown): string {
+    return JSON.stringify(normalizeForCompare(value));
+}
+
+function normalizeForCompare(value: unknown): unknown {
+    if (value instanceof Map) {
+        return sortedObject([...(value as Map<string, unknown>).entries()]);
+    }
+    if (Array.isArray(value)) {
+        return value.map(normalizeForCompare);
+    }
+    if (value && typeof value === "object") {
+        return sortedObject(Object.entries(value as Record<string, unknown>));
+    }
+    return value;
+}
+
+function sortedObject(entries: [string, unknown][]): Record<string, unknown> {
+    return Object.fromEntries(
+        entries
+            .map(([key, val]) => [key, normalizeForCompare(val)] as const)
+            .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    );
+}
+
 export function formatUntrustedData(description: string, ...data: string[]): { text: string; type: "text" }[] {
+    if (gcfOutputEnabled()) {
+        data = data.map(maybeEncodeGcf);
+    }
+
     const uuid = getRandomUUID();
 
     const openingTag = `<untrusted-user-data-${uuid}>`;

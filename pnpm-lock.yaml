@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@blackwell-systems/gcf':
+        specifier: 2.6.1
+        version: 2.6.1
       '@inquirer/prompts':
         specifier: ^8.5.2
         version: 8.5.2(@types/node@25.6.0)
@@ -679,6 +682,10 @@ packages:
   '@bcoe/v8-coverage@1.0.2':
     resolution: {integrity: sha512-6zABk/ECA/QYSCQ1NGiVwwbQerUCZ+TQbp64Q3AgmfNvurHH0j8TtXa1qbShXA6qqkpAj4V5W8pP6mLe1mcMqA==}
     engines: {node: '>=18'}
+
+  '@blackwell-systems/gcf@2.6.1':
+    resolution: {integrity: sha512-Yxa26qsRbno3s9wCIF8ka8Kpdm5/Pc0kkGC2NFxhR4ghFD9sqZN6DufgsA87YeGr1zhEZn5xIpYq4whk/wcnxQ==}
+    hasBin: true
 
   '@blazediff/core@1.9.1':
     resolution: {integrity: sha512-ehg3jIkYKulZh+8om/O25vkvSsXXwC+skXmyA87FFx6A/45eqOkZsBltMw/TVteb0mloiGT8oGRTcjRAz66zaA==}
@@ -8703,6 +8710,8 @@ snapshots:
   '@balena/dockerignore@1.0.2': {}
 
   '@bcoe/v8-coverage@1.0.2': {}
+
+  '@blackwell-systems/gcf@2.6.1': {}
 
   '@blazediff/core@1.9.1': {}
 
