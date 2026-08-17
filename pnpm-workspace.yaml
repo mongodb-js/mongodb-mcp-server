@@ -2,6 +2,10 @@ packages:
   - "."
   - "packages/*"
   - "tests/browser"
+
+overrides:
+  "@mongodb-js/socksv5": "^0.0.11"
+  "ip-address": "^10.5.0"
 allowBuilds:
   "@modelcontextprotocol/ext-apps": false
   braintrust: true
