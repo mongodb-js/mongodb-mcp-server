@@ -143,7 +143,7 @@
     "@typescript-eslint/parser": "^8.61.0",
     "@vitejs/plugin-react": "^6.0.3",
     "@vitest/coverage-v8": "^4.1.10",
-    "@vitest/eslint-plugin": "^1.6.24",
+    "@vitest/eslint-plugin": "^1.6.27",
     "ai": "^6.0.175",
     "braintrust": "^3.20.0",
     "concurrently": "^9.2.1",
