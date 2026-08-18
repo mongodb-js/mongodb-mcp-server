@@ -4,7 +4,6 @@ packages:
   - "tests/browser"
 
 overrides:
-  "@mongodb-js/socksv5": "^0.0.11"
   "ip-address": "^10.5.0"
 allowBuilds:
   "@modelcontextprotocol/ext-apps": false
@@ -21,3 +20,4 @@ allowBuilds:
   win-export-certificate-and-key: true
 minimumReleaseAgeExclude:
   - mongodb-runner@6.7.13
+  - '@mongodb-js/devtools-proxy-support@0.7.19'
