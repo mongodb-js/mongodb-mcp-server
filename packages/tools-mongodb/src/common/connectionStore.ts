@@ -36,46 +36,6 @@ export type ConnectionStoreConfig = ConnectionDriverConfig & {
     httpHost: string;
 };
 
-/** The keys of {@link ConnectionDriverConfig}, in its declared order. */
-const DRIVER_CONFIG_KEYS = [
-    "username",
-    "password",
-    "authenticationMechanism",
-    "authenticationDatabase",
-    "retryWrites",
-    "oidcRedirectUri",
-    "oidcFlows",
-    "oidcNoNonce",
-    "oidcTrustedEndpoint",
-    "oidcIdTokenAsAccessToken",
-    "browser",
-    "tls",
-    "tlsAllowInvalidCertificates",
-    "tlsAllowInvalidHostnames",
-    "tlsCAFile",
-    "tlsCRLFile",
-    "tlsCertificateKeyFile",
-    "tlsCertificateKeyFilePassword",
-    "apiVersion",
-    "apiStrict",
-    "apiDeprecationErrors",
-    "gssapiServiceName",
-    "sspiRealmOverride",
-    "sspiHostnameCanonicalization",
-    "awsIamSessionToken",
-    "awsAccessKeyId",
-    "awsSecretAccessKey",
-    "awsSessionToken",
-    "keyVaultNamespace",
-    "csfleLibraryPath",
-    "cryptSharedLibPath",
-] as const satisfies readonly (keyof ConnectionDriverConfig)[];
-
-/** Returns a new object containing only the given keys of `obj`. */
-function pick<T, K extends keyof T>(obj: T, keys: readonly K[]): Pick<T, K> {
-    return Object.fromEntries(keys.map((key) => [key, obj[key]])) as Pick<T, K>;
-}
-
 /**
  * Fallback server metadata used when the embedder does not supply any. The cli
  * normally passes richer metadata through the session; embedders that care
@@ -141,7 +101,12 @@ export class MCPConnectionStore {
                     deviceId: this.deviceId,
                     serverMetadata: this.serverMetadata,
                     connectionInfo: this.connectionInfo(),
-                    driverConfig: this.driverConfig(),
+                    // The store options are a ConnectionDriverConfig superset;
+                    // the extra store-level fields (connectionString,
+                    // maxActiveConnections, transport, httpHost) are not read
+                    // by mongosh's arg-parser, so passing the whole object is
+                    // equivalent to passing just the driver fields.
+                    driverConfig: this.options,
                 }));
 
         if (this.options.connectionString) {
@@ -166,20 +131,6 @@ export class MCPConnectionStore {
             httpHost: this.options.httpHost,
             browser: this.options.browser,
         };
-    }
-
-    /**
-     * The server-configured connection settings (auth, OIDC, TLS, Server API,
-     * GSSAPI, AWS/FLE) that mongosh's arg-parser maps into the derived
-     * connection string and driver options. Threaded into each connection
-     * manager so connects without explicit driver options apply them exactly
-     * like the preconfigured dial ({@link dialPreconfigured}) does.
-     */
-    private driverConfig(): ConnectionDriverConfig {
-        // Typesafe pick: DRIVER_CONFIG_KEYS is derived from keyof
-        // ConnectionDriverConfig (itself Pick<CliOptions, ...>), so the field
-        // list is declared once and can never drift from the type.
-        return pick(this.options, DRIVER_CONFIG_KEYS);
     }
 
     /**
@@ -323,7 +274,11 @@ export class MCPConnectionStore {
     private async dialPreconfigured(entry: ConnectionEntry): Promise<void> {
         this.preconfiguredDial ??= (async (): Promise<void> => {
             const connectionInfo = generateConnectionInfoFromCliArgs({
-                ...this.driverConfig(),
+                // Same rationale as in the constructor: mongosh only consumes
+                // known CLI-option keys, so spreading the whole store config is
+                // fine and keeps the preconfigured dial on equal footing with
+                // tool-initiated connects.
+                ...this.options,
                 connectionSpecifier: this.options.connectionString,
             });
             await entry.connect(connectionInfo);
