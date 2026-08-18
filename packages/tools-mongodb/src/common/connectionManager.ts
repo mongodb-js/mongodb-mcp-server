@@ -611,4 +611,3 @@ export class MCPConnectionManager extends ConnectionManager {
         }
     }
 }
-
