@@ -21,7 +21,7 @@ import {
     type ToolCategory,
     type ToolExecutionContext,
     ToolBase,
-    CliServer,
+    type CliServer,
 } from "mongodb-mcp-server";
 import { AllTools } from "mongodb-mcp-server";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
@@ -47,7 +47,7 @@ async function createStreamableHttpRunner(
 ): Promise<StreamableHttpRunner<CliServer>> {
     // `async` so that config validation errors thrown by the shared helper
     // surface as rejections, matching the pre-refactor behavior.
-    return createStreamableHttpTestRunner(config, options).runner;
+    return await Promise.resolve(createStreamableHttpTestRunner(config, options).runner);
 }
 
 const expectedHealthData: Record<string, unknown> = {

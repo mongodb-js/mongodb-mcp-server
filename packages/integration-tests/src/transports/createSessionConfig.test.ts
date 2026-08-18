@@ -1,12 +1,10 @@
-import { StreamableHttpRunner } from "@mongodb-js/mcp-http-runners";
+import type { StreamableHttpRunner } from "@mongodb-js/mcp-http-runners";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { afterEach, describe, expect, it } from "vitest";
-import type { UserConfig } from "mongodb-mcp-server";
-import { CliServer } from "mongodb-mcp-server";
+import type { UserConfig, CliServer } from "mongodb-mcp-server";
 import { defaultTestConfig, expectDefined } from "../integrationHelpers.js";
 import { sleep } from "@mongodb-js/mcp-core";
-import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { createTestServer } from "../helpers/createTestServer.js";
 import { createStreamableHttpTestRunner } from "../helpers/streamableHttpTestRunner.js";
 
@@ -45,7 +43,7 @@ describe("createSessionConfig (via createServerForRequest override)", () => {
 
     describe("basic functionality", () => {
         it("should use the modified config from configModifier", async () => {
-            const result = await createConfigModifyingRunner(defaultTestConfig, async (config) =>
+            const result = createConfigModifyingRunner(defaultTestConfig, async (config) =>
                 Promise.resolve({
                     ...config,
                     apiBaseUrl: "https://test-api.mongodb.com/",
@@ -67,7 +65,7 @@ describe("createSessionConfig (via createServerForRequest override)", () => {
         });
 
         it("should work with the default config", async () => {
-            const result = await createConfigModifyingRunner(defaultTestConfig, (config) => Promise.resolve(config));
+            const result = createConfigModifyingRunner(defaultTestConfig, (config) => Promise.resolve(config));
             runner = result.runner;
             getServerAddress = result.getServerAddress;
             await runner.start();
@@ -85,7 +83,7 @@ describe("createSessionConfig (via createServerForRequest override)", () => {
 
     describe("server integration", () => {
         it("should successfully initialize server with modified config and serve requests", async () => {
-            const result = await createConfigModifyingRunner(defaultTestConfig, async (config) => {
+            const result = createConfigModifyingRunner(defaultTestConfig, async (config) => {
                 // Simulate async config modification
                 await sleep(10);
                 return {
@@ -120,7 +118,7 @@ describe("createSessionConfig (via createServerForRequest override)", () => {
 
     describe("error handling", () => {
         it("should propagate errors from configModifier on client connection", async () => {
-            const result = await createConfigModifyingRunner(defaultTestConfig, async () => {
+            const result = createConfigModifyingRunner(defaultTestConfig, async () => {
                 return Promise.reject(new Error("Failed to fetch config"));
             });
             runner = result.runner;

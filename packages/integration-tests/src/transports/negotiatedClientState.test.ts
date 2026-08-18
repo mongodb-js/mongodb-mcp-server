@@ -4,7 +4,7 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { ElicitRequestSchema, type CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
-import { StreamableHttpRunner } from "@mongodb-js/mcp-http-runners";
+import type { StreamableHttpRunner } from "@mongodb-js/mcp-http-runners";
 import { type ISessionStore } from "@mongodb-js/mcp-core";
 import { SessionStore, CompositeLogger, ToolBase } from "@mongodb-js/mcp-core";
 import type { NegotiatedClientState, SessionCloseReason } from "@mongodb-js/mcp-types";
@@ -13,7 +13,7 @@ import type { OperationType, ToolCategory } from "@mongodb-js/mcp-types";
 import type { TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import type { UserConfig } from "mongodb-mcp-server";
 import type { CliServer } from "mongodb-mcp-server";
-import { Session } from "@mongodb-js/mcp-cli";
+import type { Session } from "@mongodb-js/mcp-cli";
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
 import { defaultTestConfig } from "../integrationHelpers.js";
 import { createStreamableHttpTestRunner, getServerAddress } from "../helpers/streamableHttpTestRunner.js";

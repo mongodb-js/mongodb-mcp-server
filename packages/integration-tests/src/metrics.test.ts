@@ -1,4 +1,4 @@
-import { StreamableHttpRunner, type MonitoringServer } from "@mongodb-js/mcp-http-runners";
+import type { StreamableHttpRunner, MonitoringServer } from "@mongodb-js/mcp-http-runners";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
