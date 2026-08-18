@@ -85,7 +85,7 @@ describe("ConnectionRegistry", () => {
         });
 
         it("leaves no entry behind when the dial fails", async () => {
-            managerFactory = () => {
+            managerFactory = (): FakeConnectionManager => {
                 const manager = new FakeConnectionManager();
                 manager.failNextConnect = new Error("dial failed");
                 managers.push(manager);
