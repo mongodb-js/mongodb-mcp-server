@@ -185,7 +185,6 @@ describe("mcpUI feature with custom UIs", () => {
                 clientSecret: userConfig.apiClientSecret,
             }),
             config: userConfig,
-            userConfig,
         });
 
         const telemetry = AtlasTelemetry.create({

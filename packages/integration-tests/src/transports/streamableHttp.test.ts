@@ -1,18 +1,18 @@
 import type express from "express";
-import { StreamableHttpRunner, MCPHttpServer } from "@mongodb-js/mcp-http-runners";
+import { StreamableHttpRunner } from "@mongodb-js/mcp-http-runners";
 import {
     SessionStore,
     type ISessionStore,
     type LoggerBase,
+    type AnyToolClass,
     CompositeLogger,
     Keychain,
     LogId,
-    type ToolClass,
 } from "@mongodb-js/mcp-core";
 import type { NegotiatedClientState, SessionCloseReason } from "@mongodb-js/mcp-types";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
+import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import { defaultTestConfig, InMemoryLogger, sleep } from "../integrationHelpers.js";
 import {
     type UserConfig,
@@ -22,213 +22,32 @@ import {
     type ToolExecutionContext,
     ToolBase,
     CliServer,
-    Elicitation,
-    connectionErrorHandler,
-    ExportsManager,
-    packageInfo,
 } from "mongodb-mcp-server";
-import { Session } from "@mongodb-js/mcp-cli";
-import { MCPConnectionStore } from "@mongodb-js/mcp-tools-mongodb";
 import { AllTools } from "mongodb-mcp-server";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { CallToolResult } from "@mongodb-js/mcp-types";
-import type { AtlasTelemetry, TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
-import type {
-    DefaultMetricDefinitions,
-    HttpServerOptions,
-    IMetrics,
-    SessionManagementOptions,
-    TransportRequestContext,
-} from "@mongodb-js/mcp-types";
-import type { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
+import type { TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import type { IncomingMessage } from "node:http";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { createTestApiClient } from "../integrationHelpers.js";
-import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
-import { createMonitoringServerFromConfig } from "@mongodb-js/mcp-cli";
+import {
+    createStreamableHttpTestRunner,
+    getServerAddress,
+    getSessionStore,
+    TestMCPHttpServer,
+} from "../helpers/streamableHttpTestRunner.js";
 
-// Helper to create a full Server instance for tests
-async function createTestServer(
-    config: UserConfig,
-    options: {
-        tools?: ToolClass[];
-    } = {}
-): Promise<CliServer> {
-    const logger = new CompositeLogger({ loggers: [] });
-    const keychain = Keychain.root;
-
-    const exportsManager = ExportsManager.init({
-        options: {
-            exportsPath: config.exportsPath,
-            exportTimeoutMs: config.exportTimeoutMs,
-            exportCleanupIntervalMs: config.exportCleanupIntervalMs,
-        },
-        logger,
-    });
-
-    const connectionRegistry = new MCPConnectionStore({
-        userConfig: config,
-        logger,
-        deviceId: {} as unknown as DeviceId,
-    }).view();
-
-    const apiClient = createTestApiClient({
-        baseUrl: config.apiBaseUrl,
-        serverMetadata: packageInfo,
-        logger,
-        clientId: "test-client-id",
-        clientSecret: "test-client-secret",
-    });
-
-    // Mock the API client methods for tests
-    vi.spyOn(apiClient, "validateAuthConfig").mockResolvedValue(undefined);
-    vi.spyOn(apiClient, "close").mockResolvedValue(undefined);
-
-    const atlasLocalClient = await createAtlasLocalClient({ logger });
-
-    const mcpServer = new McpServer({
-        name: "test-server",
-        version: packageInfo.version,
-    });
-
-    const elicitation = new Elicitation({ server: mcpServer.server, timeoutMs: config.elicitationTimeoutMs });
-
-    const session = new Session({
-        logger,
-        exportsManager,
-        connectionRegistry,
-        keychain,
-        apiClient,
-        connectionErrorHandler,
-        atlasLocalClient,
-        config,
-        userConfig: config,
-    });
-
-    const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
-
-    const server = new CliServer({
-        session,
-        userConfig: config,
-        mcpServer,
-        telemetry: {
-            emitEvents: () => {},
-            close: () => Promise.resolve(),
-            isTelemetryEnabled: () => false,
-        } as unknown as AtlasTelemetry,
-        connectionErrorHandler,
-        elicitation,
-        metrics,
-        tools: options.tools,
-        serverMetadata: {
-            mcpServerName: "test-server",
-            version: "1.0",
-            engines: {
-                node: "20.0.0",
-            },
-        },
-    });
-
-    return server;
-}
-
-// Custom MCPHttpServer that creates test servers
-class TestMCPHttpServer extends MCPHttpServer<CliServer> {
-    protected userConfig: UserConfig;
-    protected tools?: ToolClass[];
-
-    constructor({
-        userConfig,
-        options,
-        logger,
-        metrics,
-        sessionStore,
-        tools,
-    }: {
-        userConfig: UserConfig;
-        options: {
-            http: HttpServerOptions;
-            session: SessionManagementOptions;
-        };
-        logger: CompositeLogger;
-        metrics: IMetrics<DefaultMetricDefinitions>;
-        sessionStore: ISessionStore<StreamableHTTPServerTransport>;
-        tools?: ToolClass[];
-    }) {
-        super({
-            options,
-            logger,
-            metrics,
-            sessionStore: sessionStore as SessionStore<StreamableHTTPServerTransport>,
-        });
-        this.userConfig = userConfig;
-        this.tools = tools;
-    }
-
-    protected override async createServerForRequest(request: TransportRequestContext): Promise<CliServer> {
-        void request;
-        return createTestServer(this.userConfig, { tools: this.tools });
-    }
-}
-
-// Helper to create StreamableHttpRunner with all components
+// Helper to create a StreamableHttpRunner with all components
 async function createStreamableHttpRunner(
     config: UserConfig,
     options: {
-        tools?: ToolClass[];
+        tools?: AnyToolClass[];
         loggers?: LoggerBase[];
     } = {}
 ): Promise<StreamableHttpRunner<CliServer>> {
-    const logger = new CompositeLogger({ loggers: options.loggers ?? [] });
-    const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
-
-    const sessionStore = new SessionStore<StreamableHTTPServerTransport>({
-        options: {
-            idleTimeoutMS: config.idleTimeoutMs,
-            notificationTimeoutMS: config.notificationTimeoutMs,
-            maxSessions: config.maxSessions,
-        },
-        logger,
-        metrics: metrics,
-    });
-
-    const mcpHttpServer = new TestMCPHttpServer({
-        userConfig: config,
-        options: {
-            http: {
-                host: config.httpHost,
-                port: config.httpPort,
-                bodyLimit: config.httpBodyLimit,
-                headers: config.httpHeaders as Record<string, string> | undefined,
-                responseType: config.httpResponseType,
-            },
-            session: {
-                idleTimeoutMs: config.idleTimeoutMs,
-                notificationTimeoutMs: config.notificationTimeoutMs,
-                externallyManagedSessions: config.externallyManagedSessions,
-            },
-        },
-        logger,
-        metrics: metrics,
-        sessionStore,
-        tools: options.tools ?? AllTools,
-    });
-
-    const monitoringServer = createMonitoringServerFromConfig({
-        config,
-        logger,
-        metrics,
-    });
-
-    return Promise.resolve(
-        new StreamableHttpRunner<CliServer>({
-            logger,
-            mcpHttpServer,
-            monitoringServer,
-        })
-    );
+    // `async` so that config validation errors thrown by the shared helper
+    // surface as rejections, matching the pre-refactor behavior.
+    return createStreamableHttpTestRunner(config, options).runner;
 }
 
 const expectedHealthData: Record<string, unknown> = {
@@ -1410,16 +1229,3 @@ describe("StreamableHttpRunner", () => {
         expect(authorizationToken).toBe("Bearer 1234");
     });
 });
-
-// Helper to get the server address from the runner
-function getServerAddress(runner: StreamableHttpRunner<CliServer>): string {
-    // Access the mcpHttpServer and get its address
-    const mcpHttpServer = (runner as unknown as { mcpHttpServer: { serverAddress: string } }).mcpHttpServer;
-    return mcpHttpServer.serverAddress;
-}
-
-// Helper to get session store from runner
-function getSessionStore(runner: StreamableHttpRunner<CliServer>): ISessionStore<StreamableHTTPServerTransport> {
-    return (runner as unknown as { mcpHttpServer: { sessionStore: ISessionStore<StreamableHTTPServerTransport> } })
-        .mcpHttpServer.sessionStore;
-}

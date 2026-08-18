@@ -47,7 +47,6 @@ function createSession(): { session: Session; registry: ConnectionRegistry } {
 
     const session = new Session({
         config: userConfig,
-        userConfig,
         logger,
         exportsManager: ExportsManager.init({ options: userConfig, logger }),
         connectionRegistry: registry,

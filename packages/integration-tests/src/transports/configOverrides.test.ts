@@ -114,7 +114,6 @@ async function createTestServer(config: UserConfig): Promise<CliServer> {
         connectionErrorHandler,
         atlasLocalClient,
         config,
-        userConfig: config,
     });
 
     const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });

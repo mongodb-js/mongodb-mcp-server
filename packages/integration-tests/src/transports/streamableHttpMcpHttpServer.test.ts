@@ -86,7 +86,6 @@ async function createTestServer(
         connectionErrorHandler,
         atlasLocalClient,
         config,
-        userConfig: config,
     });
 
     const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });

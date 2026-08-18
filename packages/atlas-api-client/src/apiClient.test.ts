@@ -61,7 +61,7 @@ describe("ApiClient", () => {
     describe("constructor", () => {
         it("should create a client with the correct configuration", () => {
             expect(apiClient).toBeDefined();
-            expect(apiClient.isAuthConfigured()).toBeDefined();
+            expect(apiClient.isAuthConfigured()).toBe(true);
         });
     });
 
@@ -194,7 +194,7 @@ describe("ApiClient", () => {
         });
     });
 
-    describe("listProjects", () => {
+    describe("listGroups", () => {
         it("should return a list of projects", async () => {
             const mockProjects = {
                 results: [

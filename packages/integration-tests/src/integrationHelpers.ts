@@ -175,7 +175,6 @@ export function setupIntegrationTest(
                 clientSecret: userConfig.apiClientSecret,
             }),
             config: userConfig,
-            userConfig,
         });
 
         // Mock hasValidAccessToken for tests

@@ -90,7 +90,6 @@ export interface CliServerOptions<TMetrics extends DefaultMetricDefinitions = De
  */
 export type McpSession = {
     readonly config: UserConfig;
-    readonly userConfig: UserConfig;
     readonly logger: CompositeLogger;
     readonly keychain: Keychain;
     readonly connectionRegistry: ConnectionRegistry;

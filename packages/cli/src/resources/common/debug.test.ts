@@ -66,7 +66,6 @@ describe("debug resource", () => {
                 logger
             ),
             config,
-            userConfig: config,
         });
 
         const telemetry = AtlasTelemetry.create({

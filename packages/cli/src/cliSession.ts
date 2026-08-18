@@ -16,7 +16,6 @@ export interface SessionOptions {
     connectionErrorHandler: ConnectionErrorHandler;
     apiClient: ApiClient;
     config: UserConfig;
-    userConfig: UserConfig;
 }
 
 export type SessionEvents = {
@@ -40,7 +39,6 @@ export class Session extends EventEmitter<SessionEvents> {
     readonly keychain: Keychain;
     readonly connectionErrorHandler: ConnectionErrorHandler;
     readonly config: UserConfig;
-    readonly userConfig: UserConfig;
 
     mcpClient?: {
         name?: string;
@@ -59,7 +57,6 @@ export class Session extends EventEmitter<SessionEvents> {
         connectionErrorHandler,
         apiClient,
         config,
-        userConfig,
     }: SessionOptions) {
         super();
 
@@ -71,7 +68,6 @@ export class Session extends EventEmitter<SessionEvents> {
         this.connectionRegistry = connectionRegistry;
         this.connectionErrorHandler = connectionErrorHandler;
         this.config = config;
-        this.userConfig = userConfig;
     }
 
     setMcpClient(mcpClient: Implementation | undefined): void {

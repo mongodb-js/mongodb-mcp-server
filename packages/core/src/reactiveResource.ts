@@ -63,8 +63,9 @@ export abstract class ReactiveResource<
     RelevantEvents extends readonly (keyof SessionEvents)[],
     TSession extends IResourceSession = IResourceSession,
     TConfig extends IResourceSession["config"] = IResourceSession["config"],
+    TServer extends IResourceServer = IResourceServer,
 > {
-    protected server?: IResourceServer;
+    protected server?: TServer;
     protected session: TSession;
     /** The resolved user configuration, supplied by the host server at construction. */
     protected config: TConfig;
@@ -113,7 +114,7 @@ export abstract class ReactiveResource<
         }
     }
 
-    public register(server: IResourceServer): void {
+    public register(server: TServer): void {
         this.server = server;
         this.server.mcpServer.registerResource(this.name, this.uri, this.resourceConfig, this.resourceCallback);
     }

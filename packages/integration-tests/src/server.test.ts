@@ -195,7 +195,6 @@ describe("CliServer integration test", () => {
                 clientSecret: config.apiClientSecret,
             }),
             config,
-            userConfig: config,
         });
 
         const telemetry = AtlasTelemetry.create({

@@ -85,7 +85,6 @@ export async function createServicesFromConfig({
         connectionErrorHandler,
         atlasLocalClient,
         config,
-        userConfig: config,
     });
 
     const server = new CliServer({

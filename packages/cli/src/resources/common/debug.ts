@@ -1,9 +1,9 @@
 import { ReactiveResource, formatUntrustedData } from "@mongodb-js/mcp-core";
 import type { ITelemetry } from "@mongodb-js/mcp-types";
 import { connectCapableTools, summarizeConnection } from "@mongodb-js/mcp-tools-mongodb";
-import type { McpSession, CliServer } from "@mongodb-js/mcp-cli";
+import type { UserConfig, McpSession, CliServer } from "@mongodb-js/mcp-cli";
 
-export class DebugResource extends ReactiveResource<undefined, readonly [], McpSession> {
+export class DebugResource extends ReactiveResource<undefined, readonly [], McpSession, UserConfig, CliServer> {
     constructor(session: McpSession, config: McpSession["config"], telemetry: ITelemetry) {
         super({
             resourceConfiguration: {
@@ -24,10 +24,13 @@ export class DebugResource extends ReactiveResource<undefined, readonly [], McpS
         });
     }
 
-    reduce(eventName: undefined, event: undefined): undefined {
-        void eventName;
-        void event;
-
+    /**
+     * The debug resource subscribes to no session events (`events: []`), so
+     * `reduce` never receives an event payload. The zero-argument signature is
+     * still assignable to the base `reduce` (a function with fewer parameters
+     * is assignable to one with more).
+     */
+    reduce(): undefined {
         return this.current;
     }
 
@@ -37,14 +40,10 @@ export class DebugResource extends ReactiveResource<undefined, readonly [], McpS
      * which carries the registered tools alongside the `IResourceServer`
      * contract (mcpServer + change notifications).
      */
-    private get resourceServer(): CliServer | undefined {
-        return this.server as CliServer | undefined;
-    }
-
     async toOutput(): Promise<string> {
         const entries = await this.session.connectionRegistry.find(() => true);
         if (entries.length === 0) {
-            const connectToolNames = connectCapableTools(this.resourceServer?.tools ?? [])
+            const connectToolNames = connectCapableTools(this.server?.tools ?? [])
                 .map((tool) => `"${tool.name}"`)
                 .join(", ");
             if (!connectToolNames) {

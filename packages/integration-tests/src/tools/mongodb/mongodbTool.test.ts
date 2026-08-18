@@ -117,7 +117,6 @@ describe("MongoDBTool implementations", () => {
                 clientSecret: userConfig.apiClientSecret,
             }),
             config: userConfig,
-            userConfig,
         });
 
         const telemetry = AtlasTelemetry.create({
