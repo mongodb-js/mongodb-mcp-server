@@ -11,7 +11,7 @@ const ListDeploymentsOutputSchema = {
     count: z.number(),
     deployments: z.array(
         z.object({
-            name: z.string(),
+            name: z.string().optional(),
             state: z.string(),
             mongodbVersion: z.string(),
         })

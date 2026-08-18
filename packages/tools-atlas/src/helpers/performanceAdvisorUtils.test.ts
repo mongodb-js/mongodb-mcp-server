@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { describe, it, expect, vi } from "vitest";
 import {
     getSuggestedIndexes,
@@ -6,6 +7,8 @@ import {
     getSlowQueries,
 } from "./performanceAdvisorUtils.js";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+
+const context = { requestInfo: { headers: { "x-request-id": "req-pa-1" } } };
 
 function makeApiClient(overrides: Partial<Record<string, ReturnType<typeof vi.fn>>>): ApiClient & {
     logger: { debug: ReturnType<typeof vi.fn>; error: ReturnType<typeof vi.fn> };
@@ -25,44 +28,48 @@ function makeApiClient(overrides: Partial<Record<string, ReturnType<typeof vi.fn
 }
 
 describe("performanceAdvisorUtils debug logging", () => {
-    it("getSuggestedIndexes logs a debug message on failure", async () => {
+    it("getSuggestedIndexes logs a debug message with x-request-id on failure", async () => {
         const apiClient = makeApiClient({});
-        await expect(getSuggestedIndexes(apiClient, "proj1", "cluster1")).rejects.toThrow();
+        await expect(getSuggestedIndexes(apiClient, "proj1", "cluster1", context)).rejects.toThrow();
         expect(apiClient.logger.debug).toHaveBeenCalledWith(
             expect.objectContaining({
-                message: expect.stringContaining("Failed to list suggested indexes"), // eslint-disable-line @typescript-eslint/no-unsafe-assignment
+                message: expect.stringContaining("Failed to list suggested indexes"),
+                attributes: expect.objectContaining({ "x-request-id": "req-pa-1" }),
             })
         );
     });
 
-    it("getDropIndexSuggestions logs a debug message on failure", async () => {
+    it("getDropIndexSuggestions logs a debug message with x-request-id on failure", async () => {
         const apiClient = makeApiClient({});
-        await expect(getDropIndexSuggestions(apiClient, "proj1", "cluster1")).rejects.toThrow();
+        await expect(getDropIndexSuggestions(apiClient, "proj1", "cluster1", context)).rejects.toThrow();
         expect(apiClient.logger.debug).toHaveBeenCalledWith(
             expect.objectContaining({
-                message: expect.stringContaining("Failed to list drop index suggestions"), // eslint-disable-line @typescript-eslint/no-unsafe-assignment
+                message: expect.stringContaining("Failed to list drop index suggestions"),
+                attributes: expect.objectContaining({ "x-request-id": "req-pa-1" }),
             })
         );
     });
 
-    it("getSchemaAdvice logs a debug message on failure", async () => {
+    it("getSchemaAdvice logs a debug message with x-request-id on failure", async () => {
         const apiClient = makeApiClient({});
-        await expect(getSchemaAdvice(apiClient, "proj1", "cluster1")).rejects.toThrow();
+        await expect(getSchemaAdvice(apiClient, "proj1", "cluster1", context)).rejects.toThrow();
         expect(apiClient.logger.debug).toHaveBeenCalledWith(
             expect.objectContaining({
-                message: expect.stringContaining("Failed to list schema advice"), // eslint-disable-line @typescript-eslint/no-unsafe-assignment
+                message: expect.stringContaining("Failed to list schema advice"),
+                attributes: expect.objectContaining({ "x-request-id": "req-pa-1" }),
             })
         );
     });
 
-    it("getSlowQueries logs a debug message on failure", async () => {
+    it("getSlowQueries logs a debug message with x-request-id on failure", async () => {
         // getProcessIdsFromCluster calls getCluster then getFlexCluster; when both fail the catch
         // block in getSlowQueries fires and logs.
         const apiClient = makeApiClient({});
-        await expect(getSlowQueries(apiClient, "proj1", "cluster1")).rejects.toThrow();
+        await expect(getSlowQueries(apiClient, "proj1", "cluster1", undefined, undefined, context)).rejects.toThrow();
         expect(apiClient.logger.debug).toHaveBeenCalledWith(
             expect.objectContaining({
-                message: expect.stringContaining("Failed to list slow query logs"), // eslint-disable-line @typescript-eslint/no-unsafe-assignment
+                message: expect.stringContaining("Failed to list slow query logs"),
+                attributes: expect.objectContaining({ "x-request-id": "req-pa-1" }),
             })
         );
     });
