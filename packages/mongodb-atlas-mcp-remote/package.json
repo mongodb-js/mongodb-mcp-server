@@ -29,7 +29,7 @@
   "dependencies": {
     "@modelcontextprotocol/client": "^2.0.0",
     "@modelcontextprotocol/server": "^2.0.0",
-    "@mongodb-js/devtools-proxy-support": "^0.7.16",
+    "@mongodb-js/devtools-proxy-support": "^0.7.19",
     "mongodb-log-writer": "^2.5.13",
     "mongodb-redact": "^1.4.6"
   },
