@@ -19,15 +19,15 @@ import { buildEntryName, ConnectionEntry, PRECONFIGURED_CONNECTION_ID } from "./
 export type CreateConnectionManagerFn = () => ConnectionManager;
 
 /**
- * Structural subset of the cli's `UserConfig` that the store reads: the
+ * Structural subset of the embedder's configuration that the store reads: the
  * store-level knobs plus every config field mongosh's arg-parser maps into
  * the derived connection string / driver options
  * ({@link ConnectionDriverConfig}), so tool-initiated connects apply the
  * server's auth/OIDC/TLS configuration exactly like the preconfigured dial.
  *
- * Kept structural so `tools-mongodb` does not depend on `@mongodb-js/mcp-cli`
- * (that would be circular: the cli builds on the tools packages). The cli's
- * full `UserConfig` satisfies this shape structurally.
+ * Kept structural so `tools-mongodb` does not depend on the cli package
+ * (that would be circular: the cli builds on the tools packages); the
+ * embedder's full config satisfies this shape structurally.
  */
 export type ConnectionStoreConfig = ConnectionDriverConfig & {
     connectionString?: string;
@@ -35,6 +35,46 @@ export type ConnectionStoreConfig = ConnectionDriverConfig & {
     transport: "stdio" | "http";
     httpHost: string;
 };
+
+/** The keys of {@link ConnectionDriverConfig}, in its declared order. */
+const DRIVER_CONFIG_KEYS = [
+    "username",
+    "password",
+    "authenticationMechanism",
+    "authenticationDatabase",
+    "retryWrites",
+    "oidcRedirectUri",
+    "oidcFlows",
+    "oidcNoNonce",
+    "oidcTrustedEndpoint",
+    "oidcIdTokenAsAccessToken",
+    "browser",
+    "tls",
+    "tlsAllowInvalidCertificates",
+    "tlsAllowInvalidHostnames",
+    "tlsCAFile",
+    "tlsCRLFile",
+    "tlsCertificateKeyFile",
+    "tlsCertificateKeyFilePassword",
+    "apiVersion",
+    "apiStrict",
+    "apiDeprecationErrors",
+    "gssapiServiceName",
+    "sspiRealmOverride",
+    "sspiHostnameCanonicalization",
+    "awsIamSessionToken",
+    "awsAccessKeyId",
+    "awsSecretAccessKey",
+    "awsSessionToken",
+    "keyVaultNamespace",
+    "csfleLibraryPath",
+    "cryptSharedLibPath",
+] as const satisfies readonly (keyof ConnectionDriverConfig)[];
+
+/** Returns a new object containing only the given keys of `obj`. */
+function pick<T, K extends keyof T>(obj: T, keys: readonly K[]): Pick<T, K> {
+    return Object.fromEntries(keys.map((key) => [key, obj[key]])) as Pick<T, K>;
+}
 
 /**
  * Fallback server metadata used when the embedder does not supply any. The cli
@@ -51,7 +91,7 @@ export type ConnectionStoreOptions = {
     /**
      * Connection-level configuration the store reads: the preconfigured
      * connection string, per-scope connection limit, transport, and OIDC
-     * browser hint. A structural subset of the cli's `UserConfig`.
+     * browser hint.
      */
     options: ConnectionStoreConfig;
     logger: LoggerBase;
@@ -136,40 +176,10 @@ export class MCPConnectionStore {
      * like the preconfigured dial ({@link dialPreconfigured}) does.
      */
     private driverConfig(): ConnectionDriverConfig {
-        const options = this.options;
-        return {
-            username: options.username,
-            password: options.password,
-            authenticationMechanism: options.authenticationMechanism,
-            authenticationDatabase: options.authenticationDatabase,
-            retryWrites: options.retryWrites,
-            oidcRedirectUri: options.oidcRedirectUri,
-            oidcFlows: options.oidcFlows,
-            oidcNoNonce: options.oidcNoNonce,
-            oidcTrustedEndpoint: options.oidcTrustedEndpoint,
-            oidcIdTokenAsAccessToken: options.oidcIdTokenAsAccessToken,
-            browser: options.browser,
-            tls: options.tls,
-            tlsAllowInvalidCertificates: options.tlsAllowInvalidCertificates,
-            tlsAllowInvalidHostnames: options.tlsAllowInvalidHostnames,
-            tlsCAFile: options.tlsCAFile,
-            tlsCRLFile: options.tlsCRLFile,
-            tlsCertificateKeyFile: options.tlsCertificateKeyFile,
-            tlsCertificateKeyFilePassword: options.tlsCertificateKeyFilePassword,
-            apiVersion: options.apiVersion,
-            apiStrict: options.apiStrict,
-            apiDeprecationErrors: options.apiDeprecationErrors,
-            gssapiServiceName: options.gssapiServiceName,
-            sspiRealmOverride: options.sspiRealmOverride,
-            sspiHostnameCanonicalization: options.sspiHostnameCanonicalization,
-            awsIamSessionToken: options.awsIamSessionToken,
-            awsAccessKeyId: options.awsAccessKeyId,
-            awsSecretAccessKey: options.awsSecretAccessKey,
-            awsSessionToken: options.awsSessionToken,
-            keyVaultNamespace: options.keyVaultNamespace,
-            csfleLibraryPath: options.csfleLibraryPath,
-            cryptSharedLibPath: options.cryptSharedLibPath,
-        };
+        // Typesafe pick: DRIVER_CONFIG_KEYS is derived from keyof
+        // ConnectionDriverConfig (itself Pick<CliOptions, ...>), so the field
+        // list is declared once and can never drift from the type.
+        return pick(this.options, DRIVER_CONFIG_KEYS);
     }
 
     /**
