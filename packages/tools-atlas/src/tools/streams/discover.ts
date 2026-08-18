@@ -573,7 +573,7 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         processorName: string,
         context: ToolExecutionContext
     ): Promise<CallToolResult> {
-        const settledResults = await Promise.allSettled([
+        const [processorResult, connectionsResult] = await Promise.allSettled([
             this.apiClient.getStreamProcessor(
                 {
                     params: { path: { groupId: projectId, tenantName: workspaceName, processorName } },
@@ -592,8 +592,8 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         const structuredContent: DiscoverOutput = {};
 
         // Processor state and stats
-        if (settledResults[0].status === "fulfilled" && settledResults[0].value) {
-            const proc = settledResults[0].value;
+        if (processorResult.status === "fulfilled" && processorResult.value) {
+            const proc = processorResult.value;
             Object.assign(structuredContent, buildProcessorStructuredContent(proc));
 
             sections.push(
@@ -634,13 +634,13 @@ export class StreamsDiscoverTool extends StreamsToolBase {
             }
         } else {
             const processorError =
-                settledResults[0].status === "rejected" ? String(settledResults[0].reason) : "No data returned";
+                processorResult.status === "rejected" ? String(processorResult.reason) : "No data returned";
             sections.push(`## Processor State\nError fetching processor: ${processorError}`);
         }
 
         // Connection health
-        if (settledResults[1].status === "fulfilled" && settledResults[1].value?.results?.length) {
-            const connections = settledResults[1].value.results;
+        if (connectionsResult.status === "fulfilled" && connectionsResult.value?.results?.length) {
+            const connections = connectionsResult.value.results;
             structuredContent.connectionHealth = connections.map(toConnectionSummary);
             const summary = connections
                 .map((c) => {
@@ -652,7 +652,7 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         }
 
         // Actionable guidance
-        const proc = settledResults[0].status === "fulfilled" ? settledResults[0].value : undefined;
+        const proc = processorResult.status === "fulfilled" ? processorResult.value : undefined;
         if (proc?.state === "FAILED") {
             sections.push(
                 "## Recommended Actions\n" +
@@ -678,7 +678,7 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         region: string | undefined,
         context: ToolExecutionContext
     ): Promise<CallToolResult> {
-        const settledResults = await Promise.allSettled([
+        const [privateLinkResult] = await Promise.allSettled([
             this.apiClient.listPrivateLinkConnections(
                 {
                     params: { path: { groupId: projectId } },
@@ -713,8 +713,8 @@ export class StreamsDiscoverTool extends StreamsToolBase {
             }
         }
 
-        if (settledResults[0].status === "fulfilled" && settledResults[0].value?.results?.length) {
-            const results = settledResults[0].value.results;
+        if (privateLinkResult.status === "fulfilled" && privateLinkResult.value?.results?.length) {
+            const results = privateLinkResult.value.results;
             structuredContent.privateLinks = results
                 .map(toPrivateLinkSummary)
                 .filter((pl): pl is PrivateLinkSummary => pl !== undefined);

@@ -248,7 +248,7 @@ export class StreamsTeardownTool extends StreamsToolBase {
         let impactNote = "";
         const structuredContent: TeardownOutput = { resource: "workspace" };
         try {
-            const settledResults = await Promise.allSettled([
+            const [connectionsResult, processorsResult] = await Promise.allSettled([
                 this.apiClient.listStreamConnections(
                     {
                         params: { path: { groupId: args.projectId, tenantName: workspace } },
@@ -264,14 +264,14 @@ export class StreamsTeardownTool extends StreamsToolBase {
             ]);
 
             const connectionCount =
-                settledResults[0].status === "fulfilled" ? (settledResults[0].value?.results?.length ?? 0) : 0;
+                connectionsResult.status === "fulfilled" ? (connectionsResult.value?.results?.length ?? 0) : 0;
             const processorCount =
-                settledResults[1].status === "fulfilled" ? (settledResults[1].value?.results?.length ?? 0) : 0;
+                processorsResult.status === "fulfilled" ? (processorsResult.value?.results?.length ?? 0) : 0;
 
-            if (settledResults[0].status === "fulfilled") {
+            if (connectionsResult.status === "fulfilled") {
                 structuredContent.connectionsRemoved = connectionCount;
             }
-            if (settledResults[1].status === "fulfilled") {
+            if (processorsResult.status === "fulfilled") {
                 structuredContent.processorsRemoved = processorCount;
             }
 
