@@ -5,7 +5,7 @@ import { AtlasToolBase } from "../../atlasTool.js";
 import type { CloudDatabaseUser, DatabaseUserRole } from "@mongodb-js/mcp-atlas-api-client";
 import { generateSecurePassword } from "../../helpers/generatePassword.js";
 import { escapeMarkdown } from "../../helpers/escapeMarkdown.js";
-import { ensureCurrentIpInAccessList } from "../../helpers/accessListUtils.js";
+import { ensureCurrentIpInAccessList, getAccessListNote } from "../../helpers/accessListUtils.js";
 import { ALPHANUMERIC_DASH_UNDERSCORE_REGEX, AtlasArgs, CommonArgs } from "../../args.js";
 import { BUILT_IN_DB_USER_ROLES } from "../../helpers/roles.js";
 
@@ -63,7 +63,7 @@ export class CreateDBUserTool extends AtlasToolBase {
         { projectId, username, password, roles, clusters }: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        await ensureCurrentIpInAccessList(this.apiClient, projectId);
+        const ipAccessListResult = await ensureCurrentIpInAccessList(this.apiClient, projectId, context);
         const shouldGeneratePassword = !password;
         if (shouldGeneratePassword) {
             password = await generateSecurePassword();
@@ -104,12 +104,15 @@ export class CreateDBUserTool extends AtlasToolBase {
             this.session.keychain.register(password, "password");
         }
 
+        const ipAccessListNote = getAccessListNote(ipAccessListResult);
+
         return {
             content: [
                 {
                     type: "text",
                     text: `User "${username}" created successfully${shouldGeneratePassword ? ` with password: \`${password}\`` : ""}.`,
                 },
+                ...(ipAccessListNote ? [{ type: "text" as const, text: ipAccessListNote }] : []),
             ],
             structuredContent: {
                 username,
