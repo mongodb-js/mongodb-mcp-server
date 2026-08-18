@@ -568,10 +568,11 @@ describeWithMongoDB("aggregate tool", (integration) => {
 
         afterEach(() => {
             vi.resetAllMocks();
+            integration.mcpServer().userConfig.aggregationCountMaxTimeMsCap = constants.AGG_COUNT_MAX_TIME_MS_CAP;
         });
 
         it("should abort count operation and respond with indeterminable count", async () => {
-            vi.spyOn(constants, "AGG_COUNT_MAX_TIME_MS_CAP", "get").mockReturnValue(0.1);
+            integration.mcpServer().userConfig.aggregationCountMaxTimeMsCap = 0.1;
             const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "aggregate",

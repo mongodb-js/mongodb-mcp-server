@@ -68,7 +68,7 @@ describe("ConnectClusterTool", () => {
         };
 
         connectionRegistry = new MCPConnectionStore({
-            userConfig: defaultTestConfig,
+            options: defaultTestConfig,
             logger: new CompositeLogger(),
             deviceId: DeviceId.create(new CompositeLogger()),
             createConnectionManager: (): FakeConnectionManager => new FakeConnectionManager(),

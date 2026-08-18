@@ -432,7 +432,7 @@ export interface CommonExportData {
 }
 
 // @public
-export function connectCapableTools(tools: AnyToolBase[]): AnyToolBase[];
+export function connectCapableTools(tools: readonly AnyToolBase[]): AnyToolBase[];
 
 // @public (undocumented)
 export const ConnectClusterArgs: {
@@ -575,6 +575,41 @@ export const ConnectionConfig: z.ZodObject<{
         }, z.core.$loose>>;
     }, z.core.$loose>>;
 }, z.core.$loose>;
+
+// @public
+export type ConnectionDriverConfig = {
+    username?: string;
+    password?: string;
+    authenticationMechanism?: string;
+    authenticationDatabase?: string;
+    retryWrites?: boolean;
+    oidcRedirectUri?: string;
+    oidcFlows?: string;
+    oidcNoNonce?: boolean;
+    oidcTrustedEndpoint?: boolean;
+    oidcIdTokenAsAccessToken?: boolean;
+    browser?: string | false;
+    tls?: boolean;
+    tlsAllowInvalidCertificates?: boolean;
+    tlsAllowInvalidHostnames?: boolean;
+    tlsCAFile?: string;
+    tlsCRLFile?: string;
+    tlsCertificateKeyFile?: string;
+    tlsCertificateKeyFilePassword?: string;
+    apiVersion?: string;
+    apiStrict?: boolean;
+    apiDeprecationErrors?: boolean;
+    gssapiServiceName?: string;
+    sspiRealmOverride?: string;
+    sspiHostnameCanonicalization?: string;
+    awsIamSessionToken?: string;
+    awsAccessKeyId?: string;
+    awsSecretAccessKey?: string;
+    awsSessionToken?: string;
+    keyVaultNamespace?: string;
+    csfleLibraryPath?: string;
+    cryptSharedLibPath?: string;
+};
 
 // @public
 export class ConnectionEntry {
@@ -772,7 +807,7 @@ export interface ConnectionStateErrored extends ConnectionState {
 
 // @public (undocumented)
 export type ConnectionStoreOptions = {
-    userConfig: ConnectionStoreUserConfig;
+    options: ConnectionStoreConfig;
     logger: LoggerBase;
     deviceId: DeviceId;
     createConnectionManager?: CreateConnectionManagerFn;
@@ -802,9 +837,9 @@ export const ConnectionSummarySchema: z.ZodObject<{
         explicit: "explicit";
     }>;
     state: z.ZodOptional<z.ZodEnum<{
-        disconnected: "disconnected";
         connected: "connected";
         connecting: "connecting";
+        disconnected: "disconnected";
         errored: "errored";
     }>>;
     description: z.ZodString;
@@ -931,9 +966,9 @@ export class CreateClusterTool extends AtlasToolBase {
             LATEST: "LATEST";
         }>>;
         backup: z.ZodDefault<z.ZodEnum<{
+            CONTINUOUS: "CONTINUOUS";
             OFF: "OFF";
             SNAPSHOT: "SNAPSHOT";
-            CONTINUOUS: "CONTINUOUS";
         }>>;
         terminationProtectionEnabled: z.ZodDefault<z.ZodBoolean>;
         encryptionAtRestProvider: z.ZodOptional<z.ZodEnum<{
@@ -982,9 +1017,9 @@ export class CreateClusterTool extends AtlasToolBase {
             LATEST: "LATEST";
         }>;
         backup: z.ZodEnum<{
+            CONTINUOUS: "CONTINUOUS";
             OFF: "OFF";
             SNAPSHOT: "SNAPSHOT";
-            CONTINUOUS: "CONTINUOUS";
         }>;
         computeAutoScaling: z.ZodBoolean;
         terminationProtectionEnabled: z.ZodBoolean;
@@ -1378,8 +1413,8 @@ export class DisconnectTool extends MongoDBToolBase {
     // (undocumented)
     outputSchema: {
         outcome: z.ZodEnum<{
-            removed: "removed";
             disconnected: "disconnected";
+            removed: "removed";
         }>;
     };
     // (undocumented)
@@ -1575,8 +1610,8 @@ export class ExplainTool extends MongoDBToolBase {
     outputSchema: {
         explainResult: z.ZodRecord<z.ZodString, z.ZodUnknown>;
         method: z.ZodEnum<{
-            aggregate: "aggregate";
             find: "find";
+            aggregate: "aggregate";
             count: "count";
         }>;
         verbosity: z.ZodEnum<{
@@ -1779,8 +1814,8 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
         clusterName: z.ZodString;
         operations: z.ZodDefault<z.ZodArray<z.ZodEnum<{
             suggestedIndexes: "suggestedIndexes";
-            dropIndexSuggestions: "dropIndexSuggestions";
             slowQueryLogs: "slowQueryLogs";
+            dropIndexSuggestions: "dropIndexSuggestions";
             schemaSuggestions: "schemaSuggestions";
         }>>>;
         since: z.ZodOptional<z.ZodString>;
@@ -1926,6 +1961,8 @@ export type IMongoDBConfig = IToolConfig & {
     maxDocumentsPerQuery: number;
     maxBytesPerQuery: number;
     httpHost: string;
+    queryCountMaxTimeMsCap: number;
+    aggregationCountMaxTimeMsCap: number;
 };
 
 // @public (undocumented)
@@ -2235,9 +2272,9 @@ export class ListConnectionsTool extends MongoDBToolBase {
                 explicit: "explicit";
             }>;
             state: z.ZodOptional<z.ZodEnum<{
-                disconnected: "disconnected";
                 connected: "connected";
                 connecting: "connecting";
+                disconnected: "disconnected";
                 errored: "errored";
             }>>;
             description: z.ZodString;
@@ -2746,8 +2783,8 @@ export class StreamsBuildTool extends StreamsToolBase {
         projectId: z.ZodString;
         resource: z.ZodEnum<{
             processor: "processor";
-            connection: "connection";
             workspace: "workspace";
+            connection: "connection";
             privatelink: "privatelink";
         }>;
         workspaceName: z.ZodOptional<z.ZodString>;
@@ -2758,17 +2795,17 @@ export class StreamsBuildTool extends StreamsToolBase {
         }>>;
         region: z.ZodOptional<z.ZodString>;
         tier: z.ZodOptional<z.ZodEnum<{
-            SP2: "SP2";
-            SP5: "SP5";
-            SP10: "SP10";
-            SP30: "SP30";
             SP50: "SP50";
+            SP30: "SP30";
+            SP10: "SP10";
+            SP5: "SP5";
+            SP2: "SP2";
         }>>;
         includeSampleData: z.ZodOptional<z.ZodBoolean>;
         connectionName: z.ZodOptional<z.ZodString>;
         connectionType: z.ZodOptional<z.ZodEnum<{
-            Kafka: "Kafka";
             Cluster: "Cluster";
+            Kafka: "Kafka";
             S3: "S3";
             Https: "Https";
             AWSKinesisDataStreams: "AWSKinesisDataStreams";
@@ -2860,8 +2897,8 @@ export class StreamsBuildTool extends StreamsToolBase {
     outputSchema: {
         resource: z.ZodEnum<{
             processor: "processor";
-            connection: "connection";
             workspace: "workspace";
+            connection: "connection";
             privatelink: "privatelink";
         }>;
     };
@@ -2994,11 +3031,11 @@ export class StreamsManageTool extends StreamsToolBase {
         }>;
         resourceName: z.ZodOptional<z.ZodString>;
         tier: z.ZodOptional<z.ZodEnum<{
-            SP2: "SP2";
-            SP5: "SP5";
-            SP10: "SP10";
-            SP30: "SP30";
             SP50: "SP50";
+            SP30: "SP30";
+            SP10: "SP10";
+            SP5: "SP5";
+            SP2: "SP2";
         }>>;
         resumeFromCheckpoint: z.ZodOptional<z.ZodBoolean>;
         startAtOperationTime: z.ZodOptional<z.ZodString>;
@@ -3011,11 +3048,11 @@ export class StreamsManageTool extends StreamsToolBase {
         newName: z.ZodOptional<z.ZodString>;
         newRegion: z.ZodOptional<z.ZodString>;
         newTier: z.ZodOptional<z.ZodEnum<{
-            SP2: "SP2";
-            SP5: "SP5";
-            SP10: "SP10";
-            SP30: "SP30";
             SP50: "SP50";
+            SP30: "SP30";
+            SP10: "SP10";
+            SP5: "SP5";
+            SP2: "SP2";
         }>>;
         connectionConfig: z.ZodOptional<z.ZodObject<{
             bootstrapServers: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodArray<z.ZodString>]>, z.ZodTransform<string, string | string[]>>>;
@@ -3088,8 +3125,8 @@ export class StreamsManageTool extends StreamsToolBase {
             CREATED: "CREATED";
         }>>;
         connectionState: z.ZodOptional<z.ZodEnum<{
-            FAILED: "FAILED";
             DELETING: "DELETING";
+            FAILED: "FAILED";
             PENDING: "PENDING";
             READY: "READY";
         }>>;
@@ -3112,8 +3149,8 @@ export class StreamsTeardownTool extends StreamsToolBase {
         projectId: z.ZodString;
         resource: z.ZodEnum<{
             processor: "processor";
-            connection: "connection";
             workspace: "workspace";
+            connection: "connection";
             privatelink: "privatelink";
             peering: "peering";
         }>;
@@ -3132,8 +3169,8 @@ export class StreamsTeardownTool extends StreamsToolBase {
     outputSchema: {
         resource: z.ZodEnum<{
             processor: "processor";
-            connection: "connection";
             workspace: "workspace";
+            connection: "connection";
             privatelink: "privatelink";
             peering: "peering";
         }>;
@@ -3319,8 +3356,8 @@ export class UpgradeClusterTool extends AtlasToolBase {
             M50: "M50";
             M60: "M60";
             M80: "M80";
-            M140: "M140";
             M200: "M200";
+            M140: "M140";
         }>>;
         provider: z.ZodOptional<z.ZodString>;
         region: z.ZodOptional<z.ZodString>;

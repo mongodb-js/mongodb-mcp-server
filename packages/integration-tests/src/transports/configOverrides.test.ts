@@ -79,7 +79,7 @@ async function createTestServer(config: UserConfig): Promise<CliServer> {
     });
 
     const connectionRegistry = new MCPConnectionStore({
-        userConfig: config,
+        options: config,
         logger,
         deviceId: {} as unknown as DeviceId,
     }).view();

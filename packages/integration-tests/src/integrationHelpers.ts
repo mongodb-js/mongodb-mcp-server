@@ -157,7 +157,7 @@ export function setupIntegrationTest(
         const exportsManager = ExportsManager.init({ options: userConfig, logger: logger });
 
         deviceId = DeviceId.create(logger);
-        connectionStore = new MCPConnectionStore({ userConfig, logger, deviceId });
+        connectionStore = new MCPConnectionStore({ options: userConfig, logger, deviceId });
         const connectionRegistry = connectionStore.view();
 
         const session = new Session({

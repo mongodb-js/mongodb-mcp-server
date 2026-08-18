@@ -11,13 +11,7 @@ import { ErrorCodes, MongoDBError } from "../../common/errors.js";
 import { collectCursorUntilMaxBytesLimit } from "../../helpers/collectCursorUntilMaxBytes.js";
 import { operationWithFallback } from "../../helpers/operationWithFallback.js";
 import { LogId } from "@mongodb-js/mcp-core";
-import {
-    AGG_COUNT_MAX_TIME_MS_CAP,
-    ONE_MB,
-    CURSOR_LIMITS_TO_LLM_TEXT,
-    CURSOR_LIMIT_KEYS,
-    type CursorLimitKey,
-} from "../../helpers/constants.js";
+import { ONE_MB, CURSOR_LIMITS_TO_LLM_TEXT, CURSOR_LIMIT_KEYS, type CursorLimitKey } from "../../helpers/constants.js";
 import { AnyAggregateStage, VectorSearchStage } from "../../mongodbSchemas.js";
 import {
     assertVectorSearchFilterFieldsAreIndexed,
@@ -364,8 +358,8 @@ export class AggregateTool extends MongoDBToolBase {
                 })
                 .maxTimeMS(
                     this.config.maxTimeMS !== undefined
-                        ? Math.min(this.config.maxTimeMS, AGG_COUNT_MAX_TIME_MS_CAP)
-                        : AGG_COUNT_MAX_TIME_MS_CAP
+                        ? Math.min(this.config.maxTimeMS, this.config.aggregationCountMaxTimeMsCap)
+                        : this.config.aggregationCountMaxTimeMsCap
                 )
                 .toArray();
 

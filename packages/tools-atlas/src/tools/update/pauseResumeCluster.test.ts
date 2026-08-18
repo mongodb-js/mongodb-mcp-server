@@ -46,7 +46,7 @@ describe("PauseResumeClusterTool", () => {
         } as unknown as ICompositeLogger;
 
         connectionRegistry = new MCPConnectionStore({
-            userConfig: defaultTestConfig,
+            options: defaultTestConfig,
             logger: new CompositeLogger(),
             deviceId: DeviceId.create(new CompositeLogger()),
             createConnectionManager: (): FakeConnectionManager => new FakeConnectionManager(),
@@ -171,7 +171,7 @@ describe("PauseResumeClusterTool", () => {
 
         it("revokes matching connections and mentions them in the response when pausing the cluster", async () => {
             const entry = await connectionRegistry.connect({
-                settings: { connectionString: "mongodb://localhost:27017", driverOptions: {}, atlas: connectedCluster },
+                settings: { connectionString: "mongodb://localhost:27017", atlas: connectedCluster },
             });
 
             const result = await exec({ ...BASE_ARGS, action: "PAUSE" });
@@ -188,7 +188,6 @@ describe("PauseResumeClusterTool", () => {
             const entry = await connectionRegistry.connect({
                 settings: {
                     connectionString: "mongodb://localhost:27017",
-                    driverOptions: {},
                     atlas: { ...connectedCluster, clusterName: "other-cluster" },
                 },
             });

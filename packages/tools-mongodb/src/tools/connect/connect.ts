@@ -40,7 +40,7 @@ export class ConnectTool extends MongoDBToolBase {
         connectionName,
     }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
         const entry = await this.session.connectionRegistry.connect({
-            settings: { connectionString, driverOptions: {} },
+            settings: { connectionString },
             name: connectionName,
             clientName: this.session.mcpClient?.name,
         });

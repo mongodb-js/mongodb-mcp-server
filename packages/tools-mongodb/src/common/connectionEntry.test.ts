@@ -4,12 +4,12 @@ import { MongoServerError } from "mongodb";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
 import { MCPConnectionManager } from "./connectionManager.js";
-import { MCPConnectionStore, type ConnectionStoreUserConfig } from "./connectionStore.js";
+import { MCPConnectionStore, type ConnectionStoreConfig } from "./connectionStore.js";
 import type { ConnectionEntry, ConnectionRegistry } from "./connectionRegistry.js";
 import { DeviceId } from "../helpers/deviceId.js";
 import { ErrorCodes, MongoDBError } from "./errors.js";
 
-const defaultTestConfig: ConnectionStoreUserConfig = {
+const defaultTestConfig: ConnectionStoreConfig = {
     maxActiveConnections: 10,
     transport: "stdio",
     httpHost: "127.0.0.1",
@@ -28,7 +28,7 @@ describe("ConnectionEntry with MCPConnectionManager", () => {
     beforeEach(() => {
         mockDeviceId = MockDeviceId;
         registry = new MCPConnectionStore({
-            userConfig: defaultTestConfig,
+            options: defaultTestConfig,
             logger,
             deviceId: mockDeviceId,
             createConnectionManager: (): MCPConnectionManager =>
@@ -71,7 +71,7 @@ describe("ConnectionEntry with MCPConnectionManager", () => {
         for (const testCase of testCases) {
             it(`should update connection string for ${testCase.name}`, async () => {
                 const entry = await registry.connect({
-                    settings: { connectionString: testCase.connectionString, driverOptions: {} },
+                    settings: { connectionString: testCase.connectionString },
                 });
                 expect(entry.getServiceProvider()).toBeDefined();
 
@@ -90,7 +90,7 @@ describe("ConnectionEntry with MCPConnectionManager", () => {
 
         it("should configure the proxy to use environment variables", async () => {
             const entry = await registry.connect({
-                settings: { connectionString: "mongodb://localhost", driverOptions: {} },
+                settings: { connectionString: "mongodb://localhost" },
             });
             expect(entry.getServiceProvider()).toBeDefined();
 
@@ -104,7 +104,7 @@ describe("ConnectionEntry with MCPConnectionManager", () => {
 
         it("should include client name when provided", async () => {
             await registry.connect({
-                settings: { connectionString: "mongodb://localhost:27017", driverOptions: {} },
+                settings: { connectionString: "mongodb://localhost:27017" },
                 clientName: "test-client",
             });
 
@@ -117,7 +117,7 @@ describe("ConnectionEntry with MCPConnectionManager", () => {
         });
 
         it("should use 'unknown' for client name when not provided", async () => {
-            await registry.connect({ settings: { connectionString: "mongodb://localhost:27017", driverOptions: {} } });
+            await registry.connect({ settings: { connectionString: "mongodb://localhost:27017" } });
 
             const connectMock = MockNodeDriverServiceProvider.connect;
             expect(connectMock).toHaveBeenCalledOnce();
@@ -156,7 +156,7 @@ describe("ConnectionEntry with MCPConnectionManager", () => {
             createSearchIndexesMock.mockResolvedValue([]);
 
             const entry = await registry.connect({
-                settings: { connectionString: "mongodb://localhost:27017", driverOptions: {} },
+                settings: { connectionString: "mongodb://localhost:27017" },
             });
 
             expect(await entry.isSearchSupported(logger)).toBeTruthy();
@@ -168,7 +168,7 @@ describe("ConnectionEntry with MCPConnectionManager", () => {
             );
 
             const entry = await registry.connect({
-                settings: { connectionString: "mongodb://localhost:27017", driverOptions: {} },
+                settings: { connectionString: "mongodb://localhost:27017" },
             });
             expect(await entry.isSearchSupported(logger)).toEqual(false);
         });
@@ -177,7 +177,7 @@ describe("ConnectionEntry with MCPConnectionManager", () => {
             getSearchIndexesMock.mockRejectedValue(new MongoServerError({ message: "not authorized on db", code: 13 }));
 
             const entry = await registry.connect({
-                settings: { connectionString: "mongodb://localhost:27017", driverOptions: {} },
+                settings: { connectionString: "mongodb://localhost:27017" },
             });
             expect(await entry.isSearchSupported(logger)).toEqual(true);
             expect(await entry.isSearchSupported(logger)).toEqual(true);
@@ -199,7 +199,7 @@ describe("ConnectionEntry with MCPConnectionManager", () => {
             } as unknown as NodeDriverServiceProvider);
 
             entry = await registry.connect({
-                settings: { connectionString: "mongodb://localhost:27017", driverOptions: {} },
+                settings: { connectionString: "mongodb://localhost:27017" },
             });
         });
 

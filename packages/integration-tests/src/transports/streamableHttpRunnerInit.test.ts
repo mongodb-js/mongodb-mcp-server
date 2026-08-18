@@ -22,7 +22,17 @@ class TestMCPHttpServer extends MCPHttpServer<SessionServer> {
         return Promise.resolve({
             connect: vi.fn(),
             close: vi.fn().mockResolvedValue(undefined),
-            session: { logger: { setAttribute: vi.fn() } as unknown as ICompositeLogger },
+            session: {
+                logger: { setAttribute: vi.fn() } as unknown as ICompositeLogger,
+                setMcpClient: vi.fn(),
+            },
+            mcpServer: {
+                server: {
+                    oninitialized: undefined,
+                    getClientCapabilities: vi.fn(),
+                    getClientVersion: vi.fn(),
+                },
+            },
         });
     }
 }

@@ -19,8 +19,9 @@ export type { ConnectionStringInfo, ConnectionStringAuthType, AtlasClusterConnec
 export interface ConnectionSettings extends Omit<MongoshConnectionInfo, "driverOptions"> {
     /**
      * Driver options for the connect. When omitted (or empty), the manager
-     * derives them from the server's user config (browser, proxy, OIDC,
-     * defaults) — mirroring the preconfigured-connection path.
+     * derives both the connection string and the driver options from the
+     * server's {@link ConnectionDriverConfig} plus the MCP defaults —
+     * mirroring the preconfigured-connection path.
      */
     driverOptions?: MongoshConnectionInfo["driverOptions"];
     atlas?: AtlasClusterConnectionInfo;
@@ -195,6 +196,85 @@ export interface ConnectionStateErrored extends ConnectionState {
     errorReason: string;
 }
 
+/**
+ * The subset of the server's user configuration that mongosh's arg-parser
+ * (`generateConnectionInfoFromCliArgs`) maps into the derived connection
+ * string and driver options when establishing a connection: credentials,
+ * authentication mechanism, OIDC, TLS, Server API, GSSAPI, AWS IAM and
+ * client-side-encryption settings.
+ *
+ * Kept structural so `tools-mongodb` does not depend on the cli package (the
+ * cli's full `UserConfig` satisfies this shape). Fields the arg-parser does
+ * not consume are deliberately omitted — e.g. `host`/`port`/`nodb` (mongosh
+ * URI-building flags; the server always dials explicit connection strings)
+ * and pool/timeout tuning such as `maxIdleTimeMS`/`minPoolSize` (driver
+ * options, not arg-parser inputs).
+ */
+export type ConnectionDriverConfig = {
+    /** Username baked into the derived connection string. */
+    username?: string;
+    /** Password baked into the derived connection string. */
+    password?: string;
+    /** Authentication mechanism baked into the derived connection string (e.g. `"MONGODB-OIDC"`). */
+    authenticationMechanism?: string;
+    /** Authentication database, baked in as the `authSource` connection string parameter. */
+    authenticationDatabase?: string;
+    /** `retryWrites` connection string parameter. */
+    retryWrites?: boolean;
+    /** OIDC redirect URI for the authorization-code flow (driver `oidc.redirectURI`). */
+    oidcRedirectUri?: string;
+    /** Comma-separated OIDC flows, mapped to driver `oidc.allowedFlows` (e.g. `"auth-code"`, `"device-auth"`). */
+    oidcFlows?: string;
+    /** Skip the nonce in the OIDC auth-code request (driver `oidc.skipNonceInAuthCodeRequest`). */
+    oidcNoNonce?: boolean;
+    /** Treat the identity provider as a trusted endpoint (driver `authMechanismProperties.ALLOWED_HOSTS` derived from the connection string hosts). */
+    oidcTrustedEndpoint?: boolean;
+    /** Pass the OIDC id token as the access token (driver `oidc.passIdTokenAsAccessToken`). */
+    oidcIdTokenAsAccessToken?: boolean;
+    /** Browser command used for OIDC auth (driver `oidc.openBrowser`) and auth-flow inference; `false` disables browser-based flows. */
+    browser?: string | false;
+    /** Enable TLS (connection string parameter). */
+    tls?: boolean;
+    /** Allow invalid TLS certificates (connection string parameter). */
+    tlsAllowInvalidCertificates?: boolean;
+    /** Allow invalid TLS hostnames (connection string parameter). */
+    tlsAllowInvalidHostnames?: boolean;
+    /** TLS CA file path (connection string parameter). */
+    tlsCAFile?: string;
+    /** TLS CRL file path (connection string parameter). */
+    tlsCRLFile?: string;
+    /** TLS client certificate key file path (connection string parameter). */
+    tlsCertificateKeyFile?: string;
+    /** TLS client certificate key file password (connection string parameter). */
+    tlsCertificateKeyFilePassword?: string;
+    /** Stable Server API version (driver `serverApi.version`). */
+    apiVersion?: string;
+    /** Server API strict mode (driver `serverApi.strict`). */
+    apiStrict?: boolean;
+    /** Server API deprecation errors (driver `serverApi.deprecationErrors`). */
+    apiDeprecationErrors?: boolean;
+    /** Kerberos service name (`authMechanismProperties.SERVICE_NAME`). */
+    gssapiServiceName?: string;
+    /** Kerberos realm override (`authMechanismProperties.SERVICE_REALM`). */
+    sspiRealmOverride?: string;
+    /** Kerberos hostname canonicalization (`authMechanismProperties.CANONICALIZE_HOST_NAME`). */
+    sspiHostnameCanonicalization?: string;
+    /** AWS IAM session token for MONGODB-AWS auth (`authMechanismProperties.AWS_SESSION_TOKEN`). */
+    awsIamSessionToken?: string;
+    /** AWS KMS access key id for client-side field level encryption. */
+    awsAccessKeyId?: string;
+    /** AWS KMS secret access key for client-side field level encryption. */
+    awsSecretAccessKey?: string;
+    /** AWS KMS session token for client-side field level encryption. */
+    awsSessionToken?: string;
+    /** Key vault namespace for client-side field level encryption. */
+    keyVaultNamespace?: string;
+    /** CSFLE library path for client-side field level encryption. */
+    csfleLibraryPath?: string;
+    /** Crypt shared library path for client-side field level encryption. */
+    cryptSharedLibPath?: string;
+};
+
 export type AnyConnectionState =
     | ConnectionStateConnected
     | ConnectionStateConnecting
@@ -258,14 +338,16 @@ export type ConnectionManagerOptions = {
     serverMetadata: ServerMetadata;
     /** Transport / browser hints for OIDC auth inference. */
     connectionInfo: ConnectionInfo;
+    /**
+     * Server-configured connection settings (credentials, auth mechanism,
+     * OIDC, TLS, ...) applied by mongosh's arg-parser when a
+     * {@link ConnectionManager.connect} call does not supply explicit driver
+     * options — mirroring the preconfigured-connection path. Defaults to no
+     * settings.
+     */
+    driverConfig?: ConnectionDriverConfig;
     /** Optional event emitter shared with the OIDC plugin to receive `mongodb-oidc-plugin:auth-*` notifications. */
     bus?: EventEmitter;
-    /**
-     * Server user config, used to derive driver options (browser, proxy, OIDC)
-     * when a connect call does not supply its own. Mirrors main's fallback in
-     * the preconfigured-connection path.
-     */
-    userConfig?: Record<string, unknown>;
 };
 
 /**
@@ -290,7 +372,7 @@ export class MCPConnectionManager extends ConnectionManager {
 
     private readonly serverMetadata: ServerMetadata;
     private readonly connectionInfo: ConnectionInfo;
-    private readonly userConfig?: Record<string, unknown>;
+    private readonly driverConfig: ConnectionDriverConfig;
     private logger: LoggerBase;
 
     /**
@@ -299,13 +381,15 @@ export class MCPConnectionManager extends ConnectionManager {
      * the connection's `appName`.
      * @param options.serverMetadata - Product name and version for MongoDB driver `appName`.
      * @param options.connectionInfo - Transport / browser hints for OIDC auth inference.
+     * @param options.driverConfig - Server-configured connection settings applied to
+     * connects without explicit driver options.
      * @param options.bus - Optional event emitter shared with the OIDC plugin.
      */
-    constructor({ logger, deviceId, bus, serverMetadata, connectionInfo, userConfig }: ConnectionManagerOptions) {
+    constructor({ logger, deviceId, bus, serverMetadata, connectionInfo, driverConfig }: ConnectionManagerOptions) {
         super();
         this.serverMetadata = serverMetadata;
         this.connectionInfo = connectionInfo;
-        this.userConfig = userConfig;
+        this.driverConfig = driverConfig ?? {};
         this.logger = logger;
         this.bus = bus ?? new EventEmitter();
         this.bus.on("mongodb-oidc-plugin:auth-failed", this.onOidcAuthFailed.bind(this));
@@ -348,22 +432,28 @@ export class MCPConnectionManager extends ConnectionManager {
                 components: appNameComponents,
             });
 
-            const effectiveDriverOptions =
+            const mongoshConnectionInfo: MongoshConnectionInfo =
                 settings.driverOptions && Object.keys(settings.driverOptions).length > 0
-                    ? settings.driverOptions
-                    : // Mirror the preconfigured-connection path: derive driver options
-                      // from the server's user config (browser, proxy, OIDC) plus the
-                      // defaults, matching main's behavior for tool-created connections.
+                    ? {
+                          connectionString: settings.connectionString,
+                          driverOptions: settings.driverOptions,
+                      }
+                    : // Mirror the preconfigured-connection path: derive BOTH the
+                      // connection string and the driver options from the server's
+                      // connection config plus the MCP defaults. The arg-parser bakes
+                      // config values such as `authenticationMechanism:
+                      // "MONGODB-OIDC"` and `username` into the rewritten connection
+                      // string, which the auth-type inference below and the driver
+                      // connect both rely on.
                       generateConnectionInfoFromCliArgs({
                           ...defaultDriverOptions,
-                          ...(this.userConfig ?? {}),
+                          ...this.driverConfig,
+                          // `connectionInfo` stays the authoritative source for the
+                          // browser hint; `driverConfig` only fills it in for
+                          // managers constructed without one.
+                          browser: this.connectionInfo.browser ?? this.driverConfig.browser,
                           connectionSpecifier: settings.connectionString,
-                      }).driverOptions;
-
-            const mongoshConnectionInfo: MongoshConnectionInfo = {
-                connectionString: settings.connectionString,
-                driverOptions: effectiveDriverOptions,
-            };
+                      });
 
             if (mongoshConnectionInfo.driverOptions.oidc) {
                 mongoshConnectionInfo.driverOptions.oidc.allowedFlows ??= ["auth-code"];

@@ -24,7 +24,7 @@ export type ConnectionErrorHandler = (
  * disconnect tool shares the "connect" operation type but cannot establish a
  * connection, so it is excluded.
  */
-export function connectCapableTools(tools: AnyToolBase[]): AnyToolBase[] {
+export function connectCapableTools(tools: readonly AnyToolBase[]): AnyToolBase[] {
     return tools
         .filter((t) => t.operationType === "connect" && t.name !== DisconnectTool.toolName && t.isEnabled())
         .sort((a, b) => a.category.localeCompare(b.category));

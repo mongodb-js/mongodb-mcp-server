@@ -57,7 +57,6 @@ describeWithMongoDB("Connection Manager", (integration) => {
 
             await manager.connect({
                 connectionString: integration.connectionString(),
-                driverOptions: {},
             });
         });
 
@@ -101,7 +100,6 @@ describeWithMongoDB("Connection Manager", (integration) => {
             beforeEach(async () => {
                 await manager.connect({
                     connectionString: integration.connectionString(),
-                    driverOptions: {},
                 });
             });
 
@@ -123,7 +121,6 @@ describeWithMongoDB("Connection Manager", (integration) => {
                 try {
                     await manager.connect({
                         connectionString: "mongodb://localhost:xxxxx",
-                        driverOptions: {},
                     });
                 } catch (_error: unknown) {
                     void _error;
@@ -168,7 +165,6 @@ describeWithMongoDB("Connection Manager", (integration) => {
                     await manager.connect({
                         connectionString: "mongodb://localhost:xxxxx",
                         atlas,
-                        driverOptions: {},
                     });
                 } catch (_error: unknown) {
                     void _error;
@@ -222,7 +218,7 @@ describeWithMongoDB(
         }> {
             const session = integration.mcpServer().session;
             const entry = await session.connectionRegistry.connect({
-                settings: { connectionString, driverOptions: {} },
+                settings: { connectionString },
             });
 
             const state = entry.state;
@@ -457,7 +453,7 @@ describeWithMongoDB(
         it("returns true when Atlas Local Search is enabled", async () => {
             const session = integration.mcpServer().session;
             const entry = await session.connectionRegistry.connect({
-                settings: { connectionString: integration.connectionString(), driverOptions: {} },
+                settings: { connectionString: integration.connectionString() },
             });
 
             const state = entry.state;

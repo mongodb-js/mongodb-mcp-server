@@ -40,7 +40,7 @@ function createSession(): { session: Session; registry: ConnectionRegistry } {
         loggers: ["stderr"],
     };
     const registry = new MCPConnectionStore({
-        userConfig,
+        options: userConfig,
         logger,
         deviceId,
     }).view();

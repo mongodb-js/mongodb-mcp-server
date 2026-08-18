@@ -51,7 +51,7 @@ export async function createTestServer(config: UserConfig, options: CreateTestSe
     });
 
     const connectionRegistry = new MCPConnectionStore({
-        userConfig: config,
+        options: config,
         logger,
         deviceId: options.deviceId ?? ({} as unknown as DeviceId),
     }).view();

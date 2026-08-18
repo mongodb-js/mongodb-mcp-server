@@ -10,13 +10,7 @@ import { ErrorCodes, MongoDBError } from "../../common/errors.js";
 import { collectCursorUntilMaxBytesLimit } from "../../helpers/collectCursorUntilMaxBytes.js";
 import { operationWithFallback } from "../../helpers/operationWithFallback.js";
 import { getWriteStageTargets } from "../../helpers/mqlGuards.js";
-import {
-    AGG_COUNT_MAX_TIME_MS_CAP,
-    ONE_MB,
-    CURSOR_LIMITS_TO_LLM_TEXT,
-    CURSOR_LIMIT_KEYS,
-    type CursorLimitKey,
-} from "../../helpers/constants.js";
+import { ONE_MB, CURSOR_LIMITS_TO_LLM_TEXT, CURSOR_LIMIT_KEYS, type CursorLimitKey } from "../../helpers/constants.js";
 import { LogId } from "@mongodb-js/mcp-core";
 import { AnyAggregateStage, DB_AGGREGATE_STAGE_OPERATORS } from "../../mongodbSchemas.js";
 import { bsonToJson } from "../../helpers/bsonToJson.js";
@@ -191,8 +185,8 @@ export class AggregateDBTool extends MongoDBToolBase {
                 })
                 .maxTimeMS(
                     this.config.maxTimeMS !== undefined
-                        ? Math.min(this.config.maxTimeMS, AGG_COUNT_MAX_TIME_MS_CAP)
-                        : AGG_COUNT_MAX_TIME_MS_CAP
+                        ? Math.min(this.config.maxTimeMS, this.config.aggregationCountMaxTimeMsCap)
+                        : this.config.aggregationCountMaxTimeMsCap
                 )
                 .toArray();
 

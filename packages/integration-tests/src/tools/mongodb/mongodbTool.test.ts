@@ -102,7 +102,7 @@ describe("MongoDBTool implementations", () => {
         const logger = new CompositeLogger();
         const exportsManager = ExportsManager.init({ options: userConfig, logger: logger });
         deviceId = DeviceId.create(logger);
-        const connectionRegistry = new MCPConnectionStore({ userConfig, logger, deviceId }).view();
+        const connectionRegistry = new MCPConnectionStore({ options: userConfig, logger, deviceId }).view();
         const session = new Session({
             logger,
             exportsManager,
@@ -426,10 +426,7 @@ describe("MongoDBTool implementations", () => {
     describe("when the list-connections tool is not registered", () => {
         beforeEach(async () => {
             await cleanupAndStartServer(undefined, [
-                ...(Object.values(MongoDbTools).filter(
-                    (tool) =>
-                        typeof tool === "function" && "toolName" in tool && tool !== MongoDbTools.ListConnectionsTool
-                ) as AnyToolClass[]),
+                ...MongoDBTools.filter((tool) => tool !== MongoDbTools.ListConnectionsTool),
                 RandomTool,
             ]);
         });

@@ -34,12 +34,6 @@ export class DebugResource extends ReactiveResource<undefined, readonly [], McpS
         return this.current;
     }
 
-    /**
-     * The host server surface the resource can read tool state from. At runtime
-     * resources are registered by {@link CliServer} (see `registerResources`),
-     * which carries the registered tools alongside the `IResourceServer`
-     * contract (mcpServer + change notifications).
-     */
     async toOutput(): Promise<string> {
         const entries = await this.session.connectionRegistry.find(() => true);
         if (entries.length === 0) {

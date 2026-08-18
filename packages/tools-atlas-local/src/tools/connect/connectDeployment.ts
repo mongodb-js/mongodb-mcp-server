@@ -55,7 +55,7 @@ export class ConnectDeploymentTool extends AtlasLocalToolBase {
         // Establish the connection through the connection registry so it can be
         // referenced by its connectionId from the other MongoDB tools.
         const entry = await this.session.connectionRegistry.connect({
-            settings: { connectionString, driverOptions: {} },
+            settings: { connectionString },
             name: deploymentName,
             clientName: this.session.mcpClient?.name,
         });

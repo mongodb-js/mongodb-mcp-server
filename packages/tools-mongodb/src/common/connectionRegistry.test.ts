@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { atlasClusterSlug, PRECONFIGURED_CONNECTION_ID } from "./connectionRegistry.js";
-import { MCPConnectionStore, type ConnectionStoreOptions, type ConnectionStoreUserConfig } from "./connectionStore.js";
+import { MCPConnectionStore, type ConnectionStoreOptions, type ConnectionStoreConfig } from "./connectionStore.js";
 import { summarizeConnection } from "./connectionSummary.js";
 import { FakeConnectionManager } from "./mocks/connectionManager.js";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
 import { DeviceId } from "../helpers/deviceId.js";
 import { ErrorCodes, MongoDBError } from "./errors.js";
 
-const defaultTestConfig: ConnectionStoreUserConfig = {
+const defaultTestConfig: ConnectionStoreConfig = {
     maxActiveConnections: 10,
     transport: "stdio",
     httpHost: "127.0.0.1",
@@ -18,7 +18,7 @@ describe("ConnectionRegistry", () => {
 
     function makeStore(overrides: Partial<ConnectionStoreOptions> = {}): MCPConnectionStore {
         return new MCPConnectionStore({
-            userConfig: defaultTestConfig,
+            options: defaultTestConfig,
             logger: new CompositeLogger(),
             deviceId: DeviceId.create(new CompositeLogger()),
             createConnectionManager: (): FakeConnectionManager => {
@@ -43,7 +43,7 @@ describe("ConnectionRegistry", () => {
         it("returns an entry with an opaque id and a name derived from the host", async () => {
             const registry = makeStore().view();
             const entry = await registry.connect({
-                settings: { connectionString: "mongodb://user:pass@my-host.example.com:27017/db", driverOptions: {} },
+                settings: { connectionString: "mongodb://user:pass@my-host.example.com:27017/db" },
             });
             expect(entry.connectionId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
             expect(entry.name).toMatch(/^my-host-example-com-[0-9a-f]{4}$/);
@@ -53,7 +53,7 @@ describe("ConnectionRegistry", () => {
         it("prefers the connectionName for the name slug", async () => {
             const registry = makeStore().view();
             const entry = await registry.connect({
-                settings: { connectionString: "mongodb://localhost:27017", driverOptions: {} },
+                settings: { connectionString: "mongodb://localhost:27017" },
                 name: "Test Fixtures!",
             });
             expect(entry.name).toMatch(/^test-fixtures-[0-9a-f]{4}$/);
@@ -62,7 +62,7 @@ describe("ConnectionRegistry", () => {
         it("suffixes names so labels cannot be confused with the preconfigured id", async () => {
             const registry = makeStore().view();
             const entry = await registry.connect({
-                settings: { connectionString: "mongodb://localhost:27017", driverOptions: {} },
+                settings: { connectionString: "mongodb://localhost:27017" },
                 name: PRECONFIGURED_CONNECTION_ID,
             });
             expect(entry.name).toMatch(/^preconfigured-[0-9a-f]{4}$/);
@@ -79,7 +79,7 @@ describe("ConnectionRegistry", () => {
                 },
             }).view();
             await expect(
-                registry.connect({ settings: { connectionString: "mongodb://localhost:27017", driverOptions: {} } })
+                registry.connect({ settings: { connectionString: "mongodb://localhost:27017" } })
             ).rejects.toThrow("dial failed");
             await expect(registry.find(() => true)).resolves.toHaveLength(0);
         });
@@ -89,7 +89,7 @@ describe("ConnectionRegistry", () => {
         it("returns the service provider for a connected entry", async () => {
             const registry = makeStore().view();
             const entry = await registry.connect({
-                settings: { connectionString: "mongodb://localhost:27017", driverOptions: {} },
+                settings: { connectionString: "mongodb://localhost:27017" },
             });
             await expect(registry.resolve(entry.connectionId)).resolves.toEqual({ fake: true });
         });
@@ -106,7 +106,7 @@ describe("ConnectionRegistry", () => {
         const config = { ...defaultTestConfig, connectionString: "mongodb://localhost:27017" };
 
         it("is seeded undialed when a connection string is configured", async () => {
-            const registry = makeStore({ userConfig: config }).view();
+            const registry = makeStore({ options: config }).view();
             const summaries = (await registry.find(() => true)).map((entry) => summarizeConnection(entry));
             expect(summaries).toHaveLength(1);
             expect(summaries[0]?.connectionId).toBe(PRECONFIGURED_CONNECTION_ID);
@@ -121,14 +121,14 @@ describe("ConnectionRegistry", () => {
         });
 
         it("dials lazily on first resolve and reuses the connection afterwards", async () => {
-            const registry = makeStore({ userConfig: config }).view();
+            const registry = makeStore({ options: config }).view();
             await expect(registry.resolve(PRECONFIGURED_CONNECTION_ID)).resolves.toEqual({ fake: true });
             await expect(registry.resolve(PRECONFIGURED_CONNECTION_ID)).resolves.toEqual({ fake: true });
             expect(managers[0]?.connectCalls).toHaveLength(1);
         });
 
         it("survives disconnect and re-dials on next use", async () => {
-            const registry = makeStore({ userConfig: config }).view();
+            const registry = makeStore({ options: config }).view();
             await registry.resolve(PRECONFIGURED_CONNECTION_ID);
             await expect(registry.disconnect(PRECONFIGURED_CONNECTION_ID)).resolves.toBeUndefined();
             const entry = await registry.peek(PRECONFIGURED_CONNECTION_ID);
@@ -139,7 +139,7 @@ describe("ConnectionRegistry", () => {
         });
 
         it("reports a MisconfiguredConnectionString error when the dial fails", async () => {
-            const registry = makeStore({ userConfig: config }).view();
+            const registry = makeStore({ options: config }).view();
             expect(managers[0]).toBeDefined();
             (managers[0] as FakeConnectionManager).failNextConnect = new Error("bad string");
             const error = await registry.resolve(PRECONFIGURED_CONNECTION_ID).catch((e: unknown) => e);
@@ -153,7 +153,7 @@ describe("ConnectionRegistry", () => {
             const registry = makeStore().view();
             const onRevoke = vi.fn().mockResolvedValue(undefined);
             const entry = await registry.createEntry({ name: "revocable", onRevoke });
-            await entry.connect({ connectionString: "mongodb://localhost:27017", driverOptions: {} });
+            await entry.connect({ connectionString: "mongodb://localhost:27017" });
 
             await expect(registry.disconnect(entry.connectionId)).resolves.toBeUndefined();
             await expect(registry.find(() => true)).resolves.toHaveLength(0);
@@ -173,7 +173,7 @@ describe("ConnectionRegistry", () => {
     describe("maxActiveConnections", () => {
         it("revokes the least-recently-used explicit entry on overflow, never the preconfigured one", async () => {
             const registry = makeStore({
-                userConfig: {
+                options: {
                     ...defaultTestConfig,
                     connectionString: "mongodb://localhost:27017",
                     maxActiveConnections: 2,
@@ -181,15 +181,15 @@ describe("ConnectionRegistry", () => {
             }).view();
 
             const first = await registry.connect({
-                settings: { connectionString: "mongodb://first:27017", driverOptions: {} },
+                settings: { connectionString: "mongodb://first:27017" },
             });
             vi.advanceTimersByTime(10);
             const second = await registry.connect({
-                settings: { connectionString: "mongodb://second:27017", driverOptions: {} },
+                settings: { connectionString: "mongodb://second:27017" },
             });
             vi.advanceTimersByTime(10);
             const third = await registry.connect({
-                settings: { connectionString: "mongodb://third:27017", driverOptions: {} },
+                settings: { connectionString: "mongodb://third:27017" },
             });
 
             const ids = (await registry.find(() => true)).map((entry) => entry.connectionId);
@@ -201,20 +201,20 @@ describe("ConnectionRegistry", () => {
         });
 
         it("enforces the limit per scope, so one scope cannot evict another's entries", async () => {
-            const store = makeStore({ userConfig: { ...defaultTestConfig, maxActiveConnections: 1 } });
+            const store = makeStore({ options: { ...defaultTestConfig, maxActiveConnections: 1 } });
             const viewA = store.view({ scope: "scope-a" });
             const viewB = store.view({ scope: "scope-b" });
 
             const bEntry = await viewB.connect({
-                settings: { connectionString: "mongodb://b-host:27017", driverOptions: {} },
+                settings: { connectionString: "mongodb://b-host:27017" },
             });
             vi.advanceTimersByTime(10);
             const aFirst = await viewA.connect({
-                settings: { connectionString: "mongodb://a-first:27017", driverOptions: {} },
+                settings: { connectionString: "mongodb://a-first:27017" },
             });
             vi.advanceTimersByTime(10);
             const aSecond = await viewA.connect({
-                settings: { connectionString: "mongodb://a-second:27017", driverOptions: {} },
+                settings: { connectionString: "mongodb://a-second:27017" },
             });
 
             const ids = (await store.view().find(() => true)).map((entry) => entry.connectionId);
@@ -234,7 +234,7 @@ describe("ConnectionRegistry", () => {
             const viewB = store.view({ scope: "scope-b" });
 
             const entry = await viewA.connect({
-                settings: { connectionString: "mongodb://localhost:27017", driverOptions: {} },
+                settings: { connectionString: "mongodb://localhost:27017" },
             });
 
             // Visible and usable through the creating view.
@@ -260,7 +260,7 @@ describe("ConnectionRegistry", () => {
         });
 
         it("shows the preconfigured entry through every view", async () => {
-            const store = makeStore({ userConfig: scopedConfig });
+            const store = makeStore({ options: scopedConfig });
             const viewA = store.view({ scope: "scope-a" });
             const viewB = store.view({ scope: "scope-b" });
 
@@ -271,18 +271,18 @@ describe("ConnectionRegistry", () => {
         });
 
         it("close revokes only the view's own entries (scoped views are owned by default)", async () => {
-            const store = makeStore({ userConfig: scopedConfig });
+            const store = makeStore({ options: scopedConfig });
             const viewA = store.view({ scope: "scope-a" });
             const viewB = store.view({ scope: "scope-b" });
 
             const aFirst = await viewA.connect({
-                settings: { connectionString: "mongodb://a-first:27017", driverOptions: {} },
+                settings: { connectionString: "mongodb://a-first:27017" },
             });
             const aSecond = await viewA.connect({
-                settings: { connectionString: "mongodb://a-second:27017", driverOptions: {} },
+                settings: { connectionString: "mongodb://a-second:27017" },
             });
             const bEntry = await viewB.connect({
-                settings: { connectionString: "mongodb://b-host:27017", driverOptions: {} },
+                settings: { connectionString: "mongodb://b-host:27017" },
             });
 
             await viewA.close();
@@ -298,7 +298,7 @@ describe("ConnectionRegistry", () => {
             const store = makeStore();
             const unowned = store.view();
             const entry = await unowned.connect({
-                settings: { connectionString: "mongodb://host:27017", driverOptions: {} },
+                settings: { connectionString: "mongodb://host:27017" },
             });
 
             await unowned.close();
@@ -311,7 +311,7 @@ describe("ConnectionRegistry", () => {
             const store = makeStore();
             const owned = store.view({ owned: true });
             const entry = await owned.connect({
-                settings: { connectionString: "mongodb://host:27017", driverOptions: {} },
+                settings: { connectionString: "mongodb://host:27017" },
             });
 
             await owned.close();
@@ -324,16 +324,16 @@ describe("ConnectionRegistry", () => {
     describe("store closeAll", () => {
         it("closes and removes every entry, including the preconfigured one", async () => {
             const store = makeStore({
-                userConfig: { ...defaultTestConfig, connectionString: "mongodb://localhost:27017" },
+                options: { ...defaultTestConfig, connectionString: "mongodb://localhost:27017" },
             });
             const scoped = store.view({ scope: "scope-a" });
             const unbound = store.view();
 
             const scopedEntry = await scoped.connect({
-                settings: { connectionString: "mongodb://a-host:27017", driverOptions: {} },
+                settings: { connectionString: "mongodb://a-host:27017" },
             });
             const sharedEntry = await unbound.connect({
-                settings: { connectionString: "mongodb://b-host:27017", driverOptions: {} },
+                settings: { connectionString: "mongodb://b-host:27017" },
             });
             await unbound.resolve(PRECONFIGURED_CONNECTION_ID);
 

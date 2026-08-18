@@ -38,7 +38,7 @@ describe("debug resource", () => {
 
     function setup(config: UserConfig = defaultTestConfig): void {
         registry = new MCPConnectionStore({
-            userConfig: config,
+            options: config,
             logger,
             deviceId,
             createConnectionManager: (): FakeConnectionManager => {
@@ -115,7 +115,7 @@ describe("debug resource", () => {
     });
 
     it("should list a connected entry with its state and description", async () => {
-        const entry = await registry.connect({ settings: { connectionString: "mongodb://localhost:27017", driverOptions: {} } });
+        const entry = await registry.connect({ settings: { connectionString: "mongodb://localhost:27017" } });
         vi.spyOn(entry, "isSearchSupported").mockResolvedValue(false);
 
         const output = await debugResource.toOutput();
@@ -128,7 +128,7 @@ describe("debug resource", () => {
     });
 
     it("should notify if a cluster supports search indexes", async () => {
-        const entry = await registry.connect({ settings: { connectionString: "mongodb://localhost:27017", driverOptions: {} } });
+        const entry = await registry.connect({ settings: { connectionString: "mongodb://localhost:27017" } });
         vi.spyOn(entry, "isSearchSupported").mockResolvedValue(true);
 
         const output = await debugResource.toOutput();
@@ -141,7 +141,6 @@ describe("debug resource", () => {
         const entry = await registry.connect({
             settings: {
                 connectionString: "mongodb://localhost:27017",
-                driverOptions: {},
                 atlas: {
                     clusterName: "My Test Cluster",
                     projectId: "COFFEEFABADA",

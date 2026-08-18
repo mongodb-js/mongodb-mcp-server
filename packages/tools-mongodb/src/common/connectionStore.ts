@@ -6,7 +6,7 @@ import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import type { DeviceId } from "../helpers/deviceId.js";
 import type { ServerMetadata } from "@mongodb-js/mcp-types";
 import type { ConnectionInfo } from "./connectionInfo.js";
-import type { ConnectionManager } from "./connectionManager.js";
+import type { ConnectionDriverConfig, ConnectionManager } from "./connectionManager.js";
 import { MCPConnectionManager } from "./connectionManager.js";
 import { ErrorCodes, MongoDBError } from "./errors.js";
 import type {
@@ -19,18 +19,21 @@ import { buildEntryName, ConnectionEntry, PRECONFIGURED_CONNECTION_ID } from "./
 export type CreateConnectionManagerFn = () => ConnectionManager;
 
 /**
- * Structural subset of the cli's `UserConfig` that the store reads. Kept local
- * so `tools-mongodb` does not depend on `@mongodb-js/mcp-cli` (that would be
- * circular: the cli builds on the tools packages). The cli's full `UserConfig`
- * satisfies this shape structurally.
+ * Structural subset of the cli's `UserConfig` that the store reads: the
+ * store-level knobs plus every config field mongosh's arg-parser maps into
+ * the derived connection string / driver options
+ * ({@link ConnectionDriverConfig}), so tool-initiated connects apply the
+ * server's auth/OIDC/TLS configuration exactly like the preconfigured dial.
+ *
+ * Kept structural so `tools-mongodb` does not depend on `@mongodb-js/mcp-cli`
+ * (that would be circular: the cli builds on the tools packages). The cli's
+ * full `UserConfig` satisfies this shape structurally.
  */
-export type ConnectionStoreUserConfig = {
+export type ConnectionStoreConfig = ConnectionDriverConfig & {
     connectionString?: string;
     maxActiveConnections: number;
     transport: "stdio" | "http";
     httpHost: string;
-    /** Browser command used for OIDC auth-flow inference (e.g. an executable or fixture path). */
-    browser?: string | false;
 };
 
 /**
@@ -45,7 +48,12 @@ const DEFAULT_SERVER_METADATA: ServerMetadata = {
 };
 
 export type ConnectionStoreOptions = {
-    userConfig: ConnectionStoreUserConfig;
+    /**
+     * Connection-level configuration the store reads: the preconfigured
+     * connection string, per-scope connection limit, transport, and OIDC
+     * browser hint. A structural subset of the cli's `UserConfig`.
+     */
+    options: ConnectionStoreConfig;
     logger: LoggerBase;
     deviceId: DeviceId;
     /** Override the per-entry connection manager (tests, embedders). */
@@ -73,7 +81,7 @@ type StoredConnection = {
  */
 export class MCPConnectionStore {
     private readonly entries = new Map<string, StoredConnection>();
-    private readonly userConfig: ConnectionStoreUserConfig;
+    private readonly options: ConnectionStoreConfig;
     private readonly logger: LoggerBase;
     private readonly deviceId: DeviceId;
     private readonly serverMetadata: ServerMetadata;
@@ -81,7 +89,7 @@ export class MCPConnectionStore {
     private preconfiguredDial?: Promise<unknown>;
 
     constructor(options: ConnectionStoreOptions) {
-        this.userConfig = options.userConfig;
+        this.options = options.options;
         this.logger = options.logger;
         this.deviceId = options.deviceId;
         this.serverMetadata = options.serverMetadata ?? DEFAULT_SERVER_METADATA;
@@ -93,12 +101,10 @@ export class MCPConnectionStore {
                     deviceId: this.deviceId,
                     serverMetadata: this.serverMetadata,
                     connectionInfo: this.connectionInfo(),
-                    // Runtime value is the full UserConfig (typed minimally here);
-                    // used to derive driver options for tool-created connections.
-                    userConfig: this.userConfig as Record<string, unknown>,
+                    driverConfig: this.driverConfig(),
                 }));
 
-        if (this.userConfig.connectionString) {
+        if (this.options.connectionString) {
             this.entries.set(PRECONFIGURED_CONNECTION_ID, {
                 entry: new ConnectionEntry({
                     connectionId: PRECONFIGURED_CONNECTION_ID,
@@ -116,9 +122,53 @@ export class MCPConnectionStore {
      */
     private connectionInfo(): ConnectionInfo {
         return {
-            transport: this.userConfig.transport,
-            httpHost: this.userConfig.httpHost,
-            browser: this.userConfig.browser,
+            transport: this.options.transport,
+            httpHost: this.options.httpHost,
+            browser: this.options.browser,
+        };
+    }
+
+    /**
+     * The server-configured connection settings (auth, OIDC, TLS, Server API,
+     * GSSAPI, AWS/FLE) that mongosh's arg-parser maps into the derived
+     * connection string and driver options. Threaded into each connection
+     * manager so connects without explicit driver options apply them exactly
+     * like the preconfigured dial ({@link dialPreconfigured}) does.
+     */
+    private driverConfig(): ConnectionDriverConfig {
+        const options = this.options;
+        return {
+            username: options.username,
+            password: options.password,
+            authenticationMechanism: options.authenticationMechanism,
+            authenticationDatabase: options.authenticationDatabase,
+            retryWrites: options.retryWrites,
+            oidcRedirectUri: options.oidcRedirectUri,
+            oidcFlows: options.oidcFlows,
+            oidcNoNonce: options.oidcNoNonce,
+            oidcTrustedEndpoint: options.oidcTrustedEndpoint,
+            oidcIdTokenAsAccessToken: options.oidcIdTokenAsAccessToken,
+            browser: options.browser,
+            tls: options.tls,
+            tlsAllowInvalidCertificates: options.tlsAllowInvalidCertificates,
+            tlsAllowInvalidHostnames: options.tlsAllowInvalidHostnames,
+            tlsCAFile: options.tlsCAFile,
+            tlsCRLFile: options.tlsCRLFile,
+            tlsCertificateKeyFile: options.tlsCertificateKeyFile,
+            tlsCertificateKeyFilePassword: options.tlsCertificateKeyFilePassword,
+            apiVersion: options.apiVersion,
+            apiStrict: options.apiStrict,
+            apiDeprecationErrors: options.apiDeprecationErrors,
+            gssapiServiceName: options.gssapiServiceName,
+            sspiRealmOverride: options.sspiRealmOverride,
+            sspiHostnameCanonicalization: options.sspiHostnameCanonicalization,
+            awsIamSessionToken: options.awsIamSessionToken,
+            awsAccessKeyId: options.awsAccessKeyId,
+            awsSecretAccessKey: options.awsSecretAccessKey,
+            awsSessionToken: options.awsSessionToken,
+            keyVaultNamespace: options.keyVaultNamespace,
+            csfleLibraryPath: options.csfleLibraryPath,
+            cryptSharedLibPath: options.cryptSharedLibPath,
         };
     }
 
@@ -263,8 +313,8 @@ export class MCPConnectionStore {
     private async dialPreconfigured(entry: ConnectionEntry): Promise<void> {
         this.preconfiguredDial ??= (async (): Promise<void> => {
             const connectionInfo = generateConnectionInfoFromCliArgs({
-                ...this.userConfig,
-                connectionSpecifier: this.userConfig.connectionString,
+                ...this.driverConfig(),
+                connectionSpecifier: this.options.connectionString,
             });
             await entry.connect(connectionInfo);
         })().finally(() => {
@@ -296,7 +346,7 @@ export class MCPConnectionStore {
             const scoped = [...this.entries.values()].filter(
                 (stored) => stored.entry.source !== "preconfigured" && stored.scope === scope
             );
-            if (scoped.length <= this.userConfig.maxActiveConnections) {
+            if (scoped.length <= this.options.maxActiveConnections) {
                 return;
             }
             const lru = scoped.sort((a, b) => a.entry.lastUsedAt.getTime() - b.entry.lastUsedAt.getTime())[0];
@@ -306,7 +356,7 @@ export class MCPConnectionStore {
             this.logger.info({
                 id: LogId.connectionRegistryRevoked,
                 context: "connectionRegistry",
-                message: `Revoking least-recently-used connection "${lru.entry.connectionId}" because its scope exceeded ${this.userConfig.maxActiveConnections} connections.`,
+                message: `Revoking least-recently-used connection "${lru.entry.connectionId}" because its scope exceeded ${this.options.maxActiveConnections} connections.`,
             });
             this.entries.delete(lru.entry.connectionId);
             await this.revoke(lru.entry);

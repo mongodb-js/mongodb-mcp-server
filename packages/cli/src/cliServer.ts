@@ -51,21 +51,24 @@ export interface CliServerOptions<TMetrics extends DefaultMetricDefinitions = De
      * - Register a subset of internal tools alongside custom tools
      * - Register all internal tools plus custom tools
      *
-     * To include internal tools, import `AllTools` from `mongodb-mcp-server`
-     * and individual tool classes from the `@mongodb-js/mcp-tools-*` packages:
+     * To include internal tools, import the tool class lists from the
+     * `@mongodb-js/mcp-tools-*` packages:
      *
      * ```typescript
-     * import { AllTools } from "mongodb-mcp-server";
+     * import { MongoDBTools } from "@mongodb-js/mcp-tools-mongodb";
+     * import { AtlasTools } from "@mongodb-js/mcp-tools-atlas";
+     * import { AtlasLocalTools } from "@mongodb-js/mcp-tools-atlas-local";
+     * import { AssistantTools } from "@mongodb-js/mcp-tools-assistant";
      * import { AggregateTool, FindTool } from "@mongodb-js/mcp-tools-mongodb";
      *
-     * // Register all internal tools plus custom tools
-     * tools: [...AllTools, MyCustomTool]
+     * // Register all internal tools (all categories) plus custom tools
+     * tools: [...MongoDBTools, ...AtlasTools, ...AtlasLocalTools, ...AssistantTools, MyCustomTool]
      *
      * // Register only specific MongoDB tools plus custom tools
      * tools: [AggregateTool, FindTool, MyCustomTool]
      *
      * // Register all internal tools of mongodb category
-     * tools: [AllTools.filter((tool) => tool.category === "mongodb")]
+     * tools: MongoDBTools
      * ```
      *
      * Note: Ensure that each tool has unique names otherwise the server will
@@ -75,7 +78,7 @@ export interface CliServerOptions<TMetrics extends DefaultMetricDefinitions = De
      *
      * To ensure that you provide compliant tool implementations extend your
      * tool implementation using `ToolBase` class and ensure that they conform
-     * to `ToolClass` type from `@mongodb-js/mcp-core` or `mongodb-mcp-server`.
+     * to `ToolClass` type from `@mongodb-js/mcp-core`.
      */
     tools?: ToolRegistry;
     /** Array of resource constructors to register. */

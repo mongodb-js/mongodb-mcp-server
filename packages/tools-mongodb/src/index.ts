@@ -15,6 +15,7 @@ export type {
     ConnectionStateDisconnected,
     ConnectionStateErrored,
     AnyConnectionState,
+    ConnectionDriverConfig,
     ConnectionManagerFactoryFn,
     ConnectionManagerFactoryOptions,
     ConnectionManagerEvents,

@@ -172,7 +172,7 @@ export class ConnectClusterTool extends AtlasToolBase {
             try {
                 lastError = undefined;
 
-                await entry.connect({ connectionString, atlas, driverOptions: {} });
+                await entry.connect({ connectionString, atlas });
                 break;
             } catch (err: unknown) {
                 const error = err instanceof Error ? err : new Error(String(err));

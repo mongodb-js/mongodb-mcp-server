@@ -30,7 +30,7 @@ describe("Session", () => {
             logger,
         });
         connectionRegistry = new MCPConnectionStore({
-            userConfig: defaultTestConfig,
+            options: defaultTestConfig,
             logger,
             deviceId: DeviceId.create(logger),
             createConnectionManager: (): FakeConnectionManager => new FakeConnectionManager(),

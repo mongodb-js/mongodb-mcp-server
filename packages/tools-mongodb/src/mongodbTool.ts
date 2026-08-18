@@ -37,6 +37,8 @@ export type IMongoDBConfig = IToolConfig & {
     maxDocumentsPerQuery: number;
     maxBytesPerQuery: number;
     httpHost: string;
+    queryCountMaxTimeMsCap: number;
+    aggregationCountMaxTimeMsCap: number;
 };
 
 export interface IMongoDBSession extends ISession<IMongoDBConfig> {

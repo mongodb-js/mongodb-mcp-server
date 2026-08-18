@@ -827,7 +827,6 @@ export class McpLogger extends LoggerBase {
 // @public
 export type McpSession = {
     readonly config: UserConfig;
-    readonly userConfig: UserConfig;
     readonly logger: CompositeLogger;
     readonly keychain: Keychain;
     readonly connectionRegistry: ConnectionRegistry;

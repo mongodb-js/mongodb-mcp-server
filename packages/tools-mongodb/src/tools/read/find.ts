@@ -7,13 +7,7 @@ import type { FindCursor } from "mongodb";
 import { checkIndexUsage } from "../../helpers/indexCheck.js";
 import { collectCursorUntilMaxBytesLimit } from "../../helpers/collectCursorUntilMaxBytes.js";
 import { operationWithFallback } from "../../helpers/operationWithFallback.js";
-import {
-    ONE_MB,
-    QUERY_COUNT_MAX_TIME_MS_CAP,
-    CURSOR_LIMITS_TO_LLM_TEXT,
-    CURSOR_LIMIT_KEYS,
-    type CursorLimitKey,
-} from "../../helpers/constants.js";
+import { ONE_MB, CURSOR_LIMITS_TO_LLM_TEXT, CURSOR_LIMIT_KEYS, type CursorLimitKey } from "../../helpers/constants.js";
 import { zEJSON } from "../../args.js";
 import { LogId } from "@mongodb-js/mcp-core";
 import { SortDirectionSchema } from "../../mongodbSchemas.js";
@@ -120,8 +114,8 @@ export class FindTool extends MongoDBToolBase {
                             // we don't use the limit provided to the tool either.
                             maxTimeMS:
                                 this.config.maxTimeMS !== undefined
-                                    ? Math.min(this.config.maxTimeMS, QUERY_COUNT_MAX_TIME_MS_CAP)
-                                    : QUERY_COUNT_MAX_TIME_MS_CAP,
+                                    ? Math.min(this.config.maxTimeMS, this.config.queryCountMaxTimeMsCap)
+                                    : this.config.queryCountMaxTimeMsCap,
                             signal,
                         }),
                     undefined

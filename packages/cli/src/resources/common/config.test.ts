@@ -24,7 +24,7 @@ describe("config resource", () => {
     const deviceId = DeviceId.create(logger);
 
     function createResource(config: UserConfig): ConfigResource {
-        const connectionRegistry = new MCPConnectionStore({ userConfig: config, logger, deviceId }).view();
+        const connectionRegistry = new MCPConnectionStore({ options: config, logger, deviceId }).view();
         const keychain = new Keychain();
         const session = new Session({
             config,

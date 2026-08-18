@@ -178,7 +178,7 @@ describe("CliServer integration test", () => {
     ): Promise<{ server: CliServer; transport: Transport }> => {
         const logger = new CompositeLogger({ loggers });
         const deviceId = DeviceId.create(logger);
-        const connectionRegistry = new MCPConnectionStore({ userConfig: config, logger, deviceId }).view();
+        const connectionRegistry = new MCPConnectionStore({ options: config, logger, deviceId }).view();
         const exportsManager = ExportsManager.init({ options: config, logger });
         const session = new Session({
             logger,

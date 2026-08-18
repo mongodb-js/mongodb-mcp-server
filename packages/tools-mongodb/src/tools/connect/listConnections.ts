@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { MongoDBToolBase } from "../../mongodbTool.js";
-import type { AnyToolBase, ToolResult } from "@mongodb-js/mcp-core";
+import type { ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType } from "@mongodb-js/mcp-types";
 import { ConnectionSummarySchema, summarizeConnection } from "../../common/connectionSummary.js";
 import { connectCapableTools } from "../../connectionErrorHandler.js";
@@ -40,7 +40,7 @@ export class ListConnectionsTool extends MongoDBToolBase {
     }
 
     private noConnectionsText(): string {
-        const connectToolNames = connectCapableTools((this.server?.tools ?? []) as AnyToolBase[])
+        const connectToolNames = connectCapableTools(this.server?.tools ?? [])
             .map((tool) => `"${tool.name}"`)
             .join(", ");
         return connectToolNames

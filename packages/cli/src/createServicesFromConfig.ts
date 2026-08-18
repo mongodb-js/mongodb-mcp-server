@@ -46,7 +46,7 @@ export async function createServicesFromConfig({
     const exportsManager = createExportsManagerFromConfig({ config, logger });
     const deviceId = DeviceId.create(logger);
 
-    const connectionStore = new MCPConnectionStore({ userConfig: config, logger, deviceId });
+    const connectionStore = new MCPConnectionStore({ options: config, logger, deviceId });
     // Each server instance owns its connection scope: sessions are scoped to
     // the session by default, or shared globally when configured so.
     const connectionRegistry = connectionStore.view({

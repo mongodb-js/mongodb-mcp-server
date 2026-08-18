@@ -50,16 +50,6 @@ export type MCPHttpServerOptions<TMetrics extends DefaultMetricDefinitions = Def
 };
 
 /**
- * A session server that also exposes the protocol-level MCP server, required
- * to capture/restore negotiated client state across implicit
- * re-initializations of an externally-managed session.
- */
-type McpCapableSessionServer = SessionServer & {
-    mcpServer: NonNullable<SessionServer["mcpServer"]>;
-    session: SessionServer["session"] & { setMcpClient(mcpClient: unknown): void };
-};
-
-/**
  * HTTP server that handles MCP requests over HTTP using the Streamable HTTP transport.
  *
  *
@@ -359,8 +349,7 @@ export abstract class MCPHttpServer<
      * this pod never saw the client's `initialize` request, so without this
      * it would treat the client as capability-less — e.g. skipping
      * confirmation elicitation for destructive tools. No-op when the session
-     * store does not persist negotiated client state or the server does not
-     * expose the protocol-level MCP server.
+     * store does not persist negotiated client state.
      */
     private async restoreNegotiatedClientState(
         server: TServer,
@@ -385,19 +374,18 @@ export abstract class MCPHttpServer<
             return;
         }
 
-        const { mcpServer, session } = server as McpCapableSessionServer;
-
         // HACK: like the transport `_initialized` flag above, the SDK offers
         // no supported way to seed a Server with a previously negotiated
         // initialization, so we write the private fields the initialize
         // handler would have populated.
+        const mcpServer = server.mcpServer;
         const protocolServer = mcpServer.server as unknown as {
             _clientCapabilities?: ClientCapabilities;
             _clientVersion?: Implementation;
         };
         protocolServer._clientCapabilities = state.clientCapabilities;
         protocolServer._clientVersion = state.clientInfo;
-        session.setMcpClient(state.clientInfo);
+        server.session.setMcpClient(state.clientInfo);
     }
 
     /**
@@ -405,16 +393,14 @@ export abstract class MCPHttpServer<
      * exchange to be persisted through the session store, so implicit
      * re-initializations of this session can restore it. Wraps the
      * `oninitialized` callback installed by `server.connect`, hence must run
-     * after it. No-op when the server does not expose the protocol-level MCP
-     * server.
+     * after it.
      */
     private captureNegotiatedClientStateOnInitialize(
         server: TServer,
         sessionId: string,
         headers: Record<string, unknown>
     ): void {
-        const { mcpServer } = server as McpCapableSessionServer;
-        const protocolServer = mcpServer.server;
+        const protocolServer = server.mcpServer.server;
         const originalOnInitialized = protocolServer.oninitialized;
         protocolServer.oninitialized = (): void => {
             originalOnInitialized?.();
