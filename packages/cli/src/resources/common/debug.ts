@@ -1,10 +1,10 @@
 import { ReactiveResource, formatUntrustedData } from "@mongodb-js/mcp-core";
 import type { ITelemetry } from "@mongodb-js/mcp-types";
 import { connectCapableTools, summarizeConnection } from "@mongodb-js/mcp-tools-mongodb";
-import type { UserConfig, McpSession, CliServer } from "@mongodb-js/mcp-cli";
+import type { McpSession, CliServer } from "@mongodb-js/mcp-cli";
 
-export class DebugResource extends ReactiveResource<undefined, readonly [], McpSession, UserConfig, CliServer> {
-    constructor(session: McpSession, config: McpSession["config"], telemetry: ITelemetry) {
+export class DebugResource extends ReactiveResource<undefined, readonly [], McpSession, CliServer> {
+    constructor(session: McpSession, telemetry: ITelemetry) {
         super({
             resourceConfiguration: {
                 name: "debug-mongodb",
@@ -19,19 +19,8 @@ export class DebugResource extends ReactiveResource<undefined, readonly [], McpS
                 events: [],
             },
             session,
-            config,
             telemetry,
         });
-    }
-
-    /**
-     * The debug resource subscribes to no session events (`events: []`), so
-     * `reduce` never receives an event payload. The zero-argument signature is
-     * still assignable to the base `reduce` (a function with fewer parameters
-     * is assignable to one with more).
-     */
-    reduce(): undefined {
-        return this.current;
     }
 
     async toOutput(): Promise<string> {

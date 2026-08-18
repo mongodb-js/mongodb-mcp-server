@@ -966,9 +966,9 @@ export class CreateClusterTool extends AtlasToolBase {
             LATEST: "LATEST";
         }>>;
         backup: z.ZodDefault<z.ZodEnum<{
-            CONTINUOUS: "CONTINUOUS";
             OFF: "OFF";
             SNAPSHOT: "SNAPSHOT";
+            CONTINUOUS: "CONTINUOUS";
         }>>;
         terminationProtectionEnabled: z.ZodDefault<z.ZodBoolean>;
         encryptionAtRestProvider: z.ZodOptional<z.ZodEnum<{
@@ -1017,9 +1017,9 @@ export class CreateClusterTool extends AtlasToolBase {
             LATEST: "LATEST";
         }>;
         backup: z.ZodEnum<{
-            CONTINUOUS: "CONTINUOUS";
             OFF: "OFF";
             SNAPSHOT: "SNAPSHOT";
+            CONTINUOUS: "CONTINUOUS";
         }>;
         computeAutoScaling: z.ZodBoolean;
         terminationProtectionEnabled: z.ZodBoolean;
@@ -1814,8 +1814,8 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
         clusterName: z.ZodString;
         operations: z.ZodDefault<z.ZodArray<z.ZodEnum<{
             suggestedIndexes: "suggestedIndexes";
-            slowQueryLogs: "slowQueryLogs";
             dropIndexSuggestions: "dropIndexSuggestions";
+            slowQueryLogs: "slowQueryLogs";
             schemaSuggestions: "schemaSuggestions";
         }>>>;
         since: z.ZodOptional<z.ZodString>;
@@ -2783,8 +2783,8 @@ export class StreamsBuildTool extends StreamsToolBase {
         projectId: z.ZodString;
         resource: z.ZodEnum<{
             processor: "processor";
-            workspace: "workspace";
             connection: "connection";
+            workspace: "workspace";
             privatelink: "privatelink";
         }>;
         workspaceName: z.ZodOptional<z.ZodString>;
@@ -2795,17 +2795,17 @@ export class StreamsBuildTool extends StreamsToolBase {
         }>>;
         region: z.ZodOptional<z.ZodString>;
         tier: z.ZodOptional<z.ZodEnum<{
-            SP50: "SP50";
-            SP30: "SP30";
-            SP10: "SP10";
-            SP5: "SP5";
             SP2: "SP2";
+            SP5: "SP5";
+            SP10: "SP10";
+            SP30: "SP30";
+            SP50: "SP50";
         }>>;
         includeSampleData: z.ZodOptional<z.ZodBoolean>;
         connectionName: z.ZodOptional<z.ZodString>;
         connectionType: z.ZodOptional<z.ZodEnum<{
-            Cluster: "Cluster";
             Kafka: "Kafka";
+            Cluster: "Cluster";
             S3: "S3";
             Https: "Https";
             AWSKinesisDataStreams: "AWSKinesisDataStreams";
@@ -2897,8 +2897,8 @@ export class StreamsBuildTool extends StreamsToolBase {
     outputSchema: {
         resource: z.ZodEnum<{
             processor: "processor";
-            workspace: "workspace";
             connection: "connection";
+            workspace: "workspace";
             privatelink: "privatelink";
         }>;
     };
@@ -3031,11 +3031,11 @@ export class StreamsManageTool extends StreamsToolBase {
         }>;
         resourceName: z.ZodOptional<z.ZodString>;
         tier: z.ZodOptional<z.ZodEnum<{
-            SP50: "SP50";
-            SP30: "SP30";
-            SP10: "SP10";
-            SP5: "SP5";
             SP2: "SP2";
+            SP5: "SP5";
+            SP10: "SP10";
+            SP30: "SP30";
+            SP50: "SP50";
         }>>;
         resumeFromCheckpoint: z.ZodOptional<z.ZodBoolean>;
         startAtOperationTime: z.ZodOptional<z.ZodString>;
@@ -3048,11 +3048,11 @@ export class StreamsManageTool extends StreamsToolBase {
         newName: z.ZodOptional<z.ZodString>;
         newRegion: z.ZodOptional<z.ZodString>;
         newTier: z.ZodOptional<z.ZodEnum<{
-            SP50: "SP50";
-            SP30: "SP30";
-            SP10: "SP10";
-            SP5: "SP5";
             SP2: "SP2";
+            SP5: "SP5";
+            SP10: "SP10";
+            SP30: "SP30";
+            SP50: "SP50";
         }>>;
         connectionConfig: z.ZodOptional<z.ZodObject<{
             bootstrapServers: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodArray<z.ZodString>]>, z.ZodTransform<string, string | string[]>>>;
@@ -3125,8 +3125,8 @@ export class StreamsManageTool extends StreamsToolBase {
             CREATED: "CREATED";
         }>>;
         connectionState: z.ZodOptional<z.ZodEnum<{
-            DELETING: "DELETING";
             FAILED: "FAILED";
+            DELETING: "DELETING";
             PENDING: "PENDING";
             READY: "READY";
         }>>;
@@ -3149,8 +3149,8 @@ export class StreamsTeardownTool extends StreamsToolBase {
         projectId: z.ZodString;
         resource: z.ZodEnum<{
             processor: "processor";
-            workspace: "workspace";
             connection: "connection";
+            workspace: "workspace";
             privatelink: "privatelink";
             peering: "peering";
         }>;
@@ -3169,8 +3169,8 @@ export class StreamsTeardownTool extends StreamsToolBase {
     outputSchema: {
         resource: z.ZodEnum<{
             processor: "processor";
-            workspace: "workspace";
             connection: "connection";
+            workspace: "workspace";
             privatelink: "privatelink";
             peering: "peering";
         }>;
@@ -3356,8 +3356,8 @@ export class UpgradeClusterTool extends AtlasToolBase {
             M50: "M50";
             M60: "M60";
             M80: "M80";
-            M200: "M200";
             M140: "M140";
+            M200: "M200";
         }>>;
         provider: z.ZodOptional<z.ZodString>;
         region: z.ZodOptional<z.ZodString>;

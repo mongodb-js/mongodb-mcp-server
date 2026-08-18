@@ -53,7 +53,7 @@ describe("config resource", () => {
             enabled: false,
             serverMetadata: testServerMetadata,
         });
-        return new ConfigResource(session, config, telemetry);
+        return new ConfigResource(session, telemetry);
     }
 
     it("should not leak AWS KMS credentials in connectOptions", () => {

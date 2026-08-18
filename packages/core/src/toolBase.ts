@@ -175,7 +175,10 @@ export type ToolClass<
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type AnyToolClass = ToolClass<any, any>;
+export type AnyToolClass = Omit<ToolClass<any, any>, "new"> & {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    new (args: ToolConstructorParams<any, any>): AnyToolBase;
+};
 
 /**
  * Abstract base class for implementing MCP tools in the MongoDB MCP Server.

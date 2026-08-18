@@ -328,14 +328,14 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
                 uiRegistry: this.uiRegistry,
             });
             if (tool.register(this)) {
-                this.tools.push(tool as AnyToolBase);
+                this.tools.push(tool);
             }
         }
     }
 
     public registerResources(): void {
         for (const resourceConstructor of this.resourceConstructors) {
-            const resource = new resourceConstructor(this.session, this.userConfig, this.telemetry);
+            const resource = new resourceConstructor(this.session, this.telemetry);
             resource.register(this);
         }
     }

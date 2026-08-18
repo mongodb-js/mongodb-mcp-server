@@ -51,7 +51,9 @@ export type AnyConnectionState = ConnectionStateConnected | ConnectionStateConne
 export type AnyToolBase = ToolBase<any>;
 
 // @public (undocumented)
-export type AnyToolClass = ToolClass<any, any>;
+export type AnyToolClass = Omit<ToolClass<any, any>, "new"> & {
+    new (args: ToolConstructorParams<any, any>): AnyToolBase;
+};
 
 // @public (undocumented)
 export class ApiClient {

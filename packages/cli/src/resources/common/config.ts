@@ -17,8 +17,8 @@ function redactDriverOptions(driverOptions: Record<string, unknown>): Record<str
     return { ...rest, autoEncryption: "set; client-side field level encryption is configured" };
 }
 
-export class ConfigResource extends ReactiveResource<UserConfig, readonly [], McpSession, UserConfig, CliServer> {
-    constructor(session: McpSession, config: UserConfig, telemetry: ITelemetry) {
+export class ConfigResource extends ReactiveResource<UserConfig, readonly [], McpSession, CliServer> {
+    constructor(session: McpSession, telemetry: ITelemetry) {
         super({
             resourceConfiguration: {
                 name: "config",
@@ -29,23 +29,12 @@ export class ConfigResource extends ReactiveResource<UserConfig, readonly [], Mc
                 },
             },
             options: {
-                initial: { ...config },
+                initial: { ...session.config },
                 events: [],
             },
             session,
-            config,
             telemetry,
         });
-    }
-
-    /**
-     * The config resource subscribes to no session events (`events: []`), so
-     * `reduce` never receives an event payload. The zero-argument signature is
-     * still assignable to the base `reduce` (a function with fewer parameters
-     * is assignable to one with more).
-     */
-    reduce(): UserConfig {
-        return this.current;
     }
 
     toOutput(): string {

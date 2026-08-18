@@ -47,16 +47,14 @@ export interface IResourceServer {
  * for the MongoDB MCP Server.
  *
  * This type enforces that resource classes have a constructor accepting
- * `(session, config, telemetry)`, matching the construction pattern used by
- * {@link CliServer} (see `registerResources`).
+ * `(session, telemetry)`, matching the construction pattern used by
+ * {@link CliServer} (see `registerResources`). The resolved user
+ * configuration is read from `session.config`.
  */
-export type ResourceClass<
-    TSession extends IResourceSession = IResourceSession,
-    TConfig extends IToolConfig = IToolConfig,
-> = {
-    new (session: TSession, config: TConfig, telemetry: ITelemetry): { register(server: IResourceServer): void };
+export type ResourceClass<TSession extends IResourceSession = IResourceSession> = {
+    new (session: TSession, telemetry: ITelemetry): { register(server: IResourceServer): void };
 };
 
 /** Resource constructor type for registries that may include session-specific resource implementations. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type AnyResourceClass = ResourceClass<any, any>;
+export type AnyResourceClass = ResourceClass<any>;

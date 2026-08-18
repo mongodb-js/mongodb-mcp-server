@@ -77,7 +77,7 @@ describe("debug resource", () => {
             serverMetadata: testServerMetadata,
         });
 
-        debugResource = new DebugResource(session, config, telemetry);
+        debugResource = new DebugResource(session, telemetry);
     }
 
     beforeEach(() => {

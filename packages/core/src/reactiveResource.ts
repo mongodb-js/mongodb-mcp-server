@@ -20,17 +20,24 @@ type PayloadOf<K extends keyof SessionEvents> = SessionEvents[K][0];
  * ## Creating a Custom Resource
  *
  * To create a custom reactive resource, extend this class and implement:
- * - `reduce()` - Update state based on session events
+ * - `reduce()` (optional) - Update state based on session events; the default
+ *   keeps the initial value, which is sufficient for resources that subscribe
+ *   to no events
  * - `toOutput()` - Convert current state to resource output
  *
- * Resources are constructed by the host server with `(session, config, telemetry)`
- * (see the CLI's `registerResources`), which the base class receives as separate
- * constructor options. The `config` is the server's resolved user configuration.
+ * Resources that subscribe to no session events (`events: []`) do not need to
+ * override `reduce` — `reduceApply` is never invoked for them, so the current
+ * value stays the initial one.
+ *
+ * Resources are constructed by the host server with `(session, telemetry)`
+ * (see the CLI's `registerResources`), which the base class receives as
+ * constructor options. The resolved user configuration is read from
+ * `session.config` — it lives on the session, not on the resource.
  *
  * @example Basic Custom Resource
  * ```typescript
  * class MyResource extends ReactiveResource<string, readonly ["connect", "disconnect"]> {
- *   constructor(session: IResourceSession, config: UserConfig, telemetry: ITelemetry) {
+ *   constructor(session: IResourceSession, telemetry: ITelemetry) {
  *     super({
  *       resourceConfiguration: {
  *         name: "my-resource",
@@ -42,7 +49,6 @@ type PayloadOf<K extends keyof SessionEvents> = SessionEvents[K][0];
  *         events: ["connect", "disconnect"],
  *       },
  *       session,
- *       config,
  *       telemetry,
  *     });
  *   }
@@ -62,13 +68,10 @@ export abstract class ReactiveResource<
     Value,
     RelevantEvents extends readonly (keyof SessionEvents)[],
     TSession extends IResourceSession = IResourceSession,
-    TConfig extends IResourceSession["config"] = IResourceSession["config"],
     TServer extends IResourceServer = IResourceServer,
 > {
     protected server?: TServer;
     protected session: TSession;
-    /** The resolved user configuration, supplied by the host server at construction. */
-    protected config: TConfig;
     protected telemetry: ITelemetry;
 
     protected current: Value;
@@ -81,19 +84,16 @@ export abstract class ReactiveResource<
         resourceConfiguration,
         options,
         session,
-        config,
         telemetry,
         current,
     }: {
         resourceConfiguration: ResourceConfiguration;
         options: ReactiveResourceOptions<Value, RelevantEvents>;
         session: TSession;
-        config: TConfig;
         telemetry: ITelemetry;
         current?: Value;
     }) {
         this.session = session;
-        this.config = config;
         this.telemetry = telemetry;
 
         this.name = resourceConfiguration.name;
@@ -146,6 +146,19 @@ export abstract class ReactiveResource<
         this.current = this.reduce(eventName, ...event);
     }
 
-    protected abstract reduce(eventName: RelevantEvents[number], ...event: PayloadOf<RelevantEvents[number]>[]): Value;
+    /**
+     * Updates the resource's current state from a session event. Subclasses
+     * that react to subscribed events override this; the default keeps the
+     * current value unchanged (used by resources subscribed to no events).
+     */
+    protected reduce(
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        _eventName: RelevantEvents[number],
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        ..._event: PayloadOf<RelevantEvents[number]>[]
+    ): Value {
+        return this.current;
+    }
+
     public abstract toOutput(): string | Promise<string>;
 }
