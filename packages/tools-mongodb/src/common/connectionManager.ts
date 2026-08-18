@@ -1,7 +1,11 @@
 import { EventEmitter } from "events";
 import { MongoServerError } from "mongodb";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { generateConnectionInfoFromCliArgs, type ConnectionInfo as MongoshConnectionInfo } from "@mongosh/arg-parser";
+import {
+    generateConnectionInfoFromCliArgs,
+    type CliOptions,
+    type ConnectionInfo as MongoshConnectionInfo,
+} from "@mongosh/arg-parser";
 import type { DeviceId } from "../helpers/deviceId.js";
 import { MongoDBError, ErrorCodes } from "./errors.js";
 import { type LoggerBase, LogId } from "@mongodb-js/mcp-core";
@@ -209,71 +213,47 @@ export interface ConnectionStateErrored extends ConnectionState {
  * URI-building flags; the server always dials explicit connection strings)
  * and pool/timeout tuning such as `maxIdleTimeMS`/`minPoolSize` (driver
  * options, not arg-parser inputs).
+ *
+ * Derived from mongosh's own {@link CliOptions} so the field set can never
+ * drift from the arg-parser schema it is threaded into; only the fields the
+ * arg-parser consumes for the documented server/driver options above are
+ * picked. `CliOptions` makes every field optional already, so no wrappers are
+ * needed.
  */
-export type ConnectionDriverConfig = {
-    /** Username baked into the derived connection string. */
-    username?: string;
-    /** Password baked into the derived connection string. */
-    password?: string;
-    /** Authentication mechanism baked into the derived connection string (e.g. `"MONGODB-OIDC"`). */
-    authenticationMechanism?: string;
-    /** Authentication database, baked in as the `authSource` connection string parameter. */
-    authenticationDatabase?: string;
-    /** `retryWrites` connection string parameter. */
-    retryWrites?: boolean;
-    /** OIDC redirect URI for the authorization-code flow (driver `oidc.redirectURI`). */
-    oidcRedirectUri?: string;
-    /** Comma-separated OIDC flows, mapped to driver `oidc.allowedFlows` (e.g. `"auth-code"`, `"device-auth"`). */
-    oidcFlows?: string;
-    /** Skip the nonce in the OIDC auth-code request (driver `oidc.skipNonceInAuthCodeRequest`). */
-    oidcNoNonce?: boolean;
-    /** Treat the identity provider as a trusted endpoint (driver `authMechanismProperties.ALLOWED_HOSTS` derived from the connection string hosts). */
-    oidcTrustedEndpoint?: boolean;
-    /** Pass the OIDC id token as the access token (driver `oidc.passIdTokenAsAccessToken`). */
-    oidcIdTokenAsAccessToken?: boolean;
-    /** Browser command used for OIDC auth (driver `oidc.openBrowser`) and auth-flow inference; `false` disables browser-based flows. */
-    browser?: string | false;
-    /** Enable TLS (connection string parameter). */
-    tls?: boolean;
-    /** Allow invalid TLS certificates (connection string parameter). */
-    tlsAllowInvalidCertificates?: boolean;
-    /** Allow invalid TLS hostnames (connection string parameter). */
-    tlsAllowInvalidHostnames?: boolean;
-    /** TLS CA file path (connection string parameter). */
-    tlsCAFile?: string;
-    /** TLS CRL file path (connection string parameter). */
-    tlsCRLFile?: string;
-    /** TLS client certificate key file path (connection string parameter). */
-    tlsCertificateKeyFile?: string;
-    /** TLS client certificate key file password (connection string parameter). */
-    tlsCertificateKeyFilePassword?: string;
-    /** Stable Server API version (driver `serverApi.version`). */
-    apiVersion?: string;
-    /** Server API strict mode (driver `serverApi.strict`). */
-    apiStrict?: boolean;
-    /** Server API deprecation errors (driver `serverApi.deprecationErrors`). */
-    apiDeprecationErrors?: boolean;
-    /** Kerberos service name (`authMechanismProperties.SERVICE_NAME`). */
-    gssapiServiceName?: string;
-    /** Kerberos realm override (`authMechanismProperties.SERVICE_REALM`). */
-    sspiRealmOverride?: string;
-    /** Kerberos hostname canonicalization (`authMechanismProperties.CANONICALIZE_HOST_NAME`). */
-    sspiHostnameCanonicalization?: string;
-    /** AWS IAM session token for MONGODB-AWS auth (`authMechanismProperties.AWS_SESSION_TOKEN`). */
-    awsIamSessionToken?: string;
-    /** AWS KMS access key id for client-side field level encryption. */
-    awsAccessKeyId?: string;
-    /** AWS KMS secret access key for client-side field level encryption. */
-    awsSecretAccessKey?: string;
-    /** AWS KMS session token for client-side field level encryption. */
-    awsSessionToken?: string;
-    /** Key vault namespace for client-side field level encryption. */
-    keyVaultNamespace?: string;
-    /** CSFLE library path for client-side field level encryption. */
-    csfleLibraryPath?: string;
-    /** Crypt shared library path for client-side field level encryption. */
-    cryptSharedLibPath?: string;
-};
+export type ConnectionDriverConfig = Pick<
+    CliOptions,
+    | "username"
+    | "password"
+    | "authenticationMechanism"
+    | "authenticationDatabase"
+    | "retryWrites"
+    | "oidcRedirectUri"
+    | "oidcFlows"
+    | "oidcNoNonce"
+    | "oidcTrustedEndpoint"
+    | "oidcIdTokenAsAccessToken"
+    | "browser"
+    | "tls"
+    | "tlsAllowInvalidCertificates"
+    | "tlsAllowInvalidHostnames"
+    | "tlsCAFile"
+    | "tlsCRLFile"
+    | "tlsCertificateKeyFile"
+    | "tlsCertificateKeyFilePassword"
+    | "apiVersion"
+    | "apiStrict"
+    | "apiDeprecationErrors"
+    | "gssapiServiceName"
+    | "sspiRealmOverride"
+    | "sspiHostnameCanonicalization"
+    | "awsIamSessionToken"
+    | "awsAccessKeyId"
+    | "awsSecretAccessKey"
+    | "awsSessionToken"
+    | "keyVaultNamespace"
+    | "csfleLibraryPath"
+    | "cryptSharedLibPath"
+>;
 
 export type AnyConnectionState =
     | ConnectionStateConnected
