@@ -92,7 +92,6 @@ async function createTestServer(
 
     return new CliServer({
         session,
-        userConfig: config,
         mcpServer,
         telemetry: {
             emitEvents: () => {},

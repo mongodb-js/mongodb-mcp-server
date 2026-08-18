@@ -206,7 +206,6 @@ describe("mcpUI feature with custom UIs", () => {
 
         const server = new CliServer({
             session,
-            userConfig,
             telemetry,
             mcpServer: mcpServerInstance,
             elicitation,

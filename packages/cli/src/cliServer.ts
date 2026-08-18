@@ -31,7 +31,6 @@ export type ResourceRegistry = readonly AnyResourceClass[];
 
 export interface CliServerOptions<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
     session: McpSession;
-    userConfig: UserConfig;
     mcpServer: McpServer;
     telemetry: AtlasTelemetry;
     elicitation: Elicitation;
@@ -119,7 +118,6 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
     public readonly uiRegistry?: IUIRegistry;
     public readonly metrics: IMetrics<TMetrics>;
     public readonly serverMetadata: ServerMetadata;
-    public readonly userConfig: UserConfig;
 
     private _mcpLogLevel: LogLevel;
     /** Lowest log level allowed to be sent to the MCP client. */
@@ -134,7 +132,6 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
 
     constructor({
         session,
-        userConfig,
         mcpServer,
         telemetry,
         connectionErrorHandler,
@@ -147,7 +144,6 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
     }: CliServerOptions<TMetrics> & { session: McpSession }) {
         this.startTime = Date.now();
         this.session = session;
-        this.userConfig = userConfig;
         this.telemetry = telemetry;
         this.mcpServer = mcpServer;
         this.elicitation = elicitation;
@@ -299,10 +295,10 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
 
         if (command === "start") {
             event.properties.startup_time_ms = commandDuration;
-            event.properties.read_only_mode = this.userConfig.readOnly ? "true" : "false";
-            event.properties.disabled_tools = this.userConfig.disabledTools || [];
-            event.properties.confirmation_required_tools = this.userConfig.confirmationRequiredTools || [];
-            event.properties.previewFeatures = this.userConfig.previewFeatures;
+            event.properties.read_only_mode = this.session.config.readOnly ? "true" : "false";
+            event.properties.disabled_tools = this.session.config.disabledTools || [];
+            event.properties.confirmation_required_tools = this.session.config.confirmationRequiredTools || [];
+            event.properties.previewFeatures = this.session.config.previewFeatures;
         }
         if (command === "stop") {
             event.properties.runtime_duration_ms = Date.now() - this.startTime;
@@ -342,9 +338,9 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
 
     private async validateConfig(): Promise<void> {
         // Validate connection string
-        if (this.userConfig.connectionString) {
+        if (this.session.config.connectionString) {
             try {
-                validateConnectionString(this.userConfig.connectionString, false);
+                validateConnectionString(this.session.config.connectionString, false);
             } catch (error) {
                 throw new Error(
                     "Connection string validation failed with error: " +
@@ -355,14 +351,10 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
         }
 
         // Validate API client credentials
-        if (this.userConfig.apiClientId && this.userConfig.apiClientSecret) {
+        if (this.session.config.apiClientId && this.session.config.apiClientSecret) {
             try {
-                if (!this.session.apiClient) {
-                    throw new Error("API client is not available.");
-                }
-
                 try {
-                    const apiBaseUrl = new URL(this.userConfig.apiBaseUrl);
+                    const apiBaseUrl = new URL(this.session.config.apiBaseUrl);
                     if (apiBaseUrl.protocol !== "https:") {
                         // Log a warning, but don't error out. This is to allow for testing against local or non-HTTPS endpoints.
                         const message = `apiBaseUrl is configured to use ${apiBaseUrl.protocol}, which is not secure. It is strongly recommended to use HTTPS for secure communication.`;
@@ -378,9 +370,9 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
                     });
                 }
 
-                await this.session.apiClient?.validateAuthConfig();
+                await this.session.apiClient.validateAuthConfig();
             } catch (error) {
-                if (this.userConfig.connectionString === undefined) {
+                if (this.session.config.connectionString === undefined) {
                     throw new Error(
                         `Failed to connect to MongoDB Atlas instance using the credentials from the config: ${error instanceof Error ? error.message : String(error)}`,
                         { cause: error }

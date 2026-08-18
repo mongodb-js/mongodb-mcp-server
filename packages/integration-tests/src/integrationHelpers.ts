@@ -224,12 +224,8 @@ export function setupIntegrationTest(
         const {
             tools: toolsFromServerOptions,
             resources: resourcesFromServerOptions,
-            // Explicitly discard serverOptions.userConfig: the test server always
-            // runs with the caller-provided userConfig from getUserConfig().
-            userConfig: _userConfigFromServerOptions,
             ...restServerOptions
         } = serverOptions ?? {};
-        void _userConfigFromServerOptions;
 
         mcpServer = new CliServer({
             session,
@@ -246,7 +242,6 @@ export function setupIntegrationTest(
                     node: "20.0.0",
                 },
             },
-            userConfig,
             ...restServerOptions,
             tools: tools ?? toolsFromServerOptions,
             resources: resources ?? resourcesFromServerOptions,

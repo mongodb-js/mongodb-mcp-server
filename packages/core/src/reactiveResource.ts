@@ -142,7 +142,7 @@ export abstract class ReactiveResource<
         }
     }
 
-    public reduceApply(eventName: RelevantEvents[number], ...event: PayloadOf<RelevantEvents[number]>[]): void {
+    protected reduceApply(eventName: RelevantEvents[number], ...event: PayloadOf<RelevantEvents[number]>[]): void {
         this.current = this.reduce(eventName, ...event);
     }
 

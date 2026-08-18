@@ -1,4 +1,4 @@
-import { type CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { type CallToolResult, type RequestMeta } from "@modelcontextprotocol/sdk/types.js";
 export type { CallToolResult };
 import type { Secret } from "mongodb-redact";
 import type { IToolConfig } from "./config.js";
@@ -56,8 +56,8 @@ export type ToolExecutionContext = {
     requestInfo?: {
         headers?: Record<string, unknown>;
     };
-    /** Passed through to the MCP request handler extra. */
-    _meta?: Record<string, unknown>;
+    /** Metadata from the original MCP request (e.g. the client's progress token). */
+    _meta?: RequestMeta;
     /** The request id, when invoked through an MCP server. */
     requestId?: string | number;
     /** Send an MCP server notification. */

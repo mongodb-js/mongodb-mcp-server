@@ -161,7 +161,6 @@ describe("MongoDBTool implementations", () => {
 
         mcpServer = new CliServer({
             session,
-            userConfig,
             telemetry,
             mcpServer: internalMcpServer,
             connectionErrorHandler: errorHandler,

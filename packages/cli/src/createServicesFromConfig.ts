@@ -89,7 +89,6 @@ export async function createServicesFromConfig({
 
     const server = new CliServer({
         session,
-        userConfig: config,
         mcpServer,
         telemetry,
         connectionErrorHandler,

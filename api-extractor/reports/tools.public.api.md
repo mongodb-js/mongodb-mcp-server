@@ -19,6 +19,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
 import type { ProgressToken } from '@modelcontextprotocol/sdk/types.js';
 import type { RequestId } from '@modelcontextprotocol/sdk/types.js';
+import { RequestMeta } from '@modelcontextprotocol/sdk/types.js';
 import type { Secret } from 'mongodb-redact';
 import type { ServerNotification } from '@modelcontextprotocol/sdk/types.js';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
@@ -164,6 +165,12 @@ export abstract class AssistantToolBase extends ToolBase<IAssistantSession> {
 
 // @public (undocumented)
 export const AssistantTools: ToolClass<IAssistantSession>[];
+
+// @public (undocumented)
+export const ATLAS_CREATE_CLUSTER_README_DESCRIPTION: string;
+
+// @public (undocumented)
+export const ATLAS_PAUSE_RESUME_CLUSTER_README_DESCRIPTION = "Pause or resume a dedicated (M10+) MongoDB Atlas cluster.";
 
 // @public (undocumented)
 export const ATLAS_REGIONS: Record<AtlasCloudProvider, AtlasRegion[]>;
@@ -966,9 +973,9 @@ export class CreateClusterTool extends AtlasToolBase {
             LATEST: "LATEST";
         }>>;
         backup: z.ZodDefault<z.ZodEnum<{
+            CONTINUOUS: "CONTINUOUS";
             OFF: "OFF";
             SNAPSHOT: "SNAPSHOT";
-            CONTINUOUS: "CONTINUOUS";
         }>>;
         terminationProtectionEnabled: z.ZodDefault<z.ZodBoolean>;
         encryptionAtRestProvider: z.ZodOptional<z.ZodEnum<{
@@ -1017,9 +1024,9 @@ export class CreateClusterTool extends AtlasToolBase {
             LATEST: "LATEST";
         }>;
         backup: z.ZodEnum<{
+            CONTINUOUS: "CONTINUOUS";
             OFF: "OFF";
             SNAPSHOT: "SNAPSHOT";
-            CONTINUOUS: "CONTINUOUS";
         }>;
         computeAutoScaling: z.ZodBoolean;
         terminationProtectionEnabled: z.ZodBoolean;
@@ -1814,8 +1821,8 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
         clusterName: z.ZodString;
         operations: z.ZodDefault<z.ZodArray<z.ZodEnum<{
             suggestedIndexes: "suggestedIndexes";
-            dropIndexSuggestions: "dropIndexSuggestions";
             slowQueryLogs: "slowQueryLogs";
+            dropIndexSuggestions: "dropIndexSuggestions";
             schemaSuggestions: "schemaSuggestions";
         }>>>;
         since: z.ZodOptional<z.ZodString>;
@@ -2782,9 +2789,9 @@ export class StreamsBuildTool extends StreamsToolBase {
     argsShape: {
         projectId: z.ZodString;
         resource: z.ZodEnum<{
-            processor: "processor";
-            connection: "connection";
             workspace: "workspace";
+            connection: "connection";
+            processor: "processor";
             privatelink: "privatelink";
         }>;
         workspaceName: z.ZodOptional<z.ZodString>;
@@ -2896,9 +2903,9 @@ export class StreamsBuildTool extends StreamsToolBase {
     // (undocumented)
     outputSchema: {
         resource: z.ZodEnum<{
-            processor: "processor";
-            connection: "connection";
             workspace: "workspace";
+            connection: "connection";
+            processor: "processor";
             privatelink: "privatelink";
         }>;
     };
@@ -3125,8 +3132,8 @@ export class StreamsManageTool extends StreamsToolBase {
             CREATED: "CREATED";
         }>>;
         connectionState: z.ZodOptional<z.ZodEnum<{
-            FAILED: "FAILED";
             DELETING: "DELETING";
+            FAILED: "FAILED";
             PENDING: "PENDING";
             READY: "READY";
         }>>;
@@ -3148,9 +3155,9 @@ export class StreamsTeardownTool extends StreamsToolBase {
     argsShape: {
         projectId: z.ZodString;
         resource: z.ZodEnum<{
-            processor: "processor";
-            connection: "connection";
             workspace: "workspace";
+            connection: "connection";
+            processor: "processor";
             privatelink: "privatelink";
             peering: "peering";
         }>;
@@ -3168,9 +3175,9 @@ export class StreamsTeardownTool extends StreamsToolBase {
     // (undocumented)
     outputSchema: {
         resource: z.ZodEnum<{
-            processor: "processor";
-            connection: "connection";
             workspace: "workspace";
+            connection: "connection";
+            processor: "processor";
             privatelink: "privatelink";
             peering: "peering";
         }>;
@@ -3277,7 +3284,7 @@ export type ToolExecutionContext = {
     requestInfo?: {
         headers?: Record<string, unknown>;
     };
-    _meta?: Record<string, unknown>;
+    _meta?: RequestMeta;
     requestId?: string | number;
     sendNotification?: (notification: unknown) => Promise<void>;
     elicitationDurationMs?: number;
@@ -3356,8 +3363,8 @@ export class UpgradeClusterTool extends AtlasToolBase {
             M50: "M50";
             M60: "M60";
             M80: "M80";
-            M140: "M140";
             M200: "M200";
+            M140: "M140";
         }>>;
         provider: z.ZodOptional<z.ZodString>;
         region: z.ZodOptional<z.ZodString>;

@@ -120,7 +120,6 @@ async function createTestServer(config: UserConfig): Promise<CliServer> {
 
     const server = new CliServer({
         session,
-        userConfig: config,
         mcpServer,
         telemetry: new NoopTelemetry() as unknown as AtlasTelemetry,
         connectionErrorHandler,

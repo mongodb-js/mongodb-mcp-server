@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { StreamsToolBase } from "../../streams/streamsToolBase.js";
 import type { CallToolResult, OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
-import type { ElicitRequestFormParams, ProgressToken } from "@modelcontextprotocol/sdk/types.js";
+import type { ElicitRequestFormParams } from "@modelcontextprotocol/sdk/types.js";
 import type { ToolArgs } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
 import { ConnectionConfig, PrivateLinkConfig, StreamsArgs } from "../../streams/streamsArgs.js";
@@ -588,7 +588,7 @@ export class StreamsBuildTool extends StreamsToolBase {
             schema,
             {
                 relatedRequestId: this.elicitationRelatedRequestId(context),
-                progressToken: context._meta?.progressToken as ProgressToken | undefined,
+                progressToken: context._meta?.progressToken,
                 sendNotification: context.sendNotification,
                 signal: context.signal,
             }

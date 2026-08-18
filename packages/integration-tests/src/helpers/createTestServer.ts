@@ -92,7 +92,6 @@ export async function createTestServer(config: UserConfig, options: CreateTestSe
 
     return new CliServer({
         session,
-        userConfig: config,
         mcpServer,
         telemetry: options.telemetry ?? (new NoopTelemetry() as unknown as AtlasTelemetry),
         connectionErrorHandler,

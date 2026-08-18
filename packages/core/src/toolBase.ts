@@ -1,7 +1,7 @@
 import { z, type ZodRawShape } from "zod";
 import type { RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { CallToolResult, ProgressToken, RequestId, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult, RequestId, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type {
     ITelemetry,
     ConnectionMetadata,
@@ -595,9 +595,7 @@ export abstract class ToolBase<
                 relatedRequestId: relatedRequestId !== undefined ? String(relatedRequestId) : "(undefined)",
                 httpResponseType: String(this.config.httpResponseType),
                 progressToken:
-                    context._meta?.progressToken !== undefined
-                        ? String(context._meta.progressToken as ProgressToken)
-                        : "(undefined)",
+                    context._meta?.progressToken !== undefined ? String(context._meta.progressToken) : "(undefined)",
                 hasSendNotification: String(context.sendNotification !== undefined),
                 ...requestIdAttr(context.requestInfo?.headers),
             },
@@ -620,7 +618,7 @@ export abstract class ToolBase<
         try {
             const confirmed = await this.elicitation.requestConfirmation(message, {
                 relatedRequestId,
-                progressToken: context._meta?.progressToken as ProgressToken | undefined,
+                progressToken: context._meta?.progressToken,
                 sendNotification: context.sendNotification,
                 signal: context.signal,
             });

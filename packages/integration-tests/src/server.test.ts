@@ -217,7 +217,6 @@ describe("CliServer integration test", () => {
 
         const server = new CliServer({
             session,
-            userConfig: config,
             telemetry,
             mcpServer: mcpServerInstance,
             elicitation,

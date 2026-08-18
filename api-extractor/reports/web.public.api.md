@@ -20,6 +20,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
 import type { ProgressToken } from '@modelcontextprotocol/sdk/types.js';
 import type { RequestId } from '@modelcontextprotocol/sdk/types.js';
+import { RequestMeta } from '@modelcontextprotocol/sdk/types.js';
 import { Secret } from 'mongodb-redact';
 import type { ServerNotification } from '@modelcontextprotocol/sdk/types.js';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
@@ -862,7 +863,7 @@ export type ToolExecutionContext = {
     requestInfo?: {
         headers?: Record<string, unknown>;
     };
-    _meta?: Record<string, unknown>;
+    _meta?: RequestMeta;
     requestId?: string | number;
     sendNotification?: (notification: unknown) => Promise<void>;
     elicitationDurationMs?: number;

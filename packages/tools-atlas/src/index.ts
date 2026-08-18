@@ -1,4 +1,6 @@
 export { AtlasToolBase, type IAtlasConfig, type IAtlasSession } from "./atlasTool.js";
+export { ATLAS_CREATE_CLUSTER_README_DESCRIPTION } from "./tools/create/createCluster.js";
+export { ATLAS_PAUSE_RESUME_CLUSTER_README_DESCRIPTION } from "./tools/update/pauseResumeCluster.js";
 export { StreamsToolBase } from "./streams/streamsToolBase.js";
 export { StreamsArgs, ConnectionConfig, PrivateLinkConfig } from "./streams/streamsArgs.js";
 export { ATLAS_REGIONS, type AtlasRegion } from "./tools/read/getRegions.js";

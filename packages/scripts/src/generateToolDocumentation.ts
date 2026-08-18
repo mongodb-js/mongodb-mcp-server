@@ -9,6 +9,10 @@ import { readFileSync, writeFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
+import {
+    ATLAS_CREATE_CLUSTER_README_DESCRIPTION,
+    ATLAS_PAUSE_RESUME_CLUSTER_README_DESCRIPTION,
+} from "@mongodb-js/mcp-tools-atlas";
 import { AllTools } from "mongodb-mcp-server";
 import { UIRegistry } from "@mongodb-js/mcp-ui/registry";
 import { UserConfigSchema } from "mongodb-mcp-server";
@@ -28,6 +32,8 @@ interface ToolInfo {
 const overrides: Record<string, string> = {
     connect: "Connect to a MongoDB instance",
     "switch-connection": "Switch to a different MongoDB connection",
+    "atlas-create-cluster": ATLAS_CREATE_CLUSTER_README_DESCRIPTION,
+    "atlas-pause-resume-cluster": ATLAS_PAUSE_RESUME_CLUSTER_README_DESCRIPTION,
 };
 
 function extractToolInformation(): ToolInfo[] {

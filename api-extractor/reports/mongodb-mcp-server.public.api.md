@@ -27,6 +27,7 @@ import type { ProgressToken } from '@modelcontextprotocol/sdk/types.js';
 import type { ReadResourceCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { Registry } from 'prom-client';
 import type { RequestId } from '@modelcontextprotocol/sdk/types.js';
+import { RequestMeta } from '@modelcontextprotocol/sdk/types.js';
 import type { ResourceMetadata } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { Secret } from 'mongodb-redact';
 import type { ServerNotification } from '@modelcontextprotocol/sdk/types.js';
@@ -305,8 +306,6 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
     readonly tools: AnyToolBase[];
     // (undocumented)
     readonly uiRegistry?: IUIRegistry;
-    // (undocumented)
-    readonly userConfig: UserConfig;
 }
 
 // @public (undocumented)
@@ -329,8 +328,6 @@ export interface CliServerOptions<TMetrics extends DefaultMetricDefinitions = De
     tools?: ToolRegistry;
     // (undocumented)
     uiRegistry?: IUIRegistry;
-    // (undocumented)
-    userConfig: UserConfig;
 }
 
 // @public (undocumented)
@@ -1170,7 +1167,7 @@ export type ToolExecutionContext = {
     requestInfo?: {
         headers?: Record<string, unknown>;
     };
-    _meta?: Record<string, unknown>;
+    _meta?: RequestMeta;
     requestId?: string | number;
     sendNotification?: (notification: unknown) => Promise<void>;
     elicitationDurationMs?: number;
