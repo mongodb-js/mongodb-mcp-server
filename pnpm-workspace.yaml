@@ -3,8 +3,6 @@ packages:
   - "packages/*"
   - "tests/browser"
 
-overrides:
-  "ip-address": "^10.5.0"
 allowBuilds:
   "@modelcontextprotocol/ext-apps": false
   braintrust: true
