@@ -214,7 +214,7 @@ jobs:
         run: |
           pnpm dlx lcov-result-merger@5.0.1 "coverage/*/lcov.info" "coverage/lcov.info"
       - name: Coveralls GitHub Action
-        uses: coverallsapp/github-action@v2.3.8
+        uses: coverallsapp/github-action@8d6379e14d29928660c4ba802d8e85393440b329 # v2.3.8
         with:
           file: coverage/lcov.info
 
