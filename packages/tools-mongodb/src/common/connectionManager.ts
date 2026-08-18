@@ -201,24 +201,15 @@ export interface ConnectionStateErrored extends ConnectionState {
 }
 
 /**
- * The subset of the server's user configuration that mongosh's arg-parser
+ * The subset of the server's configuration that mongosh's arg-parser
  * (`generateConnectionInfoFromCliArgs`) maps into the derived connection
  * string and driver options when establishing a connection: credentials,
  * authentication mechanism, OIDC, TLS, Server API, GSSAPI, AWS IAM and
  * client-side-encryption settings.
  *
- * Kept structural so `tools-mongodb` does not depend on the cli package (the
- * cli's full `UserConfig` satisfies this shape). Fields the arg-parser does
- * not consume are deliberately omitted — e.g. `host`/`port`/`nodb` (mongosh
- * URI-building flags; the server always dials explicit connection strings)
- * and pool/timeout tuning such as `maxIdleTimeMS`/`minPoolSize` (driver
- * options, not arg-parser inputs).
- *
- * Derived from mongosh's own {@link CliOptions} so the field set can never
- * drift from the arg-parser schema it is threaded into; only the fields the
- * arg-parser consumes for the documented server/driver options above are
- * picked. `CliOptions` makes every field optional already, so no wrappers are
- * needed.
+ * Kept structural — the embedder's full config satisfies this shape — and
+ * derived from mongosh's own {@link CliOptions} so the field set can never
+ * drift from the arg-parser schema it is threaded into.
  */
 export type ConnectionDriverConfig = Pick<
     CliOptions,

@@ -25,9 +25,8 @@ export type CreateConnectionManagerFn = () => ConnectionManager;
  * ({@link ConnectionDriverConfig}), so tool-initiated connects apply the
  * server's auth/OIDC/TLS configuration exactly like the preconfigured dial.
  *
- * Kept structural so `tools-mongodb` does not depend on the cli package
- * (that would be circular: the cli builds on the tools packages); the
- * embedder's full config satisfies this shape structurally.
+ * Kept structural so the embedder's full config satisfies this shape without
+ * the store depending on it directly.
  */
 export type ConnectionStoreConfig = ConnectionDriverConfig & {
     connectionString?: string;

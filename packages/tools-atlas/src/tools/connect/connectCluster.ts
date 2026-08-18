@@ -72,7 +72,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         const password = await generateSecurePassword();
 
         // 14_400_000ms (4h) is the canonical default also declared by
-        // userConfig.atlasTemporaryDatabaseUserLifetimeMs; the fallback guards
+        // atlasTemporaryDatabaseUserLifetimeMs; the fallback guards
         // programmatic (non-CLI) construction where the config object may have
         // the field unset.
         const expiryDate = new Date(Date.now() + (this.config.atlasTemporaryDatabaseUserLifetimeMs ?? 14_400_000));
