@@ -13,6 +13,7 @@ import {
     DeviceId,
     FakeConnectionManager,
 } from "@mongodb-js/mcp-tools-mongodb";
+import type { ConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
 import { Keychain } from "@mongodb-js/mcp-core";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
@@ -67,11 +68,15 @@ describe("ConnectClusterTool", () => {
             getGroup: vi.fn().mockResolvedValue({ name: "Test Project" }),
         };
 
-        connectionRegistry = new MCPConnectionStore({
+        class TestStore extends MCPConnectionStore {
+            protected override createConnectionManager(): ConnectionManager {
+                return new FakeConnectionManager();
+            }
+        }
+        connectionRegistry = new TestStore({
             options: defaultTestConfig,
             logger: new CompositeLogger(),
             deviceId: DeviceId.create(new CompositeLogger()),
-            createConnectionManager: (): FakeConnectionManager => new FakeConnectionManager(),
         }).view();
 
         mockSession = {

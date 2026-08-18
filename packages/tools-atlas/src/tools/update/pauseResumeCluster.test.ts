@@ -13,6 +13,7 @@ import {
     DeviceId,
     FakeConnectionManager,
 } from "@mongodb-js/mcp-tools-mongodb";
+import type { ConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 import { UserConfigSchema, type UserConfig } from "@mongodb-js/mcp-cli";
@@ -45,11 +46,15 @@ describe("PauseResumeClusterTool", () => {
             error: vi.fn(),
         } as unknown as ICompositeLogger;
 
-        connectionRegistry = new MCPConnectionStore({
+        class TestStore extends MCPConnectionStore {
+            protected override createConnectionManager(): ConnectionManager {
+                return new FakeConnectionManager();
+            }
+        }
+        connectionRegistry = new TestStore({
             options: defaultTestConfig,
             logger: new CompositeLogger(),
             deviceId: DeviceId.create(new CompositeLogger()),
-            createConnectionManager: (): FakeConnectionManager => new FakeConnectionManager(),
         }).view();
 
         const mockSession: Partial<IAtlasSession> = {

@@ -12,6 +12,7 @@ import {
     connectionErrorHandler,
     FakeConnectionManager,
     type ConnectionRegistry,
+    type ConnectionManager,
 } from "@mongodb-js/mcp-tools-mongodb";
 
 const defaultTestConfig: UserConfig = {
@@ -36,16 +37,19 @@ describe("debug resource", () => {
     let registry: ConnectionRegistry;
     let debugResource: DebugResource;
 
+    class TestStore extends MCPConnectionStore {
+        protected override createConnectionManager(): ConnectionManager {
+            const manager = new FakeConnectionManager();
+            managers.push(manager);
+            return manager;
+        }
+    }
+
     function setup(config: UserConfig = defaultTestConfig): void {
-        registry = new MCPConnectionStore({
+        registry = new TestStore({
             options: config,
             logger,
             deviceId,
-            createConnectionManager: (): FakeConnectionManager => {
-                const manager = new FakeConnectionManager();
-                managers.push(manager);
-                return manager;
-            },
         }).view();
 
         session = new Session({

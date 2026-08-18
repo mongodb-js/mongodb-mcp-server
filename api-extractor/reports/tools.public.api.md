@@ -691,17 +691,6 @@ export interface ConnectionManagerEvents {
     close: [AnyConnectionState];
 }
 
-// @public (undocumented)
-export type ConnectionManagerFactoryFn = (params: ConnectionManagerFactoryOptions) => Promise<ConnectionManager>;
-
-// @public
-export type ConnectionManagerFactoryOptions = {
-    logger: LoggerBase;
-    deviceId: DeviceId;
-    serverMetadata: ServerMetadata;
-    connectionInfo: ConnectionInfo;
-};
-
 // @public
 export interface ConnectionRegistry {
     close(): Promise<void>;
@@ -786,7 +775,6 @@ export type ConnectionStoreOptions = {
     options: ConnectionStoreConfig;
     logger: LoggerBase;
     deviceId: DeviceId;
-    createConnectionManager?: CreateConnectionManagerFn;
     serverMetadata?: ServerMetadata;
 };
 
@@ -1050,9 +1038,6 @@ export type CreateConnectionEntryOptions = {
 };
 
 // @public (undocumented)
-export type CreateConnectionManagerFn = () => ConnectionManager;
-
-// @public (undocumented)
 export type CreateConnectionOptions = {
     settings: ConnectionSettings;
     name?: string;
@@ -1183,8 +1168,8 @@ export class CreateIndexTool extends MongoDBToolBase {
                 }>>;
                 quantization: z.ZodDefault<z.ZodEnum<{
                     none: "none";
-                    binary: "binary";
                     scalar: "scalar";
+                    binary: "binary";
                 }>>;
             }, z.core.$strict>, z.ZodObject<{
                 type: z.ZodLiteral<"autoEmbed">;
@@ -1226,9 +1211,9 @@ export class CreateIndexTool extends MongoDBToolBase {
         collection: z.ZodString;
         indexName: z.ZodString;
         indexType: z.ZodEnum<{
-            search: "search";
-            vectorSearch: "vectorSearch";
             classic: "classic";
+            vectorSearch: "vectorSearch";
+            search: "search";
         }>;
     };
     // (undocumented)
@@ -1462,8 +1447,8 @@ export class DropIndexTool extends MongoDBToolBase {
     argsShape: {
         indexName: z.ZodString;
         type: z.ZodEnum<{
-            search: "search";
             classic: "classic";
+            search: "search";
         }>;
         collection: z.ZodString;
         database: z.ZodString;
@@ -1587,8 +1572,8 @@ export class ExplainTool extends MongoDBToolBase {
         explainResult: z.ZodRecord<z.ZodString, z.ZodUnknown>;
         method: z.ZodEnum<{
             find: "find";
-            count: "count";
             aggregate: "aggregate";
+            count: "count";
         }>;
         verbosity: z.ZodEnum<{
             queryPlanner: "queryPlanner";
@@ -2506,6 +2491,7 @@ export class MCPConnectionManager extends ConnectionManager {
 export class MCPConnectionStore {
     constructor(options: ConnectionStoreOptions);
     closeAll(): Promise<void>;
+    protected createConnectionManager(): ConnectionManager;
     view(input?: {
         scope?: string;
         owned?: boolean;

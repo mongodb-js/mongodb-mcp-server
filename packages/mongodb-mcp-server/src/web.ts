@@ -31,8 +31,6 @@ export { Elicitation, type ElicitedInputResult } from "@mongodb-js/mcp-core";
 export type {
     ConnectionStateConnecting,
     ConnectionSettings,
-    ConnectionManagerFactoryFn,
-    ConnectionManagerFactoryOptions,
     AtlasClusterConnectionInfo,
     ConnectionStringInfo,
     AnyConnectionState,

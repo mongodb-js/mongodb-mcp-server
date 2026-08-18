@@ -893,7 +893,7 @@ See "Example: Integration with Request Overrides" for further details on how to 
 
 MongoDB connections live in an app-level connection store and are addressed by opaque `connectionId` handles that travel in tool arguments (see the `connect`, `disconnect`, and `list-connections` tools). There are two extension points, depending on how much of that you want to own:
 
-**Custom dialing, default bookkeeping.** Construct your own `MCPConnectionStore` with a `createConnectionManager` override and hand each session a view of it via `sessionOptions.connectionRegistry`. Use this when the actual connection handling is done differently in your application but you want the standard handle semantics (ids, connection limits, the `preconfigured` entry). For example, the [MongoDB extension for VS Code](https://github.com/mongodb-js/vscode/blob/f45a4c774ffc01e9aed38f6ef00224bf921d9784/src/mcp/mcpConnectionManager.ts#L30) provides its own implementation of `ConnectionManager` because the connection handling is done by the extension itself.
+**Custom dialing, default bookkeeping.** Subclass `MCPConnectionStore` and override its `createConnectionManager` method, then hand each session a view of your store via `sessionOptions.connectionRegistry`. Use this when the actual connection handling is done differently in your application but you want the standard handle semantics (ids, connection limits, the `preconfigured` entry). For example, the [MongoDB extension for VS Code](https://github.com/mongodb-js/vscode/blob/f45a4c774ffc01e9aed38f6ef00224bf921d9784/src/mcp/mcpConnectionManager.ts#L30) provides its own implementation of `ConnectionManager` because the connection handling is done by the extension itself.
 
 ```typescript
 import {
@@ -901,18 +901,29 @@ import {
   StreamableHttpRunner,
   UserConfigSchema,
 } from "mongodb-mcp-server";
-import type { Server, TransportRequestContext } from "mongodb-mcp-server";
+import type {
+  ConnectionManager,
+  Server,
+  TransportRequestContext,
+} from "mongodb-mcp-server";
+
+// Subclass the store to supply your own ConnectionManager implementation.
+class CustomConnectionStore extends MCPConnectionStore {
+  protected override createConnectionManager(): ConnectionManager {
+    return new MyConnectionManager();
+  }
+}
 
 // Extend StreamableHttpRunner and override createServerForRequest to serve
 // sessions from a store you own.
 class CustomStreamableHttpRunner extends StreamableHttpRunner {
-  // One store for the whole runner. Omit createConnectionManager to dial with
-  // the default implementation, or supply your own ConnectionManager here.
-  private readonly connectionStore = new MCPConnectionStore({
+  // One store for the whole runner. The default factory dials with the
+  // built-in MCPConnectionManager; override it in a subclass (as above) to
+  // supply your own.
+  private readonly connectionStore = new CustomConnectionStore({
     userConfig: this.userConfig,
     logger: this.logger,
     deviceId: this.deviceId,
-    createConnectionManager: () => new MyConnectionManager(),
   });
 
   protected override async createServerForRequest({

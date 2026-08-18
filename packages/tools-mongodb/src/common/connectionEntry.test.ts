@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MongoServerError } from "mongodb";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
-import { MCPConnectionManager } from "./connectionManager.js";
+import { MCPConnectionManager, type ConnectionManager } from "./connectionManager.js";
 import { MCPConnectionStore, type ConnectionStoreConfig } from "./connectionStore.js";
 import type { ConnectionEntry, ConnectionRegistry } from "./connectionRegistry.js";
 import { DeviceId } from "../helpers/deviceId.js";
@@ -25,19 +25,23 @@ describe("ConnectionEntry with MCPConnectionManager", () => {
     let registry: ConnectionRegistry;
     let mockDeviceId: Mocked<DeviceId>;
 
+    class TestStore extends MCPConnectionStore {
+        protected override createConnectionManager(): ConnectionManager {
+            return new MCPConnectionManager({
+                logger,
+                deviceId: mockDeviceId,
+                serverMetadata: { mcpServerName: "MongoDB MCP Server", version: "1.0.0" },
+                connectionInfo: { transport: "stdio", httpHost: "127.0.0.1" },
+            });
+        }
+    }
+
     beforeEach(() => {
         mockDeviceId = MockDeviceId;
-        registry = new MCPConnectionStore({
+        registry = new TestStore({
             options: defaultTestConfig,
             logger,
             deviceId: mockDeviceId,
-            createConnectionManager: (): MCPConnectionManager =>
-                new MCPConnectionManager({
-                    logger,
-                    deviceId: mockDeviceId,
-                    serverMetadata: { mcpServerName: "MongoDB MCP Server", version: "1.0.0" },
-                    connectionInfo: { transport: "stdio", httpHost: "127.0.0.1" },
-                }),
         }).view();
 
         MockNodeDriverServiceProvider.connect = vi.fn().mockResolvedValue({} as unknown as NodeDriverServiceProvider);

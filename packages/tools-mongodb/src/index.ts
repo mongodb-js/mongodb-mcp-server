@@ -16,8 +16,6 @@ export type {
     ConnectionStateErrored,
     AnyConnectionState,
     ConnectionDriverConfig,
-    ConnectionManagerFactoryFn,
-    ConnectionManagerFactoryOptions,
     ConnectionManagerEvents,
     ConnectionTag,
     OIDCConnectionAuthType,
@@ -76,11 +74,7 @@ export {
     type CreateConnectionEntryOptions,
     type ConnectionSource,
 } from "./common/connectionRegistry.js";
-export {
-    MCPConnectionStore,
-    type ConnectionStoreOptions,
-    type CreateConnectionManagerFn,
-} from "./common/connectionStore.js";
+export { MCPConnectionStore, type ConnectionStoreOptions } from "./common/connectionStore.js";
 export { ConnectionSummarySchema, summarizeConnection } from "./common/connectionSummary.js";
 export { FakeConnectionManager } from "./common/mocks/connectionManager.js";
 export { buildWriteStageConfirmationMessage } from "./helpers/writeStageConfirmation.js";

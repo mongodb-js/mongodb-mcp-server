@@ -427,17 +427,6 @@ export interface ConnectionManagerEvents {
 }
 
 // @public (undocumented)
-export type ConnectionManagerFactoryFn = (params: ConnectionManagerFactoryOptions) => Promise<ConnectionManager>;
-
-// @public
-export type ConnectionManagerFactoryOptions = {
-    logger: LoggerBase;
-    deviceId: DeviceId;
-    serverMetadata: ServerMetadata;
-    connectionInfo: ConnectionInfo_2;
-};
-
-// @public (undocumented)
 export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"> {
     // (undocumented)
     atlas?: AtlasClusterConnectionInfo;

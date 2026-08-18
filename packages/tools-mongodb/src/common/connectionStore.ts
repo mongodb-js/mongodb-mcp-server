@@ -16,8 +16,6 @@ import type {
 } from "./connectionRegistry.js";
 import { buildEntryName, ConnectionEntry, PRECONFIGURED_CONNECTION_ID } from "./connectionRegistry.js";
 
-export type CreateConnectionManagerFn = () => ConnectionManager;
-
 /**
  * Structural subset of the embedder's configuration that the store reads: the
  * store-level knobs plus every config field mongosh's arg-parser maps into
@@ -55,8 +53,6 @@ export type ConnectionStoreOptions = {
     options: ConnectionStoreConfig;
     logger: LoggerBase;
     deviceId: DeviceId;
-    /** Override the per-entry connection manager (tests, embedders). */
-    createConnectionManager?: CreateConnectionManagerFn;
     /** Server metadata embedded in the driver `appName`; a generic default is used when omitted. */
     serverMetadata?: ServerMetadata;
 };
@@ -84,7 +80,6 @@ export class MCPConnectionStore {
     private readonly logger: LoggerBase;
     private readonly deviceId: DeviceId;
     private readonly serverMetadata: ServerMetadata;
-    private readonly createConnectionManager: CreateConnectionManagerFn;
     private preconfiguredDial?: Promise<unknown>;
 
     constructor(options: ConnectionStoreOptions) {
@@ -92,21 +87,6 @@ export class MCPConnectionStore {
         this.logger = options.logger;
         this.deviceId = options.deviceId;
         this.serverMetadata = options.serverMetadata ?? DEFAULT_SERVER_METADATA;
-        this.createConnectionManager =
-            options.createConnectionManager ??
-            ((): ConnectionManager =>
-                new MCPConnectionManager({
-                    logger: this.logger,
-                    deviceId: this.deviceId,
-                    serverMetadata: this.serverMetadata,
-                    connectionInfo: this.connectionInfo(),
-                    // The store options are a ConnectionDriverConfig superset;
-                    // the extra store-level fields (connectionString,
-                    // maxActiveConnections, transport, httpHost) are not read
-                    // by mongosh's arg-parser, so passing the whole object is
-                    // equivalent to passing just the driver fields.
-                    driverConfig: this.options,
-                }));
 
         if (this.options.connectionString) {
             this.entries.set(PRECONFIGURED_CONNECTION_ID, {
@@ -130,6 +110,30 @@ export class MCPConnectionStore {
             httpHost: this.options.httpHost,
             browser: this.options.browser,
         };
+    }
+
+    /**
+     * Creates the per-entry {@link ConnectionManager} the store seeds and
+     * dials with. Override in a subclass to supply a custom implementation
+     * (tests, embedders) — the default dials with
+     * {@link MCPConnectionManager} configured from the store's options.
+     * Invoked from the constructor when a preconfigured connection string is
+     * present, so overrides must not rely on subclass state initialized after
+     * `super()`.
+     */
+    protected createConnectionManager(): ConnectionManager {
+        return new MCPConnectionManager({
+            logger: this.logger,
+            deviceId: this.deviceId,
+            serverMetadata: this.serverMetadata,
+            connectionInfo: this.connectionInfo(),
+            // The store options are a ConnectionDriverConfig superset;
+            // the extra store-level fields (connectionString,
+            // maxActiveConnections, transport, httpHost) are not read
+            // by mongosh's arg-parser, so passing the whole object is
+            // equivalent to passing just the driver fields.
+            driverConfig: this.options,
+        });
     }
 
     /**

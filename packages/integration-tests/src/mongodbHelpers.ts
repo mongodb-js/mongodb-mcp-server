@@ -270,18 +270,21 @@ export function validateAutoConnectBehavior(
             // Seed the preconfigured entry the same way the store constructor does when the
             // server is started with a configured connection string. The entry is not dialed
             // here - resolving it during the tool call is what dials it.
-            // Accessing the private `entries`/`createConnectionManager` members is
-            // necessary because the public registry API deliberately cannot seed
-            // entries after construction.
+            // Accessing the private `entries` map and the protected `createConnectionManager`
+            // method via index signature is necessary because the public registry API
+            // deliberately cannot seed entries after construction.
             type StoredEntry = { entry: ConnectionEntry; scope?: string };
-            const storeEntries = store["entries"] as Map<string, StoredEntry>;
-            const createManager = store["createConnectionManager"] as () => ConnectionManager;
-            storeEntries.set(PRECONFIGURED_CONNECTION_ID, {
+            type StoreWithSeam = {
+                entries: Map<string, StoredEntry>;
+                createConnectionManager: () => ConnectionManager;
+            };
+            const seam = store as unknown as StoreWithSeam;
+            seam.entries.set(PRECONFIGURED_CONNECTION_ID, {
                 entry: new ConnectionEntry({
                     connectionId: PRECONFIGURED_CONNECTION_ID,
                     name: PRECONFIGURED_CONNECTION_ID,
                     source: "preconfigured",
-                    manager: createManager(),
+                    manager: seam.createConnectionManager(),
                 }),
             });
 

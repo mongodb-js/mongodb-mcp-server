@@ -343,17 +343,6 @@ export interface ConnectionManagerEvents {
 }
 
 // @public (undocumented)
-export type ConnectionManagerFactoryFn = (params: ConnectionManagerFactoryOptions) => Promise<ConnectionManager>;
-
-// @public
-export type ConnectionManagerFactoryOptions = {
-    logger: LoggerBase;
-    deviceId: DeviceId;
-    serverMetadata: ServerMetadata;
-    connectionInfo: ConnectionInfo_2;
-};
-
-// @public (undocumented)
 export type ConnectionMetadata = AtlasMetadata & AtlasLocalToolMetadata & {
     connection_auth_type?: string;
     connection_host_type?: string;

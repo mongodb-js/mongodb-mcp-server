@@ -3,6 +3,7 @@ import { atlasClusterSlug, PRECONFIGURED_CONNECTION_ID } from "./connectionRegis
 import { MCPConnectionStore, type ConnectionStoreOptions, type ConnectionStoreConfig } from "./connectionStore.js";
 import { summarizeConnection } from "./connectionSummary.js";
 import { FakeConnectionManager } from "./mocks/connectionManager.js";
+import type { ConnectionManager } from "./connectionManager.js";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
 import { DeviceId } from "../helpers/deviceId.js";
 import { ErrorCodes, MongoDBError } from "./errors.js";
@@ -15,23 +16,37 @@ const defaultTestConfig: ConnectionStoreConfig = {
 
 describe("ConnectionRegistry", () => {
     let managers: FakeConnectionManager[];
+    let managerFactory: () => ConnectionManager;
+
+    /**
+     * Test store that records every manager it creates, using a mutable
+     * `managerFactory` so individual tests can swap in managers with special
+     * behavior (e.g. failing connects).
+     */
+    class TestStore extends MCPConnectionStore {
+        protected override createConnectionManager(): ConnectionManager {
+            const manager = managerFactory();
+            managers.push(manager as FakeConnectionManager);
+            return manager;
+        }
+    }
 
     function makeStore(overrides: Partial<ConnectionStoreOptions> = {}): MCPConnectionStore {
-        return new MCPConnectionStore({
+        return new TestStore({
             options: defaultTestConfig,
             logger: new CompositeLogger(),
             deviceId: DeviceId.create(new CompositeLogger()),
-            createConnectionManager: (): FakeConnectionManager => {
-                const manager = new FakeConnectionManager();
-                managers.push(manager);
-                return manager;
-            },
             ...overrides,
         });
     }
 
     beforeEach(() => {
         managers = [];
+        managerFactory = (): FakeConnectionManager => {
+            const manager = new FakeConnectionManager();
+            managers.push(manager);
+            return manager;
+        };
         vi.useFakeTimers();
     });
 
@@ -70,14 +85,13 @@ describe("ConnectionRegistry", () => {
         });
 
         it("leaves no entry behind when the dial fails", async () => {
-            const registry = makeStore({
-                createConnectionManager: () => {
-                    const manager = new FakeConnectionManager();
-                    manager.failNextConnect = new Error("dial failed");
-                    managers.push(manager);
-                    return manager;
-                },
-            }).view();
+            managerFactory = () => {
+                const manager = new FakeConnectionManager();
+                manager.failNextConnect = new Error("dial failed");
+                managers.push(manager);
+                return manager;
+            };
+            const registry = makeStore().view();
             await expect(
                 registry.connect({ settings: { connectionString: "mongodb://localhost:27017" } })
             ).rejects.toThrow("dial failed");

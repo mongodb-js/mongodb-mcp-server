@@ -38,8 +38,6 @@ export {
     type ConnectionStateConnecting,
     type ConnectionStateDisconnected,
     type ConnectionStateErrored,
-    type ConnectionManagerFactoryFn,
-    type ConnectionManagerFactoryOptions,
     type ConnectionSettings,
     type ConnectionManagerEvents,
     type ConnectionTag,

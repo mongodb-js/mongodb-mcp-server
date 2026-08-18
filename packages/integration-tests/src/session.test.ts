@@ -8,6 +8,7 @@ import {
     FakeConnectionManager,
     MCPConnectionStore,
     type ConnectionRegistry,
+    type ConnectionManager,
 } from "@mongodb-js/mcp-tools-mongodb";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { defaultTestConfig } from "./integrationHelpers.js";
@@ -29,11 +30,15 @@ describe("Session", () => {
             },
             logger,
         });
-        connectionRegistry = new MCPConnectionStore({
+        class TestStore extends MCPConnectionStore {
+            protected override createConnectionManager(): ConnectionManager {
+                return new FakeConnectionManager();
+            }
+        }
+        connectionRegistry = new TestStore({
             options: defaultTestConfig,
             logger,
             deviceId: DeviceId.create(logger),
-            createConnectionManager: (): FakeConnectionManager => new FakeConnectionManager(),
         }).view();
         apiClientCloseMock = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
 
