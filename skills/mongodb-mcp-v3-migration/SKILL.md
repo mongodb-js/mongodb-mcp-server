@@ -14,11 +14,14 @@ description: >
 
 This skill migrates **consumer code**: projects that embed, customize, or extend
 `mongodb-mcp-server` as a library (custom CLIs, HTTP hosts, custom tools, selective tool
-registration, per-session config — see `MCP_SERVER_LIBRARY.md` for the v1 API being
-migrated). It runs in the **consumer's repository**, not the mongodb-mcp-server repo.
+registration, per-session config). It runs in the **consumer's repository**, not the
+mongodb-mcp-server repo.
 
-`MCP_SERVER_LIBRARY.md` documents the v1 API surface; the before/after sections below are
-the v3 replacements.
+**`MCP_SERVER_LIBRARY.md` now documents the v3 API surface** (the scoped `@mongodb-js/mcp-*`
+packages, `runMcpCli`, `CliServer`/`Session`, `MCPHttpServer.createServerForRequest`,
+`ToolBase`/`ToolClass`, …). Use it as the reference for the migration target; the
+before/after sections in this skill and its inventory script map v1/v2 consumer code onto
+that surface.
 
 ## The core rule
 
