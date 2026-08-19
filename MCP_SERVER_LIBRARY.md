@@ -130,7 +130,10 @@ const serverMetadata: ServerMetadata = {
   engines: { node: process.version },
 };
 
-const logger = await createLoggerFromConfig({ config, keychain: Keychain.root });
+const logger = await createLoggerFromConfig({
+  config,
+  keychain: Keychain.root,
+});
 const transportRunner = await createRunnerFromConfig({
   config: {
     ...config,
@@ -144,7 +147,11 @@ const transportRunner = await createRunnerFromConfig({
   logger,
 });
 
-await startRunner({ transportRunner, logger, onExit: (code) => process.exit(code) });
+await startRunner({
+  transportRunner,
+  logger,
+  onExit: (code) => process.exit(code),
+});
 ```
 
 Clients connecting to this server must include the specified headers in their requests, otherwise their session initialization request is declined.
@@ -438,9 +445,9 @@ const standard = [...MongoDBTools, ...AtlasTools, ...AtlasLocalTools];
 | `UserConfigSchema`, `configRegistry`, `ALL_CONFIG_KEYS`                                                                                                      | Config schema and registry                                                       |
 | `applyConfigOverrides`, `getConfigMeta`, `nameToConfigKey`                                                                                                   | Request-level config overrides (HTTP headers / query params)                     |
 | `createServerFromConfig({ config, serverMetadata, tools, resources, logger })`                                                                               | Build `{ server, config, metrics, monitoringServer }`                            |
-| `createRunnerFromConfig({ config, serverMetadata, tools, resources, logger })`                                                                                | Build the transport runner only (`StdioRunner` or `StreamableHttpRunner`)        |
-| `createHttpTransportRunnerFromConfig({ config, server, logger, metrics, monitoringServer })`                                                                  | Build the HTTP transport runner explicitly                                       |
-| `startRunner({ transportRunner, logger, onExit })`                                                                                                            | Start the runner and manage graceful shutdown                                    |
+| `createRunnerFromConfig({ config, serverMetadata, tools, resources, logger })`                                                                               | Build the transport runner only (`StdioRunner` or `StreamableHttpRunner`)        |
+| `createHttpTransportRunnerFromConfig({ config, server, logger, metrics, monitoringServer })`                                                                 | Build the HTTP transport runner explicitly                                       |
+| `startRunner({ transportRunner, logger, onExit })`                                                                                                           | Start the runner and manage graceful shutdown                                    |
 | `createLoggerFromConfig` / `createApiClientFromConfig` / `createExportsManagerFromConfig` / `createTelemetryFromConfig` / `createMonitoringServerFromConfig` | Individual infrastructure factories                                              |
 | `Resources`, `ConfigResource`, `DebugResource`, `ExportedData`                                                                                               | Built-in MCP resources                                                           |
 | `HelpHandler`, `VersionHandler`, `DryRunHandler`                                                                                                             | CLI handlers                                                                     |
