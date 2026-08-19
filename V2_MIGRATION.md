@@ -57,9 +57,9 @@ await runMcpCli({
 });
 ```
 
-`runMcpCli` parses argv/env (`parseUserConfig`), runs optional `CliHandler`s (help, version, setup, dry-run), builds the server (`createServicesFromConfig`), and starts stdio or HTTP transport (`startServer`). You only supply `serverMetadata`, `tools`, `resources`, and optional `handlers`.
+`runMcpCli` parses argv/env (`parseUserConfig`), runs optional `CliHandler`s (help, version, setup, dry-run), builds the transport runner (`createRunnerFromConfig`), and starts it (`startRunner`). You only supply `serverMetadata`, `tools`, `resources`, and optional `handlers`.
 
-Use **`createServicesFromConfig` + `startServer`** only when you need to customize wiring between parse and listen. Use **`CliServer` + runners** directly only for advanced hosts (e.g. per-request HTTP servers).
+Use **`createServerFromConfig` / `createRunnerFromConfig` + `startRunner`** only when you need to customize wiring between parse and listen. Use **`CliServer` + runners** directly only for advanced hosts (e.g. per-request HTTP servers).
 
 ## Composing infrastructure from config
 
@@ -78,31 +78,27 @@ Use **`createServicesFromConfig` + `startServer`** only when you need to customi
 ```typescript
 import {
   parseUserConfig,
-  createServicesFromConfig,
-  startServer,
+  createLoggerFromConfig,
+  createRunnerFromConfig,
+  startRunner,
 } from "@mongodb-js/mcp-cli";
+import { Keychain } from "@mongodb-js/mcp-core";
 
 const { parsed: config } = parseUserConfig({ args: process.argv.slice(2) });
 
-const { server, logger, metrics, monitoringServer } =
-  await createServicesFromConfig({
-    config,
-    serverMetadata,
-    tools,
-    resources,
-  });
-
-await startServer({
-  server,
+const logger = await createLoggerFromConfig({ config, keychain: Keychain.root });
+const transportRunner = await createRunnerFromConfig({
   config,
+  serverMetadata,
+  tools,
+  resources,
   logger,
-  metrics,
-  monitoringServer,
-  onExit,
 });
+
+await startRunner({ transportRunner, logger, onExit });
 ```
 
-`createServicesFromConfig` returns `{ server, config, logger, metrics, monitoringServer }`. `monitoringServer` is `undefined` unless both `monitoringServerHost` and `monitoringServerPort` are set.
+`createServerFromConfig` returns `{ server, config, logger, metrics, monitoringServer }`. `monitoringServer` is `undefined` unless both `monitoringServerHost` and `monitoringServerPort` are set. `createRunnerFromConfig` calls it internally and returns only the configured transport runner (`StdioRunner` for stdio, `StreamableHttpRunner` for HTTP).
 
 **Pick individual factories** when you only replace part of the stack:
 
@@ -123,9 +119,9 @@ const apiClient = createApiClientFromConfig({ config, serverMetadata, logger });
 | `defaultCreateApiClient`                    | `createApiClientFromConfig` or construct `ApiClient` directly     |
 | `createDefaultMonitoringServer`             | `createMonitoringServerFromConfig` or `new MonitoringServer(...)` |
 | Ad-hoc logger setup from config             | `createLoggerFromConfig`                                          |
-| `createServicesFromUserConfig` (older name) | **`createServicesFromConfig`**                                    |
+| `createServicesFromUserConfig` (older name) | `createServerFromConfig` + `createRunnerFromConfig`                |
 
-Metrics are still created inline in `createServicesFromConfig` (`PrometheusMetrics` + `createDefaultMetrics()`); there is no `createMetricsFromConfig` because `UserConfig` has no metrics fields today.
+Metrics are still created inline in `createServerFromConfig` (`PrometheusMetrics` + `createDefaultMetrics()`); there is no `createMetricsFromConfig` because `UserConfig` has no metrics fields today.
 
 ## Package selection by use case
 
@@ -142,8 +138,8 @@ Metrics are still created inline in `createServicesFromConfig` (`PrometheusMetri
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | Host MCP over stdio         | `@mongodb-js/mcp-core`                                                                                                                                                                                                                         | `StdioRunner`, `SessionStore`, `InMemoryTransport`, `Keychain`, `Elicitation`, `NoopTelemetry` |
 | Host MCP over HTTP          | `@mongodb-js/mcp-http-runners`, `@mongodb-js/mcp-core`                                                                                                                                                                                         | `StreamableHttpRunner`, `MCPHttpServer`, `MonitoringServer`                                    |
-| Custom CLI (recommended)    | `@mongodb-js/mcp-cli` + tool packages                                                                                                                                                                                                          | `runMcpCli`, `createServicesFromConfig`, `create*FromConfig`, `Resources`, …                   |
-| Embed server (advanced)     | `@mongodb-js/mcp-cli`, `@mongodb-js/mcp-core`, `@mongodb-js/mcp-http-runners`, `@mongodb-js/mcp-metrics`, `@mongodb-js/mcp-logging`, `@mongodb-js/mcp-atlas-telemetry`, `@mongodb-js/mcp-atlas-api-client`, `@mongodb-js/mcp-tools-mongodb`, … | `CliServer`, `CliSession`, `createServicesFromConfig`, `startServer`, `create*FromConfig`      |
+| Custom CLI (recommended)    | `@mongodb-js/mcp-cli` + tool packages                                                                                                                                                                                                          | `runMcpCli`, `createRunnerFromConfig`, `create*FromConfig`, `Resources`, …                   |
+| Embed server (advanced)     | `@mongodb-js/mcp-cli`, `@mongodb-js/mcp-core`, `@mongodb-js/mcp-http-runners`, `@mongodb-js/mcp-metrics`, `@mongodb-js/mcp-logging`, `@mongodb-js/mcp-atlas-telemetry`, `@mongodb-js/mcp-atlas-api-client`, `@mongodb-js/mcp-tools-mongodb`, … | `CliServer`, `CliSession`, `createServerFromConfig`, `createRunnerFromConfig`, `startRunner`, `create*FromConfig` |
 | Config / CLI parsing only   | `@mongodb-js/mcp-cli`                                                                                                                                                                                                                          | `UserConfig`, `UserConfigSchema`, `parseUserConfig`, `applyConfigOverrides`, `configRegistry`  |
 | Custom tools (any category) | `@mongodb-js/mcp-core`, `@mongodb-js/mcp-types`                                                                                                                                                                                                | `ToolBase`, `ToolClass`, `OperationType`, `ToolCategory`                                       |
 | MongoDB tools + connections | `@mongodb-js/mcp-tools-mongodb`                                                                                                                                                                                                                | `FindTool`, `MongoDBToolBase`, `MCPConnectionManager`, `ErrorCodes`, `MongoDBError`            |
@@ -205,7 +201,7 @@ From API report diff (`origin/main` → current). Symbols **removed** from `mong
 | `MonitoringServerConstructorArgs`                                                                                            | `MonitoringServerOptions` with nested `options: { http, features }`                                                                               |
 | `parseArgsWithCliOptions`                                                                                                    | `parseUserConfig`                                                                                                                                 |
 | `defaultCreateApiClient` / `defaultCreateAtlasLocalClient` / `defaultCreateConnectionManager` / `createMCPConnectionManager` | `create*FromConfig` factories or wire dependencies explicitly (see [Composing infrastructure from config](#composing-infrastructure-from-config)) |
-| `createServicesFromUserConfig`                                                                                               | **`createServicesFromConfig`**                                                                                                                    |
+| `createServicesFromUserConfig`                                                                                               | `createServerFromConfig` + `createRunnerFromConfig`                                                                                              |
 | `ApiClientFactoryFn`                                                                                                         | Construct `ApiClient` directly                                                                                                                    |
 | `UIRegistryOptions` (exported type)                                                                                          | Options still accepted; type may be internal — use inline object                                                                                  |
 
@@ -531,4 +527,4 @@ Helpers: `getConfigMeta`, `nameToConfigKey`, `onlyStricterLogLevelOverride` from
 5. Refactor transport setup to pre-built server + `MCPHttpServer.createServerForRequest`.
 6. Run `pnpm run check` (or your consumer test suite).
 
-Reference implementation: [`packages/cli/src/createServicesFromConfig.ts`](packages/cli/src/createServicesFromConfig.ts), [`packages/cli/src/startServer.ts`](packages/cli/src/startServer.ts), [`packages/integration-tests/src/integrationHelpers.ts`](packages/integration-tests/src/integrationHelpers.ts).
+Reference implementation: [`packages/cli/src/createRunnerFromConfig.ts`](packages/cli/src/createRunnerFromConfig.ts), [`packages/cli/src/startRunner.ts`](packages/cli/src/startRunner.ts), [`packages/integration-tests/src/integrationHelpers.ts`](packages/integration-tests/src/integrationHelpers.ts).

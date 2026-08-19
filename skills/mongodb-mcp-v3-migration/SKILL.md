@@ -57,10 +57,10 @@ Pick the row(s) that match what the consumer does; install those packages (v3):
 
 | Use case                    | `npm install`                                                     | Primary v3 imports                                                                                   |
 | --------------------------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Custom CLI (most v1 embeds) | `@mongodb-js/mcp-cli` + needed tool packages                      | `runMcpCli`, `createServicesFromConfig`, `create*FromConfig`, `Resources`, `CliServer`, `CliSession` |
+| Custom CLI (most v1 embeds) | `@mongodb-js/mcp-cli` + needed tool packages                      | `runMcpCli`, `createRunnerFromConfig`, `create*FromConfig`, `Resources`, `CliServer`, `CliSession` |
 | Host MCP over stdio         | `@mongodb-js/mcp-core`                                            | `StdioRunner`, `SessionStore`, `Keychain`, `Elicitation`, `NoopTelemetry`, `InMemoryTransport`       |
 | Host MCP over HTTP          | `@mongodb-js/mcp-http-runners` `@mongodb-js/mcp-core`             | `StreamableHttpRunner`, `MCPHttpServer`, `MonitoringServer`                                          |
-| Embed server (advanced)     | cli + core + http-runners + metrics + logging + telemetry + tools | `CliServer`, `CliSession`, `createServicesFromConfig`, `startServer`                                 |
+| Embed server (advanced)     | cli + core + http-runners + metrics + logging + telemetry + tools | `CliServer`, `CliSession`, `createServerFromConfig`, `createRunnerFromConfig`, `startRunner`          |
 | Config parsing / overrides  | `@mongodb-js/mcp-cli`                                             | `UserConfig`, `UserConfigSchema`, `parseUserConfig`, `applyConfigOverrides`, `configRegistry`        |
 | Custom tools (any category) | `@mongodb-js/mcp-core` `@mongodb-js/mcp-types`                    | `ToolBase`, `ToolClass`, `OperationType`, `ToolCategory`                                             |
 | MongoDB tools + connections | `@mongodb-js/mcp-tools-mongodb`                                   | `FindTool`, `MongoDBToolBase`, `MCPConnectionManager`, `ErrorCodes`, `MongoDBError`                  |
@@ -116,7 +116,7 @@ await runMcpCli({
 });
 ```
 
-Escalation ladder if they need more control: `createServicesFromConfig` + `startServer`
+Escalation ladder if they need more control: `createServerFromConfig` / `createRunnerFromConfig` + `startRunner`
 (both `@mongodb-js/mcp-cli`) → `CliServer` + `@mongodb-js/mcp-http-runners` for per-request
 HTTP.
 
@@ -202,7 +202,7 @@ session: **`session.userConfig` → `session.config`**.
 | `defaultCreateAtlasLocalClient`                                                              | `createAtlasLocalClient`                                                         | `@mongodb-js/mcp-tools-atlas-local`                        |
 | `defaultCreateConnectionManager` / `createMCPConnectionManager`                              | `createConnectionManagerFromConfig` or `new MCPConnectionManager({...})`         | `@mongodb-js/mcp-cli` / `@mongodb-js/mcp-tools-mongodb`    |
 | `createDefaultMcpHttpServer` / `createDefaultMonitoringServer` / `createDefaultSessionStore` | `new MCPHttpServer(...)` / `new MonitoringServer(...)` / `new SessionStore(...)` | `@mongodb-js/mcp-http-runners` / `@mongodb-js/mcp-core`    |
-| `createServicesFromUserConfig`                                                               | `createServicesFromConfig`                                                       | `@mongodb-js/mcp-cli`                                      |
+| `createServicesFromUserConfig`                                                               | `createServerFromConfig` + `createRunnerFromConfig`                                  | `@mongodb-js/mcp-cli`                                      |
 | `parseArgsWithCliOptions`                                                                    | `parseUserConfig`                                                                | `@mongodb-js/mcp-cli`                                      |
 | tool classes (e.g. `FindTool`)                                                               | same names, new package                                                          | `@mongodb-js/mcp-tools-*`                                  |
 
@@ -298,9 +298,10 @@ const apiClient = createApiClientFromConfig({ config, serverMetadata, logger });
 | `createDefaultMonitoringServer` | `createMonitoringServerFromConfig` or `new MonitoringServer(...)` |
 | ad-hoc logger from config       | `createLoggerFromConfig`                                          |
 
-Full stack alternative: `createServicesFromConfig` returns
+Full stack alternative: `createServerFromConfig` returns
 `{ server, config, logger, metrics, monitoringServer }` (`monitoringServer` is undefined
-unless `monitoringServerHost` + `monitoringServerPort` are set).
+unless `monitoringServerHost` + `monitoringServerPort` are set); `createRunnerFromConfig`
+calls it internally and returns only the configured transport runner.
 
 ### Symbols that keep their names
 

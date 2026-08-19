@@ -3,10 +3,17 @@ export { CliServer } from "./cliServer.js";
 export type { CliServerOptions, ToolRegistry, ResourceRegistry, McpSession } from "./cliServer.js";
 // Main CLI exports
 export { runMcpCli, type RunMcpCliOptions } from "./runMcpCli.js";
-export { startServer, type StartServerOptions } from "./startServer.js";
+export { startRunner, type StartRunnerOptions } from "./startRunner.js";
 
-// Server creation helper
-export { createServicesFromConfig, type CreateServicesFromConfigOptions } from "./createServicesFromConfig.js";
+// Runner and server creation helpers
+export {
+    createRunnerFromConfig,
+    type CreateRunnerFromConfigOptions,
+    createServerFromConfig,
+    type CreateServerFromConfigOptions,
+    type ServerFromConfigServices,
+    createHttpTransportRunnerFromConfig,
+} from "./createRunnerFromConfig.js";
 export { createLoggerFromConfig, type CreateLoggerFromConfigOptions } from "./createLoggerFromConfig.js";
 export {
     createExportsManagerFromConfig,

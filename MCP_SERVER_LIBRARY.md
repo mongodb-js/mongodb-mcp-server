@@ -24,7 +24,7 @@ In v3 the MongoDB MCP Server is a **monorepo of scoped packages** under the `@mo
 
 To embed or extend the server, depend on the scoped packages instead. The library exports provide full control over:
 
-- Server configuration and initialization — `runMcpCli`, `createServicesFromConfig`, `startServer`
+- Server configuration and initialization — `runMcpCli`, `createRunnerFromConfig`, `createServerFromConfig`, `startRunner`
 - Per-session (MCP Client session) configuration hooks — `MCPHttpServer.createServerForRequest`
 - Tool registration — `ToolBase` / `ToolClass` tool classes and `ToolRegistry` arrays
 - Connection management and connection error handling — `MCPConnectionManager`, `connectionErrorHandler`
@@ -68,7 +68,10 @@ All packages are available as ES modules. The server targets Node.js `>= 24`.
 There are three main approaches:
 
 1. **`runMcpCli` (recommended for CLIs)**: one call that parses config, runs handlers, creates the server and infrastructure, and starts stdio or HTTP transport — the same flow the official binary uses.
-2. **`createServicesFromConfig` + `startServer`**: split the same flow so you can replace individual dependencies (logger, API client, telemetry, monitoring server) via `create*FromConfig` factories.
+2. **`createServerFromConfig` + `createRunnerFromConfig` + `startRunner`**: split the same flow so you can replace individual dependencies (logger, API client, telemetry, monitoring server) via `create*FromConfig` factories, or create just the server (`createServerFromConfig`) and wire a custom runner.
+   - `createServerFromConfig({ config, serverMetadata, tools, resources, logger })` builds `{ server, config, logger, metrics, monitoringServer }`.
+   - `createRunnerFromConfig` calls it internally and returns only the configured transport runner (`StdioRunner` for stdio, `StreamableHttpRunner` for HTTP).
+   - `startRunner({ transportRunner, logger, onExit })` starts the runner and manages the server lifecycle (signal handlers, graceful shutdown).
 3. **Override `MCPHttpServer.createServerForRequest`**: when hosting over HTTP and you need per-request (per-session) customization, subclass `MCPHttpServer` and override its `createServerForRequest(request: TransportRequestContext)` instead. In v3 this hook lives on `MCPHttpServer`, **not** on `StreamableHttpRunner`.
 
 ### Server metadata
@@ -107,12 +110,14 @@ Configure the MCP server with custom settings, such as HTTP headers for authenti
 
 ```typescript
 import {
-  createServicesFromConfig,
-  startServer,
+  createLoggerFromConfig,
+  createRunnerFromConfig,
+  startRunner,
   parseUserConfig,
 } from "@mongodb-js/mcp-cli";
 import { MongoDBTools } from "@mongodb-js/mcp-tools-mongodb";
 import { Resources } from "@mongodb-js/mcp-cli";
+import { Keychain } from "@mongodb-js/mcp-core";
 import type { ServerMetadata } from "@mongodb-js/mcp-types";
 
 const { parsed: config } = parseUserConfig({
@@ -125,20 +130,21 @@ const serverMetadata: ServerMetadata = {
   engines: { node: process.version },
 };
 
-const { server, logger, metrics, monitoringServer } =
-  await createServicesFromConfig({
-    config: {
-      ...config,
-      httpHeaders: {
-        "x-api-key": "your-secret-api-key",
-      },
+const logger = await createLoggerFromConfig({ config, keychain: Keychain.root });
+const transportRunner = await createRunnerFromConfig({
+  config: {
+    ...config,
+    httpHeaders: {
+      "x-api-key": "your-secret-api-key",
     },
-    serverMetadata,
-    tools: [...MongoDBTools],
-    resources: Resources,
-  });
+  },
+  serverMetadata,
+  tools: [...MongoDBTools],
+  resources: Resources,
+  logger,
+});
 
-await startServer({ server, config, logger, metrics, monitoringServer });
+await startRunner({ transportRunner, logger, onExit: (code) => process.exit(code) });
 ```
 
 Clients connecting to this server must include the specified headers in their requests, otherwise their session initialization request is declined.
@@ -354,7 +360,7 @@ const runner = new StreamableHttpRunner({
 await runner.start();
 ```
 
-> **Note:** In this example `deviceId`, `connectionErrorHandler`, `MongoDBTools`, and `MCPConnectionStore` come from `@mongodb-js/mcp-tools-mongodb` (see [Connection management](#connection-management)); a real embedding typically wires the shared infrastructure once (as `createServicesFromConfig` does) and builds only the `Session`/`CliServer` per request. MongoDB connection state deliberately lives at the app level (`ConnectionRegistry`), not in the session — tools address connections by `connectionId`.
+> **Note:** In this example `deviceId`, `connectionErrorHandler`, `MongoDBTools`, and `MCPConnectionStore` come from `@mongodb-js/mcp-tools-mongodb` (see [Connection management](#connection-management)); a real embedding typically wires the shared infrastructure once (as `createServerFromConfig` does) and builds only the `Session`/`CliServer` per request. MongoDB connection state deliberately lives at the app level (`ConnectionRegistry`), not in the session — tools address connections by `connectionId`.
 
 ````
 
@@ -391,7 +397,7 @@ class MyCustomTool extends ToolBase<IToolSession> {
 }
 ````
 
-Register the class by including it in the `tools` array (a `ToolRegistry`) passed to `runMcpCli`, `createServicesFromConfig`, or `CliServer`: `const tools: ToolRegistry = [...MongoDBTools, MyCustomTool];`.
+Register the class by including it in the `tools` array (a `ToolRegistry`) passed to `runMcpCli`, `createRunnerFromConfig`, `createServerFromConfig`, or `CliServer`: `const tools: ToolRegistry = [...MongoDBTools, MyCustomTool];`.
 
 Tool classes must conform to `ToolClass` — static `toolName` (unique), `category` (`"mongodb" | "atlas" | "atlas-local" | "assistant" | "custom"`), and `operationType`. The server injects `session`, `telemetry`, and `elicitation` automatically via the `ToolConstructorParams`. Use `formatUntrustedData` (from `@mongodb-js/mcp-core`) to format arbitrary data in tool output, and `Elicitation` (from `@mongodb-js/mcp-core`) to request user confirmation.
 
@@ -431,7 +437,10 @@ const standard = [...MongoDBTools, ...AtlasTools, ...AtlasLocalTools];
 | `parseUserConfig({ args })`                                                                                                                                  | Parse CLI args/env into `{ error, warnings, parsed }`                            |
 | `UserConfigSchema`, `configRegistry`, `ALL_CONFIG_KEYS`                                                                                                      | Config schema and registry                                                       |
 | `applyConfigOverrides`, `getConfigMeta`, `nameToConfigKey`                                                                                                   | Request-level config overrides (HTTP headers / query params)                     |
-| `createServicesFromConfig({ config, serverMetadata, tools, resources })`                                                                                     | Build `{ server, config, logger, metrics, monitoringServer }`                    |
+| `createServerFromConfig({ config, serverMetadata, tools, resources, logger })`                                                                               | Build `{ server, config, logger, metrics, monitoringServer }`                    |
+| `createRunnerFromConfig({ config, serverMetadata, tools, resources, logger })`                                                                                | Build the transport runner only (`StdioRunner` or `StreamableHttpRunner`)        |
+| `createHttpTransportRunnerFromConfig({ config, server, logger, metrics, monitoringServer })`                                                                  | Build the HTTP transport runner explicitly                                       |
+| `startRunner({ transportRunner, logger, onExit })`                                                                                                            | Start the runner and manage graceful shutdown                                    |
 | `createLoggerFromConfig` / `createApiClientFromConfig` / `createExportsManagerFromConfig` / `createTelemetryFromConfig` / `createMonitoringServerFromConfig` | Individual infrastructure factories                                              |
 | `Resources`, `ConfigResource`, `DebugResource`, `ExportedData`                                                                                               | Built-in MCP resources                                                           |
 | `HelpHandler`, `VersionHandler`, `DryRunHandler`                                                                                                             | CLI handlers                                                                     |
