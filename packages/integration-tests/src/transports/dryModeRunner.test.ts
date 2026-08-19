@@ -45,6 +45,7 @@ describe("DryModeRunner", () => {
         });
 
         await runner.start();
+        await runner.close();
 
         // eslint-disable-next-line @typescript-eslint/unbound-method
         expect(loggerMock.log).toHaveBeenNthCalledWith(1, "Configuration:");

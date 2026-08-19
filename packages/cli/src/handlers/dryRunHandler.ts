@@ -55,6 +55,7 @@ export class DryRunHandler implements CliHandler {
                 server,
             });
             await runner.start();
+            await runner.close();
             onExit(0);
             return true;
         } catch (error) {
