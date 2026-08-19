@@ -69,7 +69,7 @@ There are three main approaches:
 
 1. **`runMcpCli` (recommended for CLIs)**: one call that parses config, runs handlers, creates the server and infrastructure, and starts stdio or HTTP transport — the same flow the official binary uses.
 2. **`createServerFromConfig` + `createRunnerFromConfig` + `startRunner`**: split the same flow so you can replace individual dependencies (logger, API client, telemetry, monitoring server) via `create*FromConfig` factories, or create just the server (`createServerFromConfig`) and wire a custom runner.
-   - `createServerFromConfig({ config, serverMetadata, tools, resources, logger })` builds `{ server, config, logger, metrics, monitoringServer }`.
+   - `createServerFromConfig({ config, serverMetadata, tools, resources, logger })` builds `{ server, config, metrics, monitoringServer }` (the logger is provided as input).
    - `createRunnerFromConfig` calls it internally and returns only the configured transport runner (`StdioRunner` for stdio, `StreamableHttpRunner` for HTTP).
    - `startRunner({ transportRunner, logger, onExit })` starts the runner and manages the server lifecycle (signal handlers, graceful shutdown).
 3. **Override `MCPHttpServer.createServerForRequest`**: when hosting over HTTP and you need per-request (per-session) customization, subclass `MCPHttpServer` and override its `createServerForRequest(request: TransportRequestContext)` instead. In v3 this hook lives on `MCPHttpServer`, **not** on `StreamableHttpRunner`.
@@ -437,7 +437,7 @@ const standard = [...MongoDBTools, ...AtlasTools, ...AtlasLocalTools];
 | `parseUserConfig({ args })`                                                                                                                                  | Parse CLI args/env into `{ error, warnings, parsed }`                            |
 | `UserConfigSchema`, `configRegistry`, `ALL_CONFIG_KEYS`                                                                                                      | Config schema and registry                                                       |
 | `applyConfigOverrides`, `getConfigMeta`, `nameToConfigKey`                                                                                                   | Request-level config overrides (HTTP headers / query params)                     |
-| `createServerFromConfig({ config, serverMetadata, tools, resources, logger })`                                                                               | Build `{ server, config, logger, metrics, monitoringServer }`                    |
+| `createServerFromConfig({ config, serverMetadata, tools, resources, logger })`                                                                               | Build `{ server, config, metrics, monitoringServer }`                            |
 | `createRunnerFromConfig({ config, serverMetadata, tools, resources, logger })`                                                                                | Build the transport runner only (`StdioRunner` or `StreamableHttpRunner`)        |
 | `createHttpTransportRunnerFromConfig({ config, server, logger, metrics, monitoringServer })`                                                                  | Build the HTTP transport runner explicitly                                       |
 | `startRunner({ transportRunner, logger, onExit })`                                                                                                            | Start the runner and manage graceful shutdown                                    |

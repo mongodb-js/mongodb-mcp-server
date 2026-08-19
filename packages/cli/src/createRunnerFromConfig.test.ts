@@ -98,7 +98,6 @@ describe("createServerFromConfig", () => {
         });
 
         expect(services.config).toBe(config);
-        expect(services.logger).toBe(logger);
         expect(createExportsManagerFromConfig).toHaveBeenCalledWith(expect.objectContaining({ config }));
         expect(createApiClientFromConfig).toHaveBeenCalledWith(expect.objectContaining({ config, serverMetadata }));
         expect(createTelemetryFromConfig).toHaveBeenCalledWith(expect.objectContaining({ config, serverMetadata }));

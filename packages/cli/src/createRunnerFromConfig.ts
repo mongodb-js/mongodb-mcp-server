@@ -28,7 +28,6 @@ export type CreateServerFromConfigOptions = {
 export type ServerFromConfigServices = {
     server: CliServer;
     config: UserConfig;
-    logger: CompositeLogger;
     metrics: IMetrics;
     monitoringServer: MonitoringServer | undefined;
 };
@@ -103,7 +102,7 @@ export async function createServerFromConfig({
         serverMetadata,
     });
 
-    return { server, config, logger, metrics, monitoringServer };
+    return { server, config, metrics, monitoringServer };
 }
 
 export type CreateRunnerFromConfigOptions = CreateServerFromConfigOptions;
@@ -115,7 +114,8 @@ export type CreateRunnerFromConfigOptions = CreateServerFromConfigOptions;
 export async function createRunnerFromConfig(
     options: CreateRunnerFromConfigOptions
 ): Promise<StdioRunner | StreamableHttpRunner> {
-    const { config, logger, server, metrics, monitoringServer } = await createServerFromConfig(options);
+    const { config, logger } = options;
+    const { server, metrics, monitoringServer } = await createServerFromConfig(options);
 
     if (config.transport === "stdio") {
         return new StdioRunner({ logger, server });

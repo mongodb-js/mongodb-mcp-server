@@ -98,7 +98,7 @@ const transportRunner = await createRunnerFromConfig({
 await startRunner({ transportRunner, logger, onExit });
 ```
 
-`createServerFromConfig` returns `{ server, config, logger, metrics, monitoringServer }`. `monitoringServer` is `undefined` unless both `monitoringServerHost` and `monitoringServerPort` are set. `createRunnerFromConfig` calls it internally and returns only the configured transport runner (`StdioRunner` for stdio, `StreamableHttpRunner` for HTTP).
+`createServerFromConfig` returns `{ server, config, metrics, monitoringServer }` (the logger is provided as input). `monitoringServer` is `undefined` unless both `monitoringServerHost` and `monitoringServerPort` are set. `createRunnerFromConfig` calls it internally and returns only the configured transport runner (`StdioRunner` for stdio, `StreamableHttpRunner` for HTTP).
 
 **Pick individual factories** when you only replace part of the stack:
 

@@ -299,9 +299,10 @@ const apiClient = createApiClientFromConfig({ config, serverMetadata, logger });
 | ad-hoc logger from config       | `createLoggerFromConfig`                                          |
 
 Full stack alternative: `createServerFromConfig` returns
-`{ server, config, logger, metrics, monitoringServer }` (`monitoringServer` is undefined
-unless `monitoringServerHost` + `monitoringServerPort` are set); `createRunnerFromConfig`
-calls it internally and returns only the configured transport runner.
+`{ server, config, metrics, monitoringServer }` (the logger is provided as input;
+`monitoringServer` is undefined unless `monitoringServerHost` + `monitoringServerPort` are
+set); `createRunnerFromConfig` calls it internally and returns only the configured transport
+runner.
 
 ### Symbols that keep their names
 
