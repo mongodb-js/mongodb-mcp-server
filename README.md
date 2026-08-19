@@ -133,6 +133,29 @@ When working with MongoDB Atlas, the recommended approach is to install the [`mo
 
 For manual configuration, see the [client-specific instructions](https://www.mongodb.com/docs/mcp-server/get-started/) for setting up the Atlas Remote MCP server with OAuth. Alternatively, you can connect using the [`mongodb-atlas-mcp-remote`](packages/mongodb-atlas-mcp-remote/README.md) package with Service Account credentials — see the [package README](packages/mongodb-atlas-mcp-remote/README.md) for setup instructions.
 
+> **Note:** You cannot authenticate to the remote MongoDB MCP server using a static API key over HTTP. You must either:
+>
+> - Use a client that supports the OAuth flow.
+> - Use the [`mongodb-atlas-mcp-remote`](packages/mongodb-atlas-mcp-remote/README.md) stdio server, which you can authenticate into using the static `MDB_MCP_API_CLIENT_ID` and `MDB_MCP_API_CLIENT_SECRET` environment variables.
+
+To connect with the `mongodb-atlas-mcp-remote` stdio server using Service Account credentials, add it to your client's MCP configuration:
+
+```json
+{
+  "mcpServers": {
+    "mongodb-atlas-mcp-remote": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "mongodb-atlas-mcp-remote@latest"],
+      "env": {
+        "MDB_MCP_API_CLIENT_ID": "$CLIENT_ID",
+        "MDB_MCP_API_CLIENT_SECRET": "$SECRET"
+      }
+    }
+  }
+}
+```
+
 #### Option 3: Atlas API Credentials
 
 Use your Atlas API Service Accounts credentials. Must follow all the steps in [Atlas API Access](#atlas-api-access) section.
