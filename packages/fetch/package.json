@@ -1,8 +1,14 @@
 {
-  "name": "@mongodb-js/mcp-tools-assistant",
+  "name": "@mongodb-js/mcp-fetch",
+  "description": "Shared proxy-aware fetch and httpClient factory for the MongoDB MCP server",
   "version": "1.11.0-prerelease.1",
   "type": "module",
-  "description": "Assistant tools for the MongoDB MCP server",
+  "license": "Apache-2.0",
+  "author": "MongoDB <info@mongodb.com>",
+  "repository": {
+    "url": "https://github.com/mongodb-js/mongodb-mcp-server.git",
+    "directory": "packages/fetch"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -20,13 +26,9 @@
     "check": "tsc --build tsconfig.build.json --noEmit"
   },
   "dependencies": {
-    "@mongodb-js/mcp-core": "workspace:*",
-    "@mongodb-js/mcp-fetch": "workspace:*",
-    "yaml": "^2.8.1",
-    "zod": "^4.0.0"
+    "@mongodb-js/devtools-proxy-support": "^0.7.8"
   },
   "devDependencies": {
-    "@mongodb-js/mcp-types": "workspace:*",
     "@types/node": "^25.6.0",
     "typescript": "^5.9.2",
     "vitest": "^4.1.4"

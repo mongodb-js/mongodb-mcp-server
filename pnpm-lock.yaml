@@ -262,9 +262,6 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.29.0
         version: 1.29.0(@cfworker/json-schema@4.1.1)(zod@4.4.3)
-      '@mongodb-js/devtools-proxy-support':
-        specifier: ^0.7.8
-        version: 0.7.16
       '@mongodb-js/mcp-atlas-api-client':
         specifier: workspace:*
         version: link:../atlas-api-client
@@ -274,6 +271,9 @@ importers:
       '@mongodb-js/mcp-core':
         specifier: workspace:*
         version: link:../core
+      '@mongodb-js/mcp-fetch':
+        specifier: workspace:*
+        version: link:../fetch
       '@mongodb-js/mcp-http-runners':
         specifier: workspace:*
         version: link:../http-runners
@@ -409,6 +409,22 @@ importers:
       typescript:
         specifier: ^5.9.2
         version: 5.9.3
+
+  packages/fetch:
+    dependencies:
+      '@mongodb-js/devtools-proxy-support':
+        specifier: ^0.7.8
+        version: 0.7.16
+    devDependencies:
+      '@types/node':
+        specifier: ^25.6.0
+        version: 25.6.0
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.4
+        version: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/browser-playwright@4.1.10)(@vitest/coverage-v8@4.1.10)(happy-dom@20.9.0)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.1.4(@types/node@25.6.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.9.0))
 
   packages/http-runners:
     dependencies:
@@ -790,9 +806,6 @@ importers:
       '@inquirer/select':
         specifier: ^5.1.3
         version: 5.1.3(@types/node@25.6.0)
-      '@mongodb-js/devtools-proxy-support':
-        specifier: ^0.7.8
-        version: 0.7.16
       '@mongodb-js/mcp-atlas-api-client':
         specifier: workspace:*
         version: link:../atlas-api-client
@@ -802,6 +815,9 @@ importers:
       '@mongodb-js/mcp-core':
         specifier: workspace:*
         version: link:../core
+      '@mongodb-js/mcp-fetch':
+        specifier: workspace:*
+        version: link:../fetch
       '@mongodb-js/mcp-tools-atlas-local':
         specifier: workspace:*
         version: link:../tools-atlas-local
@@ -882,12 +898,12 @@ importers:
 
   packages/tools-assistant:
     dependencies:
-      '@mongodb-js/devtools-proxy-support':
-        specifier: ^0.7.8
-        version: 0.7.16
       '@mongodb-js/mcp-core':
         specifier: workspace:*
         version: link:../core
+      '@mongodb-js/mcp-fetch':
+        specifier: workspace:*
+        version: link:../fetch
       yaml:
         specifier: ^2.8.1
         version: 2.9.0

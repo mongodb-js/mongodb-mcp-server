@@ -7,11 +7,6 @@
     "composite": true
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["dist", "node_modules", "src/test-helpers"],
-  "references": [
-    { "path": "../types" },
-    { "path": "../core" },
-    { "path": "../logging" },
-    { "path": "../fetch" }
-  ]
+  "exclude": ["dist", "node_modules"],
+  "references": []
 }

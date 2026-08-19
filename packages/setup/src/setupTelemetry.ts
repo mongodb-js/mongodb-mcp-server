@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
-import { createFetch } from "@mongodb-js/devtools-proxy-support";
 import { ApiClient, type HttpClient, userAgentFromServerMetadata } from "@mongodb-js/mcp-atlas-api-client";
+import { getDefaultHttpClient } from "@mongodb-js/mcp-fetch";
 import type { Keychain } from "@mongodb-js/mcp-core";
 import { NoopLogger } from "@mongodb-js/mcp-core";
 import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
@@ -66,10 +66,8 @@ export class SetupTelemetry {
     }): SetupTelemetry {
         const logger = new NoopLogger();
         const deviceId = DeviceId.create(logger);
-        const httpClient: HttpClient = {
-            fetch: createFetch({ useEnvironmentVariableProxies: true }) as unknown as typeof fetch,
-            Request: globalThis.Request,
-        };
+        // Shared, memoized proxy-aware fetch (see @mongodb-js/mcp-fetch).
+        const httpClient: HttpClient = getDefaultHttpClient();
         const apiClient = new ApiClient(
             {
                 baseUrl: config.apiBaseUrl,
