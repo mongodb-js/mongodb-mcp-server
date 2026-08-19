@@ -117,7 +117,12 @@ export default defineConfig({
                 test: {
                     name: "integration-atlas",
                     include: INTEGRATION_ATLAS_INCLUDES,
-                    exclude: [...vitestDefaultExcludes, ATLAS_STREAMS_TESTS, ...ATLAS_CLUSTER_TESTS, ...LONG_RUNNING_TESTS],
+                    exclude: [
+                        ...vitestDefaultExcludes,
+                        ATLAS_STREAMS_TESTS,
+                        ...ATLAS_CLUSTER_TESTS,
+                        ...LONG_RUNNING_TESTS,
+                    ],
                 },
             },
             {
