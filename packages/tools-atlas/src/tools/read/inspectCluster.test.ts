@@ -97,7 +97,7 @@ describe("InspectClusterTool", () => {
     const baseArgs = { projectId: "507f1f77bcf86cd799439011", clusterName: "my-cluster" };
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
-        tool["execute"](args as never, { signal: new AbortController().signal } as never);
+        tool["execute"](args as never, { signal: new AbortController().signal });
 
     it("returns cluster details when getCluster succeeds", async () => {
         mockApiClient.getCluster!.mockResolvedValue(freeClusterApiResponse);

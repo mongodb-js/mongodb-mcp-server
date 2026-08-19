@@ -138,7 +138,7 @@ export function describeWithMongoDB(
                 elicitInput: mockElicitInput,
                 getClientCapabilities,
                 serverOptions,
-                tools: tools ?? (AllTools as unknown as NonNullable<CliServerOptions["tools"]>),
+                tools: tools ?? AllTools,
                 resources,
             }
         );

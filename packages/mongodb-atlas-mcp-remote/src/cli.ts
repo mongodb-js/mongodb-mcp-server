@@ -152,9 +152,13 @@ main().catch((error) => {
 
 // Builds redaction-safe log attributes from a JSON-RPC message: metadata only, no params/body.
 function messageAttributes(method: unknown, id: unknown): Record<string, string> {
+    const toLogString = (value: unknown): string | undefined =>
+        typeof value === "string" || typeof value === "number" ? String(value) : undefined;
+    const methodStr = toLogString(method);
+    const idStr = toLogString(id);
     return {
-        ...(method !== undefined ? { method: String(method as string | number) } : {}),
-        ...(id !== undefined ? { id: String(id as string | number) } : {}),
+        ...(methodStr !== undefined ? { method: methodStr } : {}),
+        ...(idStr !== undefined ? { id: idStr } : {}),
     };
 }
 

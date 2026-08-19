@@ -197,7 +197,7 @@ describe("UpgradeClusterTool", () => {
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    const exec = (args: Record<string, unknown>) => tool["invoke"](args as never, {} as never);
+    const exec = (args: Record<string, unknown>) => tool["invoke"](args, {} as never);
 
     beforeEach(() => {
         tool = buildTool();
@@ -1183,7 +1183,7 @@ describe("UpgradeClusterTool", () => {
 
             const metadata = await tool["resolveTelemetryMetadata"](
                 { projectId: "proj1", clusterName: "MyCluster" } as never,
-                { result: result as never }
+                { result: result }
             );
             expect(metadata.original_tier).toBe("free");
             expect(metadata.target_tier).toBe("flex");
@@ -1201,7 +1201,7 @@ describe("UpgradeClusterTool", () => {
 
             const metadata = await tool["resolveTelemetryMetadata"](
                 { projectId: "proj1", clusterName: "MyCluster", provider: "GCP", region: "CENTRAL_US" } as never,
-                { result: result as never }
+                { result: result }
             );
             expect(metadata.provider).toBe("GCP");
             expect(metadata.region).toBe("CENTRAL_US");
@@ -1210,7 +1210,7 @@ describe("UpgradeClusterTool", () => {
         it("returns empty metadata fields when result has no structuredContent (error path)", async () => {
             const metadata = await tool["resolveTelemetryMetadata"](
                 { projectId: "proj1", clusterName: "MyCluster" } as never,
-                { result: { content: [] } as never }
+                { result: { content: [] } }
             );
             expect(metadata.original_tier).toBeUndefined();
             expect(metadata.target_tier).toBeUndefined();

@@ -44,7 +44,7 @@ describe("ConnectionEntry with MCPConnectionManager", () => {
             deviceId: mockDeviceId,
         }).view();
 
-        MockNodeDriverServiceProvider.connect = vi.fn().mockResolvedValue({} as unknown as NodeDriverServiceProvider);
+        MockNodeDriverServiceProvider.connect = vi.fn().mockResolvedValue({});
         MockDeviceId.get = vi.fn().mockResolvedValue("test-device-id");
     });
 
@@ -151,7 +151,7 @@ describe("ConnectionEntry with MCPConnectionManager", () => {
                 insertOne: insertOneMock,
                 dropDatabase: vi.fn().mockResolvedValue({}),
                 listDatabases: listDatabasesMock,
-            } as unknown as NodeDriverServiceProvider);
+            });
         });
 
         it("should return true if listing search indexes succeeds", async () => {
@@ -200,7 +200,7 @@ describe("ConnectionEntry with MCPConnectionManager", () => {
                 initialDb: "test",
                 getSearchIndexes: getSearchIndexesMock,
                 listDatabases: vi.fn().mockResolvedValue({ databases: [] }),
-            } as unknown as NodeDriverServiceProvider);
+            });
 
             entry = await registry.connect({
                 settings: { connectionString: "mongodb://localhost:27017" },
