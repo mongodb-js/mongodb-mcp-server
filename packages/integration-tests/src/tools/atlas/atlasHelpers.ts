@@ -1,6 +1,4 @@
-import { ObjectId } from "mongodb";
-import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
-import type { ApiClient, ClusterDescription20240805, Group } from "@mongodb-js/mcp-atlas-api-client";
+import type { ApiClient, ClusterDescription20240805 } from "@mongodb-js/mcp-atlas-api-client";
 import type { IntegrationTest } from "../../integrationHelpers.js";
 import { setupIntegrationTest, defaultTestConfig } from "../../integrationHelpers.js";
 import type { SuiteCollector } from "vitest";
@@ -8,6 +6,18 @@ import { afterAll, beforeAll, describe, inject } from "vitest";
 import type { McpSession } from "@mongodb-js/mcp-cli";
 import { AllTools } from "mongodb-mcp-server";
 import type { StreamsWorkspaceFixture } from "./streamsWorkspace.js";
+import {
+    createGroup,
+    deleteAllClustersAndWait,
+    deleteGroupWithRetry,
+    deleteStreamWorkspacesAndWait,
+    randomId,
+    waitForClusterDeletion,
+    waitForClusterState,
+} from "./atlasProvisioning.js";
+
+// Re-exported for callers that historically imported these from here.
+export { randomId } from "./atlasProvisioning.js";
 
 export type IntegrationTestFunction = (integration: IntegrationTest) => void;
 
@@ -123,7 +133,7 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
                 // Self-healing cleanup: remove any leftover stream workspaces and
                 // clusters before deleting the project, otherwise Atlas rejects the
                 // group deletion and leaks the project (and its clusters) into the org.
-                await deleteAllWorkspacesAndWait(apiClient, projectId);
+                await deleteStreamWorkspacesAndWait(apiClient, projectId);
                 await deleteAllClustersAndWait(apiClient, projectId);
                 await deleteGroupWithRetry(apiClient, projectId);
             } catch (error) {
@@ -139,165 +149,6 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
 
         fn(args);
     });
-}
-
-export function randomId(): string {
-    return new ObjectId().toString();
-}
-
-async function createGroup(apiClient: ApiClient): Promise<Group & Required<Pick<Group, "id">>> {
-    const projectName: string = `testProj-` + randomId();
-
-    const orgs = await apiClient.listOrgs();
-    if (!orgs?.results?.length || !orgs.results[0]?.id) {
-        throw new Error("No orgs found");
-    }
-
-    const group = await apiClient.createGroup({
-        body: {
-            name: projectName,
-            orgId: orgs.results[0]?.id ?? "",
-        } as Group,
-    });
-
-    if (!group?.id) {
-        throw new Error("Failed to create project");
-    }
-
-    // add current IP to project access list
-    const { currentIpv4Address } = await apiClient.getIpInfo();
-    await apiClient.createAccessListEntry({
-        params: {
-            path: {
-                groupId: group.id,
-            },
-        },
-        body: [
-            {
-                ipAddress: currentIpv4Address,
-                groupId: group.id,
-                comment: "Added by MongoDB MCP Server to enable tool access",
-            },
-        ],
-    });
-
-    return group as Group & Required<Pick<Group, "id">>;
-}
-
-async function deleteAllWorkspacesAndWait(apiClient: ApiClient, projectId: string): Promise<void> {
-    try {
-        const workspaces = await apiClient.listStreamWorkspaces({
-            params: {
-                path: {
-                    groupId: projectId,
-                },
-            },
-        });
-        for (const workspace of workspaces.results ?? []) {
-            if (!workspace.name) {
-                continue;
-            }
-            await apiClient.deleteStreamWorkspace({
-                params: {
-                    path: {
-                        groupId: projectId,
-                        tenantName: workspace.name,
-                    },
-                },
-            });
-            // Wait for the workspace to be gone (up to 120s each)
-            for (let i = 0; i < 120; i++) {
-                try {
-                    await apiClient.getStreamWorkspace({
-                        params: {
-                            path: {
-                                groupId: projectId,
-                                tenantName: workspace.name,
-                            },
-                        },
-                    });
-                    await sleep(1000);
-                } catch {
-                    break;
-                }
-            }
-        }
-    } catch (error) {
-        // streams may not be enabled on the project
-        console.log("Failed to clean up stream workspaces:", error);
-    }
-}
-
-async function deleteAllClustersAndWait(apiClient: ApiClient, projectId: string): Promise<void> {
-    const clusters = await apiClient.listClusters({
-        params: {
-            path: {
-                groupId: projectId,
-            },
-        },
-    });
-    for (const cluster of clusters.results ?? []) {
-        if (!cluster.name) {
-            continue;
-        }
-        try {
-            await apiClient.deleteCluster({
-                params: {
-                    path: {
-                        groupId: projectId,
-                        clusterName: cluster.name,
-                    },
-                },
-            });
-        } catch (error) {
-            console.log(`Failed to delete cluster '${cluster.name}':`, error);
-        }
-    }
-
-    // Wait until no clusters remain (up to 60 iterations x 10s = 10 min)
-    for (let i = 0; i < 60; i++) {
-        const remaining = await apiClient.listClusters({
-            params: {
-                path: {
-                    groupId: projectId,
-                },
-            },
-        });
-        if (!remaining.results?.length) {
-            return;
-        }
-        await sleep(10_000);
-    }
-    console.log(`Timed out waiting for all clusters in project '${projectId}' to be deleted, continuing anyway`);
-}
-
-async function deleteGroupWithRetry(apiClient: ApiClient, projectId: string): Promise<void> {
-    const maxRetries = 10;
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-        try {
-            await apiClient.deleteGroup({
-                params: {
-                    path: {
-                        groupId: projectId,
-                    },
-                },
-            });
-            return;
-        } catch (error) {
-            // 409 CANNOT_CLOSE_GROUP_ACTIVE_ATLAS_CLUSTERS: Atlas may still be
-            // terminating clusters asynchronously, retry with backoff.
-            const isConflict = error instanceof ApiClientError && error.response.status === 409;
-            if (!isConflict || attempt === maxRetries) {
-                throw error;
-            }
-            console.log(`deleteGroup returned 409, retrying in 30s (attempt ${attempt + 1}/${maxRetries})`);
-            await sleep(30_000);
-        }
-    }
-}
-
-export function sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export async function assertClusterIsAvailable(
@@ -349,25 +200,7 @@ export async function deleteCluster(
         return;
     }
 
-    // Wait for the cluster to be gone (up to 600 iterations x 1s = 10 min)
-    const maxIterations = 600;
-    for (let i = 0; i < maxIterations; i++) {
-        try {
-            await session.apiClient.getCluster({
-                params: {
-                    path: {
-                        groupId: projectId,
-                        clusterName,
-                    },
-                },
-            });
-            await sleep(1000);
-        } catch {
-            return;
-        }
-    }
-    // A teardown timeout should not fail the suite; withProject's cleanup is the second safety net.
-    console.log(`Timed out waiting for cluster '${clusterName}' to be deleted after ${maxIterations} attempts`);
+    await waitForClusterDeletion(session.apiClient, projectId, clusterName);
 }
 
 export async function waitCluster(
@@ -378,40 +211,8 @@ export async function waitCluster(
     pollingInterval: number = 1000,
     maxPollingIterations: number = 300
 ): Promise<void> {
-    if (!session.apiClient) {
-        throw new Error("apiClient not available");
-    }
-    const apiClient = session.apiClient as ApiClient;
-    let consecutiveErrors = 0;
-    for (let i = 0; i < maxPollingIterations; i++) {
-        let cluster: ClusterDescription20240805 | undefined;
-        try {
-            cluster = await apiClient.getCluster({
-                params: {
-                    path: {
-                        groupId: projectId,
-                        clusterName,
-                    },
-                },
-            });
-            consecutiveErrors = 0;
-        } catch (error) {
-            // Treat transient errors (e.g. a 404 right after creation) as
-            // "condition not met" and keep polling.
-            consecutiveErrors++;
-            if (consecutiveErrors % 10 === 1) {
-                console.log(`waitCluster: getCluster failed ${consecutiveErrors} time(s), continuing to poll:`, error);
-            }
-        }
-        if (cluster && (await check(cluster))) {
-            return;
-        }
-        await sleep(pollingInterval);
-    }
-
-    throw new Error(
-        `Cluster wait timeout: ${clusterName} did not meet condition within ${maxPollingIterations} iterations`
-    );
+    assertApiClientIsAvailable(session);
+    await waitForClusterState(session.apiClient, projectId, clusterName, check, pollingInterval, maxPollingIterations);
 }
 
 export function withCluster(integration: IntegrationTest, fn: ClusterTestFunction): SuiteCollector<object> {
