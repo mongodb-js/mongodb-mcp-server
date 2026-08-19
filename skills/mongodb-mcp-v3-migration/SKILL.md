@@ -52,23 +52,23 @@ rg -n 'mongodb-mcp-server|from "mongodb-mcp-server"|require\("mongodb-mcp-server
 
 Pick the row(s) that match what the consumer does; install those packages (v3):
 
-| Use case | `npm install` | Primary v3 imports |
-| --- | --- | --- |
-| Custom CLI (most v1 embeds) | `@mongodb-js/mcp-cli` + needed tool packages | `runMcpCli`, `createServicesFromConfig`, `create*FromConfig`, `Resources`, `CliServer`, `CliSession` |
-| Host MCP over stdio | `@mongodb-js/mcp-core` | `StdioRunner`, `SessionStore`, `Keychain`, `Elicitation`, `NoopTelemetry`, `InMemoryTransport` |
-| Host MCP over HTTP | `@mongodb-js/mcp-http-runners` `@mongodb-js/mcp-core` | `StreamableHttpRunner`, `MCPHttpServer`, `MonitoringServer` |
-| Embed server (advanced) | cli + core + http-runners + metrics + logging + telemetry + tools | `CliServer`, `CliSession`, `createServicesFromConfig`, `startServer` |
-| Config parsing / overrides | `@mongodb-js/mcp-cli` | `UserConfig`, `UserConfigSchema`, `parseUserConfig`, `applyConfigOverrides`, `configRegistry` |
-| Custom tools (any category) | `@mongodb-js/mcp-core` `@mongodb-js/mcp-types` | `ToolBase`, `ToolClass`, `OperationType`, `ToolCategory` |
-| MongoDB tools + connections | `@mongodb-js/mcp-tools-mongodb` | `FindTool`, `MongoDBToolBase`, `MCPConnectionManager`, `ErrorCodes`, `MongoDBError` |
-| Atlas Admin API tools | `@mongodb-js/mcp-tools-atlas` `@mongodb-js/mcp-atlas-api-client` | `AtlasTools`, `ApiClient`, `ClientCredentialsAuthProvider` |
-| Atlas Local tools | `@mongodb-js/mcp-tools-atlas-local` | `AtlasLocalTools`, `createAtlasLocalClient` |
-| Assistant / knowledge tools | `@mongodb-js/mcp-tools-assistant` | `AssistantTools` |
-| Telemetry | `@mongodb-js/mcp-atlas-telemetry` | `AtlasTelemetry`, `EventCache`, `TelemetryConfig` |
-| Logging | `@mongodb-js/mcp-logging` | `ConsoleLogger`, `DiskLogger`, `McpLogger` |
-| Metrics | `@mongodb-js/mcp-metrics` | `PrometheusMetrics`, `createDefaultMetrics` |
-| MCP UI resources | `@mongodb-js/mcp-ui` | `UIRegistry` |
-| Shared types | `@mongodb-js/mcp-types` | `TransportRequestContext`, `ITransportRunner`, `ISession`, `ServerMetadata` |
+| Use case                    | `npm install`                                                     | Primary v3 imports                                                                                   |
+| --------------------------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Custom CLI (most v1 embeds) | `@mongodb-js/mcp-cli` + needed tool packages                      | `runMcpCli`, `createServicesFromConfig`, `create*FromConfig`, `Resources`, `CliServer`, `CliSession` |
+| Host MCP over stdio         | `@mongodb-js/mcp-core`                                            | `StdioRunner`, `SessionStore`, `Keychain`, `Elicitation`, `NoopTelemetry`, `InMemoryTransport`       |
+| Host MCP over HTTP          | `@mongodb-js/mcp-http-runners` `@mongodb-js/mcp-core`             | `StreamableHttpRunner`, `MCPHttpServer`, `MonitoringServer`                                          |
+| Embed server (advanced)     | cli + core + http-runners + metrics + logging + telemetry + tools | `CliServer`, `CliSession`, `createServicesFromConfig`, `startServer`                                 |
+| Config parsing / overrides  | `@mongodb-js/mcp-cli`                                             | `UserConfig`, `UserConfigSchema`, `parseUserConfig`, `applyConfigOverrides`, `configRegistry`        |
+| Custom tools (any category) | `@mongodb-js/mcp-core` `@mongodb-js/mcp-types`                    | `ToolBase`, `ToolClass`, `OperationType`, `ToolCategory`                                             |
+| MongoDB tools + connections | `@mongodb-js/mcp-tools-mongodb`                                   | `FindTool`, `MongoDBToolBase`, `MCPConnectionManager`, `ErrorCodes`, `MongoDBError`                  |
+| Atlas Admin API tools       | `@mongodb-js/mcp-tools-atlas` `@mongodb-js/mcp-atlas-api-client`  | `AtlasTools`, `ApiClient`, `ClientCredentialsAuthProvider`                                           |
+| Atlas Local tools           | `@mongodb-js/mcp-tools-atlas-local`                               | `AtlasLocalTools`, `createAtlasLocalClient`                                                          |
+| Assistant / knowledge tools | `@mongodb-js/mcp-tools-assistant`                                 | `AssistantTools`                                                                                     |
+| Telemetry                   | `@mongodb-js/mcp-atlas-telemetry`                                 | `AtlasTelemetry`, `EventCache`, `TelemetryConfig`                                                    |
+| Logging                     | `@mongodb-js/mcp-logging`                                         | `ConsoleLogger`, `DiskLogger`, `McpLogger`                                                           |
+| Metrics                     | `@mongodb-js/mcp-metrics`                                         | `PrometheusMetrics`, `createDefaultMetrics`                                                          |
+| MCP UI resources            | `@mongodb-js/mcp-ui`                                              | `UIRegistry`                                                                                         |
+| Shared types                | `@mongodb-js/mcp-types`                                           | `TransportRequestContext`, `ITransportRunner`, `ISession`, `ServerMetadata`                          |
 
 ## Step 3 — Install and migrate the big three use cases
 
@@ -181,27 +181,27 @@ session: **`session.userConfig` → `session.config`**.
 
 ### Renamed symbols
 
-| v1 (old) | v3 (new) | Package |
-| --- | --- | --- |
-| `Server` / `ServerOptions` | `CliServer` / `CliServerOptions` | `@mongodb-js/mcp-cli` |
-| `Session` / `SessionOptions` | `CliSession` / `CliSessionOptions` | `@mongodb-js/mcp-cli` |
-| `Telemetry` | `AtlasTelemetry` | `@mongodb-js/mcp-atlas-telemetry` |
-| `BaseEvent` | `TelemetryBaseEvent` | `@mongodb-js/mcp-atlas-telemetry` |
-| `CommonProperties` | `TelemetryCommonProperties` | `@mongodb-js/mcp-atlas-telemetry` |
-| `NullLogger` | `NoopLogger` | `@mongodb-js/mcp-core` |
-| `RequestContext` | `TransportRequestContext` | `@mongodb-js/mcp-types` |
-| `TransportRunnerBase` | `ITransportRunner` | `@mongodb-js/mcp-types` |
-| `Metrics<T>` / `DefaultMetrics` | `IMetrics<T>` / `DefaultMetricDefinitions` | `@mongodb-js/mcp-types` |
-| `MCPHttpServerConstructorArgs` | `MCPHttpServerOptions` | `@mongodb-js/mcp-http-runners` |
-| `MonitoringServerConstructorArgs` | `MonitoringServerOptions` | `@mongodb-js/mcp-http-runners` |
-| `StreamableHttpTransportRunnerConfig` | `StreamableHttpRunnerOptions` + wired `MCPHttpServer` | `@mongodb-js/mcp-http-runners` |
-| `defaultCreateApiClient` | `createApiClientFromConfig` or construct `ApiClient` | `@mongodb-js/mcp-cli` / `@mongodb-js/mcp-atlas-api-client` |
-| `defaultCreateAtlasLocalClient` | `createAtlasLocalClient` | `@mongodb-js/mcp-tools-atlas-local` |
-| `defaultCreateConnectionManager` / `createMCPConnectionManager` | `createConnectionManagerFromConfig` or `new MCPConnectionManager({...})` | `@mongodb-js/mcp-cli` / `@mongodb-js/mcp-tools-mongodb` |
-| `createDefaultMcpHttpServer` / `createDefaultMonitoringServer` / `createDefaultSessionStore` | `new MCPHttpServer(...)` / `new MonitoringServer(...)` / `new SessionStore(...)` | `@mongodb-js/mcp-http-runners` / `@mongodb-js/mcp-core` |
-| `createServicesFromUserConfig` | `createServicesFromConfig` | `@mongodb-js/mcp-cli` |
-| `parseArgsWithCliOptions` | `parseUserConfig` | `@mongodb-js/mcp-cli` |
-| tool classes (e.g. `FindTool`) | same names, new package | `@mongodb-js/mcp-tools-*` |
+| v1 (old)                                                                                     | v3 (new)                                                                         | Package                                                    |
+| -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `Server` / `ServerOptions`                                                                   | `CliServer` / `CliServerOptions`                                                 | `@mongodb-js/mcp-cli`                                      |
+| `Session` / `SessionOptions`                                                                 | `CliSession` / `CliSessionOptions`                                               | `@mongodb-js/mcp-cli`                                      |
+| `Telemetry`                                                                                  | `AtlasTelemetry`                                                                 | `@mongodb-js/mcp-atlas-telemetry`                          |
+| `BaseEvent`                                                                                  | `TelemetryBaseEvent`                                                             | `@mongodb-js/mcp-atlas-telemetry`                          |
+| `CommonProperties`                                                                           | `TelemetryCommonProperties`                                                      | `@mongodb-js/mcp-atlas-telemetry`                          |
+| `NullLogger`                                                                                 | `NoopLogger`                                                                     | `@mongodb-js/mcp-core`                                     |
+| `RequestContext`                                                                             | `TransportRequestContext`                                                        | `@mongodb-js/mcp-types`                                    |
+| `TransportRunnerBase`                                                                        | `ITransportRunner`                                                               | `@mongodb-js/mcp-types`                                    |
+| `Metrics<T>` / `DefaultMetrics`                                                              | `IMetrics<T>` / `DefaultMetricDefinitions`                                       | `@mongodb-js/mcp-types`                                    |
+| `MCPHttpServerConstructorArgs`                                                               | `MCPHttpServerOptions`                                                           | `@mongodb-js/mcp-http-runners`                             |
+| `MonitoringServerConstructorArgs`                                                            | `MonitoringServerOptions`                                                        | `@mongodb-js/mcp-http-runners`                             |
+| `StreamableHttpTransportRunnerConfig`                                                        | `StreamableHttpRunnerOptions` + wired `MCPHttpServer`                            | `@mongodb-js/mcp-http-runners`                             |
+| `defaultCreateApiClient`                                                                     | `createApiClientFromConfig` or construct `ApiClient`                             | `@mongodb-js/mcp-cli` / `@mongodb-js/mcp-atlas-api-client` |
+| `defaultCreateAtlasLocalClient`                                                              | `createAtlasLocalClient`                                                         | `@mongodb-js/mcp-tools-atlas-local`                        |
+| `defaultCreateConnectionManager` / `createMCPConnectionManager`                              | `createConnectionManagerFromConfig` or `new MCPConnectionManager({...})`         | `@mongodb-js/mcp-cli` / `@mongodb-js/mcp-tools-mongodb`    |
+| `createDefaultMcpHttpServer` / `createDefaultMonitoringServer` / `createDefaultSessionStore` | `new MCPHttpServer(...)` / `new MonitoringServer(...)` / `new SessionStore(...)` | `@mongodb-js/mcp-http-runners` / `@mongodb-js/mcp-core`    |
+| `createServicesFromUserConfig`                                                               | `createServicesFromConfig`                                                       | `@mongodb-js/mcp-cli`                                      |
+| `parseArgsWithCliOptions`                                                                    | `parseUserConfig`                                                                | `@mongodb-js/mcp-cli`                                      |
+| tool classes (e.g. `FindTool`)                                                               | same names, new package                                                          | `@mongodb-js/mcp-tools-*`                                  |
 
 ### Removed from the v1 public API — do not import
 
@@ -289,11 +289,11 @@ const logger = await createLoggerFromConfig({ config, keychain });
 const apiClient = createApiClientFromConfig({ config, serverMetadata, logger });
 ```
 
-| v1 helper | v3 replacement |
-| --- | --- |
-| `defaultCreateApiClient` | `createApiClientFromConfig` or `new ApiClient(...)` |
+| v1 helper                       | v3 replacement                                                    |
+| ------------------------------- | ----------------------------------------------------------------- |
+| `defaultCreateApiClient`        | `createApiClientFromConfig` or `new ApiClient(...)`               |
 | `createDefaultMonitoringServer` | `createMonitoringServerFromConfig` or `new MonitoringServer(...)` |
-| ad-hoc logger from config | `createLoggerFromConfig` |
+| ad-hoc logger from config       | `createLoggerFromConfig`                                          |
 
 Full stack alternative: `createServicesFromConfig` returns
 `{ server, config, logger, metrics, monitoringServer }` (`monitoringServer` is undefined
@@ -318,10 +318,10 @@ unless `monitoringServerHost` + `monitoringServerPort` are set).
 ## Working with subagents (larger migrations)
 
 - **Inventory triage**: after Step 1, hand one file (or one module cluster) per subagent:
-  *"Migrate this file's mongodb-mcp-server imports to v3 scoped packages using the
-  mapping in the mongodb-mcp-v3-migration skill. Produce a diff."* Worktree note: if the
+  _"Migrate this file's mongodb-mcp-server imports to v3 scoped packages using the
+  mapping in the mongodb-mcp-v3-migration skill. Produce a diff."_ Worktree note: if the
   consumer's repo is a plain working tree, subagents must only analyze/draft — the main
-  agent applies edits sequentially. For parallel *editing*, give each subagent its own
+  agent applies edits sequentially. For parallel _editing_, give each subagent its own
   worktree (the agent tool's `worktree_path`) and merge/cherry-pick their commits.
 - **Symbol lookup**: an `Explore` agent can map any symbol not in the tables by reading
   the relevant `@mongodb-js/mcp-*` package's API report in the installed node_modules.
