@@ -1,5 +1,9 @@
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
-import { StreamableHttpRunner, type MonitoringServer } from "@mongodb-js/mcp-http-runners";
+import {
+    SharedSessionServerMCPHttpServer,
+    StreamableHttpRunner,
+    type MonitoringServer,
+} from "@mongodb-js/mcp-http-runners";
 import type { IMetrics } from "@mongodb-js/mcp-types";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import { Elicitation, Keychain, McpServer, SessionStore, StdioRunner, getRandomUUID } from "@mongodb-js/mcp-core";
@@ -15,7 +19,6 @@ import { createExportsManagerFromConfig } from "./createExportsManagerFromConfig
 import { createApiClientFromConfig } from "./createApiClientFromConfig.js";
 import { createTelemetryFromConfig } from "./createTelemetryFromConfig.js";
 import { createMonitoringServerFromConfig } from "./createMonitoringServerFromConfig.js";
-import { SharedSessionMCPHttpServer } from "./cliServer/sharedSessionMCPHttpServer.js";
 
 export type CreateServerFromConfigOptions = {
     config: UserConfig;
@@ -150,7 +153,7 @@ export function createHttpTransportRunnerFromConfig({
         metrics,
     });
 
-    const mcpHttpServer = new SharedSessionMCPHttpServer({
+    const mcpHttpServer = new SharedSessionServerMCPHttpServer({
         server,
         options: {
             http: {

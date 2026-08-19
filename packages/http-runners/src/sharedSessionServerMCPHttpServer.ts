@@ -1,4 +1,4 @@
-import { MCPHttpServer } from "@mongodb-js/mcp-http-runners";
+import { MCPHttpServer } from "./mcpHttpServer.js";
 import type { SessionStore } from "@mongodb-js/mcp-core";
 import type { HttpServerOptions, SessionManagementOptions } from "@mongodb-js/mcp-types";
 import type { SessionServer } from "@mongodb-js/mcp-types";
@@ -7,7 +7,7 @@ import type { IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 
 /** MCP HTTP Server that shares a single server instance. */
-export class SharedSessionMCPHttpServer extends MCPHttpServer<SessionServer> {
+export class SharedSessionServerMCPHttpServer extends MCPHttpServer<SessionServer> {
     private server: SessionServer;
 
     constructor({

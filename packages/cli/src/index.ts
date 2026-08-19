@@ -79,7 +79,3 @@ export { VersionHandler } from "./handlers/versionHandler.js";
 
 // MCP resources
 export { Resources, ConfigResource, DebugResource, ExportedData } from "./resources/resources.js";
-
-// HTTP server
-
-export { SharedSessionMCPHttpServer } from "./cliServer/sharedSessionMCPHttpServer.js";
