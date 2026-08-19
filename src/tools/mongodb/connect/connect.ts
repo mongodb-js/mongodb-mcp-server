@@ -4,6 +4,8 @@ import type { ToolArgs, OperationType, ToolResult, ToolOutput } from "../../tool
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { ConnectionMetadata } from "../../../telemetry/types.js";
 import { PRECONFIGURED_CONNECTION_ID } from "../../../common/connectionRegistry.js";
+import { waitForConnectResult } from "../../../common/waitForConnectResult.js";
+import { oidcDeviceFlowMessage } from "../../../common/oidcDeviceFlowMessage.js";
 
 const ConnectOutputSchema = {
     connectionId: z.string(),
@@ -43,6 +45,25 @@ export class ConnectTool extends MongoDBToolBase {
             name: connectionName,
             clientName: this.session.mcpClient?.name,
         });
+
+        // For OIDC, the registry's connect call resolves while still in the `connecting`
+        // state — before the device-flow callback has populated the verification
+        // URL and user code. Wait for the attempt to make progress so we can
+        // surface those to the user directly, instead of reporting success and
+        // having the next data operation fail asking them to authenticate.
+        if (entry.state.tag === "connecting") {
+            const result = await waitForConnectResult({
+                events: entry.events,
+                getCurrentState: () => entry.state,
+            });
+
+            if (result.kind === "device-flow") {
+                return {
+                    content: [{ type: "text", text: oidcDeviceFlowMessage(result.oidcLoginUrl, result.oidcUserCode) }],
+                    structuredContent: { connectionId: entry.connectionId },
+                };
+            }
+        }
 
         return {
             content: [
