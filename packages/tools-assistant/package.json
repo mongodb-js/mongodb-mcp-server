@@ -20,7 +20,7 @@
     "check": "tsc --build tsconfig.build.json --noEmit"
   },
   "dependencies": {
-    "@mongodb-js/devtools-proxy-support": "^0.7.8",
+    "@mongodb-js/devtools-proxy-support": "^0.7.19",
     "@mongodb-js/mcp-core": "workspace:*",
     "yaml": "^2.8.1",
     "zod": "^4.0.0"
