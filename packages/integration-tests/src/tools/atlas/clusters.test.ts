@@ -9,7 +9,7 @@ import {
     waitCluster,
     assertApiClientIsAvailable,
 } from "./atlasHelpers.js";
-import { afterAll, beforeAll, describe, expect, it, vitest } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vitest } from "vitest";
 
 function isAzureCMKTestConfigMissing(): boolean {
     return (
@@ -33,6 +33,16 @@ describeWithAtlas("clusters", (integration) => {
                 const session = integration.mcpServer().session;
                 await deleteCluster(session, projectId, clusterName);
             }
+        });
+
+        // Several tests stub session.apiClient methods (listClusters,
+        // listFlexClusters, listClusterDetails, ...) to exercise error paths. The
+        // stubs are never restored otherwise, and later teardown hooks call back
+        // into those apiClient methods (e.g. withProject's project cleanup listing
+        // clusters to delete), so a leaked rejection breaks teardown and leaks the
+        // project. Restore all spies after every test.
+        afterEach(() => {
+            vitest.restoreAllMocks();
         });
 
         describe("atlas-create-free-cluster", () => {
