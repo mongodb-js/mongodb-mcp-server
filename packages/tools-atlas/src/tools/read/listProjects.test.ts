@@ -73,12 +73,9 @@ describe("ListProjectsTool", () => {
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown> = {}) =>
-        tool["execute"](
-            { limit: 10, pageNum: 1, ...args } as never,
-            {
-                signal: new AbortController().signal,
-            } as never
-        );
+        tool["execute"]({ limit: 10, pageNum: 1, ...args } as never, {
+            signal: new AbortController().signal,
+        });
 
     it("returns projects when orgId filter is provided", async () => {
         mockApiClient.getOrgGroups!.mockResolvedValue({ results: [projectApiResponse] });

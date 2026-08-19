@@ -8,8 +8,8 @@ describe("accessListUtils", () => {
     it("should add the current IP to the access list", async () => {
         const apiClient = {
             supportsCurrentIpLookup: true,
-            getIpInfo: vi.fn().mockResolvedValue({ currentIpv4Address: "127.0.0.1" } as never),
-            createAccessListEntry: vi.fn().mockResolvedValue(undefined as never),
+            getIpInfo: vi.fn().mockResolvedValue({ currentIpv4Address: "127.0.0.1" }),
+            createAccessListEntry: vi.fn().mockResolvedValue(undefined),
             logger: new NoopLogger(),
         } as unknown as ApiClient;
         await expect(ensureCurrentIpInAccessList(apiClient, "projectId")).resolves.toBe("added");
@@ -26,14 +26,14 @@ describe("accessListUtils", () => {
     it("should not fail if the current IP is already in the access list", async () => {
         const apiClient = {
             supportsCurrentIpLookup: true,
-            getIpInfo: vi.fn().mockResolvedValue({ currentIpv4Address: "127.0.0.1" } as never),
+            getIpInfo: vi.fn().mockResolvedValue({ currentIpv4Address: "127.0.0.1" }),
             createAccessListEntry: vi
                 .fn()
                 .mockRejectedValue(
                     ApiClientError.fromError(
                         { status: 409, statusText: "Conflict" } as Response,
                         { message: "Conflict" } as never
-                    ) as never
+                    )
                 ),
             logger: new NoopLogger(),
         } as unknown as ApiClient;
@@ -58,7 +58,7 @@ describe("accessListUtils", () => {
                     ApiClientError.fromError(
                         { status: 404, statusText: "Not Found" } as Response,
                         { message: "Not Found" } as never
-                    ) as never
+                    )
                 ),
             createAccessListEntry: vi.fn(),
             logger,
@@ -114,8 +114,10 @@ describe("accessListUtils", () => {
 
     it("includes x-request-id in debug log when IP is added", async () => {
         const apiClient = makeSpyApiClient("resolve");
+        // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest mock, no this semantics
+        const { debug } = apiClient.logger;
         await ensureCurrentIpInAccessList(apiClient, "proj1", context);
-        expect(apiClient.logger.debug).toHaveBeenCalledWith(
+        expect(debug).toHaveBeenCalledWith(
             expect.objectContaining({
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                 attributes: expect.objectContaining({ "x-request-id": "req-access-1" }),
@@ -125,8 +127,10 @@ describe("accessListUtils", () => {
 
     it("includes x-request-id in debug log when IP is already present (409)", async () => {
         const apiClient = makeSpyApiClient("conflict");
+        // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest mock, no this semantics
+        const { debug } = apiClient.logger;
         await ensureCurrentIpInAccessList(apiClient, "proj1", context);
-        expect(apiClient.logger.debug).toHaveBeenCalledWith(
+        expect(debug).toHaveBeenCalledWith(
             expect.objectContaining({
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                 attributes: expect.objectContaining({ "x-request-id": "req-access-1" }),
@@ -136,8 +140,10 @@ describe("accessListUtils", () => {
 
     it("includes x-request-id in warning log when add fails with non-409 error", async () => {
         const apiClient = makeSpyApiClient("error");
+        // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest mock, no this semantics
+        const { warning } = apiClient.logger;
         await ensureCurrentIpInAccessList(apiClient, "proj1", context);
-        expect(apiClient.logger.warning).toHaveBeenCalledWith(
+        expect(warning).toHaveBeenCalledWith(
             expect.objectContaining({
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                 attributes: expect.objectContaining({ "x-request-id": "req-access-1" }),

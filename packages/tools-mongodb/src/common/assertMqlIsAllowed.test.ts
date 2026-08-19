@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import { FindTool } from "../tools/read/find.js";
 import type { IMongoDBSession, IMongoDBConfig } from "../mongodbTool.js";
-import type { ITelemetry, IElicitation, IUIRegistry } from "@mongodb-js/mcp-types";
+import type { ITelemetry, IElicitation } from "@mongodb-js/mcp-types";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 
@@ -35,7 +35,7 @@ function makeTool(config: Partial<IMongoDBConfig>): (...values: unknown[]) => vo
         elicitation: { requestConfirmation: vi.fn() } as unknown as IElicitation,
         metrics: new MockMetrics(),
 
-        uiRegistry: { get: vi.fn().mockResolvedValue(null) } as unknown as IUIRegistry,
+        uiRegistry: { get: vi.fn().mockResolvedValue(null) },
     };
 
     const tool = new FindTool(params) as unknown as { assertMqlIsAllowed: (...values: unknown[]) => void };

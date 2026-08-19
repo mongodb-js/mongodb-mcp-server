@@ -92,7 +92,7 @@ function createStreamableHttpRunnerFromConfig(options: {
                 host: userConfig.httpHost,
                 port: userConfig.httpPort,
                 bodyLimit: userConfig.httpBodyLimit,
-                headers: userConfig.httpHeaders as Record<string, string> | undefined,
+                headers: userConfig.httpHeaders,
                 responseType: userConfig.httpResponseType,
             },
             session: {

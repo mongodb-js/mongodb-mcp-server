@@ -56,7 +56,7 @@ describe("ListDBUsersTool", () => {
     const baseArgs = { projectId: "507f1f77bcf86cd799439011" };
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
-        tool["execute"](args as never, { signal: new AbortController().signal } as never);
+        tool["execute"](args as never, { signal: new AbortController().signal });
 
     it("returns database users when they exist", async () => {
         mockApiClient.listDatabaseUsers!.mockResolvedValue({

@@ -61,7 +61,7 @@ describe("GetRegionsTool", () => {
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
-        tool["invoke"](z.object(GetRegionsArgsShape).strict().parse(tool.normalizeRawArgs(args)) as never, {} as never);
+        tool["invoke"](z.object(GetRegionsArgsShape).strict().parse(tool.normalizeRawArgs(args)), {} as never);
 
     beforeEach(() => {
         tool = buildTool();

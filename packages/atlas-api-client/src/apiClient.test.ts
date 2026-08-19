@@ -110,7 +110,7 @@ describe("ApiClient", () => {
                     baseUrl: "https://api.test.com",
                     userAgent: TEST_USER_AGENT,
                     httpClient: {
-                        fetch: injectedFetch as unknown as typeof fetch,
+                        fetch: injectedFetch,
                         Request: TrackedRequest,
                     },
                 },
@@ -136,7 +136,7 @@ describe("ApiClient", () => {
                         clientSecret: "test-client-secret",
                     },
                     httpClient: {
-                        fetch: injectedFetch as unknown as typeof fetch,
+                        fetch: injectedFetch,
                         Request: globalThis.Request,
                     },
                 },
@@ -262,7 +262,7 @@ describe("ApiClient", () => {
                 {
                     params: { query: { itemsPerPage: 10 } },
                     headers: { "x-request-id": "from-options", Accept: "application/json" },
-                } as never,
+                },
                 { requestInfo: { headers: { "x-request-id": "from-context" } } }
             );
 

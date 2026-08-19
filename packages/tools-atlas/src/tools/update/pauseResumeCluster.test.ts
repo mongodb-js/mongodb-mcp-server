@@ -96,7 +96,7 @@ describe("PauseResumeClusterTool", () => {
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
-        tool["invoke"](z.object(PauseResumeClusterArgsShape).parse(args) as never, {} as never);
+        tool["invoke"](z.object(PauseResumeClusterArgsShape).parse(args), {} as never);
 
     beforeEach(() => {
         tool = buildTool();
@@ -209,7 +209,7 @@ describe("PauseResumeClusterTool", () => {
             const args = { ...BASE_ARGS, action: "PAUSE" as const };
             const result = await exec(args);
 
-            const metadata = await tool["resolveTelemetryMetadata"](args as never, { result: result as never });
+            const metadata = await tool["resolveTelemetryMetadata"](args, { result: result });
             expect(metadata.cluster_id).toBe("cluster-id");
             expect(metadata.action).toBe("PAUSE");
             expect(metadata.project_id).toBe(PROJECT_ID);
@@ -217,8 +217,8 @@ describe("PauseResumeClusterTool", () => {
 
         it("returns empty metadata fields when result has no structuredContent", async () => {
             const args = { ...BASE_ARGS, action: "PAUSE" as const };
-            const metadata = await tool["resolveTelemetryMetadata"](args as never, {
-                result: { content: [] } as never,
+            const metadata = await tool["resolveTelemetryMetadata"](args, {
+                result: { content: [] },
             });
 
             expect(metadata.cluster_id).toBeUndefined();
