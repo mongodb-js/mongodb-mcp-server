@@ -2,6 +2,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { formatUntrustedData, type OperationType, type ToolCategory } from "../tool.js";
 import { AssistantToolBase } from "./assistantTool.js";
 import { LogId } from "../../common/logging/index.js";
+import { UnexpectedError } from "../../common/errors.js";
 import { stringify as yamlStringify } from "yaml";
 
 export type KnowledgeSource = {
@@ -43,15 +44,8 @@ export class ListKnowledgeSourcesTool extends AssistantToolBase {
                 context: "assistant-list-knowledge-sources",
                 message,
             });
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: message,
-                    },
-                ],
-                isError: true,
-            };
+            // Infrastructure failure: throw so it is classified as error_expected="false".
+            throw new UnexpectedError(message);
         }
         const { dataSources } = (await response.json()) as ListKnowledgeSourcesResponse;
 

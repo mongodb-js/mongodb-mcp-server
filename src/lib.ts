@@ -95,7 +95,8 @@ export {
     type ConnectionErrorUnhandled,
     type ConnectionErrorHandlerContext,
 } from "./common/connectionErrorHandler.js";
-export { ErrorCodes, MongoDBError } from "./common/errors.js";
+export { ErrorCodes, MongoDBError, UnexpectedError } from "./common/errors.js";
+export { classifyToolError, type ToolErrorKind } from "./common/classifyToolError.js";
 export { Telemetry } from "./telemetry/telemetry.js";
 export { type TelemetryEvent, type CommonProperties, type BaseEvent } from "./telemetry/types.js";
 export type { TelemetryEvents, TelemetryConfig } from "./telemetry/telemetry.js";

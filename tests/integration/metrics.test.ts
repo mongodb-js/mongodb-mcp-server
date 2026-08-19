@@ -77,7 +77,7 @@ describe("/metrics endpoint", () => {
         ).toBeGreaterThanOrEqual(0);
     });
 
-    it("records error_type label on toolExecutionDuration histogram when a tool throws", async () => {
+    it("records error_type and error_expected labels on toolExecutionDuration histogram when a tool throws", async () => {
         runner = new StreamableHttpRunner({ userConfig: config, tools: [ErrorTool] });
         await runner.start();
 
@@ -92,8 +92,27 @@ describe("/metrics endpoint", () => {
                 status: "error",
                 operation_type: "read",
                 error_type: "TypeError",
+                error_expected: "false",
             })
         ).toBe(1);
+    });
+
+    it("does not record error_expected on toolExecutionDuration histogram for success", async () => {
+        runner = new StreamableHttpRunner({ userConfig: config, tools: [EchoTool] });
+        await runner.start();
+
+        const client = await connectClient();
+        await client.callTool({ name: "echo-tool", arguments: {} });
+
+        const body = await (await fetch(monitoringUrl("/metrics"))).text();
+
+        expect(
+            parsePrometheusValue(body, "mcp_tool_execution_duration_seconds_count", {
+                tool_name: "echo-tool",
+                status: "success",
+            })
+        ).toBe(1);
+        expect(body).not.toMatch(/error_expected="true"/);
     });
 
     it("increments mcp_session_created when clients connect", async () => {

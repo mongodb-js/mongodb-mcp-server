@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MongoDBError, ErrorCodes, UnexpectedError } from "../../../src/common/errors.js";
 import { ToolBase } from "../../../src/tools/tool.js";
 import type { OperationType, ToolArgs, ToolCategory, ToolExecutionContext } from "../../../src/tools/tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
@@ -93,6 +94,40 @@ export class ErrorTool extends ToolBase {
 
     protected execute(): Promise<CallToolResult> {
         return Promise.reject(new TypeError("intentional error"));
+    }
+
+    protected resolveTelemetryMetadata(): TelemetryToolMetadata {
+        return {};
+    }
+}
+
+/** Tool whose execute() throws a caller-addressable MongoDBError – used by classification tests. */
+export class CallerAddressableErrorTool extends ToolBase {
+    static toolName = "caller-addressable-error-tool";
+    static category: ToolCategory = "mongodb";
+    static operationType: OperationType = "update";
+    public description = "A tool that throws a caller-addressable error";
+    public argsShape = {};
+
+    protected execute(): Promise<CallToolResult> {
+        return Promise.reject(new MongoDBError(ErrorCodes.ForbiddenWriteOperation, "not allowed"));
+    }
+
+    protected resolveTelemetryMetadata(): TelemetryToolMetadata {
+        return {};
+    }
+}
+
+/** Tool whose execute() throws an UnexpectedError – used by classification tests. */
+export class UnexpectedErrorTool extends ToolBase {
+    static toolName = "unexpected-error-tool";
+    static category: ToolCategory = "mongodb";
+    static operationType: OperationType = "read";
+    public description = "A tool that throws an infrastructure error";
+    public argsShape = {};
+
+    protected execute(): Promise<CallToolResult> {
+        return Promise.reject(new UnexpectedError("infrastructure failure"));
     }
 
     protected resolveTelemetryMetadata(): TelemetryToolMetadata {

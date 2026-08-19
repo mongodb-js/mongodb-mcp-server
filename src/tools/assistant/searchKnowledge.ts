@@ -3,6 +3,7 @@ import { type CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { type ToolArgs, type OperationType, type ToolCategory, formatUntrustedData } from "../tool.js";
 import { AssistantToolBase } from "./assistantTool.js";
 import { LogId } from "../../common/logging/index.js";
+import { UnexpectedError } from "../../common/errors.js";
 import { stringify as yamlStringify } from "yaml";
 
 export const SearchKnowledgeToolArgs = {
@@ -69,15 +70,8 @@ export class SearchKnowledgeTool extends AssistantToolBase {
                 context: "assistant-search-knowledge",
                 message,
             });
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: message,
-                    },
-                ],
-                isError: true,
-            };
+            // Infrastructure failure: throw so it is classified as error_expected="false".
+            throw new UnexpectedError(message);
         }
         const { results } = (await response.json()) as SearchKnowledgeResponse;
 

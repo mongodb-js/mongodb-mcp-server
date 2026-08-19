@@ -271,6 +271,9 @@ export type AvailableExport = Pick<StoredExport, "exportName" | "exportTitle" | 
 export type BaseEvent = TelemetryEvent<unknown>;
 
 // @public (undocumented)
+export function classifyToolError(error: unknown): ToolErrorKind;
+
+// @public (undocumented)
 export interface CommonExportData {
     // (undocumented)
     exportName: string;
@@ -1109,6 +1112,9 @@ export type ToolConstructorParams<TUserConfig extends UserConfig = UserConfig, T
 };
 
 // @public
+export type ToolErrorKind = "expected" | "unexpected";
+
+// @public
 export type ToolExecutionContext = Pick<ServerRequestHandlerExtra, "signal"> & Partial<Pick<ServerRequestHandlerExtra, "_meta" | "requestId" | "requestInfo" | "sendNotification">> & {
     elicitationDurationMs?: number;
 };
@@ -1182,6 +1188,13 @@ export class UIRegistry {
         customUIs?: (toolName: string) => string | null | Promise<string | null>;
     });
     get(toolName: string): Promise<string | null>;
+}
+
+// @public
+export class UnexpectedError extends Error {
+    constructor(message: string, options?: {
+        cause?: unknown;
+    });
 }
 
 // @public (undocumented)
