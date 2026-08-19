@@ -3,6 +3,8 @@
 export MDB_ACCURACY_RUN_ID=$(pnpm dlx uuid v4)
 
 # For providing access tokens for different LLM providers
+# Grove
+# export MDB_GROVE_API_KEY=""
 # export MDB_OPEN_AI_API_KEY=""
 # export MDB_GEMINI_API_KEY=""
 # export MDB_AZURE_OPEN_AI_API_KEY=""
