@@ -99,13 +99,11 @@ Most MCP clients require a configuration file to be created or modified to add t
 
 Note: The configuration file syntax can be different across clients. Please refer to the following links for the latest expected syntax:
 
-- [Devin Desktop](MCP_CLIENT_CONFIGURATION.md#devin-desktop) (formerly Windsurf)
-- [VS Code](MCP_CLIENT_CONFIGURATION.md#vs-code)
-- [Claude Desktop](MCP_CLIENT_CONFIGURATION.md#claude-desktop)
-- [Cursor](MCP_CLIENT_CONFIGURATION.md#cursor)
-- [Copilot CLI](MCP_CLIENT_CONFIGURATION.md#copilot-cli)
-- [OpenCode](MCP_CLIENT_CONFIGURATION.md#opencode)
-- [Codex](MCP_CLIENT_CONFIGURATION.md#codex)
+- [Devin AI](https://www.mongodb.com/docs/mcp-server/get-started/?ai-client=devin)
+- [Claude Desktop & Web](https://www.mongodb.com/docs/mcp-server/get-started/?ai-client=claude-desktop-web)
+- [Cursor](https://www.mongodb.com/docs/mcp-server/get-started/?ai-client=cursor)
+- [Codex](https://www.mongodb.com/docs/mcp-server/get-started/?ai-client=codex)
+- [Other AI clients](https://www.mongodb.com/docs/mcp-server/get-started/?ai-client=other)
 
 > **Default Safety Notice:** All examples below include `--readOnly` by default to ensure safe, read-only access to your data. Remove `--readOnly` if you need to enable write operations.
 
@@ -133,7 +131,7 @@ NOTE: The connection string can be configured to connect to any MongoDB cluster,
 
 When working with MongoDB Atlas, the recommended approach is to install the [`mongodb-atlas` plugin](#using-the-official-mongodb-plugins-for-ai-agents) for your AI agent, which handles OAuth authentication automatically.
 
-For manual configuration, see the [client-specific instructions](MCP_CLIENT_CONFIGURATION.md) for setting up the Atlas Remote MCP server with OAuth. Alternatively, you can connect using the [`mongodb-atlas-mcp-remote`](packages/mongodb-atlas-mcp-remote/README.md) package with Service Account credentials — see the [package README](packages/mongodb-atlas-mcp-remote/README.md) for setup instructions.
+For manual configuration, see the [client-specific instructions](https://www.mongodb.com/docs/mcp-server/get-started/) for setting up the Atlas Remote MCP server with OAuth. Alternatively, you can connect using the [`mongodb-atlas-mcp-remote`](packages/mongodb-atlas-mcp-remote/README.md) package with Service Account credentials — see the [package README](packages/mongodb-atlas-mcp-remote/README.md) for setup instructions.
 
 #### Option 3: Atlas API Credentials
 
