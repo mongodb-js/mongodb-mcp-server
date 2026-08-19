@@ -89,7 +89,7 @@ jobs:
           MDB_MCP_AZURE_CMK_RESOURCE_GROUP_NAME: ${{ secrets.TEST_MDB_MCP_AZURE_CMK_RESOURCE_GROUP_NAME }}
           MDB_MCP_AZURE_CMK_KEY_VAULT_NAME: ${{ secrets.TEST_MDB_MCP_AZURE_CMK_KEY_VAULT_NAME }}
           MDB_MCP_AZURE_CMK_KEY_IDENTIFIER: ${{ secrets.TEST_MDB_MCP_AZURE_CMK_KEY_IDENTIFIER }}
-        run: pnpm test packages/integration-tests/src/tools/atlas/
+        run: pnpm test packages/integration-tests/src/tools/atlas/ --project=streams-tests --project=clusters-tests
       - name: Upload test results
         uses: actions/upload-artifact@v7.0.1
         if: always()

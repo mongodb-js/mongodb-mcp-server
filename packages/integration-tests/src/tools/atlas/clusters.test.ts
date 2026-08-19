@@ -237,12 +237,23 @@ describeWithAtlas("clusters", (integration) => {
             beforeAll(async () => {
                 const projectId = getProjectId();
                 const ipAddress = getIpAddress();
-                await waitCluster(integration.mcpServer().session, projectId, clusterName, (cluster) => {
-                    return (
-                        cluster.stateName === "IDLE" &&
-                        (cluster.connectionStrings?.standardSrv || cluster.connectionStrings?.standard) !== undefined
-                    );
-                });
+                // M0 provisioning on cloud-dev is slow and non-deterministic (observed
+                // to exceed 10 minutes), so allow up to 20 minutes (10s x 120); a hook
+                // timeout here would silently skip the connect tests.
+                await waitCluster(
+                    integration.mcpServer().session,
+                    projectId,
+                    clusterName,
+                    (cluster) => {
+                        return (
+                            cluster.stateName === "IDLE" &&
+                            (cluster.connectionStrings?.standardSrv || cluster.connectionStrings?.standard) !==
+                                undefined
+                        );
+                    },
+                    10_000,
+                    120
+                );
                 const session = integration.mcpServer().session;
                 assertApiClientIsAvailable(session);
                 await session.apiClient.createAccessListEntry({
