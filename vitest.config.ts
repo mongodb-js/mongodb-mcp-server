@@ -40,9 +40,20 @@ const UNIT_INCLUDES = ["packages/*/src/**/*.test.ts"];
 // those directories requires no project edits.
 // ---------------------------------------------------------------------------
 
-// Real Atlas API (cloud-dev) with provisioned clusters/workspaces.
-// performanceAdvisor is extracted into long-running-tests below.
+// Atlas suites provisioned against real Atlas infrastructure on cloud-dev.
+// They are split across dedicated projects with tailored timeouts/setup:
+//   - integration-atlas: the remaining atlas suites (fast, one project each)
+//   - streams-tests: streams suites sharing ONE provisioned workspace
+//   - clusters-tests: suites that provision real clusters (M0, slow)
+//   - long-running-tests: performanceAdvisor (2h, separate workflow)
 const INTEGRATION_ATLAS_INCLUDES = ["packages/integration-tests/src/tools/atlas/**/*.test.ts"];
+
+const ATLAS_STREAMS_TESTS = "packages/integration-tests/src/tools/atlas/streams/**/*.test.ts";
+
+const ATLAS_CLUSTER_TESTS = [
+    "packages/integration-tests/src/tools/atlas/clusters.test.ts",
+    "packages/integration-tests/src/tools/atlas/sampleDataset.test.ts",
+];
 
 // Atlas Local via Docker (skips on macOS GitHub runners without Docker).
 const INTEGRATION_ATLAS_LOCAL_INCLUDES = ["packages/integration-tests/src/tools/atlas-local/**/*.test.ts"];
@@ -54,7 +65,12 @@ const INTEGRATION_ATLAS_LOCAL_INCLUDES = ["packages/integration-tests/src/tools/
 // here automatically.
 const INTEGRATION_INCLUDES = ["packages/integration-tests/src/**/*.test.ts"];
 
-const INTEGRATION_ATLAS_EXCLUDES = [...INTEGRATION_ATLAS_INCLUDES, ...INTEGRATION_ATLAS_LOCAL_INCLUDES];
+const INTEGRATION_ATLAS_EXCLUDES = [
+    ...INTEGRATION_ATLAS_INCLUDES,
+    ...INTEGRATION_ATLAS_LOCAL_INCLUDES,
+    ...ATLAS_STREAMS_TESTS,
+    ...ATLAS_CLUSTER_TESTS,
+];
 
 const LONG_RUNNING_TESTS = ["packages/integration-tests/src/tools/atlas/performanceAdvisor.test.ts"];
 
@@ -101,7 +117,33 @@ export default defineConfig({
                 test: {
                     name: "integration-atlas",
                     include: INTEGRATION_ATLAS_INCLUDES,
-                    exclude: [...vitestDefaultExcludes, ...LONG_RUNNING_TESTS],
+                    exclude: [...vitestDefaultExcludes, ATLAS_STREAMS_TESTS, ...ATLAS_CLUSTER_TESTS, ...LONG_RUNNING_TESTS],
+                },
+            },
+            {
+                extends: true,
+                test: {
+                    name: "clusters-tests",
+                    include: [...ATLAS_CLUSTER_TESTS],
+                    testTimeout: 7200000, // 2 hours for long-running tests
+                    hookTimeout: 7200000,
+                },
+            },
+            {
+                extends: true,
+                test: {
+                    name: "streams-tests",
+                    include: [ATLAS_STREAMS_TESTS],
+                    testTimeout: 7200000, // 2 hours for long-running tests
+                    hookTimeout: 7200000,
+                    // Provision ONE shared Atlas project + streams workspace + cluster for
+                    // the whole run and make it available to every streams test file via
+                    // inject("atlasStreamsWorkspace"). See streamsGlobalSetup.ts.
+                    globalSetup: ["./packages/integration-tests/src/tools/atlas/streamsGlobalSetup.ts"],
+                    // Streams test files share a single mutable workspace (processors,
+                    // connections, tier changes), so run files one at a time instead of
+                    // in parallel workers.
+                    fileParallelism: false,
                 },
             },
             {
