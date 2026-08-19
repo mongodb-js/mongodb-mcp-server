@@ -138,7 +138,7 @@ describeWithMongoDB("dbStats tool", (integration) => {
             typeof value === "object" &&
             value !== null &&
             "$numberLong" in value &&
-            typeof (value as { $numberLong: unknown }).$numberLong === "string"
+            typeof value.$numberLong === "string"
         ) {
             assertValue(Number((value as { $numberLong: string }).$numberLong));
             return;

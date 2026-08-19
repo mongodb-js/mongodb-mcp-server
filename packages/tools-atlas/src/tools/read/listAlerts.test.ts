@@ -65,7 +65,7 @@ describe("ListAlertsTool", () => {
     const baseArgs = { projectId: "proj1", status: "OPEN" as const, limit: 100, pageNum: 1 };
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
-        tool["execute"](args as never, { signal: new AbortController().signal } as never);
+        tool["execute"](args as never, { signal: new AbortController().signal });
 
     it("should return alerts when they exist", async () => {
         mockApiClient.listAlerts!.mockResolvedValue({

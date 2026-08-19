@@ -74,7 +74,7 @@ describe("StreamsBuildTool", () => {
     const baseArgs = { projectId: "proj1", workspaceName: "ws1" };
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
-        tool["execute"](args as never, { signal: new AbortController().signal } as never);
+        tool["execute"](args as never, { signal: new AbortController().signal });
 
     describe("createWorkspace", () => {
         it("should create workspace with correct provider/region/tier", async () => {
@@ -338,7 +338,7 @@ describe("StreamsBuildTool", () => {
                     requestId: 42,
                     _meta: { progressToken: "progress-token" },
                     sendNotification,
-                } as never
+                }
             );
 
             expect(mockElicitation.requestInput).toHaveBeenCalledWith(expect.any(String), expect.anything(), {

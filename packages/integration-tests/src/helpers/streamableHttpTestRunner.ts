@@ -148,7 +148,7 @@ export function createStreamableHttpTestRunner(
                 host: config.httpHost,
                 port: config.httpPort,
                 bodyLimit: config.httpBodyLimit,
-                headers: config.httpHeaders as Record<string, string> | undefined,
+                headers: config.httpHeaders,
                 responseType: config.httpResponseType,
             },
             session: {

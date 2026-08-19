@@ -48,7 +48,7 @@ describe("CreateProjectTool", () => {
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown> = {}) =>
-        tool["execute"](args as never, { signal: new AbortController().signal } as never);
+        tool["execute"](args as never, { signal: new AbortController().signal });
 
     it("requires projectName and orgId, rejecting missing values", () => {
         const schema = z.object(tool.argsShape);
