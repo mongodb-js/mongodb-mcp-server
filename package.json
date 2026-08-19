@@ -148,7 +148,7 @@
     "braintrust": "^3.20.0",
     "concurrently": "^9.2.1",
     "duplexpair": "^1.0.2",
-    "esbuild": "^0.28.1",
+    "esbuild": "^0.28.2",
     "eslint": "^10.8.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.6",
