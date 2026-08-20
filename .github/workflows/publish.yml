@@ -146,7 +146,7 @@ jobs:
       - name: Wait for workspace deps to be available on npm
         uses: ./.github/actions/wait-for-npm
         with:
-          package-name: @mongodb-js/mcp-core
+          package-name: "@mongodb-js/mcp-core"
           package-version: ${{ needs.check.outputs.NPM_VERSION }}
       - name: Build .mcpb
         run: pnpm run build:mcpb
