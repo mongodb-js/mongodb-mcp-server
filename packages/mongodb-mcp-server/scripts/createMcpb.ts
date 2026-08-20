@@ -89,7 +89,7 @@ function expandGlob(globPattern: string): string[] {
 }
 
 function discoverWorkspacePackages(rootPkg: PackageJson): WorkspacePackage[] {
-    // Build a name → dir map for every package matched by the workspace globs.
+    // name → dir for every workspace member.
     const wsYaml = readFileSync(resolve(paths.repoRoot, "pnpm-workspace.yaml"), "utf8");
     const globs = parseWorkspaceGlobs(wsYaml);
     const nameToDir = new Map<string, string>();
@@ -104,8 +104,7 @@ function discoverWorkspacePackages(rootPkg: PackageJson): WorkspacePackage[] {
         }
     }
 
-    // Collect the root's direct workspace:* deps (transitives are installed from the
-    // registry once rewritten to version specs below).
+    // Only the root's direct workspace:* deps; transitives resolve from the registry.
     const directWorkspaceNames = Object.entries({
         ...(rootPkg.dependencies ?? {}),
         ...(rootPkg.optionalDependencies ?? {}),
@@ -205,10 +204,8 @@ async function stageDependencies(rootPkg: PackageJson): Promise<void> {
     const stagingPkg = buildStagingPackageJson(rootPkg);
     const workspacePkgs = discoverWorkspacePackages(rootPkg);
 
-    // Rewrite workspace:* refs to exact version specs. The mcpb build runs AFTER the npm
-    // publish step of the release workflow (see publish.yml), so pnpm resolves these from
-    // the registry — the same way the pre-monorepo build did. Exact versions keep the
-    // bundled dependency set deterministic and in lockstep with this release.
+    // Rewrite workspace:* to exact versions; the mcpb build runs after the npm publish
+    // (see publish.yml), so these resolve from the registry.
     const exactVersion = rootPkg.version;
     for (const ws of workspacePkgs) {
         const deps = stagingPkg.dependencies as Record<string, string> | undefined;
@@ -223,11 +220,8 @@ async function stageDependencies(rootPkg: PackageJson): Promise<void> {
 
     await writeFile(resolve(paths.stagingDir, "package.json"), JSON.stringify(stagingPkg, null, 2) + "\n");
 
-    // Seed the staging dir with the root's lockfile so transitive versions match what CI
-    // tested against. pnpm will incrementally update entries for the deps we changed
-    // (workspace:* → version, atlas-local platforms force-added) while preserving the locked
-    // versions for everything else. The copied pnpm-workspace.yaml also makes the staging
-    // dir an isolated workspace root, so the install doesn't merge into the monorepo.
+    // Seed the staging install with the root's lockfile/workspace yaml; the latter keeps
+    // the staging dir its own workspace root so pnpm doesn't merge into the monorepo.
     await cp(resolve(paths.repoRoot, "pnpm-lock.yaml"), resolve(paths.stagingDir, "pnpm-lock.yaml"));
     await cp(resolve(paths.repoRoot, "pnpm-workspace.yaml"), resolve(paths.stagingDir, "pnpm-workspace.yaml"));
 
