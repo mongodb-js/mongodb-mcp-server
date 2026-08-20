@@ -21,11 +21,11 @@ jobs:
         with:
           app-id: ${{ vars.DEVTOOLS_BOT_APP_ID }}
           private-key: ${{ secrets.DEVTOOLS_BOT_PRIVATE_KEY }}
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
       - uses: pnpm/action-setup@v5
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version-file: package.json
           registry-url: "https://registry.npmjs.org"

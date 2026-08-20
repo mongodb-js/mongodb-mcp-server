@@ -18,14 +18,14 @@ jobs:
     # against any other branch, even for manual workflow_dispatch runs.
     if: github.ref == 'refs/heads/main'
     steps:
-      - uses: mongodb-js/devtools-shared/actions/setup-bot-token@04e390e1e6157b3edbc120f3d9359d3fb47ab839 # main
+      - uses: mongodb-js/devtools-shared/actions/setup-bot-token@4b1d47bae509ef8c45c809893fa8a53dfc943c32 # main
         id: app-token
         with:
           app-id: ${{ vars.DEVTOOLS_BOT_APP_ID }}
           private-key: ${{ secrets.DEVTOOLS_BOT_PRIVATE_KEY }}
 
       - name: Checkout repository
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           token: ${{ steps.app-token.outputs.token }}
           persist-credentials: true

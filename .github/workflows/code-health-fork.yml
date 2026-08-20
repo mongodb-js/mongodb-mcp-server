@@ -26,7 +26,7 @@ jobs:
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
         if: matrix.os == 'ubuntu-latest'
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - uses: docker/setup-docker-action@v5
@@ -35,7 +35,7 @@ jobs:
         with:
           set-host: true
       - uses: pnpm/action-setup@v5
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node-version }}
           cache: "pnpm"
@@ -52,9 +52,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
       - uses: pnpm/action-setup@v5
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version-file: package.json
           cache: "pnpm"
