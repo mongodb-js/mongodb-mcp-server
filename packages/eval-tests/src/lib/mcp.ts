@@ -3,8 +3,9 @@ import { experimental_createMCPClient } from "@ai-sdk/mcp";
 import { tool as createTool, type Tool } from "ai";
 import { Keychain } from "@mongodb-js/mcp-core";
 import {
-    createServerFromConfig,
     createLoggerFromConfig,
+    createServerFromConfig,
+    createSharedServicesFromConfig,
     Resources,
     UserConfigSchema,
     type UserConfig,
@@ -43,13 +44,14 @@ export class InMemoryMcpConnection {
         });
 
         const logger = await createLoggerFromConfig({ config, keychain: Keychain.root });
-        const { server } = await createServerFromConfig({
+        const sharedServices = await createSharedServicesFromConfig({
             config,
             serverMetadata: packageInfo,
             tools: AllTools,
             resources: Resources,
             logger,
         });
+        const server = createServerFromConfig({ config, sharedServices });
 
         await server.connect(serverTransport);
 

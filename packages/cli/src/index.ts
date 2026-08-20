@@ -9,9 +9,11 @@ export { startRunner, type StartRunnerOptions } from "./startRunner.js";
 export {
     createRunnerFromConfig,
     type CreateRunnerFromConfigOptions,
+    createSharedServicesFromConfig,
     createServerFromConfig,
-    type CreateServerFromConfigOptions,
-    type ServerFromConfigServices,
+    type SharedServerServices,
+    type CreateServerServicesOptions,
+    CliMcpHttpServer,
     createHttpTransportRunnerFromConfig,
 } from "./createRunnerFromConfig.js";
 export { createLoggerFromConfig, type CreateLoggerFromConfigOptions } from "./createLoggerFromConfig.js";

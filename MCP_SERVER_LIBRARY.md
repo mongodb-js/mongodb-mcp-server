@@ -24,7 +24,7 @@ In v3 the MongoDB MCP Server is a **monorepo of scoped packages** under the `@mo
 
 To embed or extend the server, depend on the scoped packages instead. The library exports provide full control over:
 
-- Server configuration and initialization — `runMcpCli`, `createRunnerFromConfig`, `createServerFromConfig`, `startRunner`
+- Server configuration and initialization — `runMcpCli`, `createRunnerFromConfig`, `createSharedServicesFromConfig` + `createServerFromConfig`, `startRunner`
 - Per-session (MCP Client session) configuration hooks — `MCPHttpServer.createServerForRequest`
 - Tool registration — `ToolBase` / `ToolClass` tool classes and `ToolRegistry` arrays
 - Connection management and connection error handling — `MCPConnectionManager`, `connectionErrorHandler`
@@ -68,9 +68,10 @@ All packages are available as ES modules. The server targets Node.js `>= 24`.
 There are three main approaches:
 
 1. **`runMcpCli` (recommended for CLIs)**: one call that parses config, runs handlers, creates the server and infrastructure, and starts stdio or HTTP transport — the same flow the official binary uses.
-2. **`createServerFromConfig` + `createRunnerFromConfig` + `startRunner`**: split the same flow so you can replace individual dependencies (logger, API client, telemetry, monitoring server) via `create*FromConfig` factories, or create just the server (`createServerFromConfig`) and wire a custom runner.
-   - `createServerFromConfig({ config, serverMetadata, tools, resources, logger })` builds `{ server, config, metrics, monitoringServer }` (the logger is provided as input).
-   - `createRunnerFromConfig` calls it internally and returns only the configured transport runner (`StdioRunner` for stdio, `StreamableHttpRunner` for HTTP).
+2. **`createSharedServicesFromConfig` + `createRunnerFromConfig` + `startRunner`**: split the same flow so you can replace individual dependencies (logger, API client, telemetry, monitoring server) via `create*FromConfig` factories, or create just the server (`createServerFromConfig`) and wire a custom runner.
+   - `createSharedServicesFromConfig({ config, serverMetadata, tools, resources, logger })` builds the app-level infrastructure shared by all servers (`metrics`, `monitoringServer`, `keychain`, `deviceId`, `connectionStore`, `atlasLocalClient`).
+   - `createServerFromConfig({ config, sharedServices })` builds one server (session-scoped state) from a resolved config.
+   - `createRunnerFromConfig` builds the shared infrastructure and returns only the configured transport runner (`StdioRunner` for stdio, `StreamableHttpRunner` for HTTP).
    - `startRunner({ transportRunner, logger, onExit })` starts the runner and manages the server lifecycle (signal handlers, graceful shutdown).
 3. **Override `MCPHttpServer.createServerForRequest`**: when hosting over HTTP and you need per-request (per-session) customization, subclass `MCPHttpServer` and override its `createServerForRequest(request: TransportRequestContext)` instead. In v3 this hook lives on `MCPHttpServer`, **not** on `StreamableHttpRunner`.
 
@@ -444,15 +445,17 @@ const standard = [...MongoDBTools, ...AtlasTools, ...AtlasLocalTools];
 | `parseUserConfig({ args })`                                                                                                                                  | Parse CLI args/env into `{ error, warnings, parsed }`                            |
 | `UserConfigSchema`, `configRegistry`, `ALL_CONFIG_KEYS`                                                                                                      | Config schema and registry                                                       |
 | `applyConfigOverrides`, `getConfigMeta`, `nameToConfigKey`                                                                                                   | Request-level config overrides (HTTP headers / query params)                     |
-| `createServerFromConfig({ config, serverMetadata, tools, resources, logger })`                                                                               | Build `{ server, config, metrics, monitoringServer }`                            |
 | `createRunnerFromConfig({ config, serverMetadata, tools, resources, logger })`                                                                               | Build the transport runner only (`StdioRunner` or `StreamableHttpRunner`)        |
-| `createHttpTransportRunnerFromConfig({ config, server, logger, metrics, monitoringServer })`                                                                 | Build the HTTP transport runner explicitly                                       |
+| `createHttpTransportRunnerFromConfig(sharedServices)`                                                                                                        | Build the HTTP transport runner (creates a fresh server per request)             |
+| `createSharedServicesFromConfig({ config, serverMetadata, tools, resources, logger })`                                                                       | Build app-level infra shared by all servers (metrics, connection store, ...)     |
+| `createServerFromConfig({ config, sharedServices })`                                                                                                         | Build one server (session-scoped state) from a resolved config                   |
+| `CliMcpHttpServer`                                                                                                                                           | HTTP server creating a fresh `CliServer` per session                             |
 | `startRunner({ transportRunner, logger, onExit })`                                                                                                           | Start the runner and manage graceful shutdown                                    |
 | `createLoggerFromConfig` / `createApiClientFromConfig` / `createExportsManagerFromConfig` / `createTelemetryFromConfig` / `createMonitoringServerFromConfig` | Individual infrastructure factories                                              |
 | `Resources`, `ConfigResource`, `DebugResource`, `ExportedData`                                                                                               | Built-in MCP resources                                                           |
 | `HelpHandler`, `VersionHandler`, `DryRunHandler`                                                                                                             | CLI handlers                                                                     |
-| `SharedSessionMCPHttpServer`                                                                                                                                 | `MCPHttpServer` variant sharing a single session                                 |
-| Types                                                                                                                                                        | `ToolRegistry`, `ResourceRegistry`, `McpSession`, `RunMcpCliOptions`             |
+
+| Types | `ToolRegistry`, `ResourceRegistry`, `McpSession`, `RunMcpCliOptions` |
 
 ### `@mongodb-js/mcp-core`
 
@@ -507,7 +510,7 @@ await runner.start();
 
 **HTTP:** `StreamableHttpRunner` attaches a `MCPHttpServer` to the transport. The runners `start()` the server and `close()` it; per-request server creation happens in `MCPHttpServer.createServerForRequest`. Optionally add a `MonitoringServer` for Prometheus metrics. See [Use Case 2](#use-case-2-per-session-configuration) for a full wiring example.
 
-**Shared session:** `SharedSessionMCPHttpServer` (from `@mongodb-js/mcp-cli`) serves all requests through a single `CliServer` — the simplest HTTP setup when you don't need per-session configuration.
+**CLI default (per-request servers):** the CLI's `createHttpTransportRunnerFromConfig` wires a `CliMcpHttpServer` that creates a **fresh `CliServer` per HTTP session** via `createServerFromConfig`, applying request-level config overrides (`applyConfigOverrides`) on each session — so concurrent HTTP sessions are isolated (separate servers, sessions, telemetry and scoped connection registries). App-level infrastructure (metrics, device id, shared connection store, Atlas Local client) is built once by `createSharedServicesFromConfig` and shared. Stdio builds a single server (one client per connection).
 
 ### Configuration and request overrides
 
