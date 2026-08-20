@@ -139,10 +139,20 @@ jobs:
         run: |
           pnpm install --frozen-lockfile
           pnpm run build
-      - name: Build .mcpb
-        run: pnpm run build:mcpb
       - name: Publish to NPM
         run: pnpm -r publish --tag ${{ needs.check.outputs.RELEASE_CHANNEL }} --no-git-checks
+
+      # The .mcpb staging install resolves the @mongodb-js/mcp-* workspace deps from the
+      # registry (workspace:* is rewritten to exact versions by createMcpb.ts), so the npm
+      # publish must land first. Wait for a representative dep before building; the
+      # wait-for-npm action retries until the version is visible on the registry.
+      - name: Wait for workspace deps to be available on npm
+        uses: ./.github/actions/wait-for-npm
+        with:
+          package-name: @mongodb-js/mcp-core
+          package-version: ${{ needs.check.outputs.NPM_VERSION }}
+      - name: Build .mcpb
+        run: pnpm run build:mcpb
 
       - name: Generate AI release summary
         id: ai-summary
