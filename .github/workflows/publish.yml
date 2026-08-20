@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - rmcp-ga-release
+      - v2-rebuilt
 
 jobs:
   check:
