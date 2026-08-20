@@ -1232,6 +1232,10 @@ export const UserConfigSchema: z.ZodObject<{
         enabled: "enabled";
         disabled: "disabled";
     }>>;
+    outputFormat: z.ZodDefault<z.ZodEnum<{
+        json: "json";
+        gcf: "gcf";
+    }>>;
     transport: z.ZodDefault<z.ZodEnum<{
         stdio: "stdio";
         http: "http";

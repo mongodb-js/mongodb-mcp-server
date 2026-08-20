@@ -24,6 +24,7 @@ const expectedDefaults = {
     exportCleanupIntervalMs: 2 * 60 * 1000, // 2 minutes
     disabledTools: [],
     telemetry: "enabled",
+    outputFormat: "json",
     readOnly: false,
     indexCheck: false,
     disableServerSideJs: true,
