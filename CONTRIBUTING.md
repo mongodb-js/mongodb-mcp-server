@@ -246,13 +246,14 @@ still need to ship on v2 are released from a v2 maintenance branch instead:
    ```bash
    git checkout -b v2-maintenance v2.1.0  # or the latest v2 tag via: git tag -l 'v2.*' | sort -V | tail -1
    ```
+
 2. Add the `v2-maintenance` branch to branches for automatic publishing in `.github/workflows/publish.yml` (if not already present). You will also need to configure `Production` environment to allow this branch to publish.
-4. On a new branch based on `v2-maintenance`, apply the necessary changes and fixes. Create a separate PR for `main` if you also need them in v3.
-5. Bump the version (`npm version patch --no-git-tag-version`, sync the scoped
+3. On a new branch based on `v2-maintenance`, apply the necessary changes and fixes. Create a separate PR for `main` if you also need them in v3.
+4. Bump the version (`npm version patch --no-git-tag-version`, sync the scoped
    `@mongodb-js/mcp-*` packages, `pnpm run build:update-package-version`) and open a
    release PR against the v2 branch.
-6. Open a PR to merge the release PR into `v2-maintenance`. Merging will trigger the publish workflow for v2.
-7. Verify the publish on NPM/Docker/MCP Registry and post in `#mongodb-mcp`.
+5. Open a PR to merge the release PR into `v2-maintenance`. Merging will trigger the publish workflow for v2.
+6. Verify the publish on NPM/Docker/MCP Registry and post in `#mongodb-mcp`.
 
 ### Code Quality
 
