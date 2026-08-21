@@ -3,6 +3,10 @@
   "version": "3.0.0-prerelease.2",
   "type": "module",
   "description": "Atlas API client for MongoDB MCP server packages",
+  "repository": {
+    "url": "https://github.com/mongodb-js/mongodb-mcp-server.git",
+    "directory": "packages/atlas-api-client"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",

@@ -3,6 +3,10 @@
   "version": "3.0.0-prerelease.2",
   "type": "module",
   "description": "UI components and registry for MongoDB MCP server",
+  "repository": {
+    "url": "https://github.com/mongodb-js/mongodb-mcp-server.git",
+    "directory": "packages/ui"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",

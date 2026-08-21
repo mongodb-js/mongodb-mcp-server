@@ -3,6 +3,10 @@
   "version": "3.0.0-prerelease.2",
   "type": "module",
   "description": "Assistant tools for the MongoDB MCP server",
+  "repository": {
+    "url": "https://github.com/mongodb-js/mongodb-mcp-server.git",
+    "directory": "packages/tools-assistant"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
