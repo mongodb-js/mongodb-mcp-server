@@ -9,7 +9,7 @@ import {
     waitCluster,
     assertApiClientIsAvailable,
 } from "./atlasHelpers.js";
-import { afterAll, beforeAll, describe, expect, it, vitest } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vitest } from "vitest";
 
 function isAzureCMKTestConfigMissing(): boolean {
     return (
@@ -33,6 +33,16 @@ describeWithAtlas("clusters", (integration) => {
                 const session = integration.mcpServer().session;
                 await deleteCluster(session, projectId, clusterName);
             }
+        });
+
+        // Several tests stub session.apiClient methods (listClusters,
+        // listFlexClusters, listClusterDetails, ...) to exercise error paths. The
+        // stubs are never restored otherwise, and later teardown hooks call back
+        // into those apiClient methods (e.g. withProject's project cleanup listing
+        // clusters to delete), so a leaked rejection breaks teardown and leaks the
+        // project. Restore all spies after every test.
+        afterEach(() => {
+            vitest.restoreAllMocks();
         });
 
         describe("atlas-create-free-cluster", () => {
@@ -237,12 +247,23 @@ describeWithAtlas("clusters", (integration) => {
             beforeAll(async () => {
                 const projectId = getProjectId();
                 const ipAddress = getIpAddress();
-                await waitCluster(integration.mcpServer().session, projectId, clusterName, (cluster) => {
-                    return (
-                        cluster.stateName === "IDLE" &&
-                        (cluster.connectionStrings?.standardSrv || cluster.connectionStrings?.standard) !== undefined
-                    );
-                });
+                // M0 provisioning on cloud-dev is slow and non-deterministic (observed
+                // to exceed 10 minutes), so allow up to 20 minutes (10s x 120); a hook
+                // timeout here would silently skip the connect tests.
+                await waitCluster(
+                    integration.mcpServer().session,
+                    projectId,
+                    clusterName,
+                    (cluster) => {
+                        return (
+                            cluster.stateName === "IDLE" &&
+                            (cluster.connectionStrings?.standardSrv || cluster.connectionStrings?.standard) !==
+                                undefined
+                        );
+                    },
+                    10_000,
+                    120
+                );
                 const session = integration.mcpServer().session;
                 assertApiClientIsAvailable(session);
                 await session.apiClient.createAccessListEntry({
