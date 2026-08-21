@@ -45,7 +45,7 @@ const paths = {
     outputDir: resolve(repoRoot, "dist-mcpb"),
 } as const;
 
-type WorkspacePackage = { name: string; dir: string; version: string };
+type WorkspacePackage = { name: string; dir: string };
 
 function parseWorkspaceGlobs(yaml: string): string[] {
     // Simple parser: find a line starting with `packages:`, collect subsequent
@@ -118,8 +118,7 @@ function discoverWorkspacePackages(rootPkg: PackageJson): WorkspacePackage[] {
         if (!dir) {
             throw new Error(`Could not locate workspace package ${name} in pnpm-workspace.yaml globs`);
         }
-        const pkgJson = JSON.parse(readFileSync(resolve(dir, "package.json"), "utf8")) as PackageJson;
-        found.push({ name, dir, version: pkgJson.version });
+        found.push({ name, dir });
     }
     return found;
 }
@@ -205,18 +204,17 @@ async function stageDependencies(rootPkg: PackageJson): Promise<void> {
     const stagingPkg = buildStagingPackageJson(rootPkg);
     const workspacePkgs = discoverWorkspacePackages(rootPkg);
 
-    // Rewrite workspace:* to each package's own exact version; the mcpb build runs after
-    // the npm publish (see publish.yml), so these resolve from the registry. Never assume
-    // the deps share the root package's version — the monorepo can be released with a
-    // version skew between mongodb-mcp-server and its @mongodb-js/mcp-* packages.
+    // Rewrite workspace:* to exact versions; the mcpb build runs after the npm publish
+    // (see publish.yml), so these resolve from the registry.
+    const exactVersion = rootPkg.version;
     for (const ws of workspacePkgs) {
         const deps = stagingPkg.dependencies as Record<string, string> | undefined;
         const optDeps = stagingPkg.optionalDependencies as Record<string, string> | undefined;
         if (deps && ws.name in deps) {
-            deps[ws.name] = ws.version;
+            deps[ws.name] = exactVersion;
         }
         if (optDeps && ws.name in optDeps) {
-            optDeps[ws.name] = ws.version;
+            optDeps[ws.name] = exactVersion;
         }
     }
 
