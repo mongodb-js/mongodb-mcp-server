@@ -1,18 +1,16 @@
 import { Client } from "@modelcontextprotocol/sdk/client";
-import { TransportRunnerBase, type TransportRunnerConfig } from "mongodb-mcp-server/web";
+import type { ITransportRunner } from "@mongodb-js/mcp-types";
 
-export class BrowserTestRunner extends TransportRunnerBase {
-    private client: Client | null = null;
+export class BrowserTestRunner implements ITransportRunner {
+    private _client: Client | null = null;
 
-    constructor(config: TransportRunnerConfig) {
-        super(config);
+    get client(): Client | null {
+        return this._client;
     }
 
     async start(): Promise<void> {
-        await this.setupServer();
-
         // Create MCP client
-        this.client = new Client(
+        this._client = new Client(
             {
                 name: "browser-test-client",
                 version: "1.0.0",
@@ -21,13 +19,10 @@ export class BrowserTestRunner extends TransportRunnerBase {
                 capabilities: {},
             }
         );
+        return Promise.resolve();
     }
 
-    async closeTransport(): Promise<void> {
+    async close(): Promise<void> {
         await this.client?.close();
-    }
-
-    getClient(): Client | null {
-        return this.client;
     }
 }

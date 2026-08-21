@@ -1,6 +1,6 @@
 import { randomBytes } from "crypto";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import type { LoggerBase } from "./logging/index.js";
+import type { LoggerBase } from "@mongodb-js/mcp-core";
 import type { AnyConnectionState, ConnectionManager, ConnectionSettings } from "./connectionManager.js";
 import { ErrorCodes, MongoDBError } from "./errors.js";
 

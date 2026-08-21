@@ -1,12 +1,10 @@
-import { ReactiveResource } from "../resource.js";
-import { formatUntrustedData } from "../../tools/tool.js";
-import { connectCapableTools } from "../../common/connectionErrorHandler.js";
-import { summarizeConnection } from "../../common/connectionSummary.js";
-import type { Telemetry } from "../../telemetry/telemetry.js";
-import type { Session, UserConfig } from "../../lib.js";
+import { ReactiveResource, formatUntrustedData } from "@mongodb-js/mcp-core";
+import type { ITelemetry } from "@mongodb-js/mcp-types";
+import { connectCapableTools, summarizeConnection } from "@mongodb-js/mcp-tools-mongodb";
+import type { McpSession, CliServer } from "@mongodb-js/mcp-cli";
 
-export class DebugResource extends ReactiveResource<undefined, readonly []> {
-    constructor(session: Session, config: UserConfig, telemetry: Telemetry) {
+export class DebugResource extends ReactiveResource<undefined, readonly [], McpSession, CliServer> {
+    constructor(session: McpSession, telemetry: ITelemetry) {
         super({
             resourceConfiguration: {
                 name: "debug-mongodb",
@@ -21,16 +19,8 @@ export class DebugResource extends ReactiveResource<undefined, readonly []> {
                 events: [],
             },
             session,
-            config,
             telemetry,
         });
-    }
-
-    reduce(eventName: undefined, event: undefined): undefined {
-        void eventName;
-        void event;
-
-        return this.current;
     }
 
     async toOutput(): Promise<string> {

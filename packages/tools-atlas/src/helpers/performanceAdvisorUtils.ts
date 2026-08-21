@@ -1,12 +1,20 @@
-import { LogId } from "../logging/index.js";
-import { type ApiClient, type ApiClientRequestContext } from "./apiClient.js";
-import { requestIdAttr } from "../../helpers/requestIdAttr.js";
+import { LogId, requestIdAttr } from "@mongodb-js/mcp-core";
+import type {
+    ApiClient,
+    PerformanceAdvisorIndex,
+    PerformanceAdvisorResponse,
+    DropIndexSuggestionsIndex,
+    DropIndexSuggestionsResponse,
+    SchemaAdvisorResponse,
+    SchemaAdvisorItemRecommendation,
+    PerformanceAdvisorSlowQuery,
+} from "@mongodb-js/mcp-atlas-api-client";
+import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { getProcessIdsFromCluster } from "./cluster.js";
-import type { components } from "./openapi.js";
 
-export type SuggestedIndex = components["schemas"]["PerformanceAdvisorIndex"];
-export type DropIndexSuggestion = components["schemas"]["DropIndexSuggestionsIndex"];
-export type SlowQueryLog = components["schemas"]["PerformanceAdvisorSlowQuery"];
+export type SuggestedIndex = PerformanceAdvisorIndex;
+export type DropIndexSuggestion = DropIndexSuggestionsIndex;
+export type SlowQueryLog = PerformanceAdvisorSlowQuery;
 
 export const DEFAULT_SLOW_QUERY_LOGS_LIMIT = 50;
 
@@ -14,21 +22,21 @@ export const SUGGESTED_INDEXES_COPY = `Note: The "Weight" field is measured in b
 export const SLOW_QUERY_LOGS_COPY = `Please notify the user that the MCP server tool limits slow query logs to the most recent ${DEFAULT_SLOW_QUERY_LOGS_LIMIT} slow query logs. This is a limitation of the MCP server tool only. More slow query logs and performance suggestions can be seen in the Atlas UI. Please give to the user the following docs about the performance advisor: https://www.mongodb.com/docs/atlas/performance-advisor/.`;
 
 interface SuggestedIndexesResponse {
-    content: components["schemas"]["PerformanceAdvisorResponse"];
+    content: PerformanceAdvisorResponse;
 }
 interface DropIndexesResponse {
-    content: components["schemas"]["DropIndexSuggestionsResponse"];
+    content: DropIndexSuggestionsResponse;
 }
 interface SchemaAdviceResponse {
-    content: components["schemas"]["SchemaAdvisorResponse"];
+    content: SchemaAdvisorResponse;
 }
-export type SchemaRecommendation = components["schemas"]["SchemaAdvisorItemRecommendation"];
+export type SchemaRecommendation = SchemaAdvisorItemRecommendation;
 
 export async function getSuggestedIndexes(
     apiClient: ApiClient,
     projectId: string,
     clusterName: string,
-    context?: ApiClientRequestContext
+    context?: ToolExecutionContext
 ): Promise<{ suggestedIndexes: Array<SuggestedIndex> }> {
     try {
         const response = await apiClient.listClusterSuggestedIndexes(
@@ -62,7 +70,7 @@ export async function getDropIndexSuggestions(
     apiClient: ApiClient,
     projectId: string,
     clusterName: string,
-    context?: ApiClientRequestContext
+    context?: ToolExecutionContext
 ): Promise<{
     hiddenIndexes: Array<DropIndexSuggestion>;
     redundantIndexes: Array<DropIndexSuggestion>;
@@ -102,7 +110,7 @@ export async function getSchemaAdvice(
     apiClient: ApiClient,
     projectId: string,
     clusterName: string,
-    context?: ApiClientRequestContext
+    context?: ToolExecutionContext
 ): Promise<{ recommendations: Array<SchemaRecommendation> }> {
     try {
         const response = await apiClient.listSchemaAdvice(
@@ -136,7 +144,7 @@ export async function getSlowQueries(
     clusterName: string,
     since?: Date,
     namespaces?: Array<string>,
-    context?: ApiClientRequestContext
+    context?: ToolExecutionContext
 ): Promise<{ slowQueryLogs: Array<SlowQueryLog> }> {
     try {
         const processIds = await getProcessIdsFromCluster(apiClient, projectId, clusterName, context);

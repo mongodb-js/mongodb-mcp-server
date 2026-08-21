@@ -1,9 +1,9 @@
 import { z } from "zod";
-import { AtlasToolBase } from "../atlasTool.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { OperationType, ToolArgs, ToolExecutionContext, ToolResult } from "../../tool.js";
-import { formatUntrustedData } from "../../tool.js";
-import { ApiClientError } from "../../../common/atlas/apiClientError.js";
+import { AtlasToolBase } from "../../atlasTool.js";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
+import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
+import { type ToolArgs, type ToolResult, formatUntrustedData } from "@mongodb-js/mcp-core";
+import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import {
     getSuggestedIndexes,
     getDropIndexSuggestions,
@@ -12,9 +12,9 @@ import {
     DEFAULT_SLOW_QUERY_LOGS_LIMIT,
     SUGGESTED_INDEXES_COPY,
     SLOW_QUERY_LOGS_COPY,
-} from "../../../common/atlas/performanceAdvisorUtils.js";
+} from "../../helpers/performanceAdvisorUtils.js";
 import { AtlasArgs } from "../../args.js";
-import type { PerfAdvisorToolMetadata } from "../../../telemetry/types.js";
+import type { PerfAdvisorToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 
 const PerformanceAdvisorOperationType = z.enum([
     "suggestedIndexes",

@@ -91,10 +91,11 @@ export class GroveOpenAICompatibleModel implements Model {
     }
 
     getModel(): LanguageModel {
+        const apiKey = getGroveApiKey();
         return createOpenAI({
             baseURL: `${GROVE_BASE_URL}/openai/v1`,
-            apiKey: process.env.MDB_GROVE_API_KEY!,
-            headers: { "api-key": process.env.MDB_GROVE_API_KEY! },
+            apiKey,
+            headers: { "api-key": apiKey },
         }).chat(this.modelName);
     }
 }
@@ -112,12 +113,21 @@ export class GroveAnthropicModel implements Model {
     }
 
     getModel(): LanguageModel {
+        const apiKey = getGroveApiKey();
         return createAnthropic({
             baseURL: `${GROVE_BASE_URL}/anthropic/v1`,
-            apiKey: process.env.MDB_GROVE_API_KEY!,
-            headers: { "api-key": process.env.MDB_GROVE_API_KEY! },
+            apiKey,
+            headers: { "api-key": apiKey },
         }).languageModel(this.modelName);
     }
+}
+
+function getGroveApiKey(): string {
+    const apiKey = process.env.MDB_GROVE_API_KEY;
+    if (!apiKey) {
+        throw new Error("MDB_GROVE_API_KEY is not set");
+    }
+    return apiKey;
 }
 
 const ALL_TESTABLE_MODELS: Model[] = [

@@ -1,11 +1,18 @@
 import { z } from "zod";
-import { StreamsToolBase } from "./streamsToolBase.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { OperationType, ToolArgs, ToolExecutionContext } from "../../tool.js";
-import { formatUntrustedData } from "../../tool.js";
+import { StreamsToolBase } from "../../streams/streamsToolBase.js";
+import type { CallToolResult, OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
+import { formatUntrustedData, type ToolArgs } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
-import { StreamsArgs } from "./streamsArgs.js";
-import type { StreamsProcessorWithStats } from "../../../common/atlas/openapi.js";
+import { StreamsArgs } from "../../streams/streamsArgs.js";
+
+type StreamsProcessorWithStats = {
+    name?: string;
+    state?: string;
+    tier?: string;
+    stats?: Record<string, unknown>;
+    options?: { dlq?: { connectionName?: string; db?: string; coll?: string } };
+    pipeline?: Record<string, unknown>[];
+};
 
 const DiscoverAction = z.enum([
     "list-workspaces",

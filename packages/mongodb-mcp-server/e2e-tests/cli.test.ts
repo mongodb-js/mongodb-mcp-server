@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import packageJson from "../../package.json" with { type: "json" };
+import packageJson from "../package.json" with { type: "json" };
 import "./e2eUtils.js";
 import { useCliRunner } from "./e2eUtils.js";
 

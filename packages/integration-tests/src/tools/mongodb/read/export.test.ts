@@ -2,7 +2,7 @@ import path from "path";
 import { Long } from "bson";
 import fs from "fs/promises";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
 import {
     databaseCollectionParameters,
     defaultTestConfig,
@@ -10,9 +10,10 @@ import {
     resourceChangedNotification,
     validateThrowsForInvalidArguments,
     validateToolMetadata,
-} from "../../../helpers.js";
-import { describeWithMongoDB } from "../mongodbHelpers.js";
-import type { UserConfig } from "../../../../../src/lib.js";
+} from "../../../integrationHelpers.js";
+import { describeWithMongoDB } from "../../../mongodbHelpers.js";
+import type { UserConfig } from "mongodb-mcp-server";
+import { ExportedData } from "@mongodb-js/mcp-cli";
 
 const userConfig: UserConfig = {
     ...defaultTestConfig,
@@ -617,5 +618,6 @@ describeWithMongoDB(
     },
     {
         getUserConfig: () => userConfig,
+        serverOptions: { resources: [ExportedData] },
     }
 );

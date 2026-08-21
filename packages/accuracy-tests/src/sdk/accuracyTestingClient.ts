@@ -2,13 +2,13 @@ import { v4 as uuid } from "uuid";
 import { tool as createVercelTool } from "ai";
 import { experimental_createMCPClient as createMCPClient } from "@ai-sdk/mcp";
 import type { Tool } from "ai";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
 import { MCP_SERVER_CLI_SCRIPT } from "./constants.js";
 import type { LLMToolCall } from "./accuracyResultStorage/resultStorage.js";
 import type { VercelMCPClient, VercelMCPClientTools } from "./agent.js";
-import type { UserConfig } from "../../../src/lib.js";
+import type { UserConfig } from "mongodb-mcp-server";
 
 type ToolResultGeneratorFn = (parameters: Record<string, unknown>) => CallToolResult | Promise<CallToolResult>;
 export type MockedTools = Record<string, ToolResultGeneratorFn>;

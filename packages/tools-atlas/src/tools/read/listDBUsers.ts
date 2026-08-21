@@ -1,7 +1,8 @@
 import { z } from "zod";
-import { AtlasToolBase } from "../atlasTool.js";
-import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
-import { formatUntrustedData } from "../../tool.js";
+import { AtlasToolBase } from "../../atlasTool.js";
+import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
+import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
+import { formatUntrustedData } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
 
 export const ListDBUsersArgs = {

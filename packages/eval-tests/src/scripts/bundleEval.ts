@@ -12,7 +12,7 @@
  * # Our solution:
  * - We use esbuild ourselves to bundle the eval, explicitly aliasing all unused and optional
  *   dependencies to stub files. This ensures esbuild never attempts to bundle native code.
- * - The bundled output is a single CommonJS file at `tests/eval/dist/mongodb.eval.cjs`.
+ * - The bundled output is a single CommonJS file at `dist/mongodb.eval.cjs`.
  * - For local runs, the eval script still imports mdb-mcp-server normally, so no behavior
  *   changes for local workflows.
  * - For `braintrust push`, our self-bundled version is uploaded—free of native code
@@ -34,7 +34,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
-const evalDir = join(scriptDir, "..");
+const evalDir = join(scriptDir, "..", "..");
 const stub = join(scriptDir, "bundleEval/stub.mjs");
 const osDnsStub = join(scriptDir, "bundleEval/osDnsNativeStub.cjs");
 const outFile = join(evalDir, "dist/mongodb.eval.cjs");
@@ -57,7 +57,7 @@ function stubModules(packages: string[], stubPath: string): esbuild.Plugin {
 }
 
 await esbuild.build({
-    entryPoints: [join(evalDir, "mongodb.eval.ts")],
+    entryPoints: [join(evalDir, "src/mongodb.eval.ts")],
     outfile: outFile,
     bundle: true,
     platform: "node",

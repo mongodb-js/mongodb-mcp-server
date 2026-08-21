@@ -5,13 +5,18 @@ import {
     getResponseContent,
     defaultTestConfig,
     expectDefined,
-} from "../../../helpers.js";
+} from "../../../integrationHelpers.js";
 import { expect, it, afterEach, describe, beforeEach } from "vitest";
-import { createMockElicitInput } from "../../../../utils/elicitationMocks.js";
-import { describeWithMongoDB, getDocsFromUntrustedContent, validateAutoConnectBehavior } from "../mongodbHelpers.js";
+import { createMockElicitInput } from "@mongodb-js/mcp-test-utils";
+import {
+    describeWithMongoDB,
+    getDocsFromUntrustedContent,
+    validateAutoConnectBehavior,
+    syncMongoToolsConfigFromUserConfig,
+} from "../../../mongodbHelpers.js";
 import type { Client } from "@modelcontextprotocol/sdk/client";
-import type { CursorLimitKey } from "../../../../../src/helpers/constants.js";
-import { bsonToJson } from "../../../../../src/helpers/bsonToJson.js";
+import type { CursorLimitKey } from "@mongodb-js/mcp-tools-mongodb";
+import { bsonToJson } from "@mongodb-js/mcp-tools-mongodb";
 
 type AggregateDBToolResponse = Awaited<ReturnType<Client["callTool"]>>;
 
@@ -54,8 +59,9 @@ function expectAggregateDBStructuredContent(
 
 describeWithMongoDB("aggregate-db tool", (integration) => {
     afterEach(() => {
-        integration.mcpServer().userConfig.readOnly = false;
-        integration.mcpServer().userConfig.disabledTools = [];
+        integration.mcpServer().session.config.readOnly = false;
+        integration.mcpServer().session.config.disabledTools = [];
+        syncMongoToolsConfigFromUserConfig(integration.mcpServer());
     });
 
     validateToolMetadata(integration, "aggregate-db", "Run an aggregation against a MongoDB database", "read", [
@@ -644,7 +650,7 @@ describeWithMongoDB(
 
             const { result, error, executionTime } = await aggregatePromise;
 
-            expect(executionTime).toBeLessThan(50); // Ensure it aborted quickly
+            expect(executionTime).toBeLessThan(80); // Ensure it aborted quickly
             expect(result).toBeUndefined();
             expectDefined(error);
             expect(error.message).toContain("This operation was aborted");

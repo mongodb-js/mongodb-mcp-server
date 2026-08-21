@@ -1,9 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-    ConnectionConfig,
-    PrivateLinkConfig,
-    StreamsArgs,
-} from "../../../../../src/tools/atlas/streams/streamsArgs.js";
+import { ConnectionConfig, PrivateLinkConfig, StreamsArgs } from "@mongodb-js/mcp-tools-atlas";
 
 describe("StreamsArgs", () => {
     describe("workspaceName", () => {

@@ -1,13 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiClient } from "../../../src/common/atlas/apiClient.js";
-import { packageInfo } from "../../../src/common/packageInfo.js";
-import type { CommonProperties, TelemetryEvent, TelemetryResult } from "../../../src/telemetry/types.js";
-import { NullLogger } from "../../../src/common/logging/index.js";
+import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import type { TelemetryCommonProperties, TelemetryEvent } from "@mongodb-js/mcp-types";
+import { NoopLogger } from "@mongodb-js/mcp-core";
+
+const TEST_USER_AGENT = "test-user-agent";
+const testHttpClient = {
+    fetch: globalThis.fetch.bind(globalThis),
+    Request: globalThis.Request,
+};
 
 describe("ApiClient", () => {
     let apiClient: ApiClient;
 
-    const mockEvents: TelemetryEvent<CommonProperties>[] = [
+    const mockEvents: TelemetryEvent<TelemetryCommonProperties>[] = [
         {
             timestamp: new Date().toISOString(),
             source: "mdbmcp",
@@ -21,7 +26,7 @@ describe("ApiClient", () => {
                 os_type: "test-os",
                 component: "test-component",
                 duration_ms: 100,
-                result: "success" as TelemetryResult,
+                result: "success",
                 category: "test-category",
             },
         },
@@ -31,13 +36,14 @@ describe("ApiClient", () => {
         apiClient = new ApiClient(
             {
                 baseUrl: "https://api.test.com",
+                userAgent: TEST_USER_AGENT,
                 credentials: {
                     clientId: "test-client-id",
                     clientSecret: "test-client-secret",
                 },
-                userAgent: "test-user-agent",
+                httpClient: testHttpClient,
             },
-            new NullLogger()
+            new NoopLogger()
         );
 
         // @ts-expect-error accessing private property for testing
@@ -55,7 +61,7 @@ describe("ApiClient", () => {
     describe("constructor", () => {
         it("should create a client with the correct configuration", () => {
             expect(apiClient).toBeDefined();
-            expect(apiClient.isAuthConfigured()).toBeDefined();
+            expect(apiClient.isAuthConfigured()).toBe(true);
         });
     });
 
@@ -68,10 +74,11 @@ describe("ApiClient", () => {
             const client = new ApiClient(
                 {
                     baseUrl: "https://api.test.com",
-                    userAgent: "test-user-agent",
+                    userAgent: TEST_USER_AGENT,
                     supportsCurrentIpLookup: false,
+                    httpClient: testHttpClient,
                 },
-                new NullLogger()
+                new NoopLogger()
             );
 
             expect(client.supportsCurrentIpLookup).toBe(false);
@@ -80,7 +87,7 @@ describe("ApiClient", () => {
     });
 
     describe("httpClient", () => {
-        it("uses the injected fetch and Request instead of the shared proxy fetch", async () => {
+        it("uses the injected fetch and Request instead of the platform fetch", async () => {
             let requestCount = 0;
             class TrackedRequest extends Request {
                 constructor(input: RequestInfo | URL, init?: RequestInit) {
@@ -101,13 +108,13 @@ describe("ApiClient", () => {
             const client = new ApiClient(
                 {
                     baseUrl: "https://api.test.com",
-                    userAgent: "test-user-agent",
+                    userAgent: TEST_USER_AGENT,
                     httpClient: {
                         fetch: injectedFetch as unknown as typeof fetch,
                         Request: TrackedRequest,
                     },
                 },
-                new NullLogger()
+                new NoopLogger()
             );
 
             await client.listClusterDetails();
@@ -123,7 +130,7 @@ describe("ApiClient", () => {
             const client = new ApiClient(
                 {
                     baseUrl: "https://api.test.com",
-                    userAgent: "test-user-agent",
+                    userAgent: TEST_USER_AGENT,
                     credentials: {
                         clientId: "test-client-id",
                         clientSecret: "test-client-secret",
@@ -133,7 +140,7 @@ describe("ApiClient", () => {
                         Request: globalThis.Request,
                     },
                 },
-                new NullLogger()
+                new NoopLogger()
             );
 
             // @ts-expect-error accessing private property for testing
@@ -142,7 +149,7 @@ describe("ApiClient", () => {
     });
 
     describe("User-Agent", () => {
-        it("should use custom userAgent when provided in options", async () => {
+        it("should use the userAgent provided in options", async () => {
             const mockFetch = vi.spyOn(global, "fetch");
             mockFetch.mockResolvedValueOnce(new Response(null, { status: 200 }));
 
@@ -155,28 +162,24 @@ describe("ApiClient", () => {
             expect(url instanceof URL ? url.href : url).toBe("https://api.test.com/api/private/v1.0/telemetry/events");
             const headers = init?.headers as Record<string, string>;
             expect(headers).toBeDefined();
-            expect(headers["User-Agent"]).toBe("test-user-agent");
+            expect(headers["User-Agent"]).toBe(TEST_USER_AGENT);
             expect(init?.signal).toBeInstanceOf(AbortSignal);
         });
 
-        it("should use default userAgent with version, platform, and arch when not provided", async () => {
-            const clientWithoutUserAgent = new ApiClient(
+        it("should use the provided userAgent in unauth requests", async () => {
+            const clientWithoutCredentials = new ApiClient(
                 {
                     baseUrl: "https://api.test.com",
-                    credentials: {
-                        clientId: "test-client-id",
-                        clientSecret: "test-client-secret",
-                    },
+                    userAgent: "AtlasMCP/test-version",
+                    httpClient: testHttpClient,
                 },
-                new NullLogger()
+                new NoopLogger()
             );
-            // @ts-expect-error accessing private property for testing
-            clientWithoutUserAgent.authProvider.getAuthHeaders = vi.fn().mockRejectedValue(new Error("No token"));
 
             const mockFetch = vi.spyOn(global, "fetch");
             mockFetch.mockResolvedValueOnce(new Response(null, { status: 200 }));
 
-            await clientWithoutUserAgent.sendEvents(mockEvents);
+            await clientWithoutCredentials.sendEvents(mockEvents);
 
             expect(mockFetch).toHaveBeenCalledTimes(1);
             const call = mockFetch.mock.calls[0];
@@ -185,47 +188,13 @@ describe("ApiClient", () => {
             expect(url instanceof URL ? url.href : url).toBe(
                 "https://api.test.com/api/private/unauth/telemetry/events"
             );
-            const expectedDefaultUserAgent = `AtlasMCP/${packageInfo.version} (${process.platform}; ${process.arch})`;
             const headers = init?.headers as Record<string, string>;
             expect(headers).toBeDefined();
-            expect(headers["User-Agent"]).toBe(expectedDefaultUserAgent);
-        });
-
-        it("should not include hostname in default userAgent", async () => {
-            const clientWithoutUserAgent = new ApiClient(
-                {
-                    baseUrl: "https://api.test.com",
-                    credentials: {
-                        clientId: "test-client-id",
-                        clientSecret: "test-client-secret",
-                    },
-                },
-                new NullLogger()
-            );
-            // @ts-expect-error accessing private property for testing
-            clientWithoutUserAgent.authProvider.getAuthHeaders = vi.fn().mockRejectedValue(new Error("No token"));
-
-            const mockFetch = vi.spyOn(global, "fetch");
-            mockFetch.mockResolvedValueOnce(new Response(null, { status: 200 }));
-
-            await clientWithoutUserAgent.sendEvents(mockEvents);
-
-            const call = mockFetch.mock.calls[0];
-            expect(call).toBeDefined();
-            const init = call![1] as RequestInit;
-            const headers = init.headers as Record<string, string>;
-            const userAgent = headers["User-Agent"];
-            expect(userAgent).toBeDefined();
-            // Default format is AtlasMCP/version (platform; arch) — no third segment (hostname)
-            expect(userAgent).toMatch(
-                new RegExp(`^AtlasMCP/${packageInfo.version} \\(${process.platform}; ${process.arch}\\)$`)
-            );
-            expect(userAgent).not.toContain("; unknown");
-            expect(userAgent).not.toMatch(/\bhostname\b/i);
+            expect(headers["User-Agent"]).toBe("AtlasMCP/test-version");
         });
     });
 
-    describe("listProjects", () => {
+    describe("listGroups", () => {
         it("should return a list of projects", async () => {
             const mockProjects = {
                 results: [
@@ -397,7 +366,7 @@ describe("ApiClient", () => {
                         "Content-Type": "application/json",
                         Authorization: "Bearer mockToken",
                         Accept: "application/json",
-                        "User-Agent": "test-user-agent",
+                        "User-Agent": TEST_USER_AGENT,
                     },
                     body: JSON.stringify(mockEvents),
                 })
@@ -421,7 +390,7 @@ describe("ApiClient", () => {
                     headers: {
                         "Content-Type": "application/json",
                         Accept: "application/json",
-                        "User-Agent": "test-user-agent",
+                        "User-Agent": TEST_USER_AGENT,
                     },
                     body: JSON.stringify(mockEvents),
                 })
@@ -445,7 +414,7 @@ describe("ApiClient", () => {
                     headers: {
                         "Content-Type": "application/json",
                         Accept: "application/json",
-                        "User-Agent": "test-user-agent",
+                        "User-Agent": TEST_USER_AGENT,
                     },
                     body: JSON.stringify(mockEvents),
                 })
@@ -469,7 +438,7 @@ describe("ApiClient", () => {
                     headers: {
                         "Content-Type": "application/json",
                         Accept: "application/json",
-                        "User-Agent": "test-user-agent",
+                        "User-Agent": TEST_USER_AGENT,
                     },
                     body: JSON.stringify(mockEvents),
                 })

@@ -1,20 +1,22 @@
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { ErrorCodes, type MongoDBError } from "./errors.js";
-import type { AnyConnectionState } from "./connectionManager.js";
-import type { AnyToolBase } from "../tools/tool.js";
-import { DisconnectTool } from "../tools/mongodb/connect/disconnect.js";
-import { ListConnectionsTool } from "../tools/mongodb/connect/listConnections.js";
-
-export type ConnectionErrorHandler = (
-    error: MongoDBError<
-        ErrorCodes.NotConnectedToMongoDB | ErrorCodes.MisconfiguredConnectionString | ErrorCodes.UnknownConnectionId
-    >,
-    additionalContext: ConnectionErrorHandlerContext
-) => ConnectionErrorUnhandled | ConnectionErrorHandled | Promise<ConnectionErrorUnhandled | ConnectionErrorHandled>;
+import type { CallToolResult } from "@mongodb-js/mcp-types";
+import type { AnyToolBase } from "@mongodb-js/mcp-core";
+import { ErrorCodes, type MongoDBError } from "./common/errors.js";
+import type { AnyConnectionState } from "./common/connectionManager.js";
+import { DisconnectTool } from "./tools/connect/disconnect.js";
+import { ListConnectionsTool } from "./tools/connect/listConnections.js";
 
 export type ConnectionErrorHandlerContext = { availableTools: AnyToolBase[]; connectionState?: AnyConnectionState };
 export type ConnectionErrorUnhandled = { errorHandled: false };
 export type ConnectionErrorHandled = { errorHandled: true; result: CallToolResult };
+
+export type ConnectionErrorHandler = (
+    error: MongoDBError<
+        | typeof ErrorCodes.NotConnectedToMongoDB
+        | typeof ErrorCodes.MisconfiguredConnectionString
+        | typeof ErrorCodes.UnknownConnectionId
+    >,
+    additionalContext: ConnectionErrorHandlerContext
+) => ConnectionErrorUnhandled | ConnectionErrorHandled | Promise<ConnectionErrorUnhandled | ConnectionErrorHandled>;
 
 /**
  * The enabled tools that can establish a connection, sorted with Atlas tools
@@ -22,7 +24,7 @@ export type ConnectionErrorHandled = { errorHandled: true; result: CallToolResul
  * disconnect tool shares the "connect" operation type but cannot establish a
  * connection, so it is excluded.
  */
-export function connectCapableTools(tools: AnyToolBase[]): AnyToolBase[] {
+export function connectCapableTools(tools: readonly AnyToolBase[]): AnyToolBase[] {
     return tools
         .filter((t) => t.operationType === "connect" && t.name !== DisconnectTool.toolName && t.isEnabled())
         .sort((a, b) => a.category.localeCompare(b.category));

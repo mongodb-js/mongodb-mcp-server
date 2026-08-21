@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { UIRegistry } from "../../../../src/ui/registry/registry.js";
+import { UIRegistry } from "./registry.js";
 
 describe("UIRegistry", () => {
     beforeEach(() => {

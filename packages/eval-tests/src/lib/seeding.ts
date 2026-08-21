@@ -1,7 +1,7 @@
 import type { MongoClient } from "mongodb";
 import type { DbSeedEntry, SeedClassicIndex } from "./datasetTypes.js";
 import { getSeedDocuments, parseSeedEntry } from "./datasetHelpers.js";
-import { sleep } from "../../../src/common/managedTimeout.js";
+import { sleep } from "@mongodb-js/mcp-core";
 
 // ╭──────────────────────────────────────────────╮
 // │   ↘️ Seeding Constants                       │

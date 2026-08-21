@@ -3,7 +3,7 @@
  * Braintrust datasets (the `input`/`expected` schema of a dataset).
  *
  * Run with `pnpm run eval:generate-schemas`. Writes one file per schema into
- * `tests/eval/dist/` and prints each path.
+ * `dist/` and prints each path.
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
@@ -12,8 +12,8 @@ import { z } from "zod";
 import { RunEvalExpectedSchema, RunEvalInputSchema, RunEvalMetadataSchema } from "../lib/datasetTypes.js";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
-const outDir = join(scriptDir, "..", "dist");
-const SCHEMA_ID_BASE = "https://github.com/mongodb-js/mongodb-mcp-server/tests/eval/schemas";
+const outDir = join(scriptDir, "..", "..", "dist");
+const SCHEMA_ID_BASE = "https://github.com/mongodb-js/mongodb-mcp-server/packages/eval-tests/schemas";
 
 const schemas = {
     "input.schema.json": RunEvalInputSchema,

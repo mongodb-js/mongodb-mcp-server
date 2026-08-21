@@ -1,5 +1,5 @@
-import type { LoggerBase } from "../../logging/index.js";
-import type { HttpClient } from "../../proxyFetch.js";
+import type { LoggerBase } from "@mongodb-js/mcp-core";
+import type { HttpClient } from "../apiClient.js";
 import { ClientCredentialsAuthProvider } from "./clientCredentials.js";
 
 export interface AccessToken {
@@ -31,7 +31,7 @@ export interface AuthProviderOptions {
     apiBaseUrl: string;
     userAgent: string;
     credentials: Credentials;
-    httpClient?: HttpClient;
+    httpClient: HttpClient;
 }
 
 export class AuthProviderFactory {

@@ -1,7 +1,7 @@
 import { ObjectId } from "mongodb";
 import { assertApiClientIsAvailable, describeWithAtlas } from "./atlasHelpers.js";
-import type { IntegrationTest } from "../../helpers.js";
-import { expectDefined, getDataFromUntrustedContent, getResponseElements } from "../../helpers.js";
+import type { IntegrationTest } from "../../integrationHelpers.js";
+import { expectDefined, getDataFromUntrustedContent, getResponseElements } from "../../integrationHelpers.js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 // The shared CI Atlas org accumulates leftover test projects over time, and the API returns

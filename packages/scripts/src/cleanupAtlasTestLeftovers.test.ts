@@ -1,9 +1,13 @@
-import type { Group, AtlasOrganization } from "../src/common/atlas/openapi.js";
-import { ApiClient } from "../src/common/atlas/apiClient.js";
-import { ConsoleLogger } from "../src/common/logging/index.js";
-import { Keychain } from "../src/lib.js";
+import {
+    ApiClient,
+    userAgentFromServerMetadata,
+    type Group,
+    type AtlasOrganization,
+} from "@mongodb-js/mcp-atlas-api-client";
+import { ConsoleLogger } from "@mongodb-js/mcp-logging";
+import { Keychain } from "@mongodb-js/mcp-core";
 import { describe, it } from "vitest";
-import { sleep } from "../src/common/managedTimeout.js";
+import { sleep } from "@mongodb-js/mcp-core";
 
 function isOlderThanTwoHours(date: string): boolean {
     const twoHoursInMs = 2 * 60 * 60 * 1000;
@@ -138,15 +142,25 @@ async function deleteAllClustersOnStaleProject(client: ApiClient, projectId: str
 }
 
 async function main(): Promise<void> {
+    const baseUrl = process.env.MDB_MCP_API_BASE_URL || "https://cloud-dev.mongodb.com";
+    const testServerMetadata = { mcpServerName: "mongodb-mcp-test-cleanup", version: "1" };
+    const logger = new ConsoleLogger({ keychain: Keychain.root });
+    const clientId = process.env.MDB_MCP_API_CLIENT_ID || "";
+    const clientSecret = process.env.MDB_MCP_API_CLIENT_SECRET || "";
     const apiClient = new ApiClient(
         {
-            baseUrl: process.env.MDB_MCP_API_BASE_URL || "https://cloud-dev.mongodb.com",
+            baseUrl,
+            userAgent: userAgentFromServerMetadata(testServerMetadata),
             credentials: {
-                clientId: process.env.MDB_MCP_API_CLIENT_ID || "",
-                clientSecret: process.env.MDB_MCP_API_CLIENT_SECRET || "",
+                clientId,
+                clientSecret,
+            },
+            httpClient: {
+                fetch: globalThis.fetch.bind(globalThis),
+                Request: globalThis.Request,
             },
         },
-        new ConsoleLogger(Keychain.root)
+        logger
     );
 
     const testOrg = await findTestOrganization(apiClient);
@@ -215,6 +229,7 @@ async function main(): Promise<void> {
 }
 
 describe("Cleanup Atlas Test Leftovers", () => {
+    // eslint-disable-next-line vitest/expect-expect
     it("should clean up stale test projects", async () => {
         await main();
     });

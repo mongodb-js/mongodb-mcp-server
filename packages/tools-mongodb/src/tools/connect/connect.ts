@@ -1,9 +1,10 @@
 import { z } from "zod";
-import { MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolResult, ToolOutput } from "../../tool.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { ConnectionMetadata } from "../../../telemetry/types.js";
-import { PRECONFIGURED_CONNECTION_ID } from "../../../common/connectionRegistry.js";
+import { MongoDBToolBase } from "../../mongodbTool.js";
+import type { ToolArgs, ToolOutput, ToolResult } from "@mongodb-js/mcp-core";
+import type { OperationType } from "@mongodb-js/mcp-types";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
+import type { ConnectionMetadata } from "@mongodb-js/mcp-types";
+import { PRECONFIGURED_CONNECTION_ID } from "../../common/connectionRegistry.js";
 
 const ConnectOutputSchema = {
     connectionId: z.string(),

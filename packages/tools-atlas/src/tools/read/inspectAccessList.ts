@@ -1,12 +1,8 @@
 import { z } from "zod";
-import {
-    type OperationType,
-    type ToolArgs,
-    type ToolExecutionContext,
-    type ToolResult,
-    formatUntrustedData,
-} from "../../tool.js";
-import { AtlasToolBase } from "../atlasTool.js";
+import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
+import { formatUntrustedData } from "@mongodb-js/mcp-core";
+import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
+import { AtlasToolBase } from "../../atlasTool.js";
 import { AtlasArgs } from "../../args.js";
 
 export const InspectAccessListArgs = {

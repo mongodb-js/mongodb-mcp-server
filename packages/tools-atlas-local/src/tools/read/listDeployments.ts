@@ -1,9 +1,11 @@
-import { z } from "zod";
-import { AtlasLocalToolBase } from "../atlasLocalTool.js";
-import type { OperationType, ToolArgs, ToolResult } from "../../tool.js";
-import { formatUntrustedData } from "../../tool.js";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
+import { AtlasLocalToolBase } from "../../atlasLocalTool.js";
+import type { ToolArgs } from "@mongodb-js/mcp-core";
+import type { OperationType } from "@mongodb-js/mcp-types";
+import { formatUntrustedData } from "@mongodb-js/mcp-core";
 import type { Deployment } from "@mongodb-js/atlas-local";
 import type { Client } from "@mongodb-js/atlas-local";
+import { z } from "zod";
 
 const ListDeploymentsOutputSchema = {
     count: z.number(),
@@ -21,13 +23,12 @@ export class ListDeploymentsTool extends AtlasLocalToolBase {
     public description = "List MongoDB Atlas local deployments";
     static operationType: OperationType = "read";
     public argsShape = {};
-
     public override outputSchema = ListDeploymentsOutputSchema;
 
     protected async executeWithAtlasLocalClient(
         _args: ToolArgs<typeof this.argsShape>,
         { client }: { client: Client }
-    ): Promise<ToolResult<typeof ListDeploymentsOutputSchema>> {
+    ): Promise<CallToolResult> {
         // List the deployments
         const deployments = await client.listDeployments();
 
@@ -35,7 +36,7 @@ export class ListDeploymentsTool extends AtlasLocalToolBase {
         return this.formatDeploymentsTable(deployments);
     }
 
-    private formatDeploymentsTable(deployments: Deployment[]): ToolResult<typeof ListDeploymentsOutputSchema> {
+    private formatDeploymentsTable(deployments: Deployment[]): CallToolResult {
         // Check if deployments are absent
         if (!deployments?.length) {
             return {

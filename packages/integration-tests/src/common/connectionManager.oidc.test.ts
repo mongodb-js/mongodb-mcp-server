@@ -2,16 +2,16 @@ import type { TestContext } from "vitest";
 import { describe, beforeEach, afterAll, it, expect, vi } from "vitest";
 import semver from "semver";
 import process from "process";
-import type { MongoDBIntegrationTestCase } from "../tools/mongodb/mongodbHelpers.js";
-import { describeWithMongoDB, isCommunityServer, getServerVersion } from "../tools/mongodb/mongodbHelpers.js";
-import { connect, defaultTestConfig, responseAsText, waitUntil } from "../helpers.js";
-import type { ConnectionStateConnected, ConnectionStateConnecting } from "../../../src/common/connectionManager.js";
-import type { ConnectionEntry } from "../../../src/common/connectionRegistry.js";
-import type { UserConfig } from "../../../src/common/config/userConfig.js";
+import type { MongoDBIntegrationTestCase } from "../mongodbHelpers.js";
+import { describeWithMongoDB, isCommunityServer, getServerVersion } from "../mongodbHelpers.js";
+import { connect, defaultTestConfig, responseAsText, waitUntil } from "../integrationHelpers.js";
+import type { ConnectionStateConnected, ConnectionStateConnecting } from "@mongodb-js/mcp-tools-mongodb";
+import type { ConnectionEntry } from "@mongodb-js/mcp-tools-mongodb";
+import type { UserConfig } from "mongodb-mcp-server";
+import { sleep } from "@mongodb-js/mcp-core";
 import path from "path";
 import type { OIDCMockProviderConfig } from "@mongodb-js/oidc-mock-provider";
 import { OIDCMockProvider } from "@mongodb-js/oidc-mock-provider";
-import { sleep } from "../../../src/common/managedTimeout.js";
 
 /**
  * Returns the registry entry created by the `connect` call in the suite's
@@ -67,7 +67,7 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
 
     beforeEach(() => {
         tokenFetches = 0;
-        getTokenPayload = ((metadata) => {
+        getTokenPayload = (metadata): ReturnType<OIDCMockProviderConfig["getTokenPayload"]> => {
             tokenFetches++;
             return {
                 expires_in: tokenExpiresInSeconds,
@@ -78,7 +78,7 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
                     aud: "resource-server-audience-value",
                 },
             };
-        }) as OIDCMockProviderConfig["getTokenPayload"];
+        };
     });
 
     /**

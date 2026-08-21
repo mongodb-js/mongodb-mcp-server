@@ -1,6 +1,8 @@
 # Developer's Guide to Embedding and Extending the MongoDB MCP Server
 
-This guide explains how to embed and extend the MongoDB MCP Server as a library to customize its core functionality and behavior for your specific use cases.
+This guide explains how to embed and extend the MongoDB MCP Server as a library to customize its core functionality and behavior for your specific use cases. It documents the **v3** API: the monorepo of scoped `@mongodb-js/mcp-*` packages.
+
+> **Migrating from the pre-v3 single-package API?** The `mongodb-mcp-server` package is **not** a library in v3 — see the [v1 → v3 migration guide](skills/mongodb-mcp-v3-migration/SKILL.md) (in the repository) for how to update consumer code.
 
 ## 📚 Table of Contents
 
@@ -18,215 +20,296 @@ This guide explains how to embed and extend the MongoDB MCP Server as a library 
 
 ## Overview
 
-The MongoDB MCP Server can be embedded in your own Node.js applications and customized to meet specific requirements. The library exports provide full control over:
+In v3 the MongoDB MCP Server is a **monorepo of scoped packages** under the `@mongodb-js/mcp-*` naming. The `mongodb-mcp-server` package itself is now a **binary-only** distribution (`npx mongodb-mcp-server` / the MCPB bundle) — it is **not** an importable library.
 
-- Server configuration and initialization
-- Per-session (MCP Client session) configuration hooks
-- Tool registration
-- Connection management and Connection error handling
+To embed or extend the server, depend on the scoped packages instead. The library exports provide full control over:
+
+- Server configuration and initialization — `runMcpCli`, `createRunnerFromConfig`, `createSharedServicesFromConfig` + `createServerFromConfig`, `startRunner`
+- Per-session (MCP Client session) configuration hooks — `MCPHttpServer.createServerForRequest`
+- Tool registration — `ToolBase` / `ToolClass` tool classes and `ToolRegistry` arrays
+- Connection management and connection error handling — `MCPConnectionManager`, `connectionErrorHandler`
 
 ## Installation
 
-Install the MongoDB MCP Server package:
+Install only the scoped packages your embedding needs (see the use cases below):
 
 ```bash
-npm install mongodb-mcp-server
+# Custom CLI (most common embedding)
+npm install @mongodb-js/mcp-cli @mongodb-js/mcp-tools-mongodb @mongodb-js/mcp-tools-atlas
+
+# Custom tools
+npm install @mongodb-js/mcp-core @mongodb-js/mcp-types
+
+# HTTP host
+npm install @mongodb-js/mcp-cli @mongodb-js/mcp-core @mongodb-js/mcp-http-runners
 ```
 
-The package provides both CommonJS and ES Module exports.
+All packages are available as ES modules. The server targets Node.js `>= 24`.
 
 ## Core Concepts
 
+### The entry points
+
+| Package                            | Role                                                                                                                                                                                                                                                   |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `@mongodb-js/mcp-cli`              | **Primary entry point.** Custom CLI (`runMcpCli`), server+session classes (`CliServer`, `Session`), config (`parseUserConfig`, `UserConfigSchema`, `configRegistry`, `applyConfigOverrides`), `create*FromConfig` factories, `Resources`, CLI handlers |
+| `@mongodb-js/mcp-core`             | Transports (`StdioRunner`, `InMemoryTransport`), `SessionStore`, `Keychain`, `Elicitation`, `NoopLogger`, `NoopTelemetry`, tool base classes (`ToolBase`, `ToolClass`)                                                                                 |
+| `@mongodb-js/mcp-http-runners`     | HTTP transport (`StreamableHttpRunner`, `MCPHttpServer`, `MonitoringServer`)                                                                                                                                                                           |
+| `@mongodb-js/mcp-types`            | Shared types (`ServerMetadata`, `TransportRequestContext`, `ToolCategory`, `OperationType`, `UserConfig`, …)                                                                                                                                           |
+| `@mongodb-js/mcp-tools-*`          | Tool bundles: `@mongodb-js/mcp-tools-mongodb`, `-atlas`, `-atlas-local`, `-assistant`                                                                                                                                                                  |
+| `@mongodb-js/mcp-atlas-api-client` | Atlas Admin API client (`ApiClient`, `ClientCredentialsAuthProvider`)                                                                                                                                                                                  |
+| `@mongodb-js/mcp-atlas-telemetry`  | Telemetry pipeline (`AtlasTelemetry`)                                                                                                                                                                                                                  |
+| `@mongodb-js/mcp-logging`          | Loggers (`ConsoleLogger`, `DiskLogger`, `McpLogger`)                                                                                                                                                                                                   |
+| `@mongodb-js/mcp-metrics`          | Metrics (`PrometheusMetrics`, `createDefaultMetrics`)                                                                                                                                                                                                  |
+| `@mongodb-js/mcp-ui`               | MCP UI registry (`UIRegistry`)                                                                                                                                                                                                                         |
+
 ### Customizing Server Behavior
 
-There are two main approaches to customize how the MongoDB MCP Server is created and configured:
+There are three main approaches:
 
-1. **Override `createServerForRequest`**: When using HTTP transport, extend `StreamableHttpRunner` and override the `createServerForRequest` method. This allows you to customize the server creation for each incoming request, enabling per-session configuration based on request headers, query parameters, or authentication context.
+1. **`runMcpCli` (recommended for CLIs)**: one call that parses config, runs handlers, creates the server and infrastructure, and starts stdio or HTTP transport — the same flow the official binary uses.
+2. **`createSharedServicesFromConfig` + `createRunnerFromConfig` + `startRunner`**: split the same flow so you can replace individual dependencies (logger, API client, telemetry, monitoring server) via `create*FromConfig` factories, or create just the server (`createServerFromConfig`) and wire a custom runner.
+   - `createSharedServicesFromConfig({ config, serverMetadata, tools, resources, logger })` builds the app-level infrastructure shared by all servers (`metrics`, `monitoringServer`, `keychain`, `deviceId`, `connectionStore`, `atlasLocalClient`).
+   - `createServerFromConfig({ config, sharedServices })` builds one server (session-scoped state) from a resolved config.
+   - `createRunnerFromConfig` builds the shared infrastructure and returns only the configured transport runner (`StdioRunner` for stdio, `StreamableHttpRunner` for HTTP).
+   - `startRunner({ transportRunner, logger, onExit })` starts the runner and manages the server lifecycle (signal handlers, graceful shutdown).
+3. **Override `MCPHttpServer.createServerForRequest`**: when hosting over HTTP and you need per-request (per-session) customization, subclass `MCPHttpServer` and override its `createServerForRequest(request: TransportRequestContext)` instead. In v3 this hook lives on `MCPHttpServer`, **not** on `StreamableHttpRunner`.
 
-2. **Use `start({ serverOptions, sessionOptions })` with options**: Call the `start` method with `serverOptions` (for tools, error handlers, UI registry, etc.) and `sessionOptions` (for connection manager, API client, Atlas local client). This is useful for static customization that applies to all sessions.
+### Server metadata
 
-### Exported Modules
-
-The library exports are organized in two entry points:
-
-**Main Library (`mongodb-mcp-server`):**
-
-```typescript
-import {
-  Server,
-  Session,
-  UserConfig,
-  UserConfigSchema,
-  parseUserConfig,
-  StreamableHttpRunner,
-  StdioRunner,
-  TransportRunnerBase,
-  LoggerBase,
-  Telemetry,
-  Keychain,
-  Elicitation,
-  MongoDBError,
-  ErrorCodes,
-  connectionErrorHandler,
-  defaultCreateConnectionManager,
-  applyConfigOverrides,
-  // ... and more
-} from "mongodb-mcp-server";
-```
-
-**Tools (`mongodb-mcp-server/tools`):**
+`CliServer` and the telemetry pipeline require a `ServerMetadata` value — the product name/version reported to clients and used for telemetry and driver `appName`:
 
 ```typescript
-import {
-  ToolBase,
-  AllTools,
-  MongoDbTools,
-  AtlasTools,
-  AtlasLocalTools,
-  type ToolClass,
-} from "mongodb-mcp-server/tools";
+import type { ServerMetadata } from "@mongodb-js/mcp-types";
+
+const serverMetadata: ServerMetadata = {
+  mcpServerName: "my-product-mcp",
+  version: "1.0.0",
+  engines: { node: process.version },
+};
 ```
 
-For detailed documentation of these exports and their usage, see the [API Reference](#api-reference) section.
+Prefer reading `version`/`name` from your `package.json` at build time when possible.
 
 ### Architecture
 
 The MongoDB MCP Server library follows a modular architecture:
 
-- **Transport Runners**: `StdioRunner` and `StreamableHttpRunner` manage the MCP transport layer
-  - For HTTP transport, extend `StreamableHttpRunner` and override `createServerForRequest` to customize server creation per request or use `start({ serverOptions, sessionOptions })` with options to customize server behavior
-- **Server**: Core server that wraps the MCP Server and registers tools and resources
-- **Session**: Per-client (MCP Client) connection and configuration state
-- **Tools**: Individual capabilities exposed to the MCP client
-- **Configuration**: User configuration with override mechanisms
+- **Transport runners**: `StdioRunner` (stdio) and `StreamableHttpRunner` (HTTP) manage the MCP transport layer. Runners attach a pre-built server — they no longer build one for you.
+- **`CliServer`**: wraps the MCP server and registers tools and resources; created per session.
+- **`Session`**: per-client (MCP Client) connection and configuration state, including `session.config` (the effective `UserConfig`).
+- **Tools**: individual capabilities exposed to the MCP client, implemented as `ToolBase` subclasses and grouped into bundle arrays (`MongoDBTools`, `AtlasTools`, …).
+- **Configuration**: `UserConfig` parsed via `parseUserConfig`/`UserConfigSchema`, with request-level override mechanisms (`applyConfigOverrides`, `configRegistry`).
 
 ## Use Cases
 
 ### Use Case 1: Override Server Configuration
 
-Configure the MCP server with custom settings, such as HTTP headers for authentication before establishing session for an MCP Client.
+Configure the MCP server with custom settings, such as HTTP headers for authentication before establishing a session for an MCP client, or replace parts of the default infrastructure.
 
 #### Example: Setting HTTP Headers for Authentication
 
 ```typescript
-import { StreamableHttpRunner, UserConfigSchema } from "mongodb-mcp-server";
+import {
+  createLoggerFromConfig,
+  createRunnerFromConfig,
+  startRunner,
+  parseUserConfig,
+} from "@mongodb-js/mcp-cli";
+import { MongoDBTools } from "@mongodb-js/mcp-tools-mongodb";
+import { Resources } from "@mongodb-js/mcp-cli";
+import { Keychain } from "@mongodb-js/mcp-core";
+import type { ServerMetadata } from "@mongodb-js/mcp-types";
 
-// Create a custom configuration with HTTP headers
-const config = UserConfigSchema.parse({
-  transport: "http",
-  httpPort: 3000,
-  httpHost: "127.0.0.1",
-  httpHeaders: {
-    "x-api-key": "your-secret-api-key",
-  },
-  // Or your own connection string
-  connectionString: "mongodb://localhost:27017",
-  // Enable read-only mode for enhanced security
-  readOnly: true,
+const { parsed: config } = parseUserConfig({
+  args: process.argv.slice(2),
 });
 
-// Initialize and start the server
-const runner = new StreamableHttpRunner({ userConfig: config });
-await runner.start();
+const serverMetadata: ServerMetadata = {
+  mcpServerName: "my-product-mcp",
+  version: "1.0.0",
+  engines: { node: process.version },
+};
 
-console.log(`MongoDB MCP Server listening on ${runner.serverAddress}`);
+const logger = await createLoggerFromConfig({
+  config,
+  keychain: Keychain.root,
+});
+const transportRunner = await createRunnerFromConfig({
+  config: {
+    ...config,
+    httpHeaders: {
+      "x-api-key": "your-secret-api-key",
+    },
+  },
+  serverMetadata,
+  tools: [...MongoDBTools],
+  resources: Resources,
+  logger,
+});
+
+await startRunner({
+  transportRunner,
+  logger,
+  onExit: (code) => process.exit(code),
+});
 ```
 
-Clients connecting to this server must include the specified headers in their requests, otherwise their Session initialization request is declined.
+Clients connecting to this server must include the specified headers in their requests, otherwise their session initialization request is declined.
 
-#### Example: Customizing Tool Availability
+#### Example: Replacing Infrastructure Pieces
+
+Use individual `create*FromConfig` factories to swap dependencies:
 
 ```typescript
-import { StdioRunner, UserConfigSchema } from "mongodb-mcp-server";
+import {
+  createLoggerFromConfig,
+  createApiClientFromConfig,
+} from "@mongodb-js/mcp-cli";
+import { Keychain } from "@mongodb-js/mcp-core";
 
-const config = UserConfigSchema.parse({
-  transport: "stdio",
-  // Or your own connection string
-  connectionString: "mongodb://localhost:27017",
-  // Disable write operations
-  readOnly: true,
-  // Disable specific tool categories
-  disabledTools: ["atlas", "atlas-local"],
-  // Customize tools requiring confirmation
-  confirmationRequiredTools: ["find", "aggregate"],
-  // Set query limits
-  maxDocumentsPerQuery: 50,
-  maxBytesPerQuery: 10 * 1024 * 1024, // 10MB
-});
-
-const runner = new StdioRunner({ userConfig: config });
-await runner.start();
+const keychain = Keychain.root;
+const logger = await createLoggerFromConfig({ config, keychain });
+const apiClient = createApiClientFromConfig({ config, serverMetadata, logger });
 ```
+
+Available factories: `createLoggerFromConfig`, `createApiClientFromConfig`, `createExportsManagerFromConfig`, `createTelemetryFromConfig`, `createMonitoringServerFromConfig`.
 
 ### Use Case 2: Per-Session Configuration
 
-Customize configuration for each MCP client session, enabling user-specific permissions and settings by extending `StreamableHttpRunner` and overriding the `createServerForRequest` method.
+Customize the server for each MCP client session — enabling user-specific permissions and settings based on request headers, query parameters, or authentication context — by subclassing **`MCPHttpServer`** and overriding `createServerForRequest(request: TransportRequestContext)`.
 
-**Important:** The old approach using `createSessionConfig` hook is deprecated. The examples below demonstrate the recommended pattern of extending `StreamableHttpRunner` and overriding `createServerForRequest`, which provides the same functionality with better type safety and flexibility.
+> The v1 pattern of overriding `createServerForRequest` on `StreamableHttpRunner` is **removed** in v3. Runners no longer create servers.
 
-#### Example: User-Based Tool Permissions
+#### Example: User-Based Tool Permissions (HTTP)
 
 ```typescript
-import { UserConfigSchema, StreamableHttpRunner } from "mongodb-mcp-server";
-import type { OperationType } from "mongodb-mcp-server/tools";
-import type { Server, UserConfig } from "mongodb-mcp-server";
-import type { RequestContext } from "mongodb-mcp-server";
+import {
+  MCPHttpServer,
+  StreamableHttpRunner,
+} from "@mongodb-js/mcp-http-runners";
+import {
+  parseUserConfig,
+  createLoggerFromConfig,
+  createApiClientFromConfig,
+  createExportsManagerFromConfig,
+  Session,
+  type McpSession,
+} from "@mongodb-js/mcp-cli";
+import {
+  SessionStore,
+  Keychain,
+  Elicitation,
+  NoopTelemetry,
+  McpServer,
+  getRandomUUID,
+} from "@mongodb-js/mcp-core";
+import {
+  MCPConnectionStore,
+  MongoDBTools,
+  connectionErrorHandler,
+  DeviceId,
+  type ConnectionRegistry,
+} from "@mongodb-js/mcp-tools-mongodb";
+import { createDefaultMetrics } from "@mongodb-js/mcp-metrics";
+import type {
+  TransportRequestContext,
+  ServerMetadata,
+  UserConfig,
+} from "@mongodb-js/mcp-types";
 
-// Example interface for user roles and permissions
 interface UserPermissions {
   role: "admin" | "developer" | "analyst";
-  allowedOperations: OperationType[];
+  allowedOperations: ("read" | "metadata" | "create" | "update" | "delete")[];
   maxDocuments: number;
 }
 
-// Mock function to fetch user permissions (replace with your auth logic)
 async function getUserPermissions(userId: string): Promise<UserPermissions> {
-  const userDb = {
-    "user-123": {
-      role: "analyst",
-      allowedOperations: ["read", "metadata"],
-      maxDocuments: 100,
-    },
-    "user-456": {
-      role: "developer",
-      allowedOperations: ["read", "metadata", "create", "update"],
-      maxDocuments: 500,
-    },
-    "user-789": {
-      role: "admin",
-      allowedOperations: ["read", "metadata", "create", "update", "delete"],
-      maxDocuments: 1000,
-    },
-  } as Record<string, UserPermissions>;
-
-  return (
-    userDb[userId] || {
-      role: "analyst",
-      allowedOperations: ["read"],
-      maxDocuments: 10,
-    }
-  );
+  // Replace with your auth logic
+  return {
+    role: "analyst",
+    allowedOperations: ["read", "metadata"],
+    maxDocuments: 100,
+  };
 }
 
-// Extend StreamableHttpRunner and override createServerForRequest
-class CustomStreamableHttpRunner extends StreamableHttpRunner {
-  protected override async createServerForRequest({
-    request,
-  }: {
-    request: RequestContext;
-  }): Promise<Server> {
-    // Extract user ID from request headers
-    const userId = request?.headers?.["x-user-id"];
+const serverMetadata: ServerMetadata = {
+  mcpServerName: "my-product-mcp",
+  version: "1.0.0",
+  engines: { node: process.version },
+};
 
+// Shared infrastructure, built once (from the base config)
+const { parsed: baseConfig } = parseUserConfig({ args: process.argv.slice(2) });
+const keychain = Keychain.root;
+const logger = await createLoggerFromConfig({ config: baseConfig, keychain });
+const apiClient = createApiClientFromConfig({
+  config: baseConfig,
+  serverMetadata,
+  logger,
+});
+const exportsManager = createExportsManagerFromConfig({ config: baseConfig });
+const metrics = createDefaultMetrics();
+const deviceId = DeviceId.create(logger);
+const connectionStore = new MCPConnectionStore({
+  options: baseConfig,
+  logger,
+  deviceId,
+});
+const connectionRegistry: ConnectionRegistry = connectionStore.view({
+  scope: baseConfig.connectionScope === "session" ? getRandomUUID() : undefined,
+  owned: true,
+});
+
+// Per-session factory: build a Session + CliServer from a per-request UserConfig
+function createServerFromConfig(config: UserConfig): {
+  session: McpSession;
+  server: CliServer;
+} {
+  const mcpServer = new McpServer({
+    name: serverMetadata.mcpServerName,
+    version: serverMetadata.version,
+  });
+
+  const session = new Session({
+    logger,
+    exportsManager,
+    connectionRegistry,
+    keychain,
+    connectionErrorHandler,
+    apiClient,
+    config,
+  });
+
+  return {
+    session,
+    server: new CliServer({
+      session,
+      mcpServer,
+      telemetry: new NoopTelemetry(),
+      elicitation: new Elicitation({
+        server: mcpServer.server,
+        timeoutMs: config.elicitationTimeoutMs ?? 30_000,
+      }),
+      connectionErrorHandler,
+      metrics,
+      serverMetadata,
+      tools: MongoDBTools,
+    }),
+  };
+}
+
+class PermissionsMCPHttpServer extends MCPHttpServer {
+  protected override async createServerForRequest(
+    request: TransportRequestContext
+  ): Promise<CliServer> {
+    const userId = request?.headers?.["x-user-id"];
     if (typeof userId !== "string") {
       throw new Error("User authentication required: x-user-id header missing");
     }
 
-    // Fetch user permissions
     const permissions = await getUserPermissions(userId);
-
-    // Build disabled tools based on permissions
-    const allOperations: OperationType[] = [
+    const allOperations = [
       "read",
       "metadata",
       "create",
@@ -234,904 +317,278 @@ class CustomStreamableHttpRunner extends StreamableHttpRunner {
       "delete",
       "connect",
     ];
-
-    const disabledOperations = allOperations.filter(
+    const disabledTools = allOperations.filter(
       (op) => !permissions.allowedOperations.includes(op)
     );
 
-    // Build customized configuration for this session
-    const sessionConfig: UserConfig = {
-      ...this.userConfig,
-      disabledTools: disabledOperations,
-      maxDocumentsPerQuery: permissions.maxDocuments,
-      // Analysts get read-only access
+    return createServerFromConfig({
+      ...baseConfig,
+      disabledTools,
       readOnly: permissions.role === "analyst",
-    };
-
-    // Create the server with the session-specific configuration
-    return this.createServer({
-      userConfig: sessionConfig,
-    });
+      maxDocumentsPerQuery: permissions.maxDocuments,
+    }).server;
   }
 }
 
-// Base configuration for all sessions
-const baseConfig = UserConfigSchema.parse({
-  transport: "http",
-  httpPort: 3000,
-  httpHost: "127.0.0.1",
+const sessionStore = new SessionStore({
+  options: {
+    idleTimeoutMs: baseConfig.idleTimeoutMs,
+    notificationTimeoutMs: baseConfig.notificationTimeoutMs,
+  },
+  logger,
+  metrics,
 });
 
-// Initialize the custom runner
-const runner = new CustomStreamableHttpRunner({
-  userConfig: baseConfig,
+const mcpHttpServer = new PermissionsMCPHttpServer({
+  options: {
+    http: {
+      host: baseConfig.httpHost,
+      port: baseConfig.httpPort,
+      bodyLimit: baseConfig.httpBodyLimit,
+      headers: baseConfig.httpHeaders,
+      responseType: baseConfig.httpResponseType,
+    },
+    session: {
+      idleTimeoutMs: baseConfig.idleTimeoutMs,
+      notificationTimeoutMs: baseConfig.notificationTimeoutMs,
+      externallyManagedSessions: baseConfig.externallyManagedSessions,
+    },
+  },
+  logger,
+  metrics,
+  sessionStore,
 });
 
+const runner = new StreamableHttpRunner({
+  logger,
+  metrics,
+  mcpHttpServer,
+  sessionStore,
+});
 await runner.start();
-console.log(
-  `MongoDB MCP Server running with per-user permissions at ${runner.serverAddress}`
-);
 ```
 
-#### Example: Dynamic Connection String Selection
+> **Note:** In this example `deviceId`, `connectionErrorHandler`, `MongoDBTools`, and `MCPConnectionStore` come from `@mongodb-js/mcp-tools-mongodb` (see [Connection management](#connection-management)); a real embedding typically wires the shared infrastructure once (as `createServerFromConfig` does) and builds only the `Session`/`CliServer` per request. MongoDB connection state deliberately lives at the app level (`ConnectionRegistry`), not in the session — tools address connections by `connectionId`.
 
-```typescript
-import { UserConfigSchema, StreamableHttpRunner } from "mongodb-mcp-server";
-import type { Server, UserConfig } from "mongodb-mcp-server";
-import type { RequestContext } from "mongodb-mcp-server";
-
-// Connection strings for different environments
-const connectionStrings = {
-  production: process.env.MONGODB_PRODUCTION_URI,
-  staging: process.env.MONGODB_STAGING_URI,
-  development: process.env.MONGODB_DEV_URI,
-};
-
-// Extend StreamableHttpRunner and override createServerForRequest
-class CustomStreamableHttpRunner extends StreamableHttpRunner {
-  protected override async createServerForRequest({
-    request,
-  }: {
-    request: RequestContext;
-  }): Promise<Server> {
-    // Get environment from request header
-    const environment = request?.headers?.[
-      "x-environment"
-    ] as keyof typeof connectionStrings;
-
-    if (!environment || !connectionStrings[environment]) {
-      throw new Error("Invalid or missing x-environment header");
-    }
-
-    // Build customized configuration for this session
-    const sessionConfig: UserConfig = {
-      ...this.userConfig,
-      connectionString: connectionStrings[environment],
-      // Production is read-only
-      readOnly: environment === "production",
-    };
-
-    // Create the server with the session-specific configuration
-    return this.createServer({
-      userConfig: sessionConfig,
-    });
-  }
-}
-
-const runner = new CustomStreamableHttpRunner({
-  userConfig: UserConfigSchema.parse({
-    transport: "http",
-    httpPort: 3000,
-    httpHost: "127.0.0.1",
-  }),
-});
-
-await runner.start();
-console.log(
-  `MongoDB MCP Server running with dynamic connection selection at ${runner.serverAddress}`
-);
-```
-
-#### Example: Integration with Request Overrides
-
-The library supports request-level configuration overrides when `allowRequestOverrides` is enabled. You can combine this by overriding `createServerForRequest` for fine-grained control:
-
-```typescript
-import {
-  applyConfigOverrides,
-  UserConfigSchema,
-  StreamableHttpRunner,
-  type UserConfig,
-} from "mongodb-mcp-server";
-import type { Server } from "mongodb-mcp-server";
-import type { RequestContext } from "mongodb-mcp-server";
-
-// Example interface for user roles and permissions
-interface UserPermissions {
-  role: "admin" | "developer" | "analyst";
-  requestOverridesAllowed: boolean;
-}
-
-// Mock function to fetch user permissions (replace with your auth logic)
-async function getUserPermissions(userId: string): Promise<UserPermissions> {
-  const userDb = {
-    "user-123": {
-      role: "analyst",
-      requestOverridesAllowed: false,
-    },
-    "user-456": {
-      role: "developer",
-      requestOverridesAllowed: true,
-    },
-    "user-789": {
-      role: "admin",
-      requestOverridesAllowed: true,
-    },
-  } as Record<string, UserPermissions>;
-
-  return (
-    userDb[userId] || {
-      role: "analyst",
-      requestOverridesAllowed: false,
-    }
-  );
-}
-
-// Extend StreamableHttpRunner and override createServerForRequest
-class CustomStreamableHttpRunner extends StreamableHttpRunner {
-  protected override async createServerForRequest({
-    request,
-  }: {
-    request: RequestContext;
-  }): Promise<Server> {
-    if (!request) {
-      throw new Error("User authentication required: no headers provided");
-    }
-
-    // Extract user ID from request headers
-    const userId = request.headers?.["x-user-id"];
-
-    if (typeof userId !== "string") {
-      throw new Error("User authentication required: x-user-id header missing");
-    }
-
-    // Fetch user permissions
-    const permissions = await getUserPermissions(userId);
-
-    // Generate a base config based on the user permissions
-    const roleBasedConfig: UserConfig = {
-      ...this.userConfig,
-      allowRequestOverrides: permissions.requestOverridesAllowed,
-    };
-
-    // Now attempt to apply the overrides. For roles where overrides are not
-    // allowed, the default override application function will throw and reject
-    // the initialization request.
-    const sessionConfig = applyConfigOverrides({
-      baseConfig: roleBasedConfig,
-      request,
-    });
-
-    // Create the server with the session-specific configuration
-    return this.createServer({
-      userConfig: sessionConfig,
-    });
-  }
-}
-
-const runner = new CustomStreamableHttpRunner({
-  userConfig: UserConfigSchema.parse({
-    transport: "http",
-    httpPort: 3000,
-    httpHost: "127.0.0.1",
-    // For this particular example, setting `allowRequestOverrides` here is
-    // optional because if you notice the createServerForRequest override, we're
-    // constructing the `roleBasedConfig` with the appropriate value of
-    // `allowRequestOverrides` already before calling the exported
-    // `applyConfigOverrides` function.
-    //
-    // Here we still pass it anyways to show an example that the
-    // `allowRequestOverrides` can also be statically turned on during server
-    // initialization.
-    allowRequestOverrides: true,
-    connectionString: process.env.MDB_MCP_CONNECTION_STRING,
-  }),
-});
-
-await runner.start();
-console.log(
-  `MongoDB MCP Server running with role-based request overrides at ${runner.serverAddress}`
-);
-```
+````
 
 ### Use Case 3: Adding Custom Tools
 
-Extend the MCP server with custom tools tailored to your application's needs.
-
-#### Example: Connection Selector Tool
-
-This example shows how to create a custom tool that provides users with a list of pre-configured database connections:
+Implement custom tools by extending `ToolBase` from `@mongodb-js/mcp-core`:
 
 ```typescript
+import { ToolBase, type ToolClass, type ToolCategory, type OperationType } from "@mongodb-js/mcp-core";
+import type { IToolSession } from "@mongodb-js/mcp-types";
 import { z } from "zod";
-import {
-  StdioRunner,
-  UserConfigSchema,
-  type UserConfig,
-} from "mongodb-mcp-server";
-import {
-  ToolBase,
-  type ToolCategory,
-  type OperationType,
-} from "mongodb-mcp-server/tools";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
-// Define available connections
-const AVAILABLE_CONNECTIONS = {
-  "prod-analytics": {
-    name: "Production Analytics",
-    connectionString: process.env.MONGODB_PROD_ANALYTICS_URI!,
-    description: "Production analytics database (read-only)",
-    readOnly: true,
-  },
-  "staging-main": {
-    name: "Staging Main",
-    connectionString: process.env.MONGODB_STAGING_URI!,
-    description: "Staging environment database",
-    readOnly: false,
-  },
-  "dev-local": {
-    name: "Development Local",
-    connectionString: "mongodb://localhost:27017/dev",
-    description: "Local development database",
-    readOnly: false,
-  },
-};
+class MyCustomTool extends ToolBase<IToolSession> {
+  static toolName = "my-custom-tool";
+  static category: ToolCategory = "custom";
+  static operationType: OperationType = "read";
 
-// Custom tool to list the preset connections. We are expecting LLM to call
-// this tool to make user aware of possible connections the MCP server could
-// be connected to. The name deliberately differs from the built-in
-// "list-connections" tool, which lists the active connection handles.
-class ListPresetConnectionsTool extends ToolBase {
-  static toolName = "list-preset-connections";
-  static category: ToolCategory = "mongodb";
-  static operationType: OperationType = "metadata";
-  public override description =
-    "Lists all available pre-configured MongoDB connections";
-  public override argsShape = {};
+  public description = "My custom tool description";
+  public argsShape = {
+    query: z.string().describe("The query parameter"),
+  };
 
-  protected override async execute(): Promise<CallToolResult> {
-    // Ensure that we don't leak the actual connection strings to the model
-    // context.
-    const connections = Object.entries(AVAILABLE_CONNECTIONS).map(
-      ([id, conn]) => ({
-        id,
-        name: conn.name,
-        description: conn.description,
-        readOnly: conn.readOnly,
-      })
-    );
-
+  protected async execute(args) {
+    // Tool implementation — arguments are inferred from argsShape
     return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(connections),
-        },
-      ],
+      content: [{ type: "text", text: "Result" }],
+      structuredContent: { query: args.query },
     };
   }
 
-  // We don't want to report any telemetry for this tool so leaving it empty.
-  protected override resolveTelemetryMetadata() {
+  protected resolveTelemetryMetadata() {
     return {};
   }
 }
+````
 
-// Custom tool to select a specific connection. Once user is made aware of list
-// of connections, they can mention the name of the connection and LLM is then
-// expected to call this tool with the preset ID; the tool connects using the
-// pre-configured connection string and returns the connectionId handle to pass
-// to the MongoDB tools. Notice how we never leak any connection details in the
-// LLM context and maintain the effective communication using opaque
-// identifiers.
-class SelectConnectionTool extends ToolBase {
-  static toolName = "select-connection";
-  static category: ToolCategory = "mongodb";
-  static operationType: OperationType = "connect";
-  public override description =
-    "Connect to a pre-configured MongoDB connection by preset ID and get back a connectionId to pass to the MongoDB tools";
-  public override argsShape = {
-    presetId: z
-      .enum(Object.keys(AVAILABLE_CONNECTIONS) as [string, ...string[]])
-      .describe("The ID of the preset connection to use"),
-  };
+Register the class by including it in the `tools` array (a `ToolRegistry`) passed to `runMcpCli`, `createRunnerFromConfig`, `createServerFromConfig`, or `CliServer`: `const tools: ToolRegistry = [...MongoDBTools, MyCustomTool];`.
 
-  protected override async execute(args: {
-    presetId: string;
-  }): Promise<CallToolResult> {
-    const { presetId } = args;
-    const connection = AVAILABLE_CONNECTIONS[presetId];
-
-    if (!connection) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: `Error: Connection preset '${presetId}' not found. Use the list-preset-connections tool to see available presets.`,
-          },
-        ],
-        isError: true,
-      };
-    }
-
-    try {
-      // Establish the connection through the app-level connection registry.
-      // The returned entry's connectionId is the handle the model passes to
-      // every MongoDB tool call that should run against this connection.
-      const entry = await this.session.connectionRegistry.connect({
-        settings: { connectionString: connection.connectionString },
-        name: connection.name,
-      });
-
-      return {
-        content: [
-          {
-            type: "text",
-            text: `Successfully connected to '${connection.name}'${
-              connection.readOnly ? " in READ-ONLY mode" : ""
-            }. Your connectionId is "${
-              entry.connectionId
-            }" — pass it as the connectionId argument to the MongoDB tools.`,
-          },
-        ],
-      };
-    } catch (error) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: `Failed to connect to preset '${presetId}': ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-          },
-        ],
-        isError: true,
-      };
-    }
-  }
-
-  // We don't want to report any telemetry for this tool so leaving it empty.
-  protected override resolveTelemetryMetadata() {
-    return {};
-  }
-}
-
-// Initialize the server with custom tools alongside internal tools
-const runner = new StdioRunner({
-  userConfig: UserConfigSchema.parse({
-    transport: "stdio",
-    // Don't provide a default connection string
-    connectionString: undefined,
-  }),
-  // Register all internal tools except the default connect tools, plus our custom tools
-  tools: [
-    ...AllTools.filter((tool) => tool.operationType !== "connect"),
-    ListPresetConnectionsTool,
-    SelectConnectionTool,
-  ],
-});
-
-await runner.start();
-console.log(
-  `MongoDB MCP Server running with custom connection selector tools at ${runner.serverAddress}`
-);
-```
+Tool classes must conform to `ToolClass` — static `toolName` (unique), `category` (`"mongodb" | "atlas" | "atlas-local" | "assistant" | "custom"`), and `operationType`. The server injects `session`, `telemetry`, and `elicitation` automatically via the `ToolConstructorParams`. Use `formatUntrustedData` (from `@mongodb-js/mcp-core`) to format arbitrary data in tool output, and `Elicitation` (from `@mongodb-js/mcp-core`) to request user confirmation.
 
 ### Use Case 4: Selective Tool Registration
 
-Register only specific internal MongoDB tools alongside custom tools, giving you complete control over the available toolset.
-
-#### Example: Minimal Toolset with Custom Integration
-
-This example shows how to selectively enable only specific MongoDB tools (`aggregate`, `connect`, and `list-connections`) while disabling all others, and adding a custom tool for application-specific functionality:
+The built-in tools are exported as arrays per category. Select or filter them freely:
 
 ```typescript
-import { z } from "zod";
-import { StreamableHttpRunner, UserConfigSchema } from "mongodb-mcp-server";
-import {
-  type ToolCategory,
-  type OperationType,
-  AllTools,
-  ToolBase,
-} from "mongodb-mcp-server/tools";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { MongoDBTools } from "@mongodb-js/mcp-tools-mongodb";
+import { AtlasTools } from "@mongodb-js/mcp-tools-atlas";
+import { AtlasLocalTools } from "@mongodb-js/mcp-tools-atlas-local";
+import { AssistantTools } from "@mongodb-js/mcp-tools-assistant";
 
-// Custom tool to fetch ticket details from your application
-class GetTicketDetailsTool extends ToolBase {
-  static toolName = "get-ticket-details";
-  static category: ToolCategory = "mongodb";
-  static operationType: OperationType = "read";
-
-  public override description =
-    "Retrieves detailed information about a support ticket from the tickets collection";
-
-  public override argsShape = {
-    ticketId: z.string().describe("The unique identifier of the ticket"),
-  };
-
-  protected override async execute(args: {
-    ticketId: string;
-  }): Promise<CallToolResult> {
-    const { ticketId } = args;
-
-    try {
-      // Ensure connected to MongoDB
-      await this.session.ensureConnected();
-
-      // Fetch ticket from the database
-      const ticket = await this.session.db
-        .collection("tickets")
-        .findOne({ ticketId });
-
-      if (!ticket) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: `No ticket found with ID: ${ticketId}`,
-            },
-          ],
-          isError: true,
-        };
-      }
-
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify(ticket, null, 2),
-          },
-        ],
-      };
-    } catch (error) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: `Error fetching ticket: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-          },
-        ],
-        isError: true,
-      };
-    }
-  }
-
-  protected override resolveTelemetryMetadata() {
-    return {};
-  }
-}
-
-// Select only the specific internal tools we want to keep
-const selectedInternalTools = [
-  AllTools.AggregateTool,
-  AllTools.ConnectTool,
-  AllTools.ListConnectionsTool,
-];
-
-// Initialize the server with minimal toolset
-const runner = new StreamableHttpRunner({
-  userConfig: UserConfigSchema.parse({
-    transport: "http",
-    httpPort: 3000,
-    httpHost: "127.0.0.1",
-    connectionString: process.env.MDB_MCP_CONNECTION_STRING,
-  }),
-  // Register only selected internal tools plus our custom tool
-  tools: [...selectedInternalTools, GetTicketDetailsTool],
-});
-
-await runner.start();
-console.log(
-  `MongoDB MCP Server running with minimal toolset at ${runner.serverAddress}`
+// Only MongoDB read and metadata tools
+const readOnlyTools = MongoDBTools.filter(
+  (Tool) => Tool.operationType === "read" || Tool.operationType === "metadata"
 );
+
+// Only atlas tools
+const tools = [...AtlasTools];
+
+// Standard bundle, no assistant
+const standard = [...MongoDBTools, ...AtlasTools, ...AtlasLocalTools];
 ```
 
-In this configuration:
-
-- The server will **only** register three internal MongoDB tools: `aggregate`, `connect`, and `list-connections`
-- All other internal tools (find, insert, update, etc.) are not registered at all
-- The custom `get-ticket-details` tool provides application-specific functionality
-- Atlas and Atlas Local tools are not registered since they're not in the `tools` array
-
-This approach is useful when you want to:
-
-- Create a focused MCP server for a particular use case
-- Limit LLM capabilities to specific operations
-- Combine selective internal tools with domain-specific custom tools
+`Tool.operationType` and `Tool.category` are static properties on each tool class, so filtering by them is type-safe.
 
 ## API Reference
 
-### TransportRunnerConfig
+### `@mongodb-js/mcp-cli`
 
-Configuration options for initializing transport runners (`StdioRunner`, `StreamableHttpRunner`).
+| Symbol                                                                                                                                                       | Description                                                                      |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| `runMcpCli({ args, serverMetadata, consoleLogger, onExit, tools, resources, handlers? })`                                                                    | Run the full CLI: parse config → handlers → create infrastructure → start server |
+| `CliServer` / `CliServerOptions`                                                                                                                             | Core server wrapping the MCP server; created per session                         |
+| `Session` / `SessionOptions`                                                                                                                                 | Per-client session with `session.config` (effective `UserConfig`)                |
+| `parseUserConfig({ args })`                                                                                                                                  | Parse CLI args/env into `{ error, warnings, parsed }`                            |
+| `UserConfigSchema`, `configRegistry`, `ALL_CONFIG_KEYS`                                                                                                      | Config schema and registry                                                       |
+| `applyConfigOverrides`, `getConfigMeta`, `nameToConfigKey`                                                                                                   | Request-level config overrides (HTTP headers / query params)                     |
+| `createRunnerFromConfig({ config, serverMetadata, tools, resources, logger })`                                                                               | Build the transport runner only (`StdioRunner` or `StreamableHttpRunner`)        |
+| `createHttpTransportRunnerFromConfig(sharedServices)`                                                                                                        | Build the HTTP transport runner (creates a fresh server per request)             |
+| `createSharedServicesFromConfig({ config, serverMetadata, tools, resources, logger })`                                                                       | Build app-level infra shared by all servers (metrics, connection store, ...)     |
+| `createServerFromConfig({ config, sharedServices })`                                                                                                         | Build one server (session-scoped state) from a resolved config                   |
+| `CliMcpHttpServer`                                                                                                                                           | HTTP server creating a fresh `CliServer` per session                             |
+| `startRunner({ transportRunner, logger, onExit })`                                                                                                           | Start the runner and manage graceful shutdown                                    |
+| `createLoggerFromConfig` / `createApiClientFromConfig` / `createExportsManagerFromConfig` / `createTelemetryFromConfig` / `createMonitoringServerFromConfig` | Individual infrastructure factories                                              |
+| `Resources`, `ConfigResource`, `DebugResource`, `ExportedData`                                                                                               | Built-in MCP resources                                                           |
+| `HelpHandler`, `VersionHandler`, `DryRunHandler`                                                                                                             | CLI handlers                                                                     |
 
-See the TypeScript definition in [`src/transports/base.ts`](./src/transports/base.ts) for detailed documentation of all available options.
+| Types | `ToolRegistry`, `ResourceRegistry`, `McpSession`, `RunMcpCliOptions` |
 
-**Note:** Several properties in `TransportRunnerConfig` are deprecated. For customizing server creation, prefer extending `StreamableHttpRunner` and overriding the `createServerForRequest` method, or using `createServer` with appropriate `serverOptions` and `sessionOptions`.
+### `@mongodb-js/mcp-core`
 
-### ToolBase
+| Symbol                                                                                            | Description                        |
+| ------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| `ToolBase`, `ToolClass`, `ToolConstructorParams`, `ToolArgs`, `ToolResult`, `formatUntrustedData` | Custom tool authoring              |
+| `StdioRunner({ logger, server })`                                                                 | Stdio transport runner             |
+| `InMemoryTransport`                                                                               | In-memory transport for tests      |
+| `SessionStore`, `createDefaultSessionStore`                                                       | HTTP session store                 |
+| `Keychain`, `registerGlobalSecretToRedact`, `redactValues`                                        | Secret storage/redaction           |
+| `Elicitation`                                                                                     | User confirmation requests         |
+| `NoopLogger`, `NoopTelemetry`, `LoggerBase`, `CompositeLogger`                                    | Logging/telemetry primitives       |
+| `McpServer` (re-export)                                                                           | `@modelcontextprotocol/sdk` server |
 
-Base class for implementing custom MCP tools.
+### `@mongodb-js/mcp-http-runners`
 
-See the TypeScript documentation in [`src/tools/tool.ts`](./src/tools/tool.ts) for:
+| Symbol                                                 | Description                                                                                                 |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| `StreamableHttpRunner` / `StreamableHttpRunnerOptions` | HTTP transport runner                                                                                       |
+| `MCPHttpServer` / `MCPHttpServerOptions`               | HTTP server; override abstract `createServerForRequest(request: TransportRequestContext): Promise<TServer>` |
+| `MonitoringServer` / `MonitoringServerOptions`         | Optional `/metrics` monitoring server                                                                       |
+| `ExpressBasedHttpServer`                               | Base class for Express-based HTTP servers                                                                   |
 
-- Detailed explanation of `ToolBase` abstract class
-- Documentation of all available protected members
-- Information about required static properties (`toolName`, `category`, `operationType`)
+### Other packages
 
-**Important:** All custom tools must conform to the `ToolClass` type, which requires:
-
-- **Static** `toolName`, `category`, and `operationType` properties (not instance properties)
-- Implementation of all abstract members from `ToolBase`
-
-### ToolClass
-
-The type that all tool classes must conform to when implementing custom tools.
-
-This type enforces that tool classes have:
-
-- A constructor that accepts `ToolConstructorParams`
-- **Static** `toolName`, `category`, and `operationType` properties
-
-The static properties are automatically injected as instance properties during tool construction by the server.
-
-See the TypeScript documentation in [`src/tools/tool.ts`](./src/tools/tool.ts) for complete details and examples.
-
-### Tool Collections
-
-The library exports collections of internal tool classes that can be used for selective tool registration or extension.
-
-```typescript
-import { AllTools, AggregateTool, FindTool } from "mongodb-mcp-server/tools";
-
-// Use all internal tools
-// An array containing all internal tool constructors (MongoDB, Atlas, and Atlas Local tools combined).
-const allTools = AllTools;
-
-// Pick specific tools by importing them directly
-const selectedInternalTools = [AggregateTool, FindTool];
-
-// Create a list of all internal tools except a few by filtering
-const filteredTools = AllTools.filter(
-  (tool) => tool !== AggregateTool && tool !== FindTool
-);
-
-// Filter tools by operationType (static property)
-const connectionRelatedTools = AllTools.filter(
-  (tool) => tool.operationType === "connect"
-);
-
-// Filter tools by category
-const mongodbTools = AllTools.filter((tool) => tool.category === "mongodb");
-const atlasTools = AllTools.filter((tool) => tool.category === "atlas");
-const atlasLocalTools = AllTools.filter(
-  (tool) => tool.category === "atlas-local"
-);
-```
-
-### UserConfig
-
-Server configuration options. See the [Configuration Options](README.md#configuration-options) section in the main README for a complete list of available configuration fields.
-
-### UserConfigSchema
-
-Zod schema for validating and creating UserConfig objects with default values. This is useful when you want to create a base configuration without parsing CLI arguments or environment variables.
-
-```typescript
-import { UserConfigSchema } from "mongodb-mcp-server";
-
-// Create a config with all default values
-const defaultConfig = UserConfigSchema.parse({});
-
-// Create a config with some custom values, rest will be defaults
-const customConfig = UserConfigSchema.parse({
-  transport: "http",
-  httpPort: 8080,
-  readOnly: true,
-});
-```
-
-This approach ensures you get all the default values without having to specify every configuration key manually.
-
-### parseUserConfig
-
-Utility function to parse command-line arguments and environment variables into a UserConfig object, using the same parsing logic as the MongoDB MCP server CLI.
-
-_Note: This is what MongoDB MCP server uses internally._
-
-**Example:**
-
-```typescript
-import {
-  parseUserConfig,
-  StdioRunner,
-  UserConfigSchema,
-} from "mongodb-mcp-server";
-
-// Parse config from process.argv and environment variables
-const config = parseUserConfig({
-  args: process.argv.slice(2),
-  // You can optionally specify overrides for the config
-  // This can be used, for example, to set new defaults.
-  overrides: {
-    readOnly: UserConfigSchema.shape.readOnly.default(true),
-  },
-});
-
-const runner = new StdioRunner({ userConfig: config });
-await runner.start();
-```
-
-### applyConfigOverrides
-
-Utility function to manually apply request-based configuration overrides.
-
-_Note: This is what MongoDB MCP server uses internally._
-
-```typescript
-function applyConfigOverrides(params: {
-  baseConfig: UserConfig;
-  request?: RequestContext;
-}): UserConfig;
-```
-
-See "Example: Integration with Request Overrides" for further details on how to use this function.
+| Package                             | Symbols                                                                                                                                                                            |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@mongodb-js/mcp-tools-mongodb`     | `MongoDBTools`, `MongoDBToolBase`, `MCPConnectionManager`, `ConnectionManager`, `ErrorCodes`, `MongoDBError`, exports manager & connection types                                   |
+| `@mongodb-js/mcp-tools-atlas`       | `AtlasTools`, `AtlasToolBase`                                                                                                                                                      |
+| `@mongodb-js/mcp-tools-atlas-local` | `AtlasLocalTools`, `createAtlasLocalClient`                                                                                                                                        |
+| `@mongodb-js/mcp-tools-assistant`   | `AssistantTools`                                                                                                                                                                   |
+| `@mongodb-js/mcp-atlas-api-client`  | `ApiClient`, `ClientCredentialsAuthProvider`                                                                                                                                       |
+| `@mongodb-js/mcp-atlas-telemetry`   | `AtlasTelemetry` (`create({ logger, deviceId, apiClient, keychain, enabled, serverMetadata })`), `TelemetryConfig`, `TelemetryBaseEvent`, `TelemetryCommonProperties`              |
+| `@mongodb-js/mcp-logging`           | `ConsoleLogger`, `DiskLogger`, `McpLogger`                                                                                                                                         |
+| `@mongodb-js/mcp-metrics`           | `PrometheusMetrics`, `createDefaultMetrics`                                                                                                                                        |
+| `@mongodb-js/mcp-ui`                | `UIRegistry`                                                                                                                                                                       |
+| `@mongodb-js/mcp-types`             | `ServerMetadata`, `TransportRequestContext`, `ToolCategory`, `OperationType`, `UserConfig`, `IMetrics`, `DefaultMetricDefinitions`, `ISession`, `IToolSession`, `ITransportRunner` |
 
 ## Advanced Topics
 
-### Custom Connection Management
+### Transports
 
-MongoDB connections live in an app-level connection store and are addressed by opaque `connectionId` handles that travel in tool arguments (see the `connect`, `disconnect`, and `list-connections` tools). There are two extension points, depending on how much of that you want to own:
-
-**Custom dialing, default bookkeeping.** Construct your own `MCPConnectionStore` with a `createConnectionManager` override and hand each session a view of it via `sessionOptions.connectionRegistry`. Use this when the actual connection handling is done differently in your application but you want the standard handle semantics (ids, connection limits, the `preconfigured` entry). For example, the [MongoDB extension for VS Code](https://github.com/mongodb-js/vscode/blob/f45a4c774ffc01e9aed38f6ef00224bf921d9784/src/mcp/mcpConnectionManager.ts#L30) provides its own implementation of `ConnectionManager` because the connection handling is done by the extension itself.
+**Stdio:**
 
 ```typescript
-import {
-  MCPConnectionStore,
-  StreamableHttpRunner,
-  UserConfigSchema,
-} from "mongodb-mcp-server";
-import type { Server, TransportRequestContext } from "mongodb-mcp-server";
+import { StdioRunner } from "@mongodb-js/mcp-core";
+import { CliServer } from "@mongodb-js/mcp-cli";
 
-// Extend StreamableHttpRunner and override createServerForRequest to serve
-// sessions from a store you own.
-class CustomStreamableHttpRunner extends StreamableHttpRunner {
-  // One store for the whole runner. Omit createConnectionManager to dial with
-  // the default implementation, or supply your own ConnectionManager here.
-  private readonly connectionStore = new MCPConnectionStore({
-    userConfig: this.userConfig,
-    logger: this.logger,
-    deviceId: this.deviceId,
-    createConnectionManager: () => new MyConnectionManager(),
-  });
-
-  protected override async createServerForRequest({
-    request,
-  }: {
-    request: TransportRequestContext;
-  }): Promise<Server> {
-    return this.createServer({
-      userConfig: this.userConfig,
-      sessionOptions: {
-        connectionRegistry: this.connectionStore.view(),
-      },
-    });
-  }
-
-  override async close(): Promise<void> {
-    // You own the store's lifecycle: close its connections on shutdown.
-    await super.close();
-    await this.connectionStore.closeAll();
-  }
-}
-
-const runner = new CustomStreamableHttpRunner({
-  userConfig: UserConfigSchema.parse({}),
-});
-
+const runner = new StdioRunner({ logger, server: cliServer });
 await runner.start();
 ```
 
-**Full ownership.** Implement the `ConnectionRegistry` interface yourself and supply an instance per session via `sessionOptions.connectionRegistry`. This is for embedders that scope connections by their own tenant key (e.g. an authenticated principal) or back them with durable storage. A registry is always fully bound to the connections it can see, so any scoping happens inside your implementation — the server code never passes caller identity to it. The session calls `registry.close()` when it closes: implement it as a no-op if your connections outlive the session, or use it to release per-session resources.
+**HTTP:** `StreamableHttpRunner` attaches a `MCPHttpServer` to the transport. The runners `start()` the server and `close()` it; per-request server creation happens in `MCPHttpServer.createServerForRequest`. Optionally add a `MonitoringServer` for Prometheus metrics. See [Use Case 2](#use-case-2-per-session-configuration) for a full wiring example.
 
-### Custom Error Handling
+**CLI default (per-request servers):** the CLI's `createHttpTransportRunnerFromConfig` wires a `CliMcpHttpServer` that creates a **fresh `CliServer` per HTTP session** via `createServerFromConfig`, applying request-level config overrides (`applyConfigOverrides`) on each session — so concurrent HTTP sessions are isolated (separate servers, sessions, telemetry and scoped connection registries). App-level infrastructure (metrics, device id, shared connection store, Atlas Local client) is built once by `createSharedServicesFromConfig` and shared. Stdio builds a single server (one client per connection).
 
-Provide custom error handling for connection errors by passing a custom `connectionErrorHandler` to `createServer`. The error handler receives `MongoDBError` instances with specific error codes, and can choose to handle them or let the default handler take over.
+### Configuration and request overrides
 
-The default connection error handler (`connectionErrorHandler`) is also exported if you need to use the default implementation.
+`parseUserConfig` reads CLI args and env vars, producing the effective `UserConfig`. When `allowRequestOverrides` is enabled, clients may override config per request via HTTP headers (`x-mongo-config-*`) or query parameters (`x-mongo-config-*`); `applyConfigOverrides({ baseConfig, request })` applies those overrides. `configRegistry` describes every config field, its overridability, and its comparison behavior.
 
-**Error Types:**
+### Telemetry
 
-The error handler receives `MongoDBError` instances with one of the following error codes:
+`AtlasTelemetry.create({ logger, deviceId, apiClient, keychain, enabled, serverMetadata })` from `@mongodb-js/mcp-atlas-telemetry`. `keychain` and `serverMetadata` are required — `serverMetadata` is your `ServerMetadata` (`mcpServerName`, `version`, `engines`). To customize common properties, subclass `AtlasTelemetry` and override `getCommonProperties()`. In tests use `NoopTelemetry` from `@mongodb-js/mcp-core`.
 
-- `ErrorCodes.NotConnectedToMongoDB` - Thrown when a tool requires a connection but none exists
-- `ErrorCodes.MisconfiguredConnectionString` - Thrown when the connection string provided through `UserConfig` is invalid
-
-**ConnectionErrorHandlerContext:**
+### Logging
 
 ```typescript
-interface ConnectionErrorHandlerContext {
-  /** List of all available tools that can be suggested to the user */
-  availableTools: ToolBase[];
-  /** Current state of the connection manager */
-  connectionState: AnyConnectionState;
-}
-```
+import { McpLogger } from "@mongodb-js/mcp-logging";
 
-**Example:**
-
-```typescript
-import {
-  StreamableHttpRunner,
-  UserConfigSchema,
-  ErrorCodes,
-  connectionErrorHandler as defaultConnectionErrorHandler,
-} from "mongodb-mcp-server";
-import type { ConnectionErrorHandler } from "mongodb-mcp-server";
-import type { Server } from "mongodb-mcp-server";
-import type { RequestContext } from "mongodb-mcp-server";
-
-// Or provide a custom error handler
-const customErrorHandler: ConnectionErrorHandler = (error, context) => {
-  // error is a MongoDBError with specific error codes
-  console.error("Connection error:", error.code, error.message);
-
-  // Access available tools and connection state
-  const connectTools = context.availableTools
-    .filter((t) => t.operationType === "connect")
-    .map((tool) => tool.name)
-    .join(", ");
-
-  if (error.code === ErrorCodes.NotConnectedToMongoDB) {
-    // Provide custom error message
-    return {
-      errorHandled: true,
-      result: {
-        content: [
-          {
-            type: "text",
-            text: `Please connect to MongoDB first using one of the available connect tools - (${connectTools})`,
-          },
-        ],
-        isError: true,
-      },
-    };
-  }
-
-  // Delegate to default handler for other errors
-  return defaultConnectionErrorHandler(error, context);
-};
-
-// Extend StreamableHttpRunner and override createServerForRequest to provide custom error handler
-class CustomStreamableHttpRunner extends StreamableHttpRunner {
-  protected override async createServerForRequest({
-    request,
-  }: {
-    request: RequestContext;
-  }): Promise<Server> {
-    // Create the server with the custom error handler
-    return this.createServer({
-      userConfig: this.userConfig,
-      serverOptions: {
-        connectionErrorHandler: customErrorHandler,
-      },
-    });
-  }
-}
-
-const runner = new CustomStreamableHttpRunner({
-  userConfig: UserConfigSchema.parse({}),
-});
-
-await runner.start();
-```
-
-### Custom Logging
-
-Add custom loggers to capture server events:
-
-```typescript
-import {
-  StreamableHttpRunner,
-  LoggerBase,
-  UserConfigSchema,
-  Keychain,
-  type LogPayload,
-  type LogLevel,
-  type LoggerType,
-} from "mongodb-mcp-server";
-
-class CustomLogger extends LoggerBase {
-  // Optional: specify the logger type for redaction control
-  protected readonly type: LoggerType = "console";
-
-  constructor() {
-    // Pass keychain for automatic secret redaction
-    // Use Keychain.root for the global keychain or create your own
-    super(Keychain.root);
-  }
-
-  // Required: implement the core logging method
-  protected logCore(level: LogLevel, payload: LogPayload): void {
-    // Send to your logging service
-    const timestamp = new Date().toISOString();
-    const logMessage = `[${timestamp}] [${level.toUpperCase()}] [${payload.id}] ${payload.context}: ${payload.message}`;
-
-    // Example: Send to external logging service
-    console.log(logMessage);
-
-    // You can also access payload.attributes for additional context
-    if (payload.attributes) {
-      console.log("  Attributes:", JSON.stringify(payload.attributes));
-    }
-  }
-}
-
-const runner = new StreamableHttpRunner({
-  userConfig: UserConfigSchema.parse({}),
-  additionalLoggers: [new CustomLogger()],
+new McpLogger({
+  server: mcpServer,
+  options: { logLevel: server.mcpLogLevel },
+  keychain,
 });
 ```
+
+`ConsoleLogger` writes to the console; `DiskLogger` writes to disk. All loggers accept options objects (e.g. `new LoggerBase({ keychain })`).
+
+### Connection management
+
+`MCPConnectionManager` (from `@mongodb-js/mcp-tools-mongodb`) manages MongoDB connections with display-name sanitization, redaction, and connection state tracking. `connectionErrorHandler`, `ErrorCodes`, and `MongoDBError` cover user-facing connection errors. Use `formatUntrustedData` (from `@mongodb-js/mcp-core`) when echoing untrusted data back to clients.
+
+### UI resources
+
+`UIRegistry` (from `@mongodb-js/mcp-ui`) registers the MCP UI components (e.g. `ListDatabases`) exposed as MCP resources. The default `Resources` from `@mongodb-js/mcp-cli` already includes them.
 
 ## Examples
 
-For complete working examples of embedding and extending the MongoDB MCP Server, refer to:
+### Example 1: Custom CLI with a custom tool
 
-- **Use Case Examples**: See the detailed examples in the [Use Cases](#use-cases) section above
-- **MongoDB VS Code Extension**: Real-world integration of MongoDB MCP server in our extension at [mongodb-js/vscode](https://github.com/mongodb-js/vscode)
+```typescript
+import {
+  runMcpCli,
+  Resources,
+  DryRunHandler,
+  HelpHandler,
+  VersionHandler,
+} from "@mongodb-js/mcp-cli";
+import { MongoDBTools } from "@mongodb-js/mcp-tools-mongodb";
+import { AtlasTools } from "@mongodb-js/mcp-tools-atlas";
+import type { ServerMetadata } from "@mongodb-js/mcp-types";
 
-## Best Practices
+const serverMetadata: ServerMetadata = {
+  mcpServerName: "my-product-mcp",
+  version: "1.0.0",
+  engines: { node: process.version },
+};
 
-### Security
+const tools = [...MongoDBTools, ...AtlasTools];
 
-1. **Never expose connection strings or API credentials in logs or error messages**
-2. **Apply the principle of least privilege when creating session configuration**
-3. **Ensure only expected HTTP header and query parameters overrides are applied**
-4. **Validate all inputs in custom tools**
+await runMcpCli({
+  args: process.argv.slice(2),
+  serverMetadata,
+  consoleLogger: console,
+  onExit: (code) => process.exit(code),
+  tools,
+  resources: Resources,
+  handlers: [
+    new HelpHandler(),
+    new VersionHandler(),
+    new DryRunHandler({ tools, resources: Resources }),
+  ],
+});
+```
 
-### Performance
+### Example 2: Full custom HTTP host with per-request config
 
-1. **Set appropriate `maxDocumentsPerQuery` and `maxBytesPerQuery` limits as this might affect runtime memory usage**
-2. **Use `indexCheck: true` to ensure only indexed queries are run by the server**
+See [Use Case 2](#use-case-2-per-session-configuration) for the complete `MCPHttpServer`-based wiring, including `SessionStore` and `StreamableHttpRunner`.
 
-### Development
+### Example 3: Custom tool class
 
-1. **Test custom tools thoroughly before deployment**
-2. **Implement comprehensive error handling in custom tools**
+See [Use Case 3](#use-case-3-adding-custom-tools) for the `ToolBase` subclass pattern (static `toolName`/`category`/`operationType`, `description`, zod `argsShape`, `execute`, `resolveTelemetryMetadata`).
 
-## Troubleshooting
+## Migrating from the v1 single-package API
 
-### Common Issues
-
-**Problem:** Custom tools not appearing in the tool list
-
-- **Solution:** Ensure the tool class extends `ToolBase` and is passed in the `tools` array
-- **Solution:** If you want both internal and custom tools, spread `AllTools` in the array: `tools: [...AllTools, MyCustomTool]`
-- **Solution:** Check that the tool's `verifyAllowed()` returns true and the tool is not accidentally disabled by config (disabledTools)
-
-**Problem:** Configuration overrides not working
-
-- **Solution:** Enable `allowRequestOverrides: true` in the base configuration
-- **Solution:** Check that the configuration field allows overrides (see `overrideBehavior` in schema)
-
-**Problem:** Tool name collision error
-
-- **Solution:** Ensure your custom tools have unique names that don't conflict with built-in tools
-- **Solution:** Check the list of built-in tool names in the [Supported Tools](README.md#supported-tools) section
-
-## Support
-
-For issues, questions, or contributions, please refer to the main [Contributing Guide](CONTRIBUTING.md) and open an issue on [GitHub](https://github.com/mongodb-js/mongodb-mcp-server).
+The pre-v3 `mongodb-mcp-server` single-package library API (`Server`, `Session`, `StreamableHttpRunner.createServerForRequest`, `mongodb-mcp-server/tools` and `/web` entry points, `defaultCreate*` helpers, positional constructor arguments, …) is **removed** in v3. See the repository's [v1 → v3 migration guide](skills/mongodb-mcp-v3-migration/SKILL.md) for the complete symbol-by-symbol mapping, or run the migration skill's inventory script to scan your consumer code.

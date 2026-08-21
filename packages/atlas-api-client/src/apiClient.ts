@@ -2,21 +2,32 @@ import createClient from "openapi-fetch";
 import type { FetchOptions, Client, Middleware } from "openapi-fetch";
 import { ApiClientError } from "./apiClientError.js";
 import type { components, paths, operations } from "./openapi.js";
-import type { CommonProperties, TelemetryEvent } from "../../telemetry/types.js";
-import { packageInfo } from "../packageInfo.js";
-import type { LoggerBase } from "../logging/index.js";
-import type { HttpClient } from "../proxyFetch.js";
-import { getDefaultHttpClient } from "../proxyFetch.js";
+import type { TelemetryEvent, TelemetryCommonProperties } from "@mongodb-js/mcp-types";
+import type { LoggerBase } from "@mongodb-js/mcp-core";
 import type { Credentials, AuthProvider } from "./auth/authProvider.js";
 import { AuthProviderFactory } from "./auth/authProvider.js";
-import { isNodeRuntime } from "../../helpers/isNodeRuntime.js";
 
 const ATLAS_API_VERSION = "2025-03-12";
 const DEFAULT_SEND_TIMEOUT_MS = 5_000;
 
+/**
+ * The `fetch`/`Request` pair used for Atlas API and OAuth token requests.
+ * Always injected by embedders so they can supply the platform
+ * `fetch`/`Request` (which pools connections) or a proxy-aware
+ * implementation.
+ */
+export type HttpClient = {
+    fetch: typeof fetch;
+    Request: typeof globalThis.Request;
+};
+
 export interface ApiClientOptions {
     baseUrl: string;
-    userAgent?: string;
+    /**
+     * The User-Agent header value sent with every Atlas API and OAuth token
+     * request. Always injected by embedders (no default is constructed here).
+     */
+    userAgent: string;
     credentials?: Credentials;
     requestContext?: RequestContext;
     /**
@@ -29,12 +40,12 @@ export interface ApiClientOptions {
      */
     supportsCurrentIpLookup?: boolean;
     /**
-     * Overrides the default proxy-aware `fetch` used for Atlas API and OAuth token
-     * requests. Embedders that don't need environment-variable proxy support or
-     * system CA trust can inject the platform `fetch`/`Request`, which pools
-     * connections and avoids rebuilding a TLS context per request.
+     * The `fetch`/`Request` pair used for Atlas API and OAuth token requests.
+     * Always injected by embedders so they can supply the platform
+     * `fetch`/`Request` (which pools connections) or a proxy-aware
+     * implementation.
      */
-    httpClient?: HttpClient;
+    httpClient: HttpClient;
 }
 
 export type RequestContext = {
@@ -63,6 +74,7 @@ const FORWARDABLE_REQUEST_HEADERS: ReadonlySet<string> = new Set(["x-request-id"
 
 export type ApiClientFactoryFn = (options: ApiClientOptions, logger: LoggerBase) => ApiClient;
 
+/** @public */
 export const defaultCreateApiClient: ApiClientFactoryFn = (options, logger) => {
     return new ApiClient(options, logger);
 };
@@ -76,21 +88,18 @@ export class ApiClient {
 
     private client: Client<paths>;
 
+    readonly logger: LoggerBase;
+    readonly authProvider?: AuthProvider;
+
     public isAuthConfigured(): boolean {
         return !!this.authProvider;
     }
 
-    constructor(
-        options: ApiClientOptions,
-        public readonly logger: LoggerBase,
-        public readonly authProvider?: AuthProvider
-    ) {
-        const httpClient = options.httpClient ?? getDefaultHttpClient();
+    constructor(options: ApiClientOptions, logger: LoggerBase, authProvider?: AuthProvider) {
+        this.logger = logger;
         this.options = {
-            ...options,
-            userAgent:
-                options.userAgent ??
-                `AtlasMCP/${packageInfo.version} (${isNodeRuntime() ? `${process.platform}; ${process.arch}` : "browser"})`,
+            baseUrl: options.baseUrl,
+            userAgent: options.userAgent,
             supportsCurrentIpLookup: options.supportsCurrentIpLookup ?? true,
         };
 
@@ -101,7 +110,7 @@ export class ApiClient {
                     apiBaseUrl: this.options.baseUrl,
                     userAgent: this.options.userAgent,
                     credentials: options.credentials ?? {},
-                    httpClient,
+                    httpClient: options.httpClient,
                 },
                 logger
             );
@@ -112,8 +121,8 @@ export class ApiClient {
                 "User-Agent": this.options.userAgent,
                 Accept: `application/vnd.atlas.${ATLAS_API_VERSION}+json`,
             },
-            fetch: httpClient.fetch,
-            Request: httpClient.Request,
+            fetch: options.httpClient.fetch,
+            Request: options.httpClient.Request,
         });
 
         if (this.authProvider) {
@@ -216,7 +225,7 @@ export class ApiClient {
     }
 
     public async sendEvents(
-        events: TelemetryEvent<CommonProperties>[],
+        events: TelemetryEvent<TelemetryCommonProperties>[],
         { signal = AbortSignal.timeout(DEFAULT_SEND_TIMEOUT_MS) }: { signal?: AbortSignal } = {}
     ): Promise<void> {
         if (!this.authProvider) {
@@ -240,7 +249,10 @@ export class ApiClient {
         }
     }
 
-    private async sendAuthEvents(events: TelemetryEvent<CommonProperties>[], signal?: AbortSignal): Promise<void> {
+    private async sendAuthEvents(
+        events: TelemetryEvent<TelemetryCommonProperties>[],
+        signal?: AbortSignal
+    ): Promise<void> {
         const authHeaders = await this.authProvider?.getAuthHeaders();
         if (!authHeaders) {
             throw new Error("No access token available");
@@ -263,7 +275,10 @@ export class ApiClient {
         }
     }
 
-    private async sendUnauthEvents(events: TelemetryEvent<CommonProperties>[], signal?: AbortSignal): Promise<void> {
+    private async sendUnauthEvents(
+        events: TelemetryEvent<TelemetryCommonProperties>[],
+        signal?: AbortSignal
+    ): Promise<void> {
         const headers: Record<string, string> = {
             Accept: "application/json",
             "Content-Type": "application/json",
@@ -523,7 +538,7 @@ export class ApiClient {
     async listDropIndexSuggestions(
         options: FetchOptions<operations["listGroupClusterPerformanceAdvisorDropIndexSuggestions"]>,
         context?: ApiClientRequestContext
-    ): Promise<components["schemas"]["DropIndexSuggestionsResponse"]> {
+    ): Promise<components["schemas"]["EnvelopedDropIndexSuggestionsResponse"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}/performanceAdvisor/dropIndexSuggestions",
             this.applyRequestContext(options, context)
@@ -537,7 +552,7 @@ export class ApiClient {
     async listSchemaAdvice(
         options: FetchOptions<operations["listGroupClusterPerformanceAdvisorSchemaAdvice"]>,
         context?: ApiClientRequestContext
-    ): Promise<components["schemas"]["SchemaAdvisorResponse"]> {
+    ): Promise<components["schemas"]["EnvelopedSchemaAdvisorResponse"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}/performanceAdvisor/schemaAdvice",
             this.applyRequestContext(options, context)
@@ -551,7 +566,7 @@ export class ApiClient {
     async listClusterSuggestedIndexes(
         options: FetchOptions<operations["listGroupClusterPerformanceAdvisorSuggestedIndexes"]>,
         context?: ApiClientRequestContext
-    ): Promise<components["schemas"]["PerformanceAdvisorResponse"]> {
+    ): Promise<components["schemas"]["EnvelopedPerformanceAdvisorResponse"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}/performanceAdvisor/suggestedIndexes",
             this.applyRequestContext(options, context)

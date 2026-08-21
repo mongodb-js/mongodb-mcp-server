@@ -3,21 +3,26 @@ import { fileURLToPath } from "url";
 import fs from "fs/promises";
 import type { Collection, Document } from "mongodb";
 import { MongoClient, ObjectId } from "mongodb";
-import type { IntegrationTest } from "../../helpers.js";
+import type { IntegrationTest } from "./integrationHelpers.js";
 import {
     getResponseContent,
     setupIntegrationTest,
     defaultTestConfig,
     getDataFromUntrustedContent,
-} from "../../helpers.js";
-import type { UserConfig } from "../../../../src/common/config/userConfig.js";
+    syncMongoToolsConfigFromUserConfig,
+} from "./integrationHelpers.js";
+import type { UserConfig } from "mongodb-mcp-server";
+import type { CliServerOptions } from "mongodb-mcp-server";
+import { AllTools } from "mongodb-mcp-server";
+import type { AnyToolClass } from "@mongodb-js/mcp-core";
+import type { AnyResourceClass } from "@mongodb-js/mcp-types";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { EJSON } from "bson";
-import { MongoDBClusterProcess } from "./mongodbClusterProcess.js";
-import type { MongoClusterConfiguration } from "./mongodbClusterProcess.js";
-import { ConnectionEntry, PRECONFIGURED_CONNECTION_ID } from "../../../../src/common/connectionRegistry.js";
-import type { createMockElicitInput, MockClientCapabilities } from "../../../utils/elicitationMocks.js";
-import { sleep } from "../../../../src/common/managedTimeout.js";
+import { MongoDBClusterProcess } from "@mongodb-js/mcp-test-utils";
+import type { MongoClusterConfiguration } from "@mongodb-js/mcp-test-utils";
+import type { createMockElicitInput, MockClientCapabilities } from "@mongodb-js/mcp-test-utils";
+import { ConnectionEntry, type ConnectionManager, PRECONFIGURED_CONNECTION_ID } from "@mongodb-js/mcp-tools-mongodb";
+import { sleep } from "@mongodb-js/mcp-core";
 
 export const DEFAULT_WAIT_TIMEOUT = 1000;
 export const DEFAULT_RETRY_INTERVAL = 100;
@@ -30,7 +35,7 @@ const CONNECT_RETRY_INTERVAL = 1000;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const testDataDumpPath = path.join(__dirname, "..", "..", "..", "accuracy", "test-data-dumps");
+const testDataDumpPath = path.join(__dirname, "..", "..", "..", "accuracy-tests", "src", "test-data-dumps");
 
 const testDataPaths = [
     {
@@ -66,7 +71,7 @@ const DEFAULT_MONGODB_PROCESS_OPTIONS: MongoClusterConfiguration = {
     serverArgs: [],
 };
 
-interface MongoDBIntegrationTest {
+export interface MongoDBIntegrationTest {
     mongoClient: () => MongoClient;
     connectionString: () => string;
     randomDbName: () => string;
@@ -88,17 +93,19 @@ interface MongoDBIntegrationTest {
 export type MongoDBIntegrationTestCase = IntegrationTest &
     MongoDBIntegrationTest & { connectMcpClient: () => Promise<string> };
 
-export type MongoSearchConfiguration = { search: true; image?: string };
-
 export type TestSuiteConfig = {
     getUserConfig: (mdbIntegration: MongoDBIntegrationTest) => UserConfig;
     downloadOptions: MongoClusterConfiguration;
     getMockElicitationInput?: () => ReturnType<typeof createMockElicitInput>;
     getClientCapabilities?: () => MockClientCapabilities;
+    serverOptions?: Partial<CliServerOptions>;
+    tools?: AnyToolClass[];
+    resources?: AnyResourceClass[];
 };
 
 export const defaultTestSuiteConfig: TestSuiteConfig = {
-    getUserConfig: () => defaultTestConfig,
+    /** Clone so parallel test workers / files never share one `userConfig` instance (would race on readOnly/disabledTools and break tool sync). */
+    getUserConfig: () => structuredClone(defaultTestConfig),
     downloadOptions: DEFAULT_MONGODB_PROCESS_OPTIONS,
 };
 
@@ -107,10 +114,19 @@ export function describeWithMongoDB(
     fn: (integration: MongoDBIntegrationTestCase) => void,
     partialTestSuiteConfig?: Partial<TestSuiteConfig>
 ): void {
-    const { getUserConfig, downloadOptions, getMockElicitationInput, getClientCapabilities } = {
+    const merged: TestSuiteConfig = {
         ...defaultTestSuiteConfig,
         ...partialTestSuiteConfig,
     };
+    const {
+        getUserConfig,
+        downloadOptions,
+        getMockElicitationInput,
+        getClientCapabilities,
+        serverOptions,
+        tools,
+        resources,
+    } = merged;
     describe.skipIf(!MongoDBClusterProcess.isConfigurationSupportedInCurrentEnv(downloadOptions))(name, () => {
         const mdbIntegration = setupMongoDBIntegrationTest(downloadOptions);
         const mockElicitInput = getMockElicitationInput?.();
@@ -118,7 +134,13 @@ export function describeWithMongoDB(
             () => ({
                 ...getUserConfig(mdbIntegration),
             }),
-            { elicitInput: mockElicitInput, getClientCapabilities }
+            {
+                elicitInput: mockElicitInput,
+                getClientCapabilities,
+                serverOptions,
+                tools: tools ?? (AllTools as unknown as NonNullable<CliServerOptions["tools"]>),
+                resources,
+            }
         );
 
         fn({
@@ -212,6 +234,8 @@ export function setupMongoDBIntegrationTest(
     };
 }
 
+export { syncMongoToolsConfigFromUserConfig };
+
 export function validateAutoConnectBehavior(
     integration: IntegrationTest & MongoDBIntegrationTest,
     name: string,
@@ -232,6 +256,9 @@ export function validateAutoConnectBehavior(
             const registry = integration.mcpServer().session.connectionRegistry;
             if (await registry.peek(PRECONFIGURED_CONNECTION_ID)) {
                 await registry.disconnect(PRECONFIGURED_CONNECTION_ID);
+                // Directly reach into the store: tests seed/remove the preconfigured
+                // entry which the public registry API deliberately does not allow.
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
                 store["entries"].delete(PRECONFIGURED_CONNECTION_ID);
             }
             integration.mcpServer().userConfig.connectionString = undefined;
@@ -243,12 +270,21 @@ export function validateAutoConnectBehavior(
             // Seed the preconfigured entry the same way the store constructor does when the
             // server is started with a configured connection string. The entry is not dialed
             // here - resolving it during the tool call is what dials it.
-            store["entries"].set(PRECONFIGURED_CONNECTION_ID, {
+            // Accessing the private `entries` map and the protected `createConnectionManager`
+            // method via index signature is necessary because the public registry API
+            // deliberately cannot seed entries after construction.
+            type StoredEntry = { entry: ConnectionEntry; scope?: string };
+            type StoreWithSeam = {
+                entries: Map<string, StoredEntry>;
+                createConnectionManager: () => ConnectionManager;
+            };
+            const seam = store as unknown as StoreWithSeam;
+            seam.entries.set(PRECONFIGURED_CONNECTION_ID, {
                 entry: new ConnectionEntry({
                     connectionId: PRECONFIGURED_CONNECTION_ID,
                     name: PRECONFIGURED_CONNECTION_ID,
                     source: "preconfigured",
-                    manager: store["createConnectionManager"](),
+                    manager: seam.createConnectionManager(),
                 }),
             });
 

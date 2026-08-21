@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { AtlasToolBase } from "../atlasTool.js";
-import type { OperationType, ToolArgs, ToolExecutionContext, ToolResult } from "../../tool.js";
-import { formatUntrustedData } from "../../tool.js";
+import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
+import { AtlasToolBase } from "../../atlasTool.js";
+import { type ToolArgs, type ToolResult, formatUntrustedData } from "@mongodb-js/mcp-core";
 
 export const ListOrganizationsArgs = {
     limit: z.number().int().min(1).max(500).default(10).describe("Max number of organizations to return per page."),

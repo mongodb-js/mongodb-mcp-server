@@ -1,26 +1,29 @@
 import { vi, it, describe, beforeEach, afterEach, afterAll, expect } from "vitest";
-import { type CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { ConnectionIdArgs, MongoDBToolBase } from "../../../../src/tools/mongodb/mongodbTool.js";
-import { type OperationType, type ToolArgs, type ToolClass } from "../../../../src/tools/tool.js";
-import { type UserConfig } from "../../../../src/common/config/userConfig.js";
-import { MCPConnectionStore } from "../../../../src/common/connectionStore.js";
-import { Session } from "../../../../src/common/session.js";
-import { CompositeLogger } from "../../../../src/common/logging/index.js";
-import { DeviceId } from "../../../../src/helpers/deviceId.js";
-import { ExportsManager } from "../../../../src/common/exportsManager.js";
-import { InMemoryTransport } from "../../../../src/transports/inMemoryTransport.js";
-import { Server } from "../../../../src/server.js";
-import { type ConnectionErrorHandler, connectionErrorHandler } from "../../../../src/common/connectionErrorHandler.js";
-import { defaultTestConfig, expectDefined } from "../../helpers.js";
-import { setupMongoDBIntegrationTest } from "./mongodbHelpers.js";
-import { ErrorCodes } from "../../../../src/common/errors.js";
-import { Keychain } from "../../../../src/common/keychain.js";
-import { Elicitation } from "../../../../src/elicitation.js";
-import * as MongoDbTools from "../../../../src/tools/mongodb/tools.js";
-import { defaultCreateApiClient, Telemetry } from "../../../../src/lib.js";
-import { MockMetrics } from "../../../unit/mocks/metrics.js";
+import {
+    MongoDBToolBase,
+    ConnectionIdArgs,
+    MCPConnectionStore,
+    DeviceId,
+    ExportsManager,
+    ErrorCodes,
+    MongoDBTools,
+    connectionErrorHandler,
+    type ConnectionErrorHandler,
+} from "@mongodb-js/mcp-tools-mongodb";
+import * as MongoDbTools from "@mongodb-js/mcp-tools-mongodb";
+import type { OperationType } from "@mongodb-js/mcp-types";
+import type { ToolArgs } from "@mongodb-js/mcp-core";
+import { type UserConfig } from "mongodb-mcp-server";
+import { Session, CliServer } from "@mongodb-js/mcp-cli";
+import type { AnyToolClass } from "@mongodb-js/mcp-core";
+import { CompositeLogger, InMemoryTransport, Keychain, Elicitation } from "@mongodb-js/mcp-core";
+import { createTestApiClient, defaultTestConfig, expectDefined } from "../../integrationHelpers.js";
+import { MockMetrics } from "@mongodb-js/mcp-test-utils";
+import { setupMongoDBIntegrationTest } from "../../mongodbHelpers.js";
+import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 
 const injectedErrorHandler: ConnectionErrorHandler = (error) => {
     switch (error.code) {
@@ -86,44 +89,46 @@ describe("MongoDBTool implementations", () => {
     const mdbIntegration = setupMongoDBIntegrationTest();
 
     let mcpClient: Client | undefined;
-    let mcpServer: Server | undefined;
+    let mcpServer: CliServer | undefined;
     let deviceId: DeviceId | undefined;
 
     async function cleanupAndStartServer(
         config: Partial<UserConfig> | undefined = {},
-        toolConstructors: ToolClass[] = [...Object.values(MongoDbTools), RandomTool],
+        toolConstructors: AnyToolClass[] = [...Object.values(MongoDBTools), RandomTool],
         errorHandler: ConnectionErrorHandler | undefined = connectionErrorHandler
     ): Promise<void> {
         await cleanup();
         const userConfig: UserConfig = { ...defaultTestConfig, telemetry: "disabled", ...config };
         const logger = new CompositeLogger();
-        const exportsManager = ExportsManager.init(userConfig, logger);
+        const exportsManager = ExportsManager.init({ options: userConfig, logger: logger });
         deviceId = DeviceId.create(logger);
-        const connectionRegistry = new MCPConnectionStore({ userConfig, logger, deviceId }).view();
+        const connectionRegistry = new MCPConnectionStore({ options: userConfig, logger, deviceId }).view();
         const session = new Session({
             logger,
             exportsManager,
             connectionRegistry,
             keychain: new Keychain(),
             connectionErrorHandler: errorHandler,
-            apiClient: defaultCreateApiClient(
-                {
-                    baseUrl: userConfig.apiBaseUrl,
-                    credentials: {
-                        clientId: userConfig.apiClientId,
-                        clientSecret: userConfig.apiClientSecret,
-                    },
-                },
-                logger
-            ),
+            apiClient: createTestApiClient({
+                baseUrl: userConfig.apiBaseUrl,
+                serverMetadata: { mcpServerName: "test", version: "1" },
+                logger,
+                clientId: userConfig.apiClientId,
+                clientSecret: userConfig.apiClientSecret,
+            }),
+            config: userConfig,
         });
 
-        const telemetry = Telemetry.create({
+        const telemetry = AtlasTelemetry.create({
             logger,
             deviceId,
             apiClient: session.apiClient,
             keychain: session.keychain,
             enabled: false,
+            serverMetadata: {
+                mcpServerName: "test-server",
+                version: "1.0",
+            },
         });
 
         const clientTransport = new InMemoryTransport();
@@ -154,15 +159,21 @@ describe("MongoDBTool implementations", () => {
             timeoutMs: userConfig.elicitationTimeoutMs,
         });
 
-        mcpServer = new Server({
+        mcpServer = new CliServer({
             session,
-            userConfig,
             telemetry,
             mcpServer: internalMcpServer,
             connectionErrorHandler: errorHandler,
             elicitation,
             tools: toolConstructors,
             metrics: new MockMetrics(),
+            serverMetadata: {
+                mcpServerName: "test-server",
+                version: "1.0",
+                engines: {
+                    node: "20.0.0",
+                },
+            },
         });
 
         await mcpServer.connect(serverTransport);
@@ -283,7 +294,7 @@ describe("MongoDBTool implementations", () => {
         beforeEach(async () => {
             await cleanupAndStartServer(
                 defaultTestConfig,
-                [...Object.values(MongoDbTools), RandomTool],
+                [...Object.values(MongoDBTools), RandomTool],
                 injectedErrorHandler
             );
         });
@@ -331,7 +342,7 @@ describe("MongoDBTool implementations", () => {
                 // This is a misconfigured connection string
                 await cleanupAndStartServer(
                     { connectionString: "mongodb://localhost:1234" },
-                    [...Object.values(MongoDbTools), RandomTool],
+                    [...Object.values(MongoDBTools), RandomTool],
                     injectedErrorHandler
                 );
                 const toolResponse = await mcpClient?.callTool({
@@ -355,7 +366,7 @@ describe("MongoDBTool implementations", () => {
                 // This is a misconfigured connection string
                 await cleanupAndStartServer(
                     { connectionString: mdbIntegration.connectionString(), indexCheck: true },
-                    [...Object.values(MongoDbTools), RandomTool],
+                    [...Object.values(MongoDBTools), RandomTool],
                     injectedErrorHandler
                 );
                 const toolResponse = await mcpClient?.callTool({
@@ -414,7 +425,7 @@ describe("MongoDBTool implementations", () => {
     describe("when the list-connections tool is not registered", () => {
         beforeEach(async () => {
             await cleanupAndStartServer(undefined, [
-                ...Object.values(MongoDbTools).filter((tool) => tool !== MongoDbTools.ListConnectionsTool),
+                ...MongoDBTools.filter((tool) => tool !== MongoDbTools.ListConnectionsTool),
                 RandomTool,
             ]);
         });

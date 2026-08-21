@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { describe, it, expect, afterEach } from "vitest";
-import { type UserConfig } from "../../src/common/config/userConfig.js";
-import { defaultTestConfig } from "./helpers.js";
-import { Elicitation } from "../../src/elicitation.js";
-import { createMockElicitInput } from "../utils/elicitationMocks.js";
-import { describeWithMongoDB } from "./tools/mongodb/mongodbHelpers.js";
+import { type UserConfig } from "mongodb-mcp-server";
+import { defaultTestConfig } from "./integrationHelpers.js";
+import { Elicitation } from "mongodb-mcp-server";
+import { createMockElicitInput } from "@mongodb-js/mcp-test-utils";
+import { describeWithMongoDB } from "./mongodbHelpers.js";
 
 function createTestConfig(config: Partial<UserConfig> = {}): UserConfig {
     return {

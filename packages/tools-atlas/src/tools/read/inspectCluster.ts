@@ -1,14 +1,9 @@
+import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
+import { type ToolArgs, type ToolResult, formatUntrustedData } from "@mongodb-js/mcp-core";
 import { z } from "zod";
-import {
-    type OperationType,
-    type ToolArgs,
-    type ToolExecutionContext,
-    type ToolResult,
-    formatUntrustedData,
-} from "../../tool.js";
-import { AtlasToolBase } from "../atlasTool.js";
-import type { Cluster } from "../../../common/atlas/cluster.js";
-import { inspectCluster } from "../../../common/atlas/cluster.js";
+import { AtlasToolBase } from "../../atlasTool.js";
+import type { Cluster } from "../../helpers/cluster.js";
+import { inspectCluster } from "../../helpers/cluster.js";
 import { AtlasArgs } from "../../args.js";
 
 export const InspectClusterArgs = {
@@ -53,7 +48,7 @@ export class InspectClusterTool extends AtlasToolBase {
             instanceSize: formattedCluster.instanceSize || "N/A",
             provider: formattedCluster.provider,
             region: formattedCluster.region,
-            paused: formattedCluster.paused,
+            paused: formattedCluster.paused ?? false,
             state: formattedCluster.state || "UNKNOWN",
             mongoDBVersion: formattedCluster.mongoDBVersion || "N/A",
             connectionStrings: formattedCluster.connectionStrings || {},

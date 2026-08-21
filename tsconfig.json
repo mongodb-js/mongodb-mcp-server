@@ -1,9 +1,12 @@
 {
-  "extends": "./tsconfig.build.json",
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "rootDir": ".",
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false
   },
-  "include": ["**/*"],
-  "exclude": ["dist", "node_modules"]
+  "include": ["*.ts", "*.js", "eslint-rules/*.js"],
+  "exclude": ["dist", "node_modules", "**/dist", "packaging", "tests"]
 }

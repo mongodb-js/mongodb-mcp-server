@@ -1,8 +1,9 @@
 import { z } from "zod";
-import { type ToolArgs, type OperationType, type ToolExecutionContext, type ToolResult } from "../../tool.js";
-import { AtlasToolBase } from "../atlasTool.js";
-import type { ClusterDescription20240805 } from "../../../common/atlas/openapi.js";
-import { ensureCurrentIpInAccessList, getAccessListNote } from "../../../common/atlas/accessListUtils.js";
+import { type ToolArgs, type ToolResult } from "@mongodb-js/mcp-core";
+import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
+import { AtlasToolBase } from "../../atlasTool.js";
+import type { ClusterDescription20240805 } from "@mongodb-js/mcp-atlas-api-client";
+import { ensureCurrentIpInAccessList, getAccessListNote } from "../../helpers/accessListUtils.js";
 import { AtlasArgs } from "../../args.js";
 
 const CreateFreeClusterOutputSchema = {

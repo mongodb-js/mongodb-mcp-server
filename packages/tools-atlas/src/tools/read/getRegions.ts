@@ -1,11 +1,12 @@
 import { z } from "zod";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { GetRegionsMetadata } from "../../../telemetry/types.js";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
+import type { GetRegionsMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import { AtlasArgs, type AtlasCloudProvider } from "../../args.js";
-import type { OperationType, ToolArgs, ToolExecutionContext, ToolResult } from "../../tool.js";
-import { AtlasToolBase } from "../atlasTool.js";
+import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
+import { type ToolArgs, type ToolResult } from "@mongodb-js/mcp-core";
+import { AtlasToolBase } from "../../atlasTool.js";
 
-interface AtlasRegion {
+export interface AtlasRegion {
     name: string;
     location: string;
 }

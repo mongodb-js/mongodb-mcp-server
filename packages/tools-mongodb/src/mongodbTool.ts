@@ -1,15 +1,23 @@
 import { z } from "zod";
-import type { OperationType, ToolArgs, ToolCategory, ToolExecutionContext } from "../tool.js";
-import { ToolBase } from "../tool.js";
+import type { ToolArgs, AnyToolBase, CompositeLogger } from "@mongodb-js/mcp-core";
+import { ToolBase } from "@mongodb-js/mcp-core";
+import type {
+    McpServer,
+    ToolCategory,
+    OperationType,
+    ToolExecutionContext,
+    CallToolResult,
+    ISession,
+    IToolConfig,
+} from "@mongodb-js/mcp-types";
+import type { ConnectionMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { ErrorCodes, MongoDBError } from "../../common/errors.js";
-import type { ConnectionEntry } from "../../common/connectionRegistry.js";
-import type { Server } from "../../server.js";
-import type { ConnectionMetadata } from "../../telemetry/types.js";
-import { assertNoServerSideJS, isWriteStage, type WriteStageTarget } from "../../helpers/mqlGuards.js";
-import { buildWriteStageConfirmationMessage } from "../../helpers/writeStageConfirmation.js";
-import { EXPORT_TOOL_NAME } from "../../helpers/constants.js";
+import { ErrorCodes, MongoDBError } from "./common/errors.js";
+import type { ConnectionEntry, ConnectionRegistry } from "./common/connectionRegistry.js";
+import { assertNoServerSideJS, isWriteStage, type WriteStageTarget } from "./helpers/mqlGuards.js";
+import { buildWriteStageConfirmationMessage } from "./helpers/writeStageConfirmation.js";
+import { EXPORT_TOOL_NAME } from "./helpers/constants.js";
+import type { AvailableExport, CreateJSONExportParams } from "./common/exportsManager.js";
 
 export const DBOperationArgs = {
     database: z.string().describe("Database name"),
@@ -18,6 +26,41 @@ export const DBOperationArgs = {
 export const CollOperationArgs = {
     ...DBOperationArgs,
     collection: z.string().describe("Collection name"),
+};
+
+/** MongoDB tool subset of server config. */
+export type IMongoDBConfig = IToolConfig & {
+    connectionString: string | undefined;
+    indexCheck: boolean;
+    disableServerSideJs: boolean;
+    maxTimeMS: number | undefined;
+    maxDocumentsPerQuery: number;
+    maxBytesPerQuery: number;
+    httpHost: string;
+    queryCountMaxTimeMsCap: number;
+    aggregationCountMaxTimeMsCap: number;
+};
+
+export interface IMongoDBSession extends ISession<IMongoDBConfig> {
+    logger: CompositeLogger;
+    config: IMongoDBConfig;
+    connectionRegistry: ConnectionRegistry;
+    connectionErrorHandler(
+        error: MongoDBError,
+        context: { availableTools: readonly unknown[]; connectionState: unknown }
+    ): Promise<{ errorHandled: boolean; result: CallToolResult }>;
+    exportsManager: { createJSONExport: (params: CreateJSONExportParams) => Promise<AvailableExport> };
+}
+
+/**
+ * MCP registration payload for MongoDB tools. Matches `{ mcpServer }` from
+ * {@link ToolBase.register} plus optional host context used when rendering
+ * connection errors.
+ */
+export type MongoDBToolRegistrationServer = {
+    mcpServer: McpServer;
+    readonly tools?: readonly AnyToolBase[];
+    isToolCategoryAvailable(name: ToolCategory): boolean;
 };
 
 function connectionIdDescription({ hasPreconfiguredConnection }: { hasPreconfiguredConnection: boolean }): string {
@@ -37,9 +80,14 @@ const connectionIdArgWithoutPreconfigured = z
     .string()
     .describe(connectionIdDescription({ hasPreconfiguredConnection: false }));
 
-export abstract class MongoDBToolBase extends ToolBase {
-    protected server?: Server;
+export abstract class MongoDBToolBase extends ToolBase<IMongoDBSession> {
+    protected server?: MongoDBToolRegistrationServer;
     static category: ToolCategory = "mongodb";
+
+    /** Access to the MongoDB-specific configuration. */
+    protected get config(): IMongoDBConfig {
+        return this.session.config;
+    }
 
     protected get isExportToolAvailable(): boolean {
         const registeredTools = this.server?.tools ?? [];
@@ -172,7 +220,7 @@ export abstract class MongoDBToolBase extends ToolBase {
         return "";
     }
 
-    public register(server: Server): boolean {
+    public register(server: MongoDBToolRegistrationServer): boolean {
         this.server = server;
         // The default connectionId description advertises the "preconfigured"
         // handle; drop that mention when no connection string is configured.
@@ -192,9 +240,9 @@ export abstract class MongoDBToolBase extends ToolBase {
                 case ErrorCodes.MisconfiguredConnectionString:
                 case ErrorCodes.UnknownConnectionId: {
                     const connectionError = error as MongoDBError<
-                        | ErrorCodes.NotConnectedToMongoDB
-                        | ErrorCodes.MisconfiguredConnectionString
-                        | ErrorCodes.UnknownConnectionId
+                        | typeof ErrorCodes.NotConnectedToMongoDB
+                        | typeof ErrorCodes.MisconfiguredConnectionString
+                        | typeof ErrorCodes.UnknownConnectionId
                     >;
                     const outcome = await this.session.connectionErrorHandler(connectionError, {
                         availableTools: this.server?.tools ?? [],

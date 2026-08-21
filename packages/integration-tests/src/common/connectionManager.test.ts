@@ -2,14 +2,16 @@ import type {
     ConnectionManagerEvents,
     ConnectionStateConnected,
     ConnectionStateErrored,
-} from "../../../src/common/connectionManager.js";
-import { MCPConnectionManager } from "../../../src/common/connectionManager.js";
-import { CompositeLogger } from "../../../src/common/logging/index.js";
-import { DeviceId } from "../../../src/helpers/deviceId.js";
-import { getAuthType, type ConnectionStringAuthType } from "../../../src/common/connectionInfo.js";
-import type { UserConfig } from "../../../src/common/config/userConfig.js";
-import { defaultTestConfig } from "../../integration/helpers.js";
-import { describeWithMongoDB, waitUntilSearchIsReady } from "../tools/mongodb/mongodbHelpers.js";
+} from "@mongodb-js/mcp-tools-mongodb";
+import {
+    MCPConnectionManager,
+    getAuthType,
+    DeviceId,
+    type ConnectionStringAuthType,
+} from "@mongodb-js/mcp-tools-mongodb";
+import { CompositeLogger } from "@mongodb-js/mcp-core";
+import type { UserConfig } from "mongodb-mcp-server";
+import { describeWithMongoDB, waitUntilSearchIsReady } from "../mongodbHelpers.js";
 import { MongoServerError } from "mongodb";
 import { describe, beforeEach, expect, it, vi, afterEach } from "vitest";
 import type { MockInstance } from "vitest";
@@ -38,11 +40,13 @@ describeWithMongoDB("Connection Manager", (integration) => {
 
             // Construct the manager directly and attach the spies before the
             // initial dial so they observe the full lifecycle.
-            manager = new MCPConnectionManager(
-                defaultTestConfig,
-                new CompositeLogger(),
-                DeviceId.create(new CompositeLogger())
-            );
+            const logger = new CompositeLogger();
+            manager = new MCPConnectionManager({
+                logger,
+                deviceId: DeviceId.create(new CompositeLogger()),
+                serverMetadata: { mcpServerName: "test-server", version: "1.0" },
+                connectionInfo: { transport: "stdio", httpHost: "localhost" },
+            });
 
             for (const [event, spy] of Object.entries(connectionManagerSpies)) {
                 manager.events.on(
@@ -213,7 +217,9 @@ describeWithMongoDB(
             connectionState: ConnectionStateConnected;
         }> {
             const session = integration.mcpServer().session;
-            const entry = await session.connectionRegistry.connect({ settings: { connectionString } });
+            const entry = await session.connectionRegistry.connect({
+                settings: { connectionString },
+            });
 
             const state = entry.state;
             if (state.tag !== "connected") {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { assertNoServerSideJS, getWriteStageTargets, isWriteStage } from "../../../src/helpers/mqlGuards.js";
-import { ErrorCodes, MongoDBError } from "../../../src/common/errors.js";
+import { assertNoServerSideJS, getWriteStageTargets, isWriteStage } from "./mqlGuards.js";
+import { ErrorCodes, MongoDBError } from "../common/errors.js";
 
 function expectForbiddenOperator(value: unknown, operator: string): void {
     try {

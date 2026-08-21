@@ -1,20 +1,29 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ToolConstructorParams, ToolExecutionContext } from "../../../../../src/tools/tool.js";
-import { ConnectClusterTool } from "../../../../../src/tools/atlas/connect/connectCluster.js";
-import type { Session } from "../../../../../src/common/session.js";
-import type { UserConfig } from "../../../../../src/common/config/userConfig.js";
-import type { Telemetry } from "../../../../../src/telemetry/telemetry.js";
-import type { Elicitation } from "../../../../../src/elicitation.js";
-import { CompositeLogger } from "../../../../../src/common/logging/index.js";
-import type { ApiClient } from "../../../../../src/common/atlas/apiClient.js";
-import type { AtlasClusterConnectionInfo } from "../../../../../src/common/connectionInfo.js";
-import { MCPConnectionStore } from "../../../../../src/common/connectionStore.js";
-import type { ConnectionRegistry } from "../../../../../src/common/connectionRegistry.js";
-import { DeviceId } from "../../../../../src/helpers/deviceId.js";
-import { Keychain } from "../../../../../src/common/keychain.js";
-import { MockMetrics } from "../../../mocks/metrics.js";
-import { FakeConnectionManager } from "../../../mocks/connectionManager.js";
-import { defaultTestConfig } from "../../../../integration/helpers.js";
+import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
+import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
+import { ConnectClusterTool } from "./connectCluster.js";
+import type { IAtlasSession, IAtlasConfig } from "../../atlasTool.js";
+import type { ITelemetry, IElicitation, ICompositeLogger } from "@mongodb-js/mcp-types";
+import { CompositeLogger } from "@mongodb-js/mcp-core";
+import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-types";
+import {
+    MCPConnectionStore,
+    type ConnectionRegistry,
+    DeviceId,
+    FakeConnectionManager,
+} from "@mongodb-js/mcp-tools-mongodb";
+import type { ConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
+import { Keychain } from "@mongodb-js/mcp-core";
+import { MockMetrics } from "@mongodb-js/mcp-test-utils";
+import { UIRegistry } from "@mongodb-js/mcp-ui";
+import { UserConfigSchema, type UserConfig } from "@mongodb-js/mcp-cli";
+
+const defaultTestConfig: UserConfig = {
+    ...UserConfigSchema.parse({}),
+    telemetry: "disabled",
+    loggers: ["stderr"],
+};
 
 const ATLAS_INFO: AtlasClusterConnectionInfo = {
     username: "user1",
@@ -41,7 +50,7 @@ const CLUSTER_DESCRIPTION = {
 describe("ConnectClusterTool", () => {
     let mockLogger: Record<string, ReturnType<typeof vi.fn>>;
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
-    let mockSession: Partial<Session>;
+    let mockSession: Partial<IAtlasSession>;
     let connectionRegistry: ConnectionRegistry;
     let tool: ConnectClusterTool;
 
@@ -59,47 +68,50 @@ describe("ConnectClusterTool", () => {
             getGroup: vi.fn().mockResolvedValue({ name: "Test Project" }),
         };
 
-        connectionRegistry = new MCPConnectionStore({
-            userConfig: defaultTestConfig,
+        class TestStore extends MCPConnectionStore {
+            protected override createConnectionManager(): ConnectionManager {
+                return new FakeConnectionManager();
+            }
+        }
+        connectionRegistry = new TestStore({
+            options: defaultTestConfig,
             logger: new CompositeLogger(),
             deviceId: DeviceId.create(new CompositeLogger()),
-            createConnectionManager: (): FakeConnectionManager => new FakeConnectionManager(),
         }).view();
 
         mockSession = {
-            logger: mockLogger as unknown as CompositeLogger,
+            logger: mockLogger as unknown as ICompositeLogger,
             apiClient: { ...mockApiClient, logger: mockLogger } as unknown as ApiClient,
             connectionRegistry,
             keychain: new Keychain(),
+            config: {
+                confirmationRequiredTools: [],
+                previewFeatures: [],
+                disabledTools: [],
+                apiClientId: "test-id",
+                apiClientSecret: "test-secret",
+                atlasTemporaryDatabaseUserLifetimeMs: 14_400_000,
+            } as unknown as IAtlasConfig,
         };
-
-        const mockConfig = {
-            confirmationRequiredTools: [],
-            previewFeatures: [],
-            disabledTools: [],
-            apiClientId: "test-id",
-            apiClientSecret: "test-secret",
-            atlasTemporaryDatabaseUserLifetimeMs: 14_400_000,
-        } as unknown as UserConfig;
 
         const mockTelemetry = {
             isTelemetryEnabled: () => true,
             emitEvents: vi.fn(),
-        } as unknown as Telemetry;
+        } as unknown as ITelemetry;
 
         const mockElicitation = {
             requestConfirmation: vi.fn(),
-        } as unknown as Elicitation;
+        } as unknown as IElicitation;
 
-        const params: ToolConstructorParams = {
+        const params: ToolConstructorParams<IAtlasSession> = {
             name: ConnectClusterTool.toolName,
             category: "atlas",
             operationType: ConnectClusterTool.operationType,
-            session: mockSession as Session,
-            config: mockConfig,
+            session: mockSession as IAtlasSession,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
             metrics: new MockMetrics(),
+            uiRegistry: new UIRegistry(),
         };
 
         tool = new ConnectClusterTool(params);

@@ -1,11 +1,19 @@
 import { z } from "zod";
-import { ToolBase } from "../../../src/tools/tool.js";
-import type { OperationType, ToolArgs, ToolCategory, ToolExecutionContext } from "../../../src/tools/tool.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { TelemetryToolMetadata } from "../../../src/telemetry/types.js";
+import { ToolBase } from "@mongodb-js/mcp-core";
+import type { ToolArgs } from "@mongodb-js/mcp-core";
+import type {
+    IToolConfig,
+    ISession,
+    OperationType,
+    ToolCategory,
+    CallToolResult,
+    ToolExecutionContext,
+} from "@mongodb-js/mcp-types";
+import type { TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
+import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
 
 /** General-purpose tool used by most ToolBase unit tests. */
-export class TestTool extends ToolBase {
+export class TestTool extends ToolBase<ISession<IToolConfig>, DefaultPrometheusMetricDefinitions> {
     static toolName = "test-tool";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "delete";
@@ -27,14 +35,14 @@ export class TestTool extends ToolBase {
         { result }: { result: CallToolResult }
     ): TelemetryToolMetadata {
         if (args.param2 === 3) {
-            return { test_param2: "three" } as TelemetryToolMetadata;
+            return { test_param2: "three" };
         }
         return {};
     }
 }
 
 /** Tool that returns structured content, used by appendUIResource tests. */
-export class TestToolWithOutputSchema extends ToolBase {
+export class TestToolWithOutputSchema extends ToolBase<ISession<IToolConfig>, DefaultPrometheusMetricDefinitions> {
     static toolName = "test-tool-with-output-schema";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "metadata";
@@ -42,7 +50,7 @@ export class TestToolWithOutputSchema extends ToolBase {
     public argsShape = {
         input: z.string().describe("Test input"),
     };
-    public override outputSchema = {
+    public outputSchema = {
         value: z.string(),
         count: z.number(),
     };
@@ -60,7 +68,10 @@ export class TestToolWithOutputSchema extends ToolBase {
 }
 
 /** Tool that declares an outputSchema but never returns structuredContent. */
-export class TestToolWithoutStructuredContent extends ToolBase {
+export class TestToolWithoutStructuredContent extends ToolBase<
+    ISession<IToolConfig>,
+    DefaultPrometheusMetricDefinitions
+> {
     static toolName = "test-tool-without-structured";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "metadata";
@@ -68,7 +79,7 @@ export class TestToolWithoutStructuredContent extends ToolBase {
     public argsShape = {
         input: z.string().describe("Test input"),
     };
-    public override outputSchema = {
+    public outputSchema = {
         value: z.string(),
     };
 
@@ -84,7 +95,7 @@ export class TestToolWithoutStructuredContent extends ToolBase {
 }
 
 /** Tool whose execute() always throws – used by error-path tests. */
-export class ErrorTool extends ToolBase {
+export class ErrorTool extends ToolBase<ISession<IToolConfig>, DefaultPrometheusMetricDefinitions> {
     static toolName = "error-tool";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "read";
@@ -101,7 +112,7 @@ export class ErrorTool extends ToolBase {
 }
 
 /** Minimal tool that returns a static "ok" response. */
-export class EchoTool extends ToolBase {
+export class EchoTool extends ToolBase<ISession<IToolConfig>, DefaultPrometheusMetricDefinitions> {
     static toolName = "echo-tool";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "read";
@@ -145,7 +156,7 @@ export class ConfirmingTool extends ToolBase {
 }
 
 /** No-op tool used for session / lifecycle tests that don't need tool logic. */
-export class NoopTool extends ToolBase {
+export class NoopTool extends ToolBase<ISession<IToolConfig>, DefaultPrometheusMetricDefinitions> {
     static toolName = "noop-tool";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "read";

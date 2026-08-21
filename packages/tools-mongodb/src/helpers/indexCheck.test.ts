@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { usesIndex, getIndexCheckErrorMessage } from "../../../src/helpers/indexCheck.js";
+import { usesIndex, getIndexCheckErrorMessage } from "@mongodb-js/mcp-tools-mongodb";
 import type { Document } from "mongodb";
 
 describe("indexCheck", () => {

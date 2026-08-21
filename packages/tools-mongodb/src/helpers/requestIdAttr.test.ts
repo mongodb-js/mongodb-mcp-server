@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { requestIdAttr } from "../../../src/helpers/requestIdAttr.js";
+import { requestIdAttr } from "./requestIdAttr.js";
 
 describe("requestIdAttr", () => {
     it("returns x-request-id pair when header is a string", () => {

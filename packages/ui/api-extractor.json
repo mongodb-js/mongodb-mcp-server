@@ -1,16 +1,16 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/api-extractor/v7/api-extractor.schema.json",
 
-  "mainEntryPointFilePath": "<projectFolder>/dist/esm/lib.d.ts",
+  "mainEntryPointFilePath": "<projectFolder>/dist/index.d.ts",
 
   "compiler": {
-    "tsconfigFilePath": "<projectFolder>/tsconfig.esm.json"
+    "tsconfigFilePath": "<projectFolder>/tsconfig.json"
   },
 
   "apiReport": {
     "enabled": true,
-    "reportFolder": "<projectFolder>/api-extractor/reports/",
-    "reportFileName": "mongodb-mcp-server",
+    "reportFolder": "<projectFolder>/../../api-extractor/reports/",
+    "reportFileName": "ui",
     "reportVariants": ["public"]
   },
 
@@ -37,10 +37,6 @@
         "logLevel": "warning"
       },
       "ae-missing-release-tag": {
-        "logLevel": "none"
-      },
-      "ae-forgotten-export": {
-        "addToApiReportFile": false,
         "logLevel": "none"
       },
       "ae-unresolved-link": {

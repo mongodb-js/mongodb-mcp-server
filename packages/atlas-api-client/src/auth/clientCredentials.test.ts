@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as oauth from "oauth4webapi";
-import { ClientCredentialsAuthProvider } from "../../../../src/common/atlas/auth/clientCredentials.js";
-import { NullLogger } from "../../../../src/common/logging/index.js";
+import { ClientCredentialsAuthProvider } from "@mongodb-js/mcp-atlas-api-client";
+import { NoopLogger } from "@mongodb-js/mcp-core";
 
 vi.mock("oauth4webapi", () => ({
     clientCredentialsGrantRequest: vi.fn(),
@@ -12,16 +12,21 @@ vi.mock("oauth4webapi", () => ({
 
 describe("ClientCredentialsAuthProvider", () => {
     let authProvider: ClientCredentialsAuthProvider;
+    const testUserAgent = "test-user-agent";
     const mockOptions = {
         clientId: "test-client-id",
         clientSecret: "test-client-secret",
         baseUrl: "https://api.test.com",
-        userAgent: "test-user-agent",
+        userAgent: testUserAgent,
+        httpClient: {
+            fetch: vi.fn() as unknown as typeof fetch,
+            Request: globalThis.Request,
+        },
     };
 
     beforeEach(() => {
         vi.clearAllMocks();
-        authProvider = new ClientCredentialsAuthProvider(mockOptions, new NullLogger());
+        authProvider = new ClientCredentialsAuthProvider(mockOptions, new NoopLogger());
     });
 
     afterEach(() => {
@@ -125,7 +130,7 @@ describe("ClientCredentialsAuthProvider", () => {
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                     [oauth.customFetch]: expect.anything(),
                     headers: {
-                        "User-Agent": mockOptions.userAgent,
+                        "User-Agent": testUserAgent,
                     },
                 })
             );

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { BSONRegExp, Decimal128, Double, Int32, Long, ObjectId, Timestamp } from "bson";
-import { bsonToJson } from "../../../src/helpers/bsonToJson.js";
+import { bsonToJson } from "./bsonToJson.js";
 
 describe("bsonToJson", () => {
     describe("BSON types that require Extended JSON", () => {

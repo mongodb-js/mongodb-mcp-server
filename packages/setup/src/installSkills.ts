@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import { spawn } from "node:child_process";
 import chalk from "chalk";
 import { confirm } from "@inquirer/prompts";

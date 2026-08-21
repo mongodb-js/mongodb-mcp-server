@@ -1,19 +1,16 @@
 import { z } from "zod";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ApiClient } from "../../../../../src/common/atlas/apiClient.js";
-import type { UserConfig } from "../../../../../src/common/config/userConfig.js";
-import type { CompositeLogger } from "../../../../../src/common/logging/index.js";
-import type { Session } from "../../../../../src/common/session.js";
-import type { Elicitation } from "../../../../../src/elicitation.js";
-import type { Keychain } from "../../../../../src/lib.js";
-import type { Telemetry } from "../../../../../src/telemetry/telemetry.js";
-import { ATLAS_REGIONS, GetRegionsArgsShape, GetRegionsTool } from "../../../../../src/tools/atlas/read/getRegions.js";
-import type { ToolConstructorParams } from "../../../../../src/tools/tool.js";
-import { UIRegistry } from "../../../../../src/ui/registry/index.js";
-import { MockMetrics } from "../../../mocks/metrics.js";
+import { Keychain } from "@mongodb-js/mcp-core";
+import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
+import type { IAtlasSession, IAtlasConfig } from "../../atlasTool.js";
+import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import type { ITelemetry, IElicitation, ICompositeLogger } from "@mongodb-js/mcp-types";
+import { ATLAS_REGIONS, GetRegionsArgsShape, GetRegionsTool } from "./getRegions.js";
+import { UIRegistry } from "@mongodb-js/mcp-ui";
+import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 
 describe("GetRegionsTool", () => {
-    let mockSession: Partial<Session>;
+    let mockSession: Partial<IAtlasSession>;
     let tool: GetRegionsTool;
 
     function buildTool(): GetRegionsTool {
@@ -24,37 +21,35 @@ describe("GetRegionsTool", () => {
             debug: vi.fn(),
             warning: vi.fn(),
             error: vi.fn(),
-        } as unknown as CompositeLogger;
+        } as unknown as ICompositeLogger;
 
         mockSession = {
             logger: mockLogger,
             apiClient: mockApiClient as unknown as ApiClient,
-            keychain: { allSecrets: [] } as unknown as Keychain,
+            keychain: new Keychain(),
+            config: {
+                confirmationRequiredTools: [],
+                previewFeatures: [],
+                disabledTools: [],
+                apiClientId: "test-id",
+                apiClientSecret: "test-secret",
+            } as unknown as IAtlasConfig,
         };
-
-        const mockConfig = {
-            confirmationRequiredTools: [],
-            previewFeatures: [],
-            disabledTools: [],
-            apiClientId: "test-id",
-            apiClientSecret: "test-secret",
-        } as unknown as UserConfig;
 
         const mockTelemetry = {
             isTelemetryEnabled: () => true,
             emitEvents: vi.fn(),
-        } as unknown as Telemetry;
+        } as unknown as ITelemetry;
 
         const mockElicitation = {
             requestConfirmation: vi.fn(),
-        } as unknown as Elicitation;
+        } as unknown as IElicitation;
 
-        const params: ToolConstructorParams = {
+        const params: ToolConstructorParams<IAtlasSession> = {
             name: GetRegionsTool.toolName,
             category: "atlas",
             operationType: GetRegionsTool.operationType,
-            session: mockSession as Session,
-            config: mockConfig,
+            session: mockSession as IAtlasSession,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
             metrics: new MockMetrics(),

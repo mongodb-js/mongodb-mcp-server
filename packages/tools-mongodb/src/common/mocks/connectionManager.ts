@@ -6,7 +6,7 @@ import {
     type ConnectionSettings,
     type ConnectionStateDisconnected,
     type ConnectionStateErrored,
-} from "../../../src/common/connectionManager.js";
+} from "../connectionManager.js";
 
 /**
  * A ConnectionManager stub for unit tests that need registry entries in
@@ -20,9 +20,11 @@ export class FakeConnectionManager extends ConnectionManager {
     public connectCalls: ConnectionSettings[] = [];
     public failNextConnect?: Error;
     public closed = false;
+    private readonly serviceProvider?: NodeDriverServiceProvider;
 
-    constructor(private serviceProvider?: NodeDriverServiceProvider) {
+    constructor(serviceProvider?: NodeDriverServiceProvider) {
         super();
+        this.serviceProvider = serviceProvider;
     }
 
     override connect(settings: ConnectionSettings): Promise<AnyConnectionState> {
@@ -36,11 +38,11 @@ export class FakeConnectionManager extends ConnectionManager {
         return Promise.resolve(
             this.changeState(
                 "connection-success",
-                new ConnectionStateConnected(
-                    this.serviceProvider ?? ({ fake: true } as unknown as NodeDriverServiceProvider),
-                    { authType: "scram", hostType: "unknown" },
-                    settings.atlas
-                )
+                new ConnectionStateConnected({
+                    serviceProvider: this.serviceProvider ?? ({ fake: true } as unknown as NodeDriverServiceProvider),
+                    connectionStringInfo: { authType: "scram", hostType: "unknown" },
+                    connectedAtlasCluster: settings.atlas,
+                })
             )
         );
     }

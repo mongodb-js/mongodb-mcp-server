@@ -1,18 +1,14 @@
 import { z } from "zod";
-import { type OperationType, type ToolArgs, type ToolResult, type ToolExecutionContext } from "../../tool.js";
-import { AtlasToolBase } from "../atlasTool.js";
-import { formatCluster } from "../../../common/atlas/cluster.js";
-import type { ApiClient } from "../../../common/atlas/apiClient.js";
-import { ApiClientError } from "../../../common/atlas/apiClientError.js";
-import type { ClusterDescription20240805 } from "../../../common/atlas/openapi.js";
+import { type ToolArgs, type ToolResult } from "@mongodb-js/mcp-core";
+import type { OperationType, ToolExecutionContext, CallToolResult } from "@mongodb-js/mcp-types";
+import { AtlasToolBase } from "../../atlasTool.js";
+import { formatCluster } from "../../helpers/cluster.js";
+import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
+import type { ClusterDescription20240805 } from "@mongodb-js/mcp-atlas-api-client";
 import { AtlasArgs } from "../../args.js";
-import {
-    standardInstanceSizeEnum,
-    getMaxAutoScalingSize,
-    type StandardInstanceSize,
-} from "../../../common/atlas/cluster.js";
-import type { UpgradeClusterMetadata } from "../../../telemetry/types.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { standardInstanceSizeEnum, getMaxAutoScalingSize, type StandardInstanceSize } from "../../helpers/cluster.js";
+import type { UpgradeClusterMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 
 const ALLOWED_PROVIDER_REGEX = /^[A-Z_]+$/;
 

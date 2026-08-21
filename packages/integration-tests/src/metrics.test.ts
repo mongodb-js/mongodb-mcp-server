@@ -1,26 +1,55 @@
-import { StreamableHttpRunner } from "../../src/transports/streamableHttp.js";
+import type { StreamableHttpRunner, MonitoringServer } from "@mongodb-js/mcp-http-runners";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
-import { defaultTestConfig } from "./helpers.js";
+import { defaultTestConfig } from "./integrationHelpers.js";
 import { parsePrometheusValue } from "./metricsHelpers.js";
-import type { UserConfig } from "../../src/common/config/userConfig.js";
-import { ToolBase } from "../../src/tools/tool.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { TelemetryToolMetadata } from "../../src/telemetry/types.js";
-import { PrometheusMetrics, createDefaultMetrics, type DefaultMetrics, Counter } from "@mongodb-js/mcp-metrics";
-import { EchoTool, ErrorTool, NoopTool } from "../unit/mocks/tools.js";
-import type { OperationType, ToolCategory } from "../../src/tools/tool.js";
+import type { UserConfig } from "mongodb-mcp-server";
+import type { OperationType, ToolCategory } from "@mongodb-js/mcp-types";
+import { ToolBase } from "@mongodb-js/mcp-core";
+import type { CallToolResult, ISession, IToolConfig } from "@mongodb-js/mcp-types";
+import type { TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
+import {
+    PrometheusMetrics,
+    createDefaultMetrics,
+    type DefaultPrometheusMetricDefinitions,
+    Counter,
+} from "@mongodb-js/mcp-metrics";
+import { EchoTool, ErrorTool, NoopTool } from "./mocks/tools.js";
+import { createStreamableHttpTestRunner } from "./helpers/streamableHttpTestRunner.js";
+import type { AnyToolClass } from "@mongodb-js/mcp-core";
+import type { CliServer } from "mongodb-mcp-server";
+
+// Helper to create StreamableHttpRunner with all components
+function createMetricsTestRunner(
+    config: UserConfig,
+    options: {
+        tools?: AnyToolClass[];
+        customMetrics?: PrometheusMetrics<DefaultPrometheusMetricDefinitions>;
+    } = {}
+): {
+    runner: StreamableHttpRunner<CliServer>;
+    monitoringServer: MonitoringServer;
+    getServerAddress: () => string;
+} {
+    const components = createStreamableHttpTestRunner(config, options);
+    return {
+        ...components,
+        // The metrics test config always enables the monitoring server.
+        monitoringServer: components.monitoringServer as MonitoringServer,
+    };
+}
 
 describe("/metrics endpoint", () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let runner: StreamableHttpRunner<UserConfig, any>;
+    let runner: StreamableHttpRunner<CliServer>;
+    let monitoringServer: MonitoringServer;
+    let getServerAddress: () => string;
     let config: UserConfig;
     let clients: Client[] = [];
 
     const connectClient = async (): Promise<Client> => {
         const client = new Client({ name: "test", version: "0.0.0" });
-        const transport = new StreamableHTTPClientTransport(new URL(`${runner["mcpServer"]!.serverAddress}/mcp`));
+        const transport = new StreamableHTTPClientTransport(new URL(`${getServerAddress()}/mcp`));
         await client.connect(transport);
         clients.push(client);
         return client;
@@ -43,13 +72,16 @@ describe("/metrics endpoint", () => {
         }
         clients = [];
         await runner?.close();
-        runner = undefined as unknown as StreamableHttpRunner;
+        runner = undefined as unknown as StreamableHttpRunner<CliServer>;
     });
 
-    const monitoringUrl = (path: string): string => `${runner["monitoringServer"]!.serverAddress}${path}`;
+    const monitoringUrl = (path: string): string => `${monitoringServer.serverAddress}${path}`;
 
     it("reflects built-in tool execution metrics after tool calls", async () => {
-        runner = new StreamableHttpRunner({ userConfig: config, tools: [EchoTool] });
+        const result = createMetricsTestRunner(config, { tools: [EchoTool] });
+        runner = result.runner;
+        monitoringServer = result.monitoringServer;
+        getServerAddress = result.getServerAddress;
         await runner.start();
 
         const client = await connectClient();
@@ -78,7 +110,10 @@ describe("/metrics endpoint", () => {
     });
 
     it("records error_type label on toolExecutionDuration histogram when a tool throws", async () => {
-        runner = new StreamableHttpRunner({ userConfig: config, tools: [ErrorTool] });
+        const result = createMetricsTestRunner(config, { tools: [ErrorTool] });
+        runner = result.runner;
+        monitoringServer = result.monitoringServer;
+        getServerAddress = result.getServerAddress;
         await runner.start();
 
         const client = await connectClient();
@@ -97,7 +132,10 @@ describe("/metrics endpoint", () => {
     });
 
     it("increments mcp_session_created when clients connect", async () => {
-        runner = new StreamableHttpRunner({ userConfig: config, tools: [NoopTool] });
+        const result = createMetricsTestRunner(config, { tools: [NoopTool] });
+        runner = result.runner;
+        monitoringServer = result.monitoringServer;
+        getServerAddress = result.getServerAddress;
         await runner.start();
 
         await connectClient();
@@ -108,14 +146,17 @@ describe("/metrics endpoint", () => {
     });
 
     it("increments mcp_session_closed with reason when sessions close", async () => {
-        runner = new StreamableHttpRunner({ userConfig: config, tools: [NoopTool] });
+        const result = createMetricsTestRunner(config, { tools: [NoopTool] });
+        runner = result.runner;
+        monitoringServer = result.monitoringServer;
+        getServerAddress = result.getServerAddress;
         await runner.start();
 
         await connectClient();
         await connectClient();
 
-        type SessionStoreAccessor = { sessionStore: { closeAllSessions(): Promise<void> } };
-        await (runner["mcpServer"] as unknown as SessionStoreAccessor).sessionStore.closeAllSessions();
+        type SessionStoreAccessor = { mcpHttpServer: { sessionStore: { closeAllSessions(): Promise<void> } } };
+        await (runner as unknown as SessionStoreAccessor).mcpHttpServer.sessionStore.closeAllSessions();
 
         const body = await (await fetch(monitoringUrl("/metrics"))).text();
         expect(parsePrometheusValue(body, "mcp_session_created", {})).toBe(2);
@@ -123,9 +164,9 @@ describe("/metrics endpoint", () => {
     });
 
     it("exposes custom metrics in /metrics output", async () => {
-        type CustomMetrics = DefaultMetrics & { callCount: Counter<"tool_name"> };
+        type CustomMetrics = DefaultPrometheusMetricDefinitions & { callCount: Counter<"tool_name"> };
 
-        const metrics = new PrometheusMetrics({
+        const customMetrics = new PrometheusMetrics({
             definitions: {
                 ...createDefaultMetrics(),
                 callCount: new Counter({
@@ -137,7 +178,7 @@ describe("/metrics endpoint", () => {
             } satisfies CustomMetrics,
         });
 
-        class CustomTool extends ToolBase<UserConfig, unknown, CustomMetrics> {
+        class CustomTool extends ToolBase<ISession<IToolConfig>, CustomMetrics> {
             static toolName = "custom-tool";
             static category: ToolCategory = "mongodb";
             static operationType: OperationType = "read";
@@ -152,7 +193,13 @@ describe("/metrics endpoint", () => {
             }
         }
 
-        runner = new StreamableHttpRunner({ userConfig: config, tools: [CustomTool], metrics });
+        const result = createMetricsTestRunner(config, {
+            tools: [CustomTool as AnyToolClass],
+            customMetrics,
+        });
+        runner = result.runner;
+        monitoringServer = result.monitoringServer;
+        getServerAddress = result.getServerAddress;
 
         await runner.start();
 

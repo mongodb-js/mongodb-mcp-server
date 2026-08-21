@@ -1,8 +1,8 @@
 import { describeWithAtlas, withProject, randomId, assertApiClientIsAvailable } from "./atlasHelpers.js";
-import { expectDefined, getResponseElements } from "../../helpers.js";
-import { ApiClientError } from "../../../../src/common/atlas/apiClientError.js";
+import { expectDefined, getResponseElements } from "../../integrationHelpers.js";
+import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { Keychain } from "../../../../src/common/keychain.js";
+import { Keychain } from "@mongodb-js/mcp-core";
 
 describeWithAtlas("db users", (integration) => {
     withProject(integration, ({ getProjectId }) => {

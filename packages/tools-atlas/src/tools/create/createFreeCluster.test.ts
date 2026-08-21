@@ -1,15 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ToolConstructorParams } from "../../../../../src/tools/tool.js";
-import { CreateFreeClusterTool } from "../../../../../src/tools/atlas/create/createFreeCluster.js";
-import type { Session } from "../../../../../src/common/session.js";
-import type { UserConfig } from "../../../../../src/common/config/userConfig.js";
-import type { Telemetry } from "../../../../../src/telemetry/telemetry.js";
-import type { Elicitation } from "../../../../../src/elicitation.js";
-import type { CompositeLogger } from "../../../../../src/common/logging/index.js";
-import type { ApiClient } from "../../../../../src/common/atlas/apiClient.js";
-import { UIRegistry } from "../../../../../src/ui/registry/index.js";
-import { MockMetrics } from "../../../mocks/metrics.js";
-import { ApiClientError } from "../../../../../src/common/atlas/apiClientError.js";
+import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
+import { CreateFreeClusterTool } from "./createFreeCluster.js";
+import type { IAtlasSession } from "../../atlasTool.js";
+import type { ITelemetry, IElicitation, ICompositeLogger } from "@mongodb-js/mcp-types";
+import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
+import { MockMetrics } from "@mongodb-js/mcp-test-utils";
+import { Keychain } from "@mongodb-js/mcp-core";
+import { UIRegistry } from "@mongodb-js/mcp-ui";
 
 describe("CreateFreeClusterTool", () => {
     let mockApiClient: {
@@ -17,7 +15,7 @@ describe("CreateFreeClusterTool", () => {
         createCluster: ReturnType<typeof vi.fn>;
         getIpInfo: ReturnType<typeof vi.fn>;
         createAccessListEntry: ReturnType<typeof vi.fn>;
-        logger: CompositeLogger;
+        logger: ICompositeLogger;
     };
     let tool: CreateFreeClusterTool;
 
@@ -33,7 +31,7 @@ describe("CreateFreeClusterTool", () => {
             debug: vi.fn(),
             warning: vi.fn(),
             error: vi.fn(),
-        } as unknown as CompositeLogger;
+        } as unknown as ICompositeLogger;
 
         mockApiClient = {
             supportsCurrentIpLookup: true,
@@ -46,22 +44,16 @@ describe("CreateFreeClusterTool", () => {
         const mockSession = {
             logger: mockLogger,
             apiClient: mockApiClient as unknown as ApiClient,
-        } as unknown as Session;
+            keychain: new Keychain(),
+        } as unknown as IAtlasSession;
 
-        const params: ToolConstructorParams = {
+        const params: ToolConstructorParams<IAtlasSession> = {
             name: CreateFreeClusterTool.toolName,
             category: "atlas",
             operationType: CreateFreeClusterTool.operationType,
             session: mockSession,
-            config: {
-                confirmationRequiredTools: [],
-                previewFeatures: [],
-                disabledTools: [],
-                apiClientId: "test-id",
-                apiClientSecret: "test-secret",
-            } as unknown as UserConfig,
-            telemetry: { isTelemetryEnabled: () => false, emitEvents: vi.fn() } as unknown as Telemetry,
-            elicitation: { requestConfirmation: vi.fn() } as unknown as Elicitation,
+            telemetry: { isTelemetryEnabled: () => false, emitEvents: vi.fn() } as unknown as ITelemetry,
+            elicitation: { requestConfirmation: vi.fn() } as unknown as IElicitation,
             metrics: new MockMetrics(),
             uiRegistry: new UIRegistry(),
         };

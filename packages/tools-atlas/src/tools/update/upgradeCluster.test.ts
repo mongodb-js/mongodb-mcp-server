@@ -1,17 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { z } from "zod";
-import type { ToolConstructorParams } from "../../../../../src/tools/tool.js";
-import { UpgradeClusterTool } from "../../../../../src/tools/atlas/update/upgradeCluster.js";
-import type { Session } from "../../../../../src/common/session.js";
-import type { UserConfig } from "../../../../../src/common/config/userConfig.js";
-import type { Telemetry } from "../../../../../src/telemetry/telemetry.js";
-import type { Elicitation } from "../../../../../src/elicitation.js";
-import type { CompositeLogger } from "../../../../../src/common/logging/index.js";
-import type { ApiClient } from "../../../../../src/common/atlas/apiClient.js";
-import { ApiClientError } from "../../../../../src/common/atlas/apiClientError.js";
-import { UIRegistry } from "../../../../../src/ui/registry/index.js";
-import { MockMetrics } from "../../../mocks/metrics.js";
-import type { Keychain } from "../../../../../src/lib.js";
+import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
+import { UpgradeClusterTool } from "./upgradeCluster.js";
+import type { IAtlasSession, IAtlasConfig } from "../../atlasTool.js";
+import type { ITelemetry, IElicitation, ICompositeLogger } from "@mongodb-js/mcp-types";
+import { Keychain } from "@mongodb-js/mcp-core";
+import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
+import { UIRegistry } from "@mongodb-js/mcp-ui";
+import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 
 function notFoundError(): ApiClientError {
     return ApiClientError.fromError(new Response(null, { status: 404, statusText: "Not Found" }), "cluster not found");
@@ -144,7 +141,7 @@ const UPGRADE_RESULT = { id: "upgraded-cluster-id" };
 
 describe("UpgradeClusterTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
-    let mockSession: Partial<Session>;
+    let mockSession: Partial<IAtlasSession>;
     let tool: UpgradeClusterTool;
 
     function buildTool(): UpgradeClusterTool {
@@ -161,37 +158,35 @@ describe("UpgradeClusterTool", () => {
             debug: vi.fn(),
             warning: vi.fn(),
             error: vi.fn(),
-        } as unknown as CompositeLogger;
+        } as unknown as ICompositeLogger;
 
         mockSession = {
             logger: mockLogger,
             apiClient: mockApiClient as unknown as ApiClient,
-            keychain: { allSecrets: [] } as unknown as Keychain,
+            keychain: new Keychain(),
+            config: {
+                confirmationRequiredTools: [],
+                previewFeatures: [],
+                disabledTools: [],
+                apiClientId: "test-id",
+                apiClientSecret: "test-secret",
+            } as unknown as IAtlasConfig,
         };
-
-        const mockConfig = {
-            confirmationRequiredTools: [],
-            previewFeatures: [],
-            disabledTools: [],
-            apiClientId: "test-id",
-            apiClientSecret: "test-secret",
-        } as unknown as UserConfig;
 
         const mockTelemetry = {
             isTelemetryEnabled: () => true,
             emitEvents: vi.fn(),
-        } as unknown as Telemetry;
+        } as unknown as ITelemetry;
 
         const mockElicitation = {
             requestConfirmation: vi.fn(),
-        } as unknown as Elicitation;
+        } as unknown as IElicitation;
 
-        const params: ToolConstructorParams = {
+        const params: ToolConstructorParams<IAtlasSession> = {
             name: UpgradeClusterTool.toolName,
             category: "atlas",
             operationType: UpgradeClusterTool.operationType,
-            session: mockSession as Session,
-            config: mockConfig,
+            session: mockSession as IAtlasSession,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
             metrics: new MockMetrics(),

@@ -1,5 +1,3 @@
-import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
-
 import {
     getResponseElements,
     getResponseContent,
@@ -8,9 +6,10 @@ import {
     databaseInvalidArgs,
     databaseParameters,
     getDataFromUntrustedContent,
-} from "../../../helpers.js";
+} from "../../../integrationHelpers.js";
+import { describeWithMongoDB, validateAutoConnectBehavior } from "../../../mongodbHelpers.js";
 import { describe, expect, it } from "vitest";
-import type { ListCollectionsOutput } from "../../../../../src/tools/mongodb/metadata/listCollections.js";
+import type { ListCollectionsOutput } from "@mongodb-js/mcp-tools-mongodb";
 
 describeWithMongoDB("listCollections tool", (integration) => {
     validateToolMetadata(

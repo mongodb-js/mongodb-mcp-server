@@ -1,8 +1,9 @@
 import { z } from "zod";
-import { MongoDBToolBase } from "../mongodbTool.js";
-import type { OperationType, ToolResult } from "../../tool.js";
-import { ConnectionSummarySchema, summarizeConnection } from "../../../common/connectionSummary.js";
-import { connectCapableTools } from "../../../common/connectionErrorHandler.js";
+import { MongoDBToolBase } from "../../mongodbTool.js";
+import type { ToolResult } from "@mongodb-js/mcp-core";
+import type { OperationType } from "@mongodb-js/mcp-types";
+import { ConnectionSummarySchema, summarizeConnection } from "../../common/connectionSummary.js";
+import { connectCapableTools } from "../../connectionErrorHandler.js";
 
 export class ListConnectionsTool extends MongoDBToolBase {
     static toolName = "list-connections";

@@ -1,12 +1,12 @@
-import { getRandomUUID } from "../helpers/getRandomUUID.js";
+import { getRandomUUID, LogId } from "@mongodb-js/mcp-core";
+import type { LoggerBase } from "@mongodb-js/mcp-core";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { ConnectionString } from "mongodb-connection-string-url";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import type { DeviceId } from "../helpers/deviceId.js";
-import type { LoggerBase } from "./logging/index.js";
-import { LogId } from "./logging/index.js";
-import type { UserConfig } from "./config/userConfig.js";
-import type { ConnectionManager } from "./connectionManager.js";
+import type { ServerMetadata } from "@mongodb-js/mcp-types";
+import type { ConnectionInfo } from "./connectionInfo.js";
+import type { ConnectionDriverConfig, ConnectionManager } from "./connectionManager.js";
 import { MCPConnectionManager } from "./connectionManager.js";
 import { ErrorCodes, MongoDBError } from "./errors.js";
 import type {
@@ -16,14 +16,45 @@ import type {
 } from "./connectionRegistry.js";
 import { buildEntryName, ConnectionEntry, PRECONFIGURED_CONNECTION_ID } from "./connectionRegistry.js";
 
-export type CreateConnectionManagerFn = () => ConnectionManager;
+/**
+ * Structural subset of the embedder's configuration that the store reads: the
+ * store-level knobs plus every config field mongosh's arg-parser maps into
+ * the derived connection string / driver options
+ * ({@link ConnectionDriverConfig}), so tool-initiated connects apply the
+ * server's auth/OIDC/TLS configuration exactly like the preconfigured dial.
+ *
+ * Kept structural so the embedder's full config satisfies this shape without
+ * the store depending on it directly.
+ */
+export type ConnectionStoreConfig = ConnectionDriverConfig & {
+    connectionString?: string;
+    maxActiveConnections: number;
+    transport: "stdio" | "http";
+    httpHost: string;
+};
+
+/**
+ * Fallback server metadata used when the embedder does not supply any. The cli
+ * normally passes richer metadata through the session; embedders that care
+ * about driver `appName` attribution should pass `serverMetadata` in
+ * {@link ConnectionStoreOptions}.
+ */
+const DEFAULT_SERVER_METADATA: ServerMetadata = {
+    mcpServerName: "mongodb-mcp-server",
+    version: "0.0.0",
+};
 
 export type ConnectionStoreOptions = {
-    userConfig: UserConfig;
+    /**
+     * Connection-level configuration the store reads: the preconfigured
+     * connection string, per-scope connection limit, transport, and OIDC
+     * browser hint.
+     */
+    options: ConnectionStoreConfig;
     logger: LoggerBase;
     deviceId: DeviceId;
-    /** Override the per-entry connection manager (tests, embedders). */
-    createConnectionManager?: CreateConnectionManagerFn;
+    /** Server metadata embedded in the driver `appName`; a generic default is used when omitted. */
+    serverMetadata?: ServerMetadata;
 };
 
 type StoredConnection = {
@@ -45,19 +76,19 @@ type StoredConnection = {
  */
 export class MCPConnectionStore {
     private readonly entries = new Map<string, StoredConnection>();
-    private readonly userConfig: UserConfig;
+    private readonly options: ConnectionStoreConfig;
     private readonly logger: LoggerBase;
-    private readonly createConnectionManager: CreateConnectionManagerFn;
+    private readonly deviceId: DeviceId;
+    private readonly serverMetadata: ServerMetadata;
     private preconfiguredDial?: Promise<unknown>;
 
     constructor(options: ConnectionStoreOptions) {
-        this.userConfig = options.userConfig;
+        this.options = options.options;
         this.logger = options.logger;
-        this.createConnectionManager =
-            options.createConnectionManager ??
-            ((): ConnectionManager => new MCPConnectionManager(options.userConfig, options.logger, options.deviceId));
+        this.deviceId = options.deviceId;
+        this.serverMetadata = options.serverMetadata ?? DEFAULT_SERVER_METADATA;
 
-        if (this.userConfig.connectionString) {
+        if (this.options.connectionString) {
             this.entries.set(PRECONFIGURED_CONNECTION_ID, {
                 entry: new ConnectionEntry({
                     connectionId: PRECONFIGURED_CONNECTION_ID,
@@ -67,6 +98,42 @@ export class MCPConnectionStore {
                 }),
             });
         }
+    }
+
+    /**
+     * Transport / browser hints for OIDC auth-type inference, derived from the
+     * subset of the user config the store is given.
+     */
+    private connectionInfo(): ConnectionInfo {
+        return {
+            transport: this.options.transport,
+            httpHost: this.options.httpHost,
+            browser: this.options.browser,
+        };
+    }
+
+    /**
+     * Creates the per-entry {@link ConnectionManager} the store seeds and
+     * dials with. Override in a subclass to supply a custom implementation
+     * (tests, embedders) — the default dials with
+     * {@link MCPConnectionManager} configured from the store's options.
+     * Invoked from the constructor when a preconfigured connection string is
+     * present, so overrides must not rely on subclass state initialized after
+     * `super()`.
+     */
+    protected createConnectionManager(): ConnectionManager {
+        return new MCPConnectionManager({
+            logger: this.logger,
+            deviceId: this.deviceId,
+            serverMetadata: this.serverMetadata,
+            connectionInfo: this.connectionInfo(),
+            // The store options are a ConnectionDriverConfig superset;
+            // the extra store-level fields (connectionString,
+            // maxActiveConnections, transport, httpHost) are not read
+            // by mongosh's arg-parser, so passing the whole object is
+            // equivalent to passing just the driver fields.
+            driverConfig: this.options,
+        });
     }
 
     /**
@@ -210,8 +277,12 @@ export class MCPConnectionStore {
     private async dialPreconfigured(entry: ConnectionEntry): Promise<void> {
         this.preconfiguredDial ??= (async (): Promise<void> => {
             const connectionInfo = generateConnectionInfoFromCliArgs({
-                ...this.userConfig,
-                connectionSpecifier: this.userConfig.connectionString,
+                // Same rationale as in the constructor: mongosh only consumes
+                // known CLI-option keys, so spreading the whole store config is
+                // fine and keeps the preconfigured dial on equal footing with
+                // tool-initiated connects.
+                ...this.options,
+                connectionSpecifier: this.options.connectionString,
             });
             await entry.connect(connectionInfo);
         })().finally(() => {
@@ -243,7 +314,7 @@ export class MCPConnectionStore {
             const scoped = [...this.entries.values()].filter(
                 (stored) => stored.entry.source !== "preconfigured" && stored.scope === scope
             );
-            if (scoped.length <= this.userConfig.maxActiveConnections) {
+            if (scoped.length <= this.options.maxActiveConnections) {
                 return;
             }
             const lru = scoped.sort((a, b) => a.entry.lastUsedAt.getTime() - b.entry.lastUsedAt.getTime())[0];
@@ -253,7 +324,7 @@ export class MCPConnectionStore {
             this.logger.info({
                 id: LogId.connectionRegistryRevoked,
                 context: "connectionRegistry",
-                message: `Revoking least-recently-used connection "${lru.entry.connectionId}" because its scope exceeded ${this.userConfig.maxActiveConnections} connections.`,
+                message: `Revoking least-recently-used connection "${lru.entry.connectionId}" because its scope exceeded ${this.options.maxActiveConnections} connections.`,
             });
             this.entries.delete(lru.entry.connectionId);
             await this.revoke(lru.entry);

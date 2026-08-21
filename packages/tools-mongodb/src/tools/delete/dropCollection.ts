@@ -1,6 +1,7 @@
-import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolResult } from "../../tool.js";
-import { escapeMarkdown } from "../../../helpers/escapeMarkdown.js";
+import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../../mongodbTool.js";
+import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
+import type { OperationType } from "@mongodb-js/mcp-types";
+import { escapeMarkdown } from "../../helpers/escapeMarkdown.js";
 import { z } from "zod";
 
 const DropCollectionOutputSchema = {

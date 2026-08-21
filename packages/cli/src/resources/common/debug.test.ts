@@ -1,16 +1,32 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DebugResource } from "../../../../src/resources/common/debug.js";
-import { Session } from "../../../../src/common/session.js";
-import { CompositeLogger } from "../../../../src/common/logging/index.js";
-import { PRECONFIGURED_CONNECTION_ID, type ConnectionRegistry } from "../../../../src/common/connectionRegistry.js";
-import { MCPConnectionStore } from "../../../../src/common/connectionStore.js";
-import { ExportsManager } from "../../../../src/common/exportsManager.js";
-import { DeviceId } from "../../../../src/helpers/deviceId.js";
-import { Keychain } from "../../../../src/common/keychain.js";
-import { defaultTestConfig } from "../../../integration/helpers.js";
-import { connectionErrorHandler } from "../../../../src/common/connectionErrorHandler.js";
-import { defaultCreateApiClient, Telemetry, type UserConfig } from "../../../../src/lib.js";
-import { FakeConnectionManager } from "../../mocks/connectionManager.js";
+import { DebugResource } from "./debug.js";
+import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
+import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
+import { ApiClient, userAgentFromServerMetadata } from "@mongodb-js/mcp-atlas-api-client";
+import { Session, UserConfigSchema, type UserConfig } from "@mongodb-js/mcp-cli";
+import {
+    PRECONFIGURED_CONNECTION_ID,
+    ExportsManager,
+    DeviceId,
+    MCPConnectionStore,
+    connectionErrorHandler,
+    FakeConnectionManager,
+    type ConnectionRegistry,
+    type ConnectionManager,
+} from "@mongodb-js/mcp-tools-mongodb";
+
+const defaultTestConfig: UserConfig = {
+    ...UserConfigSchema.parse({}),
+    telemetry: "disabled",
+    loggers: ["stderr"],
+    connectionScope: "global",
+    maxActiveConnections: 10,
+};
+
+const testServerMetadata = {
+    mcpServerName: "test-server",
+    version: "0.0.0",
+} as const;
 
 describe("debug resource", () => {
     const logger = new CompositeLogger();
@@ -21,45 +37,51 @@ describe("debug resource", () => {
     let registry: ConnectionRegistry;
     let debugResource: DebugResource;
 
+    class TestStore extends MCPConnectionStore {
+        protected override createConnectionManager(): ConnectionManager {
+            const manager = new FakeConnectionManager();
+            managers.push(manager);
+            return manager;
+        }
+    }
+
     function setup(config: UserConfig = defaultTestConfig): void {
-        registry = new MCPConnectionStore({
-            userConfig: config,
+        registry = new TestStore({
+            options: config,
             logger,
             deviceId,
-            createConnectionManager: (): FakeConnectionManager => {
-                const manager = new FakeConnectionManager();
-                managers.push(manager);
-                return manager;
-            },
         }).view();
 
         session = new Session({
             logger,
-            exportsManager: ExportsManager.init(config, logger),
+            exportsManager: ExportsManager.init({ options: config, logger }),
             connectionRegistry: registry,
             keychain: new Keychain(),
             connectionErrorHandler,
-            apiClient: defaultCreateApiClient(
+            apiClient: new ApiClient(
                 {
                     baseUrl: config.apiBaseUrl,
-                    credentials: {
-                        clientId: config.apiClientId,
-                        clientSecret: config.apiClientSecret,
+                    userAgent: userAgentFromServerMetadata(testServerMetadata),
+                    httpClient: {
+                        fetch: globalThis.fetch.bind(globalThis),
+                        Request: globalThis.Request,
                     },
                 },
                 logger
             ),
+            config,
         });
 
-        const telemetry = Telemetry.create({
+        const telemetry = AtlasTelemetry.create({
             logger,
             deviceId,
             apiClient: session.apiClient,
             keychain: session.keychain,
             enabled: false,
+            serverMetadata: testServerMetadata,
         });
 
-        debugResource = new DebugResource(session, config, telemetry);
+        debugResource = new DebugResource(session, telemetry);
     }
 
     beforeEach(() => {
@@ -79,7 +101,7 @@ describe("debug resource", () => {
             },
             { name: "find", category: "mongodb", operationType: "read", isEnabled: (): boolean => true },
         ];
-        debugResource["server"] = { tools: fakeTools } as never;
+        (debugResource as unknown as { server: { tools: typeof fakeTools } }).server = { tools: fakeTools };
 
         const output = await debugResource.toOutput();
 

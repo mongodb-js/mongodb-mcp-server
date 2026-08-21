@@ -4,9 +4,9 @@ import {
     validateThrowsForInvalidArguments,
     getResponseElements,
     getResponseContent,
-} from "../../../helpers.js";
-import type { ExplainOutput } from "../../../../../src/tools/mongodb/metadata/explain.js";
-import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
+} from "../../../integrationHelpers.js";
+import { describeWithMongoDB, validateAutoConnectBehavior } from "../../../mongodbHelpers.js";
+import type { ExplainOutput } from "@mongodb-js/mcp-tools-mongodb";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 describeWithMongoDB("explain tool", (integration) => {

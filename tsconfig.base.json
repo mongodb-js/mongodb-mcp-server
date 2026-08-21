@@ -4,8 +4,6 @@
     "lib": ["es2022", "dom", "dom.iterable"],
     "module": "nodenext",
     "moduleResolution": "nodenext",
-    "rootDir": "./src",
-    "outDir": "./dist",
     "strict": true,
     "strictNullChecks": true,
     "noUncheckedIndexedAccess": true,
@@ -19,6 +17,8 @@
     "noImplicitReturns": true,
     "declaration": true,
     "declarationMap": true,
+    "erasableSyntaxOnly": true,
+    "composite": true,
     "jsx": "react-jsx",
     "paths": {
       "ts-levenshtein": ["./node_modules/ts-levenshtein/dist/index.d.mts"],
@@ -26,7 +26,5 @@
         "./node_modules/openapi-typescript-helpers/index.d.ts"
       ]
     }
-  },
-  "include": ["src/**/*.ts", "src/**/*.tsx"],
-  "exclude": ["src/ui/build/mount.tsx"]
+  }
 }

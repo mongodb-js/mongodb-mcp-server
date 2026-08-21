@@ -1,15 +1,14 @@
-import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
-
 import {
     getResponseContent,
     databaseCollectionParameters,
     validateToolMetadata,
     validateThrowsForInvalidArguments,
     expectDefined,
-} from "../../../helpers.js";
-import { beforeEach, afterEach, describe, expect, it } from "vitest";
+} from "../../../integrationHelpers.js";
+import { describeWithMongoDB, validateAutoConnectBehavior } from "../../../mongodbHelpers.js";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { Client } from "@modelcontextprotocol/sdk/client";
-import { freshInsertDocuments } from "./find.test.js";
+import { freshInsertDocuments } from "./helpers.js";
 
 describeWithMongoDB("count tool", (integration) => {
     validateToolMetadata(

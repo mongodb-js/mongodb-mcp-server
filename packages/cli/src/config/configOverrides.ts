@@ -1,11 +1,12 @@
-import type { UserConfig } from "./userConfig.js";
-import { UserConfigSchema, configRegistry } from "./userConfig.js";
-import type { RequestContext } from "../../transports/base.js";
+import { UserFacingError } from "@mongodb-js/mcp-core";
+import type { TransportRequestContext } from "@mongodb-js/mcp-types";
 import type { ConfigFieldMeta, OverrideBehavior } from "./configUtils.js";
+import { UserConfigSchema, configRegistry, type UserConfig } from "./userConfig.js";
 
-export class ConfigOverrideError extends Error {
+export class ConfigOverrideError extends UserFacingError {
     constructor(message: string) {
         super(message);
+        this.name = "ConfigOverrideError";
     }
 }
 
@@ -26,7 +27,7 @@ export function applyConfigOverrides<TUserConfig extends UserConfig = UserConfig
     request,
 }: {
     baseConfig: TUserConfig;
-    request?: RequestContext;
+    request?: TransportRequestContext;
 }): TUserConfig {
     if (!request) {
         return baseConfig;
