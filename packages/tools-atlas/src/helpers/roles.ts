@@ -18,7 +18,7 @@ export const BUILT_IN_DB_USER_ROLES = [
     "readAnyDatabase",
     "readWrite",
     "readWriteAnyDatabase",
-] as const;
+];
 
 const readWriteRole: DatabaseUserRole = {
     roleName: "readWriteAnyDatabase",

@@ -1,11 +1,23 @@
-import { ObjectId } from "mongodb";
-import type { ApiClient, ClusterDescription20240805, Group } from "@mongodb-js/mcp-atlas-api-client";
+import type { ApiClient, ClusterDescription20240805 } from "@mongodb-js/mcp-atlas-api-client";
 import type { IntegrationTest } from "../../integrationHelpers.js";
 import { setupIntegrationTest, defaultTestConfig } from "../../integrationHelpers.js";
 import type { SuiteCollector } from "vitest";
-import { afterAll, beforeAll, describe } from "vitest";
+import { afterAll, beforeAll, describe, inject } from "vitest";
 import type { McpSession } from "@mongodb-js/mcp-cli";
 import { AllTools } from "mongodb-mcp-server";
+import type { StreamsWorkspaceFixture } from "./streamsWorkspace.js";
+import {
+    createGroup,
+    deleteAllClustersAndWait,
+    deleteGroupWithRetry,
+    deleteStreamWorkspacesAndWait,
+    randomId,
+    waitForClusterDeletion,
+    waitForClusterState,
+} from "./atlasProvisioning.js";
+
+// Re-exported for callers that historically imported these from here.
+export { randomId } from "./atlasProvisioning.js";
 
 export type IntegrationTestFunction = (integration: IntegrationTest) => void;
 
@@ -118,15 +130,14 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
             const apiClient = session.apiClient;
 
             try {
-                await apiClient.deleteGroup({
-                    params: {
-                        path: {
-                            groupId: projectId,
-                        },
-                    },
-                });
+                // Self-healing cleanup: remove any leftover stream workspaces and
+                // clusters before deleting the project, otherwise Atlas rejects the
+                // group deletion and leaks the project (and its clusters) into the org.
+                await deleteStreamWorkspacesAndWait(apiClient, projectId);
+                await deleteAllClustersAndWait(apiClient, projectId);
+                await deleteGroupWithRetry(apiClient, projectId);
             } catch (error) {
-                // send the delete request and ignore errors
+                // teardown failures should not fail the suite
                 console.log("Failed to delete group:", error);
             }
         });
@@ -138,53 +149,6 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
 
         fn(args);
     });
-}
-
-export function randomId(): string {
-    return new ObjectId().toString();
-}
-
-async function createGroup(apiClient: ApiClient): Promise<Group & Required<Pick<Group, "id">>> {
-    const projectName: string = `testProj-` + randomId();
-
-    const orgs = await apiClient.listOrgs();
-    if (!orgs?.results?.length || !orgs.results[0]?.id) {
-        throw new Error("No orgs found");
-    }
-
-    const group = await apiClient.createGroup({
-        body: {
-            name: projectName,
-            orgId: orgs.results[0]?.id ?? "",
-        } as Group,
-    });
-
-    if (!group?.id) {
-        throw new Error("Failed to create project");
-    }
-
-    // add current IP to project access list
-    const { currentIpv4Address } = await apiClient.getIpInfo();
-    await apiClient.createAccessListEntry({
-        params: {
-            path: {
-                groupId: group.id,
-            },
-        },
-        body: [
-            {
-                ipAddress: currentIpv4Address,
-                groupId: group.id,
-                comment: "Added by MongoDB MCP Server to enable tool access",
-            },
-        ],
-    });
-
-    return group as Group & Required<Pick<Group, "id">>;
-}
-
-export function sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export async function assertClusterIsAvailable(
@@ -220,7 +184,7 @@ export async function deleteCluster(
     session: McpSession,
     projectId: string,
     clusterName: string,
-    shouldWaitTillClusterIsDeleted: boolean = false
+    shouldWaitTillClusterIsDeleted: boolean = true
 ): Promise<void> {
     assertApiClientIsAvailable(session);
     await session.apiClient.deleteCluster({
@@ -236,21 +200,7 @@ export async function deleteCluster(
         return;
     }
 
-    while (true) {
-        try {
-            await session.apiClient.getCluster({
-                params: {
-                    path: {
-                        groupId: projectId,
-                        clusterName,
-                    },
-                },
-            });
-            await sleep(1000);
-        } catch {
-            break;
-        }
-    }
+    await waitForClusterDeletion(session.apiClient, projectId, clusterName);
 }
 
 export async function waitCluster(
@@ -261,28 +211,8 @@ export async function waitCluster(
     pollingInterval: number = 1000,
     maxPollingIterations: number = 300
 ): Promise<void> {
-    if (!session.apiClient) {
-        throw new Error("apiClient not available");
-    }
-    const apiClient = session.apiClient as ApiClient;
-    for (let i = 0; i < maxPollingIterations; i++) {
-        const cluster = await apiClient.getCluster({
-            params: {
-                path: {
-                    groupId: projectId,
-                    clusterName,
-                },
-            },
-        });
-        if (await check(cluster)) {
-            return;
-        }
-        await sleep(pollingInterval);
-    }
-
-    throw new Error(
-        `Cluster wait timeout: ${clusterName} did not meet condition within ${maxPollingIterations} iterations`
-    );
+    assertApiClientIsAvailable(session);
+    await waitForClusterState(session.apiClient, projectId, clusterName, check, pollingInterval, maxPollingIterations);
 }
 
 export function withCluster(integration: IntegrationTest, fn: ClusterTestFunction): SuiteCollector<object> {
@@ -325,26 +255,28 @@ export function withCluster(integration: IntegrationTest, fn: ClusterTestFunctio
                     body: input,
                 });
 
-                await waitCluster(integration.mcpServer().session, projectId, clusterName, (cluster) => {
-                    return cluster.stateName === "IDLE";
-                });
-            });
+                // M0 provisioning on cloud-dev is slow and non-deterministic (observed
+                // to exceed 10 minutes), so allow up to 20 minutes (10s x 120); a hook
+                // timeout here would silently skip every test in the suite.
+                await waitCluster(
+                    integration.mcpServer().session,
+                    projectId,
+                    clusterName,
+                    (cluster) => {
+                        return cluster.stateName === "IDLE";
+                    },
+                    10_000,
+                    120
+                );
+            }, 1_500_000);
 
             afterAll(async () => {
                 const session = integration.mcpServer().session;
                 assertApiClientIsAvailable(session);
-                const apiClient = session.apiClient;
 
                 try {
-                    // send the delete request and ignore errors
-                    await apiClient.deleteCluster({
-                        params: {
-                            path: {
-                                groupId: getProjectId(),
-                                clusterName,
-                            },
-                        },
-                    });
+                    // delete the cluster and wait for termination, but ignore errors
+                    await deleteCluster(session, getProjectId(), clusterName);
                 } catch (error) {
                     console.log("Failed to delete cluster:", error);
                 }
@@ -362,161 +294,26 @@ export function withCluster(integration: IntegrationTest, fn: ClusterTestFunctio
 }
 
 export function withWorkspace(integration: IntegrationTest, fn: WorkspaceTestFunction): SuiteCollector<object> {
-    return withProject(integration, ({ getProjectId }) => {
-        describe("with workspace", () => {
-            const workspaceName: string = `testws${randomId().slice(0, 12)}`;
-            const clusterName: string = `testcluster${randomId().slice(0, 8)}`;
-            const clusterConnectionName: string = `clusterconn${randomId().slice(0, 8)}`;
+    const fixture: StreamsWorkspaceFixture | undefined = inject("atlasStreamsWorkspace");
 
-            beforeAll(async () => {
-                const projectId = getProjectId();
-                const session = integration.mcpServer().session;
-                assertApiClientIsAvailable(session);
-                const apiClient = session.apiClient;
-
-                // Create workspace and free-tier cluster in parallel
-                await Promise.all([
-                    apiClient.createStreamWorkspace({
-                        params: { path: { groupId: projectId } },
-                        body: {
-                            name: workspaceName,
-                            dataProcessRegion: {
-                                cloudProvider: "AWS",
-                                region: "VIRGINIA_USA",
-                            },
-                            streamConfig: {
-                                tier: "SP10",
-                            },
-                        } as never,
-                    }),
-                    apiClient.createCluster({
-                        params: { path: { groupId: projectId } },
-                        body: {
-                            name: clusterName,
-                            clusterType: "REPLICASET",
-                            replicationSpecs: [
-                                {
-                                    zoneName: "Zone 1",
-                                    regionConfigs: [
-                                        {
-                                            providerName: "TENANT",
-                                            backingProviderName: "AWS",
-                                            regionName: "US_EAST_1",
-                                            electableSpecs: {
-                                                instanceSize: "M0",
-                                            },
-                                        },
-                                    ],
-                                },
-                            ],
-                            terminationProtectionEnabled: false,
-                        } as unknown as ClusterDescription20240805,
-                    }),
-                ]);
-
-                // Wait for workspace readiness (up to 120s)
-                let workspaceReady = false;
-                for (let i = 0; i < 120; i++) {
-                    try {
-                        const ws = await apiClient.getStreamWorkspace({
-                            params: {
-                                path: { groupId: projectId, tenantName: workspaceName },
-                            },
-                        });
-                        if (ws?.name === workspaceName) {
-                            workspaceReady = true;
-                            break;
-                        }
-                    } catch {
-                        // Workspace not ready yet
-                    }
-                    await sleep(1000);
-                }
-                if (!workspaceReady) {
-                    throw new Error(
-                        `Workspace readiness timeout: '${workspaceName}' did not become readable within 120 seconds`
-                    );
-                }
-
-                // Create a Sample connection for tests
-                await apiClient.createStreamConnection({
-                    params: { path: { groupId: projectId, tenantName: workspaceName } },
-                    body: {
-                        name: "sample_stream_solar",
-                        type: "Sample",
-                    } as never,
-                });
-
-                // Wait for the cluster to become IDLE before creating the Cluster connection
-                await waitCluster(session, projectId, clusterName, (cluster) => {
-                    return cluster.stateName === "IDLE";
-                });
-
-                // Create a Cluster connection in the workspace for processor tests
-                await apiClient.createStreamConnection({
-                    params: { path: { groupId: projectId, tenantName: workspaceName } },
-                    body: {
-                        name: clusterConnectionName,
-                        type: "Cluster",
-                        clusterName: clusterName,
-                        dbRoleToExecute: {
-                            role: "readWriteAnyDatabase",
-                            type: "BUILT_IN",
-                        },
-                    } as never,
-                });
-            }, 600_000);
-
-            afterAll(async () => {
-                if (!getProjectId()) {
-                    return;
-                }
-                const session = integration.mcpServer().session;
-                assertApiClientIsAvailable(session);
-                const apiClient = session.apiClient;
-                try {
-                    await apiClient.deleteStreamWorkspace({
-                        params: {
-                            path: {
-                                groupId: getProjectId(),
-                                tenantName: workspaceName,
-                            },
-                        },
-                    });
-                    // Wait for workspace deletion to complete before deleting the cluster,
-                    // because the cluster cannot be deleted while a workspace connection references it.
-                    for (let i = 0; i < 120; i++) {
-                        try {
-                            await apiClient.getStreamWorkspace({
-                                params: {
-                                    path: {
-                                        groupId: getProjectId(),
-                                        tenantName: workspaceName,
-                                    },
-                                },
-                            });
-                            await sleep(1000);
-                        } catch {
-                            break;
-                        }
-                    }
-                } catch (error) {
-                    console.log("Failed to delete workspace:", error);
-                }
-                try {
-                    await deleteCluster(session, getProjectId(), clusterName);
-                } catch (error) {
-                    console.log("Failed to delete cluster:", error);
-                }
-            });
-
-            const args = {
-                getProjectId: (): string => getProjectId(),
-                getWorkspaceName: (): string => workspaceName,
-                getClusterConnectionName: (): string => clusterConnectionName,
-            };
-
-            fn(args);
+    return describe("with workspace", () => {
+        beforeAll(() => {
+            if (!fixture) {
+                throw new Error(
+                    "Shared Atlas Streams workspace was not provisioned. " +
+                        "Streams integration tests must run under the 'streams-tests' project with " +
+                        "MDB_MCP_API_CLIENT_ID / MDB_MCP_API_CLIENT_SECRET configured so that streamsGlobalSetup.ts " +
+                        "can provision the shared project + workspace + cluster."
+                );
+            }
         });
+
+        const args = {
+            getProjectId: (): string => fixture?.projectId ?? "",
+            getWorkspaceName: (): string => fixture?.workspaceName ?? "",
+            getClusterConnectionName: (): string => fixture?.clusterConnectionName ?? "",
+        };
+
+        fn(args);
     });
 }
