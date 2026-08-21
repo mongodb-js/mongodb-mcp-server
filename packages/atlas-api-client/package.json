@@ -1,6 +1,6 @@
 {
   "name": "@mongodb-js/mcp-atlas-api-client",
-  "version": "3.0.0-prerelease.1",
+  "version": "3.0.0-prerelease.2",
   "type": "module",
   "description": "Atlas API client for MongoDB MCP server packages",
   "exports": {
