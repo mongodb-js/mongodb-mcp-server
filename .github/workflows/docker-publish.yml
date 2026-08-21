@@ -81,7 +81,7 @@ jobs:
           context: packages/mongodb-mcp-server
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.docker-tags.outputs.DOCKER_TAGS }}
-          file: Dockerfile
+          file: packages/mongodb-mcp-server/Dockerfile
           push: true
           provenance: mode=max
           sbom: true
