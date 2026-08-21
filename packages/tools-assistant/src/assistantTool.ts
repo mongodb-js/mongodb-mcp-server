@@ -1,7 +1,7 @@
 import { ToolBase } from "@mongodb-js/mcp-core";
 import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import type { TelemetryToolMetadata, IToolConfig, ToolCategory, ISession } from "@mongodb-js/mcp-types";
-import { createFetch } from "@mongodb-js/devtools-proxy-support";
+import { getSharedProxyFetch } from "@mongodb-js/mcp-fetch";
 
 export const DEFAULT_ASSISTANT_BASE_URL = "https://knowledge.mongodb.com/api/v1/";
 
@@ -48,11 +48,9 @@ export abstract class AssistantToolBase extends ToolBase<IAssistantSession> {
             headers.set("Content-Type", "application/json");
         }
 
-        // Use the same custom fetch implementation as the Atlas API client.
-        // We need this to support enterprise proxies.
-        const customFetch = createFetch({
-            useEnvironmentVariableProxies: true,
-        }) as unknown as typeof fetch;
+        // Same shared, memoized fetch as the Atlas API client (proxy support
+        // without reloading the system CA per call).
+        const customFetch = getSharedProxyFetch();
 
         return await customFetch(endpointUrl, {
             method: args.method,

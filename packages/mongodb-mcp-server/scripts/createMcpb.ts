@@ -39,7 +39,7 @@ type Mode = "build" | "validate-only";
 const paths = {
     repoRoot,
     distEsm: resolve(packageDir, "dist", "esm"),
-    rootPackageJson: resolve(repoRoot, "package.json"),
+    rootPackageJson: resolve(packageDir, "package.json"),
     packagingDir: resolve(packageDir, "packaging", "mcpb"),
     stagingDir: resolve(repoRoot, "mcpb-build"),
     outputDir: resolve(repoRoot, "dist-mcpb"),
@@ -89,41 +89,36 @@ function expandGlob(globPattern: string): string[] {
 }
 
 function discoverWorkspacePackages(rootPkg: PackageJson): WorkspacePackage[] {
-    // Collect names of root deps that use `workspace:*` (or any `workspace:` protocol).
-    const deps = (rootPkg.dependencies ?? {}) as Record<string, string>;
-    const optDeps = (rootPkg.optionalDependencies ?? {}) as Record<string, string>;
-    const all = { ...deps, ...optDeps };
-    const workspaceNames = new Set(
-        Object.entries(all)
-            .filter(([, v]) => typeof v === "string" && v.startsWith("workspace:"))
-            .map(([k]) => k)
-    );
-    if (workspaceNames.size === 0) {
-        return [];
-    }
-
-    // Read pnpm-workspace.yaml to find the package globs.
+    // name → dir for every workspace member.
     const wsYaml = readFileSync(resolve(paths.repoRoot, "pnpm-workspace.yaml"), "utf8");
     const globs = parseWorkspaceGlobs(wsYaml);
-
-    // For each glob, expand to package directories and read each package.json.
-    const found: WorkspacePackage[] = [];
+    const nameToDir = new Map<string, string>();
     for (const globPattern of globs) {
         for (const pkgDir of expandGlob(globPattern)) {
             const pkgJsonPath = resolve(pkgDir, "package.json");
             if (!existsSync(pkgJsonPath)) continue;
             const pkgJson = JSON.parse(readFileSync(pkgJsonPath, "utf8")) as PackageJson;
-            if (pkgJson.name && workspaceNames.has(pkgJson.name)) {
-                found.push({ name: pkgJson.name, dir: pkgDir });
+            if (pkgJson.name) {
+                nameToDir.set(pkgJson.name, pkgDir);
             }
         }
     }
 
-    // Sanity check: every workspace dep must be found.
-    const foundNames = new Set(found.map((p) => p.name));
-    const missing = [...workspaceNames].filter((n) => !foundNames.has(n));
-    if (missing.length > 0) {
-        throw new Error(`Could not locate workspace packages in pnpm-workspace.yaml globs: ${missing.join(", ")}`);
+    // Only the root's direct workspace:* deps; transitives resolve from the registry.
+    const directWorkspaceNames = Object.entries({
+        ...(rootPkg.dependencies ?? {}),
+        ...(rootPkg.optionalDependencies ?? {}),
+    })
+        .filter(([, v]) => typeof v === "string" && v.startsWith("workspace:"))
+        .map(([k]) => k);
+
+    const found: WorkspacePackage[] = [];
+    for (const name of directWorkspaceNames) {
+        const dir = nameToDir.get(name);
+        if (!dir) {
+            throw new Error(`Could not locate workspace package ${name} in pnpm-workspace.yaml globs`);
+        }
+        found.push({ name, dir });
     }
     return found;
 }
@@ -209,26 +204,24 @@ async function stageDependencies(rootPkg: PackageJson): Promise<void> {
     const stagingPkg = buildStagingPackageJson(rootPkg);
     const workspacePkgs = discoverWorkspacePackages(rootPkg);
 
-    // Rewrite workspace:* refs to file:<absolute-path>. pnpm install will read each
-    // package's own package.json for transitives and install them.
+    // Rewrite workspace:* to exact versions; the mcpb build runs after the npm publish
+    // (see publish.yml), so these resolve from the registry.
+    const exactVersion = rootPkg.version;
     for (const ws of workspacePkgs) {
-        const fileSpec = pathToFileURL(ws.dir).href;
         const deps = stagingPkg.dependencies as Record<string, string> | undefined;
         const optDeps = stagingPkg.optionalDependencies as Record<string, string> | undefined;
         if (deps && ws.name in deps) {
-            deps[ws.name] = fileSpec;
+            deps[ws.name] = exactVersion;
         }
         if (optDeps && ws.name in optDeps) {
-            optDeps[ws.name] = fileSpec;
+            optDeps[ws.name] = exactVersion;
         }
     }
 
     await writeFile(resolve(paths.stagingDir, "package.json"), JSON.stringify(stagingPkg, null, 2) + "\n");
 
-    // Seed the staging dir with the root's lockfile so transitive versions match what CI
-    // tested against. pnpm will incrementally update entries for the deps we changed
-    // (workspace:* → file:, atlas-local platforms force-added) while preserving the locked
-    // versions for everything else.
+    // Seed the staging install with the root's lockfile/workspace yaml; the latter keeps
+    // the staging dir its own workspace root so pnpm doesn't merge into the monorepo.
     await cp(resolve(paths.repoRoot, "pnpm-lock.yaml"), resolve(paths.stagingDir, "pnpm-lock.yaml"));
     await cp(resolve(paths.repoRoot, "pnpm-workspace.yaml"), resolve(paths.stagingDir, "pnpm-workspace.yaml"));
 

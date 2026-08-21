@@ -1,6 +1,6 @@
 {
   "name": "@mongodb-js/mcp-accuracy-tests",
-  "version": "1.11.0-prerelease.1",
+  "version": "3.0.0-prerelease.2",
   "private": true,
   "type": "module",
   "description": "Accuracy testing scripts for the MongoDB MCP server",

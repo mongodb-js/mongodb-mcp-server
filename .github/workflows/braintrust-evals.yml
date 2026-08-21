@@ -27,11 +27,11 @@ jobs:
       EVAL_MAX_CONCURRENCY: 25
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - uses: pnpm/action-setup@v5
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           # Braintrust push accepts Node 18–22 only
           # https://www.braintrust.dev/docs/evaluate/remote-evals#2-register-your-sandbox

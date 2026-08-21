@@ -1,6 +1,8 @@
+import { Keychain } from "@mongodb-js/mcp-core";
 import { parseUserConfig } from "./config/parseUserConfig.js";
-import { createServicesFromConfig } from "./createServicesFromConfig.js";
-import { startServer } from "./startServer.js";
+import { createLoggerFromConfig } from "./createLoggerFromConfig.js";
+import { createRunnerFromConfig } from "./createRunnerFromConfig.js";
+import { startRunner } from "./startRunner.js";
 import type { CliHandler } from "./cliHandler.js";
 import type { ServerMetadata } from "@mongodb-js/mcp-types";
 import type { ResourceRegistry, ToolRegistry } from "./cliServer.js";
@@ -81,14 +83,16 @@ export async function runMcpCli({
         }
     }
 
-    // Create server and infrastructure
-    const { server, logger, metrics, monitoringServer } = await createServicesFromConfig({
+    // Create logger, then the transport runner (stdio or HTTP based on config)
+    const logger = await createLoggerFromConfig({ config, keychain: Keychain.root });
+    const transportRunner = await createRunnerFromConfig({
         config,
         serverMetadata,
         tools,
         resources,
+        logger,
     });
 
-    // Start the server (stdio or HTTP based on config)
-    await startServer({ server, config, logger, metrics, monitoringServer, onExit });
+    // Start the transport runner
+    await startRunner({ transportRunner, logger, onExit });
 }

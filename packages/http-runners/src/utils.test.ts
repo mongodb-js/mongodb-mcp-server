@@ -19,6 +19,15 @@ describe("sleep", () => {
         await expect(sleepPromise).resolves.toBeUndefined();
     });
 
+    it("resolves immediately when already aborted before sleep starts", async () => {
+        const controller = new AbortController();
+        controller.abort();
+
+        const sleepPromise = sleep(1000, { signal: controller.signal });
+
+        await expect(sleepPromise).resolves.toBeUndefined();
+    });
+
     it("resolves immediately when aborted", async () => {
         const controller = new AbortController();
         const sleepPromise = sleep(1000, { signal: controller.signal });

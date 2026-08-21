@@ -1,5 +1,9 @@
 export async function sleep(ms: number, { signal }: { signal: AbortSignal }): Promise<void> {
     return new Promise((resolve) => {
+        if (signal.aborted) {
+            resolve();
+            return;
+        }
         let listener: (() => void) | undefined = undefined;
         const timeout = setTimeout(() => {
             if (listener) {

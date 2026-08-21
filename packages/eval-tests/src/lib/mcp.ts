@@ -1,7 +1,15 @@
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { experimental_createMCPClient } from "@ai-sdk/mcp";
 import { tool as createTool, type Tool } from "ai";
-import { createServicesFromConfig, Resources, UserConfigSchema, type UserConfig } from "@mongodb-js/mcp-cli";
+import { Keychain } from "@mongodb-js/mcp-core";
+import {
+    createLoggerFromConfig,
+    createServerFromConfig,
+    createSharedServicesFromConfig,
+    Resources,
+    UserConfigSchema,
+    type UserConfig,
+} from "@mongodb-js/mcp-cli";
 import { AllTools, packageInfo } from "mongodb-mcp-server";
 
 type InternalMcpClient = Awaited<ReturnType<typeof experimental_createMCPClient>>;
@@ -35,12 +43,15 @@ export class InMemoryMcpConnection {
             ...userConfig,
         });
 
-        const { server } = await createServicesFromConfig({
+        const logger = await createLoggerFromConfig({ config, keychain: Keychain.root });
+        const sharedServices = await createSharedServicesFromConfig({
             config,
             serverMetadata: packageInfo,
             tools: AllTools,
             resources: Resources,
+            logger,
         });
+        const server = createServerFromConfig({ config, sharedServices });
 
         await server.connect(serverTransport);
 

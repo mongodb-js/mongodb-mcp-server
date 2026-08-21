@@ -1,6 +1,6 @@
 {
   "name": "@mongodb-js/mcp-eval-tests",
-  "version": "1.11.0-prerelease.1",
+  "version": "3.0.0-prerelease.2",
   "private": true,
   "type": "module",
   "description": "Braintrust eval harness for the MongoDB MCP server",
@@ -32,7 +32,7 @@
   "devDependencies": {
     "@braintrust/api": "^0.5.0",
     "@types/node": "^25.6.0",
-    "esbuild": "^0.28.1",
+    "esbuild": "^0.28.2",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2"
   }

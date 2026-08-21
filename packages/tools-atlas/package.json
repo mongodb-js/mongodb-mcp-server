@@ -1,8 +1,12 @@
 {
   "name": "@mongodb-js/mcp-tools-atlas",
-  "version": "1.11.0-prerelease.1",
+  "version": "3.0.0-prerelease.2",
   "type": "module",
   "description": "Atlas tools for MongoDB MCP server",
+  "repository": {
+    "url": "https://github.com/mongodb-js/mongodb-mcp-server.git",
+    "directory": "packages/tools-atlas"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -37,5 +41,8 @@
     "@mongodb-js/mcp-metrics": "workspace:*",
     "@mongodb-js/mcp-cli": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.29.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

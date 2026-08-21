@@ -30,7 +30,7 @@ jobs:
         run: |
           set -e
 
-          NPM_VERSION=$(npm pkg get version | tr -d '"')
+          NPM_VERSION=$(npm pkg get version --prefix packages/mongodb-mcp-server | tr -d '"')
           GIT_TAG_VERSION="v${NPM_VERSION}"
           echo "NPM_VERSION=${NPM_VERSION}" >> "$GITHUB_OUTPUT"
           echo "GIT_TAG_VERSION=${GIT_TAG_VERSION}" >> "$GITHUB_OUTPUT"
@@ -138,10 +138,17 @@ jobs:
         run: |
           pnpm install --frozen-lockfile
           pnpm run build
-      - name: Build .mcpb
-        run: pnpm run build:mcpb
       - name: Publish to NPM
         run: pnpm -r publish --tag ${{ needs.check.outputs.RELEASE_CHANNEL }} --no-git-checks
+
+      # mcpb install resolves @mongodb-js/mcp-* deps from the registry, so publish first.
+      - name: Wait for workspace deps to be available on npm
+        uses: ./.github/actions/wait-for-npm
+        with:
+          package-name: "@mongodb-js/mcp-core"
+          package-version: ${{ needs.check.outputs.NPM_VERSION }}
+      - name: Build .mcpb
+        run: pnpm run build:mcpb
 
       - name: Generate AI release summary
         id: ai-summary

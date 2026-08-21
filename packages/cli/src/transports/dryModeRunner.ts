@@ -66,16 +66,6 @@ export class DryRunModeRunner implements ITransportRunner {
 
         // Dump enabled tools
         this.dumpTools();
-
-        // Close the server
-        await this.server.close();
-    }
-
-    /**
-     * Stops the dry run mode runner.
-     */
-    async stop(): Promise<void> {
-        await this.server.close();
     }
 
     private dumpTools(): void {

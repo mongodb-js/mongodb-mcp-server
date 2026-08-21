@@ -1,5 +1,5 @@
-import { createFetch } from "@mongodb-js/devtools-proxy-support";
 import { ApiClient, type HttpClient, userAgentFromServerMetadata } from "@mongodb-js/mcp-atlas-api-client";
+import { getDefaultHttpClient } from "@mongodb-js/mcp-fetch";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ServerMetadata } from "@mongodb-js/mcp-types";
 import type { UserConfig } from "./config/userConfig.js";
@@ -15,10 +15,8 @@ export function createApiClientFromConfig({
     serverMetadata,
     logger,
 }: CreateApiClientFromConfigOptions): ApiClient {
-    const httpClient: HttpClient = {
-        fetch: createFetch({ useEnvironmentVariableProxies: true }) as unknown as typeof fetch,
-        Request: globalThis.Request,
-    };
+    // Shared, memoized proxy-aware fetch (see @mongodb-js/mcp-fetch).
+    const httpClient: HttpClient = getDefaultHttpClient();
 
     return new ApiClient(
         {

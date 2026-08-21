@@ -1,8 +1,12 @@
 {
   "name": "@mongodb-js/mcp-atlas-telemetry",
-  "version": "1.11.0-prerelease.1",
+  "version": "3.0.0-prerelease.2",
   "type": "module",
   "description": "Atlas telemetry pipeline for MongoDB MCP server packages",
+  "repository": {
+    "url": "https://github.com/mongodb-js/mongodb-mcp-server.git",
+    "directory": "packages/atlas-telemetry"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -29,5 +33,8 @@
     "@types/node": "^25.6.0",
     "typescript": "^5.9.2",
     "vitest": "^4.1.4"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

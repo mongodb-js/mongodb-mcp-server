@@ -1,8 +1,12 @@
 {
   "name": "@mongodb-js/mcp-tools-atlas-local",
-  "version": "1.11.0-prerelease.1",
+  "version": "3.0.0-prerelease.2",
   "type": "module",
   "description": "Atlas Local tools and client for MongoDB MCP server",
+  "repository": {
+    "url": "https://github.com/mongodb-js/mongodb-mcp-server.git",
+    "directory": "packages/tools-atlas-local"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -30,5 +34,8 @@
     "@types/node": "^25.6.0",
     "typescript": "^5.9.2",
     "vitest": "^4.1.5"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
