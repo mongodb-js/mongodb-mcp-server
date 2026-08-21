@@ -1,12 +1,24 @@
-import type { ILoggerBase } from "./logging.js";
-import type { IMetrics, MetricDefinitions } from "./metrics.js";
-import type { ISession } from "./session.js";
+import type { ClientCapabilities, Implementation } from "@modelcontextprotocol/sdk/types.js";
+import type { ILogger, ICompositeLogger } from "./logging.js";
+import type { IMetrics, DefaultMetricDefinitions } from "./metrics.js";
 
 export type CloseableTransport = {
     close(): Promise<void>;
 };
 
 export type SessionCloseReason = "idle_timeout" | "transport_closed" | "server_stop" | "unknown" | "evicted";
+
+/**
+ * The client state negotiated during MCP initialization. Stores that persist
+ * it durably allow an implicitly re-initialized session (one restored on a
+ * pod that never saw the client's `initialize` request) to retain the
+ * client's capabilities -- e.g. whether it supports elicitation -- instead of
+ * treating the restored client as capability-less.
+ */
+export type NegotiatedClientState = {
+    clientCapabilities?: ClientCapabilities;
+    clientInfo?: Implementation;
+};
 
 export interface ISessionStore<T extends CloseableTransport = CloseableTransport> {
     /**
@@ -34,23 +46,42 @@ export interface ISessionStore<T extends CloseableTransport = CloseableTransport
     addSession(params: {
         sessionId: string;
         transport: T;
-        /** TODO: Remove in v2 — redundant with `session.logger`. */
-        logger: ILoggerBase;
-        session: ISession;
+        logger: ILogger;
+        session?: { logger: ICompositeLogger };
         headers?: Record<string, unknown>;
     }): Promise<void>;
     closeSession(params: { sessionId: string; reason?: SessionCloseReason }): Promise<void>;
     closeAllSessions(): Promise<void>;
+    /**
+     * Durably records the client state negotiated during a real MCP
+     * initialization, so it can be restored when the session is later
+     * implicitly re-initialized (only relevant with
+     * `externallyManagedSessions`). Stores without durable storage can
+     * implement this as a no-op.
+     */
+    saveNegotiatedClientState(
+        sessionId: string,
+        state: NegotiatedClientState,
+        headers?: Record<string, unknown>
+    ): Promise<void>;
+    /**
+     * Returns the previously saved negotiated client state for the session,
+     * or `undefined` when unknown.
+     */
+    loadNegotiatedClientState(
+        sessionId: string,
+        headers?: Record<string, unknown>
+    ): Promise<NegotiatedClientState | undefined>;
 }
 
-export type SessionStoreConstructorArgs<TMetrics extends MetricDefinitions = MetricDefinitions> = {
+export type SessionStoreConstructorArgs<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
     options: {
         idleTimeoutMS: number;
         notificationTimeoutMS: number;
         maxSessions: number;
         /**
          * When the store is at `maxSessions` and a new session arrives, evict the
-         * least-recently-used session instead of rejecting — but only if it has been
+         * least-recently-used session instead of rejecting -- but only if it has been
          * idle for at least this long (ms). Must be < `idleTimeoutMS` (the background
          * reaper already removes anything past that), or the valve never fires. If a
          * session idle >= this exists, it is closed locally to make room; otherwise
@@ -59,11 +90,6 @@ export type SessionStoreConstructorArgs<TMetrics extends MetricDefinitions = Met
          */
         evictionIdleGraceMS?: number;
     };
-    logger: ILoggerBase;
+    logger: ILogger;
     metrics: IMetrics<TMetrics>;
 };
-
-export type CreateSessionStoreFn<
-    TTransport extends CloseableTransport = CloseableTransport,
-    TMetrics extends MetricDefinitions = MetricDefinitions,
-> = (args: SessionStoreConstructorArgs<TMetrics>) => ISessionStore<TTransport>;

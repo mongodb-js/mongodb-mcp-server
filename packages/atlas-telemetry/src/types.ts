@@ -1,0 +1,210 @@
+import type {
+    TelemetryBoolSet,
+    TelemetryCommonProperties,
+    TelemetryCommonStaticProperties,
+    TelemetryEvent,
+    TelemetryResult,
+    AtlasMetadata,
+    AtlasLocalToolMetadata,
+    TelemetryToolMetadata as TelemetryToolMetadataFromCore,
+    ConnectionMetadata as ConnectionMetadataFromCore,
+    StreamsToolMetadata as StreamsToolMetadataFromCore,
+} from "@mongodb-js/mcp-types";
+
+export type {
+    TelemetryBoolSet,
+    TelemetryCommonProperties,
+    TelemetryCommonStaticProperties,
+    TelemetryEvent,
+    TelemetryResult,
+    AtlasMetadata,
+    AtlasLocalToolMetadata,
+    StreamsToolMetadataFromCore as StreamsToolMetadata,
+};
+
+/**
+ * Atlas cloud providers, mirroring the `AtlasCloudProvider` schema in
+ * `@mongodb-js/mcp-tools-atlas`. Defined locally (rather than imported) to
+ * avoid a dependency cycle: tools-atlas already depends on this package.
+ */
+export type AtlasCloudProvider = "AWS" | "GCP" | "AZURE";
+
+export type TelemetryServerCommand = "start" | "stop";
+
+export type TelemetryBaseEvent = TelemetryEvent<unknown>;
+
+export type UpgradeClusterMetadata = AtlasMetadata & {
+    original_tier?: string;
+    target_tier?: string;
+    original_cluster_id?: string;
+    target_cluster_id?: string;
+    compute_auto_scaling?: TelemetryBoolSet;
+    min_instance_size?: string;
+    max_instance_size?: string;
+    provider?: string;
+    region?: string;
+};
+
+export type PauseResumeClusterMetadata = AtlasMetadata & {
+    cluster_id?: string;
+    action?: "PAUSE" | "RESUME";
+};
+
+export type CreateClusterMetadata = AtlasMetadata & {
+    cluster_id?: string;
+    provider?: string;
+    regions?: string[];
+    region?: string;
+    instance_size?: string;
+    cluster_type?: "REPLICASET" | "SHARDED";
+    backup?: "OFF" | "SNAPSHOT" | "CONTINUOUS";
+    compute_auto_scaling?: TelemetryBoolSet;
+    termination_protection?: TelemetryBoolSet;
+    disk_size_gb?: number;
+    mongodb_version?: string;
+    encryption_at_rest_provider?: "AWS" | "AZURE" | "GCP" | "NONE";
+};
+
+/**
+ * Connection metadata for MongoDB tools, extending the core connection
+ * metadata with the `connection_id` that identifies the connection in the
+ * connection registry.
+ */
+export type ConnectionMetadata = ConnectionMetadataFromCore & {
+    connection_id?: string;
+};
+
+export type PerfAdvisorToolMetadata = AtlasMetadata &
+    ConnectionMetadata & {
+        operations: string[];
+    };
+
+export type GetRegionsMetadata = AtlasMetadata & {
+    provider?: AtlasCloudProvider;
+};
+
+export type IndexMetadata = ConnectionMetadata & {
+    index_type: "classic" | "vectorSearch" | "search";
+};
+
+export type TelemetryToolMetadata =
+    | TelemetryToolMetadataFromCore
+    | ConnectionMetadata
+    | PerfAdvisorToolMetadata
+    | GetRegionsMetadata
+    | IndexMetadata
+    | UpgradeClusterMetadata
+    | PauseResumeClusterMetadata
+    | CreateClusterMetadata;
+
+export type TelemetryToolEventProperties = {
+    command: string;
+    error_code?: string;
+    error_type?: string;
+    cluster_name?: string;
+    is_atlas?: boolean;
+} & TelemetryToolMetadata;
+
+export type TelemetryToolEvent = TelemetryEvent<TelemetryToolEventProperties>;
+
+/**
+ * Interface for server events
+ */
+export type TelemetryServerEventProperties = {
+    command: TelemetryServerCommand;
+    reason?: string;
+    startup_time_ms?: number;
+    runtime_duration_ms?: number;
+    read_only_mode?: TelemetryBoolSet;
+    disabled_tools?: string[];
+    confirmation_required_tools?: string[];
+    previewFeatures?: string[];
+};
+
+export type TelemetryServerEvent = TelemetryEvent<TelemetryServerEventProperties>;
+
+/**
+ * Commands emitted by the interactive setup CLI. Each command corresponds to
+ * a single logical step of the wizard, so downstream analytics can reason
+ * about drop-off between steps as well as overall completion rates.
+ */
+export type TelemetrySetupStage =
+    | "started"
+    | "prerequisites_checked"
+    | "ai_tool_selected"
+    | "read_only_selected"
+    | "connection_string_entered"
+    | "service_account_id_entered"
+    | "service_account_secret_entered"
+    | "credentials_validated"
+    | "editor_configured"
+    | "skills_install_prompted"
+    | "open_config_prompted"
+    | "completed"
+    | "cancelled"
+    | "failed";
+
+/**
+ * Properties shared across all setup events. Every event carries the full
+ * accumulated context known up to that point so each event is independently
+ * queryable.
+ */
+export type TelemetrySetupEventProperties = {
+    stage: TelemetrySetupStage;
+
+    /**
+     * Random id generated at the start of a setup run. All events emitted by
+     * the same wizard invocation share this id so they can be correlated.
+     */
+    setup_session_id: string;
+
+    /** The AI tool selected by the user, once known. */
+    ai_tool?: string;
+
+    /** Whether the user opted to install the MCP server in read-only mode. */
+    read_only_mode?: TelemetryBoolSet;
+
+    /** Whether the Node.js version satisfies the package's engines range. */
+    node_version_ok?: TelemetryBoolSet;
+
+    /** Whether the user supplied a MongoDB connection string. */
+    connection_string_provided?: TelemetryBoolSet;
+
+    /** Whether the user opted to test the provided connection string. */
+    connection_string_tested?: TelemetryBoolSet;
+
+    /** Number of connection string attempts (initial + retries) the user made. */
+    connection_test_attempts?: number;
+
+    /** Whether the user supplied an Atlas Service Account client id. */
+    service_account_id_provided?: TelemetryBoolSet;
+
+    /** Whether the user supplied an Atlas Service Account client secret. */
+    service_account_secret_provided?: TelemetryBoolSet;
+
+    /** Whether the user accepted the auto-detected config path. */
+    used_default_config_path?: TelemetryBoolSet;
+
+    /** Whether the user opted to open the config file at the end of setup. */
+    opened_config_file?: TelemetryBoolSet;
+
+    /** Outcome of the agent-skills install step. */
+    skills_install_status?: "installed" | "skipped" | "failed";
+
+    /** If the skills step was skipped, why. */
+    skills_skip_reason?: "no-agent-id" | "user-declined";
+
+    /** If skills install failed, the subprocess exit code (-1 sentinel for spawn errors). */
+    skills_install_exit_code?: number;
+
+    /** On terminal events, the last completed step before terminating. */
+    last_stage?: TelemetrySetupStage;
+
+    /** Populated on failure events (and where a step failed with an error). */
+    error_type?: string;
+
+    /** Total wall-clock duration of the setup run, set on terminal events. */
+    total_duration_ms?: number;
+} & Pick<TelemetryCommonProperties, "has_docker">;
+
+export type TelemetrySetupEvent = TelemetryEvent<TelemetrySetupEventProperties>;

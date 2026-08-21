@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "erasableSyntaxOnly": false
+  },
+  "include": ["**/*.ts", "../test-utils/src/vitest.d.ts"],
+  "exclude": ["node_modules"]
+}

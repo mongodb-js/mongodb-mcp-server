@@ -1,0 +1,41 @@
+{
+  "name": "@mongodb-js/mcp-tools-assistant",
+  "version": "3.0.0-prerelease.2",
+  "type": "module",
+  "description": "Assistant tools for the MongoDB MCP server",
+  "repository": {
+    "url": "https://github.com/mongodb-js/mongodb-mcp-server.git",
+    "directory": "packages/tools-assistant"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc --build tsconfig.build.json",
+    "test": "vitest --run",
+    "check": "tsc --build tsconfig.build.json --noEmit"
+  },
+  "dependencies": {
+    "@mongodb-js/mcp-core": "workspace:*",
+    "@mongodb-js/mcp-fetch": "workspace:*",
+    "yaml": "^2.8.1",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@mongodb-js/mcp-types": "workspace:*",
+    "@types/node": "^25.6.0",
+    "typescript": "^5.9.2",
+    "vitest": "^4.1.4"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

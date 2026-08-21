@@ -43,6 +43,8 @@ jobs:
           cache: "pnpm"
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm run build
       - name: Run tests
         run: pnpm test
         env:
@@ -73,6 +75,8 @@ jobs:
           cache: "pnpm"
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm run build
       - name: Run tests
         env:
           MDB_MCP_API_CLIENT_ID: ${{ secrets.TEST_ATLAS_CLIENT_ID }}
@@ -85,7 +89,7 @@ jobs:
           MDB_MCP_AZURE_CMK_RESOURCE_GROUP_NAME: ${{ secrets.TEST_MDB_MCP_AZURE_CMK_RESOURCE_GROUP_NAME }}
           MDB_MCP_AZURE_CMK_KEY_VAULT_NAME: ${{ secrets.TEST_MDB_MCP_AZURE_CMK_KEY_VAULT_NAME }}
           MDB_MCP_AZURE_CMK_KEY_IDENTIFIER: ${{ secrets.TEST_MDB_MCP_AZURE_CMK_KEY_IDENTIFIER }}
-        run: pnpm test tests/integration/tools/atlas/
+        run: pnpm test packages/integration-tests/src/tools/atlas/
       - name: Upload test results
         uses: actions/upload-artifact@v7.0.1
         if: always()
@@ -132,13 +136,15 @@ jobs:
           cache: "pnpm"
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm run build
       - name: Pre-pull Atlas Local images
         run: |
           docker pull mongodb/mongodb-atlas-local:preview &
           docker pull mongodb/mongodb-atlas-local:latest &
           wait
       - name: Run tests
-        run: pnpm test tests/integration/tools/atlas-local/
+        run: pnpm test packages/integration-tests/src/tools/atlas-local/
       - name: Upload test results
         uses: actions/upload-artifact@v7.0.1
         if: always()
@@ -162,8 +168,10 @@ jobs:
           cache: "pnpm"
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm run build
       - name: Install Playwright Chromium
-        run: pnpm --filter browser run install:browser
+        run: pnpm --filter @mongodb-js/mcp-browser-tests run install:browser
       - name: Run browser tests
         run: pnpm run test:browser
       - name: Upload test results
@@ -171,7 +179,7 @@ jobs:
         uses: actions/upload-artifact@v7.0.1
         with:
           name: browser-test-results
-          path: coverage/tests/browser/lcov.info
+          path: coverage/packages/browser-tests/lcov.info
 
   coverage:
     name: Report Coverage

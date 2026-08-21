@@ -1,0 +1,137 @@
+import type { CallToolResult } from "@mongodb-js/mcp-types";
+import type { AnyToolBase } from "@mongodb-js/mcp-core";
+import { ErrorCodes, type MongoDBError } from "./common/errors.js";
+import type { AnyConnectionState } from "./common/connectionManager.js";
+import { DisconnectTool } from "./tools/connect/disconnect.js";
+import { ListConnectionsTool } from "./tools/connect/listConnections.js";
+
+export type ConnectionErrorHandlerContext = { availableTools: AnyToolBase[]; connectionState?: AnyConnectionState };
+export type ConnectionErrorUnhandled = { errorHandled: false };
+export type ConnectionErrorHandled = { errorHandled: true; result: CallToolResult };
+
+export type ConnectionErrorHandler = (
+    error: MongoDBError<
+        | typeof ErrorCodes.NotConnectedToMongoDB
+        | typeof ErrorCodes.MisconfiguredConnectionString
+        | typeof ErrorCodes.UnknownConnectionId
+    >,
+    additionalContext: ConnectionErrorHandlerContext
+) => ConnectionErrorUnhandled | ConnectionErrorHandled | Promise<ConnectionErrorUnhandled | ConnectionErrorHandled>;
+
+/**
+ * The enabled tools that can establish a connection, sorted with Atlas tools
+ * before MongoDB tools so every listing surfaces them in the same order. The
+ * disconnect tool shares the "connect" operation type but cannot establish a
+ * connection, so it is excluded.
+ */
+export function connectCapableTools(tools: readonly AnyToolBase[]): AnyToolBase[] {
+    return tools
+        .filter((t) => t.operationType === "connect" && t.name !== DisconnectTool.toolName && t.isEnabled())
+        .sort((a, b) => a.category.localeCompare(b.category));
+}
+
+export const connectionErrorHandler: ConnectionErrorHandler = (error, { availableTools, connectionState }) => {
+    const connectTools = connectCapableTools(availableTools);
+
+    // Find what Atlas connect tools are available and suggest when the LLM should to use each. If no Atlas tools are found, return a suggestion for the MongoDB connect tool.
+    const atlasConnectTool = connectTools?.find((t) => t.category === "atlas");
+    const atlasLocalConnectTool = connectTools?.find((t) => t.category === "atlas-local");
+
+    const llmConnectHint = ((): string => {
+        const hints: string[] = [];
+
+        if (atlasConnectTool) {
+            hints.push(
+                `Note to LLM: prefer using the "${atlasConnectTool.name}" tool to connect to an Atlas cluster over using a connection string. Make sure to ask the user to specify a cluster name they want to connect to or ask them if they want to use the "list-clusters" tool to list all their clusters. Do not invent cluster names or connection strings unless the user has explicitly specified them. If they've previously connected to MongoDB using MCP, you can ask them if they want to reconnect using the same cluster/connection.`
+            );
+        }
+
+        if (atlasLocalConnectTool) {
+            hints.push(
+                `Note to LLM: For MongoDB Atlas Local deployments, ask the user to either provide a connection string, specify a deployment name, or use "atlas-local-list-deployments" to show available local deployments. If a deployment name is provided, prefer using the "${atlasLocalConnectTool.name}" tool. If a connection string is provided, prefer using the "connect" tool. Do not invent deployment names or connection strings unless the user has explicitly specified them. If they've previously connected to a MongoDB Atlas Local deployment using MCP, you can ask them if they want to reconnect using the same deployment.`
+            );
+        }
+
+        return hints.length > 0
+            ? hints.join("\n")
+            : "Note to LLM: do not invent connection strings and explicitly ask the user to provide one. If they have previously connected to MongoDB using MCP, you can ask them if they want to reconnect using the same connection string.";
+    })();
+
+    const connectToolsNames = connectTools?.map((t) => `"${t.name}"`).join(", ");
+    const additionalPromptForConnectivity: { type: "text"; text: string }[] = [];
+
+    if (connectionState?.tag === "connecting" && connectionState.oidcConnectionType) {
+        additionalPromptForConnectivity.push({
+            type: "text",
+            text: `The user needs to finish their OIDC connection by opening '${connectionState.oidcLoginUrl}' in the browser and use the following user code: '${connectionState.oidcUserCode}'`,
+        });
+    } else {
+        additionalPromptForConnectivity.push({
+            type: "text",
+            text: connectToolsNames
+                ? `Please use one of the following tools: ${connectToolsNames} to connect to a MongoDB instance or update the MCP server configuration to include a connection string. ${llmConnectHint}`
+                : "There are no tools available to connect. Please update the configuration to include a connection string and restart the server.",
+        });
+    }
+
+    switch (error.code) {
+        case ErrorCodes.UnknownConnectionId: {
+            const listConnectionsAvailable = availableTools.some(
+                (t) => t.name === ListConnectionsTool.toolName && t.isEnabled()
+            );
+            return {
+                errorHandled: true,
+                result: {
+                    content: [
+                        {
+                            type: "text",
+                            text: `${error.message} ${
+                                listConnectionsAvailable
+                                    ? `Call the "${ListConnectionsTool.toolName}" tool to see the active connections, or establish a new one and retry with the connectionId it returns.`
+                                    : "Establish a new connection using one of the connect tools and retry with the connectionId it returns."
+                            }`,
+                        },
+                        ...additionalPromptForConnectivity,
+                    ],
+                    isError: true,
+                },
+            };
+        }
+        case ErrorCodes.NotConnectedToMongoDB:
+            return {
+                errorHandled: true,
+                result: {
+                    content: [
+                        {
+                            type: "text",
+                            text: "You need to connect to a MongoDB instance before you can access its data.",
+                        },
+                        ...additionalPromptForConnectivity,
+                    ],
+                    isError: true,
+                },
+            };
+        case ErrorCodes.MisconfiguredConnectionString:
+            return {
+                errorHandled: true,
+                result: {
+                    content: [
+                        {
+                            type: "text",
+                            text: "The configured connection string is not valid. Please check the connection string and confirm it points to a valid MongoDB instance.",
+                        },
+                        {
+                            type: "text",
+                            text: connectTools
+                                ? `Alternatively, you can use one of the following tools: ${connectToolsNames} to connect to a MongoDB instance. ${llmConnectHint}`
+                                : "Please update the configuration to use a valid connection string and restart the server.",
+                        },
+                    ],
+                    isError: true,
+                },
+            };
+
+        default:
+            return { errorHandled: false };
+    }
+};
