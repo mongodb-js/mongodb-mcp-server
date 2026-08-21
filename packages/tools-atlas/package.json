@@ -37,5 +37,8 @@
     "@mongodb-js/mcp-metrics": "workspace:*",
     "@mongodb-js/mcp-cli": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.29.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
