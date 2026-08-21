@@ -236,6 +236,24 @@ To release a new version of the MCP server, follow these steps:
    - MCP Registry: `curl "https://registry.modelcontextprotocol.io/v0.1/servers/io.github.mongodb-js%2Fmongodb-mcp-server/versions/latest"`
 5. Post an update in the `#mongodb-mcp` Slack channel.
 
+### v2 (Legacy) Releases
+
+A v3 release should be cut from `main` only. Once v3 lands there, critical fixes that
+still need to ship on v2 are released from a v2 maintenance branch instead:
+
+1. Check out the latest v2 tag into a maintenance branch called `v2-maintenance`:
+
+   ```bash
+   git checkout -b v2-maintenance v2.1.0  # or the latest v2 tag via: git tag -l 'v2.*' | sort -V | tail -1
+   ```
+2. Add the `v2-maintenance` branch to branches for automatic publishing in `.github/workflows/publish.yml` (if not already present). You will also need to configure `Production` environment to allow this branch to publish.
+4. On a new branch based on `v2-maintenance`, apply the necessary changes and fixes. Create a separate PR for `main` if you also need them in v3.
+5. Bump the version (`npm version patch --no-git-tag-version`, sync the scoped
+   `@mongodb-js/mcp-*` packages, `pnpm run build:update-package-version`) and open a
+   release PR against the v2 branch.
+6. Open a PR to merge the release PR into `v2-maintenance`. Merging will trigger the publish workflow for v2.
+7. Verify the publish on NPM/Docker/MCP Registry and post in `#mongodb-mcp`.
+
 ### Code Quality
 
 All pull requests automatically run through the "Code Health" workflow, which:
