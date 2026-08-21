@@ -23,6 +23,13 @@ export MDB_MCP_API_CLIENT_SECRET=${MDB_MCP_API_CLIENT_SECRET:-"test-atlas-client
 # By default we run all the tests in this package unless a path is
 # specified in the command line. Such as:
 # pnpm run test:accuracy -- packages/accuracy-tests/some-test.test.ts
+
+# vitest.config.ts lives at the repository root and its accuracy project's
+# include/setupFiles paths are resolved against the repository root, so run
+# vitest from there (the pre-monorepo script did the same).
+PROJECT_ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)"
+cd "$PROJECT_ROOT"
+
 echo "Running accuracy tests with MDB_ACCURACY_RUN_ID '$MDB_ACCURACY_RUN_ID'"
 vitest --config vitest.config.ts --project=accuracy --coverage=false --max-workers=2 --run "$@"
 

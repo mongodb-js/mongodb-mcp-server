@@ -63,8 +63,7 @@ export default defineConfig({
                 extends: true,
                 test: {
                     name: "accuracy",
-                    root: "./packages/accuracy-tests",
-                    include: ["src/**/*.test.ts"],
+                    include: ["packages/accuracy-tests/src/**/*.test.ts"],
                 },
             },
             {

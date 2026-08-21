@@ -1,13 +1,15 @@
 import path from "path";
 import { fileURLToPath } from "url";
 
-const __dirname = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export const ROOT_DIR = path.join(__dirname, "..", "..", "..", "..");
 
 export const DIST_DIR = path.join(ROOT_DIR, "dist");
 
-export const RESOURCES_DIR = path.join(ROOT_DIR, "resources");
+// The accuracy test summary template was moved into the CLI package during the
+// v3 monorepo restructure; root-level resources/ no longer exists.
+export const RESOURCES_DIR = path.join(ROOT_DIR, "packages", "cli", "resources");
 
 export const MCP_SERVER_CLI_SCRIPT = path.join(DIST_DIR, "index.js");
 
