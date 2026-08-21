@@ -5,12 +5,59 @@
 
 A Model Context Protocol server for interacting with MongoDB Databases and MongoDB Atlas.
 
+### Quick Start
+
+#### Using the official MongoDB plugins for AI agents
+
+MongoDB MCP Server comes bundled with the official MongoDB plugins for AI agents. The following plugins are available:
+
+**`mongodb-atlas`** — connects to the MongoDB-hosted Atlas MCP server over OAuth. This does not require you to run anything locally, and is the recommended way to connect to MongoDB Atlas from your AI agent:
+
+- Cursor: [marketplace](https://cursor.com/marketplace/mongodb/mongodb-atlas)
+- VSCode: Open the Extensions view (`⇧⌘X` / `Ctrl+Shift+X`), search for `@agentPlugins`, and install `mongodb-atlas`.
+- Claude: [marketplace](https://claude.com/plugins/mongodb-atlas)
+- Codex: Open `/plugins` and install `mongodb-atlas`.
+- GitHub Copilot CLI: Run `copilot plugin install mongodb-atlas`.
+- Grok: Open `/marketplace` in Grok Build and install `mongodb-atlas`.
+
+**`mongodb`** — runs the MongoDB MCP server locally and connects to any self-managed deployment:
+
+- Cursor: [marketplace](https://cursor.com/marketplace/mongodb/mongodb)
+- Claude: [marketplace](https://claude.com/plugins/mongodb)
+- Gemini: [marketplace](https://geminicli.com/extensions/?name=mongodbagent-skills)
+- Codex: Run `codex plugin marketplace add mongodb/agent-skills`, then open `/plugins` and install `mongodb`.
+- GitHub Copilot CLI: Run `copilot plugin install mongodb`.
+- Grok: Open `/marketplace` in Grok Build and install `mongodb`.
+
+#### Using the setup script
+
+You can manually set up the local MCP server by running the following command:
+
+```bash
+npx -y mongodb-mcp-server@latest setup
+```
+
+This will guide you through an interactive setup process, including configuring your MongoDB connection string or Atlas API credentials.
+
+For more advanced setup options, see the [Manual Setup](#manual-setup) section below.
+
+#### Using the MongoDB MCP Server setup skill
+
+You can add and use the MongoDB MCP Server setup skill to configure your local MCP server using an AI agent.
+
+```bash
+npx skills add https://github.com/mongodb/agent-skills --skill mongodb-mcp-setup
+```
+
+#### Using manual configuration
+
+See [Manual Setup](#manual-setup) for instructions on how to manually configure the MongoDB MCP Server.
+
 ## 📚 Table of Contents
 
 - [🚀 Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
-  - [Setup](#setup)
-    - [Quick Start](#quick-start)
+  - [Manual Setup](#manual-setup)
 - [🛠️ Supported Tools](#supported-tools)
   - [MongoDB Atlas Tools](#mongodb-atlas-tools)
   - [MongoDB Database Tools](#mongodb-database-tools)
@@ -42,9 +89,7 @@ A Model Context Protocol server for interacting with MongoDB Databases and Mongo
   - **_Service Accounts Atlas API credentials_** are required to use the Atlas tools. You can create a service account in MongoDB Atlas and use its credentials for authentication. See [Atlas API Access](#atlas-api-access) for more details.
   - If you have a MongoDB connection string, you can use it directly to connect to your MongoDB instance.
 
-## Setup
-
-### Quick Start
+## Manual Setup
 
 > **🔒 Security Recommendation 1:** When using Atlas API credentials, be sure to assign only the minimum required permissions to your service account. See [Atlas API Permissions](#atlas-api-permissions) for details.
 
@@ -54,12 +99,11 @@ Most MCP clients require a configuration file to be created or modified to add t
 
 Note: The configuration file syntax can be different across clients. Please refer to the following links for the latest expected syntax:
 
-- **Windsurf**: https://docs.windsurf.com/windsurf/mcp
-- **VSCode**: https://code.visualstudio.com/docs/copilot/chat/mcp-servers
-- **Claude Desktop**: https://modelcontextprotocol.io/quickstart/user
-- **Cursor**: https://docs.cursor.com/context/model-context-protocol
-- **Copilot CLI**: https://docs.github.com/en/copilot/concepts/agents/about-copilot-cli
-- **Opencode CLI**: https://opencode.ai/docs/mcp-servers
+- [Devin AI](https://www.mongodb.com/docs/mcp-server/get-started/?ai-client=devin)
+- [Claude Desktop & Web](https://www.mongodb.com/docs/mcp-server/get-started/?ai-client=claude-desktop-web)
+- [Cursor](https://www.mongodb.com/docs/mcp-server/get-started/?ai-client=cursor)
+- [Codex](https://www.mongodb.com/docs/mcp-server/get-started/?ai-client=codex)
+- [Other AI clients](https://www.mongodb.com/docs/mcp-server/get-started/?ai-client=other)
 
 > **Default Safety Notice:** All examples below include `--readOnly` by default to ensure safe, read-only access to your data. Remove `--readOnly` if you need to enable write operations.
 
@@ -83,7 +127,36 @@ You can pass your connection string via environment variables, make sure to use 
 
 NOTE: The connection string can be configured to connect to any MongoDB cluster, whether it's a local instance or an Atlas cluster.
 
-#### Option 2: Atlas API Credentials
+#### Option 2: Connect to the MongoDB Atlas-Managed MCP Server
+
+When working with MongoDB Atlas, the recommended approach is to install the [`mongodb-atlas` plugin](#using-the-official-mongodb-plugins-for-ai-agents) for your AI agent, which handles OAuth authentication automatically.
+
+For manual configuration, see the [client-specific instructions](https://www.mongodb.com/docs/mcp-server/get-started/) for setting up the Atlas Remote MCP server with OAuth. Alternatively, you can connect using the [`mongodb-atlas-mcp-remote`](packages/mongodb-atlas-mcp-remote/README.md) package with Service Account credentials — see the [package README](packages/mongodb-atlas-mcp-remote/README.md) for setup instructions.
+
+> **Note:** You cannot authenticate to the remote MongoDB MCP server using a static API key over HTTP. You must either:
+>
+> - Use a client that supports the OAuth flow.
+> - Use the [`mongodb-atlas-mcp-remote`](packages/mongodb-atlas-mcp-remote/README.md) stdio server, which you can authenticate into using the static `MDB_MCP_API_CLIENT_ID` and `MDB_MCP_API_CLIENT_SECRET` environment variables.
+
+To connect with the `mongodb-atlas-mcp-remote` stdio server using Service Account credentials, add it to your client's MCP configuration:
+
+```json
+{
+  "mcpServers": {
+    "mongodb-atlas-mcp-remote": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "mongodb-atlas-mcp-remote@latest"],
+      "env": {
+        "MDB_MCP_API_CLIENT_ID": "$CLIENT_ID",
+        "MDB_MCP_API_CLIENT_SECRET": "$SECRET"
+      }
+    }
+  }
+}
+```
+
+#### Option 3: Atlas API Credentials
 
 Use your Atlas API Service Accounts credentials. Must follow all the steps in [Atlas API Access](#atlas-api-access) section.
 
@@ -102,7 +175,7 @@ Use your Atlas API Service Accounts credentials. Must follow all the steps in [A
 }
 ```
 
-#### Option 3: Standalone Service using environment variables and command line arguments
+#### Option 4: Standalone Service using environment variables and command line arguments
 
 You can source environment variables defined in a config file or explicitly set them like we do in the example below and run the server via npx.
 
@@ -122,7 +195,7 @@ npx -y mongodb-mcp-server@latest --readOnly
 - Connection String via environment variables in the MCP file [example](#connection-string-with-environment-variables)
 - Atlas API credentials via environment variables in the MCP file [example](#atlas-api-credentials-with-environment-variables)
 
-#### Option 4: Using Docker
+#### Option 5: Using Docker
 
 You can run the MongoDB MCP Server in a Docker container, which provides isolation and doesn't require a local Node.js installation.
 
@@ -243,93 +316,6 @@ With Atlas API credentials:
   }
 }
 ```
-
-#### Option 5: Running as an HTTP Server
-
-> **⚠️ Security Notice:** This server now supports Streamable HTTP transport for remote connections. **HTTP transport is NOT recommended for production use without implementing proper authentication and security measures.**
-
-**Suggested Security Measures Examples:**
-
-- Implement authentication (e.g., API gateway, reverse proxy)
-- Use HTTPS/TLS encryption
-- Deploy behind a firewall or in private networks
-- Implement rate limiting
-- Never expose directly to the internet
-
-For more details, see [MCP Security Best Practices](https://modelcontextprotocol.io/docs/concepts/transports#security-considerations).
-
-You can run the MongoDB MCP Server as an HTTP server instead of the default stdio transport. This is useful if you want to interact with the server over HTTP, for example from a web client or to expose the server on a specific port.
-
-To start the server with HTTP transport, use the `--transport http` option:
-
-```shell
-npx -y mongodb-mcp-server@latest --transport http
-```
-
-By default, the server will listen on `http://127.0.0.1:3000`. You can customize the host and port using the `--httpHost` and `--httpPort` options:
-
-```shell
-npx -y mongodb-mcp-server@latest --transport http --httpHost=0.0.0.0 --httpPort=8080
-```
-
-- `--httpHost` (default: 127.0.0.1): The host to bind the HTTP server.
-- `--httpPort` (default: 3000): The port number for the HTTP server.
-
-> **Note:** The default transport is `stdio`, which is suitable for integration with most MCP clients. Use `http` transport if you need to interact with the server over HTTP.
-
-#### Option 6: Copilot CLI
-
-You can use the Copilot CLI to interactively add the MCP server:
-
-```shell
-/mcp add
-```
-
-Alternatively, create or edit the configuration file `~/.copilot/mcp-config.json` and add:
-
-```json
-{
-  "mcpServers": {
-    "MongoDB": {
-      "command": "npx",
-      "args": ["-y", "mongodb-mcp-server@latest", "--readOnly"],
-      "env": {
-        "MDB_MCP_CONNECTION_STRING": "mongodb://localhost:27017/myDatabase"
-      }
-    }
-  }
-}
-```
-
-For more information, see the [Copilot CLI documentation](https://docs.github.com/en/copilot/concepts/agents/about-copilot-cli).
-
-#### Option 7: OpenCode
-
-Create or edit your OpenCode config file (`~/.config/opencode/opencode.json` or project-specific `./opencode.json`):
-
-```json
-{
-  "$schema": "https://opencode.ai/config.json",
-  "mcp": {
-    "MongoDB": {
-      "type": "local",
-      "command": ["npx", "-y", "mongodb-mcp-server@latest", "--readOnly"],
-      "enabled": true,
-      "environment": {
-        "MDB_MCP_CONNECTION_STRING": "mongodb://localhost:27017/myDatabase"
-      }
-    }
-  }
-}
-```
-
-For more information about configuring OpenCode as an MCP client, including the expected syntax and options, see the [OpenCode MCP servers documentation](https://opencode.ai/docs/mcp-servers/).
-
-#### Option 8: Connect to the Remote MCP Server
-
-To connect to the hosted MongoDB Atlas Remote MCP server, use the [`mongodb-atlas-mcp-remote`](packages/mongodb-atlas-mcp-remote/README.md) package.
-
-See the [package README](packages/mongodb-atlas-mcp-remote/README.md) for setup and client-specific configuration examples.
 
 ## 🛠️ Supported Tools
 
