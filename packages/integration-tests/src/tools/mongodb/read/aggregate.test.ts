@@ -6,8 +6,8 @@ import {
     getResponseContent,
     defaultTestConfig,
     expectDefined,
-} from "../../../helpers.js";
-import { ConnectionEntry } from "../../../../../src/common/connectionRegistry.js";
+} from "../../../integrationHelpers.js";
+import { ConnectionEntry } from "@mongodb-js/mcp-tools-mongodb";
 import { beforeEach, describe, expect, it, vi, afterEach } from "vitest";
 import {
     createVectorSearchIndexAndWait,
@@ -17,17 +17,17 @@ import {
     waitUntilSearchIndexIsQueryable,
     waitUntilSearchIsReady,
     type MongoDBIntegrationTestCase,
-} from "../mongodbHelpers.js";
-import * as constants from "../../../../../src/helpers/constants.js";
-import { freshInsertDocuments } from "./find.test.js";
+} from "../../../mongodbHelpers.js";
+import * as constants from "../../../../../tools-mongodb/dist/helpers/constants.js";
+import { freshInsertDocuments } from "./helpers.js";
 import { BSON } from "bson";
 import { DOCUMENT_EMBEDDINGS } from "./vyai/embeddings.js";
-import type { ToolEvent } from "../../../../../src/telemetry/types.js";
+import type { TelemetryToolEvent as ToolEvent } from "@mongodb-js/mcp-atlas-telemetry";
 import type { Client } from "@modelcontextprotocol/sdk/client";
-import { pipelineDescriptionWithVectorSearch } from "../../../../../src/tools/mongodb/read/aggregate.js";
+import { pipelineDescriptionWithVectorSearch } from "@mongodb-js/mcp-tools-mongodb";
 import { MongoServerError, type Collection } from "mongodb";
-import type { CursorLimitKey } from "../../../../../src/helpers/constants.js";
-import { createMockElicitInput } from "../../../../utils/elicitationMocks.js";
+import type { CursorLimitKey } from "@mongodb-js/mcp-tools-mongodb";
+import { createMockElicitInput } from "@mongodb-js/mcp-test-utils";
 
 type AggregateToolResponse = Awaited<ReturnType<Client["callTool"]>>;
 
@@ -424,7 +424,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
         });
 
         expect(mockEmitEvents).toHaveBeenCalled();
-        const emittedEvent = mockEmitEvents.mock.lastCall?.[0][0] as ToolEvent;
+        const emittedEvent = (mockEmitEvents.mock.lastCall?.[0] as ToolEvent[] | undefined)?.[0] as ToolEvent;
         expectDefined(emittedEvent);
         expect(emittedEvent.properties.embeddingsGeneratedBy).toBeUndefined();
     });
@@ -568,10 +568,11 @@ describeWithMongoDB("aggregate tool", (integration) => {
 
         afterEach(() => {
             vi.resetAllMocks();
+            integration.mcpServer().userConfig.aggregationCountMaxTimeMsCap = constants.AGG_COUNT_MAX_TIME_MS_CAP;
         });
 
         it("should abort count operation and respond with indeterminable count", async () => {
-            vi.spyOn(constants, "AGG_COUNT_MAX_TIME_MS_CAP", "get").mockReturnValue(0.1);
+            integration.mcpServer().userConfig.aggregationCountMaxTimeMsCap = 0.1;
             const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "aggregate",

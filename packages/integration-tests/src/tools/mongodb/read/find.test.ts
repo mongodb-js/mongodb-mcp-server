@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import type { Document, Collection } from "mongodb";
 import {
     getResponseContent,
     databaseCollectionParameters,
@@ -8,18 +7,18 @@ import {
     validateThrowsForInvalidArguments,
     expectDefined,
     defaultTestConfig,
-} from "../../../helpers.js";
-import * as constants from "../../../../../src/helpers/constants.js";
+} from "../../../integrationHelpers.js";
+import * as constants from "../../../../../tools-mongodb/dist/helpers/constants.js";
 import {
     describeWithMongoDB,
     getDocsFromUntrustedContent,
     validateAutoConnectBehavior,
     type MongoDBIntegrationTestCase,
-} from "../mongodbHelpers.js";
+} from "../../../mongodbHelpers.js";
 import type { Client } from "@modelcontextprotocol/sdk/client";
-import type { CursorLimitKey } from "../../../../../src/helpers/constants.js";
-import { bsonToJson } from "../../../../../src/helpers/bsonToJson.js";
-import { FindOutputSchema } from "../../../../../src/tools/mongodb/read/find.js";
+import type { CursorLimitKey } from "@mongodb-js/mcp-tools-mongodb";
+import { bsonToJson, FindOutputSchema } from "@mongodb-js/mcp-tools-mongodb";
+import { freshInsertDocuments } from "./helpers.js";
 
 type FindToolResponse = Awaited<ReturnType<Client["callTool"]>>;
 
@@ -65,20 +64,6 @@ function expectFindStructuredContent(
     expect(response.structuredContent).toEqual(expectedStructuredContent);
 
     return contentDocs;
-}
-
-export async function freshInsertDocuments({
-    collection,
-    count,
-    documentMapper = (index): Document => ({ value: index }),
-}: {
-    collection: Collection<Document>;
-    count: number;
-    documentMapper?: (index: number) => Document;
-}): Promise<void> {
-    await collection.drop();
-    const documents = Array.from({ length: count }).map((_, idx) => documentMapper(idx));
-    await collection.insertMany(documents);
 }
 
 describeWithMongoDB("find tool with default configuration", (integration) => {
@@ -321,10 +306,11 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
 
         afterEach(() => {
             vi.resetAllMocks();
+            integration.mcpServer().userConfig.queryCountMaxTimeMsCap = constants.QUERY_COUNT_MAX_TIME_MS_CAP;
         });
 
         it("should abort count operation and respond with indeterminable count", async () => {
-            vi.spyOn(constants, "QUERY_COUNT_MAX_TIME_MS_CAP", "get").mockReturnValue(0.1);
+            integration.mcpServer().userConfig.queryCountMaxTimeMsCap = 0.1;
             const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "find",

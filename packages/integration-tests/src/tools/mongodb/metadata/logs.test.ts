@@ -5,9 +5,9 @@ import {
     getResponseElements,
     getDataFromUntrustedContent,
     connectionIdParameters,
-} from "../../../helpers.js";
-import type { LogsOutput } from "../../../../../src/tools/mongodb/metadata/logs.js";
-import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
+} from "../../../integrationHelpers.js";
+import { describeWithMongoDB, validateAutoConnectBehavior } from "../../../mongodbHelpers.js";
+import type { LogsOutput } from "@mongodb-js/mcp-tools-mongodb";
 
 describeWithMongoDB("logs tool", (integration) => {
     validateToolMetadata(integration, "mongodb-logs", "Returns the most recent logged mongod events", "metadata", [

@@ -1,15 +1,15 @@
-import { describeWithMongoDB } from "../mongodbHelpers.js";
 import {
     connect,
     getResponseContent,
     getResponseElements,
     validateThrowsForInvalidArguments,
     validateToolMetadata,
-} from "../../../helpers.js";
-import { defaultTestConfig } from "../../../helpers.js";
+    defaultTestConfig,
+} from "../../../integrationHelpers.js";
+import { describeWithMongoDB } from "../../../mongodbHelpers.js";
 import { beforeEach, describe, expect, it, type MockInstance, vi } from "vitest";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { PRECONFIGURED_CONNECTION_ID } from "../../../../../src/common/connectionRegistry.js";
+import { PRECONFIGURED_CONNECTION_ID } from "@mongodb-js/mcp-tools-mongodb";
 
 describeWithMongoDB(
     "Connect tool with a configured connection string",

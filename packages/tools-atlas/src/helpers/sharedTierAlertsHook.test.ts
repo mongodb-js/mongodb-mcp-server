@@ -1,30 +1,29 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { MockedFunction } from "vitest";
-import { runSharedTierAlertsHook } from "../../../src/common/atlas/sharedTierAlertsHook.js";
-import type { ApiClient } from "../../../src/common/atlas/apiClient.js";
-import type { LoggerBase } from "../../../src/common/logging/loggerBase.js";
-import { LogId } from "../../../src/common/logging/index.js";
-import type { LogPayload } from "../../../src/common/logging/loggingTypes.js";
+import { runSharedTierAlertsHook } from "./sharedTierAlertsHook.js";
+import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { LogId } from "@mongodb-js/mcp-core";
+import type { ILogger, LogPayload } from "@mongodb-js/mcp-types";
 
 type ListAlertsResult = Awaited<ReturnType<ApiClient["listAlerts"]>>;
 
 describe("runSharedTierAlertsHook", () => {
     let listAlerts: MockedFunction<ApiClient["listAlerts"]>;
     let warning: MockedFunction<(payload: LogPayload) => void>;
-    let logger: LoggerBase;
+    let logger: ILogger;
 
     const baseParams: {
         projectId: string;
         clusterName: string;
         instanceType: "FREE" | "FLEX" | "DEDICATED";
         apiClient: ApiClient;
-        logger: LoggerBase;
+        logger: ILogger;
     } = {
         projectId: "group-1",
         clusterName: "my-cluster",
         instanceType: "DEDICATED",
         apiClient: {} as ApiClient,
-        logger: {} as LoggerBase,
+        logger: {} as ILogger,
     };
 
     beforeEach(() => {
@@ -32,7 +31,7 @@ describe("runSharedTierAlertsHook", () => {
         warning = vi.fn() as MockedFunction<(payload: LogPayload) => void>;
         logger = {
             warning,
-        } as unknown as LoggerBase;
+        } as unknown as ILogger;
         baseParams.apiClient = { listAlerts } as unknown as ApiClient;
         baseParams.logger = logger;
     });

@@ -1,8 +1,6 @@
 import * as oauth from "oauth4webapi";
-import type { LoggerBase } from "../../logging/index.js";
-import { LogId } from "../../logging/index.js";
-import type { HttpClient } from "../../proxyFetch.js";
-import { getSharedProxyFetch } from "../../proxyFetch.js";
+import { LogId, type LoggerBase } from "@mongodb-js/mcp-core";
+import type { HttpClient } from "../apiClient.js";
 import type { AccessToken, AuthProvider } from "./authProvider.js";
 
 export interface ClientCredentialsAuthOptions {
@@ -10,7 +8,7 @@ export interface ClientCredentialsAuthOptions {
     clientSecret: string;
     baseUrl: string;
     userAgent: string;
-    httpClient?: HttpClient;
+    httpClient: HttpClient;
 }
 
 export class ClientCredentialsAuthProvider implements AuthProvider {
@@ -32,7 +30,7 @@ export class ClientCredentialsAuthProvider implements AuthProvider {
             grant_types_supported: ["client_credentials"],
         };
 
-        this.customFetch = options.httpClient?.fetch ?? getSharedProxyFetch();
+        this.customFetch = options.httpClient.fetch;
     }
 
     public async getAuthHeaders(): Promise<Record<string, string> | undefined> {

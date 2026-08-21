@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { setManagedTimeout } from "../../../src/common/managedTimeout.js";
+import { setManagedTimeout } from "@mongodb-js/mcp-core";
 
 describe("setManagedTimeout", () => {
     beforeAll(() => {

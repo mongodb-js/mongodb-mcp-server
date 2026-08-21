@@ -1,4 +1,3 @@
-import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 import { expect, it } from "vitest";
 import {
     getResponseContent,
@@ -6,8 +5,9 @@ import {
     validateToolMetadata,
     validateThrowsForInvalidArguments,
     databaseCollectionInvalidArgs,
-} from "../../../helpers.js";
-import type { DropCollectionOutput } from "../../../../../src/tools/mongodb/delete/dropCollection.js";
+} from "../../../integrationHelpers.js";
+import { describeWithMongoDB, validateAutoConnectBehavior } from "../../../mongodbHelpers.js";
+import type { DropCollectionOutput } from "@mongodb-js/mcp-tools-mongodb";
 
 describeWithMongoDB("dropCollection tool", (integration) => {
     validateToolMetadata(

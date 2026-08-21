@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
-import { inspectCluster } from "../../../src/common/atlas/cluster.js";
-import type { ApiClient } from "../../../src/common/atlas/apiClient.js";
+import { inspectCluster } from "./cluster.js";
+import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 
 describe("inspectCluster", () => {
     it("includes x-request-id in error log when both getCluster and getFlexCluster fail", async () => {
@@ -13,7 +13,10 @@ describe("inspectCluster", () => {
             logger: { debug, error },
         } as unknown as ApiClient;
 
-        const context = { requestInfo: { headers: { "x-request-id": "req-cluster-1" } } };
+        const context = {
+            signal: new AbortController().signal,
+            requestInfo: { headers: { "x-request-id": "req-cluster-1" } },
+        };
 
         await expect(inspectCluster(apiClient, "proj1", "cluster1", context)).rejects.toThrow();
 

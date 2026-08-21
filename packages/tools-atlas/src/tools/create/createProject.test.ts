@@ -1,15 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { z } from "zod";
-import type { ToolConstructorParams } from "../../../../../src/tools/tool.js";
-import { CreateProjectTool } from "../../../../../src/tools/atlas/create/createProject.js";
-import type { Session } from "../../../../../src/common/session.js";
-import type { UserConfig } from "../../../../../src/common/config/userConfig.js";
-import type { Telemetry } from "../../../../../src/telemetry/telemetry.js";
-import type { Elicitation } from "../../../../../src/elicitation.js";
-import type { CompositeLogger } from "../../../../../src/common/logging/index.js";
-import type { ApiClient } from "../../../../../src/common/atlas/apiClient.js";
-import { UIRegistry } from "../../../../../src/ui/registry/index.js";
-import { MockMetrics } from "../../../mocks/metrics.js";
+import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
+import { CreateProjectTool } from "./createProject.js";
+import type { IAtlasSession } from "../../atlasTool.js";
+import type { ITelemetry, IElicitation, ICompositeLogger } from "@mongodb-js/mcp-types";
+import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { MockMetrics } from "@mongodb-js/mcp-test-utils";
+import { Keychain } from "@mongodb-js/mcp-core";
+import { UIRegistry } from "@mongodb-js/mcp-ui";
 
 describe("CreateProjectTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
@@ -26,27 +24,21 @@ describe("CreateProjectTool", () => {
             debug: vi.fn(),
             warning: vi.fn(),
             error: vi.fn(),
-        } as unknown as CompositeLogger;
+        } as unknown as ICompositeLogger;
 
         const mockSession = {
             logger: mockLogger,
             apiClient: mockApiClient as unknown as ApiClient,
-        } as unknown as Session;
+            keychain: new Keychain(),
+        } as unknown as IAtlasSession;
 
-        const params: ToolConstructorParams = {
+        const params: ToolConstructorParams<IAtlasSession> = {
             name: CreateProjectTool.toolName,
             category: "atlas",
             operationType: CreateProjectTool.operationType,
             session: mockSession,
-            config: {
-                confirmationRequiredTools: [],
-                previewFeatures: [],
-                disabledTools: [],
-                apiClientId: "test-id",
-                apiClientSecret: "test-secret",
-            } as unknown as UserConfig,
-            telemetry: { isTelemetryEnabled: () => false, emitEvents: vi.fn() } as unknown as Telemetry,
-            elicitation: { requestConfirmation: vi.fn() } as unknown as Elicitation,
+            telemetry: { isTelemetryEnabled: () => false, emitEvents: vi.fn() } as unknown as ITelemetry,
+            elicitation: { requestConfirmation: vi.fn() } as unknown as IElicitation,
             metrics: new MockMetrics(),
             uiRegistry: new UIRegistry(),
         };

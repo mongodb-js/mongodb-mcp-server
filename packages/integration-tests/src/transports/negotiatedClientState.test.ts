@@ -4,20 +4,19 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { ElicitRequestSchema, type CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
-import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js";
-import {
-    createDefaultSessionStore,
-    type ISessionStore,
-    type NegotiatedClientState,
-    type SessionCloseReason,
-} from "../../../src/common/sessionStore.js";
-import type { LoggerBase } from "../../../src/common/logging/index.js";
-import type { Session } from "../../../src/common/session.js";
-import type { OperationType, ToolCategory } from "../../../src/tools/tool.js";
-import { ToolBase } from "../../../src/tools/tool.js";
-import type { TelemetryToolMetadata } from "../../../src/telemetry/types.js";
-import type { UserConfig } from "../../../src/common/config/userConfig.js";
-import { defaultTestConfig } from "../helpers.js";
+import type { StreamableHttpRunner } from "@mongodb-js/mcp-http-runners";
+import { type ISessionStore } from "@mongodb-js/mcp-core";
+import { SessionStore, CompositeLogger, ToolBase } from "@mongodb-js/mcp-core";
+import type { NegotiatedClientState, SessionCloseReason } from "@mongodb-js/mcp-types";
+import type { LoggerBase } from "@mongodb-js/mcp-core";
+import type { OperationType, ToolCategory } from "@mongodb-js/mcp-types";
+import type { TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
+import type { UserConfig } from "mongodb-mcp-server";
+import type { CliServer } from "mongodb-mcp-server";
+import type { Session } from "@mongodb-js/mcp-cli";
+import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
+import { defaultTestConfig } from "../integrationHelpers.js";
+import { createStreamableHttpTestRunner, getServerAddress } from "../helpers/streamableHttpTestRunner.js";
 
 /**
  * Session store that keeps transports in memory (like the default store) but
@@ -28,7 +27,11 @@ import { defaultTestConfig } from "../helpers.js";
 class DurableClientStateSessionStore implements ISessionStore<StreamableHTTPServerTransport> {
     public readonly durableClientState = new Map<string, NegotiatedClientState>();
 
-    constructor(private readonly inner: ISessionStore<StreamableHTTPServerTransport>) {}
+    private readonly inner: ISessionStore<StreamableHTTPServerTransport>;
+
+    constructor(inner: ISessionStore<StreamableHTTPServerTransport>) {
+        this.inner = inner;
+    }
 
     getSession(
         sessionId: string,
@@ -82,7 +85,7 @@ class ConfirmRequiredTool extends ToolBase {
 }
 
 describe("negotiated client state across implicit session re-initialization", () => {
-    let runner: StreamableHttpRunner;
+    let runner: StreamableHttpRunner<CliServer>;
     let sessionStore: DurableClientStateSessionStore;
     let client: Client | undefined;
 
@@ -93,16 +96,28 @@ describe("negotiated client state across implicit session re-initialization", ()
             externallyManagedSessions: true,
             confirmationRequiredTools: ["confirm-required-tool"],
         };
-        runner = new StreamableHttpRunner({
-            userConfig,
-            tools: [ConfirmRequiredTool],
-            createSessionStore: (args): ISessionStore<StreamableHTTPServerTransport> => {
-                sessionStore = new DurableClientStateSessionStore(
-                    createDefaultSessionStore<StreamableHTTPServerTransport>(args)
-                );
-                return sessionStore;
+
+        const innerStore = new SessionStore<StreamableHTTPServerTransport>({
+            options: {
+                idleTimeoutMS: userConfig.idleTimeoutMs,
+                notificationTimeoutMS: userConfig.notificationTimeoutMs,
+                maxSessions: userConfig.maxSessions,
             },
+            logger: new CompositeLogger({ loggers: [] }),
+            metrics: new PrometheusMetrics({ definitions: createDefaultMetrics() }),
         });
+        sessionStore = new DurableClientStateSessionStore(innerStore);
+
+        // The runner creates a fresh CliServer per request/session via the
+        // shared helper: each session gets its own SDK Server bound to its own
+        // transport. A single shared server cannot serve a second
+        // (re-initialized) session because the SDK Server binds to exactly one
+        // transport.
+        ({ runner } = createStreamableHttpTestRunner(userConfig, {
+            tools: [ConfirmRequiredTool],
+            sessionStore,
+        }));
+
         await runner.start();
     });
 
@@ -122,7 +137,7 @@ describe("negotiated client state across implicit session re-initialization", ()
             return { action: "accept" as const, content: { confirmation: "Yes" } };
         });
 
-        const transport = new StreamableHTTPClientTransport(new URL(`${runner["mcpServer"]!.serverAddress}/mcp`), {
+        const transport = new StreamableHTTPClientTransport(new URL(`${getServerAddress(runner)}/mcp`), {
             requestInit: { headers: { "mcp-session-id": sessionId } },
         });
         await client.connect(transport);
@@ -154,7 +169,7 @@ describe("negotiated client state across implicit session re-initialization", ()
         const sessionId = "persisted-session";
 
         client = new Client({ name: "state-client", version: "2.3.4" }, { capabilities: { elicitation: {} } });
-        const transport = new StreamableHTTPClientTransport(new URL(`${runner["mcpServer"]!.serverAddress}/mcp`), {
+        const transport = new StreamableHTTPClientTransport(new URL(`${getServerAddress(runner)}/mcp`), {
             requestInit: { headers: { "mcp-session-id": sessionId } },
         });
         await client.connect(transport);

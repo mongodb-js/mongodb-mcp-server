@@ -3,10 +3,10 @@ import {
     validateToolMetadata,
     validateThrowsForInvalidArguments,
     getResponseContent,
-} from "../../../helpers.js";
-import { beforeEach, afterEach, describe, expect, it } from "vitest";
-import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
-import type { UpdateManyOutput } from "../../../../../src/tools/mongodb/update/updateMany.js";
+} from "../../../integrationHelpers.js";
+import { describeWithMongoDB, validateAutoConnectBehavior } from "../../../mongodbHelpers.js";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import type { UpdateManyOutput } from "@mongodb-js/mcp-tools-mongodb";
 
 describeWithMongoDB("updateMany tool", (integration) => {
     validateToolMetadata(

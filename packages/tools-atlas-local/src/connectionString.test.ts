@@ -1,9 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Client } from "@mongodb-js/atlas-local";
-import {
-    AtlasLocalDeploymentNotReadyError,
-    waitForConnectionString,
-} from "../../../../src/common/atlasLocal/connectionString.js";
+import { AtlasLocalDeploymentNotReadyError, waitForConnectionString } from "./connectionString.js";
 
 const portBindingError = new Error("get connection string\n\nCaused by:\n    Missing port binding information");
 

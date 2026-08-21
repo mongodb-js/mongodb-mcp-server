@@ -1,5 +1,3 @@
-import { describeWithMongoDB, validateAutoConnectBehavior, waitUntilSearchIsReady } from "../mongodbHelpers.js";
-
 import {
     getResponseContent,
     databaseCollectionParameters,
@@ -7,10 +5,11 @@ import {
     validateThrowsForInvalidArguments,
     expectDefined,
     getResponseElements,
-} from "../../../helpers.js";
-import type { CreateIndexOutput } from "../../../../../src/tools/mongodb/create/createIndex.js";
-import type { ToolEvent } from "../../../../../src/telemetry/types.js";
+} from "../../../integrationHelpers.js";
+import { describeWithMongoDB, validateAutoConnectBehavior, waitUntilSearchIsReady } from "../../../mongodbHelpers.js";
+import type { CreateIndexOutput } from "@mongodb-js/mcp-tools-mongodb";
 import { ObjectId, type Collection, type Document, type IndexDirection } from "mongodb";
+import type { TelemetryToolEvent as ToolEvent } from "@mongodb-js/mcp-atlas-telemetry";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 describeWithMongoDB("createIndex tool", (integration) => {
@@ -362,7 +361,7 @@ describeWithMongoDB("createIndex tool with classic indexes", (integration) => {
         });
 
         expect(mockEmitEvents).toHaveBeenCalled();
-        const emittedEvent = mockEmitEvents.mock.lastCall?.[0][0] as ToolEvent;
+        const emittedEvent = (mockEmitEvents.mock.lastCall?.[0] as ToolEvent[] | undefined)?.[0] as ToolEvent;
         expectDefined(emittedEvent);
         expect(emittedEvent.properties.result).toEqual("success");
         expect(emittedEvent.properties.command).toEqual("create-index");
@@ -397,7 +396,7 @@ describeWithMongoDB("createIndex tool with classic indexes", (integration) => {
 
         expect(response.isError).toBe(true);
         expect(mockEmitEvents).toHaveBeenCalled();
-        const emittedEvent = mockEmitEvents.mock.lastCall?.[0][0] as ToolEvent;
+        const emittedEvent = (mockEmitEvents.mock.lastCall?.[0] as ToolEvent[] | undefined)?.[0] as ToolEvent;
         expectDefined(emittedEvent);
         expect(emittedEvent.properties.result).toEqual("failure");
         expect(emittedEvent.properties.command).toEqual("create-index");
@@ -622,7 +621,7 @@ describeWithMongoDB(
                 });
 
                 expect(mockEmitEvents).toHaveBeenCalled();
-                const emittedEvent = mockEmitEvents.mock.lastCall?.[0][0] as ToolEvent;
+                const emittedEvent = (mockEmitEvents.mock.lastCall?.[0] as ToolEvent[] | undefined)?.[0] as ToolEvent;
                 expectDefined(emittedEvent);
                 expect(emittedEvent.properties.result).toEqual("success");
                 expect(emittedEvent.properties.command).toEqual("create-index");
@@ -989,7 +988,7 @@ describeWithMongoDB(
                 });
 
                 expect(mockEmitEvents).toHaveBeenCalled();
-                const emittedEvent = mockEmitEvents.mock.lastCall?.[0][0] as ToolEvent;
+                const emittedEvent = (mockEmitEvents.mock.lastCall?.[0] as ToolEvent[] | undefined)?.[0] as ToolEvent;
                 expectDefined(emittedEvent);
                 expect(emittedEvent.properties.result).toEqual("success");
                 expect(emittedEvent.properties.command).toEqual("create-index");

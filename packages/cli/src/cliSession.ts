@@ -1,14 +1,11 @@
 import { ObjectId } from "bson";
-import type { ApiClient } from "./atlas/apiClient.js";
+import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import type { Implementation } from "@modelcontextprotocol/sdk/types.js";
-import type { CompositeLogger } from "./logging/index.js";
-import { LogId } from "./logging/index.js";
+import { LogId, type CompositeLogger, type Keychain } from "@mongodb-js/mcp-core";
 import EventEmitter from "events";
-import type { ExportsManager } from "./exportsManager.js";
+import type { ConnectionErrorHandler, ConnectionRegistry, ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import type { Client } from "@mongodb-js/atlas-local";
-import type { Keychain } from "./keychain.js";
-import { type ConnectionErrorHandler } from "./connectionErrorHandler.js";
-import type { ConnectionRegistry } from "./connectionRegistry.js";
+import type { UserConfig } from "./config/userConfig.js";
 
 export interface SessionOptions {
     logger: CompositeLogger;
@@ -18,6 +15,7 @@ export interface SessionOptions {
     atlasLocalClient?: Client;
     connectionErrorHandler: ConnectionErrorHandler;
     apiClient: ApiClient;
+    config: UserConfig;
 }
 
 export type SessionEvents = {
@@ -40,6 +38,7 @@ export class Session extends EventEmitter<SessionEvents> {
     readonly atlasLocalClient?: Client;
     readonly keychain: Keychain;
     readonly connectionErrorHandler: ConnectionErrorHandler;
+    readonly config: UserConfig;
 
     mcpClient?: {
         name?: string;
@@ -57,6 +56,7 @@ export class Session extends EventEmitter<SessionEvents> {
         atlasLocalClient,
         connectionErrorHandler,
         apiClient,
+        config,
     }: SessionOptions) {
         super();
 
@@ -67,6 +67,7 @@ export class Session extends EventEmitter<SessionEvents> {
         this.exportsManager = exportsManager;
         this.connectionRegistry = connectionRegistry;
         this.connectionErrorHandler = connectionErrorHandler;
+        this.config = config;
     }
 
     setMcpClient(mcpClient: Implementation | undefined): void {

@@ -1,19 +1,22 @@
-import { type OperationType, type ToolArgs, type ToolResult, type ToolExecutionContext } from "../../tool.js";
-import { requestIdAttr } from "../../../helpers/requestIdAttr.js";
 import { z } from "zod";
-import { AtlasToolBase } from "../atlasTool.js";
-import { generateSecurePassword } from "../../../helpers/generatePassword.js";
-import { LogId } from "../../../common/logging/index.js";
-import { getConnectionString, inspectCluster } from "../../../common/atlas/cluster.js";
-import { ensureCurrentIpInAccessList, ACCESS_LIST_ADDED_NOTE } from "../../../common/atlas/accessListUtils.js";
-import { runSharedTierAlertsHook } from "../../../common/atlas/sharedTierAlertsHook.js";
-import type { AtlasClusterConnectionInfo } from "../../../common/connectionManager.js";
-import { atlasClusterSlug, type ConnectionEntry } from "../../../common/connectionRegistry.js";
-import { getDefaultRoleFromConfig } from "../../../common/atlas/roles.js";
+import { type ToolArgs, type ToolResult, LogId, requestIdAttr, sleep } from "@mongodb-js/mcp-core";
+import type {
+    OperationType,
+    AtlasClusterConnectionInfo,
+    SharedTierTier,
+    SharedTierMetricName,
+    ToolExecutionContext,
+} from "@mongodb-js/mcp-types";
+import { SHARED_TIER_METRIC_NAMES } from "@mongodb-js/mcp-types";
+import type { ConnectionMetadata } from "@mongodb-js/mcp-atlas-telemetry";
+import { AtlasToolBase } from "../../atlasTool.js";
+import { generateSecurePassword } from "../../helpers/generatePassword.js";
+import { getConnectionString, inspectCluster } from "../../helpers/cluster.js";
+import { ensureCurrentIpInAccessList, ACCESS_LIST_ADDED_NOTE } from "../../helpers/accessListUtils.js";
+import { getDefaultRoleFromConfig } from "../../helpers/roles.js";
+import { runSharedTierAlertsHook } from "../../helpers/sharedTierAlertsHook.js";
+import { atlasClusterSlug, type ConnectionEntry } from "@mongodb-js/mcp-tools-mongodb";
 import { AtlasArgs } from "../../args.js";
-import { SHARED_TIER_METRIC_NAMES } from "../../../telemetry/types.js";
-import type { ConnectionMetadata, SharedTierTier, SharedTierMetricName } from "../../../telemetry/types.js";
-import { sleep } from "../../../common/managedTimeout.js";
 
 const createdUserMessage =
     "Note: A temporary user has been created to enable secure connection to the cluster. For more information, see https://dochub.mongodb.org/core/mongodb-mcp-server-tools-considerations\n\nNote to LLM Agent: it is important to include the following link in your response to the user in case they want to get more information about the temporary user created: https://dochub.mongodb.org/core/mongodb-mcp-server-tools-considerations";
@@ -68,7 +71,11 @@ export class ConnectClusterTool extends AtlasToolBase {
         const username = `mcpUser${Math.floor(Math.random() * 100000)}`;
         const password = await generateSecurePassword();
 
-        const expiryDate = new Date(Date.now() + this.config.atlasTemporaryDatabaseUserLifetimeMs);
+        // 14_400_000ms (4h) is the canonical default also declared by
+        // atlasTemporaryDatabaseUserLifetimeMs; the fallback guards
+        // programmatic (non-CLI) construction where the config object may have
+        // the field unset.
+        const expiryDate = new Date(Date.now() + (this.config.atlasTemporaryDatabaseUserLifetimeMs ?? 14_400_000));
         const role = getDefaultRoleFromConfig(this.config);
 
         await this.apiClient.createDatabaseUser(

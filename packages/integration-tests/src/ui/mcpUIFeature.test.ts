@@ -1,22 +1,17 @@
 import { describe, expect, it, afterAll } from "vitest";
-import { describeWithMongoDB } from "../tools/mongodb/mongodbHelpers.js";
-import { defaultTestConfig, expectDefined, getResponseElements } from "../helpers.js";
-import { CompositeLogger } from "../../../src/common/logging/index.js";
-import { ExportsManager } from "../../../src/common/exportsManager.js";
-import { Session } from "../../../src/common/session.js";
+import { describeWithMongoDB } from "../mongodbHelpers.js";
+import { createTestApiClient, defaultTestConfig, expectDefined, getResponseElements } from "../integrationHelpers.js";
+import { CompositeLogger, Keychain, InMemoryTransport } from "@mongodb-js/mcp-core";
+import { ExportsManager, MCPConnectionStore, DeviceId } from "@mongodb-js/mcp-tools-mongodb";
+import { AllTools } from "mongodb-mcp-server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { Server } from "../../../src/server.js";
-import { MCPConnectionStore } from "../../../src/common/connectionStore.js";
-import { DeviceId } from "../../../src/helpers/deviceId.js";
-import { connectionErrorHandler } from "../../../src/common/connectionErrorHandler.js";
-import { Keychain } from "../../../src/common/keychain.js";
-import { Elicitation } from "../../../src/elicitation.js";
-import { defaultCreateAtlasLocalClient } from "../../../src/common/atlasLocal.js";
-import { InMemoryTransport } from "../../../src/transports/inMemoryTransport.js";
+import { CliServer, connectionErrorHandler, Elicitation } from "mongodb-mcp-server";
+import { Session } from "@mongodb-js/mcp-cli";
+import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
-import { UIRegistry } from "../../../src/ui/index.js";
-import { defaultCreateApiClient, Telemetry } from "../../../src/lib.js";
-import { MockMetrics } from "../../unit/mocks/metrics.js";
+import { UIRegistry } from "@mongodb-js/mcp-ui";
+import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
+import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 
 describeWithMongoDB(
     "mcpUI feature with feature disabled (default)",
@@ -164,7 +159,7 @@ describeWithMongoDB(
 describe("mcpUI feature with custom UIs", () => {
     const initServerWithCustomUIs = async (
         customUIs: Record<string, string>
-    ): Promise<{ server: Server; transport: Transport }> => {
+    ): Promise<{ server: CliServer; transport: Transport }> => {
         const customUIsFunction = (toolName: string): string | null => customUIs[toolName] ?? null;
         const userConfig = {
             ...defaultTestConfig,
@@ -172,8 +167,8 @@ describe("mcpUI feature with custom UIs", () => {
         };
         const logger = new CompositeLogger();
         const deviceId = DeviceId.create(logger);
-        const connectionRegistry = new MCPConnectionStore({ userConfig, logger, deviceId }).view();
-        const exportsManager = ExportsManager.init(userConfig, logger);
+        const connectionRegistry = new MCPConnectionStore({ options: userConfig, logger, deviceId }).view();
+        const exportsManager = ExportsManager.init({ options: userConfig, logger });
 
         const session = new Session({
             logger,
@@ -181,25 +176,27 @@ describe("mcpUI feature with custom UIs", () => {
             connectionRegistry,
             keychain: Keychain.root,
             connectionErrorHandler,
-            atlasLocalClient: await defaultCreateAtlasLocalClient({ logger }),
-            apiClient: defaultCreateApiClient(
-                {
-                    baseUrl: userConfig.apiBaseUrl,
-                    credentials: {
-                        clientId: userConfig.apiClientId,
-                        clientSecret: userConfig.apiClientSecret,
-                    },
-                },
-                logger
-            ),
+            atlasLocalClient: await createAtlasLocalClient({ logger }),
+            apiClient: createTestApiClient({
+                baseUrl: userConfig.apiBaseUrl,
+                serverMetadata: { mcpServerName: "test", version: "1" },
+                logger,
+                clientId: userConfig.apiClientId,
+                clientSecret: userConfig.apiClientSecret,
+            }),
+            config: userConfig,
         });
 
-        const telemetry = Telemetry.create({
+        const telemetry = AtlasTelemetry.create({
             logger,
             deviceId,
             apiClient: session.apiClient,
             keychain: session.keychain,
             enabled: false,
+            serverMetadata: {
+                mcpServerName: "test-server",
+                version: "1.0",
+            },
         });
         const mcpServerInstance = new McpServer({ name: "test", version: "1.0" });
         const elicitation = new Elicitation({
@@ -207,15 +204,22 @@ describe("mcpUI feature with custom UIs", () => {
             timeoutMs: userConfig.elicitationTimeoutMs,
         });
 
-        const server = new Server({
+        const server = new CliServer({
             session,
-            userConfig,
             telemetry,
             mcpServer: mcpServerInstance,
             elicitation,
             connectionErrorHandler,
             uiRegistry: new UIRegistry({ customUIs: customUIsFunction }),
             metrics: new MockMetrics(),
+            serverMetadata: {
+                mcpServerName: "test-server",
+                version: "1.0",
+                engines: {
+                    node: "20.0.0",
+                },
+            },
+            tools: AllTools,
         });
 
         const transport = new InMemoryTransport();
@@ -223,7 +227,7 @@ describe("mcpUI feature with custom UIs", () => {
         return { transport, server };
     };
 
-    let server: Server | undefined;
+    let server: CliServer | undefined;
     let transport: Transport | undefined;
 
     afterAll(async () => {

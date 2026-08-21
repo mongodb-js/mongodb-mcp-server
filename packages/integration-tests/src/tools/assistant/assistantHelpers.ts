@@ -1,5 +1,6 @@
-import { setupIntegrationTest, defaultTestConfig } from "../../integration/helpers.js";
-import type { IntegrationTest } from "../../integration/helpers.js";
+import { setupIntegrationTest, defaultTestConfig } from "../../integrationHelpers.js";
+import { AssistantTools } from "@mongodb-js/mcp-tools-assistant";
+import type { IntegrationTest } from "../../integrationHelpers.js";
 import { describe } from "vitest";
 import type { SuiteCollector } from "vitest";
 import { vi, beforeAll, afterAll, beforeEach } from "vitest";
@@ -8,18 +9,20 @@ export type MockIntegrationTestFunction = (integration: IntegrationTest) => void
 
 export function describeWithAssistant(name: string, fn: MockIntegrationTestFunction): SuiteCollector<object> {
     const testDefinition = (): void => {
-        const integration = setupIntegrationTest(() => ({
-            ...defaultTestConfig,
-            assistantBaseUrl: "https://knowledge-mock.mongodb.com/api/v1", // Not a real URL
-        }));
+        const integration = setupIntegrationTest(
+            () => ({
+                ...defaultTestConfig,
+                assistantBaseUrl: "https://knowledge-mock.mongodb.com/api/v1", // Not a real URL
+            }),
+            { tools: AssistantTools }
+        );
 
         describe(name, () => {
             fn(integration);
         });
     };
 
-    // eslint-disable-next-line vitest/valid-describe-callback
-    return describe("assistant (mocked)", testDefinition);
+    return describe("assistant (mocked)", () => testDefinition());
 }
 
 /**

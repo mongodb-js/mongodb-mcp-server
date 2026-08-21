@@ -1,9 +1,13 @@
 #!/usr/bin/env tsx
 
 import { writeFileSync, mkdirSync } from "fs";
-import { resolve } from "path";
+import { dirname, resolve } from "path";
+import { fileURLToPath } from "url";
 
-const distDir = resolve("dist");
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const packageRoot = resolve(__dirname, "..");
+const distDir = resolve(packageRoot, "dist");
 
 /**
  * Node uses the package.json to know whether files with a .js extensions

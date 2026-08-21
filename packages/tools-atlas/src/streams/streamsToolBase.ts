@@ -1,9 +1,9 @@
 import { z } from "zod";
 import { AtlasToolBase } from "../atlasTool.js";
-import type { ToolArgs } from "../../tool.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { ApiClientError } from "../../../common/atlas/apiClientError.js";
-import type { StreamsToolMetadata } from "../../../telemetry/types.js";
+import type { ToolArgs } from "@mongodb-js/mcp-core";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
+import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
+import type { StreamsToolMetadata } from "@mongodb-js/mcp-types";
 
 export abstract class StreamsToolBase extends AtlasToolBase {
     protected override handleError(
@@ -143,12 +143,15 @@ export abstract class StreamsToolBase extends AtlasToolBase {
             }
         } else if (obj !== null && typeof obj === "object") {
             const record = obj as Record<string, unknown>;
-            for (const [key, value] of Object.entries(record)) {
-                if (key === "connectionName" && typeof value === "string") {
-                    names.add(value);
-                } else {
-                    for (const name of StreamsToolBase.extractConnectionNames(value)) {
-                        names.add(name);
+            for (const key in record) {
+                if (Object.prototype.hasOwnProperty.call(record, key)) {
+                    const value = record[key];
+                    if (key === "connectionName" && typeof value === "string") {
+                        names.add(value);
+                    } else {
+                        for (const name of StreamsToolBase.extractConnectionNames(value)) {
+                            names.add(name);
+                        }
                     }
                 }
             }

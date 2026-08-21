@@ -1,33 +1,17 @@
-import * as AtlasTools from "./atlas/tools.js";
-import * as AtlasLocalTools from "./atlasLocal/tools.js";
-import * as MongoDbTools from "./mongodb/tools.js";
-import * as AssistantTools from "./assistant/tools.js";
-import type { ToolClass } from "./tool.js";
+/** This file is temporarily used for generating API reports against the v1 API for comparison purposes. */
+export { MongoDBToolBase, type IMongoDBConfig, type IMongoDBSession } from "@mongodb-js/mcp-tools-mongodb";
 
-// Export the collection of tools for easier reference
-export const AllTools: ToolClass[] = Object.values({
-    ...MongoDbTools,
-    ...AtlasTools,
-    ...AtlasLocalTools,
-    ...AssistantTools,
-});
+export * from "@mongodb-js/mcp-tools-atlas-local";
+export * from "@mongodb-js/mcp-tools-mongodb";
+export * from "@mongodb-js/mcp-tools-assistant";
+export * from "@mongodb-js/mcp-tools-atlas";
 
-export { MongoDBToolBase } from "./mongodb/mongodbTool.js";
-
-// Export all the individual tools for handpicking
-export * from "./atlas/tools.js";
-export * from "./atlasLocal/tools.js";
-export * from "./mongodb/tools.js";
-export * from "./assistant/tools.js";
-
-// Export the base tool class and supporting types.
 export {
     ToolBase,
     type ToolClass,
     type ToolConstructorParams,
-    type ToolCategory,
-    type OperationType,
     type ToolArgs,
-    type ToolExecutionContext,
     type ToolResult,
-} from "./tool.js";
+} from "@mongodb-js/mcp-core";
+
+export { type ToolCategory, type OperationType, type ToolExecutionContext } from "@mongodb-js/mcp-types";

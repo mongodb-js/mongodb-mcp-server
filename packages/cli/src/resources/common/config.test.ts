@@ -1,50 +1,59 @@
-import { describe, expect, it, vi } from "vitest";
-import { ConfigResource } from "../../../../src/resources/common/config.js";
-import { Session } from "../../../../src/common/session.js";
-import { CompositeLogger } from "../../../../src/common/logging/index.js";
-import { MCPConnectionStore } from "../../../../src/common/connectionStore.js";
-import { ExportsManager } from "../../../../src/common/exportsManager.js";
-import { DeviceId } from "../../../../src/helpers/deviceId.js";
-import { Keychain } from "../../../../src/common/keychain.js";
-import { defaultTestConfig } from "../../../integration/helpers.js";
-import { connectionErrorHandler } from "../../../../src/common/connectionErrorHandler.js";
-import { defaultCreateApiClient, Telemetry } from "../../../../src/lib.js";
-import type { UserConfig } from "../../../../src/common/config/userConfig.js";
+import { describe, expect, it } from "vitest";
+import { ConfigResource } from "./config.js";
+import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
+import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
+import { ApiClient, userAgentFromServerMetadata } from "@mongodb-js/mcp-atlas-api-client";
+import { Session, UserConfigSchema, type UserConfig } from "@mongodb-js/mcp-cli";
+import { ExportsManager, DeviceId, MCPConnectionStore, connectionErrorHandler } from "@mongodb-js/mcp-tools-mongodb";
+
+const defaultTestConfig: UserConfig = {
+    ...UserConfigSchema.parse({}),
+    telemetry: "disabled",
+    loggers: ["stderr"],
+    connectionScope: "global",
+    maxActiveConnections: 10,
+};
+
+const testServerMetadata = {
+    mcpServerName: "test-server",
+    version: "0.0.0",
+} as const;
 
 describe("config resource", () => {
     const logger = new CompositeLogger();
     const deviceId = DeviceId.create(logger);
 
     function createResource(config: UserConfig): ConfigResource {
-        const connectionRegistry = new MCPConnectionStore({ userConfig: config, logger, deviceId }).view();
+        const connectionRegistry = new MCPConnectionStore({ options: config, logger, deviceId }).view();
         const keychain = new Keychain();
-        const session = vi.mocked(
-            new Session({
-                logger,
-                exportsManager: ExportsManager.init(config, logger),
-                connectionRegistry,
-                keychain,
-                connectionErrorHandler,
-                apiClient: defaultCreateApiClient(
-                    {
-                        baseUrl: config.apiBaseUrl,
-                        credentials: {
-                            clientId: config.apiClientId,
-                            clientSecret: config.apiClientSecret,
-                        },
+        const session = new Session({
+            config,
+            logger,
+            exportsManager: ExportsManager.init({ options: config, logger }),
+            connectionRegistry,
+            keychain,
+            connectionErrorHandler,
+            apiClient: new ApiClient(
+                {
+                    baseUrl: config.apiBaseUrl,
+                    userAgent: userAgentFromServerMetadata(testServerMetadata),
+                    httpClient: {
+                        fetch: globalThis.fetch.bind(globalThis),
+                        Request: globalThis.Request,
                     },
-                    logger
-                ),
-            })
-        );
-        const telemetry = Telemetry.create({
+                },
+                logger
+            ),
+        });
+        const telemetry = AtlasTelemetry.create({
             logger,
             deviceId,
             apiClient: session.apiClient,
             keychain: session.keychain,
             enabled: false,
+            serverMetadata: testServerMetadata,
         });
-        return new ConfigResource(session, config, telemetry);
+        return new ConfigResource(session, telemetry);
     }
 
     it("should not leak AWS KMS credentials in connectOptions", () => {

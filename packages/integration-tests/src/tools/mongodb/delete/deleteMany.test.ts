@@ -1,13 +1,12 @@
-import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
-
 import {
     getResponseContent,
     databaseCollectionParameters,
     validateToolMetadata,
     validateThrowsForInvalidArguments,
-} from "../../../helpers.js";
-import { beforeEach, afterEach, describe, expect, it } from "vitest";
-import type { DeleteManyOutput } from "../../../../../src/tools/mongodb/delete/deleteMany.js";
+} from "../../../integrationHelpers.js";
+import { describeWithMongoDB, validateAutoConnectBehavior } from "../../../mongodbHelpers.js";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import type { DeleteManyOutput } from "@mongodb-js/mcp-tools-mongodb";
 
 describeWithMongoDB("deleteMany tool", (integration) => {
     validateToolMetadata(

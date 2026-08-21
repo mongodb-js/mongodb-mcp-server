@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildWriteStageConfirmationMessage } from "../../../src/helpers/writeStageConfirmation.js";
+import { buildWriteStageConfirmationMessage } from "./writeStageConfirmation.js";
 
 describe("buildWriteStageConfirmationMessage", () => {
     it("names the collection a $out stage replaces and warns that its documents are lost", () => {

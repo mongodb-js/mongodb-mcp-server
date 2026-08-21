@@ -1,4 +1,4 @@
-import { isObjectEmpty } from "../../../src/helpers/isObjectEmpty.js";
+import { isObjectEmpty } from "@mongodb-js/mcp-tools-mongodb";
 import { describe, expect, it } from "vitest";
 
 describe("isObjectEmpty", () => {

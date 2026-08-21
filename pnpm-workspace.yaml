@@ -1,7 +1,11 @@
 packages:
-  - "."
   - "packages/*"
   - "tests/browser"
+overrides:
+  "mongodb": "^7.1.1"
+  "kerberos": "^7.0.0"
+  "bson": "^7.2.0"
+  "zod": "^4.4.2"
 allowBuilds:
   "@modelcontextprotocol/ext-apps": false
   braintrust: true
@@ -17,3 +21,8 @@ allowBuilds:
   win-export-certificate-and-key: true
 minimumReleaseAgeExclude:
   - mongodb-runner@6.7.13
+  - "@microsoft/api-extractor-model@7.33.9"
+  - "@microsoft/api-extractor@7.58.10"
+  - "@rushstack/node-core-library@5.23.2"
+  - "@rushstack/terminal@0.24.1"
+  - "@rushstack/ts-command-line@5.3.11"

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { expectDefined } from "../../helpers.js";
+import { expectDefined } from "../../integrationHelpers.js";
 import { describeWithAtlas } from "./atlasHelpers.js";
 
 describeWithAtlas("regions", (integration) => {

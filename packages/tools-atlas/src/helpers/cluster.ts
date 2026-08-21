@@ -3,10 +3,10 @@ import type {
     ClusterConnectionStrings,
     ClusterDescription20240805,
     FlexClusterDescription20241113,
-} from "./openapi.js";
-import { type ApiClient, type ApiClientRequestContext } from "./apiClient.js";
-import { requestIdAttr } from "../../helpers/requestIdAttr.js";
-import { LogId } from "../logging/index.js";
+    ApiClient,
+} from "@mongodb-js/mcp-atlas-api-client";
+import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
+import { LogId, requestIdAttr } from "@mongodb-js/mcp-core";
 import { ConnectionString } from "mongodb-connection-string-url";
 
 // enum is capped at M80 because that's as far as createCluster
@@ -35,6 +35,7 @@ function extractProcessIds(connectionString: string): Array<AtlasProcessId> {
     const connectionStringUrl = new ConnectionString(connectionString);
     return connectionStringUrl.hosts as Array<AtlasProcessId>;
 }
+
 export interface Cluster {
     name?: string;
     instanceType: "FREE" | "DEDICATED" | "FLEX";
@@ -119,7 +120,7 @@ export async function inspectCluster(
     apiClient: ApiClient,
     projectId: string,
     clusterName: string,
-    context?: ApiClientRequestContext
+    context?: ToolExecutionContext
 ): Promise<Cluster> {
     try {
         const cluster = await apiClient.getCluster(
@@ -186,7 +187,7 @@ export async function getProcessIdsFromCluster(
     apiClient: ApiClient,
     projectId: string,
     clusterName: string,
-    context?: ApiClientRequestContext
+    context?: ToolExecutionContext
 ): Promise<Array<string>> {
     try {
         const cluster = await inspectCluster(apiClient, projectId, clusterName, context);

@@ -1,13 +1,12 @@
-import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
-
 import {
     getResponseContent,
     databaseCollectionParameters,
     validateToolMetadata,
     validateThrowsForInvalidArguments,
     databaseCollectionInvalidArgs,
-} from "../../../helpers.js";
-import type { CreateCollectionOutput } from "../../../../../src/tools/mongodb/create/createCollection.js";
+} from "../../../integrationHelpers.js";
+import { describeWithMongoDB, validateAutoConnectBehavior } from "../../../mongodbHelpers.js";
+import type { CreateCollectionOutput } from "@mongodb-js/mcp-tools-mongodb";
 import { describe, expect, it } from "vitest";
 
 describeWithMongoDB("createCollection tool", (integration) => {

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Run with: node scripts/createMcpb.ts [--validate-only]
+// Run with: pnpm --filter mongodb-mcp-server build:mcpb [--validate-only]
 // Erasable TS only: no enum/namespace/parameter-properties/decorators.
 
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -7,9 +7,9 @@ import { dirname, resolve } from "node:path";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { cp, mkdir, rm, stat, writeFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
-import type { PackageJson as LoosePackageJson, SetRequired } from "type-fest";
+import type { PackageJson as LoosePackageJson, SetRequired, JsonValue } from "type-fest";
 
-type PackageJson = SetRequired<LoosePackageJson, "name" | "version" | "dependencies">;
+export type PackageJson = SetRequired<LoosePackageJson, "name" | "version" | "dependencies">;
 
 function spawnAsync(cmd: string, args: string[], cwd: string): Promise<void> {
     return new Promise((resolvePromise, rejectPromise) => {
@@ -31,15 +31,16 @@ function spawnAsync(cmd: string, args: string[], cwd: string): Promise<void> {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const repoRoot = resolve(__dirname, "..");
+const packageDir = resolve(__dirname, "..");
+const repoRoot = resolve(__dirname, "../../..");
 
 type Mode = "build" | "validate-only";
 
 const paths = {
     repoRoot,
-    distEsm: resolve(repoRoot, "dist", "esm"),
-    rootPackageJson: resolve(repoRoot, "package.json"),
-    packagingDir: resolve(repoRoot, "packaging", "mcpb"),
+    distEsm: resolve(packageDir, "dist", "esm"),
+    rootPackageJson: resolve(packageDir, "package.json"),
+    packagingDir: resolve(packageDir, "packaging", "mcpb"),
     stagingDir: resolve(repoRoot, "mcpb-build"),
     outputDir: resolve(repoRoot, "dist-mcpb"),
 } as const;
@@ -88,39 +89,36 @@ function expandGlob(globPattern: string): string[] {
 }
 
 function discoverWorkspacePackages(rootPkg: PackageJson): WorkspacePackage[] {
-    // Collect names of root deps that use `workspace:*` (or any `workspace:` protocol).
-    const all = { ...(rootPkg.dependencies ?? {}), ...(rootPkg.optionalDependencies ?? {}) };
-    const workspaceNames = new Set(
-        Object.entries(all)
-            .filter(([, v]) => typeof v === "string" && v.startsWith("workspace:"))
-            .map(([k]) => k)
-    );
-    if (workspaceNames.size === 0) {
-        return [];
-    }
-
-    // Read pnpm-workspace.yaml to find the package globs.
+    // name → dir for every workspace member.
     const wsYaml = readFileSync(resolve(paths.repoRoot, "pnpm-workspace.yaml"), "utf8");
     const globs = parseWorkspaceGlobs(wsYaml);
-
-    // For each glob, expand to package directories and read each package.json.
-    const found: WorkspacePackage[] = [];
+    const nameToDir = new Map<string, string>();
     for (const globPattern of globs) {
         for (const pkgDir of expandGlob(globPattern)) {
             const pkgJsonPath = resolve(pkgDir, "package.json");
             if (!existsSync(pkgJsonPath)) continue;
             const pkgJson = JSON.parse(readFileSync(pkgJsonPath, "utf8")) as PackageJson;
-            if (pkgJson.name && workspaceNames.has(pkgJson.name)) {
-                found.push({ name: pkgJson.name, dir: pkgDir });
+            if (pkgJson.name) {
+                nameToDir.set(pkgJson.name, pkgDir);
             }
         }
     }
 
-    // Sanity check: every workspace dep must be found.
-    const foundNames = new Set(found.map((p) => p.name));
-    const missing = [...workspaceNames].filter((n) => !foundNames.has(n));
-    if (missing.length > 0) {
-        throw new Error(`Could not locate workspace packages in pnpm-workspace.yaml globs: ${missing.join(", ")}`);
+    // Only the root's direct workspace:* deps; transitives resolve from the registry.
+    const directWorkspaceNames = Object.entries({
+        ...(rootPkg.dependencies ?? {}),
+        ...(rootPkg.optionalDependencies ?? {}),
+    })
+        .filter(([, v]) => typeof v === "string" && v.startsWith("workspace:"))
+        .map(([k]) => k);
+
+    const found: WorkspacePackage[] = [];
+    for (const name of directWorkspaceNames) {
+        const dir = nameToDir.get(name);
+        if (!dir) {
+            throw new Error(`Could not locate workspace package ${name} in pnpm-workspace.yaml globs`);
+        }
+        found.push({ name, dir });
     }
     return found;
 }
@@ -162,7 +160,7 @@ export function buildStagingPackageJson(rootPkg: PackageJson): PackageJson {
         // Carry the root's pnpm.overrides into the staging package so transitive resolution
         // stays aligned with what the root install (and CI) tested against. Without this,
         // pnpm's lockfile rewrite drops the overrides during the staging install.
-        pnpm: rootPkg.pnpm ?? {},
+        pnpm: (rootPkg as { pnpm?: Record<string, JsonValue> }).pnpm ?? {},
     };
 }
 
@@ -194,7 +192,9 @@ async function rmIfPlatformSpecific(pkgDir: string): Promise<void> {
     const pkgJsonPath = resolve(pkgDir, "package.json");
     if (existsSync(pkgJsonPath)) {
         const pkgJson = JSON.parse(readFileSync(pkgJsonPath, "utf8")) as PackageJson;
-        if (pkgJson.cpu?.length || pkgJson.os?.length) {
+        const cpu = (pkgJson as { cpu?: string[] }).cpu;
+        const os = (pkgJson as { os?: string[] }).os;
+        if (cpu?.length || os?.length) {
             await rm(pkgDir, { recursive: true, force: true });
         }
     }
@@ -204,24 +204,24 @@ async function stageDependencies(rootPkg: PackageJson): Promise<void> {
     const stagingPkg = buildStagingPackageJson(rootPkg);
     const workspacePkgs = discoverWorkspacePackages(rootPkg);
 
-    // Rewrite workspace:* refs to file:<absolute-path>. pnpm install will read each
-    // package's own package.json for transitives and install them.
+    // Rewrite workspace:* to exact versions; the mcpb build runs after the npm publish
+    // (see publish.yml), so these resolve from the registry.
+    const exactVersion = rootPkg.version;
     for (const ws of workspacePkgs) {
-        const fileSpec = pathToFileURL(ws.dir).href;
-        if (stagingPkg.dependencies && ws.name in stagingPkg.dependencies) {
-            stagingPkg.dependencies[ws.name] = fileSpec;
+        const deps = stagingPkg.dependencies as Record<string, string> | undefined;
+        const optDeps = stagingPkg.optionalDependencies as Record<string, string> | undefined;
+        if (deps && ws.name in deps) {
+            deps[ws.name] = exactVersion;
         }
-        if (stagingPkg.optionalDependencies && ws.name in stagingPkg.optionalDependencies) {
-            stagingPkg.optionalDependencies[ws.name] = fileSpec;
+        if (optDeps && ws.name in optDeps) {
+            optDeps[ws.name] = exactVersion;
         }
     }
 
     await writeFile(resolve(paths.stagingDir, "package.json"), JSON.stringify(stagingPkg, null, 2) + "\n");
 
-    // Seed the staging dir with the root's lockfile so transitive versions match what CI
-    // tested against. pnpm will incrementally update entries for the deps we changed
-    // (workspace:* → file:, atlas-local platforms force-added) while preserving the locked
-    // versions for everything else.
+    // Seed the staging install with the root's lockfile/workspace yaml; the latter keeps
+    // the staging dir its own workspace root so pnpm doesn't merge into the monorepo.
     await cp(resolve(paths.repoRoot, "pnpm-lock.yaml"), resolve(paths.stagingDir, "pnpm-lock.yaml"));
     await cp(resolve(paths.repoRoot, "pnpm-workspace.yaml"), resolve(paths.stagingDir, "pnpm-workspace.yaml"));
 
@@ -337,7 +337,11 @@ async function main(): Promise<void> {
     console.log("mcpb: build complete.");
 }
 
-main().catch((err) => {
-    console.error(err);
-    process.exit(1);
-});
+// Only run main when this file is executed directly (not when imported as a module)
+const isMainModule = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isMainModule) {
+    main().catch((err) => {
+        console.error(err);
+        process.exit(1);
+    });
+}

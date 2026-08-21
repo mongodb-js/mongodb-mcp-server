@@ -1,7 +1,8 @@
 import { z } from "zod";
-import { MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolResult } from "../../tool.js";
-import { PRECONFIGURED_CONNECTION_ID } from "../../../common/connectionRegistry.js";
+import { MongoDBToolBase } from "../../mongodbTool.js";
+import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
+import type { OperationType } from "@mongodb-js/mcp-types";
+import { PRECONFIGURED_CONNECTION_ID } from "../../common/connectionRegistry.js";
 
 const DisconnectOutputSchema = {
     outcome: z.enum(["removed", "disconnected"]),

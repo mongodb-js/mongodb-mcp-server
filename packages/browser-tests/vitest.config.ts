@@ -17,7 +17,7 @@ export default defineConfig({
         global: "globalThis",
     },
     test: {
-        include: ["tests/**/*.test.ts"],
+        include: ["**/*.test.ts"],
         browser: {
             enabled: true,
             instances: [
@@ -31,7 +31,7 @@ export default defineConfig({
         coverage: {
             provider: "v8",
             reporter: ["text", "lcov"],
-            reportsDirectory: "../../coverage/tests/browser",
+            reportsDirectory: "../../coverage/packages/browser-tests",
         },
         testTimeout: 60000,
         setupFiles: [path.resolve(__dirname, "setup.ts")],
@@ -69,7 +69,6 @@ export default defineConfig({
             kerberos: throwErrorPolyfill(),
             "mongodb-client-encryption/package.json": throwErrorPolyfill(),
             "mongodb-client-encryption": throwErrorPolyfill(),
-            "mongodb-mcp-server/web": require.resolve("../../src/web.ts"),
             express: emptyPolyfill(),
             http: emptyPolyfill(),
             "node:http": emptyPolyfill(),

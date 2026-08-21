@@ -1,10 +1,8 @@
-import { ReactiveResource } from "../resource.js";
-import type { UserConfig } from "../../common/config/userConfig.js";
-import type { Telemetry } from "../../telemetry/telemetry.js";
-import type { Session } from "../../lib.js";
+import { ReactiveResource, Keychain, redactValues } from "@mongodb-js/mcp-core";
+import type { ITelemetry } from "@mongodb-js/mcp-types";
+import type { UserConfig, McpSession, CliServer } from "@mongodb-js/mcp-cli";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
-import { Keychain, redactValues } from "../../common/keychain.js";
-import { connectCapableTools } from "../../common/connectionErrorHandler.js";
+import { connectCapableTools } from "@mongodb-js/mcp-tools-mongodb";
 
 /**
  * Removes secret material from the driver options before exposing them via the config resource.
@@ -19,8 +17,8 @@ function redactDriverOptions(driverOptions: Record<string, unknown>): Record<str
     return { ...rest, autoEncryption: "set; client-side field level encryption is configured" };
 }
 
-export class ConfigResource extends ReactiveResource<UserConfig, readonly []> {
-    constructor(session: Session, config: UserConfig, telemetry: Telemetry) {
+export class ConfigResource extends ReactiveResource<UserConfig, readonly [], McpSession, CliServer> {
+    constructor(session: McpSession, telemetry: ITelemetry) {
         super({
             resourceConfiguration: {
                 name: "config",
@@ -31,19 +29,12 @@ export class ConfigResource extends ReactiveResource<UserConfig, readonly []> {
                 },
             },
             options: {
-                initial: { ...config },
+                initial: { ...session.config },
                 events: [],
             },
             session,
-            config,
             telemetry,
         });
-    }
-    reduce(eventName: undefined, event: undefined): UserConfig {
-        void eventName;
-        void event;
-
-        return this.current;
     }
 
     toOutput(): string {
@@ -67,6 +58,12 @@ export class ConfigResource extends ReactiveResource<UserConfig, readonly []> {
         return JSON.stringify(redactValues(result, secrets));
     }
 
+    /**
+     * The host server surface the resource can read tool state from. At runtime
+     * resources are registered by {@link CliServer} (see `registerResources`),
+     * which carries the registered tools alongside the `IResourceServer`
+     * contract (mcpServer + change notifications).
+     */
     private connectToolsGuidance(): string {
         const connectToolNames = connectCapableTools(this.server?.tools ?? [])
             .map((tool) => `"${tool.name}"`)

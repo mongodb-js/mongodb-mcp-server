@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { SessionStore, SessionLimitExceededError, type CloseableTransport } from "../../src/common/sessionStore.js";
-import type { LoggerBase } from "../../src/common/logging/index.js";
-import type { Session } from "../../src/common/session.js";
-import { MockMetrics } from "./mocks/metrics.js";
+import { SessionStore, SessionLimitExceededError } from "@mongodb-js/mcp-core";
+import type { CloseableTransport } from "@mongodb-js/mcp-types";
+import type { LoggerBase } from "@mongodb-js/mcp-core";
+import type { Session } from "@mongodb-js/mcp-cli";
+import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 
 function createMockTransport(): CloseableTransport {
     return { close: vi.fn().mockResolvedValue(undefined) };

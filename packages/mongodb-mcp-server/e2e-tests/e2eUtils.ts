@@ -5,7 +5,7 @@ import { promisify } from "util";
 
 const execFileAsync = promisify(execFile);
 
-const CLI_PATH = path.join(import.meta.dirname, "..", "..", "dist", "esm", "index.js");
+const CLI_PATH = path.join(import.meta.dirname, "..", "dist", "esm", "index.js");
 
 type RunServerFunction = ({
     args,

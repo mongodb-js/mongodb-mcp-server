@@ -1,7 +1,8 @@
 import { z } from "zod";
-import { type OperationType, type ToolArgs, type ToolExecutionContext, type ToolResult } from "../../tool.js";
-import { AtlasToolBase } from "../atlasTool.js";
-import { makeCurrentIpAccessListEntry, DEFAULT_ACCESS_LIST_COMMENT } from "../../../common/atlas/accessListUtils.js";
+import { type ToolArgs, type ToolResult } from "@mongodb-js/mcp-core";
+import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
+import { AtlasToolBase } from "../../atlasTool.js";
+import { makeCurrentIpAccessListEntry, DEFAULT_ACCESS_LIST_COMMENT } from "../../helpers/accessListUtils.js";
 import { AtlasArgs, CommonArgs } from "../../args.js";
 
 export const CreateAccessListArgs = {
@@ -9,7 +10,7 @@ export const CreateAccessListArgs = {
     ipAddresses: z.array(AtlasArgs.ipAddress()).describe("IP addresses to allow access from").optional(),
     cidrBlocks: z.array(AtlasArgs.cidrBlock()).describe("CIDR blocks to allow access from").optional(),
     currentIpAddress: z.boolean().describe("Add the current IP address").default(false),
-    comment: CommonArgs.string()
+    comment: CommonArgs.asciiOnlyString()
         .describe("Comment for the access list entries")
         .default(DEFAULT_ACCESS_LIST_COMMENT)
         .optional(),

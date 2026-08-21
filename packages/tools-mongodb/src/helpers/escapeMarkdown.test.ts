@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { escapeMarkdown } from "../../../src/helpers/escapeMarkdown.js";
+import { escapeMarkdown } from "./escapeMarkdown.js";
 
 describe("escapeMarkdown", () => {
     it("leaves plain alphanumeric text untouched", () => {

@@ -1,7 +1,8 @@
-import { ConnectionIdArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { ConnectionIdArgs, MongoDBToolBase } from "../../mongodbTool.js";
 import type * as bson from "bson";
-import type { ToolArgs, OperationType, ToolResult } from "../../tool.js";
-import { formatUntrustedData } from "../../tool.js";
+import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
+import type { OperationType } from "@mongodb-js/mcp-types";
+import { formatUntrustedData } from "@mongodb-js/mcp-core";
 import { z } from "zod";
 
 export const ListDatabasesOutputSchema = {

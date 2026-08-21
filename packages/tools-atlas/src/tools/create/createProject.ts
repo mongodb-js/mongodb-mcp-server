@@ -1,7 +1,8 @@
 import { z } from "zod";
-import { type OperationType, type ToolArgs, type ToolExecutionContext, type ToolResult } from "../../tool.js";
-import { AtlasToolBase } from "../atlasTool.js";
-import type { Group } from "../../../common/atlas/openapi.js";
+import { type ToolArgs, type ToolResult } from "@mongodb-js/mcp-core";
+import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
+import { AtlasToolBase } from "../../atlasTool.js";
+import type { Group } from "@mongodb-js/mcp-atlas-api-client";
 import { AtlasArgs } from "../../args.js";
 
 const CreateProjectOutputSchema = {

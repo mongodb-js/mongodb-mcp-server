@@ -1,21 +1,20 @@
 import type { Mock } from "vitest";
 import { describe, it, expect, vi, beforeEach, type MockedFunction } from "vitest";
 import type { ZodRawShape } from "zod";
-import type { ToolBase, ToolConstructorParams, ToolExecutionContext } from "../../src/tools/tool.js";
+import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
 import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
-import type { Session } from "../../src/common/session.js";
-import type { AtlasClusterConnectionInfo } from "../../src/common/connectionInfo.js";
-import type { UserConfig } from "../../src/common/config/userConfig.js";
-import type { Telemetry } from "../../src/telemetry/telemetry.js";
-import type { Elicitation } from "../../src/elicitation.js";
-import type { CompositeLogger } from "../../src/common/logging/index.js";
+import type { CliServer, UserConfig } from "@mongodb-js/mcp-cli";
+import type { ISession, IToolConfig } from "@mongodb-js/mcp-types";
+import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
+import type { ToolBase } from "@mongodb-js/mcp-core";
+import type { Elicitation } from "@mongodb-js/mcp-core";
+import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { Server } from "../../src/server.js";
-import type { ToolEvent } from "../../src/telemetry/types.js";
-import type { PreviewFeature } from "../../src/common/schemas.js";
-import { UIRegistry } from "../../src/ui/registry/index.js";
-import { TRANSPORT_PAYLOAD_LIMITS } from "../../src/transports/constants.js";
-import { expectDefined } from "../integration/helpers.js";
+import type { TelemetryToolEvent as ToolEvent } from "@mongodb-js/mcp-atlas-telemetry";
+import type { PreviewFeature, AtlasClusterConnectionInfo } from "@mongodb-js/mcp-tools-mongodb";
+import { UIRegistry } from "@mongodb-js/mcp-ui";
+import { TRANSPORT_PAYLOAD_LIMITS } from "@mongodb-js/mcp-cli";
+import { expectDefined, MockMetrics } from "@mongodb-js/mcp-test-utils";
 import {
     TestTool,
     TestToolWithOutputSchema,
@@ -23,15 +22,14 @@ import {
     ErrorTool,
     ConfirmingTool,
 } from "./mocks/tools.js";
-import { MockMetrics } from "./mocks/metrics.js";
-import { Keychain } from "../../src/common/keychain.js";
+import { Keychain } from "@mongodb-js/mcp-core";
 
 describe("ToolBase", () => {
-    let mockSession: Session;
+    let mockSession: ISession<IToolConfig>;
     let mockLogger: CompositeLogger;
     let mockLoggerWarning: ReturnType<typeof vi.fn>;
     let mockConfig: UserConfig;
-    let mockTelemetry: Telemetry;
+    let mockAtlasTelemetry: AtlasTelemetry;
     let mockElicitation: Elicitation;
     let mockRequestConfirmation: MockedFunction<Elicitation["requestConfirmation"]>;
     let testTool: TestTool;
@@ -46,21 +44,22 @@ describe("ToolBase", () => {
             error: vi.fn(),
         } as unknown as CompositeLogger;
 
-        mockSession = {
-            logger: mockLogger,
-            keychain: new Keychain(),
-        } as unknown as Session;
-
         mockConfig = {
             confirmationRequiredTools: [],
             previewFeatures: [],
             disabledTools: [],
         } as unknown as UserConfig;
 
-        mockTelemetry = {
+        mockSession = {
+            logger: mockLogger,
+            keychain: new Keychain(),
+            config: mockConfig,
+        } as unknown as ISession<IToolConfig>;
+
+        mockAtlasTelemetry = {
             isTelemetryEnabled: () => true,
             emitEvents: vi.fn(),
-        } as unknown as Telemetry;
+        } as unknown as AtlasTelemetry;
 
         mockRequestConfirmation = vi.fn();
         mockElicitation = {
@@ -69,13 +68,12 @@ describe("ToolBase", () => {
 
         mockMetrics = new MockMetrics();
 
-        const constructorParams: ToolConstructorParams = {
+        const constructorParams = {
             name: TestTool.toolName,
             category: TestTool.category,
             operationType: TestTool.operationType,
             session: mockSession,
-            config: mockConfig,
-            telemetry: mockTelemetry,
+            telemetry: mockAtlasTelemetry,
             elicitation: mockElicitation,
             uiRegistry: new UIRegistry(),
             metrics: mockMetrics,
@@ -142,7 +140,7 @@ describe("ToolBase", () => {
             );
             expect(count?.value).toBe(1);
 
-            const event = ((mockTelemetry.emitEvents as Mock).mock.lastCall?.[0] as ToolEvent[])[0];
+            const event = ((mockAtlasTelemetry.emitEvents as Mock).mock.lastCall?.[0] as ToolEvent[])[0];
             expectDefined(event);
             expect(event.properties.result).toBe("failure");
         });
@@ -242,8 +240,7 @@ describe("ToolBase", () => {
                 category: ConfirmingTool.category,
                 operationType: ConfirmingTool.operationType,
                 session: mockSession,
-                config: mockConfig,
-                telemetry: mockTelemetry,
+                telemetry: mockAtlasTelemetry,
                 elicitation: mockElicitation,
                 metrics: mockMetrics,
             });
@@ -306,7 +303,7 @@ describe("ToolBase", () => {
         });
     });
 
-    describe("resolveTelemetryMetadata", () => {
+    describe("resolveAtlasTelemetryMetadata", () => {
         let mockCallback: ToolCallback<(typeof testTool)["argsShape"]>;
         beforeEach(() => {
             const mockServer = {
@@ -324,7 +321,7 @@ describe("ToolBase", () => {
                     },
                 },
             };
-            testTool.register(mockServer as unknown as Server);
+            testTool.register(mockServer as unknown as CliServer);
         });
 
         it("should return empty metadata by default", async () => {
@@ -335,7 +332,7 @@ describe("ToolBase", () => {
                 },
                 {} as never
             );
-            const event = ((mockTelemetry.emitEvents as Mock).mock.lastCall?.[0] as ToolEvent[])[0];
+            const event = ((mockAtlasTelemetry.emitEvents as Mock).mock.lastCall?.[0] as ToolEvent[])[0];
             expectDefined(event);
             expect(event.properties.result).to.equal("success");
             expect(event.properties).toHaveProperty("test_param2");
@@ -346,7 +343,7 @@ describe("ToolBase", () => {
 
         it("should include custom telemetry metadata", async () => {
             await mockCallback({ param1: "value1", param2: 3 }, {} as never);
-            const event = ((mockTelemetry.emitEvents as Mock).mock.lastCall?.[0] as ToolEvent[])[0];
+            const event = ((mockAtlasTelemetry.emitEvents as Mock).mock.lastCall?.[0] as ToolEvent[])[0];
             expectDefined(event);
 
             expect(event.properties.result).to.equal("success");
@@ -493,13 +490,12 @@ describe("ToolBase", () => {
 
         function createToolWithUI(previewFeatures: PreviewFeature[] = []): TestToolWithOutputSchema {
             mockConfig.previewFeatures = previewFeatures;
-            const constructorParams: ToolConstructorParams = {
+            const constructorParams = {
                 name: TestToolWithOutputSchema.toolName,
                 category: TestToolWithOutputSchema.category,
                 operationType: TestToolWithOutputSchema.operationType,
                 session: mockSession,
-                config: mockConfig,
-                telemetry: mockTelemetry,
+                telemetry: mockAtlasTelemetry,
                 elicitation: mockElicitation,
                 uiRegistry: mockUIRegistry,
                 metrics: mockMetrics,
@@ -525,7 +521,7 @@ describe("ToolBase", () => {
                     },
                 },
             };
-            tool.register(mockServer as unknown as Server);
+            tool.register(mockServer as unknown as CliServer);
         }
 
         it("should not append UIResource when mcpUI feature is disabled", async () => {
@@ -556,7 +552,7 @@ describe("ToolBase", () => {
                 ["mcpUI"],
                 mockSession,
                 mockConfig,
-                mockTelemetry,
+                mockAtlasTelemetry,
                 mockElicitation,
                 mockUIRegistry,
                 mockMetrics
@@ -576,7 +572,7 @@ describe("ToolBase", () => {
                     },
                 },
             };
-            toolWithoutStructured.register(mockServer as unknown as Server);
+            toolWithoutStructured.register(mockServer as unknown as CliServer);
 
             expectDefined(noStructuredCallback);
             const result = await noStructuredCallback({ input: "test" }, {} as never);
@@ -638,7 +634,7 @@ describe("ToolBase", () => {
         let successCallback: ToolCallback<(typeof testTool)["argsShape"]>;
         let errorCallback: ToolCallback<ZodRawShape>;
 
-        function makeMockServer(capture: (cb: ToolCallback<ZodRawShape>) => void): Server {
+        function makeMockServer(capture: (cb: ToolCallback<ZodRawShape>) => void): CliServer {
             return {
                 mcpServer: {
                     registerTool: (
@@ -650,7 +646,7 @@ describe("ToolBase", () => {
                         return { enabled: true, disable: vi.fn(), enable: vi.fn() };
                     },
                 },
-            } as unknown as Server;
+            } as unknown as CliServer;
         }
 
         beforeEach(() => {
@@ -661,8 +657,7 @@ describe("ToolBase", () => {
                 category: ErrorTool.category,
                 operationType: ErrorTool.operationType,
                 session: mockSession,
-                config: mockConfig,
-                telemetry: mockTelemetry,
+                telemetry: mockAtlasTelemetry,
                 elicitation: mockElicitation,
                 metrics: mockMetrics,
             });
@@ -739,8 +734,7 @@ describe("ToolBase", () => {
                 category: ErrorTool.category,
                 operationType: ErrorTool.operationType,
                 session: mockSession,
-                config: mockConfig,
-                telemetry: mockTelemetry,
+                telemetry: mockAtlasTelemetry,
                 elicitation: mockElicitation,
                 metrics: mockMetrics,
             });
@@ -781,7 +775,7 @@ describe("ToolBase", () => {
                     },
                 },
             };
-            tool.register(mockServer as unknown as Server);
+            tool.register(mockServer as unknown as CliServer);
             return inputSchema as { safeParse: (value: unknown) => { success: boolean } };
         }
 
@@ -800,8 +794,7 @@ describe("ToolBase", () => {
                 category: ErrorTool.category,
                 operationType: ErrorTool.operationType,
                 session: mockSession,
-                config: mockConfig,
-                telemetry: mockTelemetry,
+                telemetry: mockAtlasTelemetry,
                 elicitation: mockElicitation,
                 metrics: mockMetrics,
             });
@@ -831,7 +824,7 @@ describe("ToolBase", () => {
                     },
                 },
             };
-            tool.register(mockServer as unknown as Server);
+            tool.register(mockServer as unknown as CliServer);
             return { inputSchema: captured.inputSchema as CapturedSchema, outputSchema: captured.outputSchema };
         }
 
@@ -841,8 +834,7 @@ describe("ToolBase", () => {
                 category: TestTool.category,
                 operationType: TestTool.operationType,
                 session: mockSession,
-                config: mockConfig,
-                telemetry: mockTelemetry,
+                telemetry: mockAtlasTelemetry,
                 elicitation: mockElicitation,
                 uiRegistry: new UIRegistry(),
                 metrics: mockMetrics,
@@ -855,8 +847,7 @@ describe("ToolBase", () => {
                 category: TestToolWithOutputSchema.category,
                 operationType: TestToolWithOutputSchema.operationType,
                 session: mockSession,
-                config: mockConfig,
-                telemetry: mockTelemetry,
+                telemetry: mockAtlasTelemetry,
                 elicitation: mockElicitation,
                 uiRegistry: new UIRegistry(),
                 metrics: mockMetrics,
@@ -908,21 +899,20 @@ describe("ToolBase", () => {
 
 function createToolWithoutStructuredContent(
     previewFeatures: PreviewFeature[],
-    mockSession: Session,
+    mockSession: ISession<IToolConfig>,
     mockConfig: UserConfig,
-    mockTelemetry: Telemetry,
+    mockAtlasTelemetry: AtlasTelemetry,
     mockElicitation: Elicitation,
     mockUIRegistry: UIRegistry,
     mockMetrics: MockMetrics
 ): TestToolWithoutStructuredContent {
     mockConfig.previewFeatures = previewFeatures;
-    const constructorParams: ToolConstructorParams = {
+    const constructorParams = {
         name: TestToolWithoutStructuredContent.toolName,
         category: TestToolWithoutStructuredContent.category,
         operationType: TestToolWithoutStructuredContent.operationType,
         session: mockSession,
-        config: mockConfig,
-        telemetry: mockTelemetry,
+        telemetry: mockAtlasTelemetry,
         elicitation: mockElicitation,
         uiRegistry: mockUIRegistry,
         metrics: mockMetrics,

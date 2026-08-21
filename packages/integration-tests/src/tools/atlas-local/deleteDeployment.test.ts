@@ -1,4 +1,4 @@
-import { expectDefined, getResponseElements } from "../../helpers.js";
+import { expectDefined, getResponseElements } from "../../integrationHelpers.js";
 import { expect, it } from "vitest";
 import {
     createAtlasLocalDeployment,

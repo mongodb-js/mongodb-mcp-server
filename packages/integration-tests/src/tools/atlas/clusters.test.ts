@@ -1,7 +1,5 @@
-import { sleep } from "../../../../src/common/managedTimeout.js";
-import type { Session } from "../../../../src/common/session.js";
-import type { ConnectClusterOutput } from "../../../../src/tools/atlas/connect/connectCluster.js";
-import { expectDefined, getResponseContent } from "../../helpers.js";
+import { expectDefined, getResponseContent, sleep } from "../../integrationHelpers.js";
+import type { ConnectClusterOutput } from "@mongodb-js/mcp-tools-atlas";
 import {
     describeWithAtlas,
     withProject,
@@ -32,7 +30,7 @@ describeWithAtlas("clusters", (integration) => {
         afterAll(async () => {
             const projectId = getProjectId();
             if (projectId) {
-                const session: Session = integration.mcpServer().session;
+                const session = integration.mcpServer().session;
                 await deleteCluster(session, projectId, clusterName);
             }
         });
@@ -504,7 +502,7 @@ describeWithAtlas("clusters", (integration) => {
         afterAll(async () => {
             const projectId = getProjectId();
             if (projectId && clusterName) {
-                const session: Session = integration.mcpServer().session;
+                const session = integration.mcpServer().session;
                 await deleteCluster(session, projectId, clusterName);
             }
             clusterName = "";

@@ -1,13 +1,13 @@
-import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 import {
     getResponseElements,
     getParameters,
     expectDefined,
     getDataFromUntrustedContent,
     connectionIdParameters,
-} from "../../../helpers.js";
+} from "../../../integrationHelpers.js";
+import { describeWithMongoDB, validateAutoConnectBehavior } from "../../../mongodbHelpers.js";
 import { describe, expect, it } from "vitest";
-import type { ListDatabasesOutput } from "../../../../../src/tools/mongodb/metadata/listDatabases.js";
+import type { ListDatabasesOutput } from "@mongodb-js/mcp-tools-mongodb";
 
 describeWithMongoDB("listDatabases tool", (integration) => {
     const defaultDatabases = ["admin", "config", "local"];
