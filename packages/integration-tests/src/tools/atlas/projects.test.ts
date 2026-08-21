@@ -1,0 +1,160 @@
+import { ObjectId } from "mongodb";
+import { assertApiClientIsAvailable, describeWithAtlas } from "./atlasHelpers.js";
+import type { IntegrationTest } from "../../integrationHelpers.js";
+import { expectDefined, getDataFromUntrustedContent, getResponseElements } from "../../integrationHelpers.js";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
+// The shared CI Atlas org accumulates leftover test projects over time, and the API returns
+// them oldest-first, so a just-created project can land on any page. Page through with the
+// tool's own pageNum arg - as a real caller would - until it turns up or pages run out.
+const PAGE_LIMIT = 50;
+const MAX_PAGES = 20;
+
+async function findProjectAcrossPages(
+    integration: IntegrationTest,
+    projName: string,
+    orgId?: string
+): Promise<{ elements: ReturnType<typeof getResponseElements>; data: { name: string; orgId: string }[] }> {
+    for (let pageNum = 1; pageNum <= MAX_PAGES; pageNum++) {
+        const response = await integration.mcpClient().callTool({
+            name: "atlas-list-projects",
+            arguments: { ...(orgId !== undefined && { orgId }), limit: PAGE_LIMIT, pageNum },
+        });
+
+        const elements = getResponseElements(response);
+        const data = JSON.parse(getDataFromUntrustedContent(elements[1]?.text ?? "[]")) as {
+            name: string;
+            orgId: string;
+        }[];
+
+        if (data.length === 0) {
+            break;
+        }
+        if (data.some((proj) => proj.name === projName)) {
+            return { elements, data };
+        }
+    }
+
+    throw new Error(`Project "${projName}" not found within ${MAX_PAGES} pages of ${PAGE_LIMIT}`);
+}
+
+describeWithAtlas("projects", (integration) => {
+    const projectsToCleanup: string[] = [];
+
+    afterAll(async () => {
+        const session = integration.mcpServer().session;
+        assertApiClientIsAvailable(session);
+        const apiClient = session.apiClient;
+        const projects =
+            (await apiClient.listGroups()).results?.filter((project) => projectsToCleanup.includes(project.name)) || [];
+
+        for (const project of projects) {
+            await session.apiClient.deleteGroup({
+                params: {
+                    path: {
+                        groupId: project.id || "",
+                    },
+                },
+            });
+        }
+    });
+
+    describe("atlas-create-project", () => {
+        it("should have correct metadata", async () => {
+            const { tools } = await integration.mcpClient().listTools();
+            const createProject = tools.find((tool) => tool.name === "atlas-create-project");
+            expectDefined(createProject);
+            expect(createProject.inputSchema.type).toBe("object");
+            expectDefined(createProject.inputSchema.properties);
+            expect(createProject.inputSchema.properties).toHaveProperty("projectName");
+            expect(createProject.inputSchema.properties).toHaveProperty("orgId");
+        });
+
+        it("should create a project", async () => {
+            const projName = `testProj-${new ObjectId().toString()}`;
+            projectsToCleanup.push(projName);
+
+            // Prefer a pinned org from the environment; only hit the API when it is not provided.
+            let orgId = process.env.DEV_ATLAS_MCP_ORG_ID;
+            if (!orgId) {
+                const session = integration.mcpServer().session;
+                assertApiClientIsAvailable(session);
+                const orgs = await session.apiClient.listOrgs();
+                orgId = orgs.results?.[0]?.id;
+            }
+            expectDefined(orgId);
+            const response = await integration.mcpClient().callTool({
+                name: "atlas-create-project",
+                arguments: { projectName: projName, orgId },
+            });
+
+            const elements = getResponseElements(response);
+            expect(elements).toHaveLength(1);
+            expect(elements[0]?.text).toContain(projName);
+
+            expectDefined(response.structuredContent);
+            expect(response.structuredContent).toMatchObject({
+                projectName: projName,
+            });
+            expect(response.structuredContent).toHaveProperty("orgId");
+        });
+    });
+
+    describe("atlas-list-projects", () => {
+        let projName: string;
+        let orgId: string;
+        beforeAll(async () => {
+            projName = `testProj-${new ObjectId().toString()}`;
+            projectsToCleanup.push(projName);
+
+            const session = integration.mcpServer().session;
+            assertApiClientIsAvailable(session);
+            const apiClient = session.apiClient;
+            const orgs = await apiClient.listOrgs();
+            orgId = (orgs.results && orgs.results[0]?.id) ?? "";
+
+            await integration.mcpClient().callTool({
+                name: "atlas-create-project",
+                arguments: { projectName: projName, orgId: orgId },
+            });
+        });
+
+        it("should have correct metadata", async () => {
+            const { tools } = await integration.mcpClient().listTools();
+            const listProjects = tools.find((tool) => tool.name === "atlas-list-projects");
+            expectDefined(listProjects);
+            expect(listProjects.inputSchema.type).toBe("object");
+            expectDefined(listProjects.inputSchema.properties);
+            expect(listProjects.inputSchema.properties).toHaveProperty("orgId");
+        });
+
+        describe("with orgId filter", () => {
+            it("returns projects only for that org", async () => {
+                const { elements, data } = await findProjectAcrossPages(integration, projName, orgId);
+
+                expect(elements).toHaveLength(2);
+                expect(elements[1]?.text).toContain("<untrusted-user-data-");
+                expect(elements[1]?.text).toContain(projName);
+                expect(data.length).toBeGreaterThan(0);
+                expect(data.every((proj) => proj.orgId === orgId)).toBe(true);
+                expect(data.find((proj) => proj.name === projName)).toBeDefined();
+
+                expect(elements[0]?.text).toContain(`Found ${data.length} projects`);
+            });
+        });
+
+        describe("without orgId filter", () => {
+            it("returns projects for all orgs", async () => {
+                const { elements, data } = await findProjectAcrossPages(integration, projName);
+
+                expect(elements).toHaveLength(2);
+                expect(elements[1]?.text).toContain("<untrusted-user-data-");
+                expect(elements[1]?.text).toContain(projName);
+                expect(data.length).toBeGreaterThan(0);
+                expect(data.find((proj) => proj.name === projName && proj.orgId === orgId)).toBeDefined();
+
+                expect(elements[0]?.text).toContain(`Found ${data.length} projects`);
+            });
+        });
+    });
+});

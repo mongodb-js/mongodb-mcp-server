@@ -1,0 +1,75 @@
+import { expect, it } from "vitest";
+import {
+    getResponseContent,
+    databaseCollectionParameters,
+    validateToolMetadata,
+    validateThrowsForInvalidArguments,
+    databaseCollectionInvalidArgs,
+} from "../../../integrationHelpers.js";
+import { describeWithMongoDB, validateAutoConnectBehavior } from "../../../mongodbHelpers.js";
+import type { DropCollectionOutput } from "@mongodb-js/mcp-tools-mongodb";
+
+describeWithMongoDB("dropCollection tool", (integration) => {
+    validateToolMetadata(
+        integration,
+        "drop-collection",
+        "Removes a collection or view from the database. The method also removes any indexes associated with the dropped collection.",
+        "delete",
+        databaseCollectionParameters
+    );
+
+    validateThrowsForInvalidArguments(integration, "drop-collection", databaseCollectionInvalidArgs);
+
+    it("can drop non-existing collection", async () => {
+        const connectionId = await integration.connectMcpClient();
+        const response = await integration.mcpClient().callTool({
+            name: "drop-collection",
+            arguments: {
+                connectionId,
+                database: integration.randomDbName(),
+                collection: "coll1",
+            },
+        });
+
+        const content = getResponseContent(response.content);
+        expect(content).toContain(`Successfully dropped the requested collection from the requested database.`);
+
+        const collections = await integration.mongoClient().db(integration.randomDbName()).listCollections().toArray();
+        expect(collections).toHaveLength(0);
+    });
+
+    it("removes the collection if it exists", async () => {
+        const connectionId = await integration.connectMcpClient();
+        await integration.mongoClient().db(integration.randomDbName()).createCollection("coll1");
+        await integration.mongoClient().db(integration.randomDbName()).createCollection("coll2");
+        const response = await integration.mcpClient().callTool({
+            name: "drop-collection",
+            arguments: {
+                connectionId,
+                database: integration.randomDbName(),
+                collection: "coll1",
+            },
+        });
+        const content = getResponseContent(response.content);
+        expect(content).toContain(`Successfully dropped the requested collection from the requested database.`);
+
+        const structuredContent = response.structuredContent as DropCollectionOutput;
+        expect(structuredContent.database).toBe(integration.randomDbName());
+        expect(structuredContent.collection).toBe("coll1");
+        expect(structuredContent.dropped).toBe(true);
+
+        const collections = await integration.mongoClient().db(integration.randomDbName()).listCollections().toArray();
+        expect(collections).toHaveLength(1);
+        expect(collections[0]?.name).toBe("coll2");
+    });
+
+    validateAutoConnectBehavior(integration, "drop-collection", () => {
+        return {
+            args: {
+                database: integration.randomDbName(),
+                collection: "coll1",
+            },
+            expectedResponse: `Successfully dropped the requested collection from the requested database.`,
+        };
+    });
+});

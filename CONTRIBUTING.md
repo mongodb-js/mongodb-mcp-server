@@ -82,7 +82,7 @@ If you use [colima](https://github.com/abiosoft/colima) to run Docker on Mac, yo
 
 ## Running Braintrust Evals
 
-The Braintrust eval suite (found in `tests/eval/`) evaluates how well an LLM, when connected to the MongoDB MCP server, can understand and fulfill user requests given in natural language. Each evaluation is scored by an LLM judge, and the results are tracked over time in [Braintrust](https://www.braintrust.dev/). To run the Braintrust evals, you will need both access to a MongoDB instance (either running locally or in the cloud) and a Braintrust API key.
+The Braintrust eval suite (found in `packages/eval-tests/`) evaluates how well an LLM, when connected to the MongoDB MCP server, can understand and fulfill user requests given in natural language. Each evaluation is scored by an LLM judge, and the results are tracked over time in [Braintrust](https://www.braintrust.dev/). To run the Braintrust evals, you will need both access to a MongoDB instance (either running locally or in the cloud) and a Braintrust API key.
 
 ### Prerequisites
 
@@ -184,7 +184,7 @@ npx @modelcontextprotocol/inspector -- node dist/esm/index.js
 
 ## Making public API changes
 
-To ensure no unintentional public API changes are introduced, the project uses [API Extractor](https://api-extractor.com/) to track the public-facing API across all package entry points (`.`, `./web`, `./tools`, `./ui`). The generated API report files live in `api-extractor/reports/` and are checked into source control.
+To ensure no unintentional public API changes are introduced, the project uses [API Extractor](https://api-extractor.com/) to track the public-facing API across package entry points. The generated API report files live in `api-extractor/reports/` and are checked into source control.
 
 ### Workflow when changing the public API
 
@@ -235,6 +235,25 @@ To release a new version of the MCP server, follow these steps:
    - Docker: https://hub.docker.com/r/mongodb/mongodb-mcp-server
    - MCP Registry: `curl "https://registry.modelcontextprotocol.io/v0.1/servers/io.github.mongodb-js%2Fmongodb-mcp-server/versions/latest"`
 5. Post an update in the `#mongodb-mcp` Slack channel.
+
+### v2 (Legacy) Releases
+
+A v3 release should be cut from `main` only. Once v3 lands there, critical fixes that
+still need to ship on v2 are released from a v2 maintenance branch instead:
+
+1. Check out the latest v2 tag into a maintenance branch called `v2-maintenance`:
+
+   ```bash
+   git checkout -b v2-maintenance v2.1.0  # or the latest v2 tag via: git tag -l 'v2.*' | sort -V | tail -1
+   ```
+
+2. Add the `v2-maintenance` branch to branches for automatic publishing in `.github/workflows/publish.yml` (if not already present). You will also need to configure `Production` environment to allow this branch to publish.
+3. On a new branch based on `v2-maintenance`, apply the necessary changes and fixes. Create a separate PR for `main` if you also need them in v3.
+4. Bump the version (`npm version patch --no-git-tag-version`, sync the scoped
+   `@mongodb-js/mcp-*` packages, `pnpm run build:update-package-version`) and open a
+   release PR against the v2 branch.
+5. Open a PR to merge the release PR into `v2-maintenance`. Merging will trigger the publish workflow for v2.
+6. Verify the publish on NPM/Docker/MCP Registry and post in `#mongodb-mcp`.
 
 ### Code Quality
 

@@ -1,0 +1,70 @@
+import { expect } from "vitest";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
+import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
+import { Matcher } from "./sdk/matcher.js";
+import type { VercelAgentPromptResult } from "./sdk/agent.js";
+
+const CONNECTION_ID = "9f4b7c52-3e2d-4a8f-b1c6-0d5e8a7f2c31";
+
+const atlasConnectClusterWithAlerts: CallToolResult = {
+    content: [
+        {
+            type: "text",
+            text: `Connected to cluster "acc-test-free-cluster". Your connectionId is "${CONNECTION_ID}" — pass it as the connectionId argument to all MongoDB tool calls that should run against this cluster.`,
+        },
+        {
+            type: "text",
+            text:
+                `Note: Atlas reports open shared-tier threshold alerts for cluster "acc-test-free-cluster" affecting: CONNECTIONS_PERCENT, FLEX_DATA_SIZE_TOTAL. ` +
+                `You may be near connection or storage limits on this Free/Flex deployment. ` +
+                `Consider upgrading capacity (for example moving to Flex or a paid tier such as M10 or larger) if you need more headroom.`,
+        },
+    ],
+    structuredContent: {
+        connectionId: CONNECTION_ID,
+        state: "connected",
+        addedCurrentIp: false,
+        createdTemporaryUser: true,
+        sharedTierAlertsDetected: true,
+        sharedTierTier: "Free",
+        sharedTierAlerts: ["CONNECTIONS_PERCENT", "FLEX_DATA_SIZE_TOTAL"],
+    },
+};
+
+describeAccuracyTests([
+    {
+        prompt: "I'm connected to my free Atlas cluster in project acc-test-project named acc-test-free-cluster. Tell me if this cluster is close to any connection or storage limits and what I should do next.",
+        systemPrompt:
+            "The user may refer to an Atlas deployment by project id and cluster name. If they ask about limits or alerts on that Atlas cluster, call the atlas-connect-cluster tool with those identifiers so you can read the server's response, then summarize limits and next steps from the tool output.",
+        mockedTools: {
+            "atlas-connect-cluster": (): CallToolResult => atlasConnectClusterWithAlerts,
+        },
+        expectedToolCalls: [
+            {
+                toolName: "atlas-connect-cluster",
+                parameters: {
+                    projectId: "acc-test-project",
+                    clusterName: "acc-test-free-cluster",
+                    connectionType: Matcher.anyOf(
+                        Matcher.undefined,
+                        Matcher.value("standard"),
+                        Matcher.value("private"),
+                        Matcher.value("privateEndpoint")
+                    ),
+                },
+            },
+        ],
+        validateAgentResult: (result: VercelAgentPromptResult): void => {
+            const t = result.text.toLowerCase();
+            expect(
+                t.includes("alert") ||
+                    t.includes("limit") ||
+                    t.includes("upgrade") ||
+                    t.includes("flex") ||
+                    t.includes("m10") ||
+                    t.includes("storage") ||
+                    t.includes("connection")
+            ).toBe(true);
+        },
+    },
+]);
