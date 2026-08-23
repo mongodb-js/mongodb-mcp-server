@@ -9,7 +9,7 @@ import {
 } from "@mongodb-js/mcp-types";
 
 /** One page of OPEN alerts (same defaults as atlas-list-alerts); sufficient for shared-tier MVP. */
-const LIST_ALERTS_PAGE_SIZE = 100;
+const LIST_ALERTS_PAGE_SIZE = 10;
 
 const SharedTierAlertSchema = z.object({
     id: z.string(),

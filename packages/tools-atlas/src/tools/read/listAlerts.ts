@@ -11,7 +11,7 @@ export const ListAlertsArgs = {
     status: AlertStatus.default("OPEN").describe(
         "Status of the alerts to return. Defaults to OPEN. TRACKING means the alert condition exists but hasn't persisted beyond the notification delay. OPEN means the alert condition currently exists. CLOSED means the alert has been resolved."
     ),
-    limit: z.number().int().min(1).max(500).default(100).describe("Max results per page."),
+    limit: z.number().int().min(1).max(500).default(10).describe("Max results per page."),
     pageNum: z.number().int().min(1).default(1).describe("Page number."),
     includeCount: z
         .boolean()

@@ -62,7 +62,7 @@ describe("ListAlertsTool", () => {
         tool = new ListAlertsTool(params);
     });
 
-    const baseArgs = { projectId: "proj1", status: "OPEN" as const, limit: 100, pageNum: 1, includeCount: false };
+    const baseArgs = { projectId: "proj1", status: "OPEN" as const, limit: 10, pageNum: 1, includeCount: false };
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
         tool["execute"](args as never, { signal: new AbortController().signal } as never);
@@ -120,7 +120,7 @@ describe("ListAlertsTool", () => {
             {
                 params: {
                     path: { groupId: "proj1" },
-                    query: { status: "CLOSED", itemsPerPage: 100, pageNum: 1, includeCount: false },
+                    query: { status: "CLOSED", itemsPerPage: 10, pageNum: 1, includeCount: false },
                 },
             },
             expect.anything()
@@ -130,13 +130,13 @@ describe("ListAlertsTool", () => {
     it("should pass limit and pageNum to API", async () => {
         mockApiClient.listAlerts!.mockResolvedValue({ results: [] });
 
-        await exec({ ...baseArgs, limit: 10, pageNum: 3 });
+        await exec({ ...baseArgs, limit: 25, pageNum: 3 });
 
         expect(mockApiClient.listAlerts).toHaveBeenCalledWith(
             {
                 params: {
                     path: { groupId: "proj1" },
-                    query: { status: "OPEN", itemsPerPage: 10, pageNum: 3, includeCount: false },
+                    query: { status: "OPEN", itemsPerPage: 25, pageNum: 3, includeCount: false },
                 },
             },
             expect.anything()
@@ -152,7 +152,7 @@ describe("ListAlertsTool", () => {
             {
                 params: {
                     path: { groupId: "proj1" },
-                    query: { status: "OPEN", itemsPerPage: 100, pageNum: 1, includeCount: true },
+                    query: { status: "OPEN", itemsPerPage: 10, pageNum: 1, includeCount: true },
                 },
             },
             expect.anything()
