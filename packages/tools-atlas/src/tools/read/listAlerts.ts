@@ -13,6 +13,10 @@ export const ListAlertsArgs = {
     ),
     limit: z.number().int().min(1).max(500).default(100).describe("Max results per page."),
     pageNum: z.number().int().min(1).default(1).describe("Page number."),
+    includeCount: z
+        .boolean()
+        .default(false)
+        .describe("Whether to include the total number of matching alerts. Defaults to false for faster responses."),
 };
 
 const ListAlertsOutputSchema = {
@@ -42,7 +46,7 @@ export class ListAlertsTool extends AtlasToolBase {
     public override outputSchema = ListAlertsOutputSchema;
 
     protected async execute(
-        { projectId, status, limit, pageNum }: ToolArgs<typeof this.argsShape>,
+        { projectId, status, limit, pageNum, includeCount }: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
         const data = await this.apiClient.listAlerts(
@@ -55,7 +59,7 @@ export class ListAlertsTool extends AtlasToolBase {
                         status,
                         itemsPerPage: limit,
                         pageNum: pageNum,
-                        includeCount: true,
+                        includeCount,
                     },
                 },
             },
@@ -87,10 +91,11 @@ export class ListAlertsTool extends AtlasToolBase {
             eventTypeName: alert.eventTypeName,
             acknowledgementComment: alert.acknowledgementComment ?? "N/A",
         }));
+        const totalText = data.totalCount !== undefined ? ` (total: ${data.totalCount})` : "";
 
         return {
             content: formatUntrustedData(
-                `Found ${alerts.length} alerts with status "${status}" in project ${projectId} ${data?.totalCount !== undefined && `(total: ${data.totalCount})`}`,
+                `Found ${alerts.length} alerts with status "${status}" in project ${projectId}${totalText}`,
                 JSON.stringify(alerts)
             ),
             structuredContent: {

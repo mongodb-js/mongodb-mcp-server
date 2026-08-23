@@ -47,9 +47,10 @@ const mockedTools = {
     "atlas-list-alerts": (params: Record<string, unknown>): CallToolResult => {
         const status = typeof params.status === "string" ? params.status : "OPEN";
         const results = status === "CLOSED" ? resolvedAlerts : triggeredAlerts;
+        const totalText = params.includeCount === true ? ` (total: ${results.length})` : "";
         return {
             content: formatUntrustedData(
-                `Found ${results.length} alerts with status "${status}" in project ${projectId} (total: ${results.length})`,
+                `Found ${results.length} alerts with status "${status}" in project ${projectId}${totalText}`,
                 JSON.stringify(results)
             ),
         };
@@ -61,6 +62,7 @@ const mockedTools = {
 const paginationParams = {
     limit: Matcher.anyOf(Matcher.undefined, Matcher.number()),
     pageNum: Matcher.anyOf(Matcher.undefined, Matcher.number()),
+    includeCount: Matcher.anyOf(Matcher.undefined, Matcher.boolean(false)),
 };
 
 describeAccuracyTests([
