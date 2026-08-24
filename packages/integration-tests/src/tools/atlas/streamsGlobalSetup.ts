@@ -34,9 +34,6 @@ export default async function setup(context: {
     console.log("streamsGlobalSetup: provisioning shared Atlas Streams workspace...");
     const apiClient = createApiClient();
     const fixture: StreamsWorkspaceFixture | undefined = await provisionStreamsWorkspace(apiClient).catch((error) => {
-        // Do not abort the whole long-running run (performanceAdvisor etc.);
-        // the streams tests will fail loudly in withWorkspace's beforeAll with
-        // an actionable message about the fixture not being provisioned.
         console.error("streamsGlobalSetup: failed to provision shared workspace:", error);
         return undefined;
     });

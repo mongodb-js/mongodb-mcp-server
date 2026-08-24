@@ -13,12 +13,7 @@ const vitestDefaultExcludes = [
     "**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build,eslint,prettier}.config.*",
 ];
 
-// Whole packages handled by dedicated projects/executions (accuracy evals,
-// browser e2e, ui, and packages with no unit tests).
 const NON_UNIT_PACKAGES = [
-    // Dedicated projects below handle these (accuracy/ui) or dedicated CI jobs
-    // (browser e2e). eval-tests and scripts contain no unit tests to run, and
-    // integration-tests is split into the integration projects.
     "packages/accuracy-tests/**",
     "packages/browser-tests/**",
     "packages/eval-tests/**",
@@ -27,42 +22,19 @@ const NON_UNIT_PACKAGES = [
     "packages/ui/**",
 ];
 
-// ---------------------------------------------------------------------------
-// Unit tests: package-internal tests in src/ that mock their dependencies and
-// need no external infrastructure. New unit test files are picked up
-// automatically by the src/** glob — no project edit needed.
-// ---------------------------------------------------------------------------
 const UNIT_INCLUDES = ["packages/*/src/**/*.test.ts"];
 
-// ---------------------------------------------------------------------------
-// Integration tests (packages/integration-tests) split by the infrastructure
-// each suite needs. Each project is a directory glob so adding test files to
-// those directories requires no project edits.
-// ---------------------------------------------------------------------------
-
-// Atlas suites provisioned against real Atlas infrastructure on cloud-dev.
-// They are split across dedicated projects with tailored timeouts/setup:
-//   - integration-atlas: the remaining atlas suites (fast, one project each)
-//   - streams-tests: streams suites sharing ONE provisioned workspace
-//   - clusters-tests: suites that provision real clusters (M0, slow)
-//   - long-running-tests: performanceAdvisor (2h, separate workflow)
 const INTEGRATION_ATLAS_INCLUDES = ["packages/integration-tests/src/tools/atlas/**/*.test.ts"];
 
-const ATLAS_STREAMS_TESTS = "packages/integration-tests/src/tools/atlas/streams/**/*.test.ts";
+const ATLAS_STREAMS_TESTS = ["packages/integration-tests/src/tools/atlas/streams/**/*.test.ts"];
 
 const ATLAS_CLUSTER_TESTS = [
     "packages/integration-tests/src/tools/atlas/clusters.test.ts",
     "packages/integration-tests/src/tools/atlas/sampleDataset.test.ts",
 ];
 
-// Atlas Local via Docker (skips on macOS GitHub runners without Docker).
 const INTEGRATION_ATLAS_LOCAL_INCLUDES = ["packages/integration-tests/src/tools/atlas-local/**/*.test.ts"];
 
-// Everything else in integration-tests: the MCP server/session/transport/config
-// suites exercised in process with mocks, AND the MongoDB tool suites that spin
-// up a real MongoDBClusterProcess locally (self-skipping when the environment
-// cannot host one). New integration test files that are not Atlas-bound join
-// here automatically.
 const INTEGRATION_INCLUDES = ["packages/integration-tests/src/**/*.test.ts"];
 
 const INTEGRATION_ATLAS_EXCLUDES = [
@@ -119,7 +91,7 @@ export default defineConfig({
                     include: INTEGRATION_ATLAS_INCLUDES,
                     exclude: [
                         ...vitestDefaultExcludes,
-                        ATLAS_STREAMS_TESTS,
+                        ...ATLAS_STREAMS_TESTS,
                         ...ATLAS_CLUSTER_TESTS,
                         ...LONG_RUNNING_TESTS,
                     ],
@@ -138,16 +110,10 @@ export default defineConfig({
                 extends: true,
                 test: {
                     name: "streams-tests",
-                    include: [ATLAS_STREAMS_TESTS],
+                    include: ATLAS_STREAMS_TESTS,
                     testTimeout: 7200000, // 2 hours for long-running tests
                     hookTimeout: 7200000,
-                    // Provision ONE shared Atlas project + streams workspace + cluster for
-                    // the whole run and make it available to every streams test file via
-                    // inject("atlasStreamsWorkspace"). See streamsGlobalSetup.ts.
                     globalSetup: ["./packages/integration-tests/src/tools/atlas/streamsGlobalSetup.ts"],
-                    // Streams test files share a single mutable workspace (processors,
-                    // connections, tier changes), so run files one at a time instead of
-                    // in parallel workers.
                     fileParallelism: false,
                 },
             },
