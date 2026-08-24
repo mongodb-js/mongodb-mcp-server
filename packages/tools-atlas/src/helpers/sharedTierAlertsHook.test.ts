@@ -27,8 +27,8 @@ describe("runSharedTierAlertsHook", () => {
     };
 
     beforeEach(() => {
-        listAlerts = vi.fn() as MockedFunction<ApiClient["listAlerts"]>;
-        warning = vi.fn() as MockedFunction<(payload: LogPayload) => void>;
+        listAlerts = vi.fn();
+        warning = vi.fn();
         logger = {
             warning,
         } as unknown as ILogger;

@@ -123,7 +123,7 @@ export class HttpTransportWithSessionRecovery {
             typeof error.data === "object" &&
             error.data !== null &&
             "status" in error.data &&
-            (error.data as { status: unknown }).status === 404
+            error.data.status === 404
         );
     }
 }

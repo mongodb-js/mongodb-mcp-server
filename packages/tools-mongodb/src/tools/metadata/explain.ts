@@ -96,7 +96,7 @@ export class ExplainTool extends MongoDBToolBase {
                 const { filter, ...rest } = method.arguments;
                 this.assertMqlIsAllowed(filter, rest.projection);
                 result = await provider
-                    .find(database, collection, filter as Document, {
+                    .find(database, collection, filter, {
                         ...rest,
                         ...this.getOperationOptions(signal),
                     })

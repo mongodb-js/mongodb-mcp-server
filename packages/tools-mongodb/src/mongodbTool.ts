@@ -266,7 +266,7 @@ export abstract class MongoDBToolBase extends ToolBase<IMongoDBSession> {
                         isError: true,
                     };
                 case ErrorCodes.AtlasSearchNotSupported: {
-                    const CTA = this.server?.isToolCategoryAvailable("atlas-local" as unknown as ToolCategory)
+                    const CTA = this.server?.isToolCategoryAvailable("atlas-local")
                         ? "`atlas-local` tools"
                         : "Atlas CLI";
                     return {

@@ -113,7 +113,7 @@ function makeFakeServer(): SessionServer {
         },
         connect: vi.fn().mockResolvedValue(undefined),
         close: vi.fn().mockResolvedValue(undefined),
-    } as unknown as SessionServer;
+    };
 }
 
 class TestMCPHttpServer extends MCPHttpServer {

@@ -13,6 +13,7 @@ describeWithAtlas("atlas-list-alerts", (integration) => {
         expect(listAlerts.inputSchema.properties).toHaveProperty("status");
         expect(listAlerts.inputSchema.properties).toHaveProperty("limit");
         expect(listAlerts.inputSchema.properties).toHaveProperty("pageNum");
+        expect(listAlerts.inputSchema.properties).toHaveProperty("includeCount");
     });
 
     withProject(integration, ({ getProjectId }) => {
@@ -26,7 +27,7 @@ describeWithAtlas("atlas-list-alerts", (integration) => {
             if (content.includes("Found")) {
                 expect(content).toContain("<untrusted-user-data-");
                 expect(content).toContain(getProjectId());
-                expect(content).toContain("total:");
+                expect(content).not.toContain("total:");
             } else {
                 expect(content).toContain("No alerts with status");
             }
@@ -41,7 +42,7 @@ describeWithAtlas("atlas-list-alerts", (integration) => {
             const content = getResponseContent(response.content);
             if (content.includes("Found")) {
                 expect(content).toContain("<untrusted-user-data-");
-                expect(content).toContain("total:");
+                expect(content).not.toContain("total:");
             } else {
                 expect(content).toContain("No alerts with status");
             }

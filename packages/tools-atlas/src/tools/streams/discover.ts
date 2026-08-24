@@ -131,7 +131,7 @@ function toPrivateLinkSummary(pl: {
         region: pl.region,
         state: pl.state,
         vendor: pl.vendor,
-    } as PrivateLinkSummary;
+    };
 }
 
 function toAccountDetailsSummary(data: Record<string, unknown>): AccountDetailsSummary {
@@ -701,7 +701,7 @@ export class StreamsDiscoverTool extends StreamsToolBase {
                     },
                     context
                 );
-                const accountDetailsSummary = toAccountDetailsSummary(accountDetails as Record<string, unknown>);
+                const accountDetailsSummary = toAccountDetailsSummary(accountDetails);
                 if (Object.keys(accountDetailsSummary).length > 0) {
                     structuredContent.accountDetails = accountDetailsSummary;
                 }

@@ -138,7 +138,7 @@ class TestMCPHttpServer extends MCPHttpServer<CliServer> {
             options,
             logger,
             metrics,
-            sessionStore: sessionStore as SessionStore<StreamableHTTPServerTransport>,
+            sessionStore: sessionStore,
         });
         this.userConfig = userConfig;
         this.tools = tools;
@@ -426,7 +426,7 @@ describe("MCPHttpServer (streamable HTTP)", () => {
                     options,
                     logger,
                     metrics,
-                    sessionStore: sessionStore as SessionStore<StreamableHTTPServerTransport>,
+                    sessionStore: sessionStore,
                 });
                 this.baseConfig = baseConfig;
             }
@@ -512,7 +512,7 @@ describe("MCPHttpServer (streamable HTTP)", () => {
                     options,
                     logger,
                     metrics,
-                    sessionStore: sessionStore as SessionStore<StreamableHTTPServerTransport>,
+                    sessionStore: sessionStore,
                 });
                 this.baseConfig = baseConfig;
             }

@@ -63,7 +63,7 @@ describe("CreateFreeClusterTool", () => {
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown> = baseArgs) =>
-        tool["execute"](args as never, { signal: new AbortController().signal } as never);
+        tool["execute"](args as never, { signal: new AbortController().signal });
 
     it("creates a free cluster and notes that the current IP was added to the access list", async () => {
         const result = await exec();
