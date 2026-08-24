@@ -135,6 +135,13 @@ const ServerConfigSchema = z.object({
         .default("enabled")
         .describe("When set to disabled, disables telemetry collection.")
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    outputFormat: z
+        .enum(["json", "gcf"])
+        .default("json")
+        .describe(
+            "The serialization for tool result data: 'json' (default) or 'gcf' (Graph Compact Format), which encodes result documents more compactly for fewer tokens, applied per result only when it is smaller and lossless."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
     transport: z
         .enum(["stdio", "http"])
         .default("stdio")

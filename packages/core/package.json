@@ -26,6 +26,7 @@
     "check": "tsc --build tsconfig.build.json --noEmit"
   },
   "dependencies": {
+    "@blackwell-systems/gcf": "2.6.1",
     "@mcp-ui/server": "^6.1.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "bson": "^7.2.0",

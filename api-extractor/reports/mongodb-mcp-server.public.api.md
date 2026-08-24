@@ -1217,6 +1217,10 @@ export const UserConfigSchema: z.ZodObject<{
         enabled: "enabled";
         disabled: "disabled";
     }>>;
+    outputFormat: z.ZodDefault<z.ZodEnum<{
+        json: "json";
+        gcf: "gcf";
+    }>>;
     transport: z.ZodDefault<z.ZodEnum<{
         stdio: "stdio";
         http: "http";
@@ -1250,8 +1254,8 @@ export const UserConfigSchema: z.ZodObject<{
     dryRun: z.ZodDefault<z.ZodBoolean>;
     externallyManagedSessions: z.ZodDefault<z.ZodBoolean>;
     httpResponseType: z.ZodDefault<z.ZodEnum<{
-        sse: "sse";
         json: "json";
+        sse: "sse";
     }>>;
     healthCheckPort: z.ZodOptional<z.ZodNumber>;
     healthCheckHost: z.ZodOptional<z.ZodString>;
