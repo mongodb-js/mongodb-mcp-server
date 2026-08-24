@@ -77,7 +77,7 @@ export class ListClustersTool extends AtlasToolBase {
                 throw new Error(`Project with ID "${projectId}" not found.`);
             }
 
-            const settledResults = await Promise.allSettled([
+            const [clustersResult, flexClustersResult] = await Promise.allSettled([
                 this.apiClient.listClusters(
                     {
                         params: {
@@ -100,8 +100,8 @@ export class ListClustersTool extends AtlasToolBase {
                 ),
             ]);
 
-            const clusters = settledResults[0].status === "fulfilled" ? settledResults[0].value : undefined;
-            const flexClusters = settledResults[1].status === "fulfilled" ? settledResults[1].value : undefined;
+            const clusters = clustersResult.status === "fulfilled" ? clustersResult.value : undefined;
+            const flexClusters = flexClustersResult.status === "fulfilled" ? flexClustersResult.value : undefined;
 
             return this.formatClustersTable(project, clusters, flexClusters);
         }
