@@ -70,7 +70,8 @@ describe("ListOrganizationsTool", () => {
         const result = await exec();
 
         const text = result.content.map((c) => (c as { text: string }).text).join("\n");
-        expect(text).toContain("Found 2 of 2 organizations in your MongoDB Atlas account.");
+        expect(text).toContain("Found 2 organizations in your MongoDB Atlas account.");
+        expect(text).not.toContain("of 2");
         expect(text).toContain("Org A");
         expect(text).toContain("Org B");
         expect(text).toContain("<untrusted-user-data-");
@@ -170,8 +171,9 @@ describe("ListOrganizationsTool", () => {
             const result = await exec();
 
             const text = result.content.map((c) => (c as { text: string }).text).join("\n");
-            expect(text).toContain("Found 2 of 2 organizations in your MongoDB Atlas account.");
+            expect(text).toContain("Found 2 organizations in your MongoDB Atlas account.");
             expect(text).not.toContain("pagination");
+            expect(text).not.toContain("of 2");
         });
 
         it("does not suggest pagination on the last page", async () => {
@@ -184,8 +186,9 @@ describe("ListOrganizationsTool", () => {
             const result = await exec({ limit: 10, pageNum: 2 });
 
             const text = result.content.map((c) => (c as { text: string }).text).join("\n");
-            expect(text).toContain("Found 1 of 11 organizations in your MongoDB Atlas account.");
+            expect(text).toContain("Found 1 organizations in your MongoDB Atlas account.");
             expect(text).not.toContain("pagination");
+            expect(text).not.toContain("of 11");
         });
 
         it("suggests pagination on a middle page", async () => {

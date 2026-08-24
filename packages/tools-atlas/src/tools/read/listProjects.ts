@@ -99,7 +99,7 @@ export class ListProjectsTool extends AtlasToolBase {
 
         return {
             content: formatUntrustedData(
-                `Found ${projects.length} of ${totalCount} projects.${
+                `Found ${projects.length} projects.${
                     moreResultsAvailable ? " Use pagination if more results are needed." : ""
                 }`,
                 JSON.stringify(projects, null, 2)

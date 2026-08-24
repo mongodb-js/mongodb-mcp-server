@@ -92,10 +92,12 @@ export class ListAlertsTool extends AtlasToolBase {
             acknowledgementComment: alert.acknowledgementComment ?? "N/A",
         }));
         const totalText = data.totalCount !== undefined ? ` (total: ${data.totalCount})` : "";
+        // A full page means more results may exist on later pages.
+        const paginationText = alerts.length === limit ? ". Use pagination if more results are needed." : "";
 
         return {
             content: formatUntrustedData(
-                `Found ${alerts.length} alerts with status "${status}" in project ${projectId}${totalText}`,
+                `Found ${alerts.length} alerts with status "${status}" in project ${projectId}${totalText}${paginationText}`,
                 JSON.stringify(alerts)
             ),
             structuredContent: {

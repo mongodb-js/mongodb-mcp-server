@@ -83,7 +83,8 @@ describe("ListProjectsTool", () => {
         const result = await exec({ orgId });
 
         const text = result.content.map((c) => (c as { text: string }).text).join("\n");
-        expect(text).toContain("Found 1 of 1 projects.");
+        expect(text).toContain("Found 1 projects.");
+        expect(text).not.toContain("of 1");
         expect(text).toContain("my-project");
         expect(text).toContain("<untrusted-user-data-");
     });
@@ -94,7 +95,7 @@ describe("ListProjectsTool", () => {
         const result = await exec();
 
         const text = result.content.map((c) => (c as { text: string }).text).join("\n");
-        expect(text).toContain("Found 1 of 1 projects.");
+        expect(text).toContain("Found 1 projects.");
         expect(mockApiClient.getOrgGroups).not.toHaveBeenCalled();
         expect(mockApiClient.listGroups).toHaveBeenCalledWith(
             { params: { query: { itemsPerPage: 10, pageNum: 1, includeCount: true } } },
@@ -209,8 +210,9 @@ describe("ListProjectsTool", () => {
             const result = await exec({ orgId });
 
             const text = result.content.map((c) => (c as { text: string }).text).join("\n");
-            expect(text).toContain("Found 1 of 1 projects.");
+            expect(text).toContain("Found 1 projects.");
             expect(text).not.toContain("pagination");
+            expect(text).not.toContain("of 1");
         });
 
         it("does not suggest pagination on the last page", async () => {
@@ -223,8 +225,9 @@ describe("ListProjectsTool", () => {
             const result = await exec({ orgId, limit: 10, pageNum: 2 });
 
             const text = result.content.map((c) => (c as { text: string }).text).join("\n");
-            expect(text).toContain("Found 1 of 11 projects.");
+            expect(text).toContain("Found 1 projects.");
             expect(text).not.toContain("pagination");
+            expect(text).not.toContain("of 11");
         });
 
         it("suggests pagination on a middle page", async () => {

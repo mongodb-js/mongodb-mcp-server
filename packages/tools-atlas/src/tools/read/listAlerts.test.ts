@@ -200,6 +200,41 @@ describe("ListAlertsTool", () => {
         expect(text).not.toContain("false");
     });
 
+    it("should suggest pagination when a full page of alerts is returned", async () => {
+        const alerts = Array.from({ length: 10 }, (_, i) => ({
+            id: `alert-${i}`,
+            status: "OPEN",
+            created: "2025-01-01T00:00:00Z",
+            updated: "2025-01-02T00:00:00Z",
+            eventTypeName: "HOST_DOWN",
+        }));
+        mockApiClient.listAlerts!.mockResolvedValue({ results: alerts });
+
+        const result = await exec({ ...baseArgs, limit: 10 });
+
+        const text = (result.content[0] as { text: string }).text;
+        expect(text).toContain("Use pagination if more results are needed.");
+    });
+
+    it("should not suggest pagination when fewer than the limit alerts are returned", async () => {
+        mockApiClient.listAlerts!.mockResolvedValue({
+            results: [
+                {
+                    id: "alert1",
+                    status: "OPEN",
+                    created: "2025-01-01T00:00:00Z",
+                    updated: "2025-01-02T00:00:00Z",
+                    eventTypeName: "HOST_DOWN",
+                },
+            ],
+        });
+
+        const result = await exec({ ...baseArgs, limit: 10 });
+
+        const text = (result.content[0] as { text: string }).text;
+        expect(text).not.toContain("pagination");
+    });
+
     it("should format alert fields correctly", async () => {
         mockApiClient.listAlerts!.mockResolvedValue({
             results: [

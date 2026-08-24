@@ -63,7 +63,7 @@ export class ListOrganizationsTool extends AtlasToolBase {
 
         return {
             content: formatUntrustedData(
-                `Found ${orgs.length} of ${totalCount} organizations in your MongoDB Atlas account.${
+                `Found ${orgs.length} organizations in your MongoDB Atlas account.${
                     moreResultsAvailable ? " Use pagination if more results are needed." : ""
                 }`,
                 JSON.stringify(orgs)
