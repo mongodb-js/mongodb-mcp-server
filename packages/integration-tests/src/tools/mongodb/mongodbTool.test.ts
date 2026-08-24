@@ -255,9 +255,12 @@ describe("MongoDBTool implementations", () => {
                 });
                 expect(toolResponse?.isError).to.equal(true);
                 const content = toolResponse?.content as CallToolResult["content"];
-                expect(
-                    content.some((c) => c.type === "text" && c.text.startsWith("Could not connect to MongoDB."))
-                ).toBe(true);
+                const message = content.find(
+                    (c) => c.type === "text" && c.text.startsWith("Could not connect to MongoDB.")
+                );
+                expect(message?.type).toBe("text");
+                const messageText = message?.type === "text" ? message.text : "";
+                expect(messageText).toMatch(/^Could not connect to MongoDB\. Last error: .+/);
             });
         });
 

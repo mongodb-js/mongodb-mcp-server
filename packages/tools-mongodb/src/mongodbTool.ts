@@ -12,6 +12,7 @@ import type {
 } from "@mongodb-js/mcp-types";
 import type { ConnectionMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
+import { redact } from "mongodb-redact";
 import { ErrorCodes, MongoDBError } from "./common/errors.js";
 import type { ConnectionEntry, ConnectionRegistry } from "./common/connectionRegistry.js";
 import { assertNoServerSideJS, isWriteStage, type WriteStageTarget } from "./helpers/mqlGuards.js";
@@ -239,11 +240,18 @@ export abstract class MongoDBToolBase extends ToolBase<IMongoDBSession> {
                 case ErrorCodes.NotConnectedToMongoDB:
                 case ErrorCodes.MisconfiguredConnectionString:
                 case ErrorCodes.UnknownConnectionId: {
-                    const connectionError = error as MongoDBError<
+                    const rawConnectionError = error as MongoDBError<
                         | typeof ErrorCodes.NotConnectedToMongoDB
                         | typeof ErrorCodes.MisconfiguredConnectionString
                         | typeof ErrorCodes.UnknownConnectionId
                     >;
+                    // The message may embed a driver error verbatim (e.g. MisconfiguredConnectionString),
+                    // which can contain secrets from the connection string; redact before it is
+                    // interpolated into any handler's (default or injected) output.
+                    const connectionError = new MongoDBError(
+                        rawConnectionError.code,
+                        redact(rawConnectionError.message, this.session.keychain.allSecrets)
+                    ) as typeof rawConnectionError;
                     const outcome = await this.session.connectionErrorHandler(connectionError, {
                         availableTools: this.server?.tools ?? [],
                         connectionState: (await this.peekConnection(args.connectionId as string | undefined))?.state,
