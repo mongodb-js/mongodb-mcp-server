@@ -254,14 +254,10 @@ describe("MongoDBTool implementations", () => {
                     arguments: { connectionId: "preconfigured" },
                 });
                 expect(toolResponse?.isError).to.equal(true);
-                expect(toolResponse?.content).toEqual(
-                    expect.arrayContaining([
-                        {
-                            type: "text",
-                            text: "The configured connection string is not valid. Please check the connection string and confirm it points to a valid MongoDB instance.",
-                        },
-                    ])
-                );
+                const content = toolResponse?.content as CallToolResult["content"];
+                expect(
+                    content.some((c) => c.type === "text" && c.text.startsWith("Could not connect to MongoDB."))
+                ).toBe(true);
             });
         });
 

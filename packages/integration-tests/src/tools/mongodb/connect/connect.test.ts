@@ -180,7 +180,7 @@ describeWithMongoDB("Connect tool", (integration) => {
                 arguments: { connectionString: "mangodb://localhost:12345" },
             });
             const content = getResponseContent(response.content);
-            expect(content).toContain("The configured connection string is not valid.");
+            expect(content).toContain("Could not connect to MongoDB.");
             expect(response.structuredContent).toBeUndefined();
         });
     });

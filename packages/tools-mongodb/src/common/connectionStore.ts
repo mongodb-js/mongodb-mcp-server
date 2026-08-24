@@ -299,7 +299,7 @@ export class MCPConnectionStore {
             });
             throw new MongoDBError(
                 ErrorCodes.MisconfiguredConnectionString,
-                "The configured connection string is not valid or the server is unreachable."
+                entry.lastError ?? "The configured connection string is not valid or the server is unreachable."
             );
         }
     }
