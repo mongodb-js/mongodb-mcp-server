@@ -599,16 +599,22 @@ describe("ExportsManager unit test", () => {
 
     describe("#close", () => {
         it("should abort ongoing export and remove partial file", async () => {
-            const { exportName, exportPath } = getExportNameAndPath();
+            const { exportName } = getExportNameAndPath();
             const { cursor } = createDummyFindCursorWithDelay([{ name: "Test" }], 2000);
-            await manager.createJSONExport({
+            const { exportPath } = await manager.createJSONExport({
                 input: cursor,
                 exportName,
                 exportTitle: "Some export",
                 jsonExportFormat: "relaxed",
             });
-            // Give the pipeline a brief moment to start and create the file
-            await sleep(50);
+            // Wait for the pipeline to start and create the partial file, so that
+            // its removal is what the assertion below actually observes.
+            await vi.waitFor(
+                async () => {
+                    expect(await fileExists(exportPath)).toEqual(true);
+                },
+                { timeout: 10_000, interval: 10 }
+            );
 
             await manager.close();
 
