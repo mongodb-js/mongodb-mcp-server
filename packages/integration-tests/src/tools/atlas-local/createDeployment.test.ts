@@ -10,9 +10,7 @@ import type { ListCollectionsOutput } from "@mongodb-js/mcp-tools-mongodb";
 
 // Config used for tests that require a voyageApiKey.
 const configWithVoyageApiKey = { ...defaultTestConfig, voyageApiKey: "test-voyage-api-key" };
-// Loading sample data into a local deployment is slow under CI load; allow up
-// to 20 minutes (was 10, which flaked on a loaded cloud-dev runner).
-const SAMPLE_DATA_TEST_TIMEOUT_MS = 1_200_000;
+const SAMPLE_DATA_TEST_TIMEOUT_MS = 600_000;
 
 describeWithAtlasLocal(
     "atlas-local-create-deployment",
