@@ -116,9 +116,16 @@ jobs:
           name: atlas-streams-test-results
           path: coverage/lcov.info
 
+  # TEMPORARILY DISABLED: Atlas cluster tests (packages/integration-tests/src/tools/atlas/clusters.test.ts
+  # and sampleDataset.test.ts) keep timing out and fail CI; they should be fixed as a separate effort.
+  # Recent failed runs (the "Run tests" step is killed at the 120-minute job limit):
+  #   - https://github.com/mongodb-js/mongodb-mcp-server/actions/runs/32493378779
+  #   - https://github.com/mongodb-js/mongodb-mcp-server/actions/runs/32493317767
+  # To re-enable: remove `if: false` below and restore run-atlas-clusters-tests to the coverage
+  # job's `needs` list and artifact download step.
   run-atlas-clusters-tests:
     name: Run Atlas Clusters tests
-    if: github.event_name == 'push' || (github.event.pull_request.user.login != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository)
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
@@ -189,7 +196,7 @@ jobs:
         run-integration-tests,
         run-atlas-tests,
         run-atlas-streams-tests,
-        run-atlas-clusters-tests,
+        # run-atlas-clusters-tests temporarily disabled (see job above)
         run-atlas-local-tests,
       ]
     steps:
@@ -218,11 +225,11 @@ jobs:
         with:
           name: atlas-streams-test-results
           path: coverage/atlas-streams
-      - name: Download atlas clusters test results
-        uses: actions/download-artifact@v8
-        with:
-          name: atlas-clusters-test-results
-          path: coverage/atlas-clusters
+      # - name: Download atlas clusters test results
+      #   uses: actions/download-artifact@v8
+      #   with:
+      #     name: atlas-clusters-test-results
+      #     path: coverage/atlas-clusters
       - name: Download atlas local test results
         uses: actions/download-artifact@v8
         with:
