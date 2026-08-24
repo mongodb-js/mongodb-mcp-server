@@ -119,7 +119,6 @@ export class Elicitation {
         };
         required: string[];
     };
-    // Warning: (ae-forgotten-export) The symbol "ElicitationOptions" needs to be exported by the entry point index.d.ts
     requestConfirmation(message: string, options?: ElicitationOptions): Promise<boolean>;
     requestInput(message: string, schema: ElicitRequestFormParams["requestedSchema"], options?: ElicitationOptions): Promise<ElicitedInputResult>;
     supportsElicitation(): boolean;
@@ -375,8 +374,6 @@ Value, RelevantEvents extends readonly (keyof SessionEvents)[], TSession extends
     // (undocumented)
     protected readonly name: string;
     protected reduce(_eventName: RelevantEvents[number], ..._event: PayloadOf<RelevantEvents[number]>[]): Value;
-    // Warning: (ae-forgotten-export) The symbol "PayloadOf" needs to be exported by the entry point index.d.ts
-    //
     // (undocumented)
     protected reduceApply(eventName: RelevantEvents[number], ...event: PayloadOf<RelevantEvents[number]>[]): void;
     // (undocumented)
@@ -441,7 +438,6 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
     hasSession(sessionId: string): boolean;
     // (undocumented)
     loadNegotiatedClientState(sessionId: string, headers?: Record<string, unknown>): Promise<NegotiatedClientState | undefined>;
-    // Warning: (ae-forgotten-export) The symbol "NegotiatedClientState" needs to be exported by the entry point index.d.ts
     saveNegotiatedClientState(sessionId: string, state: NegotiatedClientState, headers?: Record<string, unknown>): Promise<void>;
 }
 
@@ -551,8 +547,6 @@ export type ToolOutput<T extends ZodRawShape> = {
     [K in keyof T]?: z.infer<T[K]>;
 };
 
-// Warning: (ae-forgotten-export) The symbol "StructuredToolResult" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export type ToolResult<OutputSchema extends ZodRawShape | undefined = undefined> = OutputSchema extends ZodRawShape ? StructuredToolResult<OutputSchema> : {
     content: CallToolResult["content"];
