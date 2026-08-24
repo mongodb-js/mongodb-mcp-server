@@ -127,6 +127,26 @@ async function waitUntilThereIsAnExportAvailable(manager: ExportsManager): Promi
     });
 }
 
+/**
+ * The removal of a partial export happens on the pipeline's error path, which
+ * completes independently of the cursor being closed, so poll until the export
+ * is both unregistered and erased from disk. */
+async function waitUntilExportIsRemoved(
+    manager: ExportsManager,
+    exportName: string,
+    exportPath: string
+): Promise<void> {
+    await vi.waitFor(
+        async () => {
+            await expect(() => manager.readExport(exportName)).rejects.toThrow(
+                "Requested export has either expired or does not exist."
+            );
+            expect(await fileExists(exportPath)).toEqual(false);
+        },
+        { timeout: 10_000, interval: 10 }
+    );
+}
+
 async function getExportAvailableNotifier(
     expectedExportURI: string,
     manager: ExportsManager,
@@ -264,7 +284,6 @@ describe("ExportsManager unit test", () => {
         let cursor: FindCursor;
         let cursorCloseNotification: Promise<void>;
         let exportName: string;
-        let exportPath: string;
         let exportURI: string;
         beforeEach(() => {
             void cursor?.close();
@@ -278,7 +297,7 @@ describe("ExportsManager unit test", () => {
                     longNumber: Long.fromNumber(123456),
                 },
             ]));
-            ({ exportName, exportPath, exportURI } = getExportNameAndPath());
+            ({ exportName, exportURI } = getExportNameAndPath());
         });
 
         it("should throw if the manager is shutting down", async () => {
@@ -452,21 +471,17 @@ describe("ExportsManager unit test", () => {
                         },
                     });
                 };
-                await manager.createJSONExport({
+                const { exportPath } = await manager.createJSONExport({
                     input: cursor,
                     exportName,
                     exportTitle: "Some export",
                     jsonExportFormat: "relaxed",
                 });
-                await cursorCloseNotification;
 
                 // Because the export was never populated in the available exports.
-                await expect(() => manager.readExport(exportName)).rejects.toThrow(
-                    "Requested export has either expired or does not exist."
-                );
+                await waitUntilExportIsRemoved(manager, exportName, exportPath);
                 expect(emitSpy).not.toHaveBeenCalled();
                 expect(manager.availableExports).toEqual([]);
-                expect(await fileExists(exportPath)).toEqual(false);
             });
         });
 
@@ -474,27 +489,23 @@ describe("ExportsManager unit test", () => {
             it("should remove the partial export and never make it available", async () => {
                 const emitSpy = vi.spyOn(manager, "emit");
                 // A cursor that will make the read stream fail on the first chunk
-                const { cursor, cursorCloseNotification } = createDummyFindCursor([{ name: "Test1" }], (chunkIndex) => {
+                const { cursor } = createDummyFindCursor([{ name: "Test1" }], (chunkIndex) => {
                     if (chunkIndex >= 0) {
                         return Promise.reject(new Error("Connection timedout!"));
                     }
                     return Promise.resolve();
                 });
-                await manager.createJSONExport({
+                const { exportPath } = await manager.createJSONExport({
                     input: cursor,
                     exportName,
                     exportTitle: "Some export",
                     jsonExportFormat: "relaxed",
                 });
-                await cursorCloseNotification;
 
                 // Because the export was never populated in the available exports.
-                await expect(() => manager.readExport(exportName)).rejects.toThrow(
-                    "Requested export has either expired or does not exist."
-                );
+                await waitUntilExportIsRemoved(manager, exportName, exportPath);
                 expect(emitSpy).not.toHaveBeenCalled();
                 expect(manager.availableExports).toEqual([]);
-                expect(await fileExists(exportPath)).toEqual(false);
             });
         });
     });
