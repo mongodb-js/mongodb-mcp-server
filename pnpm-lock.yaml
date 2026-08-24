@@ -898,9 +898,6 @@ importers:
 
   packages/tools-assistant:
     dependencies:
-      '@mongodb-js/devtools-proxy-support':
-        specifier: ^0.7.19
-        version: 0.7.19
       '@mongodb-js/mcp-core':
         specifier: workspace:*
         version: link:../core
