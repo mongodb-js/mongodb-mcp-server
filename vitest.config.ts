@@ -77,6 +77,13 @@ export default defineConfig({
             {
                 extends: true,
                 test: {
+                    name: "workflow-config",
+                    include: ["packages/scripts/src/jiraIssueWorkflow.test.ts"],
+                },
+            },
+            {
+                extends: true,
+                test: {
                     name: "atlas-cleanup",
                     include: ["packages/scripts/src/cleanupAtlasTestLeftovers.test.ts"],
                 },
