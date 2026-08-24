@@ -22,6 +22,8 @@
   ],
   "scripts": {
     "build": "tsc --build tsconfig.build.json",
+    "check:api": "api-extractor run --config api-extractor.json",
+    "update:api": "api-extractor run --local --config api-extractor.json",
     "test": "vitest --run",
     "check": "tsc --build tsconfig.build.json --noEmit"
   },
@@ -33,6 +35,7 @@
     "zod": "^4.0.0"
   },
   "devDependencies": {
+    "@microsoft/api-extractor": "^7.58.7",
     "@mongodb-js/mcp-types": "workspace:*",
     "@types/node": "^25.6.0",
     "typescript": "^5.9.2",
