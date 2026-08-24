@@ -251,7 +251,7 @@ export abstract class MongoDBToolBase extends ToolBase<IMongoDBSession> {
                     const connectionError = new MongoDBError(
                         rawConnectionError.code,
                         redact(rawConnectionError.message, this.session.keychain.allSecrets)
-                    ) as typeof rawConnectionError;
+                    );
                     const outcome = await this.session.connectionErrorHandler(connectionError, {
                         availableTools: this.server?.tools ?? [],
                         connectionState: (await this.peekConnection(args.connectionId as string | undefined))?.state,
