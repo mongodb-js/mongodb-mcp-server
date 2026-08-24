@@ -78,32 +78,32 @@ describe("ListProjectsTool", () => {
         });
 
     it("returns projects when orgId filter is provided", async () => {
-        mockApiClient.getOrgGroups!.mockResolvedValue({ results: [projectApiResponse] });
+        mockApiClient.getOrgGroups!.mockResolvedValue({ results: [projectApiResponse], totalCount: 1 });
 
         const result = await exec({ orgId });
 
         const text = result.content.map((c) => (c as { text: string }).text).join("\n");
-        expect(text).toContain("Found 1 projects");
+        expect(text).toContain("Found 1 of 1 projects.");
         expect(text).toContain("my-project");
         expect(text).toContain("<untrusted-user-data-");
     });
 
     it("returns projects for all orgs when orgId is omitted", async () => {
-        mockApiClient.listGroups!.mockResolvedValue({ results: [projectApiResponse] });
+        mockApiClient.listGroups!.mockResolvedValue({ results: [projectApiResponse], totalCount: 1 });
 
         const result = await exec();
 
         const text = result.content.map((c) => (c as { text: string }).text).join("\n");
-        expect(text).toContain("Found 1 projects");
+        expect(text).toContain("Found 1 of 1 projects.");
         expect(mockApiClient.getOrgGroups).not.toHaveBeenCalled();
         expect(mockApiClient.listGroups).toHaveBeenCalledWith(
-            { params: { query: { itemsPerPage: 10, pageNum: 1 } } },
+            { params: { query: { itemsPerPage: 10, pageNum: 1, includeCount: true } } },
             expect.anything()
         );
     });
 
     it("calls getOrgGroups when orgId is provided", async () => {
-        mockApiClient.getOrgGroups!.mockResolvedValue({ results: [] });
+        mockApiClient.getOrgGroups!.mockResolvedValue({ results: [], totalCount: 0 });
 
         await exec({ orgId });
 
@@ -111,7 +111,7 @@ describe("ListProjectsTool", () => {
             {
                 params: {
                     path: { orgId },
-                    query: { itemsPerPage: 10, pageNum: 1 },
+                    query: { itemsPerPage: 10, pageNum: 1, includeCount: true },
                 },
             },
             expect.anything()
@@ -119,7 +119,7 @@ describe("ListProjectsTool", () => {
     });
 
     it("defaults limit/pageNum to 10/1 when the caller passes no args, same as the real MCP client path", async () => {
-        mockApiClient.listGroups!.mockResolvedValue({ results: [] });
+        mockApiClient.listGroups!.mockResolvedValue({ results: [], totalCount: 0 });
 
         // The real invocation path parses incoming args against argsShape (applying zod
         // defaults) before execute() ever runs; exec() here calls execute() directly, so
@@ -128,13 +128,13 @@ describe("ListProjectsTool", () => {
         await exec(parsedArgs);
 
         expect(mockApiClient.listGroups).toHaveBeenCalledWith(
-            { params: { query: { itemsPerPage: 10, pageNum: 1 } } },
+            { params: { query: { itemsPerPage: 10, pageNum: 1, includeCount: true } } },
             expect.anything()
         );
     });
 
     it("passes limit and pageNum to getOrgGroups", async () => {
-        mockApiClient.getOrgGroups!.mockResolvedValue({ results: [] });
+        mockApiClient.getOrgGroups!.mockResolvedValue({ results: [], totalCount: 0 });
 
         await exec({ orgId, limit: 25, pageNum: 2 });
 
@@ -142,7 +142,7 @@ describe("ListProjectsTool", () => {
             {
                 params: {
                     path: { orgId },
-                    query: { itemsPerPage: 25, pageNum: 2 },
+                    query: { itemsPerPage: 25, pageNum: 2, includeCount: true },
                 },
             },
             expect.anything()
@@ -150,27 +150,36 @@ describe("ListProjectsTool", () => {
     });
 
     it("passes limit and pageNum to listGroups", async () => {
-        mockApiClient.listGroups!.mockResolvedValue({ results: [] });
+        mockApiClient.listGroups!.mockResolvedValue({ results: [], totalCount: 0 });
 
         await exec({ limit: 25, pageNum: 2 });
 
         expect(mockApiClient.listGroups).toHaveBeenCalledWith(
-            { params: { query: { itemsPerPage: 25, pageNum: 2 } } },
+            { params: { query: { itemsPerPage: 25, pageNum: 2, includeCount: true } } },
             expect.anything()
         );
     });
 
     it("returns empty message when org has no projects", async () => {
-        mockApiClient.getOrgGroups!.mockResolvedValue({ results: [] });
+        mockApiClient.getOrgGroups!.mockResolvedValue({ results: [], totalCount: 0 });
 
         const result = await exec({ orgId });
 
         expect((result.content[0] as { text: string }).text).toBe(`No projects found in organization ${orgId}.`);
     });
 
+    it("returns empty message without orgId when listing projects for all orgs", async () => {
+        mockApiClient.listGroups!.mockResolvedValue({ results: [], totalCount: 0 });
+
+        const result = await exec();
+
+        expect((result.content[0] as { text: string }).text).toBe("No projects found in your MongoDB Atlas account.");
+    });
+
     it("uses N/A for created when project has no created date", async () => {
         mockApiClient.getOrgGroups!.mockResolvedValue({
             results: [{ ...projectApiResponse, created: undefined }],
+            totalCount: 1,
         });
 
         const result = await exec({ orgId });
@@ -179,19 +188,59 @@ describe("ListProjectsTool", () => {
     });
 
     describe("structuredContent", () => {
-        it("returns totalCount as the number of projects actually returned with orgId filter", async () => {
-            mockApiClient.getOrgGroups!.mockResolvedValue({ results: [projectApiResponse] });
+        it("reports the API total count so callers know more pages may exist", async () => {
+            mockApiClient.getOrgGroups!.mockResolvedValue({ results: [projectApiResponse], totalCount: 13 });
 
             const result = await exec({ orgId });
 
             expect(result.structuredContent).toEqual({
                 orgId,
                 projects: [formattedProject],
-                totalCount: 1,
+                totalCount: 13,
             });
+
+            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+            expect(text).toContain("Use pagination if more results are needed.");
         });
 
-        it("returns totalCount as the number of projects actually returned when unfiltered", async () => {
+        it("does not suggest pagination when all projects are returned", async () => {
+            mockApiClient.getOrgGroups!.mockResolvedValue({ results: [projectApiResponse], totalCount: 1 });
+
+            const result = await exec({ orgId });
+
+            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+            expect(text).toContain("Found 1 of 1 projects.");
+            expect(text).not.toContain("pagination");
+        });
+
+        it("does not suggest pagination on the last page", async () => {
+            mockApiClient.getOrgGroups!.mockResolvedValue({
+                results: [projectApiResponse],
+                totalCount: 11,
+            });
+
+            // Page 2 of 2: page 1 returned 10 of 11, this page returns the remaining 1.
+            const result = await exec({ orgId, limit: 10, pageNum: 2 });
+
+            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+            expect(text).toContain("Found 1 of 11 projects.");
+            expect(text).not.toContain("pagination");
+        });
+
+        it("suggests pagination on a middle page", async () => {
+            mockApiClient.getOrgGroups!.mockResolvedValue({
+                results: [projectApiResponse],
+                totalCount: 25,
+            });
+
+            // Page 2 of 3: pages 1-2 returned 20 of 25, page 3 still has more.
+            const result = await exec({ orgId, limit: 10, pageNum: 2 });
+
+            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+            expect(text).toContain("Use pagination if more results are needed.");
+        });
+
+        it("falls back to the number of projects returned when totalCount is missing", async () => {
             mockApiClient.listGroups!.mockResolvedValue({ results: [projectApiResponse] });
 
             const result = await exec();
@@ -204,7 +253,7 @@ describe("ListProjectsTool", () => {
         });
 
         it("returns empty projects when org has no projects", async () => {
-            mockApiClient.getOrgGroups!.mockResolvedValue({ results: [] });
+            mockApiClient.getOrgGroups!.mockResolvedValue({ results: [], totalCount: 0 });
 
             const result = await exec({ orgId });
 
