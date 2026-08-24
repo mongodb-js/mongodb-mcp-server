@@ -38,7 +38,7 @@ describeWithAtlas("shared-tier-alerts-hook integration", (integration) => {
             expect(firstListAlertsArg).toBeDefined();
             expect(firstListAlertsArg?.params.path.groupId).toBe(projectId);
             expect(firstListAlertsArg?.params.query.status).toBe("OPEN");
-            expect(firstListAlertsArg?.params.query.itemsPerPage).toBe(100);
+            expect(firstListAlertsArg?.params.query.itemsPerPage).toBe(10);
             expect(firstListAlertsArg?.params.query.pageNum).toBe(1);
             expect(firstListAlertsArg?.params.query.includeCount).toBe(false);
 

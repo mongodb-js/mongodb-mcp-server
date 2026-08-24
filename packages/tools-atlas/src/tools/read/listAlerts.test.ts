@@ -62,7 +62,7 @@ describe("ListAlertsTool", () => {
         tool = new ListAlertsTool(params);
     });
 
-    const baseArgs = { projectId: "proj1", status: "OPEN" as const, limit: 100, pageNum: 1 };
+    const baseArgs = { projectId: "proj1", status: "OPEN" as const, limit: 10, pageNum: 1, includeCount: false };
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
         tool["execute"](args as never, { signal: new AbortController().signal } as never);
@@ -87,14 +87,13 @@ describe("ListAlertsTool", () => {
                     acknowledgementComment: "investigating",
                 },
             ],
-            totalCount: 2,
         });
 
         const result = await exec({ ...baseArgs });
 
         const text = (result.content[0] as { text: string }).text;
         expect(text).toContain("Found 2 alerts");
-        expect(text).toContain("total: 2");
+        expect(text).not.toContain("total:");
         expect(text).toContain("proj1");
     });
 
@@ -113,7 +112,7 @@ describe("ListAlertsTool", () => {
     });
 
     it("should pass status to API", async () => {
-        mockApiClient.listAlerts!.mockResolvedValue({ results: [], totalCount: 0 });
+        mockApiClient.listAlerts!.mockResolvedValue({ results: [] });
 
         await exec({ ...baseArgs, status: "CLOSED" });
 
@@ -121,7 +120,7 @@ describe("ListAlertsTool", () => {
             {
                 params: {
                     path: { groupId: "proj1" },
-                    query: { status: "CLOSED", itemsPerPage: 100, pageNum: 1, includeCount: true },
+                    query: { status: "CLOSED", itemsPerPage: 10, pageNum: 1, includeCount: false },
                 },
             },
             expect.anything()
@@ -129,15 +128,31 @@ describe("ListAlertsTool", () => {
     });
 
     it("should pass limit and pageNum to API", async () => {
-        mockApiClient.listAlerts!.mockResolvedValue({ results: [], totalCount: 0 });
+        mockApiClient.listAlerts!.mockResolvedValue({ results: [] });
 
-        await exec({ ...baseArgs, limit: 10, pageNum: 3 });
+        await exec({ ...baseArgs, limit: 25, pageNum: 3 });
 
         expect(mockApiClient.listAlerts).toHaveBeenCalledWith(
             {
                 params: {
                     path: { groupId: "proj1" },
-                    query: { status: "OPEN", itemsPerPage: 10, pageNum: 3, includeCount: true },
+                    query: { status: "OPEN", itemsPerPage: 25, pageNum: 3, includeCount: false },
+                },
+            },
+            expect.anything()
+        );
+    });
+
+    it("should pass includeCount to API when requested", async () => {
+        mockApiClient.listAlerts!.mockResolvedValue({ results: [], totalCount: 0 });
+
+        await exec({ ...baseArgs, includeCount: true });
+
+        expect(mockApiClient.listAlerts).toHaveBeenCalledWith(
+            {
+                params: {
+                    path: { groupId: "proj1" },
+                    query: { status: "OPEN", itemsPerPage: 10, pageNum: 1, includeCount: true },
                 },
             },
             expect.anything()
@@ -158,10 +173,31 @@ describe("ListAlertsTool", () => {
             totalCount: 42,
         });
 
-        const result = await exec({ ...baseArgs });
+        const result = await exec({ ...baseArgs, includeCount: true });
 
         const text = (result.content[0] as { text: string }).text;
         expect(text).toContain("total: 42");
+    });
+
+    it("should omit totalCount text when API does not return it", async () => {
+        mockApiClient.listAlerts!.mockResolvedValue({
+            results: [
+                {
+                    id: "alert1",
+                    status: "OPEN",
+                    created: "2025-01-01T00:00:00Z",
+                    updated: "2025-01-02T00:00:00Z",
+                    eventTypeName: "HOST_DOWN",
+                },
+            ],
+        });
+
+        const result = await exec({ ...baseArgs });
+
+        const text = (result.content[0] as { text: string }).text;
+        expect(text).toContain('Found 1 alerts with status "OPEN" in project proj1');
+        expect(text).not.toContain("total:");
+        expect(text).not.toContain("false");
     });
 
     it("should format alert fields correctly", async () => {
