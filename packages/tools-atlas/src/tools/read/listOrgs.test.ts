@@ -156,7 +156,7 @@ describe("ListOrganizationsTool", () => {
             });
 
             const text = result.content.map((c) => (c as { text: string }).text).join("\n");
-            expect(text).toContain("Use pagination if more results are needed.");
+            expect(text).toContain("Use pagination arguments if more results are expected.");
         });
 
         it("does not suggest pagination when all organizations are returned", async () => {
@@ -201,7 +201,7 @@ describe("ListOrganizationsTool", () => {
             const result = await exec({ limit: 10, pageNum: 2 });
 
             const text = result.content.map((c) => (c as { text: string }).text).join("\n");
-            expect(text).toContain("Use pagination if more results are needed.");
+            expect(text).toContain("Use pagination arguments if more results are expected.");
         });
 
         it("falls back to the number of organizations returned when totalCount is missing", async () => {

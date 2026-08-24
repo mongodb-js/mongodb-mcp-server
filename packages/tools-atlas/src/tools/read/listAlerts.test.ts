@@ -213,7 +213,7 @@ describe("ListAlertsTool", () => {
         const result = await exec({ ...baseArgs, limit: 10 });
 
         const text = (result.content[0] as { text: string }).text;
-        expect(text).toContain("Use pagination if more results are needed.");
+        expect(text).toContain("Use pagination arguments if more results are expected.");
     });
 
     it("should not suggest pagination when fewer than the limit alerts are returned", async () => {

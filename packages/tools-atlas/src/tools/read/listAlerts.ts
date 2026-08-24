@@ -93,7 +93,8 @@ export class ListAlertsTool extends AtlasToolBase {
         }));
         const totalText = data.totalCount !== undefined ? ` (total: ${data.totalCount})` : "";
         // A full page means more results may exist on later pages.
-        const paginationText = alerts.length === limit ? ". Use pagination if more results are needed." : "";
+        const paginationText =
+            alerts.length === limit ? ". Use pagination arguments if more results are expected." : "";
 
         return {
             content: formatUntrustedData(
