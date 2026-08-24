@@ -56,7 +56,7 @@ describe("ListOrganizationsTool", () => {
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown> = { limit: 10, pageNum: 1 }) =>
-        tool["execute"](args as never, { signal: new AbortController().signal } as never);
+        tool["execute"](args as never, { signal: new AbortController().signal });
 
     it("returns organizations when they exist", async () => {
         mockApiClient.listOrgs!.mockResolvedValue({

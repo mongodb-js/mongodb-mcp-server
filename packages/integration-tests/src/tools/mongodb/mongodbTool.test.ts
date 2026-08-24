@@ -450,9 +450,12 @@ describe("MongoDBTool implementations", () => {
             const randomTool = tool as RandomTool;
 
             const result: CallToolResult = { content: [{ type: "text", text: "test" }] };
-            const metadata = await randomTool["resolveTelemetryMetadata"]({} as ToolArgs<typeof randomTool.argsShape>, {
-                result,
-            });
+            const metadata = await randomTool["resolveTelemetryMetadata"](
+                {},
+                {
+                    result,
+                }
+            );
 
             expect(metadata).toEqual({});
             expect(metadata).not.toHaveProperty("project_id");

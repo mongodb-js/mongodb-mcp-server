@@ -97,10 +97,7 @@ describe("LoadSampleDatasetTool", () => {
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
-        tool["execute"](
-            z.object(LoadSampleDatasetArgs).parse(args) as never,
-            { signal: new AbortController().signal } as never
-        );
+        tool["execute"](z.object(LoadSampleDatasetArgs).parse(args) as never, { signal: new AbortController().signal });
 
     function getStructuredContent(result: { structuredContent?: unknown }): Record<string, unknown> {
         expect(result.structuredContent).toBeDefined();

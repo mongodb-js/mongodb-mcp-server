@@ -64,7 +64,7 @@ describe("CreateAccessListTool", () => {
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
-        tool["execute"](args as never, { signal: new AbortController().signal } as never);
+        tool["execute"](args as never, { signal: new AbortController().signal });
 
     it("creates access list entries for IPs and CIDR blocks", async () => {
         const result = await exec({

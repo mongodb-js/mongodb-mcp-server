@@ -82,10 +82,7 @@ describe("CreateClusterTool", () => {
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
-        tool["invoke"](
-            z.object(CreateClusterArgsShape).strict().parse(tool.normalizeRawArgs(args)) as never,
-            {} as never
-        );
+        tool["invoke"](z.object(CreateClusterArgsShape).strict().parse(tool.normalizeRawArgs(args)), {} as never);
 
     beforeEach(() => {
         tool = buildTool();
@@ -504,7 +501,7 @@ describe("CreateClusterTool", () => {
             };
             const result = await exec(args);
 
-            const metadata = await tool["resolveTelemetryMetadata"](args as never, { result: result as never });
+            const metadata = await tool["resolveTelemetryMetadata"](args as never, { result: result });
             expect(metadata.cluster_id).toBe("new-cluster-id");
             expect(metadata.provider).toBe("AWS");
             expect(metadata.regions).toEqual(["US_EAST_1", "US_WEST_2"]);
@@ -520,7 +517,7 @@ describe("CreateClusterTool", () => {
 
         it("returns empty metadata fields when result has no structuredContent (error path)", async () => {
             const metadata = await tool["resolveTelemetryMetadata"](BASE_ARGS as never, {
-                result: { content: [] } as never,
+                result: { content: [] },
             });
 
             expect(metadata.cluster_id).toBeUndefined();

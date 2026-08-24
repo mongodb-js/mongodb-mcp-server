@@ -681,7 +681,7 @@ describe("StreamableHttpRunner", () => {
                     const mcpHttpServer = (
                         ownershipRunner as unknown as { mcpHttpServer: { app: { handle: HandleFn } } }
                     ).mcpHttpServer;
-                    const appObj = mcpHttpServer.app as unknown as { handle: HandleFn };
+                    const appObj = mcpHttpServer.app;
                     const originalHandle: HandleFn = appObj.handle.bind(appObj);
                     appObj.handle = (req: IncomingMessage, ...rest: unknown[]): void => {
                         const ownerId = req.headers["x-owner-id"] as string | undefined;

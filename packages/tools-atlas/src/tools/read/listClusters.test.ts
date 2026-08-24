@@ -91,7 +91,7 @@ describe("ListClustersTool", () => {
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown> = { projectId }) =>
-        tool["execute"](args as never, { signal: new AbortController().signal } as never);
+        tool["execute"](args as never, { signal: new AbortController().signal });
 
     describe("with projectId", () => {
         beforeEach(() => {

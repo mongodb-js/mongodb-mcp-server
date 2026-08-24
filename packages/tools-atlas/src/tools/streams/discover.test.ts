@@ -72,7 +72,7 @@ describe("StreamsDiscoverTool", () => {
     const baseArgs = { projectId: "proj1" };
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
-        tool["execute"](args as never, { signal: new AbortController().signal } as never);
+        tool["execute"](args as never, { signal: new AbortController().signal });
 
     describe("list-workspaces", () => {
         it("should return workspace list when workspaces exist", async () => {
