@@ -45,7 +45,10 @@ jobs:
                   {
                     "id": "27326"
                   }
-                ]
+                ],
+                "security": {
+                  "name": "Public"
+                }
               }
             }
       - name: Show result
@@ -76,6 +79,23 @@ jobs:
             } catch (error) {
               console.log('⚠️ Could not remove create-jira label:', error.message);
             }
+
+      - name: Report failure on the GitHub issue
+        if: ${{ !steps.create.outputs.issue-key }}
+        continue-on-error: true
+        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            :warning: Failed to create a JIRA ticket for this issue. See the [failed workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.
+
+            This issue is not being tracked internally yet - someone from the team needs to create the ticket manually or re-run the workflow by applying the `create-jira` label.
+
+      - name: Fail if the JIRA ticket was not created
+        if: ${{ !steps.create.outputs.issue-key }}
+        run: |
+          echo "::error::Failed to create a JIRA ticket for GitHub issue #${{ github.event.issue.number }}."
+          exit 1
 
   close_jira_task:
     name: Close Jira issue
