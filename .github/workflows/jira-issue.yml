@@ -40,7 +40,7 @@ jobs:
               "fields": {
                 "customfield_12751": [
                   {
-                    "id": "36259"
+                    "value": "MCP Developers"
                   }
                 ]
               }
