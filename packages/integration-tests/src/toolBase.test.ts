@@ -73,6 +73,7 @@ describe("ToolBase", () => {
         mockReadConfirmation = vi.fn();
         mockConfirmationRequired = vi.fn();
         mockElicitation = {
+            supportsElicitation: () => true,
             readConfirmation: mockReadConfirmation,
             confirmationRequired: mockConfirmationRequired,
         } as unknown as Elicitation;
