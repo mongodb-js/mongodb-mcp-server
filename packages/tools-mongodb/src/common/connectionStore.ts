@@ -297,10 +297,8 @@ export class MCPConnectionStore {
                 context: "connectionRegistry",
                 message: `Failed to connect using the configured connection string: ${error as string}`,
             });
-            throw new MongoDBError(
-                ErrorCodes.MisconfiguredConnectionString,
-                "The configured connection string is not valid or the server is unreachable."
-            );
+            const fallbackMessage = error instanceof Error ? error.message : String(error);
+            throw new MongoDBError(ErrorCodes.MisconfiguredConnectionString, entry.lastError ?? fallbackMessage);
         }
     }
 

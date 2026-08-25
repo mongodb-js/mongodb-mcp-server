@@ -158,6 +158,7 @@ describe("ConnectionRegistry", () => {
             (managers[0] as FakeConnectionManager).failNextConnect = new Error("bad string");
             const error = await registry.resolve(PRECONFIGURED_CONNECTION_ID).catch((e: unknown) => e);
             expect((error as MongoDBError).code).toBe(ErrorCodes.MisconfiguredConnectionString);
+            expect((error as MongoDBError).message).toBe("bad string");
             expect((await registry.peek(PRECONFIGURED_CONNECTION_ID))?.lastError).toBe("bad string");
         });
     });
