@@ -283,12 +283,7 @@ describe("drop-index tool", () => {
                         mode: "form",
                         requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
                     },
-                    {
-                        timeout: 300000,
-                        relatedRequestId: expect.anything() as unknown,
-                        signal: expect.anything() as unknown,
-                    }
-                );
+                                    );
                 expect(await getMoviesCollection().listIndexes().toArray()).toHaveLength(1);
             });
 
@@ -315,12 +310,7 @@ describe("drop-index tool", () => {
                         mode: "form",
                         requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
                     },
-                    {
-                        timeout: 300000,
-                        relatedRequestId: expect.anything() as unknown,
-                        signal: expect.anything() as unknown,
-                    }
-                );
+                                    );
                 expect(await getMoviesCollection().listIndexes().toArray()).toHaveLength(2);
             });
         },
@@ -567,12 +557,7 @@ describe("drop-index tool", () => {
                             mode: "form",
                             requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
                         },
-                        {
-                            timeout: 300000,
-                            relatedRequestId: expect.anything() as unknown,
-                            signal: expect.anything() as unknown,
-                        }
-                    );
+                                            );
 
                     expect(dropSearchIndexSpy).toHaveBeenCalledExactlyOnceWith("mflix", "movies", getIndexName());
                 });
@@ -599,12 +584,7 @@ describe("drop-index tool", () => {
                             mode: "form",
                             requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
                         },
-                        {
-                            timeout: 300000,
-                            relatedRequestId: expect.anything() as unknown,
-                            signal: expect.anything() as unknown,
-                        }
-                    );
+                                            );
                     expect(dropSearchIndexSpy).not.toHaveBeenCalled();
                 });
             },

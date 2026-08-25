@@ -64,6 +64,15 @@ export type ToolExecutionContext = {
     /** Send an MCP server notification. */
     sendNotification?: (notification: unknown) => Promise<void>;
     /**
+     * Responses to a previous `input_required` round (protocol revision
+     * 2026-07-28 multi-round-trip requests). Present only when this request
+     * is a client retry carrying the answers to elicitation/sampling/roots
+     * requests the handler returned as `inputRequired(...)`. Keyed by the
+     * server-assigned identifiers of the embedded requests. Values are
+     * untrusted client input.
+     */
+    inputResponses?: Record<string, unknown>;
+    /**
      * Total time spent waiting for the user to answer elicitation requests
      * raised while handling this call. Accumulated by
      * `ToolBase.requestConfirmation` and subtracted from the tool execution

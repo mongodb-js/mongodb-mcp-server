@@ -210,7 +210,6 @@ describe("CliServer integration test", () => {
         const mcpServerInstance = new McpServer({ name: "test", version: "1.0" });
         const elicitation = new Elicitation({
             server: mcpServerInstance.server,
-            timeoutMs: config.elicitationTimeoutMs,
         });
 
         const server = new CliServer({

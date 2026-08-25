@@ -117,7 +117,6 @@ export function createServerFromConfig({
 
     const elicitation = new Elicitation({
         server: mcpServer.server,
-        timeoutMs: config.elicitationTimeoutMs,
     });
 
     const session = new Session({

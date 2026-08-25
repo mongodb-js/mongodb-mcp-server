@@ -1,8 +1,7 @@
 import { z } from "zod";
 import { StreamsToolBase } from "../../streams/streamsToolBase.js";
-import type { CallToolResult, OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
-import type { ElicitRequestFormParams } from "@modelcontextprotocol/server";
-import type { ToolArgs } from "@mongodb-js/mcp-core";
+import type { CallToolResult, OperationType, ToolExecutionContext, ElicitRequestSchema } from "@mongodb-js/mcp-types";
+import type { ToolArgs, InputRequiredResult } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
 import { ConnectionConfig, PrivateLinkConfig, StreamsArgs } from "../../streams/streamsArgs.js";
 
@@ -217,7 +216,7 @@ export class StreamsBuildTool extends StreamsToolBase {
     protected async execute(
         args: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
-    ): Promise<CallToolResult> {
+    ): Promise<CallToolResult | InputRequiredResult> {
         switch (args.resource) {
             case "workspace":
                 return this.createWorkspace(args, context);
@@ -305,7 +304,7 @@ export class StreamsBuildTool extends StreamsToolBase {
     private async createConnection(
         args: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
-    ): Promise<CallToolResult> {
+    ): Promise<CallToolResult | InputRequiredResult> {
         const workspaceName = this.requireWorkspaceName(args);
         if (!args.connectionName) {
             throw new Error("connectionName is required when adding a connection.");
@@ -368,7 +367,7 @@ export class StreamsBuildTool extends StreamsToolBase {
         config: Record<string, unknown>,
         connectionType: string,
         context: ToolExecutionContext
-    ): Promise<CallToolResult | null> {
+    ): Promise<CallToolResult | InputRequiredResult | null> {
         switch (connectionType) {
             case "Kafka":
                 return this.validateKafkaConfig(config, context);
@@ -390,7 +389,7 @@ export class StreamsBuildTool extends StreamsToolBase {
     private async validateKafkaConfig(
         config: Record<string, unknown>,
         context: ToolExecutionContext
-    ): Promise<CallToolResult | null> {
+    ): Promise<CallToolResult | InputRequiredResult | null> {
         const auth = config.authentication as Record<string, unknown> | undefined;
         const security = config.security as Record<string, unknown> | undefined;
 
@@ -422,7 +421,7 @@ export class StreamsBuildTool extends StreamsToolBase {
     private async validateClusterConfig(
         config: Record<string, unknown>,
         context: ToolExecutionContext
-    ): Promise<CallToolResult | null> {
+    ): Promise<CallToolResult | InputRequiredResult | null> {
         const missingFields = StreamsBuildTool.collectMissingFields([
             { key: "clusterName", present: !!config.clusterName, schema: CLUSTER_FIELDS.clusterName },
         ]);
@@ -445,7 +444,7 @@ export class StreamsBuildTool extends StreamsToolBase {
         config: Record<string, unknown>,
         connectionType: string,
         context: ToolExecutionContext
-    ): Promise<CallToolResult | null> {
+    ): Promise<CallToolResult | InputRequiredResult | null> {
         const aws = config.aws as Record<string, unknown> | undefined;
 
         const missingFields = StreamsBuildTool.collectMissingFields([
@@ -476,7 +475,7 @@ export class StreamsBuildTool extends StreamsToolBase {
     private async validateSchemaRegistryConfig(
         config: Record<string, unknown>,
         context: ToolExecutionContext
-    ): Promise<CallToolResult | null> {
+    ): Promise<CallToolResult | InputRequiredResult | null> {
         // Normalize common alternative key names for schemaRegistryUrls
         if (!config.schemaRegistryUrls) {
             const alt = config.url || config.urls || config.endpoint || config.schemaRegistryUrl;
@@ -552,7 +551,7 @@ export class StreamsBuildTool extends StreamsToolBase {
     private async validateHttpsConfig(
         config: Record<string, unknown>,
         context: ToolExecutionContext
-    ): Promise<CallToolResult | null> {
+    ): Promise<CallToolResult | InputRequiredResult | null> {
         const missingFields = StreamsBuildTool.collectMissingFields([
             { key: "url", present: !!config.url, schema: HTTPS_FIELDS.url },
         ]);
@@ -573,6 +572,14 @@ export class StreamsBuildTool extends StreamsToolBase {
      * client supports it, shows a single form with every missing field. If not
      * (or the user declines), returns a structured response listing what's needed.
      */
+    /**
+     * Identifier under which a `createConnection` elicitation's answers
+     * arrive in `inputResponses` (multi-round-trip, protocol revision
+     * 2026-07-28). One validator runs per connection type, so a single key
+     * suffices.
+     */
+    private static readonly ELICIT_INPUT_KEY = "connection-fields";
+
     private async elicitOrReportMissing(
         connectionType: string,
         config: Record<string, unknown>,
@@ -580,32 +587,33 @@ export class StreamsBuildTool extends StreamsToolBase {
         context: ToolExecutionContext,
         applyFields: (fields: Record<string, string>, config: Record<string, unknown>) => void,
         additionalNote?: string
-    ): Promise<CallToolResult | null> {
+    ): Promise<CallToolResult | InputRequiredResult | null> {
         const schema = StreamsBuildTool.buildElicitationSchema(connectionType, missingFields);
 
-        const elicited = await this.elicitation.requestInput(
-            `The following information is required to create the ${connectionType} connection.`,
-            schema,
-            {
-                relatedRequestId: this.elicitationRelatedRequestId(context),
-                progressToken: context._meta?.progressToken,
-                sendNotification: context.sendNotification,
-                signal: context.signal,
-            }
-        );
+        // Re-entry: apply the answers from the previous `input_required` round
+        // (if any) instead of eliciting again.
+        const elicited = this.elicitation.readInput(context.inputResponses, StreamsBuildTool.ELICIT_INPUT_KEY);
+        if (elicited !== undefined) {
+            if (elicited.accepted) {
+                applyFields(elicited.fields, config);
 
-        if (elicited.accepted) {
-            applyFields(elicited.fields, config);
-
-            // Re-check: did the user leave any fields empty in the form?
-            const stillMissing = missingFields.filter((f) => !elicited.fields[f.key]);
-            if (stillMissing.length > 0) {
-                return StreamsBuildTool.missingFieldsResponse(connectionType, stillMissing, additionalNote);
+                // Re-check: did the user leave any fields empty in the form?
+                const stillMissing = missingFields.filter((f) => !elicited.fields[f.key]);
+                if (stillMissing.length > 0) {
+                    return StreamsBuildTool.missingFieldsResponse(connectionType, stillMissing, additionalNote);
+                }
+                return null;
             }
-            return null;
+
+            return StreamsBuildTool.missingFieldsResponse(connectionType, missingFields, additionalNote);
         }
 
-        return StreamsBuildTool.missingFieldsResponse(connectionType, missingFields, additionalNote);
+        // First entry: ask for the missing fields.
+        return this.elicitation.inputRequired(
+            StreamsBuildTool.ELICIT_INPUT_KEY,
+            `The following information is required to create the ${connectionType} connection.`,
+            schema
+        );
     }
 
     private static collectMissingFields(
@@ -617,7 +625,7 @@ export class StreamsBuildTool extends StreamsToolBase {
     private static buildElicitationSchema(
         _connectionType: string,
         missingFields: MissingField[]
-    ): ElicitRequestFormParams["requestedSchema"] {
+    ): ElicitRequestSchema {
         const properties: Record<string, { type: "string"; title: string; description: string }> = {};
         for (const field of missingFields) {
             properties[field.key] = {

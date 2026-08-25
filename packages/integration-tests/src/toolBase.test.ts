@@ -39,7 +39,8 @@ describe("ToolBase", () => {
     let mockConfig: UserConfig;
     let mockAtlasTelemetry: AtlasTelemetry;
     let mockElicitation: Elicitation;
-    let mockRequestConfirmation: MockedFunction<Elicitation["requestConfirmation"]>;
+    let mockReadConfirmation: MockedFunction<Elicitation["readConfirmation"]>;
+    let mockConfirmationRequired: MockedFunction<Elicitation["confirmationRequired"]>;
     let testTool: TestTool;
     let mockMetrics: MockMetrics;
 
@@ -69,9 +70,11 @@ describe("ToolBase", () => {
             emitEvents: vi.fn(),
         } as unknown as AtlasTelemetry;
 
-        mockRequestConfirmation = vi.fn();
+        mockReadConfirmation = vi.fn();
+        mockConfirmationRequired = vi.fn();
         mockElicitation = {
-            requestConfirmation: mockRequestConfirmation,
+            readConfirmation: mockReadConfirmation,
+            confirmationRequired: mockConfirmationRequired,
         } as unknown as Elicitation;
 
         mockMetrics = new MockMetrics();
@@ -97,7 +100,7 @@ describe("ToolBase", () => {
             const result = await testTool["invoke"]({ param1: "test" }, { signal: new AbortController().signal });
 
             expect(result.content).toEqual([{ type: "text", text: "Test tool executed successfully" }]);
-            expect(mockRequestConfirmation).not.toHaveBeenCalled();
+            expect(mockReadConfirmation).not.toHaveBeenCalled();
         });
 
         it("does not ask when the confirmationRequiredTools list is empty", async () => {
@@ -106,34 +109,44 @@ describe("ToolBase", () => {
             const result = await testTool["invoke"]({ param1: "test" }, { signal: new AbortController().signal });
 
             expect(result.content).toEqual([{ type: "text", text: "Test tool executed successfully" }]);
-            expect(mockRequestConfirmation).not.toHaveBeenCalled();
+            expect(mockReadConfirmation).not.toHaveBeenCalled();
         });
 
-        it("asks with the tool's confirmation message when the tool is in the list", async () => {
+        it("requests confirmation (inputRequired) when the tool is in the list and no answer arrived yet", async () => {
             mockConfig.confirmationRequiredTools = ["test-tool"];
-            mockRequestConfirmation.mockResolvedValue(true);
+            mockReadConfirmation.mockReturnValue(undefined);
+            const expected = { resultType: "input_required", inputRequests: {} };
+            mockConfirmationRequired.mockReturnValue(expected as never);
 
             const result = await testTool["invoke"](
                 { param1: "test", param2: 42 },
                 { signal: new AbortController().signal }
             );
 
-            expect(result.content).toEqual([{ type: "text", text: "Test tool executed successfully" }]);
-            expect(mockRequestConfirmation).toHaveBeenCalledTimes(1);
-            expect(mockRequestConfirmation).toHaveBeenCalledWith(
-                "You are about to execute the `test-tool` tool which requires additional confirmation. Would you like to proceed?",
-                {
-                    relatedRequestId: undefined,
-                    progressToken: undefined,
-                    sendNotification: undefined,
-                    signal: expect.any(AbortSignal) as AbortSignal,
-                }
+            expect(result).toEqual(expected);
+            expect(mockReadConfirmation).toHaveBeenCalledTimes(1);
+            expect(mockReadConfirmation).toHaveBeenCalledWith(undefined);
+            expect(mockConfirmationRequired).toHaveBeenCalledWith(
+                "You are about to execute the `test-tool` tool which requires additional confirmation. Would you like to proceed?"
             );
+        });
+
+        it("proceeds when the user confirmed", async () => {
+            mockConfig.confirmationRequiredTools = ["test-tool"];
+            mockReadConfirmation.mockReturnValue(true);
+
+            const result = await testTool["invoke"](
+                { param1: "test", param2: 42 },
+                { signal: new AbortController().signal, inputResponses: { confirmation: {} } }
+            );
+
+            expect(result.content).toEqual([{ type: "text", text: "Test tool executed successfully" }]);
+            expect(mockReadConfirmation).toHaveBeenCalledWith({ confirmation: {} });
         });
 
         it("records the outcome of a declined confirmation", async () => {
             mockConfig.confirmationRequiredTools = ["test-tool"];
-            mockRequestConfirmation.mockResolvedValue(false);
+            mockReadConfirmation.mockReturnValue(false);
 
             const result = await testTool["invoke"]({ param1: "test" }, { signal: new AbortController().signal });
 
@@ -155,7 +168,7 @@ describe("ToolBase", () => {
 
         it("does not run the tool when the user declines", async () => {
             mockConfig.confirmationRequiredTools = ["test-tool"];
-            mockRequestConfirmation.mockResolvedValue(false);
+            mockReadConfirmation.mockReturnValue(false);
 
             const result = await testTool["invoke"]({ param1: "test" }, { signal: new AbortController().signal });
 
@@ -166,78 +179,32 @@ describe("ToolBase", () => {
                     text: "User did not confirm the execution of the `test-tool` tool so the operation was not performed.",
                 },
             ]);
-            expect(mockRequestConfirmation).toHaveBeenCalledTimes(1);
+            expect(mockReadConfirmation).toHaveBeenCalledTimes(1);
         });
     });
 
     describe("requestConfirmation", () => {
-        it("requests confirmation regardless of the confirmationRequiredTools list", async () => {
-            mockConfig.confirmationRequiredTools = [];
-            mockRequestConfirmation.mockResolvedValue(true);
+        it("reads the confirmation answer from the execution context's inputResponses", async () => {
+            mockReadConfirmation.mockReturnValue(true);
 
             const context: ToolExecutionContext = { signal: new AbortController().signal, requestId: 7 };
             const result = await testTool["requestConfirmation"]("Custom message", context);
 
             expect(result).toBe(true);
-            expect(mockRequestConfirmation).toHaveBeenCalledWith("Custom message", {
-                relatedRequestId: 7,
-                progressToken: undefined,
-                sendNotification: undefined,
-                signal: context.signal,
-            });
+            expect(mockReadConfirmation).toHaveBeenCalledWith(undefined);
         });
 
-        it("passes the progress heartbeat inputs from the execution context", async () => {
-            mockRequestConfirmation.mockResolvedValue(true);
-            const sendNotification = vi.fn();
-
+        it("passes inputResponses to the read helper", async () => {
+            mockReadConfirmation.mockReturnValue(undefined);
             const context: ToolExecutionContext = {
                 signal: new AbortController().signal,
                 requestId: 42,
-                _meta: { progressToken: "progress-token" },
-                sendNotification,
+                inputResponses: { confirmation: { action: "accept", content: { confirmation: "Yes" } } },
             };
-            await testTool["requestConfirmation"]("confirm?", context);
+            const result = await testTool["requestConfirmation"]("confirm?", context);
 
-            expect(mockRequestConfirmation).toHaveBeenCalledWith("confirm?", {
-                relatedRequestId: 42,
-                progressToken: "progress-token",
-                sendNotification,
-                signal: context.signal,
-            });
-        });
-
-        it("does not relate the confirmation request to the tool call in JSON response mode", async () => {
-            // In JSON response mode the in-flight POST cannot carry server->client
-            // messages, so the confirmation must use the standalone SSE stream.
-            mockConfig.httpResponseType = "json";
-            mockRequestConfirmation.mockResolvedValue(true);
-
-            const context: ToolExecutionContext = { signal: new AbortController().signal, requestId: 42 };
-            await testTool["requestConfirmation"]("confirm?", context);
-
-            expect(mockRequestConfirmation).toHaveBeenCalledWith("confirm?", {
-                relatedRequestId: undefined,
-                signal: context.signal,
-            });
-        });
-
-        it("accumulates the time spent waiting on the execution context", async () => {
-            vi.useFakeTimers();
-            try {
-                mockRequestConfirmation.mockImplementation(() => {
-                    vi.advanceTimersByTime(5000);
-                    return Promise.resolve(true);
-                });
-
-                const context: ToolExecutionContext = { signal: new AbortController().signal };
-                await testTool["requestConfirmation"]("first", context);
-                await testTool["requestConfirmation"]("second", context);
-
-                expect(context.elicitationDurationMs).toBe(10_000);
-            } finally {
-                vi.useRealTimers();
-            }
+            expect(result).toBeUndefined();
+            expect(mockReadConfirmation).toHaveBeenCalledWith(context.inputResponses);
         });
     });
 
@@ -255,7 +222,7 @@ describe("ToolBase", () => {
         }
 
         it("runs the operation when the user confirms", async () => {
-            mockRequestConfirmation.mockResolvedValue(true);
+            mockReadConfirmation.mockReturnValue(true);
 
             const result = await createConfirmingTool()["invoke"]({}, { signal: new AbortController().signal });
 
@@ -264,7 +231,7 @@ describe("ToolBase", () => {
         });
 
         it("aborts the operation when the user declines", async () => {
-            mockRequestConfirmation.mockResolvedValue(false);
+            mockReadConfirmation.mockReturnValue(false);
 
             const result = await createConfirmingTool()["invoke"]({}, { signal: new AbortController().signal });
 
@@ -275,10 +242,7 @@ describe("ToolBase", () => {
         it("excludes the time the user spent deciding from the duration metric", async () => {
             vi.useFakeTimers();
             try {
-                mockRequestConfirmation.mockImplementation(() => {
-                    vi.advanceTimersByTime(5000);
-                    return Promise.resolve(true);
-                });
+                mockReadConfirmation.mockReturnValue(true);
 
                 const result = await createConfirmingTool()["invoke"]({}, { signal: new AbortController().signal });
                 expect(result.content).toEqual([{ type: "text", text: "executed" }]);

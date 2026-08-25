@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { AggregationCursor } from "mongodb";
+import type { InputRequiredResult } from "@mongodb-js/mcp-core";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { ConnectionIdArgs, DBOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
@@ -55,7 +56,7 @@ export class AggregateDBTool extends MongoDBToolBase {
     protected async execute(
         { connectionId, database, pipeline, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+    ): Promise<ToolResult<typeof this.outputSchema> | InputRequiredResult> {
         const { signal } = context;
         let aggregationCursor: AggregationCursor | undefined = undefined;
         try {
@@ -69,7 +70,10 @@ export class AggregateDBTool extends MongoDBToolBase {
 
             const writeStageTargets = getWriteStageTargets(pipeline, database);
             if (writeStageTargets.length > 0) {
-                await this.confirmWriteStages(writeStageTargets, context);
+                const writeConfirmation = await this.confirmWriteStages(writeStageTargets, context);
+                if (writeConfirmation) {
+                    return writeConfirmation;
+                }
 
                 // This is a write pipeline, so special-case it and don't attempt to apply limits or caps
                 aggregationCursor = provider.aggregateDb(database, pipeline, {

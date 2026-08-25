@@ -58,7 +58,15 @@ function extractToolInformation(): ToolInfo[] {
                 emitEvents: () => {},
             } as never,
             elicitation: {
-                requestConfirmation: () => Promise.resolve(false),
+                supportsElicitation: () => false,
+                confirmationRequired: () => {
+                    throw new Error("not implemented");
+                },
+                readConfirmation: () => undefined,
+                inputRequired: () => {
+                    throw new Error("not implemented");
+                },
+                readInput: () => undefined,
             } as never,
             uiRegistry: new UIRegistry(),
             metrics,
