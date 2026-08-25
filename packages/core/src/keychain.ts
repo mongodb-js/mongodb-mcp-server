@@ -44,7 +44,7 @@ export class Keychain implements IKeychain {
      * substitutes.
      */
     redact<T>(value: T): T {
-        return redactDeep(value, this.effectiveSecrets()) as T;
+        return redactDeep(value, this.effectiveSecrets(), new WeakSet()) as T;
     }
 
     private effectiveSecrets(): Secret[] {
@@ -61,35 +61,51 @@ export class Keychain implements IKeychain {
 }
 
 /**
- * Recursively redacts `secrets` from every string reachable from `value`.
+ * Recursively redacts `secrets` from the strings in `value`.
  *
  * mongodb-redact's own `redact` only descends into plain objects and arrays, so a secret held in
  * a class instance field would survive it. This walks non-plain objects too, but rebuilds them on
  * their original prototype and only when a nested value actually changed - so a `Date`, `Buffer`
  * or `Map` is returned as-is rather than being flattened into a bare object, and the caller's
  * value is never mutated.
+ *
+ * `ancestors` tracks the objects currently being walked so a self-referencing value terminates
+ * instead of recursing until the stack gives out.
  */
-function redactDeep(value: unknown, secrets: Secret[]): unknown {
+function redactDeep(value: unknown, secrets: Secret[], ancestors: WeakSet<object>): unknown {
     if (typeof value === "string") {
         return redactValue(value, secrets);
-    }
-
-    if (Array.isArray(value)) {
-        const items = value.map((item) => redactDeep(item, secrets));
-        return items.some((item, index) => item !== value[index]) ? items : value;
     }
 
     if (typeof value !== "object" || value === null) {
         return value;
     }
 
-    const entries = Object.entries(value);
-    const redacted = entries.map(([key, entry]) => [key, redactDeep(entry, secrets)] as const);
-    if (redacted.every(([, entry], index) => entry === entries[index]?.[1])) {
+    // Hand back the original reference at the point a cycle closes. Redacting it again would not
+    // reach anything new, since the value is already being walked further up the stack.
+    if (ancestors.has(value)) {
         return value;
     }
+    ancestors.add(value);
 
-    return Object.setPrototypeOf(Object.fromEntries(redacted), Object.getPrototypeOf(value) as object | null);
+    try {
+        if (Array.isArray(value)) {
+            const items = value.map((item) => redactDeep(item, secrets, ancestors));
+            return items.some((item, index) => item !== value[index]) ? items : value;
+        }
+
+        const entries = Object.entries(value);
+        const redacted = entries.map(([key, entry]) => [key, redactDeep(entry, secrets, ancestors)] as const);
+        if (redacted.every(([, entry], index) => entry === entries[index]?.[1])) {
+            return value;
+        }
+
+        return Object.setPrototypeOf(Object.fromEntries(redacted), Object.getPrototypeOf(value) as object | null);
+    } finally {
+        // Only ancestors block recursion; a value referenced twice from different branches is
+        // not a cycle and must still be redacted on the second visit.
+        ancestors.delete(value);
+    }
 }
 
 export function registerGlobalSecretToRedact(value: Secret["value"], kind: Secret["kind"]): void {

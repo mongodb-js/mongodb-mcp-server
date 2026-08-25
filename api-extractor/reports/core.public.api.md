@@ -323,7 +323,7 @@ export { McpServer }
 // @public
 export class NoopLogger extends LoggerBase {
     // (undocumented)
-    log(): void;
+    log(_level: LogLevel, _payload: LogPayload): void;
 }
 
 // @public

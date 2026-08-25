@@ -865,7 +865,7 @@ export function nameToConfigKey(mode: "header" | "query", name: string): string 
 // @public
 export class NoopLogger extends LoggerBase {
     // (undocumented)
-    log(): void;
+    log(_level: LogLevel, _payload: LogPayload): void;
 }
 
 // @public (undocumented)

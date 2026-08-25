@@ -139,6 +139,34 @@ describe("Keychain", () => {
             expect(input.creds.password).toBe(SECRET);
         });
 
+        it("terminates on a self-referencing value", () => {
+            const input: Record<string, unknown> = { password: SECRET };
+            input.self = input;
+
+            const result = keychain.redact(input);
+
+            expect(result.password).toBe("<password>");
+            expect(result.self).toBe(input);
+        });
+
+        it("terminates on a cycle that closes through an array", () => {
+            const input: { password: string; children: unknown[] } = { password: SECRET, children: [] };
+            input.children.push(input);
+
+            const result = keychain.redact(input);
+
+            expect(result.password).toBe("<password>");
+        });
+
+        it("redacts a value referenced twice from different branches", () => {
+            const shared = { password: SECRET };
+            const result = keychain.redact({ a: shared, b: shared });
+
+            // Sharing is not a cycle: both branches must still be redacted.
+            expect(result.a.password).toBe("<password>");
+            expect(result.b.password).toBe("<password>");
+        });
+
         it("produces output that remains valid JSON", () => {
             const output = JSON.stringify(
                 keychain.redact({ connectionString: `mongodb://user:${SECRET}@localhost:27017` })
