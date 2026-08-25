@@ -55,8 +55,13 @@ describe("ListOrganizationsTool", () => {
     });
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    const exec = (args: Record<string, unknown> = { limit: 10, pageNum: 1 }) =>
-        tool["execute"](args as never, { signal: new AbortController().signal });
+    const exec = (args: Record<string, unknown> = {}) =>
+        tool["execute"](
+            { limit: 10, pageNum: 1, includeCount: false, ...args },
+            {
+                signal: new AbortController().signal,
+            }
+        );
 
     it("returns organizations when they exist", async () => {
         mockApiClient.listOrgs!.mockResolvedValue({
@@ -87,10 +92,21 @@ describe("ListOrganizationsTool", () => {
         );
     });
 
-    it("calls listOrgs API with includeCount", async () => {
+    it("does not request includeCount from the API by default", async () => {
         mockApiClient.listOrgs!.mockResolvedValue({ results: [], totalCount: 0 });
 
         await exec();
+
+        expect(mockApiClient.listOrgs).toHaveBeenCalledWith(
+            { params: { query: { itemsPerPage: 10, pageNum: 1, includeCount: false } } },
+            expect.anything()
+        );
+    });
+
+    it("requests includeCount from the API when the caller opts in", async () => {
+        mockApiClient.listOrgs!.mockResolvedValue({ results: [], totalCount: 0 });
+
+        await exec({ includeCount: true });
 
         expect(mockApiClient.listOrgs).toHaveBeenCalledWith(
             { params: { query: { itemsPerPage: 10, pageNum: 1, includeCount: true } } },
@@ -108,7 +124,7 @@ describe("ListOrganizationsTool", () => {
         await exec(parsedArgs);
 
         expect(mockApiClient.listOrgs).toHaveBeenCalledWith(
-            { params: { query: { itemsPerPage: 10, pageNum: 1, includeCount: true } } },
+            { params: { query: { itemsPerPage: 10, pageNum: 1, includeCount: false } } },
             expect.anything()
         );
     });
@@ -119,7 +135,7 @@ describe("ListOrganizationsTool", () => {
         await exec({ limit: 10, pageNum: 3 });
 
         expect(mockApiClient.listOrgs).toHaveBeenCalledWith(
-            { params: { query: { itemsPerPage: 10, pageNum: 3, includeCount: true } } },
+            { params: { query: { itemsPerPage: 10, pageNum: 3, includeCount: false } } },
             expect.anything()
         );
     });
@@ -221,6 +237,20 @@ describe("ListOrganizationsTool", () => {
                 ],
                 totalCount: 2,
             });
+
+            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+            expect(text).not.toContain("pagination");
+        });
+
+        it("suggests pagination on a full page when totalCount is missing", async () => {
+            mockApiClient.listOrgs!.mockResolvedValue({
+                results: Array.from({ length: 10 }, (_, i) => ({ name: `Org ${i}`, id: `org-${i}` })),
+            });
+
+            const result = await exec({ limit: 10 });
+
+            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+            expect(text).toContain("Use pagination arguments if more results are expected.");
         });
 
         it("returns totalCount 0 when no organizations are found", async () => {
