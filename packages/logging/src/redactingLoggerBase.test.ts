@@ -6,7 +6,7 @@ import { ConsoleLogger } from "./consoleLogger.js";
 import { McpLogger } from "./mcpLogger.js";
 import { Keychain } from "@mongodb-js/mcp-core";
 
-describe("LoggerBase redaction", () => {
+describe("RedactingLoggerBase redaction", () => {
     let consoleErrorSpy: MockInstance<typeof console.error>;
     let consoleLogger: ConsoleLogger;
     let keychain: Keychain;

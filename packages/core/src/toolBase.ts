@@ -25,8 +25,6 @@ import { requestIdAttr } from "./helpers/requestIdAttr.js";
 
 import { LogId } from "./logId.js";
 
-import { redact } from "mongodb-redact";
-
 export type ToolArgs<T extends ZodRawShape> = {
     [K in keyof T]: z.infer<T[K]>;
 };
@@ -911,7 +909,7 @@ export abstract class ToolBase<
         args: z.infer<z.ZodObject<typeof this.argsShape>>
     ): Promise<CallToolResult> | CallToolResult {
         const rawMessage = error instanceof Error ? error.message : String(error);
-        const safeMessage = redact(rawMessage, this.session.keychain.allSecrets);
+        const safeMessage = this.session.keychain.redact(rawMessage);
         return {
             content: [
                 {

@@ -1,4 +1,4 @@
-import { redact } from "mongodb-redact";
+import { redact as redactValue } from "mongodb-redact";
 import type { Secret } from "mongodb-redact";
 import type { IKeychain } from "@mongodb-js/mcp-types";
 
@@ -12,6 +12,9 @@ export type { Secret } from "mongodb-redact";
  * Whenever we identify or create a secret (for example, Atlas login, CLI arguments...) we
  * should register them in the root Keychain (`Keychain.root.register`) or preferably
  * on the session keychain if available `this.session.keychain`.
+ *
+ * Secrets are never handed out: the only way to act on them is {@link Keychain.redact}, so no
+ * consumer can accidentally leak them by holding onto the raw values.
  **/
 export class Keychain implements IKeychain {
     private secrets: Secret[];
@@ -33,29 +36,62 @@ export class Keychain implements IKeychain {
         this.secrets = [];
     }
 
-    get allSecrets(): Secret[] {
-        return [...this.secrets];
+    /**
+     * Recursively redacts the secrets registered on this keychain - and on the root keychain,
+     * which acts as a backstop for server-wide secrets - from every string reachable from
+     * `value`, leaving the structure intact. Redaction is applied per-value (not on serialized
+     * JSON) so it can never corrupt the resulting JSON, regardless of what the redactor
+     * substitutes.
+     */
+    redact<T>(value: T): T {
+        return redactDeep(value, this.effectiveSecrets()) as T;
     }
+
+    private effectiveSecrets(): Secret[] {
+        const root = Keychain.rootKeychain;
+        if (this === root) {
+            return this.secrets;
+        }
+
+        const inherited = root.secrets.filter(
+            (rootSecret) => !this.secrets.some((secret) => secret.value === rootSecret.value)
+        );
+        return [...this.secrets, ...inherited];
+    }
+}
+
+/**
+ * Recursively redacts `secrets` from every string reachable from `value`.
+ *
+ * mongodb-redact's own `redact` only descends into plain objects and arrays, so a secret held in
+ * a class instance field would survive it. This walks non-plain objects too, but rebuilds them on
+ * their original prototype and only when a nested value actually changed - so a `Date`, `Buffer`
+ * or `Map` is returned as-is rather than being flattened into a bare object, and the caller's
+ * value is never mutated.
+ */
+function redactDeep(value: unknown, secrets: Secret[]): unknown {
+    if (typeof value === "string") {
+        return redactValue(value, secrets);
+    }
+
+    if (Array.isArray(value)) {
+        const items = value.map((item) => redactDeep(item, secrets));
+        return items.some((item, index) => item !== value[index]) ? items : value;
+    }
+
+    if (typeof value !== "object" || value === null) {
+        return value;
+    }
+
+    const entries = Object.entries(value);
+    const redacted = entries.map(([key, entry]) => [key, redactDeep(entry, secrets)] as const);
+    if (redacted.every(([, entry], index) => entry === entries[index]?.[1])) {
+        return value;
+    }
+
+    return Object.setPrototypeOf(Object.fromEntries(redacted), Object.getPrototypeOf(value) as object | null);
 }
 
 export function registerGlobalSecretToRedact(value: Secret["value"], kind: Secret["kind"]): void {
     Keychain.root.register(value, kind);
-}
-
-/**
- * Recursively redacts registered secrets from every string value of a value, leaving the structure
- * intact. Redaction is applied per-value (not on serialized JSON) so it can never corrupt the
- * resulting JSON, regardless of what the redactor substitutes.
- */
-export function redactValues(value: unknown, secrets: Secret[]): unknown {
-    if (typeof value === "string") {
-        return redact(value, secrets);
-    }
-    if (Array.isArray(value)) {
-        return value.map((item) => redactValues(item, secrets));
-    }
-    if (value && typeof value === "object") {
-        return Object.fromEntries(Object.entries(value).map(([key, val]) => [key, redactValues(val, secrets)]));
-    }
-    return value;
 }

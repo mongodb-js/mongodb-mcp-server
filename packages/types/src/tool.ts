@@ -1,7 +1,7 @@
 import { type CallToolResult, type RequestMeta } from "@modelcontextprotocol/sdk/types.js";
 export type { CallToolResult };
-import type { Secret } from "mongodb-redact";
 import type { IToolConfig } from "./config.js";
+import type { IKeychain } from "./keychain.js";
 import type { ICompositeLogger } from "./logging.js";
 
 /**
@@ -13,8 +13,8 @@ import type { ICompositeLogger } from "./logging.js";
 export interface IToolSession {
     readonly config: IToolConfig;
     readonly logger: ICompositeLogger;
-    /** Secrets registered for redaction (used by ToolBase error handling). */
-    readonly keychain: { readonly allSecrets: Secret[] };
+    /** Redacts registered secrets from a value (used by ToolBase error handling). */
+    readonly keychain: Pick<IKeychain, "redact">;
 }
 
 /**

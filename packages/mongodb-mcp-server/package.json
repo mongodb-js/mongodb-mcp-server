@@ -99,8 +99,7 @@
     "@mongodb-js/mcp-tools-mongodb": "workspace:*",
     "@mongodb-js/mcp-types": "workspace:*",
     "@mongodb-js/mcp-ui": "workspace:*",
-    "@mongosh/service-provider-node-driver": "^5.0.2",
-    "mongodb-redact": "^1.4.6"
+    "@mongosh/service-provider-node-driver": "^5.0.2"
   },
   "engines": {
     "node": "^20.19.0 || ^22.13.0 || >= 24.0.0"
