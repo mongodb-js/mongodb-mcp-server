@@ -1,7 +1,7 @@
 import { type CallToolResult, type RequestMeta } from "@modelcontextprotocol/sdk/types.js";
 export type { CallToolResult };
 import type { IToolConfig } from "./config.js";
-import type { IKeychain } from "./keychain.js";
+import type { IRedactor } from "./keychain.js";
 import type { ICompositeLogger } from "./logging.js";
 
 /**
@@ -14,7 +14,7 @@ export interface IToolSession {
     readonly config: IToolConfig;
     readonly logger: ICompositeLogger;
     /** Redacts registered secrets from a value (used by ToolBase error handling). */
-    readonly keychain: Pick<IKeychain, "redact">;
+    readonly keychain: IRedactor;
 }
 
 /**

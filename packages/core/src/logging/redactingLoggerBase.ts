@@ -1,7 +1,7 @@
 import type {
     DefaultEventMap,
     EventMap,
-    IKeychain,
+    IRedactor,
     LoggerConfig,
     LoggerType,
     LogLevel,
@@ -15,7 +15,7 @@ import { LoggerBase } from "./loggerBase.js";
  * one without the means to do it.
  */
 export abstract class RedactingLoggerBase<T extends EventMap<T> = DefaultEventMap> extends LoggerBase<T> {
-    private readonly keychain: IKeychain;
+    private readonly keychain: IRedactor;
 
     constructor(options: LoggerConfig) {
         super();
@@ -47,11 +47,9 @@ export abstract class RedactingLoggerBase<T extends EventMap<T> = DefaultEventMa
         if (!attributes) {
             return undefined;
         }
-        const redacted: Record<string, string> = {};
-        for (const [key, value] of Object.entries(attributes)) {
-            redacted[key] = this.redactIfNecessary(value, noRedaction);
-        }
-        return redacted;
+        return Object.fromEntries(
+            Object.entries(attributes).map(([key, value]) => [key, this.redactIfNecessary(value, noRedaction)])
+        );
     }
 
     private redactIfNecessary(message: string, noRedaction: LogPayload["noRedaction"]): string {

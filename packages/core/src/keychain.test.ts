@@ -165,6 +165,16 @@ describe("Keychain", () => {
             // Sharing is not a cycle: both branches must still be redacted.
             expect(result.a.password).toBe("<password>");
             expect(result.b.password).toBe("<password>");
+            // ...and sharing in the input stays sharing in the output, redacted once.
+            expect(result.a).toBe(result.b);
+        });
+
+        it("leaves Map and Set contents untouched", () => {
+            const result = keychain.redact({ map: new Map([["k", SECRET]]), set: new Set([SECRET]) });
+
+            // Documented limitation: their contents are not own properties, so they are not walked.
+            expect(result.map.get("k")).toBe(SECRET);
+            expect(result.set.has(SECRET)).toBe(true);
         });
 
         it("produces output that remains valid JSON", () => {
