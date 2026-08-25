@@ -43,7 +43,7 @@
     "@mongodb-js/mcp-test-utils": "workspace:*",
     "@types/node": "^25.6.0",
     "typescript": "^5.9.2",
-    "vitest": "^4.1.5"
+    "vitest": "^4.1.10"
   },
   "publishConfig": {
     "access": "public"
