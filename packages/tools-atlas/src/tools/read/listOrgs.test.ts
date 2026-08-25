@@ -64,19 +64,20 @@ describe("ListOrganizationsTool", () => {
                 { name: "Org A", id: "org-a" },
                 { name: "Org B", id: "org-b" },
             ],
+            totalCount: 2,
         });
 
         const result = await exec();
 
         const text = result.content.map((c) => (c as { text: string }).text).join("\n");
-        expect(text).toContain("Found 2 organizations in your MongoDB Atlas account.");
+        expect(text).toContain("Found 2 of 2 organizations in your MongoDB Atlas account.");
         expect(text).toContain("Org A");
         expect(text).toContain("Org B");
         expect(text).toContain("<untrusted-user-data-");
     });
 
     it("returns empty message when no organizations found", async () => {
-        mockApiClient.listOrgs!.mockResolvedValue({ results: [] });
+        mockApiClient.listOrgs!.mockResolvedValue({ results: [], totalCount: 0 });
 
         const result = await exec();
 
@@ -85,19 +86,19 @@ describe("ListOrganizationsTool", () => {
         );
     });
 
-    it("calls listOrgs API", async () => {
-        mockApiClient.listOrgs!.mockResolvedValue({ results: [] });
+    it("calls listOrgs API with includeCount", async () => {
+        mockApiClient.listOrgs!.mockResolvedValue({ results: [], totalCount: 0 });
 
         await exec();
 
         expect(mockApiClient.listOrgs).toHaveBeenCalledWith(
-            { params: { query: { itemsPerPage: 10, pageNum: 1 } } },
+            { params: { query: { itemsPerPage: 10, pageNum: 1, includeCount: true } } },
             expect.anything()
         );
     });
 
     it("defaults limit/pageNum to 10/1 when the caller passes no args, same as the real MCP client path", async () => {
-        mockApiClient.listOrgs!.mockResolvedValue({ results: [] });
+        mockApiClient.listOrgs!.mockResolvedValue({ results: [], totalCount: 0 });
 
         // The real invocation path parses incoming args against argsShape (applying zod
         // defaults) before execute() ever runs; exec() here calls execute() directly, so
@@ -106,24 +107,24 @@ describe("ListOrganizationsTool", () => {
         await exec(parsedArgs);
 
         expect(mockApiClient.listOrgs).toHaveBeenCalledWith(
-            { params: { query: { itemsPerPage: 10, pageNum: 1 } } },
+            { params: { query: { itemsPerPage: 10, pageNum: 1, includeCount: true } } },
             expect.anything()
         );
     });
 
     it("passes limit and pageNum to the API", async () => {
-        mockApiClient.listOrgs!.mockResolvedValue({ results: [] });
+        mockApiClient.listOrgs!.mockResolvedValue({ results: [], totalCount: 0 });
 
         await exec({ limit: 10, pageNum: 3 });
 
         expect(mockApiClient.listOrgs).toHaveBeenCalledWith(
-            { params: { query: { itemsPerPage: 10, pageNum: 3 } } },
+            { params: { query: { itemsPerPage: 10, pageNum: 3, includeCount: true } } },
             expect.anything()
         );
     });
 
     it("handles null results gracefully", async () => {
-        mockApiClient.listOrgs!.mockResolvedValue({ results: null });
+        mockApiClient.listOrgs!.mockResolvedValue({ results: null, totalCount: 0 });
 
         const result = await exec();
 
@@ -133,15 +134,79 @@ describe("ListOrganizationsTool", () => {
     });
 
     describe("structuredContent", () => {
-        it("returns totalCount as the number of organizations actually returned, ignoring any API-reported total", async () => {
+        it("returns the API-reported total count so callers know more pages may exist", async () => {
             mockApiClient.listOrgs!.mockResolvedValue({
                 results: [
                     { name: "Org A", id: "org-a" },
                     { name: "Org B", id: "org-b" },
                 ],
-                // Atlas-wide total across all pages, distinct from what this call returned -
-                // must not leak into totalCount below.
-                totalCount: 999,
+                // Total across all pages, distinct from what this page returned.
+                totalCount: 13,
+            });
+
+            const result = await exec();
+
+            expect(result.structuredContent).toEqual({
+                organizations: [
+                    { name: "Org A", id: "org-a" },
+                    { name: "Org B", id: "org-b" },
+                ],
+                totalCount: 13,
+            });
+
+            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+            expect(text).toContain("Use pagination if more results are needed.");
+        });
+
+        it("does not suggest pagination when all organizations are returned", async () => {
+            mockApiClient.listOrgs!.mockResolvedValue({
+                results: [
+                    { name: "Org A", id: "org-a" },
+                    { name: "Org B", id: "org-b" },
+                ],
+                totalCount: 2,
+            });
+
+            const result = await exec();
+
+            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+            expect(text).toContain("Found 2 of 2 organizations in your MongoDB Atlas account.");
+            expect(text).not.toContain("pagination");
+        });
+
+        it("does not suggest pagination on the last page", async () => {
+            mockApiClient.listOrgs!.mockResolvedValue({
+                results: [{ name: "Org A", id: "org-a" }],
+                totalCount: 11,
+            });
+
+            // Page 2 of 2: page 1 returned 10 of 11, this page returns the remaining 1.
+            const result = await exec({ limit: 10, pageNum: 2 });
+
+            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+            expect(text).toContain("Found 1 of 11 organizations in your MongoDB Atlas account.");
+            expect(text).not.toContain("pagination");
+        });
+
+        it("suggests pagination on a middle page", async () => {
+            mockApiClient.listOrgs!.mockResolvedValue({
+                results: [{ name: "Org A", id: "org-a" }],
+                totalCount: 25,
+            });
+
+            // Page 2 of 3: pages 1-2 returned 20 of 25, page 3 still has more.
+            const result = await exec({ limit: 10, pageNum: 2 });
+
+            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+            expect(text).toContain("Use pagination if more results are needed.");
+        });
+
+        it("falls back to the number of organizations returned when totalCount is missing", async () => {
+            mockApiClient.listOrgs!.mockResolvedValue({
+                results: [
+                    { name: "Org A", id: "org-a" },
+                    { name: "Org B", id: "org-b" },
+                ],
             });
 
             const result = await exec();
@@ -156,7 +221,7 @@ describe("ListOrganizationsTool", () => {
         });
 
         it("returns totalCount 0 when no organizations are found", async () => {
-            mockApiClient.listOrgs!.mockResolvedValue({ results: [] });
+            mockApiClient.listOrgs!.mockResolvedValue({ results: [], totalCount: 0 });
 
             const result = await exec();
 

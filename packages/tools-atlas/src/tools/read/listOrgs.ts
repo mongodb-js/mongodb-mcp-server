@@ -37,13 +37,21 @@ export class ListOrganizationsTool extends AtlasToolBase {
                     query: {
                         itemsPerPage: limit,
                         pageNum,
+                        includeCount: true,
                     },
                 },
             },
             context
         );
 
-        if (!data?.results?.length) {
+        const orgs = (data?.results ?? []).map((org) => ({
+            name: org.name,
+            id: org.id,
+        }));
+        const totalCount = data?.totalCount ?? orgs.length;
+        const moreResultsAvailable = (pageNum - 1) * limit + orgs.length < totalCount;
+
+        if (!orgs.length) {
             return {
                 content: [{ type: "text", text: "No organizations found in your MongoDB Atlas account." }],
                 structuredContent: {
@@ -53,19 +61,16 @@ export class ListOrganizationsTool extends AtlasToolBase {
             };
         }
 
-        const orgs = data.results.map((org) => ({
-            name: org.name,
-            id: org.id,
-        }));
-
         return {
             content: formatUntrustedData(
-                `Found ${orgs.length} organizations in your MongoDB Atlas account.`,
+                `Found ${orgs.length} of ${totalCount} organizations in your MongoDB Atlas account.${
+                    moreResultsAvailable ? " Use pagination if more results are needed." : ""
+                }`,
                 JSON.stringify(orgs)
             ),
             structuredContent: {
                 organizations: orgs,
-                totalCount: orgs.length,
+                totalCount,
             },
         };
     }

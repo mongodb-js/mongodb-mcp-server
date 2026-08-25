@@ -50,6 +50,7 @@ export class ListProjectsTool extends AtlasToolBase {
                           query: {
                               itemsPerPage: limit,
                               pageNum,
+                              includeCount: true,
                           },
                       },
                   },
@@ -61,15 +62,33 @@ export class ListProjectsTool extends AtlasToolBase {
                           query: {
                               itemsPerPage: limit,
                               pageNum,
+                              includeCount: true,
                           },
                       },
                   },
                   context
               );
 
-        if (!data?.results?.length) {
+        const projects = (data?.results ?? []).map((project) => ({
+            name: project.name,
+            id: project.id,
+            orgId: project.orgId,
+            created: project.created ? new Date(project.created).toLocaleString() : "N/A",
+        }));
+        const totalCount = data?.totalCount ?? projects.length;
+        const moreResultsAvailable = (pageNum - 1) * limit + projects.length < totalCount;
+
+        if (!projects.length) {
             return {
-                content: [{ type: "text", text: `No projects found in organization ${orgId}.` }],
+                content: [
+                    {
+                        type: "text",
+                        text:
+                            orgId !== undefined
+                                ? `No projects found in organization ${orgId}.`
+                                : "No projects found in your MongoDB Atlas account.",
+                    },
+                ],
                 structuredContent: {
                     ...(orgId !== undefined && { orgId }),
                     projects: [],
@@ -78,19 +97,17 @@ export class ListProjectsTool extends AtlasToolBase {
             };
         }
 
-        const projects = data.results.map((project) => ({
-            name: project.name,
-            id: project.id,
-            orgId: project.orgId,
-            created: project.created ? new Date(project.created).toLocaleString() : "N/A",
-        }));
-
         return {
-            content: formatUntrustedData(`Found ${projects.length} projects`, JSON.stringify(projects, null, 2)),
+            content: formatUntrustedData(
+                `Found ${projects.length} of ${totalCount} projects.${
+                    moreResultsAvailable ? " Use pagination if more results are needed." : ""
+                }`,
+                JSON.stringify(projects, null, 2)
+            ),
             structuredContent: {
                 ...(orgId !== undefined && { orgId }),
                 projects,
-                totalCount: projects.length,
+                totalCount,
             },
         };
     }
