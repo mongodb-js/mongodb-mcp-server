@@ -2387,6 +2387,7 @@ export class ListOrganizationsTool extends AtlasToolBase {
     argsShape: {
         limit: z.ZodDefault<z.ZodNumber>;
         pageNum: z.ZodDefault<z.ZodNumber>;
+        includeCount: z.ZodDefault<z.ZodBoolean>;
     };
     // (undocumented)
     description: string;
@@ -2413,6 +2414,7 @@ export class ListProjectsTool extends AtlasToolBase {
         orgId: z.ZodOptional<z.ZodString>;
         limit: z.ZodDefault<z.ZodNumber>;
         pageNum: z.ZodDefault<z.ZodNumber>;
+        includeCount: z.ZodDefault<z.ZodBoolean>;
     };
     // (undocumented)
     description: string;
