@@ -61,7 +61,7 @@
     "build": "concurrently \"pnpm run build:esm\" \"pnpm run build:cjs\" && pnpm run build:universal-package",
     "build:universal-package": "tsx scripts/createUniversalPackage.ts",
     "inspect": "pnpm run build && mcp-inspector -- dist/esm/index.js",
-    "check:api-report": "concurrently \"api-extractor run --config api-extractor.json\" \"api-extractor run --config api-extractor/api-extractor-web.json\"",
+    "check:api-report": "concurrently \"api-extractor run --config api-extractor.json\" \"api-extractor run --config api-extractor/api-extractor-web.json\" \"api-extractor run --config api-extractor/api-extractor-tools.json\"",
     "check:api": "pnpm run check:api-report || (printf \"\\nPublic API check failed. If you intended to change the public API, run:\\n\\n  pnpm run update:api\\n\" && exit 1)",
     "update:api": "concurrently \"api-extractor run --local --config api-extractor.json\" \"api-extractor run --local --config api-extractor/api-extractor-web.json\" \"api-extractor run --local --config api-extractor/api-extractor-tools.json\"",
     "build:mcpb": "tsx scripts/createMcpb.ts",
