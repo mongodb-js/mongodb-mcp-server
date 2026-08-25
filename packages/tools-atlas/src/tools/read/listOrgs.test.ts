@@ -55,8 +55,13 @@ describe("ListOrganizationsTool", () => {
     });
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    const exec = (args: Record<string, unknown> = { limit: 10, pageNum: 1 }) =>
-        tool["execute"](args as never, { signal: new AbortController().signal });
+    const exec = (args: Record<string, unknown> = {}) =>
+        tool["execute"](
+            { limit: 10, pageNum: 1, includeCount: false, ...args },
+            {
+                signal: new AbortController().signal,
+            }
+        );
 
     it("returns organizations when they exist", async () => {
         mockApiClient.listOrgs!.mockResolvedValue({
@@ -64,19 +69,21 @@ describe("ListOrganizationsTool", () => {
                 { name: "Org A", id: "org-a" },
                 { name: "Org B", id: "org-b" },
             ],
+            totalCount: 2,
         });
 
         const result = await exec();
 
         const text = result.content.map((c) => (c as { text: string }).text).join("\n");
         expect(text).toContain("Found 2 organizations in your MongoDB Atlas account.");
+        expect(text).not.toContain("of 2");
         expect(text).toContain("Org A");
         expect(text).toContain("Org B");
         expect(text).toContain("<untrusted-user-data-");
     });
 
     it("returns empty message when no organizations found", async () => {
-        mockApiClient.listOrgs!.mockResolvedValue({ results: [] });
+        mockApiClient.listOrgs!.mockResolvedValue({ results: [], totalCount: 0 });
 
         const result = await exec();
 
@@ -85,19 +92,30 @@ describe("ListOrganizationsTool", () => {
         );
     });
 
-    it("calls listOrgs API", async () => {
-        mockApiClient.listOrgs!.mockResolvedValue({ results: [] });
+    it("does not request includeCount from the API by default", async () => {
+        mockApiClient.listOrgs!.mockResolvedValue({ results: [], totalCount: 0 });
 
         await exec();
 
         expect(mockApiClient.listOrgs).toHaveBeenCalledWith(
-            { params: { query: { itemsPerPage: 10, pageNum: 1 } } },
+            { params: { query: { itemsPerPage: 10, pageNum: 1, includeCount: false } } },
+            expect.anything()
+        );
+    });
+
+    it("requests includeCount from the API when the caller opts in", async () => {
+        mockApiClient.listOrgs!.mockResolvedValue({ results: [], totalCount: 0 });
+
+        await exec({ includeCount: true });
+
+        expect(mockApiClient.listOrgs).toHaveBeenCalledWith(
+            { params: { query: { itemsPerPage: 10, pageNum: 1, includeCount: true } } },
             expect.anything()
         );
     });
 
     it("defaults limit/pageNum to 10/1 when the caller passes no args, same as the real MCP client path", async () => {
-        mockApiClient.listOrgs!.mockResolvedValue({ results: [] });
+        mockApiClient.listOrgs!.mockResolvedValue({ results: [], totalCount: 0 });
 
         // The real invocation path parses incoming args against argsShape (applying zod
         // defaults) before execute() ever runs; exec() here calls execute() directly, so
@@ -106,24 +124,24 @@ describe("ListOrganizationsTool", () => {
         await exec(parsedArgs);
 
         expect(mockApiClient.listOrgs).toHaveBeenCalledWith(
-            { params: { query: { itemsPerPage: 10, pageNum: 1 } } },
+            { params: { query: { itemsPerPage: 10, pageNum: 1, includeCount: false } } },
             expect.anything()
         );
     });
 
     it("passes limit and pageNum to the API", async () => {
-        mockApiClient.listOrgs!.mockResolvedValue({ results: [] });
+        mockApiClient.listOrgs!.mockResolvedValue({ results: [], totalCount: 0 });
 
         await exec({ limit: 10, pageNum: 3 });
 
         expect(mockApiClient.listOrgs).toHaveBeenCalledWith(
-            { params: { query: { itemsPerPage: 10, pageNum: 3 } } },
+            { params: { query: { itemsPerPage: 10, pageNum: 3, includeCount: false } } },
             expect.anything()
         );
     });
 
     it("handles null results gracefully", async () => {
-        mockApiClient.listOrgs!.mockResolvedValue({ results: null });
+        mockApiClient.listOrgs!.mockResolvedValue({ results: null, totalCount: 0 });
 
         const result = await exec();
 
@@ -133,15 +151,81 @@ describe("ListOrganizationsTool", () => {
     });
 
     describe("structuredContent", () => {
-        it("returns totalCount as the number of organizations actually returned, ignoring any API-reported total", async () => {
+        it("returns the API-reported total count so callers know more pages may exist", async () => {
             mockApiClient.listOrgs!.mockResolvedValue({
                 results: [
                     { name: "Org A", id: "org-a" },
                     { name: "Org B", id: "org-b" },
                 ],
-                // Atlas-wide total across all pages, distinct from what this call returned -
-                // must not leak into totalCount below.
-                totalCount: 999,
+                // Total across all pages, distinct from what this page returned.
+                totalCount: 13,
+            });
+
+            const result = await exec();
+
+            expect(result.structuredContent).toEqual({
+                organizations: [
+                    { name: "Org A", id: "org-a" },
+                    { name: "Org B", id: "org-b" },
+                ],
+                totalCount: 13,
+            });
+
+            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+            expect(text).toContain("Use pagination arguments if more results are expected.");
+        });
+
+        it("does not suggest pagination when all organizations are returned", async () => {
+            mockApiClient.listOrgs!.mockResolvedValue({
+                results: [
+                    { name: "Org A", id: "org-a" },
+                    { name: "Org B", id: "org-b" },
+                ],
+                totalCount: 2,
+            });
+
+            const result = await exec();
+
+            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+            expect(text).toContain("Found 2 organizations in your MongoDB Atlas account.");
+            expect(text).not.toContain("pagination");
+            expect(text).not.toContain("of 2");
+        });
+
+        it("does not suggest pagination on the last page", async () => {
+            mockApiClient.listOrgs!.mockResolvedValue({
+                results: [{ name: "Org A", id: "org-a" }],
+                totalCount: 11,
+            });
+
+            // Page 2 of 2: page 1 returned 10 of 11, this page returns the remaining 1.
+            const result = await exec({ limit: 10, pageNum: 2 });
+
+            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+            expect(text).toContain("Found 1 organizations in your MongoDB Atlas account.");
+            expect(text).not.toContain("pagination");
+            expect(text).not.toContain("of 11");
+        });
+
+        it("suggests pagination on a middle page", async () => {
+            mockApiClient.listOrgs!.mockResolvedValue({
+                results: [{ name: "Org A", id: "org-a" }],
+                totalCount: 25,
+            });
+
+            // Page 2 of 3: pages 1-2 returned 20 of 25, page 3 still has more.
+            const result = await exec({ limit: 10, pageNum: 2 });
+
+            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+            expect(text).toContain("Use pagination arguments if more results are expected.");
+        });
+
+        it("falls back to the number of organizations returned when totalCount is missing", async () => {
+            mockApiClient.listOrgs!.mockResolvedValue({
+                results: [
+                    { name: "Org A", id: "org-a" },
+                    { name: "Org B", id: "org-b" },
+                ],
             });
 
             const result = await exec();
@@ -153,10 +237,24 @@ describe("ListOrganizationsTool", () => {
                 ],
                 totalCount: 2,
             });
+
+            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+            expect(text).not.toContain("pagination");
+        });
+
+        it("suggests pagination on a full page when totalCount is missing", async () => {
+            mockApiClient.listOrgs!.mockResolvedValue({
+                results: Array.from({ length: 10 }, (_, i) => ({ name: `Org ${i}`, id: `org-${i}` })),
+            });
+
+            const result = await exec({ limit: 10 });
+
+            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+            expect(text).toContain("Use pagination arguments if more results are expected.");
         });
 
         it("returns totalCount 0 when no organizations are found", async () => {
-            mockApiClient.listOrgs!.mockResolvedValue({ results: [] });
+            mockApiClient.listOrgs!.mockResolvedValue({ results: [], totalCount: 0 });
 
             const result = await exec();
 

@@ -39,6 +39,8 @@ jobs:
           cache: "pnpm"
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm run build
       - name: Push eval to Braintrust
         if: github.ref == 'refs/heads/main'
         run: pnpm run eval:push

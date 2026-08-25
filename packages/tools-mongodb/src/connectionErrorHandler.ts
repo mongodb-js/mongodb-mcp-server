@@ -118,7 +118,7 @@ export const connectionErrorHandler: ConnectionErrorHandler = (error, { availabl
                     content: [
                         {
                             type: "text",
-                            text: "The configured connection string is not valid. Please check the connection string and confirm it points to a valid MongoDB instance.",
+                            text: `Could not connect to MongoDB. Last error: ${error.message}`,
                         },
                         {
                             type: "text",

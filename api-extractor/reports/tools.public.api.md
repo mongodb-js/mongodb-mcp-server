@@ -1051,7 +1051,16 @@ export const CreateDBUserArgs: {
     password: z.ZodOptional<z.ZodString>;
     roles: z.ZodArray<z.ZodObject<{
         roleName: z.ZodUnion<readonly [z.ZodEnum<{
-            [x: string]: string;
+            backup: "backup";
+            read: "read";
+            atlasAdmin: "atlasAdmin";
+            clusterMonitor: "clusterMonitor";
+            dbAdmin: "dbAdmin";
+            dbAdminAnyDatabase: "dbAdminAnyDatabase";
+            enableSharding: "enableSharding";
+            readAnyDatabase: "readAnyDatabase";
+            readWrite: "readWrite";
+            readWriteAnyDatabase: "readWriteAnyDatabase";
         }>, z.ZodString]>;
         databaseName: z.ZodDefault<z.ZodString>;
         collectionName: z.ZodOptional<z.ZodString>;
@@ -1068,7 +1077,16 @@ export class CreateDBUserTool extends AtlasToolBase {
         password: z.ZodOptional<z.ZodString>;
         roles: z.ZodArray<z.ZodObject<{
             roleName: z.ZodUnion<readonly [z.ZodEnum<{
-                [x: string]: string;
+                backup: "backup";
+                read: "read";
+                atlasAdmin: "atlasAdmin";
+                clusterMonitor: "clusterMonitor";
+                dbAdmin: "dbAdmin";
+                dbAdminAnyDatabase: "dbAdminAnyDatabase";
+                enableSharding: "enableSharding";
+                readAnyDatabase: "readAnyDatabase";
+                readWrite: "readWrite";
+                readWriteAnyDatabase: "readWriteAnyDatabase";
             }>, z.ZodString]>;
             databaseName: z.ZodDefault<z.ZodString>;
             collectionName: z.ZodOptional<z.ZodString>;
@@ -1168,8 +1186,8 @@ export class CreateIndexTool extends MongoDBToolBase {
                 }>>;
                 quantization: z.ZodDefault<z.ZodEnum<{
                     none: "none";
-                    scalar: "scalar";
                     binary: "binary";
+                    scalar: "scalar";
                 }>>;
             }, z.core.$strict>, z.ZodObject<{
                 type: z.ZodLiteral<"autoEmbed">;
@@ -1211,9 +1229,9 @@ export class CreateIndexTool extends MongoDBToolBase {
         collection: z.ZodString;
         indexName: z.ZodString;
         indexType: z.ZodEnum<{
-            classic: "classic";
-            vectorSearch: "vectorSearch";
             search: "search";
+            vectorSearch: "vectorSearch";
+            classic: "classic";
         }>;
     };
     // (undocumented)
@@ -1447,8 +1465,8 @@ export class DropIndexTool extends MongoDBToolBase {
     argsShape: {
         indexName: z.ZodString;
         type: z.ZodEnum<{
-            classic: "classic";
             search: "search";
+            classic: "classic";
         }>;
         collection: z.ZodString;
         database: z.ZodString;
@@ -1572,8 +1590,8 @@ export class ExplainTool extends MongoDBToolBase {
         explainResult: z.ZodRecord<z.ZodString, z.ZodUnknown>;
         method: z.ZodEnum<{
             find: "find";
-            aggregate: "aggregate";
             count: "count";
+            aggregate: "aggregate";
         }>;
         verbosity: z.ZodEnum<{
             queryPlanner: "queryPlanner";
@@ -2090,6 +2108,7 @@ export const ListAlertsArgs: {
     }>>;
     limit: z.ZodDefault<z.ZodNumber>;
     pageNum: z.ZodDefault<z.ZodNumber>;
+    includeCount: z.ZodDefault<z.ZodBoolean>;
 };
 
 // @public (undocumented)
@@ -2104,6 +2123,7 @@ export class ListAlertsTool extends AtlasToolBase {
         }>>;
         limit: z.ZodDefault<z.ZodNumber>;
         pageNum: z.ZodDefault<z.ZodNumber>;
+        includeCount: z.ZodDefault<z.ZodBoolean>;
     };
     // (undocumented)
     description: string;

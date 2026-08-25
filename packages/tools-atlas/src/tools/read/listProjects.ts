@@ -12,6 +12,12 @@ export const ListProjectsArgs = {
         .optional(),
     limit: z.number().int().min(1).max(500).default(10).describe("Max number of projects to return per page."),
     pageNum: z.number().int().min(1).default(1).describe("Page number of projects to return."),
+    includeCount: z
+        .boolean()
+        .default(false)
+        .describe(
+            "Whether to include the total number of matching projects. Note: enabling this makes the API request take much longer."
+        ),
 };
 
 const ListProjectsOutputSchema = {
@@ -37,7 +43,7 @@ export class ListProjectsTool extends AtlasToolBase {
     public override outputSchema = ListProjectsOutputSchema;
 
     protected async execute(
-        { orgId, limit, pageNum }: ToolArgs<typeof this.argsShape>,
+        { orgId, limit, pageNum, includeCount }: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
         const data = orgId
@@ -50,6 +56,7 @@ export class ListProjectsTool extends AtlasToolBase {
                           query: {
                               itemsPerPage: limit,
                               pageNum,
+                              includeCount,
                           },
                       },
                   },
@@ -61,15 +68,38 @@ export class ListProjectsTool extends AtlasToolBase {
                           query: {
                               itemsPerPage: limit,
                               pageNum,
+                              includeCount,
                           },
                       },
                   },
                   context
               );
 
-        if (!data?.results?.length) {
+        const projects = (data?.results ?? []).map((project) => ({
+            name: project.name,
+            id: project.id,
+            orgId: project.orgId,
+            created: project.created ? new Date(project.created).toLocaleString() : "N/A",
+        }));
+        const totalCount = data?.totalCount ?? projects.length;
+        // Without includeCount the API omits totalCount, so a full page is the signal
+        // that more results may exist on later pages.
+        const moreResultsAvailable =
+            data?.totalCount !== undefined
+                ? (pageNum - 1) * limit + projects.length < data.totalCount
+                : projects.length === limit;
+
+        if (!projects.length) {
             return {
-                content: [{ type: "text", text: `No projects found in organization ${orgId}.` }],
+                content: [
+                    {
+                        type: "text",
+                        text:
+                            orgId !== undefined
+                                ? `No projects found in organization ${orgId}.`
+                                : "No projects found in your MongoDB Atlas account.",
+                    },
+                ],
                 structuredContent: {
                     ...(orgId !== undefined && { orgId }),
                     projects: [],
@@ -78,19 +108,17 @@ export class ListProjectsTool extends AtlasToolBase {
             };
         }
 
-        const projects = data.results.map((project) => ({
-            name: project.name,
-            id: project.id,
-            orgId: project.orgId,
-            created: project.created ? new Date(project.created).toLocaleString() : "N/A",
-        }));
-
         return {
-            content: formatUntrustedData(`Found ${projects.length} projects`, JSON.stringify(projects, null, 2)),
+            content: formatUntrustedData(
+                `Found ${projects.length} projects.${
+                    moreResultsAvailable ? " Use pagination arguments if more results are expected." : ""
+                }`,
+                JSON.stringify(projects, null, 2)
+            ),
             structuredContent: {
                 ...(orgId !== undefined && { orgId }),
                 projects,
-                totalCount: projects.length,
+                totalCount,
             },
         };
     }
